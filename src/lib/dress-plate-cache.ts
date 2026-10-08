@@ -16,7 +16,24 @@ export type DayDressPlateEntry = {
    * when next used. Stored as `true` before versions: that is 1.
    */
   shoesChecked?: number;
+  /** The engine that rendered it (or the Outfit try-on kept as it). Missing before 2026-10-08. */
+  engine?: string;
 };
+
+/**
+ * Plates from Klein 9B Distilled lose the clothing's detail (user report 2026-10-08) — plates are
+ * Edit 2511's again, and Klein ones are made anew. Klein plates came in on 2026-10-08 (Outfit
+ * try-ons from 09:28 EDT, kept as plates; Day plates from 13:31) before the engine was recorded:
+ * an unmarked plate from then on is taken for a Klein one.
+ */
+const KLEIN_PLATE_ENGINE = 'flux-2-klein-9b-distilled';
+const KLEIN_PLATES_SINCE_MS = 1791466096000 - 60 * 60 * 1000;
+
+export function dressPlateFromRetiredEngine(entry: DayDressPlateEntry): boolean {
+  const engine = entry.engine?.trim();
+  if (engine) return engine === KLEIN_PLATE_ENGINE;
+  return entry.at >= KLEIN_PLATES_SINCE_MS;
+}
 
 /** Shared by Day, Story and Outfit; outfit arcs use two kits a day — keep a dozen. */
 export const DAY_DRESS_PLATE_CACHE_LIMIT = 12;
@@ -25,7 +42,11 @@ export function findDayDressPlate(
   cache: readonly DayDressPlateEntry[] | null | undefined,
   key: string
 ): DayDressPlateEntry | null {
-  return cache?.find(entry => entry.key === key && entry.filename?.trim()) ?? null;
+  return (
+    cache?.find(
+      entry => entry.key === key && entry.filename?.trim() && !dressPlateFromRetiredEngine(entry)
+    ) ?? null
+  );
 }
 
 /** Newest first, one entry per key, capped. */

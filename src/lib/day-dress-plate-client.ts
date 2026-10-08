@@ -208,13 +208,13 @@ async function fixDressPlateFeet(
 }
 
 /**
- * The engine a dress plate renders on: Klein 9B Distilled when it is installed, else the still's.
- * Live A/B (2026-10-08, Lana in her burgundy dress and woven wedges, six of her Day stills): plate
- * 10–24 s vs Edit 2511's ~80 s, the wedges on 1 of 2 plates vs barefoot 2 of 2 (each a shoe pass),
- * and the Day stills started from it as close to her face (0.51 vs 0.59, lower is closer). Klein
- * renders it portrait, like the Cast plates, with the color anchor at 0.1 (0.45 over-bakes).
+ * The engine a dress plate renders on: Edit 2511 Lightning 8 when it is installed, else the
+ * still's. Klein 9B Distilled was tried (2026-10-08: plate 10–24 s vs ~80 s, wedges kept more
+ * often) but it loses the picked clothing's detail (user report the same day) — the plate is the
+ * outfit every still copies, so detail wins. Klein-made plates are re-made (dress-plate-cache.ts).
  */
-export const DRESS_PLATE_ENGINE = 'flux-2-klein-9b-distilled';
+export const DRESS_PLATE_ENGINE = 'qwen-image-edit-2511-lightning-8';
+const KLEIN_ENGINE = 'flux-2-klein-9b-distilled';
 
 export function dressPlateEngine(
   stillModel: string,
@@ -231,10 +231,10 @@ async function renderDayDressPlate(
   const installed =
     deps.installed !== undefined ? deps.installed : await fetchInstalledModelCheck();
   const plateModel = dressPlateEngine(request.model, installed);
-  const onKlein = plateModel === DRESS_PLATE_ENGINE;
+  const onKlein = plateModel === KLEIN_ENGINE;
   const pending = pendingJobs.get(key);
   if (pending) {
-    return finishDressPlateJob(request, deps, key, pending.promptId, RECHECK_WAIT_MS);
+    return finishDressPlateJob(request, deps, key, pending.promptId, RECHECK_WAIT_MS, plateModel);
   }
   const failed = failedAt.get(key);
   if (failed && Date.now() - failed < FAILURE_COOLDOWN_MS) {
@@ -300,7 +300,7 @@ async function renderDayDressPlate(
     throw new Error('The dress plate could not be queued.');
   }
   pendingJobs.set(key, { promptId: id, gaveUpAt: null });
-  return finishDressPlateJob(request, deps, key, id, FIRST_WAIT_MS);
+  return finishDressPlateJob(request, deps, key, id, FIRST_WAIT_MS, plateModel);
 }
 
 /** Wait for a queued plate job, then stage its image as a ComfyUI input. */
@@ -309,7 +309,9 @@ async function finishDressPlateJob(
   deps: DayDressPlateDeps,
   key: string,
   promptId: string,
-  timeoutMs: number
+  timeoutMs: number,
+  /** The engine it renders on (recorded on the plate). */
+  engine: string
 ): Promise<DayDressPlateEntry> {
   const wait = deps.waitForPromptIds ?? waitForGalleryPromptIds;
   const [entry] = await wait([promptId], { timeoutMs, pollMs: 2_500 });
@@ -344,6 +346,7 @@ async function finishDressPlateJob(
     filename,
     imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
     at: Date.now(),
+    engine,
     ...(feet.checked ? { shoesChecked: FOOTWEAR_CHECK_VERSION } : {}),
   };
 }
@@ -381,6 +384,7 @@ async function recheckStoredPlateFeet(
       filename,
       imageUrl: comfyInputViewUrl(filename) ?? feet.imageUrl,
       at: Date.now(),
+      ...(cached.engine ? { engine: cached.engine } : {}),
       shoesChecked: FOOTWEAR_CHECK_VERSION,
     };
   } catch {
@@ -464,6 +468,7 @@ export async function registerDressPlateFromImage(
       filename,
       imageUrl: comfyInputViewUrl(filename) ?? url,
       at: Date.now(),
+      engine: request.model,
     };
     verified.add(`${key}::${filename}`);
     saveDressPlate(entry);

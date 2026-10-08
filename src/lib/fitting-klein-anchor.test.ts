@@ -13,14 +13,19 @@ describe('Klein color anchor on Outfit try-ons', () => {
 });
 
 describe('Day dress plate engine', () => {
-  it('renders on Klein 9B Distilled when installed, else the still engine; the anchor caps per queue', async () => {
+  it('renders on Edit 2511 when installed, else the still engine; Klein plates are made anew', async () => {
     const { dressPlateEngine } = await import('./day-dress-plate-client');
-    assert.equal(dressPlateEngine('qwen-image-edit-2511-lightning-8', () => true), 'flux-2-klein-9b-distilled');
-    assert.equal(
-      dressPlateEngine('qwen-image-edit-2511-lightning-8', id => id !== 'flux-2-klein-9b-distilled'),
-      'qwen-image-edit-2511-lightning-8'
-    );
+    const { findDayDressPlate } = await import('./dress-plate-cache');
+    const E2511 = 'qwen-image-edit-2511-lightning-8';
+    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', () => true), E2511);
+    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', id => id !== E2511), 'qwen-rapid-aio-edit');
     assert.equal(dressPlateEngine('qwen-rapid-aio-edit', null), 'qwen-rapid-aio-edit');
+    const old = { key: 'k', filename: 'a.png', at: Date.parse('2026-10-01T00:00:00Z') };
+    const kleinEra = { key: 'k', filename: 'b.png', at: Date.parse('2026-10-08T20:00:00Z') };
+    assert.equal(findDayDressPlate([old], 'k')?.filename, 'a.png');
+    assert.equal(findDayDressPlate([kleinEra], 'k'), null);
+    assert.equal(findDayDressPlate([{ ...kleinEra, engine: 'flux-2-klein-9b-distilled' }], 'k'), null);
+    assert.equal(findDayDressPlate([{ ...kleinEra, engine: E2511 }], 'k')?.filename, 'b.png');
     assert.equal(kleinColorAnchorStrengthForTool(0.45, 'image-prompt', 0.1), 0.1);
     assert.equal(kleinColorAnchorStrengthForTool(0.45, 'image-prompt'), 0.45);
   });

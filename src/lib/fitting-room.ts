@@ -920,13 +920,12 @@ export function setFittingCompareTryOnBackImage(
 }
 
 /**
- * Outfit's engine, best first: Klein 9B Distilled (try-ons on 8 saved clothing photos, 2026-10-08:
- * median 16 s vs 55 s, the picked shoes 12 of 12 vs 2 of 12), else Edit 2511 Lightning 8.
+ * Outfit's default engine: Edit 2511 Lightning 8. Klein 9B Distilled led this list for a day
+ * (2026-10-08: median 16 s vs 55 s, the picked shoes 12 of 12 vs 2 of 12) but it loses the
+ * clothing's detail (user report the same day); it stays a pick in the Engine chip. A player
+ * Outfit switched to Klein goes back once (lastApplied was Klein).
  */
-export const FITTING_DEFAULT_ENGINES = [
-  'flux-2-klein-9b-distilled',
-  'qwen-image-edit-2511-lightning-8',
-] as const;
+export const FITTING_DEFAULT_ENGINES = ['qwen-image-edit-2511-lightning-8'] as const;
 
 /**
  * The engine Outfit should switch to, or null: the best installed of FITTING_DEFAULT_ENGINES,
