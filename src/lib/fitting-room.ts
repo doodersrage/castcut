@@ -659,6 +659,11 @@ export function buildFittingOutfitPrompt(input: {
     'ignore Cast look notes, character bible clothing, and any wardrobe described on the character record',
     garmentLine,
     input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
+    // A photo of a top alone: Klein 9B Distilled left the plate's underwear as the bottoms (2/2);
+    // with this line it added shorts 3/3, one-piece garments unchanged (live A/B, 2026-10-08).
+    input.hasGarmentReference
+      ? 'if Image 2 shows only a top, she also wears simple bottoms that go with it (shorts, a skirt or trousers) — never underwear showing; a one-piece garment (dress, romper, bodysuit) needs nothing added'
+      : null,
     footwear || null,
     hasShoes
       ? 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them — the footwear above replaces its shoes'
@@ -750,7 +755,9 @@ export function fittingFeetPassPlan(input: {
   // Unchecked (no vision model, or LM Studio could not load it while ComfyUI held the card): pass
   // anyway — try-ons with picked shoes came back right ~1 of 10 without it (Castcut_03148 stayed
   // barefoot that way), and the pass put them on 9 of 9.
-  return { model, whenUnchecked: true };
+  // Klein 9B Distilled put the picked shoes on 12 of 12 try-ons by itself (2511: 2 of 12), and a
+  // blind pass would swap the card over to Edit 2511 — only a failed check sends it there.
+  return { model, whenUnchecked: !/klein/i.test(input.model ?? '') };
 }
 
 /**

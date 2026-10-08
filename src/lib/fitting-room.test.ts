@@ -639,3 +639,28 @@ describe('Outfit front and back', () => {
     assert.equal(buildFittingCompareLightboxState(tryOns, 'b', { back: true })?.index, 2);
   });
 });
+
+describe('Outfit on Klein 9B Distilled', () => {
+  it('no blind shoe pass after a Klein try-on; a top-alone photo gets bottoms', async () => {
+    const { buildFittingOutfitPrompt } = await import('./fitting-room');
+    assert.equal(
+      fittingFeetPassPlan({
+        model: 'flux-2-klein-9b-distilled',
+        hasCustomPose: false,
+        footwear: 'white sneakers',
+        installed: () => true,
+      })?.whenUnchecked,
+      false
+    );
+    const prompt = buildFittingOutfitPrompt({
+      outfitLabel: 'pink cropped tee',
+      hasGarmentReference: true,
+      garmentDescription: 'A cropped pink t-shirt',
+    });
+    assert.match(prompt, /if Image 2 shows only a top, she also wears simple bottoms/);
+    assert.doesNotMatch(
+      buildFittingOutfitPrompt({ outfitLabel: 'red sundress' }),
+      /shows only a top/
+    );
+  });
+});
