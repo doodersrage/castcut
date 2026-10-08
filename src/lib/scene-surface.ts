@@ -762,11 +762,25 @@ export function fitBeatToSetting(
   return next === text ? text : tidy(next);
 }
 
-/** True when the beat's furniture and posture fit the Setting as they are. */
+/** A moment that happens in the sky — it needs a place the sky is seen from. */
+const SKY_MOMENT_RE =
+  /\b(?:fireworks|shooting stars?|starry|stars come out|under the stars|moonlight|moonrise|meteor|sunset over|sunrise over|northern lights)\b/i;
+/** Places that see the sky: outdoors, or a window / balcony looking out. */
+const SKY_VIEW_SETTING_RE =
+  /\b(?:rooftop|roof|balcony|terrace|deck|patio|street|avenue|park|garden|river|riverside|beach|pier|bridge|harbou?r|marina|plaza|square|lawn|field|hill|outdoor|outside|courtyard|promenade|boardwalk|window|skyline|overlook|boat|lake)\b/i;
+
+/**
+ * True when the beat's furniture and posture fit the Setting as they are, and a sky moment
+ * ("throws both arms up as the fireworks start") has a sky to happen in — paired with a record
+ * shop, every seed drew fireworks bursting indoors (overnight sweep, 2026-10-08).
+ */
 export function beatFitsSetting(
   beat: string | null | undefined,
   setting: string | null | undefined
 ): boolean {
+  if (SKY_MOMENT_RE.test(beat ?? '') && setting?.trim() && !SKY_VIEW_SETTING_RE.test(setting)) {
+    return false;
+  }
   return sceneSurfaceConflicts(beat ?? '', setting).length === 0;
 }
 

@@ -24,3 +24,14 @@ describe('shoes on auto for clothed Day stills', () => {
     assert.equal(dayAutoFootwear({ beat: 'relaxing on the balcony with a breakfast tray, robe over sleepwear', setting: 'hotel balcony', dayMood: 'vacation' }), null);
   });
 });
+
+describe('sky moments need a sky', () => {
+  it('fireworks do not pair with an indoor shop; a rooftop or riverside is fine', async () => {
+    const { beatFitsSetting } = await import('./scene-surface');
+    const beat = 'throws both arms up in the air as the fireworks start';
+    assert.equal(beatFitsSetting(beat, 'record shop with crates of vinyl and a listening booth'), false);
+    assert.equal(beatFitsSetting(beat, 'rooftop terrace with string lights'), true);
+    assert.equal(beatFitsSetting(beat, 'riverside promenade at night'), true);
+    assert.equal(beatFitsSetting('browsing a shelf of records', 'record shop with crates of vinyl'), true);
+  });
+});
