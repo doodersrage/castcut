@@ -44,7 +44,7 @@ describe('same-sex duo wording', () => {
       lead: 'man',
       partner: { partner: SAM, image: 'second' },
     });
-    assert.match(lap ?? '', /His boyfriend sits on the armchair; the man sits on his boyfriend's lap/);
+    assert.match(lap ?? '', /His boyfriend sits upright on the armchair; the man sits on top of him, astride his boyfriend's lap/);
     assert.doesNotMatch(lap ?? '', /lies on his back/);
   });
 

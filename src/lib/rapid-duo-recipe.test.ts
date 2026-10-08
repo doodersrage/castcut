@@ -101,6 +101,17 @@ describe('Rapid duo recipe', () => {
     assert.match(steer(bare), /Everyone in the picture is an adult in their thirties/);
   });
 
+  it('drops worn-clothes clauses from a nude two-men Moment after the beat is masculinised', () => {
+    const men = { lead: 'man' as const, partner: { partner: { kind: 'cast', noun: 'man' }, image: 'face' } } as never;
+    for (const beat of [
+      'straddling his boyfriend on the couch, a shirt and trousers pushed up, both adults fully visible mid-kiss',
+      'bent over the hotel desk mid-sex with his boyfriend behind, a shirt and trousers around his waist',
+    ]) {
+      const moment = /Moment: [^.]*\./.exec(buildRapidDuoRecipe({ beat, ...(men as object) })!)?.[0] ?? '';
+      assert.doesNotMatch(moment, /shirt|trousers/, moment);
+    }
+  });
+
   it('reads who gives oral and which furniture the beat names', () => {
     assert.match(
       buildRapidDuoRecipe({ beat: 'she goes down on her partner on the couch — oral, both adults fully visible' })!,

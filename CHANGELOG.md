@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Two-men adult stills: clothes, lap and straddle.** From the same-sex sweep, tested on its own graphs over three seeds:
+  - **Clothes:** "a dress pushed up" becomes "a shirt and trousers pushed up" for two men, and that slipped past the nude recipe's clothes filter, dressing the partner (4 of 4). Now both are nude, 6 of 6.
+  - **Lap:** they sat side by side (4 of 4). The two-women wording, astride his lap as "two separate bodies", in side view: 6 of 6.
+  - **Straddle on the bed:** the rider stood over him (2 of 2). Now he sits upright astride him, knees on the mattress: 3 of 3.
+  - **Not fixed:** lift beats still miss.
 - **Outfit and dress plates are back on Edit 2511.** Klein 9B Distilled was faster but lost the picked clothing's detail. Outfit's default engine is Edit 2511 again: an Outfit switched to Klein goes back once, and Klein stays available in the Engine chip. Dress plates (Day, Story, Outfit Keep) render on Edit 2511 when it's installed. Plates now record the engine that made them; Klein-made plates, including unmarked ones from 2026-10-08 when Klein was the default, are re-made on 2511 the next time they're needed.
 - **Man–woman oral contact on Rapid.** When she goes down on him, the recipe said "both faces in frame… looking up at him", and she knelt beside him holding it with her mouth off it (0 of 6). It now uses the side view that fixed two men: her face in profile at his hips or lap, "exactly one man and one woman". Contact went to 5 of 6 on the user's sweep graphs; one render added a third person.
 - **Story points at the right pose map.** With no clothing image, a Story still's pose map goes in as Image 2, but the prompt called it "Image 3", a picture that wasn't there (101 of the user's Story stills). Story now renumbers the way Day does. The adult nude line ("Image 1 and Image 2 fabric…") no longer blocks the renumbering on Day or Story. A same-seed replay of 10 stills changed little: Rapid follows the map in its slot either way. This is a correctness fix.

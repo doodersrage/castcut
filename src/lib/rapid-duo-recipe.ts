@@ -343,11 +343,15 @@ function placementTwoMen(
     case 'mating_press':
       return `Side view, both faces in frame. The man lies on his back on ${on('bed')} with his knees raised and legs around ${bf}; ${bf} kneels between his thighs, leaning over him on his arms, his penis inside the man; their faces close, looking at each other.`;
     case 'straddle':
-      return `Wide shot, both faces in frame. ${cap(bf)} lies on his back on ${on('bed')}; the man kneels astride his boyfriend's hips, knees on either side, sitting down on his boyfriend's penis and riding him, hands on his boyfriend's chest.`;
+      // "Wide shot, both faces in frame … kneels astride" stood the rider up over him on the bed
+      // (2/2 sweep); a side view, "sits upright astride … knees bent on the mattress": 3/3.
+      return `Side view. ${cap(bf)} lies on his back on ${on('bed')}; the man sits upright astride his boyfriend's hips, his knees bent on the mattress on either side, riding him, hands on his boyfriend's chest. Both bodies on the bed, one on top of the other.`;
     case 'lap':
       // Seated, as the couple's lap is: shared with the straddle it laid his boyfriend on his
       // back "on the armchair".
-      return `${cap(bf)} sits on ${on('chair')}; the man sits on his boyfriend's lap facing him, straddling him with his knees on either side of his hips, riding his boyfriend's penis, arms around his neck.`;
+      // Facing-lap wording sat them side by side (4/4, same-sex sweep 2026-10-08); the two-women
+      // fix ("astride … two separate bodies, one on the other's lap") in side view: 6/6.
+      return `Side view, both men in profile. ${cap(bf)} sits upright on ${on('chair')}; the man sits on top of him, astride his boyfriend's lap facing him, chest to chest, his knees bent on either side of his boyfriend's hips, riding him, arms around his neck — two separate bodies, one on the other's lap.`;
     case 'reverse_straddle':
       return `Camera in front of the man. The man is closest to the camera, facing the lens, sitting on the lap of ${bf}, who sits back on ${on('couch')} behind him, riding his boyfriend's penis; ${bf}'s hands on his hips and face behind his shoulder.`;
     case 'bent':
@@ -1008,8 +1012,10 @@ const SOLO_LEGS_HIGH_RE = /\bankles?\s+near|knees\s+pulled\s+up|shoulders\b/i;
  * recipe says "completely nude"; with both, Rapid drew underwear or a skirt at the waist 3/3,
  * and 0/3 with the clause gone (2026-10-07).
  */
+// Two men's beats are masculinised first ("dress pushed up" → "a shirt and trousers pushed up"),
+// which slipped past and dressed the partner on 4/4 sweep stills (2026-10-08).
 const WORN_CLOTHES_CLAUSE_RE =
-  /,?\s*(?:her\s+|his\s+)?(?:[\w-]+\s+)?(?:dress|skirt|shirt|top|robe|slip|lingerie|panties|underwear)\s+(?:pushed|hiked|bunched|rucked|pulled)?\s*(?:up\s+)?(?:around\s+(?:her|his)\s+(?:waist|hips|ankles)|pushed\s+up|hiked\s+up|half[- ]off)\b/gi;
+  /,?\s*(?:an?\s+)?(?:her\s+|his\s+)?(?:[\w-]+\s+)?(?:shirt\s+and\s+trousers|boxer\s+briefs|dress|skirt|shirt|top|robe|slip|undershirt|lingerie|panties|underwear|trousers|shorts)\s+(?:pushed|hiked|bunched|rucked|pulled)?\s*(?:up\s+)?(?:around\s+(?:her|his)(?:\s+(?:boyfriend|girlfriend)'s)?\s+(?:waist|hips|ankles)|pushed\s+up|hiked\s+up|half[- ]off)\b/gi;
 
 const CLOTHES_RE =
   /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;
