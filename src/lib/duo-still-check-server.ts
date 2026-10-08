@@ -16,8 +16,17 @@ import {
 } from '@/lib/comfy-utility-graph-server';
 import { buildDetectorInputs } from '@/lib/pose-detect-server';
 import {
+  castcutCanAnalyze,
+  castcutDuoCounts,
+  castcutRoutes,
+  recordCastcutFallback,
+  type CastcutDuoCounts,
+} from '@/lib/castcut-routes-server';
+import {
   buildDuoCountGraph,
   DUO_COUNT_NODES,
+  DUO_COUNT_READ_IDS,
+  DUO_COUNT_THRESHOLD,
   DUO_FACE_MODEL,
   DUO_HAND_MODEL,
   DUO_PENIS_MODEL,
@@ -27,6 +36,18 @@ import {
 } from '@/lib/duo-still-check';
 
 export type { DuoStillCheckResult };
+
+/** The pack's reply in the shape the count graph's outputs have, for readDuoCountReplies. */
+export function duoCountOutputsFromPack(reply: CastcutDuoCounts): Record<string, unknown> {
+  const outputs: Record<string, unknown> = {
+    [DUO_COUNT_READ_IDS.pose]: { openpose_json: [reply.openposeJson] },
+  };
+  for (const key of ['faces', 'hands', 'penises', 'vaginas'] as const) {
+    const count = reply.counts[key];
+    if (typeof count === 'number') outputs[DUO_COUNT_READ_IDS[key]] = { text: [String(count)] };
+  }
+  return outputs;
+}
 
 const DETECTOR_NODES = ['DWPreprocessor', 'OpenposePreprocessor'] as const;
 
@@ -78,6 +99,27 @@ export async function countDuoStillInComfy(input: {
     penis: models.includes(DUO_PENIS_MODEL),
     vagina: models.includes(DUO_VAGINA_MODEL),
   };
+  // The pack counts in-process (no queue wait behind a render); the graph is the fallback.
+  if (castcutCanAnalyze(await castcutRoutes(baseUrl), 'duo-counts')) {
+    try {
+      const reply = await castcutDuoCounts(baseUrl, {
+        image: ref,
+        threshold: DUO_COUNT_THRESHOLD,
+        timeoutMs: input.timeoutMs,
+        models: {
+          faces: { model: DUO_FACE_MODEL, segm: false },
+          hands: { model: DUO_HAND_MODEL, segm: false },
+          ...(parts.penis ? { penises: { model: DUO_PENIS_MODEL, segm: true } } : {}),
+          ...(parts.vagina ? { vaginas: { model: DUO_VAGINA_MODEL, segm: true } } : {}),
+        },
+      });
+      const counts = reply ? readDuoCountReplies(duoCountOutputsFromPack(reply)) : null;
+      if (counts) return { available: true, counts };
+    } catch (error) {
+      console.warn('Castcut duo counts failed; counting with a graph:', error);
+    }
+    recordCastcutFallback('duo-counts');
+  }
   const imageName = await stageComfyImageAsInput(baseUrl, ref, 'duo-count');
   const run = await runComfyUtilityGraph({
     baseUrl,

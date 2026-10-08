@@ -10,6 +10,7 @@ import {
   castcutFallbackCounts,
   castcutObjectInfoFingerprint,
   castcutPersonPoses,
+  castcutDuoCounts,
   castcutPngPrompt,
   castcutPoseJson,
   castcutRoutes,
@@ -62,6 +63,7 @@ describe('Castcut node pack routes', () => {
       faceAnalysis: true,
       dwpose: false,
       personRead: false,
+      duoCounts: false,
       ops: ['face-distance', 'face-boxes'],
     });
     assert.equal(parseCastcutRoutesInfo({ version: 1 }), null);
@@ -401,6 +403,39 @@ describe('Castcut nodes 1.4.0', () => {
     });
     assert.equal(castcutCanAnalyze(info, 'person-poses'), false);
     assert.equal(castcutCanAnalyze({ ...info!, personRead: true }, 'person-poses'), true);
+  });
+
+  it('duo counts (1.6.0): counts and the body read, null without the nodes, gated on duoCounts', async () => {
+    const { impl, calls } = fakeFetch({
+      '/castcut/analyze': body =>
+        (body as { threshold: number }).threshold === 0.9
+          ? [200, { op: 'duo-counts', error: 'no-duo-counts' }]
+          : [200, { op: 'duo-counts', counts: { faces: 2, hands: 3, junk: 'x' }, openpose_json: '[]' }],
+    });
+    const image = { filename: 'Castcut_1.png', subfolder: '', type: 'output' };
+    const models = { faces: { model: 'bbox/face_yolov8m.pt', segm: false } };
+    assert.deepEqual(await castcutDuoCounts(BASE, { image, models, threshold: 0.5 }, impl), {
+      counts: { faces: 2, hands: 3 },
+      openposeJson: '[]',
+    });
+    assert.deepEqual(calls[0]!.body, { op: 'duo-counts', image, models, threshold: 0.5 });
+    assert.equal(await castcutDuoCounts(BASE, { image, models, threshold: 0.9 }, impl), null);
+    const info = parseCastcutRoutesInfo({
+      ...INFO,
+      analyze: { faceAnalysis: true, dwpose: true, personRead: true, ops: ['duo-counts'] },
+    });
+    assert.equal(castcutCanAnalyze(info, 'duo-counts'), false);
+    assert.equal(castcutCanAnalyze({ ...info!, duoCounts: true }, 'duo-counts'), true);
+  });
+
+  it('a pack reply reads like the count graph (a live pair, 2026-10-08)', async () => {
+    const { duoCountOutputsFromPack } = await import('./duo-still-check-server');
+    const { readDuoCountReplies } = await import('./duo-still-check');
+    const { readFileSync } = await import('node:fs');
+    const fixture = JSON.parse(
+      readFileSync(new URL('./__fixtures__/castcut-duo-counts.json', import.meta.url), 'utf8')
+    ) as { counts: Record<string, number>; openposeJson: string; graphCounts: unknown };
+    assert.deepEqual(readDuoCountReplies(duoCountOutputsFromPack(fixture)), fixture.graphCounts);
   });
 
   it('the card line says what was answered and what fell back', () => {

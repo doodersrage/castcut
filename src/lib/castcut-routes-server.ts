@@ -20,6 +20,8 @@ export type CastcutRoutesInfo = {
   dwpose: boolean;
   /** The Impact Pack's person segmentation is installed too, for `person-poses` (1.4.0+). */
   personRead: boolean;
+  /** The Impact Pack's count nodes too, for `duo-counts` (1.6.0+). */
+  duoCounts: boolean;
   /** `analyze` ops this pack answers ("face-distance", "face-boxes", "face-probe", "pose"). */
   ops: string[];
 };
@@ -52,6 +54,7 @@ export function parseCastcutRoutesInfo(payload: unknown): CastcutRoutesInfo | nu
     faceAnalysis: analyze.faceAnalysis === true,
     dwpose: analyze.dwpose === true,
     personRead: analyze.personRead === true,
+    duoCounts: analyze.duoCounts === true,
     ops: Array.isArray(analyze.ops)
       ? analyze.ops.filter((op): op is string => typeof op === 'string')
       : // 1.2.0 listed the two face ops it had.
@@ -224,6 +227,7 @@ export function castcutCanAnalyze(info: CastcutRoutesInfo | null, op: string): b
   if (!info?.routes.includes('analyze') || !info.ops.includes(op)) return false;
   if (op === 'pose') return info.dwpose;
   if (op === 'person-poses') return info.dwpose && info.personRead;
+  if (op === 'duo-counts') return info.dwpose && info.duoCounts;
   return info.faceAnalysis;
 }
 
@@ -424,4 +428,47 @@ export async function castcutPngPrompt(
     recordCastcutFallback('png-text');
     return undefined;
   }
+}
+
+/** Detector counts by key ("faces", "hands", "penises", "vaginas") and the body-only DWPose read. */
+export type CastcutDuoCounts = { counts: Record<string, number>; openposeJson: string };
+
+/**
+ * The duo count graph's reads in-process (duo-still-check.ts): each `{model, segm}` counted at the
+ * graph's threshold, plus DWPose (body only). Null when this ComfyUI can't (nodes missing).
+ */
+export async function castcutDuoCounts(
+  baseUrl: string,
+  input: {
+    image: CastcutImageSource;
+    models: Record<string, { model: string; segm: boolean }>;
+    threshold: number;
+    timeoutMs?: number;
+  },
+  fetchImpl: FetchLike = fetch
+): Promise<CastcutDuoCounts | null> {
+  const result = await postJson<{ counts?: unknown; openpose_json?: unknown; error?: string }>(
+    `${hostKey(baseUrl)}/castcut/analyze`,
+    {
+      op: 'duo-counts',
+      image: sourceBody(input.image),
+      models: input.models,
+      threshold: input.threshold,
+    },
+    input.timeoutMs ?? 90_000,
+    fetchImpl
+  );
+  if (result.error === 'no-duo-counts') return null;
+  const counts = result.counts as Record<string, unknown> | undefined;
+  if (!counts || typeof result.openpose_json !== 'string') {
+    throw new Error('Castcut duo counts returned nothing.');
+  }
+  return {
+    counts: Object.fromEntries(
+      Object.entries(counts).filter(
+        (entry): entry is [string, number] => typeof entry[1] === 'number'
+      )
+    ),
+    openposeJson: result.openpose_json,
+  };
 }

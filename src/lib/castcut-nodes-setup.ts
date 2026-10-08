@@ -7,7 +7,7 @@
 import { CASTCUT_NODE_TYPES } from './castcut-nodes';
 
 /** The pack this app ships (comfyui-nodes/castcut/castcut_nodes.py `CASTCUT_VERSION`). */
-export const CASTCUT_NODES_BUNDLED_VERSION = '1.5.0';
+export const CASTCUT_NODES_BUNDLED_VERSION = '1.6.0';
 export const CASTCUT_NODES_FILE_NAME = 'castcut_nodes.py';
 /** The app serves its bundled copy here (src/app/api/castcut-nodes/file/route.ts). */
 export const CASTCUT_NODES_FILE_ROUTE = '/api/castcut-nodes/file';
