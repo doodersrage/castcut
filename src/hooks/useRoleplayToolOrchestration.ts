@@ -104,7 +104,10 @@ export function useRoleplayToolOrchestration() {
     setError,
   });
 
-  // After Cast switch, Play scrub clears Story refs — reseed From-photo from the new Cast.
+  // After Cast switch, Play scrub clears Story refs — reseed From-photo from the new Cast. A photo
+  // of another Cast is re-seeded too: Loose Lana's Story kept Tomas's cutout (UI review
+  // 2026-10-08) because only an empty photo was filled.
+  const seededCastRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mounted) {
       return;
@@ -113,7 +116,16 @@ export function useRoleplayToolOrchestration() {
     if (!characterId) {
       return;
     }
-    if (toolSettings.referenceImageUrl?.trim() || toolSettings.referenceImageFilename?.trim()) {
+    const previousCast = seededCastRef.current;
+    seededCastRef.current = characterId;
+    const hasPhoto = Boolean(
+      toolSettings.referenceImageUrl?.trim() || toolSettings.referenceImageFilename?.trim()
+    );
+    const owner = toolSettings.referenceCharacterId?.trim();
+    const otherCast =
+      (Boolean(owner) && owner !== characterId) ||
+      (Boolean(previousCast) && previousCast !== characterId);
+    if (hasPhoto && !otherCast) {
       return;
     }
     const fields = roleplayLookPlateFieldsFromCharacter(getCharacter(characterId));
@@ -124,6 +136,7 @@ export function useRoleplayToolOrchestration() {
   }, [
     mounted,
     shared.activeCharacterId,
+    toolSettings.referenceCharacterId,
     toolSettings.referenceImageFilename,
     toolSettings.referenceImageUrl,
     updateToolSettings,

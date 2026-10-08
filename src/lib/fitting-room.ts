@@ -377,6 +377,7 @@ export function roleplayLookPlateFieldsFromCharacter(
     referenceOriginalFilename: plate.originalFilename?.trim() || filename,
     isolateSubject: plate.isolateSubject !== false,
     referenceIsolated: plate.isolated === true,
+    ...(character?.id ? { referenceCharacterId: character.id } : {}),
   };
 }
 

@@ -171,9 +171,12 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     [beatQueue, storyRef]
   );
 
+  // Story's own photo first — the one beats queue with. The phone's old plate list could still
+  // hold another Cast (Tomas shown while continuing as Loose Lana, UI review 2026-10-08).
   const plateUrl =
+    referenceImageUrl ||
     (activePlate?.isolated ? activePlate.isolatedUrl : activePlate?.originalUrl) ||
-    referenceImageUrl;
+    '';
 
   return {
     rollScenes,

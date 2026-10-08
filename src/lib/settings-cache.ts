@@ -1057,6 +1057,8 @@ export type RoleplayToolCache = {
   referenceOriginalFilename?: string;
   isolateSubject?: boolean;
   referenceIsolated?: boolean;
+  /** The Cast this photo was set for: another Cast's photo is re-seeded, never queued. */
+  referenceCharacterId?: string;
   bio?: import('./roleplay').RoleplayBio;
   story?: import('./roleplay').RoleplayStoryBeat[];
   /** Unpicked beat cards remembered across rolls for continuity. */

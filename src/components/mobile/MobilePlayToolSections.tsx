@@ -291,7 +291,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">
-              {activePlate?.name || bio?.name || 'Plate'}
+              {bio?.name || activePlate?.name || 'Plate'}
             </p>
             <p className="type-caption text-[var(--text-muted)]">
               {playAs === 'photo' ? 'From photo' : 'From bio'}

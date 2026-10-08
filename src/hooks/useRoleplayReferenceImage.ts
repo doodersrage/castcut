@@ -38,6 +38,7 @@ type UseRoleplayReferenceImageOptions = {
   story: RoleplayStoryBeat[];
   shared: Pick<
     SharedToolSettings,
+    | 'activeCharacterId'
     | 'model'
     | 'detail'
     | 'sessionLlmTemperature'
@@ -245,6 +246,7 @@ export function useRoleplayReferenceImage({
           referenceImageFilename: queueFilename,
           referenceImageUrl: queueUrl,
           referenceIsolated: isolated,
+          referenceCharacterId: shared.activeCharacterId?.trim() || undefined,
         });
         if (!isolated && !queueUrl.startsWith('blob:')) {
           setReferencePreviewUrl(cacheBustIdentityMediaUrl(queueUrl));
@@ -263,7 +265,14 @@ export function useRoleplayReferenceImage({
         }
       }
     },
-    [clearReferencePreview, isolateSubject, setError, shared.model, updateToolSettings]
+    [
+      clearReferencePreview,
+      isolateSubject,
+      setError,
+      shared.activeCharacterId,
+      shared.model,
+      updateToolSettings,
+    ]
   );
 
   const clearReference = useCallback(() => {
