@@ -1,5 +1,6 @@
 'use client';
 
+import WardrobePackButtons from '@/components/wardrobe/WardrobePackButtons';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
@@ -385,6 +386,12 @@ export default function ClothingPicker({
               </div>
             </div>
           ) : null}
+          <WardrobePackButtons
+            kind="clothing"
+            count={savedGarments.length}
+            disabled={photoBusy}
+            testIdPrefix={testIdPrefix}
+          />
 
           {hasPhoto && garment.onDescriptionChange ? (
             <label className="block space-y-1.5">

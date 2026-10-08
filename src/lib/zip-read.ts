@@ -107,3 +107,40 @@ export function isWorkflowJsonFileName(name: string): boolean {
   }
   return true;
 }
+
+export type ZipBinaryEntry = {
+  filename: string;
+  data: Uint8Array;
+};
+
+/** Every file in a ZIP as bytes (stored + deflate; no zip64) — for packs that carry images. */
+export async function readZipBinaryEntries(buffer: ArrayBuffer): Promise<ZipBinaryEntry[]> {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const entries: ZipBinaryEntry[] = [];
+  let offset = 0;
+  while (offset + 30 <= bytes.length) {
+    if (readU32(view, offset) !== 0x04034b50) break;
+    const compression = readU16(view, offset + 8);
+    const compressedSize = readU32(view, offset + 18);
+    const nameStart = offset + 30;
+    const nameEnd = nameStart + readU16(view, offset + 26);
+    const dataStart = nameEnd + readU16(view, offset + 28);
+    const dataEnd = dataStart + compressedSize;
+    if (dataEnd > bytes.length) break;
+    const filename = decodeText(bytes.subarray(nameStart, nameEnd));
+    offset = dataEnd;
+    if (filename.endsWith('/')) continue;
+    const payload = bytes.subarray(dataStart, dataEnd);
+    if (compression === 0) {
+      entries.push({ filename, data: payload.slice() });
+    } else if (compression === 8) {
+      try {
+        entries.push({ filename, data: await inflateRaw(payload) });
+      } catch {
+        // unreadable entry — skipped
+      }
+    }
+  }
+  return entries;
+}

@@ -1,5 +1,6 @@
 'use client';
 
+import WardrobePackButtons from '@/components/wardrobe/WardrobePackButtons';
 import { useId, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
@@ -401,6 +402,12 @@ export default function FootwearField({
               </div>
             </div>
           ) : null}
+          <WardrobePackButtons
+            kind="shoes"
+            count={savedShoes.length}
+            disabled={busy}
+            testIdPrefix={testIdPrefix}
+          />
           {photoBusy || photoStatus ? (
             <p
               className="type-caption text-[var(--text-muted)]"
