@@ -730,8 +730,7 @@ const FITTING_BAREFOOT_RE = /^(?:barefoot|bare feet|no shoes|none|nothing)$/i;
 /**
  * The shoe check and feet pass for a try-on (any engine) with real shoes picked — not barefoot,
  * not left to the outfit — or null when there is nothing to check or no engine to pass on.
- * `whenUnchecked`: run the pass even without a vision check (a posed Edit 2511 try-on, 0 of 12
- * shoes with the pose map).
+ * `whenUnchecked`: run the pass even without a vision check — always (picked shoes land ~1 of 10).
  */
 export function fittingFeetPassPlan(input: {
   model?: string | null;
@@ -748,7 +747,10 @@ export function fittingFeetPassPlan(input: {
   if (!words && input.hasShoeImage !== true) return null;
   const model = resolveFeetPassModel(input.model, input.installed);
   if (!model) return null;
-  return { model, whenUnchecked: fittingNeedsFeetPass(input) };
+  // Unchecked (no vision model, or LM Studio could not load it while ComfyUI held the card): pass
+  // anyway — try-ons with picked shoes came back right ~1 of 10 without it (Castcut_03148 stayed
+  // barefoot that way), and the pass put them on 9 of 9.
+  return { model, whenUnchecked: true };
 }
 
 /**

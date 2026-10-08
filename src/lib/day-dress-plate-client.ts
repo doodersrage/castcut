@@ -128,15 +128,19 @@ async function fixDressPlateFeet(
   imageUrl: string
 ): Promise<{ imageUrl: string; checked: boolean; passed: boolean }> {
   const kept = { imageUrl, checked: false, passed: false };
-  if (!plateWantsShoes(request) || (!deps.visionShared && !deps.checkFootwear)) return kept;
+  if (!plateWantsShoes(request)) return kept;
   const shoeWords = normalizeFootwear(request.footwear);
-  const verdict = await (deps.checkFootwear ?? checkStillFootwear)({
-    imageUrl,
-    shoeWords,
-    shared: deps.visionShared,
-  });
-  if (!verdict) return kept;
-  if (!footwearNeedsFeetPass(verdict, false)) return { ...kept, checked: true };
+  // No vision model, or the check failed (LM Studio could not load it while ComfyUI held the
+  // card): pass anyway — picked shoes land ~1 of 10 without it, the pass puts them on 9 of 9.
+  const verdict =
+    !deps.visionShared && !deps.checkFootwear
+      ? null
+      : await (deps.checkFootwear ?? checkStillFootwear)({
+          imageUrl,
+          shoeWords,
+          shared: deps.visionShared,
+        });
+  if (!footwearNeedsFeetPass(verdict, true)) return { ...kept, checked: true };
   const passModel = resolveFeetPassModel(
     request.model,
     deps.installed !== undefined ? deps.installed : cachedInstalledModelCheck()

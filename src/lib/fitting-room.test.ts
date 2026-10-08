@@ -513,7 +513,7 @@ describe('Outfit front and back', () => {
     assert.equal(fittingStepAfterShoeCheck(base, false), null);
   });
 
-  it('fittingFeetPassPlan: every engine with real shoes; unchecked pass only for a posed 2511', () => {
+  it('fittingFeetPassPlan: every engine with real shoes; the pass runs unchecked too', () => {
     const EDIT_2511 = 'qwen-image-edit-2511-lightning-4';
     const installed = (id: string) => id === 'qwen-image-edit-2511-lightning-8';
     assert.deepEqual(
@@ -522,7 +522,7 @@ describe('Outfit front and back', () => {
     );
     assert.deepEqual(
       fittingFeetPassPlan({ model: EDIT_2511, hasCustomPose: false, footwear: 'red heels' }),
-      { model: EDIT_2511, whenUnchecked: false }
+      { model: EDIT_2511, whenUnchecked: true }
     );
     // A Rapid AIO or Qwen-Image 2.1 try-on: the shoes go on with Edit 2511 when it is installed.
     assert.deepEqual(
@@ -532,7 +532,7 @@ describe('Outfit front and back', () => {
         footwear: 'red heels',
         installed,
       }),
-      { model: 'qwen-image-edit-2511-lightning-8', whenUnchecked: false }
+      { model: 'qwen-image-edit-2511-lightning-8', whenUnchecked: true }
     );
     assert.equal(
       fittingFeetPassPlan({ model: 'qwen-image-2.1', hasCustomPose: false, footwear: 'red heels' }),
