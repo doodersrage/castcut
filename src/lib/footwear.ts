@@ -156,3 +156,53 @@ export function withFootwearLine(
   const lead = /^(Edit Image 1:\s*)/.exec(prompt);
   return lead ? `${lead[1]}${line}\n${prompt.slice(lead[1]!.length)}` : `${line}\n${prompt}`;
 }
+
+/** Places where bare feet are normal: home, bed, bath, beach, pool, a yoga or martial-arts mat. */
+const BAREFOOT_PLACE_RE =
+  /\b(?:bed|bedroom|bath|bathroom|bathtub|shower|sauna|spa|pool|poolside|beach|sand|sandy|shore|surf|sea|ocean|lake|river (?:bank|shallows)|water|swim\w*|yoga|mat|dojo|tatami|dance studio|living[- ]room|lounge|couch|sofa|home|apartment|flat|hotel room|suite|kitchen|rug|carpet|blanket|picnic)\b/i;
+
+/**
+ * Footwear on "auto" for a clothed Day still: a named pair that suits the outfit and the place,
+ * or null where bare feet belong. The short recipe prompts named no shoes, and the Cast plate is
+ * barefoot — the overnight sweep (2026-10-08) had her barefoot on streets, boardwalks, subway
+ * platforms and crosswalks across Everyday, Vacation and themes. A vague "shoes that suit the
+ * outfit" fixed ~3/8 replays; a named pair in the FOOTWEAR line 8/8.
+ */
+export function dayAutoFootwear(input: {
+  beat?: string | null;
+  setting?: string | null;
+  outfit?: string | null;
+  dayMood?: string | null;
+  /** The Cast lead — a man never gets heels. */
+  lead?: 'woman' | 'man' | 'person';
+}): string | null {
+  const place = `${input.beat ?? ''} ${input.setting ?? ''}`;
+  if (beatOwnsFootwear(input.beat) || BAREFOOT_PLACE_RE.test(place)) return null;
+  // Dressed for bed, bath or the water: bare feet go with it.
+  if (
+    /\b(?:robe|bathrobe|sleepwear|pajamas?|pyjamas?|nightgown|towel|swimsuit|bikini|wetsuit|lingerie)\b/i.test(
+      `${place} ${input.outfit ?? ''}`
+    )
+  ) {
+    return null;
+  }
+  const mood = (input.dayMood ?? '').toLowerCase();
+  if (mood === 'sport') return null; // Sport kits name their own shoes.
+  const outfit = (input.outfit ?? '').toLowerCase();
+  if (/\b(?:suit|blazer|tailored|trousers|slacks|tuxedo)\b/.test(outfit)) {
+    return 'black leather loafers';
+  }
+  if (
+    input.lead !== 'man' &&
+    /\b(?:gown|cocktail|evening|sequin|satin|silk slip|slip dress)\b/.test(outfit)
+  ) {
+    return 'strappy heeled sandals';
+  }
+  if (
+    mood === 'vacation' ||
+    /\b(?:boardwalk|promenade|resort|beach town|seafront|harbou?r|marina)\b/i.test(place)
+  ) {
+    return 'flat tan leather sandals';
+  }
+  return 'white leather sneakers';
+}

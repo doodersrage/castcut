@@ -46,7 +46,7 @@ import { fitBeatToSetting, sceneSurfaceConflicts, withSceneGround } from '@/lib/
 import { withDayWeather } from '@/lib/day-weather';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
-import { footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
+import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
 import {
@@ -238,7 +238,18 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     ),
     withFootwearLine(
       posedBase,
-      facts.footwear,
+      // Shoes on auto: the recipe prompts named none and the Cast plate is barefoot, so she went
+      // barefoot outdoors — name a pair that suits the outfit and the place (dayAutoFootwear).
+      facts.footwear ||
+        (recipe && !facts.adult && !facts.pickedShoes?.trim()
+          ? (dayAutoFootwear({
+              beat: facts.beat,
+              setting: facts.setting,
+              outfit: facts.leadOutfit,
+              dayMood: facts.dayMood,
+              lead: facts.leadNoun,
+            }) ?? '')
+          : ''),
       // Written for a woman and swapped later — except where the prompt is already the man's
       // (the couple recipes), which keep it as written.
       facts.leadNoun === 'man' && !swapLead ? 'he' : 'she',

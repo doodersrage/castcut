@@ -1052,10 +1052,12 @@ for (const still of STILLS) {
     fail(PARTNER_LINE, still, 'no partner picked, but the prompt names a partner face image');
   }
 
-  // I3 — shoes: one FOOTWEAR line when they apply and are picked, none otherwise.
+  // I3 — shoes: one FOOTWEAR line when they apply and are picked; when not picked, at most one
+  // (a clothed still on auto names a pair outdoors — dayAutoFootwear).
   const footwearLines = count(prompt, /FOOTWEAR \(mandatory\):/g);
   const expectedLines = still.shoesPicked && still.footwearApplies ? 1 : 0;
-  if (footwearLines !== expectedLines) {
+  const autoPair = !still.shoesPicked && footwearLines === 1 && !still.adultStill;
+  if (footwearLines !== expectedLines && !autoPair) {
     fail(
       FOOTWEAR,
       still,

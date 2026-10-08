@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **No more bare feet in the street.** With shoes left on auto, the short prompts every Day still now uses named no shoes and the Cast plate is barefoot, so she walked city streets, boardwalks, subway platforms and crosswalks barefoot (the overnight sweep of 513 clothed stills: across Everyday, Vacation and the themes; Sport kits were fine). Day now names a pair that suits the outfit and the place — sneakers, loafers with a suit, heeled sandals with an evening dress (never for a man), flat sandals on vacation: 8 of 8 in replays. Bare feet stay at home, in bed, at the beach or pool, on a yoga or martial-arts mat, in a robe or swimwear; shoes you picked always win.
 - **Face finish no longer roughens her skin.** The face pass asked for "natural skin texture, sharp natural detail" with the `euler` sampler, and often added freckles, red spots and an older, blotchy look. It now asks for clear, even skin and samples with `euler_ancestral`: clean on 4 of 4 replays of your stills, with likeness slightly closer. It also runs on the fp8 Edit 2511 files when installed, like Day stills, with the same faces.
 ## [v2.3.5] - 2026-10-07
 
