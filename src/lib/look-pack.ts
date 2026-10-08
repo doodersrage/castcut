@@ -198,7 +198,7 @@ export function lookPackNotes(pack: LookPack): string {
 }
 
 /**
- * Outfit / Day notes for the active Cast lead.
+ * Outfit notes for the active Cast lead (the Look's style notes — lookPackOutfitNotes).
  * Only reuse a staged look pack when it belongs to this character — otherwise clear
  * so Char A's styling notes never stick on Char B.
  */
@@ -210,7 +210,13 @@ export function lookPackNotesForCharacter(
   if (!pack || !id || pack.characterId?.trim() !== id) {
     return '';
   }
-  return lookPackNotes(pack).slice(0, 1200);
+  return lookPackOutfitNotes(pack) ?? '';
+}
+
+/** What a Look gives Outfit's notes: its style notes only — its scene belongs to Day. */
+export function lookPackOutfitNotes(pack: LookPack): string | undefined {
+  const style = pack.styleNotes?.trim();
+  return style ? `style: ${style}`.slice(0, 1200) : undefined;
 }
 
 /** Persist Outfit notes with Cast ownership (same idea as Day stillsCharacterId). */
@@ -263,7 +269,9 @@ export function applyLookPackToFittingState(pack: LookPack): {
   shared: { lockedWardrobeId?: string };
   tool: { notes?: string };
 } {
-  const notes = lookPackNotes(pack).slice(0, 1200) || undefined;
+  // Outfit dresses her on white: the Look's scene (vibe prompt, mood, lighting, palette, place)
+  // is Day's business; only its style notes carry (as Day takes the kit only).
+  const notes = lookPackOutfitNotes(pack);
   return {
     shared: {
       ...(pack.wardrobeId?.trim() ? { lockedWardrobeId: pack.wardrobeId.trim() } : {}),

@@ -2026,6 +2026,28 @@ export function stripEmptyComfyUiRuntime(
   if (runtime.compactDraftSaves === false) {
     result.compactDraftSaves = false;
   }
+  // Klein Enhancer (Settings → Prompt quality, and per-queue caps such as Outfit's color anchor
+  // at 0.1): dropped here before 2026-10-08, so the server always ran the pack's defaults
+  // (anchor 0.45) whatever was set.
+  if (typeof runtime.kleinEnhancerEnabled === 'boolean') {
+    result.kleinEnhancerEnabled = runtime.kleinEnhancerEnabled;
+  }
+  if (runtime.kleinEnhancerIdentityPreset) {
+    result.kleinEnhancerIdentityPreset = runtime.kleinEnhancerIdentityPreset;
+  }
+  if (typeof runtime.kleinEnhancerTextEnabled === 'boolean') {
+    result.kleinEnhancerTextEnabled = runtime.kleinEnhancerTextEnabled;
+  }
+  if (typeof runtime.kleinEnhancerColorAnchorEnabled === 'boolean') {
+    result.kleinEnhancerColorAnchorEnabled = runtime.kleinEnhancerColorAnchorEnabled;
+  }
+  if (
+    typeof runtime.kleinEnhancerColorAnchorStrength === 'number' &&
+    Number.isFinite(runtime.kleinEnhancerColorAnchorStrength)
+  ) {
+    result.kleinEnhancerColorAnchorStrength = runtime.kleinEnhancerColorAnchorStrength;
+  }
+
   if (runtime.qwenRenderer === 'qwen-image-2.1') {
     result.qwenRenderer = 'qwen-image-2.1';
   }

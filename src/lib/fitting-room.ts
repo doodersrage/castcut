@@ -600,6 +600,37 @@ export function isPlausibleFittingGarmentDescription(text: string | null | undef
 }
 
 /** Img2img instruction: keep identity, swap wardrobe to the locked kit. */
+/**
+ * Outfit's notes as styling for the clothes only. A Look handed Outfit its whole moodboard
+ * prompt ("Compose a cohesive scene…", mood / lighting / palette / location lines): in a try-on
+ * on white it asked for a sunset rooftop at the same time — warm, hard-lit, over-baked Klein
+ * try-ons (2026-10-08). Scene lines are dropped; clothing styling stays.
+ */
+const FITTING_SCENE_NOTE_LINE_RE =
+  /^\s*(?:compose (?:a|the) [^\n]*scene|subject:|character notes:|direction:|moodboard cues:|\d+\.\s*(?:mood|lighting|location|palette|composition|reference|setting|time)\b|notes:|\(reference still attached\)|output:|mood:|lighting:|palette:|location:|setting:|time of day:)/i;
+
+export function fittingStylingNotes(notes: string | null | undefined): string {
+  const lines = (notes ?? '').split('\n');
+  const kept: string[] = [];
+  let inCue = false;
+  for (const line of lines) {
+    if (/^\s*\d+\.\s/.test(line)) {
+      inCue = FITTING_SCENE_NOTE_LINE_RE.test(line);
+      if (inCue) continue;
+    } else if (/^\s+notes:/i.test(line) && inCue) {
+      continue;
+    } else {
+      inCue = false;
+    }
+    if (FITTING_SCENE_NOTE_LINE_RE.test(line)) continue;
+    kept.push(line);
+  }
+  return kept
+    .join('\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 export function buildFittingOutfitPrompt(input: {
   outfitLabel: string;
   characterName?: string;
@@ -636,7 +667,7 @@ export function buildFittingOutfitPrompt(input: {
     );
   const hasShoes = Boolean(footwear) && !/barefoot/i.test(footwear);
   const name = input.characterName?.trim();
-  const notes = input.notes?.trim();
+  const notes = fittingStylingNotes(input.notes);
   // No trailing full stop: the description is followed by one ("throughout.. Keep face").
   const garmentDescription = input.garmentDescription?.trim().replace(/[.\s]+$/, '');
   const garmentLine = input.hasGarmentReference
@@ -673,6 +704,11 @@ export function buildFittingOutfitPrompt(input: {
     input.isolated
       ? 'background: clean plain studio / white seamless; no scene from the original photo'
       : 'background: keep a simple neutral setting; do not invent a busy location',
+    // The opener allows the lighting to change; a try-on on white wants plain studio light (a
+    // Look's sunset backlight in the notes gave Klein try-ons hard, warm, over-baked light).
+    input.isolated
+      ? 'lighting: soft, even studio light from the front — no sunset, backlight, colored light or hard shadows'
+      : null,
     notes
       ? `styling tweaks for the new outfit only (never restore Image 1 clothes): ${notes}`
       : null,

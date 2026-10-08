@@ -130,6 +130,7 @@ describe('look-pack', () => {
         { id: 't1', role: 'location', notes: 'sunlit kitchen' },
         { id: 't2', role: 'mood', notes: 'cozy morning' },
         { id: 't3', role: 'lighting', notes: 'rim light' },
+        { id: 't4', role: 'style', notes: 'linen, gold jewelry' },
       ],
     });
 
@@ -142,7 +143,9 @@ describe('look-pack', () => {
 
     const fitting = applyLookPackToFittingState(pack);
     assert.equal(fitting.shared.lockedWardrobeId, 'kit-linen');
-    assert.match(fitting.tool.notes ?? '', /golden hour|cozy morning|rim light/);
+    // Outfit dresses her on white: the Look's style carries, its scene (light, mood, place) not.
+    assert.match(fitting.tool.notes ?? '', /linen, gold jewelry/);
+    assert.doesNotMatch(fitting.tool.notes ?? '', /golden hour|cozy morning|rim light|sunlit kitchen/);
     assert.equal(lookPackNotesForCharacter(pack, 'char-1'), fitting.tool.notes);
     assert.equal(lookPackNotesForCharacter(pack, 'char-other'), '');
     assert.equal(lookPackNotesForCharacter(null, 'char-1'), '');

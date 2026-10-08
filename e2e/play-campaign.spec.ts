@@ -1628,7 +1628,7 @@ test('play campaign continue CTA appears when campaign state exists', async ({ p
 });
 
 
-test('look pack from=look applies notes into Fitting', async ({ page }) => {
+test('look pack from=look gives Fitting its style notes, not its scene', async ({ page }) => {
   await page.addInitScript(() => {
     const pack = {
       version: 1,
@@ -1638,6 +1638,7 @@ test('look pack from=look applies notes into Fitting', async ({ page }) => {
       locationNotes: 'sunlit kitchen',
       moodNotes: 'cozy morning',
       vibePrompt: 'golden hour soft light',
+      styleNotes: 'linen, gold jewelry',
       savedAt: Date.now(),
     };
     window.sessionStorage.setItem('moodboard-look-pack-v1', JSON.stringify(pack));
@@ -1650,7 +1651,9 @@ test('look pack from=look applies notes into Fitting', async ({ page }) => {
   await openOutfitAdvanced(page);
   const notes = page.getByTestId('fitting-notes');
   if (await notes.count()) {
-    await expect(notes).toHaveValue(/golden hour|cozy morning|sunlit kitchen/i);
+    // A try-on is on white: the Look's light, mood and place stay with Day.
+    await expect(notes).toHaveValue(/linen, gold jewelry/i);
+    await expect(notes).not.toHaveValue(/golden hour|cozy morning|sunlit kitchen/i);
   }
 });
 
