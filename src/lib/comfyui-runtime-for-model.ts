@@ -259,10 +259,27 @@ function loadComfyUiSettingsForModel(
   };
 }
 
+/**
+ * Outfit try-ons on Klein 9B Distilled looked over-baked (hard contrast, crunchy skin and hair)
+ * with the color anchor at the 0.45 default; at 0.1 they read as photos and keep their colours
+ * (A/B on two try-ons x 2 seeds, 2026-10-08: anchor off cut edge energy 2.18 -> 1.53; the text
+ * enhancer made no visible difference). The setting stays as it is for every other tool.
+ */
+export const FITTING_KLEIN_COLOR_ANCHOR_MAX = 0.1;
+
+export function kleinColorAnchorStrengthForTool(
+  strength: number | undefined,
+  tool: string | undefined
+): number | undefined {
+  if (tool !== 'fitting') return strength;
+  return Math.min(strength ?? 0.45, FITTING_KLEIN_COLOR_ANCHOR_MAX);
+}
+
 function sharedQueueFlags(
   shared: ReturnType<typeof loadSettingsCache>['shared'],
   model: ComfyImageModel,
-  overrides?: Partial<ComfyUiRuntimeConfig>
+  overrides?: Partial<ComfyUiRuntimeConfig>,
+  tool?: string
 ): ComfyUiRuntimeConfig {
   const profile = normalizeQueueQualityProfile(shared.queueQualityProfile);
   const isMax = profile === 'max';
@@ -289,7 +306,10 @@ function sharedQueueFlags(
     kleinEnhancerIdentityPreset: shared.kleinEnhancerIdentityPreset,
     kleinEnhancerTextEnabled: shared.kleinEnhancerTextEnabled !== false,
     kleinEnhancerColorAnchorEnabled: shared.kleinEnhancerColorAnchorEnabled !== false,
-    kleinEnhancerColorAnchorStrength: shared.kleinEnhancerColorAnchorStrength,
+    kleinEnhancerColorAnchorStrength: kleinColorAnchorStrengthForTool(
+      shared.kleinEnhancerColorAnchorStrength,
+      tool
+    ),
     queueTargetModel: model,
     queueQualityProfile: profile,
     modelCheckpointMap: shared.modelCheckpointMap,
@@ -335,13 +355,18 @@ export function resolveRuntimeForModel(
       model,
       shared,
       workflowFiles,
-      sharedQueueFlags(shared, model, {
-        loraLibrary: settingsRuntime?.loraLibrary,
-        apiUrl: settingsRuntime?.apiUrl,
-        ...(settingsRuntime?.customTokens?.length
-          ? { customTokens: settingsRuntime.customTokens }
-          : {}),
-      }),
+      sharedQueueFlags(
+        shared,
+        model,
+        {
+          loraLibrary: settingsRuntime?.loraLibrary,
+          apiUrl: settingsRuntime?.apiUrl,
+          ...(settingsRuntime?.customTokens?.length
+            ? { customTokens: settingsRuntime.customTokens }
+            : {}),
+        },
+        tool
+      ),
       inventory,
       { tool: videoRequest ? (tool ?? 'video') : tool }
     );
@@ -429,14 +454,19 @@ export function resolveRuntimeForModel(
 
   return {
     ...(stackCompatible ?? {}),
-    ...sharedQueueFlags(shared, model, {
-      loraLibrary: settingsRuntime?.loraLibrary ?? stackCompatible?.loraLibrary,
-      apiUrl: settingsRuntime?.apiUrl ?? stackCompatible?.apiUrl,
-      ...(lightning.customTokens?.length ? { customTokens: lightning.customTokens } : {}),
-      ...(lightning.workflowCustomTokens?.length
-        ? { workflowCustomTokens: lightning.workflowCustomTokens }
-        : {}),
-    }),
+    ...sharedQueueFlags(
+      shared,
+      model,
+      {
+        loraLibrary: settingsRuntime?.loraLibrary ?? stackCompatible?.loraLibrary,
+        apiUrl: settingsRuntime?.apiUrl ?? stackCompatible?.apiUrl,
+        ...(lightning.customTokens?.length ? { customTokens: lightning.customTokens } : {}),
+        ...(lightning.workflowCustomTokens?.length
+          ? { workflowCustomTokens: lightning.workflowCustomTokens }
+          : {}),
+      },
+      tool
+    ),
   };
 }
 

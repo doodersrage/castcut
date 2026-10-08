@@ -152,7 +152,11 @@ test('settings shows what changed from defaults and resets it', async ({ page })
   // Change one preference in the prompt-quality section, then see it listed and reset it.
   await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-klein-enhancer');
   const toggle = page.getByTestId('settings-klein-enhancer');
-  await expect(toggle).toBeVisible({ timeout: 20_000 });
+  // While the lazily loaded Settings page hydrates, a second, still-loading copy of the panel
+  // (its checkbox disabled) can be in the DOM for a moment — 1 run in 3 on a busy server. Wait
+  // for the one copy before using it.
+  await expect(toggle).toHaveCount(1, { timeout: 20_000 });
+  await expect(toggle).toBeEnabled({ timeout: 20_000 });
   if (await toggle.isChecked()) {
     await toggle.uncheck();
   }
