@@ -9,7 +9,8 @@ import { normalizeFootwear } from '@/lib/footwear';
 
 export const SAVED_FOOTWEAR_STORAGE_KEY = 'footwear-saved';
 export const SAVED_FOOTWEAR_CHANGED_EVENT = 'footwear-saved-changed';
-export const SAVED_FOOTWEAR_LIMIT = 12;
+// No cap (was 12; user request 2026-10-08) — see FITTING_SAVED_GARMENTS_LIMIT.
+export const SAVED_FOOTWEAR_LIMIT = Number.POSITIVE_INFINITY;
 
 export type SavedFootwear = {
   id: string;

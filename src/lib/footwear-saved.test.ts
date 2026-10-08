@@ -78,11 +78,12 @@ describe('footwear-saved', () => {
     assert.equal(updateSavedFootwearWords('mystery.png', '  '), false);
   });
 
-  it('caps the list, removes by id, and takes a synced list without junk', () => {
-    for (let index = 0; index < SAVED_FOOTWEAR_LIMIT + 3; index += 1) {
+  it('keeps every pair, removes by id, and takes a synced list without junk', () => {
+    assert.equal(SAVED_FOOTWEAR_LIMIT, Number.POSITIVE_INFINITY);
+    for (let index = 0; index < 40; index += 1) {
       saveFootwear({ imageFilename: `shoe-${index}.png`, words: `shoe ${index}` });
     }
-    assert.equal(loadSavedFootwear().length, SAVED_FOOTWEAR_LIMIT);
+    assert.equal(loadSavedFootwear().length, 40);
     const first = loadSavedFootwear()[0]!;
     assert.equal(removeSavedFootwear(first.id).some(entry => entry.id === first.id), false);
     const kept = replaceSavedFootwear([

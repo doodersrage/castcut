@@ -8,7 +8,9 @@ import {
 
 export const FITTING_SAVED_GARMENTS_STORAGE_KEY = 'fitting-saved-garments';
 export const FITTING_SAVED_GARMENTS_CHANGED_EVENT = 'fitting-saved-garments-changed';
-export const FITTING_SAVED_GARMENTS_LIMIT = 12;
+// No cap (was 12 — the oldest dropped off silently; user request 2026-10-08). An entry is a
+// filename plus its description; Browse searches a long list.
+export const FITTING_SAVED_GARMENTS_LIMIT = Number.POSITIVE_INFINITY;
 
 export type SavedFittingGarment = {
   id: string;

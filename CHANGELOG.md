@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **No limit on saved clothing photos and shoes.** Both lists kept the newest 12 and silently dropped older ones; now they keep everything. The picker strip scrolls, and Browse searches the whole list. Pack imports no longer warn about overflow.
 - **Outfit stage keeps its place while rendering.** The try-on renders in a fixed square frame with ComfyUI's live preview and the queue position / render % (as on Day). With Front and back on, the back frame is there from the start and fills when the back view lands, so the page no longer jumps. Picking an earlier try-on from the strip holds until the next render starts.
 - **Outfit keeps every try-on.** The stage strip was capped at 4 (the oldest dropped off); now it keeps them all.
 - **Outfit back view keeps the shoes.** The back view now names the picked shoes. For heels it adds a keep-the-heel-shape line: stilettos had come back as block heels 4 of 4 times, 0 of 4 with the line. For flat shoes (sneakers, flats, loafers…) it says flat soles, no heel; this follows a report of sneakers turning into kitten heels.

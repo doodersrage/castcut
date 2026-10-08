@@ -1,12 +1,8 @@
 'use client';
 
 import { comfyInputViewUrl } from '@/lib/face-match-client';
-import {
-  loadSavedFittingGarments,
-  saveFittingGarment,
-  FITTING_SAVED_GARMENTS_LIMIT,
-} from '@/lib/fitting-saved-garments';
-import { loadSavedFootwear, saveFootwear, SAVED_FOOTWEAR_LIMIT } from '@/lib/footwear-saved';
+import { loadSavedFittingGarments, saveFittingGarment } from '@/lib/fitting-saved-garments';
+import { loadSavedFootwear, saveFootwear } from '@/lib/footwear-saved';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
@@ -78,20 +74,16 @@ export type WardrobePackImportResult = {
   skipped: number;
   failed: number;
   /** More than the saved lists keep: the oldest saved ones dropped off. */
-  overLimit: boolean;
 };
 
 /** Add a pack's clothing and shoes to the saved lists (pictures uploaded to ComfyUI). */
 export async function importWardrobePack(file: File): Promise<WardrobePackImportResult> {
   const pack = await parseWardrobePack(await file.arrayBuffer());
-  const clothingBefore = loadSavedFittingGarments().length;
-  const shoesBefore = loadSavedFootwear().length;
   const result: WardrobePackImportResult = {
     clothing: 0,
     shoes: 0,
     skipped: 0,
     failed: 0,
-    overLimit: false,
   };
   const upload = async (name: string, data: Uint8Array) => {
     const base = `wardrobe-pack-${Date.now()}-${name.replace(/[^\w.-]+/g, '-')}`;
@@ -141,10 +133,6 @@ export async function importWardrobePack(file: File): Promise<WardrobePackImport
       result.failed += 1;
     }
   }
-  // Only when the saved list could not hold them all (it keeps the newest 12 of each).
-  result.overLimit =
-    clothingBefore + result.clothing > FITTING_SAVED_GARMENTS_LIMIT ||
-    shoesBefore + result.shoes > SAVED_FOOTWEAR_LIMIT;
   return result;
 }
 
@@ -157,7 +145,6 @@ export function wardrobePackImportMessage(result: WardrobePackImportResult): str
     added.length ? `Added ${added.join(' and ')}.` : 'Nothing new to add.',
     result.skipped ? `${result.skipped} already saved.` : '',
     result.failed ? `${result.failed} could not be uploaded to ComfyUI.` : '',
-    result.overLimit ? 'The saved lists keep the newest 12 — older ones dropped off.' : '',
   ]
     .filter(Boolean)
     .join(' ');

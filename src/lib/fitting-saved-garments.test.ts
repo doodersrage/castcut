@@ -86,13 +86,14 @@ describe('fitting-saved-garments', () => {
     );
   });
 
-  it('saveFittingGarment keeps newest first and respects the cap', () => {
-    for (let i = 0; i < FITTING_SAVED_GARMENTS_LIMIT + 3; i += 1) {
+  it('saveFittingGarment keeps newest first and keeps them all', () => {
+    assert.equal(FITTING_SAVED_GARMENTS_LIMIT, Number.POSITIVE_INFINITY);
+    for (let i = 0; i < 40; i += 1) {
       saveFittingGarment({ imageFilename: `g-${i}.png`, description: `garment ${i}` });
     }
     const all = loadSavedFittingGarments();
-    assert.equal(all.length, FITTING_SAVED_GARMENTS_LIMIT);
-    assert.equal(all[0]?.imageFilename, `g-${FITTING_SAVED_GARMENTS_LIMIT + 2}.png`);
+    assert.equal(all.length, 40);
+    assert.equal(all[0]?.imageFilename, 'g-39.png');
   });
 
   it('removeSavedFittingGarment drops by id', () => {
