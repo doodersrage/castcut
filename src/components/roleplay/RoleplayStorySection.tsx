@@ -59,6 +59,8 @@ export type RoleplayStorySectionProps = {
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
   filmCutOptions?: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue;
+  /** Desk Story: the newest scene large on a stage, earlier ones as a strip (RoleplayStoryReel). */
+  stage?: boolean;
   onFilmCutOptionsChange?: (
     next: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue
   ) => void;
@@ -102,10 +104,42 @@ export default function RoleplayStorySection({
   castBibleHref,
   filmCutOptions,
   onFilmCutOptionsChange,
+  stage = false,
 }: RoleplayStorySectionProps) {
+  // Desk stage: Cut film under the story, not above its pictures.
+  const cutActions = (
+    <RoleplayFilmCutActions
+      cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
+      assemblingFilm={assemblingFilm}
+      busy={busy}
+      storyEmpty={story.length === 0}
+      filmNeedsCast={filmNeedsCast}
+      filmCharacterId={filmCharacterId}
+      filmStatus={filmStatus}
+      filmError={filmError}
+      filmGuideHref={filmGuideHref}
+      hidePostCutLinks={firstCutCelebrate}
+      filmCutOptions={filmCutOptions}
+      onFilmCutOptionsChange={onFilmCutOptionsChange}
+      onCutFilm={onCutFilm}
+      onSaveToCast={onSaveToCast}
+      onShareCut={onShareCut}
+      onSavePoster={onSavePoster}
+      posterBusy={posterBusy}
+      canShareCut={canShareCut && !firstCutCelebrate}
+    >
+      {firstCutCelebrate ? null : downloadAction}
+    </RoleplayFilmCutActions>
+  );
   return (
-    <ToolSection title="Story reel">
-      <p className="text-sm text-[var(--text-muted)]">
+    <ToolSection
+      title={
+        stage
+          ? `Story so far · ${story.length} scene${story.length === 1 ? '' : 's'}`
+          : 'Story reel'
+      }
+    >
+      <p className={stage ? 'sr-only' : 'text-sm text-[var(--text-muted)]'}>
         {beatOutput === 'clip'
           ? 'Clips land here as they render'
           : 'Stills land here as they render'}
@@ -194,28 +228,7 @@ export default function RoleplayStorySection({
         </div>
       ) : null}
 
-      <RoleplayFilmCutActions
-        cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
-        assemblingFilm={assemblingFilm}
-        busy={busy}
-        storyEmpty={story.length === 0}
-        filmNeedsCast={filmNeedsCast}
-        filmCharacterId={filmCharacterId}
-        filmStatus={filmStatus}
-        filmError={filmError}
-        filmGuideHref={filmGuideHref}
-        hidePostCutLinks={firstCutCelebrate}
-        filmCutOptions={filmCutOptions}
-        onFilmCutOptionsChange={onFilmCutOptionsChange}
-        onCutFilm={onCutFilm}
-        onSaveToCast={onSaveToCast}
-        onShareCut={onShareCut}
-        onSavePoster={onSavePoster}
-        posterBusy={posterBusy}
-        canShareCut={canShareCut && !firstCutCelebrate}
-      >
-        {firstCutCelebrate ? null : downloadAction}
-      </RoleplayFilmCutActions>
+      {stage ? null : cutActions}
       <StoryBeatEditProvider value={beatEdit ?? null}>
         <RoleplayStoryReel
           story={story}
@@ -235,8 +248,10 @@ export default function RoleplayStorySection({
           onRollScenes={onRollScenes}
           dayOpening={dayOpening}
           fixAreaFor={fixAreaFor}
+          layout={stage ? 'stage' : 'grid'}
         />
       </StoryBeatEditProvider>
+      {stage ? cutActions : null}
     </ToolSection>
   );
 }

@@ -951,7 +951,9 @@ test('story mid-flow: start the story over after changing its settings', async (
   await expect(dialog).toHaveCount(0);
   await expect(picker.getByTestId('story-start-over')).toHaveCount(0);
   await expect(picker.getByTestId('story-settings-midway')).toHaveCount(0);
-  await expect(page.getByTestId('roleplay-story-empty')).toBeVisible();
+  // Nothing to show yet: the reel steps aside; the scene picker (Roll) leads.
+  await expect(page.getByTestId('story-reel')).toHaveCount(0);
+  await expect(picker.getByTestId('story-roll-scenes')).toBeVisible();
 });
 
 test('story mid-flow: start over with a new bible for the same Cast lead', async ({ page }) => {
@@ -1027,11 +1029,12 @@ test('story mid-flow: edit a scene in the reel, then write its still again', asy
   await gotoStable(page, '/story?character=e2e-story-edit');
   await dismissBlockingOverlays(page);
   await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
-  // Edit scene sits in each card's ⋯ menu and opens the scene's side sheet.
+  // Edit scene sits in the stage card's ⋯ menu and opens the scene's side sheet. The newest
+  // scene is on stage; the strip brings the others up.
   const editButtons = page.getByTestId('story-beat-edit');
-  await expect(editButtons).toHaveCount(2);
+  await expect(editButtons).toHaveCount(1);
   // A scene whose still is rendering cannot be edited underneath its job.
-  await expect(editButtons.nth(1)).toBeDisabled();
+  await expect(editButtons.first()).toBeDisabled();
   // Nothing to write again until the text changes.
   await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
   await openStoryBeatSheet(page, 0);
@@ -1276,9 +1279,9 @@ test('phone story: edit a scene in the reel, then write its still again', async 
     timeout: 30_000,
   });
   const editButtons = page.getByTestId('story-beat-edit');
-  await expect(editButtons).toHaveCount(2);
-  // The scene whose still is rendering cannot be edited (as on desk).
-  await expect(editButtons.nth(1)).toBeDisabled();
+  await expect(editButtons).toHaveCount(1);
+  // The newest scene is on stage; its still is rendering, so it cannot be edited (as on desk).
+  await expect(editButtons.first()).toBeDisabled();
   await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
   // The same ⋯ menu and scene sheet as desk (a bottom sheet on the phone).
   await openStoryBeatSheet(page, 0);
@@ -1379,7 +1382,9 @@ test('phone story recognises the active Cast before any film is cut', async ({ p
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoStable(page, '/m/story?character=e2e-story-phone');
   await dismissBlockingOverlays(page);
-  await expect(page.getByText('The letter').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({
+    timeout: 30_000,
+  });
   // The Cast gate can show for a moment before the roster loads.
   await expect(page.getByTestId('story-needs-cast')).toHaveCount(0, { timeout: 15_000 });
 });
@@ -1540,6 +1545,10 @@ test('day and story show a running job as Rendering, Story Retry flagged, and th
   await dismissBlockingOverlays(page);
   await expect(page.getByText(/^Rendering/).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('story-retry-flagged-button')).toHaveText('Retry 1 flagged');
+  // The flagged scene is marked in the strip; on stage it shows its prompt check.
+  const flaggedThumb = page.getByTestId('story-stage-thumb').first();
+  await expect(flaggedThumb).toHaveAttribute('data-attention', 'true');
+  await flaggedThumb.click();
   const storyCheck = page.getByTestId('story-beat-prompt-check');
   await expect(storyCheck).toHaveCount(1);
   await expect(storyCheck).toHaveAttribute('data-tone', 'warning');

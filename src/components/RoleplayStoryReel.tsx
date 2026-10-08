@@ -53,8 +53,14 @@ export default function RoleplayStoryReel({
   onRollScenes,
   castBibleHref,
   fixAreaFor,
+  layout = 'grid',
 }: {
   story: RoleplayStoryBeat[];
+  /**
+   * `stage`: the picked scene (the newest by default) as one large card with all its actions,
+   * the scenes so far as a numbered strip that picks which is on stage.
+   */
+  layout?: 'grid' | 'stage';
   /** Day → Story: open the empty reel with the Cast's Day stills (useDayStoryOpening). */
   dayOpening?: { count: number; use: () => void } | null;
   busy?: boolean;
@@ -87,6 +93,10 @@ export default function RoleplayStoryReel({
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [lightboxBeatIds, setLightboxBeatIds] = useState<string[]>([]);
   const [fixTarget, setFixTarget] = useState<FixAreaTarget | null>(null);
+  // Stage: the scene shown large. A pick holds until a new scene is added, which takes the stage.
+  const newestBeatId = story[story.length - 1]?.id ?? null;
+  const [stagePick, setStagePick] = useState<{ id: string; newest: string | null } | null>(null);
+  const stageBeatId = stagePick && stagePick.newest === newestBeatId ? stagePick.id : null;
 
   useEffect(() => {
     const refresh = () => {
@@ -305,7 +315,21 @@ export default function RoleplayStoryReel({
         slideChrome={slideChrome}
       />
       {fixTarget ? <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} /> : null}
-      {watchPlaylist.length > 0 ? (
+      {watchPlaylist.length > 0 && layout === 'stage' ? (
+        // On the stage the newest scene is already large: watching is one tap away, not a second
+        // big picture above it.
+        <details
+          className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"
+          data-testid="story-watch"
+        >
+          <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+            Watch the story so far
+          </summary>
+          <div className="mt-2">
+            <FilmWatchPlayer compact shots={watchPlaylist} />
+          </div>
+        </details>
+      ) : watchPlaylist.length > 0 ? (
         <div className="space-y-2">
           <p className="type-caption text-[var(--text-muted)]">
             Watch plays completed clips in beat order. Stills hold when a clip is not ready.
@@ -313,35 +337,135 @@ export default function RoleplayStoryReel({
           <FilmWatchPlayer compact shots={watchPlaylist} />
         </div>
       ) : null}
-      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="story-reel">
-        {story.map((beat, index) => {
+      {layout === 'stage' && story.length > 0 ? (
+        (() => {
+          const stageIndex = Math.max(
+            0,
+            stageBeatId ? story.findIndex(beat => beat.id === stageBeatId) : story.length - 1
+          );
+          const beat = story[stageIndex] ?? story[story.length - 1]!;
           const clipLive =
             beat.clipPromptId && (beat.clipStatus === 'queued' || beat.clipStatus === 'running')
               ? (liveUrls[beat.clipPromptId] ?? null)
               : null;
           const liveUrl = clipLive ?? (beat.promptId ? (liveUrls[beat.promptId] ?? null) : null);
           return (
-            <RoleplayStoryBeatCard
-              key={`${beat.id}-${beat.at}`}
-              beat={beat}
-              index={index}
-              liveUrl={liveUrl}
-              busy={busy}
-              onOpen={() => openStill(beat)}
-              onQueue={onQueue}
-              onCopy={onCopy}
-              onRetry={onRetry}
-              onRetryClip={onRetryClip}
-              onAnimate={onAnimate}
-              onExtend={onExtend}
-              onSelectTake={onSelectTake}
-              onSelectClipTake={onSelectClipTake}
-              onPoseChange={onPoseChange}
-              onFixArea={fixAreaFor ? entry => setFixTarget(fixAreaFor(entry)) : undefined}
-            />
+            <div className="space-y-3" data-testid="story-stage">
+              <ol className="mx-auto max-w-[30rem]">
+                <RoleplayStoryBeatCard
+                  key={`${beat.id}-${beat.at}`}
+                  beat={beat}
+                  index={stageIndex}
+                  liveUrl={liveUrl}
+                  busy={busy}
+                  onOpen={() => openStill(beat)}
+                  onQueue={onQueue}
+                  onCopy={onCopy}
+                  onRetry={onRetry}
+                  onRetryClip={onRetryClip}
+                  onAnimate={onAnimate}
+                  onExtend={onExtend}
+                  onSelectTake={onSelectTake}
+                  onSelectClipTake={onSelectClipTake}
+                  onPoseChange={onPoseChange}
+                  onFixArea={fixAreaFor ? entry => setFixTarget(fixAreaFor(entry)) : undefined}
+                />
+              </ol>
+              {story.length > 1 ? (
+                <ol className="flex gap-2 overflow-x-auto pb-1" data-testid="story-reel">
+                  {story.map((entry, index) => {
+                    const thumb = beatPreviewUrl(
+                      entry,
+                      entry.promptId ? (liveUrls[entry.promptId] ?? null) : null
+                    );
+                    const on = index === stageIndex;
+                    // Off-stage scenes that need a look: a failed still or clip, or a prompt
+                    // check that could not fix everything.
+                    const attention =
+                      entry.stillStatus === 'error' ||
+                      entry.clipStatus === 'error' ||
+                      (entry.promptCheck?.remaining?.length ?? 0) > 0;
+                    return (
+                      <li key={`${entry.id}-${entry.at}`} className="w-20 shrink-0">
+                        <button
+                          type="button"
+                          aria-pressed={on}
+                          aria-label={`Show scene ${index + 1}: ${entry.title}`}
+                          data-testid="story-stage-thumb"
+                          data-attention={attention ? 'true' : undefined}
+                          className={`relative block w-full rounded-[var(--radius-md)] border-2 p-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                            on
+                              ? 'border-[var(--accent)]'
+                              : attention
+                                ? 'border-[var(--tint-warning-border)]'
+                                : 'border-transparent'
+                          }`}
+                          onClick={() => setStagePick({ id: entry.id, newest: newestBeatId })}
+                        >
+                          {thumb && !looksLikeMotionUrl(thumb) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={thumb} alt="" className="h-24 w-full rounded object-cover" />
+                          ) : (
+                            <span className="flex h-24 w-full items-center justify-center rounded bg-[var(--bg-muted)] text-xs text-[var(--text-muted)]">
+                              {entry.stillStatus === 'error' ? 'Failed' : '…'}
+                            </span>
+                          )}
+                          <span className="type-caption mt-1 block truncate">
+                            {index + 1}. {entry.title}
+                          </span>
+                          <span className="sr-only">{entry.blurb}</span>
+                          {attention ? (
+                            <span
+                              className="absolute right-1 top-1 rounded-full bg-[var(--tint-warning-bg)] px-1.5 text-xs font-semibold text-[var(--tint-warning-text)]"
+                              title="Needs a look"
+                            >
+                              !<span className="sr-only"> needs a look</span>
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <div className="sr-only" data-testid="story-reel">
+                  {beat.title} {beat.blurb}
+                </div>
+              )}
+            </div>
           );
-        })}
-      </ol>
+        })()
+      ) : (
+        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="story-reel">
+          {story.map((beat, index) => {
+            const clipLive =
+              beat.clipPromptId && (beat.clipStatus === 'queued' || beat.clipStatus === 'running')
+                ? (liveUrls[beat.clipPromptId] ?? null)
+                : null;
+            const liveUrl = clipLive ?? (beat.promptId ? (liveUrls[beat.promptId] ?? null) : null);
+            return (
+              <RoleplayStoryBeatCard
+                key={`${beat.id}-${beat.at}`}
+                beat={beat}
+                index={index}
+                liveUrl={liveUrl}
+                busy={busy}
+                onOpen={() => openStill(beat)}
+                onQueue={onQueue}
+                onCopy={onCopy}
+                onRetry={onRetry}
+                onRetryClip={onRetryClip}
+                onAnimate={onAnimate}
+                onExtend={onExtend}
+                onSelectTake={onSelectTake}
+                onSelectClipTake={onSelectClipTake}
+                onPoseChange={onPoseChange}
+                onFixArea={fixAreaFor ? entry => setFixTarget(fixAreaFor(entry)) : undefined}
+              />
+            );
+          })}
+        </ol>
+      )}
     </>
   );
 }

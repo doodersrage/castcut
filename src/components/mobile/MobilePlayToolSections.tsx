@@ -230,6 +230,35 @@ export default function MobilePlayToolSections({ description: _description, ...v
   const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
   const showIntimateMix = adultEnabled && isRoleplayAdultContent(content);
 
+  // The story so far (newest scene large) — near the top once there is one.
+  const storyStage = (
+    <>
+      <StoryRetryFlagged story={story} busy={busy} fullWidth onRetry={retryStill} />
+
+      <StoryBeatEditProvider value={beatEdit}>
+        <RoleplayStoryReel
+          story={story}
+          busy={busy}
+          bioPresent={Boolean(bio)}
+          scenesLoading={scenesLoading}
+          castBibleHref={castBibleHref}
+          onQueue={beat => void queueBeat(beat)}
+          onRetry={beat => void queueBeat(beat, { retry: true })}
+          onRetryClip={retryClip}
+          onAnimate={animateBeat}
+          onExtend={extendBeat}
+          onSelectTake={selectStillTake}
+          onPoseChange={setBeatPose}
+          onSelectClipTake={selectClipTake}
+          onRollScenes={() => void rollScenes()}
+          dayOpening={dayOpening}
+          fixAreaFor={fixAreaTargetForBeat}
+          layout="stage"
+        />
+      </StoryBeatEditProvider>
+    </>
+  );
+
   return (
     <div className="space-y-4" data-testid="mobile-play">
       <CutProblemsDialog
@@ -331,6 +360,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
             onError={message => setError(message)}
             wardrobe={wardrobe}
           />
+          {story.length > 0 ? storyStage : null}
           {/* Tone / content rating / setting — desk Story had these; the phone page could only
               use whatever was last set on desk. */}
           <details
@@ -409,26 +439,29 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </div>
       ) : null}
 
-      <label className="block space-y-1.5 text-sm">
-        <span className="type-caption text-[var(--text-muted)]">Character name</span>
-        <TextInput
-          name="roleplay-character-lock"
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          value={toolSettings.characterName ?? ''}
-          disabled={bioLoading}
-          maxLength={MAX_ROLEPLAY_CHARACTER_NAME}
-          placeholder="Optional — leave blank to invent one"
-          onChange={event => {
-            const characterName = event.target.value;
-            updateToolSettings({
-              characterName,
-              bio: bio ? applyRoleplayCharacterName(bio, characterName) : bio,
-            });
-          }}
-        />
-      </label>
+      {/* A Cast lead names the story; the field is for a story without one. */}
+      {!castId ? (
+        <label className="block space-y-1.5 text-sm">
+          <span className="type-caption text-[var(--text-muted)]">Character name</span>
+          <TextInput
+            name="roleplay-character-lock"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            value={toolSettings.characterName ?? ''}
+            disabled={bioLoading}
+            maxLength={MAX_ROLEPLAY_CHARACTER_NAME}
+            placeholder="Optional — leave blank to invent one"
+            onChange={event => {
+              const characterName = event.target.value;
+              updateToolSettings({
+                characterName,
+                bio: bio ? applyRoleplayCharacterName(bio, characterName) : bio,
+              });
+            }}
+          />
+        </label>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <ChipButton
@@ -604,28 +637,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </div>
       ) : null}
 
-      <StoryRetryFlagged story={story} busy={busy} fullWidth onRetry={retryStill} />
-
-      <StoryBeatEditProvider value={beatEdit}>
-        <RoleplayStoryReel
-          story={story}
-          busy={busy}
-          bioPresent={Boolean(bio)}
-          scenesLoading={scenesLoading}
-          castBibleHref={castBibleHref}
-          onQueue={beat => void queueBeat(beat)}
-          onRetry={beat => void queueBeat(beat, { retry: true })}
-          onRetryClip={retryClip}
-          onAnimate={animateBeat}
-          onExtend={extendBeat}
-          onSelectTake={selectStillTake}
-          onPoseChange={setBeatPose}
-          onSelectClipTake={selectClipTake}
-          onRollScenes={() => void rollScenes()}
-          dayOpening={dayOpening}
-          fixAreaFor={fixAreaTargetForBeat}
-        />
-      </StoryBeatEditProvider>
+      {story.length === 0 ? storyStage : null}
 
       <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">
         <p className="type-caption text-[var(--text-muted)]">Film</p>

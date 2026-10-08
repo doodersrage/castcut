@@ -12,7 +12,6 @@ import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/R
 import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
 import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
-import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
@@ -37,7 +36,6 @@ import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { getCharacter } from '@/lib/character-os';
 import { normalizeDayIntimateMix } from '@/lib/day-planner';
 import { playCampaignHref } from '@/lib/play-campaign';
-import { deriveStoryPhase } from '@/lib/play-step-machine';
 import {
   countRoleplayCompletedClips,
   countRoleplayCompletedStills,
@@ -128,17 +126,6 @@ export default function RoleplayToolSections({
 
   const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
   const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
-  const storyPhase = useMemo(
-    () =>
-      deriveStoryPhase({
-        completedStills: completedShotCount,
-        completedClips: completedClipCount,
-        beatCount: story.length,
-      }),
-    [completedClipCount, completedShotCount, story.length]
-  );
-  const collapseEditors =
-    leanChrome && (busy || film.assemblingFilm || story.length > 0 || completedShotCount > 0);
   const showAnimateCoach =
     completedShotCount > 0 &&
     completedClipCount < completedShotCount &&
@@ -272,9 +259,12 @@ export default function RoleplayToolSections({
       badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Story"
       description={description}
+      width="full"
       sidebarPersistKey="roleplay"
       sidebar={engineControls}
       sidebarTitle={leanChrome ? false : undefined}
+      // Reel first needs the width: the Engine opens from the header chip as a sheet.
+      engineSheetOnly
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
       <PlayFilmEngineBanner />
@@ -296,170 +286,175 @@ export default function RoleplayToolSections({
       ) : (
         <>
           {!film.firstCutCelebrate ? (
-            <div className="mb-3 space-y-2">
-              <StoryPlayPhaseStrip
-                activePhase={storyPhase}
-                completedStills={completedShotCount}
-                completedClips={completedClipCount}
-                beatTotal={story.length}
-              />
-              <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
-            </div>
+            <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
           ) : null}
 
-          {collapseEditors ? (
-            <CollapsibleSection
-              title={`Cast · ${castCharacterName || 'lead'}`}
-              summary={bio ? 'Bible set' : 'Needs bible'}
-              defaultOpen={false}
-              persistKey="story-cast-lean"
-            >
-              <RoleplayCastSection {...castProps} embedded />
-            </CollapsibleSection>
-          ) : (
-            <RoleplayCastSection {...castProps} />
-          )}
-
-          {activeCharacterId ? (
-            <>
-              <TaskRequirementsCard
-                task="This Story"
-                testId="story-task-requirements"
-                input={{ model: shared.model, adult: content === 'explicit' }}
+          {/* Reel first: the story so far (newest scene large), what happens next; who, photo
+              and outfit in the side column. */}
+          <div
+            className="grid items-start gap-[var(--block-gap)] lg:grid-cols-[minmax(0,1fr)_22rem]"
+            data-testid="story-layout"
+          >
+            <div className="ui-section-stack min-w-0">
+              <StoryRetryFlagged story={story} busy={busy} onRetry={retryStill} />
+              <CutProblemsDialog
+                problems={film.cutProblems}
+                onResolve={action => void film.resolveCutProblems(action, retryStill)}
               />
-              <RoleplayWardrobeSection
+              {story.length > 0 || dayOpening || film.firstCutCelebrate ? (
+                <RoleplayStorySection
+                  stage
+                  beatOutput={beatOutput}
+                  autoQueue={autoQueue}
+                  assemblingFilm={film.assemblingFilm}
+                  busy={busy}
+                  story={story}
+                  bioPresent={Boolean(bio)}
+                  castBibleHref={castHomeHref}
+                  scenesLoading={sceneFlow.scenesLoading}
+                  filmNeedsCast={film.filmNeedsCast}
+                  filmCharacterId={film.filmCharacterId}
+                  filmStatus={film.filmStatus}
+                  filmError={film.filmError}
+                  filmGuideHref={film.filmGuideHref}
+                  firstCutCelebrate={film.firstCutCelebrate}
+                  onClearFirstCutCelebrate={() => {
+                    film.clearFirstCutCelebrate();
+                  }}
+                  downloadAction={
+                    <Button
+                      variant="secondary"
+                      loading={session.exporting}
+                      loadingLabel="Packing story"
+                      disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
+                      onClick={() => void session.downloadStory()}
+                    >
+                      Download story + stills + clips
+                    </Button>
+                  }
+                  onCutFilm={() => void film.cutRoleplayFilm()}
+                  onSaveToCast={film.saveFilmToCast}
+                  onShareCut={() => void film.shareLastCut()}
+                  onSavePoster={() => void film.saveFilmPoster()}
+                  posterBusy={film.posterBusy}
+                  canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
+                  filmCutOptions={film.filmCutOptions}
+                  onFilmCutOptionsChange={film.setFilmCutOptions}
+                  onQueue={beat => void beatQueue.queueBeat(beat)}
+                  onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
+                  onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}
+                  onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
+                  onExtend={extendBeat}
+                  onSelectTake={session.selectStillTake}
+                  fixAreaFor={session.fixAreaTargetForBeat}
+                  onPoseChange={session.setBeatPose}
+                  onSelectClipTake={session.selectClipTake}
+                  onCopy={beat => void session.copyBeatPrompt(beat)}
+                  beatEdit={beatEdit}
+                  onRollScenes={() => void sceneFlow.rollScenes()}
+                  dayOpening={dayOpening}
+                />
+              ) : null}
+              <RoleplayBeatOutputSection
+                storyProgress={storyProgress}
+                beatOutput={beatOutput}
+                autoQueue={autoQueue}
                 busy={busy}
-                toolSettings={toolSettings}
-                onUpdateToolSettings={updateToolSettings}
-                onError={message => setError(message)}
-                wardrobe={wardrobe}
-              />
-            </>
-          ) : null}
-
-          <RoleplayBeatOutputSection
-            storyProgress={storyProgress}
-            beatOutput={beatOutput}
-            autoQueue={autoQueue}
-            busy={busy}
-            bioPresent={Boolean(bio)}
-            scenesLoading={sceneFlow.scenesLoading}
-            scenes={sceneFlow.scenes}
-            scenePoses={scenePoses}
-            playingId={sceneFlow.playingId}
-            error={error}
-            filmError={film.filmError}
-            filmGuideHref={film.filmGuideHref}
-            queueBlockReason={queueBlockReason}
-            content={content}
-            intimateMix={normalizeDayIntimateMix(toolSettings.intimateMix)}
-            onIntimateMixChange={next =>
-              updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
-            }
-            onRestartStory={startOver.ask}
-            storyBeatCount={story.length}
-            onUndoLastScene={session.undoLastScene}
-            onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
-            onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
-            onRollScenes={() => void sceneFlow.rollScenes()}
-            onPlayScene={scene => void sceneFlow.playScene(scene)}
-            moodSummary={roleplayMoodSummary(
-              tone,
-              content,
-              toolSettings.setting,
-              toolSettings.allowGore
-            )}
-            moodControls={
-              <RoleplayCastToneSettingSection
-                busy={busy}
-                playAs={playAsResolved}
-                tone={tone}
+                bioPresent={Boolean(bio)}
+                scenesLoading={sceneFlow.scenesLoading}
+                scenes={sceneFlow.scenes}
+                scenePoses={scenePoses}
+                playingId={sceneFlow.playingId}
+                error={error}
+                filmError={film.filmError}
+                filmGuideHref={film.filmGuideHref}
+                queueBlockReason={queueBlockReason}
                 content={content}
-                adultEnabled={adultEnabled}
-                adultGateReady={adultGateReady}
-                toolSettings={toolSettings}
-                onUpdateToolSettings={updateToolSettings}
+                intimateMix={normalizeDayIntimateMix(toolSettings.intimateMix)}
+                onIntimateMixChange={next =>
+                  updateToolSettings({ intimateMix: normalizeDayIntimateMix(next) })
+                }
+                onRestartStory={startOver.ask}
+                storyBeatCount={story.length}
+                onUndoLastScene={session.undoLastScene}
+                onBeatOutputChange={next => updateToolSettings({ beatOutput: next })}
+                onAutoQueueChange={next => updateToolSettings({ autoQueue: next })}
+                onRollScenes={() => void sceneFlow.rollScenes()}
+                onPlayScene={scene => void sceneFlow.playScene(scene)}
+                moodSummary={roleplayMoodSummary(
+                  tone,
+                  content,
+                  toolSettings.setting,
+                  toolSettings.allowGore
+                )}
+                moodControls={
+                  <RoleplayCastToneSettingSection
+                    busy={busy}
+                    playAs={playAsResolved}
+                    tone={tone}
+                    content={content}
+                    adultEnabled={adultEnabled}
+                    adultGateReady={adultGateReady}
+                    toolSettings={toolSettings}
+                    onUpdateToolSettings={updateToolSettings}
+                  />
+                }
               />
-            }
-          />
+            </div>
 
-          {showAnimateCoach ? (
-            <ToolSection
-              title="Next · Animate → Cut"
-              description="Stills are ready — animate into clips, then Cut film for a motion reel."
-              data-testid="story-animate"
-            >
-              <ToolActionRow>
-                <Button
-                  variant="primary"
-                  disabled={busy || film.assemblingFilm}
-                  data-testid="story-animate-all"
-                  onClick={() => void animateAllReady()}
+            <div className="ui-section-stack min-w-0" data-testid="story-side">
+              {showAnimateCoach ? (
+                <ToolSection
+                  title="Next · Animate → Cut"
+                  description="Stills are ready — animate into clips, then Cut film for a motion reel."
+                  data-testid="story-animate"
                 >
-                  Animate all ready stills
-                </Button>
-              </ToolActionRow>
-              <ClipEngineNote twoPersonAdultPossible />
-            </ToolSection>
-          ) : null}
-
-          <StoryRetryFlagged story={story} busy={busy} onRetry={retryStill} />
-
-          <CutProblemsDialog
-            problems={film.cutProblems}
-            onResolve={action => void film.resolveCutProblems(action, retryStill)}
-          />
-          <RoleplayStorySection
-            beatOutput={beatOutput}
-            autoQueue={autoQueue}
-            assemblingFilm={film.assemblingFilm}
-            busy={busy}
-            story={story}
-            bioPresent={Boolean(bio)}
-            castBibleHref={castHomeHref}
-            scenesLoading={sceneFlow.scenesLoading}
-            filmNeedsCast={film.filmNeedsCast}
-            filmCharacterId={film.filmCharacterId}
-            filmStatus={film.filmStatus}
-            filmError={film.filmError}
-            filmGuideHref={film.filmGuideHref}
-            firstCutCelebrate={film.firstCutCelebrate}
-            onClearFirstCutCelebrate={() => {
-              film.clearFirstCutCelebrate();
-            }}
-            downloadAction={
-              <Button
-                variant="secondary"
-                loading={session.exporting}
-                loadingLabel="Packing story"
-                disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
-                onClick={() => void session.downloadStory()}
+                  <ToolActionRow>
+                    <Button
+                      variant="primary"
+                      disabled={busy || film.assemblingFilm}
+                      data-testid="story-animate-all"
+                      onClick={() => void animateAllReady()}
+                    >
+                      Animate all ready stills
+                    </Button>
+                  </ToolActionRow>
+                  <ClipEngineNote twoPersonAdultPossible />
+                </ToolSection>
+              ) : null}
+              <CollapsibleSection
+                title={`Cast · ${castCharacterName || 'lead'}`}
+                summary={[
+                  playAsResolved === 'photo'
+                    ? reference.hasReferenceImage
+                      ? 'From photo ✓'
+                      : 'From photo — none yet'
+                    : 'From bio',
+                  bio ? 'bible set' : 'needs bible',
+                ].join(' · ')}
+                defaultOpen={!(reference.hasReferenceImage && bio) && story.length === 0}
+                persistKey="story-cast-side"
               >
-                Download story + stills + clips
-              </Button>
-            }
-            onCutFilm={() => void film.cutRoleplayFilm()}
-            onSaveToCast={film.saveFilmToCast}
-            onShareCut={() => void film.shareLastCut()}
-            onSavePoster={() => void film.saveFilmPoster()}
-            posterBusy={film.posterBusy}
-            canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
-            filmCutOptions={film.filmCutOptions}
-            onFilmCutOptionsChange={film.setFilmCutOptions}
-            onQueue={beat => void beatQueue.queueBeat(beat)}
-            onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
-            onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}
-            onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
-            onExtend={extendBeat}
-            onSelectTake={session.selectStillTake}
-            fixAreaFor={session.fixAreaTargetForBeat}
-            onPoseChange={session.setBeatPose}
-            onSelectClipTake={session.selectClipTake}
-            onCopy={beat => void session.copyBeatPrompt(beat)}
-            beatEdit={beatEdit}
-            onRollScenes={() => void sceneFlow.rollScenes()}
-            dayOpening={dayOpening}
-          />
+                <RoleplayCastSection {...castProps} embedded />
+              </CollapsibleSection>
+              {activeCharacterId ? (
+                <>
+                  <RoleplayWardrobeSection
+                    busy={busy}
+                    toolSettings={toolSettings}
+                    onUpdateToolSettings={updateToolSettings}
+                    onError={message => setError(message)}
+                    wardrobe={wardrobe}
+                  />
+                  <TaskRequirementsCard
+                    task="This Story"
+                    testId="story-task-requirements"
+                    input={{ model: shared.model, adult: content === 'explicit' }}
+                  />
+                </>
+              ) : null}
+            </div>
+          </div>
         </>
       )}
     </ToolLayout>
