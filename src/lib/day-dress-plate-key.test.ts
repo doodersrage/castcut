@@ -136,8 +136,9 @@ describe('dress plate key — an outfit change never reuses the old plate', () =
     );
   });
 
-  it('another engine family', () => {
-    assert.equal(reuses(kit, { ...kit, model: 'qwen-rapid-aio-edit' }), false);
+  it('not the engine: one plate serves Day, Story and an Outfit Keep on any engine', () => {
+    assert.equal(reuses(kit, { ...kit, model: 'qwen-rapid-aio-edit' }), true);
+    assert.equal(reuses(kit, { ...kit, model: 'flux-2-klein-9b-distilled' }), true);
   });
 });
 

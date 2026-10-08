@@ -137,6 +137,9 @@ export function usePromptResultComfyUiQueueSingle(
               : {}),
             // Cast-locked (Day, Story): LoRAs that Check on Cast flagged would pull the face away.
             ...(options?.identityLock ? { skipFaceChangingLoras: true } : {}),
+            ...(typeof options?.kleinColorAnchorMax === 'number'
+              ? { kleinColorAnchorMax: options.kleinColorAnchorMax }
+              : {}),
           });
           vramGuard = await guardQueueQualityForVram({
             profile: options?.qualityProfile ?? baseRuntime.queueQualityProfile,

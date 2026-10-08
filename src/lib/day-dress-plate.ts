@@ -168,19 +168,19 @@ export function stripOutfitLeadLines(prompt: string): string {
     );
 }
 
-/** One key per plate + clothing + shoes + engine family: any change makes a new dress plate. */
+/**
+ * One key per plate + clothing + shoes: any change makes a new dress plate. Not the engine — one
+ * engine renders every plate (dressPlateEngine: Klein 9B Distilled when installed), and an Outfit
+ * Keep made on Klein must be found by a Day on Edit 2511 (it was keyed apart, 2026-10-08).
+ */
 export function dayDressPlateKey(input: {
   plate: string;
   clothing: string;
   footwear: string;
-  model: string | null | undefined;
+  /** Kept for callers; no longer part of the key. */
+  model?: string | null | undefined;
 }): string {
-  return [
-    poseProfileForModel(input.model).family,
-    input.plate.trim(),
-    input.clothing.trim(),
-    input.footwear.trim(),
-  ].join('|');
+  return ['dress', input.plate.trim(), input.clothing.trim(), input.footwear.trim()].join('|');
 }
 
 /** What identifies a dress plate: the fields of a plate request the key is made from. */
@@ -258,7 +258,7 @@ function textHash(text: string): string {
 export type DayDressPlateChange = 'outfit' | 'shoes' | 'outfit and shoes';
 
 /**
- * Why a new plate is being dressed: the newest stored plate for the same Cast plate and engine
+ * Why a new plate is being dressed: the newest stored plate for the same Cast plate
  * was dressed in other clothing and/or shoes. Null when this Cast plate has no plate yet.
  */
 export function dayDressPlateChange(

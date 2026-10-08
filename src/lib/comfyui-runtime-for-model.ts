@@ -85,6 +85,8 @@ export type ResolveRuntimeOptions = {
   sessionLoraStrengthOverrides?: import('./lora-stack').SessionLoraStrengthOverrides;
   /** Cast-locked queue (Day, Story): skip LoRAs whose Check on Cast says they change faces. */
   skipFaceChangingLoras?: boolean;
+  /** Cap the Klein color anchor for this queue (kleinColorAnchorStrengthForTool). */
+  kleinColorAnchorMax?: number;
 };
 
 /**
@@ -269,17 +271,20 @@ export const FITTING_KLEIN_COLOR_ANCHOR_MAX = 0.1;
 
 export function kleinColorAnchorStrengthForTool(
   strength: number | undefined,
-  tool: string | undefined
+  tool: string | undefined,
+  max?: number
 ): number | undefined {
-  if (tool !== 'fitting') return strength;
-  return Math.min(strength ?? 0.45, FITTING_KLEIN_COLOR_ANCHOR_MAX);
+  const cap = tool === 'fitting' ? FITTING_KLEIN_COLOR_ANCHOR_MAX : max;
+  if (typeof cap !== 'number') return strength;
+  return Math.min(strength ?? 0.45, cap);
 }
 
 function sharedQueueFlags(
   shared: ReturnType<typeof loadSettingsCache>['shared'],
   model: ComfyImageModel,
   overrides?: Partial<ComfyUiRuntimeConfig>,
-  tool?: string
+  tool?: string,
+  anchorMax?: number
 ): ComfyUiRuntimeConfig {
   const profile = normalizeQueueQualityProfile(shared.queueQualityProfile);
   const isMax = profile === 'max';
@@ -308,7 +313,8 @@ function sharedQueueFlags(
     kleinEnhancerColorAnchorEnabled: shared.kleinEnhancerColorAnchorEnabled !== false,
     kleinEnhancerColorAnchorStrength: kleinColorAnchorStrengthForTool(
       shared.kleinEnhancerColorAnchorStrength,
-      tool
+      tool,
+      anchorMax
     ),
     queueTargetModel: model,
     queueQualityProfile: profile,
@@ -365,7 +371,8 @@ export function resolveRuntimeForModel(
             ? { customTokens: settingsRuntime.customTokens }
             : {}),
         },
-        tool
+        tool,
+        options?.kleinColorAnchorMax
       ),
       inventory,
       { tool: videoRequest ? (tool ?? 'video') : tool }
@@ -465,7 +472,8 @@ export function resolveRuntimeForModel(
           ? { workflowCustomTokens: lightning.workflowCustomTokens }
           : {}),
       },
-      tool
+      tool,
+      options?.kleinColorAnchorMax
     ),
   };
 }

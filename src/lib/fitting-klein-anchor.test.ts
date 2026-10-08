@@ -11,3 +11,17 @@ describe('Klein color anchor on Outfit try-ons', () => {
     assert.equal(kleinColorAnchorStrengthForTool(undefined, 'roleplay'), undefined);
   });
 });
+
+describe('Day dress plate engine', () => {
+  it('renders on Klein 9B Distilled when installed, else the still engine; the anchor caps per queue', async () => {
+    const { dressPlateEngine } = await import('./day-dress-plate-client');
+    assert.equal(dressPlateEngine('qwen-image-edit-2511-lightning-8', () => true), 'flux-2-klein-9b-distilled');
+    assert.equal(
+      dressPlateEngine('qwen-image-edit-2511-lightning-8', id => id !== 'flux-2-klein-9b-distilled'),
+      'qwen-image-edit-2511-lightning-8'
+    );
+    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', null), 'qwen-rapid-aio-edit');
+    assert.equal(kleinColorAnchorStrengthForTool(0.45, 'image-prompt', 0.1), 0.1);
+    assert.equal(kleinColorAnchorStrengthForTool(0.45, 'image-prompt'), 0.45);
+  });
+});

@@ -77,6 +77,8 @@ export type SendComfyUiOptions = {
   videoUrl?: string;
   /** Override shared turbo edit strength for this queue (e.g. fitting draft previews). */
   turboEditStrength?: import('@/lib/turbo-edit-strength').TurboEditStrength;
+  /** Cap the Klein Enhancer color anchor for this queue (the dress plate: 0.1 — over-baked at 0.45). */
+  kleinColorAnchorMax?: number;
   /** Override hook hints for this queue — pass '' to skip tool notes on previews. */
   queueHints?: string;
   /**

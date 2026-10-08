@@ -26,6 +26,7 @@ import {
 import {
   cachedInstalledModelCheck,
   checkStillFootwear,
+  fetchInstalledModelCheck,
   type FootwearCheckShared,
 } from '@/lib/footwear-check-client';
 import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/footwear-image';
@@ -206,11 +207,31 @@ async function fixDressPlateFeet(
   }
 }
 
+/**
+ * The engine a dress plate renders on: Klein 9B Distilled when it is installed, else the still's.
+ * Live A/B (2026-10-08, Lana in her burgundy dress and woven wedges, six of her Day stills): plate
+ * 10–24 s vs Edit 2511's ~80 s, the wedges on 1 of 2 plates vs barefoot 2 of 2 (each a shoe pass),
+ * and the Day stills started from it as close to her face (0.51 vs 0.59, lower is closer). Klein
+ * renders it portrait, like the Cast plates, with the color anchor at 0.1 (0.45 over-bakes).
+ */
+export const DRESS_PLATE_ENGINE = 'flux-2-klein-9b-distilled';
+
+export function dressPlateEngine(
+  stillModel: string,
+  installed: ((modelId: string) => boolean) | null | undefined
+): string {
+  return installed?.(DRESS_PLATE_ENGINE) ? DRESS_PLATE_ENGINE : stillModel;
+}
+
 async function renderDayDressPlate(
   request: DayDressPlateRequest,
   deps: DayDressPlateDeps,
   key: string
 ): Promise<DayDressPlateEntry> {
+  const installed =
+    deps.installed !== undefined ? deps.installed : await fetchInstalledModelCheck();
+  const plateModel = dressPlateEngine(request.model, installed);
+  const onKlein = plateModel === DRESS_PLATE_ENGINE;
   const pending = pendingJobs.get(key);
   if (pending) {
     return finishDressPlateJob(request, deps, key, pending.promptId, RECHECK_WAIT_MS);
@@ -237,7 +258,7 @@ async function renderDayDressPlate(
       const reference = await buildFootwearReferenceImage({
         garment: hasClothingImage ? request.clothing : null,
         footwear: request.footwearImage,
-        model: request.model,
+        model: plateModel,
       });
       if (reference) {
         image2 = { filename: reference.filename };
@@ -265,10 +286,11 @@ async function renderDayDressPlate(
         ? { inputImageUrls: [undefined, image2.url] }
         : {}),
     queueTool: 'image-prompt',
-    queueModel: request.model,
+    queueModel: plateModel,
     castPlateReference: true,
     identityLock: true,
     turboEditStrength: 'strong',
+    ...(onKlein ? { resolutionOrientation: 'portrait-34' as const, kleinColorAnchorMax: 0.1 } : {}),
     queueHints: '',
     characterId: request.characterId,
     lookId: request.lookId,

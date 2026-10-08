@@ -58,7 +58,7 @@ describe('Day dress plate', () => {
     }
   });
 
-  it('keys a plate by plate, clothing, shoes and engine family, and caches a few', () => {
+  it('keys a plate by plate, clothing and shoes (not the engine), and caches a few', () => {
     const key = dayDressPlateKey({ model: EDIT, plate: 'plate.png', clothing: 'dress.png', footwear: 'boots#' });
     assert.equal(
       key,
