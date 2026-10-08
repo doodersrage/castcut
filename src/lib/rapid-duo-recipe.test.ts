@@ -106,6 +106,15 @@ describe('Rapid duo recipe', () => {
       buildRapidDuoRecipe({ beat: 'she goes down on her partner on the couch — oral, both adults fully visible' })!,
       /woman kneels on the floor between his knees/
     );
+    // She gives: a side view with her face in profile (contact 5/6 vs 0/6 for "both faces in frame").
+    for (const beat of [
+      'she goes down on her partner on the couch — oral, both adults fully visible',
+      'she kneels on the kitchen floor giving her partner oral sex',
+    ]) {
+      const recipe = buildRapidDuoRecipe({ beat })!;
+      assert.match(recipe, /Side view, exactly one man and one woman\..*her face in profile at his (?:hips|lap)/, beat);
+      assert.doesNotMatch(recipe, /both faces in frame|looking up at him/, beat);
+    }
     assert.match(
       buildRapidDuoRecipe({ beat: 'going down on her at the edge of the bed in morning light, partner kneeling between her thighs' })!,
       /sits on the edge of the bed, feet on the floor, leaning back/

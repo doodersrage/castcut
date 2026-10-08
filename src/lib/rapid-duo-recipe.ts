@@ -177,10 +177,13 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // floor under her with his face upside down, to show it (the user's stills; replay 3/4
       // wrong). A side view with his face in profile, kneeling upright: 4/4 (live A/B 2026-10-04),
       // the wording that kept two women whole (placementTwoWomen).
+      // She goes down on him: "both faces in frame" / "looking up at him" knelt her beside him,
+      // holding it, mouth off it — 0/6 (sweep + replay). The two-men side view with her face in
+      // profile at his hips: contact 5/6 (one added a third person; A/B 2026-10-08).
       return sheGivesOral(beat)
         ? isFloorSurface(surface)
-          ? `Full-body view, both faces in frame. The man stands; the woman kneels on ${on('floor')} in front of him with his penis in her mouth, holding it at the base, looking up at him.`
-          : `The man sits on ${edgeOf(surface, 'bed')}; the woman kneels on the floor between his knees with his penis in her mouth, holding it at the base, looking up at him.`
+          ? `Side view, exactly one man and one woman. The man stands; the woman kneels on ${on('floor')} in front of him, her face in profile at his hips with his penis in her mouth, holding it at the base. He looks down at her.`
+          : `Side view, exactly one man and one woman. The man sits on ${edgeOf(surface, 'bed')}, leaning back on his hands with his knees apart; the woman kneels on the floor between his knees, her face in profile at his lap with his penis in her mouth, holding it at the base. He looks down at her.`
         : !/\bkneel/i.test(beat)
           ? // "She lies on her back … he lies between her thighs" disagreed with the kneel-up map;
             // seated on the edge, words and map agree (oralReceiverSeated). Live A/B: see CHANGELOG.
