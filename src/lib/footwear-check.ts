@@ -166,7 +166,11 @@ export function footwearCheckVerdict(
   if (reading.shoesOnFeet === 0) return fail('barefoot');
   if (reading.shoesOnFeet === 1) return fail('one-shoe');
   const expected = footwearExpectedHeel(shoeWords);
-  if (expected === 'high' && reading.heel !== 'high') return fail('wrong-heel');
+  // A wedge it names as a wedge is the right height whatever it calls the heel: Castcut_03113's
+  // woven wedges came back "brown woven wedge sandals" with heel "low".
+  const wedgeSeen =
+    WEDGE_RE.test(shoeWords.toLowerCase()) && WEDGE_SEEN_RE.test(seen.toLowerCase());
+  if (expected === 'high' && reading.heel !== 'high' && !wedgeSeen) return fail('wrong-heel');
   if (expected === 'flat' && reading.heel === 'high') return fail('wrong-heel');
   const want = families(shoeWords);
   const got = families(reading.kind);

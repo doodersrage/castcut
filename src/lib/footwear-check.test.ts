@@ -202,3 +202,14 @@ describe('footwearCheckApplies / resolveFeetPassModel', () => {
     assert.doesNotMatch(FOOTWEAR_CHECK_PROMPT, /stiletto|\{SHOES\}/);
   });
 });
+
+describe('wedges named as wedges pass at any heel reading', () => {
+  it('Castcut_03113: woven wedges read as a low heel', async () => {
+    const { footwearCheckVerdict } = await import('./footwear-check');
+    const reading = { feetVisible: true, shoesOnFeet: 2, heel: 'low', kind: 'brown woven wedge sandals', shoesBesideHer: false, deformed: false } as const;
+    assert.equal(footwearCheckVerdict(reading, 'brown woven wedge sandals with ankle strap').ok, true);
+    // Strappy heels read flat still fail; flat sandals for wedges still fail.
+    assert.equal(footwearCheckVerdict({ ...reading, heel: 'flat', kind: 'black strappy sandals' }, 'black strappy stiletto heels').ok, false);
+    assert.equal(footwearCheckVerdict({ ...reading, heel: 'flat', kind: 'black flat sandals' }, 'brown woven wedge sandals').ok, false);
+  });
+});
