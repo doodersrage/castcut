@@ -47,8 +47,11 @@ import {
   resolveFittingKitPreviewModel,
 } from '@/lib/fitting-kit-previews';
 import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import { fetchInstalledModelCheck } from '@/lib/footwear-check-client';
 import {
   buildFittingSwipeDeck,
+  fittingBestDefaultEngine,
+  fittingDefaultEngineSwitch,
   fittingSwipeIndex,
   fittingSwipeNeighbor,
   resolveFittingDeckWardrobeId,
@@ -565,6 +568,36 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
   // Another plate (look) picked while Outfit is open — in the Cast picker on this page. The
   // switch writes Outfit's saved settings, but this page holds its own copy and kept trying on
   // over the old plate until a reload. Re-seed from the Cast when the active look changes.
+  // Outfit's engine: Klein 9B Distilled when installed, else Edit 2511 — switched once per best
+  // engine (fittingDefaultEngineSwitch). Asks ComfyUI for its inventory when none is cached.
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    void fetchInstalledModelCheck(shared.modelCheckpointMap).then(installed => {
+      if (cancelled || !installed) return;
+      const best = fittingBestDefaultEngine(installed);
+      const next = fittingDefaultEngineSwitch({
+        currentModel: shared.model,
+        installed,
+        lastApplied: toolSettings.defaultEngineApplied,
+      });
+      if (next) updateShared({ model: next as typeof shared.model });
+      if (best && best !== toolSettings.defaultEngineApplied) {
+        updateToolSettings({ defaultEngineApplied: best });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    mounted,
+    shared.model,
+    shared.modelCheckpointMap,
+    toolSettings.defaultEngineApplied,
+    updateShared,
+    updateToolSettings,
+  ]);
+
   const seededLookRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mounted || !shared.activeCharacterId) return;

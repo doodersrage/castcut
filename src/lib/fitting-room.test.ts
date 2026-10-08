@@ -664,3 +664,21 @@ describe('Outfit on Klein 9B Distilled', () => {
     );
   });
 });
+
+describe('Outfit default engine: Klein 9B Distilled, else Edit 2511', () => {
+  it('switches to the best installed once, waits when unknown, keeps a later own pick', async () => {
+    const { fittingDefaultEngineSwitch } = await import('./fitting-room');
+    const KLEIN = 'flux-2-klein-9b-distilled';
+    const E2511 = 'qwen-image-edit-2511-lightning-8';
+    const all = () => true;
+    const no2511Klein = (id: string) => id === E2511;
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all }), KLEIN);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: 'qwen-image-2.1', installed: no2511Klein }), E2511);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: 'x', installed: null }), null);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: 'x', installed: () => false }), null);
+    // Switched to Klein before, then the player picked 2511: stays.
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all, lastApplied: KLEIN }), null);
+    // Was on the 2511 fallback, Klein installed since: moves up once.
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all, lastApplied: E2511 }), KLEIN);
+  });
+});

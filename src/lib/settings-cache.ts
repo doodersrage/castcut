@@ -1096,6 +1096,11 @@ export type FittingToolCache = {
   referenceIsolated?: boolean;
   /** The Cast the plate was applied for: a plate of another Cast is re-seeded, not tried on. */
   referenceCharacterId?: string;
+  /**
+   * The default engine Outfit last switched to (fittingDefaultEngineSwitch): it switches once per
+   * best-installed engine, so the player's own pick stays until that changes.
+   */
+  defaultEngineApplied?: string;
   referenceImageUrl?: string;
   referenceImageFilename?: string;
   referenceOriginalUrl?: string;

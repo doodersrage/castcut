@@ -852,3 +852,35 @@ export function setFittingCompareTryOnBackImage(
       : item
   );
 }
+
+/**
+ * Outfit's engine, best first: Klein 9B Distilled (try-ons on 8 saved clothing photos, 2026-10-08:
+ * median 16 s vs 55 s, the picked shoes 12 of 12 vs 2 of 12), else Edit 2511 Lightning 8.
+ */
+export const FITTING_DEFAULT_ENGINES = [
+  'flux-2-klein-9b-distilled',
+  'qwen-image-edit-2511-lightning-8',
+] as const;
+
+/**
+ * The engine Outfit should switch to, or null: the best installed of FITTING_DEFAULT_ENGINES,
+ * once per engine (`lastApplied` — so the player's own pick stays until a better engine is
+ * installed). Unknown install state (no model list yet): wait (null).
+ */
+export function fittingDefaultEngineSwitch(input: {
+  currentModel?: string | null;
+  installed: ((modelId: string) => boolean) | null;
+  lastApplied?: string | null;
+}): string | null {
+  if (!input.installed) return null;
+  const best = FITTING_DEFAULT_ENGINES.find(id => input.installed!(id));
+  if (!best || best === input.lastApplied || best === input.currentModel) return null;
+  return best;
+}
+
+/** The best installed default engine (for recording it), or null. */
+export function fittingBestDefaultEngine(
+  installed: ((modelId: string) => boolean) | null
+): string | null {
+  return installed ? (FITTING_DEFAULT_ENGINES.find(id => installed(id)) ?? null) : null;
+}

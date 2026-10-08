@@ -1,5 +1,9 @@
 import { COMFY_IMAGE_MODELS } from './comfy-models/client';
-import { readCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
+import {
+  fetchComfyObjectInfoModelsCached,
+  readAnyCachedComfyObjectInfoModels,
+  readCachedComfyObjectInfoModels,
+} from './comfyui-object-info-cache';
 import type { FootwearCheckVerdict } from './footwear-check';
 import { sharedLlmRequestBody } from './llm-request-options';
 import { installedComfyModels } from './model-picker';
@@ -29,11 +33,24 @@ export type FootwearCheckShared = Pick<
 export function cachedInstalledModelCheck(
   checkpointMap?: ModelCheckpointMap
 ): ((modelId: string) => boolean) | null {
+  // No ComfyUI URL in the browser (the server's default): the cache is keyed "default" and the
+  // URL-keyed read always missed — every "is it installed?" answer was unknown.
   const installed = installedComfyModels(
     COMFY_IMAGE_MODELS,
-    readCachedComfyObjectInfoModels(),
+    readCachedComfyObjectInfoModels() ?? readAnyCachedComfyObjectInfoModels(),
     checkpointMap
   );
+  return installed ? modelId => installed.has(modelId) : null;
+}
+
+/** {@link cachedInstalledModelCheck}, fetching ComfyUI's inventory when nothing is cached yet. */
+export async function fetchInstalledModelCheck(
+  checkpointMap?: ModelCheckpointMap
+): Promise<((modelId: string) => boolean) | null> {
+  const cached = cachedInstalledModelCheck(checkpointMap);
+  if (cached) return cached;
+  const models = await fetchComfyObjectInfoModelsCached().catch(() => null);
+  const installed = installedComfyModels(COMFY_IMAGE_MODELS, models, checkpointMap);
   return installed ? modelId => installed.has(modelId) : null;
 }
 
