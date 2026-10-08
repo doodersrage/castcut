@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
+import { StageFrame } from '@/components/fitting/FittingStagePending';
 import { Button } from '@/components/ui/Button';
 import FittingCompareCard from '@/components/fitting/FittingCompareCard';
 import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
@@ -46,7 +47,17 @@ export type FittingCompareSectionProps = {
    */
   layout?: 'cards' | 'stage';
   /** The try-on rendering now (stage only). */
-  pending?: { label: string; status?: string | null } | null;
+  pending?: {
+    label: string;
+    status?: string | null;
+    promptId?: string | null;
+    /** A back view of this try-on is rendering (it fills that try-on's back frame). */
+    backOfPromptId?: string | null;
+    /** The shoe pass re-rendering this try-on's front. */
+    replacesPromptId?: string | null;
+  } | null;
+  /** Front and back is on: the back frame is kept from the start (no layout jump). */
+  frontBack?: boolean;
   /** What the stage shows before the first try-on (the plate). */
   empty?: ReactNode;
 };
@@ -69,8 +80,11 @@ export default function FittingCompareSection({
   layout = 'cards',
   pending = null,
   empty = null,
+  frontBack = false,
 }: FittingCompareSectionProps) {
   const [pickedId, setPickedId] = useState<string | null>(null);
+  /** The render in flight when the strip pick was made — a newer render takes the stage back. */
+  const [pickedFor, setPickedFor] = useState<string | null>(null);
   const suggestedId = suggestTryOnToKeep(
     compareTryOns.flatMap(tryOn =>
       reviews[tryOn.promptId]
@@ -205,82 +219,99 @@ export default function FittingCompareSection({
   );
 
   if (layout === 'stage') {
-    const picked =
-      compareTryOns.find(tryOn => tryOn.promptId === pickedId) ?? compareTryOns[0] ?? null;
-    const name = picked ? picked.wardrobeLabel || picked.wardrobeId || 'Try-on' : '';
+    // A new render takes the stage; a pick from the strip holds until the next one starts.
+    const newRender =
+      pending && !pending.backOfPromptId?.trim() && !pending.replacesPromptId?.trim()
+        ? pending
+        : null;
+    const pickHolds = pickedId && (!pending?.promptId || pickedFor === pending.promptId);
+    const picked = pickHolds
+      ? (compareTryOns.find(tryOn => tryOn.promptId === pickedId) ?? compareTryOns[0] ?? null)
+      : newRender
+        ? null
+        : (compareTryOns[0] ?? null);
+    const name = picked
+      ? picked.wardrobeLabel || picked.wardrobeId || 'Try-on'
+      : newRender
+        ? newRender.label
+        : '';
+    // Live frames: the new try-on (front), its back view, or the shoe pass over the front.
+    const frontJob =
+      newRender && !picked
+        ? newRender.promptId
+        : picked && pending?.replacesPromptId === picked.promptId
+          ? pending.promptId
+          : null;
+    const backJob = picked && pending?.backOfPromptId === picked.promptId ? pending.promptId : null;
+    // Two frames from the start when Front and back is on, so the back does not push the layout.
+    const twoUp = Boolean(picked?.backImageUrl || backJob || (frontBack && (newRender || !picked)));
+    const done = Boolean(picked?.imageUrl);
     return (
       <>
         <section className="ui-card space-y-3 p-3" aria-label="Try-on" data-testid="fitting-stage">
-          {pending ? (
-            <p
-              className="type-caption rounded-[var(--radius-md)] bg-[var(--accent-muted)] px-3 py-2 text-[var(--accent-text)]"
-              role="status"
-              data-testid="fitting-stage-pending"
-            >
-              Trying on {pending.label}…{pending.status ? ` ${pending.status}` : ''}
-            </p>
-          ) : null}
-          {picked?.imageUrl ? (
+          {picked || newRender ? (
             <figure
-              data-testid="fitting-compare-card"
-              data-review={reviews[picked.promptId]?.status ?? 'none'}
+              data-testid={picked ? 'fitting-compare-card' : 'fitting-stage-pending'}
+              data-review={picked ? (reviews[picked.promptId]?.status ?? 'none') : undefined}
+              aria-busy={frontJob || backJob ? true : undefined}
               className="space-y-2"
             >
-              <div className={picked.backImageUrl ? 'grid grid-cols-2 gap-2' : ''}>
-                <button
-                  type="button"
-                  className="block w-full cursor-zoom-in rounded-[var(--radius-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                  aria-label={`View ${name} larger`}
-                  data-testid="fitting-compare-front"
-                  onClick={() => openLightbox(picked)}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={picked.imageUrl}
-                    alt={name}
-                    className="mx-auto max-h-[70vh] w-full rounded-[var(--radius-md)] object-contain"
+              <div className={twoUp ? 'grid grid-cols-2 gap-2' : 'mx-auto max-w-[30rem]'}>
+                <StageFrame
+                  job={frontJob}
+                  imageUrl={frontJob ? null : (picked?.imageUrl ?? null)}
+                  alt={name}
+                  label={`View ${name} larger`}
+                  testId="fitting-compare-front"
+                  onOpen={picked && !frontJob ? () => openLightbox(picked) : undefined}
+                />
+                {twoUp ? (
+                  <StageFrame
+                    job={backJob}
+                    imageUrl={backJob ? null : (picked?.backImageUrl ?? null)}
+                    alt={`${name} — back`}
+                    label={`View the back of ${name} larger`}
+                    testId="fitting-compare-back"
+                    waitingLabel="Back view next"
+                    onOpen={
+                      picked?.backImageUrl && !backJob
+                        ? () => openLightbox(picked, { back: true })
+                        : undefined
+                    }
                   />
-                </button>
-                {picked.backImageUrl ? (
-                  <button
-                    type="button"
-                    className="block w-full cursor-zoom-in rounded-[var(--radius-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                    aria-label={`View the back of ${name} larger`}
-                    data-testid="fitting-compare-back"
-                    onClick={() => openLightbox(picked, { back: true })}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={picked.backImageUrl}
-                      alt={`${name} — back`}
-                      className="mx-auto max-h-[70vh] w-full rounded-[var(--radius-md)] object-contain"
-                    />
-                  </button>
                 ) : null}
               </div>
-              <figcaption className="type-heading truncate">{name}</figcaption>
-              <TryOnReviewLine
-                review={reviews[picked.promptId]}
-                reviewing={reviewingId === picked.promptId}
-                suggested={suggestedId === picked.promptId}
-              />
+              <figcaption className="type-heading truncate">
+                {!picked && newRender ? `Trying on ${name}…` : name}
+              </figcaption>
+              {picked ? (
+                <TryOnReviewLine
+                  review={reviews[picked.promptId]}
+                  reviewing={reviewingId === picked.promptId}
+                  suggested={suggestedId === picked.promptId}
+                />
+              ) : (
+                <p className="type-caption text-[var(--text-muted)]" role="status">
+                  {pending?.status || 'Rendering — the try-on lands here.'}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="primary"
-                  disabled={busy}
+                  disabled={busy || !done}
                   data-testid="fitting-keep"
-                  onClick={() => keep(picked)}
+                  onClick={() => picked && keep(picked)}
                 >
                   Keep
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={busy}
+                  disabled={busy || !done}
                   title="The same clothes again, new seed"
                   data-testid="fitting-requeue-try-on"
-                  onClick={() => void onRequeueTryOn(picked)}
+                  onClick={() => picked && void onRequeueTryOn(picked)}
                 >
                   Again
                 </Button>
@@ -288,10 +319,10 @@ export default function FittingCompareSection({
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={busy}
+                    disabled={busy || !done}
                     title="Open full size and fix an area (a hand, the shoes…)"
                     data-testid="fitting-fix-try-on"
-                    onClick={() => openLightbox(picked)}
+                    onClick={() => picked && openLightbox(picked)}
                   >
                     Fix
                   </Button>
@@ -299,19 +330,19 @@ export default function FittingCompareSection({
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={busy}
+                  disabled={busy || !done}
                   title="Dismiss this try-on"
                   data-testid="fitting-pass-try-on"
-                  onClick={() => onDismissTryOn(picked)}
+                  onClick={() => picked && onDismissTryOn(picked)}
                 >
                   Pass
                 </Button>
               </div>
             </figure>
-          ) : pending ? null : (
+          ) : (
             <div data-testid="fitting-stage-empty">{empty}</div>
           )}
-          {compareTryOns.length > 1 ? (
+          {compareTryOns.length > 1 || (compareTryOns.length > 0 && newRender) ? (
             <div>
               <p className="type-overline mb-1 text-[var(--text-muted)]">
                 Try-ons · {compareTryOns.length}
@@ -335,7 +366,10 @@ export default function FittingCompareSection({
                             ? 'border-[var(--accent-border)]'
                             : 'border-transparent'
                       }`}
-                      onClick={() => setPickedId(tryOn.promptId)}
+                      onClick={() => {
+                        setPickedId(tryOn.promptId);
+                        setPickedFor(pending?.promptId ?? null);
+                      }}
                     >
                       {tryOn.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element

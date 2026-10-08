@@ -297,6 +297,35 @@ test('outfit front and back: a try-on card shows its front and its back view', a
   );
 });
 
+test('outfit stage: a try-on in flight shows its rendering placeholder', async ({ page }) => {
+  const done =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-pending' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-pending', name: 'Pending Lead', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      fitting: {
+        compareTryOns: [{ promptId: 'e2e-done', wardrobeId: 'custom-garment', wardrobeLabel: 'Blue romper', imageUrl: done }],
+        pendingTryOn: { promptId: 'e2e-pending-job', wardrobeId: 'custom-garment', wardrobeLabel: 'Red dress' },
+      },
+    },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  const pending = page.getByTestId('fitting-stage-pending');
+  await expect(pending).toBeVisible({ timeout: 30_000 });
+  await expect(pending).toContainText('Trying on Red dress');
+  await expect(pending).toContainText(/Queueing…|in queue|Rendering/);
+  // The finished try-on waits in the strip; picking it shows it on the stage.
+  await expect(page.getByTestId('fitting-compare-card')).toHaveCount(0);
+  await page.getByTestId('fitting-stage-thumb').first().click();
+  await expect(page.getByTestId('fitting-compare-card')).toBeVisible();
+});
+
 test('outfit footwear: Browse shows every pair, searchable, and wears the pick', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },

@@ -312,6 +312,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
 
       <FittingCompareSection
         layout="stage"
+        frontBack={quality.settings.frontBack}
         compareTryOns={compareTryOns}
         busy={busy}
         onKeepTryOn={keepTryOn}
@@ -329,6 +330,9 @@ export default function MobileFittingToolSections(vm: ViewModel) {
                   toolSettings.pendingTryOn.wardrobeId ||
                   'the outfit',
                 status: saveStatus,
+                promptId: toolSettings.pendingTryOn.promptId,
+                backOfPromptId: toolSettings.pendingTryOn.backOfPromptId,
+                replacesPromptId: toolSettings.pendingTryOn.replacesPromptId,
               }
             : null
         }

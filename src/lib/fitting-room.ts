@@ -62,7 +62,7 @@ export type FittingPendingTryOn = FittingCompareTryOn & {
    * Front and back was on when the try-on was queued: once the front is final (after the feet
    * pass, when there is one) a back view is rendered from it.
    */
-  backView?: { subject: 'she' | 'he' };
+  backView?: { subject: 'she' | 'he'; shoeWords?: string };
   /** This job is the back view for the Compare card with this prompt id. */
   backOfPromptId?: string;
 };
@@ -105,7 +105,9 @@ export function fittingNextChainStep(landed: FittingPendingTryOn): FittingChainS
   return landed.backView ? 'back-view' : null;
 }
 
-export const FITTING_COMPARE_LIMIT = 4;
+// No cap (was 4 — the oldest try-ons dropped off the stage strip; user request 2026-10-08). Each
+// entry is a picture reference, so a long list costs little in the saved settings.
+export const FITTING_COMPARE_LIMIT = Number.POSITIVE_INFINITY;
 
 /** Outfit micro-funnel chips: Look plate → try-on → Keep → Day. */
 export type FittingOutfitPhaseId = 'plate' | 'tryon' | 'keep' | 'day';
@@ -858,13 +860,40 @@ export function replaceFittingCompareTryOnImage(
  * the finished try-on (Image 1 alone, Edit 2511) turned her around with the dress and heels on,
  * 4 of 4 live.
  */
-export function buildFittingBackViewPrompt(input: { subject?: 'she' | 'he' }): string {
+const HEELED_SHOES_RE = /\b(?:heels?|heeled|stilettos?|pumps?|wedges?|platforms?|kitten)\b/i;
+const FLAT_SHOES_RE =
+  /\b(?:sneakers?|trainers?|running shoes?|flats|ballet|loafers?|slip-ons?|plimsolls?|espadrilles?|flip[- ]?flops?|slides?|moccasins?|boat shoes?)\b/i;
+
+/**
+ * The back view's shoe sentence. Heeled shoes keep their heel shape (stilettos came back as block
+ * heels 4/4 without it, 0/4 with it); flat shoes are told they are flat — the heel sentence on
+ * sneakers drew kitten heels (user report, 2026-10-08).
+ */
+function backViewShoeLine(shoes: string, possessive: string): string {
+  if (HEELED_SHOES_RE.test(shoes) && !FLAT_SHOES_RE.test(shoes)) {
+    return `On ${possessive} feet: ${shoes}, exactly as in Image 1 — the same heel height and the same heel shape (a thin stiletto stays a thin stiletto, a block heel stays a block heel).`;
+  }
+  if (FLAT_SHOES_RE.test(shoes)) {
+    return `On ${possessive} feet: ${shoes}, exactly as in Image 1 — flat soles, no heel.`;
+  }
+  return `On ${possessive} feet: ${shoes}, exactly as in Image 1.`;
+}
+
+export function buildFittingBackViewPrompt(input: {
+  subject?: 'she' | 'he';
+  /** The picked shoes in words: without them stilettos came back as block heels 4/4; with, 0/4. */
+  shoeWords?: string;
+}): string {
   const possessive = input.subject === 'he' ? 'his' : 'her';
+  const shoes = input.shoeWords?.trim();
   return [
     'Edit Image 1: the same person in exactly the same outfit and shoes, seen from directly behind — a back view, standing, full body head to feet,',
     `${possessive} hair and the back of the outfit and the shoes visible.`,
     'Same body, same proportions, same light and same plain background as Image 1. One person.',
-  ].join(' ');
+    shoes ? backViewShoeLine(shoes, possessive) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /**

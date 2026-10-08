@@ -547,7 +547,15 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             ...(feetPass ? { feetPass } : {}),
             // Front and back (on unless switched off): a back view follows the finished front.
             ...(input.toolSettings.tryOnFrontBack !== false
-              ? { backView: { subject: posePronoun } }
+              ? {
+                  backView: {
+                    subject: posePronoun,
+                    ...(normalizeFootwear(input.toolSettings.footwear) &&
+                    !/barefoot|bare feet/i.test(input.toolSettings.footwear ?? '')
+                      ? { shoeWords: normalizeFootwear(input.toolSettings.footwear) }
+                      : {}),
+                  },
+                }
               : {}),
           };
           if (
@@ -678,7 +686,10 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
               imagePlacement: shoe?.placement ?? null,
               subject: feetPass.subject,
             })
-          : buildFittingBackViewPrompt({ subject: backView?.subject });
+          : buildFittingBackViewPrompt({
+              subject: backView?.subject,
+              shoeWords: backView?.shoeWords,
+            });
         const queueOptions = buildRoleplayQueueStillOptions({
           photoMode: true,
           // The try-on is the plate now; it was rendered from the (isolated) plate already.

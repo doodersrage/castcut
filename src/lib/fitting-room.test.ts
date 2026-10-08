@@ -682,3 +682,15 @@ describe('Outfit default engine: Klein 9B Distilled, else Edit 2511', () => {
     assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all, lastApplied: E2511 }), KLEIN);
   });
 });
+
+describe('back view shoe sentence', () => {
+  it('heels keep their shape; sneakers are flat; other shoes are named only', async () => {
+    const { buildFittingBackViewPrompt } = await import('./fitting-room');
+    assert.match(buildFittingBackViewPrompt({ shoeWords: 'red stiletto pumps' }), /thin stiletto stays a thin stiletto/);
+    const sneakers = buildFittingBackViewPrompt({ shoeWords: 'white leather sneakers' });
+    assert.match(sneakers, /flat soles, no heel/);
+    assert.doesNotMatch(sneakers, /heel height|stiletto/);
+    assert.doesNotMatch(buildFittingBackViewPrompt({ shoeWords: 'brown ankle boots' }), /heel/);
+    assert.doesNotMatch(buildFittingBackViewPrompt({}), /On her feet/);
+  });
+});

@@ -253,6 +253,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         <div className="ui-section-stack min-w-0">
           <FittingCompareSection
             layout="stage"
+            frontBack={quality.settings.frontBack}
             compareTryOns={compareTryOns}
             busy={busy}
             onKeepTryOn={keepTryOn}
@@ -267,6 +268,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
                 ? {
                     label: pending.wardrobeLabel || pending.wardrobeId || 'the outfit',
                     status: saveStatus,
+                    promptId: pending.promptId,
+                    backOfPromptId: pending.backOfPromptId,
+                    replacesPromptId: pending.replacesPromptId,
                   }
                 : null
             }
