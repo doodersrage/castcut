@@ -1,7 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
+import { Button } from '@/components/ui/Button';
 import FittingCompareCard from '@/components/fitting/FittingCompareCard';
 import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -38,6 +40,15 @@ export type FittingCompareSectionProps = {
   reviewingId?: string | null;
   /** Phone: no section chrome, a caption instead. */
   compact?: boolean;
+  /**
+   * Desk fitting room: the picked try-on large with Keep / Again / Fix / Pass and the others as
+   * a strip under it; with no try-on yet it shows `pending` or `empty` instead of nothing.
+   */
+  layout?: 'cards' | 'stage';
+  /** The try-on rendering now (stage only). */
+  pending?: { label: string; status?: string | null } | null;
+  /** What the stage shows before the first try-on (the plate). */
+  empty?: ReactNode;
 };
 
 /**
@@ -55,7 +66,11 @@ export default function FittingCompareSection({
   reviews = {},
   reviewingId = null,
   compact = false,
+  layout = 'cards',
+  pending = null,
+  empty = null,
 }: FittingCompareSectionProps) {
+  const [pickedId, setPickedId] = useState<string | null>(null);
   const suggestedId = suggestTryOnToKeep(
     compareTryOns.flatMap(tryOn =>
       reviews[tryOn.promptId]
@@ -170,6 +185,180 @@ export default function FittingCompareSection({
     };
   }, [activeTryOn, keep, lightbox, onDismissTryOn, onRequeueTryOn, onUseFixedTryOn]);
 
+  const lightboxElement = (
+    <ImageLightbox
+      state={lightbox}
+      onClose={() => setLightbox(null)}
+      slideChrome={slideChrome}
+      onIndexChange={index =>
+        setLightbox(previous =>
+          previous
+            ? {
+                ...previous,
+                index,
+                title: previous.titles?.[index] ?? previous.title,
+              }
+            : previous
+        )
+      }
+    />
+  );
+
+  if (layout === 'stage') {
+    const picked =
+      compareTryOns.find(tryOn => tryOn.promptId === pickedId) ?? compareTryOns[0] ?? null;
+    const name = picked ? picked.wardrobeLabel || picked.wardrobeId || 'Try-on' : '';
+    return (
+      <>
+        <section className="ui-card space-y-3 p-3" aria-label="Try-on" data-testid="fitting-stage">
+          {pending ? (
+            <p
+              className="type-caption rounded-[var(--radius-md)] bg-[var(--accent-muted)] px-3 py-2 text-[var(--accent-text)]"
+              role="status"
+              data-testid="fitting-stage-pending"
+            >
+              Trying on {pending.label}…{pending.status ? ` ${pending.status}` : ''}
+            </p>
+          ) : null}
+          {picked?.imageUrl ? (
+            <figure
+              data-testid="fitting-compare-card"
+              data-review={reviews[picked.promptId]?.status ?? 'none'}
+              className="space-y-2"
+            >
+              <div className={picked.backImageUrl ? 'grid grid-cols-2 gap-2' : ''}>
+                <button
+                  type="button"
+                  className="block w-full cursor-zoom-in rounded-[var(--radius-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  aria-label={`View ${name} larger`}
+                  data-testid="fitting-compare-front"
+                  onClick={() => openLightbox(picked)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={picked.imageUrl}
+                    alt={name}
+                    className="mx-auto max-h-[70vh] w-full rounded-[var(--radius-md)] object-contain"
+                  />
+                </button>
+                {picked.backImageUrl ? (
+                  <button
+                    type="button"
+                    className="block w-full cursor-zoom-in rounded-[var(--radius-md)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    aria-label={`View the back of ${name} larger`}
+                    data-testid="fitting-compare-back"
+                    onClick={() => openLightbox(picked, { back: true })}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={picked.backImageUrl}
+                      alt={`${name} — back`}
+                      className="mx-auto max-h-[70vh] w-full rounded-[var(--radius-md)] object-contain"
+                    />
+                  </button>
+                ) : null}
+              </div>
+              <figcaption className="type-heading truncate">{name}</figcaption>
+              <TryOnReviewLine
+                review={reviews[picked.promptId]}
+                reviewing={reviewingId === picked.promptId}
+                suggested={suggestedId === picked.promptId}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={busy}
+                  data-testid="fitting-keep"
+                  onClick={() => keep(picked)}
+                >
+                  Keep
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  title="The same clothes again, new seed"
+                  data-testid="fitting-requeue-try-on"
+                  onClick={() => void onRequeueTryOn(picked)}
+                >
+                  Again
+                </Button>
+                {onUseFixedTryOn ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    title="Open full size and fix an area (a hand, the shoes…)"
+                    data-testid="fitting-fix-try-on"
+                    onClick={() => openLightbox(picked)}
+                  >
+                    Fix
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  title="Dismiss this try-on"
+                  data-testid="fitting-pass-try-on"
+                  onClick={() => onDismissTryOn(picked)}
+                >
+                  Pass
+                </Button>
+              </div>
+            </figure>
+          ) : pending ? null : (
+            <div data-testid="fitting-stage-empty">{empty}</div>
+          )}
+          {compareTryOns.length > 1 ? (
+            <div>
+              <p className="type-overline mb-1 text-[var(--text-muted)]">
+                Try-ons · {compareTryOns.length}
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1" data-testid="fitting-stage-strip">
+                {compareTryOns.map(tryOn => {
+                  const label = tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on';
+                  const on = tryOn.promptId === picked?.promptId;
+                  return (
+                    <button
+                      key={tryOn.promptId}
+                      type="button"
+                      aria-pressed={on}
+                      aria-label={`Show ${label}`}
+                      title={label}
+                      data-testid="fitting-stage-thumb"
+                      className={`shrink-0 rounded-[var(--radius-md)] border-2 p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                        on
+                          ? 'border-[var(--accent)]'
+                          : suggestedId === tryOn.promptId
+                            ? 'border-[var(--accent-border)]'
+                            : 'border-transparent'
+                      }`}
+                      onClick={() => setPickedId(tryOn.promptId)}
+                    >
+                      {tryOn.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={tryOn.imageUrl}
+                          alt=""
+                          className="h-20 w-14 rounded object-cover"
+                        />
+                      ) : (
+                        <span className="block h-20 w-14 rounded bg-[var(--bg-muted)]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </section>
+        {lightboxElement}
+      </>
+    );
+  }
+
   if (compareTryOns.length === 0) {
     return null;
   }
@@ -191,25 +380,6 @@ export default function FittingCompareSection({
         />
       ))}
     </div>
-  );
-
-  const lightboxElement = (
-    <ImageLightbox
-      state={lightbox}
-      onClose={() => setLightbox(null)}
-      slideChrome={slideChrome}
-      onIndexChange={index =>
-        setLightbox(previous =>
-          previous
-            ? {
-                ...previous,
-                index,
-                title: previous.titles?.[index] ?? previous.title,
-              }
-            : previous
-        )
-      }
-    />
   );
 
   if (compact) {

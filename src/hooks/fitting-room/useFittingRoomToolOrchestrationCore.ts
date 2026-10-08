@@ -366,6 +366,7 @@ export function useFittingRoomToolOrchestrationCore() {
         }
         updateToolSettings({
           isolateSubject: shouldIsolate,
+          referenceCharacterId: shared.activeCharacterId?.trim() || undefined,
           referenceOriginalFilename: originalFilename,
           referenceOriginalUrl: originalUrl.startsWith('blob:')
             ? incomingDurable || originalViewUrl
@@ -395,7 +396,13 @@ export function useFittingRoomToolOrchestrationCore() {
         }
       }
     },
-    [clearReferencePreview, isolateSubject, shared.model, updateToolSettings]
+    [
+      clearReferencePreview,
+      isolateSubject,
+      shared.activeCharacterId,
+      shared.model,
+      updateToolSettings,
+    ]
   );
   return {
     mounted,

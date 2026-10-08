@@ -71,6 +71,8 @@ export type FittingWardrobeKitSectionProps = {
   onError: (message: string) => void;
   /** Phone: the row alone (no section card), small tiles, the phone's kit-strip test id. */
   compact?: boolean;
+  /** Desk fitting room: the picker shown in place (no Choose… row and sheet). */
+  inline?: boolean;
   kitPickerTestId?: string;
 };
 
@@ -122,6 +124,7 @@ export default function FittingWardrobeKitSection({
   footwear,
   onError,
   compact = false,
+  inline = false,
   kitPickerTestId = 'fitting-wardrobe-kit-picker',
 }: FittingWardrobeKitSectionProps) {
   useWardrobeGarmentThumbManifestGeneration();
@@ -158,6 +161,103 @@ export default function FittingWardrobeKitSection({
         }`
       : '';
 
+  const picker = (
+    <div className="space-y-3">
+      <ClothingPicker
+        accent={ACCENT}
+        busy={busy}
+        testIdPrefix="fitting"
+        emptyKitLabel={FITTING_EMPTY_KIT_LABEL}
+        clearKitLabel="Clear kit"
+        garment={{
+          uploading: garmentUploading,
+          scanStatus: garmentScanStatus,
+          imageUrl: customGarmentImageUrl,
+          imageFilename: customGarmentImageFilename,
+          description: customGarmentDescription,
+          onApply: onApplyCustomGarment,
+          onClear: onClearCustomGarment,
+          onRescan: onRescanCustomGarment,
+          onSave: onSaveCustomGarment,
+          onApplySaved: onApplySavedCustomGarment,
+          onRemoveSaved: onRemoveSavedCustomGarment,
+          onDescriptionChange: onCustomGarmentDescriptionChange,
+        }}
+        footwear={footwear}
+        kits={swipeDeck}
+        kitsReady={wardrobeReady}
+        selectedKitId={deckSelectionId}
+        kitSize={compact ? 'sm' : 'md'}
+        kitPickerTestId={kitPickerTestId}
+        onSelectKit={onSelectKit}
+        onSwipeKit={delta => onSwipeKit(delta)}
+        onClearKit={onClearKit}
+        resolveKitThumb={kit => resolveKitThumb(kit.id)}
+        category={{
+          value: wardrobeCategoryFilter,
+          options: wardrobeCategoryFilterOptions().map(option => ({
+            value: option.value,
+            label: wardrobeReady
+              ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
+              : option.label,
+          })),
+          onChange: value => onCategoryFilterChange(normalizeWardrobeCategoryFilter(value)),
+        }}
+        onError={onError}
+      />
+      <CollapsibleSection
+        title="Draft previews"
+        summary="Quick draft thumbs of the plate in each kit."
+        defaultOpen={false}
+        persistKey="fitting-kit-advanced"
+      >
+        <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-preview-vs-queue">
+          Preview kits = quick draft thumbs. Queue try-on = the full-quality still you Keep for Day.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <ChipButton
+            active={autoKitPreviews}
+            disabled={busy || !hasReference}
+            onClick={onToggleAutoKitPreviews}
+          >
+            Auto draft previews
+          </ChipButton>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={
+              busy ||
+              !hasReference ||
+              !activeLookId ||
+              !previewModel ||
+              swipeDeck.length === 0 ||
+              (isolateSubject && referenceIsolated !== true)
+            }
+            onClick={() => void onFillKitPreviews()}
+          >
+            Preview kits
+          </Button>
+          {previewCount ? (
+            <span className="type-caption text-[var(--text-muted)]">{previewCount}</span>
+          ) : null}
+        </div>
+        {previewStatus ? (
+          <p className="type-caption text-[var(--text-muted)]">{previewStatus}</p>
+        ) : hasReference && autoKitPreviews ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            Draft previews use {previewModelLabel ?? 'a fast edit model'} · 4-step draft · 256×384
+            (3 at a time). Queue try-on keeps your sidebar model and settings.
+          </p>
+        ) : previewModelLabel ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            Preview kits: {previewModelLabel} · 4-step draft · 256×384 · 3 concurrent. Queue try-on
+            uses {selectedModelLabel ?? sharedModel}.
+          </p>
+        ) : null}
+      </CollapsibleSection>
+    </div>
+  );
+
   const row = (
     <ClothingSummaryRow
       label={compact ? 'Clothing' : 'Now wearing'}
@@ -176,106 +276,7 @@ export default function FittingWardrobeKitSection({
       title="Clothing"
       description="A catalog outfit kit or your own clothing photo (vision-scanned) — not both — and the shoes."
     >
-      {open ? (
-        <div className="space-y-3">
-          <ClothingPicker
-            accent={ACCENT}
-            busy={busy}
-            testIdPrefix="fitting"
-            emptyKitLabel={FITTING_EMPTY_KIT_LABEL}
-            clearKitLabel="Clear kit"
-            garment={{
-              uploading: garmentUploading,
-              scanStatus: garmentScanStatus,
-              imageUrl: customGarmentImageUrl,
-              imageFilename: customGarmentImageFilename,
-              description: customGarmentDescription,
-              onApply: onApplyCustomGarment,
-              onClear: onClearCustomGarment,
-              onRescan: onRescanCustomGarment,
-              onSave: onSaveCustomGarment,
-              onApplySaved: onApplySavedCustomGarment,
-              onRemoveSaved: onRemoveSavedCustomGarment,
-              onDescriptionChange: onCustomGarmentDescriptionChange,
-            }}
-            footwear={footwear}
-            kits={swipeDeck}
-            kitsReady={wardrobeReady}
-            selectedKitId={deckSelectionId}
-            kitSize={compact ? 'sm' : 'md'}
-            kitPickerTestId={kitPickerTestId}
-            onSelectKit={onSelectKit}
-            onSwipeKit={delta => onSwipeKit(delta)}
-            onClearKit={onClearKit}
-            resolveKitThumb={kit => resolveKitThumb(kit.id)}
-            category={{
-              value: wardrobeCategoryFilter,
-              options: wardrobeCategoryFilterOptions().map(option => ({
-                value: option.value,
-                label: wardrobeReady
-                  ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                  : option.label,
-              })),
-              onChange: value => onCategoryFilterChange(normalizeWardrobeCategoryFilter(value)),
-            }}
-            onError={onError}
-          />
-          <CollapsibleSection
-            title="Draft previews"
-            summary="Quick draft thumbs of the plate in each kit."
-            defaultOpen={false}
-            persistKey="fitting-kit-advanced"
-          >
-            <p
-              className="type-caption text-[var(--text-muted)]"
-              data-testid="fitting-preview-vs-queue"
-            >
-              Preview kits = quick draft thumbs. Queue try-on = the full-quality still you Keep for
-              Day.
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <ChipButton
-                active={autoKitPreviews}
-                disabled={busy || !hasReference}
-                onClick={onToggleAutoKitPreviews}
-              >
-                Auto draft previews
-              </ChipButton>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={
-                  busy ||
-                  !hasReference ||
-                  !activeLookId ||
-                  !previewModel ||
-                  swipeDeck.length === 0 ||
-                  (isolateSubject && referenceIsolated !== true)
-                }
-                onClick={() => void onFillKitPreviews()}
-              >
-                Preview kits
-              </Button>
-              {previewCount ? (
-                <span className="type-caption text-[var(--text-muted)]">{previewCount}</span>
-              ) : null}
-            </div>
-            {previewStatus ? (
-              <p className="type-caption text-[var(--text-muted)]">{previewStatus}</p>
-            ) : hasReference && autoKitPreviews ? (
-              <p className="type-caption text-[var(--text-muted)]">
-                Draft previews use {previewModelLabel ?? 'a fast edit model'} · 4-step draft ·
-                256×384 (3 at a time). Queue try-on keeps your sidebar model and settings.
-              </p>
-            ) : previewModelLabel ? (
-              <p className="type-caption text-[var(--text-muted)]">
-                Preview kits: {previewModelLabel} · 4-step draft · 256×384 · 3 concurrent. Queue
-                try-on uses {selectedModelLabel ?? sharedModel}.
-              </p>
-            ) : null}
-          </CollapsibleSection>
-        </div>
-      ) : null}
+      {open ? picker : null}
     </ClothingSheet>
   );
 
@@ -288,6 +289,29 @@ export default function FittingWardrobeKitSection({
         ) : null}
         {sheet}
       </div>
+    );
+  }
+
+  if (inline) {
+    // The fitting room's Clothes column: the picker itself, no row or sheet in between.
+    return (
+      <ToolSection
+        title="Clothes"
+        description="A catalog kit or your own clothing photo, and the shoes."
+        data-testid="fitting-kit-strip"
+      >
+        <p
+          className="type-caption truncate text-[var(--text-muted)]"
+          title={summary}
+          data-testid="fitting-clothing-summary"
+        >
+          Now wearing: {summary}
+        </p>
+        {picker}
+        {previewStatus ? (
+          <p className="type-caption text-[var(--text-muted)]">{previewStatus}</p>
+        ) : null}
+      </ToolSection>
     );
   }
 

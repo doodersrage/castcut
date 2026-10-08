@@ -27,6 +27,11 @@ export type FittingActionRowProps = {
   onQueueTryOnAndSwipe: () => void;
   onSaveKitToCast: () => void;
   onGoRoleplay: () => void;
+  /**
+   * `panel`: the fitting room's Clothes column — Try it on first, no "Skip outfit · Day" (the
+   * header's Continue to Day is the way on).
+   */
+  variant?: 'row' | 'panel';
 };
 
 function subscribePlayMetrics(onStoreChange: () => void) {
@@ -57,13 +62,18 @@ export default function FittingActionRow({
   onQueueTryOnAndSwipe,
   onSaveKitToCast,
   onGoRoleplay,
+  variant = 'row',
 }: FittingActionRowProps) {
+  const panel = variant === 'panel';
   const storyLocked = useSyncExternalStore(
     subscribePlayMetrics,
     () => isPlayStoryLocked(loadPlayMetrics()),
     () => true
   );
-  const demoteQueue = compareActive || softAdvanceActive || Boolean(continueDayHref);
+  // In the panel Try it on stays the main button: Keep is on the stage, Day in the header.
+  const demoteQueue = panel
+    ? Boolean(continueDayHref)
+    : compareActive || softAdvanceActive || Boolean(continueDayHref);
   return (
     <div className="space-y-2">
       <ToolActionRow>
@@ -85,7 +95,7 @@ export default function FittingActionRow({
           data-testid="fitting-queue-try-on"
           onClick={onQueueTryOn}
         >
-          {busy ? 'Queueing…' : 'Queue try-on'}
+          {busy ? 'Queueing…' : panel ? 'Try it on' : 'Queue try-on'}
         </Button>
         <Button
           size="sm"
@@ -102,11 +112,12 @@ export default function FittingActionRow({
           variant="secondary"
           disabled={queueBlocked || swipeDeckLength < 2}
           title={queueBlockReason || 'Queue this kit, then advance to the next'}
+          data-testid="fitting-queue-and-next"
           onClick={onQueueTryOnAndSwipe}
         >
-          Queue & next
+          {panel ? 'Try it on, then next kit' : 'Queue & next'}
         </Button>
-        {character && !continueDayHref ? (
+        {character && !continueDayHref && !panel ? (
           <ButtonLink
             href={dayPlannerHref}
             size="sm"

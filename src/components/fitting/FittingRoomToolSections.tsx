@@ -1,5 +1,9 @@
 'use client';
 
+import { useState } from 'react';
+import SideSheet from '@/components/ui/SideSheet';
+import { Button } from '@/components/ui/Button';
+
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
@@ -14,7 +18,6 @@ import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSe
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
-import OutfitPlayPhaseStrip from '@/components/fitting/OutfitPlayPhaseStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -30,7 +33,7 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { fittingSessionStatusLine, resolveFittingOutfitPhase } from '@/lib/fitting-room';
+import { fittingSessionStatusLine } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { withCharacterQuery } from '@/lib/mobile-studio';
@@ -117,6 +120,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     setIsolateStatus,
   } = vm;
   const { softAdvance, cancelSoftAdvance, softAdvanceHref } = usePlaySoftAdvance();
+  const [castSheetOpen, setCastSheetOpen] = useState(false);
   const quality = useOutfitQualityPreset({
     shared,
     updateShared,
@@ -133,11 +137,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     customGarmentDescription: toolSettings.customGarmentDescription,
     customPose: toolSettings.tryOnPose,
     shared,
-  });
-  const outfitPhase = resolveFittingOutfitPhase({
-    hasPlate: hasReference,
-    compareCount: compareTryOns.length,
-    continueDayReady: Boolean(continueDayHref || softAdvance),
   });
   const statusLine = fittingSessionStatusLine({
     hasPlate: hasReference,
@@ -173,20 +172,47 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       variant="roleplay"
     />
   );
+  const platePicture = referencePreviewUrl || referenceImageUrl;
+  const pending = toolSettings.pendingTryOn;
+  const plateSection = (
+    <FittingPlateSection
+      busy={busy}
+      referenceUploading={referenceUploading}
+      isolateSubject={isolateSubject}
+      hasReference={hasReference}
+      isolateStatus={isolateStatus}
+      referencePreviewUrl={referencePreviewUrl}
+      referenceImageFilename={referenceImageFilename}
+      referenceImageUrl={referenceImageUrl}
+      referenceOriginalFilename={referenceOriginalFilename}
+      referenceOriginalUrl={referenceOriginalUrl}
+      onUpdateToolSettings={patch => updateToolSettings(patch)}
+      onSetReferencePreviewUrl={setReferencePreviewUrl}
+      onSetIsolateStatus={setIsolateStatus}
+      onApplyReference={applyReference}
+      onClearReference={clearReference}
+      onError={message => setError(message)}
+      lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
+      characterId={shared.activeCharacterId}
+    />
+  );
   return (
     <ToolLayout
       accent={ACCENT}
+      width="full"
       badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Outfit"
       description={description}
       sidebarPersistKey="fitting"
       sidebar={engineControls}
       sidebarTitle={leanChrome ? false : undefined}
+      // The fitting room needs the full width: Engine, quality by hand, LoRA and identity lock
+      // open from the header chip as a sheet.
+      engineSheetOnly
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
       <PlayFilmEngineBanner />
       <PlayFilmFunnelChrome />
-      <OutfitPlayPhaseStrip activePhase={outfitPhase} compareCount={compareTryOns.length} />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}
@@ -200,72 +226,204 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         characterId={shared.activeCharacterId}
       />
 
-      <FittingStatusStrip
-        className="mt-2"
-        statusLine={statusLine}
-        queueBlockReason={queueBlocked && character ? queueBlockReason : null}
-      />
-
-      {compareTryOns.length > 0 && !softAdvance && !continueDayHref ? (
-        <div
-          className="rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2"
-          data-testid="fitting-keep-coach"
-          role="status"
-        >
-          <p className="type-overline text-[var(--accent-text)]">Ready to keep</p>
-          <p className="type-caption text-[var(--text-muted)]">
-            Keep a winner to seed Day — continuing starts after Keep.
-          </p>
-        </div>
-      ) : null}
-
-      <FittingCharacterSection
-        shared={shared}
-        characterHints={character?.hints}
-        onApply={patch => updateShared(patch)}
-        onError={message => setError(message)}
-      />
-
-      <FittingPlateSection
-        busy={busy}
-        referenceUploading={referenceUploading}
-        isolateSubject={isolateSubject}
-        hasReference={hasReference}
-        isolateStatus={isolateStatus}
-        referencePreviewUrl={referencePreviewUrl}
-        referenceImageFilename={referenceImageFilename}
-        referenceImageUrl={referenceImageUrl}
-        referenceOriginalFilename={referenceOriginalFilename}
-        referenceOriginalUrl={referenceOriginalUrl}
-        onUpdateToolSettings={patch => updateToolSettings(patch)}
-        onSetReferencePreviewUrl={setReferencePreviewUrl}
-        onSetIsolateStatus={setIsolateStatus}
-        onApplyReference={applyReference}
-        onClearReference={clearReference}
-        onError={message => setError(message)}
-        lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
-        characterId={shared.activeCharacterId}
-      />
-
-      <ToolSection
-        title="Pose"
-        description="Try the kit on in the plate's own stance, or drag a figure into a pose."
-        data-testid="fitting-pose-section"
+      {/* The fitting room: who tries on (and her plate) · the try-on · the clothes. */}
+      <div
+        className="grid items-start gap-[var(--block-gap)] lg:grid-cols-[14rem_minmax(0,1fr)_27rem]"
+        data-testid="fitting-room"
       >
-        <OutfitPoseSection
-          pose={toolSettings.tryOnPose}
-          busy={busy}
-          hideLabel
-          leadNoun={dayPartnerNoun(character ?? {})}
-          plateUrl={referencePreviewUrl || referenceImageUrl}
-          onChange={pose => updateToolSettings({ tryOnPose: pose })}
-        />
-        <OutfitPoseShoesNote
-          model={shared.model}
-          hasCustomPose={Boolean(toolSettings.tryOnPose?.people?.length)}
-          footwear={toolSettings.footwear}
-        />
-      </ToolSection>
+        <div className="ui-section-stack min-w-0" data-testid="fitting-who">
+          <div className="ui-card space-y-2 p-3">
+            <p className="type-overline text-[var(--text-muted)]">Trying on</p>
+            <p className="type-heading truncate" data-testid="fitting-who-name">
+              {character?.name ?? 'No Cast lead yet'}
+            </p>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid="fitting-change-cast"
+              onClick={() => setCastSheetOpen(true)}
+            >
+              {character ? 'Change person or look' : 'Pick a Cast lead'}
+            </Button>
+          </div>
+          {plateSection}
+        </div>
+
+        <div className="ui-section-stack min-w-0">
+          <FittingCompareSection
+            layout="stage"
+            compareTryOns={compareTryOns}
+            busy={busy}
+            onKeepTryOn={keepTryOn}
+            onSoftAdvance={href => softAdvanceHref(href, 'Day')}
+            onDismissTryOn={dismissTryOn}
+            onUseFixedTryOn={applyFixedTryOn}
+            onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
+            reviews={tryOnReview.reviews}
+            reviewingId={tryOnReview.reviewingId}
+            pending={
+              pending
+                ? {
+                    label: pending.wardrobeLabel || pending.wardrobeId || 'the outfit',
+                    status: saveStatus,
+                  }
+                : null
+            }
+            empty={
+              platePicture ? (
+                <div className="space-y-2 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={platePicture}
+                    alt=""
+                    className="mx-auto max-h-[60vh] rounded-[var(--radius-md)] object-contain opacity-60"
+                  />
+                  <p className="type-caption text-[var(--text-muted)]">
+                    Pick clothes, then Try it on — the try-on shows here.
+                  </p>
+                </div>
+              ) : (
+                <p className="type-caption px-2 py-10 text-center text-[var(--text-muted)]">
+                  Add a plate first — the picture every try-on starts from.
+                </p>
+              )
+            }
+          />
+
+          <ToolSection
+            title="Pose"
+            description="Try the kit on in the plate's own stance, or drag a figure into a pose."
+            data-testid="fitting-pose-section"
+          >
+            <OutfitPoseSection
+              pose={toolSettings.tryOnPose}
+              busy={busy}
+              hideLabel
+              leadNoun={dayPartnerNoun(character ?? {})}
+              plateUrl={platePicture}
+              onChange={pose => updateToolSettings({ tryOnPose: pose })}
+            />
+            <OutfitPoseShoesNote
+              model={shared.model}
+              hasCustomPose={Boolean(toolSettings.tryOnPose?.people?.length)}
+              footwear={toolSettings.footwear}
+            />
+          </ToolSection>
+        </div>
+
+        <div className="ui-section-stack min-w-0">
+          {/* Try it on first, and it stays in reach (under the header) through a long clothes list. */}
+          <div
+            className="ui-sticky-surface space-y-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-2 lg:sticky lg:top-[5.5rem] lg:z-10"
+            data-testid="fitting-try-panel"
+          >
+            <FittingActionRow
+              variant="panel"
+              continueDayHref={softAdvance ? null : continueDayHref}
+              dayPlannerHref={dayPlannerHref}
+              queueBlocked={queueBlocked}
+              queueBlockReason={queueBlockReason}
+              swipeDeckLength={swipeDeck.length}
+              hasKit={Boolean(shared.lockedWardrobeId?.trim())}
+              busy={busy}
+              character={character}
+              compareActive={compareTryOns.length > 0 && !continueDayHref}
+              softAdvanceActive={Boolean(softAdvance)}
+              onSkipKit={skipKit}
+              onQueueTryOn={() => void queueTryOn()}
+              onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}
+              onSaveKitToCast={saveKitToCast}
+              onGoRoleplay={goRoleplay}
+            />
+            {saveStatus && !pending ? (
+              <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p>
+            ) : null}
+            {error ? <FieldError>{error}</FieldError> : null}
+          </div>
+
+          <FittingWardrobeKitSection
+            inline
+            busy={busy}
+            wardrobeReady={wardrobeReady}
+            wardrobeCategoryFilter={wardrobeCategoryFilter}
+            wardrobeOptions={wardrobeOptions}
+            swipeDeck={swipeDeck}
+            deckSelectionId={deckSelectionId}
+            activeLookId={activeLookId}
+            kitPreviews={kitPreviews}
+            autoKitPreviews={autoKitPreviews}
+            hasReference={hasReference}
+            isolateSubject={isolateSubject}
+            referenceIsolated={toolSettings.referenceIsolated === true}
+            previewModel={previewModel}
+            previewModelLabel={previewModelLabel}
+            selectedModelLabel={selectedModel?.label}
+            sharedModel={shared.model}
+            lockedWardrobeId={shared.lockedWardrobeId}
+            lockedWardrobeLabel={lockedWardrobeLabel}
+            completedPreviewCount={completedPreviewCount}
+            inFlightPreviewCount={inFlightPreviewCount}
+            previewStatus={previewStatus}
+            customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+            customGarmentImageFilename={toolSettings.customGarmentImageFilename}
+            customGarmentDescription={toolSettings.customGarmentDescription}
+            garmentUploading={garmentUploading}
+            garmentScanStatus={garmentScanStatus}
+            onCategoryFilterChange={filter =>
+              updateToolSettings({ wardrobeCategoryFilter: filter })
+            }
+            onSwipeKit={swipeKit}
+            onSelectKit={selectKit}
+            onClearKit={clearKit}
+            onToggleAutoKitPreviews={() =>
+              updateToolSettings({ autoKitPreviews: !autoKitPreviews })
+            }
+            onFillKitPreviews={() => void fillKitPreviews()}
+            onApplyCustomGarment={applyCustomGarment}
+            onClearCustomGarment={clearCustomGarment}
+            onRescanCustomGarment={rescanCustomGarment}
+            onSaveCustomGarment={saveCurrentCustomGarment}
+            onApplySavedCustomGarment={applySavedCustomGarment}
+            onRemoveSavedCustomGarment={removeSavedCustomGarment}
+            onCustomGarmentDescriptionChange={value =>
+              updateToolSettings({ customGarmentDescription: value })
+            }
+            footwear={{
+              value: toolSettings.footwear,
+              imageUrl: toolSettings.footwearImageUrl,
+              imageFilename: toolSettings.footwearImageFilename,
+              onChange: patch => updateToolSettings(patch),
+              onApplyPhoto: applyFootwearPhoto,
+            }}
+            onError={message => setError(message)}
+          />
+
+          <div className="space-y-2">
+            <FittingStatusStrip
+              statusLine={statusLine}
+              queueBlockReason={queueBlocked && character ? queueBlockReason : null}
+            />
+            <OutfitQualityControls
+              busy={busy}
+              preset={quality.preset}
+              onPresetChange={quality.setPreset}
+              summary={quality.summary}
+              renderQuality={quality.renderQuality}
+              onRenderQualityChange={quality.setRenderQuality}
+              autoReview={autoReviewTryOns}
+              onAutoReviewChange={next => updateToolSettings({ autoReviewTryOns: next })}
+              checksOff={tryOnReview.checksOff}
+              frontBack={quality.settings.frontBack}
+              onFrontBackChange={next => updateToolSettings({ tryOnFrontBack: next })}
+              notes={toolSettings.notes ?? ''}
+              onNotesChange={value =>
+                updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
+              }
+            />
+          </div>
+        </div>
+      </div>
 
       <TaskRequirementsCard
         task="Outfit try-ons"
@@ -273,111 +431,9 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         input={{ model: shared.model, autoReview: toolSettings.autoReviewTryOns === true }}
       />
 
-      <FittingWardrobeKitSection
-        busy={busy}
-        wardrobeReady={wardrobeReady}
-        wardrobeCategoryFilter={wardrobeCategoryFilter}
-        wardrobeOptions={wardrobeOptions}
-        swipeDeck={swipeDeck}
-        deckSelectionId={deckSelectionId}
-        activeLookId={activeLookId}
-        kitPreviews={kitPreviews}
-        autoKitPreviews={autoKitPreviews}
-        hasReference={hasReference}
-        isolateSubject={isolateSubject}
-        referenceIsolated={toolSettings.referenceIsolated === true}
-        previewModel={previewModel}
-        previewModelLabel={previewModelLabel}
-        selectedModelLabel={selectedModel?.label}
-        sharedModel={shared.model}
-        lockedWardrobeId={shared.lockedWardrobeId}
-        lockedWardrobeLabel={lockedWardrobeLabel}
-        completedPreviewCount={completedPreviewCount}
-        inFlightPreviewCount={inFlightPreviewCount}
-        previewStatus={previewStatus}
-        customGarmentImageUrl={toolSettings.customGarmentImageUrl}
-        customGarmentImageFilename={toolSettings.customGarmentImageFilename}
-        customGarmentDescription={toolSettings.customGarmentDescription}
-        garmentUploading={garmentUploading}
-        garmentScanStatus={garmentScanStatus}
-        onCategoryFilterChange={filter => updateToolSettings({ wardrobeCategoryFilter: filter })}
-        onSwipeKit={swipeKit}
-        onSelectKit={selectKit}
-        onClearKit={clearKit}
-        onToggleAutoKitPreviews={() => updateToolSettings({ autoKitPreviews: !autoKitPreviews })}
-        onFillKitPreviews={() => void fillKitPreviews()}
-        onApplyCustomGarment={applyCustomGarment}
-        onClearCustomGarment={clearCustomGarment}
-        onRescanCustomGarment={rescanCustomGarment}
-        onSaveCustomGarment={saveCurrentCustomGarment}
-        onApplySavedCustomGarment={applySavedCustomGarment}
-        onRemoveSavedCustomGarment={removeSavedCustomGarment}
-        onCustomGarmentDescriptionChange={value =>
-          updateToolSettings({ customGarmentDescription: value })
-        }
-        footwear={{
-          value: toolSettings.footwear,
-          imageUrl: toolSettings.footwearImageUrl,
-          imageFilename: toolSettings.footwearImageFilename,
-          onChange: patch => updateToolSettings(patch),
-          onApplyPhoto: applyFootwearPhoto,
-        }}
-        onError={message => setError(message)}
-      />
-
-      <OutfitQualityControls
-        busy={busy}
-        preset={quality.preset}
-        onPresetChange={quality.setPreset}
-        summary={quality.summary}
-        renderQuality={quality.renderQuality}
-        onRenderQualityChange={quality.setRenderQuality}
-        autoReview={autoReviewTryOns}
-        onAutoReviewChange={next => updateToolSettings({ autoReviewTryOns: next })}
-        checksOff={tryOnReview.checksOff}
-        frontBack={quality.settings.frontBack}
-        onFrontBackChange={next => updateToolSettings({ tryOnFrontBack: next })}
-        notes={toolSettings.notes ?? ''}
-        onNotesChange={value =>
-          updateToolSettings(fittingNotesCachePatch(value, shared.activeCharacterId))
-        }
-      />
-
-      <FittingCompareSection
-        compareTryOns={compareTryOns}
-        busy={busy}
-        onKeepTryOn={keepTryOn}
-        onSoftAdvance={href => softAdvanceHref(href, 'Day')}
-        onDismissTryOn={dismissTryOn}
-        onUseFixedTryOn={applyFixedTryOn}
-        onRequeueTryOn={tryOn => void requeueTryOn(tryOn)}
-        reviews={tryOnReview.reviews}
-        reviewingId={tryOnReview.reviewingId}
-      />
-
-      <FittingActionRow
-        continueDayHref={softAdvance ? null : continueDayHref}
-        dayPlannerHref={dayPlannerHref}
-        queueBlocked={queueBlocked}
-        queueBlockReason={queueBlockReason}
-        swipeDeckLength={swipeDeck.length}
-        hasKit={Boolean(shared.lockedWardrobeId?.trim())}
-        busy={busy}
-        character={character}
-        compareActive={compareTryOns.length > 0 && !continueDayHref}
-        softAdvanceActive={Boolean(softAdvance)}
-        onSkipKit={skipKit}
-        onQueueTryOn={() => void queueTryOn()}
-        onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}
-        onSaveKitToCast={saveKitToCast}
-        onGoRoleplay={goRoleplay}
-      />
-      {saveStatus ? <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p> : null}
-      {error ? <FieldError>{error}</FieldError> : null}
-
       <CollapsibleSection
         title="Prompt (advanced)"
-        summary="Edit the try-on prompt — Queue lives in the action row above."
+        summary="Edit the try-on prompt — Try it on is in the Clothes column."
         defaultOpen={false}
         persistKey="fitting-prompt-advanced"
       >
@@ -404,6 +460,21 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
           showQueueButton={false}
         />
       </CollapsibleSection>
+
+      <SideSheet
+        open={castSheetOpen}
+        onClose={() => setCastSheetOpen(false)}
+        title="Who tries the clothes on"
+        description="The same Cast member as Day and Story — and which of their looks."
+        testId="fitting-cast-sheet"
+      >
+        <FittingCharacterSection
+          shared={shared}
+          characterHints={character?.hints}
+          onApply={patch => updateShared(patch)}
+          onError={message => setError(message)}
+        />
+      </SideSheet>
     </ToolLayout>
   );
 }

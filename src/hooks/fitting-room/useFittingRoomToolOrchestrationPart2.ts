@@ -512,12 +512,26 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     }
   }, [applyReference, mounted, shared.activeCharacterId, updateShared, updateToolSettings]);
 
+  // The plate belongs to another Cast — stamped on it, or the Cast changed while Outfit was open.
+  // Loose Lana picked over Tomas's plate kept trying clothes on Tomas (UI review 2026-10-08):
+  // this effect only seeded an empty page.
+  const seededCastRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mounted || hasReference || !shared.activeCharacterId) {
+    if (!mounted || !shared.activeCharacterId) {
       return;
     }
-    // User cleared the plate — do not pull Cast look back in.
-    if (toolSettings.suppressAutoPlateSeed === true) {
+    const castId = shared.activeCharacterId.trim();
+    const previousCast = seededCastRef.current;
+    seededCastRef.current = castId;
+    const owner = toolSettings.referenceCharacterId?.trim();
+    const staleOwner =
+      hasReference &&
+      ((Boolean(owner) && owner !== castId) || (Boolean(previousCast) && previousCast !== castId));
+    if (hasReference && !staleOwner) {
+      return;
+    }
+    // User cleared the plate — do not pull Cast look back in (another Cast always seeds).
+    if (toolSettings.suppressAutoPlateSeed === true && !staleOwner) {
       return;
     }
     const record = getCharacter(shared.activeCharacterId);
@@ -544,6 +558,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     hasReference,
     mounted,
     shared.activeCharacterId,
+    toolSettings.referenceCharacterId,
     toolSettings.suppressAutoPlateSeed,
   ]);
 

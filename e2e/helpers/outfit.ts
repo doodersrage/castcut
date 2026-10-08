@@ -1,12 +1,20 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
- * Outfit's clothing picker (kit deck, your own photo, footwear) is the shared Clothing sheet,
- * opened from the Clothing row's Choose… button (desk and phone). The sheet is modal: the page
- * behind it cannot be clicked until it closes (Escape).
+ * Outfit's clothing picker (kit deck, your own photo, footwear): in place in the desk fitting
+ * room's Clothes column; on the phone the shared Clothing sheet, opened from the Clothing row's
+ * Choose… button (modal: the page behind it cannot be clicked until it closes — Escape).
  */
 export async function openOutfitClothing(page: Page): Promise<Locator> {
+  // Desk Outfit (the fitting room) shows the picker in place — nothing to open.
+  const inline = page.getByTestId('fitting-kit-strip').getByTestId('fitting-clothing-picker');
+  const opener = page.getByTestId('fitting-clothing-open').first();
   const sheet = page.getByTestId('clothing-sheet');
+  // isVisible() does not wait: wait for whichever the page has.
+  await expect(inline.or(opener).or(sheet).first()).toBeVisible({ timeout: 30_000 });
+  if (await inline.isVisible()) {
+    return page.getByTestId('fitting-kit-strip');
+  }
   if (await sheet.isVisible().catch(() => false)) {
     return sheet;
   }

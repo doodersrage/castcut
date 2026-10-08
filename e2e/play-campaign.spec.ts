@@ -59,10 +59,17 @@ test('fitting room happy path chrome loads', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /^Outfit$/i })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByTestId('fitting-character')).toBeVisible();
+  // The fitting room: who (and her plate) · the try-on stage · the clothes and Try it on.
+  await expect(page.getByTestId('fitting-who')).toBeVisible();
   await expect(page.getByTestId('fitting-plate')).toBeVisible();
+  await expect(page.getByTestId('fitting-stage')).toBeVisible();
   await expect(page.getByTestId('fitting-kit-strip')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Queue try-on/i })).toBeVisible();
+  await expect(page.getByTestId('fitting-queue-try-on')).toHaveText('Try it on');
+  // The Cast tiles open in a sheet.
+  await page.getByTestId('fitting-change-cast').click();
+  await expect(page.getByTestId('fitting-cast-sheet').getByTestId('fitting-character')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('fitting-cast-sheet')).toHaveCount(0);
 });
 
 test('outfit first run: Cast card, one plate message, grouped kit controls', async ({ page }) => {
@@ -117,7 +124,12 @@ test('outfit first run: Cast card, one plate message, grouped kit controls', asy
     'aria-pressed',
     'true'
   );
-  await expect(page.getByTestId('engine-quality-set-by')).toContainText('Best');
+  // The Engine opens from the header chip as a sheet on Outfit (the fitting room is full width).
+  await page.getByTestId('tool-engine-chip').click();
+  const engine = page.getByTestId('tool-engine-sheet');
+  await expect(engine.getByTestId('engine-quality-set-by')).toContainText('Best');
+  await page.keyboard.press('Escape');
+  await expect(engine).toHaveCount(0);
   await page.getByTestId('fitting-quality-preset-fast').click();
   await expect(review).toHaveAttribute('aria-checked', 'false');
   await expect(page.getByTestId('fitting-front-back-switch')).toHaveAttribute(
@@ -272,12 +284,11 @@ test('outfit front and back: a try-on card shows its front and its back view', a
     backPng
   );
   await expect(card.getByRole('button', { name: 'View the back of Red dress larger' })).toBeVisible();
-  // Keep is the card's one button; Pass and Requeue sit in its ⋯ menu.
+  // On the stage: Keep, Again (requeue), Fix and Pass under the picture.
   await expect(card.getByTestId('fitting-keep')).toBeVisible();
-  await card.getByTestId('fitting-compare-menu-trigger').click();
+  await expect(card.getByTestId('fitting-requeue-try-on')).toHaveText('Again');
+  await expect(card.getByTestId('fitting-fix-try-on')).toBeVisible();
   await expect(card.getByTestId('fitting-pass-try-on')).toBeVisible();
-  await expect(card.getByTestId('fitting-requeue-try-on')).toBeVisible();
-  await page.keyboard.press('Escape');
   // The switch is on by default (under Advanced).
   await openOutfitAdvanced(page);
   await expect(page.getByTestId('fitting-front-back-switch')).toHaveAttribute(
@@ -558,6 +569,9 @@ test('forgetting a Cast lead asks first', async ({ page }) => {
   });
   await gotoStable(page, '/fitting?character=e2e-forget');
   await dismissBlockingOverlays(page);
+  // Outfit's Cast tiles open in a sheet from "Change person or look".
+  await expect(page.getByTestId('fitting-who-name')).toHaveText('Keep Me', { timeout: 30_000 });
+  await page.getByTestId('fitting-change-cast').click();
   const picked = page
     .getByRole('radiogroup', { name: 'Active character' })
     .getByTestId('cast-picker-character-e2e-forget');

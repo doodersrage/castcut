@@ -1094,6 +1094,8 @@ export type FittingToolCache = {
   pendingTryOn?: import('./fitting-room').FittingPendingTryOn;
   isolateSubject?: boolean;
   referenceIsolated?: boolean;
+  /** The Cast the plate was applied for: a plate of another Cast is re-seeded, not tried on. */
+  referenceCharacterId?: string;
   referenceImageUrl?: string;
   referenceImageFilename?: string;
   referenceOriginalUrl?: string;

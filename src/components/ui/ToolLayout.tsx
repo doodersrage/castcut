@@ -35,6 +35,11 @@ type ToolLayoutProps = {
   sidebarDefaultOpen?: boolean;
   sidebarTitle?: string | false;
   sidebarDescription?: string;
+  /**
+   * The Engine opens only as a sheet from the header chip, never as a docked column — for a page
+   * whose own layout needs the full width (Outfit's fitting room).
+   */
+  engineSheetOnly?: boolean;
   children: ReactNode;
 };
 
@@ -130,11 +135,12 @@ function EngineToolLayout({
   sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
   sidebarPersistKey,
   sidebarDefaultOpen: _defaultOpen,
+  engineSheetOnly = false,
   ...rest
 }: ToolLayoutProps & { sidebar: ReactNode; sidebarPersistKey: string }) {
   void _defaultOpen;
   const panelId = useId();
-  const wide = useWideEngineLayout();
+  const wide = useWideEngineLayout() && !engineSheetOnly;
   // Docked column: open by default, remembered per tool. The sheet is per visit.
   const { engineOpen, setEngineOpen } = useToolEngineSidebar(sidebarPersistKey, true);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -148,7 +154,12 @@ function EngineToolLayout({
         sidebar={sidebar}
         sidebarTitle={sidebarTitle}
         sidebarDescription={sidebarDescription}
-        engine={{ id: panelId, open: engineOpen, wide, onHide: () => setEngineOpen(false) }}
+        engine={{
+          id: panelId,
+          open: engineSheetOnly ? false : engineOpen,
+          wide,
+          onHide: () => setEngineOpen(false),
+        }}
         headerActions={
           <>
             <ToolEngineChip
@@ -188,7 +199,14 @@ export const ToolLayout = memo(function ToolLayout(props: ToolLayoutProps) {
       />
     );
   }
-  const { accent: _accent, sidebarPersistKey: _key, sidebarDefaultOpen: _def, ...frame } = props;
+  const {
+    accent: _accent,
+    sidebarPersistKey: _key,
+    sidebarDefaultOpen: _def,
+    engineSheetOnly: _sheetOnly,
+    ...frame
+  } = props;
+  void _sheetOnly;
   void _accent;
   void _key;
   void _def;
