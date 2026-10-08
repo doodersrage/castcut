@@ -49,6 +49,10 @@ import {
 import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
 import { fetchInstalledModelCheck } from '@/lib/footwear-check-client';
 import {
+  isSettingsSyncedWithServer,
+  SETTINGS_SYNCED_WITH_SERVER_EVENT,
+} from '@/lib/settings-push-flush';
+import {
   buildFittingSwipeDeck,
   fittingBestDefaultEngine,
   fittingDefaultEngineSwitch,
@@ -570,8 +574,19 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
   // over the old plate until a reload. Re-seed from the Cast when the active look changes.
   // Outfit's engine: Klein 9B Distilled when installed, else Edit 2511 — switched once per best
   // engine (fittingDefaultEngineSwitch). Asks ComfyUI for its inventory when none is cached.
+  // Only once this page has the server's settings: a write before the startup pull keeps the
+  // whole local Outfit record over the server's (fresh browser: plate, clothing and shoes wiped —
+  // caught 2026-10-08).
+  const [settingsSynced, setSettingsSynced] = useState(() => isSettingsSyncedWithServer());
   useEffect(() => {
-    if (!mounted) return;
+    if (settingsSynced) return;
+    const onSynced = () => setSettingsSynced(true);
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSynced);
+    if (isSettingsSyncedWithServer()) onSynced();
+    return () => window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSynced);
+  }, [settingsSynced]);
+  useEffect(() => {
+    if (!mounted || !settingsSynced) return;
     let cancelled = false;
     void fetchInstalledModelCheck(shared.modelCheckpointMap).then(installed => {
       if (cancelled || !installed) return;
@@ -591,6 +606,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     };
   }, [
     mounted,
+    settingsSynced,
     shared.model,
     shared.modelCheckpointMap,
     toolSettings.defaultEngineApplied,
