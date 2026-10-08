@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Story points at the right pose map.** With no clothing image, a Story still's pose map goes in as Image 2, but the prompt called it "Image 3", a picture that wasn't there (101 of the user's Story stills). Story now renumbers the way Day does. The adult nude line ("Image 1 and Image 2 fabric…") no longer blocks the renumbering on Day or Story. A same-seed replay of 10 stills changed little: Rapid follows the map in its slot either way. This is a correctness fix.
 - **No limit on saved clothing photos and shoes.** Both lists kept the newest 12 and silently dropped older ones; now they keep everything. The picker strip scrolls, and Browse searches the whole list. Pack imports no longer warn about overflow.
 - **Outfit stage keeps its place while rendering.** The try-on renders in a fixed square frame with ComfyUI's live preview and the queue position / render % (as on Day). With Front and back on, the back frame is there from the start and fills when the back view lands, so the page no longer jumps. Picking an earlier try-on from the strip holds until the next render starts.
 - **Outfit keeps every try-on.** The stage strip was capped at 4 (the oldest dropped off); now it keeps them all.

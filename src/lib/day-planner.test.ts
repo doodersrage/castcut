@@ -1119,6 +1119,13 @@ describe('day-planner', () => {
       ),
       'Match Image 2. Never leave Image 2 white as the scene background.'
     );
+    // The adult nude line names a clothing image too (it blocked 20 of 101 Story renumberings).
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'zero fabric on either body; Image 1 and Image 2 fabric is invisible and must not be copied. Pose to Image 3.'
+      ),
+      'zero fabric on either body; Image 1 fabric is invisible and must not be copied. Pose to Image 2.'
+    );
   });
 
   it('buildDaySlotPrompt leads sport stills with the venue and the action', () => {

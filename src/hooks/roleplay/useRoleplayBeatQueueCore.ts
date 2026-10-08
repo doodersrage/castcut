@@ -4,6 +4,7 @@ import { releaseInterruptedStoryWrites } from '@/hooks/roleplay/story-beat-edit'
 import { storyPoseForcePeople } from '@/lib/story-scene-people';
 
 import { composedPoseForScene } from '@/lib/pose-compose';
+import { queuedDayStillPrompt } from '@/lib/day-still-prompt';
 import {
   repairStillPrompt,
   stillPromptCheckRecord,
@@ -158,10 +159,17 @@ function checkedStoryPrompt(
   label: string | undefined,
   people?: number,
   manLead = false,
-  adult?: { content: RoleplayContentId; strong?: boolean }
+  adult?: { content: RoleplayContentId; strong?: boolean },
+  /** Which extra images go with it (clothing = 2, pose map = 3); omitted for a text-only check. */
+  images?: { second: boolean; third: boolean }
 ): { prompt: string; promptCheck: StillPromptCheck | undefined } {
-  const repaired = repairStillPrompt(manLead ? storyPromptForManLead(prompt) : prompt, {
+  const voiced = manLead ? storyPromptForManLead(prompt) : prompt;
+  // No clothing image: the queue moves the pose map into the second slot, so "Image 3" pointed
+  // at a picture that was not there (101 of the user's Story stills, 2026-10-08) — as Day does.
+  const numbered = images ? queuedDayStillPrompt(voiced, images).prompt : voiced;
+  const repaired = repairStillPrompt(numbered, {
     people: people || undefined,
+    ...(images ? { imageCount: 1 + Number(images.second) + Number(images.third) } : {}),
   });
   const checked = adult
     ? {
@@ -184,6 +192,21 @@ function checkedStoryPrompt(
     });
   }
   return { prompt: checked.prompt, promptCheck: stillPromptCheckRecord(checked) };
+}
+
+/** The extra images a Story still queues with: clothing in the second slot, pose map in the third. */
+function storyStillImages(
+  stillOpts:
+    | { inputImageFilenames?: (string | undefined)[]; inputImageUrls?: (string | undefined)[] }
+    | null
+    | undefined
+): { second: boolean; third: boolean } | undefined {
+  if (!stillOpts) return undefined;
+  const has = (index: number) =>
+    Boolean(
+      stillOpts.inputImageFilenames?.[index]?.trim() || stillOpts.inputImageUrls?.[index]?.trim()
+    );
+  return { second: has(1), third: has(2) };
 }
 
 /** What the Story still prompt needs to know about the Image 3 guide that was drawn. */
@@ -916,7 +939,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           beat.title,
           poseGuide?.prompt.headcount,
           leadIsMan(),
-          { content }
+          { content },
+          storyStillImages(stillOpts)
         );
         const promptId = await actions.sendComfyUi(
           kleinFace ? `${sentPrompt}\n${KLEIN_FACE_REFERENCE_LINE}` : sentPrompt,
@@ -1142,7 +1166,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           latest.title,
           poseGuide?.prompt.headcount,
           leadIsMan(),
-          { content, strong: options?.strongAgeLine === true }
+          { content, strong: options?.strongAgeLine === true },
+          storyStillImages(stillOpts)
         );
         const sentPrompt = checked.prompt;
         promptCheck = checked.promptCheck;

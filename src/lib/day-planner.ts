@@ -4782,7 +4782,9 @@ export function renumberDayPoseGuideAsImage2(prompt: string): string {
     .replace(/\bImage 2 or Image 3\b/g, 'Image 3')
     .replace(/\bKeep\/Image 2 outfit\b/g, 'Keep outfit')
     .replace(/\bthe outfit Image 2 or the beat names\b/g, 'the outfit worn in Image 1')
-    .replace(/\bthe Keep outfit from Image 2\b/g, 'the Keep outfit from Image 1');
+    .replace(/\bthe Keep outfit from Image 2\b/g, 'the Keep outfit from Image 1')
+    // The adult nude line (intimate-prompt-clarify.ts) names a clothing image that is not attached.
+    .replace(/\bImage 1 and Image 2 fabric is invisible\b/g, 'Image 1 fabric is invisible');
   if (/\bImage 2\b/.test(merged)) {
     return prompt;
   }
