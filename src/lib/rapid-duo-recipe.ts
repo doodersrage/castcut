@@ -1360,8 +1360,10 @@ export function dayWalkingDuoSkipsPoseGuide(
   );
 }
 
+// "Arms swinging" fought the hand hold: hands joined in ~4/8 takes; saying the hold outright,
+// 8/8 (four hand-in-hand beats x 2 seeds, live 2026-10-08).
 const WALKING_DUO_LINE =
-  'They walk past the camera, seen from the side in three-quarter view, both mid-stride — one foot lifted off the ground, arms swinging, looking at each other and laughing. Candid photo caught in motion.';
+  'They walk past the camera, seen from the side in three-quarter view, both mid-stride — one foot lifted off the ground. Their near hands are joined between them, fingers interlaced, joined arms relaxed; their free arms swing. They look at each other and laugh. Candid photo caught in motion.';
 
 /**
  * Compact two-person recipe for clothed Everyday / Vacation / Sport / themed Day stills (Qwen

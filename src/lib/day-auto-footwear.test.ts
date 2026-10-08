@@ -16,6 +16,14 @@ describe('shoes on auto for clothed Day stills', () => {
     assert.equal(dayAutoFootwear({ beat: 'walking home with her heels in one hand', setting: 'city street', dayMood: 'everyday' }), null);
   });
 
+  it('a beat that names the shoes gets that kind', () => {
+    assert.equal(dayAutoFootwear({ beat: 'sitting on a low step lacing boots', setting: 'city street', dayMood: 'everyday' }), 'brown leather ankle boots');
+    assert.equal(dayAutoFootwear({ beat: 'kneeling to unlace boots by the door', setting: 'subway platform', dayMood: 'everyday' }), 'brown leather ankle boots');
+  });
+  it('"walking home" is outdoors; "at home" is not', () => {
+    assert.ok(dayAutoFootwear({ beat: 'walking home hand in hand under the streetlights', setting: 'rain-slick bridge walkway', dayMood: 'everyday' }));
+    assert.equal(dayAutoFootwear({ beat: 'reading at home on a lazy morning', setting: 'sunny reading nook', dayMood: 'everyday' }), null);
+  });
   it('a man lead never gets heels', () => {
     assert.equal(dayAutoFootwear({ beat: 'waving down a taxi', setting: 'lamplit street', outfit: 'black satin evening shirt', dayMood: 'night-out', lead: 'man' }), 'white leather sneakers');
   });

@@ -159,7 +159,15 @@ export function withFootwearLine(
 
 /** Places where bare feet are normal: home, bed, bath, beach, pool, a yoga or martial-arts mat. */
 const BAREFOOT_PLACE_RE =
-  /\b(?:bed|bedroom|bath|bathroom|bathtub|shower|sauna|spa|pool|poolside|beach|sand|sandy|shore|surf|sea|ocean|lake|river (?:bank|shallows)|water|swim\w*|yoga|mat|dojo|tatami|dance studio|living[- ]room|lounge|couch|sofa|home|apartment|flat|hotel room|suite|kitchen|rug|carpet|blanket|picnic)\b/i;
+  /\b(?:bed|bedroom|bath|bathroom|bathtub|shower|sauna|spa|pool|poolside|beach|sand|sandy|shore|surf|sea|ocean|lake|river (?:bank|shallows)|water|swim\w*|yoga|mat|dojo|tatami|dance studio|living[- ]room|lounge|couch|sofa|at home|apartment|hotel room|suite|kitchen|rug|carpet|blanket|picnic)\b/i;
+
+const BEAT_SHOE_KINDS: ReadonlyArray<[RegExp, string]> = [
+  [/\b(?:hiking\s+)?boots?\b/i, 'brown leather ankle boots'],
+  [/\bheels?\b|\bstilettos?\b|\bpumps\b/i, 'black strappy heeled sandals'],
+  [/\bsandals?\b|\bflip[- ]?flops?\b/i, 'flat tan leather sandals'],
+  [/\b(?:sneakers?|trainers?|running shoes?)\b/i, 'white leather sneakers'],
+  [/\bloafers?\b/i, 'black leather loafers'],
+];
 
 /**
  * Footwear on "auto" for a clothed Day still: a named pair that suits the outfit and the place,
@@ -188,6 +196,10 @@ export function dayAutoFootwear(input: {
   }
   const mood = (input.dayMood ?? '').toLowerCase();
   if (mood === 'sport') return null; // Sport kits name their own shoes.
+  // The beat names the shoes ("lacing boots", "unlacing her boots"): that kind, not sneakers —
+  // the first auto pick put white sneakers on a boot-lacing beat (2026-10-08).
+  const named = BEAT_SHOE_KINDS.find(([re]) => re.test(input.beat ?? ''));
+  if (named) return named[1];
   const outfit = (input.outfit ?? '').toLowerCase();
   if (/\b(?:suit|blazer|tailored|trousers|slacks|tuxedo)\b/.test(outfit)) {
     return 'black leather loafers';
