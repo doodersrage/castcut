@@ -41,6 +41,8 @@ type BridgeSession = {
   /** Graphs of jobs seen executing (null = not found), for "Loading <engine>…" vs "Rendering". */
   graphs: Map<string, unknown | null>;
   lastExecuting?: { promptId?: string; node: string };
+  /** Steps ComfyUI reused from its cache, per job (`execution_cached`), for the progress line. */
+  cached: Map<string, number>;
 };
 
 const MAX_SESSION_GRAPHS = 8;
@@ -101,7 +103,11 @@ function publishExecuting(
     status: 'executing',
     promptId,
     node,
-    message: phase === 'Rendering' ? `Rendering · node ${node}` : (phase ?? `Running node ${node}`),
+    message: withReused(
+      session,
+      promptId,
+      phase === 'Rendering' ? `Rendering · node ${node}` : (phase ?? `Running node ${node}`)
+    ),
   });
   if (promptId && graph === undefined) void loadExecutingGraph(session, promptId);
 }
@@ -127,6 +133,16 @@ function asFiniteNumber(value: unknown): number | undefined {
     return undefined;
   }
   return value;
+}
+
+/** "… · 6 steps reused" when ComfyUI skipped cached steps of this job (same inputs as before). */
+export function reusedStepsSuffix(count: number | undefined): string {
+  if (!count || count <= 0) return '';
+  return ` · ${count} step${count === 1 ? '' : 's'} reused`;
+}
+
+function withReused(session: BridgeSession, promptId: string | undefined, message: string): string {
+  return message + reusedStepsSuffix(promptId ? session.cached.get(promptId) : undefined);
 }
 
 function formatStepMessage(value: number, max: number, node?: string | null): string {
@@ -200,7 +216,11 @@ function handleText(session: BridgeSession, raw: string): void {
         node,
         value,
         max,
-        message: formatStepMessage(value, max, node),
+        message: withReused(
+          session,
+          session.lastExecuting?.promptId,
+          formatStepMessage(value, max, node)
+        ),
       });
       return;
     }
@@ -268,7 +288,7 @@ function handleText(session: BridgeSession, raw: string): void {
         node,
         value,
         max,
-        message: formatStepMessage(value, max, node),
+        message: withReused(session, payload.data?.prompt_id, formatStepMessage(value, max, node)),
       });
       return;
     }
@@ -294,8 +314,20 @@ function handleText(session: BridgeSession, raw: string): void {
         node,
         value,
         max,
-        message: formatStepMessage(value, max, node),
+        message: withReused(session, payload.data?.prompt_id, formatStepMessage(value, max, node)),
       });
+      return;
+    }
+
+    if (payload.type === 'execution_cached') {
+      const promptId = payload.data?.prompt_id;
+      const nodes = (payload.data as { nodes?: unknown } | undefined)?.nodes;
+      if (promptId && Array.isArray(nodes)) {
+        session.cached.set(promptId, nodes.length);
+        while (session.cached.size > MAX_SESSION_GRAPHS) {
+          session.cached.delete(session.cached.keys().next().value!);
+        }
+      }
       return;
     }
 
@@ -386,6 +418,7 @@ function ensureSession(clientId: string, comfyUrl: string): BridgeSession {
     subscribers: new Set(),
     ready: false,
     graphs: new Map(),
+    cached: new Map(),
   };
 
   socket.addEventListener('open', () => {

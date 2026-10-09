@@ -566,6 +566,11 @@ export type SharedToolSettings = {
   modelSamplerOverrides?: ModelSamplerOverrideFields;
   /** When true (default), wire Flux2Klein Enhancer on Klein compose/reference queues when installed. */
   kleinEnhancerEnabled?: boolean;
+  /**
+   * The Gallery keeps its own copy of every finished render (default on — a backup if ComfyUI
+   * purges its outputs). False: new renders are not copied; the Gallery shows ComfyUI's files.
+   */
+  galleryBackupCopies?: boolean;
   /** @deprecated Migrated to the `qwen-image-2.1-edit` engine on load. */
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   kleinEnhancerIdentityPreset?: KleinEnhancerIdentityPreset;
@@ -1405,6 +1410,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   modelSamplerPreset: 'base',
   modelSamplerOverrides: {},
   kleinEnhancerEnabled: true,
+  galleryBackupCopies: true,
   kleinEnhancerTextEnabled: true,
   kleinEnhancerColorAnchorEnabled: true,
   kleinEnhancerColorAnchorStrength: 0.45,

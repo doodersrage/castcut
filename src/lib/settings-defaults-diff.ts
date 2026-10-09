@@ -41,6 +41,7 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'poseGuideStyle', label: 'Pose guide style', area: PROMPT },
   { key: 'anatomyGuardMode', label: 'Anatomy guard', area: PROMPT },
   { key: 'kleinEnhancerEnabled', label: 'Klein Enhancer', area: PROMPT },
+  { key: 'galleryBackupCopies', label: 'Gallery backups', area: DATA },
   { key: 'kleinEnhancerTextEnabled', label: 'Klein text enhancer', area: PROMPT },
   { key: 'kleinEnhancerColorAnchorEnabled', label: 'Klein color anchor', area: PROMPT },
   { key: 'kleinEnhancerColorAnchorStrength', label: 'Klein color anchor strength', area: PROMPT },

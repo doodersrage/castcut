@@ -181,6 +181,26 @@ describe("comfyui-live-bridge", async () => {
     handle.close();
   });
 
+  it("says how many steps ComfyUI reused from its cache ('execution_cached')", () => {
+    const events: unknown[] = [];
+    const handle = subscribeComfyLiveBridge({ clientId: "client-cache", onEvent: e => events.push(e) });
+    const socket = FakeWebSocket.instances.at(-1)!;
+    socket.open();
+    events.length = 0;
+    socket.emit("message", {
+      data: JSON.stringify({ type: "execution_cached", data: { prompt_id: "pc", nodes: ["1", "2", "3"] } }),
+    });
+    socket.emit("message", {
+      data: JSON.stringify({
+        type: "progress_state",
+        data: { prompt_id: "pc", nodes: { "8": { state: "running", value: 2, max: 8, real_node_id: "8" } } },
+      }),
+    });
+    assert.equal(events.length, 1);
+    assert.equal((events[0] as { message: string }).message, "Step 2/8 (25%) · node 8 · 3 steps reused");
+    handle.close();
+  });
+
   it("falls through to the full JSON parser for a 'progress_state' frame", () => {
     const events: unknown[] = [];
     const handle = subscribeComfyLiveBridge({ clientId: "client-g", onEvent: e => events.push(e) });

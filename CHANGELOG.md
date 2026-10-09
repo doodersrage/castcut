@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Gallery backups setting.** Settings → Data → Gallery backups → "Keep a backup copy of each render" is on by default: the Gallery copies every finished still and clip so renders survive ComfyUI purging its outputs. Turn it off to save disk space; new renders then live only in ComfyUI's output folder. Copies already kept stay.
+- **Progress shows steps ComfyUI reused.** When ComfyUI skips steps it has cached (the second of Two takes, a re-roll), the progress line adds "· N steps reused".
+- **Two-men lift.** "Lifted onto his boyfriend… legs wrapped" came out as a standing hug (4 of 4). The recipe now seats him on the counter edge with his boyfriend standing between his knees, and the Moment says the same: 5 of 6.
 - **Duo still counts skip the queue (castcut-nodes 1.6.0).** The two-person count check (faces, hands, bodies, wrists, ankles and parts, used to order Two takes) ran as a queued graph and waited behind whatever was rendering (31 s seen behind a sweep still). The pack's new `analyze` `duo-counts` op runs the same Impact detector nodes in-process on the CPU, plus DWPose, in about 1 s. It matched the queued graph on 8 of 8 live stills, and the graph remains the fallback. The LoRA check can't move: it re-renders the still, which has to queue; its face scoring already uses the pack.
 - **Two-men adult stills: clothes, lap and straddle.** From the same-sex sweep, tested on its own graphs over three seeds:
   - **Clothes:** "a dress pushed up" becomes "a shirt and trousers pushed up" for two men, and that slipped past the nude recipe's clothes filter, dressing the partner (4 of 4). Now both are nude, 6 of 6.

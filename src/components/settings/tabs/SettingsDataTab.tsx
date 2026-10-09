@@ -228,6 +228,29 @@ export default function SettingsDataTab({
         </div>
       </ToolSection>
 
+      <ToolSection title="Gallery backups">
+        <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-base)] accent-[var(--accent)]"
+            checked={sharedSettings.galleryBackupCopies !== false}
+            data-testid="settings-gallery-backups"
+            onChange={event => updateSharedSettings({ galleryBackupCopies: event.target.checked })}
+          />
+          <span>
+            <span className="block font-medium text-[var(--text-primary)]">
+              Keep a backup copy of each render
+            </span>
+            <span className="type-caption mt-0.5 block text-[var(--text-muted)]">
+              The Gallery saves its own copy of every still and clip when it finishes, so your
+              renders survive ComfyUI purging old outputs or a disk clean-up. Turn it off to save
+              disk space: new renders then live only in ComfyUI&apos;s output folder and are gone
+              from the Gallery if that file is deleted. Copies already kept stay.
+            </span>
+          </span>
+        </label>
+      </ToolSection>
+
       <ToolSection title="Gallery exact-replay graphs">
         <p className="text-sm text-[var(--text-secondary)]">
           Stored workflow JSON enables Replay exact graph. Older graphs are pruned by age, then by a

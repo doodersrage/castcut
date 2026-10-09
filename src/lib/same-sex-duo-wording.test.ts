@@ -30,6 +30,20 @@ describe('same-sex duo wording', () => {
     assert.equal(sheGivesOral('he kneels and goes down on her on the bed edge'), false);
   });
 
+  it('two men: a lift sits on the counter edge with his boyfriend between his knees', () => {
+    const recipe = buildRapidDuoRecipe({
+      beat: sameSexPartnerBeat(
+        'lifted onto her partner mid-sex in the hotel room, legs wrapped around his waist'
+
+      ),
+      lead: 'man',
+      partner: { partner: { kind: 'cast', noun: 'man' }, image: 'face' },
+    } as never);
+    assert.match(recipe ?? '', /sits on the very edge of the counter, knees apart; his boyfriend stands facing him in the space between the man's knees/);
+    assert.match(recipe ?? '', /Moment: sitting on the counter edge with his boyfriend standing between his thighs/);
+    assert.doesNotMatch(recipe ?? '', /lifted onto|Wide shot/);
+  });
+
   it('two men: oral is a side view with contact, and a lap is seated', () => {
     const oral = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels between his legs going down on him after dinner'),

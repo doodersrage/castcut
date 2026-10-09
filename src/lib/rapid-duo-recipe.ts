@@ -371,7 +371,10 @@ function placementTwoMen(
     case 'kneeling':
       return `Both men kneel upright on ${on('bed')} facing each other, chests pressed together, kissing, each stroking the other's erect penis; both faces in frame.`;
     case 'lift':
-      return `Wide shot, both faces in frame. The man sits on ${edgeOf(surface, 'counter')} with his legs wrapped around ${bf}, who stands between his thighs chest to chest, penetrating him; arms around each other.`;
+      // "Wide shot … penetrating him" with "lifted onto … legs wrapped" in the Moment drew a
+      // standing hug (4/4, same-sex sweep 2026-10-08). Placed in the space between his knees, side
+      // view, the Moment saying the counter (twoMenLiftBeat): seated on the edge 5/6.
+      return `Side view, both men in profile. The man sits on the very edge of ${edgeOf(surface, 'counter').replace(/^the edge of /, '')}, knees apart; ${bf} stands facing him in the space between the man's knees, hips pressed against the edge between the man's thighs, chest to chest; the man's calves cross behind his boyfriend's back and his arms wrap around his neck. Their bodies touch from chest to hips.`;
     case 'oral':
     case 'sixty_nine':
     case 'facesit':
@@ -391,6 +394,20 @@ function placementTwoMen(
 }
 
 /** Beat wording for two men: the lead is "he", the partner "his boyfriend". */
+/** Two men's lift Moment: on the counter edge, as the placement says (see the 'lift' case). */
+function twoMenLiftBeat(beat: string): string {
+  return beat
+    .replace(
+      /\blifted onto his boyfriend\b(.*?),\s*legs wrapped around his boyfriend's waist/gi,
+      (_, where: string) =>
+        `sitting on the counter edge with his boyfriend standing between his thighs${where}`
+    )
+    .replace(
+      /\blifted onto his boyfriend\b/gi,
+      'sitting on the counter edge with his boyfriend between his thighs'
+    );
+}
+
 export function twoMenBeat(beat: string): string {
   return herToHisHim(
     masculineClothes(beat)
@@ -570,7 +587,9 @@ export function buildRapidDuoRecipe(input: {
           ? twoWomenLiftBeat(twoWomenBeat(beat))
           : twoWomenBeat(beat)
         : twoMen
-          ? twoMenBeat(beat)
+          ? layout === 'lift'
+            ? twoMenLiftBeat(twoMenBeat(beat))
+            : twoMenBeat(beat)
           : beat
     )
       // "lips closed" fought "in her mouth" — the oral still came out as a kiss (live 2026-09-30).

@@ -206,6 +206,11 @@ export function inheritGallerySessionFields(
  * when the adult-appearance gate passes a held still (it is not copied while held).
  */
 export async function persistCompletedGalleryMedia(entry: ComfyGalleryEntry): Promise<void> {
+  // Settings → ComfyUI → Gallery backups (on unless turned off).
+  const { loadSettingsCache } = await import('./settings-cache');
+  if (loadSettingsCache().shared.galleryBackupCopies === false) {
+    return;
+  }
   const { persistGalleryMedia } = await import('./gallery-media-client');
   const result = await persistGalleryMedia(entry);
   if (!result) {
