@@ -36,6 +36,27 @@ describe('dayStillWantsDressPlate', () => {
     assert.equal(dayStillWantsDressPlate(base), true);
   });
 
+  it('a Suggestive implied-nudity scene brings no clothes: no dress plate, no picked shoes', () => {
+    // Live 2026-10-09: a kit's dressed plate put the kit's boots on her lying on the bed.
+    const implied = {
+      ...base,
+      dayMood: 'suggestive',
+      pickedShoes: 'black ankle boots',
+      sceneHints:
+        'lying on her stomach across the bed in lace panties, bare back to the camera, chin on her folded arms',
+    };
+    assert.equal(dayStillWantsDressPlate(implied), false);
+    assert.equal(
+      dayStillFootwearApplies({ dayMood: 'suggestive', intimateEnabled: false, sceneHints: implied.sceneHints }),
+      false
+    );
+    assert.equal(
+      dayStillWantsDressPlate({ ...implied, sceneHints: 'leaning in a doorway in lingerie, hip cocked' }),
+      true,
+      'a clothed Suggestive scene still starts from the dressed plate'
+    );
+  });
+
   it('needs a Cast plate and something to dress her from', () => {
     assert.equal(dayStillWantsDressPlate({ ...base, castPlateAvailable: false }), false);
     assert.equal(

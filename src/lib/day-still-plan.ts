@@ -16,15 +16,24 @@ import { beatOwnsFootwear, footwearIsBarefoot } from './footwear';
 import { PLAY_FACE_CROP_CANVAS } from './plate-render-size';
 import { poseProfileForModel } from './pose/pose-model-profile';
 import { beatLiesDown, vacationBeatDressesItself } from './rapid-duo-recipe';
+import { suggestiveBeatIsImpliedNudity } from './clothed-coverage';
 
 /** The mood a still plays as: an adult mood with Intimate off is Everyday. */
 function playedMood(dayMood: string | null | undefined, intimateEnabled: boolean) {
   return isDayAdultMood(dayMood) && !intimateEnabled ? 'everyday' : dayMood;
 }
 
-/** A scene that brings its own clothes (the pool's swimsuit, a robe). */
+/**
+ * A scene that brings its own clothes (the pool's swimsuit, a robe) or none (Suggestive implied
+ * nudity: a sheet, a towel, an arm across her chest). Live 2026-10-09: an implied Day started
+ * from a kit's dressed plate put the kit's boots on her lying on the bed.
+ */
 function sceneDressesItself(dayMood: string | null | undefined, sceneHints: string | undefined) {
-  return normalizeDayMood(dayMood) === 'vacation' && vacationBeatDressesItself(sceneHints);
+  const mood = normalizeDayMood(dayMood);
+  return (
+    (mood === 'vacation' && vacationBeatDressesItself(sceneHints)) ||
+    (mood === 'suggestive' && suggestiveBeatIsImpliedNudity(sceneHints))
+  );
 }
 
 /**

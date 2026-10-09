@@ -1640,6 +1640,30 @@ export function buildCompactDayRecipe(input: {
 }
 
 /** His clothes for a clothed couple beat — the beat only ever dresses her. */
+/**
+ * What one of an implied-nudity couple has on (Suggestive): a woman the sheet, towel or bath the
+ * beat names, or the underwear it names; a man bare-chested. Live 2026-10-09: the usual "she wears
+ * a flirty dress; he wears a casual shirt and jeans" put him in jeans in the bubble bath and sat
+ * the couple "under the sheets" on the bed edge, fully dressed.
+ */
+function impliedCoupleWear(beat: string, noun: DayPartnerNoun): string {
+  const sheet = /\b(?:bed)?sheets?\b/i.test(beat);
+  const towel = /\btowel\b/i.test(beat);
+  const bath = /\b(?:bubble\s+)?bath\b|\bfoam\b/i.test(beat);
+  if (noun === 'man') {
+    if (bath) return 'is bare-chested in the bath';
+    if (towel) return 'is bare-chested, a white towel around his waist';
+    if (sheet) return 'is bare-chested, the sheet over his hips';
+    return 'is bare-chested in jeans';
+  }
+  const pronoun = noun === 'woman' ? 'her' : 'their';
+  if (bath) return `is in the bath, the foam up to ${pronoun} collarbones`;
+  if (towel) return 'is wrapped in the white towel';
+  if (sheet) return 'is wrapped in the white sheet';
+  if (/\bpanties\b/i.test(beat)) return 'wears lace panties';
+  return 'wears underwear';
+}
+
 function partnerClothes(beat: string, noun: DayPartnerNoun = 'man'): string {
   if (/\b(?:evening|dinner|rooftop|bar|hotel|candlelit|night\s+out)\b/i.test(beat)) {
     return noun === 'woman' ? 'a dark evening dress' : 'a dark button-up shirt and trousers';
@@ -1734,7 +1758,9 @@ export function buildRapidSuggestiveDuoRecipe(input: {
       : `A ${lead} and ${other} together, both fully clothed, affectionate.`,
     suggestiveDuoPlacement(beat),
     `Moment: ${beat}.`,
-    `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,
+    suggestiveBeatIsImpliedNudity(beat) && !input.outfitImage && !input.outfitFromFirst
+      ? `${leadPronoun} ${impliedCoupleWear(beat, lead)}; ${otherWho} ${impliedCoupleWear(beat, partnerNoun)}.`
+      : `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     leadMan ? descriptor?.replace(/^The woman:/, 'The man:') : descriptor,
     input.partner
