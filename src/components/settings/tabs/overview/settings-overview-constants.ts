@@ -10,7 +10,7 @@ export const ESSENTIAL_TASKS: Array<{
 }> = [
   {
     title: 'Inference engine',
-    description: 'Usually ComfyUI for Play; cloud engines only if you need them.',
+    description: 'Usually ComfyUI; cloud engines only if you need them.',
     section: 'inference-engine',
   },
   {

@@ -10,13 +10,18 @@ import { useVideoPromptOrchestration } from '@/hooks/useVideoPromptOrchestration
 import { useToolPageDescription } from '@/hooks/useToolPageDescription';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { ToolBadge, ToolLayout, accentFocusClass } from '@/components/ui/ToolPageShell';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 const ACCENT = 'brand' as const;
 
 export default function VideoPromptTool() {
   const description = useToolPageDescription(
-    'Specialty motion prompts (T2V / I2V / extend). Day and Story Animate are the Film path for character reels — use Video when you need a standalone motion prompt.',
-    'Specialty motion prompts. For character films, animate in Day or Story, then Cut.'
+    APP_HAS_PLAY
+      ? 'Specialty motion prompts (T2V / I2V / extend). Day and Story Animate are the Film path for character reels — use Video when you need a standalone motion prompt.'
+      : 'Motion prompts for text-to-video, image-to-video and extend.',
+    APP_HAS_PLAY
+      ? 'Specialty motion prompts. For character films, animate in Day or Story, then Cut.'
+      : 'Motion prompts — T2V, I2V and extend.'
   );
   const vm = useVideoPromptOrchestration();
 
@@ -42,17 +47,22 @@ export default function VideoPromptTool() {
       }
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.video} />
-      <p className="mb-3 type-caption text-[var(--text-muted)]" data-testid="video-film-park-note">
-        Film path: animate stills in{' '}
-        <a href="/day" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
-          Day
-        </a>{' '}
-        or{' '}
-        <a href="/story" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
-          Story
-        </a>
-        , then Cut. Video is for specialty motion prompts outside that loop.
-      </p>
+      {APP_HAS_PLAY ? (
+        <p
+          className="mb-3 type-caption text-[var(--text-muted)]"
+          data-testid="video-film-park-note"
+        >
+          Film path: animate stills in{' '}
+          <a href="/day" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
+            Day
+          </a>{' '}
+          or{' '}
+          <a href="/story" className="text-[var(--accent-text)] underline-offset-2 hover:underline">
+            Story
+          </a>
+          , then Cut. Video is for specialty motion prompts outside that loop.
+        </p>
+      ) : null}
       <EditToolRecipeStrip
         toolId="video"
         shared={vm.shared}

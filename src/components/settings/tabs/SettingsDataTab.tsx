@@ -24,6 +24,7 @@ import {
 } from '@/lib/local-observability';
 import { resetFirstQueueSetupModal } from '@/lib/first-queue-setup';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 function FailureSparkline({ series }: { series: number[] }) {
   const max = Math.max(1, ...series);
@@ -111,22 +112,24 @@ export default function SettingsDataTab({
                 {metrics.exactReplay} replays · {metrics.firstQueueSuccess} first successes
               </p>
             </div>
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Film loop funnel</dt>
-              <dd
-                className="mt-1 text-lg text-[var(--text-primary)]"
-                data-testid="settings-play-funnel"
-              >
-                {formatRate(playFunnel.cutRate)} cut · {formatRate(playFunnel.saveRate)} save
-              </dd>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {metrics.firstFilmCut}/{metrics.firstPlayCampaign || 0} cuts/starts · keep{' '}
-                {metrics.keepTryOn} · save-to-cast {metrics.saveToCast}
-                {playFunnel.maxStep > 0 || playFunnel.dayShare != null
-                  ? ` · Day ${formatRate(playFunnel.dayShare)} / Story ${formatRate(playFunnel.roleplayShare)} · max step ${playFunnel.maxStep}`
-                  : ''}
-              </p>
-            </div>
+            {APP_HAS_PLAY ? (
+              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                <dt className="text-xs text-[var(--text-muted)]">Film loop funnel</dt>
+                <dd
+                  className="mt-1 text-lg text-[var(--text-primary)]"
+                  data-testid="settings-play-funnel"
+                >
+                  {formatRate(playFunnel.cutRate)} cut · {formatRate(playFunnel.saveRate)} save
+                </dd>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {metrics.firstFilmCut}/{metrics.firstPlayCampaign || 0} cuts/starts · keep{' '}
+                  {metrics.keepTryOn} · save-to-cast {metrics.saveToCast}
+                  {playFunnel.maxStep > 0 || playFunnel.dayShare != null
+                    ? ` · Day ${formatRate(playFunnel.dayShare)} / Story ${formatRate(playFunnel.roleplayShare)} · max step ${playFunnel.maxStep}`
+                    : ''}
+                </p>
+              </div>
+            ) : null}
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
               <dt className="text-xs text-[var(--text-muted)]">Playbook CTA rate</dt>
               <dd className="mt-1 text-lg text-[var(--text-primary)]">

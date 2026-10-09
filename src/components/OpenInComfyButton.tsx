@@ -8,6 +8,7 @@ import {
   openPromptInComfy,
   type OpenInComfyResult,
 } from '@/lib/open-in-comfy';
+import { PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';
 
 type OpenTarget =
   | {
@@ -69,7 +70,7 @@ export default function OpenInComfyButton({
       className={className}
       disabled={busy || !promptId.trim()}
       data-testid={testId}
-      title="Save this still's exact graph to ComfyUI's Workflows (Castcut folder) and open ComfyUI"
+      title={`Save this still's exact graph to ComfyUI's Workflows (${PRODUCT_OUTPUT_PREFIX} folder) and open ComfyUI`}
       onClick={() => open({ promptId })}
     >
       {busy ? 'Opening…' : 'Open in ComfyUI'}

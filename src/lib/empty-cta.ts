@@ -2,6 +2,7 @@ import { flattenAppNavLinks } from './app-nav-catalog';
 import { resolveFirstRunGoalCta } from './first-run-goal';
 import { loadNavFavorites } from './nav-favorites';
 import { loadWorkspaceMode } from './workspace-mode';
+import { APP_HAS_PLAY } from './app-profile';
 
 export type EmptyCta = {
   label: string;
@@ -80,7 +81,9 @@ export function resolveGenerateEmptyCta(
  * has progress; otherwise fall back to Generate empty CTA.
  */
 export function resolveStudioEmptyCta(
-  fallback: EmptyCta = { label: 'Start a film', href: '/play' }
+  fallback: EmptyCta = APP_HAS_PLAY
+    ? { label: 'Start a film', href: '/play' }
+    : { label: 'Open Generate', href: FIRST_RUN_GENERATE_HREF }
 ): EmptyCta {
   if (typeof window === 'undefined') {
     return resolveGenerateEmptyCta(fallback);
@@ -89,7 +92,7 @@ export function resolveStudioEmptyCta(
   if (resume) {
     return resume;
   }
-  if (loadWorkspaceMode() === 'play' || loadWorkspaceMode() === 'simple') {
+  if (APP_HAS_PLAY && (loadWorkspaceMode() === 'play' || loadWorkspaceMode() === 'simple')) {
     return { label: 'Start a film', href: '/play' };
   }
   return resolveGenerateEmptyCta(fallback);

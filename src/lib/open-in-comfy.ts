@@ -11,6 +11,7 @@
 
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { isApiPromptGraph, type ComfyApiPrompt } from './comfy-editor-graph';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export type OpenInComfyResult = {
   ok: boolean;
@@ -123,11 +124,11 @@ export async function saveGraphForComfyEditor(input: {
       missing.length > 0 ? ` This ComfyUI is missing: ${missing.join(', ')}.` : '';
     return {
       ok: true,
-      file: `Castcut/${data.file}`,
+      file: `${PRODUCT_OUTPUT_PREFIX}/${data.file}`,
       comfyUrl: data.openUrl || data.comfyUrl,
       message: data.openUrl
-        ? `Opened in ComfyUI (also saved as Castcut/${data.file}).${missingNote}`
-        : `Saved Castcut/${data.file} — open it from ComfyUI's Workflows sidebar.${
+        ? `Opened in ComfyUI (also saved as ${PRODUCT_OUTPUT_PREFIX}/${data.file}).${missingNote}`
+        : `Saved ${PRODUCT_OUTPUT_PREFIX}/${data.file} — open it from ComfyUI's Workflows sidebar.${
             OPEN_DIRECT_HINT[data.directOpen ?? 'no-pack']
           }${missingNote}`,
     };

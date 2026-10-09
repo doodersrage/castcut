@@ -12,6 +12,7 @@ import {
   resolveLoaderFilenamesForModel,
   suggestedVaeFilenameForModel,
 } from './model-checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 const DEFAULT_FLUX_CLIP_L = 'clip_l.safetensors';
 const DEFAULT_FLUX_CLIP_T5 = 't5xxl_fp16.safetensors';
@@ -193,7 +194,7 @@ export function fluxScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -289,7 +290,7 @@ export function fluxInpaintScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -379,7 +380,7 @@ export function fluxImg2imgScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -477,7 +478,7 @@ export function fluxKleinEditScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };

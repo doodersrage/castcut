@@ -17,6 +17,7 @@ import { getComfyModelDefinition, type ComfyImageModel } from './comfy-models';
 import { isQwenLightningModel } from './model-sampling-patch';
 import { DEFAULT_CHECKPOINT_TOKEN } from './model-checkpoint-map';
 import { qwenLoaderFilenames } from './workflow-scaffold';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export function qwenScaffold(tokens: WorkflowPlaceholderTokens): Record<string, unknown> {
   const loaders = qwenLoaderFilenames();
@@ -82,7 +83,7 @@ export function qwenScaffold(tokens: WorkflowPlaceholderTokens): Record<string, 
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -142,7 +143,7 @@ export function qwenCheckpointScaffold(tokens: WorkflowPlaceholderTokens): Recor
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -223,7 +224,7 @@ export function qwenLightningScaffold(tokens: WorkflowPlaceholderTokens): Record
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -365,7 +366,7 @@ export function qwenEditLightningScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
     '900': {
@@ -475,7 +476,7 @@ export function qwenEditComposeScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
     '900': {
@@ -569,7 +570,7 @@ export function qwenEditImg2imgScaffold(
       },
       '10': {
         class_type: 'SaveImage',
-        inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+        inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
         _meta: { title: 'Save Image' },
       },
     };
@@ -638,7 +639,7 @@ export function qwenEditImg2imgScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };

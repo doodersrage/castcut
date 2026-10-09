@@ -3,6 +3,7 @@ import { type AppFeatureId } from './auth/features';
 import { isRouteAllowedForFeatures } from './last-tool-route';
 import { settingsTabHref } from './settings-nav';
 import { settingsComfyUiSectionHref } from './settings-comfyui-nav';
+import { appHasRoute } from './app-profile';
 
 export type OnboardingStep = {
   id: string;
@@ -15,7 +16,7 @@ export type OnboardingStep = {
 const KEY = 'comfy-onboarding-v2';
 const LEGACY_KEY = 'comfy-onboarding-v1';
 
-export const ONBOARDING_STEPS: Omit<OnboardingStep, 'done'>[] = [
+const ALL_ONBOARDING_STEPS: Omit<OnboardingStep, 'done'>[] = [
   {
     id: 'comfy-health',
     label: 'Confirm ComfyUI connection in Settings',
@@ -76,6 +77,11 @@ export const ONBOARDING_STEPS: Omit<OnboardingStep, 'done'>[] = [
     label: 'Pin a favorite tool in the sidebar (☆)',
   },
 ];
+
+/** The steps this app can take (the classic app has no Film / Day / Cast pages). */
+export const ONBOARDING_STEPS = ALL_ONBOARDING_STEPS.filter(
+  step => !step.href || appHasRoute(step.href)
+);
 
 const CORE_STEP_IDS = new Set([
   'comfy-health',

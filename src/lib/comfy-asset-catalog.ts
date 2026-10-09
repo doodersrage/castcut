@@ -508,7 +508,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'ae.safetensors',
     modelIds: ['flux-ultrareal-v4'],
     notes:
-      'UltraReal Fine-Tune v4 only in Castcut. Gated on black-forest-labs/FLUX.1-dev — place manually or download with HF_TOKEN after accepting the license.',
+      'Used only by UltraReal Fine-Tune v4. Gated on black-forest-labs/FLUX.1-dev — place manually or download with HF_TOKEN after accepting the license.',
     requiresHfToken: true,
   },
   {
@@ -608,7 +608,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     bytes: 23387046451,
     modelIds: [...WAN_MODELS],
     notes:
-      'Preferred Castcut video checkpoint — model + CLIP + VAE in one file. CFG 1, 4–10 steps. Put this in checkpoints/, not diffusion_models/.',
+      'Preferred video checkpoint — model + CLIP + VAE in one file. CFG 1, 4–10 steps. Put this in checkpoints/, not diffusion_models/.',
   },
   {
     id: 'wan-video-rapid-aio-nsfw',

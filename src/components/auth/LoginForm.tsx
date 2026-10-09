@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import type { AppFeatureId } from '@/lib/auth/features';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadLastToolRoute, resolveLandingRoute } from '@/lib/last-tool-route';
+import { PRODUCT_NAME } from '@/lib/brand';
 
 type LoginMode = 'sign-in' | 'totp' | 'forgot' | 'reset';
 
@@ -161,7 +162,7 @@ export default function LoginForm() {
         ? 'Enter your username or email. If SMTP is configured, a reset link is sent when a match exists.'
         : mode === 'reset'
           ? 'Choose a new password for your account.'
-          : 'Use your Castcut account to continue.';
+          : `Use your ${PRODUCT_NAME} account to continue.`;
 
   return (
     <form onSubmit={onSubmit} className="ui-auth-card space-y-5">

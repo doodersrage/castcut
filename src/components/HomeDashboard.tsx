@@ -46,6 +46,7 @@ import {
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 const QueueOrchestrationPanel = dynamic(() => import('@/components/QueueOrchestrationPanel'), {
   loading: () => <ToolPageSkeleton label="Loading queue" />,
@@ -144,7 +145,11 @@ export default function HomeDashboard() {
 
       <ToolSection
         title="Get ready"
-        description="Heal & ready once, then use desk Film or phone Castcut Film."
+        description={
+          APP_HAS_PLAY
+            ? 'Heal & ready once, then use desk Film or phone Castcut Film.'
+            : 'Heal & ready once — it checks ComfyUI, your models and the system workflows.'
+        }
       >
         <ToolActionRow>
           <ButtonLink
@@ -155,17 +160,21 @@ export default function HomeDashboard() {
           >
             Heal & ready
           </ButtonLink>
-          <ButtonLink
-            href="/m/film"
-            variant="secondary"
-            size="sm"
-            data-testid="dashboard-mobile-studio"
-          >
-            Film on phone
-          </ButtonLink>
-          <ButtonLink href="/play" size="sm" variant="ghost">
-            Start a film
-          </ButtonLink>
+          {APP_HAS_PLAY ? (
+            <>
+              <ButtonLink
+                href="/m/film"
+                variant="secondary"
+                size="sm"
+                data-testid="dashboard-mobile-studio"
+              >
+                Film on phone
+              </ButtonLink>
+              <ButtonLink href="/play" size="sm" variant="ghost">
+                Start a film
+              </ButtonLink>
+            </>
+          ) : null}
         </ToolActionRow>
       </ToolSection>
 
@@ -215,21 +224,34 @@ export default function HomeDashboard() {
         </ToolSection>
       ) : null}
 
-      <ToolSection title="Make a film" description="One primary path — Film — then core tools.">
+      <ToolSection
+        title={APP_HAS_PLAY ? 'Make a film' : 'Make something'}
+        description={
+          APP_HAS_PLAY
+            ? 'One primary path — Film — then core tools.'
+            : 'Generate a scene, then review it in the Gallery.'
+        }
+      >
         <ToolActionRow>
+          {APP_HAS_PLAY ? (
+            <ButtonLink
+              href="/play"
+              variant={showContinue ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={() => {
+                if (isSimple) {
+                  saveWorkspaceMode('play');
+                }
+              }}
+            >
+              Start a film
+            </ButtonLink>
+          ) : null}
           <ButtonLink
-            href="/play"
-            variant={showContinue ? 'secondary' : 'primary'}
+            href="/"
             size="sm"
-            onClick={() => {
-              if (isSimple) {
-                saveWorkspaceMode('play');
-              }
-            }}
+            variant={APP_HAS_PLAY || showContinue ? 'secondary' : 'primary'}
           >
-            Start a film
-          </ButtonLink>
-          <ButtonLink href="/" size="sm" variant="secondary">
             Generate
           </ButtonLink>
           <ButtonLink href="/gallery" size="sm" variant="secondary">
@@ -423,7 +445,11 @@ export default function HomeDashboard() {
       ) : (
         <ToolSection
           title="Recent outputs"
-          description="Queue a still or resume Play to fill this strip."
+          description={
+            APP_HAS_PLAY
+              ? 'Queue a still or resume Play to fill this strip.'
+              : 'Queue a still to fill this strip.'
+          }
           data-testid="dashboard-recent-empty"
         >
           <div className="flex flex-wrap gap-2">

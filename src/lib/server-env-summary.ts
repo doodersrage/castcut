@@ -330,7 +330,7 @@ export function getServerEnvSummary(): ServerEnvSummary {
           label: 'Adult content',
           value: isNsfwGeneratorEnabledServer() ? 'true' : 'false',
           configured: true,
-          hint: 'Adult generator plugin and Roleplay Sultry / Explicit / Raunchy. Also set NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED=true at build time for nav/UI.',
+          hint: 'Adult generator plugin (and Story’s Sultry / Explicit / Raunchy ratings in Castcut). Also set NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED=true at build time for nav/UI.',
         },
         {
           key: 'PROMPT_API_TOKEN',

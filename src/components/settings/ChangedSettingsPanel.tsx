@@ -6,6 +6,7 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import { DEFAULT_SHARED_SETTINGS, type SharedToolSettings } from '@/lib/settings-cache';
 import { changedSettings, resetSettingsPatch } from '@/lib/settings-defaults-diff';
 import { settingsSearchHref } from '@/lib/settings-search-index';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 /** Settings that differ from a fresh install, grouped by area, each with a reset. */
 export default function ChangedSettingsPanel({
@@ -22,7 +23,7 @@ export default function ChangedSettingsPanel({
     <ToolSection
       id="settings-changed-defaults"
       title="Changed from defaults"
-      description="Preferences that differ from a fresh install — reset one, an area, or all. Keys, loader maps and your Cast are never listed or reset here."
+      description={`Preferences that differ from a fresh install — reset one, an area, or all. Keys, loader maps and your ${APP_HAS_PLAY ? 'Cast' : 'characters'} are never listed or reset here.`}
     >
       {changed.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="changed-settings-none">

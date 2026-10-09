@@ -11,4 +11,4 @@ export const PRODUCT_TAGLINE = APP_HAS_PLAY
   : 'Prompt, image, video and audio tools for ComfyUI.';
 
 /** Comfy SaveImage / output folder prefix (no spaces). */
-export const PRODUCT_OUTPUT_PREFIX = 'Castcut';
+export const PRODUCT_OUTPUT_PREFIX = APP_HAS_PLAY ? 'Castcut' : 'PromptStudio';

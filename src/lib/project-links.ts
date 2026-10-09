@@ -1,4 +1,9 @@
-export const GITHUB_REPO_URL = 'https://github.com/doodersrage/castcut';
+import { APP_HAS_PLAY } from './app-profile';
+
+/** This app's repository (issues, releases): Castcut, or the classic Prompt Studio. */
+export const GITHUB_REPO_URL = APP_HAS_PLAY
+  ? 'https://github.com/doodersrage/castcut'
+  : 'https://github.com/doodersrage/prompt-studio';
 
 /** owner/repo slug, e.g. for the GitHub REST API. */
 export const GITHUB_REPO_SLUG = GITHUB_REPO_URL.replace(/^https:\/\/github\.com\//, '');

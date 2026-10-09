@@ -1,4 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto';
+import { PRODUCT_NAME } from '../brand';
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -44,7 +45,7 @@ export function generateTotpSecret(): string {
   return base32Encode(randomBytes(20));
 }
 
-export function totpUri(username: string, secret: string, issuer = 'Castcut'): string {
+export function totpUri(username: string, secret: string, issuer = PRODUCT_NAME): string {
   const label = encodeURIComponent(`${issuer}:${username}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }

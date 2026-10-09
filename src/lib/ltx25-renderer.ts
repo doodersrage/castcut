@@ -10,6 +10,7 @@
  */
 
 import { DEFAULT_VIDEO_MODEL } from './comfy-models/registry';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export const LTX25_MODEL_ID = 'ltx-video-2.5';
 
@@ -183,7 +184,7 @@ export function convertVideoWorkflowToLtx25(
   const length = Number(sized?.inputs?.length) || 64;
   const fps = Number(save.inputs.fps ?? save.inputs.frame_rate) || 16;
   const seed = Number(options.seed ?? sampler.inputs.seed ?? sampler.inputs.noise_seed) || 0;
-  const prefix = String(save.inputs.filename_prefix ?? 'Castcut');
+  const prefix = String(save.inputs.filename_prefix ?? PRODUCT_OUTPUT_PREFIX);
 
   const canvas = ltx25Canvas(width, height);
   const fromStill = options.sizeFromStill === true;

@@ -15,6 +15,8 @@ import {
 } from '@/lib/comfy-editor-diff';
 import { pickModelSamplerOverrideFields } from '@/lib/model-sampler-defaults';
 import type { SharedToolSettings } from '@/lib/settings-cache';
+import { PRODUCT_NAME, PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 export type SettingsComfyEditorImportPanelProps = {
   comfyUrl?: string;
@@ -118,14 +120,15 @@ export default function SettingsComfyEditorImportPanel({
   return (
     <CollapsibleSection
       title="Import a workflow from ComfyUI"
-      summary="Stills you opened in ComfyUI (Castcut folder) and what you changed there."
+      summary={`Stills you opened in ComfyUI (${PRODUCT_OUTPUT_PREFIX} folder) and what you changed there.`}
       defaultOpen={false}
       persistKey="settings-comfyui-editor-import"
     >
       <div id="settings-comfyui-editor-import" className="scroll-mt-28 space-y-3">
         <p className="text-sm text-[var(--text-secondary)]">
-          “Open in ComfyUI” on a Gallery, Day or Story still saves its exact graph to ComfyUI’s
-          Workflows → Castcut. Edit and save it there, then compare it here.
+          “Open in ComfyUI” on a {APP_HAS_PLAY ? 'Gallery, Day or Story' : 'Gallery'} still saves
+          its exact graph to ComfyUI’s Workflows → {PRODUCT_OUTPUT_PREFIX}. Edit and save it there,
+          then compare it here.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -135,7 +138,11 @@ export default function SettingsComfyEditorImportPanel({
             data-testid="comfy-editor-import-list"
             onClick={() => void listFiles()}
           >
-            {loading && !loaded ? 'Loading…' : files ? 'Refresh list' : 'List Castcut workflows'}
+            {loading && !loaded
+              ? 'Loading…'
+              : files
+                ? 'Refresh list'
+                : `List ${PRODUCT_OUTPUT_PREFIX} workflows`}
           </Button>
         </div>
         {error ? (
@@ -147,7 +154,7 @@ export default function SettingsComfyEditorImportPanel({
           <EmptyState
             compact
             icon="inbox"
-            title="Nothing in ComfyUI’s Castcut folder yet"
+            title={`Nothing in ComfyUI’s ${PRODUCT_OUTPUT_PREFIX} folder yet`}
             description="Use Open in ComfyUI on a finished still first."
           />
         ) : null}
@@ -180,12 +187,12 @@ export default function SettingsComfyEditorImportPanel({
           <div className="space-y-2" data-testid="comfy-editor-import-diff">
             {!loaded.meta ? (
               <p className="text-sm text-[var(--text-muted)]">
-                {loaded.name} was not saved by Castcut, so there is no queued graph to compare it
-                with.
+                {loaded.name} was not saved by {PRODUCT_NAME}, so there is no queued graph to
+                compare it with.
               </p>
             ) : loaded.changes.length === 0 ? (
               <p className="text-sm text-[var(--text-muted)]">
-                No changes in {loaded.name} — it matches the graph Castcut queued
+                No changes in {loaded.name} — it matches the graph {PRODUCT_NAME} queued
                 {loaded.meta.model ? ` on ${loaded.meta.model}` : ''}.
               </p>
             ) : (

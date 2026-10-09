@@ -23,6 +23,7 @@ import { formatEta } from '@/lib/queue-eta';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 const ACCENT = 'brand' as const;
 
@@ -123,7 +124,11 @@ export default function QueueToolSections({
               branded
               icon="inbox"
               title="Queue is empty"
-              description="Continue your film on Day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline."
+              description={
+                APP_HAS_PLAY
+                  ? 'Continue your film on Day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline.'
+                  : 'Send a still from Generate or any tool — it shows here while ComfyUI works on it.'
+              }
               action={filmCta}
             />
           ) : (

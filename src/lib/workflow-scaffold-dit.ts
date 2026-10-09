@@ -14,6 +14,7 @@ import {
   DEFAULT_UNET_TOKEN,
   suggestedVaeFilenameForModel,
 } from './model-checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export function isAuraFlowModel(model?: ComfyImageModel | string): boolean {
   return String(model ?? '').trim() === 'auraflow' || /auraflow/i.test(String(model ?? ''));
@@ -424,7 +425,7 @@ export function sdxlScaffold(tokens: WorkflowPlaceholderTokens): Record<string, 
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['6', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -546,7 +547,7 @@ export function genericScaffold(tokens: WorkflowPlaceholderTokens): Record<strin
     },
     '7': {
       class_type: 'SaveImage',
-      inputs: { images: ['6', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['6', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -669,7 +670,7 @@ export function videoScaffold(
       class_type: 'SaveAnimatedWEBP',
       inputs: {
         images: ['6', 0],
-        filename_prefix: 'Castcut',
+        filename_prefix: PRODUCT_OUTPUT_PREFIX,
         fps: tokens.videoFps,
         lossless: false,
         quality: 90,

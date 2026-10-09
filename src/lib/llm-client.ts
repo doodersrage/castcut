@@ -7,6 +7,7 @@ import {
 import { getLlmTemperature } from './llm-env';
 import { acquireLlmSlot, withLlmSlot } from './llm-backpressure';
 import { prepareVisionImageDataUrl, splitImageDataUrl } from './vision-image-prepare';
+import { PRODUCT_NAME } from './brand';
 
 export { allowTemplateFallback, getLlmTemperature, isLlmEnabled } from './llm-env';
 export {
@@ -479,7 +480,7 @@ function buildAuthHeaders(apiKey: string, baseUrl?: string): Record<string, stri
 
   if (baseUrl && /openrouter\.ai/i.test(baseUrl)) {
     headers['HTTP-Referer'] = 'https://github.com';
-    headers['X-Title'] = 'Castcut';
+    headers['X-Title'] = PRODUCT_NAME;
   }
 
   return headers;

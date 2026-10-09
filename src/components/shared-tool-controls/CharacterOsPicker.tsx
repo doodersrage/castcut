@@ -28,6 +28,7 @@ import {
 } from '@/lib/character-os';
 import { prepareCharacterStore, switchCharacterLook } from '@/lib/character-hooks';
 import type { SharedToolSettings } from '@/lib/settings-cache';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 type CharacterOsPickerProps = {
   shared: SharedToolSettings;
@@ -264,8 +265,8 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
           {saveRow}
           {!activeId ? (
             <p className="type-caption text-[var(--text-muted)]">
-              One record for face lock, wardrobe, looks, and LoRA. Generate, Story, Video, and
-              gallery all stamp the active character.
+              One record for face lock, wardrobe, looks, and LoRA. Generate,{' '}
+              {APP_HAS_PLAY ? 'Story, ' : ''}Video, and gallery all stamp the active character.
             </p>
           ) : null}
         </div>

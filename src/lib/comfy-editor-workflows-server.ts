@@ -6,8 +6,10 @@
  */
 
 import type { ComfyNodeDef, ComfyNodeDefs } from '@/lib/comfy-editor-graph';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
-export const CASTCUT_EDITOR_DIR = 'workflows/Castcut';
+/** This app's folder in ComfyUI's Workflows (Castcut, or PromptStudio for the classic app). */
+export const CASTCUT_EDITOR_DIR = `workflows/${PRODUCT_OUTPUT_PREFIX}`;
 
 const FETCH_TIMEOUT_MS = 8000;
 const DEF_CACHE_MS = 5 * 60 * 1000;

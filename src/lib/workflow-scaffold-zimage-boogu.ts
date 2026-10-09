@@ -11,6 +11,7 @@ import {
   type WorkflowPlaceholderTokens,
 } from './comfyui-config';
 import { DEFAULT_UNET_TOKEN } from './model-checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export function zImageScaffold(tokens: WorkflowPlaceholderTokens): Record<string, unknown> {
   return {
@@ -75,7 +76,7 @@ export function zImageScaffold(tokens: WorkflowPlaceholderTokens): Record<string
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -152,7 +153,7 @@ export function zImageImg2imgScaffold(tokens: WorkflowPlaceholderTokens): Record
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -234,7 +235,7 @@ export function booguImageScaffold(tokens: WorkflowPlaceholderTokens): Record<st
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -301,7 +302,7 @@ export function booguImageTurboScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
   };
@@ -396,7 +397,7 @@ export function booguEditScaffold(
     },
     '10': {
       class_type: 'SaveImage',
-      inputs: { images: ['9', 0], filename_prefix: 'Castcut' },
+      inputs: { images: ['9', 0], filename_prefix: PRODUCT_OUTPUT_PREFIX },
       _meta: { title: 'Save Image' },
     },
     '900': {

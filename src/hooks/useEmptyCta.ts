@@ -1,11 +1,14 @@
 'use client';
 
 import { useMemo, useSyncExternalStore } from 'react';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 import { resolveGenerateEmptyCta, resolveStudioEmptyCta, type EmptyCta } from '@/lib/empty-cta';
 
 const subscribeNothing = () => () => {};
 
-const STUDIO_FALLBACK: EmptyCta = { label: 'Start a film', href: '/play' };
+const STUDIO_FALLBACK: EmptyCta = APP_HAS_PLAY
+  ? { label: 'Start a film', href: '/play' }
+  : { label: 'Open Generate', href: '/' };
 const GENERATE_FALLBACK: EmptyCta = { label: 'Open Generate', href: '/' };
 
 /**

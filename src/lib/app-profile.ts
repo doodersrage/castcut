@@ -11,3 +11,23 @@ export const APP_PROFILE: AppProfileId =
 
 /** Castcut's Play features: the Film workspace, its nav group and the home redirect. */
 export const APP_HAS_PLAY = APP_PROFILE === 'castcut';
+
+/** Castcut's Play routes — not in the classic app (its build has no such pages). */
+const PLAY_ROUTE_PREFIXES = [
+  '/play',
+  '/day',
+  '/story',
+  '/roleplay',
+  '/fitting',
+  '/moodboard',
+  '/character',
+  '/characters',
+  '/m',
+];
+
+/** Whether this app has the page an href points at (classic: no Play routes). */
+export function appHasRoute(href: string): boolean {
+  if (APP_HAS_PLAY) return true;
+  const path = href.split(/[?#]/)[0] || '/';
+  return !PLAY_ROUTE_PREFIXES.some(prefix => path === prefix || path.startsWith(`${prefix}/`));
+}
