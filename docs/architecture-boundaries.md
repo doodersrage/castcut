@@ -101,3 +101,11 @@ The classic app gets its own repository, which depends on the shared code as an 
 - **Not in the package:** `services/diffusers-engine` (optional local engine) and Play.
 - **Local install note:** on a machine with a system libvips, `sharp`'s install script builds from source and fails; install with `SHARP_IGNORE_GLOBAL_LIBVIPS=1`.
 
+## Castcut without the classic tools (2026-10-09)
+
+Prompt Studio's own pages — Generate, Prompt Editor, Image → Prompt, Variations, Outpaint, ControlNet, Format, Lint, Negative, Topics, Audio, Mesh, Logo, Fantasy, Pet, Background, Studio, the workflow editor and Plugins — live in `src/studio-app/`, which Next does not route, so Castcut does not serve them. Castcut keeps the classic tools its film loop uses (Video, Compose, Refine, Inpaint) and the Dashboard; its `"/"` redirects to Film.
+
+- **Routes:** `gen:classic` and the package's `prompt-studio-sync-routes` pair `src/app` with `src/studio-app` (`scripts/classic-wrappers.mjs` `pairClassicRouteFiles`); a studio-app file wins at the same route, so Prompt Studio's `"/"` is Generate.
+- **Links:** `appHasRoute` (app-profile) knows each app's pages (`STUDIO_ONLY_ROUTES`, kept in step with the folder by `classic-app.test.ts`). Nav, palette, global search, Gallery handoffs and the remaining links (`AppRouteLink`) hide what the app does not have; a Gallery entry from a Prompt Studio tool opens the Gallery in Castcut.
+- **Tests:** e2e tests of Prompt Studio's pages carry `@classic` and run against the classic app (`npm run test:e2e:classic`, `E2E_APP=classic`); the default run excludes them. CI runs both.
+

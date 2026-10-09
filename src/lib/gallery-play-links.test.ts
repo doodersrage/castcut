@@ -37,9 +37,9 @@ describe('opening a still in its tool', () => {
   });
 
   it('leaves other tools as they were', () => {
-    assert.equal(galleryToolHrefForEntry({ tool: 'generate', characterId: 'c1' }), '/');
+    assert.equal(galleryToolHrefForEntry({ tool: 'generate', characterId: 'c1' }), '/gallery');
     assert.equal(galleryToolHrefForEntry({ tool: 'duo', characterId: 'c1' }), '/character?mode=duo');
-    assert.equal(galleryToolHrefForEntry({}), '/');
+    assert.equal(galleryToolHrefForEntry({}), '/gallery');
   });
 });
 

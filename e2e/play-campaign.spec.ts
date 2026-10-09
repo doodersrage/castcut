@@ -1623,7 +1623,7 @@ test('look pack deep link stages Fitting from=look handoff', async ({ page }) =>
   await expect(page.getByTestId('fitting-kit-strip')).toBeVisible();
 });
 
-test('plugins page separates runtime plugins from bookmarks', async ({ page }) => {
+test('plugins page separates runtime plugins from bookmarks', { tag: '@classic' }, async ({ page }) => {
   await gotoStable(page, '/plugins');
   await dismissBlockingOverlays(page);
   await expect(page.getByRole('heading', { name: /^Plugins$/i })).toBeVisible({

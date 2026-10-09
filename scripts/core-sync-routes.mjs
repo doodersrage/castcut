@@ -18,7 +18,12 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLASSIC_GENERATED_MARK, wrapperSource } from './classic-wrappers.mjs';
+import {
+  CLASSIC_GENERATED_MARK,
+  isRouteSourceFile,
+  pairClassicRouteFiles,
+  wrapperSource,
+} from './classic-wrappers.mjs';
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkgName = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8')).name;
@@ -34,13 +39,19 @@ function walk(dir) {
   });
 }
 
-// Every route file the core ships, plus the proxy and instrumentation (the app's own layout and
+// Every route file the core ships — src/app, and Prompt Studio's own pages in src/studio-app,
+// which win at the same route — plus the proxy and instrumentation (the app's own layout and
 // styles stay as written).
-const sources = walk(join(pkgDir, 'src/app'))
-  .map(path => relative(pkgDir, path).split(sep).join('/'))
-  .filter(path => /\.(?:ts|tsx)$/.test(path) && path !== 'src/app/layout.tsx');
+/** @param {string} dir */
+const routeFiles = dir =>
+  existsSync(join(pkgDir, dir))
+    ? walk(join(pkgDir, dir))
+        .map(path => relative(pkgDir, path).split(sep).join('/'))
+        .filter(path => isRouteSourceFile(path) && path !== 'src/app/layout.tsx')
+    : [];
+const files = pairClassicRouteFiles(routeFiles('src/app'), routeFiles('src/studio-app'));
 for (const extra of ['src/proxy.ts', 'src/instrumentation.ts']) {
-  if (existsSync(join(pkgDir, extra))) sources.push(extra);
+  if (existsSync(join(pkgDir, extra))) files.push({ source: extra, target: extra });
 }
 
 let removed = 0;
@@ -52,11 +63,11 @@ if (existsSync(join(appDir, 'src'))) {
     }
   }
 }
-for (const source of sources.sort()) {
-  const target = join(appDir, source);
-  mkdirSync(dirname(target), { recursive: true });
+for (const { source, target } of files) {
+  const path = join(appDir, target);
+  mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
-    target,
+    path,
     wrapperSource(source, readFileSync(join(pkgDir, source), 'utf8'), `${pkgName}/src/`)
   );
 }
@@ -65,4 +76,4 @@ if (existsSync(nodes)) {
   mkdirSync(join(appDir, 'comfyui-nodes/castcut'), { recursive: true });
   cpSync(nodes, join(appDir, 'comfyui-nodes/castcut/castcut_nodes.py'));
 }
-console.log(`${pkgName}: ${sources.length} route files written (${removed} replaced).`);
+console.log(`${pkgName}: ${files.length} route files written (${removed} replaced).`);

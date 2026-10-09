@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
 
-test.describe('Studio experiments', () => {
+test.describe('Studio experiments', { tag: '@classic' }, () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
   });

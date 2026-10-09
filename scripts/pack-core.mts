@@ -20,7 +20,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { isPlayLayer, readImports } from '../src/lib/architecture-boundaries';
-import { classicAppFiles } from '../src/lib/classic-app';
+import { classicRouteFiles } from '../src/lib/classic-app';
 
 const root = join(dirname(new URL(import.meta.url).pathname), '..');
 const arg = (flag: string) => {
@@ -76,7 +76,7 @@ function packageOf(spec: string): string | null {
 // Entry points: the routes the classic app wraps, the proxy and instrumentation, and what its
 // layout uses.
 const entries = [
-  ...classicAppFiles(walk(join(root, 'src/app')), owned),
+  ...classicRouteFiles(walk(join(root, 'src')), owned).map(file => file.source),
   'src/proxy.ts',
   'src/instrumentation.ts',
   'src/app/globals.css',

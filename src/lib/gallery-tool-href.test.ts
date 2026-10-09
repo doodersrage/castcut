@@ -8,22 +8,23 @@ describe('galleryToolHref', () => {
     assert.equal(galleryToolHref('duo'), '/character?mode=duo');
     assert.equal(galleryToolHref('scene-compose'), '/character?mode=compose');
     assert.equal(galleryToolHref('compose'), '/compose');
-    assert.equal(galleryToolHref('imagePrompt'), '/image-prompt');
-    assert.equal(galleryToolHref('nsfw-generator'), '/plugins/nsfw-generator');
+    // Prompt Studio's tools: not in Castcut, so their entries open the Gallery.
+    assert.equal(galleryToolHref('imagePrompt'), '/gallery');
+    assert.equal(galleryToolHref('nsfw-generator'), '/gallery');
     assert.equal(galleryToolHref('roleplay'), '/story');
     assert.equal(galleryToolLabel('roleplay'), 'Story');
     assert.equal(galleryToolHref('upload'), '/gallery');
     assert.equal(galleryToolLabel('upload'), 'Upload');
-    assert.equal(galleryToolHref('variations'), '/variations');
-    assert.equal(galleryToolHref('generate'), '/');
-    assert.equal(galleryToolHref('randomScene'), '/');
+    assert.equal(galleryToolHref('variations'), '/gallery');
+    assert.equal(galleryToolHref('generate'), '/gallery');
+    assert.equal(galleryToolHref('randomScene'), '/gallery');
   });
 
-  it('falls back to Generate for missing or unknown tools', () => {
-    assert.equal(galleryToolHref(), '/');
-    assert.equal(galleryToolHref(''), '/');
-    assert.equal(galleryToolHref('not-a-tool'), '/');
-    assert.equal(galleryToolHrefForEntry({}), '/');
+  it('falls back to the Gallery for missing or unknown tools (Castcut has no Generate)', () => {
+    assert.equal(galleryToolHref(), '/gallery');
+    assert.equal(galleryToolHref(''), '/gallery');
+    assert.equal(galleryToolHref('not-a-tool'), '/gallery');
+    assert.equal(galleryToolHrefForEntry({}), '/gallery');
     assert.equal(galleryToolHrefForEntry({ tool: 'refine' }), '/refine');
   });
 });

@@ -9,7 +9,9 @@ const subscribeNothing = () => () => {};
 const STUDIO_FALLBACK: EmptyCta = APP_HAS_PLAY
   ? { label: 'Start a film', href: '/play' }
   : { label: 'Open Generate', href: '/' };
-const GENERATE_FALLBACK: EmptyCta = { label: 'Open Generate', href: '/' };
+const GENERATE_FALLBACK: EmptyCta = APP_HAS_PLAY
+  ? { label: 'Open Film', href: '/play' }
+  : { label: 'Open Generate', href: '/' };
 
 /**
  * The empty-state button reads saved progress (Play campaign, pinned tools) from browser storage,

@@ -21,6 +21,7 @@ import {
 import type { CommandItem } from '@/components/command-palette/types';
 import type { SessionRecipe } from '@/lib/session-recipes';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import { appHasRoute } from '@/lib/app-profile';
 
 type UseCommandPaletteDataOptions = {
   open: boolean;
@@ -167,12 +168,12 @@ export function useCommandPaletteGlobalSearch(query: string) {
     }
 
     let cancelled = false;
-    void import('@/lib/global-search').then(({ searchGlobal }) => {
+    void import('@/lib/global-search').then(({ searchGlobalForApp }) => {
       if (cancelled) {
         return;
       }
       setGlobalMatches(
-        searchGlobal(query).map((result: GlobalSearchResult) => ({
+        searchGlobalForApp(query).map((result: GlobalSearchResult) => ({
           id: result.id,
           label: result.label,
           subtitle: result.subtitle,
@@ -271,7 +272,7 @@ export function filterCommandPaletteItems(options: {
       action: () => onRestoreKeeperStack(keeperStack),
     });
   }
-  if (activeProjectLabel) {
+  if (activeProjectLabel && appHasRoute('/studio')) {
     continueItems.push({
       id: 'active-project',
       label: `Active project · ${activeProjectLabel}`,

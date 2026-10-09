@@ -15,7 +15,7 @@ describe("onboarding-store", () => {
       [
         "comfy-health",
         "system-workflows",
-        "first-generate",
+        // "first-generate" opens Generate, which is Prompt Studio's.
         "first-queue",
         "first-queue-success",
         "review-gallery",
@@ -35,9 +35,10 @@ describe("onboarding-store", () => {
     assert.ok(
       !ONBOARDING_STEPS.some((step) => /Simple mode/i.test(step.label)),
     );
+    // Generate is Prompt Studio's: Castcut's checklist has no "Generate your first prompt".
     assert.equal(
-      ONBOARDING_STEPS.find((step) => step.id === "first-generate")?.href,
-      "/?source=random",
+      ONBOARDING_STEPS.find((step) => step.id === "first-generate"),
+      undefined,
     );
     assert.equal(
       ONBOARDING_STEPS.find((step) => step.id === "system-workflows")?.href,

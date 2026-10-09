@@ -4,6 +4,7 @@ import { loadScenePresets } from './scene-presets';
 import { mergeNsfwPresetCatalog } from './nsfw-generator-presets';
 import { loadUserNsfwGeneratorPresets } from './user-nsfw-generator-presets';
 import { searchPluginPresetCache } from './plugin-preset-catalog';
+import { appHasRoute } from './app-profile';
 
 export type GlobalSearchResult = {
   id: string;
@@ -109,4 +110,11 @@ export function searchGlobal(query: string, limit = 12): GlobalSearchResult[] {
   results.push(...searchPluginPresetCache(q, limit));
 
   return results.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+/** searchGlobal, keeping results that open a page this app has (Castcut: no Prompt Studio pages). */
+export function searchGlobalForApp(query: string, limit = 12): GlobalSearchResult[] {
+  return searchGlobal(query, limit * 2)
+    .filter(result => appHasRoute(result.href))
+    .slice(0, limit);
 }

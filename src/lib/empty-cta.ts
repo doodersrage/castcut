@@ -54,7 +54,9 @@ const PROMPT_TOOL_PATHS = new Set([
  * Prefer a pinned prompt/scene tool for empty-state CTAs; fall back to Generate or Dashboard.
  */
 export function resolveGenerateEmptyCta(
-  fallback: EmptyCta = { label: 'Open Generate', href: '/' }
+  fallback: EmptyCta = APP_HAS_PLAY
+    ? { label: 'Open Film', href: '/play' }
+    : { label: 'Open Generate', href: '/' }
 ): EmptyCta {
   if (typeof window === 'undefined') {
     return fallback;

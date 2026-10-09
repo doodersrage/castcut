@@ -33,7 +33,14 @@ function loadEnvLocal(): void {
 
 loadEnvLocal();
 
-const baseURL = process.env.PROMPT_API_URL ?? 'http://127.0.0.1:47832';
+/**
+ * Two apps share these tests: Castcut (default) and the classic Prompt Studio (E2E_APP=classic,
+ * apps/prompt-studio). Tests of Prompt Studio's own pages (src/studio-app) carry the @classic tag
+ * and run only against it; everything else runs against Castcut.
+ */
+const classic = process.env.E2E_APP === 'classic';
+const baseURL =
+  process.env.PROMPT_API_URL ?? (classic ? 'http://127.0.0.1:47833' : 'http://127.0.0.1:47832');
 const authStorage = resolve(__dirname, 'e2e/.auth/user.json');
 
 export default defineConfig({
@@ -43,6 +50,7 @@ export default defineConfig({
   // Parallel workers + next dev race on navigation (ERR_ABORTED).
   workers: process.env.CI ? 1 : undefined,
   globalSetup: './e2e/global-setup.ts',
+  ...(classic ? { grep: /@classic/ } : { grepInvert: /@classic/ }),
   use: {
     baseURL,
     extraHTTPHeaders: e2eApiHeaders(),
@@ -51,7 +59,13 @@ export default defineConfig({
   },
   webServer: {
     // Production server avoids Fast Refresh aborting in-flight navigations under CI.
-    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
+    command: classic
+      ? process.env.CI
+        ? 'npm run build:classic && npm run start:classic'
+        : 'npm run dev:classic'
+      : process.env.CI
+        ? 'npm run build && npm run start'
+        : 'npm run dev',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: process.env.CI ? 300_000 : 120_000,

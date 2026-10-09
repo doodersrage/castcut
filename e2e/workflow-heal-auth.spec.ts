@@ -5,7 +5,7 @@ import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { gotoStable, openComfyUiSettingsTab } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
-test.describe('Workflow editor', () => {
+test.describe('Workflow editor', { tag: '@classic' }, () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
   });

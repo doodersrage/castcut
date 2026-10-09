@@ -59,10 +59,10 @@ describe('app-nav-catalog', () => {
       assert.ok(library.links.some(link => link.href === '/gallery'));
       // Castcut lists the classic tools the film loop uses; the rest are Prompt Studio's.
       const hrefs = allHrefs(APP_NAV_GROUPS);
-      for (const kept of ['/video', '/compose', '/refine', '/inpaint']) {
+      for (const kept of ['/video', '/compose', '/refine', '/inpaint', '/dashboard']) {
         assert.ok(hrefs.includes(kept), kept);
       }
-      for (const gone of ['/', '/prompt', '/dashboard', '/plugins', '/workflow-editor', '/audio']) {
+      for (const gone of ['/', '/prompt', '/plugins', '/workflow-editor', '/audio', '/studio']) {
         assert.equal(hrefs.includes(gone), false, gone);
       }
     });

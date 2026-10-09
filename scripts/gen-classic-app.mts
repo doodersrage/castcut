@@ -18,7 +18,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import {
-  classicAppFiles,
+  classicRouteFiles,
   wrapperSource,
   CLASSIC_APP_DIR,
   CLASSIC_GENERATED_MARK,
@@ -38,9 +38,9 @@ function walk(dir: string): string[] {
 }
 
 const wanted = new Map<string, string>();
-for (const source of classicAppFiles(walk(join(root, 'src/app')), owned)) {
+for (const { source, target } of classicRouteFiles(walk(join(root, 'src')), owned)) {
   wanted.set(
-    join(CLASSIC_APP_DIR, source.replace(/^src\//, 'src/')),
+    join(CLASSIC_APP_DIR, target),
     wrapperSource(source, readFileSync(join(root, source), 'utf8'))
   );
 }

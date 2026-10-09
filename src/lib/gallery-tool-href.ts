@@ -1,3 +1,5 @@
+import { appHasRoute } from './app-profile';
+
 /**
  * Map a gallery entry's queue-time `tool` id onto an in-app route.
  * Unknown / missing tools fall back to Generate.
@@ -74,10 +76,9 @@ const TOOL_LABEL: Record<string, string> = {
 
 export function galleryToolHref(tool?: string): string {
   const key = tool?.trim();
-  if (!key) {
-    return '/';
-  }
-  return TOOL_HREF[key] ?? '/';
+  const href = (key && TOOL_HREF[key]) || '/';
+  // A tool this app doesn't have (Castcut: Prompt Studio's tools) opens the Gallery instead.
+  return appHasRoute(href) ? href : '/gallery';
 }
 
 /** Play tools that open on a Cast (`?character=`). */

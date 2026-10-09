@@ -25,38 +25,48 @@ const PLAY_ROUTE_PREFIXES = [
   '/m',
 ];
 
-/** Whether this app has the page an href points at (classic: no Play routes). */
-export function appHasRoute(href: string): boolean {
-  if (APP_HAS_PLAY) return true;
-  const path = href.split(/[?#]/)[0] || '/';
-  return !PLAY_ROUTE_PREFIXES.some(prefix => path === prefix || path.startsWith(`${prefix}/`));
+/**
+ * Prompt Studio's pages (src/studio-app): Castcut does not serve them. "/" here is Generate; in
+ * Castcut "/" is a redirect to Film. classic-app.test.ts keeps this list in step with the folder.
+ */
+export const STUDIO_ONLY_ROUTES = [
+  '/',
+  '/audio',
+  '/background',
+  '/controlnet',
+  '/fantasy',
+  '/format',
+  '/image-prompt',
+  '/lint',
+  '/logo',
+  '/mesh',
+  '/negative',
+  '/outpaint',
+  '/pet',
+  '/plugins',
+  '/prompt',
+  '/studio',
+  '/topics',
+  '/variations',
+  '/workflow-editor',
+] as const;
+
+function underAny(path: string, prefixes: readonly string[]): boolean {
+  return prefixes.some(
+    prefix => path === prefix || (prefix !== '/' && path.startsWith(`${prefix}/`))
+  );
 }
 
 /**
- * Castcut's pages beyond Play: the library, settings and account pages, and the classic tools
- * the film loop uses — Video (Cast animates), Compose (phone capture), Refine and Inpaint
- * (Gallery's Improve and Anatomy repair finish stills). The other classic tools are Prompt
- * Studio's; their pages still answer by URL here until they move out of Castcut.
+ * Whether this app has the page an href points at: Castcut has no Prompt Studio pages (its "/"
+ * goes to Film), Prompt Studio no Play pages.
  */
-const CASTCUT_PAGES = [
-  '/gallery',
-  '/queue',
-  '/settings',
-  '/profile',
-  '/login',
-  '/offline',
-  '/forbidden',
-  '/video',
-  '/compose',
-  '/refine',
-  '/inpaint',
-];
-
-/** Whether this app offers a page in its nav, palette and handoffs. */
-export function appOffersRoute(href: string): boolean {
-  if (!APP_HAS_PLAY) return appHasRoute(href);
+export function appHasRoute(href: string): boolean {
   const path = href.split(/[?#]/)[0] || '/';
-  return [...PLAY_ROUTE_PREFIXES, ...CASTCUT_PAGES].some(
-    prefix => path === prefix || path.startsWith(`${prefix}/`)
-  );
+  return APP_HAS_PLAY ? !underAny(path, STUDIO_ONLY_ROUTES) : !underAny(path, PLAY_ROUTE_PREFIXES);
+}
+
+/** Whether this app offers a page in its nav, palette and handoffs: the pages it has. */
+export function appOffersRoute(href: string): boolean {
+  return appHasRoute(href);
 }

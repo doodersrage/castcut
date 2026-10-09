@@ -46,7 +46,8 @@ import {
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY, appHasRoute } from '@/lib/app-profile';
+import AppRouteLink from '@/components/ui/AppRouteLink';
 
 const QueueOrchestrationPanel = dynamic(() => import('@/components/QueueOrchestrationPanel'), {
   loading: () => <ToolPageSkeleton label="Loading queue" />,
@@ -247,13 +248,15 @@ export default function HomeDashboard() {
               Start a film
             </ButtonLink>
           ) : null}
-          <ButtonLink
-            href="/"
-            size="sm"
-            variant={APP_HAS_PLAY || showContinue ? 'secondary' : 'primary'}
-          >
-            Generate
-          </ButtonLink>
+          {appHasRoute('/') ? (
+            <ButtonLink
+              href="/"
+              size="sm"
+              variant={APP_HAS_PLAY || showContinue ? 'secondary' : 'primary'}
+            >
+              Generate
+            </ButtonLink>
+          ) : null}
           <ButtonLink href="/gallery" size="sm" variant="secondary">
             Gallery
           </ButtonLink>
@@ -266,16 +269,18 @@ export default function HomeDashboard() {
             </ButtonLink>
           ) : (
             <>
-              <ButtonLink href="/studio" size="sm" variant="ghost">
-                Prompt studio
-              </ButtonLink>
+              {appHasRoute('/studio') ? (
+                <ButtonLink href="/studio" size="sm" variant="ghost">
+                  Prompt studio
+                </ButtonLink>
+              ) : null}
               <ButtonLink href="/settings" size="sm" variant="ghost">
                 Settings
               </ButtonLink>
             </>
           )}
         </ToolActionRow>
-        {!isSimple ? (
+        {!isSimple && appHasRoute('/topics') ? (
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 type-caption text-[var(--text-muted)]">
             <span>More:</span>
             <Link
@@ -419,12 +424,12 @@ export default function HomeDashboard() {
                     >
                       Edit
                     </button>
-                    <Link
+                    <AppRouteLink
                       href={hintsHref}
                       className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     >
                       Hints
-                    </Link>
+                    </AppRouteLink>
                     <Link
                       href={focusHref}
                       className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"

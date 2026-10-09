@@ -27,6 +27,7 @@ import { ROUTE_TINT_CLASSES, type ToolAccent } from '@/lib/tool-theme';
 import { TextInput } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
+import { appHasRoute } from '@/lib/app-profile';
 
 const FRAMING_OPTIONS: { value: SceneStarterFramingFilter; label: string }[] = [
   { value: 'all', label: 'All framing' },
@@ -295,7 +296,7 @@ export default function SceneStarterPresetChips({
             Save current hints as preset
           </Button>
         ) : null}
-        {selectedPreset ? (
+        {selectedPreset && appHasRoute('/variations') ? (
           <Button
             variant="secondary"
             size="sm"
@@ -363,16 +364,18 @@ export default function SceneStarterPresetChips({
         </Button>
       ) : null}
 
-      <p className="type-caption">
-        Manage saved presets in{' '}
-        <Link
-          href="/studio?tab=presets"
-          className="text-[var(--accent-text)] hover:text-[var(--accent-text)]"
-        >
-          Studio → Presets
-        </Link>
-        .
-      </p>
+      {appHasRoute('/studio') ? (
+        <p className="type-caption">
+          Manage saved presets in{' '}
+          <Link
+            href="/studio?tab=presets"
+            className="text-[var(--accent-text)] hover:text-[var(--accent-text)]"
+          >
+            Studio → Presets
+          </Link>
+          .
+        </p>
+      ) : null}
     </div>
   );
 }

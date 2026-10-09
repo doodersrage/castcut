@@ -53,3 +53,34 @@ export function wrapperSource(sourcePath, source, importPrefix = '@/') {
   if (hasDefault) lines.push(`export { default } from '${spec}';`);
   return lines.join('\n') + '\n';
 }
+
+const STUDIO_APP_RE = /^src\/studio-app\//;
+
+/**
+ * The classic app's route files as `{ source, target }`: `src/app` files, and `src/studio-app`
+ * files (Prompt Studio's own pages, which Castcut does not route) at the same route under
+ * `src/app` — a studio-app file wins over an app file at the same route (Castcut's "/" redirects
+ * to Film; Prompt Studio's "/" is Generate).
+ * @param {readonly string[]} appFiles route files under src/app (already filtered)
+ * @param {readonly string[]} studioFiles route files under src/studio-app
+ * @returns {{ source: string; target: string }[]}
+ */
+export function pairClassicRouteFiles(appFiles, studioFiles) {
+  const studio = studioFiles.map(source => ({
+    source,
+    target: source.replace(STUDIO_APP_RE, 'src/app/'),
+  }));
+  const taken = new Set(studio.map(file => file.target));
+  return [
+    ...appFiles.filter(source => !taken.has(source)).map(source => ({ source, target: source })),
+    ...studio,
+  ].sort((a, b) => a.target.localeCompare(b.target));
+}
+
+/**
+ * A route file Next reads: TypeScript, not a test.
+ * @param {string} path
+ */
+export function isRouteSourceFile(path) {
+  return /\.(?:ts|tsx)$/.test(path) && !/\.test\.(?:ts|tsx)$/.test(path);
+}

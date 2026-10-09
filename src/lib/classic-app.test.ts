@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { isPlayLayer } from './architecture-boundaries';
+import { STUDIO_ONLY_ROUTES } from './app-profile';
 import {
   CLASSIC_APP_DIR,
   CLASSIC_GENERATED_MARK,
-  classicAppFiles,
+  classicRouteFiles,
   wrapperSource,
 } from './classic-app';
 
@@ -23,25 +24,28 @@ function walk(dir: string): string[] {
 }
 
 describe('classic Prompt Studio app (apps/prompt-studio)', () => {
-  const sources = [
-    ...classicAppFiles(walk(join(ROOT, 'src/app')), OWNED),
-    'src/proxy.ts',
-    'src/instrumentation.ts',
+  const files = [
+    ...classicRouteFiles(walk(join(ROOT, 'src')), OWNED),
+    { source: 'src/proxy.ts', target: 'src/proxy.ts' },
+    { source: 'src/instrumentation.ts', target: 'src/instrumentation.ts' },
   ];
+  const sources = files.map(file => file.source);
 
   it('wraps every shared route as generated (npm run gen:classic)', () => {
-    const stale = sources.filter(source => {
-      const target = join(ROOT, CLASSIC_APP_DIR, source);
-      return (
-        !existsSync(target) ||
-        readFileSync(target, 'utf8') !== wrapperSource(source, readFileSync(join(ROOT, source), 'utf8'))
-      );
-    });
+    const stale = files
+      .filter(({ source, target }) => {
+        const path = join(ROOT, CLASSIC_APP_DIR, target);
+        return (
+          !existsSync(path) ||
+          readFileSync(path, 'utf8') !== wrapperSource(source, readFileSync(join(ROOT, source), 'utf8'))
+        );
+      })
+      .map(file => file.target);
     assert.deepEqual(stale, [], 'Run `npm run gen:classic` and commit apps/prompt-studio');
   });
 
   it('has no generated route left from a removed or Play route', () => {
-    const wanted = new Set(sources.map(source => join(CLASSIC_APP_DIR, source)));
+    const wanted = new Set(files.map(file => join(CLASSIC_APP_DIR, file.target)));
     const extra = walk(join(ROOT, CLASSIC_APP_DIR, 'src'))
       .filter(path => /\.(?:ts|tsx)$/.test(path))
       .filter(path => readFileSync(join(ROOT, path), 'utf8').slice(0, 200).includes(CLASSIC_GENERATED_MARK))
@@ -54,6 +58,19 @@ describe('classic Prompt Studio app (apps/prompt-studio)', () => {
       sources.filter(source => isPlayLayer(source, OWNED)),
       []
     );
+  });
+
+  it("Castcut's STUDIO_ONLY_ROUTES are exactly the pages in src/studio-app", () => {
+    const pages = walk(join(ROOT, 'src/studio-app'))
+      .filter(path => path.endsWith('/page.tsx'))
+      .map(path => path.replace(/^src\/studio-app/, '').replace(/\/page\.tsx$/, '') || '/');
+    const topLevel = [...new Set(pages.map(route => (route === '/' ? '/' : `/${route.split('/')[1]}`)))].sort();
+    assert.deepEqual([...STUDIO_ONLY_ROUTES].sort(), topLevel);
+  });
+
+  it("Prompt Studio's own page wins at the same route (\"/\" is Generate there)", () => {
+    const home = files.find(file => file.target === 'src/app/page.tsx');
+    assert.equal(home?.source, 'src/studio-app/page.tsx');
   });
 
   it('copies segment config and keeps client pages client', () => {

@@ -32,6 +32,7 @@ import {
   subscribeSharedHealth,
   type RawHealthResponse,
 } from '@/lib/shared-health-poll';
+import { appHasRoute } from '@/lib/app-profile';
 
 type ComfyHealth = {
   ok: boolean;
@@ -363,9 +364,11 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
         <ButtonLink href="/gallery" size="sm">
           Open gallery
         </ButtonLink>
-        <ButtonLink href="/studio?tab=experiments" size="sm">
-          Experiments
-        </ButtonLink>
+        {appHasRoute('/studio') ? (
+          <ButtonLink href="/studio?tab=experiments" size="sm">
+            Experiments
+          </ButtonLink>
+        ) : null}
       </ToolActionRow>
 
       {status ? <p className="mt-3 text-xs ui-status-success">{status}</p> : null}

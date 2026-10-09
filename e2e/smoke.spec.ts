@@ -182,12 +182,12 @@ test('settings page loads', async ({ page }) => {
   });
 });
 
-test('controlnet page loads', async ({ page }) => {
+test('controlnet page loads', { tag: '@classic' }, async ({ page }) => {
   await gotoStable(page, '/controlnet');
   await expect(page.getByRole('heading', { name: /^ControlNet$/i })).toBeVisible();
 });
 
-test('studio analytics tab loads', async ({ page }) => {
+test('studio analytics tab loads', { tag: '@classic' }, async ({ page }) => {
   await gotoStable(page, '/studio');
   const analyticsTab = page.getByRole('button', { name: 'Analytics', exact: true });
   await expect(analyticsTab).toBeVisible({ timeout: 60_000 });
@@ -242,33 +242,39 @@ test('gallery selection bar documents bulk upscale actions', async ({ page }) =>
   await expect(page.getByRole('button', { name: /Bulk new variation/i })).toBeVisible();
 });
 
-const ADDITIONAL_ROUTES: Array<{ path: string; heading: RegExp; level?: 1 | 2 | 3 | 4 | 5 | 6 }> = [
+// classic: Prompt Studio's pages (src/studio-app) — run against the classic app (@classic).
+const ADDITIONAL_ROUTES: Array<{
+  path: string;
+  heading: RegExp;
+  level?: 1 | 2 | 3 | 4 | 5 | 6;
+  classic?: boolean;
+}> = [
   { path: '/character', heading: /^Character$/i },
-  { path: '/background', heading: /^Background$/i },
-  { path: '/fantasy', heading: /^Fantasy$/i },
-  { path: '/pet', heading: /^Pet$/i },
+  { path: '/background', heading: /^Background$/i, classic: true },
+  { path: '/fantasy', heading: /^Fantasy$/i, classic: true },
+  { path: '/pet', heading: /^Pet$/i, classic: true },
   { path: '/refine', heading: /^Refine$/i },
-  { path: '/format', heading: /Format for your model/i },
-  { path: '/prompt', heading: /Prompt Editor/i },
-  { path: '/negative', heading: /^Negative$/i },
-  { path: '/lint', heading: /^Lint$/i },
-  { path: '/topics', heading: /^Topics$/i },
-  { path: '/variations', heading: /^Variations$/i },
+  { path: '/format', heading: /Format for your model/i, classic: true },
+  { path: '/prompt', heading: /Prompt Editor/i, classic: true },
+  { path: '/negative', heading: /^Negative$/i, classic: true },
+  { path: '/lint', heading: /^Lint$/i, classic: true },
+  { path: '/topics', heading: /^Topics$/i, classic: true },
+  { path: '/variations', heading: /^Variations$/i, classic: true },
   { path: '/video', heading: /^Video$/i },
-  { path: '/logo', heading: /^Logo$/i },
-  { path: '/image-prompt', heading: /Image → Prompt/i },
+  { path: '/logo', heading: /^Logo$/i, classic: true },
+  { path: '/image-prompt', heading: /Image → Prompt/i, classic: true },
   { path: '/inpaint', heading: /^Inpaint$/i },
   { path: '/play', heading: /^Your film$/i },
   { path: '/fitting', heading: /^Outfit$/i, level: 1 as const },
   { path: '/day', heading: /^Day$/i, level: 1 as const },
   { path: '/moodboard', heading: /^Look$/i, level: 1 as const },
-  { path: '/plugins', heading: /^Plugins$/i },
+  { path: '/plugins', heading: /^Plugins$/i, classic: true },
   { path: '/profile', heading: /^Profile$/i, level: 1 as const },
-  { path: '/studio', heading: /^Studio$/i, level: 1 as const },
+  { path: '/studio', heading: /^Studio$/i, level: 1 as const, classic: true },
 ];
 
 for (const route of ADDITIONAL_ROUTES) {
-  test(`${route.path} loads`, async ({ page }) => {
+  test(`${route.path} loads`, route.classic ? { tag: '@classic' } : {}, async ({ page }) => {
     await gotoStable(page, route.path);
     await expect(
       page.getByRole('heading', { name: route.heading, level: route.level })

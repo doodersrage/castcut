@@ -68,6 +68,12 @@ jobs:
           CI: true
           PROMPT_AUTH_ENABLED: 'false'
           NEXT_PUBLIC_PLAYWRIGHT: '1'
+      # Prompt Studio's own pages (src/studio-app, @classic tests) against the classic app.
+      - run: npm run test:e2e:classic
+        env:
+          CI: true
+          PROMPT_AUTH_ENABLED: 'false'
+          NEXT_PUBLIC_PLAYWRIGHT: '1'
       # Page snapshots + error context for whichever step failed — CI logs alone only show the assertion.
       - uses: actions/upload-artifact@v4
         if: failure()

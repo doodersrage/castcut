@@ -57,6 +57,7 @@
     "prompt:cli": "node scripts/qwen-prompt.mjs",
     "test": "node scripts/run-unit-tests.mjs && npm run compose:validate-exposed",
     "test:e2e": "playwright test",
+    "test:e2e:classic": "E2E_APP=classic playwright test",
     "docs:serve": "python -m mkdocs serve",
     "docs:build": "python -m mkdocs build",
     "test:e2e:gallery": "playwright test e2e/gallery-exact-replay.spec.ts e2e/gallery-interaction.spec.ts e2e/gallery-lightbox.spec.ts",

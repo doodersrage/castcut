@@ -17,7 +17,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
-import { CLASSIC_GENERATED_MARK, classicAppFiles, wrapperSource } from '../src/lib/classic-app';
+import { CLASSIC_GENERATED_MARK, classicRouteFiles, wrapperSource } from '../src/lib/classic-app';
 
 const root = join(dirname(new URL(import.meta.url).pathname), '..');
 const target = process.argv[2];
@@ -59,12 +59,12 @@ if (existsSync(appDir)) {
   }
 }
 const prefix = `${core}/src/`;
-for (const source of [
-  ...classicAppFiles(walk(join(root, 'src/app')), owned),
-  'src/proxy.ts',
-  'src/instrumentation.ts',
+for (const { source, target } of [
+  ...classicRouteFiles(walk(join(root, 'src')), owned),
+  { source: 'src/proxy.ts', target: 'src/proxy.ts' },
+  { source: 'src/instrumentation.ts', target: 'src/instrumentation.ts' },
 ]) {
-  write(source, wrapperSource(source, readFileSync(join(root, source), 'utf8'), prefix));
+  write(target, wrapperSource(source, readFileSync(join(root, source), 'utf8'), prefix));
 }
 
 write(
