@@ -173,7 +173,7 @@ write(
     private: true,
     description: 'Prompt, image, video and audio tools for ComfyUI.',
     license: castcut.license,
-    repository: { type: 'git', url: 'https://github.com/doodersrage/prompt-studio' },
+    repository: { type: 'git', url: 'git+https://github.com/doodersrage/prompt-studio.git' },
     engines: castcut.engines,
     scripts: {
       dev: 'next dev -p 47833',

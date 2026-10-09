@@ -167,7 +167,7 @@ writeFileSync(
       license: castcut.license,
       repository: {
         type: 'git',
-        url: 'https://github.com/doodersrage/castcut',
+        url: 'git+https://github.com/doodersrage/castcut.git',
         directory: 'packages/prompt-studio-core',
       },
       files: [...new Set([...files].map(file => file.split('/')[0]!)), 'next.config.base.cjs'],
