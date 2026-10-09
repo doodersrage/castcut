@@ -813,8 +813,7 @@ const SOLO_FINGERS_INSIDE =
   'Her right hand is between her thighs, two fingers pushed inside her vagina, her palm against her vulva; her left hand cups her breast.';
 
 /** The beat's two-handed wording, said as the hands line says it (see soloHands). */
-const SOLO_BOTH_HANDS_RE =
-  /both hands (?:spreading and fingering her vulva|between her thighs(?:,? (?:circling|rubbing)[^,—.]*)?)/gi;
+const SOLO_BOTH_HANDS_RE = /\bboth hands\b[^,—.;]*/gi;
 
 function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind): string {
   if (toy) {

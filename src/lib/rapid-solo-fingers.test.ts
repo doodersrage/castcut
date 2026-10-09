@@ -33,4 +33,15 @@ describe('Rapid solo: fingers inside, not two hands framing', () => {
     assert.match(recipe, /two fingers pushed inside her vagina/);
     assert.doesNotMatch(recipe, /cups her breast/);
   });
+
+  it('any "both hands …" clause in the Moment reads as fingers inside', () => {
+    for (const beat of [
+      'alone riding her own hands naked against the minibar — lamp tip-over gag, head tipped back, both hands grinding her clit, one adult only, fully nude',
+      'solo reclining naked on the couch — the TV remote fallen on the floor, both hands spreading and fingering, alone, head tipped',
+    ]) {
+      const moment = /Moment: [^\n]*?\. /.exec(buildRapidSoloRecipe({ beat }) ?? '')?.[0] ?? '';
+      assert.doesNotMatch(moment, /both hands|spreading/i, moment);
+      assert.match(moment, /her fingers inside her/, moment);
+    }
+  });
 });
