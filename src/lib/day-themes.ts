@@ -14,7 +14,8 @@
 
 import { dayPartOf } from '@/lib/day-parts';
 
-export type DayTheme = 'date-night' | 'night-out' | 'lazy-sunday' | 'photoshoot' | 'cosplay';
+export type DayTheme =
+  'date-night' | 'night-out' | 'lazy-sunday' | 'photoshoot' | 'cosplay' | 'workday';
 
 export type DayThemePart = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -489,12 +490,102 @@ const COSPLAY: DayThemeDefinition = {
   },
 };
 
+const WORKDAY: DayThemeDefinition = {
+  id: 'workday',
+  label: 'Workday',
+  hint: 'Dressing for work, the commute, the office, a meeting, lunch, after-work drinks, home',
+  companions: false,
+  kitRe:
+    /\b(business casual outfit|trouser suit|two-piece linen suit|three-piece wool suit|shirt dress|sheath dress|blazer)\b/i,
+  scenes: {
+    morning: [
+      [
+        'standing at the bedroom mirror buttoning her blazer, checking her reflection',
+        'bedroom with a full-length mirror and morning light',
+      ],
+      [
+        'walking to the train with a coffee in one hand and a work bag on her shoulder, mid-stride',
+        'busy city sidewalk at the morning rush',
+      ],
+      [
+        'sitting on the commuter train reading on her phone, work bag on her lap',
+        'commuter train carriage with morning light through the windows',
+      ],
+    ],
+    afternoon: [
+      [
+        'sitting at her office desk typing on a laptop, a coffee mug beside the keyboard',
+        'bright open-plan office with desks and big windows',
+      ],
+      [
+        'standing at a whiteboard presenting in a meeting, pointing at a chart with a marker',
+        'glass-walled meeting room with a whiteboard',
+      ],
+      [
+        'leaning against the office kitchen counter with a coffee, looking out the window',
+        'office kitchen with a coffee machine and a city view',
+      ],
+    ],
+    evening: [
+      [
+        'walking out of the office building at sunset, work bag on her shoulder, mid-stride',
+        'office building entrance at golden hour',
+      ],
+      [
+        'sitting on a bar stool after work with a glass of wine, blazer over the stool back',
+        'after-work wine bar with warm lights',
+      ],
+    ],
+    night: [
+      [
+        'sitting on the edge of the couch at home, heels kicked off, rubbing one foot',
+        'cozy living room lit by a floor lamp',
+      ],
+      [
+        'lying on the couch with her laptop open on her stomach, finishing one last email',
+        'living room at night lit by a laptop glow',
+      ],
+    ],
+  },
+  duoScenes: {
+    morning: [
+      [
+        'standing in the office elevator chatting with her friend from work, both holding coffees, different faces',
+        'office building elevator with mirrored walls',
+      ],
+    ],
+    afternoon: [
+      [
+        'sitting side by side with her friend from work at one desk, both looking at a laptop screen, different faces',
+        'bright open-plan office with desks and big windows',
+      ],
+      [
+        'sitting across a café table from her friend from work at lunch, both laughing, different faces',
+        'busy lunch café near the office',
+      ],
+    ],
+    evening: [
+      [
+        'clinking glasses with her friend from work at after-work drinks, both in work clothes, different faces',
+        'after-work wine bar with warm lights',
+      ],
+    ],
+    night: [
+      [
+        'walking to the train station with her friend from work after drinks, both laughing, different faces',
+        'city street at night under the streetlights',
+      ],
+    ],
+  },
+};
+
 export const DAY_THEMES: Record<DayTheme, DayThemeDefinition> = {
   'date-night': DATE_NIGHT,
   'night-out': NIGHT_OUT,
   'lazy-sunday': LAZY_SUNDAY,
   photoshoot: PHOTOSHOOT,
   cosplay: COSPLAY,
+  workday: WORKDAY,
 };
 
 export const DAY_THEME_OPTIONS = Object.values(DAY_THEMES).map(({ id, label, hint }) => ({
