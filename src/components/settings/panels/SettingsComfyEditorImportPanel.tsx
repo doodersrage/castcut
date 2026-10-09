@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
-import type { CastcutEditorMeta, ComfyApiPrompt } from '@/lib/comfy-editor-graph';
+import type { AppEditorMeta, ComfyApiPrompt } from '@/lib/comfy-editor-graph';
 import {
   diffEditorGraphs,
   editorChangeLabel,
@@ -29,7 +29,7 @@ type ListedFile = { name: string; modified?: number };
 
 type LoadedFile = {
   name: string;
-  meta: CastcutEditorMeta | null;
+  meta: AppEditorMeta | null;
   changes: EditorChange[];
 };
 
@@ -92,7 +92,7 @@ export default function SettingsComfyEditorImportPanel({
       );
       const data = (await response.json().catch(() => null)) as {
         edited?: ComfyApiPrompt;
-        castcut?: CastcutEditorMeta | null;
+        castcut?: AppEditorMeta | null;
         error?: string;
       } | null;
       if (!response.ok || !data?.edited) throw new Error(data?.error ?? `HTTP ${response.status}`);

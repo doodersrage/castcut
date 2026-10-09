@@ -9,7 +9,7 @@ import type { ComfyNodeDef, ComfyNodeDefs } from '@/lib/comfy-editor-graph';
 import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 /** This app's folder in ComfyUI's Workflows (Castcut, or PromptStudio for the classic app). */
-export const CASTCUT_EDITOR_DIR = `workflows/${PRODUCT_OUTPUT_PREFIX}`;
+export const APP_EDITOR_DIR = `workflows/${PRODUCT_OUTPUT_PREFIX}`;
 
 const FETCH_TIMEOUT_MS = 8000;
 const DEF_CACHE_MS = 5 * 60 * 1000;
@@ -85,7 +85,7 @@ export async function saveComfyEditorWorkflow(
   if (!isSafeEditorFileName(fileName)) {
     return { ok: false, error: 'Invalid workflow file name.' };
   }
-  const path = `${CASTCUT_EDITOR_DIR}/${fileName}`;
+  const path = `${APP_EDITOR_DIR}/${fileName}`;
   try {
     const response = await fetch(userdataUrl(baseUrl, path, { overwrite: 'true' }), {
       method: 'POST',
@@ -112,7 +112,7 @@ export async function listComfyEditorWorkflows(
   baseUrl: string
 ): Promise<{ ok: true; files: ComfyEditorWorkflowFile[] } | { ok: false; error: string }> {
   const url = new URL(`${baseUrl.replace(/\/+$/, '')}/api/userdata`);
-  url.searchParams.set('dir', CASTCUT_EDITOR_DIR);
+  url.searchParams.set('dir', APP_EDITOR_DIR);
   url.searchParams.set('recurse', 'false');
   url.searchParams.set('full_info', 'true');
   try {
@@ -166,7 +166,7 @@ export async function readComfyEditorWorkflow(
     return { ok: false, error: 'Invalid workflow file name.', status: 400 };
   }
   try {
-    const response = await fetch(userdataUrl(baseUrl, `${CASTCUT_EDITOR_DIR}/${fileName}`), {
+    const response = await fetch(userdataUrl(baseUrl, `${APP_EDITOR_DIR}/${fileName}`), {
       cache: 'no-store',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       redirect: 'manual',

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   apiPromptToUiWorkflow,
   isApiPromptGraph,
-  readCastcutEditorMeta,
+  readAppEditorMeta,
   uiWorkflowToApiPrompt,
   widgetSlots,
   type ComfyApiPrompt,
@@ -174,7 +174,7 @@ describe("comfy-editor-graph", () => {
     assert.deepEqual(mystery.widgets_values, ["qwen_2.5_vl.safetensors", "x"]);
     assert.equal(mystery.outputs.length, 1);
 
-    const meta = readCastcutEditorMeta(ui);
+    const meta = readAppEditorMeta(ui);
     assert.equal(meta?.tool, "day");
     assert.deepEqual(meta?.apiPrompt, prompt);
   });

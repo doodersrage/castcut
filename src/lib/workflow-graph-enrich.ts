@@ -49,8 +49,8 @@ import { isUpscaleModelInstalled, pickUpscaleModelFromInventory } from './model-
 import { pickSdxlRefinerFromInventory } from './model-checkpoint-map';
 import type { WorkflowQueueOptimizeChange } from './workflow-queue-optimizer';
 import {
-  isCastcutEnrichedNode,
-  isCastcutOutputUpscaleNode,
+  isAppEnrichedNode,
+  isAppOutputUpscaleNode,
   PROMPT_STUDIO_META_PREFIX,
 } from './workflow-enrich-markers';
 
@@ -188,7 +188,7 @@ function shouldSkipUpscaleEnrich(
     if (!UPSCALE_NODE_TYPES.has(classType)) {
       continue;
     }
-    if (isCastcutOutputUpscaleNode(node)) {
+    if (isAppOutputUpscaleNode(node)) {
       return true;
     }
     // Community neural upscalers have no scale_by — still skip stacking another pass.
@@ -1287,7 +1287,7 @@ export function enrichVideoSavePolish(input: {
       touched = true;
     }
     if (touched) {
-      if (!isCastcutEnrichedNode(node._meta)) {
+      if (!isAppEnrichedNode(node._meta)) {
         node._meta = {
           ...(node._meta ?? {}),
           title: `${PROMPT_STUDIO_META_PREFIX} video WEBP ${mode}`,

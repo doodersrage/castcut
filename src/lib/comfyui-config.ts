@@ -7,7 +7,7 @@ import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
-import { isCastcutProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
+import { isAppProtectedSampler, shouldSkipGlobalSamplerPatch } from './workflow-enrich-markers';
 import {
   prepareLightningWorkflowForQueue,
   prepareBooguTurboWorkflowForQueue,
@@ -1037,7 +1037,7 @@ export function patchSamplerParamsInWorkflow(
       continue;
     }
 
-    if (isCastcutProtectedSampler(record)) {
+    if (isAppProtectedSampler(record)) {
       continue;
     }
 

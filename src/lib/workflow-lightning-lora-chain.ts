@@ -21,7 +21,7 @@ import {
 } from './model-resolution-defaults';
 import { isLightningModelId, shouldNeutralizeStyleLorasAtQueue } from './model-sampler-defaults';
 import { isLatentSizeNode, normalizeEmptyLatentForModel } from './workflow-direct-patch';
-import { isCastcutOutputUpscaleNode } from './workflow-enrich-markers';
+import { isAppOutputUpscaleNode } from './workflow-enrich-markers';
 import {
   isLoraLoaderClassType,
   loraFilenameImpliesLightning,
@@ -528,7 +528,7 @@ export function bypassMismatchedSaveImageScaleToLatent(
     if (
       !scaleNode?.inputs ||
       (scaleNode.class_type !== 'ImageScale' && scaleNode.class_type !== 'ResizeImage') ||
-      isCastcutOutputUpscaleNode(scaleNode)
+      isAppOutputUpscaleNode(scaleNode)
     ) {
       continue;
     }

@@ -67,7 +67,7 @@ export type UiNode = {
 export type UiLink = [number, number, number, number, number, string];
 
 /** What Castcut writes into `extra.castcut` so Import can tell what the player changed. */
-export type CastcutEditorMeta = {
+export type AppEditorMeta = {
   version: 1;
   tool?: string;
   model?: string;
@@ -89,7 +89,7 @@ export type UiWorkflow = {
   links: UiLink[];
   groups: unknown[];
   config: Record<string, unknown>;
-  extra: Record<string, unknown> & { castcut?: CastcutEditorMeta };
+  extra: Record<string, unknown> & { castcut?: AppEditorMeta };
   version: number;
 };
 
@@ -282,7 +282,7 @@ function estimateNodeHeight(node: UiNode, def: ComfyNodeDef | undefined): number
 export function apiPromptToUiWorkflow(
   prompt: ComfyApiPrompt,
   defs: ComfyNodeDefs,
-  meta?: Omit<CastcutEditorMeta, 'version' | 'apiPrompt' | 'idMap' | 'unmapped' | 'createdAt'> & {
+  meta?: Omit<AppEditorMeta, 'version' | 'apiPrompt' | 'idMap' | 'unmapped' | 'createdAt'> & {
     createdAt?: number;
   }
 ): UiWorkflow {
@@ -476,12 +476,13 @@ export function isUiWorkflow(value: unknown): value is { nodes: unknown[]; links
 }
 
 /** Castcut's metadata on a workflow file, when it came from "Open in ComfyUI". */
-export function readCastcutEditorMeta(workflow: unknown): CastcutEditorMeta | null {
+export function readAppEditorMeta(workflow: unknown): AppEditorMeta | null {
   if (!isUiWorkflow(workflow)) return null;
+  // Stored under `extra.castcut` (the key Castcut first saved it with; kept so saved workflows load).
   const meta = (workflow as { extra?: { castcut?: unknown } }).extra?.castcut;
   if (!meta || typeof meta !== 'object') return null;
-  const record = meta as Partial<CastcutEditorMeta>;
-  return isApiPromptGraph(record.apiPrompt) ? (record as CastcutEditorMeta) : null;
+  const record = meta as Partial<AppEditorMeta>;
+  return isApiPromptGraph(record.apiPrompt) ? (record as AppEditorMeta) : null;
 }
 
 /**
@@ -494,7 +495,7 @@ export function uiWorkflowToApiPrompt(
   workflow: { nodes: unknown[]; links?: unknown; extra?: unknown },
   defs: ComfyNodeDefs
 ): ComfyApiPrompt {
-  const meta = readCastcutEditorMeta(workflow);
+  const meta = readAppEditorMeta(workflow);
   const apiIdFor = (uiId: unknown) => {
     const key = String(uiId);
     return meta?.idMap?.[key] ?? key;

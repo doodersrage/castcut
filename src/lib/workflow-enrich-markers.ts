@@ -10,13 +10,13 @@ type WorkflowNodeMeta = {
   inputs?: Record<string, unknown>;
 };
 
-export function isCastcutEnrichedNode(meta?: { title?: string }): boolean {
+export function isAppEnrichedNode(meta?: { title?: string }): boolean {
   const title = meta?.title?.trim() ?? '';
   return title.startsWith(PROMPT_STUDIO_META_PREFIX) || title.startsWith(LEGACY_META_PREFIX);
 }
 
-export function isCastcutProtectedSampler(node: WorkflowNodeMeta): boolean {
-  if (!isCastcutEnrichedNode(node._meta)) {
+export function isAppProtectedSampler(node: WorkflowNodeMeta): boolean {
+  if (!isAppEnrichedNode(node._meta)) {
     return false;
   }
   const title = node._meta?.title?.toLowerCase() ?? '';
@@ -31,7 +31,7 @@ export function isCastcutProtectedSampler(node: WorkflowNodeMeta): boolean {
 
 /** Skip global queue sampler patch on enriched refiner passes and low-denoise stages. */
 export function shouldSkipGlobalSamplerPatch(node: WorkflowNodeMeta): boolean {
-  if (isCastcutProtectedSampler(node)) {
+  if (isAppProtectedSampler(node)) {
     return true;
   }
 
@@ -44,8 +44,8 @@ export function shouldSkipGlobalSamplerPatch(node: WorkflowNodeMeta): boolean {
   return Number.isFinite(denoise) && denoise > 0 && denoise < 0.95;
 }
 
-export function isCastcutOutputUpscaleNode(node: WorkflowNodeMeta): boolean {
-  if (!isCastcutEnrichedNode(node._meta)) {
+export function isAppOutputUpscaleNode(node: WorkflowNodeMeta): boolean {
+  if (!isAppEnrichedNode(node._meta)) {
     return false;
   }
   const title = node._meta?.title?.toLowerCase() ?? '';
@@ -53,13 +53,13 @@ export function isCastcutOutputUpscaleNode(node: WorkflowNodeMeta): boolean {
 }
 
 /** True when Final/Max enrich markers are already present (safe to skip re-enrich in batch). */
-export function workflowHasCastcutQueueEnrich(workflow: Record<string, unknown>): boolean {
+export function workflowHasAppQueueEnrich(workflow: Record<string, unknown>): boolean {
   for (const node of Object.values(workflow)) {
     if (!node || typeof node !== 'object') {
       continue;
     }
     const record = node as WorkflowNodeMeta;
-    if (isCastcutOutputUpscaleNode(record) || isCastcutProtectedSampler(record)) {
+    if (isAppOutputUpscaleNode(record) || isAppProtectedSampler(record)) {
       return true;
     }
     const title = record._meta?.title?.toLowerCase() ?? '';

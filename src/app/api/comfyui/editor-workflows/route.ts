@@ -7,11 +7,11 @@ import {
   apiPromptToUiWorkflow,
   isApiPromptGraph,
   isUiWorkflow,
-  readCastcutEditorMeta,
+  readAppEditorMeta,
   uiWorkflowToApiPrompt,
 } from '@/lib/comfy-editor-graph';
 import {
-  CASTCUT_EDITOR_DIR,
+  APP_EDITOR_DIR,
   editorWorkflowFileName,
   fetchComfyNodeDefs,
   listComfyEditorWorkflows,
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   if (!file) {
     const listed = await listComfyEditorWorkflows(baseUrl);
     if (!listed.ok) return apiError(listed.error, 502);
-    return apiJson({ ok: true, comfyUrl: baseUrl, dir: CASTCUT_EDITOR_DIR, files: listed.files });
+    return apiJson({ ok: true, comfyUrl: baseUrl, dir: APP_EDITOR_DIR, files: listed.files });
   }
 
   const read = await readComfyEditorWorkflow(baseUrl, file);
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     ),
   ];
   const defs = await fetchComfyNodeDefs(baseUrl, classTypes);
-  const meta = readCastcutEditorMeta(read.workflow);
+  const meta = readAppEditorMeta(read.workflow);
   return apiJson({
     ok: true,
     comfyUrl: baseUrl,

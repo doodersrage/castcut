@@ -32,7 +32,7 @@ import {
   type QueueQualityProfile,
 } from './queue-quality-profile';
 import { normalizeEmptyLatentForModel } from './workflow-direct-patch';
-import { workflowHasCastcutQueueEnrich } from './workflow-enrich-markers';
+import { workflowHasAppQueueEnrich } from './workflow-enrich-markers';
 
 /** Match object hash (current) or legacy pretty-JSON hash from older Optimize all runs. */
 function workflowHashMatches(workflow: Record<string, unknown>, contentHash: string): boolean {
@@ -443,10 +443,7 @@ export function optimizeWorkflowForQueue(input: {
 
     let skipLightningGraphEnrich = false;
     if (wantsLightningGraphEnrich && input.skipIfUnchanged && input.contentHash) {
-      if (
-        workflowHashMatches(workflow, input.contentHash) &&
-        workflowHasCastcutQueueEnrich(workflow)
-      ) {
+      if (workflowHashMatches(workflow, input.contentHash) && workflowHasAppQueueEnrich(workflow)) {
         skipLightningGraphEnrich = true;
       }
     }
@@ -557,7 +554,7 @@ export function optimizeWorkflowForQueue(input: {
   const skipEnrich =
     skipBinding &&
     input.skipIfUnchanged &&
-    (!profileUsesUpscaleEnrich(input.qualityProfile) || workflowHasCastcutQueueEnrich(workflow));
+    (!profileUsesUpscaleEnrich(input.qualityProfile) || workflowHasAppQueueEnrich(workflow));
 
   if (enabled && shouldEnrichGraph && !skipEnrich) {
     const enriched = enrichWorkflowGraph({
