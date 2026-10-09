@@ -9,7 +9,7 @@ import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {

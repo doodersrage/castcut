@@ -14,7 +14,7 @@ import {
   DEFAULT_STILL_HOLD_SEC,
   type FilmPlaylistShot,
   type FilmShotKind,
-} from './character-film';
+} from './media-kind';
 
 import {
   captionAlphaExpr,
@@ -24,19 +24,19 @@ import {
   STILL_MOTION_FPS,
   TITLE_CARD_SEC,
   type FilmTitleCard,
-} from './film-polish';
+} from './video-polish';
 import {
   buildFilmScaleFilter,
   FILM_PRESET_SIZE,
   normalizeFilmResolution,
   type FilmResolutionPreset,
-} from './film-resolution';
+} from './video-resolution';
 
 export {
   FILM_RESOLUTION_PRESETS,
   normalizeFilmResolution,
   type FilmResolutionPreset,
-} from './film-resolution';
+} from './video-resolution';
 
 export type FilmServerEncodeOptions = {
   resolution?: FilmResolutionPreset;
@@ -145,7 +145,7 @@ async function fetchShotBytes(
   entryId?: string,
   userId?: string | null
 ): Promise<{ buffer: Buffer; contentType?: string; filenameHint?: string }> {
-  const { fetchFilmShotBytes } = await import('./film-shot-fetch');
+  const { fetchFilmShotBytes } = await import('./video-shot-fetch');
   return fetchFilmShotBytes({ url, requestOrigin, entryId, userId });
 }
 

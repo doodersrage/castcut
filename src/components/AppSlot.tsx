@@ -22,7 +22,11 @@ export type AppSlotProps = {
   'home.top': Record<never, never>;
   'home.metrics': Record<never, never>;
   'queue.top': Record<never, never>;
+  /** App-wide, once the shell is ready: a feature's first-run welcome (Play: goal chooser). */
+  'shell.welcome': Record<never, never>;
   'gallery.empty': GalleryEmptySlotProps;
+  /** Settings → Connection first run: feature checks, re-read when `refreshKey` changes. */
+  'settings.firstRunChecks': { refreshKey: string };
 };
 
 export type AppSlotName = keyof AppSlotProps;

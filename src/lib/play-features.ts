@@ -10,7 +10,7 @@ import { registerJobCompletedHook } from './comfyui-gallery';
 import { registerAppFlag } from './app-flags';
 import { registerStudioExtrasSection } from './studio-extras';
 import { PLAY_STUDIO_EXTRAS_SECTION } from './play-studio-extras';
-import { loadPlayCampaignState } from './play-campaign';
+import { loadPlayCampaignState, resolvePlayLoopNavHref } from './play-campaign';
 import { hasCompletedFirstFilm, loadPlayMetrics, resolveNextPlayAction } from './play-metrics';
 import { clearPlayCampaignState, PLAY_CAMPAIGN_KEY } from './play-campaign';
 import { clearLookPack, loadLookPack, LOOK_PACK_KEY } from './look-pack';
@@ -18,6 +18,14 @@ import { PLAY_METRICS_KEY, savePlayMetrics } from './play-metrics';
 import { registerLocalDataReset } from './local-data-reset';
 import { registerResumeCta } from './empty-cta';
 import { registerPoseTargetGroup } from './pose-targets';
+import { registerCharacterLookSwitcher, registerCharacterStorePreparer } from './character-hooks';
+import { migrateCharactersFromLegacy } from './play-cast';
+import { switchCastPlate } from './cast-plate-switch';
+import { roleplaySessionsForCharacterSync } from './roleplay-library';
+import { listSavedIdentityBundles } from './settings-cache';
+import { registerNavClickFollower, registerNavHrefResolver } from './nav-links';
+import { followCurrentPlayLoopHref } from './play-loop-nav-click';
+import { registerGalleryKeeperHook } from './gallery-judgment-hooks';
 import { registerQueueJobDescriber } from './queue-job-context';
 import { registerCharacterNormalizer } from './character-os';
 import { normalizeCharacterLookPacks } from './play-cast';
@@ -87,3 +95,28 @@ for (const group of PLAY_POSE_TARGET_GROUPS) registerPoseTargetGroup(group);
 
 // Queue page: Day slot / Story beat labels, and Run next keeps them pointed at the job.
 registerQueueJobDescriber('play', PLAY_QUEUE_JOB_DESCRIBER);
+
+// A kept intimate two-person still teaches the pose library its layout (local only). Loaded on
+// demand: it pulls in the pose guide planner.
+registerGalleryKeeperHook(entries => {
+  void import('./pose-kept-intimate-client')
+    .then(({ learnKeptIntimatePoses }) => learnKeptIntimatePoses(entries))
+    .catch(() => {});
+});
+
+// Nav: Film / Day / Outfit / Story links carry the active Cast, and a click follows the Cast
+// active now.
+registerNavHrefResolver(resolvePlayLoopNavHref);
+registerNavClickFollower((event, renderedHref, baseHref, push) =>
+  followCurrentPlayLoopHref(event, renderedHref, baseHref, push)
+);
+
+// Cast pickers: bring old Story sessions and identity bundles into the Cast, and a look switch
+// moves Outfit / Story / Day onto the new look's plate.
+registerCharacterStorePreparer(() =>
+  migrateCharactersFromLegacy({
+    bundles: listSavedIdentityBundles(),
+    roleplaySessions: roleplaySessionsForCharacterSync(),
+  })
+);
+registerCharacterLookSwitcher((characterId, lookId) => switchCastPlate(characterId, lookId));

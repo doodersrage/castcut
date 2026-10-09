@@ -1,5 +1,5 @@
 import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
-import { beatLiesDown } from './rapid-duo-recipe';
+import { beatLiesDown } from './beat-text';
 
 /**
  * "Renderer: Qwen-Image 2.1" — the queue builds the usual Qwen-Edit graph (Rapid AIO recipes,

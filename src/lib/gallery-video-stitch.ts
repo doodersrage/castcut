@@ -1,6 +1,6 @@
 /**
  * Gallery clip stitch — pick completed videos and build a concat playlist.
- * The browser assembler lives in `character-film-assemble` (no video model).
+ * The assembler lives in `video-assemble` (no video model).
  */
 
 import {

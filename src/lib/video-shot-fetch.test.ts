@@ -42,8 +42,8 @@ function bytesResponse(bytes: string, status = 200, contentType = "image/png"): 
   return new Response(bytes, { status, headers: { "content-type": contentType } });
 }
 
-describe("film-shot-fetch", async () => {
-  const { fetchFilmShotBytes } = await import("./film-shot-fetch");
+describe("video-shot-fetch", async () => {
+  const { fetchFilmShotBytes } = await import("./video-shot-fetch");
 
   it("throws when the url is blank", async () => {
     await assert.rejects(fetchFilmShotBytes({ url: "   " }), /Shot URL is required/);

@@ -38,7 +38,7 @@ import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { type RoleplayToolCache } from '@/lib/play-settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import { filmResolutionForCutOptions } from '@/lib/film-resolution';
+import { filmResolutionForCutOptions } from '@/lib/video-resolution';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 
 export function useRoleplayFilmActions(input: {

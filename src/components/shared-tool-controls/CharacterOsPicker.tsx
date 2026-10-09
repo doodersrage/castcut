@@ -26,10 +26,8 @@ import {
   renameActiveLook,
   upsertCharacter,
 } from '@/lib/character-os';
-import { migrateCharactersFromLegacy } from '@/lib/play-cast';
-import { switchCastPlate } from '@/lib/cast-plate-switch';
-import { listSavedIdentityBundles, type SharedToolSettings } from '@/lib/settings-cache';
-import { roleplaySessionsForCharacterSync } from '@/lib/roleplay-library';
+import { prepareCharacterStore, switchCharacterLook } from '@/lib/character-hooks';
+import type { SharedToolSettings } from '@/lib/settings-cache';
 
 type CharacterOsPickerProps = {
   shared: SharedToolSettings;
@@ -51,10 +49,7 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       if (cancelled) {
         return;
       }
-      migrateCharactersFromLegacy({
-        bundles: listSavedIdentityBundles(),
-        roleplaySessions: roleplaySessionsForCharacterSync(),
-      });
+      prepareCharacterStore();
     });
     return () => {
       cancelled = true;
@@ -111,8 +106,9 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
       return;
     }
     try {
-      // Outfit / Story follow the look's plate (switchCastPlate), as on the Cast page.
-      const next = switchCastPlate(activeId, lookId);
+      // Features follow the look's plate (Play: Outfit / Story — switchCastPlate), as on the
+      // Cast page.
+      const next = switchCharacterLook(activeId, lookId);
       if (next) {
         onApply(applyCharacterRecordFresh(next));
       }

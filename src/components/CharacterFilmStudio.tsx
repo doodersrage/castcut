@@ -29,7 +29,7 @@ import {
 } from '@/lib/character-film';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
 import { saveCharacterFilmCut } from '@/lib/play-cast';
-import { filmResolutionForCutOptions } from '@/lib/film-resolution';
+import { filmResolutionForCutOptions } from '@/lib/video-resolution';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {

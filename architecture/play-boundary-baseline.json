@@ -1,24 +1,3 @@
 [
-  "src/components/AppShell.tsx -> src/components/PlayKioskShell.tsx",
-  "src/components/ReferenceHealthSection.tsx -> src/lib/day-plate.ts",
-  "src/components/ReferenceHealthSection.tsx -> src/lib/look-outfit-plate.ts",
-  "src/components/WorkspaceWelcome.tsx -> src/components/FilmWatchPlayer.tsx",
-  "src/components/WorkspaceWelcome.tsx -> src/lib/play-starter.ts",
-  "src/components/WorkspaceWelcome.tsx -> src/lib/welcome-sample-film.ts",
-  "src/components/app-nav/AppNavSidebarLink.tsx -> src/lib/play-campaign.ts",
-  "src/components/app-nav/AppNavSidebarLink.tsx -> src/lib/play-loop-nav-click.ts",
-  "src/components/command-palette/useCommandPaletteSelection.ts -> src/lib/play-campaign.ts",
-  "src/components/settings/PlayChecksReadinessRows.tsx -> src/components/CastcutNodesHint.tsx",
-  "src/components/settings/PlayChecksReadinessRows.tsx -> src/lib/play-checks-readiness.ts",
-  "src/components/settings/SettingsConnectionFirstRun.tsx -> src/hooks/usePlayChecksReadiness.ts",
-  "src/components/shared-tool-controls/SharedModelSurface.tsx -> src/components/CharacterOsPicker.tsx",
-  "src/hooks/gallery/useGalleryBulkActions.ts -> src/lib/character-film-assemble.ts",
-  "src/hooks/useVideoPromptQueue.ts -> src/lib/look-outfit-plate.ts",
-  "src/lib/fix-area-client.ts -> src/lib/cast-face-crop.ts",
-  "src/lib/my-pose-packs.ts -> src/lib/day-planner.ts",
-  "src/lib/my-pose-packs.ts -> src/lib/day-pose-packs.ts",
-  "src/lib/pose-kept-intimate.ts -> src/lib/day-pose-guide.ts",
-  "src/lib/qwen-image-21-renderer.ts -> src/lib/rapid-duo-recipe.ts",
-  "src/lib/studio-extras.ts -> src/lib/day-pose-packs.ts",
-  "src/lib/video-continue-stitch.ts -> src/lib/character-film-assemble-lazy.ts"
+  "src/components/AppShell.tsx -> src/components/PlayKioskShell.tsx"
 ]

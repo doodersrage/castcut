@@ -2,12 +2,12 @@
  * In-memory film assemble jobs with optional disk spill for completed MP4 bytes.
  */
 
-import { normalizeFilmTitleCard, type FilmTitleCard } from './film-polish';
+import { normalizeFilmTitleCard, type FilmTitleCard } from './video-polish';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { resolvePromptDataDir } from './prompt-data-paths';
-import type { FilmPlaylistShot } from './character-film';
+import type { FilmPlaylistShot } from './media-kind';
 import {
   encodeFilmPlaylistServer,
   isServerFilmEncodeAvailable,
@@ -15,7 +15,7 @@ import {
   normalizeFilmResolution,
   type FilmResolutionPreset,
   type FilmServerEncodeResult,
-} from './film-server-encode';
+} from './video-server-encode';
 
 export type FilmAssembleJobStatus = 'queued' | 'running' | 'completed' | 'error';
 

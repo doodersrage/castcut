@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
 import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';

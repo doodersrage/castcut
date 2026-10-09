@@ -132,7 +132,7 @@ export function useGalleryBulkActions({
         }
         stitchBusyRef.current = true;
         setRequeueStatus('Stitching selected clips…');
-        void import('@/lib/character-film-assemble')
+        void import('@/lib/video-assemble')
           .then(({ stitchSelectedGalleryVideos }) =>
             stitchSelectedGalleryVideos({
               entries: selectedEntries,

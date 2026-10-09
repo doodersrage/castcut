@@ -3,7 +3,6 @@
  * Registers a pending parent+child pair; Roleplay sync stitches when the child completes.
  */
 
-import { assembleFilmBlob } from './character-film-assemble-lazy';
 import type { FilmPlaylistShot } from './media-kind';
 
 export type PendingContinueStitch = {
@@ -72,6 +71,7 @@ export async function stitchContinueClips(input: {
     return null;
   }
   try {
+    const { assembleFilmBlob } = await import('./video-assemble');
     const result = await assembleFilmBlob(shots, {
       preferServer: true,
       crossfadeSec: 0,

@@ -16,7 +16,7 @@ import '@/components/ui/ToolPageShell';
 // The same for the small modules nearly every tool page uses. Under Next 16.2 (what CI and the
 // release image build with) each sat in 12–33 route chunks; here they ship once. Measured on
 // that build: 3.61 MB → under the 3.5 MB budget, for a few KB of first-load JS.
-import '@/components/CharacterOsPicker';
+import '@/components/shared-tool-controls/CharacterOsPicker';
 import '@/components/ui/Button';
 import '@/components/ui/Field';
 import '@/components/ui/GalleryKindPreview';

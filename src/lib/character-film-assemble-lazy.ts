@@ -7,7 +7,7 @@
 
 import type * as Assemble from './character-film-assemble';
 
-export { downloadFilmBlob, shareFilmBlob } from './film-blob-download';
+export { downloadFilmBlob, shareFilmBlob } from './video-blob-download';
 
 const load = () => import('./character-film-assemble');
 

@@ -38,6 +38,7 @@ import { fetchEmbeddingRankIds, galleryEntryCorpus, sortByRankIds } from '@/lib/
 import { galleryVisualCorpus } from '@/lib/gallery-similarity';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { notePoseTakeOutcomes, type PoseOutcome } from '@/lib/pose-outcome-stats';
+import { runGalleryKeeperHooks } from '@/lib/gallery-judgment-hooks';
 
 /**
  * A Gallery judgment on Day / Story takes, for the pose × engine stats: a keeper (favorite or
@@ -51,13 +52,8 @@ function notePoseOutcomeForEntries(ids: readonly string[], outcome: PoseOutcome)
     entries.map(entry => entry.promptId),
     outcome
   );
-  // A kept intimate two-person still teaches the pose library its layout (local only). Loaded
-  // on demand: it pulls in the pose guide planner.
-  if (outcome === 'keeper') {
-    void import('@/lib/pose-kept-intimate-client')
-      .then(({ learnKeptIntimatePoses }) => learnKeptIntimatePoses(entries))
-      .catch(() => {});
-  }
+  // Features learn from keepers (Play: intimate pose layouts — play-features.ts).
+  if (outcome === 'keeper') runGalleryKeeperHooks(entries);
 }
 
 /** Guards the opportunistic server-gallery merge to run once per page session. */

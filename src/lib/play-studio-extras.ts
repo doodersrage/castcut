@@ -18,6 +18,8 @@ import {
   type PlayCampaignState,
 } from './play-campaign';
 import { loadPlayMetrics, savePlayMetrics, type PlayMetrics } from './play-metrics';
+import { loadMyPosePacks, replaceMyPosePacks } from './my-pose-packs';
+import type { PosePack } from './day-pose-packs';
 
 export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
   collect: () => ({
@@ -25,6 +27,8 @@ export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
     playCampaignState: loadPlayCampaignState(),
     fittingSavedGarments: loadSavedFittingGarments(),
     dressPlates: loadDressPlates(),
+    /** "My packs" — Day slot poses saved as a pose pack. */
+    myPosePacks: loadMyPosePacks(),
   }),
   apply: (payload: StudioExtrasPayload) => {
     const fittingSavedGarments = payload.fittingSavedGarments as SavedFittingGarment[] | undefined;
@@ -35,6 +39,10 @@ export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
     const dressPlates = payload.dressPlates as DayDressPlateEntry[] | undefined;
     if (dressPlates && (dressPlates.length > 0 || loadDressPlates().length === 0)) {
       replaceDressPlates(dressPlates);
+    }
+    const myPosePacks = payload.myPosePacks as PosePack[] | undefined;
+    if (myPosePacks) {
+      replaceMyPosePacks(myPosePacks);
     }
     const playMetrics = payload.playMetrics as PlayMetrics | undefined;
     if (playMetrics) {

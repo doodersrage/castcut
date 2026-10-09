@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
-import { resolveDayCastPlate } from '@/lib/day-plate';
-import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
+import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
+import { resolveCastFaceForPlate } from '@/lib/character-identity';
 import {
   checkReferenceImage,
   referenceViewUrl,
@@ -32,7 +32,7 @@ export function referenceHealthItems(): ReferenceHealthItem[] {
   const lead = getCharacter(cache.shared.activeCharacterId?.trim() || undefined) ?? null;
   const day = cache.tools.day;
   const items: ReferenceHealthItem[] = [];
-  const leadPlate = resolveDayCastPlate(lead);
+  const leadPlate = resolveFittingPlateFromCharacter(lead);
   if (lead) {
     if (leadPlate) {
       items.push({
@@ -63,7 +63,7 @@ export function referenceHealthItems(): ReferenceHealthItem[] {
   const partnerId = day?.partnerCharacterId?.trim();
   const partner = partnerId && partnerId !== lead?.id ? getCharacter(partnerId) : undefined;
   if (partner) {
-    const plate = resolveDayCastPlate(partner);
+    const plate = resolveFittingPlateFromCharacter(partner);
     if (plate) {
       items.push({
         key: 'partner-plate',

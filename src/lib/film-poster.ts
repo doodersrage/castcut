@@ -4,7 +4,7 @@
  * Pure geometry + naming live here so they can be tested without a canvas.
  */
 
-import { normalizeFilmTitleCard, type FilmTitleCard } from './film-polish';
+import { normalizeFilmTitleCard, type FilmTitleCard } from './video-polish';
 import { addComfyGalleryEntry } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
 import type { DaySlot, DaySlotId, DaySlotStill } from './day-planner';
@@ -12,7 +12,7 @@ import {
   FILM_PRESET_SIZE,
   normalizeFilmResolution,
   type FilmResolutionPreset,
-} from './film-resolution';
+} from './video-resolution';
 import { coverRect } from './cover-rect';
 import { persistGalleryOriginal } from './gallery-media-client';
 

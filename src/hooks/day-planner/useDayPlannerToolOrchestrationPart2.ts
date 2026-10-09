@@ -120,7 +120,7 @@ const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
 
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { filmResolutionForCutOptions } from '@/lib/film-resolution';
+import { filmResolutionForCutOptions } from '@/lib/video-resolution';
 
 export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestrationCore) {
   const {

@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import type { DiffusersCheckpointOption } from '@/components/DiffusersCheckpointSelector';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { EngineHealthNote } from '@/components/EngineHealth';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';

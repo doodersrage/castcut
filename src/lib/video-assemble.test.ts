@@ -4,7 +4,7 @@ import {
   assembleFilmBlob,
   stampAssembledFilm,
   stitchSelectedGalleryVideos,
-} from "./character-film-assemble";
+} from "./video-assemble";
 
 describe("character-film-assemble", () => {
   describe("assembleFilmBlob", () => {

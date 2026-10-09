@@ -5,9 +5,9 @@ import {
   normalizeFilmCrossfadeSec,
   normalizeFilmResolution,
   resolveFfmpegBinary,
-} from './film-server-encode';
+} from './video-server-encode';
 
-describe('film-server-encode', () => {
+describe('video-server-encode', () => {
   it('normalizes resolution presets', () => {
     assert.equal(normalizeFilmResolution('1080p'), '1080p');
     assert.equal(normalizeFilmResolution('720'), '720p');

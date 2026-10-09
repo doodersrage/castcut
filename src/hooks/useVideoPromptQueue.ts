@@ -19,7 +19,7 @@ import { extractVideoLastFrame } from '@/lib/video-last-frame';
 import { registerContinueStitch } from '@/lib/video-continue-stitch';
 import { isFetchableImageRef, LOCAL_INIT_IMAGE_MARKER } from '@/hooks/useVideoPromptInitImage';
 import { getCharacter } from '@/lib/character-os';
-import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
+import { withCastIdentityQueueFields } from '@/lib/character-identity';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 

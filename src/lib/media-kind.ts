@@ -91,3 +91,41 @@ export function filmMediaLooksVideo(entry: FilmMediaRef): boolean {
   const source = entry.sourceImageUrl?.trim() || entry.viewUrl?.trim() || '';
   return source ? looksLikeMotionUrl(source) : false;
 }
+
+/** How long a still holds in a cut or stitch, and the size caps for a cut kept in the Gallery. */
+export const DEFAULT_STILL_HOLD_SEC = 2.5;
+export const MIN_STILL_HOLD_SEC = 0.5;
+export const MAX_STILL_HOLD_SEC = 12;
+export const MAX_GALLERY_FILM_BYTES = 80 * 1024 * 1024;
+/** Server ffmpeg MP4 stamps can be larger than browser WebM cuts. */
+export const MAX_SERVER_GALLERY_FILM_BYTES = 220 * 1024 * 1024;
+
+/** Save-to-Cast can stamp an already-cut blob; it must not re-encode the timeline. */
+export function canStampAssembledFilm(
+  size: number,
+  options?: { serverEncoded?: boolean }
+): boolean {
+  const cap = options?.serverEncoded ? MAX_SERVER_GALLERY_FILM_BYTES : MAX_GALLERY_FILM_BYTES;
+  return Number.isFinite(size) && size > 0 && size <= cap;
+}
+
+export function clampStillHoldSec(value: unknown, fallback = DEFAULT_STILL_HOLD_SEC): number {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(numeric * 10) / 10));
+}
+
+/** `<name>-film-<date>.<ext>` for a downloaded cut or stitch. */
+export function filmDownloadFilename(characterName: string, extension = 'webm'): string {
+  const slug =
+    characterName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'character';
+  const day = new Date().toISOString().slice(0, 10);
+  return `${slug}-film-${day}.${extension}`;
+}

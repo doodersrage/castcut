@@ -6,7 +6,7 @@ import SideSheet from '@/components/ui/SideSheet';
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import Link from 'next/link';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';

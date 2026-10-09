@@ -53,7 +53,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
 } from '@/components/day-planner/DayAdvancedDrawer';

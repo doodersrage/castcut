@@ -67,6 +67,10 @@ Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="ho
 
 ### Data hooks
 
-Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook`, `registerCastChangeScrubber`, `registerPoseTargetGroup` (where the Gallery pose dialog can send a pose) and `registerQueueJobDescriber` (Queue page labels, and "Run next" repointing). Pose data shapes live in `lib/pose-types.ts`.
+Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook`, `registerCastChangeScrubber`, `registerPoseTargetGroup` (where the Gallery pose dialog can send a pose) and `registerQueueJobDescriber` (Queue page labels, and "Run next" repointing), `registerNavHrefResolver` / `registerNavClickFollower` (`lib/nav-links.ts`), `registerCharacterStorePreparer` / `registerCharacterLookSwitcher` (`lib/character-hooks.ts`, the Cast picker in the shared tool controls) and `registerGalleryKeeperHook`. Pose data shapes live in `lib/pose-types.ts`.
+
+### Shared media and identity
+
+Clip assembly is shared: `lib/video-assemble.ts` (encode in the browser or on the server through `/api/film/assemble`, then keep it in the Gallery), used by Gallery's stitch, Video continue and Play's film cut (`character-film-assemble.ts` adds the cut planner). Shared helpers that Play modules re-export: `media-kind` (video checks, still holds, film size caps), `character-plate`, `character-plate-thumb`, `character-identity` (a Cast's face lock and LoRAs on a queued job) and `face-locate-client`.
 
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.

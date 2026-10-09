@@ -9,26 +9,12 @@ import {
   type FilmMediaRef,
   type FilmPlaylistShot,
   type FilmShotKind,
+  clampStillHoldSec,
+  DEFAULT_STILL_HOLD_SEC,
 } from './media-kind';
 import { isGalleryEntryHidden } from './gallery-adult-check';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from './roleplay';
 import { looksLikeMotionUrl } from './roleplay-film';
-
-export const DEFAULT_STILL_HOLD_SEC = 2.5;
-export const MIN_STILL_HOLD_SEC = 0.5;
-export const MAX_STILL_HOLD_SEC = 12;
-export const MAX_GALLERY_FILM_BYTES = 80 * 1024 * 1024;
-/** Server ffmpeg MP4 stamps can be larger than browser WebM cuts. */
-export const MAX_SERVER_GALLERY_FILM_BYTES = 220 * 1024 * 1024;
-
-/** Save-to-Cast can stamp an already-cut blob; it must not re-encode the timeline. */
-export function canStampAssembledFilm(
-  size: number,
-  options?: { serverEncoded?: boolean }
-): boolean {
-  const cap = options?.serverEncoded ? MAX_SERVER_GALLERY_FILM_BYTES : MAX_GALLERY_FILM_BYTES;
-  return Number.isFinite(size) && size > 0 && size <= cap;
-}
 
 export type CharacterFilmCutItem = {
   entryId: string;
@@ -41,14 +27,6 @@ export type CharacterFilmCut = {
   stillHoldSec: number;
   updatedAt: number;
 };
-
-export function clampStillHoldSec(value: unknown, fallback = DEFAULT_STILL_HOLD_SEC): number {
-  const numeric = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(numeric)) {
-    return fallback;
-  }
-  return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(numeric * 10) / 10));
-}
 
 export function isFilmSourceClip(entry: FilmMediaRef): boolean {
   // Held or withheld by the adult-appearance gate: never in a film.
@@ -276,17 +254,16 @@ export function roleplayWatchPlaylist(
   return shots;
 }
 
-export function filmDownloadFilename(characterName: string, extension = 'webm'): string {
-  const slug =
-    characterName
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40) || 'character';
-  const day = new Date().toISOString().slice(0, 10);
-  return `${slug}-film-${day}.${extension}`;
-}
-
 export { filmMediaLooksVideo, isAssembledFilmEntry } from './media-kind';
 export type { FilmMediaRef, FilmPlaylistShot, FilmShotKind } from './media-kind';
+
+export {
+  canStampAssembledFilm,
+  clampStillHoldSec,
+  DEFAULT_STILL_HOLD_SEC,
+  filmDownloadFilename,
+  MAX_GALLERY_FILM_BYTES,
+  MAX_SERVER_GALLERY_FILM_BYTES,
+  MAX_STILL_HOLD_SEC,
+  MIN_STILL_HOLD_SEC,
+} from './media-kind';

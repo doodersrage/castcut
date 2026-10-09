@@ -1,5 +1,5 @@
 /**
- * Save or share an assembled film. Kept apart from the assembler (`character-film-assemble.ts`)
+ * Save or share an assembled film. Kept apart from the assembler (`video-assemble.ts`)
  * so a page that only downloads does not pull the encoder in.
  */
 

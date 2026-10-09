@@ -3,7 +3,7 @@
  * ImageDecoder (Chromium) is preferred at paint time; these parsers are the fallback.
  */
 
-import { looksLikeMotionUrl, looksLikeVideoUrl } from './roleplay-film';
+import { looksLikeMotionUrl, looksLikeVideoUrl } from './media-kind';
 
 export type AnimatedImageMime = 'image/gif' | 'image/webp';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';

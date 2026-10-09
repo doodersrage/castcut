@@ -10,7 +10,7 @@ import {
   MIN_STILL_HOLD_SEC,
   type FilmPlaylistShot,
 } from './character-film';
-import { TITLE_CARD_SEC } from './film-polish';
+import { TITLE_CARD_SEC } from './video-polish';
 
 /** A shot with a stable key (Day slot id, Story beat id@at) the edits refer to. */
 export type KeyedShot = FilmPlaylistShot & { key: string };

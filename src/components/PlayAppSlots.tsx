@@ -6,8 +6,11 @@ import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import PlayGalleryEmptyPanel from '@/components/play/PlayGalleryEmptyPanel';
+import PlayChecksReadinessRows from '@/components/play/PlayChecksReadinessRows';
+import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 
 /** Play's cards in shared screens (AppSlot), registered once by PlayFeatures. */
+const WorkspaceWelcome = dynamic(() => import('@/components/WorkspaceWelcome'), { ssr: false });
 const PlayFilmMetricsCard = dynamic(() => import('@/components/PlayFilmMetricsCard'), {
   loading: () => <ToolPageSkeleton label="Loading play metrics" />,
 });
@@ -32,3 +35,13 @@ registerAppSlot(
   0
 );
 registerAppSlot('gallery.empty', 'play-gallery-empty', PlayGalleryEmptyPanel, 0);
+
+// Settings → Connection first run: are Play's checks (pose, face, two-person) ready?
+function PlayFirstRunChecks({ refreshKey }: { refreshKey: string }) {
+  const { readiness, checking, recheck } = usePlayChecksReadiness(refreshKey);
+  return <PlayChecksReadinessRows readiness={readiness} checking={checking} onRecheck={recheck} />;
+}
+registerAppSlot('settings.firstRunChecks', 'play-checks', PlayFirstRunChecks, 0);
+
+// First run: what do you want to make? (sample film, starter film).
+registerAppSlot('shell.welcome', 'play-welcome', WorkspaceWelcome, 0);

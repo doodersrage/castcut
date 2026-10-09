@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import AppSlot from '@/components/AppSlot';
 import { useEffect, useState } from 'react';
 import SystemTrayCelebrateOverlay from '@/components/SystemTrayCelebrateOverlay';
 import CommandPaletteEager from '@/components/CommandPalette';
@@ -39,10 +40,6 @@ const WorkflowLibraryWatcher = dynamic(() => import('@/components/WorkflowLibrar
 });
 
 const EngineHealthWatcher = dynamic(() => import('@/components/EngineHealthWatcher'), {
-  ssr: false,
-});
-
-const WorkspaceWelcome = dynamic(() => import('@/components/WorkspaceWelcome'), {
   ssr: false,
 });
 
@@ -126,7 +123,7 @@ export default function DeferredShellClient() {
           <KeyboardShortcuts />
           <CommandPalette />
           <GalleryPwaRegister />
-          <WorkspaceWelcome />
+          <AppSlot name="shell.welcome" />
           <FirstQueueSetupModal />
           <AppUpdateWatcher />
           <WorkflowLibraryWatcher />

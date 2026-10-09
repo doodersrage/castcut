@@ -9,7 +9,7 @@ import {
   filterCommandPaletteItems,
   type useCommandPaletteOpenState,
 } from '@/components/command-palette/useCommandPaletteData';
-import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
+import { resolveNavHref } from '@/lib/nav-links';
 import { loadSettingsCache } from '@/lib/settings-cache';
 type OpenState = ReturnType<typeof useCommandPaletteOpenState>;
 
@@ -148,7 +148,7 @@ export function useCommandPaletteSelection({
       setOpen(false);
       if (item.href) {
         const characterId = loadSettingsCache().shared.activeCharacterId;
-        router.push(resolvePlayLoopNavHref(item.href, characterId));
+        router.push(resolveNavHref(item.href, characterId));
       }
     },
     [router, setOpen]

@@ -10,7 +10,7 @@ import {
   ffmpegHasDrawtext,
   resolveFfmpegBinary,
   resolveFilmFontFile,
-} from '@/lib/film-server-encode';
+} from '@/lib/video-server-encode';
 import { parseComfyUiSystemStats } from '@/lib/castcut-nodes-setup';
 import { buildPlayChecksReadiness, type PlayChecksReadiness } from '@/lib/play-checks-readiness';
 

@@ -19,7 +19,7 @@ let encodeImpl: (shots: unknown[], options: EncodeOptions, requestOrigin?: strin
 const encodeFilmPlaylistServer = mock.fn(
   (shots: unknown[], options: EncodeOptions, requestOrigin?: string) => encodeImpl(shots, options, requestOrigin)
 );
-mock.module("./film-server-encode", {
+mock.module("./video-server-encode", {
   namedExports: {
     isServerFilmEncodeAvailable,
     normalizeFilmCrossfadeSec,
@@ -44,9 +44,9 @@ async function waitUntil(
   }
 }
 
-describe("film-assemble-jobs", async () => {
+describe("video-assemble-jobs", async () => {
   const { getFilmAssembleJob, readFilmAssembleOutput, startFilmAssembleJob } =
-    await import("./film-assemble-jobs");
+    await import("./video-assemble-jobs");
 
   before(async () => {
     tmpDataDir = await fs.mkdtemp(path.join(os.tmpdir(), "film-assemble-test-"));

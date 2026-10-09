@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { resolveAppNavLinkHref } from '@/lib/gallery-session-state';
-import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
 import { prefetchGalleryPage } from '@/lib/gallery-warmup';
-import { followCurrentPlayLoopHref } from '@/lib/play-loop-nav-click';
+import { followNavClick, resolveNavHref } from '@/lib/nav-links';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import type { AppNavLink } from '@/lib/app-nav-catalog';
 
@@ -24,7 +23,7 @@ export function AppNavSidebarLink({
   const characterId =
     typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
   const baseHref = resolveAppNavLinkHref(link.href);
-  const navHref = resolvePlayLoopNavHref(baseHref, characterId);
+  const navHref = resolveNavHref(baseHref, characterId);
   const galleryPath = link.href.split('?')[0] ?? link.href;
   const isGalleryLink = galleryPath === '/gallery' || galleryPath === '/m/gallery';
 
@@ -49,7 +48,7 @@ export function AppNavSidebarLink({
           if (isGalleryLink) {
             prefetchGalleryPage();
           }
-          followCurrentPlayLoopHref(event, navHref, baseHref, href => router.push(href));
+          followNavClick(event, navHref, baseHref, href => router.push(href));
         }}
       >
         {link.label}

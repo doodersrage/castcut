@@ -8,8 +8,8 @@ import {
   stillMotionZoom,
   stillMotionZoomExpr,
   filmShotCaption,
-} from './film-polish';
-import { buildFilterComplex } from './film-server-encode';
+} from './video-polish';
+import { buildFilterComplex } from './video-server-encode';
 import { posterTitleLayout } from './film-poster';
 import { nextDayFilmTitleCard, currentSeasonLabel, type PlaySeriesStore } from './play-series';
 

@@ -141,7 +141,7 @@ export async function locateFaceInStill(
   const response = await fetch(displayUrl, { credentials: 'same-origin' });
   if (!response.ok) return { face: null, reason: 'The picture could not be loaded.' };
   const blob = await response.blob();
-  const { locateFaceOnPlateBlob } = await import('@/lib/cast-face-crop');
+  const { locateFaceOnPlateBlob } = await import('@/lib/face-locate-client');
   const located = await locateFaceOnPlateBlob(blob);
   if (!located)
     return { face: null, reason: 'Finding the face needs ComfyUI with the FaceAnalysis pack.' };

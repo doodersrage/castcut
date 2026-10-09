@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FIRST_RUN_GENERATE_HREF, FIRST_RUN_QUEUE_HREF } from '@/lib/empty-cta';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
-import PlayChecksReadinessRows from '@/components/settings/PlayChecksReadinessRows';
-import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
+import AppSlot from '@/components/AppSlot';
 
 export default function SettingsConnectionFirstRun({
   health,
@@ -22,7 +21,6 @@ export default function SettingsConnectionFirstRun({
 }) {
   const comfyOk = health?.comfyui?.ok === true;
   // Re-probe when the connection flips or a Heal finishes.
-  const { readiness, checking, recheck } = usePlayChecksReadiness(`${comfyOk}:${healBusy}`);
   const comfyFail = health != null && health.comfyui?.ok !== true;
   const ready = comfyOk && systemWorkflowsEnabled;
 
@@ -90,7 +88,7 @@ export default function SettingsConnectionFirstRun({
           </span>
         </li>
       </ul>
-      <PlayChecksReadinessRows readiness={readiness} checking={checking} onRecheck={recheck} />
+      <AppSlot name="settings.firstRunChecks" refreshKey={`${comfyOk}:${healBusy}`} />
       {ready ? (
         <div className="mt-3 space-y-2" data-testid="post-heal-checklist">
           <p className="text-sm font-medium text-[var(--accent-text)]">

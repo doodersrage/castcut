@@ -10,6 +10,7 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
+import { beatLiesDown } from './beat-text';
 import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day-lead-gender';
 import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
 import {
@@ -1477,20 +1478,6 @@ export function buildCompactDayDuoRecipe(
     : moving;
 }
 
-/**
- * A beat that has her lying down ("lying on the rug", "propped back on her elbows on the grass").
- * Not a sprawl in a chair — that is a sit.
- */
-export function beatLiesDown(beat: string | null | undefined): boolean {
-  const text = stripNegatedClauses(beat ?? '');
-  return (
-    /\b(?:lying|lies|laying|reclining)\b|\bpropped\s+back\s+on\s+(?:her|both)\s+elbows\b/i.test(
-      text
-    ) ||
-    (/\bsprawled\b/i.test(text) && !/\b(?:arm)?chair\b/i.test(text))
-  );
-}
-
 /** What she lies on: the beat's furniture, else a blanket, towel or the grass. */
 function lyingSurface(beat: string): string | null {
   return (
@@ -1747,3 +1734,5 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     .join(' ')
     .replace(/\.\./g, '.');
 }
+
+export { beatLiesDown } from './beat-text';

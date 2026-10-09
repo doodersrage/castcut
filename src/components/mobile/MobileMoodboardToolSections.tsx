@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';

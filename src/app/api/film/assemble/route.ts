@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { normalizeFilmTitleCard } from '@/lib/film-polish';
+import { normalizeFilmTitleCard } from '@/lib/video-polish';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import type { FilmPlaylistShot } from '@/lib/character-film';
+import type { FilmPlaylistShot } from '@/lib/media-kind';
 import {
   getFilmAssembleJob,
   readFilmAssembleOutput,
   startFilmAssembleJob,
-} from '@/lib/film-assemble-jobs';
-import { isServerFilmEncodeAvailable } from '@/lib/film-server-encode';
+} from '@/lib/video-assemble-jobs';
+import { isServerFilmEncodeAvailable } from '@/lib/video-server-encode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

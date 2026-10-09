@@ -1,6 +1,6 @@
 'use client';
 
-import CharacterOsPicker from '@/components/CharacterOsPicker';
+import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 

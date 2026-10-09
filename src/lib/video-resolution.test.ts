@@ -7,9 +7,9 @@ import {
   filmResolutionForCutOptions,
   isVerticalFilmResolution,
   normalizeFilmResolution,
-} from './film-resolution';
+} from './video-resolution';
 
-describe('film-resolution', () => {
+describe('video-resolution', () => {
   it('normalizes landscape and vertical presets plus aliases', () => {
     assert.equal(normalizeFilmResolution(undefined), '720p');
     assert.equal(normalizeFilmResolution('1080'), '1080p');
