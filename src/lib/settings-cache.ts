@@ -1,5 +1,4 @@
 import { isSettingsSyncedWithServer, markSettingsPushPending } from './settings-push-flush';
-import { swapDayForCast } from './day-cast-park';
 import { DEFAULT_QWEN_MODEL, type ComfyImageModel } from './comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -2100,73 +2099,32 @@ export function saveSettingsCache(cache: SettingsCache, options?: SaveSettingsOp
 }
 
 /**
- * Clear Cast-bound Play tool plates when activeCharacterId changes.
- * Outfit/Day/Story otherwise keep the previous look plate or isolate cutout.
+ * Feature caches tied to the active Cast are cleaned when it changes (Play's Day / Outfit /
+ * Story plates — play-cast-change.ts). Shared settings only run what was registered, so it
+ * imports no feature (docs/architecture-boundaries.md).
  */
-export function scrubPlayToolCachesOnCastChange(
+export type CastChangeScrubber = (
   tools: ToolSettingsCache,
-  previousCast = '',
-  nextCast = ''
+  previousCast: string,
+  nextCast: string
+) => ToolSettingsCache;
+
+const castChangeScrubbers: CastChangeScrubber[] = [];
+
+/** Register a clean-up for tool caches when the active Cast changes (idempotent). */
+export function registerCastChangeScrubber(scrubber: CastChangeScrubber): void {
+  if (!castChangeScrubbers.includes(scrubber)) castChangeScrubbers.push(scrubber);
+}
+
+export function scrubToolCachesOnCastChange(
+  tools: ToolSettingsCache,
+  previousCast: string,
+  nextCast: string
 ): ToolSettingsCache {
-  let next: ToolSettingsCache = { ...tools };
-
-  if (next.day) {
-    next = {
-      ...next,
-      day: {
-        ...next.day,
-        // The Day is parked under the Cast it belongs to and the next Cast's comes back.
-        ...swapDayForCast(next.day, previousCast, nextCast),
-        referenceIsolated: false,
-        plateIsolateSourceKey: undefined,
-        plateCharacterId: undefined,
-        plateImageUrl: undefined,
-        plateImageFilename: undefined,
-        plateOriginalUrl: undefined,
-        plateOriginalFilename: undefined,
-      },
-    };
-  }
-
-  if (next.fitting) {
-    next = {
-      ...next,
-      fitting: {
-        ...next.fitting,
-        referenceIsolated: false,
-        referenceImageUrl: undefined,
-        referenceImageFilename: undefined,
-        referenceOriginalUrl: undefined,
-        referenceOriginalFilename: undefined,
-        previewPlateFilename: undefined,
-        previewPlateUrl: undefined,
-        previewPlateSourceKey: undefined,
-        // Keep the in-flight Look plate job. It belongs to pendingOutfitPlateCharacterId,
-        // not the Cast being activated, and must not be dropped or stamped here.
-        // Allow Cast look reseed after switch (user clear still sets this true).
-        suppressAutoPlateSeed: false,
-        // Another Cast's try-ons are not this one's to keep.
-        compareTryOns: undefined,
-        pendingTryOn: undefined,
-      },
-    };
-  }
-
-  if (next.roleplay) {
-    next = {
-      ...next,
-      roleplay: {
-        ...next.roleplay,
-        referenceIsolated: false,
-        referenceImageUrl: undefined,
-        referenceImageFilename: undefined,
-        referenceOriginalUrl: undefined,
-        referenceOriginalFilename: undefined,
-      },
-    };
-  }
-
-  return next;
+  return castChangeScrubbers.reduce(
+    (current, scrubber) => scrubber(current, previousCast, nextCast),
+    tools
+  );
 }
 
 export function saveSharedSettings(
@@ -2194,7 +2152,7 @@ export function saveSharedSettings(
   const nextCharacterId = merged.activeCharacterId?.trim() || '';
   let tools = cache.tools;
   if (prevCharacterId !== nextCharacterId) {
-    tools = scrubPlayToolCachesOnCastChange(tools, prevCharacterId, nextCharacterId);
+    tools = scrubToolCachesOnCastChange(tools, prevCharacterId, nextCharacterId);
   }
 
   saveSettingsCache({ ...cache, shared: merged, tools }, options);

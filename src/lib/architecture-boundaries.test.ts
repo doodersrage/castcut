@@ -68,6 +68,11 @@ describe('architecture: Play layer boundary', () => {
       { spec: './b', typeOnly: true },
       { spec: './c', typeOnly: false },
     ]);
+    assert.deepEqual(readImports("type T = import('./d').Bio;\nconst m = await import('./e');\nimport('./f').then(x => x);"), [
+      { spec: './d', typeOnly: true },
+      { spec: './e', typeOnly: false },
+      { spec: './f', typeOnly: false },
+    ]);
   });
 
   it('no new imports into Play from outside it; the baseline only shrinks', () => {

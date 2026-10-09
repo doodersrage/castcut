@@ -24,6 +24,12 @@ export function isPlayLayer(path: string): boolean {
   return PLAY_LAYER_RE.test(path);
 }
 
+/**
+ * Castcut's composition root: the one place the app wires Play in (PlayFeatures registers Play's
+ * hooks with the shared code). The classic Studio app's layout will not import it.
+ */
+export const PLAY_COMPOSITION_ROOTS: ReadonlySet<string> = new Set(['src/app/layout.tsx']);
+
 export type ImportEdge = { from: string; to: string; typeOnly: boolean };
 
 const IMPORT_RE =
@@ -46,14 +52,23 @@ export function readImports(source: string): { spec: string; typeOnly: boolean }
   for (const match of source.matchAll(IMPORT_RE)) {
     const spec = match[3] ?? match[4];
     if (!spec) continue;
-    out.push({ spec, typeOnly: Boolean(match[1]) || namesAreTypeOnly(match[2] ?? '') });
+    // `import('./x').SomeType` in a type position is erased; `import('./x').then(…)` is not.
+    const inlineType =
+      match[4] !== undefined && /^\.[A-Z]/.test(source.slice((match.index ?? 0) + match[0].length));
+    out.push({
+      spec,
+      typeOnly: Boolean(match[1]) || namesAreTypeOnly(match[2] ?? '') || inlineType,
+    });
   }
   return out;
 }
 
 /** Edges from outside the Play layer into it — what the baseline records and the test ratchets. */
 export function playBoundaryEdges(edges: readonly ImportEdge[]): ImportEdge[] {
-  return edges.filter(edge => isPlayLayer(edge.to) && !isPlayLayer(edge.from));
+  return edges.filter(
+    edge =>
+      isPlayLayer(edge.to) && !isPlayLayer(edge.from) && !PLAY_COMPOSITION_ROOTS.has(edge.from)
+  );
 }
 
 export function edgeKey(edge: Pick<ImportEdge, 'from' | 'to'>): string {

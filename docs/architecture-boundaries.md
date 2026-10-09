@@ -47,4 +47,8 @@ Regenerating the baseline is for removals only, never to admit a new crossing.
 4. **Packages.** npm workspaces: `packages/comfy-core` (no React), `packages/app-kit`, `apps/castcut`, `apps/prompt-studio`.
 5. **Classic gets its own repo**, depending on the published packages, or both apps stay in the monorepo on separate release tracks. Repository name and package visibility to be confirmed first.
 
+### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
+
+Shared code exposes a registration point (`registerCastChangeScrubber` in `settings-cache.ts`). The Play logic moves into the Play layer (`play-cast-change.ts`) and is registered by `lib/play-features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
+
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.

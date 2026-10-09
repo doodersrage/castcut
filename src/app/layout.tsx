@@ -6,6 +6,7 @@ import BrowserStorageInit from '@/components/BrowserStorageInit';
 import TabSyncInit from '@/components/TabSyncInit';
 import AmbientBackground from '@/components/AmbientBackground';
 import AppShell from '@/components/AppShell';
+import PlayFeatures from '@/components/PlayFeatures';
 import { AuthProvider } from '@/hooks/useAuth';
 import { WorkspaceModeProvider } from '@/hooks/useWorkspaceMode';
 import ComfyGalleryBackgroundPoller from '@/components/ComfyGalleryBackgroundPoller';
@@ -97,6 +98,7 @@ export default async function RootLayout({
         <ThemeInit />
         <BrowserStorageInit />
         <TabSyncInit />
+        <PlayFeatures />
         <AuthProvider>
           <WorkspaceModeProvider initialMode={initialWorkspace}>
             <AppShell>

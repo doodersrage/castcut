@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { scrubPlayToolCachesOnCastChange } from './settings-cache';
+import { scrubPlayToolCachesOnCastChange } from './play-cast-change';
 
 describe('scrubPlayToolCachesOnCastChange', () => {
   it('clears Day stills and isolate plate overrides', () => {
