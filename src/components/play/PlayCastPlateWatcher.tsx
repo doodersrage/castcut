@@ -10,7 +10,7 @@ import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-met
  * also isolates the picture for try-ons), so this stays out of its way. The plate code loads
  * only when the gallery updates — not in every page's bundle.
  */
-export default function PendingCastPlateWatcher() {
+export default function PlayCastPlateWatcher() {
   useEffect(() => {
     let cancelled = false;
     const attach = () => {

@@ -56,7 +56,7 @@ import {
 } from '@/lib/look-pack';
 import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
 import { addBlankCastLook, removeCastPlate, switchCastPlate } from '@/lib/cast-plate-switch';
-import { castPlateTiles, nextCastLookName } from '@/lib/cast-plate-thumb';
+import { castPlateTiles, nextCastLookName } from '@/lib/character-plate-thumb';
 import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
 import {
   prepareCastPlate,

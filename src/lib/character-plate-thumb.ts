@@ -3,7 +3,7 @@
 import { looksOf, type CharacterLook, type CharacterRecord } from '@/lib/character-os';
 import type { PortraitTile } from '@/components/ui/PortraitTileStrip';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
-import { resolveFittingPlateFromCharacter, resolveLookPlate } from '@/lib/fitting-room';
+import { resolveFittingPlateFromCharacter, resolveLookPlate } from '@/lib/character-plate';
 import { cacheBustIdentityMediaUrl, isIdentityMediaUrl } from '@/lib/gallery-media-client';
 
 /** Look plate URL for a Cast, or '' — look plates only, never the face-lock IP fallback. */

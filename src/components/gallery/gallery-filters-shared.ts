@@ -2,7 +2,7 @@ import type { PromptProject } from '@/lib/prompt-projects';
 import type { ComfyGalleryFilter, ComfyGallerySort } from '@/lib/comfyui-gallery';
 import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
 import { getCharacter } from '@/lib/character-os';
-import { castPlateTiles } from '@/lib/cast-plate-thumb';
+import { castPlateTiles } from '@/lib/character-plate-thumb';
 import { GALLERY_NO_LOOK, GALLERY_NO_LOOK_LABEL } from '@/lib/gallery-look-filter';
 
 export const GALLERY_SORT_OPTIONS: { value: ComfyGallerySort; label: string }[] = [

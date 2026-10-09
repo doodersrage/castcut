@@ -21,7 +21,7 @@ import {
   stillPromptCheckRecord,
   stillPromptIssuesLine,
 } from '@/lib/still-prompt-audit';
-import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import { installedComfyModels } from '@/lib/model-picker';
 import {
   fetchComfyObjectInfoModelsCached,

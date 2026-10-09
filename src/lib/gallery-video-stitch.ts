@@ -8,7 +8,7 @@ import {
   galleryEntryPrimaryViewUrl,
   type ComfyGalleryEntry,
 } from './comfyui-gallery';
-import { filmMediaLooksVideo, type FilmMediaRef, type FilmPlaylistShot } from './character-film';
+import { filmMediaLooksVideo, type FilmMediaRef, type FilmPlaylistShot } from './media-kind';
 import { isGalleryEntryHidden } from './gallery-adult-check';
 
 export const MIN_GALLERY_STITCH_CLIPS = 2;

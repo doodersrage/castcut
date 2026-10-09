@@ -3,10 +3,16 @@
  * The cut lives on the Character OS record, not a one-off dialog.
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import {
+  filmMediaLooksVideo,
+  isAssembledFilmEntry,
+  type FilmMediaRef,
+  type FilmPlaylistShot,
+  type FilmShotKind,
+} from './media-kind';
 import { isGalleryEntryHidden } from './gallery-adult-check';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from './roleplay';
-import { isVideoLikeEntry, looksLikeMotionUrl } from './roleplay-film';
+import { looksLikeMotionUrl } from './roleplay-film';
 
 export const DEFAULT_STILL_HOLD_SEC = 2.5;
 export const MIN_STILL_HOLD_SEC = 0.5;
@@ -36,65 +42,12 @@ export type CharacterFilmCut = {
   updatedAt: number;
 };
 
-export type FilmShotKind = 'clip' | 'still';
-
-export type FilmMediaRef = Pick<
-  ComfyGalleryEntry,
-  'id' | 'status' | 'derivedKind' | 'tool' | 'queuedAt' | 'completedAt' | 'adultCheck'
-> & {
-  prompt?: string;
-  mediaKind?: string;
-  viewUrl?: string | null;
-  sourceImageUrl?: string;
-  images?: Array<{ filename?: string; format?: string }>;
-};
-
-export type FilmPlaylistShot = {
-  entryId?: string;
-  title: string;
-  url: string;
-  kind: FilmShotKind;
-  holdSec?: number;
-  /** Stable id for cut edits (Day slot id, Story beat id@at). */
-  key?: string;
-  /** Caption when titles are on (default: `title`). */
-  caption?: string;
-};
-
 export function clampStillHoldSec(value: unknown, fallback = DEFAULT_STILL_HOLD_SEC): number {
   const numeric = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(numeric)) {
     return fallback;
   }
   return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(numeric * 10) / 10));
-}
-
-export function isAssembledFilmEntry(
-  entry: Pick<ComfyGalleryEntry, 'derivedKind'> | undefined
-): boolean {
-  return entry?.derivedKind === 'film';
-}
-
-function imageLooksVideo(image: { filename?: string; format?: string } | undefined): boolean {
-  if (!image) {
-    return false;
-  }
-  const format = image.format?.trim().toLowerCase() ?? '';
-  if (format.startsWith('video/')) {
-    return true;
-  }
-  return /\.(mp4|webm|mov|mkv|webp|gif)(\?|#|$)/i.test(image.filename ?? '');
-}
-
-export function filmMediaLooksVideo(entry: FilmMediaRef): boolean {
-  if (isAssembledFilmEntry(entry) || isVideoLikeEntry(entry) || entry.mediaKind === 'video') {
-    return true;
-  }
-  if (imageLooksVideo(entry.images?.[0])) {
-    return true;
-  }
-  const source = entry.sourceImageUrl?.trim() || entry.viewUrl?.trim() || '';
-  return source ? looksLikeMotionUrl(source) : false;
 }
 
 export function isFilmSourceClip(entry: FilmMediaRef): boolean {
@@ -334,3 +287,6 @@ export function filmDownloadFilename(characterName: string, extension = 'webm'):
   const day = new Date().toISOString().slice(0, 10);
   return `${slug}-film-${day}.${extension}`;
 }
+
+export { filmMediaLooksVideo, isAssembledFilmEntry } from './media-kind';
+export type { FilmMediaRef, FilmPlaylistShot, FilmShotKind } from './media-kind';

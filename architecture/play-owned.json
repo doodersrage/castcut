@@ -14,7 +14,6 @@
   "src/components/pose/PoseJointEditor.tsx",
   "src/components/pose/PoseMissPanel.tsx",
   "src/components/pose/PosePreview.tsx",
-  "src/components/ui/PortraitTileStrip.tsx",
   "src/components/ui/QualityPresetSegments.tsx",
   "src/components/ui/ShotCardMenu.tsx",
   "src/components/ui/SideSheet.tsx",

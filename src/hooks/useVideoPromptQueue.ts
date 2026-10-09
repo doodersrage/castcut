@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { nextRoleplayMotionKind } from '@/lib/roleplay-film';
+import { nextRoleplayMotionKind } from '@/lib/media-kind';
 import {
   canFalExtendFromParentUrl,
   continueClipPathRanMessage,

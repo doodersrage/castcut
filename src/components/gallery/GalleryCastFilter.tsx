@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useHydrated } from '@/hooks/useHydrated';
-import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import { loadCharacters } from '@/lib/character-os';
 import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
 

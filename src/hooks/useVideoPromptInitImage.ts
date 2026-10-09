@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { looksLikeVideoUrl } from '@/lib/roleplay-film';
+import { looksLikeVideoUrl } from '@/lib/media-kind';
 import { extractVideoLastFrame } from '@/lib/video-last-frame';
 import { preferCloudForVideoStillHandoff } from '@/lib/video-still-handoff';
 import { canFalExtendFromParentUrl, type VideoClipMode } from '@/lib/video-clip-mode';

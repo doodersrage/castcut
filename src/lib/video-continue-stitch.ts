@@ -4,7 +4,7 @@
  */
 
 import { assembleFilmBlob } from './character-film-assemble-lazy';
-import type { FilmPlaylistShot } from './character-film';
+import type { FilmPlaylistShot } from './media-kind';
 
 export type PendingContinueStitch = {
   parentUrl: string;

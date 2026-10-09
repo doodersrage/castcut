@@ -3,7 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import ClothingSheet, { ClothingSummaryThumbStrip } from '@/components/wardrobe/ClothingSheet';
-import { castLookPortraitTile, castPlateTiles } from '@/lib/cast-plate-thumb';
+import { castLookPortraitTile, castPlateTiles } from '@/lib/character-plate-thumb';
 import { activeLook, type CharacterRecord } from '@/lib/character-os';
 import {
   clothingSummaryLine,

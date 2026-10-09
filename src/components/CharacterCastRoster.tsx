@@ -1,6 +1,6 @@
 'use client';
 
-import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { castPlateThumbUrl } from '@/lib/cast-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import {
   getCharacter,
   getCharactersSnapshot,

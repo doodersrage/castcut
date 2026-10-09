@@ -13,7 +13,7 @@ import type { FittingPlate } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import type { CastPlatePrepareOptions, prepareCastPlate } from '@/lib/cast-plate-prepare';
-import { castLookPortraitTile, type CastPlateTile } from '@/lib/cast-plate-thumb';
+import { castLookPortraitTile, type CastPlateTile } from '@/lib/character-plate-thumb';
 import type { DayPartnerNoun } from '@/lib/day-partner';
 import { plateStanceNote, type PlateStance } from '@/lib/plate-stance';
 

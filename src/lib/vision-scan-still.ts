@@ -1,6 +1,6 @@
 import { compressImageForEngineUpload } from '@/lib/browser-compress-image';
 import { fileToDataUrl } from '@/lib/browser-file-data-url';
-import { looksLikeVideoUrl } from '@/lib/roleplay-film';
+import { looksLikeVideoUrl } from '@/lib/media-kind';
 import { extractVideoFirstFrame } from '@/lib/video-last-frame';
 
 const VISION_SCAN_MAX_DATA_URL_CHARS = 11_000_000;

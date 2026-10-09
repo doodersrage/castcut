@@ -4,7 +4,7 @@
  */
 
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { isHtmlVideoViewUrl, isMotionViewUrl } from './comfyui-outputs';
+import { isVideoLikeEntry } from './media-kind';
 import type { RoleplayStoryBeat } from './roleplay';
 import { lastCompletedRoleplayStillUrl, roleplayClipTakes } from './roleplay';
 
@@ -14,33 +14,10 @@ export function normalizeRoleplayBeatOutput(value: unknown): RoleplayBeatOutput 
   return value === 'still' ? 'still' : 'clip';
 }
 
-export function isVideoLikeEntry(
-  entry: Pick<ComfyGalleryEntry, 'derivedKind' | 'tool'> | undefined
-): boolean {
-  if (!entry) {
-    return false;
-  }
-  return (
-    entry.derivedKind === 'i2v' ||
-    entry.derivedKind === 't2v' ||
-    entry.derivedKind === 'extend' ||
-    entry.tool === 'video'
-  );
-}
-
 export function isGalleryClipEntry(
   entry: Pick<ComfyGalleryEntry, 'derivedKind' | 'tool'> & { mediaKind?: string }
 ): boolean {
   return entry.derivedKind === 'film' || isVideoLikeEntry(entry) || entry.mediaKind === 'video';
-}
-
-export function nextRoleplayMotionKind(
-  parent: Pick<ComfyGalleryEntry, 'derivedKind' | 'tool'> | undefined
-): 't2v' | 'i2v' | 'extend' {
-  if (!parent) {
-    return 't2v';
-  }
-  return isVideoLikeEntry(parent) ? 'extend' : 'i2v';
 }
 
 export function lastRoleplayMotionBeat(
@@ -111,12 +88,9 @@ export function shouldAutoQueueRoleplayClip(beat: RoleplayStoryBeat): boolean {
   return Boolean(beat.prompt?.trim()) && !beat.imageUrl?.trim() && beat.stillStatus !== 'writing';
 }
 
-/** True when a `<video>` element can play this URL (not animated webp/gif). */
-export function looksLikeVideoUrl(url: string): boolean {
-  return isHtmlVideoViewUrl(url);
-}
-
-/** True for mp4/webm or animated webp/gif — play in-place instead of a still. */
-export function looksLikeMotionUrl(url: string): boolean {
-  return isMotionViewUrl(url);
-}
+export {
+  isVideoLikeEntry,
+  nextRoleplayMotionKind,
+  looksLikeVideoUrl,
+  looksLikeMotionUrl,
+} from './media-kind';

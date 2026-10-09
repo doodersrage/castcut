@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import AppNav from '@/components/AppNav';
 import { useHydrated } from '@/hooks/useHydrated';
 import PlayKioskShell from '@/components/PlayKioskShell';
-import PendingCastPlateWatcher from '@/components/PendingCastPlateWatcher';
 import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
 import { isMobileStudioPath } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
@@ -103,7 +102,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
           only pushed the page down 43 px. */}
       {!mobileStudio && !playKiosk ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
-      <PendingCastPlateWatcher />
       {playKiosk ? (
         // The Film header is fixed at every width — sticky docks offset by --header-offset,
         // which the sidebar layout sets to 0 on desktop.

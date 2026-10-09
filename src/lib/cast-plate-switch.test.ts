@@ -14,7 +14,7 @@ import {
   castPlateTiles,
   keptPhotoOutfitLabel,
   nextCastLookName,
-} from './cast-plate-thumb';
+} from './character-plate-thumb';
 import {
   activeLook,
   applyCharacterRecordFresh,

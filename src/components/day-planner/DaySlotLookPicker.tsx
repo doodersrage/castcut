@@ -1,7 +1,7 @@
 'use client';
 
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
-import { castLookPortraitTile, castPlateTiles } from '@/lib/cast-plate-thumb';
+import { castLookPortraitTile, castPlateTiles } from '@/lib/character-plate-thumb';
 import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
 import type { DaySlot, DaySlotId } from '@/lib/day-planner';
 

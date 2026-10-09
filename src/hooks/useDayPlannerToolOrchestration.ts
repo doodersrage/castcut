@@ -164,7 +164,7 @@ export function useDayPlannerToolOrchestration() {
 
   // A Cast with no plate (created without a photo, now that Look is optional): render one from
   // their description — the same full-body plate Look used to queue (look-outfit-plate.ts). The
-  // app-wide watcher (PendingCastPlateWatcher) attaches it to the Cast when it lands.
+  // app-wide watcher (PlayCastPlateWatcher, mounted by PlayFeatures) attaches it to the Cast when it lands.
   const [makePlateStatus, setMakePlateStatus] = useState<string | null>(null);
   const { actions } = core;
   const makeCastPlate = useCallback(async () => {

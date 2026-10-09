@@ -4,7 +4,11 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
-import { castLookPortraitTile, castPlateThumbUrl, castPlateTiles } from '@/lib/cast-plate-thumb';
+import {
+  castLookPortraitTile,
+  castPlateThumbUrl,
+  castPlateTiles,
+} from '@/lib/character-plate-thumb';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   addLookFromShared,

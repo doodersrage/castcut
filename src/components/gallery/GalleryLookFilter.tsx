@@ -3,7 +3,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import { useHydrated } from '@/hooks/useHydrated';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
-import { castPlateTiles } from '@/lib/cast-plate-thumb';
+import { castPlateTiles } from '@/lib/character-plate-thumb';
 import {
   getCharactersSnapshot,
   getServerCharactersSnapshot,

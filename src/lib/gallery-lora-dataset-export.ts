@@ -2,8 +2,8 @@ import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { withoutHiddenGalleryEntries } from './gallery-adult-check';
 import { buildComfyViewPath, type ComfyOutputImage } from './comfyui-outputs';
 import { buildZipBlob, type ZipFileEntry } from './gallery-zip-export';
-import { isAssembledFilmEntry } from './character-film';
-import { isVideoLikeEntry } from './roleplay-film';
+import { isAssembledFilmEntry } from './media-kind';
+import { isVideoLikeEntry } from './media-kind';
 import { mapWithConcurrency } from './concurrency';
 import { getLlmMaxInflight } from './llm-backpressure';
 
