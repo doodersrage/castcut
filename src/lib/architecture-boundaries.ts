@@ -45,7 +45,7 @@ export const PLAY_COMPOSITION_ROOTS: ReadonlySet<string> = new Set(['src/app/lay
 export type ImportEdge = { from: string; to: string; typeOnly: boolean };
 
 const IMPORT_RE =
-  /^\s*(?:import|export)\s+(type\s+)?([^'";]*?)\s*from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/gm;
+  /^\s*(?:import|export)\s+(type\s+)?([^'";]*?)\s*from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s+['"]([^'"]+)['"]/gm;
 
 /** `import { type A, type B } from` counts as type-only too. */
 function namesAreTypeOnly(clause: string): boolean {
@@ -62,7 +62,8 @@ function namesAreTypeOnly(clause: string): boolean {
 export function readImports(source: string): { spec: string; typeOnly: boolean }[] {
   const out: { spec: string; typeOnly: boolean }[] = [];
   for (const match of source.matchAll(IMPORT_RE)) {
-    const spec = match[3] ?? match[4];
+    // A bare `import './x';` (side effects, or a shell hoist for the bundler) is an edge too.
+    const spec = match[3] ?? match[4] ?? match[5];
     if (!spec) continue;
     // `import('./x').SomeType` in a type position is erased; `import('./x').then(…)` is not.
     const inlineType =

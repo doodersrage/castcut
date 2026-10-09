@@ -78,6 +78,13 @@ describe('architecture: Play layer boundary', () => {
     ]);
   });
 
+  it('reads bare side-effect imports (shell hoists)', () => {
+    assert.deepEqual(readImports("import '@/lib/x';\nimport \"./y.css\";"), [
+      { spec: '@/lib/x', typeOnly: false },
+      { spec: './y.css', typeOnly: false },
+    ]);
+  });
+
   it('every Play-owned path exists', () => {
     const missing = [...OWNED].filter(path => !existsSync(join(ROOT, path)));
     assert.deepEqual(missing, [], 'Remove moved or deleted files from architecture/play-owned.json');

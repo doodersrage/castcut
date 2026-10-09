@@ -4,10 +4,10 @@ import { Suspense, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import AppNav from '@/components/AppNav';
 import { useHydrated } from '@/hooks/useHydrated';
-import PlayKioskShell from '@/components/PlayKioskShell';
 import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
 import { isMobileStudioPath } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import type { WorkspaceMode } from '@/lib/workspace-mode';
 import InventorySyncNotice from '@/components/InventorySyncNotice';
 // Nearly every route renders ToolLayout. Loaded here it ships once in the shared chunk; when the
 // last shell import of it went away (sidebar theme control), Turbopack copied it into ~22 route
@@ -28,12 +28,10 @@ import '@/hooks/usePromptHistory';
 import '@/lib/diffusers-defaults';
 import '@/lib/diffusers-workflow-support';
 import '@/lib/experiment-groups';
-import '@/lib/fitting-room';
 import '@/lib/generate-handoff';
 import '@/lib/plugin-queue-hooks';
 import '@/lib/prompt-lineage-session';
 import '@/lib/prompt-versioning';
-import '@/lib/roleplay-library';
 import '@/lib/session-recipes';
 import '@/lib/video-last-frame';
 // Components most tool pages render (queue bar, job status, toasts, setup banner…): 12–38 route
@@ -77,40 +75,43 @@ function HydratedAppNav() {
   return hydrated ? <AppNav /> : <NavFallback />;
 }
 
-export default function AppShell({ children }: { children: ReactNode }) {
+/**
+ * A full-screen mode an app plugs into the shell (Castcut: the Film kiosk in the Play workspace):
+ * its own header in place of the sidebar, and padding around the page for that header and dock.
+ * Given by the root layout, so the shared shell names no feature (docs/architecture-boundaries.md).
+ */
+export type ShellKiosk = {
+  workspace: WorkspaceMode;
+  header: ReactNode;
+  contentClassName: string;
+};
+
+export default function AppShell({ children, kiosk }: { children: ReactNode; kiosk?: ShellKiosk }) {
   const pathname = usePathname();
   const workspaceMode = useWorkspaceMode();
   const mobileStudio = isMobileStudioPath(pathname);
-  const playKiosk = workspaceMode === 'play' && !mobileStudio;
+  const kioskOn = Boolean(kiosk) && workspaceMode === kiosk?.workspace && !mobileStudio;
 
   return (
     <div
       className={
-        mobileStudio || playKiosk
+        mobileStudio || kioskOn
           ? 'relative z-[1] min-h-full'
           : 'relative z-[1] min-h-full lg:pl-[var(--sidebar-width)]'
       }
     >
-      {mobileStudio ? null : playKiosk ? (
-        <PlayKioskShell />
+      {mobileStudio ? null : kioskOn ? (
+        kiosk?.header
       ) : (
         <Suspense fallback={<NavFallback />}>
           <HydratedAppNav />
         </Suspense>
       )}
-      {/* Kiosk is already the phone Film experience — the offer hid under its fixed header and
+      {/* A kiosk is already a phone-style experience (Film) — the offer hid under its fixed header and
           only pushed the page down 43 px. */}
-      {!mobileStudio && !playKiosk ? <MobileStudioOfferBanner /> : null}
+      {!mobileStudio && !kioskOn ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
-      {playKiosk ? (
-        // The Film header is fixed at every width — sticky docks offset by --header-offset,
-        // which the sidebar layout sets to 0 on desktop.
-        <div className="pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] [--header-offset:4.35rem]">
-          {children}
-        </div>
-      ) : (
-        children
-      )}
+      {kioskOn ? <div className={kiosk?.contentClassName}>{children}</div> : children}
     </div>
   );
 }

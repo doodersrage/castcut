@@ -21,7 +21,7 @@ Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: 
 - **New crossing:** the test fails and names it. Put the code in Play, or make Play plug into the shared code (below).
 - **A crossing removed:** the test fails until the line is deleted from the baseline, so the list only shrinks.
 
-Regenerating the baseline is for removals only, never to admit a new crossing.
+Regenerating the baseline is for removals only, never to admit a new crossing. The baseline is now empty, so any import into Play from shared or Studio code fails the test. Bare `import './x';` lines (shell hoists for the bundler) count as imports too.
 
 ## Where we start (2026-10-09)
 
@@ -40,12 +40,12 @@ Regenerating the baseline is for removals only, never to admit a new crossing.
 ## Plan
 
 1. **Boundaries (done):** the guard and this list.
-2. **Invert the dependencies.** Shared code stops calling Play; Play registers what it adds:
+2. **Invert the dependencies (done 2026-10-09: 152 → 0 crossings).** Shared code stops calling Play; Play registers what it adds:
    - settings: tool settings get a registry, so each feature registers its own defaults and normaliser, and `settings-cache` stops importing Day, Outfit and Story;
    - queue pipeline: prompt steering, pose maps, dress plates and face finish become hooks Play registers (`queue-prompt-prep`, `queue-job-context`, `comfyui-requeue`);
    - home, nav, onboarding and mobile shell: they take their Play entries from a registration list instead of importing screens;
    - type-only imports: shared types move to a shared types module.
-3. **Split the shell.** A small shared shell; Play's watchers and pollers mount only in Play's layout.
+3. **Split the shell (done 2026-10-09).** `AppShell` names no feature: the root layout passes Castcut's Film kiosk in (`kiosk={{ workspace, header, contentClassName }}`), and Play's watchers, slots and bundle hoists load from `PlayFeatures`. The classic app's layout renders `AppShell` without a kiosk and without `PlayFeatures`.
 4. **Packages.** npm workspaces: `packages/comfy-core` (no React), `packages/app-kit`, `apps/castcut`, `apps/prompt-studio`.
 5. **Classic gets its own repo**, depending on the published packages, or both apps stay in the monorepo on separate release tracks. Repository name and package visibility to be confirmed first.
 

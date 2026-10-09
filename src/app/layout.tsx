@@ -6,6 +6,7 @@ import BrowserStorageInit from '@/components/BrowserStorageInit';
 import TabSyncInit from '@/components/TabSyncInit';
 import AmbientBackground from '@/components/AmbientBackground';
 import AppShell from '@/components/AppShell';
+import PlayKioskShell from '@/components/PlayKioskShell';
 import PlayFeatures from '@/components/PlayFeatures';
 import { AuthProvider } from '@/hooks/useAuth';
 import { WorkspaceModeProvider } from '@/hooks/useWorkspaceMode';
@@ -101,7 +102,17 @@ export default async function RootLayout({
         <PlayFeatures />
         <AuthProvider>
           <WorkspaceModeProvider initialMode={initialWorkspace}>
-            <AppShell>
+            <AppShell
+              kiosk={{
+                // Castcut's Film kiosk in the Play workspace. Its header is fixed at every width
+                // — sticky docks offset by --header-offset, which the sidebar layout sets to 0
+                // on desktop.
+                workspace: 'play',
+                header: <PlayKioskShell />,
+                contentClassName:
+                  'pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] [--header-offset:4.35rem]',
+              }}
+            >
               <ComfyGalleryBackgroundPoller />
               <UserScopeInit />
               <AutoStorageSyncInit />
