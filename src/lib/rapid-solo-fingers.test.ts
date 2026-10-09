@@ -23,4 +23,14 @@ describe('Rapid solo: fingers inside, not two hands framing', () => {
     assert.match(recipe, /dildo/);
     assert.doesNotMatch(recipe, /two fingers pushed inside/);
   });
+
+  it('knees to her chest: one arm holds a knee back, the other hand inside', () => {
+    const recipe =
+      buildRapidSoloRecipe({
+        beat: 'solo masturbation on her back under a lamp, ankles near her shoulders, both hands between her thighs — Cast alone, empty sheets',
+      }) ?? '';
+    assert.match(recipe, /Her left arm hooks under her left knee/);
+    assert.match(recipe, /two fingers pushed inside her vagina/);
+    assert.doesNotMatch(recipe, /cups her breast/);
+  });
 });

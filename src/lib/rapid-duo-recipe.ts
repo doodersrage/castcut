@@ -825,6 +825,11 @@ function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind):
       ? 'One hand is braced on the bed; the other grips only the base of a bright purple silicone dildo pushed halfway inside her vagina between her spread thighs, angled into her body.'
       : 'A bright purple silicone dildo is pushed halfway inside her vagina between her spread thighs, angled into her body; both of her hands grip only its base, the rest of the toy hidden inside her.';
   }
+  // Both knees to her chest: "both hands" held the backs of her thighs, framing (≈7/8); one arm
+  // hooked under a knee and the other hand inside: ≈6/8 (sweep graphs, 2026-10-08).
+  if (kind === 'on_back' && SOLO_LEGS_HIGH_RE.test(beat)) {
+    return 'Her left arm hooks under her left knee, holding that leg back toward her chest; her right hand is between her thighs, two fingers pushed inside her vagina, her palm against her vulva.';
+  }
   if (/\bboth\s+hands\b/i.test(beat)) {
     return SOLO_FINGERS_INSIDE;
   }
