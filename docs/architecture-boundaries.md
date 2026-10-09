@@ -91,6 +91,8 @@ Not yet: Castcut wording in shared copy (Settings tiles, first-run goal text), a
 
 ## The standalone repo (github.com/doodersrage/prompt-studio)
 
+Live since 2026-10-09: `prompt-studio-core@2.3.5` on npm (public, MIT), repo public with CI green. npm accepts a publish as staged first (202, a `0.0.0-stage` placeholder) and makes the version available a few minutes later.
+
 The classic app gets its own repository, which depends on the shared code as an npm package:
 
 - **Core package** (`npm run pack:core` → `packages/prompt-studio-core`, gitignored): every `src/` file the classic app reaches from its routes and layout (about 1,700), with `@/` imports rewritten to relative paths, plus `next.config.base.cjs`. TypeScript source; the app compiles it with `transpilePackages`. Its dependencies are the packages those files import; `next`, `react`, `react-dom` and `sharp` are peers, installed once by the app. The pack fails if the classic app reaches a Play file. Castcut's `src/` stays the one source; a release is `npm run pack:core -- --version x.y.z` then `npm publish packages/prompt-studio-core`.

@@ -2,7 +2,7 @@
 
 **Local character films with ComfyUI.** Cast → Look → Outfit → Day → **Cut film**.
 
-Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut).
+Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut). The classic prompt and image tools, without the film loop, live on as [**Prompt Studio**](https://github.com/doodersrage/prompt-studio), built on the shared core package [`prompt-studio-core`](https://www.npmjs.com/package/prompt-studio-core).
 
 [![CI](https://github.com/doodersrage/castcut/actions/workflows/ci.yml/badge.svg)](https://github.com/doodersrage/castcut/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/doodersrage/castcut)](https://github.com/doodersrage/castcut/releases)
