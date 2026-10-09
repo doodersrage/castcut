@@ -282,7 +282,7 @@ export function useGalleryCardActions({
         void Promise.all([
           loadGalleryRequeue(),
           import('@/lib/comfyui-settings'),
-          import('@/lib/play-skin-refine'),
+          import('@/lib/skin-refine'),
         ])
           .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {
             const settings = loadComfyUiSettings();

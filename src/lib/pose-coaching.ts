@@ -10,7 +10,7 @@
  */
 
 import type { NormalizedBody } from '@/lib/pose-library';
-import { DAY_CLOTHED_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { DAY_CLOTHED_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 
 /** Body-part description per layout — what must be true of the joints, not the scene. */
 const POSE_LAYOUT_CUES: Record<string, string> = {

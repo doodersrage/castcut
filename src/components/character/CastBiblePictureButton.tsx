@@ -18,7 +18,7 @@ import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { isRoleplayAdultContent, normalizeRoleplayContent, type RoleplayBio } from '@/lib/roleplay';
 import { loadSettingsCache } from '@/lib/settings-cache';

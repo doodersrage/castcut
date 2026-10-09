@@ -110,7 +110,7 @@ import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveStoryNudeFaceFilename } from '@/lib/story-nude-face';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 

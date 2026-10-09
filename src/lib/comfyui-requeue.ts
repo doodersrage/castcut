@@ -780,8 +780,7 @@ export async function requeueRefineFromGalleryEntry(
       : `Queueing ${softLabel}…`
   );
 
-  const { PLAY_SKIN_REFINE_NEGATIVE, PLAY_SKIN_REFINE_POSITIVE } =
-    await import('./play-skin-refine');
+  const { PLAY_SKIN_REFINE_NEGATIVE, PLAY_SKIN_REFINE_POSITIVE } = await import('./skin-refine');
   const { applyTurboEditStrengthToPrompt } = await import('./turbo-edit-strength');
   const { isQwenEditModel } = await import('./model-denoise-defaults');
   let refinePrompt = skinPass
@@ -873,7 +872,7 @@ export function requeueSkinRefineFromGalleryEntry(
     force?: boolean;
   }
 ): Promise<RequeueComfyJobResult> {
-  return import('./play-skin-refine').then(({ resolveSkinRefineQueueModel }) =>
+  return import('./skin-refine').then(({ resolveSkinRefineQueueModel }) =>
     requeueRefineFromGalleryEntry(entry, {
       qualityProfile: options?.qualityProfile,
       onStatus: options?.onStatus,

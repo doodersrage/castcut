@@ -10,7 +10,7 @@
  */
 
 import { stripNegatedClauses } from './negated-clauses';
-import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
+import { isRapidDuoRecipePrompt } from './prompt-recipe-mark';
 import { softenQwenRapidNudeSafetyTriggers } from '@/lib/qwen-rapid-nude-edit';
 
 type ClarifyRule = {

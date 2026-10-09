@@ -158,7 +158,7 @@ export function adultAgeLineIn(text: string | null | undefined): string | null {
   return end > match.index ? source.slice(match.index, end + 1) : null;
 }
 
-/** Marks that lead the compact recipes (rapid-duo-recipe-mark.ts). */
+/** Marks that lead the compact recipes (prompt-recipe-mark.ts). */
 const RECIPE_MARK_RE =
   /(?:Explicit sex photo:|Explicit solo photo:|Suggestive photo:|Vacation photo:|Day photo:)/;
 

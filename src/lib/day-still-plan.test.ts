@@ -11,7 +11,7 @@ import {
   dayStillLiesDown,
   dayStillWantsDressPlate,
 } from './day-still-plan';
-import { PLAY_FACE_CROP_CANVAS } from './play-plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from './plate-render-size';
 
 const RAPID = 'qwen-rapid-aio-edit';
 const EDIT_2511 = 'qwen-image-edit-2511-lightning-8';

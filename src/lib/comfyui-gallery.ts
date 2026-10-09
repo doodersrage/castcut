@@ -935,10 +935,14 @@ export function updateComfyGalleryByPromptId(
 
   if (patch.status === 'completed' && prior && prior.status !== 'completed') {
     celebrateSystemTray('job');
-    // Lightning Day face-break → auto Edit face-restore (deduped inside helper).
-    void import('./day-vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) => {
-      maybeScheduleDayVacationFaceRestore(updated!);
-    });
+    // Features follow up on a finished job (Play: the Day face-restore — play-features.ts).
+    for (const hook of jobCompletedHooks) {
+      try {
+        hook(updated);
+      } catch (error) {
+        console.warn('Job-completed hook failed:', error);
+      }
+    }
   }
 
   const ephemeral = galleryPatchIsEphemeralProgress(patch);
@@ -952,6 +956,15 @@ export function updateComfyGalleryByPromptId(
     });
   }
   return updated;
+}
+
+/** Runs once when a gallery job first turns completed (registered by features, never imported). */
+export type JobCompletedHook = (entry: ComfyGalleryEntry) => void;
+
+const jobCompletedHooks: JobCompletedHook[] = [];
+
+export function registerJobCompletedHook(hook: JobCompletedHook): void {
+  if (!jobCompletedHooks.includes(hook)) jobCompletedHooks.push(hook);
 }
 
 export function toggleComfyGalleryFavorite(id: string): void {

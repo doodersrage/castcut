@@ -6,5 +6,13 @@
 
 import { scrubPlayToolCachesOnCastChange } from './play-cast-change';
 import { registerCastChangeScrubber } from './settings-cache';
+import { registerJobCompletedHook } from './comfyui-gallery';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
+
+// Lightning Day face-break → auto Edit face-restore (deduped inside; loaded on first use).
+registerJobCompletedHook(entry => {
+  void import('./day-vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) =>
+    maybeScheduleDayVacationFaceRestore(entry)
+  );
+});

@@ -35,7 +35,7 @@ import {
   RAPID_SUGGESTIVE_RECIPE_MARK,
   DAY_CLOTHED_RECIPE_MARK,
   RAPID_VACATION_RECIPE_MARK,
-} from './rapid-duo-recipe-mark';
+} from './prompt-recipe-mark';
 
 /** Scissoring words in a beat — the still renders the missionary pose instead (Rapid can't draw it). */
 export const RAPID_SCISSORS_FALLBACK_RE =
@@ -82,7 +82,7 @@ export {
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
   RAPID_VACATION_RECIPE_MARK,
-} from './rapid-duo-recipe-mark';
+} from './prompt-recipe-mark';
 
 export { rapidDuoSurface } from './rapid-oral-pose';
 

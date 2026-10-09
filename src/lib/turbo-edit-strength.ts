@@ -14,7 +14,7 @@ import {
   Z_IMAGE_TURBO_IMG2IMG_DENOISE,
   type ZImageTurboImg2imgStrength,
 } from './model-denoise-defaults';
-import { KLEIN_SPOON_RECIPE_MARK } from './rapid-duo-recipe-mark';
+import { KLEIN_SPOON_RECIPE_MARK } from './prompt-recipe-mark';
 import { isKleinDistilledModel } from './model-sampler-defaults';
 import { isQwenLightningModel } from './model-sampling-patch';
 

@@ -5,7 +5,7 @@ import {
   enlargePlayCastPlateLatent,
   fitPlayCastPlateLatent,
   PLAY_FACE_CROP_CANVAS,
-} from './play-plate-render-size';
+} from './plate-render-size';
 
 test('enlargePlayCastPlateLatent steps a 1328 square plate up to 1536', () => {
   const next = enlargePlayCastPlateLatent({ width: 1328, height: 1328 }, 'qwen-rapid-aio-edit');

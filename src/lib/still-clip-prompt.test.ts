@@ -1,4 +1,4 @@
-import { RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from './prompt-recipe-mark';
 import assert from 'node:assert/strict';
 import {
    describe, it } from 'node:test';

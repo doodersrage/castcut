@@ -27,7 +27,7 @@ import {
 } from './pose-guide-prompt';
 import { appendCleanSkinPositive, mergeCleanSkinNegatives, promptHasNoPerson } from './clean-skin';
 import { intimateBeatIsOffBed, intimatePoseSample } from './intimate-prompt-clarify';
-import { isRapidDuoRecipePrompt } from './rapid-duo-recipe-mark';
+import { isRapidDuoRecipePrompt } from './prompt-recipe-mark';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './queue-negative';
 import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';

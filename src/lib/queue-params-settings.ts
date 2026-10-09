@@ -40,7 +40,7 @@ import { loadSettingsCache } from './settings-cache';
 import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui-workflow-files';
 import { getSelectedWorkflowFileId } from './comfyui-runtime';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
-import { enlargePlayCastPlateLatent, fitPlayCastPlateLatent } from './play-plate-render-size';
+import { enlargePlayCastPlateLatent, fitPlayCastPlateLatent } from './plate-render-size';
 import { normalizeComposeIdentityKind } from './compose-identity-lock';
 import {
   resolveEffectiveResolutionSizeTier,

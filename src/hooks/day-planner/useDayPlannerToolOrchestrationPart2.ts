@@ -13,7 +13,7 @@ import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { swapDayPromptGender } from '@/lib/day-lead-gender';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';

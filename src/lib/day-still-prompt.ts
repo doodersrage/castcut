@@ -60,7 +60,7 @@ import {
 } from '@/lib/pose-coaching';
 import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
-import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/prompt-recipe-mark';
 import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
 import {

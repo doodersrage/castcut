@@ -13,7 +13,7 @@ import {
 } from './day-plate';
 import { dayClothedHeatPoseNeedsBodyUnlock, daySuggestiveBeatIsSeated } from './day-vacation';
 import { beatOwnsFootwear, footwearIsBarefoot } from './footwear';
-import { PLAY_FACE_CROP_CANVAS } from './play-plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from './plate-render-size';
 import { poseProfileForModel } from './pose/pose-model-profile';
 import { beatLiesDown, vacationBeatDressesItself } from './rapid-duo-recipe';
 

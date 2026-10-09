@@ -22,7 +22,7 @@ import {
 } from '@/lib/day-planner';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings } from '@/lib/settings-cache';

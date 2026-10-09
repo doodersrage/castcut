@@ -1,5 +1,5 @@
 import { isAdultContentPrompt } from './adult-age-safeguard';
-import { RAPID_DUO_RECIPE_MARK } from './rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from './prompt-recipe-mark';
 import { stripStillPromptForClip } from './clip-prompt-from-still';
 
 const TWO_PEOPLE_STILL_RE =

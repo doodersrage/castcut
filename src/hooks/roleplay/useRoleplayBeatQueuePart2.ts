@@ -5,7 +5,7 @@ import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import { clipEngineForShot } from '@/lib/ltx25-renderer';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/rapid-duo-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { useCallback, useEffect, useRef } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { loadEngineSettings } from '@/lib/engine-settings';

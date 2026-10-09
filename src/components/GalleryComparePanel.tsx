@@ -24,7 +24,7 @@ import {
 } from '@/lib/gallery-entry-actions';
 import { buildGalleryParamDiff } from '@/lib/gallery-param-diff';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { resolvePlaySkinRefineModel } from '@/lib/play-skin-refine';
+import { resolvePlaySkinRefineModel } from '@/lib/skin-refine';
 
 export type GalleryComparePanelProps = {
   entries: ComfyGalleryEntry[];

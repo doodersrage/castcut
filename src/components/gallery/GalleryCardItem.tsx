@@ -19,7 +19,7 @@ import {
   galleryEntrySupportsUpscale,
 } from '@/lib/gallery-entry-actions';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { resolvePlaySkinRefineModel } from '@/lib/play-skin-refine';
+import { resolvePlaySkinRefineModel } from '@/lib/skin-refine';
 
 export type GalleryCardActions = {
   toggleSelected: (id: string, options?: { shift?: boolean }) => void;

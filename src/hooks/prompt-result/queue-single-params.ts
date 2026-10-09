@@ -3,7 +3,7 @@ import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/play-plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
 
 export async function buildQueueSingleParams(input: {
   config: { tool: string };
