@@ -4,33 +4,23 @@ import { useEffect, useState } from 'react';
 import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
 import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
 import { resolveCastFaceForPlate } from '@/lib/character-identity';
-import {
-  checkReferenceImage,
-  referenceViewUrl,
-  type ReferenceCheckInput,
-} from '@/lib/reference-check-client';
+import { checkReferenceImage } from '@/lib/reference-check-client';
 import { referenceVerdictLabel, type ReferenceVerdict } from '@/lib/reference-check';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-
-type ReferenceHealthItem = {
-  key: string;
-  label: string;
-  check: ReferenceCheckInput;
-};
+import { extraReferenceHealthItems, type ReferenceHealthItem } from '@/lib/reference-health';
 
 type ReferenceHealthRow = ReferenceHealthItem & { verdict: ReferenceVerdict | null };
 
 /**
  * The reference pictures the active Cast's stills go out with (reference-check.ts): the lead's
- * plate and face lock, the Day partner's plate and face lock (compared with their plate and the
- * lead's), the invented partner's face. Each line says OK, what is wrong, or that the check
+ * plate and face lock, and what features add (Play: the Day partner's plate and face lock, the
+ * invented partner's face — play-reference-health.ts). Each line says OK, what is wrong, or that the check
  * could not run — the same checks the queue runs on every still.
  */
 export function referenceHealthItems(): ReferenceHealthItem[] {
   const cache = loadSettingsCache();
   const lead = getCharacter(cache.shared.activeCharacterId?.trim() || undefined) ?? null;
-  const day = cache.tools.day;
   const items: ReferenceHealthItem[] = [];
   const leadPlate = resolveFittingPlateFromCharacter(lead);
   if (lead) {
@@ -60,46 +50,7 @@ export function referenceHealthItems(): ReferenceHealthItem[] {
       });
     }
   }
-  const partnerId = day?.partnerCharacterId?.trim();
-  const partner = partnerId && partnerId !== lead?.id ? getCharacter(partnerId) : undefined;
-  if (partner) {
-    const plate = resolveFittingPlateFromCharacter(partner);
-    if (plate) {
-      items.push({
-        key: 'partner-plate',
-        label: `${partner.name || 'Partner'} — plate (Day partner)`,
-        check: {
-          role: 'plate',
-          filename: plate.filename,
-          imageUrl: plate.imageUrl,
-          subject: partner.name,
-        },
-      });
-    }
-    const lock = resolveCastFaceForPlate(partner);
-    if (lock) {
-      items.push({
-        key: 'partner-face',
-        label: `${partner.name || 'Partner'} — face lock (Day partner)`,
-        check: {
-          role: 'partner-face',
-          filename: lock.filename,
-          imageUrl: lock.imageUrl,
-          subject: partner.name,
-          partnerReferenceUrl: referenceViewUrl(plate),
-          leadReferenceUrl: referenceViewUrl(leadPlate),
-        },
-      });
-    }
-  }
-  const standIn = day?.partnerStandIn;
-  if (standIn?.filename?.trim()) {
-    items.push({
-      key: 'stand-in-face',
-      label: 'Invented Day partner — face',
-      check: { role: 'face', filename: standIn.filename, subject: "the partner's" },
-    });
-  }
+  items.push(...extraReferenceHealthItems({ lead, leadPlate }));
   return items;
 }
 

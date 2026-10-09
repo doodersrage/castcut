@@ -26,6 +26,7 @@ import {
   applyRemovedCharacterIds,
   type CharacterRecord,
 } from './character-os';
+import { isRolledAppearanceDescriptor } from './character-appearance';
 import { withSuppressedDurableSyncPush } from './browser-storage';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 
@@ -356,4 +357,47 @@ export function normalizeCharacterLookPacks(character: CharacterRecord): Charact
   return 'lookPacks' in character
     ? { ...character, lookPacks: normalizeLookPacks(character.lookPacks) }
     : character;
+}
+
+/** Drop the Cast bible (and linked Story session bio) so rewrite starts clean. */
+export function clearCharacterBio(characterId: string): CharacterRecord | undefined {
+  const id = characterId.trim();
+  if (!id) {
+    return undefined;
+  }
+  const character = getCharacter(id);
+  if (!character) {
+    return undefined;
+  }
+  upsertCharacter({
+    ...character,
+    bio: undefined,
+    // The picture showed that bible.
+    biblePicture: undefined,
+    looks: looksOf(character),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(id);
+}
+
+/**
+ * The look a Story bible should use for a Cast. A bible still holding a rolled description
+ * ("a White man in his forties with … and a body that is …") from before the Cast's own
+ * description changed — older Casts made from a photo — gives way to the Cast's description.
+ */
+export function castBibleLook(
+  character: Pick<CharacterRecord, 'bio' | 'descriptor'>
+): string | undefined {
+  const look = character.bio?.look?.trim();
+  const descriptor = character.descriptor?.trim();
+  if (
+    look &&
+    descriptor &&
+    look !== descriptor &&
+    isRolledAppearanceDescriptor(look) &&
+    !isRolledAppearanceDescriptor(descriptor)
+  ) {
+    return descriptor;
+  }
+  return look || undefined;
 }

@@ -1,5 +1,7 @@
 /** Shared nav catalog for AppNav + Command Palette. */
 
+import { APP_HAS_PLAY } from './app-profile';
+
 export type AppNavLink = {
   href: string;
   label: string;
@@ -18,7 +20,7 @@ export const APP_NAV_EXTRAS_GROUP_LABEL = 'More tools';
  * Grouped around the Film loop (Cast → Look → Outfit → Day → Story → Film), then making and
  * editing images, then the library. Rarely used tools sit under More tools (collapsed).
  */
-export const APP_NAV_GROUPS: AppNavGroup[] = [
+const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
   {
     label: 'Film',
     links: [
@@ -112,6 +114,11 @@ export const APP_NAV_GROUPS: AppNavGroup[] = [
     ],
   },
 ];
+
+/** The Film group is Castcut's (Play); the classic app lists the tools only (app-profile.ts). */
+export const APP_NAV_GROUPS: AppNavGroup[] = ALL_APP_NAV_GROUPS.filter(
+  group => APP_HAS_PLAY || group.label !== 'Film'
+);
 
 export const APP_NAV_SETTINGS_LINK: AppNavLink = {
   href: '/settings',
