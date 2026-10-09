@@ -1,6 +1,3 @@
-import { clearLookPack, LOOK_PACK_KEY } from './look-pack';
-import { clearPlayCampaignState, PLAY_CAMPAIGN_KEY } from './play-campaign';
-import { PLAY_METRICS_KEY, savePlayMetrics } from './play-metrics';
 import {
   LOCATION_BLOCKLIST_KEY,
   PROMPT_HISTORY_KEY,
@@ -26,9 +23,24 @@ export function clearAllLocalPromptData(): void {
   resetComfyUiSettings();
   clearComfyGallery();
   saveComfyWorkflowFiles([]);
-  clearPlayCampaignState();
-  clearLookPack();
-  savePlayMetrics({ version: 1 });
+  for (const reset of localDataResets.values()) reset.clear();
+}
+
+/**
+ * A feature's own local data, cleared by "Clear all local data" and listed with the keys
+ * (Play: campaign, metrics, Look pack — play-features.ts). docs/architecture-boundaries.md.
+ */
+export type LocalDataReset = { keys: readonly string[]; clear: () => void };
+
+const localDataResets = new Map<string, LocalDataReset>();
+
+export function registerLocalDataReset(id: string, reset: LocalDataReset): void {
+  localDataResets.set(id, reset);
+}
+
+/** Every key the reset copy lists: the shared ones and the features' own. */
+export function localDataKeys(): string[] {
+  return [...LOCAL_DATA_KEYS, ...[...localDataResets.values()].flatMap(reset => [...reset.keys])];
 }
 
 /** Legacy localStorage keys still referenced for diagnostics and reset UI copy. */
@@ -44,7 +56,4 @@ export const LOCAL_DATA_KEYS = [
   COMFY_WORKFLOW_PRESETS_KEY,
   AVOIDED_TOKENS_KEY,
   WEBHOOK_LOG_KEY,
-  PLAY_CAMPAIGN_KEY,
-  PLAY_METRICS_KEY,
-  LOOK_PACK_KEY,
 ] as const;

@@ -30,7 +30,7 @@ import {
   saveLookPack,
   type LookPack,
 } from '@/lib/look-pack';
-import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
+import { markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import {
   clearPlayCampaignState,
   loadPlayCampaignState,

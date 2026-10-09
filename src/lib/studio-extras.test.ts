@@ -102,8 +102,25 @@ describe('studio-extras merge', () => {
       playCampaignState,
     };
     const merged = mergeStudioExtras(local, server);
-    assert.equal(merged.playMetrics?.firstPlayCampaignAt, 100);
-    assert.equal(merged.playCampaignState?.lookPackId, 'lp-1');
+    assert.equal((merged.playMetrics as PlayMetrics | undefined)?.firstPlayCampaignAt, 100);
+    assert.equal(
+      (merged.playCampaignState as PlayCampaignState | undefined)?.lookPackId,
+      'lp-1'
+    );
+  });
+
+  it('feature sections add their fields to collect and read them back in apply', async () => {
+    const { collectStudioExtras, applyStudioExtras, registerStudioExtrasSection } = await import(
+      './studio-extras'
+    );
+    const applied: unknown[] = [];
+    registerStudioExtrasSection('test-feature', {
+      collect: () => ({ testFeatureField: 42 }),
+      apply: payload => applied.push(payload.testFeatureField),
+    });
+    assert.equal(collectStudioExtras().testFeatureField, 42);
+    applyStudioExtras({ updatedAt: 1, testFeatureField: 7 });
+    assert.deepEqual(applied, [7]);
   });
 });
 

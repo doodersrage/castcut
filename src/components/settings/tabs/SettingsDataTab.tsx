@@ -4,7 +4,7 @@ import Link from 'next/link';
 import ComfyUiGalleryPanel from '@/components/ComfyUiGalleryPanel';
 import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
-import { clearAllLocalPromptData, LOCAL_DATA_KEYS } from '@/lib/local-data-reset';
+import { clearAllLocalPromptData, localDataKeys } from '@/lib/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui-settings';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
@@ -380,7 +380,7 @@ export default function SettingsDataTab({
         {/* The storage key names are for support, not for reading — folded away. */}
         <details className="text-xs text-[var(--text-muted)]">
           <summary className="cursor-pointer">What this clears (storage keys)</summary>
-          <p className="mt-1 break-words font-mono">{LOCAL_DATA_KEYS.join(', ')}</p>
+          <p className="mt-1 break-words font-mono">{localDataKeys().join(', ')}</p>
         </details>
       </ToolSection>
     </>

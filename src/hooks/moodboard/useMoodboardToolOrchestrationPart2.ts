@@ -17,7 +17,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { ensureOutfitPlateAfterLook, withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
-import { markOnboardingFirstPlayCampaign } from '@/lib/onboarding-hooks';
+import { markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { synthesizeMoodboardPrompt } from '@/lib/moodboard-scene';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';

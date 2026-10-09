@@ -57,4 +57,8 @@ Shared code exposes a registration point (`registerCastChangeScrubber` in `setti
 
 Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app-flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play-features.ts`.
 
+### Data hooks
+
+Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook` and `registerCastChangeScrubber`.
+
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.

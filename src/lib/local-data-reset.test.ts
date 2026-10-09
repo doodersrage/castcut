@@ -98,10 +98,23 @@ describe('local-data-reset', async () => {
         'comfyui-workflow-presets-v1',
         'comfy-prompt-avoided-tokens-v1',
         'comfy-prompt-webhook-log-v1',
-        'play-campaign-v1',
-        'comfy-play-metrics-v1',
-        'moodboard-look-pack-v1',
       ]);
+    });
+
+    it('features add their own keys and clean-up', async () => {
+      const { registerLocalDataReset, localDataKeys } = await import('./local-data-reset');
+      let cleared = 0;
+      registerLocalDataReset('test', { keys: ['feature-key-v1'], clear: () => (cleared += 1) });
+      assert.equal(localDataKeys().at(-1), 'feature-key-v1');
+      Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        value: {
+          sessionStorage: { removeItem() {}, setItem() {}, getItem: () => null },
+          dispatchEvent: () => true,
+        },
+      });
+      clearAllLocalPromptData();
+      assert.equal(cleared, 1);
     });
 
     it('has no duplicate keys', () => {

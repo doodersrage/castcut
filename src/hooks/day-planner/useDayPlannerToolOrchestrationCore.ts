@@ -63,10 +63,7 @@ import {
   subscribeCharacters,
   upsertCharacter,
 } from '@/lib/character-os';
-import {
-  markOnboardingFirstFilmCut,
-  markOnboardingFirstPlayCampaign,
-} from '@/lib/onboarding-hooks';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
 import {
   fetchClothingLabels,

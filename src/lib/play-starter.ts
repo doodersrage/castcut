@@ -26,7 +26,7 @@ import {
   type DayRemixKind,
 } from './play-remix';
 import { resolvePlayStepHref } from './play-step-machine';
-import { markOnboardingFirstPlayCampaign } from './onboarding-hooks';
+import { markOnboardingFirstPlayCampaign } from './play-onboarding';
 import { noteStarterFilmMetric } from './local-observability';
 import {
   DEFAULT_DAY_TOOL_CACHE,

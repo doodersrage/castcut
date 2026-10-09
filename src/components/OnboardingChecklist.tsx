@@ -1,6 +1,6 @@
 'use client';
 
-import { hasCompletedFirstFilm } from '@/lib/play-metrics';
+import { appFlag } from '@/lib/app-flags';
 import { useEffect, useMemo, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import Link from 'next/link';
@@ -63,7 +63,7 @@ function StepRow({ step }: { step: OnboardingStep }) {
  * "Start a film" unticked right above "First film cut: Done".
  */
 function withFilmFacts(state: OnboardingStep[]): OnboardingStep[] {
-  if (!hasCompletedFirstFilm()) {
+  if (!appFlag('onboarding.firstFilmDone')) {
     return state;
   }
   return state.map(step =>

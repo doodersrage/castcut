@@ -32,10 +32,7 @@ import {
   loadCharacters,
   upsertCharacterFromRoleplaySession,
 } from '@/lib/character-os';
-import {
-  markOnboardingFirstFilmCut,
-  markOnboardingFirstPlayCampaign,
-} from '@/lib/onboarding-hooks';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { completePlayCampaign } from '@/lib/play-campaign';
 import {
   persistRoleplayLibraryFromCache,

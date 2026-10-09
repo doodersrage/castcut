@@ -10,17 +10,10 @@ import {
   poseOutcomeStatsForSync,
   type PoseOutcomeStats,
 } from './pose-outcome-stats';
-import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
-import { loadDressPlates, replaceDressPlates } from '@/lib/dress-plate-store';
 import { loadSavedFootwear, replaceSavedFootwear, type SavedFootwear } from '@/lib/footwear-saved';
 import { loadMyPoses, replaceMyPoses, type MyPose } from '@/lib/my-poses';
 import { loadMyPosePacks, replaceMyPosePacks } from '@/lib/my-pose-packs';
 import type { PosePack } from '@/lib/day-pose-packs';
-import {
-  loadSavedFittingGarments,
-  replaceSavedFittingGarments,
-  type SavedFittingGarment,
-} from './fitting-saved-garments';
 import {
   readBrowserValue,
   withSuppressedDurableSyncPush,
@@ -140,13 +133,6 @@ import {
 } from './ambient-settings';
 import { loadUiDensity, saveUiDensity, type UiDensity } from './density-settings';
 import { loadCalmUi, saveCalmUi } from './calm-settings';
-import {
-  clearPlayCampaignState,
-  loadPlayCampaignState,
-  savePlayCampaignState,
-  type PlayCampaignState,
-} from './play-campaign';
-import { loadPlayMetrics, savePlayMetrics, type PlayMetrics } from './play-metrics';
 
 const ONBOARDING_KEY = 'comfy-onboarding-v2';
 const COLLAPSIBLE_KEY = 'comfy-collapsible-open-v1';
@@ -223,14 +209,13 @@ export type StudioExtrasPayload = {
   ambientIntensity?: AmbientIntensity;
   uiDensity?: UiDensity;
   calmUi?: boolean;
-  playMetrics?: PlayMetrics;
-  playCampaignState?: PlayCampaignState | null;
-  /** Saved clothing photos (Day / Story / Outfit "Saved photos"). */
-  fittingSavedGarments?: SavedFittingGarment[];
+  /**
+   * Fields features add through registerStudioExtrasSection (Play: playMetrics,
+   * playCampaignState, fittingSavedGarments, dressPlates — play-studio-extras.ts).
+   */
+  [featureField: string]: unknown;
   /** Saved shoe photos (the footwear picker's "Saved shoes"). */
   savedFootwear?: SavedFootwear[];
-  /** Dressed plates shared by Day, Story and Outfit. */
-  dressPlates?: DayDressPlateEntry[];
   /** "My poses" — dragged / photo skeletons saved by name. */
   myPoses?: MyPose[];
   /** "My packs" — Day slot poses saved as a pose pack. */
@@ -303,14 +288,27 @@ export function collectStudioExtras(): StudioExtrasPayload {
     ambientIntensity: loadAmbientIntensity(),
     uiDensity: loadUiDensity(),
     calmUi: loadCalmUi(),
-    playMetrics: loadPlayMetrics(),
-    playCampaignState: loadPlayCampaignState(),
-    fittingSavedGarments: loadSavedFittingGarments(),
     savedFootwear: loadSavedFootwear(),
-    dressPlates: loadDressPlates(),
     myPoses: loadMyPoses(),
     myPosePacks: loadMyPosePacks(),
+    ...Object.assign({}, ...[...studioExtrasSections.values()].map(section => section.collect())),
   };
+}
+
+/**
+ * A feature's own fields in the synced studio-extras payload (docs/architecture-boundaries.md).
+ * `collect` adds its keys; `apply` reads them back inside the no-push-back block, with the same
+ * guards the fields always had. Registered at app start, before the first sync.
+ */
+export type StudioExtrasSection = {
+  collect: () => Record<string, unknown>;
+  apply: (payload: StudioExtrasPayload) => void;
+};
+
+const studioExtrasSections = new Map<string, StudioExtrasSection>();
+
+export function registerStudioExtrasSection(id: string, section: StudioExtrasSection): void {
+  studioExtrasSections.set(id, section);
 }
 
 export function applyStudioExtras(payload: StudioExtrasPayload | null | undefined): void {
@@ -416,14 +414,8 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     if (payload.navFavorites) {
       saveNavFavorites(payload.navFavorites);
     }
-    if (payload.fittingSavedGarments) {
-      replaceSavedFittingGarments(payload.fittingSavedGarments);
-    }
     // An empty list from the server never empties a local one: these are replaced whole, and a
     // copy that has not caught up yet would wipe shoes saved on this device.
-    if (payload.dressPlates && (payload.dressPlates.length > 0 || loadDressPlates().length === 0)) {
-      replaceDressPlates(payload.dressPlates);
-    }
     if (
       payload.savedFootwear &&
       (payload.savedFootwear.length > 0 || loadSavedFootwear().length === 0)
@@ -520,15 +512,8 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     if (typeof payload.calmUi === 'boolean') {
       saveCalmUi(payload.calmUi);
     }
-    if (payload.playMetrics) {
-      savePlayMetrics(payload.playMetrics);
-    }
-    if ('playCampaignState' in payload) {
-      if (payload.playCampaignState) {
-        savePlayCampaignState(payload.playCampaignState);
-      } else {
-        clearPlayCampaignState();
-      }
+    for (const section of studioExtrasSections.values()) {
+      section.apply(payload);
     }
   });
 }

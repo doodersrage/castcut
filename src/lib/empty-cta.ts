@@ -1,17 +1,33 @@
 import { flattenAppNavLinks } from './app-nav-catalog';
 import { resolveFirstRunGoalCta } from './first-run-goal';
-import { loadLocalObservability } from './local-observability';
 import { loadNavFavorites } from './nav-favorites';
-import { loadOnboardingState } from './onboarding-store';
-import { loadPlayCampaignState } from './play-campaign';
-import { loadPlayMetrics, resolveNextPlayAction } from './play-metrics';
-import { loadLookPack } from './look-pack';
 import { loadWorkspaceMode } from './workspace-mode';
 
 export type EmptyCta = {
   label: string;
   href: string;
 };
+
+/**
+ * "Pick up where you left off" for empty states and the welcome landing, answered by a feature
+ * (Play: the next film step when a film is under way — play-features.ts). Null = no progress.
+ * docs/architecture-boundaries.md.
+ */
+export type ResumeCtaProvider = (options: { countStarterFilm: boolean }) => EmptyCta | null;
+
+let resumeCtaProvider: ResumeCtaProvider | null = null;
+
+export function registerResumeCta(provider: ResumeCtaProvider): void {
+  resumeCtaProvider = provider;
+}
+
+function resumeCta(options: { countStarterFilm: boolean }): EmptyCta | null {
+  try {
+    return resumeCtaProvider?.(options) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** First-run Generate deep link — Random surprise, no keywords required. */
 export const FIRST_RUN_GENERATE_HREF = '/?source=random';
@@ -69,17 +85,9 @@ export function resolveStudioEmptyCta(
   if (typeof window === 'undefined') {
     return resolveGenerateEmptyCta(fallback);
   }
-  const metrics = loadPlayMetrics();
-  const campaign = loadPlayCampaignState();
-  const funnel = loadLocalObservability();
-  const hasPlayProgress =
-    Boolean(metrics.firstPlayCampaignAt) ||
-    Boolean(campaign?.characterId) ||
-    (funnel.firstPlayCampaign || 0) > 0 ||
-    (funnel.firstFilmCut || 0) > 0 ||
-    (funnel.starterFilm || 0) > 0;
-  if (hasPlayProgress) {
-    return resolveWelcomeLandingCta();
+  const resume = resumeCta({ countStarterFilm: true });
+  if (resume) {
+    return resume;
   }
   if (loadWorkspaceMode() === 'play' || loadWorkspaceMode() === 'simple') {
     return { label: 'Start a film', href: '/play' };
@@ -97,27 +105,9 @@ export function resolveWelcomeLandingCta(): EmptyCta {
     return { label: 'Open Generate', href: FIRST_RUN_GENERATE_HREF };
   }
 
-  const metrics = loadPlayMetrics();
-  const campaign = loadPlayCampaignState();
-  const funnel = loadLocalObservability();
-  const hasPlayProgress =
-    Boolean(metrics.firstPlayCampaignAt) ||
-    Boolean(campaign?.characterId) ||
-    (funnel.firstPlayCampaign || 0) > 0 ||
-    (funnel.firstFilmCut || 0) > 0;
-
-  if (hasPlayProgress) {
-    const watchedFirstFilm = loadOnboardingState().some(
-      step => step.id === 'watch-first-film' && step.done
-    );
-    const next = resolveNextPlayAction({
-      metrics,
-      funnel,
-      campaign,
-      watchedFirstFilm,
-      lookPack: loadLookPack(),
-    });
-    return { label: next.label, href: next.href };
+  const resume = resumeCta({ countStarterFilm: false });
+  if (resume) {
+    return resume;
   }
 
   const goalCta = resolveFirstRunGoalCta();
