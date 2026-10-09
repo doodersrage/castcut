@@ -803,7 +803,19 @@ function soloPlacement(
   }
 }
 
-/** Her hands, in the beat's own count — "both hands between her thighs" must not get a breast. */
+/**
+ * Her hands. "Both of her hands are between her thighs" spread her open with both hands, fingers
+ * beside the vulva, not in it (≈11/12 two-hand framing on the sweep's seated / on-back solos,
+ * 2026-10-08); one hand two fingers inside, the other on her breast, with the Moment's "both
+ * hands …" said the same way (SOLO_BOTH_HANDS_RE): fingering 10/12. The user asked for fingers in.
+ */
+const SOLO_FINGERS_INSIDE =
+  'Her right hand is between her thighs, two fingers pushed inside her vagina, her palm against her vulva; her left hand cups her breast.';
+
+/** The beat's two-handed wording, said as the hands line says it (see soloHands). */
+const SOLO_BOTH_HANDS_RE =
+  /both hands (?:spreading and fingering her vulva|between her thighs(?:,? (?:circling|rubbing)[^,—.]*)?)/gi;
+
 function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind): string {
   if (toy) {
     // A bright colour keeps the toy an object: "realistic" flesh tones rendered as her own penis.
@@ -814,7 +826,7 @@ function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind):
       : 'A bright purple silicone dildo is pushed halfway inside her vagina between her spread thighs, angled into her body; both of her hands grip only its base, the rest of the toy hidden inside her.';
   }
   if (/\bboth\s+hands\b/i.test(beat)) {
-    return 'Both of her hands are between her thighs, her fingers on her vulva.';
+    return SOLO_FINGERS_INSIDE;
   }
   if (/\bfist\s+in\s+the\s+sheets\b/i.test(beat)) {
     return 'One hand is between her thighs with her fingers on her vulva; the other hand grips the sheets.';
@@ -904,7 +916,9 @@ export function buildRapidSoloRecipe(input: {
   // (0/3 without, 03069). The clothes-half-off route keeps them.
   const moment = (
     input.clothedOutfit === undefined ? legsSet.replace(SOLO_WORN_CLOTHES_RE, '') : legsSet
-  ).replace(MEAL_TIME_RE, '');
+  )
+    .replace(MEAL_TIME_RE, '')
+    .replace(input.toy === true ? /$^/ : SOLO_BOTH_HANDS_RE, 'her fingers inside her');
   return [
     RAPID_SOLO_RECIPE_MARK,
     'One woman alone, masturbating.',
