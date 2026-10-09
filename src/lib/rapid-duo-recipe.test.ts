@@ -401,7 +401,8 @@ describe('Rapid suggestive recipe', () => {
     for (const beat of beats) {
       const recipe = buildRapidSuggestiveRecipe({ beat, timeOfDay: 'night', poseGuide: true });
       assert.ok(recipe && recipe.length < 900, beat);
-      assert.match(recipe, /She wears /, beat);
+      // Implied nudity names its cover instead (a sheet, a towel).
+      assert.match(recipe, /She wears |She is wrapped in /, beat);
       assert.doesNotMatch(recipe, /\bnever\b|Cast alone|Image 2/i, beat);
     }
   });

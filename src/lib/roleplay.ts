@@ -49,6 +49,11 @@ import {
   normalizeRenderRealismMode,
   type RenderRealismMode,
 } from '@/lib/render-realism';
+import {
+  IMPLIED_NUDITY_COVERAGE_LINE,
+  IMPLIED_NUDITY_DUO_COVERAGE_LINE,
+  suggestiveBeatIsImpliedNudity,
+} from './clothed-coverage';
 
 export type RoleplayTone =
   | 'silly'
@@ -1231,6 +1236,18 @@ export function withStoryEverydayWardrobe(prompt: string, headcount = 1): string
       ? 'Wardrobe: everyone wears casual everyday clothes that suit the scene — tops, jackets, jeans or skirts.'
       : 'Wardrobe: she wears casual everyday clothes that suit the scene — a top, a jacket, jeans or a skirt.';
   return `${trimmed}\n${line}`;
+}
+
+/**
+ * Suggestive still written as implied nudity (a sheet or towel, an arm across her chest, a bare
+ * back): the coverage line instead of everyday clothes — no nipples, genitals or bare bottom
+ * (clothed-coverage.ts; the adult check's "bare" question still applies).
+ */
+export function withStoryImpliedNudityCoverage(prompt: string, headcount = 1): string | null {
+  const trimmed = prompt.trim();
+  if (!trimmed || !suggestiveBeatIsImpliedNudity(trimmed)) return null;
+  const line = headcount > 1 ? IMPLIED_NUDITY_DUO_COVERAGE_LINE : IMPLIED_NUDITY_COVERAGE_LINE;
+  return trimmed.includes(line) ? trimmed : `${trimmed}\n${line}`;
 }
 
 function escapeRegExp(value: string): string {

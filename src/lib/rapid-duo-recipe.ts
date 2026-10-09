@@ -19,7 +19,11 @@ import {
   type IntimateLayout,
   type SoloMasturbationPoseKind,
 } from './day-pose-guide';
-import { SUGGESTIVE_COVERAGE_LINE } from './clothed-coverage';
+import {
+  impliedNudityDuoCoverageLine,
+  suggestiveBeatIsImpliedNudity,
+  suggestiveCoverageLine,
+} from './clothed-coverage';
 import { stripNegatedClauses } from './negated-clauses';
 import { poseSurfaces, sceneSurfaces, sceneVenue, surfaceFitsVenue } from './scene-surface';
 import {
@@ -1078,7 +1082,14 @@ const GARMENT_PULLED_RE =
   /\b(pulls?|pulling|yanks?|yanking|tugs?|tugging)\s+(her|his)\s+(?:shorts|pants|trousers|panties|underwear|skirt|dress)\s+(?:down|off|up)\b/gi;
 
 const CLOTHES_RE =
-  /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;
+  /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap|bodysuit|stockings|bra)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;
+
+/** What covers her in an implied-nudity beat that names no garment (a sheet, a towel). */
+function impliedNudityCover(beat: string): string | null {
+  if (/\b(?:bed)?sheet\b/i.test(beat)) return 'She is wrapped in the white sheet.';
+  if (/\btowel\b/i.test(beat)) return 'She is wrapped in a white towel.';
+  return null;
+}
 
 /** The outfit a clothed beat names ("in lingerie under an open shirt"), or null. */
 export function suggestiveBeatClothes(beat: string): string | null {
@@ -1136,6 +1147,7 @@ export function buildRapidSuggestiveRecipe(input: {
     .replace(/[\s,;—-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+  const implied = suggestiveBeatIsImpliedNudity(beat);
   const clothes = input.outfitImage
     ? `She wears the outfit from the ${input.outfitImage} image.`
     : input.outfitFromFirst
@@ -1144,14 +1156,17 @@ export function buildRapidSuggestiveRecipe(input: {
         ? `She wears ${withArticle(outfitWords(input.outfit))}.`
         : suggestiveBeatClothes(beat)
           ? `She wears ${suggestiveBeatClothes(beat)}.`
-          : 'She is dressed as the moment says.';
+          : implied
+            ? impliedNudityCover(beat)
+            : 'She is dressed as the moment says.';
   return [
     RAPID_SUGGESTIVE_RECIPE_MARK,
-    'One woman alone, clothed.',
+    implied ? 'One woman alone.' : 'One woman alone, clothed.',
     suggestivePlacement(beat),
     clothes,
-    // Suggestive stays clothed; said in the positive (CFG 1), see clothed-coverage.ts.
-    SUGGESTIVE_COVERAGE_LINE,
+    // Clothed, or implied nudity (a sheet, a towel, an arm across her chest) — said in the
+    // positive (CFG 1), see clothed-coverage.ts.
+    suggestiveCoverageLine(beat),
     `Moment: ${beat}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     descriptorLine(input.descriptor),
@@ -1714,7 +1729,9 @@ export function buildRapidSuggestiveDuoRecipe(input: {
   const descriptor = descriptorLine(input.descriptor);
   return [
     RAPID_SUGGESTIVE_RECIPE_MARK,
-    `A ${lead} and ${other} together, both fully clothed, affectionate.`,
+    suggestiveBeatIsImpliedNudity(beat)
+      ? `A ${lead} and ${other} together, affectionate. ${impliedNudityDuoCoverageLine(lead, partnerNoun)}`
+      : `A ${lead} and ${other} together, both fully clothed, affectionate.`,
     suggestiveDuoPlacement(beat),
     `Moment: ${beat}.`,
     `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,

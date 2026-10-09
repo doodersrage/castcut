@@ -135,7 +135,7 @@ function contentLine(content: RoleplayContentId, allowGore: boolean): string {
     return `All-ages. No innuendo, no sexual content, no revealing wardrobe. ${gore}`;
   }
   if (content === 'suggestive') {
-    return `Suggestive but not explicit: heat, lingering looks, implied, fade to black. No explicit nudity or sex. ${gore} ${adults}`;
+    return `Suggestive but not explicit: heat, lingering looks, lingerie, undressing, implied nudity — a sheet or towel held to the chest, an arm across it, a bare back, bare shoulders and legs — then fade to black. Never show nipples, genitals or a bare bottom, and no sex on camera. ${gore} ${adults}`;
   }
   if (content === 'sultry') {
     return `Erotic NSFW. Show desire on camera: skin, undress, lingerie or clothes coming off, body heat, sexual tension. Describe cleavage, thighs, bare back, wet fabric, flushed skin, intimate distance. Not a polite portrait with a wink. ${gore} ${adults}`;
@@ -157,7 +157,8 @@ function sceneGuard(content: RoleplayContentId, allowGore: boolean): string {
   if (content === 'clean') {
     rating = 'Keep it all-ages. No innuendo.';
   } else if (content === 'suggestive') {
-    rating = 'Suggestive is ok; no explicit sex or full nudity.';
+    rating =
+      'Suggestive is ok, including lingerie and implied nudity (a sheet or towel held to the chest, an arm across it, a bare back); never nipples, genitals or a bare bottom, no sex shown.';
   } else if (content === 'sultry') {
     rating =
       'Every option should be erotic: undress, skin, making out, grinding, a fuck-me look in a readable pose. Do not offer a tame fully-clothed branch. Partners must be distinct adults — never twins or mirror doubles of the lead.';
@@ -188,7 +189,7 @@ function promptStyleLine(content: RoleplayContentId, allowGore: boolean): string
     return 'Vulgar sexual comedy, graphic, specific, visual. Crude direct anatomy — no polite euphemisms.';
   }
   if (content === 'suggestive') {
-    return 'Charged but not explicit, specific, visual.';
+    return 'Charged and risqué but not explicit — lingerie or implied nudity, never nipples or genitals — specific, visual.';
   }
   if (content === 'clean') {
     return 'All-ages, specific, visual.';

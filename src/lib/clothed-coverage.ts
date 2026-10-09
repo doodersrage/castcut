@@ -12,6 +12,50 @@
 /** On every Suggestive solo recipe, after the clothes sentence. */
 export const SUGGESTIVE_COVERAGE_LINE = 'Her clothes stay on, covering her chest and hips.';
 
+/**
+ * Suggestive also allows implied nudity (user, 2026-10-09: "suggestive is too tame"): bare back,
+ * shoulders and legs, her chest covered by an arm, her hands, her hair, a sheet or a towel. Never
+ * a nipple, the genitals or a bare bottom — the adult check's "bare" question still holds
+ * (adult-appearance-gate.ts), and Intimate / Raunchy are the step up.
+ */
+export const IMPLIED_NUDITY_COVERAGE_LINE =
+  'Implied nudity only: her chest is covered by her arm, her hands, a sheet or a towel; no nipples, no genitals and no bare bottom show.';
+
+/** The same for a couple (Story's default wording: a woman lead with a partner). */
+export const IMPLIED_NUDITY_DUO_COVERAGE_LINE =
+  "Implied nudity only: her chest is covered by a sheet, a towel, an arm or her partner's body; no nipples, no genitals and no bare bottom show.";
+
+/** The couple line for this pair: a woman's chest stays covered; two men keep their hips covered. */
+export function impliedNudityDuoCoverageLine(
+  lead: 'man' | 'woman',
+  partner: 'man' | 'woman' | 'person'
+): string {
+  if (lead === 'man' && partner === 'man') {
+    return 'Implied nudity only: a sheet or a towel covers their hips; no genitals and no bare bottom show.';
+  }
+  if (lead === 'woman' && partner === 'woman') {
+    return 'Implied nudity only: both chests are covered by a sheet, a towel, an arm or each other; no nipples, no genitals and no bare bottom show.';
+  }
+  return lead === 'woman'
+    ? IMPLIED_NUDITY_DUO_COVERAGE_LINE
+    : "Implied nudity only: his partner's chest is covered by a sheet, a towel, an arm or his body; no nipples, no genitals and no bare bottom show.";
+}
+
+/** A Suggestive beat written as implied nudity (a sheet or towel, an arm across her chest…). */
+const IMPLIED_NUDITY_RE =
+  /\b(?:sheet\s+(?:pulled|held|tucked|drawn|wrapped|clutched)|wrapped\s+in\s+(?:a|the|one)\s+(?:big\s+)?(?:white\s+)?(?:bed)?(?:sheet|towel)|(?:sheet|towel)\s+(?:tucked|held|wrapped)|(?:sheet|towel)\s+(?:across|around|over)\s+her\s+chest|tucked\s+(?:around|under\s+her\s+arms\s+across)\s+her\s+chest|(?:arm|arms|hand|hands|forearm)\s+(?:folded\s+)?(?:across|over|covering)\s+her\s+(?:chest|breasts)|(?:held|holds?|holding)\s+(?:it\s+|them\s+)?(?:to|at)\s+her\s+chest|holding\s+(?:it|the\s+\w+)\s+closed\s+(?:across|at)\s+her\s+chest|foam\s+up\s+to\s+her\s+(?:collarbones|shoulders|chest)|bare\s+back\s+to\s+the\s+camera|nothing\s+but|wearing\s+only|in\s+only)\b/i;
+
+export function suggestiveBeatIsImpliedNudity(beat: string | null | undefined): boolean {
+  return IMPLIED_NUDITY_RE.test(beat ?? '');
+}
+
+/** The coverage line a Suggestive beat takes: clothed, or implied nudity. */
+export function suggestiveCoverageLine(beat: string | null | undefined): string {
+  return suggestiveBeatIsImpliedNudity(beat)
+    ? IMPLIED_NUDITY_COVERAGE_LINE
+    : SUGGESTIVE_COVERAGE_LINE;
+}
+
 /** The requeue after the gate saw bare skin: a mandatory line at the top of the prompt. */
 export const STRONG_COVERAGE_LINE =
   'COVERED (mandatory): she keeps every garment on — her chest, her hips and her bottom are covered by her clothes.';

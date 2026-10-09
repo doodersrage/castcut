@@ -8,6 +8,7 @@ import {
 } from './day-planner';
 import { stripNegatedClauses } from './negated-clauses';
 import { suggestiveBeatClothes } from './rapid-duo-recipe';
+import { suggestiveBeatIsImpliedNudity } from './clothed-coverage';
 
 /**
  * Suggestive is a clothed mood. The pose report card (2026-10-03) drew a bare bottom or chest from
@@ -30,10 +31,28 @@ const allSuggestiveBeats = (): Array<{ pool: string; beat: string }> => [
   ),
 ];
 
-describe('Suggestive beats stay clothed', () => {
-  it('no beat invites nudity', () => {
+/**
+ * Implied nudity (2026-10-09, "suggestive is too tame"): a beat may leave her bare under a sheet or
+ * towel or with an arm across her chest — it must name that cover (suggestiveBeatIsImpliedNudity)
+ * and never say what would show.
+ */
+const EXPOSES_RE =
+  /\b(?:topless|bottomless|nipples?|(?<!his )bare (?:chest|breasts?|bottom|butt)|sheer|see-through|nude|naked|nothing (?:else|under|underneath))\b/i;
+
+describe('Suggestive beats stay clothed or implied', () => {
+  it('a clothed beat invites no nudity', () => {
     const bad = allSuggestiveBeats()
+      .filter(({ beat }) => !suggestiveBeatIsImpliedNudity(beat))
       .filter(({ beat }) => INVITES_NUDITY_RE.test(stripNegatedClauses(beat)))
+      .map(({ pool, beat }) => `${pool}: ${beat}`);
+    assert.deepEqual(bad, []);
+  });
+
+  it('an implied-nudity beat names its cover and never what would show', () => {
+    const implied = allSuggestiveBeats().filter(({ beat }) => suggestiveBeatIsImpliedNudity(beat));
+    assert.ok(implied.length >= 16, `only ${implied.length} implied beats`);
+    const bad = implied
+      .filter(({ beat }) => EXPOSES_RE.test(stripNegatedClauses(beat)))
       .map(({ pool, beat }) => `${pool}: ${beat}`);
     assert.deepEqual(bad, []);
   });

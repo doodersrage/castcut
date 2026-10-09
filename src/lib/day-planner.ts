@@ -1623,24 +1623,28 @@ export const DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = 
     'perched on the kitchen counter in a silk slip eating fruit — ankles crossed, one strap slipping, leaning back on both hands, charged look, clothes stay on',
     'kneeling upright on the bed buttoning a shirt over lingerie — back arched, shirt half open, glancing up through her lashes, never square-on to the lens',
     'leaning in the bathroom doorway in a short robe over lingerie, hip against the frame, one hand in wet hair, looking back over a shoulder',
+    'lying on her stomach across the sunlit bed, bare back to the camera, the white sheet over her hips, arms folded under her chest, sleepy smile over one shoulder',
   ],
   afternoon: [
     'reclining on a daybed in a sundress during a lazy siesta — lying back, one knee raised, hem riding up, eyes half-lidded, clothes stay on',
     'sitting on the floor against the bed in lingerie under an open robe — knees up, head tipped back on the mattress, warm golden light',
     'leaning on a sunlit window frame in a slip dress, back arched, one strap off the shoulder, looking back over a shoulder',
     'perched on the arm of a reading chair in a short robe over a slip, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
+    'sitting on the bed edge after a shower, wrapped in a white towel tucked at her chest, one leg stretched out, smoothing lotion on it, glancing up',
   ],
   evening: [
     'kicking off heels on the bed after dinner — lying back across the mattress in a cocktail dress, one knee raised, arms overhead, clothes stay on',
     'leaning against the hallway wall unzipping a dress halfway — back to the wall, hips cocked, looking back over a shoulder, lingerie straps showing, clothes stay on',
     'sitting on the edge of the bathtub in lingerie and an open satin robe, one leg extended, removing an earring, charged glance',
     'kneeling upright on the rug in a slip dress pouring two glasses of wine, back arched, looking up with a slow smile',
+    'standing at the hotel window at dusk wrapped in the white bedsheet, holding it closed at her chest with one hand, bare shoulders, city lights below, looking back over one shoulder',
   ],
   night: [
     'lying on her stomach across the bed in a silk camisole and shorts, ankles crossed in the air, chin on her hands, phone glow on her face, clothes stay on',
     'leaning on the dark windowsill at 3 a.m. in an oversized shirt and sleep shorts, one knee on the sill, city glow on her legs, looking back over a shoulder',
     'sitting cross-legged on the rumpled bed in lingerie hugging a pillow, hair messy, sleepy charged look, clothes stay on',
     'stretching in the doorway in a thin sleep slip — one arm overhead against the frame, hip cocked, bare legs, eyes half-lidded',
+    'sitting on the dark windowsill in only an oversized white shirt, knees drawn up to her chest, bare legs, city glow, looking back over one shoulder',
   ],
 };
 
@@ -1764,6 +1768,8 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
     'lying face to face on the rumpled bed with her partner, both in sleepwear — his hand on her hip, noses almost touching, morning light',
     'perched on the kitchen counter in an oversized shirt with her partner standing between her knees — her arms around his neck, mid-kiss, both clothed',
     'her partner zipping up her dress in the bedroom — he stands close at her back, she tips her head toward him with a slow smile, both dressed',
+    'lying in bed with her partner under white sheets — the sheet tucked under her arms across her chest, his bare chest, her head on his shoulder, morning light',
+    'sitting up in bed wrapped in the white sheet while her partner kisses her bare shoulder — she holds the sheet at her chest with one hand, eyes closed, smiling',
   ],
   afternoon: [
     'pinned playfully against the hallway wall by her partner, both fully dressed — his hand on the wall beside her head, her fingers in his shirt, about to kiss',
@@ -1771,6 +1777,8 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
     'kissing her partner in a doorway, up on her toes in a short dress — his hands on her waist, her hand on his jaw',
     'feeding her partner a strawberry on a picnic blanket in a sundress — she leans in on one hand, he lies propped on an elbow, both laughing',
     "sitting on her partner's lap in an armchair in a short dress, both fully clothed — her arms around his neck, foreheads together",
+    'sharing a bubble bath with her partner, foam up to her collarbones — she leans back against his chest, his arms around her, both laughing',
+    'standing at a sunlit window with her partner, both wrapped in one white sheet — she leans back against his bare chest, his arms around her holding the sheet closed at her chest',
   ],
   evening: [
     'slow-dancing close with her partner on a dim rooftop in an evening dress — her cheek on his chest, his hand low on her back',
@@ -1779,6 +1787,8 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
     'her partner unzipping her evening dress halfway at the bedroom door — she looks back at him over her shoulder, lingerie straps showing',
     // "pulled onto the bed … lands on top of him" rendered both sitting upright (3/3).
     'lying on top of her partner on the bed, both still in evening clothes — he lies on his back across the mattress, she lies stretched out on his chest laughing, his hands on her waist',
+    'her partner unhooking her bra at the bedroom mirror — she holds it to her chest with one arm, lace panties, watching him in the mirror with a slow smile',
+    'lying on the bed with her partner, both in underwear — she lies on her stomach across his chest, his hand on her bare back, both laughing',
   ],
   night: [
     "lying together on the couch under a blanket with her head on her partner's chest, both in sleepwear — his hand in her hair, TV glow",
@@ -1786,6 +1796,8 @@ export const DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS: Record<DayPart, string[]> = {
     'her partner standing with her lifted in his arms, carrying her to bed — short dress and bare feet, her arms around his neck, both laughing',
     'sitting on the bed edge in lingerie under an open robe with her partner kneeling in front of her, both clothed — he kisses her knee, her hand in his hair',
     'cuddling on top of the covers with her partner, both clothed in sleepwear — she lies on her side, he lies close at her back with his arm over her waist, her hand holding his',
+    'lying tangled in white sheets with her partner after midnight — the sheet across her chest and over their hips, her leg over his, foreheads together, lamp glow',
+    'standing in the steamy bathroom with her partner, both wrapped in one big white towel after a shower — the towel tucked around her chest, wet hair, his arms around her, laughing',
   ],
 };
 
@@ -1855,6 +1867,9 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'looking back over one shoulder while dressing, lingerie straps and unfinished buttons, one knee on the bed edge, charged pause',
     'kneeling upright on the rumpled bed in a sleep shirt and panties — back arched, hands in hair, morning light, clothes stay on',
     'sitting on the windowsill in a short robe over a bra and panties, one foot planted on the sill, eyes half-lidded, not a standing fashion plate',
+    'sitting up in the rumpled white bed, the white sheet held across her chest with one arm, bare shoulders and bare back, messy hair, looking back over one shoulder at the window light',
+    'standing at the fogged bathroom mirror wrapped in a white towel tucked at her chest, wet hair over one bare shoulder, wiping the glass with one hand',
+    'kneeling on the bed on all fours in a lace bodysuit — back arched, looking back over one shoulder, morning light on the sheets',
   ],
   afternoon: [
     'adjusting a low neckline in a shop window reflection — body angled three-quarter to the glass, slow smile, never square to camera',
@@ -1863,6 +1878,9 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'biting a lip while checking a flirtatious text — weight on one hip, dress strap slipping, hand on the doorframe',
     'perched on a couch arm in a short dress, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
     'twisting to zip a dress in a mirror — torso twisted, back arched, both hands on the zipper behind her back, looking over a shoulder, lingerie straps visible, afternoon light — never square-on facing the lens',
+    'standing at a sunlit window in only an unbuttoned oversized white shirt, holding it closed across her chest with one hand, lace panties, bare legs, hip against the frame',
+    'lying on her stomach across the bed in lace panties, bare back to the camera, her chest pressed into the mattress, chin on her folded arms, smiling over one shoulder',
+    'reclining on a velvet chaise in black lingerie, stockings and a garter belt — one knee raised, arms stretched over her head, eyes half-closed',
   ],
   evening: [
     'holding a glass at a dim bar — seated on a stool, dress strap slipping, body angled, slow eye contact, never standing square-on',
@@ -1871,6 +1889,9 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'leaning in a doorway in lingerie and an open robe — one shoulder against the jamb, looking down the hall, inviting, not a fashion plate',
     'sitting on the hotel bed edge unzipping a dress halfway — lingerie visible, one heel half-off, looking up into the lamp',
     'kneeling on the bed in evening lingerie facing the headboard — looking back over a shoulder, soft lamp, clothes stay on',
+    'standing on the bath mat beside the tub after a bubble bath, a white towel held to her chest with both hands, bubbles on her bare shoulders, candlelight',
+    'sitting on the bed edge in lace panties, her unhooked bra held to her chest with one arm, looking back over one shoulder, soft lamp',
+    'straddling a chair backwards in a black lace bodysuit and stockings — arms folded on the chair back, chin resting on them, slow look',
   ],
   night: [
     'pausing under neon in a short dress, coat open — looking back over a shoulder mid-stride, charged heat, never a static front pose',
@@ -1879,6 +1900,9 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'walking barefoot to bed in lingerie — mid-step toward the sheets, looking back, soft lamp, clothes stay on, never a polite standing portrait',
     'lying on her side on the hotel bed in lingerie — propped on one elbow, knees drawn up, charged quiet, never nude',
     'perched on a chair backwards in a short dress after dark — arms on the chair back, looking over a shoulder, bottoms on',
+    'lying on her side in bed facing the camera, the white sheet tucked under her arms across her chest, bare shoulders, hair spread on the pillow, lamp glow',
+    'leaning in a dark doorway in only an oversized white dress shirt, unbuttoned, one hand holding it closed at her chest, bare legs, hip against the frame',
+    'lying back across the hotel bed in black lace lingerie and stockings, legs up against the headboard, arms over her head, city glow',
   ],
 };
 
@@ -2796,7 +2820,7 @@ export const DAY_CLOTHED_MOOD_SEX_LEAK_RE =
 
 /** Clothed-heat cues — custom Suggestive beats that still read as suggestive. */
 const DAY_SUGGESTIVE_BEAT_CUE_RE =
-  /\b(lingerie|silk robe|robe loosely|sleepwear|neckline|strap slip|unzip|short (?:hem|dress)|bare (?:thigh|leg|skin)|cleavage|flirt|charged|inviting|fade[- ]to[- ]black|half[- ]shed|coat open|dress strap|weight on one hip|looking back|doorway|bed edge|hip cocked|kneeling|reclining|perched|chair back)\b/i;
+  /\b(lingerie|silk robe|robe loosely|sleepwear|neckline|strap slip|unzip|short (?:hem|dress)|bare (?:thigh|leg|skin|shoulders?|back)|cleavage|flirt|charged|inviting|fade[- ]to[- ]black|half[- ]shed|coat open|dress strap|weight on one hip|looking back|doorway|bed edge|hip cocked|kneeling|reclining|perched|chair back|bodysuit|stockings|garter|white sheet|towel|bubble bath)\b/i;
 
 /**
  * Vacation travel venues that must not survive under Suggestive (shared pose words

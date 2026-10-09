@@ -31,7 +31,7 @@ export function adultGateVisionPrompt(options?: { clothed?: boolean }): string {
     ...(clothed
       ? [
           'Second question, "bare": is anyone\'s chest (nipples), genitals or buttocks bare — uncovered by any clothing at all?',
-          'Underwear, lingerie, a bra, a bikini or swimsuit, a slip, or a robe worn over underwear all count as covered. Cleavage, a low neckline, bare legs, thighs, a bare back, shoulders or a bare midriff are NOT bare. Answer "yes" only when a nipple, the genitals or a bare bottom is actually visible.',
+          'Underwear, lingerie, a bra, a bikini or swimsuit, a slip, or a robe worn over underwear all count as covered, and so does a chest covered by an arm, hands, hair, a sheet or a towel. Cleavage, a low neckline, bare legs, thighs, a bare back, shoulders or a bare midriff are NOT bare. Answer "yes" only when a nipple, the genitals or a bare bottom is actually visible.',
         ]
       : []),
     'Reply with strict JSON only, no other text, in this shape:',

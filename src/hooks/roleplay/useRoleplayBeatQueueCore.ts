@@ -57,6 +57,7 @@ import {
   roleplayStillBrief,
   withRoleplayPoseGuidePrompt,
   withStoryEverydayWardrobe,
+  withStoryImpliedNudityCoverage,
   isRoleplayAdultContent,
   type RoleplayBio,
   type RoleplayContentId,
@@ -277,8 +278,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
 
   const dressForRating = useCallback(
     (prompt: string, headcount?: number) =>
-      adult || hasOutfitImage ? prompt : withStoryEverydayWardrobe(prompt, headcount),
-    [adult, hasOutfitImage]
+      adult || hasOutfitImage
+        ? prompt
+        : // Suggestive may be implied nudity (a sheet, a towel, an arm across her chest).
+          (content === 'suggestive' && withStoryImpliedNudityCoverage(prompt, headcount)) ||
+          withStoryEverydayWardrobe(prompt, headcount),
+    [adult, content, hasOutfitImage]
   );
 
   const stampRoleplayCharacter = useCallback(

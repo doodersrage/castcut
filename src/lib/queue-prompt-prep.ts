@@ -285,7 +285,19 @@ function applyDayClothedHeatSteering(input: {
           .join(', ')
       : pack;
   if (suggestiveHeat) {
-    positive = appendUniqueCsv(positive, forPeople(RAPID_AIO_SUGGESTIVE_PROP_POSITIVE));
+    // An implied-nudity beat (a sheet, a towel, an arm across her chest) is not "bottoms on".
+    const implied = /\bImplied nudity only:/.test(input.steeredPositive);
+    positive = appendUniqueCsv(
+      positive,
+      forPeople(
+        implied
+          ? RAPID_AIO_SUGGESTIVE_PROP_POSITIVE.replace(
+              'clothed suggestive heat only, lingerie or dress with bottoms on',
+              'suggestive heat with implied nudity only, chest covered by a sheet, a towel or her arm'
+            )
+          : RAPID_AIO_SUGGESTIVE_PROP_POSITIVE
+      )
+    );
     negative = appendUniqueCsv(negative, forPeople(RAPID_AIO_SUGGESTIVE_PROP_NEGATIVE));
     // Only when the beat names DANCING — camera templates mention "dance" as an example.
     if (
