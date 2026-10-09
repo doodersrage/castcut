@@ -7,6 +7,9 @@
 import { scrubPlayToolCachesOnCastChange } from './play-cast-change';
 import { registerCastChangeScrubber } from './settings-cache';
 import { registerJobCompletedHook } from './comfyui-gallery';
+import { registerAppFlag } from './app-flags';
+import { loadPlayCampaignState } from './play-campaign';
+import { loadPlayMetrics } from './play-metrics';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 
@@ -15,4 +18,11 @@ registerJobCompletedHook(entry => {
   void import('./day-vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) =>
     maybeScheduleDayVacationFaceRestore(entry)
   );
+});
+
+// Home: the goal chooser until a first film is started.
+registerAppFlag('home.showGoalChooser', () => {
+  const metrics = loadPlayMetrics();
+  const campaign = loadPlayCampaignState();
+  return !metrics.firstPlayCampaignAt && !campaign?.characterId;
 });

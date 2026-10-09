@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/ToolPageShell';
 import { formatPoolQueueStrip } from '@/lib/comfyui-host-ready';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import PlayContinueChip from '@/components/PlayContinueChip';
+import AppSlot from '@/components/AppSlot';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
@@ -85,7 +85,7 @@ export default function QueueToolSections({
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
       <ToolActionRow>
-        <PlayContinueChip variant="secondary" hideUnderKioskHeader />
+        <AppSlot name="queue.top" />
       </ToolActionRow>
       {queueHealth?.ok || poolQueue.anyOk ? (
         <div className="ui-queue-strip">

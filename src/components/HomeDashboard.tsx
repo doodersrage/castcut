@@ -34,13 +34,11 @@ import { useHubPageDescription, useToolSectionDescription } from '@/hooks/useToo
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { saveWorkspaceMode } from '@/lib/workspace-mode';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
-import PlayContinueChip from '@/components/PlayContinueChip';
-import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
+import AppSlot from '@/components/AppSlot';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { loadPlayCampaignState } from '@/lib/play-campaign';
-import { loadPlayMetrics } from '@/lib/play-metrics';
+import { appFlag } from '@/lib/app-flags';
 import {
   StatCard,
   ToolActionRow,
@@ -55,10 +53,6 @@ const QueueOrchestrationPanel = dynamic(() => import('@/components/QueueOrchestr
 
 const OnboardingChecklist = dynamic(() => import('@/components/OnboardingChecklist'), {
   loading: () => <ToolPageSkeleton label="Loading checklist" />,
-});
-
-const PlayFilmMetricsCard = dynamic(() => import('@/components/PlayFilmMetricsCard'), {
-  loading: () => <ToolPageSkeleton label="Loading play metrics" />,
 });
 
 const FirstRunGoalChooser = dynamic(() => import('@/components/FirstRunGoalChooser'), {
@@ -99,9 +93,7 @@ export default function HomeDashboard() {
       setProjects(loadPromptProjects());
       setDraft(loadLastToolDraft());
       setLastRoute(loadLastToolRoute());
-      const metrics = loadPlayMetrics();
-      const campaign = loadPlayCampaignState();
-      setShowGoalChooser(!metrics.firstPlayCampaignAt && !campaign?.characterId);
+      setShowGoalChooser(appFlag('home.showGoalChooser'));
     };
     void initGalleryStore().then(refresh);
     window.addEventListener('comfyui-gallery-updated', refresh);
@@ -143,11 +135,8 @@ export default function HomeDashboard() {
           <ConnectionHealthChip />
         </div>
         <OnboardingChecklist />
-        <PlayHabitNudgeBanner />
-        <div className="flex flex-wrap items-center gap-2">
-          <PlayContinueChip hideWhenIdle={false} hideWhenHabit hideUnderKioskHeader />
-        </div>
-        <PlayFilmMetricsCard />
+        <AppSlot name="home.top" />
+        <AppSlot name="home.metrics" />
         <GalleryGlanceCard />
       </div>
 
