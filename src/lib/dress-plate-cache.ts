@@ -28,11 +28,18 @@ export type DayDressPlateEntry = {
  */
 const KLEIN_PLATE_ENGINE = 'flux-2-klein-9b-distilled';
 const KLEIN_PLATES_SINCE_MS = 1791466096000 - 60 * 60 * 1000;
+/**
+ * Klein stopped making plates at the rollback (c63b15ff, 2026-10-08 19:26 EDT). Until 2026-10-09
+ * the store dropped `engine` when it loaded (dress-plate-store normalize), so a 2511 plate made
+ * after the rollback also reads back unmarked — it is not a Klein one. Treating it as one made
+ * Day render a new plate for every scene.
+ */
+const KLEIN_PLATES_UNTIL_MS = 1791501990000;
 
 export function dressPlateFromRetiredEngine(entry: DayDressPlateEntry): boolean {
   const engine = entry.engine?.trim();
   if (engine) return engine === KLEIN_PLATE_ENGINE;
-  return entry.at >= KLEIN_PLATES_SINCE_MS;
+  return entry.at >= KLEIN_PLATES_SINCE_MS && entry.at < KLEIN_PLATES_UNTIL_MS;
 }
 
 /** Shared by Day, Story and Outfit; outfit arcs use two kits a day — keep a dozen. */

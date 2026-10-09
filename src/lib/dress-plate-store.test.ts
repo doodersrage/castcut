@@ -65,6 +65,29 @@ describe('shared dressed-plate store', () => {
     assert.equal(findDressPlate('new')?.shoesChecked, 2);
   });
 
+  it('a saved plate keeps its engine and is found again (each scene re-rendered it)', () => {
+    const now = Date.now();
+    saveDressPlate({ key: 'k', filename: 'p.png', at: now, engine: 'qwen-image-edit-2511-lightning-8' });
+    assert.equal(loadDressPlates()[0]?.engine, 'qwen-image-edit-2511-lightning-8');
+    assert.equal(findDressPlate('k')?.filename, 'p.png');
+    // Saved before the store kept `engine`: unmarked, but after the Klein rollback.
+    replaceDressPlates([{ key: 'u', filename: 'u.png', at: now }]);
+    assert.equal(findDressPlate('u')?.filename, 'u.png');
+  });
+
+  it('Klein plates are still made anew: marked ones, and unmarked ones from the Klein window', () => {
+    replaceDressPlates([
+      { key: 'marked', filename: 'k.png', at: Date.now(), engine: 'flux-2-klein-9b-distilled' },
+      // 2026-10-08 15:00 EDT: Klein was the plate engine.
+      { key: 'window', filename: 'w.png', at: Date.UTC(2026, 9, 8, 19, 0) },
+      // 2026-10-07: before Klein.
+      { key: 'before', filename: 'b.png', at: Date.UTC(2026, 9, 7, 12, 0) },
+    ]);
+    assert.equal(findDressPlate('marked'), null);
+    assert.equal(findDressPlate('window'), null);
+    assert.equal(findDressPlate('before')?.filename, 'b.png');
+  });
+
   it('one plate per selection, found by any tool, removable', () => {
     saveDressPlate({ key: 'a', filename: 'one.png', at: 1 });
     saveDressPlate({ key: 'b', filename: 'two.png', imageUrl: '/view?two', at: 2 });

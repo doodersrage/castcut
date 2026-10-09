@@ -37,6 +37,10 @@ function normalize(items: unknown): DayDressPlateEntry[] {
         ? { imageUrl: entry.imageUrl.trim() }
         : {}),
       at: typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : Date.now(),
+      // The engine that made it (dress-plate-cache dressPlateFromRetiredEngine reads it).
+      ...(typeof entry.engine === 'string' && entry.engine.trim()
+        ? { engine: entry.engine.trim() }
+        : {}),
       ...(entry.shoesChecked === true
         ? { shoesChecked: 1 }
         : typeof entry.shoesChecked === 'number' && entry.shoesChecked > 0
