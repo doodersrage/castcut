@@ -280,11 +280,13 @@ function placementTwoWomen(
     case 'kneeling':
       return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together, kissing, each with a hand between the other's thighs; both faces in frame.`;
     case 'lap':
-      // "Sits on her girlfriend's lap facing her" sat them side by side (0/3); naming one on top of
-      // the other and two separate bodies put one on the other's lap 3/3 (Rapid, 2026-10-06).
-      // Front-on she turned to the camera with her girlfriend behind her (2/2, 2026-10-07); a side
-      // view with both faces in profile, as for a man, sat them face to face 3/3.
-      return `Side view of ${on('chair')}. ${cap(gf)} sits in it, her face in profile; the woman sits on her lap facing her, chest to chest, straddling her with her knees on either side of her girlfriend's hips, arms around her neck — her face in profile too, kissing; ${gf}'s hand between her thighs, fingering her. Two separate bodies, both faces in frame.`;
+      // History: "sits on her lap" side by side 0/3; "on top … two separate bodies" 3/3 (2026-10-06);
+      // front-on turned her to the camera 2/2, "side view of the chair … sits in it" 3/3
+      // (2026-10-07) — but 0/12 in the same-sex sweep.
+      // "Side view of the chair … sits in it" sat them side by side 0/12 in the same-sex sweep
+      // (2026-10-08, with and without the map); the two-men lap wording, "sits on top of her,
+      // astride … one on the other's lap": 5/6.
+      return `Side view, both women in profile. ${cap(gf)} sits upright on ${on('chair')}; the woman sits on top of her, astride her girlfriend's lap facing her, chest to chest, her knees bent on either side of her girlfriend's hips, arms around her neck, kissing; ${gf}'s hand between her thighs, fingering her — two separate bodies, one on the other's lap.`;
     default:
       return null;
   }

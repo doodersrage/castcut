@@ -146,9 +146,9 @@ describe('same-sex duo wording', () => {
       lead: 'woman',
       partner: { partner: NORA, image: 'second' },
     });
-    assert.match(lap ?? '', /Side view of the armchair\. Her girlfriend sits in it/);
-    assert.match(lap ?? '', /the woman sits on her lap facing her, chest to chest/);
-    assert.match(lap ?? '', /Two separate bodies/);
+    assert.match(lap ?? '', /Side view, both women in profile\. Her girlfriend sits upright on the armchair/);
+    assert.match(lap ?? '', /the woman sits on top of her, astride her girlfriend's lap facing her, chest to chest/);
+    assert.match(lap ?? '', /two separate bodies, one on the other's lap/);
     const floor = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels on the bedroom floor in front of him going down on him'),
       lead: 'man',
