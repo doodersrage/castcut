@@ -19,6 +19,8 @@ import { registerLocalDataReset } from './local-data-reset';
 import { registerResumeCta } from './empty-cta';
 import { registerPoseTargetGroup } from './pose-targets';
 import { registerQueueJobDescriber } from './queue-job-context';
+import { registerCharacterNormalizer } from './character-os';
+import { normalizeCharacterLookPacks } from './play-cast';
 import { PLAY_QUEUE_JOB_DESCRIBER } from './play-queue-jobs';
 import { PLAY_POSE_TARGET_GROUPS } from './play-pose-targets';
 import { loadLocalObservability } from './local-observability';
@@ -26,6 +28,8 @@ import { loadOnboardingState } from './onboarding-store';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
+// Cast records: Look packs are tidied with the rest of the record.
+registerCharacterNormalizer(normalizeCharacterLookPacks);
 
 // Lightning Day face-break → auto Edit face-restore (deduped inside; loaded on first use).
 registerJobCompletedHook(entry => {

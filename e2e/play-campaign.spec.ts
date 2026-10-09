@@ -2825,10 +2825,10 @@ test('a Cast with a bible and a picture offers Picture this bible', async ({ pag
   await gotoStable(page, '/characters/e2e-bible-picture');
   await dismissBlockingOverlays(page);
   await page.getByText('Bible', { exact: true }).first().click();
-  await expect(page.getByTestId('cast-bible-picture')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('cast-bible-picture-hint')).toHaveCount(0);
+  await expect(page.getByTestId('character-bible-picture')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('character-bible-picture-hint')).toHaveCount(0);
   // The last picture shows again on a revisit.
-  await expect(page.getByTestId('cast-bible-picture-image')).toBeVisible();
+  await expect(page.getByTestId('character-bible-picture-image')).toBeVisible();
   // The picture opens full size in the lightbox; Escape closes it.
   await page.getByRole('button', { name: 'Open the bible picture full size' }).click();
   const lightbox = page.getByTestId('image-lightbox');

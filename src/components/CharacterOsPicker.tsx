@@ -17,12 +17,12 @@ import {
   getServerCharactersSnapshot,
   looksOf,
   loraTriggerFromCharacter,
-  migrateCharactersFromLegacy,
   removeCharacter,
   subscribeCharacters,
   renameActiveLook,
   upsertCharacter,
 } from '@/lib/character-os';
+import { migrateCharactersFromLegacy } from '@/lib/play-cast';
 import { switchCastPlate } from '@/lib/cast-plate-switch';
 import { listSavedIdentityBundles, type SharedToolSettings } from '@/lib/settings-cache';
 import { roleplaySessionsForCharacterSync } from '@/lib/roleplay-library';

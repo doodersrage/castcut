@@ -25,13 +25,8 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble-lazy';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
-import {
-  applyCharacterRecord,
-  characterFromRoleplaySession,
-  getCharacter,
-  loadCharacters,
-  upsertCharacterFromRoleplaySession,
-} from '@/lib/character-os';
+import { applyCharacterRecord, getCharacter, loadCharacters } from '@/lib/character-os';
+import { characterFromRoleplaySession, upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { completePlayCampaign } from '@/lib/play-campaign';
 import {

@@ -6,11 +6,11 @@ import { roleplayWatchPlaylist } from '@/lib/character-film';
 import {
   applyCharacterRecord,
   getCharacter,
-  getCharacterLookPack,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character-os';
+import { getCharacterLookPack } from '@/lib/play-cast';
 import { storySeedFromDay } from '@/lib/day-story-seed';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';

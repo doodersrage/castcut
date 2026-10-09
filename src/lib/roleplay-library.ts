@@ -5,12 +5,8 @@ import {
   normalizeScenePoseSpec,
 } from '@/lib/day-pose-guide';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
-import {
-  castBibleLook,
-  getCharacter,
-  upsertCharacterFromRoleplaySession,
-  type CharacterRecord,
-} from './character-os';
+import { castBibleLook, getCharacter, type CharacterRecord } from './character-os';
+import { upsertCharacterFromRoleplaySession } from './play-cast';
 import { withRoleplayLookPlateFromCast } from './fitting-room';
 import { resolvePlayLoopEntryCharacterId } from './play-campaign';
 import { loadToolSettings } from './settings-cache';

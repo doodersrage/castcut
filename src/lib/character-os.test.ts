@@ -1,39 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-  applyCharacterRecord,
-  applyCharacterRecordFresh,
-  applyRemovedCharacterIds,
-  bundleFromCharacter,
-  castLoraSessionIds,
-  characterFromBundle,
-  characterFromRoleplaySession,
-  characterFromShared,
-  createBlankCharacter,
-  activeLook,
-  activateLook,
-  getCharacter,
-  renameLook,
-  withNewPlateLook,
-  lookFromAppearance,
-  renameActiveLook,
-  loadCharacters,
-  looksOf,
-  mergeMigratedCharacters,
-  migrateCharactersFromLegacy,
-  saveCharacters,
-  normalizeCharacterRecord,
-  roleplayLibraryIdFromCharacter,
-  saveCharacterBio,
-  saveCharacterTraits,
-  setLookPlateStance,
-  clearCharacterBio,
-  slugCharacterName,
-  upsertCharacter,
-  upsertCharacterFromRoleplaySession,
-  castIdForRoleplaySession,
-  type CharacterRecord,
-} from './character-os';
+import { applyCharacterRecord, applyCharacterRecordFresh, applyRemovedCharacterIds, bundleFromCharacter, castLoraSessionIds, characterFromBundle, characterFromShared, createBlankCharacter, activeLook, activateLook, getCharacter, renameLook, withNewPlateLook, lookFromAppearance, renameActiveLook, loadCharacters, looksOf, saveCharacters, normalizeCharacterRecord, roleplayLibraryIdFromCharacter, saveCharacterTraits, setLookPlateStance, clearCharacterBio, slugCharacterName, upsertCharacter, castIdForRoleplaySession, type CharacterRecord } from './character-os';
+import { characterFromRoleplaySession, mergeMigratedCharacters, migrateCharactersFromLegacy, saveCharacterBio, upsertCharacterFromRoleplaySession } from './play-cast';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import { loadSettingsCache, saveSettingsCache, type SharedToolSettings } from './settings-cache';

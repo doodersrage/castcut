@@ -2,7 +2,8 @@
 
 import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { applyCharacterRecordFresh, addCharacterLookPack } from '@/lib/character-os';
+import { applyCharacterRecordFresh } from '@/lib/character-os';
+import { addCharacterLookPack } from '@/lib/play-cast';
 import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';

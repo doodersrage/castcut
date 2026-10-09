@@ -33,12 +33,8 @@ import { checkStillReferences } from '@/lib/reference-check-client';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import {
-  applyCharacterRecord,
-  castLoraSessionIds,
-  getCharacter,
-  upsertCharacterFromRoleplaySession,
-} from '@/lib/character-os';
+import { applyCharacterRecord, castLoraSessionIds, getCharacter } from '@/lib/character-os';
+import { upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import { buildStoryClothedDuoRecipe, buildStoryRapidDuoRecipe } from '@/lib/rapid-duo-recipe';
 import {

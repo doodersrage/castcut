@@ -1,13 +1,8 @@
 'use client';
 
-import {
-  addCharacterLookPack,
-  characterFromShared,
-  getCharacter,
-  lookPacksOf,
-  upsertCharacter,
-} from '@/lib/character-os';
-import { getCharacterLookPack } from '@/lib/character-os';
+import { characterFromShared, getCharacter, upsertCharacter } from '@/lib/character-os';
+import { addCharacterLookPack, lookPacksOf } from '@/lib/play-cast';
+import { getCharacterLookPack } from '@/lib/play-cast';
 import {
   copyPortableLookPackShareLink,
   downloadLookPackFile,

@@ -6,20 +6,18 @@ import { BROWSER_STORAGE_HEALTH_EVENT, whenBrowserStorageReady } from '@/lib/bro
 import { isAssembledFilmEntry } from '@/lib/character-film';
 import {
   activeLook,
-  addCharacterLookPack,
   applyCharacterRecord,
   applyCharacterRecordFresh,
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
-  lookPacksOf,
   looksOf,
   forgetCharacterRecord,
-  removeCharacterLookPack,
   renameLook,
   subscribeCharacters,
   toggleLookKeeper,
 } from '@/lib/character-os';
+import { addCharacterLookPack, lookPacksOf, removeCharacterLookPack } from '@/lib/play-cast';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   clearGalleryCharacterStamp,

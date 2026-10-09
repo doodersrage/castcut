@@ -4,7 +4,7 @@ import {
   buildCastBiblePictureNegative,
   buildCastBiblePicturePrompt,
   normalizeCastBiblePicture,
-} from './cast-bible-picture';
+} from './character-bible-picture';
 
 const mara = {
   name: 'Mara',

@@ -16,10 +16,10 @@ import {
   looksOf,
   loraTriggerFromCharacter,
   forgetCharacterRecord,
-  migrateCharactersFromLegacy,
   subscribeCharacters,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { migrateCharactersFromLegacy } from '@/lib/play-cast';
 import { castRosterReadinessLine } from '@/lib/cast-home-status';
 import { playCampaignHref, rosterFilmLead } from '@/lib/play-campaign';
 import {

@@ -6,13 +6,10 @@
 import {
   BROWSER_STORAGE_HEALTH_EVENT,
   readBrowserValue,
-  withSuppressedDurableSyncPush,
   writeBrowserValue,
 } from './browser-storage';
-import { normalizeCastBiblePicture, type CastBiblePicture } from './cast-bible-picture';
-import type { CharacterFilmCut } from './character-film';
+import { normalizeCastBiblePicture, type CastBiblePicture } from './character-bible-picture';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
-import type { LookPack } from './look-pack';
 import { normalizePlateStance, type PlateStance } from './plate-stance';
 import {
   applyCharacterIdentityBundle,
@@ -25,8 +22,6 @@ import {
   lockOnLookFace,
   lookFace,
 } from './identity-lock-look';
-import type { RoleplayLibrarySession } from './roleplay-library';
-import type { RoleplayBio, RoleplayContentId, RoleplayPlayAs, RoleplayTone } from './roleplay';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
 import {
   type CharacterAppearanceDraft,
@@ -49,14 +44,15 @@ export const MAX_CHARACTERS = 48;
 export const MAX_LOOKS = 24;
 export const MAX_LOOK_PACKS = 16;
 
-export type CharacterLookPack = {
-  id: string;
-  name: string;
-  savedAt: number;
-  pack: LookPack;
-};
+/**
+ * Cast-record fields features add (Play: Story bio/tone/content/playAs, film cut, Look packs —
+ * play-cast.ts) by declaration merging. The record normaliser keeps any field it does not name,
+ * so a feature's data survives even where the feature is not loaded.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- extended by features
+export interface CharacterFeatureFields {}
 
-export type CharacterRecord = {
+export type CharacterRecord = CharacterFeatureFields & {
   id: string;
   name: string;
   version: 1;
@@ -73,7 +69,6 @@ export type CharacterRecord = {
    * The physical description comes from these; the bible's look is Story's.
    */
   traits?: CharacterTraits;
-  bio?: RoleplayBio;
   /** Last "Picture this bible" still (Cast → Bible), shown again on a revisit. */
   biblePicture?: CastBiblePicture;
   ipAdapter?: {
@@ -105,14 +100,7 @@ export type CharacterRecord = {
   customPersona?: string;
   characterName?: string;
   setting?: string;
-  tone?: RoleplayTone;
-  content?: RoleplayContentId;
-  playAs?: RoleplayPlayAs;
   notes?: string;
-  /** Watch/cut list for assembling a film from this character's clips and stills. */
-  filmCut?: CharacterFilmCut;
-  /** Named Moodboard look packs saved on this character. */
-  lookPacks?: CharacterLookPack[];
 };
 
 export type CharacterLook = {
@@ -231,98 +219,12 @@ export function createLookId(): string {
   return newLookId();
 }
 
-function newLookPackId(): string {
+/** @internal shared with feature modules (play-cast.ts). */
+export function newLookPackId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `lp-${crypto.randomUUID()}`;
   }
   return `lp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function normalizeLookPacks(input: CharacterLookPack[] | undefined): CharacterLookPack[] {
-  const next: CharacterLookPack[] = [];
-  for (const entry of input ?? []) {
-    if (!entry?.id || !entry.pack || entry.pack.version !== 1) {
-      continue;
-    }
-    const name = readName(entry.name) || 'Look pack';
-    next.push({
-      id: entry.id.trim(),
-      name,
-      savedAt: typeof entry.savedAt === 'number' ? entry.savedAt : Date.now(),
-      pack: {
-        ...entry.pack,
-        source: entry.pack.source === 'saved' ? 'saved' : 'moodboard',
-        characterId: entry.pack.characterId?.trim() || undefined,
-      },
-    });
-  }
-  return next.sort((left, right) => right.savedAt - left.savedAt).slice(0, MAX_LOOK_PACKS);
-}
-
-export function lookPacksOf(character: CharacterRecord): CharacterLookPack[] {
-  return normalizeLookPacks(character.lookPacks);
-}
-
-export function getCharacterLookPack(
-  characterId: string,
-  lookPackId: string
-): CharacterLookPack | undefined {
-  const character = getCharacter(characterId);
-  if (!character) {
-    return undefined;
-  }
-  const id = lookPackId.trim();
-  return lookPacksOf(character).find(entry => entry.id === id);
-}
-
-export function addCharacterLookPack(
-  characterId: string,
-  name: string,
-  pack: LookPack
-): CharacterRecord | undefined {
-  const character = getCharacter(characterId);
-  if (!character || pack.version !== 1) {
-    return character;
-  }
-  const label = readName(name) || 'Look pack';
-  const saved: LookPack = {
-    ...pack,
-    source: 'saved',
-    characterId: character.id,
-    savedAt: Date.now(),
-  };
-  const entry: CharacterLookPack = {
-    id: newLookPackId(),
-    name: label,
-    savedAt: saved.savedAt,
-    pack: saved,
-  };
-  const existing = lookPacksOf(character);
-  upsertCharacter({
-    ...character,
-    looks: looksOf(character),
-    lookPacks: [entry, ...existing.filter(item => item.name !== label)].slice(0, MAX_LOOK_PACKS),
-    updatedAt: Date.now(),
-  });
-  return getCharacter(characterId);
-}
-
-export function removeCharacterLookPack(
-  characterId: string,
-  lookPackId: string
-): CharacterRecord | undefined {
-  const character = getCharacter(characterId);
-  const id = lookPackId.trim();
-  if (!character || !id) {
-    return character;
-  }
-  upsertCharacter({
-    ...character,
-    looks: looksOf(character),
-    lookPacks: lookPacksOf(character).filter(entry => entry.id !== id),
-    updatedAt: Date.now(),
-  });
-  return getCharacter(characterId);
 }
 
 export function characterHomeHref(id: string): string {
@@ -379,7 +281,8 @@ export function lookFromAppearance(
   };
 }
 
-function applyLookFields(character: CharacterRecord, look: CharacterLook): CharacterRecord {
+/** @internal shared with feature modules (play-cast.ts). */
+export function applyLookFields(character: CharacterRecord, look: CharacterLook): CharacterRecord {
   return {
     ...character,
     activeLookId: look.id,
@@ -439,13 +342,12 @@ export function normalizeCharacterRecord(character: CharacterRecord): CharacterR
   const rootDescriptor = character.descriptor?.trim()
     ? sanitizeCharacterAppearanceDescriptor(character.descriptor)
     : character.descriptor;
-  return applyLookFields(
+  const normalized = applyLookFields(
     {
       ...character,
       descriptor: rootDescriptor,
       loraLibraryIds: uniqueIds(character.loraLibraryIds),
       looks,
-      lookPacks: normalizeLookPacks(character.lookPacks),
       // Only when set — an extra undefined key would differ in strict deep-equal checks.
       ...('biblePicture' in character
         ? { biblePicture: normalizeCastBiblePicture(character.biblePicture) }
@@ -454,9 +356,20 @@ export function normalizeCharacterRecord(character: CharacterRecord): CharacterR
     },
     current
   );
+  return characterNormalizers.reduce((record, normalize) => normalize(record), normalized);
 }
 
-function readName(value: unknown): string {
+/** Features tidy their own Cast-record fields (Play: Look packs). Registered at app start. */
+export type CharacterNormalizer = (character: CharacterRecord) => CharacterRecord;
+
+const characterNormalizers: CharacterNormalizer[] = [];
+
+export function registerCharacterNormalizer(normalize: CharacterNormalizer): void {
+  if (!characterNormalizers.includes(normalize)) characterNormalizers.push(normalize);
+}
+
+/** @internal shared with feature modules (play-cast.ts). */
+export function readName(value: unknown): string {
   return typeof value === 'string' ? value.trim().slice(0, 80) : '';
 }
 
@@ -517,17 +430,18 @@ export function bundleFromCharacter(character: CharacterRecord): CharacterIdenti
 
 export function characterFromShared(
   shared: SharedToolSettings,
-  input: { name: string; hints?: string; bio?: RoleplayBio; notes?: string }
+  input: { name: string; hints?: string; notes?: string } & Partial<CharacterFeatureFields>
 ): CharacterRecord {
-  const name = input.name.trim();
+  const { name: rawName, hints, notes, ...feature } = input;
+  const name = rawName.trim();
   return {
     id: newCharacterId(),
     name,
     version: 1,
     updatedAt: Date.now(),
     descriptor: shared.activeCharacterDescriptor?.trim() || undefined,
-    hints: input.hints?.trim() || undefined,
-    bio: input.bio,
+    hints: hints?.trim() || undefined,
+    ...feature,
     ipAdapter: {
       imageFilename: shared.ipAdapterImageFilename?.trim() || undefined,
       imageFilenames: shared.ipAdapterImageFilenames,
@@ -544,7 +458,7 @@ export function characterFromShared(
     model: shared.model,
     detail: shared.detail,
     characterName: name,
-    notes: input.notes?.trim() || undefined,
+    notes: notes?.trim() || undefined,
   };
 }
 
@@ -576,10 +490,9 @@ export function characterFromPartnerStandIn(input: {
   };
 }
 
-export type CreateBlankCharacterOptions = {
+export type CreateBlankCharacterOptions = Partial<CharacterFeatureFields> & {
   personaId?: string;
   customPersona?: string;
-  playAs?: RoleplayPlayAs;
   /** Made from a photo: describe only the traits picked (describeChosenAppearance). */
   fromPhoto?: boolean;
 };
@@ -615,8 +528,22 @@ export function createBlankCharacter(
         }),
     ...(personaId ? { personaId } : {}),
     ...(customPersona ? { customPersona } : {}),
-    ...(options?.playAs ? { playAs: options.playAs } : {}),
+    ...featureFieldsOf(options),
   };
+}
+
+/** The feature fields in a create call's options (personaId / fromPhoto are this file's). */
+function featureFieldsOf(
+  options: CreateBlankCharacterOptions | undefined
+): Partial<CharacterFeatureFields> {
+  if (!options) return {};
+  const { personaId: _p, customPersona: _c, fromPhoto: _f, ...feature } = options;
+  void _p;
+  void _c;
+  void _f;
+  return Object.fromEntries(
+    Object.entries(feature).filter(([, value]) => Boolean(value))
+  ) as Partial<CharacterFeatureFields>;
 }
 
 function omitUndefinedSettings(
@@ -744,93 +671,6 @@ export function castLoraSessionIds(
   return uniqueIds(character?.loraLibraryIds);
 }
 
-export function characterFromRoleplaySession(
-  session: RoleplayLibrarySession
-): CharacterRecord | null {
-  const snapshot = session.snapshot;
-  const name =
-    readName(session.title) || readName(snapshot.characterName) || readName(snapshot.bio?.name);
-  if (!name) {
-    return null;
-  }
-  return {
-    id: castIdForRoleplaySession(session.id),
-    name,
-    version: 1,
-    updatedAt: session.updatedAt || Date.now(),
-    descriptor: snapshot.bio?.look?.trim() || undefined,
-    bio: snapshot.bio,
-    reference: {
-      originalUrl: snapshot.referenceOriginalUrl,
-      originalFilename: snapshot.referenceOriginalFilename,
-      isolatedUrl: snapshot.referenceImageUrl,
-      isolatedFilename: snapshot.referenceImageFilename,
-      isolated: snapshot.referenceIsolated,
-      isolateSubject: snapshot.isolateSubject,
-    },
-    ipAdapter: snapshot.referenceImageFilename
-      ? {
-          imageFilename: snapshot.referenceImageFilename,
-          imageUrl: snapshot.referenceImageUrl,
-        }
-      : undefined,
-    personaId: snapshot.personaId,
-    customPersona: snapshot.customPersona,
-    characterName: snapshot.characterName,
-    setting: snapshot.setting,
-    tone: snapshot.tone,
-    content: snapshot.content,
-    playAs: snapshot.playAs,
-  };
-}
-
-export function mergeMigratedCharacters(input: {
-  existing: CharacterRecord[];
-  bundles?: CharacterIdentityBundle[];
-  roleplaySessions?: RoleplayLibrarySession[];
-}): CharacterRecord[] {
-  const merged = new Map<string, CharacterRecord>();
-  for (const character of input.existing) {
-    if (character.id) {
-      merged.set(character.id, character);
-    }
-  }
-
-  const nameOwner = (name: string) =>
-    [...merged.values()].find(entry => slugCharacterName(entry.name) === slugCharacterName(name));
-
-  for (const bundle of input.bundles ?? []) {
-    const key = slugCharacterName(bundle.name);
-    if (!key || nameOwner(bundle.name)) {
-      continue;
-    }
-    const record = characterFromBundle(bundle);
-    merged.set(record.id, record);
-  }
-
-  for (const session of input.roleplaySessions ?? []) {
-    const converted = characterFromRoleplaySession(session);
-    if (!converted || merged.has(converted.id)) {
-      continue;
-    }
-    // A Cast already owns this session: session "cast-<id>" is owned by Cast "<id>" or by the
-    // "char-rp-cast-<id>" copy an older version made. Importing it again as "<id>" beside that
-    // copy put a second Cast with the same name in the roster on every fresh browser.
-    if ([...merged.keys()].some(id => roleplaySessionIdForCast(id) === session.id)) {
-      continue;
-    }
-    const clash = nameOwner(converted.name);
-    if (clash && !clash.id.startsWith('char-rp-')) {
-      continue;
-    }
-    merged.set(converted.id, converted);
-  }
-
-  return [...merged.values()]
-    .sort((left, right) => right.updatedAt - left.updatedAt)
-    .slice(0, MAX_CHARACTERS);
-}
-
 function emptyStore(): CharacterStore {
   return { version: 1, migratedFromBundles: false, characters: [], removedIds: [] };
 }
@@ -855,7 +695,8 @@ export function applyRemovedCharacterIds(
   return characters.filter(entry => !removed.has(entry.id));
 }
 
-function readStore(): CharacterStore {
+/** @internal shared with feature modules (play-cast.ts). */
+export function readStore(): CharacterStore {
   const raw = readBrowserValue<CharacterStore>(CHARACTERS_KEY);
   if (!raw || raw.version !== 1 || !Array.isArray(raw.characters)) {
     return emptyStore();
@@ -874,7 +715,8 @@ function readStore(): CharacterStore {
   };
 }
 
-function writeStore(store: CharacterStore): void {
+/** @internal shared with feature modules (play-cast.ts). */
+export function writeStore(store: CharacterStore): void {
   writeBrowserValue(CHARACTERS_KEY, {
     version: 1,
     migratedFromBundles: store.migratedFromBundles,
@@ -892,44 +734,13 @@ export function loadCharacters(): CharacterRecord[] {
   return store.characters;
 }
 
-export function migrateCharactersFromLegacy(input: {
-  bundles?: CharacterIdentityBundle[];
-  roleplaySessions?: RoleplayLibrarySession[];
-}): CharacterRecord[] {
-  const store = readStore();
-  const firstImport = !store.migratedFromBundles;
-  const characters = applyRemovedCharacterIds(
-    mergeMigratedCharacters({
-      existing: store.characters,
-      bundles: firstImport ? input.bundles : [],
-      roleplaySessions: input.roleplaySessions,
-    }),
-    store.removedIds
-  );
-  const existingIds = new Set(store.characters.map(entry => entry.id));
-  const importedNew = characters.some(entry => !existingIds.has(entry.id));
-  if (!firstImport && !importedNew) {
-    return store.characters;
-  }
-  // A migration is not an edit: on a fresh browser it runs while the startup pull is in flight,
-  // and counting its empty list as a local write kept it over the server's characters.
-  withSuppressedDurableSyncPush(() =>
-    writeStore({
-      version: 1,
-      migratedFromBundles: true,
-      characters,
-      removedIds: store.removedIds,
-    })
-  );
-  return characters;
-}
-
 /** Create or refresh a Cast record from a Roleplay library session without clobbering looks. */
 /**
  * The Story session id for a Cast id (as roleplay-library's roleplayLibraryIdForCharacter): a
  * Story-made Cast "char-rp-<session>" owns "<session>", any other Cast "<id>" owns "cast-<id>".
  */
-function roleplaySessionIdForCast(characterId: string): string {
+/** @internal shared with feature modules (play-cast.ts). */
+export function roleplaySessionIdForCast(characterId: string): string {
   return characterId.startsWith('char-rp-')
     ? characterId.slice('char-rp-'.length)
     : `cast-${characterId}`;
@@ -947,37 +758,6 @@ export function castIdForRoleplaySession(sessionId: string): string {
     return sessionId.slice('cast-'.length);
   }
   return `char-rp-${sessionId}`;
-}
-
-export function upsertCharacterFromRoleplaySession(
-  session: RoleplayLibrarySession
-): CharacterRecord | undefined {
-  const converted = characterFromRoleplaySession(session);
-  if (!converted) {
-    return undefined;
-  }
-  const existing = loadCharacters();
-  // The Cast this session belongs to: the one it was opened from (session "cast-<id>" for Cast
-  // "<id>"), or a copy an older version made under "char-rp-cast-<id>". The Cast's own record
-  // wins over that copy.
-  const owners = existing.filter(entry => roleplaySessionIdForCast(entry.id) === session.id);
-  const prev =
-    owners.find(entry => !entry.id.startsWith('char-rp-')) ??
-    owners[0] ??
-    existing.find(entry => entry.id === converted.id);
-  if (prev) {
-    upsertCharacter({
-      ...converted,
-      id: prev.id,
-      looks: looksOf(prev),
-      loraLibraryIds: prev.loraLibraryIds,
-      loraTriggerPhrases: prev.loraTriggerPhrases,
-      filmCut: prev.filmCut,
-    });
-    return getCharacter(prev.id);
-  }
-  upsertCharacter(converted);
-  return getCharacter(converted.id);
 }
 
 export function saveCharacters(characters: CharacterRecord[]): CharacterRecord[] {
@@ -1077,51 +857,6 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     return false;
   });
   return saveCharacters([nextRecord, ...without]);
-}
-
-/**
- * Persist a Story bible onto a Cast lead — updates bio, display name, and active look
- * descriptor so normalize/applyLookFields cannot clobber the bible look.
- */
-export function saveCharacterBio(
-  characterId: string,
-  bio: RoleplayBio
-): CharacterRecord | undefined {
-  const id = characterId.trim();
-  if (!id) {
-    return undefined;
-  }
-  const character = getCharacter(id);
-  if (!character) {
-    return undefined;
-  }
-  const name = bio.name.trim() || character.name;
-  const look = bio.look.trim();
-  const looks = looksOf(character);
-  const current = looks.find(entry => entry.id === character.activeLookId) ?? looks[0]!;
-  // The bible is Story's. Its look became the Cast's physical description too, and story
-  // wording (clothes, mood, a raccoon's tricorn) went into Day and Look prompts. It still seeds
-  // the description of a Cast that has none (one made from a Story).
-  const seedsDescription =
-    Boolean(look) && !current.descriptor?.trim() && !character.descriptor?.trim();
-  const nextLooks = seedsDescription
-    ? looks.map(entry => (entry.id === current.id ? { ...entry, descriptor: look } : entry))
-    : looks;
-  upsertCharacter({
-    ...character,
-    name,
-    characterName: name,
-    bio: {
-      name,
-      look: look || character.bio?.look || character.descriptor || name,
-      personality: bio.personality.trim(),
-      ...(bio.catchphrase?.trim() ? { catchphrase: bio.catchphrase.trim() } : {}),
-    },
-    descriptor: seedsDescription ? look : character.descriptor,
-    looks: nextLooks,
-    activeLookId: current.id,
-  });
-  return getCharacter(id);
 }
 
 /** Drop the Cast bible (and linked Story session bio) so rewrite starts clean. */
@@ -1480,26 +1215,6 @@ export function pinLoraOnCharacter(
     ...character,
     looks: looksOf(character),
     loraLibraryIds: uniqueIds([...(character.loraLibraryIds ?? []), id]),
-    updatedAt: Date.now(),
-  });
-  return getCharacter(characterId);
-}
-
-export function saveCharacterFilmCut(
-  characterId: string,
-  filmCut: CharacterFilmCut
-): CharacterRecord | undefined {
-  const character = getCharacter(characterId);
-  if (!character) {
-    return undefined;
-  }
-  upsertCharacter({
-    ...character,
-    looks: looksOf(character),
-    filmCut: {
-      ...filmCut,
-      updatedAt: Date.now(),
-    },
     updatedAt: Date.now(),
   });
   return getCharacter(characterId);

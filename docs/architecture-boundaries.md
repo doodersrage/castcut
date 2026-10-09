@@ -57,6 +57,10 @@ Shared code exposes a registration point (`registerCastChangeScrubber` in `setti
 
 Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play-settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`settings-cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
 
+### Cast records
+
+The Cast store (`character-os.ts`) is shared: Gallery filters, identity lock, LoRA training and IP-Adapter use it. Play's parts of a record (Story bio/tone/content/playAs, film cut, Look packs) are declared in `lib/play-cast.ts` through `CharacterFeatureFields`, together with the functions that use them. Their normaliser is registered with `registerCharacterNormalizer`. The record normaliser keeps any field it does not name, so feature data survives where the feature isn't loaded; `character-feature-fields.test.ts` guards this.
+
 ### UI slots and flags
 
 Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app-flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play-features.ts`.

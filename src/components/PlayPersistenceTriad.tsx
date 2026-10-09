@@ -11,7 +11,8 @@ import {
   PLAY_CAMPAIGN_UPDATED_EVENT,
   playCampaignProgressLabel,
 } from '@/lib/play-campaign';
-import { getCharacter, lookPacksOf } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character-os';
+import { lookPacksOf } from '@/lib/play-cast';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 type PlayPersistenceTriadProps = {

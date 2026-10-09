@@ -7,7 +7,7 @@ import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import {
   buildCastBiblePictureNegative,
   buildCastBiblePicturePrompt,
-} from '@/lib/cast-bible-picture';
+} from '@/lib/character-bible-picture';
 import {
   activeLook,
   getCharacter,
@@ -143,7 +143,7 @@ export default function CastBiblePictureButton({
       size="sm"
       loading={phase !== 'idle'}
       loadingLabel={phase === 'preparing' ? 'Preparing the face' : 'Rendering the picture'}
-      data-testid="cast-bible-picture"
+      data-testid="character-bible-picture"
       title="One full-body still of this Cast as the bible describes them"
       onClick={() => void picture()}
     >

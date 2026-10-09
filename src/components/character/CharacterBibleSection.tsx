@@ -12,10 +12,10 @@ import {
   activeLook,
   clearCharacterBio,
   getCharacter,
-  saveCharacterBio,
   upsertCharacter,
   type CharacterRecord,
 } from '@/lib/character-os';
+import { saveCharacterBio } from '@/lib/play-cast';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
 import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
@@ -327,7 +327,7 @@ export default function CharacterBibleSection({
               Clear bible
             </Button>
           </div>
-          <div className="mt-4" data-testid="cast-bible-picture-block">
+          <div className="mt-4" data-testid="character-bible-picture-block">
             {hasPicture ? (
               <CastBiblePictureButton
                 character={character}
@@ -342,7 +342,7 @@ export default function CharacterBibleSection({
             ) : (
               <p
                 className="type-caption text-[var(--text-muted)]"
-                data-testid="cast-bible-picture-hint"
+                data-testid="character-bible-picture-hint"
               >
                 Add a look plate on Overview first to picture this bible — the picture keeps the
                 face from it.
@@ -351,7 +351,7 @@ export default function CharacterBibleSection({
             {pictureError ? (
               <p
                 className="type-caption mt-2 text-[var(--danger-text)]"
-                data-testid="cast-bible-picture-error"
+                data-testid="character-bible-picture-error"
               >
                 {pictureError}
               </p>
@@ -362,7 +362,7 @@ export default function CharacterBibleSection({
                 className="mt-3 block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 aria-label="Open the bible picture full size"
                 title="View larger"
-                data-testid="cast-bible-picture-open"
+                data-testid="character-bible-picture-open"
                 onClick={() =>
                   setLightbox({
                     images: [biblePictureUrl],
@@ -376,7 +376,7 @@ export default function CharacterBibleSection({
                   src={biblePictureUrl}
                   alt={`${bio.name} as the bible describes them`}
                   className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-                  data-testid="cast-bible-picture-image"
+                  data-testid="character-bible-picture-image"
                 />
               </button>
             ) : null}

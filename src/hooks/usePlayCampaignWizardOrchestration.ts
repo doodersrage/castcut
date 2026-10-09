@@ -7,16 +7,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import {
-  addCharacterLookPack,
   applyCharacterRecord,
   applyCharacterRecordFresh,
   characterFromShared,
   createBlankCharacter,
   getCharacter,
-  getCharacterLookPack,
-  lookPacksOf,
   upsertCharacter,
 } from '@/lib/character-os';
+import { addCharacterLookPack, getCharacterLookPack, lookPacksOf } from '@/lib/play-cast';
 import type {
   CharacterAppearanceDraft,
   CharacterAppearanceFormDraft,
