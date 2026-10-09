@@ -180,11 +180,13 @@ write(
       build: 'next build',
       start: 'next start -p 47833',
       typecheck: 'tsc --noEmit',
+      // Regenerate the route wrappers from the installed core (after updating it).
+      'sync-routes': 'prompt-studio-sync-routes',
     },
     dependencies: {
-      [core]: existing.dependencies?.[core]?.startsWith('file:')
-        ? existing.dependencies[core]
-        : coreVersion,
+      // --core-version sets it; otherwise the repo keeps the core it has (a first export takes
+      // Castcut's version).
+      [core]: arg('--core-version') ?? existing.dependencies?.[core] ?? coreVersion,
       ...pick(['next', 'react', 'react-dom', 'sharp']),
     },
     devDependencies: pick(['typescript', '@types/node', '@types/react', '@types/react-dom']),
@@ -202,6 +204,13 @@ next-env.d.ts
 `
 );
 cpSync(join(root, '.env.example'), join(target, '.env.example'));
+// The Castcut node pack file Settings → ComfyUI copy-installs (api/castcut-nodes/file reads it
+// from the app folder; the shared Next config traces it into the build).
+mkdirSync(join(target, 'comfyui-nodes/castcut'), { recursive: true });
+cpSync(
+  join(root, 'comfyui-nodes/castcut/castcut_nodes.py'),
+  join(target, 'comfyui-nodes/castcut/castcut_nodes.py')
+);
 cpSync(join(root, 'LICENSE'), join(target, 'LICENSE'));
 write(
   '.github/workflows/ci.yml',
@@ -223,6 +232,60 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+`
+);
+write(
+  '.github/workflows/core-update.yml',
+  `# Daily: when npm has a newer prompt-studio-core, install it, regenerate the route wrappers,
+# build, and open a pull request. (A PR opened by GITHUB_TOKEN does not start other workflows;
+# this job's own build is the check.)
+name: Update prompt-studio-core
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - id: version
+        run: |
+          latest=$(npm view ${core} version)
+          current=$(node -p "require('./package.json').dependencies['${core}'].replace(/^[^0-9]*/, '')")
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$latest" != "$current" ]; then echo "update=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.version.outputs.update == 'true'
+        run: |
+          npm install ${core}@^\${{ steps.version.outputs.latest }} --save --no-audit --no-fund
+          npm run sync-routes
+          npm run build
+      - if: steps.version.outputs.update == 'true'
+        env:
+          GH_TOKEN: \${{ github.token }}
+          VERSION: \${{ steps.version.outputs.latest }}
+        run: |
+          branch="core-$VERSION"
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            echo "$branch already open"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "${core} $VERSION"
+          git push origin "$branch"
+          gh pr create --title "${core} $VERSION" --body "Updates ${core} to $VERSION and regenerates the route wrappers (npm run sync-routes). Built in this workflow before opening."
 `
 );
 if (!existsSync(join(target, 'README.md'))) {
@@ -258,4 +321,6 @@ MIT — see [LICENSE](./LICENSE).
 `
   );
 }
-console.log(`Prompt Studio written to ${target} (core ${core}@${coreVersion})`);
+console.log(
+  `Prompt Studio written to ${target} (core ${core}@${JSON.parse(readFileSync(join(target, 'package.json'), 'utf8')).dependencies[core]})`
+);

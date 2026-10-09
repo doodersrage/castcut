@@ -127,6 +127,16 @@ for (const file of [...files].sort()) {
   writeFileSync(target, source);
 }
 cpSync(join(root, 'next.config.base.cjs'), join(out, 'next.config.base.cjs'));
+// prompt-studio-sync-routes: the app regenerates its route wrappers from this package.
+mkdirSync(join(out, 'bin'), { recursive: true });
+cpSync(join(root, 'scripts/classic-wrappers.mjs'), join(out, 'bin/classic-wrappers.mjs'));
+cpSync(join(root, 'scripts/core-sync-routes.mjs'), join(out, 'bin/sync-routes.mjs'));
+// The Castcut node pack file Settings → ComfyUI copy-installs (sync-routes copies it into the app).
+mkdirSync(join(out, 'comfyui-nodes/castcut'), { recursive: true });
+cpSync(
+  join(root, 'comfyui-nodes/castcut/castcut_nodes.py'),
+  join(out, 'comfyui-nodes/castcut/castcut_nodes.py')
+);
 
 const allDeps: Record<string, string> = { ...castcut.devDependencies, ...castcut.dependencies };
 // Native or framework packages the app installs once at its top level (sharp: Next uses it too).
@@ -170,7 +180,13 @@ writeFileSync(
         url: 'git+https://github.com/doodersrage/castcut.git',
         directory: 'packages/prompt-studio-core',
       },
-      files: [...new Set([...files].map(file => file.split('/')[0]!)), 'next.config.base.cjs'],
+      files: [
+        ...new Set([...files].map(file => file.split('/')[0]!)),
+        'next.config.base.cjs',
+        'bin',
+        'comfyui-nodes',
+      ],
+      bin: { 'prompt-studio-sync-routes': 'bin/sync-routes.mjs' },
       sideEffects: true,
       dependencies,
       peerDependencies,
