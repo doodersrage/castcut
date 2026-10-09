@@ -771,7 +771,10 @@ function soloPlacement(
         ? `She lies on her back on ${on('bed')}, head on the pillow, both knees pulled up toward her chest, feet in the air — two legs only.`
         : `She lies on her back on ${on('bed')}, head on the pillow, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
     case 'side_lying':
-      return `She lies on her side on ${on('bed')}, bottom leg straight and top knee raised high, facing the camera.`;
+      // "Top knee raised high" shot the top leg straight up in a near-split (4/7 of the user's own
+      // renders of one beat, re-rolled in six sessions; 3/3 replays). Knee drawn forward, foot on
+      // the mattress: a natural side-lying pose 3/3, map kept (2026-10-09).
+      return `She lies on her side on ${on('bed')} facing the camera, bottom leg straight along the mattress; her top leg is bent, the knee drawn forward toward her chest and that foot resting flat on the mattress in front of her bottom knee.`;
     case 'prone':
       // Live 2026-09-27: "face-down … cheek on the pillow" rendered her on her back 3/3 (the
       // side-view guide can't say which way she faces); naming back-up/breasts-down got 3/4.
