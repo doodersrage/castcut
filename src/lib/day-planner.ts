@@ -1878,7 +1878,7 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'biting a lip while checking a flirtatious text — weight on one hip, dress strap slipping, hand on the doorframe',
     'perched on a couch arm in a short dress, legs crossed high, leaning forward with charged eye contact, never a stiff standing catalog pose',
     'twisting to zip a dress in a mirror — torso twisted, back arched, both hands on the zipper behind her back, looking over a shoulder, lingerie straps visible, afternoon light — never square-on facing the lens',
-    "standing at a sunlit window in only an unbuttoned oversized white shirt, one hand gripping the shirt's two front edges together over her chest, lace panties, bare legs, hip against the frame",
+    'standing at a sunlit window in only an oversized white shirt, half-buttoned and slipping off one shoulder, lace panties, bare legs, hip against the frame',
     'lying on her stomach across the bed in lace panties, bare back to the camera, her chest pressed into the mattress, chin on her folded arms, smiling over one shoulder',
     'reclining on a velvet chaise in black lingerie, stockings and a garter belt — one knee raised, arms stretched over her head, eyes half-closed',
   ],
@@ -1901,7 +1901,7 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
     'lying on her side on the hotel bed in lingerie — propped on one elbow, knees drawn up, charged quiet, never nude',
     'perched on a chair backwards in a short dress after dark — arms on the chair back, looking over a shoulder, bottoms on',
     'lying on her side in bed facing the camera, the white sheet tucked under her arms across her chest and drawn over her hips, bare shoulders, hair spread on the pillow, lamp glow',
-    "leaning in a dark doorway in only an oversized white dress shirt, unbuttoned, one hand gripping the shirt's two front edges together over her chest, bare legs, hip against the frame",
+    'leaning in a dark doorway in only an oversized white dress shirt, half-buttoned, bare legs, hip against the frame, one hand on the doorframe',
     'lying back across the hotel bed in black lace lingerie and stockings, legs up against the headboard, arms over her head, city glow',
   ],
 };
