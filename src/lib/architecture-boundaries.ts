@@ -20,9 +20,16 @@ export const PLAY_LAYER_RE = new RegExp(
     ')'
 );
 
-export function isPlayLayer(path: string): boolean {
-  return PLAY_LAYER_RE.test(path);
+/**
+ * Play files outside the Play folders and names (architecture/play-owned.json): used only by Play
+ * — the pose editor, the wardrobe pickers, Story's writer, Play API routes. They move into the
+ * Castcut app in step 4; until then the list says they belong to Play.
+ */
+export function isPlayLayer(path: string, owned: ReadonlySet<string> = NO_OWNED): boolean {
+  return PLAY_LAYER_RE.test(path) || owned.has(path);
 }
+
+const NO_OWNED: ReadonlySet<string> = new Set();
 
 /**
  * Castcut's composition root: the one place the app wires Play in (PlayFeatures registers Play's
@@ -64,10 +71,15 @@ export function readImports(source: string): { spec: string; typeOnly: boolean }
 }
 
 /** Edges from outside the Play layer into it — what the baseline records and the test ratchets. */
-export function playBoundaryEdges(edges: readonly ImportEdge[]): ImportEdge[] {
+export function playBoundaryEdges(
+  edges: readonly ImportEdge[],
+  owned: ReadonlySet<string> = NO_OWNED
+): ImportEdge[] {
   return edges.filter(
     edge =>
-      isPlayLayer(edge.to) && !isPlayLayer(edge.from) && !PLAY_COMPOSITION_ROOTS.has(edge.from)
+      isPlayLayer(edge.to, owned) &&
+      !isPlayLayer(edge.from, owned) &&
+      !PLAY_COMPOSITION_ROOTS.has(edge.from)
   );
 }
 

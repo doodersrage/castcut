@@ -12,6 +12,9 @@ import {
 
 const ROOT = join(dirname(new URL(import.meta.url).pathname), '..', '..');
 const BASELINE = join(ROOT, 'architecture', 'play-boundary-baseline.json');
+const OWNED = new Set<string>(
+  JSON.parse(readFileSync(join(ROOT, 'architecture', 'play-owned.json'), 'utf8')) as string[]
+);
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -75,8 +78,13 @@ describe('architecture: Play layer boundary', () => {
     ]);
   });
 
+  it('every Play-owned path exists', () => {
+    const missing = [...OWNED].filter(path => !existsSync(join(ROOT, path)));
+    assert.deepEqual(missing, [], 'Remove moved or deleted files from architecture/play-owned.json');
+  });
+
   it('no new imports into Play from outside it; the baseline only shrinks', () => {
-    const current = playBoundaryEdges(repoEdges());
+    const current = playBoundaryEdges(repoEdges(), OWNED);
     const baseline = new Set<string>(JSON.parse(readFileSync(BASELINE, 'utf8')) as string[]);
     const now = new Set(current.map(edgeKey));
     const added = [...now].filter(key => !baseline.has(key)).sort();

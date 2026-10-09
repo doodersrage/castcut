@@ -12,6 +12,8 @@ Goal (2026-10-09): declutter Castcut and give the classic Prompt Studio tools a 
 
 The rule is one-way: nothing outside Play imports Play.
 
+Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: files outside the Play folders that only Play uses. These include the pose editor, the wardrobe pickers, Story's writer, the Play API routes and the mobile Play pages, found by reachability from the shared app routes. They move into the Castcut app in step 4.
+
 ## The guard
 
 `src/lib/architecture-boundaries.test.ts` builds the import graph of `src/` on every `npm test` and CI run, and compares the imports that cross into Play against `architecture/play-boundary-baseline.json`:
