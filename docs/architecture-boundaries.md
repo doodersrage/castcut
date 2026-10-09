@@ -59,6 +59,6 @@ Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="ho
 
 ### Data hooks
 
-Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook` and `registerCastChangeScrubber`.
+Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook`, `registerCastChangeScrubber`, `registerPoseTargetGroup` (where the Gallery pose dialog can send a pose) and `registerQueueJobDescriber` (Queue page labels, and "Run next" repointing). Pose data shapes live in `lib/pose-types.ts`.
 
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.

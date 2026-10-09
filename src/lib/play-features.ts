@@ -17,6 +17,10 @@ import { clearLookPack, loadLookPack, LOOK_PACK_KEY } from './look-pack';
 import { PLAY_METRICS_KEY, savePlayMetrics } from './play-metrics';
 import { registerLocalDataReset } from './local-data-reset';
 import { registerResumeCta } from './empty-cta';
+import { registerPoseTargetGroup } from './pose-targets';
+import { registerQueueJobDescriber } from './queue-job-context';
+import { PLAY_QUEUE_JOB_DESCRIBER } from './play-queue-jobs';
+import { PLAY_POSE_TARGET_GROUPS } from './play-pose-targets';
 import { loadLocalObservability } from './local-observability';
 import { loadOnboardingState } from './onboarding-store';
 
@@ -73,3 +77,9 @@ registerResumeCta(({ countStarterFilm }) => {
   });
   return { label: next.label, href: next.href };
 });
+
+// Gallery pose dialog: send a read pose to a Day slot or a Story beat.
+for (const group of PLAY_POSE_TARGET_GROUPS) registerPoseTargetGroup(group);
+
+// Queue page: Day slot / Story beat labels, and Run next keeps them pointed at the job.
+registerQueueJobDescriber('play', PLAY_QUEUE_JOB_DESCRIBER);

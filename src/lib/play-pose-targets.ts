@@ -4,7 +4,7 @@
  * settings wrappers.
  */
 
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/pose-types';
 import type { DaySlot } from '@/lib/day-planner';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
 import { loadSettingsCache, saveToolSettings } from '@/lib/settings-cache';
@@ -35,7 +35,7 @@ export function withStoryBeatPose(
   );
 }
 
-export type PoseTargetOption = { key: string; label: string };
+import type { PoseTargetGroup, PoseTargetOption } from '@/lib/pose-targets';
 
 /** Day slots the pose can go to (label · beat). */
 export function daySlotPoseTargets(): PoseTargetOption[] {
@@ -66,3 +66,25 @@ export function applyPoseToStoryBeat(beatKey: string, pose: PhotoPose): void {
   const story = (loadSettingsCache().tools.roleplay?.story ?? []) as RoleplayStoryBeat[];
   saveToolSettings('roleplay', { story: withStoryBeatPose(story, beatKey, pose) });
 }
+
+/** Play's pose targets for the Gallery pose dialog (registered by play-features.ts). */
+export const PLAY_POSE_TARGET_GROUPS: PoseTargetGroup[] = [
+  {
+    id: 'day',
+    heading: 'Use for a Day slot',
+    pickerLabel: 'Day slot',
+    options: daySlotPoseTargets,
+    apply: applyPoseToDaySlot,
+    doneText: 'Day slot will draw this pose.',
+    href: '/day',
+  },
+  {
+    id: 'story',
+    heading: 'Use for a Story beat',
+    pickerLabel: 'Story beat',
+    options: storyBeatPoseTargets,
+    apply: applyPoseToStoryBeat,
+    doneText: "The beat's next queue or retry draws this pose.",
+    href: '/story',
+  },
+];

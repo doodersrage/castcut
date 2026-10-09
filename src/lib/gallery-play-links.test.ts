@@ -9,7 +9,7 @@ import {
 } from './comfyui-gallery';
 import type { PhotoPose } from './day-pose-guide';
 import type { DaySlot } from './day-planner';
-import { storyBeatKey, withDaySlotPose, withStoryBeatPose } from './gallery-pose-targets';
+import { storyBeatKey, withDaySlotPose, withStoryBeatPose } from './play-pose-targets';
 import { galleryToolHrefForEntry, galleryToolLabel } from './gallery-tool-href';
 import { applyGalleryUrlState, parseGalleryUrlState } from './gallery-url-state';
 import type { RoleplayStoryBeat } from './roleplay';

@@ -10,7 +10,7 @@ import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/pose-types';
 import { POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
 
 export { POSE_IMPORT_LAYOUTS };

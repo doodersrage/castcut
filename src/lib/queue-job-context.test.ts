@@ -3,12 +3,8 @@ import { describe, it } from 'node:test';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import type { DaySlot, DaySlotStill } from './day-planner';
 import { estimateQueueEta, formatEta, typicalRenderMs } from './queue-eta';
-import {
-  buildPlayJobIndex,
-  describeQueueJob,
-  groupQueueJobs,
-  repointPlayJobIds,
-} from './queue-job-context';
+import { describeQueueJob, groupQueueJobs } from './queue-job-context';
+import { buildPlayJobIndex, playJobLabeller, repointPlayJobIds } from './play-queue-jobs';
 import type { RoleplayStoryBeat } from './roleplay';
 
 const slots: DaySlot[] = [
@@ -43,7 +39,7 @@ const entry = (overrides: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry =>
 });
 
 describe('what a queue job is', () => {
-  const index = buildPlayJobIndex({ daySlots: slots, dayStills: stills, story });
+  const index = playJobLabeller(buildPlayJobIndex({ daySlots: slots, dayStills: stills, story }));
 
   it('names Day slots and clips, with the Cast and a link back', () => {
     const job = describeQueueJob({ promptId: 'p-e', tool: 'day', characterId: 'c1' }, index, 'Robin');
@@ -140,7 +136,7 @@ describe('time left', () => {
   });
 
   it('a Day or Outfit still filed under the edit pipeline is labelled by what it is', () => {
-    const index = buildPlayJobIndex({ daySlots: [], dayStills: [], story: [] });
+    const index = playJobLabeller(buildPlayJobIndex({ daySlots: [], dayStills: [], story: [] }));
     const day = describeQueueJob(
       {
         promptId: 'gone',

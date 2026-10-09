@@ -9,7 +9,7 @@
  * like the preprocessor output the model saw in training.
  */
 
-import type { StickSkeleton } from '@/lib/day-pose-guide';
+import type { StickSkeleton } from '@/lib/pose-types';
 
 type Point = { x: number; y: number };
 

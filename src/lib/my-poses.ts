@@ -9,7 +9,7 @@ import {
   readBrowserValue,
   writeBrowserValue,
 } from '@/lib/browser-storage';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/pose-types';
 
 export const MY_POSES_STORAGE_KEY = 'comfy-my-poses-v1';
 export const MY_POSES_CHANGED_EVENT = 'comfy-my-poses-changed';

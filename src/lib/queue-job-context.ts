@@ -5,71 +5,7 @@
  */
 
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import type { DaySlot, DaySlotStill } from './day-planner';
 import { galleryToolHrefForEntry, galleryToolLabel } from './gallery-tool-href';
-import type { RoleplayStoryBeat } from './roleplay';
-
-type PlayJobRef =
-  | { tool: 'day'; slotLabel: string; kind: 'still' | 'clip' }
-  | { tool: 'story'; index: number; title: string; kind: 'still' | 'clip'; retry: boolean };
-
-/** Prompt id → the Day slot / Story beat it renders. */
-export type PlayJobIndex = Map<string, PlayJobRef>;
-
-export function buildPlayJobIndex(input: {
-  daySlots?: DaySlot[];
-  dayStills?: DaySlotStill[];
-  story?: RoleplayStoryBeat[];
-}): PlayJobIndex {
-  const index: PlayJobIndex = new Map();
-  const labels = new Map((input.daySlots ?? []).map(slot => [slot.id, slot.label]));
-  for (const still of input.dayStills ?? []) {
-    const slotLabel = labels.get(still.slotId) ?? still.slotId;
-    if (still.promptId?.trim())
-      index.set(still.promptId.trim(), { tool: 'day', slotLabel, kind: 'still' });
-    if (still.clipPromptId?.trim()) {
-      index.set(still.clipPromptId.trim(), { tool: 'day', slotLabel, kind: 'clip' });
-    }
-  }
-  (input.story ?? []).forEach((beat, beatIndex) => {
-    const title = beat.title?.trim() || 'Beat';
-    const takes = beat.stillTakes ?? [];
-    takes.forEach((take, takeIndex) => {
-      const id = take.promptId?.trim();
-      if (id)
-        index.set(id, {
-          tool: 'story',
-          index: beatIndex,
-          title,
-          kind: 'still',
-          retry: takeIndex > 0,
-        });
-    });
-    if (beat.promptId?.trim() && !index.has(beat.promptId.trim())) {
-      index.set(beat.promptId.trim(), {
-        tool: 'story',
-        index: beatIndex,
-        title,
-        kind: 'still',
-        retry: takes.length > 1,
-      });
-    }
-    for (const take of beat.clipTakes ?? []) {
-      const id = take.clipPromptId?.trim();
-      if (id) index.set(id, { tool: 'story', index: beatIndex, title, kind: 'clip', retry: false });
-    }
-    if (beat.clipPromptId?.trim() && !index.has(beat.clipPromptId.trim())) {
-      index.set(beat.clipPromptId.trim(), {
-        tool: 'story',
-        index: beatIndex,
-        title,
-        kind: 'clip',
-        retry: false,
-      });
-    }
-  });
-  return index;
-}
 
 export type QueueJobLabel = {
   /** "Day · Evening · Robin", "Story · beat 3 “The letter” · retry", "Refine · Robin". */
@@ -97,42 +33,21 @@ export function inferPlayToolFromPrompt(
   return null;
 }
 
+/** A feature's own label for a job it queued, or null (the generic label applies). */
+export type QueueJobLabeller = (
+  entry: Pick<ComfyGalleryEntry, 'promptId' | 'tool' | 'characterId'> & { prompt?: string },
+  castName?: string | null
+) => QueueJobLabel | null;
+
 export function describeQueueJob(
   entry: Pick<ComfyGalleryEntry, 'promptId' | 'tool' | 'characterId'> & { prompt?: string },
-  index: PlayJobIndex,
+  labeller: QueueJobLabeller | null | undefined,
   castName?: string | null
 ): QueueJobLabel {
-  const ref = entry.promptId ? index.get(entry.promptId.trim()) : undefined;
+  const own = labeller?.(entry, castName);
+  if (own) return own;
   const cast = castName?.trim();
-  const href = galleryToolHrefForEntry({
-    tool: ref?.tool === 'day' ? 'day' : ref?.tool === 'story' ? 'roleplay' : entry.tool,
-    characterId: entry.characterId,
-  });
-  if (ref?.tool === 'day') {
-    return {
-      label: ['Day', ref.slotLabel, ref.kind === 'clip' ? 'clip' : null, cast]
-        .filter(Boolean)
-        .join(' · '),
-      href,
-      openLabel: 'Open in Day',
-      source: 'day',
-    };
-  }
-  if (ref?.tool === 'story') {
-    return {
-      label: [
-        'Story',
-        `beat ${ref.index + 1} “${ref.title}”`,
-        ref.kind === 'clip' ? 'clip' : ref.retry ? 'retry' : null,
-        cast,
-      ]
-        .filter(Boolean)
-        .join(' · '),
-      href,
-      openLabel: 'Open in Story',
-      source: 'story',
-    };
-  }
+  const href = galleryToolHrefForEntry({ tool: entry.tool, characterId: entry.characterId });
   const inferred =
     entry.tool === 'image-prompt' || entry.tool === 'imagePrompt'
       ? inferPlayToolFromPrompt(entry.prompt)
@@ -191,47 +106,35 @@ export function groupQueueJobs<
 }
 
 /**
- * After a job is resubmitted under a new prompt id, point the Day slot / Story beat that was
- * waiting on it at the new id. Returns null when nothing referenced the old id.
+ * Features that know which of their records a job renders (Play: Day slots, Story beats —
+ * play-queue-jobs.ts) label it on the Queue page and keep the record pointed at it after "Run
+ * next" resubmits it. docs/architecture-boundaries.md.
  */
-export function repointPlayJobIds(input: {
-  dayStills?: DaySlotStill[];
-  story?: RoleplayStoryBeat[];
-  from: string;
-  to: string;
-}): { dayStills?: DaySlotStill[]; story?: RoleplayStoryBeat[] } | null {
-  const { from, to } = input;
-  let changed = false;
-  const swap = (value: string | undefined) => {
-    if (value?.trim() === from) {
-      changed = true;
-      return to;
+export type QueueJobDescriber = {
+  /** Read the feature's records once per refresh; label the jobs among them. */
+  labeller: () => QueueJobLabeller;
+  /** A job was resubmitted as `to`: point whatever waited on `from` at it. */
+  repoint: (from: string, to: string) => void;
+};
+
+const describers = new Map<string, QueueJobDescriber>();
+
+export function registerQueueJobDescriber(id: string, describer: QueueJobDescriber): void {
+  describers.set(id, describer);
+}
+
+/** Every feature's labeller, first match wins. */
+export function queueJobLabeller(): QueueJobLabeller {
+  const labellers = [...describers.values()].map(describer => describer.labeller());
+  return (entry, castName) => {
+    for (const labeller of labellers) {
+      const label = labeller(entry, castName);
+      if (label) return label;
     }
-    return value;
+    return null;
   };
-  const dayStills = input.dayStills?.map(still => ({
-    ...still,
-    promptId: swap(still.promptId),
-    clipPromptId: swap(still.clipPromptId),
-  }));
-  const story = input.story?.map(beat => ({
-    ...beat,
-    promptId: swap(beat.promptId),
-    clipPromptId: swap(beat.clipPromptId),
-    ...(beat.stillTakes
-      ? { stillTakes: beat.stillTakes.map(take => ({ ...take, promptId: swap(take.promptId) })) }
-      : {}),
-    ...(beat.clipTakes
-      ? {
-          clipTakes: beat.clipTakes.map(take => ({
-            ...take,
-            clipPromptId: swap(take.clipPromptId),
-          })),
-        }
-      : {}),
-    ...(beat.poseGuideExpect?.promptId === from
-      ? { poseGuideExpect: { ...beat.poseGuideExpect, promptId: to } }
-      : {}),
-  }));
-  return changed ? { dayStills, story } : null;
+}
+
+export function repointQueueJob(from: string, to: string): void {
+  for (const describer of describers.values()) describer.repoint(from, to);
 }

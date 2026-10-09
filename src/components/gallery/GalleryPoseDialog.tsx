@@ -7,14 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import ModalPortal from '@/components/ui/ModalPortal';
 import { galleryEntryPrimaryViewUrl, getGalleryEntryById } from '@/lib/comfyui-gallery';
-import type { PhotoPose } from '@/lib/day-pose-guide';
-import {
-  applyPoseToDaySlot,
-  applyPoseToStoryBeat,
-  daySlotPoseTargets,
-  storyBeatPoseTargets,
-  type PoseTargetOption,
-} from '@/lib/gallery-pose-targets';
+import type { PhotoPose } from '@/lib/pose-types';
+import { poseTargetGroups, type PoseTargetOption } from '@/lib/pose-targets';
 import { POSE_IMPORT_GROUPS } from '@/lib/pose-import-layouts';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { GALLERY_USE_POSE_EVENT } from '@/lib/gallery-pose-event';
@@ -26,10 +20,13 @@ function GalleryPoseDialog({ entryId, onClose }: { entryId: string; onClose: () 
   const titleId = useId();
   const [read, setRead] = useState<Read>({ status: 'reading' });
   const [layout, setLayout] = useState<string>('stand');
-  const [slots] = useState<PoseTargetOption[]>(() => daySlotPoseTargets());
-  const [beats] = useState<PoseTargetOption[]>(() => storyBeatPoseTargets());
-  const [slot, setSlot] = useState(() => slots[0]?.key ?? '');
-  const [beat, setBeat] = useState(() => beats[0]?.key ?? '');
+  // Where the pose can go (Play: Day slots, Story beats), each with its options read once.
+  const [targets] = useState(() =>
+    poseTargetGroups().map(group => ({ group, options: group.options() as PoseTargetOption[] }))
+  );
+  const [picked, setPicked] = useState<Record<string, string>>(() =>
+    Object.fromEntries(targets.map(({ group, options }) => [group.id, options[0]?.key ?? '']))
+  );
   const [done, setDone] = useState<{ text: string; href?: string } | null>(null);
 
   useEffect(() => {
@@ -148,74 +145,42 @@ function GalleryPoseDialog({ entryId, onClose }: { entryId: string; onClose: () 
             </div>
           </div>
 
-          {slots.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[var(--text-primary)]">Use for a Day slot</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <SelectInput
-                  value={slot}
-                  aria-label="Day slot"
-                  className="w-auto! min-w-[10rem] py-1 text-sm"
-                  onChange={event => setSlot(event.target.value)}
-                >
-                  {slots.map(option => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
-                    </option>
-                  ))}
-                </SelectInput>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!pose || !slot}
-                  data-testid="gallery-pose-day"
-                  onClick={() => {
-                    if (!pose) return;
-                    applyPoseToDaySlot(slot, pose);
-                    setDone({ text: 'Day slot will draw this pose.', href: '/day' });
-                  }}
-                >
-                  Use
-                </Button>
+          {targets.map(({ group, options }) =>
+            options.length > 0 ? (
+              <div key={group.id} className="space-y-2">
+                <p className="text-sm font-medium text-[var(--text-primary)]">{group.heading}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SelectInput
+                    value={picked[group.id] ?? ''}
+                    aria-label={group.pickerLabel}
+                    className="w-auto! min-w-[10rem] py-1 text-sm"
+                    onChange={event =>
+                      setPicked(current => ({ ...current, [group.id]: event.target.value }))
+                    }
+                  >
+                    {options.map(option => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectInput>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!pose || !picked[group.id]}
+                    data-testid={`gallery-pose-${group.id}`}
+                    onClick={() => {
+                      if (!pose) return;
+                      group.apply(picked[group.id] ?? '', pose);
+                      setDone({ text: group.doneText, href: group.href });
+                    }}
+                  >
+                    Use
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : null}
-
-          {beats.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[var(--text-primary)]">Use for a Story beat</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <SelectInput
-                  value={beat}
-                  aria-label="Story beat"
-                  className="w-auto! min-w-[10rem] py-1 text-sm"
-                  onChange={event => setBeat(event.target.value)}
-                >
-                  {beats.map(option => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
-                    </option>
-                  ))}
-                </SelectInput>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!pose || !beat}
-                  data-testid="gallery-pose-story"
-                  onClick={() => {
-                    if (!pose) return;
-                    applyPoseToStoryBeat(beat, pose);
-                    setDone({
-                      text: "The beat's next queue or retry draws this pose.",
-                      href: '/story',
-                    });
-                  }}
-                >
-                  Use
-                </Button>
-              </div>
-            </div>
-          ) : null}
+            ) : null
+          )}
 
           {done ? (
             <p

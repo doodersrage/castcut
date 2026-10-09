@@ -25,14 +25,13 @@ import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { removeComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { cancelComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
 import { loadCharacters } from '@/lib/character-os';
-import { loadSettingsCache, saveToolSettings } from '@/lib/settings-cache';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import { estimateQueueEta } from '@/lib/queue-eta';
 import {
-  buildPlayJobIndex,
   describeQueueJob,
   groupQueueJobs,
-  repointPlayJobIds,
+  queueJobLabeller,
+  repointQueueJob,
 } from '@/lib/queue-job-context';
 
 type ComfyQueueHealth = {
@@ -210,17 +209,12 @@ export function useQueueToolOrchestration() {
 
   // What each job is (Day slot / Story beat / tool, on which Cast), for labels and batches.
   const jobLabels = useMemo(() => {
-    const tools = loadSettingsCache().tools;
-    const index = buildPlayJobIndex({
-      daySlots: tools.day?.slots,
-      dayStills: tools.day?.stills,
-      story: tools.roleplay?.story,
-    });
+    const labeller = queueJobLabeller();
     const names = new Map(loadCharacters().map(character => [character.id, character.name]));
     return new Map(
       entries.map(entry => [
         entry.id,
-        describeQueueJob(entry, index, entry.characterId ? names.get(entry.characterId) : null),
+        describeQueueJob(entry, labeller, entry.characterId ? names.get(entry.characterId) : null),
       ])
     );
     // Re-read the Play context whenever the gallery entries refresh or storage hydrates.
@@ -260,15 +254,8 @@ export function useQueueToolOrchestration() {
       await cancelComfyUiJob({ promptId: oldId, comfyUrl: entry.comfyUrl, deleteHistory: true });
       cancelComfyGalleryPoll(oldId);
       removeComfyGalleryEntry(entry.id);
-      const tools = loadSettingsCache().tools;
-      const repointed = repointPlayJobIds({
-        dayStills: tools.day?.stills,
-        story: tools.roleplay?.story,
-        from: oldId,
-        to: queued.promptId,
-      });
-      if (repointed?.dayStills) saveToolSettings('day', { stills: repointed.dayStills });
-      if (repointed?.story) saveToolSettings('roleplay', { story: repointed.story });
+      // A Day slot / Story beat waiting on it follows it (registered describers).
+      repointQueueJob(oldId, queued.promptId);
       setStatus('Moved to the front of the queue.');
       refreshEntries();
       void refreshHealth();
