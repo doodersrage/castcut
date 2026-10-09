@@ -205,7 +205,7 @@ test.describe('Auth-on optional', () => {
         response.ok(),
         `PROMPT_E2E_AUTH=1 requires successful login (got ${response.status()})`
       ).toBeTruthy();
-      await gotoStable(page, '/');
+      await gotoStable(page, '/queue');
       await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).not.toBeVisible({
         timeout: 15_000,
       });

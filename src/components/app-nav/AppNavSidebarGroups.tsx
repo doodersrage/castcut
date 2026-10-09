@@ -6,6 +6,7 @@ import { AppNavSidebarLink } from '@/components/app-nav/AppNavSidebarLink';
 import { linkIsActive } from '@/components/app-nav/linkIsActive';
 import { isNavFavorite } from '@/lib/nav-favorites';
 import type { AppNavSidebarViewModel } from '@/components/app-nav/useAppNavSidebar';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 type Props = Pick<
   AppNavSidebarViewModel,
@@ -53,7 +54,7 @@ export function AppNavSidebarGroups({
           />
         </Link>
         <p className="type-caption mt-1.5 px-3 text-[var(--text-tertiary)]">
-          Prompt · queue · gallery
+          {APP_HAS_PLAY ? 'Cast · Day · film' : 'Prompt · queue · gallery'}
           <span className="mx-1.5 text-[var(--border-strong)]">·</span>
           <kbd className="ui-kbd">⌘K</kbd>
         </p>

@@ -18,6 +18,7 @@ const ResultQuickActions = dynamic(() => import('@/components/ResultQuickActions
 });
 
 import type { UseComfyWorkflowSelectionResult } from '@/hooks/useComfyWorkflowSelection';
+import { appOffersRoute } from '@/lib/app-profile';
 
 export type EnhancedPromptResultActionsProps = {
   compactActions: boolean;
@@ -211,37 +212,37 @@ export default function EnhancedPromptResultActions({
                 Improve output
               </Button>
             ) : null}
-            {onRefine ? (
+            {onRefine && appOffersRoute('/refine') ? (
               <Button variant="secondary" onClick={onRefine}>
                 Open in Refine
               </Button>
             ) : null}
-            {onEditPrompt ? (
+            {onEditPrompt && appOffersRoute('/prompt') ? (
               <Button variant="secondary" onClick={onEditPrompt}>
                 Edit in Prompt Editor
               </Button>
             ) : null}
-            {onContinueInpaint ? (
+            {onContinueInpaint && appOffersRoute('/inpaint') ? (
               <Button variant="secondary" onClick={onContinueInpaint}>
                 Continue in Inpaint
               </Button>
             ) : null}
-            {onContinueOutpaint ? (
+            {onContinueOutpaint && appOffersRoute('/outpaint') ? (
               <Button variant="secondary" onClick={onContinueOutpaint}>
                 Continue in Outpaint
               </Button>
             ) : null}
-            {onContinueCompose ? (
+            {onContinueCompose && appOffersRoute('/compose') ? (
               <Button variant="secondary" onClick={onContinueCompose}>
                 Continue in Compose
               </Button>
             ) : null}
-            {onContinueVideo ? (
+            {onContinueVideo && appOffersRoute('/video') ? (
               <Button variant="secondary" onClick={onContinueVideo}>
                 Continue in Video
               </Button>
             ) : null}
-            {onContinueControlNet ? (
+            {onContinueControlNet && appOffersRoute('/controlnet') ? (
               <Button variant="secondary" onClick={onContinueControlNet}>
                 Continue in ControlNet
               </Button>

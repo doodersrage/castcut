@@ -40,6 +40,7 @@ export function GalleryEditSection({
     <GalleryMenuGroup label="Open in tool" collapsible>
       <GalleryMenuButton
         label="Edit prompt"
+        route="/prompt"
         onClick={() => {
           saveGalleryHandoff(buildGalleryHandoff(entry, 'promptEditor'));
           router.push(galleryHandoffPath('promptEditor'));
@@ -52,6 +53,7 @@ export function GalleryEditSection({
             <>
               <GalleryMenuButton
                 label="Improve"
+                route="/refine"
                 onClick={() => {
                   startImproveFromGalleryEntry(entry);
                   setMenuOpen(false);
@@ -59,6 +61,7 @@ export function GalleryEditSection({
               />
               <GalleryMenuButton
                 label="Inpaint"
+                route="/inpaint"
                 onClick={() => {
                   startInpaintFromGalleryEntry(entry);
                   setMenuOpen(false);
@@ -67,6 +70,7 @@ export function GalleryEditSection({
               {showAnatomyRepairAction ? (
                 <GalleryMenuButton
                   label="Anatomy repair"
+                  route="/inpaint"
                   onClick={() => {
                     if (onAnatomyRepair) {
                       onAnatomyRepair();
@@ -79,6 +83,7 @@ export function GalleryEditSection({
               ) : null}
               <GalleryMenuButton
                 label="Outpaint"
+                route="/outpaint"
                 onClick={() => {
                   startOutpaintFromGalleryEntry(entry);
                   setMenuOpen(false);
@@ -88,6 +93,7 @@ export function GalleryEditSection({
           ) : null}
           <GalleryMenuButton
             label="Refine"
+            route="/refine"
             onClick={() => {
               saveGalleryHandoff(buildGalleryHandoff(entry, 'refine'));
               router.push(galleryHandoffPath('refine'));
@@ -97,6 +103,7 @@ export function GalleryEditSection({
           {primaryMediaKind === 'image' && previewUrl && showAnatomyRepairAction ? (
             <GalleryMenuButton
               label="Anatomy repair → inpaint limb"
+              route="/inpaint"
               onClick={() => {
                 if (onAnatomyRepair) {
                   onAnatomyRepair();
@@ -109,6 +116,7 @@ export function GalleryEditSection({
           ) : null}
           <GalleryMenuButton
             label="Re-edit · Refine (same stack)"
+            route="/refine"
             onClick={() => {
               saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'refine'));
               router.push(galleryHandoffPath('refine'));
@@ -118,6 +126,7 @@ export function GalleryEditSection({
           {entry.status === 'completed' ? (
             <GalleryMenuButton
               label="Re-edit · Inpaint (same stack)"
+              route="/inpaint"
               onClick={() => {
                 saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'inpaint'));
                 router.push(galleryHandoffPath('inpaint'));
@@ -128,6 +137,7 @@ export function GalleryEditSection({
           {entry.status === 'completed' ? (
             <GalleryMenuButton
               label="Re-edit · Outpaint (same stack)"
+              route="/outpaint"
               onClick={() => {
                 saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'outpaint'));
                 router.push(galleryHandoffPath('outpaint'));
@@ -137,6 +147,7 @@ export function GalleryEditSection({
           ) : null}
           <GalleryMenuButton
             label="Open in Variations"
+            route="/variations"
             onClick={() => {
               prepareGalleryVariationsFromEntry(entry);
               router.push(galleryVariationsPath());
@@ -145,6 +156,7 @@ export function GalleryEditSection({
           />
           <GalleryMenuButton
             label="Compose"
+            route="/compose"
             onClick={() => {
               saveGalleryHandoff(buildGalleryHandoff(entry, 'compose'));
               router.push(galleryHandoffPath('compose'));
@@ -153,6 +165,7 @@ export function GalleryEditSection({
           />
           <GalleryMenuButton
             label="Re-edit · Compose (same stack)"
+            route="/compose"
             onClick={() => {
               saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'compose'));
               router.push(galleryHandoffPath('compose'));
@@ -162,6 +175,7 @@ export function GalleryEditSection({
           {layout !== 'list' ? (
             <GalleryMenuButton
               label="Outpaint"
+              route="/outpaint"
               onClick={() => {
                 startOutpaintFromGalleryEntry(entry);
                 setMenuOpen(false);
@@ -170,6 +184,7 @@ export function GalleryEditSection({
           ) : null}
           <GalleryMenuButton
             label="Image → Prompt"
+            route="/image-prompt"
             onClick={() => {
               saveGalleryHandoff(buildGalleryHandoff(entry, 'imagePrompt'));
               router.push(galleryHandoffPath('imagePrompt'));
@@ -178,6 +193,7 @@ export function GalleryEditSection({
           />
           <GalleryMenuButton
             label="ControlNet"
+            route="/controlnet"
             onClick={() => {
               saveGalleryHandoff(buildGalleryHandoff(entry, 'controlnet'));
               router.push(galleryHandoffPath('controlnet'));
@@ -187,6 +203,7 @@ export function GalleryEditSection({
           {entry.status === 'completed' ? (
             <GalleryMenuButton
               label="Re-edit · ControlNet (same stack)"
+              route="/controlnet"
               onClick={() => {
                 saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'controlnet'));
                 router.push(galleryHandoffPath('controlnet'));
@@ -196,6 +213,7 @@ export function GalleryEditSection({
           ) : null}
           <GalleryMenuButton
             label="Background"
+            route="/background"
             onClick={() => {
               startBackgroundFromGalleryEntry(entry);
               setMenuOpen(false);
@@ -204,6 +222,7 @@ export function GalleryEditSection({
           {primaryMediaKind === 'image' && entry.status === 'completed' ? (
             <GalleryMenuButton
               label="Mesh / 3D"
+              route="/mesh"
               onClick={() => {
                 startMeshFromGalleryEntry(entry);
                 setMenuOpen(false);
@@ -227,6 +246,7 @@ export function GalleryEditSection({
           entry.derivedKind !== 'film' &&
           entry.status === 'completed' ? (
             <GalleryMenuButton
+              route="/video"
               label={continueClipActionLabel({
                 parentUrl: previewUrl,
                 engine: loadEngineSettings().engine,
@@ -241,6 +261,7 @@ export function GalleryEditSection({
           {entry.status === 'completed' ? (
             <GalleryMenuButton
               label="Re-edit · Video (same stack)"
+              route="/video"
               onClick={() => {
                 saveGalleryHandoff(buildReeditGalleryHandoff(entry, 'video'));
                 router.push(galleryHandoffPath('video'));

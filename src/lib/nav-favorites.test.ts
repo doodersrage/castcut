@@ -100,8 +100,8 @@ describe("collapsible persist", () => {
 describe("app nav catalog", () => {
   it("includes core tools", () => {
     const hrefs = flattenAppNavLinks().map((link) => link.href);
-    assert.ok(hrefs.includes("/"));
+    assert.ok(hrefs.includes("/play"));
     assert.ok(hrefs.includes("/gallery"));
-    assert.ok(hrefs.includes("/studio"));
+    assert.ok(hrefs.includes("/video"));
   });
 });

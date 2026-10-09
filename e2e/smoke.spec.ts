@@ -8,10 +8,10 @@ test.beforeEach(async ({ page }) => {
   await ensureAuthenticated(page);
 });
 
-test('home page loads', async ({ page }) => {
+test('home opens Film (Generate is Prompt Studio\'s)', async ({ page }) => {
   await gotoStable(page, '/');
-  await expect(page.getByRole('heading', { name: /^Generate$/i })).toBeVisible();
-  await expect(page.locator('[data-action="random-surprise"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/play(?:[?#].*)?$/, { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: /^Your film$/i })).toBeVisible({ timeout: 60_000 });
 });
 
 test('dashboard page loads', async ({ page }) => {

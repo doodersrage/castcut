@@ -69,7 +69,7 @@ const ALL_WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = [
 
 /** The workspaces this app offers (no Film without Play). */
 export const WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = ALL_WORKSPACE_MODE_OPTIONS.filter(
-  option => APP_HAS_PLAY || option.id !== 'play'
+  option => (APP_HAS_PLAY ? option.id === 'play' || option.id === 'studio' : option.id !== 'play')
 );
 
 /** Primary destinations for Simple workspace (path or path?query). */
@@ -124,8 +124,11 @@ export const ROLEPLAY_FOCUS_NAV_HREFS = [
   '/queue',
 ] as const;
 
-/** Escape hatch so Play focus is not a trap — Generate, labeled All tools. */
-export const ROLEPLAY_FOCUS_ESCAPE_HREF = '/';
+/**
+ * Escape hatch so Play focus is not a trap, labeled All tools: Castcut's sidebar layout (its "/"
+ * is Film), opening on the Gallery; Generate in the classic app.
+ */
+export const ROLEPLAY_FOCUS_ESCAPE_HREF = APP_HAS_PLAY ? '/gallery' : '/';
 
 export function isRoleplayFocusPath(pathname: string | null | undefined): boolean {
   if (!pathname) {
@@ -151,6 +154,10 @@ export function normalizeWorkspaceMode(value: unknown): WorkspaceMode {
   if (value === 'play' && !APP_HAS_PLAY) {
     return DEFAULT_WORKSPACE_MODE;
   }
+  // Castcut has two layouts: Film and Studio (the sidebar). Simple was lean (→ Film); Full was
+  // Studio with advanced controls open (→ Studio).
+  if (APP_HAS_PLAY && value === 'simple') return 'play';
+  if (APP_HAS_PLAY && value === 'full') return 'studio';
   if (value === 'simple' || value === 'play' || value === 'studio' || value === 'full') {
     return value;
   }
@@ -229,16 +236,22 @@ function playNavGroups(baseGroups: AppNavGroup[]): AppNavGroup[] {
     label: 'Generate',
     description: 'Keywords or random scene',
   };
+  // Castcut's escape is the Gallery, already listed: no second entry for it.
+  const escapeListed = playLinks.some(link => hrefKey(link.href) === hrefKey(escape.href));
   return [
     {
       label: 'Play',
       links: [
         ...playLinks,
-        {
-          ...escape,
-          label: 'All tools',
-          description: 'Leave Play and open the full studio',
-        },
+        ...(escapeListed
+          ? []
+          : [
+              {
+                ...escape,
+                label: 'All tools',
+                description: 'Leave Play and open the full studio',
+              },
+            ]),
       ],
     },
   ];

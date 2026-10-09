@@ -32,17 +32,17 @@ test.describe('Auth login chrome', () => {
       expect(body.length).toBeGreaterThan(0);
       return;
     }
-    await gotoStable(page, '/');
+    await gotoStable(page, '/queue');
     await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).not.toBeVisible({
       timeout: 15_000,
     });
   });
 
-  test('ensureAuthenticated reaches Generate after optional login', async ({ page }) => {
+  test('ensureAuthenticated reaches the app after optional login', async ({ page }) => {
     await ensureAuthenticated(page);
-    await gotoStable(page, '/');
+    await gotoStable(page, '/queue');
     await dismissBlockingOverlays(page);
-    await expect(page.getByRole('heading', { name: /^Generate$/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /ComfyUI job queue/i })).toBeVisible({
       timeout: 30_000,
     });
   });

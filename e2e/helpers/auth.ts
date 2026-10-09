@@ -24,7 +24,8 @@ export function e2eApiHeaders(): Record<string, string> {
 
 export async function ensureAuthenticated(page: Page): Promise<void> {
   await ensureStudioWorkspace(page);
-  await gotoStable(page, '/');
+  // A quiet app page: Castcut's "/" is Film, which navigates again as it loads.
+  await gotoStable(page, '/queue');
   if (page.url().includes('/login')) {
     await loginThroughApi(page);
     await ensureStudioWorkspace(page);
@@ -52,7 +53,7 @@ async function loginThroughApi(page: Page): Promise<void> {
   if (!response.ok()) {
     throw new Error(`E2E login failed (${response.status()}): ${await response.text()}`);
   }
-  await gotoStable(page, '/');
+  await gotoStable(page, '/queue');
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).not.toBeVisible({
     timeout: 15_000,
   });

@@ -3798,7 +3798,8 @@ test('Film mode opens at Play; All tools switches to Studio', async ({ page, bas
   await dismissBlockingOverlays(page);
   await page.getByTestId('play-kiosk-more').click();
   await page.getByTestId('film-all-tools').click();
-  await expect(page).toHaveURL(/\/(?:[?#].*)?$/, { timeout: 30_000 });
+  // Castcut's "/" is Film: All tools opens the sidebar layout on the Gallery.
+  await expect(page).toHaveURL(/\/gallery(?:[?#].*)?$/, { timeout: 30_000 });
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem('comfy-workspace-mode-v1')))
     .toMatch(/studio/);

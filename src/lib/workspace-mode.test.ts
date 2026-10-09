@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { resetBrowserStorageCache } from "./browser-storage";
-import { APP_NAV_GROUPS, flattenAppNavLinks } from "./app-nav-catalog";
+import { APP_NAV_GROUPS } from "./app-nav-catalog";
 import {
-  SIMPLE_NAV_HREFS,
   defaultExpandedNavGroups,
   hasChosenWorkspaceMode,
   isLeanWorkspaceMode,
@@ -15,6 +14,8 @@ import {
   normalizeWorkspaceMode,
   saveWorkspaceMode,
   workspaceShowsAdvancedControls,
+  ROLEPLAY_FOCUS_ESCAPE_HREF,
+  WORKSPACE_MODE_OPTIONS,
 } from "./workspace-mode";
 
 function withMockLocalStorage(run: () => void): void {
@@ -77,50 +78,28 @@ describe("workspace-mode", () => {
 
   it("normalizes unknown modes to play", () => {
     assert.equal(normalizeWorkspaceMode("nope"), "play");
-    assert.equal(normalizeWorkspaceMode("simple"), "simple");
     assert.equal(normalizeWorkspaceMode("play"), "play");
+    assert.equal(normalizeWorkspaceMode("studio"), "studio");
+    // Castcut has two layouts: Simple was lean (→ Film), Full was Studio with more open.
+    assert.equal(normalizeWorkspaceMode("simple"), "play");
+    assert.equal(normalizeWorkspaceMode("full"), "studio");
   });
 
   it("persists workspace mode and marks chosen", () => {
     withMockLocalStorage(() => {
       assert.equal(hasChosenWorkspaceMode(), false);
-      saveWorkspaceMode("simple");
-      assert.equal(loadWorkspaceMode(), "simple");
+      saveWorkspaceMode("studio");
+      assert.equal(loadWorkspaceMode(), "studio");
       assert.equal(hasChosenWorkspaceMode(), true);
-      assert.equal(document.documentElement.dataset.workspace, "simple");
+      assert.equal(document.documentElement.dataset.workspace, "studio");
     });
   });
 
-  it("builds Essentials + More for simple mode", () => {
-    const groups = navGroupsForWorkspaceMode("simple", APP_NAV_GROUPS);
-    assert.equal(groups[0]?.label, "Essentials");
-    assert.ok(groups[0]!.links.length >= 6);
-    for (const href of SIMPLE_NAV_HREFS) {
-      assert.ok(
-        groups[0]!.links.some((link) => link.href === href),
-        `missing essential ${href}`,
-      );
-    }
-    assert.ok(groups[0]!.links.some((link) => link.href === "/dashboard"));
-    assert.equal(
-      groups[0]!.links.some((link) => link.href === "/studio"),
-      false,
-      "Studio belongs under More in Simple",
+  it("offers Film and Studio only (Castcut; Simple and Full are folded in)", () => {
+    assert.deepEqual(
+      WORKSPACE_MODE_OPTIONS.map((option) => option.id),
+      ["play", "studio"],
     );
-    assert.equal(groups[1]?.label, "More tools");
-    assert.ok((groups[1]?.links.length ?? 0) > 5);
-    assert.ok(
-      groups[1]!.links.some((link) => link.href === "/studio"),
-      "Studio should appear in More tools",
-    );
-    const moreHrefs = groups[1]!.links.map((link) => link.href);
-    assert.ok(
-      moreHrefs.indexOf("/studio") < moreHrefs.indexOf("/negative") ||
-        !moreHrefs.includes("/negative"),
-      "preferred More order should surface Studio early",
-    );
-    const flatCount = flattenAppNavLinks(groups).length;
-    assert.equal(flatCount, flattenAppNavLinks(APP_NAV_GROUPS).length);
   });
 
   it("keeps Film / Create / Edit / Library / More tools structure for studio and full", () => {
@@ -191,12 +170,9 @@ describe("workspace-mode", () => {
           "/story",
           "/gallery",
           "/queue",
-          "/",
         ]);
-        assert.equal(
-          groups[0]!.links.find((link) => link.href === "/")?.label,
-          "All tools",
-        );
+        // Castcut's All tools is the Gallery (its "/" is Film), already listed once.
+        assert.equal(hrefs.filter((href) => href === "/gallery").length, 1);
       }
     }
   });
@@ -217,7 +193,6 @@ describe("workspace-mode", () => {
       "/story",
       "/gallery",
       "/queue",
-      "/",
     ]);
     assert.equal(hrefs.includes("/audio"), false);
     assert.equal(hrefs.includes("/mesh"), false);
@@ -242,7 +217,8 @@ describe("workspace-mode", () => {
     assert.equal(isRoleplayFocusNavHref("/characters"), true);
     assert.equal(isRoleplayFocusNavHref("/settings"), true);
     assert.equal(isRoleplayFocusNavHref("/profile"), true);
-    assert.equal(isRoleplayFocusNavHref("/"), true);
+    assert.equal(isRoleplayFocusNavHref(ROLEPLAY_FOCUS_ESCAPE_HREF), true);
+    assert.equal(ROLEPLAY_FOCUS_ESCAPE_HREF, "/gallery");
     assert.equal(isRoleplayFocusNavHref("/video"), false);
     assert.equal(isRoleplayFocusNavHref("/character"), false);
   });

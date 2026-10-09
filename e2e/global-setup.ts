@@ -24,7 +24,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   });
   const page = await context.newPage();
 
-  await page.goto('/');
+  await page.goto('/queue');
   const needsLogin = await page
     .getByRole('heading', { name: 'Sign in', exact: true })
     .isVisible({ timeout: 5000 })
@@ -39,7 +39,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     if (!response.ok()) {
       throw new Error(`E2E global login failed (${response.status()}): ${await response.text()}`);
     }
-    await page.goto('/');
+    await page.goto('/queue');
   }
 
   // Prevent the deferred first-run welcome dialog from blocking gallery/clicks.

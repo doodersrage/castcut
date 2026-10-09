@@ -54,12 +54,17 @@ describe('app-nav-catalog', () => {
     it('includes the expected core routes in their documented groups', () => {
       const film = APP_NAV_GROUPS.find(group => group.label === 'Film')!;
       const library = APP_NAV_GROUPS.find(group => group.label === 'Library')!;
-      const more = APP_NAV_GROUPS.find(group => group.label === 'More tools')!;
       assert.equal(film.links[0]!.href, '/play');
-      assert.ok(library.links.some(link => link.href === '/dashboard'));
       assert.ok(library.links.some(link => link.href === '/queue'));
       assert.ok(library.links.some(link => link.href === '/gallery'));
-      assert.ok(more.links.some(link => link.href === '/plugins'));
+      // Castcut lists the classic tools the film loop uses; the rest are Prompt Studio's.
+      const hrefs = allHrefs(APP_NAV_GROUPS);
+      for (const kept of ['/video', '/compose', '/refine', '/inpaint']) {
+        assert.ok(hrefs.includes(kept), kept);
+      }
+      for (const gone of ['/', '/prompt', '/dashboard', '/plugins', '/workflow-editor', '/audio']) {
+        assert.equal(hrefs.includes(gone), false, gone);
+      }
     });
   });
 

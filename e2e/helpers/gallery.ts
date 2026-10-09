@@ -119,7 +119,7 @@ export async function seedFailedGalleryFixture(
   };
   // Open the app first so Dexie creates object stores, then replace gallery rows.
   if (!page.url().includes('127.0.0.1') && !page.url().includes('localhost')) {
-    await page.goto('/');
+    await page.goto('/queue');
   }
   await replaceGalleryIdb(page, [entry]);
 }

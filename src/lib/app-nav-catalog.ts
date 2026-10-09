@@ -1,6 +1,6 @@
 /** Shared nav catalog for AppNav + Command Palette. */
 
-import { APP_HAS_PLAY, appHasRoute } from './app-profile';
+import { APP_HAS_PLAY, appOffersRoute } from './app-profile';
 
 export type AppNavLink = {
   href: string;
@@ -119,7 +119,7 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
 export const APP_NAV_GROUPS: AppNavGroup[] = ALL_APP_NAV_GROUPS.filter(
   group => APP_HAS_PLAY || group.label !== 'Film'
 )
-  .map(group => ({ ...group, links: group.links.filter(link => appHasRoute(link.href)) }))
+  .map(group => ({ ...group, links: group.links.filter(link => appOffersRoute(link.href)) }))
   .filter(group => group.links.length > 0);
 
 export const APP_NAV_SETTINGS_LINK: AppNavLink = {

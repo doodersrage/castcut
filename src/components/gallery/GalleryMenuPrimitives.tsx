@@ -1,3 +1,4 @@
+import { appOffersRoute } from '@/lib/app-profile';
 export function GalleryMenuGroup({
   label,
   children,
@@ -41,7 +42,10 @@ export function GalleryMenuButton(props: {
   onClick: () => void;
   tone?: 'default' | 'danger';
   'data-testid'?: string;
+  /** The page it opens: hidden when this app doesn't offer it (app-profile appOffersRoute). */
+  route?: string;
 }) {
+  if (props.route && !appOffersRoute(props.route)) return null;
   return (
     <button
       type="button"

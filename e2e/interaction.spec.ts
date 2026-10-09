@@ -8,7 +8,9 @@ test.beforeEach(async ({ page }) => {
   await ensureAuthenticated(page);
 });
 
-test("generate accepts keywords without server error", async ({ page }) => {
+// Generate is Prompt Studio's: Castcut's "/" is Film. Moves to the classic app's tests with the
+// classic pages (docs/architecture-boundaries.md).
+test.skip("generate accepts keywords without server error", async ({ page }) => {
   await gotoStable(page, "/?hintSource=manual");
   const manualHints = page.getByRole("button", { name: "Manual hints", exact: true });
   if (await manualHints.isVisible({ timeout: 5_000 }).catch(() => false)) {

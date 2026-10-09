@@ -22,18 +22,13 @@ test.describe('Shared-project collab', () => {
     await ensureAuthenticated(page);
   });
 
-  test('collab presence bar renders on Generate', async ({ page }) => {
-    await gotoStable(page, '/');
-    await expectCollabPresenceBar(page);
-  });
-
   test('collab presence bar renders on Compose', async ({ page }) => {
     await gotoStable(page, '/compose');
     await expectCollabPresenceBar(page);
   });
 
   test('collab apply draft control appears when remote draft is signaled', async ({ page }) => {
-    await gotoStable(page, '/');
+    await gotoStable(page, '/compose');
     await expectCollabPresenceBar(page);
     await page.evaluate(() => {
       const channel = new BroadcastChannel('cps-collab-default');
@@ -42,10 +37,10 @@ test.describe('Shared-project collab', () => {
         payload: {
           projectId: 'default',
           peerId: 'remote-peer',
-          tool: 'generate',
-          draft: 'remote keyword draft',
-          fields: { hints: 'remote keyword draft' },
-          changedFields: ['hints'],
+          tool: 'compose',
+          draft: 'remote instruction draft',
+          fields: { instruction: 'remote instruction draft' },
+          changedFields: ['instruction'],
           // Must beat local draft timestamp + 250ms skew guard.
           updatedAt: Date.now() + 5_000,
         },
