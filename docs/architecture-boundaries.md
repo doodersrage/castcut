@@ -89,3 +89,12 @@ Prompt Studio, the classic tools without Play, built from the same `src/`:
 
 Not yet: Castcut wording in shared copy (Settings tiles, first-run goal text), and Play-only admin feature toggles listed in the classic app.
 
+## The standalone repo (github.com/doodersrage/prompt-studio)
+
+The classic app gets its own repository, which depends on the shared code as an npm package:
+
+- **Core package** (`npm run pack:core` → `packages/prompt-studio-core`, gitignored): every `src/` file the classic app reaches from its routes and layout (about 1,700), with `@/` imports rewritten to relative paths, plus `next.config.base.cjs`. TypeScript source; the app compiles it with `transpilePackages`. Its dependencies are the packages those files import; `next`, `react`, `react-dom` and `sharp` are peers, installed once by the app. The pack fails if the classic app reaches a Play file. Castcut's `src/` stays the one source; a release is `npm run pack:core -- --version x.y.z` then `npm publish packages/prompt-studio-core`.
+- **The repo** (`npm run export:classic -- <dir>`): route wrappers importing from `prompt-studio-core/src/…`, its own layout, styles (Tailwind scans the package), Next/TS/PostCSS config, `public/` without Outfit's wardrobe thumbnails, README, CI. Re-run after a core release to bring over new or removed routes; hand-written files (README) are kept.
+- **Not in the package:** the Castcut node pack file, `services/diffusers-engine` (optional local engine), and Play.
+- **Local install note:** on a machine with a system libvips, `sharp`'s install script builds from source and fails; install with `SHARP_IGNORE_GLOBAL_LIBVIPS=1`.
+

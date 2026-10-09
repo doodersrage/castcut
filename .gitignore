@@ -22,6 +22,8 @@
 # The classic Prompt Studio app (apps/prompt-studio)
 /apps/*/.next/
 /apps/*/node_modules/
+# The shared core package, built by scripts/pack-core.mts
+/packages/prompt-studio-core/
 /out/
 
 # production

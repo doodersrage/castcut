@@ -25,8 +25,12 @@ const SEGMENT_CONFIG_RE =
 /** The proxy's `config` (matcher) block. */
 const PROXY_CONFIG_RE = /^export const config = \{[\s\S]*?\n\};$/m;
 
-export function wrapperSource(sourcePath: string, source: string): string {
-  const spec = '@/' + sourcePath.replace(/^src\//, '').replace(/\.(?:ts|tsx)$/, '');
+/**
+ * `importPrefix`: where `src/` is imported from — `@/` in this repository, the core package's
+ * `src/` in the standalone Prompt Studio repo (scripts/export-classic.mts).
+ */
+export function wrapperSource(sourcePath: string, source: string, importPrefix = '@/'): string {
+  const spec = importPrefix + sourcePath.replace(/^src\//, '').replace(/\.(?:ts|tsx)$/, '');
   const client = /^\s*['"]use client['"]/.test(source);
   const hasDefault = /^export default\b/m.test(source);
   const lines = [CLASSIC_GENERATED_MARK + ` from ${sourcePath} — do not edit.`];

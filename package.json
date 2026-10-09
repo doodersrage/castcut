@@ -19,6 +19,8 @@
     "dev:classic": "cd apps/prompt-studio && next dev -p 47833",
     "start:classic": "cd apps/prompt-studio && next start -p 47833",
     "gen:classic": "tsx scripts/gen-classic-app.mts",
+    "pack:core": "tsx scripts/pack-core.mts",
+    "export:classic": "tsx scripts/export-classic.mts",
     "postbuild": "node scripts/prune-standalone.mjs",
     "build:fast": "next build",
     "analyze": "ANALYZE=true next build",
