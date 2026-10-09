@@ -1,5 +1,6 @@
 'use client';
 
+import CastPlacesSection from '@/components/character/CastPlacesSection';
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -127,6 +128,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
       {props.homeTab === 'bible' ? (
         <>
           <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
+          <CastPlacesSection character={character} onUpdated={props.persistApply} />
           <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
           <CharacterBibleSection character={character} onUpdated={props.persistApply} />
         </>

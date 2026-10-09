@@ -9,6 +9,7 @@
  * (day-prompt-sweep.test.ts), so a contradiction in the finished prompt fails a test.
  */
 
+import { withCastPlace } from './cast-places';
 import { dayClothedLeadLines } from '@/lib/day-clothed-lead';
 import {
   inDayPromptVoice,
@@ -681,11 +682,19 @@ export function buildDaySlotPromptForStill(
     sameSexPartner && slot.sceneHints
       ? { ...slot, sceneHints: sameSexPartnerBeat(slot.sceneHints) }
       : slot;
+  // Her home and office look the same in every still (cast-places.ts). Clothed moods only for
+  // now: the adult recipes are short on purpose (long briefs cost Rapid its poses).
+  const setting = resolveRoleplaySetting(beatSlot.location, state.lockedLocation);
+  const placed = isDayAdultMood(dayMood)
+    ? setting
+    : // Written for a woman like the rest of the brief — a man lead's prompt is swapped whole.
+      withCastPlace(setting, state.character);
+  const placedSlot = placed && placed !== setting ? { ...beatSlot, location: placed } : beatSlot;
   return buildDaySlotPrompt({
     // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
     slot: state.dayWeather
-      ? { ...beatSlot, location: withDayWeather(beatSlot.location, state.dayWeather) }
-      : beatSlot,
+      ? { ...placedSlot, location: withDayWeather(placedSlot.location, state.dayWeather) }
+      : placedSlot,
     wardrobeLabel: state.wardrobeLabel,
     characterName: state.character?.name,
     characterDescriptor: state.character?.descriptor || state.character?.hints,

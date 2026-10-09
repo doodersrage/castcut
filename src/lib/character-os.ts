@@ -68,6 +68,11 @@ export type CharacterRecord = CharacterFeatureFields & {
    * The physical description comes from these; the bible's look is Story's.
    */
   traits?: CharacterTraits;
+  /**
+   * Home and workplace looks (cast-places.ts): a design, their own words, or off. Unset = a
+   * design picked from the Cast's id, so every Cast has a home without setting one up.
+   */
+  places?: CastPlaces;
   /** Last "Picture this bible" still (Cast → Bible), shown again on a revisit. */
   biblePicture?: CastBiblePicture;
   /**
@@ -114,6 +119,11 @@ export type CastVoice = {
   fromClipUrl?: string;
   at: number;
 };
+
+/** What a Cast keeps for one kind of place (cast-places.ts): a design, their own words, or off. */
+export type CastPlaceChoice = { design: string } | { custom: string } | { off: true };
+
+export type CastPlaces = Partial<Record<'home' | 'work', CastPlaceChoice>>;
 
 export type CharacterLook = {
   id: string;
