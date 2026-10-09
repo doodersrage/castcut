@@ -18,6 +18,7 @@ import UserScheduledCampaignSection from '@/components/settings/UserScheduledCam
 import WebhookSettingsPanel from '@/components/settings/panels/WebhookSettingsPanel';
 import AvoidedTokensPanel from '@/components/settings/panels/AvoidedTokensPanel';
 import ScheduledBatchPanel from '@/components/settings/panels/ScheduledBatchPanel';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 export type SettingsAutomationTabProps = {
   webhookSettings: WebhookSettings;
@@ -121,7 +122,8 @@ export default function SettingsAutomationTab({
         ) : null}
       </ToolSection>
 
-      <UserScheduledCampaignSection onStatus={setStatus} />
+      {/* Scheduled scene batches are Prompt Studio's (they run Generate). */}
+      {APP_HAS_PLAY ? null : <UserScheduledCampaignSection onStatus={setStatus} />}
 
       <WebhookSettingsPanel
         webhookSettings={webhookSettings}
@@ -234,13 +236,15 @@ export default function SettingsAutomationTab({
         )}
       </ToolSection>
 
-      <ScheduledBatchPanel
-        scheduledBatch={scheduledBatch}
-        setScheduledBatch={setScheduledBatch}
-        serverScheduledBatchStatus={serverScheduledBatchStatus}
-        sharedSettings={sharedSettings}
-        setStatus={setStatus}
-      />
+      {APP_HAS_PLAY ? null : (
+        <ScheduledBatchPanel
+          scheduledBatch={scheduledBatch}
+          setScheduledBatch={setScheduledBatch}
+          serverScheduledBatchStatus={serverScheduledBatchStatus}
+          sharedSettings={sharedSettings}
+          setStatus={setStatus}
+        />
+      )}
     </>
   );
 }

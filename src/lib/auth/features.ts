@@ -1,3 +1,5 @@
+import { appHasRoute } from '../app-profile';
+
 export const APP_FEATURES = [
   { id: 'dashboard', label: 'Dashboard', description: 'Home dashboard and queue overview' },
   { id: 'queue', label: 'Queue', description: 'Central ComfyUI job queue' },
@@ -170,4 +172,16 @@ export function featureForPath(pathname: string): AppFeatureId | null {
 
 export function featureLabel(id: AppFeatureId): string {
   return APP_FEATURES.find(feature => feature.id === id)?.label ?? id;
+}
+
+/**
+ * Whether this app has the feature's pages (Castcut has no Prompt Studio pages): features with no
+ * page (Settings, the APIs) always count. Admin pickers list only these.
+ */
+export function featureInApp(id: AppFeatureId): boolean {
+  const prefixes = [
+    ...(id === 'generate' ? ['/'] : []),
+    ...PAGE_FEATURE_MAP.filter(entry => entry.feature === id).map(entry => entry.prefix),
+  ];
+  return prefixes.length === 0 || prefixes.some(prefix => appHasRoute(prefix));
 }

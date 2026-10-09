@@ -7,7 +7,8 @@ test.describe('Settings automation', () => {
     await ensureAuthenticated(page);
   });
 
-  test('automation hub and scheduled batch controls render', async ({ page }) => {
+  // Scheduled batches run Generate: Prompt Studio's (the classic app).
+  test('automation hub and scheduled batch controls render', { tag: '@classic' }, async ({ page }) => {
     await gotoStable(page, '/settings?tab=automation');
     await expect(page.getByRole('heading', { name: 'Automation hub' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Scheduled batch' })).toBeVisible();
@@ -21,13 +22,23 @@ test.describe('Settings automation', () => {
     await expect(page.getByText(/Vision-rank queued outputs/i).filter({ visible: true })).toBeVisible();
   });
 
+  test('Castcut has no scheduled batch (Prompt Studio runs Generate on a schedule)', async ({
+    page,
+  }) => {
+    await gotoStable(page, '/settings?tab=automation');
+    await expect(page.getByRole('heading', { name: 'Automation hub' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Webhooks' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Scheduled batch' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'User scheduled campaign' })).toHaveCount(0);
+  });
+
   test('webhook settings section is reachable', async ({ page }) => {
     await gotoStable(page, '/settings?tab=automation');
     await expect(page.getByRole('heading', { name: 'Webhooks' })).toBeVisible();
     await expect(page.getByLabel('Enable webhooks').filter({ visible: true })).toBeVisible();
   });
 
-  test('vision-rank checkbox toggles when best-of-N is set', async ({ page }) => {
+  test('vision-rank checkbox toggles when best-of-N is set', { tag: '@classic' }, async ({ page }) => {
     await gotoStable(page, '/settings?tab=automation');
     await revealFullSettings(page);
     const scheduled = page

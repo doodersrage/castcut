@@ -81,6 +81,7 @@ const entries = [
   'src/instrumentation.ts',
   'src/app/globals.css',
   'src/components/RootDocument.tsx',
+  'src/components/PromptStudioFeatures.tsx',
   'src/lib/root-metadata.ts',
   'src/lib/brand.ts',
 ];

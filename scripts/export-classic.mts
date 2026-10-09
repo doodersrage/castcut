@@ -71,6 +71,7 @@ write(
   'src/app/layout.tsx',
   `import type { Metadata, Viewport } from 'next';
 import RootDocument from '${prefix}components/RootDocument';
+import PromptStudioFeatures from '${prefix}components/PromptStudioFeatures';
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from '${prefix}lib/brand';
 import { ROOT_VIEWPORT, rootMetadata } from '${prefix}lib/root-metadata';
 import './globals.css';
@@ -80,7 +81,7 @@ export const metadata: Metadata = rootMetadata(PRODUCT_NAME, PRODUCT_TAGLINE);
 export const viewport: Viewport = ROOT_VIEWPORT;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <RootDocument>{children}</RootDocument>;
+  return <RootDocument features={<PromptStudioFeatures />}>{children}</RootDocument>;
 }
 `
 );

@@ -11,8 +11,6 @@ import { WorkspaceModeProvider } from '@/hooks/useWorkspaceMode';
 import ComfyGalleryBackgroundPoller from '@/components/ComfyGalleryBackgroundPoller';
 import UserScopeInit from '@/components/UserScopeInit';
 import AutoStorageSyncInit from '@/components/AutoStorageSyncInit';
-import NsfwGeneratorPluginInit from '@/components/NsfwGeneratorPluginInit';
-import PluginRuntimeInit from '@/components/PluginRuntimeInit';
 import DeferredShellClient from '@/components/DeferredShellClient';
 import { normalizeWorkspaceMode, WORKSPACE_MODE_COOKIE } from '@/lib/workspace-mode';
 
@@ -79,8 +77,6 @@ export default async function RootDocument({
               <ComfyGalleryBackgroundPoller />
               <UserScopeInit />
               <AutoStorageSyncInit />
-              <NsfwGeneratorPluginInit />
-              <PluginRuntimeInit />
               <DeferredShellClient />
               {children}
             </AppShell>

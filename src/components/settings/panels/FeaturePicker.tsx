@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { APP_FEATURES, ALL_FEATURE_IDS, type AppFeatureId } from '@/lib/auth/features';
+import {
+  APP_FEATURES,
+  ALL_FEATURE_IDS,
+  featureInApp,
+  type AppFeatureId,
+} from '@/lib/auth/features';
 
 export default function FeaturePicker({
   value,
@@ -54,7 +59,7 @@ export default function FeaturePicker({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        {APP_FEATURES.map(feature => {
+        {APP_FEATURES.filter(feature => featureInApp(feature.id)).map(feature => {
           const allowed = !blockedSet.has(feature.id);
           return (
             <label

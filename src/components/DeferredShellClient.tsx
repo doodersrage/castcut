@@ -5,6 +5,7 @@ import AppSlot from '@/components/AppSlot';
 import { useEffect, useState } from 'react';
 import SystemTrayCelebrateOverlay from '@/components/SystemTrayCelebrateOverlay';
 import CommandPaletteEager from '@/components/CommandPalette';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 const CommandPaletteLazy = dynamic(() => import('@/components/CommandPalette'), {
   ssr: false,
@@ -114,7 +115,8 @@ export default function DeferredShellClient() {
 
   return (
     <>
-      {batchEnabled || shellReady ? <ScheduledBatchRunner /> : null}
+      {/* Scheduled batches run Generate: Prompt Studio's (app-profile). */}
+      {!APP_HAS_PLAY && (batchEnabled || shellReady) ? <ScheduledBatchRunner /> : null}
       <SystemTrayCelebrateOverlay />
       {toastReady || shellReady ? <SystemTray /> : null}
       {toastReady || shellReady ? <FixAreaTray /> : null}
