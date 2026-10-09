@@ -134,6 +134,11 @@ export type RoleplayStoryBeat = RoleplayScene & {
   stillTakePinned?: boolean;
   /** Set when the shown take was switched to automatically for a better pose / face match. */
   stillTakeAutoPicked?: boolean;
+  /**
+   * What the lead says in this scene's clip (cast-voice.ts / ltx25-renderer withSpokenLine): set,
+   * Animate makes a talking clip on LTX-2.5.
+   */
+  line?: string;
   /** I2V / extend clip queued from this beat. */
   clipPromptId?: string;
   clipUrl?: string;

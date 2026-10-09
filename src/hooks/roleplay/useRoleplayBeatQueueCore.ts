@@ -122,7 +122,7 @@ function nudeFaceIdentityParams(nudeFace: string | null): Record<string, unknown
 const TOOL_ID = 'roleplay';
 
 /** Whether the story's lead reads as a man (Cast record first, then the bible's look). */
-function leadIsMan(): boolean {
+export function leadIsMan(): boolean {
   const cache = loadSettingsCache();
   const castId = cache.shared.activeCharacterId?.trim();
   const cast = castId ? getCharacter(castId) : null;

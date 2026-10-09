@@ -9,7 +9,7 @@ import {
   stillMotionZoomExpr,
   filmShotCaption,
 } from './video-polish';
-import { buildFilterComplex } from './video-server-encode';
+import { buildFilterComplex, filmSpeechStarts } from './video-server-encode';
 import { posterTitleLayout } from './film-poster';
 import { nextDayFilmTitleCard, currentSeasonLabel, type PlaySeriesStore } from './play-series';
 
@@ -141,5 +141,65 @@ describe('filmShotCaption', () => {
     assert.equal(filmShotCaption({ title: 'Morning run', caption: '  Coffee first  ' }), 'Coffee first');
     assert.equal(filmShotCaption({ title: 'Morning run', caption: '   ' }), 'Morning run');
     assert.equal(filmShotCaption({ title: 'Morning run' }), 'Morning run');
+  });
+});
+
+describe('talking clips in the cut', () => {
+  it('places each line at its shot start, with crossfades overlapping shots', () => {
+    assert.deepEqual(
+      filmSpeechStarts({
+        kinds: ['title', 'still', 'clip', 'clip'],
+        holdSecs: [2.4, 3, 5, 4],
+        crossfadeSec: 0.5,
+        speech: [false, false, true, false],
+      }),
+      [{ index: 2, startSec: 4.4, holdSec: 5 }]
+    );
+    assert.deepEqual(
+      filmSpeechStarts({
+        kinds: ['clip', 'clip'],
+        holdSecs: [5, 5],
+        crossfadeSec: 0,
+        speech: [true, true],
+      }).map(entry => entry.startSec),
+      [0, 5]
+    );
+    assert.deepEqual(filmSpeechStarts({ kinds: ['clip'], holdSecs: [4], crossfadeSec: 0 }), []);
+  });
+
+  it('ducks the music under the lines and mixes them on top', () => {
+    const { filter, audioLabel } = buildFilterComplex({
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0.5,
+      hasAudioBed: true,
+      shotCount: 3,
+      kinds: ['still', 'clip', 'clip'],
+      holdSecs: [3, 5, 5],
+      speech: [false, true, true],
+    });
+    assert.equal(audioLabel, 'aout');
+    assert.match(filter, /\[1:a\].*adelay=2500:all=1\[s1\]/);
+    assert.match(filter, /\[2:a\].*adelay=7000:all=1\[s2\]/);
+    assert.match(filter, /\[s1\]\[s2\]amix=inputs=2/);
+    assert.match(filter, /\[3:a\].*\[bed\]/);
+    assert.match(filter, /\[bed\]\[sp1\]sidechaincompress/);
+    assert.match(filter, /\[ducked\]\[sp2\]amix=inputs=2:duration=first/);
+  });
+
+  it('a cut with lines but no music still has sound', () => {
+    const { filter, audioLabel } = buildFilterComplex({
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      shotCount: 2,
+      kinds: ['clip', 'still'],
+      holdSecs: [5, 3],
+      speech: [true, false],
+    });
+    assert.equal(audioLabel, 'aout');
+    assert.match(filter, /\[s0\]anull,apad=whole_dur=8\[speech\]/);
+    assert.doesNotMatch(filter, /sidechaincompress/);
   });
 });

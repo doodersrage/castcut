@@ -4,6 +4,7 @@ import {
   normalizePoseLookChoice,
   normalizeScenePoseSpec,
 } from '@/lib/day-pose-guide';
+import { normalizeSpokenLine } from './ltx25-renderer';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { getCharacter, type CharacterRecord } from './character-os';
 import { castBibleLook } from './play-cast';
@@ -131,6 +132,9 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   const pose = normalizeScenePoseSpec(record.pose);
   if (pose) {
     beat.pose = pose;
+  }
+  if (typeof record.line === 'string' && record.line.trim()) {
+    beat.line = normalizeSpokenLine(record.line);
   }
   if (typeof record.poseLayout === 'string' && record.poseLayout.trim()) {
     beat.poseLayout = record.poseLayout.trim().slice(0, 40);

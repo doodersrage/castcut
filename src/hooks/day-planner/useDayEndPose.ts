@@ -35,6 +35,8 @@ export function resolveDayClipEngine(input: {
   stillPromptId?: string;
   dayMood?: string | null;
   sharedModel?: string;
+  /** The slot has a spoken line — a talking clip, LTX-2.5 unless two-person adult. */
+  speaking?: boolean;
 }): string {
   const parentEntry = input.stillPromptId
     ? loadComfyGallery().find(entry => entry.promptId === input.stillPromptId)
@@ -52,6 +54,7 @@ export function resolveDayClipEngine(input: {
       !isAdultContentPrompt(stillPrompt),
     keepLtxForClothedSolo:
       loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
+    speaking: input.speaking === true,
   });
 }
 

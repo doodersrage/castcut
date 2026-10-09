@@ -1,4 +1,5 @@
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { normalizeSpokenLine } from './ltx25-renderer';
 import { storySceneNamesSecondPerson } from './story-scene-people';
 import { beatOwnsFootwear } from './footwear';
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
@@ -359,6 +360,8 @@ export type DaySlot = {
    * Keep, Use on Day) leaves it and says so, instead of clearing it (day-outfit-scope.ts).
    */
   outfitByHand?: boolean;
+  /** What the lead says in this slot's clip — set, Animate makes a talking clip (LTX-2.5). */
+  line?: string;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -731,6 +734,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       sceneHintsTyped: readEditableText(slot.sceneHintsTyped, 320) || undefined,
       sceneHintsDay: readEditableText(slot.sceneHintsDay, 320) || undefined,
       poseLayout: readText(slot.poseLayout, 40) || undefined,
+      line: normalizeSpokenLine(slot.line) || undefined,
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0
           ? Math.min(99, Math.floor(slot.poseVariant))

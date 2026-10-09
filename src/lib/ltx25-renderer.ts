@@ -31,6 +31,19 @@ export const WAN_FIRST_LAST_FRAME_NODE = 'WanFirstLastFrameToVideo';
 /** Nodes an LTX-2.5 end pose (last-frame guide) needs on top of the base graph. */
 export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const;
 
+/** Nodes a talking clip (LTX's own soundtrack decoded and muxed into an MP4) needs. */
+export const LTX25_SPEECH_NODES = ['LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'] as const;
+
+/** Speaker-identity node (core ComfyUI, PR #13111): conditions the voice on a short sample. */
+export const LTX25_VOICE_NODE = 'LTXVReferenceAudio';
+
+/**
+ * ID-LoRA (LTX-2.3 22B, TalkVid) — what makes LTXVReferenceAudio carry a voice. Live on LTX-2.5
+ * (2026-10-09): the clip's pitch moved most of the way to the sample (229 → 193–200 Hz vs a
+ * 175 Hz sample) and speaker similarity rose ~0.05; strength 1.5–2 no better than 1.
+ */
+export const LTX25_ID_LORA = 'ltx-2.3-id-lora-talkvid-3k.safetensors';
+
 export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
 /** Long side of the full-size (second pass) clip. */
@@ -48,8 +61,15 @@ export function isLtx25Model(model: string | null | undefined): boolean {
  */
 export function clipEngineForShot(
   videoModel: string,
-  shot: { adultDuo: boolean; clothedSolo?: boolean; keepLtxForClothedSolo?: boolean }
+  shot: {
+    adultDuo: boolean;
+    clothedSolo?: boolean;
+    keepLtxForClothedSolo?: boolean;
+    /** The clip has a spoken line — only LTX-2.5 makes sound, so it runs there whatever is picked. */
+    speaking?: boolean;
+  }
 ): string {
+  if (shot.speaking && !shot.adultDuo) return LTX25_MODEL_ID;
   if (!isLtx25Model(videoModel)) return videoModel;
   if (shot.adultDuo) return DEFAULT_VIDEO_MODEL;
   if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return DEFAULT_VIDEO_MODEL;
@@ -154,6 +174,13 @@ export function convertVideoWorkflowToLtx25(
      * the start's framing; a big framing change hard-cuts.
      */
     endImage?: string;
+    /**
+     * Talking clip: keep the soundtrack LTX generates with the picture (a quoted line in the
+     * prompt is spoken, lip-synced) and save an MP4 with sound instead of a silent WebP.
+     * `voiceSample` (a ComfyUI input audio file, ~5 s) steers the voice; `idLora` is the
+     * ID-LoRA file to apply with it (without it the sample does nothing measurable).
+     */
+    speech?: { voiceSample?: string; idLora?: string };
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
@@ -341,6 +368,7 @@ export function convertVideoWorkflowToLtx25(
     next['34'] = math('a // 2', { a: ['32', 1] });
   }
   if (endImage) addLtx25EndGuide(next, endImage);
+  if (options.speech) addLtx25Speech(next, options.speech, prefix);
   return { workflow: next, converted: true };
 }
 
@@ -390,4 +418,88 @@ function addLtx25EndGuide(next: Workflow, endImage: string): void {
   next['27']!.inputs!.guider = ['46', 0];
   next['47'] = crop('45', '28');
   next['29']!.inputs!.samples = ['47', 2];
+}
+
+/**
+ * Decode the second pass's audio latent and save picture + sound as an MP4 (replacing the silent
+ * WebP save). With a voice sample, LTXVReferenceAudio (on the ID-LoRA when given) feeds both
+ * passes' guiders.
+ */
+function addLtx25Speech(
+  next: Workflow,
+  speech: { voiceSample?: string; idLora?: string },
+  prefix: string
+): void {
+  const voiceSample = speech.voiceSample?.trim();
+  if (voiceSample) {
+    const idLora = speech.idLora?.trim();
+    if (idLora) {
+      next['50'] = {
+        class_type: 'LoraLoaderModelOnly',
+        inputs: { model: ['1', 0], lora_name: idLora, strength_model: 1 },
+      };
+    }
+    next['51'] = { class_type: 'LoadAudio', inputs: { audio: voiceSample } };
+    for (const guiderId of ['15', '46']) {
+      const guider = next[guiderId]?.inputs;
+      if (!guider) continue;
+      const refId = guiderId === '15' ? '52' : '53';
+      next[refId] = {
+        class_type: LTX25_VOICE_NODE,
+        inputs: {
+          model: idLora ? ['50', 0] : ['1', 0],
+          positive: guider.positive,
+          negative: guider.negative,
+          reference_audio: ['51', 0],
+          audio_vae: ['4', 0],
+          identity_guidance_scale: 3,
+          start_percent: 0,
+          end_percent: 1,
+        },
+      };
+      guider.model = [refId, 0];
+      guider.positive = [refId, 1];
+      guider.negative = [refId, 2];
+    }
+  }
+  next['54'] = {
+    class_type: 'LTXVAudioVAEDecode',
+    inputs: { samples: ['28', 1], audio_vae: ['4', 0] },
+  };
+  next['55'] = {
+    class_type: 'CreateVideo',
+    inputs: { images: ['29', 0], fps: LTX25_FPS, audio: ['54', 0] },
+  };
+  next['56'] = {
+    class_type: 'SaveVideo',
+    inputs: { video: ['55', 0], filename_prefix: prefix, format: 'mp4', codec: 'h264' },
+  };
+  delete next['30'];
+}
+
+/** Longest spoken line a ~4 s clip can carry (about 14 words at a natural pace). */
+export const SPOKEN_LINE_MAX_CHARS = 90;
+
+/** Tidy a typed line: one line, straight quotes stripped, capped to what a clip can say. */
+export function normalizeSpokenLine(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const line = value
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/["\u201c\u201d]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (line.length <= SPOKEN_LINE_MAX_CHARS) return line;
+  const cut = line.slice(0, SPOKEN_LINE_MAX_CHARS);
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
+}
+
+/**
+ * Add the line to a clip prompt the way LTX speaks it (live 2026-10-09: 13/13 clips said the
+ * quoted words exactly, lip-synced): the speaker faces the camera and "says clearly".
+ */
+export function withSpokenLine(prompt: string, line: string, speaker = 'She'): string {
+  const clean = normalizeSpokenLine(line);
+  const base = prompt.trim().replace(/[.!?]?$/, '.');
+  if (!clean) return prompt;
+  return `${base} ${speaker} looks toward the camera and says clearly, "${clean}"`;
 }

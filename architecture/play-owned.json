@@ -1,4 +1,5 @@
 [
+  "src/app/api/cast-voice/route.ts",
   "src/app/api/day-premise/route.ts",
   "src/app/api/play-checks/prepare/route.ts",
   "src/app/api/play-checks/route.ts",
@@ -38,6 +39,7 @@
   "src/hooks/usePoseLibrary.ts",
   "src/hooks/usePoseOutcomeStats.ts",
   "src/hooks/usePoseReferences.ts",
+  "src/hooks/useTakeCastVoice.ts",
   "src/hooks/useToolRenderQuality.ts",
   "src/hooks/useWardrobeGarmentThumbManifest.ts",
   "src/hooks/useWeakPoseLayouts.ts",

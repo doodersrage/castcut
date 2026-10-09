@@ -15,6 +15,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { looksLikeMotionUrl } from '@/lib/roleplay-film';
+import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
@@ -93,6 +94,15 @@ export function RoleplayStoryBeatCard({
   const withheld = takes[roleplayStillTakeIndex(beat)]?.adultHold === 'withheld';
   const edit = useStoryBeatEditActions();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const voice = useTakeCastVoice();
+  const voiceKey = storyBeatKey(beat);
+  const voiceNote = voice.noteFor(voiceKey);
+  const takingVoice = voice.taking(voiceKey);
+  // A line and a finished clip: a talking clip (the server says so if it has no sound).
+  const canTakeVoice = Boolean(
+    beat.line?.trim() && beat.clipStatus === 'completed' && beat.clipUrl?.trim()
+  );
+  const takeVoice = () => voice.take(voiceKey, beat.clipUrl ?? '', beat.castId);
   const rewriting = edit?.rewritingKey === storyBeatKey(beat);
   // The job in flight was sent with the text as it was — it cannot change underneath it.
   const textLocked = storyBeatTextLocked(beat) || rewriting;
@@ -272,6 +282,18 @@ export function RoleplayStoryBeatCard({
                 })}
               </button>
             ) : null}
+            {canTakeVoice ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || takingVoice}
+                title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                data-testid="story-beat-take-voice"
+                onClick={() => void takeVoice()}
+              >
+                Use this voice
+              </button>
+            ) : null}
             {canCopy ? (
               <button
                 type="button"
@@ -304,6 +326,23 @@ export function RoleplayStoryBeatCard({
             ) : null}
           </p>
           <p className="type-caption text-[var(--text-muted)]">{beat.blurb}</p>
+          {beat.line?.trim() ? (
+            <p
+              className="type-caption italic text-[var(--text-secondary)]"
+              data-testid="story-beat-line-shown"
+            >
+              “{beat.line.trim()}”
+            </p>
+          ) : null}
+          {voiceNote ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-voice-note"
+            >
+              {voiceNote}
+            </p>
+          ) : null}
           {edit && awaitsRewrite ? (
             <div
               className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2"

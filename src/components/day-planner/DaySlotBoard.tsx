@@ -1,5 +1,6 @@
 'use client';
 
+import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
 import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
@@ -99,6 +100,7 @@ export default function DaySlotBoard({
   onLooksWrong,
   onFixArea,
 }: DaySlotBoardProps) {
+  const voice = useTakeCastVoice();
   const promptKey = useMemo(
     () =>
       stills
@@ -303,6 +305,18 @@ export default function DaySlotBoard({
                 }}
               >
                 Queue this slot only
+              </button>
+            ) : null}
+            {slot.line?.trim() && clipState === 'done' && doneClip ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || voice.taking(slot.id)}
+                title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                data-testid={`day-progress-take-voice-${slot.id}`}
+                onClick={() => void voice.take(slot.id, doneClip)}
+              >
+                Use this voice
               </button>
             ) : null}
             {canAnimate ? (
@@ -581,7 +595,7 @@ export default function DaySlotBoard({
                     className="type-overline mt-1 text-[var(--tint-success-text)]"
                     data-testid={`day-progress-clip-${slot.id}`}
                   >
-                    Motion
+                    {slot.line?.trim() ? 'Talking' : 'Motion'}
                   </p>
                 ) : clipState === 'queued' ? (
                   <p
@@ -596,6 +610,15 @@ export default function DaySlotBoard({
                     data-testid={`day-progress-clip-${slot.id}`}
                   >
                     Clip failed
+                  </p>
+                ) : null}
+                {voice.noteFor(slot.id) ? (
+                  <p
+                    className="type-caption mt-1 text-[var(--text-muted)]"
+                    role="status"
+                    data-testid={`day-progress-voice-note-${slot.id}`}
+                  >
+                    {voice.noteFor(slot.id)}
                   </p>
                 ) : null}
               </button>

@@ -2,6 +2,9 @@ import {
   convertVideoWorkflowToLtx25,
   LTX25_END_GUIDE_NODES,
   LTX25_REQUIRED_NODE,
+  LTX25_SPEECH_NODES,
+  LTX25_VOICE_NODE,
+  LTX25_ID_LORA,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -217,6 +220,13 @@ export type WorkflowParamValues = {
    * LTX-2.5 last-frame guide). Unset = the plain I2V graph.
    */
   videoEndImageFilename?: string;
+  /**
+   * Talking clip ('on'): an LTX-2.5 clip keeps its soundtrack (the quoted line in the prompt is
+   * spoken) and saves as an MP4. Ignored on WAN.
+   */
+  videoSpeech?: 'on';
+  /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
+  videoVoiceSample?: string;
   /**
    * Best of two in one job (castcut-nodes.ts): the pose guide as CastcutPoseScore reads it. Only
    * acted on when ComfyUI has the Castcut nodes; otherwise the graph is left as it is.
@@ -513,6 +523,12 @@ export function resolveQueueParams(
   }
   if (merged.videoEndImageFilename?.trim()) {
     result.videoEndImageFilename = merged.videoEndImageFilename.trim();
+  }
+  if (merged.videoSpeech === 'on') {
+    result.videoSpeech = 'on';
+  }
+  if (merged.videoVoiceSample?.trim()) {
+    result.videoVoiceSample = merged.videoVoiceSample.trim();
   }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
@@ -1866,6 +1882,13 @@ export function injectPromptsWithFallbacks(
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
           ? { endImage }
           : {}),
+        // Talking clip: only when this ComfyUI can decode the audio and save an MP4.
+        ...(input.params?.videoSpeech === 'on' &&
+        (!nodeTypes || LTX25_SPEECH_NODES.every(type => nodeTypes.has(type)))
+          ? {
+              speech: ltx25SpeechOptions(input.params?.videoVoiceSample, nodeTypes, options),
+            }
+          : {}),
       });
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };
@@ -2177,4 +2200,19 @@ export function resolveWorkflowGraphEnrichOptions(runtime?: ComfyUiRuntimeConfig
         ? runtime?.workflowSharpenAfterUpscale !== false
         : runtime?.workflowSharpenAfterUpscale === true),
   };
+}
+
+/** Voice sample + ID-LoRA for a talking clip, each only when this ComfyUI has it. */
+function ltx25SpeechOptions(
+  voiceSample: string | undefined,
+  nodeTypes: Set<string> | null,
+  options: { availableLoras?: string[] | null } | undefined
+): { voiceSample?: string; idLora?: string } {
+  const sample = voiceSample?.trim();
+  if (!sample || (nodeTypes && !nodeTypes.has(LTX25_VOICE_NODE))) return {};
+  const idLora = (options?.availableLoras ?? []).find(
+    name => name.split(/[\\/]/).pop() === LTX25_ID_LORA
+  );
+  // Without the ID-LoRA the sample made no measurable difference — skip the extra pass.
+  return idLora ? { voiceSample: sample, idLora } : {};
 }

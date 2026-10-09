@@ -323,6 +323,12 @@ export function resolveQueueParams(
   if (base?.videoEndImageFilename?.trim()) {
     merged.videoEndImageFilename = base.videoEndImageFilename.trim();
   }
+  if (base?.videoSpeech === 'on') {
+    merged.videoSpeech = 'on';
+  }
+  if (base?.videoVoiceSample?.trim()) {
+    merged.videoVoiceSample = base.videoVoiceSample.trim();
+  }
   if (base?.castcutPoseGuide?.trim()) {
     merged.castcutPoseGuide = base.castcutPoseGuide.trim();
   }

@@ -70,6 +70,11 @@ export type CharacterRecord = CharacterFeatureFields & {
   traits?: CharacterTraits;
   /** Last "Picture this bible" still (Cast → Bible), shown again on a revisit. */
   biblePicture?: CastBiblePicture;
+  /**
+   * The Cast's voice for talking clips (cast-voice.ts): a ~5 s ComfyUI input audio clip, cut
+   * from one of their talking clips, that LTX-2.5 conditions the voice on (with the ID-LoRA).
+   */
+  voice?: CastVoice;
   ipAdapter?: {
     imageFilename?: string;
     imageFilenames?: string[];
@@ -100,6 +105,14 @@ export type CharacterRecord = CharacterFeatureFields & {
   characterName?: string;
   setting?: string;
   notes?: string;
+};
+
+export type CastVoice = {
+  /** ComfyUI input audio filename. */
+  sample: string;
+  /** The talking clip it was cut from (gallery view URL), to play it back. */
+  fromClipUrl?: string;
+  at: number;
 };
 
 export type CharacterLook = {

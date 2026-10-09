@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { normalizeSpokenLine } from '@/lib/ltx25-renderer';
 import {
   storyBeatKey,
   storyBeatRewriteRevertPatch,
@@ -46,6 +47,8 @@ type UseStoryBeatEditOptions = {
 export type StoryBeatEditActions = {
   /** Save a scene's edited text. False when it was refused (the editor stays open). */
   saveBeatText: (beat: RoleplayStoryBeat, text: { title: string; blurb: string }) => boolean;
+  /** Set (or clear) what the lead says in the scene's clip. */
+  saveBeatLine: (beat: RoleplayStoryBeat, line: string) => void;
   /** Write the scene's still again from its text and queue it. */
   rewriteBeat: (beat: RoleplayStoryBeat) => Promise<void>;
   /** The scene being written again, if any (see `storyBeatKey`). */
@@ -88,6 +91,19 @@ export function useStoryBeatEdit({
       return true;
     },
     [setError, storyRef, updateToolSettings]
+  );
+
+  const saveBeatLine = useCallback(
+    (beat: RoleplayStoryBeat, line: string) => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (!latest) return;
+      const next = normalizeSpokenLine(line);
+      if ((latest.line ?? '') === next) return;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, { line: next || undefined }),
+      });
+    },
+    [storyRef, updateToolSettings]
   );
 
   const rewriteBeat = useCallback(
@@ -143,7 +159,7 @@ export function useStoryBeatEdit({
 
   // One object per change: it is a context value, and every card in the reel reads it.
   return useMemo(
-    () => ({ saveBeatText, rewriteBeat, rewritingKey }),
-    [rewriteBeat, rewritingKey, saveBeatText]
+    () => ({ saveBeatText, saveBeatLine, rewriteBeat, rewritingKey }),
+    [rewriteBeat, rewritingKey, saveBeatLine, saveBeatText]
   );
 }

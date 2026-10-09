@@ -50,6 +50,8 @@ export type FilmServerEncodeOptions = {
   titleCard?: FilmTitleCard | null;
   /** Optional audio bed URL (http/https, private allowed for same-origin). */
   audioBedUrl?: string;
+  /** Keep talking clips' own sound (lines), ducking the bed under them. Default on. */
+  clipSound?: boolean;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -139,6 +141,32 @@ async function runCapture(
   });
 }
 
+/**
+ * Length of a downloaded clip's sound track in seconds, or null when it has none (talking clips
+ * are MP4 with audio; WAN clips are silent WebP).
+ */
+async function clipAudioSec(ffmpeg: string, file: string): Promise<number | null> {
+  if (!/\.(mp4|webm|mov|mkv)$/i.test(file)) return null;
+  try {
+    const { stderr } = await runCapture(ffmpeg, [
+      '-hide_banner',
+      '-i',
+      file,
+      '-map',
+      '0:a:0',
+      '-f',
+      'null',
+      '-',
+    ]);
+    const match = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+    if (!match) return null;
+    const sec = Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+    return sec > 0 ? sec : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchShotBytes(
   url: string,
   requestOrigin?: string,
@@ -183,6 +211,36 @@ function q(value: string): string {
 }
 
 /**
+ * Where each talking clip starts in the cut — the same arithmetic as the video joins (xfade
+ * offsets overlap shots by the crossfade; concat lays them end to end).
+ */
+export function filmSpeechStarts(input: {
+  kinds: FilmGraphShotKind[];
+  holdSecs: number[];
+  crossfadeSec: number;
+  speech?: boolean[];
+}): Array<{ index: number; startSec: number; holdSec: number }> {
+  const out: Array<{ index: number; startSec: number; holdSec: number }> = [];
+  if (!input.speech?.some(Boolean)) return out;
+  const overlap = input.kinds.length >= 2 ? Math.max(0, input.crossfadeSec) : 0;
+  let start = 0;
+  for (let i = 0; i < input.kinds.length; i += 1) {
+    const kind = input.kinds[i];
+    const hold =
+      kind === 'clip'
+        ? input.holdSecs[i] && input.holdSecs[i]! > 0
+          ? input.holdSecs[i]!
+          : 4
+        : (input.holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
+    if (kind === 'clip' && input.speech[i]) {
+      out.push({ index: i, startSec: Number(start.toFixed(3)), holdSec: hold });
+    }
+    start += overlap > 0 ? Math.max(0.1, hold - overlap) : hold;
+  }
+  return out;
+}
+
+/**
  * The ffmpeg filter graph for a cut. Every shot is scaled/padded to the canvas; stills either
  * hold or (with `stillMotion`) slowly zoom; shots optionally get a fading caption; a `title`
  * shot renders centered title + subtitle on black. Shots join with xfade or concat.
@@ -198,6 +256,8 @@ export function buildFilterComplex(input: {
   stillMotion?: boolean;
   text?: FilmGraphText[];
   fontFile?: string | null;
+  /** Per shot: the clip carries its own sound (a talking clip) — mixed in at the shot's start. */
+  speech?: boolean[];
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -294,11 +354,41 @@ export function buildFilterComplex(input: {
   }
 
   let audioLabel: string | null = null;
+  const end = Math.max(1, total);
+  const fadeOut = `afade=t=out:st=${Math.max(0.1, end - 1)}:d=1`;
+  const voiced = filmSpeechStarts({ kinds, holdSecs, crossfadeSec, speech: input.speech });
+  const stereo = 'aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo';
+  for (const { index, startSec, holdSec } of voiced) {
+    const delayMs = Math.round(startSec * 1000);
+    parts.push(
+      `[${index}:a]${stereo},atrim=0:${holdSec},asetpts=PTS-STARTPTS,adelay=${delayMs}:all=1[s${index}]`
+    );
+  }
+  if (voiced.length > 0) {
+    const speechLabels = voiced.map(({ index }) => `[s${index}]`).join('');
+    parts.push(
+      `${speechLabels}${voiced.length > 1 ? `amix=inputs=${voiced.length}:duration=longest:normalize=0` : 'anull'},apad=whole_dur=${end}[speech]`
+    );
+  }
   if (hasAudioBed) {
     const audioIndex = shotCount;
-    parts.push(
-      `[${audioIndex}:a]atrim=0:${Math.max(1, total)},asetpts=PTS-STARTPTS,afade=t=out:st=${Math.max(0.1, total - 1)}:d=1[aout]`
-    );
+    const bed = `[${audioIndex}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS`;
+    if (voiced.length > 0) {
+      // Duck the music under the lines, then lay the lines on top.
+      parts.push(`[speech]asplit=2[sp1][sp2]`);
+      parts.push(`${bed},apad=whole_dur=${end}[bed]`);
+      parts.push(
+        `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[ducked]`
+      );
+      parts.push(
+        `[ducked][sp2]amix=inputs=2:duration=first:normalize=0,atrim=0:${end},${fadeOut}[aout]`
+      );
+    } else {
+      parts.push(`${bed},${fadeOut}[aout]`);
+    }
+    audioLabel = 'aout';
+  } else if (voiced.length > 0) {
+    parts.push(`[speech]atrim=0:${end},${fadeOut}[aout]`);
     audioLabel = 'aout';
   }
 
@@ -393,6 +483,7 @@ export async function encodeFilmPlaylistServer(
     const localFiles: string[] = [];
     const kinds: FilmShotKind[] = [];
     const holdSecs: number[] = [];
+    const speech: boolean[] = [];
 
     for (const [index, shot] of shots.entries()) {
       options.onProgress?.(0.05 + (0.35 * index) / shots.length, `Fetching ${shot.title}`);
@@ -402,12 +493,18 @@ export async function encodeFilmPlaylistServer(
       await fs.writeFile(/* turbopackIgnore: true */ filePath, fetched.buffer);
       localFiles.push(filePath);
       kinds.push(shot.kind);
+      const soundSec =
+        shot.kind === 'clip' && options.clipSound !== false
+          ? await clipAudioSec(ffmpeg, filePath)
+          : null;
+      speech.push(soundSec !== null);
       holdSecs.push(
         shot.kind === 'still'
           ? clampStillHoldSec(shot.holdSec, DEFAULT_STILL_HOLD_SEC)
           : typeof shot.holdSec === 'number' && shot.holdSec > 0
             ? shot.holdSec
-            : 0
+            : // A talking clip holds for its whole line (the 4 s default would cut it off).
+              (soundSec ?? 0)
       );
     }
 
@@ -439,11 +536,13 @@ export async function encodeFilmPlaylistServer(
     const graphKinds: FilmGraphShotKind[] = [];
     const graphHolds: number[] = [];
     const graphText: FilmGraphText[] = [];
+    const graphSpeech: boolean[] = [];
     const inputArgs: string[][] = [];
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
       : null;
     if (titleText) {
+      graphSpeech.push(false);
       graphKinds.push('title');
       graphHolds.push(TITLE_CARD_SEC);
       graphText.push({
@@ -462,6 +561,7 @@ export async function encodeFilmPlaylistServer(
       ]);
     }
     for (let i = 0; i < localFiles.length; i += 1) {
+      graphSpeech.push(speech[i] === true);
       graphKinds.push(kinds[i]!);
       graphHolds.push(holdSecs[i]!);
       graphText.push({
@@ -497,6 +597,7 @@ export async function encodeFilmPlaylistServer(
       stillMotion: options.stillMotion === true,
       text: graphText,
       fontFile: usableFont,
+      speech: graphSpeech,
     });
 
     const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');

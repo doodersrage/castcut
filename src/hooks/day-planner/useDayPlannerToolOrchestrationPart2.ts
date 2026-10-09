@@ -1,5 +1,7 @@
 'use client';
 
+import { isLtx25Model, normalizeSpokenLine, withSpokenLine } from '@/lib/ltx25-renderer';
+import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { nextDayThread, planTomorrowSlots } from '@/lib/day-thread';
@@ -344,11 +346,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
           : undefined;
         // LTX-2.5 drifts off two-person sex acts — those clips stay on WAN.
+        // A spoken line makes a talking clip (LTX-2.5 speaks it, lip-synced, with sound).
+        const spokenLine = normalizeSpokenLine(slot.line);
         const videoModel = resolveDayClipEngine({
           stillPromptId: still?.promptId,
           dayMood: toolSettings.dayMood,
           sharedModel: shared.model,
+          speaking: Boolean(spokenLine),
         });
+        const speaking = Boolean(spokenLine) && isLtx25Model(videoModel);
         // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
         // has the node for the engine; otherwise the plain clip, said once.
         const endPose = activeDayEndPose(still);
@@ -409,6 +415,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           );
           prompt = manLead ? swapDayPromptGender(clip) : clip;
         }
+        if (speaking) {
+          prompt = withSpokenLine(prompt, spokenLine, manLead ? 'He' : 'She');
+        }
         // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {
           syncSharedIdentityToCast(character);
@@ -424,9 +433,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           qualityProfile: 'final',
           queueParamsBase: withCastFaceQueueParams(
             {
-              videoFrames: 64,
+              // A talking clip runs ~5 s: room for a line of about 14 words.
+              videoFrames: speaking ? 80 : 64,
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
+              ...(speaking
+                ? { videoSpeech: 'on', ...castVoiceSampleFor(shared.activeCharacterId) }
+                : {}),
             },
             character,
             shared.ipAdapterStrength ?? 0.75

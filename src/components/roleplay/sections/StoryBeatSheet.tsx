@@ -3,6 +3,7 @@
 import SideSheet from '@/components/ui/SideSheet';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
+import SpokenLineField from '@/components/SpokenLineField';
 import type { StoryBeatEditActions } from '@/hooks/roleplay/useStoryBeatEdit';
 import type { PosePicks } from '@/components/pose/PosePreview';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
@@ -41,7 +42,7 @@ export default function StoryBeatSheet({
       open={open}
       onClose={onClose}
       title={`${index + 1}. ${beat.title}`}
-      description="Scene text and the pose its still is drawn in."
+      description="Scene text, what they say in the clip, and the pose its still is drawn in."
       testId="story-beat-sheet"
       dataAttributes={{ 'data-beat-index': String(index) }}
     >
@@ -64,6 +65,14 @@ export default function StoryBeatSheet({
             ) : null}
           </div>
         )}
+        {edit ? (
+          <SpokenLineField
+            line={beat.line}
+            disabled={beat.clipStatus === 'queued' || beat.clipStatus === 'running'}
+            onSave={line => edit.saveBeatLine(beat, line)}
+            testId="story-beat-line"
+          />
+        ) : null}
         {onPoseChange ? (
           <StoryBeatPosePreview beat={beat} index={index} busy={busy} onPoseChange={onPoseChange} />
         ) : null}

@@ -5,8 +5,12 @@ import {
   clipEngineForShot,
   convertVideoWorkflowToLtx25,
   LTX25_FILES,
+  LTX25_ID_LORA,
   ltx25Canvas,
   ltx25FrameCount,
+  normalizeSpokenLine,
+  SPOKEN_LINE_MAX_CHARS,
+  withSpokenLine,
 } from './ltx25-renderer';
 
 /** The WAN I2V graph the queue builds (scaffold + WanImageToVideo splice), tokens filled. */
@@ -173,5 +177,74 @@ describe('LTX-2.5 clip renderer', () => {
     );
     assert.equal(clipEngineForShot('wan-video', { adultDuo: false, clothedSolo: true }), 'wan-video');
     assert.equal(clipEngineForShot('wan-video-rapid-aio', { adultDuo: true }), 'wan-video-rapid-aio');
+  });
+});
+
+describe('LTX-2.5 talking clips', () => {
+  type G = Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
+  const refsTo = (workflow: G, id: string) =>
+    Object.values(workflow).some(node =>
+      Object.values(node.inputs ?? {}).some(v => Array.isArray(v) && v[0] === id)
+    );
+
+  it('keeps the soundtrack: decodes the audio latent and saves an MP4 instead of the WebP', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), { speech: {} }) as {
+      workflow: G;
+    };
+    assert.equal(byClass(workflow, 'SaveAnimatedWEBP').length, 0);
+    const decode = byClass(workflow, 'LTXVAudioVAEDecode')[0]!;
+    assert.deepEqual(decode.inputs!.samples, ['28', 1]);
+    const create = byClass(workflow, 'CreateVideo')[0]!;
+    assert.deepEqual(create.inputs!.images, ['29', 0]);
+    const save = byClass(workflow, 'SaveVideo')[0]!;
+    assert.equal(save.inputs!.format, 'mp4');
+    assert.equal(save.inputs!.filename_prefix, 'cc-clip');
+    assert.equal(byClass(workflow, 'LTXVReferenceAudio').length, 0);
+  });
+
+  it('a voice sample conditions every guider, on the ID-LoRA when given', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+      endImage: 'end.png',
+      speech: { voiceSample: 'castcut-voice-nora.wav', idLora: LTX25_ID_LORA },
+    }) as { workflow: G };
+    const refs = byClass(workflow, 'LTXVReferenceAudio');
+    assert.equal(refs.length, 2);
+    for (const ref of refs) assert.deepEqual(ref.inputs!.model, ['50', 0]);
+    assert.equal(workflow['50']!.inputs!.lora_name, LTX25_ID_LORA);
+    for (const guider of byClass(workflow, 'LTXVDualCFGGuider')) {
+      assert.match(String((guider.inputs!.model as string[])[0]), /^5[23]$/);
+      assert.deepEqual((guider.inputs!.positive as unknown[])[1], 1);
+    }
+    // The end guide's conditioning still feeds the voice node.
+    assert.deepEqual(workflow['53']!.inputs!.positive, ['45', 0]);
+    assert.equal(refsTo(workflow, '51'), true);
+  });
+
+  it('without the LoRA the voice node runs on the base model', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+      speech: { voiceSample: 'v.wav' },
+    }) as { workflow: G };
+    assert.equal(workflow['50'], undefined);
+    assert.deepEqual(workflow['52']!.inputs!.model, ['1', 0]);
+  });
+
+  it('a spoken line runs on LTX-2.5 even when WAN is picked — but two-person adult stays on WAN', () => {
+    assert.equal(clipEngineForShot('wan-2.2-rapid', { adultDuo: false, speaking: true }), 'ltx-video-2.5');
+    assert.equal(
+      clipEngineForShot('ltx-video-2.5', { adultDuo: false, clothedSolo: true, speaking: true }),
+      'ltx-video-2.5'
+    );
+    assert.notEqual(clipEngineForShot('ltx-video-2.5', { adultDuo: true, speaking: true }), 'ltx-video-2.5');
+  });
+
+  it('puts the line in quotes after the motion, and keeps lines short', () => {
+    assert.equal(
+      withSpokenLine('She lifts her glass', '  "Best part of my day."\n'),
+      'She lifts her glass. She looks toward the camera and says clearly, "Best part of my day."'
+    );
+    assert.equal(withSpokenLine('He waves.', 'Hi!', 'He'), 'He waves. He looks toward the camera and says clearly, "Hi!"');
+    assert.equal(withSpokenLine('She waves.', '   '), 'She waves.');
+    const long = normalizeSpokenLine('word '.repeat(40));
+    assert.ok(long.length <= SPOKEN_LINE_MAX_CHARS && !long.endsWith(' '));
   });
 });

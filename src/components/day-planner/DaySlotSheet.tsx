@@ -1,5 +1,6 @@
 'use client';
 
+import SpokenLineField from '@/components/SpokenLineField';
 import { useRef, useState, type ReactNode } from 'react';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
@@ -201,6 +202,12 @@ export default function DaySlotSheet({
               onChange={event => updateSlot(slot.id, typedDayBeatPatch(slot, event.target.value))}
             />
           </label>
+          <SpokenLineField
+            key={slot.id}
+            line={slot.line}
+            onSave={line => updateSlot(slot.id, { line: line || undefined })}
+            testId="day-slot-line"
+          />
         </div>
         <DaySlotPosePreview
           slot={slot}

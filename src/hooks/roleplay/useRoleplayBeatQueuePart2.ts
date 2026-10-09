@@ -2,7 +2,9 @@
 
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
-import { clipEngineForShot } from '@/lib/ltx25-renderer';
+import { clipEngineForShot, normalizeSpokenLine, withSpokenLine } from '@/lib/ltx25-renderer';
+import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
+import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
@@ -226,6 +228,9 @@ export function useRoleplayBeatQueuePart2(
         prompt = withAdultAgeLine(neutralizeYouthWords(prompt), stillAgeLine);
       }
 
+      // A spoken line makes a talking clip (LTX-2.5 speaks the quoted words, lip-synced).
+      const spokenLine = normalizeSpokenLine(latest.line);
+
       const queueClipMode = retry
         ? hasInit
           ? ('i2v' as const)
@@ -238,12 +243,18 @@ export function useRoleplayBeatQueuePart2(
 
       // LTX-2.5 converts image-to-video clips only, and drifts off two-person sex acts — those
       // (and text-to-video / extend) stay on WAN.
+      const adultDuo = [latest.prompt, parentEntry?.prompt].some(text =>
+        (text ?? '').includes(RAPID_DUO_RECIPE_MARK)
+      );
+      const speaking = Boolean(spokenLine) && queueClipMode === 'i2v' && !adultDuo;
+      if (speaking) {
+        prompt = withSpokenLine(prompt, spokenLine, leadIsMan() ? 'He' : 'She');
+      }
       const clipModel =
         queueClipMode === 'i2v'
           ? clipEngineForShot(videoModel, {
-              adultDuo: [latest.prompt, parentEntry?.prompt].some(text =>
-                (text ?? '').includes(RAPID_DUO_RECIPE_MARK)
-              ),
+              adultDuo,
+              speaking,
               clothedSolo: [latest.prompt, parentEntry?.prompt].every(
                 text => stillPromptPeople(text) === 1 && !isAdultContentPrompt(text)
               ),
@@ -270,7 +281,18 @@ export function useRoleplayBeatQueuePart2(
           clipMode: queueClipMode,
           videoUrl: useNativeExtend ? extendUrl : undefined,
           qualityProfile: 'final',
-          ...roleplayCharacterQueueFields(undefined, { videoFrames: 64, videoFps: 16 }),
+          ...roleplayCharacterQueueFields(
+            undefined,
+            speaking
+              ? {
+                  // ~5 s: room for a line of about 14 words.
+                  videoFrames: 80,
+                  videoFps: 16,
+                  videoSpeech: 'on',
+                  ...castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId),
+                }
+              : { videoFrames: 64, videoFps: 16 }
+          ),
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not queue that clip.');
