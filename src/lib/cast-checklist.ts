@@ -4,7 +4,7 @@
  * Pure: the Cast home gathers the facts (plate, traits, bible, keepers, Day stills, films, Story).
  */
 
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 export type CastChecklistItemId =
   'plate' | 'traits' | 'bible' | 'outfit' | 'day' | 'film' | 'story';

@@ -31,7 +31,8 @@ import {
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { ensureDaySlotsMatchMood } from '@/lib/day-planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
-import { DEFAULT_DAY_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
 import type {
   FittingRoomQueueCore,
   FittingRoomQueueInput,

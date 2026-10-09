@@ -8,7 +8,7 @@
 import { realKitId } from './outfit-handoff';
 import type { DaySlot, DaySlotStill } from './day-planner';
 import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from './roleplay';
-import type { DayToolCache, RoleplayToolCache } from './settings-cache';
+import type { DayToolCache, RoleplayToolCache } from './play-settings';
 
 /** One Cast's Day: the live Day when it owns it, else the Day parked under it. */
 export type CastDayPlan = Pick<

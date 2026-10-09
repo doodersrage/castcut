@@ -7,7 +7,7 @@ import type {
   RoleplayStoryPhase,
   RoleplayTone,
 } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 export type RoleplayCastApplyReferenceInput = {
   file?: File | null;

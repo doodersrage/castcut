@@ -7,7 +7,7 @@ import { normalizeDaySlots, type DaySlot } from './day-planner';
 import { daySlotLookOutfit, daySlotOwnLookId, resolveDaySlotLook } from './day-slot-look';
 import { buildDaySlotPromptForStill } from './day-still-prompt';
 import { DEFAULT_POSE_GUIDE_STYLE } from './pose-guide-prompt';
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 /** A Cast with two looks: Studio (active, a kit lock) and Beach (another plate, a kept photo). */
 const cast = (): CharacterRecord => ({

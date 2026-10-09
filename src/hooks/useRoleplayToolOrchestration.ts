@@ -22,7 +22,7 @@ import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getCharacter } from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { getReformatTargetModel } from '@/lib/reformat-target';
-import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 import {
   ROLEPLAY_ARCHETYPES,
   formatRoleplayStoryProgress,

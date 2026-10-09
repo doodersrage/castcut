@@ -13,11 +13,8 @@ import {
 } from './character-os';
 import { withRoleplayLookPlateFromCast } from './fitting-room';
 import { resolvePlayLoopEntryCharacterId } from './play-campaign';
-import {
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-  loadToolSettings,
-  type RoleplayToolCache,
-} from './settings-cache';
+import { loadToolSettings } from './settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE, type RoleplayToolCache } from './play-settings';
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
   getRoleplayArchetype,

@@ -27,14 +27,16 @@ import {
   type KeptLookOutfit,
 } from '@/lib/outfit-handoff';
 import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_FITTING_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  DEFAULT_FITTING_TOOL_CACHE,
+  DEFAULT_ROLEPLAY_TOOL_CACHE,
+} from '@/lib/play-settings';
 import { identityLockForLook, identityLockPatchChanges } from '@/lib/identity-lock-look';
 
 function samePlatePicture(

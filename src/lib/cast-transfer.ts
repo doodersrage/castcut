@@ -10,7 +10,7 @@ import type { ParkedDay } from './day-cast-park';
 import type { CharacterRecord } from './character-os';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import { restampStoryCast } from './story-session-guard';
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 export const CAST_FILE_KIND = 'castcut-cast';
 export const CAST_FILE_VERSION = 1;

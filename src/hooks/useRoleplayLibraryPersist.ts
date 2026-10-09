@@ -2,11 +2,8 @@
 
 import { useEffect } from 'react';
 import { applyCharacterRecord, upsertCharacterFromRoleplaySession } from '@/lib/character-os';
-import {
-  loadSettingsCache,
-  saveSharedSettings,
-  type RoleplayToolCache,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { type RoleplayToolCache } from '@/lib/play-settings';
 import { persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
 
 type UseRoleplayLibraryPersistOptions = {

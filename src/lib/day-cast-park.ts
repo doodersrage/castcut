@@ -4,7 +4,7 @@
  * character cost you the Day you were cutting. Switching away now parks the plan and stills
  * under their Cast; switching back puts them back.
  */
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 /** The part of Day that belongs to one Cast. */
 export type ParkedDay = Pick<

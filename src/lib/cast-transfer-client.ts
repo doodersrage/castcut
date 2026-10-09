@@ -24,12 +24,8 @@ import {
   roleplayLibraryIdForCharacter,
   upsertRoleplayLibrarySession,
 } from './roleplay-library';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveToolSettings,
-} from './settings-cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from './settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from './play-settings';
 
 /** The Cast's own picture: its face lock, else its reference photo. */
 export function castPictureUrl(character: CharacterRecord): string {

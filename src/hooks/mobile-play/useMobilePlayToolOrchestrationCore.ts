@@ -46,10 +46,10 @@ import { normalizeRoleplayBeatOutput } from '@/lib/roleplay-film';
 import { persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 import { buildRoleplayRequestBody, resolveRoleplayWardrobeFields } from '@/lib/roleplay-play-core';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 

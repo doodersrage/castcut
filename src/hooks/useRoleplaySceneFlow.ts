@@ -22,7 +22,7 @@ import {
 } from '@/lib/roleplay';
 import type { RoleplayPlayAs } from '@/lib/roleplay';
 import { storyHasBeat, storyWithoutUnwrittenBeat } from '@/lib/roleplay-story-write';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 type UseRoleplaySceneFlowOptions = {
   storyRef: MutableRefObject<RoleplayStoryBeat[]>;

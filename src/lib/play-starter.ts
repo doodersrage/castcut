@@ -29,14 +29,16 @@ import { resolvePlayStepHref } from './play-step-machine';
 import { markOnboardingFirstPlayCampaign } from './play-onboarding';
 import { noteStarterFilmMetric } from './local-observability';
 import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_MOODBOARD_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
-  type DayToolCache,
 } from './settings-cache';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  DEFAULT_MOODBOARD_TOOL_CACHE,
+  type DayToolCache,
+} from './play-settings';
 
 const STARTER_LOOK_BASE: Omit<LookPack, 'characterId' | 'savedAt'> = {
   version: 1,

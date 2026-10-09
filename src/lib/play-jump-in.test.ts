@@ -4,11 +4,8 @@ import { resetBrowserStorageCache } from './browser-storage';
 import { hasCompletedFirstFilm } from './play-metrics';
 import { playCampaignProgressLabel, type PlayCampaignState } from './play-campaign';
 import { buildStarterLookPack, startStarterPlayFilm } from './play-starter';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  loadToolSettings,
-  saveToolSettings,
-} from './settings-cache';
+import { loadToolSettings, saveToolSettings } from './settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from './play-settings';
 
 function installFakeWindow() {
   const storage = new Map<string, string>();

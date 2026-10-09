@@ -76,11 +76,8 @@ import { bumpPlayCampaignStep } from '@/lib/play-campaign';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import {
-  DEFAULT_FITTING_TOOL_CACHE,
-  loadSettingsCache,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play-settings';
 import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
 
 const ACCENT = 'rose' as const;

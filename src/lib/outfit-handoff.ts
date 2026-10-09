@@ -194,17 +194,13 @@ export async function handOffOutfitPicks(
   options: OutfitHandoffOptions = {}
 ): Promise<void> {
   const [
-    {
-      DEFAULT_DAY_TOOL_CACHE,
-      DEFAULT_ROLEPLAY_TOOL_CACHE,
-      loadSettingsCache,
-      loadToolSettings,
-      saveToolSettings,
-    },
+    { loadSettingsCache, loadToolSettings, saveToolSettings },
+    { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE },
     { activeLook, getCharacter, looksOf },
     { dayAfterOutfitHandoff },
   ] = await Promise.all([
     import('./settings-cache'),
+    import('./play-settings'),
     import('./character-os'),
     import('./day-outfit-scope'),
   ]);

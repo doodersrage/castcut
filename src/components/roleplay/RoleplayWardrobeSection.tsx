@@ -13,7 +13,7 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 import type { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 
 const ACCENT = 'amber' as const;

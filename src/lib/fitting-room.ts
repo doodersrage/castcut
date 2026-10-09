@@ -1,7 +1,7 @@
 import type { CharacterLook, CharacterRecord } from '@/lib/character-os';
 import { activeLook } from '@/lib/character-os';
 import { buildSinglePersonUserDirective } from '@/lib/single-person';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 import { buildFeetPassPrompt, resolveFeetPassModel } from '@/lib/footwear-check';
 
 export { buildFeetPassPrompt as buildFittingFeetPassPrompt, resolveFeetPassModel };

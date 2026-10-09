@@ -30,13 +30,15 @@ import {
 import { startStarterPlayFilm } from '@/lib/play-starter';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
-  DEFAULT_FITTING_TOOL_CACHE,
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
-  DEFAULT_MOODBOARD_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
+import {
+  DEFAULT_FITTING_TOOL_CACHE,
+  DEFAULT_MOODBOARD_TOOL_CACHE,
+  DEFAULT_ROLEPLAY_TOOL_CACHE,
+} from '@/lib/play-settings';
 
 export default function MobileCaptureTool() {
   const { mounted, shared, toolSettings, updateToolSettings } = useCachedSettings(

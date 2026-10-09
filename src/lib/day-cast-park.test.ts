@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { PARKED_DAY_LIMIT, swapDayForCast } from './day-cast-park';
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 const still = (slotId: string) => ({ slotId, status: 'completed', imageUrl: `/${slotId}.png` }) as never;
 

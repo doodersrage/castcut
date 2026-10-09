@@ -19,7 +19,7 @@ import { downloadRoleplayStoryBundle } from '@/lib/roleplay-export';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { buildStoryFixAreaTarget } from '@/lib/roleplay-fix-area';
 import type { RoleplayScene } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 type AssembledFilmRef = MutableRefObject<{ filename: string; data: Uint8Array } | null>;
 

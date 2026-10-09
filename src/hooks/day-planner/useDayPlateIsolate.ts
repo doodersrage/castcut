@@ -22,7 +22,7 @@ import {
 } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { DayToolCache } from '@/lib/settings-cache';
+import type { DayToolCache } from '@/lib/play-settings';
 
 type DayPlateIsolateCacheFields = Pick<
   DayToolCache,

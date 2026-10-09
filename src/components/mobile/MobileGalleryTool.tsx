@@ -32,10 +32,10 @@ import {
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 
 const RATINGS = [1, 2, 3, 4, 5] as const;
 

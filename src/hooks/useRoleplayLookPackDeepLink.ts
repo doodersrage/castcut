@@ -24,14 +24,12 @@ import {
 } from '@/lib/roleplay-library';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story-session-guard';
+import { loadSettingsCache, loadToolSettings, type SharedToolSettings } from '@/lib/settings-cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  type SharedToolSettings,
   type RoleplayToolCache,
-} from '@/lib/settings-cache';
+} from '@/lib/play-settings';
 
 type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;

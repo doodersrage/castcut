@@ -44,9 +44,9 @@ import { buildStoryClothedDuoRecipe, buildStoryRapidDuoRecipe } from '@/lib/rapi
 import {
   loadSettingsCache,
   saveSharedSettings,
-  type RoleplayToolCache,
   type SharedToolSettings,
 } from '@/lib/settings-cache';
+import { type RoleplayToolCache } from '@/lib/play-settings';
 import {
   beginRoleplayStillRetryPatch,
   canRetryRoleplayStill,

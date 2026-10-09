@@ -31,13 +31,12 @@ import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery-media-cl
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { stampedUploadName } from '@/lib/upload-name';
 import {
-  DEFAULT_FITTING_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
-  type FittingToolCache,
 } from '@/lib/settings-cache';
+import { DEFAULT_FITTING_TOOL_CACHE, type FittingToolCache } from '@/lib/play-settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export type OutfitPlateEnsureResult = 'ready' | 'queued' | 'skipped' | 'failed';

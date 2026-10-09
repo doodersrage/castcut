@@ -7,7 +7,7 @@ import type { DaySlot } from './day-planner';
 import type { MoodboardTemplateId, MoodboardTile, MoodboardTileRole } from './moodboard-scene';
 import type { RoleplayTone } from './roleplay';
 import { normalizeRoleplayTone } from './roleplay';
-import type { RoleplayToolCache } from './settings-cache';
+import type { RoleplayToolCache } from './play-settings';
 
 export const LOOK_PACK_KEY = 'moodboard-look-pack-v1';
 

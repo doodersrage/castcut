@@ -30,7 +30,7 @@ import {
   withRoleplayLookPlateFromCast,
 } from './fitting-room';
 import type { CharacterRecord } from './character-os';
-import type { RoleplayToolCache } from './settings-cache';
+import type { RoleplayToolCache } from './play-settings';
 
 describe('fitting-room swipe deck', () => {
   const options = [

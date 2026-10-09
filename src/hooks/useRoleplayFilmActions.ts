@@ -39,11 +39,8 @@ import {
   snapshotRoleplaySession,
   upsertRoleplayLibrarySession,
 } from '@/lib/roleplay-library';
-import {
-  loadSettingsCache,
-  saveSharedSettings,
-  type RoleplayToolCache,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { type RoleplayToolCache } from '@/lib/play-settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
 import { filmResolutionForCutOptions } from '@/lib/film-resolution';

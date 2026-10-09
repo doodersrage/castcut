@@ -30,12 +30,8 @@ import {
   normalizeRoleplayTone,
   type RoleplayBio,
 } from '@/lib/roleplay';
-import {
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveToolSettings,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 
 const ACCENT = 'sky' as const;
 

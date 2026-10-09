@@ -18,7 +18,7 @@ import {
 import type { DaySlot, DaySlotStill } from './day-planner';
 import type { RoleplayStoryBeat } from './roleplay';
 import type { RoleplayLibrarySession } from './roleplay-library';
-import type { DayToolCache } from './settings-cache';
+import type { DayToolCache } from './play-settings';
 
 const png = (name: string) => `/view?filename=${name}.png`;
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { RoleplayStoryBeat } from './roleplay';
 import { normalizeRoleplayLibrarySession } from './roleplay-library';
-import { DEFAULT_ROLEPLAY_TOOL_CACHE } from './settings-cache';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from './play-settings';
 import {
   castIdForStorySession,
   guardStoryForSession,

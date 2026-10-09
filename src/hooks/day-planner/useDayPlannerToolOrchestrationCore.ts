@@ -289,12 +289,12 @@ import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
-  DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
 } from '@/lib/settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };

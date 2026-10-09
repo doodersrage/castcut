@@ -95,11 +95,8 @@ import {
 import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import {
-  DEFAULT_FITTING_TOOL_CACHE,
-  loadSettingsCache,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play-settings';
 import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';

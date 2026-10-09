@@ -12,7 +12,8 @@ import {
   type RoleplayScene,
   type RoleplayTone,
 } from '@/lib/roleplay';
-import type { RoleplayToolCache, SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 type UseRoleplayRequestBodyOptions = {
   shared: SharedToolSettings;

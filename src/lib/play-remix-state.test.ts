@@ -4,13 +4,8 @@ import { resetBrowserStorageCache } from './browser-storage';
 import { DEFAULT_DAY_SLOTS } from './day-planner';
 import { applyRemixDayFilmState, remixNewOutfitHref } from './play-starter';
 import { remixDayFilmHref } from './play-step-machine';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveSharedSettings,
-  saveToolSettings,
-} from './settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSharedSettings, saveToolSettings } from './settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from './play-settings';
 
 function installFakeWindow() {
   const storage = new Map<string, string>();

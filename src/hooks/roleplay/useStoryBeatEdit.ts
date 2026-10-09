@@ -21,7 +21,7 @@ import {
   type RoleplayScene,
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 type UseStoryBeatEditOptions = {
   storyRef: MutableRefObject<RoleplayStoryBeat[]>;

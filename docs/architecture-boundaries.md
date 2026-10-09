@@ -12,7 +12,7 @@ Goal (2026-10-09): declutter Castcut and give the classic Prompt Studio tools a 
 
 The rule is one-way: nothing outside Play imports Play.
 
-Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: files outside the Play folders that only Play uses. These include the pose editor, the wardrobe pickers, Story's writer, the Play API routes and the mobile Play pages, found by reachability from the shared app routes. They move into the Castcut app in step 4.
+Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: files outside the Play folders that only Play uses. These include the pose editor, the wardrobe pickers, Story's writer, the Play API routes and the mobile Play pages, found by reachability from the shared app routes. They move into the Castcut app in step 4. The phone app (`/m`, `components/mobile`, mobile hooks) is Castcut's too. Its route helpers (`lib/mobile-*`) stay shared.
 
 ## The guard
 
@@ -52,6 +52,10 @@ Regenerating the baseline is for removals only, never to admit a new crossing.
 ### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
 
 Shared code exposes a registration point (`registerCastChangeScrubber` in `settings-cache.ts`). The Play logic moves into the Play layer (`play-cast-change.ts`) and is registered by `lib/play-features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
+
+### Feature settings
+
+Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play-settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`settings-cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
 
 ### UI slots and flags
 

@@ -13,7 +13,8 @@ import {
   type OutfitQualitySettings,
 } from '@/lib/outfit-quality-preset';
 import type { RenderQuality } from '@/lib/render-quality';
-import type { FittingToolCache, SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { FittingToolCache } from '@/lib/play-settings';
 
 /**
  * Outfit's Quality preset, read from the two try-on switches plus the `fitting` queue quality

@@ -26,7 +26,7 @@ import { applyCutShotEdits, type CutShotEdits, type KeyedShot } from './film-cut
 import type { FilmTitleCard } from './film-polish';
 import type { RoleplayStoryBeat } from './roleplay';
 import type { RoleplayLibrarySession } from './roleplay-library';
-import type { DayToolCache, RoleplayToolCache } from './settings-cache';
+import type { DayToolCache, RoleplayToolCache } from './play-settings';
 
 export type EpisodePart = 'day' | 'story';
 

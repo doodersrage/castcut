@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 import { guardStoryForSession } from '@/lib/story-session-guard';
 
 /**

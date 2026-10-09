@@ -25,12 +25,11 @@ import {
   ROLEPLAY_LIBRARY_UPDATED_EVENT,
 } from '@/lib/roleplay-library';
 import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 
 function readSources(characterId: string): CastEpisodeSources {
   return castEpisodeSources({

@@ -32,16 +32,8 @@ import {
   syncSharedIdentityToCast,
 } from './look-outfit-plate';
 import { keptLookOutfitFromTryOn } from './outfit-handoff';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_FITTING_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveSettingsCache,
-  saveSharedSettings,
-  saveToolSettings,
-} from './settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveSharedSettings, saveToolSettings } from './settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from './play-settings';
 
 function installMemoryWindow() {
   const storage = new Map<string, string>();

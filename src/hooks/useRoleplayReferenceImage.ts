@@ -24,7 +24,8 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/roleplay';
 import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
-import type { SharedToolSettings, RoleplayToolCache } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 
 export type RoleplayReferenceApplyInput = {
   file?: File | null;

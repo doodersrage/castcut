@@ -113,12 +113,8 @@ import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSharedSettings } from '@/lib/settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };

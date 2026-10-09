@@ -43,13 +43,8 @@ import {
 } from '@/lib/play-campaign';
 import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
-import {
-  loadSettingsCache,
-  saveSharedSettings,
-  saveToolSettings,
-  DEFAULT_MOODBOARD_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '@/lib/settings-cache';
+import { DEFAULT_MOODBOARD_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 export type PlayCampaignWizardProps = {

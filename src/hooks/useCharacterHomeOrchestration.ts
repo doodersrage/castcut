@@ -43,12 +43,12 @@ import {
 } from '@/lib/roleplay-library';
 import {
   SETTINGS_CACHE_UPDATED_EVENT,
-  DEFAULT_DAY_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
 import {
   downloadLookPackFile,
   lookPackDayHref,

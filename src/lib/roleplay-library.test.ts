@@ -20,7 +20,7 @@ import {
   upsertRoleplayLibrarySession,
 } from './roleplay-library';
 import { upsertCharacter } from './character-os';
-import type { RoleplayToolCache } from './settings-cache';
+import type { RoleplayToolCache } from './play-settings';
 
 function withMockLocalStorage(run: () => void): void {
   const storage = new Map<string, string>();

@@ -24,11 +24,8 @@ import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { suggestLookTileRoleForFile } from '@/lib/look-tile-role-client';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import {
-  DEFAULT_MOODBOARD_TOOL_CACHE,
-  loadSettingsCache,
-  saveSharedSettings,
-} from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { DEFAULT_MOODBOARD_TOOL_CACHE } from '@/lib/play-settings';
 import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
 
 const TOOL_ID = 'moodboard' as const;

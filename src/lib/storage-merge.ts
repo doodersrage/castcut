@@ -248,7 +248,7 @@ export function mergeSettingsCache<
   T extends {
     updatedAt?: number;
     shared?: Record<string, unknown>;
-    tools?: Record<string, unknown>;
+    tools?: object;
     installedPlugins?: Array<{ id: string; updatedAt?: number } & Record<string, unknown>>;
   },
 >(local: T, server: T): T {

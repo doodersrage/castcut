@@ -68,7 +68,8 @@ import {
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
-import type { FittingToolCache, SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { FittingToolCache } from '@/lib/play-settings';
 import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import type { CharacterRecord } from '@/lib/character-os';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';

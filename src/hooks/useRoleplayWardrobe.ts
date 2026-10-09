@@ -22,7 +22,8 @@ import {
   filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
 } from '@/lib/wardrobe-catalog-ui';
-import type { RoleplayToolCache, SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { RoleplayToolCache } from '@/lib/play-settings';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
