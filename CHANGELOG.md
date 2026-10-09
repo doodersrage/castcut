@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Two-men Raunchy: cowgirl and picked-up lifts.** "Cowgirl" in a two-men Moment gave a man a vulva (1 of 2). It now reads "riding his boyfriend" ("…facing away" for reverse), with male anatomy 4 of 4. "Picked up and fucked by…" lifts get the counter-edge wording: seated 4 of 4.
 - **Gallery backups setting.** Settings → Data → Gallery backups → "Keep a backup copy of each render" is on by default: the Gallery copies every finished still and clip so renders survive ComfyUI purging its outputs. Turn it off to save disk space; new renders then live only in ComfyUI's output folder. Copies already kept stay.
 - **Progress shows steps ComfyUI reused.** When ComfyUI skips steps it has cached (the second of Two takes, a re-roll), the progress line adds "· N steps reused".
 - **Two-men lift.** "Lifted onto his boyfriend… legs wrapped" came out as a standing hug (4 of 4). The recipe now seats him on the counter edge with his boyfriend standing between his knees, and the Moment says the same: 5 of 6.

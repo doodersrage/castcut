@@ -405,6 +405,10 @@ function twoMenLiftBeat(beat: string): string {
     .replace(
       /\blifted onto his boyfriend\b/gi,
       'sitting on the counter edge with his boyfriend between his thighs'
+    )
+    .replace(
+      /\b(?:picked up|lifted(?: up)?) and fucked by his boyfriend\b/gi,
+      'sitting on the counter edge with his boyfriend standing between his thighs'
     );
 }
 
@@ -420,6 +424,9 @@ export function twoMenBeat(beat: string): string {
       .replace(/\bshe\b/gi, 'he')
       .replace(/\bherself\b/gi, 'himself')
       .replace(/\b(?:pussy|vulva|clit|breasts?|nipples?)\b/gi, 'body')
+      // "cowgirl" drew a vulva on a man (1/2, same-sex sweep 2026-10-08); "riding": 4/4 male.
+      .replace(/\breverse[- ]cowgirl\b/gi, 'riding his boyfriend facing away')
+      .replace(/\bcowgirl\b/gi, 'riding his boyfriend')
   );
 }
 

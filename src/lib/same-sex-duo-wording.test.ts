@@ -44,6 +44,23 @@ describe('same-sex duo wording', () => {
     assert.doesNotMatch(recipe ?? '', /lifted onto|Wide shot/);
   });
 
+  it('two men: no "cowgirl" in the Moment, and a picked-up lift is the counter edge too', () => {
+    const build = (beat: string) =>
+      buildRapidDuoRecipe({
+        beat: sameSexPartnerBeat(beat),
+        lead: 'man',
+        partner: { partner: { kind: 'cast', noun: 'man' }, image: 'face' },
+      } as never) ?? '';
+    assert.match(build('cowgirl on the bed mid-sex in golden light with her partner'), /Moment: riding his boyfriend on the bed/);
+    assert.match(build('reverse cowgirl on the hotel armchair with her partner seated'), /Moment: riding his boyfriend facing away/);
+    assert.doesNotMatch(build('cowgirl on the bed mid-sex with her partner'), /cowgirl/i);
+    const lift = build(
+      'picked up and fucked by a partner in the laundry room as the dryer buzzes — legs wrapped around him, both adults fully visible'
+    );
+    assert.match(lift, /Moment: sitting on the counter edge with his boyfriend standing between his thighs in the laundry room/);
+    assert.doesNotMatch(lift, /picked up/);
+  });
+
   it('two men: oral is a side view with contact, and a lap is seated', () => {
     const oral = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels between his legs going down on him after dinner'),
