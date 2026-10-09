@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Raunchy clothing gags stay nude.** Moments like "as her nightshirt rides up" or "pulls her shorts down" kept the garment on a nude still (a white top 2 of 2, shorts 1 of 2). The nude recipe now drops the garment line ("pulls her close"): nude 6 of 6. This applies to every pairing.
 - **Two-women lap.** "Side view of the chair… sits in it" sat them side by side in all 12 sweep and replay renders. The two-men lap wording ("sits on top of her, astride… one on the other's lap", side view) puts one on the other's lap 5 of 6. Also checked from the sweep: a man appearing in two-women stills (3 of 86) is seed luck, not the pose map. No man in 24 replays with or without the map, and removing the map made the framing worse.
 - **Two-men Raunchy: cowgirl and picked-up lifts.** "Cowgirl" in a two-men Moment gave a man a vulva (1 of 2). It now reads "riding his boyfriend" ("…facing away" for reverse), with male anatomy 4 of 4. "Picked up and fucked by…" lifts get the counter-edge wording: seated 4 of 4.
 - **Gallery backups setting.** Settings → Data → Gallery backups → "Keep a backup copy of each render" is on by default: the Gallery copies every finished still and clip so renders survive ComfyUI purging its outputs. Turn it off to save disk space; new renders then live only in ComfyUI's output folder. Copies already kept stay.

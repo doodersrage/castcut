@@ -615,6 +615,8 @@ export function buildRapidDuoRecipe(input: {
       )
       .replace(layout === 'scissors' && twoWomen ? RAPID_SCISSORS_FALLBACK_RE : /$^/, 'making love')
       .replace(input.nude === false ? /$^/ : WORN_CLOTHES_CLAUSE_RE, '')
+      .replace(input.nude === false ? /$^/ : GARMENT_SLIPS_RE, '')
+      .replace(input.nude === false ? /$^/ : GARMENT_PULLED_RE, '$1 $2 close')
       .replace(MEAL_TIME_RE, '')}.`,
     room,
     input.nude === false
@@ -1044,6 +1046,14 @@ const SOLO_LEGS_HIGH_RE = /\bankles?\s+near|knees\s+pulled\s+up|shoulders\b/i;
 // which slipped past and dressed the partner on 4/4 sweep stills (2026-10-08).
 const WORN_CLOTHES_CLAUSE_RE =
   /,?\s*(?:an?\s+)?(?:her\s+|his\s+)?(?:[\w-]+\s+)?(?:shirt\s+and\s+trousers|boxer\s+briefs|dress|skirt|shirt|top|robe|slip|undershirt|lingerie|panties|underwear|trousers|shorts)\s+(?:pushed|hiked|bunched|rucked|pulled)?\s*(?:up\s+)?(?:around\s+(?:her|his)(?:\s+(?:boyfriend|girlfriend)'s)?\s+(?:waist|hips|ankles)|pushed\s+up|hiked\s+up|half[- ]off)\b/gi;
+
+// Raunchy gags move a garment ("as her nightshirt rides up", "pulls her shorts down"): on a nude
+// still the garment stayed on (white top 2/2, shorts 1/2, same-sex sweep 2026-10-08); without it,
+// nude 6/6.
+const GARMENT_SLIPS_RE =
+  /\s*\bas\s+(?:her|his)\s+(?:night)?(?:shirt|shorts|pants|trousers|panties|underwear|dress|skirt|top|robe)\s+(?:rides?|slips?|falls?)\s+(?:up|down|off|open)\b/gi;
+const GARMENT_PULLED_RE =
+  /\b(pulls?|pulling|yanks?|yanking|tugs?|tugging)\s+(her|his)\s+(?:shorts|pants|trousers|panties|underwear|skirt|dress)\s+(?:down|off|up)\b/gi;
 
 const CLOTHES_RE =
   /\bin\s+(?!his\b)((?:(?:a|an|her)\s+)?(?:(?!\bin\b)[^,;—.])*?\b(?:sleepwear|robe|lingerie|shirt|dress|slip|camisole|shorts|panties|wear|sundress|towel wrap)\b(?:(?!\bin\b)[^,;—.])*?)(?=\s+(?:by|on|at|during|after|eating|pouring|facing|hugging|removing|with)\b|[,;—.]|$)/i;

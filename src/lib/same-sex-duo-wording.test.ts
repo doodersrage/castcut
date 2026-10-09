@@ -61,6 +61,20 @@ describe('same-sex duo wording', () => {
     assert.doesNotMatch(lift, /picked up/);
   });
 
+  it('nude Moments drop a garment the gag moves (nightshirt rides up, shorts pulled down)', () => {
+    const moment = (beat: string) => /Moment: [^.]*\./.exec(buildRapidDuoRecipe({ beat }) ?? '')?.[0] ?? '';
+    const night = moment(
+      'partner laughing as her nightshirt rides up climbing into bed — comedy undress that turns into missionary mid-laugh with both adults fully visible mid-sex'
+    );
+    assert.doesNotMatch(night, /nightshirt/);
+    assert.match(night, /climbing into bed/);
+    const shorts = moment(
+      'bent over searching a lower cabinet when a partner pulls her shorts down into slapstick doggy-style — both adults mid-sex fully visible'
+    );
+    assert.doesNotMatch(shorts, /shorts/);
+    assert.match(shorts, /pulls her close/);
+  });
+
   it('two men: oral is a side view with contact, and a lap is seated', () => {
     const oral = buildRapidDuoRecipe({
       beat: sameSexPartnerBeat('she kneels between his legs going down on him after dinner'),
