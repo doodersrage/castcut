@@ -14,6 +14,9 @@ import {
 import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
 import type { LoraLibraryEntry } from '@/lib/lora-stack';
 import { loadSettingsCache } from '@/lib/settings-cache';
+import { getCharacter } from '@/lib/character-os';
+import { registeredFaceCheckReference } from '@/lib/face-check-reference';
+import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
 
 export type LoraCheckRender = {
   stillKey: string;
@@ -26,12 +29,15 @@ export type LoraCheckRun =
   | { ok: true; check: LoraFaceCheck; renders: LoraCheckRender[] }
   | { ok: false; reason: string; renders: LoraCheckRender[] };
 
-/** The Cast plate Day face-checks against, as a ComfyUI view URL. */
+/** The picture LoRA renders are face-checked against (face-check-reference.ts). */
 function castPlateReferenceUrl(): string | null {
-  const day = loadSettingsCache().tools.day;
-  const url = day?.plateImageUrl?.trim();
+  const registered = registeredFaceCheckReference();
+  if (registered) return registered();
+  const cast = getCharacter(loadSettingsCache().shared.activeCharacterId?.trim() || undefined);
+  const plate = resolveFittingPlateFromCharacter(cast);
+  const url = plate?.imageUrl?.trim();
   if (url?.includes('/api/comfyui/view?')) return url;
-  return comfyInputViewUrl(day?.plateImageFilename);
+  return comfyInputViewUrl(plate?.filename);
 }
 
 async function renderOnce(input: {

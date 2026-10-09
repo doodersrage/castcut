@@ -29,7 +29,6 @@ import {
   characterAppearanceHints,
   composeCharacterAppearanceDescriptor,
   describeChosenAppearance,
-  isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
   physicalDescriptionFromTraits,
   type CharacterTraits,
@@ -776,6 +775,29 @@ export function saveCharacters(characters: CharacterRecord[]): CharacterRecord[]
   return next;
 }
 
+/**
+ * Feature fields an update without them keeps (Play: film cut, Look packs) — a save from a screen
+ * that doesn't know them must not drop them. Registered at app start.
+ */
+const stickyFeatureFields = new Set<string>();
+
+export function registerStickyCharacterFields(
+  ...fields: (keyof CharacterFeatureFields & string)[]
+): void {
+  for (const field of fields) stickyFeatureFields.add(field);
+}
+
+function keptFeatureFields(
+  prev: CharacterRecord,
+  incoming: CharacterRecord
+): Record<string, unknown> {
+  const kept: Record<string, unknown> = {};
+  const before = prev as unknown as Record<string, unknown>;
+  const after = incoming as unknown as Record<string, unknown>;
+  for (const field of stickyFeatureFields) kept[field] = after[field] ?? before[field];
+  return kept;
+}
+
 function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord): CharacterRecord {
   if (Array.isArray(incoming.looks)) {
     return normalizeCharacterRecord({
@@ -784,8 +806,7 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
       looks: incoming.looks,
       loraLibraryIds: incoming.loraLibraryIds ?? prev.loraLibraryIds,
       loraTriggerPhrases: incoming.loraTriggerPhrases ?? prev.loraTriggerPhrases,
-      filmCut: incoming.filmCut ?? prev.filmCut,
-      lookPacks: incoming.lookPacks ?? prev.lookPacks,
+      ...keptFeatureFields(prev, incoming),
     });
   }
 
@@ -809,8 +830,7 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
     activeLookId: nextLook.id,
     loraLibraryIds: incoming.loraLibraryIds ?? prev.loraLibraryIds,
     loraTriggerPhrases: incoming.loraTriggerPhrases ?? prev.loraTriggerPhrases,
-    filmCut: incoming.filmCut ?? prev.filmCut,
-    lookPacks: incoming.lookPacks ?? prev.lookPacks,
+    ...keptFeatureFields(prev, incoming),
   });
 }
 
@@ -857,27 +877,6 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     return false;
   });
   return saveCharacters([nextRecord, ...without]);
-}
-
-/** Drop the Cast bible (and linked Story session bio) so rewrite starts clean. */
-export function clearCharacterBio(characterId: string): CharacterRecord | undefined {
-  const id = characterId.trim();
-  if (!id) {
-    return undefined;
-  }
-  const character = getCharacter(id);
-  if (!character) {
-    return undefined;
-  }
-  upsertCharacter({
-    ...character,
-    bio: undefined,
-    // The picture showed that bible.
-    biblePicture: undefined,
-    looks: looksOf(character),
-    updatedAt: Date.now(),
-  });
-  return getCharacter(id);
 }
 
 /** Remember the last "Picture this bible" still on the Cast. */
@@ -1313,28 +1312,6 @@ export function buildBundleFromShared(
   hints?: string
 ): CharacterIdentityBundle {
   return buildCharacterIdentityBundle({ name, shared, hints });
-}
-
-/**
- * The look a Story bible should use for a Cast. A bible still holding a rolled description
- * ("a White man in his forties with … and a body that is …") from before the Cast's own
- * description changed — older Casts made from a photo — gives way to the Cast's description.
- */
-export function castBibleLook(
-  character: Pick<CharacterRecord, 'bio' | 'descriptor'>
-): string | undefined {
-  const look = character.bio?.look?.trim();
-  const descriptor = character.descriptor?.trim();
-  if (
-    look &&
-    descriptor &&
-    look !== descriptor &&
-    isRolledAppearanceDescriptor(look) &&
-    !isRolledAppearanceDescriptor(descriptor)
-  ) {
-    return descriptor;
-  }
-  return look || undefined;
 }
 
 /** The Cast has a picture of its own (face lock or reference photo) on any look. */

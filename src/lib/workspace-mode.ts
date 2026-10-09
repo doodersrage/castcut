@@ -9,6 +9,7 @@ import {
   type AppNavLink,
 } from './app-nav-catalog';
 import { markOnboardingSetWorkspace } from './onboarding-hooks';
+import { APP_HAS_PLAY } from './app-profile';
 
 export type WorkspaceMode = 'simple' | 'play' | 'studio' | 'full';
 
@@ -29,13 +30,15 @@ function persistWorkspaceModeCookie(mode: WorkspaceMode): void {
   }
 }
 
-export const WORKSPACE_MODE_OPTIONS: {
+type WorkspaceModeOption = {
   id: WorkspaceMode;
   label: string;
   /** Make / Control / Build framing for first-run and Profile copy. */
   shortTag: 'Make' | 'Control' | 'Build';
   description: string;
-}[] = [
+};
+
+const ALL_WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = [
   {
     id: 'play',
     label: 'Film',
@@ -63,6 +66,11 @@ export const WORKSPACE_MODE_OPTIONS: {
     description: 'Build the machinery — everything visible with advanced controls open.',
   },
 ];
+
+/** The workspaces this app offers (no Film without Play). */
+export const WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = ALL_WORKSPACE_MODE_OPTIONS.filter(
+  option => APP_HAS_PLAY || option.id !== 'play'
+);
 
 /** Primary destinations for Simple workspace (path or path?query). */
 export const SIMPLE_NAV_HREFS = [
@@ -136,17 +144,22 @@ export function isRoleplayFocusPath(pathname: string | null | undefined): boolea
   );
 }
 
+/** First run / unknown: Film in Castcut; Studio in the classic app (no Play). */
+const DEFAULT_WORKSPACE_MODE: WorkspaceMode = APP_HAS_PLAY ? 'play' : 'studio';
+
 export function normalizeWorkspaceMode(value: unknown): WorkspaceMode {
+  if (value === 'play' && !APP_HAS_PLAY) {
+    return DEFAULT_WORKSPACE_MODE;
+  }
   if (value === 'simple' || value === 'play' || value === 'studio' || value === 'full') {
     return value;
   }
-  // First-run / unknown → Play (flagship Cast → Moodboard → Fitting → Day → Roleplay loop).
-  return 'play';
+  return DEFAULT_WORKSPACE_MODE;
 }
 
 export function loadWorkspaceMode(): WorkspaceMode {
   if (typeof window === 'undefined') {
-    return 'play';
+    return DEFAULT_WORKSPACE_MODE;
   }
   return normalizeWorkspaceMode(readBrowserString(MODE_KEY));
 }

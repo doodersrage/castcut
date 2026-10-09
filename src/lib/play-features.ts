@@ -5,7 +5,7 @@
  */
 
 import { scrubPlayToolCachesOnCastChange } from './play-cast-change';
-import { registerCastChangeScrubber } from './settings-cache';
+import { registerCastChangeScrubber, loadSettingsCache } from './settings-cache';
 import { registerJobCompletedHook } from './comfyui-gallery';
 import { registerAppFlag } from './app-flags';
 import { registerStudioExtrasSection } from './studio-extras';
@@ -18,6 +18,10 @@ import { PLAY_METRICS_KEY, savePlayMetrics } from './play-metrics';
 import { registerLocalDataReset } from './local-data-reset';
 import { registerResumeCta } from './empty-cta';
 import { registerPoseTargetGroup } from './pose-targets';
+import { registerReferenceHealthItems } from './reference-health';
+import { dayPartnerReferenceHealth } from './play-reference-health';
+import { registerFaceCheckReference } from './face-check-reference';
+import { comfyInputViewUrl } from './face-match-client';
 import { registerCharacterLookSwitcher, registerCharacterStorePreparer } from './character-hooks';
 import { migrateCharactersFromLegacy } from './play-cast';
 import { switchCastPlate } from './cast-plate-switch';
@@ -27,7 +31,7 @@ import { registerNavClickFollower, registerNavHrefResolver } from './nav-links';
 import { followCurrentPlayLoopHref } from './play-loop-nav-click';
 import { registerGalleryKeeperHook } from './gallery-judgment-hooks';
 import { registerQueueJobDescriber } from './queue-job-context';
-import { registerCharacterNormalizer } from './character-os';
+import { registerCharacterNormalizer, registerStickyCharacterFields } from './character-os';
 import { normalizeCharacterLookPacks } from './play-cast';
 import { PLAY_QUEUE_JOB_DESCRIBER } from './play-queue-jobs';
 import { PLAY_POSE_TARGET_GROUPS } from './play-pose-targets';
@@ -38,6 +42,8 @@ registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
 // Cast records: Look packs are tidied with the rest of the record.
 registerCharacterNormalizer(normalizeCharacterLookPacks);
+// A save from a screen that doesn't know them keeps the film cut and Look packs.
+registerStickyCharacterFields('filmCut', 'lookPacks');
 
 // Lightning Day face-break → auto Edit face-restore (deduped inside; loaded on first use).
 registerJobCompletedHook(entry => {
@@ -120,3 +126,14 @@ registerCharacterStorePreparer(() =>
   })
 );
 registerCharacterLookSwitcher((characterId, lookId) => switchCastPlate(characterId, lookId));
+
+// Workflow health checks Day's partner pictures too.
+registerReferenceHealthItems(dayPartnerReferenceHealth);
+
+// LoRA "Check on Cast" compares against Day's session plate (the plate Day stills go out with).
+registerFaceCheckReference(() => {
+  const day = loadSettingsCache().tools.day;
+  const url = day?.plateImageUrl?.trim();
+  if (url?.includes('/api/comfyui/view?')) return url;
+  return comfyInputViewUrl(day?.plateImageFilename);
+});

@@ -1,0 +1,4 @@
+/* The shared styles (Castcut's), and the shared source for Tailwind to scan — the classic app's
+   own routes are thin wrappers, the components live in the repository's src/. */
+@import '../../../../src/app/globals.css';
+@source '../../../../src';

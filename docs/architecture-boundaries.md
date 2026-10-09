@@ -47,6 +47,7 @@ Regenerating the baseline is for removals only, never to admit a new crossing. T
    - type-only imports: shared types move to a shared types module.
 3. **Split the shell (done 2026-10-09).** `AppShell` names no feature: the root layout passes Castcut's Film kiosk in (`kiosk={{ workspace, header, contentClassName }}`), and Play's watchers, slots and bundle hoists load from `PlayFeatures`. The classic app's layout renders `AppShell` without a kiosk and without `PlayFeatures`.
 4. **Packages.** npm workspaces: `packages/comfy-core` (no React), `packages/app-kit`, `apps/castcut`, `apps/prompt-studio`.
+   - **4a (done 2026-10-09): the classic app runs.** `apps/prompt-studio` is a second Next app on the same shared code, before any files move (below).
 5. **Classic gets its own repo**, depending on the published packages, or both apps stay in the monorepo on separate release tracks. Repository name and package visibility to be confirmed first.
 
 ### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
@@ -74,3 +75,17 @@ Other registration points: `registerStudioExtrasSection` (a feature's fields in 
 Clip assembly is shared: `lib/video-assemble.ts` (encode in the browser or on the server through `/api/film/assemble`, then keep it in the Gallery), used by Gallery's stitch, Video continue and Play's film cut (`character-film-assemble.ts` adds the cut planner). Shared helpers that Play modules re-export: `media-kind` (video checks, still holds, film size caps), `character-plate`, `character-plate-thumb`, `character-identity` (a Cast's face lock and LoRAs on a queued job) and `face-locate-client`.
 
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.
+
+## The classic app (apps/prompt-studio)
+
+Prompt Studio, the classic tools without Play, built from the same `src/`:
+
+- **Routes:** every page and API route outside the Play layer gets a generated wrapper in `apps/prompt-studio/src/app` that re-exports Castcut's, with its segment config (`runtime`, `maxDuration`, …) copied literally, because Next reads it statically. `npm run gen:classic` writes them; `classic-app.test.ts` fails when they are stale or wrap a Play route. Play routes are not there (404).
+- **Own files:** `layout.tsx` (the shared `RootDocument`, without `PlayFeatures` and the Film kiosk), `globals.css` (imports Castcut's and points Tailwind at `src/`), `next.config.ts` (Castcut's base config from `next.config.base.cjs`, the repository as Turbopack root, `NEXT_PUBLIC_APP_PROFILE=classic`), `tsconfig.json`, `public` → `../../public`.
+- **App profile** (`lib/app-profile.ts`): `APP_HAS_PLAY` is false in the classic build. It sets the name (Prompt Studio), drops the Film workspace and nav group, and makes Studio the first-run workspace.
+- **Type-check:** the classic build type-checks shared code without Play's declaration merging, so shared code that reads Play's settings or Cast fields fails there. CI runs `npm run build:classic`.
+- **Run:** `npm run dev:classic` / `npm run build:classic` / `npm run start:classic` (port 47833). The scripts run from `apps/prompt-studio`: Next compiles its config to CommonJS and resolves the base config from the working directory.
+- **Data:** the same server data layout (`PROMPT_DATA_DIR`); point the two apps at separate data folders unless they should share a gallery and Cast.
+
+Not yet: Castcut wording in shared copy (Settings tiles, first-run goal text), and Play-only admin feature toggles listed in the classic app.
+

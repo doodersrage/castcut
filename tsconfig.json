@@ -38,7 +38,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "next.config.base.cjs"
   ],
   "exclude": ["playwright.config.ts", "e2e/**/*", "node_modules", "_to_delete/**/*"]
 }

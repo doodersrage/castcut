@@ -19,6 +19,9 @@
 
 # next.js
 /.next/
+# The classic Prompt Studio app (apps/prompt-studio)
+/apps/*/.next/
+/apps/*/node_modules/
 /out/
 
 # production

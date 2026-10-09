@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { clearCharacterBio } from '@/lib/play-cast';
 import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +11,6 @@ import { isRolledAppearanceDescriptor } from '@/lib/character-appearance';
 import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
 import {
   activeLook,
-  clearCharacterBio,
   getCharacter,
   upsertCharacter,
   type CharacterRecord,
