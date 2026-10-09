@@ -41,5 +41,13 @@
     "next.config.base.cjs",
     "scripts/classic-wrappers.mjs"
   ],
-  "exclude": ["playwright.config.ts", "e2e/**/*", "node_modules", "_to_delete/**/*"]
+  "exclude": [
+    "playwright.config.ts",
+    "e2e/**/*",
+    "node_modules",
+    "_to_delete/**/*",
+    "tmp-adult/**/*",
+    "packages/**/*",
+    "apps/*/.next/**/*"
+  ]
 }

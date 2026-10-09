@@ -62,7 +62,7 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
 
 async function statLocal(dir: string, name: string): Promise<InputFileInfo> {
   try {
-    const stat = await fs.stat(path.join(dir, name));
+    const stat = await fs.stat(/* turbopackIgnore: true */ path.join(dir, name));
     return { name, size: stat.size, mtimeMs: stat.mtimeMs };
   } catch {
     return { name };
@@ -121,8 +121,9 @@ export async function buildComfyInputFolderReport(input: {
   let writable = false;
   if (inputDir && path.isAbsolute(inputDir) && isLoopbackUrl(baseUrl)) {
     try {
-      await fs.access(inputDir, fsConstants.R_OK);
-      local = (await fs.stat(inputDir)).isDirectory();
+      // ComfyUI's input folder is outside this project: keep it out of Turbopack's file tracing.
+      await fs.access(/* turbopackIgnore: true */ inputDir, fsConstants.R_OK);
+      local = (await fs.stat(/* turbopackIgnore: true */ inputDir)).isDirectory();
     } catch {
       local = false;
     }

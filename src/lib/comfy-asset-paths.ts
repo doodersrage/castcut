@@ -43,23 +43,25 @@ export function isComfyUiRootConfigured(env: NodeJS.ProcessEnv = process.env): b
  * (Install buttons write here as the Castcut OS user).
  */
 export function canWriteComfyModelsRoot(root: string | null = getComfyUiRoot()): boolean {
-  if (!root || !fs.existsSync(root)) {
+  // COMFYUI_ROOT is outside this project: keep it out of Turbopack's file tracing (else the
+  // whole project is traced into the build), as in isComfyUiRootConfigured.
+  if (!root || !fs.existsSync(/* turbopackIgnore: true */ root)) {
     return false;
   }
   const modelsRoot = path.resolve(root, 'models');
   try {
-    fs.mkdirSync(modelsRoot, { recursive: true });
+    fs.mkdirSync(/* turbopackIgnore: true */ modelsRoot, { recursive: true });
   } catch {
     return false;
   }
   const probe = path.join(modelsRoot, `.prompt-studio-write-${process.pid}-${Date.now()}`);
   try {
-    fs.writeFileSync(probe, 'ok', { flag: 'wx' });
-    fs.unlinkSync(probe);
+    fs.writeFileSync(/* turbopackIgnore: true */ probe, 'ok', { flag: 'wx' });
+    fs.unlinkSync(/* turbopackIgnore: true */ probe);
     return true;
   } catch {
     try {
-      fs.unlinkSync(probe);
+      fs.unlinkSync(/* turbopackIgnore: true */ probe);
     } catch {
       // ignore
     }
