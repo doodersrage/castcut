@@ -3,7 +3,12 @@
 import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
-import { clipEngineForShot, normalizeSpokenLine, talkingClipPrompt } from '@/lib/ltx25-renderer';
+import {
+  clipEngineForShot,
+  LTX25_TALKING_FULL_FRAME_LONG_SIDE,
+  normalizeSpokenLine,
+  talkingClipPrompt,
+} from '@/lib/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
@@ -267,11 +272,13 @@ export function useRoleplayBeatQueuePart2(
           : clipEngineForShot(videoModel, { adultDuo: true });
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
+      let talkingCropped = false;
       if (speaking && hasInit && !inputImage && inputImageUrl && !latest.lineFullFrame) {
         const framed = await framedTalkingStill(inputImageUrl);
         if (framed) {
           inputImage = framed;
           inputImageUrl = undefined;
+          talkingCropped = true;
         }
       }
 
@@ -302,6 +309,8 @@ export function useRoleplayBeatQueuePart2(
                   videoFps: 16,
                   videoSpeech: 'on',
                   ...castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId),
+                  // Not cropped chest-up: render larger so the small face holds.
+                  ...(talkingCropped ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                 }
               : { videoFrames: 64, videoFps: 16 }
           ),

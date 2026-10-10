@@ -241,6 +241,15 @@ describe('LTX-2.5 talking clips', () => {
     assert.notEqual(clipEngineForShot('ltx-video-2.5', { adultDuo: true, speaking: true }), 'ltx-video-2.5');
   });
 
+  it('a full-frame talking clip renders at a larger long side', () => {
+    const big = convertVideoWorkflowToLtx25(wanClipGraph(), { sizeFromStill: true, longSide: 1152 })
+      .workflow as Record<string, { inputs?: Record<string, unknown> }>;
+    assert.match(String(big['31']!.inputs!.expression), /^round\(1152 \*/);
+    const plain = convertVideoWorkflowToLtx25(wanClipGraph(), { sizeFromStill: true })
+      .workflow as Record<string, { inputs?: Record<string, unknown> }>;
+    assert.match(String(plain['31']!.inputs!.expression), /^round\(768 \*/);
+  });
+
   it('puts the line in quotes after the motion, and keeps lines short', () => {
     assert.equal(
       withSpokenLine('She lifts her glass', '  "Best part of my day."\n'),

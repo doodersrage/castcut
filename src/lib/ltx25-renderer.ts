@@ -51,6 +51,12 @@ export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
 /** Long side of the full-size (second pass) clip. */
 const LTX25_LONG_SIDE = 768;
+/**
+ * Long side for a full-frame talking clip: at 768 a full-body still's face is ~60 px and the
+ * moving mouth smeared; at 1152 it rendered clean (user's clip replayed on its seed, 2026-10-10;
+ * ~63 s vs ~45 s).
+ */
+export const LTX25_TALKING_FULL_FRAME_LONG_SIDE = 1152;
 
 export function isLtx25Model(model: string | null | undefined): boolean {
   return String(model ?? '').trim() === LTX25_MODEL_ID;
@@ -86,10 +92,14 @@ export function ltx25FrameCount(frames: number, fps: number): number {
 }
 
 /** Full-size canvas for the still's aspect: long side 768, both sides multiples of 64. */
-export function ltx25Canvas(width: number, height: number): { width: number; height: number } {
+export function ltx25Canvas(
+  width: number,
+  height: number,
+  longSide = LTX25_LONG_SIDE
+): { width: number; height: number } {
   const w = width > 0 ? width : 1;
   const h = height > 0 ? height : 1;
-  const scale = LTX25_LONG_SIDE / Math.max(w, h);
+  const scale = longSide / Math.max(w, h);
   const snap = (value: number) => Math.max(256, Math.round((value * scale) / 64) * 64);
   return { width: snap(w), height: snap(h) };
 }
@@ -170,6 +180,8 @@ export function convertVideoWorkflowToLtx25(
      * and cut off heads. Off → the WAN graph's width / height.
      */
     sizeFromStill?: boolean;
+    /** Long side of the full-size pass (default 768) — larger for full-frame talking clips. */
+    longSide?: number;
     /**
      * End pose: a ComfyUI input image the clip should land on, added as an LTXVAddGuide on the
      * last frame of both passes (and cropped off again before upscale / decode). Also read from
@@ -216,7 +228,11 @@ export function convertVideoWorkflowToLtx25(
   const seed = Number(options.seed ?? sampler.inputs.seed ?? sampler.inputs.noise_seed) || 0;
   const prefix = String(save.inputs.filename_prefix ?? PRODUCT_OUTPUT_PREFIX);
 
-  const canvas = ltx25Canvas(width, height);
+  const longSide =
+    options.longSide && options.longSide >= 512 && options.longSide <= 1536
+      ? Math.round(options.longSide / 64) * 64
+      : LTX25_LONG_SIDE;
+  const canvas = ltx25Canvas(width, height, longSide);
   const fromStill = options.sizeFromStill === true;
   const frames = ltx25FrameCount(length, fps);
   const F = LTX25_FILES;
@@ -365,8 +381,8 @@ export function convertVideoWorkflowToLtx25(
     });
     const size = { a: ['35', 0], b: ['35', 1] } as Record<string, [string, number]>;
     next['35'] = { class_type: 'GetImageSize', inputs: { image: ['8', 0] } };
-    next['31'] = math(`round(${LTX25_LONG_SIDE} * a / max(a, b) / 64) * 64`, size);
-    next['32'] = math(`round(${LTX25_LONG_SIDE} * b / max(a, b) / 64) * 64`, size);
+    next['31'] = math(`round(${longSide} * a / max(a, b) / 64) * 64`, size);
+    next['32'] = math(`round(${longSide} * b / max(a, b) / 64) * 64`, size);
     next['33'] = math('a // 2', { a: ['31', 1] });
     next['34'] = math('a // 2', { a: ['32', 1] });
   }

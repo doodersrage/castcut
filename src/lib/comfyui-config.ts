@@ -227,6 +227,8 @@ export type WorkflowParamValues = {
   videoSpeech?: 'on';
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
+  /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
+  videoLongSide?: string | number;
   /**
    * Best of two in one job (castcut-nodes.ts): the pose guide as CastcutPoseScore reads it. Only
    * acted on when ComfyUI has the Castcut nodes; otherwise the graph is left as it is.
@@ -529,6 +531,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceSample?.trim()) {
     result.videoVoiceSample = merged.videoVoiceSample.trim();
+  }
+  if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
+    result.videoLongSide = merged.videoLongSide;
   }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
@@ -1878,6 +1883,9 @@ export function injectPromptsWithFallbacks(
       const converted = convertVideoWorkflowToLtx25(injected.workflow, {
         sizeFromStill:
           !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
+        ...(Number(input.params?.videoLongSide) > 0
+          ? { longSide: Number(input.params?.videoLongSide) }
+          : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
           ? { endImage }

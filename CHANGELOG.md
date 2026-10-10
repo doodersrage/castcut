@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Full-frame talking clips render larger.** With *Keep the full frame* (or a still that isn't cropped) the face was about 60 px in a 768-px clip and the moving mouth smeared (user: "back to getting the face distortion"). Those clips now render with a 1152-px long side: replaying the user's clip on its seed, the face and mouth stayed clean (about 63 s instead of 45 s). Chest-up clips stay at 768.
+
 - **Keep the full frame.** A Day slot or Story scene with a line has a *Keep the full frame* switch: its talking clip animates the whole still instead of starting chest-up when her face is small. For cuts where the wide framing matters more than readable lips.
 
 - **A kept Cast voice no longer warps the face.** The voice LoRA (trained on LTX-2.3) now steers only the first, half-size pass, at 0.5; the refine pass that draws the final face runs on the plain model with the first pass's audio frozen. Replaying the user's two clips on their own seeds: the LoRA on both passes warped the face (smeared mouth; a white-mask face as she walked into the camera); first pass only at 0.5 was clean on both, like no voice at all. Voice match to the kept sample: 0.79 on one clip (0.65 without the voice), no change on the other — so steering stays a switch, off by default.

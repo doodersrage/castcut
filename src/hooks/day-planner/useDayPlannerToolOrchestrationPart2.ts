@@ -1,7 +1,12 @@
 'use client';
 
 import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
-import { isLtx25Model, normalizeSpokenLine, talkingClipPrompt } from '@/lib/ltx25-renderer';
+import {
+  isLtx25Model,
+  LTX25_TALKING_FULL_FRAME_LONG_SIDE,
+  normalizeSpokenLine,
+  talkingClipPrompt,
+} from '@/lib/ltx25-renderer';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
@@ -457,7 +462,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(speaking
-                ? { videoSpeech: 'on', ...castVoiceSampleFor(shared.activeCharacterId) }
+                ? {
+                    videoSpeech: 'on',
+                    ...castVoiceSampleFor(shared.activeCharacterId),
+                    // Not cropped chest-up: render larger so the small face holds.
+                    ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
+                  }
                 : {}),
             },
             character,
