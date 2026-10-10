@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **A kept Cast voice no longer warps the face.** The voice LoRA (trained on LTX-2.3) now steers only the first, half-size pass, at 0.5; the refine pass that draws the final face runs on the plain model with the first pass's audio frozen. Replaying the user's two clips on their own seeds: the LoRA on both passes warped the face (smeared mouth; a white-mask face as she walked into the camera); first pass only at 0.5 was clean on both, like no voice at all. Voice match to the kept sample: 0.79 on one clip (0.65 without the voice), no change on the other — so steering stays a switch, off by default.
+
 ## [v2.4.3] - 2026-10-10
 
 - **Talking clips no longer warp her face when a Cast voice is kept.** With a kept voice, talking clips ran the LTX ID-LoRA at full strength; it was trained on LTX-2.3, and on LTX-2.5 it smeared and warped the face around the mouth (user: "weird artifacts around her mouth and face"). Replaying the user's own clip on its seed: with the LoRA the face warped in every sampled frame; without it, clean; at half strength, mostly clean. Steering clips toward the kept voice is now a switch on Cast → Voice (*Steer talking clips toward this voice*), off by default, and runs the LoRA at 0.6. Kept voices stay saved.

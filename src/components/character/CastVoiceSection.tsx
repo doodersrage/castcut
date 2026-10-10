@@ -135,7 +135,7 @@ export default function CastVoiceSection({
                   refresh();
                 }}
               />
-              Steer talking clips toward this voice (can warp the face a little)
+              Steer talking clips toward this voice (helps on some clips, not all)
             </label>
             <Button
               size="sm"

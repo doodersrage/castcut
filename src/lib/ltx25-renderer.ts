@@ -44,8 +44,8 @@ export const LTX25_VOICE_NODE = 'LTXVReferenceAudio';
  */
 export const LTX25_ID_LORA = 'ltx-2.3-id-lora-talkvid-3k.safetensors';
 
-/** ID-LoRA strength: 1.0 warped faces on LTX-2.5; 0.5 was mostly clean (live 2026-10-10). */
-export const LTX25_ID_LORA_STRENGTH = 0.6;
+/** ID-LoRA strength (first pass only, see addLtx25Speech): 1.0 warped faces on LTX-2.5. */
+export const LTX25_ID_LORA_STRENGTH = 0.5;
 
 export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
@@ -439,21 +439,27 @@ function addLtx25Speech(
     if (idLora) {
       next['50'] = {
         class_type: 'LoraLoaderModelOnly',
-        // 0.6: at 1.0 the LTX-2.3 LoRA warped faces around the mouth on LTX-2.5 (2026-10-10).
         inputs: { model: ['1', 0], lora_name: idLora, strength_model: LTX25_ID_LORA_STRENGTH },
       };
     }
     next['51'] = { class_type: 'LoadAudio', inputs: { audio: voiceSample } };
-    for (const guiderId of ['15', '46']) {
-      const guider = next[guiderId]?.inputs;
-      if (!guider) continue;
-      const refId = guiderId === '15' ? '52' : '53';
-      next[refId] = {
+    // The voice is set on the first (half-size) pass only. Replaying the user's clips on their
+    // seeds (2026-10-10): the LoRA on both passes warped her face (white-mask faces at 1.0);
+    // first pass only at 0.5, with the refine pass on the plain model and the first pass's audio
+    // frozen, gave clean faces on both clips and kept most of the voice where it helped.
+    const pass1 = next['15']?.inputs;
+    if (pass1) {
+      if (!next['46']) {
+        // No end pose: both passes shared one guider — the refine pass gets its own, unpatched.
+        next['57'] = { class_type: 'LTXVDualCFGGuider', inputs: { ...pass1 } };
+        if (next['27']?.inputs) next['27'].inputs.guider = ['57', 0];
+      }
+      next['52'] = {
         class_type: LTX25_VOICE_NODE,
         inputs: {
           model: idLora ? ['50', 0] : ['1', 0],
-          positive: guider.positive,
-          negative: guider.negative,
+          positive: pass1.positive,
+          negative: pass1.negative,
           reference_audio: ['51', 0],
           audio_vae: ['4', 0],
           identity_guidance_scale: 3,
@@ -461,9 +467,12 @@ function addLtx25Speech(
           end_percent: 1,
         },
       };
-      guider.model = [refId, 0];
-      guider.positive = [refId, 1];
-      guider.negative = [refId, 2];
+      pass1.model = ['52', 0];
+      pass1.positive = ['52', 1];
+      pass1.negative = ['52', 2];
+      // The refine pass keeps the voiced audio as it is.
+      next['58'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['20', 1] } };
+      if (next['24']?.inputs) next['24'].inputs.audio_latent = ['58', 0];
     }
   }
   next['54'] = {

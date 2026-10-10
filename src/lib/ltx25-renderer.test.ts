@@ -202,23 +202,26 @@ describe('LTX-2.5 talking clips', () => {
     assert.equal(byClass(workflow, 'LTXVReferenceAudio').length, 0);
   });
 
-  it('a voice sample conditions every guider, on the ID-LoRA when given', () => {
-    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
-      endImage: 'end.png',
-      speech: { voiceSample: 'castcut-voice-nora.wav', idLora: LTX25_ID_LORA },
-    }) as { workflow: G };
-    const refs = byClass(workflow, 'LTXVReferenceAudio');
-    assert.equal(refs.length, 2);
-    for (const ref of refs) assert.deepEqual(ref.inputs!.model, ['50', 0]);
-    assert.equal(workflow['50']!.inputs!.lora_name, LTX25_ID_LORA);
-    assert.equal(workflow['50']!.inputs!.strength_model, 0.6);
-    for (const guider of byClass(workflow, 'LTXVDualCFGGuider')) {
-      assert.match(String((guider.inputs!.model as string[])[0]), /^5[23]$/);
-      assert.deepEqual((guider.inputs!.positive as unknown[])[1], 1);
+  it('a voice sample steers the first pass only; the refine pass stays on the plain model', () => {
+    for (const endImage of [undefined, 'end.png']) {
+      const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+        ...(endImage ? { endImage } : {}),
+        speech: { voiceSample: 'castcut-voice-nora.wav', idLora: LTX25_ID_LORA },
+      }) as { workflow: G };
+      const refs = byClass(workflow, 'LTXVReferenceAudio');
+      assert.equal(refs.length, 1);
+      assert.deepEqual(refs[0]!.inputs!.model, ['50', 0]);
+      assert.equal(workflow['50']!.inputs!.strength_model, 0.5);
+      // Pass 1 (sampler 19) on the voice; pass 2 (sampler 27) on a guider with the plain model.
+      const g1 = workflow[(workflow['19']!.inputs!.guider as string[])[0]]!;
+      const g2 = workflow[(workflow['27']!.inputs!.guider as string[])[0]]!;
+      assert.deepEqual(g1.inputs!.model, ['52', 0]);
+      assert.deepEqual(g2.inputs!.model, ['1', 0]);
+      // The refine pass keeps the voiced audio.
+      const freeze = workflow[(workflow['24']!.inputs!.audio_latent as string[])[0]]!;
+      assert.equal(freeze.class_type, 'LTXVFreezeLatent');
+      assert.deepEqual(freeze.inputs!.latent, ['20', 1]);
     }
-    // The end guide's conditioning still feeds the voice node.
-    assert.deepEqual(workflow['53']!.inputs!.positive, ['45', 0]);
-    assert.equal(refsTo(workflow, '51'), true);
   });
 
   it('without the LoRA the voice node runs on the base model', () => {
