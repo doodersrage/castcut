@@ -1,6 +1,7 @@
 [
   "src/app/api/cast-voice/audition/route.ts",
   "src/app/api/cast-voice/route.ts",
+  "src/app/api/clip/extend/route.ts",
   "src/app/api/day-premise/route.ts",
   "src/app/api/film/score/route.ts",
   "src/app/api/play-checks/prepare/route.ts",
@@ -47,6 +48,7 @@
   "src/hooks/useWeakPoseLayouts.ts",
   "src/lib/castcut-report-client.ts",
   "src/lib/character-lora-flywheel.ts",
+  "src/lib/clip-extend-server.ts",
   "src/lib/clip-frame-sample.ts",
   "src/lib/clip-quality.ts",
   "src/lib/clothed-coverage.ts",

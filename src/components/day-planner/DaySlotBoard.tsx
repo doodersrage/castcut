@@ -56,6 +56,10 @@ export type DaySlotBoardProps = {
   onAddVoice?: (slot: DaySlot) => Promise<string | null>;
   /** The slot Day is adding a voice to right now (a tap or the automatic pass). */
   voicingSlotId?: string | null;
+  /** "Make it 30 s": the clip grows in chained segments. Resolves to an error, or null. */
+  onExtendClip?: (slot: DaySlot) => Promise<string | null>;
+  /** The slot being made longer, and how far it is. */
+  extending?: { slotId: string; note: string } | null;
   onAnimateSlot?: (slot: DaySlot) => void;
   onRerollSlot?: (slot: DaySlot) => void;
   /** Queue this slot only (an unrendered slot's ⋯ menu). */
@@ -101,6 +105,8 @@ export default function DaySlotBoard({
   onAnimateSlot,
   onAddVoice,
   voicingSlotId = null,
+  onExtendClip,
+  extending = null,
   onRerollSlot,
   onQueueSlot,
   qualityLedger,
@@ -114,6 +120,13 @@ export default function DaySlotBoard({
   const [tapVoicing, setVoicing] = useState<string | null>(null);
   const voicing = tapVoicing ?? voicingSlotId;
   const [voicedNote, setVoicedNote] = useState<{ slotId: string; text: string } | null>(null);
+  const [extendNote, setExtendNote] = useState<{ slotId: string; text: string } | null>(null);
+  const extendClip = async (slot: DaySlot) => {
+    if (!onExtendClip) return;
+    setExtendNote(null);
+    const error = await onExtendClip(slot);
+    setExtendNote({ slotId: slot.id, text: error ?? 'Done — the clip is now about 30 seconds.' });
+  };
   const addVoice = async (slot: DaySlot) => {
     if (!onAddVoice) return;
     setVoicing(slot.id);
@@ -341,6 +354,18 @@ export default function DaySlotBoard({
                 onClick={() => void addVoice(slot)}
               >
                 {voicing === slot.id ? 'Adding voice…' : 'Add voice'}
+              </button>
+            ) : null}
+            {onExtendClip && clipState === 'done' && doneClip ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || extending !== null}
+                title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
+                data-testid={`day-progress-extend-${slot.id}`}
+                onClick={() => void extendClip(slot)}
+              >
+                {extending?.slotId === slot.id ? 'Making it longer…' : 'Make it 30 s'}
               </button>
             ) : null}
             {slot.line?.trim() && clipState === 'done' && doneClip ? (
@@ -655,6 +680,15 @@ export default function DaySlotBoard({
                     data-testid={`day-progress-add-voice-note-${slot.id}`}
                   >
                     {voicing === slot.id ? 'Adding voice… (about a minute)' : voicedNote?.text}
+                  </p>
+                ) : null}
+                {extending?.slotId === slot.id || extendNote?.slotId === slot.id ? (
+                  <p
+                    className="type-caption mt-1 text-[var(--text-muted)]"
+                    role="status"
+                    data-testid={`day-progress-extend-note-${slot.id}`}
+                  >
+                    {extending?.slotId === slot.id ? extending.note : extendNote?.text}
                   </p>
                 ) : null}
                 {voice.noteFor(slot.id) ? (

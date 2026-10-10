@@ -97,6 +97,7 @@ export function RoleplayStoryBeatCard({
   const [sheetOpen, setSheetOpen] = useState(false);
   const voice = useTakeCastVoice();
   const [addVoiceNote, setAddVoiceNote] = useState<string | null>(null);
+  const [extendNote, setExtendNote] = useState<string | null>(null);
   const voiceKey = storyBeatKey(beat);
   const voiceNote = voice.noteFor(voiceKey);
   const takingVoice = voice.taking(voiceKey);
@@ -305,6 +306,25 @@ export function RoleplayStoryBeatCard({
                 {edit.voicingKey === storyBeatKey(beat) ? 'Adding voice…' : 'Add voice'}
               </button>
             ) : null}
+            {edit && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || Boolean(edit.extending)}
+                title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
+                data-testid="story-beat-extend"
+                onClick={() => {
+                  setExtendNote(null);
+                  void edit
+                    .extendBeatClip(beat)
+                    .then(error =>
+                      setExtendNote(error ?? 'Done — the clip is now about 30 seconds.')
+                    );
+                }}
+              >
+                {edit.extending?.key === storyBeatKey(beat) ? 'Making it longer…' : 'Make it 30 s'}
+              </button>
+            ) : null}
             {canTakeVoice ? (
               <button
                 type="button"
@@ -355,6 +375,15 @@ export function RoleplayStoryBeatCard({
               data-testid="story-beat-line-shown"
             >
               “{beat.line.trim()}”
+            </p>
+          ) : null}
+          {edit?.extending?.key === storyBeatKey(beat) || extendNote ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-extend-note"
+            >
+              {edit?.extending?.key === storyBeatKey(beat) ? edit.extending.note : extendNote}
             </p>
           ) : null}
           {edit?.voicingKey === storyBeatKey(beat) || addVoiceNote ? (

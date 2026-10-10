@@ -805,3 +805,109 @@ export function conversationPartnerNoun(
   }
   return /\b(his boyfriend|two men|another man|his male friend)\b/i.test(text) ? 'man' : 'woman';
 }
+
+/**
+ * Extend a clip ("Make it 30 s"): each new segment is guided by the previous one's last
+ * {@link LTX25_EXTEND_OVERLAP} frames (LTXVAddGuide at frame 0 on both passes, guides cropped
+ * before the upscaler and the decode), so the motion carries over; the stitch then crossfades
+ * the overlap. Spike (2026-10-10, 6 × 5 s from a Day still): against starting each segment from
+ * the last frame only, the guide held the framing and the clothes (the last-frame chain zoomed in
+ * and turned her poncho into a buttoned dress by 15 s); crossfading the overlap took the seam
+ * jumps from 2.2–3.4× to 1.0–2.2× normal motion.
+ */
+export const LTX25_EXTEND_OVERLAP = 17;
+
+/** The SaveVideo node an extension segment comes out of. */
+export const LTX25_EXTEND_SAVE_NODE = LTX25_SPEECH_SAVE_NODE;
+
+/** What an extension segment is told: the beat, then hold the people, place and camera. */
+export function extendSegmentPrompt(beat: string): string {
+  return [
+    beat.trim().replace(/\s+/g, ' '),
+    'Same people, same clothes, same place and light as the first frames; one continuous shot.',
+    'Camera: locked-off, framing stays the same. Natural, smooth, continuous motion.',
+    'Only the sound of the room; nobody speaks.',
+  ].join(' ');
+}
+
+export function buildLtx25ExtendGraph(input: {
+  /** The previous segment's last frame (sizes the canvas). */
+  lastFrame: string;
+  /** Its last {@link LTX25_EXTEND_OVERLAP} frames as an MP4 (a ComfyUI input). */
+  tailVideo: string;
+  prompt: string;
+  seed: number;
+  prefix: string;
+  /** Long side of the render (the clip's own size), 512–1536. */
+  longSide?: number;
+  /** ReActor restore model for the face pass, when installed. */
+  restoreFace?: string;
+}): Workflow {
+  const stub: Workflow = {
+    '1': { class_type: 'LoadImage', inputs: { image: input.lastFrame } },
+    '2': { class_type: 'CLIPTextEncode', inputs: { text: input.prompt, clip: ['9', 0] } },
+    '3': {
+      class_type: 'CLIPTextEncode',
+      inputs: { text: 'talking, speech, words, singing, cut, scene change', clip: ['9', 0] },
+    },
+    '4': {
+      class_type: 'WanImageToVideo',
+      inputs: { width: 768, height: 1024, length: 121, start_image: ['1', 0] },
+    },
+    '5': {
+      class_type: 'KSampler',
+      inputs: { seed: input.seed, positive: ['2', 0], negative: ['3', 0], latent_image: ['4', 2] },
+    },
+    '6': { class_type: 'SaveAnimatedWEBP', inputs: { filename_prefix: input.prefix, fps: 24 } },
+    '9': { class_type: 'CLIPLoader', inputs: {} },
+  };
+  const { workflow, converted, reason } = convertVideoWorkflowToLtx25(stub, {
+    seed: input.seed,
+    sizeFromStill: true,
+    longSide: input.longSide,
+    speech: { restoreFace: input.restoreFace },
+  });
+  if (!converted) throw new Error(reason ?? 'Could not build the extension.');
+  const g = workflow;
+  const node = (id: string) => g[id]!.inputs!;
+  g['60'] = { class_type: 'LoadVideo', inputs: { file: input.tailVideo } };
+  g['61'] = { class_type: 'GetVideoComponents', inputs: { video: ['60', 0] } };
+  g['62'] = { class_type: 'ImageScale', inputs: { ...node('9'), image: ['61', 0] } };
+  g['63'] = { class_type: 'LTXVPreprocess', inputs: { image: ['62', 0], img_compression: 18 } };
+  const guide = (positive: unknown, negative: unknown, latent: unknown): WorkflowNode => ({
+    class_type: 'LTXVAddGuide',
+    inputs: {
+      positive,
+      negative,
+      vae: ['3', 0],
+      latent,
+      image: ['63', 0],
+      frame_idx: 0,
+      strength: 1,
+    },
+  });
+  // Pass 1: the tail replaces the in-place start frame.
+  g['64'] = guide(['7', 0], ['7', 1], ['11', 0]);
+  node('14').video_latent = ['64', 2];
+  node('15').positive = ['64', 0];
+  node('15').negative = ['64', 1];
+  g['65'] = {
+    class_type: 'LTXVCropGuides',
+    inputs: { positive: ['64', 0], negative: ['64', 1], latent: ['20', 0] },
+  };
+  node('22').samples = ['65', 2];
+  // Pass 2, on the upscaled latent with its own guider.
+  g['66'] = guide(['65', 0], ['65', 1], ['22', 0]);
+  node('24').video_latent = ['66', 2];
+  g['67'] = {
+    class_type: 'LTXVDualCFGGuider',
+    inputs: { ...node('15'), positive: ['66', 0], negative: ['66', 1] },
+  };
+  node('27').guider = ['67', 0];
+  g['68'] = {
+    class_type: 'LTXVCropGuides',
+    inputs: { positive: ['66', 0], negative: ['66', 1], latent: ['28', 0] },
+  };
+  node('29').samples = ['68', 2];
+  return g;
+}

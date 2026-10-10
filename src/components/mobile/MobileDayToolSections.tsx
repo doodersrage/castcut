@@ -130,6 +130,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     character,
     addVoiceToSlot,
     voicingSlotId,
+    extendSlotClip,
+    extending,
     hasPlate,
     plate,
     isolateSubject,
@@ -848,6 +850,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onAnimateSlot={slot => void animateSlot(slot)}
           onAddVoice={addVoiceToSlot}
           voicingSlotId={voicingSlotId}
+          onExtendClip={extendSlotClip}
+          extending={extending}
           onQueueSlot={slot => void queueSlot(slot)}
           onRerollSlot={slot => {
             rerollActiveSlotScene({ slotId: slot.id });

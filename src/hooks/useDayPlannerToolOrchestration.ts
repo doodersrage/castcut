@@ -1,6 +1,7 @@
 'use client';
 
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
+import { useDayExtendClip } from '@/hooks/day-planner/useDayExtendClip';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayPlannerToolOrchestrationPart2';
@@ -99,6 +100,7 @@ export function useDayPlannerToolOrchestration() {
   const clips = useDayClipQualityCheck(core);
   const endPose = useDayEndPose(core);
   const addVoice = useDayAddVoice(core);
+  const extendClip = useDayExtendClip(core);
   const season = useDaySeries(core.character?.id);
   const outfitScope = useDayOutfitScope(core);
 
@@ -400,6 +402,7 @@ export function useDayPlannerToolOrchestration() {
     ...clips,
     ...endPose,
     ...addVoice,
+    ...extendClip,
     ...season,
     ...outfitScope,
     cutDayFilm,
