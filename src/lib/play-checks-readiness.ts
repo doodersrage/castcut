@@ -30,11 +30,18 @@ export type PlayChecksReadiness = {
    * with no vision model, adult stills are shown unchecked (the age wording still applies).
    */
   adultGate?: PlayCheckReadiness;
+  /** The face pass on talking clips (ReActor + a CodeFormer / GFPGAN model); absent on older probes. */
+  talkFace?: PlayCheckReadiness;
 };
 
 export const DWPOSE_PACK = {
   name: 'comfyui_controlnet_aux',
   url: 'https://github.com/Fannovel16/comfyui_controlnet_aux',
+};
+
+export const REACTOR_PACK = {
+  name: 'ComfyUI-ReActor',
+  url: 'https://github.com/Gourieff/ComfyUI-ReActor',
 };
 
 export const FACE_ANALYSIS_PACK = {
@@ -86,6 +93,8 @@ export function buildPlayChecksReadiness(input: {
   installedPacks?: { faceAnalysis: boolean; controlnetAux: boolean } | null;
   /** ComfyUI's /system_stats: which Python to name in a command. */
   system?: { os?: string | null; embeddedPython?: boolean } | null;
+  /** ReActorRestoreFace and the restore models it lists (null: not probed). */
+  faceRestore?: { node: boolean; models: string[] } | null;
 }): PlayChecksReadiness {
   const { faceNodes, ffmpeg } = input;
   const faceMissing = [
@@ -130,8 +139,28 @@ export function buildPlayChecksReadiness(input: {
           detail:
             'no vision model — adult stills are shown unchecked; the adult age wording still applies',
         };
+  const restore = input.faceRestore;
+  const restoreModel = restore?.models.find(name => /codeformer|gfpgan/i.test(name));
+  const talkFace: PlayCheckReadiness | undefined = !restore
+    ? undefined
+    : !input.comfyReachable
+      ? { ready: false, detail: 'ComfyUI unreachable' }
+      : !restore.node
+        ? {
+            ready: false,
+            detail: 'not installed — talking clips can smear the mouth in some frames',
+            install: REACTOR_PACK,
+          }
+        : restoreModel
+          ? { ready: true, detail: `ReActor + ${restoreModel}` }
+          : {
+              ready: false,
+              detail:
+                'ReActor has no face restore model — download “CodeFormer face restore” under Settings → ComfyUI → Models',
+            };
   return {
     ...(review ? { review } : {}),
+    ...(talkFace ? { talkFace } : {}),
     ...(adultGate ? { adultGate } : {}),
     comfyReachable: input.comfyReachable,
     pose: input.poseNode

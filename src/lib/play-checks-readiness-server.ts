@@ -37,6 +37,9 @@ export async function probePlayChecksReadiness(
         resolveComfyNode(baseUrl, ['PreviewAny'], { fresh: true }),
       ])
     : [null, null, null, null];
+  const reactor = reachable
+    ? await resolveComfyNode(baseUrl, ['ReActorRestoreFace'], { fresh: true })
+    : null;
   const [installedPacks, system] = reachable
     ? await Promise.all([readInstalledPacks(baseUrl), readSystem(baseUrl)])
     : [null, null];
@@ -73,6 +76,9 @@ export async function probePlayChecksReadiness(
     vision,
     installedPacks,
     system,
+    faceRestore: reachable
+      ? { node: Boolean(reactor), models: restoreModelOptions(reactor?.info) }
+      : null,
   });
 }
 
@@ -117,4 +123,17 @@ async function readInstalledPacks(baseUrl: string) {
 async function readSystem(baseUrl: string) {
   const info = parseComfyUiSystemStats(await getJson(`${baseUrl}/system_stats`));
   return info ? { os: info.os, embeddedPython: info.embeddedPython } : null;
+}
+
+/** The restore models ReActorRestoreFace offers (its `model` combo), without "none". */
+export function restoreModelOptions(info: unknown): string[] {
+  const spec = (info as { input?: { required?: Record<string, unknown> } } | undefined)?.input
+    ?.required?.model;
+  if (!Array.isArray(spec)) return [];
+  const raw = Array.isArray(spec[0])
+    ? spec[0]
+    : (spec[1] as { options?: unknown } | undefined)?.options;
+  return Array.isArray(raw)
+    ? raw.filter((name): name is string => typeof name === 'string' && name !== 'none')
+    : [];
 }

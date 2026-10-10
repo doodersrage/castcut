@@ -19,6 +19,7 @@ export type ComfyAssetInventory = {
   upscaleModels?: string[];
   clips?: string[];
   controlNets?: string[];
+  faceRestoreModels?: string[];
 };
 
 export type ComfyAssetStatus = 'installed' | 'missing' | 'docs-only' | 'root-missing';
@@ -63,6 +64,8 @@ function inventoryListForKind(
       return inventory.clips ?? [];
     case 'controlnet':
       return inventory.controlNets ?? [];
+    case 'facerestore':
+      return inventory.faceRestoreModels ?? [];
     default:
       return [];
   }

@@ -1,7 +1,15 @@
 /** Client-safe asset kind metadata (no Node fs/path). */
 
 export type ComfyAssetKind =
-  'checkpoint' | 'unet' | 'vae' | 'lora' | 'upscale' | 'refiner' | 'clip' | 'controlnet';
+  | 'checkpoint'
+  | 'unet'
+  | 'vae'
+  | 'lora'
+  | 'upscale'
+  | 'refiner'
+  | 'clip'
+  | 'controlnet'
+  | 'facerestore';
 
 export const COMFY_ASSET_KIND_LABELS: Record<ComfyAssetKind, string> = {
   checkpoint: 'Checkpoint',
@@ -12,6 +20,7 @@ export const COMFY_ASSET_KIND_LABELS: Record<ComfyAssetKind, string> = {
   lora: 'LoRA',
   upscale: 'Upscale',
   controlnet: 'ControlNet',
+  facerestore: 'Face restore',
 };
 
 export const COMFY_ASSET_KIND_ORDER: ComfyAssetKind[] = [
@@ -23,4 +32,5 @@ export const COMFY_ASSET_KIND_ORDER: ComfyAssetKind[] = [
   'lora',
   'upscale',
   'controlnet',
+  'facerestore',
 ];

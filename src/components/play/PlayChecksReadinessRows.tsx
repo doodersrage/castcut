@@ -11,6 +11,7 @@ const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; labe
   { key: 'cutTitles', label: 'Cut titles (server)' },
   { key: 'review', label: 'Still review (vision model)' },
   { key: 'adultGate', label: 'Adult check (not an Auto-review switch)' },
+  { key: 'talkFace', label: 'Talking-clip face pass (ReActor)' },
 ];
 
 function Row({
@@ -109,7 +110,7 @@ export default function PlayChecksReadinessRows({
   checking: boolean;
   onRecheck: () => void;
 }) {
-  const [installing, setInstalling] = useState<'pose' | 'face' | null>(null);
+  const [installing, setInstalling] = useState<'pose' | 'face' | 'talkFace' | null>(null);
   const [installNote, setInstallNote] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
@@ -144,7 +145,7 @@ export default function PlayChecksReadinessRows({
       onRecheck();
     }
   };
-  const install = async (key: 'pose' | 'face') => {
+  const install = async (key: 'pose' | 'face' | 'talkFace') => {
     if (installing) return;
     setInstalling(key);
     setInstallNote(null);
@@ -200,7 +201,7 @@ export default function PlayChecksReadinessRows({
           {ROWS.map(row => {
             const check = readiness[row.key];
             if (!check) return null;
-            const installable = row.key === 'pose' || row.key === 'face';
+            const installable = row.key === 'pose' || row.key === 'face' || row.key === 'talkFace';
             return (
               <Row
                 key={row.key}
@@ -211,7 +212,7 @@ export default function PlayChecksReadinessRows({
                 onRecheck={onRecheck}
                 onInstall={
                   installable && !check.ready && check.install
-                    ? () => void install(row.key as 'pose' | 'face')
+                    ? () => void install(row.key as 'pose' | 'face' | 'talkFace')
                     : undefined
                 }
               />

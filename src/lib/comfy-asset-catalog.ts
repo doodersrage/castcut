@@ -805,6 +805,16 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
 
   // ── LTX Video ─────────────────────────────────────────────────────
   {
+    id: 'codeformer-face-restore',
+    label: 'CodeFormer face restore (talking clips)',
+    kind: 'facerestore',
+    filename: 'codeformer-v0.1.0.pth',
+    url: 'https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/facerestore_models/codeformer-v0.1.0.pth',
+    modelIds: ['ltx-video-2.5'],
+    notes:
+      'The face pass on talking clips (needs the ReActor node pack: Settings → Overview → Play checks). Cleans the mouth smears LTX-2.5 leaves while she talks.',
+  },
+  {
     id: 'ltx-2.3-id-lora-talkvid',
     label: 'LTX ID-LoRA (Cast voices)',
     kind: 'lora',

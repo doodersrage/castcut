@@ -81,3 +81,29 @@ describe('resolveComfyNode fresh probe', () => {
     assert.equal((await resolveComfyNode(base, ['TestNodeX']))?.node, 'TestNodeX');
   });
 });
+
+describe('talking-clip face pass check', () => {
+  const base = {
+    comfyReachable: true,
+    poseNode: 'DWPreprocessor',
+    faceNodes: { models: true, distance: true, previewAny: true },
+    ffmpeg: { available: true, drawtext: true, font: true },
+  };
+  it('ready with ReActor and a CodeFormer model', () => {
+    const r = buildPlayChecksReadiness({ ...base, faceRestore: { node: true, models: ['codeformer-v0.1.0.pth'] } });
+    assert.equal(r.talkFace?.ready, true);
+  });
+  it('suggests installing ReActor when the node is missing', () => {
+    const r = buildPlayChecksReadiness({ ...base, faceRestore: { node: false, models: [] } });
+    assert.equal(r.talkFace?.ready, false);
+    assert.equal(r.talkFace?.install?.name, 'ComfyUI-ReActor');
+  });
+  it('points at the model download when ReActor has none', () => {
+    const r = buildPlayChecksReadiness({ ...base, faceRestore: { node: true, models: ['GPEN-BFR-512.onnx'] } });
+    assert.match(r.talkFace!.detail, /CodeFormer face restore/);
+    assert.equal(r.talkFace?.install, undefined);
+  });
+  it('is absent when not probed', () => {
+    assert.equal(buildPlayChecksReadiness(base).talkFace, undefined);
+  });
+});

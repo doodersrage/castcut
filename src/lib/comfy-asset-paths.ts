@@ -20,6 +20,8 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
   // ComfyUI dual-CLIP / text encoders: newer trees use text_encoders; older use clip.
   clip: ['models/text_encoders', 'models/clip'],
   controlnet: ['models/controlnet'],
+  // ReActor's face restore models (CodeFormer / GFPGAN).
+  facerestore: ['models/facerestore_models'],
 };
 
 export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {

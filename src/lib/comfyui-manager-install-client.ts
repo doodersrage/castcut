@@ -53,9 +53,10 @@ export const PLAY_CHECK_HEAL_NODE_TYPES = [
 ] as const;
 
 /** Node type each Play-check row installs (Settings → Play checks "Install"). */
-export const PLAY_CHECK_INSTALL_NODE_TYPES: Record<'pose' | 'face', string[]> = {
+export const PLAY_CHECK_INSTALL_NODE_TYPES: Record<'pose' | 'face' | 'talkFace', string[]> = {
   pose: ['DWPreprocessor'],
   face: ['FaceAnalysisModels', 'FaceEmbedDistance'],
+  talkFace: ['ReActorRestoreFace'],
 };
 
 export async function requestComfyManagerInstall(input: {
