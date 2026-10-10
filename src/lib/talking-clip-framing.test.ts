@@ -44,3 +44,26 @@ describe('keep the full frame', async () => {
     assert.equal('lineFullFrame' in off!, false);
   });
 });
+
+describe('one-shot conversation', async () => {
+  const { conversationClipPrompt, conversationPartnerNoun } = await import('./ltx25-renderer');
+  const { buildSpokenLineMessages } = await import('./spoken-line');
+  it('names who says what, in order, and keeps them in place', () => {
+    const prompt = conversationClipPrompt({ line: 'You made coffee?', reply: 'Only because you were snoring.', lead: 'woman', partner: 'man' });
+    assert.match(prompt, /The woman turns to the man and says, "You made coffee\?" The man answers, "Only because you were snoring\."/);
+    assert.match(prompt, /they stay in place/);
+    assert.match(
+      conversationClipPrompt({ line: 'Hi', reply: 'Hey', lead: 'woman', partner: 'woman' }),
+      /One woman turns to the other woman.*The other woman answers/
+    );
+  });
+  it('reads the other person from the still, else the opposite of the lead', () => {
+    assert.equal(conversationPartnerNoun('… her girlfriend has her own face …', 'woman'), 'woman');
+    assert.equal(conversationPartnerNoun('a couple at the counter', 'woman'), 'man');
+    assert.equal(conversationPartnerNoun('his boyfriend has the face from Image 2', 'man'), 'man');
+  });
+  it('a reply suggestion answers the line', () => {
+    const [system] = buildSpokenLineMessages({ scene: 'kitchen', replyTo: 'You made coffee?' });
+    assert.match(system!.content, /other person in the scene says back to her, answering: "You made coffee\?"/);
+  });
+});

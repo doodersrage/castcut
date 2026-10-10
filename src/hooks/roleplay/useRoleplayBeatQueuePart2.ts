@@ -5,6 +5,8 @@ import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/ad
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
   clipEngineForShot,
+  conversationClipPrompt,
+  conversationPartnerNoun,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
   normalizeSpokenLine,
   talkingClipPrompt,
@@ -253,9 +255,21 @@ export function useRoleplayBeatQueuePart2(
         (text ?? '').includes(RAPID_DUO_RECIPE_MARK)
       );
       const speaking = Boolean(spokenLine) && queueClipMode === 'i2v' && !adultDuo;
+      // A reply on a two-person still: a one-shot conversation.
+      const replyLine = normalizeSpokenLine(latest.replyLine);
+      const stillText = parentEntry?.prompt ?? latest.prompt;
+      const conversation = speaking && Boolean(replyLine) && stillPromptPeople(stillText) >= 2;
       if (speaking) {
         // Talking: she stays put facing the camera; an adult still's age sentence stays.
-        prompt = talkingClipPrompt({ line: spokenLine, speaker: leadIsMan() ? 'He' : 'She' });
+        const lead = leadIsMan() ? 'man' : 'woman';
+        prompt = conversation
+          ? conversationClipPrompt({
+              line: spokenLine,
+              reply: replyLine,
+              lead,
+              partner: conversationPartnerNoun(stillText, lead),
+            })
+          : talkingClipPrompt({ line: spokenLine, speaker: leadIsMan() ? 'He' : 'She' });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
       const clipModel =
@@ -273,7 +287,14 @@ export function useRoleplayBeatQueuePart2(
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
       let talkingCropped = false;
-      if (speaking && hasInit && !inputImage && inputImageUrl && !latest.lineFullFrame) {
+      if (
+        speaking &&
+        !conversation &&
+        hasInit &&
+        !inputImage &&
+        inputImageUrl &&
+        !latest.lineFullFrame
+      ) {
         const framed = await framedTalkingStill(inputImageUrl);
         if (framed) {
           inputImage = framed;
@@ -304,11 +325,14 @@ export function useRoleplayBeatQueuePart2(
             undefined,
             speaking
               ? {
-                  // ~5 s: room for a line of about 14 words.
-                  videoFrames: 80,
+                  // ~5 s: room for a line of about 14 words; ~6 s for a conversation.
+                  videoFrames: conversation ? 96 : 80,
                   videoFps: 16,
                   videoSpeech: 'on',
-                  ...castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId),
+                  // A kept voice would pull both speakers toward hers — not in a conversation.
+                  ...(conversation
+                    ? {}
+                    : castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId)),
                   // Not cropped chest-up: render larger so the small face holds.
                   ...(talkingCropped ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                 }

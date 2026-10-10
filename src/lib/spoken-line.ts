@@ -25,6 +25,8 @@ export type SpokenLineRequest = {
   heat?: SpokenLineHeat;
   /** Lines already used nearby — say something else. */
   avoid?: string[];
+  /** Write the other person's answer to this line (two-person conversations). */
+  replyTo?: string;
 };
 
 export type SpokenLineHeat = 'clean' | 'flirty' | 'sensual' | 'explicit';
@@ -78,8 +80,11 @@ const OPENING_RULE = '- Do not start with "You\'re" or "You are"; vary how it op
 export function buildSpokenLineMessages(input: SpokenLineRequest) {
   const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
   const heat = input.heat ?? 'clean';
+  const replyTo = input.replyTo?.trim();
   const lines = [
-    `Write ONE line ${who} says out loud in a ~5 second video clip.`,
+    replyTo
+      ? `Write ONE line the other person in the scene says back to ${input.name?.trim() || (input.lead === 'man' ? 'him' : 'her')}, answering: "${replyTo.slice(0, 160)}"`
+      : `Write ONE line ${who} says out loud in a ~5 second video clip.`,
     `- ${heat === 'clean' ? 3 : 2} to ${SPOKEN_LINE_MAX_WORDS - 2} words, first person.`,
     '- It must fit exactly what is happening right now.',
     ...HEAT_RULES[heat],

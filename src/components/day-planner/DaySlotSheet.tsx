@@ -209,6 +209,17 @@ export default function DaySlotSheet({
             key={slot.id}
             line={slot.line}
             fullFrame={slot.lineFullFrame === true}
+            reply={slot.replyLine}
+            onReplySave={reply => updateSlot(slot.id, { replyLine: reply || undefined })}
+            onSuggestReply={line =>
+              suggestLineForActiveCast({
+                scene: slot.sceneHints?.trim() || slot.label,
+                setting: slot.location,
+                when: slot.label,
+                heat: spokenLineHeat(dayMood),
+                replyTo: line,
+              })
+            }
             onFullFrameChange={on => updateSlot(slot.id, { lineFullFrame: on || undefined })}
             hasVoice={activeCastHasVoice()}
             onSuggest={() =>

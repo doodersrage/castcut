@@ -3,6 +3,8 @@
 import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
+  conversationClipPrompt,
+  conversationPartnerNoun,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
   normalizeSpokenLine,
   talkingClipPrompt,
@@ -421,16 +423,30 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           );
           prompt = manLead ? swapDayPromptGender(clip) : clip;
         }
+        // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
+        // voice and their own lip movement).
+        const replyLine = normalizeSpokenLine(slot.replyLine);
+        const conversation =
+          speaking && Boolean(replyLine) && stillPromptPeople(parentEntry?.prompt) >= 2;
         if (speaking) {
           // Talking: she stays put facing the camera (the beat's motion walked her out of frame
           // mid-line). An adult still's age sentence stays with the clip.
           const ageLine = adultAgeLineIn(parentEntry?.prompt ?? '');
+          const lead = manLead ? 'man' : 'woman';
           prompt = [
-            talkingClipPrompt({
-              setting: slot.location,
-              line: spokenLine,
-              speaker: manLead ? 'He' : 'She',
-            }),
+            conversation
+              ? conversationClipPrompt({
+                  setting: slot.location,
+                  line: spokenLine,
+                  reply: replyLine,
+                  lead,
+                  partner: conversationPartnerNoun(parentEntry?.prompt, lead),
+                })
+              : talkingClipPrompt({
+                  setting: slot.location,
+                  line: spokenLine,
+                  speaker: manLead ? 'He' : 'She',
+                }),
             ageLine,
           ]
             .filter(Boolean)
@@ -444,7 +460,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // A talking clip starts chest-up when her face is small in the still (the lips are
         // unreadable full-body) — not with an end pose, whose frame matches the full still.
         const framed =
-          speaking && !endImageFilename && !slot.lineFullFrame && imageUrl
+          speaking && !conversation && !endImageFilename && !slot.lineFullFrame && imageUrl
             ? await framedTalkingStill(imageUrl)
             : null;
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
@@ -458,13 +474,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           queueParamsBase: withCastFaceQueueParams(
             {
               // A talking clip runs ~5 s: room for a line of about 14 words.
-              videoFrames: speaking ? 80 : 64,
+              // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
+              videoFrames: conversation ? 96 : speaking ? 80 : 64,
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(speaking
                 ? {
                     videoSpeech: 'on',
-                    ...castVoiceSampleFor(shared.activeCharacterId),
+                    // A kept voice would pull both speakers toward hers — not in a conversation.
+                    ...(conversation ? {} : castVoiceSampleFor(shared.activeCharacterId)),
                     // Not cropped chest-up: render larger so the small face holds.
                     ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                   }

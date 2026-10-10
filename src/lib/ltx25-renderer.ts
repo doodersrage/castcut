@@ -759,3 +759,49 @@ export function talkingClipPrompt(input: {
     'Camera: locked-off, framing stays as the first frame.',
   ].join(' ');
 }
+
+/**
+ * A two-person conversation in one shot: the lead says the line, the other person answers. Live
+ * (2026-10-10, a clothed couple in a kitchen, 2 seeds): both lines spoken in order word for word,
+ * two voices (her line 225–235 Hz, his reply 154–178 Hz), and the speaker's face moved during
+ * their own line.
+ */
+export function conversationClipPrompt(input: {
+  setting?: string;
+  line: string;
+  reply: string;
+  /** Who says the first line, and who answers ('woman' / 'man'). */
+  lead?: 'woman' | 'man';
+  partner?: 'woman' | 'man';
+}): string {
+  const lead = input.lead ?? 'woman';
+  const partner = input.partner ?? (lead === 'woman' ? 'man' : 'woman');
+  const same = lead === partner;
+  const first = same ? `One ${lead}` : `The ${lead}`;
+  const other = same ? `the other ${partner}` : `the ${partner}`;
+  const place = input.setting?.trim().replace(/[.\s]+$/, '');
+  return [
+    'One continuous shot that starts on the first frame.',
+    `${first} turns to ${other} and says, "${normalizeSpokenLine(input.line)}"`,
+    `${other.charAt(0).toUpperCase()}${other.slice(1)} answers, "${normalizeSpokenLine(input.reply)}"`,
+    'Each speaker’s lips move with their own words; small natural movements only — they stay in place.',
+    place
+      ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
+      : 'The place, light and clothes stay exactly as in the first frame.',
+    'Camera: locked-off, framing stays as the first frame.',
+  ].join(' ');
+}
+
+/** The other person in a two-person still, read from its prompt (default: the opposite of the lead). */
+export function conversationPartnerNoun(
+  stillPrompt: string | null | undefined,
+  lead: 'woman' | 'man'
+): 'woman' | 'man' {
+  const text = stillPrompt ?? '';
+  if (lead === 'woman') {
+    return /\b(her girlfriend|two women|another woman|her female friend)\b/i.test(text)
+      ? 'woman'
+      : 'man';
+  }
+  return /\b(his boyfriend|two men|another man|his male friend)\b/i.test(text) ? 'man' : 'woman';
+}

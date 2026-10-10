@@ -27,6 +27,7 @@ export async function POST(request: Request) {
           body.heat === 'flirty' || body.heat === 'sensual' || body.heat === 'explicit'
             ? body.heat
             : 'clean',
+        replyTo: text(body.replyTo, 160) || undefined,
         avoid: Array.isArray(body.avoid)
           ? body.avoid
               .filter((entry): entry is string => typeof entry === 'string')

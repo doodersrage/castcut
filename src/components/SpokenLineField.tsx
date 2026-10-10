@@ -21,6 +21,9 @@ export default function SpokenLineField({
   note,
   fullFrame = false,
   onFullFrameChange,
+  reply,
+  onReplySave,
+  onSuggestReply,
 }: {
   line?: string;
   disabled?: boolean;
@@ -37,9 +40,34 @@ export default function SpokenLineField({
   /** Keep the whole still for the talking clip (else it starts chest-up when the face is small). */
   fullFrame?: boolean;
   onFullFrameChange?: (fullFrame: boolean) => void;
+  /** Two-person stills: what the other person answers (a one-shot conversation). */
+  reply?: string;
+  onReplySave?: (reply: string) => void;
+  /** Ask for the other person's answer to the line (LLM). */
+  onSuggestReply?: (line: string) => Promise<string>;
 }) {
   const [value, setValue] = useState(line ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const replyRef = useRef<HTMLInputElement>(null);
+  const [replyValue, setReplyValue] = useState(reply ?? '');
+  const commitReply = (raw = replyValue) => {
+    const next = normalizeSpokenLine(raw);
+    setReplyValue(next);
+    if (next !== (reply ?? '')) onReplySave?.(next);
+  };
+  const askReply = async () => {
+    if (!onSuggestReply || !value.trim()) return;
+    setAsking(true);
+    setError(null);
+    try {
+      commitReply(await onSuggestReply(value.trim()));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not suggest a reply.');
+    } finally {
+      setAsking(false);
+      requestAnimationFrame(() => replyRef.current?.focus());
+    }
+  };
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const commit = (raw = value) => {
@@ -129,6 +157,44 @@ export default function SpokenLineField({
         </p>
       ) : null}
       {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
+      {onReplySave && value.trim() ? (
+        <div className="space-y-1">
+          <label
+            className="type-caption block text-[var(--text-muted)]"
+            htmlFor={`${testId}-reply-input`}
+          >
+            Their reply (two-person stills — a conversation in one shot)
+          </label>
+          <TextInput
+            ref={replyRef}
+            id={`${testId}-reply-input`}
+            value={replyValue}
+            disabled={disabled || asking}
+            maxLength={SPOKEN_LINE_MAX_CHARS + 10}
+            placeholder="Only because you were snoring."
+            data-testid={`${testId}-reply-input`}
+            onChange={event => setReplyValue(event.target.value)}
+            onBlur={() => commitReply()}
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                commitReply();
+              }
+            }}
+          />
+          {onSuggestReply ? (
+            <button
+              type="button"
+              className="ui-chip"
+              disabled={disabled || asking}
+              data-testid={`${testId}-suggest-reply`}
+              onClick={() => void askReply()}
+            >
+              {asking ? 'Writing…' : replyValue.trim() ? 'Another reply' : 'Suggest a reply'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {onFullFrameChange && value.trim() ? (
         <label className="type-caption flex items-center gap-2 text-[var(--text-secondary)]">
           <input

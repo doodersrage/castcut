@@ -58,6 +58,8 @@ export type StoryBeatEditActions = {
   saveBeatLine: (beat: RoleplayStoryBeat, line: string) => void;
   /** Keep the whole still for the scene's talking clip (else chest-up when the face is small). */
   saveBeatLineFullFrame: (beat: RoleplayStoryBeat, fullFrame: boolean) => void;
+  /** Two-person scenes: what the other person answers. */
+  saveBeatReply: (beat: RoleplayStoryBeat, reply: string) => void;
   /**
    * Give a finished silent clip a soundtrack (and the scene's line) — two-person adult clips
    * render on WAN without sound. Resolves to an error message, or null when done.
@@ -187,6 +189,19 @@ export function useStoryBeatEdit({
     [storyRef, updateToolSettings]
   );
 
+  const saveBeatReply = useCallback(
+    (beat: RoleplayStoryBeat, reply: string) => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (!latest) return;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, {
+          replyLine: normalizeSpokenLine(reply) || undefined,
+        }),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
   const [voicingKey, setVoicingKey] = useState<string | null>(null);
   const voiceBeatClip = useCallback(
     async (beat: RoleplayStoryBeat): Promise<string | null> => {
@@ -240,6 +255,7 @@ export function useStoryBeatEdit({
       saveBeatText,
       saveBeatLine,
       saveBeatLineFullFrame,
+      saveBeatReply,
       voiceBeatClip,
       voicingKey,
       rewriteBeat,

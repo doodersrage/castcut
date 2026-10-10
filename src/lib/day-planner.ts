@@ -364,6 +364,8 @@ export type DaySlot = {
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up (talking-clip-framing). */
   lineFullFrame?: boolean;
+  /** Two-person slots: what the other person answers (one-shot conversation, LTX-2.5). */
+  replyLine?: string;
 };
 
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
@@ -741,6 +743,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLayout: readText(slot.poseLayout, 40) || undefined,
       line: normalizeSpokenLine(slot.line) || undefined,
       ...(slot.lineFullFrame === true ? { lineFullFrame: true } : {}),
+      replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0
           ? Math.min(99, Math.floor(slot.poseVariant))

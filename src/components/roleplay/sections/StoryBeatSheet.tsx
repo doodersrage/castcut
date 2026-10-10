@@ -72,6 +72,15 @@ export default function StoryBeatSheet({
           <SpokenLineField
             line={beat.line}
             fullFrame={beat.lineFullFrame === true}
+            reply={beat.replyLine}
+            onReplySave={reply => edit.saveBeatReply(beat, reply)}
+            onSuggestReply={line =>
+              suggestLineForActiveCast({
+                scene: `${beat.title}. ${beat.blurb}`,
+                heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+                replyTo: line,
+              })
+            }
             onFullFrameChange={on => edit.saveBeatLineFullFrame(beat, on)}
             suggestion={beat.suggestedLine}
             hasVoice={activeCastHasVoice()}
