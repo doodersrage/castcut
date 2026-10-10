@@ -44,6 +44,9 @@ export const LTX25_VOICE_NODE = 'LTXVReferenceAudio';
  */
 export const LTX25_ID_LORA = 'ltx-2.3-id-lora-talkvid-3k.safetensors';
 
+/** ID-LoRA strength: 1.0 warped faces on LTX-2.5; 0.5 was mostly clean (live 2026-10-10). */
+export const LTX25_ID_LORA_STRENGTH = 0.6;
+
 export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
 /** Long side of the full-size (second pass) clip. */
@@ -436,7 +439,8 @@ function addLtx25Speech(
     if (idLora) {
       next['50'] = {
         class_type: 'LoraLoaderModelOnly',
-        inputs: { model: ['1', 0], lora_name: idLora, strength_model: 1 },
+        // 0.6: at 1.0 the LTX-2.3 LoRA warped faces around the mouth on LTX-2.5 (2026-10-10).
+        inputs: { model: ['1', 0], lora_name: idLora, strength_model: LTX25_ID_LORA_STRENGTH },
       };
     }
     next['51'] = { class_type: 'LoadAudio', inputs: { audio: voiceSample } };

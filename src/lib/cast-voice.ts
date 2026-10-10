@@ -20,7 +20,7 @@ export function castVoiceSampleFor(castId: string | null | undefined): {
   videoVoiceSample?: string;
 } {
   const voice = castVoiceOf(castId);
-  return voice ? { videoVoiceSample: voice.sample } : {};
+  return voice?.steer ? { videoVoiceSample: voice.sample } : {};
 }
 
 export function saveCastVoice(castId: string, voice: CastVoice | null): boolean {
@@ -138,4 +138,11 @@ export async function shiftCastVoice(
   if (!response.ok || !data.sample) return data.error || 'Could not change the voice.';
   saveCastVoice(castId, { ...voice, sample: data.sample, at: Date.now() });
   return null;
+}
+
+/** Switch steering talking clips toward the kept voice on or off. */
+export function setCastVoiceSteer(castId: string, steer: boolean): boolean {
+  const voice = castVoiceOf(castId);
+  if (!voice) return false;
+  return saveCastVoice(castId, { ...voice, steer });
 }

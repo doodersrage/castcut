@@ -12,7 +12,7 @@ import { loadSettingsCache } from './settings-cache';
 import { requestSpokenLine, type SpokenLineRequest } from './spoken-line';
 
 export function activeCastHasVoice(): boolean {
-  return Boolean(castVoiceOf(loadSettingsCache().shared.activeCharacterId));
+  return castVoiceOf(loadSettingsCache().shared.activeCharacterId)?.steer === true;
 }
 
 export function suggestLineForActiveCast(

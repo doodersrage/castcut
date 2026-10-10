@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Talking clips no longer warp her face when a Cast voice is kept.** With a kept voice, talking clips ran the LTX ID-LoRA at full strength; it was trained on LTX-2.3, and on LTX-2.5 it smeared and warped the face around the mouth (user: "weird artifacts around her mouth and face"). Replaying the user's own clip on its seed: with the LoRA the face warped in every sampled frame; without it, clean; at half strength, mostly clean. Steering clips toward the kept voice is now a switch on Cast → Voice (*Steer talking clips toward this voice*), off by default, and runs the LoRA at 0.6. Kept voices stay saved.
+
 ## [v2.4.2] - 2026-10-10
 
 - **Talking clips sync: closer framing, and she stays to say the line.** From a full-body still the face was about 20 px tall, so the spoken line was there but the lips couldn't be read (user: night slot "not syncing"); and the clip still animated the beat ("walking out of the office building… mid-stride", "no wide-open mouth"), so she turned and walked out of frame mid-line. A talking clip now starts from a chest-up crop around the face when the face is small in the still (the app's face locator; same pixels, so the face and outfit stay hers), and its prompt has her stop, face the camera and say the line with small movements only. Live, same still / line / seeds: mouth-motion vs loudness 0.68 / 0.73 cropped vs 0.64 / 0.54 full-frame; the talking prompt 0.57 / 0.69 vs 0.53 / 0.59 with her staying in frame. A clip with an end pose keeps the full still. Clips made before this keep their framing — Animate again.

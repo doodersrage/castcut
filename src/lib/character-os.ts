@@ -117,6 +117,11 @@ export type CastVoice = {
   sample: string;
   /** The talking clip it was cut from (gallery view URL), to play it back. */
   fromClipUrl?: string;
+  /**
+   * Steer talking clips toward it (ID-LoRA). Off unless switched on: on LTX-2.5 the LoRA warped
+   * faces around the mouth at full strength (live 2026-10-10); kept voices are never lost.
+   */
+  steer?: boolean;
   at: number;
 };
 

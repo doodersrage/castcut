@@ -211,6 +211,7 @@ describe('LTX-2.5 talking clips', () => {
     assert.equal(refs.length, 2);
     for (const ref of refs) assert.deepEqual(ref.inputs!.model, ['50', 0]);
     assert.equal(workflow['50']!.inputs!.lora_name, LTX25_ID_LORA);
+    assert.equal(workflow['50']!.inputs!.strength_model, 0.6);
     for (const guider of byClass(workflow, 'LTXVDualCFGGuider')) {
       assert.match(String((guider.inputs!.model as string[])[0]), /^5[23]$/);
       assert.deepEqual((guider.inputs!.positive as unknown[])[1], 1);

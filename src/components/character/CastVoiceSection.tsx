@@ -11,6 +11,7 @@ import {
   castVoiceOf,
   requestCastVoiceAudition,
   saveCastVoice,
+  setCastVoiceSteer,
   shiftCastVoice,
   takeCastVoiceFromClip,
 } from '@/lib/cast-voice';
@@ -83,7 +84,7 @@ export default function CastVoiceSection({
     setBusy(true);
     const error = await takeCastVoiceFromClip({ castId: character.id, clipUrl: url });
     setBusy(false);
-    setNote(error ?? 'Voice kept — their talking clips are steered toward it.');
+    setNote(error ?? 'Voice kept. Switch on “Steer talking clips” to use it in clips.');
     refresh();
   };
   const shift = async (direction: 'deeper' | 'higher') => {
@@ -124,6 +125,18 @@ export default function CastVoiceSection({
             <Button size="sm" variant="ghost" disabled={busy} onClick={() => void shift('higher')}>
               Higher
             </Button>
+            <label className="type-caption flex items-center gap-2 text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={voice.steer === true}
+                data-testid="cast-voice-steer"
+                onChange={event => {
+                  setCastVoiceSteer(character.id, event.target.checked);
+                  refresh();
+                }}
+              />
+              Steer talking clips toward this voice (can warp the face a little)
+            </label>
             <Button
               size="sm"
               variant="ghost"
