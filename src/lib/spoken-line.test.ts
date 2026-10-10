@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildSpokenLineMessages, parseSpokenLine, spokenLineHeat } from './spoken-line';
+import {
+  buildSpokenLineMessages,
+  parseSpokenLine,
+  pickSpokenLine,
+  spokenLineHeat,
+} from './spoken-line';
 import { parseRoleplayScenes } from './roleplay';
 import { clipUrlIsVideo } from './clip-media-kind';
 import { castVoiceAuditionPrompt } from './cast-voice';
@@ -25,7 +30,8 @@ describe('suggested spoken lines', () => {
       personality: 'dry humour',
       avoid: ['Coffee first.'],
     });
-    assert.match(system!.content, /Nora says out loud/);
+    assert.match(system!.content, /FOUR different lines Nora could say out loud, to a friend filming on a phone/);
+    assert.match(system!.content, /Do not describe what they are doing/);
     assert.match(system!.content, /vlog[\s\S]*Keep it clean/);
     assert.match(user!.content, /stirring a pot of soup[\s\S]*evening[\s\S]*dry humour[\s\S]*Coffee first/);
     const flirty = buildSpokenLineMessages({ scene: 'x', heat: spokenLineHeat('suggestive') })[0]!.content;
@@ -85,3 +91,28 @@ describe('voice auditions', () => {
     assert.match(voiceShiftArgs('/i.wav', '/o.wav', 'higher').join(' '), /asetrate=24000\*1\.12/);
   });
 });
+
+describe('pickSpokenLine', () => {
+  const scene = {
+    scene: 'seated knee-to-knee with her partner at a beach bar, sharing one drink with two straws',
+    setting: 'beach bar',
+  };
+  it('picks the candidate tied to the scene, skipping stock words and repeats', () => {
+    const reply = [
+      '1. That sunset? Perfect light tonight.',
+      '2. The ocean is singing to us.',
+      '3. Your straw is stuck again, want mine?',
+      '4. Okay, one more drink and we swim.',
+    ].join('\n');
+    assert.equal(pickSpokenLine(reply, scene, () => 0), 'Your straw is stuck again, want mine?');
+    assert.equal(
+      pickSpokenLine(reply, { ...scene, avoid: ['Your straw is stuck again, want mine?'] }, () => 0),
+      'Okay, one more drink and we swim.'
+    );
+    assert.equal(pickSpokenLine('', scene), '');
+  });
+  it('speaks to the partner when the scene has one', () => {
+    assert.match(buildSpokenLineMessages(scene)[0]!.content, /to the other person in the scene/);
+  });
+});
+

@@ -562,7 +562,7 @@ ${poseGuideCue}
 ${intimateMixCue}
 Return ONLY JSON: {"scenes":[{"title":"","blurb":"","line":"","pose":{"body":"","people":1,"act":"","limbs":{"right_arm":["",""],"left_arm":["",""]}}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
-- line: what the lead says out loud in that scene, in their own voice — 2 to 12 words, no quotation marks, no stage directions. ${SCENE_LINE_TONE[spokenLineHeat(content)]}
+- line: what the lead says out loud in that scene, in their own voice — 2 to 12 words, no quotation marks, no stage directions; about something concrete in that scene (not a description of what they are doing, no metaphors). ${SCENE_LINE_TONE[spokenLineHeat(content)]}
 ${scenePoseFieldLine(content)}
 ${formatRoleplayPoseVarietyCue(recentPoses)}${extraRule ? `\n${extraRule}` : ''}
 ${

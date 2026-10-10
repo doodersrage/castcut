@@ -75,21 +75,27 @@ export default function StoryBeatSheet({
             reply={beat.replyLine}
             onReplySave={reply => edit.saveBeatReply(beat, reply)}
             onSuggestReply={line =>
-              suggestLineForActiveCast({
-                scene: `${beat.title}. ${beat.blurb}`,
-                heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
-                replyTo: line,
-              })
+              suggestLineForActiveCast(
+                {
+                  scene: `${beat.title}. ${beat.blurb}`,
+                  heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+                  replyTo: line,
+                },
+                { story: true }
+              )
             }
             onFullFrameChange={on => edit.saveBeatLineFullFrame(beat, on)}
             suggestion={beat.suggestedLine}
             hasVoice={activeCastHasVoice()}
             onSuggest={() =>
-              suggestLineForActiveCast({
-                scene: `${beat.title}. ${beat.blurb}`,
-                heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
-                avoid: storyLines(),
-              })
+              suggestLineForActiveCast(
+                {
+                  scene: `${beat.title}. ${beat.blurb}`,
+                  heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+                  avoid: storyLines(),
+                },
+                { story: true }
+              )
             }
             disabled={beat.clipStatus === 'queued' || beat.clipStatus === 'running'}
             onSave={line => edit.saveBeatLine(beat, line)}

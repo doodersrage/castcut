@@ -77,26 +77,70 @@ const HEAT_RULES: Record<SpokenLineHeat, string[]> = {
 /** The local model opened nine lines of nine with "You're" — ask for a different start. */
 const OPENING_RULE = '- Do not start with "You\'re" or "You are"; vary how it opens.';
 
+/** Who the line is said to: the partner when the scene has one, else whoever holds the phone. */
+export function spokenLineListener(scene: string): string {
+  return /\b(her|his|their) (partner|boyfriend|girlfriend|husband|wife|date|lover)\b|\b(together|both|couple)\b/i.test(
+    scene
+  )
+    ? 'the other person in the scene'
+    : 'a friend filming on a phone';
+}
+
+/**
+ * Live (2026-10-10, 8 vacation beats, the 8B LM Studio model): asked for one line, it narrated
+ * the action ("Clinking cups with you"), went whimsical ("caught a fish staring at me") or fell
+ * into one formula ("That fountain light? Perfect…"); the bible catchphrase pulled coffee into a
+ * beach bar. Four candidates with different intents, picked in code ({@link pickSpokenLine}),
+ * gave lines about the straw, the clutch, the towel, the last song.
+ */
+const GROUNDED_RULES = [
+  '- What a real person would actually say out loud at that moment, like on a home video: plain everyday words.',
+  '- React to ONE concrete thing in the scene (the view, the food, the drink, the music, the weather, the other person) — what they notice, want, or suggest next.',
+  '- Do not describe what they are doing ("clinking cups with you", "waving at you"); the video already shows it.',
+  '- No poetry, no metaphors, nothing whimsical or random; it has to make sense right there.',
+  '- Never use the words perfect, light, glow, flicker, vibe.',
+  '- Match the time of day (no sunset in the afternoon, no sunrise at night).',
+];
+
+const GROUNDED_EXAMPLES: Partial<Record<SpokenLineHeat, string>> = {
+  clean:
+    '- Style only, write new ones: "Okay, you have to try this." / "Come here, look how far you can see." / "Wait, is that our waiter waving?"',
+  flirty:
+    '- Style only, write new ones: "Keep looking at me like that." / "You owe me a dance later."',
+};
+
+/** Four intents, so the candidates differ (adult heat: no jokes). */
+const CANDIDATE_INTENTS: Record<SpokenLineHeat, string> = {
+  clean: 'a question, an invitation, a reaction, a small joke',
+  flirty: 'a tease, an invitation, a compliment, a dare',
+  sensual: 'a request, a reaction, a whisper, praise',
+  explicit: 'a request, a reaction, a demand, praise',
+};
+
 export function buildSpokenLineMessages(input: SpokenLineRequest) {
   const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
   const heat = input.heat ?? 'clean';
   const replyTo = input.replyTo?.trim();
   const lines = [
     replyTo
-      ? `Write ONE line the other person in the scene says back to ${input.name?.trim() || (input.lead === 'man' ? 'him' : 'her')}, answering: "${replyTo.slice(0, 160)}"`
-      : `Write ONE line ${who} says out loud in a ~5 second video clip.`,
-    `- ${heat === 'clean' ? 3 : 2} to ${SPOKEN_LINE_MAX_WORDS - 2} words, first person.`,
+      ? `Write FOUR different lines the other person in the scene could say back to ${input.name?.trim() || (input.lead === 'man' ? 'him' : 'her')}, answering: "${replyTo.slice(0, 160)}" — one per line, numbered 1-4.`
+      : `Write FOUR different lines ${who} could say out loud, to ${spokenLineListener(input.scene)}, in a ~5 second video clip — one per line, numbered 1-4: ${CANDIDATE_INTENTS[heat]}.`,
+    `- ${heat === 'clean' ? 3 : 2} to ${SPOKEN_LINE_MAX_WORDS - 2} words each, first person.`,
     '- It must fit exactly what is happening right now.',
+    ...GROUNDED_RULES,
     ...HEAT_RULES[heat],
+    GROUNDED_EXAMPLES[heat] ?? '',
     OPENING_RULE,
     '- No quotation marks, no stage directions, no emojis, no hashtags, no names of real people or brands.',
-    '- Reply with the line only.',
-  ];
+    '- Reply with the four numbered lines only.',
+  ].filter(Boolean);
   const user = [
     `Scene: ${input.scene.trim().slice(0, 400)}`,
     input.setting?.trim() ? `Where: ${input.setting.trim().slice(0, 200)}` : '',
     input.when?.trim() ? `When: ${input.when.trim()}` : '',
-    input.personality?.trim() ? `Personality: ${input.personality.trim().slice(0, 300)}` : '',
+    input.personality?.trim()
+      ? `Personality (tone only, not the topic): ${input.personality.trim().slice(0, 300)}`
+      : '',
     input.avoid?.length ? `Do not repeat: ${input.avoid.slice(0, 6).join(' | ')}` : '',
   ]
     .filter(Boolean)
@@ -105,6 +149,50 @@ export function buildSpokenLineMessages(input: SpokenLineRequest) {
     { role: 'system' as const, content: lines.join('\n') },
     { role: 'user' as const, content: user },
   ];
+}
+
+const STOCK_WORDS = /\b(perfect|perfectly|light|glow|glows|flicker|vibes?|magic)\b/i;
+const STOP_WORDS = new Set(
+  'the a an and or of to in on at with her his their she he it is are for from by up one two both over this that'.split(
+    ' '
+  )
+);
+
+function contentWords(text: string): Set<string> {
+  return new Set(
+    (text.toLowerCase().match(/[a-z]+/g) ?? [])
+      .filter(word => word.length > 3 && !STOP_WORDS.has(word))
+      .map(word => word.replace(/(es|s)$/, ''))
+  );
+}
+
+/**
+ * The numbered candidates → the one most tied to the scene (shared words), without stock words or
+ * the "That X? …" formula and not already used nearby; ties picked at random.
+ */
+export function pickSpokenLine(
+  reply: string | null | undefined,
+  context: { scene: string; setting?: string; avoid?: string[] },
+  random: () => number = Math.random
+): string {
+  const avoid = new Set((context.avoid ?? []).map(line => line.toLowerCase()));
+  const candidates = (reply ?? '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .split('\n')
+    .map(line => parseSpokenLine(line.replace(/^\s*\d+\s*[.):-]\s*/, '')))
+    .filter(line => line && !avoid.has(line.toLowerCase()));
+  if (!candidates.length) return '';
+  const sceneWords = contentWords(`${context.scene} ${context.setting ?? ''}`);
+  const scored = candidates.map(line => ({
+    line,
+    score:
+      [...contentWords(line)].filter(word => sceneWords.has(word)).length -
+      (STOCK_WORDS.test(line) ? 2 : 0) -
+      (/^(that|this)\b[^?]{0,24}\?/i.test(line) ? 1 : 0),
+  }));
+  const best = Math.max(...scored.map(entry => entry.score));
+  const top = scored.filter(entry => entry.score === best);
+  return top[Math.floor(random() * top.length)]!.line;
 }
 
 /** The LLM's reply as a usable line, or '' when it is not one. */

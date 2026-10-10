@@ -16,17 +16,17 @@ export function activeCastHasVoice(): boolean {
 }
 
 export function suggestLineForActiveCast(
-  input: Pick<SpokenLineRequest, 'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo'>
+  input: Pick<SpokenLineRequest, 'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo'>,
+  options?: { castId?: string | null; story?: boolean }
 ): Promise<string> {
   const cache = loadSettingsCache();
-  const cast = getCharacter(cache.shared.activeCharacterId?.trim() ?? '');
-  const bio = cache.tools.roleplay?.bio ?? cast?.bio;
-  const personality = [
-    bio?.personality,
-    bio?.catchphrase ? `says things like: ${bio.catchphrase}` : '',
-  ]
-    .filter(Boolean)
-    .join('; ');
+  const cast = getCharacter(
+    options?.castId?.trim() || cache.shared.activeCharacterId?.trim() || ''
+  );
+  // Story speaks as its persona; Day as the Cast in the stills. The catchphrase is left out: the
+  // model built lines around it ("Your coffee's too hot" at a beach bar).
+  const bio = options?.story ? (cache.tools.roleplay?.bio ?? cast?.bio) : cast?.bio;
+  const personality = bio?.personality?.trim() ?? '';
   return requestSpokenLine(
     {
       ...input,

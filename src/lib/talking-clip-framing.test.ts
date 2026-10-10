@@ -64,6 +64,6 @@ describe('one-shot conversation', async () => {
   });
   it('a reply suggestion answers the line', () => {
     const [system] = buildSpokenLineMessages({ scene: 'kitchen', replyTo: 'You made coffee?' });
-    assert.match(system!.content, /other person in the scene says back to her, answering: "You made coffee\?"/);
+    assert.match(system!.content, /other person in the scene could say back to her, answering: "You made coffee\?"/);
   });
 });

@@ -109,6 +109,11 @@ export default function DaySlotSheet({
   const [clothingOpen, setClothingOpen] = useState(false);
   const outfitRef = useRef<HTMLDivElement>(null);
   const still = stills.find(entry => entry.slotId === slot.id);
+  // The beat the still was rendered from (rolled when the slot has no scene of its own).
+  const slotScene = slot.sceneHints?.trim() || still?.beatKey?.trim() || slot.label;
+  const otherLines = slots
+    .filter(entry => entry.id !== slot.id && entry.line?.trim())
+    .map(entry => entry.line!.trim());
   const done = daySlotProgressState(still) === 'done';
   const index = slots.findIndex(entry => entry.id === slot.id);
   const previous = index > 0 ? slots[index - 1] : null;
@@ -212,23 +217,30 @@ export default function DaySlotSheet({
             reply={slot.replyLine}
             onReplySave={reply => updateSlot(slot.id, { replyLine: reply || undefined })}
             onSuggestReply={line =>
-              suggestLineForActiveCast({
-                scene: slot.sceneHints?.trim() || slot.label,
-                setting: slot.location,
-                when: slot.label,
-                heat: spokenLineHeat(dayMood),
-                replyTo: line,
-              })
+              suggestLineForActiveCast(
+                {
+                  scene: slotScene,
+                  setting: slot.location,
+                  when: slot.label,
+                  heat: spokenLineHeat(dayMood),
+                  replyTo: line,
+                },
+                { castId: character?.id }
+              )
             }
             onFullFrameChange={on => updateSlot(slot.id, { lineFullFrame: on || undefined })}
             hasVoice={activeCastHasVoice()}
             onSuggest={() =>
-              suggestLineForActiveCast({
-                scene: slot.sceneHints?.trim() || slot.label,
-                setting: slot.location,
-                when: slot.label,
-                heat: spokenLineHeat(dayMood),
-              })
+              suggestLineForActiveCast(
+                {
+                  scene: slotScene,
+                  setting: slot.location,
+                  when: slot.label,
+                  heat: spokenLineHeat(dayMood),
+                  avoid: otherLines,
+                },
+                { castId: character?.id }
+              )
             }
             note={
               isDayAdultMood(dayMood) && intimateMix !== 'solo'

@@ -5,7 +5,7 @@ import {
   resolveRequestLlmModel,
   type LlmRequestOptions,
 } from './llm-request-options';
-import { buildSpokenLineMessages, parseSpokenLine, type SpokenLineRequest } from './spoken-line';
+import { buildSpokenLineMessages, pickSpokenLine, type SpokenLineRequest } from './spoken-line';
 
 /** One LLM call (two tries) for a talking clip's line. Throws when the LLM is off or says nothing usable. */
 export async function suggestSpokenLine(
@@ -19,13 +19,14 @@ export async function suggestSpokenLine(
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const reply = await chatCompletion({
       messages: buildSpokenLineMessages(input),
-      maxTokens: 60,
+      // Four numbered candidates (pickSpokenLine).
+      maxTokens: 200,
       temperature: 0.9,
       model: resolveRequestLlmModel(llm),
       endpoint: resolveRequestLlmEndpoint(llm),
       usageContext: { route: 'spoken-line' },
     });
-    const line = parseSpokenLine(reply);
+    const line = pickSpokenLine(reply, input);
     if (line) return line;
   }
   throw new Error('The LLM did not write a usable line. Try again.');
