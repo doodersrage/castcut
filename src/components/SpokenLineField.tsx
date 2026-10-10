@@ -126,7 +126,7 @@ export default function SpokenLineField({
       {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
       <p className="type-caption text-[var(--text-muted)]">
         {value.trim()
-          ? `Animate makes a talking clip: they say this to the camera, with sound (LTX-2.5, about 5 s)${hasVoice ? ', in their voice' : ''}.`
+          ? `Animate makes a talking clip: they say this to the camera, with sound (LTX-2.5, about 5 s)${hasVoice ? ', in their voice' : ''}. Lips follow the words best when the face is big in the frame and turned to the camera.`
           : 'Add a few words and Animate makes a talking clip with sound.'}
       </p>
     </div>

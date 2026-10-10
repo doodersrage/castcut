@@ -292,7 +292,7 @@ export function RoleplayStoryBeatCard({
                 type="button"
                 className={SHOT_CARD_MENU_ITEM_CLASS}
                 disabled={busy || Boolean(edit.voicingKey)}
-                title="Give this silent clip a soundtrack (and its line, if it has one) — the picture stays as it is."
+                title="Give this silent clip its sound — breathing, moans, the room — with the picture as it is. No words: the picture cannot move the lips."
                 data-testid="story-beat-add-voice"
                 onClick={() => {
                   void edit

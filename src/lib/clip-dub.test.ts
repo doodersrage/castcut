@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { buildLtx25DubGraph, dubPrompt, LTX25_DUB_SAVE_NODE, ltx25DubFrames } from './ltx25-renderer';
-import { dubEncodeSize } from './clip-dub-server';
+import { dubEncodeSize, dubLevelArgs } from './clip-dub-server';
 
 describe('Add voice (dub a silent clip)', () => {
   it('cuts to an LTX frame count (8k+1) without padding', () => {
@@ -24,10 +24,18 @@ describe('Add voice (dub a silent clip)', () => {
     assert.equal(graph['15']!.inputs!.frames_number, 89);
   });
 
-  it('says the line the way the heat calls for, or just breathes', () => {
-    assert.match(dubPrompt({ scene: 'She straddles him on the bed.', line: "Don't stop.", heat: 'explicit' }), /^She straddles him on the bed\. She moans softly and whispers breathlessly, "Don't stop\." Close, intimate sounds/);
-    assert.match(dubPrompt({ scene: 'They dance', line: 'Hi', heat: 'clean', lead: 'man' }), /He says clearly, "Hi"/);
-    assert.match(dubPrompt({ scene: 'x', heat: 'sensual' }), /breathes heavily and moans softly/);
+  it('never puts words in a dub (the picture cannot move its lips)', () => {
+    const hot = dubPrompt({ scene: 'She straddles him on the bed.', heat: 'explicit' });
+    assert.match(hot, /^She straddles him on the bed\. She breathes heavily and moans softly, with no words\./);
+    assert.doesNotMatch(hot, /"/);
+    assert.match(dubPrompt({ scene: 'They dance', heat: 'clean', lead: 'man' }), /no talking/);
+    const graph = buildLtx25DubGraph({ video: 'v.mp4', prompt: 'p', frames: 89, width: 416, height: 544, seed: 1, prefix: 'x' });
+    assert.match(String(graph['6']!.inputs!.text), /^speech, talking, words/);
+  });
+
+  it('levels the quiet wordless sound, picture copied', () => {
+    const args = dubLevelArgs('/w/in.mp4', '/w/out.mp4').join(' ');
+    assert.match(args, /-c:v copy -af loudnorm=I=-23/);
   });
 
   it('encodes at a small size on the 32 grid, keeping the aspect', () => {

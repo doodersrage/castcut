@@ -588,7 +588,7 @@ export function buildLtx25DubGraph(input: {
       class_type: 'CLIPTextEncode',
       inputs: {
         clip: ['2', 0],
-        text: 'music, background music, distorted audio, robotic voice, silence',
+        text: 'speech, talking, words, music, background music, distorted audio, robotic voice, silence',
       },
     },
     '7': {
@@ -661,25 +661,26 @@ export function buildLtx25DubGraph(input: {
   };
 }
 
-/** The dub prompt: the scene, then the line as it would be said at that heat. */
+/**
+ * The dub prompt: the scene and its sounds — never words. A dub keeps the clip's picture, so a
+ * spoken line could not move the lips: two-person clips voiced with their line looked out of sync
+ * (live 2026-10-09, mouth-motion vs loudness correlation 0.34–0.52 against 0.55–0.75 for LTX's own
+ * talking clips, and re-rendering the face lightly to follow the audio did not raise it). The
+ * slot's line is spoken on clips LTX renders itself.
+ */
 export function dubPrompt(input: {
   scene: string;
-  line?: string;
   heat?: 'clean' | 'flirty' | 'sensual' | 'explicit';
   lead?: 'woman' | 'man';
 }): string {
   const who = input.lead === 'man' ? 'He' : 'She';
   const scene = input.scene.trim().replace(/[.\s]+$/, '');
-  const line = normalizeSpokenLine(input.line);
   const hot = input.heat === 'sensual' || input.heat === 'explicit';
-  const said = line
-    ? hot
-      ? `${who} moans softly and whispers breathlessly, "${line}"`
-      : `${who} says clearly, "${line}"`
-    : hot
-      ? `${who} breathes heavily and moans softly.`
-      : '';
-  return [`${scene}.`, said, hot ? 'Close, intimate sounds, a quiet room.' : 'Natural room sound.']
-    .filter(Boolean)
-    .join(' ');
+  return [
+    `${scene}.`,
+    hot
+      ? `${who} breathes heavily and moans softly, with no words.`
+      : 'Soft natural sounds of the moment, no talking.',
+    hot ? 'Close, intimate sounds, a quiet room.' : 'Natural room sound.',
+  ].join(' ');
 }

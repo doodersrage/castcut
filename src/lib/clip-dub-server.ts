@@ -37,6 +37,26 @@ function run(bin: string, args: string[]): Promise<string> {
   });
 }
 
+/** ffmpeg args: the picture copied, the sound brought to −23 LUFS. */
+export function dubLevelArgs(input: string, output: string): string[] {
+  return [
+    '-y',
+    '-v',
+    'error',
+    '-i',
+    input,
+    '-c:v',
+    'copy',
+    '-af',
+    'loudnorm=I=-23:LRA=11:TP=-1.5',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '160k',
+    output,
+  ];
+}
+
 /** Long side of the frozen encode: the audio pass needs to see the motion, not every pixel. */
 const DUB_LONG_SIDE = 544;
 
@@ -122,12 +142,30 @@ export async function dubClipWithVoice(input: {
     });
     const clip = run2.result;
     if (!clip) throw new Error('Add voice finished without a clip — check the ComfyUI log.');
-    const params = new URLSearchParams({
+    // Wordless dubs come out quiet (about −50 dB mean live): bring the sound up to a steady level,
+    // picture copied as it is, and keep that as the clip (a ComfyUI input).
+    const view = new URLSearchParams({
       filename: clip.filename,
       subfolder: clip.subfolder ?? '',
       type: clip.type || 'output',
     });
-    return `/api/comfyui/view?${params.toString()}`;
+    const raw = path.join(/* turbopackIgnore: true */ dir, 'voiced.mp4');
+    const level = path.join(/* turbopackIgnore: true */ dir, 'voiced-level.mp4');
+    const response = await fetch(`${baseUrl}/view?${view.toString()}`);
+    if (!response.ok) return `/api/comfyui/view?${view.toString()}`;
+    await fs.writeFile(/* turbopackIgnore: true */ raw, Buffer.from(await response.arrayBuffer()));
+    try {
+      await run(ffmpeg, dubLevelArgs(raw, level));
+    } catch {
+      return `/api/comfyui/view?${view.toString()}`;
+    }
+    const kept = await uploadComfyInputContent({
+      baseUrl,
+      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ level)),
+      filename: 'castcut-voiced.mp4',
+      mimeType: 'video/mp4',
+    });
+    return `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`;
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })

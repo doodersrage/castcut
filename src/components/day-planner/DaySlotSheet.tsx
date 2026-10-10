@@ -219,7 +219,7 @@ export default function DaySlotSheet({
             }
             note={
               isDayAdultMood(dayMood) && intimateMix !== 'solo'
-                ? 'Two-person adult clips render on WAN, without sound — a line is spoken on one-person clips only.'
+                ? 'Two-person adult clips render on WAN, which cannot move their lips to words: Add voice gives them breathing and moans, and a line is spoken on one-person clips only.'
                 : undefined
             }
             onSave={line => updateSlot(slot.id, { line: line || undefined })}

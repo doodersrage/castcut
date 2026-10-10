@@ -336,7 +336,7 @@ export default function DaySlotBoard({
                 type="button"
                 className={SHOT_CARD_MENU_ITEM_CLASS}
                 disabled={busy || voicing !== null}
-                title="Give this silent clip a soundtrack (and its line, if it has one) — the picture stays as it is."
+                title="Give this silent clip its sound — breathing, moans, the room — with the picture as it is. No words: the picture cannot move the lips."
                 data-testid={`day-progress-add-voice-${slot.id}`}
                 onClick={() => void addVoice(slot)}
               >
