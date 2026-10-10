@@ -208,7 +208,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       sidebarTitle={leanChrome ? false : undefined}
       // The fitting room needs the full width: Engine, quality by hand, LoRA and identity lock
       // open from the header chip as a sheet.
-      engineSheetOnly
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
       <PlayFilmEngineBanner />

@@ -1,73 +1,11 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { EngineHealthChipBadge } from '@/components/EngineHealth';
-import { peekCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
 import { engineSummary, formatEngineSummary } from '@/lib/engine-summary';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
 import { toolEffectiveModel } from '@/lib/tool-effective-model';
-
-const STORAGE_PREFIX = 'tool-engine-sidebar:';
-/** Legacy Play-only keys — still read so preferences survive the rename. */
-const LEGACY_PLAY_PREFIX = 'play-engine-sidebar:';
-
-/** Persist whether the Engine/Settings column is open (default closed). */
-export function useToolEngineSidebar(persistKey: string, defaultOpen = false) {
-  const storageId = `${STORAGE_PREFIX}${persistKey}`;
-  const legacyId = `${LEGACY_PLAY_PREFIX}${persistKey}`;
-  const [open, setOpen] = useState(defaultOpen);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    scheduleAfterCommit(() => {
-      if (cancelled) {
-        return;
-      }
-      const stored = peekCollapsibleOpen(storageId) ?? peekCollapsibleOpen(legacyId);
-      setOpen(stored ?? defaultOpen);
-      setHydrated(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [defaultOpen, legacyId, storageId]);
-
-  const setEngineOpen = (next: boolean | ((prev: boolean) => boolean)) => {
-    setOpen(prev => {
-      const value = typeof next === 'function' ? next(prev) : next;
-      if (hydrated || typeof window !== 'undefined') {
-        saveCollapsibleOpen(storageId, value);
-      }
-      return value;
-    });
-  };
-
-  return { engineOpen: open, setEngineOpen } as const;
-}
-
-/** @deprecated Prefer useToolEngineSidebar */
-export const usePlayEngineSidebar = useToolEngineSidebar;
-
-/** Wide enough for the docked Engine column (Tailwind `xl`). */
-const WIDE_ENGINE_QUERY = '(min-width: 1280px)';
-
-function subscribeWide(onChange: () => void): () => void {
-  const query = window.matchMedia(WIDE_ENGINE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-}
-
-/** True on screens that dock the Engine column; false on the server and on narrow screens. */
-export function useWideEngineLayout(): boolean {
-  return useSyncExternalStore(
-    subscribeWide,
-    () => window.matchMedia(WIDE_ENGINE_QUERY).matches,
-    () => false
-  );
-}
 
 function subscribeSettings(onChange: () => void): () => void {
   window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onChange);

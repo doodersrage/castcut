@@ -2,12 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { memo, useCallback, useId, useState } from 'react';
-import {
-  ToolEngineChip,
-  ToolEngineSheet,
-  useToolEngineSidebar,
-  useWideEngineLayout,
-} from '@/components/ToolEngineToggle';
+import { ToolEngineChip, ToolEngineSheet } from '@/components/ToolEngineToggle';
 import {
   ToolPageHeader,
   ToolPageShell,
@@ -26,30 +21,22 @@ type ToolLayoutProps = {
   headerActions?: ReactNode;
   sidebar?: ReactNode;
   /**
-   * When set with a sidebar, the sidebar is the tool's Engine: a header chip opens it as a
-   * docked column on wide screens (open/closed remembered per key) or a bottom sheet otherwise.
-   * The key doubles as the tool id for the chip's queue-quality summary.
+   * When set with a sidebar, the sidebar is the tool's Engine: the header chip opens it in the
+   * Engine sheet on every screen (the editor Outfit and Story used first). The key doubles as the
+   * tool id for the chip's queue-quality summary.
    */
   sidebarPersistKey?: string;
   /** @deprecated Popover open state is ephemeral; ignored. */
   sidebarDefaultOpen?: boolean;
   sidebarTitle?: string | false;
   sidebarDescription?: string;
-  /**
-   * The Engine opens only as a sheet from the header chip, never as a docked column — for a page
-   * whose own layout needs the full width (Outfit's fitting room).
-   */
+  /** @deprecated Every page's Engine opens as a sheet now; ignored. */
   engineSheetOnly?: boolean;
   children: ReactNode;
 };
 
-type EngineColumn = {
-  id: string;
-  /** Docked and showing (the column's controls mount only on wide screens). */
-  open: boolean;
-  wide: boolean;
-  onHide: () => void;
-};
+/** The page has an Engine (opened in the sheet from the header chip). */
+type EngineColumn = { id: string };
 
 function ToolLayoutFrame({
   width = 'default',
@@ -65,8 +52,8 @@ function ToolLayoutFrame({
 }: Omit<ToolLayoutProps, 'accent' | 'sidebarPersistKey' | 'sidebarDefaultOpen'> & {
   engine?: EngineColumn;
 }) {
-  const docked = Boolean(sidebar && engine?.open);
-  const hasColumn = Boolean(sidebar && (!engine || engine.open));
+  // A page with an Engine opens it in the sheet; a plain sidebar stays beside the content.
+  const hasColumn = Boolean(sidebar && !engine);
   return (
     <ToolPageShell width={width}>
       <ToolPageHeader
@@ -85,33 +72,7 @@ function ToolLayoutFrame({
       >
         <div className="ui-section-stack min-w-0">{children}</div>
 
-        {docked && engine ? (
-          // Engine column: CSS keeps the grid slot from the first paint (no main-column jump);
-          // the controls mount once the screen is known to be wide, never hidden on phones.
-          <aside
-            id={engine.id}
-            aria-label={sidebarTitle === false ? 'Engine' : sidebarTitle}
-            data-testid="tool-engine-column"
-            className="hidden xl:sticky xl:top-24 xl:block"
-          >
-            <section className="tool-engine-column sidebar-scroll xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
-              <div className="tool-engine-column-header">
-                <div className="min-w-0">
-                  <h2 className="type-heading">
-                    {sidebarTitle === false ? 'Engine' : sidebarTitle}
-                  </h2>
-                  {sidebarTitle === false ? null : (
-                    <p className="type-caption">{sidebarDescription}</p>
-                  )}
-                </div>
-                <button type="button" className="tool-engine-column-hide" onClick={engine.onHide}>
-                  Hide
-                </button>
-              </div>
-              {engine.wide ? <div className="ui-sidebar-dense">{sidebar}</div> : null}
-            </section>
-          </aside>
-        ) : sidebar && !engine ? (
+        {sidebar && !engine ? (
           <aside className="xl:sticky xl:top-24">
             <ToolSection
               variant="secondary"
@@ -135,14 +96,14 @@ function EngineToolLayout({
   sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
   sidebarPersistKey,
   sidebarDefaultOpen: _defaultOpen,
-  engineSheetOnly = false,
+  engineSheetOnly: _sheetOnly,
   ...rest
 }: ToolLayoutProps & { sidebar: ReactNode; sidebarPersistKey: string }) {
   void _defaultOpen;
+  void _sheetOnly;
   const panelId = useId();
-  const wide = useWideEngineLayout() && !engineSheetOnly;
-  // Docked column: open by default, remembered per tool. The sheet is per visit.
-  const { engineOpen, setEngineOpen } = useToolEngineSidebar(sidebarPersistKey, true);
+  // One Engine editor everywhere: the sheet from the header chip (per visit), the page keeps
+  // its full width.
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   const title = sidebarTitle === false ? 'Engine' : sidebarTitle;
@@ -154,40 +115,33 @@ function EngineToolLayout({
         sidebar={sidebar}
         sidebarTitle={sidebarTitle}
         sidebarDescription={sidebarDescription}
-        engine={{
-          id: panelId,
-          open: engineSheetOnly ? false : engineOpen,
-          wide,
-          onHide: () => setEngineOpen(false),
-        }}
+        engine={{ id: panelId }}
         headerActions={
           <>
             <ToolEngineChip
-              open={wide ? engineOpen : sheetOpen}
+              open={sheetOpen}
               controls={panelId}
               toolId={sidebarPersistKey}
-              onClick={() => (wide ? setEngineOpen(open => !open) : setSheetOpen(true))}
+              onClick={() => setSheetOpen(true)}
             />
             {headerActions}
           </>
         }
       />
-      {wide ? null : (
-        <ToolEngineSheet
-          open={sheetOpen}
-          onClose={closeSheet}
-          title={title}
-          description={description}
-          id={panelId}
-        >
-          {sidebar}
-        </ToolEngineSheet>
-      )}
+      <ToolEngineSheet
+        open={sheetOpen}
+        onClose={closeSheet}
+        title={title}
+        description={description}
+        id={panelId}
+      >
+        {sidebar}
+      </ToolEngineSheet>
     </>
   );
 }
 
-/** Tool page chrome with an optional Engine (header chip → docked column or bottom sheet). */
+/** Tool page chrome with an optional Engine (header chip → the Engine sheet). */
 export const ToolLayout = memo(function ToolLayout(props: ToolLayoutProps) {
   void props.accent;
   if (props.sidebarPersistKey && props.sidebar) {

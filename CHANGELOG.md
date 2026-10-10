@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **One Engine editor everywhere.** Every page's Engine chip now opens the same Engine sheet Outfit and Story use, on desktop as well as phones; the docked Engine column beside Day, Refine, Compose and the other tools is gone, so each page keeps its full width.
+
 - **Suggested lines fit the scene.** *Suggest a line* asks for four candidate lines (a question, an invitation, a reaction, a joke — or for adult heat a request, a reaction, praise) said to the partner in the scene or to whoever is filming, about one concrete thing there, and keeps the one that names the most of the scene, skipping stock words ("perfect light"), the "That X? …" formula and lines already used in the Day. It no longer narrates the action ("Clinking cups with you"), and a Day slot uses the beat its still was made from. Day speaks with the Day Cast's personality rather than the Story persona's, and the catchphrase is left out (it put coffee into a beach bar). Story's writer gets the same "about something in the scene" rule. On 8 vacation beats: "That straw's stuck halfway, want me to nudge it?", "Your knee's higher than mine, no wonder you're winning this step", "That chocolate's melting right at the edge" instead of "Sorry, I didn't mean to wake the dawn with my elbow".
 
 - **Setup lists everything sound needs.** The five LTX-2.5 files behind talking clips, conversations and Add voice are now downloads under Settings → ComfyUI → Models, marked *needs HF_TOKEN* (Lightricks gates the repo: accept its terms once). Play checks has a *Score this film (ACE-Step 1.5)* row saying whether the nodes and model are there. The Play guide lists what each sound feature needs.

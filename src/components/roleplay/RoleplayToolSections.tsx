@@ -264,7 +264,6 @@ export default function RoleplayToolSections({
       sidebar={engineControls}
       sidebarTitle={leanChrome ? false : undefined}
       // Reel first needs the width: the Engine opens from the header chip as a sheet.
-      engineSheetOnly
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
       <PlayFilmEngineBanner />
