@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { FieldError, TextArea, TextInput } from '@/components/ui/Field';
+import { FieldError, SelectInput, TextArea, TextInput } from '@/components/ui/Field';
 import SideSheet from '@/components/ui/SideSheet';
 import {
   CLIP_EXTEND_MAX_SEGMENTS,
@@ -10,9 +10,15 @@ import {
   type ClipExtendRequest,
 } from '@/lib/clip-extend';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { SPOKEN_LINE_TONES } from '@/lib/ltx25-renderer';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
-export type ClipExtendChoice = { direction?: string; beats?: string[]; lines?: string[] };
+export type ClipExtendChoice = {
+  direction?: string;
+  beats?: string[];
+  lines?: string[];
+  tones?: string[];
+};
 
 /**
  * "Make it 30 s" with a say in it: where the clip should go (it steers the written beats), and
@@ -38,6 +44,7 @@ export default function ClipExtendSheet({
   const [beats, setBeats] = useState<string[]>([]);
   // A line per part (LTX clips lip-sync; WAN clips cannot).
   const [lines, setLines] = useState<string[]>([]);
+  const [tones, setTones] = useState<string[]>([]);
   const [engine, setEngine] = useState<'ltx' | 'wan' | null>(null);
   const [partSec, setPartSec] = useState(4.3);
   const [writing, setWriting] = useState(false);
@@ -53,6 +60,7 @@ export default function ClipExtendSheet({
       );
       setBeats(plan.beats);
       setLines(plan.beats.map(() => ''));
+      setTones(plan.beats.map(() => ''));
       setPartSec(plan.partSec);
       setEngine(plan.engine);
     } catch (err) {
@@ -65,11 +73,13 @@ export default function ClipExtendSheet({
   const keptIndexes = beats.map((beat, index) => (beat.trim() ? index : -1)).filter(i => i >= 0);
   const kept = keptIndexes.map(index => beats[index]!.trim());
   const keptLines = keptIndexes.map(index => (lines[index] ?? '').trim());
+  const keptTones = keptIndexes.map(index => tones[index] ?? '');
   const start = () => {
     onStart({
       direction: direction.trim() || undefined,
       beats: kept.length ? kept : undefined,
       lines: engine === 'ltx' && keptLines.some(Boolean) ? keptLines : undefined,
+      tones: engine === 'ltx' && keptTones.some(Boolean) ? keptTones : undefined,
     });
     onClose();
   };
@@ -171,6 +181,26 @@ export default function ClipExtendSheet({
                       data-testid={`${testId}-line-${index}`}
                     />
                   ) : null}
+                  {engine === 'ltx' && (lines[index] ?? '').trim() ? (
+                    <SelectInput
+                      value={tones[index] || 'natural'}
+                      aria-label={`How part ${index + 1}'s line is said`}
+                      onChange={event =>
+                        setTones(list => {
+                          const next = [...list];
+                          next[index] = event.target.value === 'natural' ? '' : event.target.value;
+                          return next;
+                        })
+                      }
+                      data-testid={`${testId}-tone-${index}`}
+                    >
+                      {SPOKEN_LINE_TONES.map(option => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SelectInput>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -179,6 +209,7 @@ export default function ClipExtendSheet({
                   onClick={() => {
                     setBeats(list => list.filter((_, at) => at !== index));
                     setLines(list => list.filter((_, at) => at !== index));
+                    setTones(list => list.filter((_, at) => at !== index));
                   }}
                 >
                   ✕

@@ -119,6 +119,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
             direction: choice?.direction,
             beats: choice?.beats,
             lines: choice?.lines,
+            tones: choice?.tones,
             lead: leadIsMan ? 'man' : 'woman',
           },
           sharedLlmRequestBody(loadSettingsCache().shared)

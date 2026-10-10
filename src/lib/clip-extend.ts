@@ -220,6 +220,8 @@ export type ClipExtendRequest = {
   beats?: string[];
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
+  /** How each line is said (same order; '' / 'natural' = plainly). */
+  tones?: string[];
   /** Who says the lines. */
   lead?: 'woman' | 'man';
 };

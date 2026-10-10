@@ -1,5 +1,9 @@
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import { normalizeSpokenLine } from './ltx25-renderer';
+import {
+  normalizeSpokenLine,
+  normalizeSpokenLineTone,
+  type SpokenLineTone,
+} from './ltx25-renderer';
 import { storySceneNamesSecondPerson } from './story-scene-people';
 import { beatOwnsFootwear } from './footwear';
 import { intimateBeatIsOffBed } from './intimate-prompt-clarify';
@@ -364,6 +368,8 @@ export type DaySlot = {
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up (talking-clip-framing). */
   lineFullFrame?: boolean;
+  /** How the line is said (Whisper, Excited…); unset = natural. */
+  lineTone?: SpokenLineTone;
   /** Two-person slots: what the other person answers (one-shot conversation, LTX-2.5). */
   replyLine?: string;
 };
@@ -751,6 +757,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLayout: readText(slot.poseLayout, 40) || undefined,
       line: normalizeSpokenLine(slot.line) || undefined,
       ...(slot.lineFullFrame === true ? { lineFullFrame: true } : {}),
+      lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0

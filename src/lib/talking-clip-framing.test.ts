@@ -67,3 +67,34 @@ describe('one-shot conversation', async () => {
     assert.match(system!.content, /other person in the scene could say back to her, answering: "You made coffee\?"/);
   });
 });
+
+describe('how the line is said', async () => {
+  const { talkingClipPrompt, conversationClipPrompt, extendSegmentPrompt, normalizeSpokenLineTone, spokenLineVerb } =
+    await import('./ltx25-renderer');
+  it('natural (or no tone) keeps "says clearly"', () => {
+    assert.match(talkingClipPrompt({ line: 'Hi', tone: 'natural' }), /looks into the camera and says clearly, "Hi"/);
+    assert.match(talkingClipPrompt({ line: 'Hi' }), /says clearly, "Hi"/);
+  });
+  it('a tone swaps the speech verb, with the speaker’s pronoun', () => {
+    assert.match(talkingClipPrompt({ line: 'Hi', tone: 'whisper' }), /looks into the camera and leans in and whispers, in a soft breathy whisper, "Hi"/);
+    assert.match(talkingClipPrompt({ line: 'Hi', tone: 'angry', speaker: 'He' }), /snaps angrily, his voice sharp and raised, "Hi"/);
+    assert.equal(spokenLineVerb('laughing', 'She'), 'laughs and says through her laughter,');
+  });
+  it('reaches conversations and 30-second parts', () => {
+    assert.match(
+      conversationClipPrompt({ line: 'Coffee?', reply: 'Yes.', tone: 'teasing' }),
+      /The woman turns to the man and says in a playful, teasing tone with a little smirk, "Coffee\?"/
+    );
+    assert.match(conversationClipPrompt({ line: 'Coffee?', reply: 'Yes.' }), /turns to the man and says, "Coffee\?"/);
+    assert.match(
+      extendSegmentPrompt('She waves.', undefined, { line: 'Bye!', tone: 'excited' }),
+      /As she does, she says excitedly, her voice bright, loud and fast, "Bye!"/
+    );
+  });
+  it('stores only known, non-natural tones', () => {
+    assert.equal(normalizeSpokenLineTone('tender'), 'tender');
+    assert.equal(normalizeSpokenLineTone('natural'), undefined);
+    assert.equal(normalizeSpokenLineTone('sarcastic'), undefined);
+    assert.equal(normalizeSpokenLineTone(3), undefined);
+  });
+});

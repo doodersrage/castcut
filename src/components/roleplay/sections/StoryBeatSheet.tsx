@@ -72,6 +72,8 @@ export default function StoryBeatSheet({
           <SpokenLineField
             line={beat.line}
             fullFrame={beat.lineFullFrame === true}
+            tone={beat.lineTone}
+            onToneChange={tone => edit.saveBeatLineTone(beat, tone)}
             reply={beat.replyLine}
             onReplySave={reply => edit.saveBeatReply(beat, reply)}
             onSuggestReply={line =>

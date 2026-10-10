@@ -83,6 +83,34 @@ test('Day slot: a reply under the line, and Suggest a reply fills it', async ({ 
   );
 });
 
+test('Day slot: How the line is said is picked and kept', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay({ line: 'You made coffee?' }) },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'morning');
+  const natural = page.getByTestId('day-slot-line-tone-natural').first();
+  await expect(natural).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
+  await page.getByTestId('day-slot-line-tone-whisper').first().click();
+  await expect(page.getByTestId('day-slot-line-tone-whisper').first()).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await closeDaySheets(page);
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-slot-line-tone-whisper').first()).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(page.getByTestId('day-slot-line-tone-natural').first()).toHaveAttribute(
+    'aria-pressed',
+    'false'
+  );
+});
+
 test('Make it 30 s: direction, written beats, an edit, and the long clip in place', async ({
   page,
 }) => {
@@ -145,6 +173,7 @@ test('Make it 30 s: direction, written beats, an edit, and the long clip in plac
   await expect(page.getByTestId('day-extend-sheet-beat-2')).toHaveValue('She heads for the door.');
   await page.getByTestId('day-extend-sheet-beat-1').fill('She grabs her keys.');
   await page.getByTestId('day-extend-sheet-line-1').fill('Where did I put my keys?');
+  await page.getByTestId('day-extend-sheet-tone-1').selectOption('excited');
   await expect(page.getByTestId('day-extend-sheet-start')).toContainText('3 parts');
   await page.getByTestId('day-extend-sheet-start').click();
   await expect(page.getByTestId('day-progress-extend-note-morning')).toContainText(
@@ -160,6 +189,7 @@ test('Make it 30 s: direction, written beats, an edit, and the long clip in plac
   ]);
   expect(start.clipUrl).toBe('/e2e-clip-morning.mp4');
   expect(start.lines).toEqual(['', 'Where did I put my keys?', '']);
+  expect(start.tones).toEqual(['', 'excited', '']);
 });
 
 test('Cut options: Score this film sets an original track as the music', async ({ page }) => {

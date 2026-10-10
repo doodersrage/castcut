@@ -8,6 +8,7 @@ import {
   type ClipExtendInput,
 } from '@/lib/clip-extend-server';
 import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
 
 export const runtime = 'nodejs';
 
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
       ? body.lines
           .slice(0, 8)
           .map(line => (typeof line === 'string' ? line.trim().slice(0, 120) : ''))
+      : undefined,
+    tones: Array.isArray(body.tones)
+      ? body.tones.slice(0, 8).map(tone => normalizeSpokenLineTone(tone) ?? '')
       : undefined,
     lead: body.lead === 'man' ? 'man' : 'woman',
     llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),

@@ -41,6 +41,10 @@ A finished clip's ⋯ menu (Day board, phone Day, Story) has **Make it 30 s**. S
 
 Known limits: faces and clothes can drift late in a long clip, and the camera can still creep in on some LTX clips. Small steps in one place work best — a different place is a new slot.
 
+### How it is said
+
+Under a line, **How** picks *Natural, Whisper, Laughing, Excited, Tender, Teasing* or *Angry* — in talking clips, conversations and every *Says…* line of a 30-second clip. The words stay exact (14 of 14 in testing); a whisper comes out quieter and breathy, Excited and Angry pitch up and land the line with an exclamation, Tender sits low and warm.
+
 ### Lines that fit the scene
 
 *Suggest a line* asks for four candidates said to the person in the scene (or whoever is filming) about one concrete thing there, and keeps the one most tied to the scene — no narrating the action, no "perfect light", nothing already said elsewhere in the Day. Day uses the beat its still was made from and the Day Cast's own personality (not the Story persona's, and not the catchphrase). Story's writer follows the same rule.

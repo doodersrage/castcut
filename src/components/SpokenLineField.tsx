@@ -1,8 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput } from '@/components/ui/Field';
-import { normalizeSpokenLine, SPOKEN_LINE_MAX_CHARS } from '@/lib/ltx25-renderer';
+import {
+  normalizeSpokenLine,
+  SPOKEN_LINE_MAX_CHARS,
+  SPOKEN_LINE_TONES,
+  type SpokenLineTone,
+} from '@/lib/ltx25-renderer';
 
 /**
  * What the lead says in a clip (Story scene / Day slot). A line makes Animate render a talking
@@ -24,6 +29,8 @@ export default function SpokenLineField({
   reply,
   onReplySave,
   onSuggestReply,
+  tone,
+  onToneChange,
 }: {
   line?: string;
   disabled?: boolean;
@@ -45,6 +52,9 @@ export default function SpokenLineField({
   onReplySave?: (reply: string) => void;
   /** Ask for the other person's answer to the line (LLM). */
   onSuggestReply?: (line: string) => Promise<string>;
+  /** How the line is said (unset = natural). */
+  tone?: SpokenLineTone;
+  onToneChange?: (tone: SpokenLineTone) => void;
 }) {
   const [value, setValue] = useState(line ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,11 +74,19 @@ export default function SpokenLineField({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not suggest a reply.');
     } finally {
+      refocusRef.current = replyRef;
       setAsking(false);
-      requestAnimationFrame(() => replyRef.current?.focus());
     }
   };
   const [asking, setAsking] = useState(false);
+  // Focus to restore after writing: done after the re-render that enables the field (a
+  // requestAnimationFrame could run first and focus a still-disabled input).
+  const refocusRef = useRef<typeof inputRef | null>(null);
+  useEffect(() => {
+    if (asking || !refocusRef.current) return;
+    refocusRef.current.current?.focus();
+    refocusRef.current = null;
+  }, [asking]);
   const [error, setError] = useState<string | null>(null);
   const commit = (raw = value) => {
     const next = normalizeSpokenLine(raw);
@@ -85,10 +103,10 @@ export default function SpokenLineField({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not suggest a line.');
     } finally {
-      setAsking(false);
       // The tapped button was disabled while writing, which drops focus out of the sheet (and
-      // Escape stops closing it) — put it back in the field.
-      requestAnimationFrame(() => inputRef.current?.focus());
+      // Escape stops closing it) — put it back in the field once it is enabled again.
+      refocusRef.current = inputRef;
+      setAsking(false);
     }
   };
   return (
@@ -157,6 +175,33 @@ export default function SpokenLineField({
         </p>
       ) : null}
       {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
+      {onToneChange && value.trim() ? (
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="How it is said"
+          data-testid={`${testId}-tone`}
+        >
+          <span className="type-caption text-[var(--text-muted)]">How</span>
+          {SPOKEN_LINE_TONES.map(option => {
+            const active = (tone ?? 'natural') === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                className="ui-chip"
+                data-active={active ? 'true' : 'false'}
+                aria-pressed={active}
+                disabled={disabled || asking}
+                data-testid={`${testId}-tone-${option.id}`}
+                onClick={() => onToneChange(option.id)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {onReplySave && value.trim() ? (
         <div className="space-y-1">
           <label

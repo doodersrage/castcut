@@ -1,5 +1,6 @@
 import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
 import { parseSpokenLine } from './spoken-line';
+import type { SpokenLineTone } from './ltx25-renderer';
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
   POSE_GUIDE_ACTION_LOCK,
@@ -144,6 +145,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up. */
   lineFullFrame?: boolean;
+  /** How the line is said (Whisper, Excited…); unset = natural. */
+  lineTone?: SpokenLineTone;
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
   /** The ComfyUI job that rendered the clip, once a voiced / extended copy replaced it. */

@@ -439,6 +439,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   setting: slot.location,
                   line: spokenLine,
                   reply: replyLine,
+                  tone: slot.lineTone,
                   lead,
                   partner: conversationPartnerNoun(parentEntry?.prompt, lead),
                 })
@@ -446,6 +447,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   setting: slot.location,
                   line: spokenLine,
                   speaker: manLead ? 'He' : 'She',
+                  tone: slot.lineTone,
                 }),
             ageLine,
           ]

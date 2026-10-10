@@ -38,6 +38,7 @@ import {
   LTX25_EXTEND_SAVE_NODE,
   LTX25_FACE_RESTORE_NODE,
   LTX25_FPS,
+  normalizeSpokenLineTone,
 } from './ltx25-renderer';
 import { chatCompletion } from './llm-client';
 import {
@@ -238,6 +239,8 @@ export type ClipExtendInput = {
   beats?: string[];
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
+  /** How each line is said (same order). */
+  tones?: string[];
   /** Who speaks the lines. */
   lead?: 'woman' | 'man';
   comfyUrl?: string;
@@ -465,6 +468,7 @@ export async function extendClip(
           prompt: extendSegmentPrompt(beats[k]!, input.setting, {
             line: input.lines?.[k],
             speaker: input.lead === 'man' ? 'He' : 'She',
+            tone: normalizeSpokenLineTone(input.tones?.[k]),
           }),
           speaks: Boolean(input.lines?.[k]?.trim()),
           seed: seed + k * 7,

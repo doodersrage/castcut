@@ -1,6 +1,7 @@
 'use client';
 
 import { spokenLineHeat } from '@/lib/spoken-line';
+import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
 import { isDayAdultMood } from '@/lib/day-planner';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import SpokenLineField from '@/components/SpokenLineField';
@@ -214,6 +215,8 @@ export default function DaySlotSheet({
             key={slot.id}
             line={slot.line}
             fullFrame={slot.lineFullFrame === true}
+            tone={slot.lineTone}
+            onToneChange={tone => updateSlot(slot.id, { lineTone: normalizeSpokenLineTone(tone) })}
             reply={slot.replyLine}
             onReplySave={reply => updateSlot(slot.id, { replyLine: reply || undefined })}
             onSuggestReply={line =>

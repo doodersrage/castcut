@@ -15,7 +15,11 @@ import { requestClipVoice } from '@/lib/clip-voice';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { normalizeSpokenLine } from '@/lib/ltx25-renderer';
+import {
+  normalizeSpokenLine,
+  normalizeSpokenLineTone,
+  type SpokenLineTone,
+} from '@/lib/ltx25-renderer';
 import {
   storyBeatKey,
   storyBeatRewriteRevertPatch,
@@ -67,6 +71,8 @@ export type StoryBeatEditActions = {
   saveBeatLine: (beat: RoleplayStoryBeat, line: string) => void;
   /** Keep the whole still for the scene's talking clip (else chest-up when the face is small). */
   saveBeatLineFullFrame: (beat: RoleplayStoryBeat, fullFrame: boolean) => void;
+  /** How the scene's line is said (natural clears it). */
+  saveBeatLineTone: (beat: RoleplayStoryBeat, tone: SpokenLineTone) => void;
   /** Two-person scenes: what the other person answers. */
   saveBeatReply: (beat: RoleplayStoryBeat, reply: string) => void;
   /**
@@ -213,6 +219,19 @@ export function useStoryBeatEdit({
     [storyRef, updateToolSettings]
   );
 
+  const saveBeatLineTone = useCallback(
+    (beat: RoleplayStoryBeat, tone: SpokenLineTone) => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (!latest) return;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, {
+          lineTone: normalizeSpokenLineTone(tone),
+        }),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
   const saveBeatReply = useCallback(
     (beat: RoleplayStoryBeat, reply: string) => {
       const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
@@ -351,6 +370,7 @@ export function useStoryBeatEdit({
             direction: choice?.direction,
             beats: choice?.beats,
             lines: choice?.lines,
+            tones: choice?.tones,
             lead: leadIsMan() ? 'man' : 'woman',
           },
           sharedLlmRequestBody(loadSettingsCache().shared)
@@ -408,6 +428,7 @@ export function useStoryBeatEdit({
       saveBeatText,
       saveBeatLine,
       saveBeatLineFullFrame,
+      saveBeatLineTone,
       saveBeatReply,
       voiceBeatClip,
       voicingKey,
@@ -427,6 +448,7 @@ export function useStoryBeatEdit({
       rewritingKey,
       saveBeatLine,
       saveBeatLineFullFrame,
+      saveBeatLineTone,
       saveBeatReply,
       saveBeatText,
       voiceBeatClip,

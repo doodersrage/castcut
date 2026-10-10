@@ -543,6 +543,58 @@ export function normalizeSpokenLine(value: unknown): string {
   return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
 }
 
+/** How a line is said (the "How" choice beside a line). */
+export type SpokenLineTone =
+  'natural' | 'whisper' | 'laughing' | 'excited' | 'tender' | 'teasing' | 'angry';
+
+export const SPOKEN_LINE_TONES: { id: SpokenLineTone; label: string }[] = [
+  { id: 'natural', label: 'Natural' },
+  { id: 'whisper', label: 'Whisper' },
+  { id: 'laughing', label: 'Laughing' },
+  { id: 'excited', label: 'Excited' },
+  { id: 'tender', label: 'Tender' },
+  { id: 'teasing', label: 'Teasing' },
+  { id: 'angry', label: 'Angry' },
+];
+
+/** A stored tone, or undefined for natural / unknown values. */
+export function normalizeSpokenLineTone(value: unknown): SpokenLineTone | undefined {
+  return typeof value === 'string' &&
+    value !== 'natural' &&
+    SPOKEN_LINE_TONES.some(tone => tone.id === value)
+    ? (value as SpokenLineTone)
+    : undefined;
+}
+
+/**
+ * The speech verb for a tone ("says clearly" when natural). Live (2026-10-10, same line, two
+ * stills, same seed): every tone kept the words exact (14/14); whisper −6 to −7 LU and breathy
+ * (voiced 34–43% vs 73–75%, flat pitch), excited / angry pitch ~254 → 360–410 Hz, tender ~190 Hz
+ * steady, laughing ~320 Hz, teasing a little quieter and lower.
+ */
+export function spokenLineVerb(
+  tone: SpokenLineTone | undefined,
+  speaker: 'She' | 'He' = 'She'
+): string {
+  const her = speaker === 'He' ? 'his' : 'her';
+  switch (tone) {
+    case 'whisper':
+      return 'leans in and whispers, in a soft breathy whisper,';
+    case 'laughing':
+      return `laughs and says through ${her} laughter,`;
+    case 'excited':
+      return `says excitedly, ${her} voice bright, loud and fast,`;
+    case 'tender':
+      return `says softly and tenderly, ${her} voice warm and gentle,`;
+    case 'teasing':
+      return 'says in a playful, teasing tone with a little smirk,';
+    case 'angry':
+      return `snaps angrily, ${her} voice sharp and raised,`;
+    default:
+      return 'says clearly,';
+  }
+}
+
 /**
  * Add the line to a clip prompt the way LTX speaks it (live 2026-10-09: 13/13 clips said the
  * quoted words exactly, lip-synced): the speaker faces the camera and "says clearly".
@@ -745,13 +797,15 @@ export function talkingClipPrompt(input: {
   setting?: string;
   line: string;
   speaker?: 'She' | 'He';
+  /** How the line is said (default: clearly). */
+  tone?: SpokenLineTone;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   return [
     'One continuous shot that starts on the first frame.',
-    `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and says clearly, "${line}"`,
+    `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and ${spokenLineVerb(input.tone, who)} "${line}"`,
     `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'he' : 'she'} stays in place, facing the camera, and does not walk away or turn around.`,
     place
       ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
@@ -773,6 +827,8 @@ export function conversationClipPrompt(input: {
   /** Who says the first line, and who answers ('woman' / 'man'). */
   lead?: 'woman' | 'man';
   partner?: 'woman' | 'man';
+  /** How the first line is said (default: plainly). */
+  tone?: SpokenLineTone;
 }): string {
   const lead = input.lead ?? 'woman';
   const partner = input.partner ?? (lead === 'woman' ? 'man' : 'woman');
@@ -782,7 +838,7 @@ export function conversationClipPrompt(input: {
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   return [
     'One continuous shot that starts on the first frame.',
-    `${first} turns to ${other} and says, "${normalizeSpokenLine(input.line)}"`,
+    `${first} turns to ${other} and ${input.tone && input.tone !== 'natural' ? spokenLineVerb(input.tone, lead === 'man' ? 'He' : 'She') : 'says,'} "${normalizeSpokenLine(input.line)}"`,
     `${other.charAt(0).toUpperCase()}${other.slice(1)} answers, "${normalizeSpokenLine(input.reply)}"`,
     'Each speaker’s lips move with their own words; small natural movements only — they stay in place.',
     place
@@ -829,7 +885,7 @@ export const LTX25_EXTEND_SAVE_NODE = LTX25_SPEECH_SAVE_NODE;
 export function extendSegmentPrompt(
   beat: string,
   place?: string,
-  speech?: { line?: string; speaker?: 'She' | 'He' }
+  speech?: { line?: string; speaker?: 'She' | 'He'; tone?: SpokenLineTone }
 ): string {
   const setting = place?.trim().replace(/[.\s]+$/, '');
   const line = normalizeSpokenLine(speech?.line);
@@ -838,7 +894,7 @@ export function extendSegmentPrompt(
     beat.trim().replace(/\s+/g, ' '),
     // A part with a line talks like a talking clip, while doing its beat.
     line
-      ? `As ${who === 'He' ? 'he' : 'she'} does, ${who === 'He' ? 'he' : 'she'} says clearly, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
+      ? `As ${who === 'He' ? 'he' : 'she'} does, ${who === 'He' ? 'he' : 'she'} ${spokenLineVerb(speech?.tone, who)} "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
       : '',
     setting
       ? `The place stays the same (${setting}), with the same light; one continuous shot.`

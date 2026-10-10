@@ -266,10 +266,15 @@ export function useRoleplayBeatQueuePart2(
           ? conversationClipPrompt({
               line: spokenLine,
               reply: replyLine,
+              tone: latest.lineTone,
               lead,
               partner: conversationPartnerNoun(stillText, lead),
             })
-          : talkingClipPrompt({ line: spokenLine, speaker: leadIsMan() ? 'He' : 'She' });
+          : talkingClipPrompt({
+              line: spokenLine,
+              speaker: leadIsMan() ? 'He' : 'She',
+              tone: latest.lineTone,
+            });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
       const clipModel =
