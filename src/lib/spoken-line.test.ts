@@ -70,6 +70,10 @@ describe('clips with sound in the lightbox', () => {
     assert.equal(clipUrlIsVideo('/api/comfyui/view?filename=x.mp4&type=output', { gallery: [] }), true);
     assert.equal(clipUrlIsVideo('/api/gallery/media/none', { gallery: [] }), false);
   });
+  it('a voiced / extended MP4 kept in the gallery is a video though its slot keeps the WebP job id', () => {
+    const gallery = [entry('webp', 'Castcut_9.webp', 'wan-job'), entry('kept', 'castcut-extended-1.mp4', 'extend-kept')];
+    assert.equal(clipUrlIsVideo('/api/gallery/media/kept?variant=original', { gallery, promptId: 'wan-job' }), true);
+  });
 });
 
 describe('voice auditions', () => {

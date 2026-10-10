@@ -1,7 +1,13 @@
 'use client';
 
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { requestClipExtend, type ClipExtendRequest } from '@/lib/clip-extend';
+import {
+  clipExtendProgressNote,
+  startClipExtend,
+  waitForClipExtend,
+  type ClipExtendRequest,
+} from '@/lib/clip-extend';
+import { keepClipInGallery } from '@/lib/clip-gallery-keep';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
@@ -78,6 +84,8 @@ export type StoryBeatEditActions = {
   ) => Omit<ClipExtendRequest, 'direction' | 'beats'> | null;
   /** The scene being made longer, and how far it is. */
   extending: { key: string; note: string } | null;
+  /** How a job picked up after a reload ended (the card shows it). */
+  extendResult: { key: string; text: string } | null;
   /** Write the scene's still again from its text and queue it. */
   rewriteBeat: (beat: RoleplayStoryBeat) => Promise<void>;
   /** The scene being written again, if any (see `storyBeatKey`). */
@@ -232,8 +240,17 @@ export function useStoryBeatEdit({
         if (!now || now.clipUrl?.trim() !== clipUrl) {
           return 'The clip changed while its voice was being made — try again.';
         }
+        const kept = await keepClipInGallery({
+          url,
+          kind: 'voice',
+          prompt: `Add voice · ${now.title}`,
+          tool: 'roleplay',
+          sourcePromptId: now.clipPromptId,
+        });
+        const after =
+          storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? now;
         updateToolSettings({
-          story: patchRoleplayStoryBeat(storyRef.current, now, { clipUrl: url }),
+          story: patchRoleplayStoryBeat(storyRef.current, after, { clipUrl: kept.url }),
         });
         return null;
       } catch (error) {
@@ -260,43 +277,84 @@ export function useStoryBeatEdit({
     },
     [storyRef]
   );
-  const extendBeatClip = useCallback(
-    async (beat: RoleplayStoryBeat, choice?: ClipExtendChoice): Promise<string | null> => {
-      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
-      const request = extendRequestFor(beat);
-      const clipUrl = request?.clipUrl;
-      if (!latest || !request || !clipUrl) return 'This scene has no finished clip.';
-      const key = storyBeatKey(latest);
-      setExtending({ key, note: 'Writing what happens next…' });
+  const watchingExtendRef = useRef<string | null>(null);
+  const [extendResult, setExtendResult] = useState<{ key: string; text: string } | null>(null);
+  const patchBeat = useCallback(
+    (beat: RoleplayStoryBeat, patch: Partial<RoleplayStoryBeat>) => {
+      const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (now) updateToolSettings({ story: patchRoleplayStoryBeat(storyRef.current, now, patch) });
+    },
+    [storyRef, updateToolSettings]
+  );
+  /** Wait for the scene's job and put the long clip in place. Resolves to an error, or null. */
+  const finishExtend = useCallback(
+    async (beat: RoleplayStoryBeat, jobId: string, fromUrl: string): Promise<string | null> => {
+      const key = storyBeatKey(beat);
+      if (watchingExtendRef.current) return 'Already making a clip longer — one at a time.';
+      watchingExtendRef.current = key;
+      setExtending({ key, note: 'Making it longer…' });
       try {
-        const job = await requestClipExtend(
-          { ...request, direction: choice?.direction, beats: choice?.beats },
-          {
-            llmBody: sharedLlmRequestBody(loadSettingsCache().shared),
-            onProgress: progress =>
-              progress.total &&
-              setExtending({
-                key,
-                note: `Rendering part ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…`,
-              }),
-          }
-        );
+        const job = await waitForClipExtend(jobId, {
+          onProgress: progress => setExtending({ key, note: clipExtendProgressNote(progress) }),
+        });
         const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
-        if (!now || now.clipUrl?.trim() !== clipUrl) {
+        if (!now || now.clipUrl?.trim() !== fromUrl) {
+          patchBeat(beat, { extendJobId: undefined });
           return 'The clip changed while it was being made longer — try again.';
         }
-        updateToolSettings({
-          story: patchRoleplayStoryBeat(storyRef.current, now, { clipUrl: job.url }),
+        setExtending({ key, note: 'Saving to the Gallery…' });
+        const kept = await keepClipInGallery({
+          url: job.url!,
+          kind: 'extend',
+          prompt: `Make it 30 s · ${now.title}`,
+          tool: 'roleplay',
+          sourcePromptId: now.clipPromptId,
         });
+        patchBeat(beat, { clipUrl: kept.url, extendJobId: undefined });
         return null;
       } catch (error) {
+        patchBeat(beat, { extendJobId: undefined });
         return error instanceof Error ? error.message : 'Could not make the clip longer.';
       } finally {
+        watchingExtendRef.current = null;
         setExtending(null);
       }
     },
-    [extendRequestFor, storyRef, updateToolSettings]
+    [patchBeat, storyRef]
   );
+  const extendBeatClip = useCallback(
+    async (beat: RoleplayStoryBeat, choice?: ClipExtendChoice): Promise<string | null> => {
+      const request = extendRequestFor(beat);
+      if (!request) return 'This scene has no finished clip.';
+      if (watchingExtendRef.current) return 'Already making a clip longer — one at a time.';
+      try {
+        const job = await startClipExtend(
+          { ...request, direction: choice?.direction, beats: choice?.beats },
+          sharedLlmRequestBody(loadSettingsCache().shared)
+        );
+        patchBeat(beat, { extendJobId: job.id });
+        return await finishExtend(beat, job.id, request.clipUrl);
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Could not make the clip longer.';
+      }
+    },
+    [extendRequestFor, finishExtend, patchBeat]
+  );
+  // A job that was running when the page was left: wait for it again.
+  useEffect(() => {
+    if (watchingExtendRef.current || !story) return;
+    const pending = story.find(entry => entry.extendJobId && entry.clipUrl?.trim());
+    if (!pending?.extendJobId || !pending.clipUrl) return;
+    const key = storyBeatKey(pending);
+    const jobId = pending.extendJobId;
+    const fromUrl = pending.clipUrl.trim();
+    const timer = setTimeout(() => {
+      void finishExtend(pending, jobId, fromUrl).then(error =>
+        setExtendResult({ key, text: error ?? 'Done — the clip is now about 30 seconds.' })
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [finishExtend, story]);
 
   // A scene with a line whose clip came back silent (WAN): add the voice without a tap. Once per
   // clip, one at a time.
@@ -325,6 +383,7 @@ export function useStoryBeatEdit({
       extendBeatClip,
       extendRequestFor,
       extending,
+      extendResult,
       rewriteBeat,
       rewritingKey,
     }),
@@ -332,6 +391,7 @@ export function useStoryBeatEdit({
       extendBeatClip,
       extendRequestFor,
       extending,
+      extendResult,
       rewriteBeat,
       rewritingKey,
       saveBeatLine,

@@ -1,5 +1,6 @@
 'use client';
 
+import { keepClipInGallery } from '@/lib/clip-gallery-keep';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
@@ -40,8 +41,17 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
         if (!latest || latest.clipUrl?.trim() !== clipUrl) {
           return 'The clip changed while its voice was being made — try again.';
         }
+        // Kept in the Gallery (not only as a ComfyUI input file).
+        const kept = await keepClipInGallery({
+          url,
+          kind: 'voice',
+          prompt: `Add voice · ${slot.label}`,
+          tool: 'day',
+          sourcePromptId: latest.clipPromptId,
+        });
+        const now = stillsRef.current.find(entry => entry.slotId === slot.id) ?? latest;
         updateToolSettings({
-          stills: upsertDaySlotStill(stillsRef.current, { ...latest, clipUrl: url }),
+          stills: upsertDaySlotStill(stillsRef.current, { ...now, clipUrl: kept.url }),
         });
         return null;
       } catch (error) {

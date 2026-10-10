@@ -137,6 +137,9 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
     beat.line = normalizeSpokenLine(record.line);
   }
   if (record.lineFullFrame === true) beat.lineFullFrame = true;
+  if (typeof record.extendJobId === 'string' && record.extendJobId.trim()) {
+    beat.extendJobId = record.extendJobId.trim().slice(0, 80);
+  }
   if (typeof record.replyLine === 'string' && record.replyLine.trim()) {
     beat.replyLine = normalizeSpokenLine(record.replyLine);
   }

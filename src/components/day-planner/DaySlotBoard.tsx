@@ -64,6 +64,8 @@ export type DaySlotBoardProps = {
   extendRequestFor?: (slot: DaySlot) => Omit<ClipExtendRequest, 'direction' | 'beats'> | null;
   /** The slot being made longer, and how far it is. */
   extending?: { slotId: string; note: string } | null;
+  /** How a job picked up after a reload ended. */
+  extendResult?: { slotId: string; text: string } | null;
   onAnimateSlot?: (slot: DaySlot) => void;
   onRerollSlot?: (slot: DaySlot) => void;
   /** Queue this slot only (an unrendered slot's ⋯ menu). */
@@ -112,6 +114,7 @@ export default function DaySlotBoard({
   onExtendClip,
   extendRequestFor,
   extending = null,
+  extendResult = null,
   onRerollSlot,
   onQueueSlot,
   qualityLedger,
@@ -690,13 +693,19 @@ export default function DaySlotBoard({
                       {voicing === slot.id ? 'Adding voice… (about a minute)' : voicedNote?.text}
                     </p>
                   ) : null}
-                  {extending?.slotId === slot.id || extendNote?.slotId === slot.id ? (
+                  {extending?.slotId === slot.id ||
+                  extendNote?.slotId === slot.id ||
+                  extendResult?.slotId === slot.id ? (
                     <p
                       className="type-caption mt-1 text-[var(--text-muted)]"
                       role="status"
                       data-testid={`day-progress-extend-note-${slot.id}`}
                     >
-                      {extending?.slotId === slot.id ? extending.note : extendNote?.text}
+                      {extending?.slotId === slot.id
+                        ? extending.note
+                        : extendNote?.slotId === slot.id
+                          ? extendNote.text
+                          : extendResult?.text}
                     </p>
                   ) : null}
                   {voice.noteFor(slot.id) ? (

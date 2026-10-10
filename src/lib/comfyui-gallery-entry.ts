@@ -44,6 +44,8 @@ export type ComfyGalleryEntry = {
     | 'i2v'
     | 't2v'
     | 'extend'
+    /** Add voice: the clip with LTX's soundtrack, picture unchanged. */
+    | 'voice'
     | 'film';
   /** Resolved queue params (seed, width, cfg, etc.). */
   queueParams?: WorkflowParamValues;

@@ -389,13 +389,17 @@ export function RoleplayStoryBeatCard({
               testId="story-extend-sheet"
             />
           ) : null}
-          {edit?.extending?.key === storyBeatKey(beat) || extendNote ? (
+          {edit?.extending?.key === storyBeatKey(beat) ||
+          extendNote ||
+          edit?.extendResult?.key === storyBeatKey(beat) ? (
             <p
               className="type-caption text-[var(--text-muted)]"
               role="status"
               data-testid="story-beat-extend-note"
             >
-              {edit?.extending?.key === storyBeatKey(beat) ? edit.extending.note : extendNote}
+              {edit?.extending?.key === storyBeatKey(beat)
+                ? edit.extending.note
+                : (extendNote ?? edit?.extendResult?.text)}
             </p>
           ) : null}
           {edit?.voicingKey === storyBeatKey(beat) || addVoiceNote ? (

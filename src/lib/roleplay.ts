@@ -144,6 +144,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up. */
   lineFullFrame?: boolean;
+  /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
+  extendJobId?: string;
   /** Two-person scenes: what the other person answers (one-shot conversation). */
   replyLine?: string;
   /** I2V / extend clip queued from this beat. */

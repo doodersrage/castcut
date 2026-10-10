@@ -464,7 +464,10 @@ export async function extendClip(
       const rendered = await runComfyUtilityGraph<ComfyImageRef>({
         baseUrl,
         label: 'clip-extend',
-        timeoutMs: 600_000,
+        // A part waits its turn: six of them must not hold up renders already queued. The timeout
+        // covers the wait behind them.
+        priority: 'queue',
+        timeoutMs: 45 * 60_000,
         prompt,
         read: entry => firstOutput(entry, saveNode) ?? firstOutput(entry),
       });

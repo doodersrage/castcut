@@ -133,6 +133,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     extendSlotClip,
     extendRequestFor,
     extending,
+    extendResult,
     hasPlate,
     plate,
     isolateSubject,
@@ -854,6 +855,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onExtendClip={extendSlotClip}
           extendRequestFor={extendRequestFor}
           extending={extending}
+          extendResult={extendResult}
           onQueueSlot={slot => void queueSlot(slot)}
           onRerollSlot={slot => {
             rerollActiveSlotScene({ slotId: slot.id });

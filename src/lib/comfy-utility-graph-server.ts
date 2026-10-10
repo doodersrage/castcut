@@ -217,9 +217,10 @@ export async function runComfyUtilityGraph<T>(input: {
   /**
    * `check`: a few seconds of work that loads no diffusion model (DWPose, a face probe) — it
    * runs right after the current job, ahead of every front job (checkQueueNumber). Default
-   * `front`: ahead of pending renders, like the app's singles.
+   * `front`: ahead of pending renders, like the app's singles. `queue`: at the back, after what is
+   * already waiting (long jobs such as Make it 30 s, so they do not hold up queued renders).
    */
-  priority?: 'check' | 'front';
+  priority?: 'check' | 'front' | 'queue';
 }): Promise<{ result: T } | { result: undefined; completed: true }> {
   const { baseUrl, label } = input;
   const queued = await fetch(`${baseUrl}/prompt`, {
@@ -229,7 +230,11 @@ export async function runComfyUtilityGraph<T>(input: {
     body: JSON.stringify({
       prompt: input.prompt,
       client_id: `castcut-${label}`,
-      ...(input.priority === 'check' ? { number: checkQueueNumber() } : { front: true }),
+      ...(input.priority === 'check'
+        ? { number: checkQueueNumber() }
+        : input.priority === 'queue'
+          ? {}
+          : { front: true }),
     }),
     signal: AbortSignal.timeout(15000),
   });

@@ -141,6 +141,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     extendSlotClip,
     extendRequestFor,
     extending,
+    extendResult,
     selectedModel,
     plate,
     hasPlate,
@@ -907,6 +908,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onExtendClip={extendSlotClip}
             extendRequestFor={extendRequestFor}
             extending={extending}
+            extendResult={extendResult}
             onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
             onRerollSlot={slot => {
               rerollActiveSlotScene({ slotId: slot.id });

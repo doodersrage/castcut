@@ -239,37 +239,53 @@ export async function requestClipExtendPlan(
   return body.plan;
 }
 
-/** Start "Make it 30 s" and wait for it (client). Calls `onProgress` as segments land. */
-export async function requestClipExtend(
+/** Start "Make it 30 s" (client): the job, at once. */
+export async function startClipExtend(
   input: ClipExtendRequest,
-  options?: {
-    llmBody?: Record<string, unknown>;
-    onProgress?: (job: ClipExtendJob) => void;
-    pollMs?: number;
-  }
+  llmBody?: Record<string, unknown>
 ): Promise<ClipExtendJob> {
   const start = await fetch('/api/clip/extend', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ ...input, ...options?.llmBody }),
+    body: JSON.stringify({ ...input, ...llmBody }),
   });
   const started = (await start.json().catch(() => ({}))) as { job?: ClipExtendJob; error?: string };
   if (!start.ok || !started.job) throw new Error(started.error ?? 'Could not extend the clip.');
-  let job = started.job;
-  options?.onProgress?.(job);
-  while (job.status === 'running') {
-    await new Promise(resolve => setTimeout(resolve, options?.pollMs ?? 4000));
-    const poll = await fetch(`/api/clip/extend?jobId=${encodeURIComponent(job.id)}`, {
+  return started.job;
+}
+
+/** The server no longer knows the job (it restarted): the slot should stop waiting for it. */
+export class ClipExtendJobLost extends Error {}
+
+/** Wait for a job (client) — also one started before a reload. Resolves with the finished job. */
+export async function waitForClipExtend(
+  jobId: string,
+  options?: { onProgress?: (job: ClipExtendJob) => void; pollMs?: number }
+): Promise<ClipExtendJob> {
+  for (;;) {
+    const poll = await fetch(`/api/clip/extend?jobId=${encodeURIComponent(jobId)}`, {
       credentials: 'same-origin',
     });
+    if (poll.status === 404) {
+      throw new ClipExtendJobLost(
+        'The server restarted while this clip was being made longer — try again.'
+      );
+    }
     const body = (await poll.json().catch(() => ({}))) as { job?: ClipExtendJob; error?: string };
     if (!poll.ok || !body.job) throw new Error(body.error ?? 'Lost track of the extension.');
-    job = body.job;
-    options?.onProgress?.(job);
+    options?.onProgress?.(body.job);
+    if (body.job.status === 'completed' && body.job.url) return body.job;
+    if (body.job.status === 'error') throw new Error(body.job.error ?? 'The extension failed.');
+    await new Promise(resolve => setTimeout(resolve, options?.pollMs ?? 4000));
   }
-  if (job.status === 'error' || !job.url) throw new Error(job.error ?? 'The extension failed.');
-  return job;
+}
+
+/** Progress text for a running job. */
+export function clipExtendProgressNote(job: Pick<ClipExtendJob, 'done' | 'total'>): string {
+  return job.total
+    ? `Rendering part ${Math.min(job.done + 1, job.total)} of ${job.total}…`
+    : 'Writing what happens next…';
 }
 
 export type ChannelStats = { mean: number[]; std: number[] };

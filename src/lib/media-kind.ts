@@ -17,6 +17,7 @@ export function isVideoLikeEntry(
     entry.derivedKind === 'i2v' ||
     entry.derivedKind === 't2v' ||
     entry.derivedKind === 'extend' ||
+    entry.derivedKind === 'voice' ||
     entry.tool === 'video'
   );
 }

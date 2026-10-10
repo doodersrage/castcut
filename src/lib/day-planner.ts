@@ -399,6 +399,8 @@ export type DaySlotStill = {
   clipPromptId?: string;
   clipUrl?: string;
   clipStatus?: DaySlotClipStatus;
+  /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
+  extendJobId?: string;
   /**
    * Face finish (face-finish.ts): the finished image for the take `finishedFor` names. The
    * gallery poll shows it instead of the raw take while `finishedFor` matches `promptId`; a
@@ -4435,6 +4437,7 @@ export function normalizeDaySlotStills(
       clipPromptId: readText(still.clipPromptId, 160) || undefined,
       clipUrl: readText(still.clipUrl, 2048) || undefined,
       clipStatus: readClipStatus(still.clipStatus),
+      ...(readText(still.extendJobId, 80) ? { extendJobId: readText(still.extendJobId, 80) } : {}),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
       ...withPromptCheck(still.promptCheck),

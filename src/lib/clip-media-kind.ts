@@ -28,8 +28,10 @@ export function clipUrlIsVideo(
   const gallery = options.gallery ?? loadComfyGallery();
   const promptId = options.promptId?.trim();
   const mediaId = clip.match(/\/api\/gallery\/media\/([^/?#]+)/)?.[1];
-  const entry = gallery.find(
-    item => (promptId && item.promptId === promptId) || (mediaId && item.id === mediaId)
-  );
+  // The URL's own entry first: a voiced / extended clip kept in the gallery (an MP4) still carries
+  // the job id of the WebP it came from.
+  const entry =
+    (mediaId ? gallery.find(item => item.id === mediaId) : undefined) ??
+    (promptId ? gallery.find(item => item.promptId === promptId) : undefined);
   return entry ? entryFileIsVideo(entry) === true : false;
 }
