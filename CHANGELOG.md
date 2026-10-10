@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.4.1] - 2026-10-10
+
 - **Add voice no longer puts words in a clip it cannot lip-sync.** On two-person adult clips (rendered on WAN, silent) *Add voice* spoke the slot's line over the unchanged picture, so the words never matched the mouth (user: "talking sync seems to have broken"). Measured as mouth-motion vs loudness: 0.34–0.52 on those clips against 0.55–0.75 on LTX's own talking clips; re-rendering the face lightly to follow the audio did not raise it, and a stronger pass changed the scene. *Add voice* now gives them sound without words — breathing, moans, the room (no speech detected on live dubs, where the old ones spoke the line) — brought to a steady level (the wordless sound came out near −50 dB), and a line is spoken only on clips LTX renders itself. Talking clips from wide stills (a small face, head turned away) sync less well: the line field says so; a camera push-in synced the lips but changed her face, so it isn't used.
 
 ## [v2.4.0] - 2026-10-10
