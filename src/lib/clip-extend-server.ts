@@ -236,6 +236,10 @@ export type ClipExtendInput = {
   direction?: string;
   /** The player's beats, used as written (more beats than needed make it longer, up to the cap). */
   beats?: string[];
+  /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
+  lines?: string[];
+  /** Who speaks the lines. */
+  lead?: 'woman' | 'man';
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
@@ -285,7 +289,7 @@ function partCount(
 /** The parts and the beats for them, nothing rendered ("Write the beats"). */
 export async function planClipExtend(
   input: ClipExtendInput
-): Promise<{ total: number; beats: string[]; partSec: number }> {
+): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' }> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('./video-shot-fetch');
@@ -309,7 +313,12 @@ export async function planClipExtend(
     const wan = Boolean(history && isWanClipGraph(history));
     const { total, partSec } = partCount(input, clip.frames / 24, wan, clip.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
-    return { total, partSec, beats: await resolveBeats({ ...input, beats: [] }, total) };
+    return {
+      total,
+      partSec,
+      engine: wan ? ('wan' as const) : ('ltx' as const),
+      beats: await resolveBeats({ ...input, beats: [] }, total),
+    };
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })
@@ -453,7 +462,11 @@ export async function extendClip(
         prompt = buildLtx25ExtendGraph({
           lastFrame: lastFrame.name,
           tailVideo: tail.name,
-          prompt: extendSegmentPrompt(beats[k]!, input.setting),
+          prompt: extendSegmentPrompt(beats[k]!, input.setting, {
+            line: input.lines?.[k],
+            speaker: input.lead === 'man' ? 'He' : 'She',
+          }),
+          speaks: Boolean(input.lines?.[k]?.trim()),
           seed: seed + k * 7,
           prefix,
           longSide,

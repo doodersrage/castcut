@@ -10,7 +10,7 @@ import {
 import { keepClipInGallery } from '@/lib/clip-gallery-keep';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { clipUrlIsAnimatedImage } from '@/lib/clip-media-kind';
 import { requestClipVoice } from '@/lib/clip-voice';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { loadSettingsCache } from '@/lib/settings-cache';
@@ -96,6 +96,11 @@ export type StoryBeatEditActions = {
  * Edit a scene's text in the reel, then write and queue its still again. Shared by desk and
  * phone Story: both write a still through the same request and the same `commitStill`.
  */
+
+/** Which clip a scene shows: its clip job (stable across URL rewrites), else the URL. */
+function beatClipIdentity(beat: RoleplayStoryBeat): string {
+  return beat.clipPromptId?.trim() || beat.clipUrl?.trim() || '';
+}
 export function useStoryBeatEdit({
   storyRef,
   story,
@@ -237,7 +242,10 @@ export function useStoryBeatEdit({
           lead: leadIsMan() ? 'man' : 'woman',
         });
         const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
-        if (!now || now.clipUrl?.trim() !== clipUrl) {
+        const same = latest.clipPromptId?.trim()
+          ? now?.clipPromptId?.trim() === latest.clipPromptId.trim()
+          : now?.clipUrl?.trim() === clipUrl;
+        if (!now || !same) {
           return 'The clip changed while its voice was being made — try again.';
         }
         const kept = await keepClipInGallery({
@@ -250,7 +258,11 @@ export function useStoryBeatEdit({
         const after =
           storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at) ?? now;
         updateToolSettings({
-          story: patchRoleplayStoryBeat(storyRef.current, after, { clipUrl: kept.url }),
+          story: patchRoleplayStoryBeat(storyRef.current, after, {
+            clipUrl: kept.url,
+            clipPromptId: kept.promptId,
+            clipRenderPromptId: after.clipRenderPromptId ?? after.clipPromptId,
+          }),
         });
         return null;
       } catch (error) {
@@ -270,7 +282,7 @@ export function useStoryBeatEdit({
       if (!latest || !clipUrl) return null;
       return {
         clipUrl,
-        clipPromptId: latest.clipPromptId,
+        clipPromptId: latest.clipRenderPromptId ?? latest.clipPromptId,
         scene: `${latest.title}. ${latest.blurb}`,
         heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
       };
@@ -298,7 +310,7 @@ export function useStoryBeatEdit({
           onProgress: progress => setExtending({ key, note: clipExtendProgressNote(progress) }),
         });
         const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
-        if (!now || now.clipUrl?.trim() !== fromUrl) {
+        if (!now || beatClipIdentity(now) !== fromUrl) {
           patchBeat(beat, { extendJobId: undefined });
           return 'The clip changed while it was being made longer — try again.';
         }
@@ -310,7 +322,12 @@ export function useStoryBeatEdit({
           tool: 'roleplay',
           sourcePromptId: now.clipPromptId,
         });
-        patchBeat(beat, { clipUrl: kept.url, extendJobId: undefined });
+        patchBeat(beat, {
+          clipUrl: kept.url,
+          clipPromptId: kept.promptId,
+          clipRenderPromptId: now.clipRenderPromptId ?? now.clipPromptId,
+          extendJobId: undefined,
+        });
         return null;
       } catch (error) {
         patchBeat(beat, { extendJobId: undefined });
@@ -329,16 +346,29 @@ export function useStoryBeatEdit({
       if (watchingExtendRef.current) return 'Already making a clip longer — one at a time.';
       try {
         const job = await startClipExtend(
-          { ...request, direction: choice?.direction, beats: choice?.beats },
+          {
+            ...request,
+            direction: choice?.direction,
+            beats: choice?.beats,
+            lines: choice?.lines,
+            lead: leadIsMan() ? 'man' : 'woman',
+          },
           sharedLlmRequestBody(loadSettingsCache().shared)
         );
         patchBeat(beat, { extendJobId: job.id });
-        return await finishExtend(beat, job.id, request.clipUrl);
+        const current = storyRef.current.find(
+          entry => entry.id === beat.id && entry.at === beat.at
+        );
+        return await finishExtend(
+          beat,
+          job.id,
+          current ? beatClipIdentity(current) : request.clipUrl
+        );
       } catch (error) {
         return error instanceof Error ? error.message : 'Could not make the clip longer.';
       }
     },
-    [extendRequestFor, finishExtend, patchBeat]
+    [extendRequestFor, finishExtend, patchBeat, storyRef]
   );
   // A job that was running when the page was left: wait for it again.
   useEffect(() => {
@@ -347,7 +377,7 @@ export function useStoryBeatEdit({
     if (!pending?.extendJobId || !pending.clipUrl) return;
     const key = storyBeatKey(pending);
     const jobId = pending.extendJobId;
-    const fromUrl = pending.clipUrl.trim();
+    const fromUrl = beatClipIdentity(pending);
     const timer = setTimeout(() => {
       void finishExtend(pending, jobId, fromUrl).then(error =>
         setExtendResult({ key, text: error ?? 'Done — the clip is now about 30 seconds.' })
@@ -364,7 +394,8 @@ export function useStoryBeatEdit({
     for (const entry of story) {
       const clipUrl = entry.clipStatus === 'completed' ? entry.clipUrl?.trim() : '';
       if (!entry.line?.trim() || !clipUrl || triedVoiceRef.current.has(clipUrl)) continue;
-      if (clipUrlIsVideo(clipUrl, { promptId: entry.clipPromptId })) continue;
+      if (entry.extendJobId) continue;
+      if (!clipUrlIsAnimatedImage(clipUrl, { promptId: entry.clipPromptId })) continue;
       triedVoiceRef.current.add(clipUrl);
       void voiceBeatClip(entry);
       return;

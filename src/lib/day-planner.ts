@@ -402,6 +402,12 @@ export type DaySlotStill = {
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
   /**
+   * The ComfyUI job that rendered the clip, once a voiced / extended copy replaced it
+   * (`clipPromptId` then names that copy's gallery entry, so the gallery sync keeps it).
+   * Make it 30 s replays this job's WAN graph.
+   */
+  clipRenderPromptId?: string;
+  /**
    * Face finish (face-finish.ts): the finished image for the take `finishedFor` names. The
    * gallery poll shows it instead of the raw take while `finishedFor` matches `promptId`; a
    * requeue gets a new prompt id, so a stale finish is ignored.
@@ -4438,6 +4444,9 @@ export function normalizeDaySlotStills(
       clipUrl: readText(still.clipUrl, 2048) || undefined,
       clipStatus: readClipStatus(still.clipStatus),
       ...(readText(still.extendJobId, 80) ? { extendJobId: readText(still.extendJobId, 80) } : {}),
+      ...(readText(still.clipRenderPromptId, 160)
+        ? { clipRenderPromptId: readText(still.clipRenderPromptId, 160) }
+        : {}),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
       ...withPromptCheck(still.promptCheck),

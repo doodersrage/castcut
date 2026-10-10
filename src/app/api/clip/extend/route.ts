@@ -59,6 +59,12 @@ export async function POST(request: Request) {
           .filter(Boolean)
           .slice(0, 8)
       : undefined,
+    lines: Array.isArray(body.lines)
+      ? body.lines
+          .slice(0, 8)
+          .map(line => (typeof line === 'string' ? line.trim().slice(0, 120) : ''))
+      : undefined,
+    lead: body.lead === 'man' ? 'man' : 'woman',
     llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),
   };
   if (body.plan === true) {

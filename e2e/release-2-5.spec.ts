@@ -101,6 +101,7 @@ test('Make it 30 s: direction, written beats, an edit, and the long clip in plac
             plan: {
               total: 3,
               partSec: 4.3,
+              engine: 'ltx',
               beats: ['She sets the mug down.', 'She picks up her bag.', 'She heads for the door.'],
             },
           }),
@@ -143,6 +144,7 @@ test('Make it 30 s: direction, written beats, an edit, and the long clip in plac
   await page.getByTestId('day-extend-sheet-write').click();
   await expect(page.getByTestId('day-extend-sheet-beat-2')).toHaveValue('She heads for the door.');
   await page.getByTestId('day-extend-sheet-beat-1').fill('She grabs her keys.');
+  await page.getByTestId('day-extend-sheet-line-1').fill('Where did I put my keys?');
   await expect(page.getByTestId('day-extend-sheet-start')).toContainText('3 parts');
   await page.getByTestId('day-extend-sheet-start').click();
   await expect(page.getByTestId('day-progress-extend-note-morning')).toContainText(
@@ -157,6 +159,7 @@ test('Make it 30 s: direction, written beats, an edit, and the long clip in plac
     'She heads for the door.',
   ]);
   expect(start.clipUrl).toBe('/e2e-clip-morning.mp4');
+  expect(start.lines).toEqual(['', 'Where did I put my keys?', '']);
 });
 
 test('Cut options: Score this film sets an original track as the music', async ({ page }) => {

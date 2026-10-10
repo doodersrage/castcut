@@ -20,7 +20,7 @@ export async function keepClipInGallery(input: {
   /** The clip it came from: its gallery entry is found by job id for the parent link and Cast. */
   sourcePromptId?: string;
   fetchImpl?: typeof fetch;
-}): Promise<{ url: string; entryId?: string }> {
+}): Promise<{ url: string; entryId?: string; promptId?: string }> {
   try {
     const response = await (input.fetchImpl ?? fetch)(input.url, { credentials: 'same-origin' });
     if (!response.ok) return { url: input.url };
@@ -56,7 +56,7 @@ export async function keepClipInGallery(input: {
       sourceImageUrl: persisted.originalUrl,
       userTags: [input.kind === 'extend' ? '30s' : 'voice'],
     });
-    return { url: persisted.originalUrl, entryId: id };
+    return { url: persisted.originalUrl, entryId: id, promptId: `${input.kind}-${id}` };
   } catch {
     return { url: input.url };
   }

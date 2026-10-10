@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { FieldError, TextArea } from '@/components/ui/Field';
+import { FieldError, TextArea, TextInput } from '@/components/ui/Field';
 import SideSheet from '@/components/ui/SideSheet';
 import {
   CLIP_EXTEND_MAX_SEGMENTS,
@@ -12,7 +12,7 @@ import {
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
-export type ClipExtendChoice = { direction?: string; beats?: string[] };
+export type ClipExtendChoice = { direction?: string; beats?: string[]; lines?: string[] };
 
 /**
  * "Make it 30 s" with a say in it: where the clip should go (it steers the written beats), and
@@ -36,6 +36,9 @@ export default function ClipExtendSheet({
 }) {
   const [direction, setDirection] = useState('');
   const [beats, setBeats] = useState<string[]>([]);
+  // A line per part (LTX clips lip-sync; WAN clips cannot).
+  const [lines, setLines] = useState<string[]>([]);
+  const [engine, setEngine] = useState<'ltx' | 'wan' | null>(null);
   const [partSec, setPartSec] = useState(4.3);
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +52,9 @@ export default function ClipExtendSheet({
         sharedLlmRequestBody(loadSettingsCache().shared)
       );
       setBeats(plan.beats);
+      setLines(plan.beats.map(() => ''));
       setPartSec(plan.partSec);
+      setEngine(plan.engine);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not write the beats.');
     } finally {
@@ -57,9 +62,15 @@ export default function ClipExtendSheet({
     }
   };
 
-  const kept = beats.map(beat => beat.trim()).filter(Boolean);
+  const keptIndexes = beats.map((beat, index) => (beat.trim() ? index : -1)).filter(i => i >= 0);
+  const kept = keptIndexes.map(index => beats[index]!.trim());
+  const keptLines = keptIndexes.map(index => (lines[index] ?? '').trim());
   const start = () => {
-    onStart({ direction: direction.trim() || undefined, beats: kept.length ? kept : undefined });
+    onStart({
+      direction: direction.trim() || undefined,
+      beats: kept.length ? kept : undefined,
+      lines: engine === 'ltx' && keptLines.some(Boolean) ? keptLines : undefined,
+    });
     onClose();
   };
 
@@ -116,7 +127,9 @@ export default function ClipExtendSheet({
           </Button>
           <span className="type-caption text-[var(--text-muted)]">
             {beats.length
-              ? `About ${partSec} s each — edit any line.`
+              ? engine === 'wan'
+                ? `About ${partSec} s each — edit any line. This clip renders on WAN, which cannot move lips to words, so its parts stay wordless.`
+                : `About ${partSec} s each — edit any line, and give a part something to say if you like.`
               : 'Or start now and they are written for you.'}
           </span>
         </div>
@@ -125,27 +138,48 @@ export default function ClipExtendSheet({
           <ol className="space-y-2" data-testid={`${testId}-beats`}>
             {beats.map((beat, index) => (
               <li key={index} className="flex items-start gap-2">
-                <span className="type-caption w-5 shrink-0 text-right text-[var(--text-muted)]">
+                <span className="type-caption mt-2 w-5 shrink-0 text-right text-[var(--text-muted)]">
                   {index + 1}
                 </span>
-                <TextArea
-                  value={beat}
-                  rows={2}
-                  className="py-2 type-body"
-                  maxLength={240}
-                  aria-label={`Part ${index + 1}`}
-                  onChange={event =>
-                    setBeats(list =>
-                      list.map((entry, at) => (at === index ? event.target.value : entry))
-                    )
-                  }
-                  data-testid={`${testId}-beat-${index}`}
-                />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <TextArea
+                    value={beat}
+                    rows={2}
+                    className="py-2 type-body"
+                    maxLength={240}
+                    aria-label={`Part ${index + 1}`}
+                    onChange={event =>
+                      setBeats(list =>
+                        list.map((entry, at) => (at === index ? event.target.value : entry))
+                      )
+                    }
+                    data-testid={`${testId}-beat-${index}`}
+                  />
+                  {engine === 'ltx' ? (
+                    <TextInput
+                      value={lines[index] ?? ''}
+                      maxLength={90}
+                      placeholder="Says… (optional)"
+                      aria-label={`Line for part ${index + 1}`}
+                      onChange={event =>
+                        setLines(list => {
+                          const next = [...list];
+                          next[index] = event.target.value;
+                          return next;
+                        })
+                      }
+                      data-testid={`${testId}-line-${index}`}
+                    />
+                  ) : null}
+                </div>
                 <button
                   type="button"
-                  className="ui-chip shrink-0"
+                  className="ui-chip mt-1 shrink-0"
                   aria-label={`Remove part ${index + 1}`}
-                  onClick={() => setBeats(list => list.filter((_, at) => at !== index))}
+                  onClick={() => {
+                    setBeats(list => list.filter((_, at) => at !== index));
+                    setLines(list => list.filter((_, at) => at !== index));
+                  }}
                 >
                   ✕
                 </button>
@@ -156,7 +190,10 @@ export default function ClipExtendSheet({
                 <button
                   type="button"
                   className="ui-chip"
-                  onClick={() => setBeats(list => [...list, ''])}
+                  onClick={() => {
+                    setBeats(list => [...list, '']);
+                    setLines(list => [...list, '']);
+                  }}
                   data-testid={`${testId}-add`}
                 >
                   + Add a part

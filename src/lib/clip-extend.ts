@@ -218,13 +218,17 @@ export type ClipExtendRequest = {
   direction?: string;
   /** The player's own beats, one per part, used as written. */
   beats?: string[];
+  /** A spoken line per beat (same order, '' = none) — LTX clips only. */
+  lines?: string[];
+  /** Who says the lines. */
+  lead?: 'woman' | 'man';
 };
 
 /** The parts this clip needs and the beats written for them, nothing rendered (client). */
 export async function requestClipExtendPlan(
   input: ClipExtendRequest,
   llmBody?: Record<string, unknown>
-): Promise<{ total: number; beats: string[]; partSec: number }> {
+): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' }> {
   const response = await fetch('/api/clip/extend', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -232,7 +236,7 @@ export async function requestClipExtendPlan(
     body: JSON.stringify({ ...input, ...llmBody, plan: true }),
   });
   const body = (await response.json().catch(() => ({}))) as {
-    plan?: { total: number; beats: string[]; partSec: number };
+    plan?: { total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' };
     error?: string;
   };
   if (!response.ok || !body.plan) throw new Error(body.error ?? 'Could not plan the extension.');

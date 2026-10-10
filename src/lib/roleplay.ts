@@ -146,6 +146,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
   lineFullFrame?: boolean;
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
+  /** The ComfyUI job that rendered the clip, once a voiced / extended copy replaced it. */
+  clipRenderPromptId?: string;
   /** Two-person scenes: what the other person answers (one-shot conversation). */
   replyLine?: string;
   /** I2V / extend clip queued from this beat. */

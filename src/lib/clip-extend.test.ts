@@ -10,7 +10,7 @@ import {
   parseExtendBeats,
   patchWanReplayGraph,
 } from './clip-extend';
-import { buildLtx25ExtendGraph, LTX25_EXTEND_SAVE_NODE } from './ltx25-renderer';
+import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from './ltx25-renderer';
 
 describe('Make it 30 s', () => {
   it('counts the segments to about 30 s', () => {
@@ -83,6 +83,20 @@ describe('Make it 30 s', () => {
     assert.match(system!.content, /follow that, spread over the beats/);
     assert.match(user!.content, /Where it should go: she grabs her keys and leaves/);
     assert.doesNotMatch(buildExtendBeatsMessages({ scene: 'x', count: 2 })[0]!.content, /follow that/);
+  });
+
+  it('a part with a line says it while doing its beat; without one it stays wordless', () => {
+    const talking = extendSegmentPrompt('She picks up her keys.', 'kitchen', { line: 'Wait — where are my keys?' });
+    assert.match(talking, /As she does, she says clearly, "Wait — where are my keys\?" — her lips move/);
+    assert.doesNotMatch(talking, /natural sound of/);
+    assert.match(extendSegmentPrompt('He waves.', undefined, { line: 'See you tonight.', speaker: 'He' }), /As he does, he says clearly/);
+    assert.match(
+      extendSegmentPrompt('She waves.', 'a bright kitchen'),
+      /Sound: the natural sound of the bright kitchen — soft room tone/
+    );
+    assert.doesNotMatch(extendSegmentPrompt('She waves.'), /nobody speaks/);
+    const speaks = buildLtx25ExtendGraph({ lastFrame: 'f', tailVideo: 't', prompt: 'p', seed: 1, prefix: 'x', speaks: true });
+    assert.doesNotMatch(String(speaks['3']!.inputs!.text), /speech/);
   });
 });
 

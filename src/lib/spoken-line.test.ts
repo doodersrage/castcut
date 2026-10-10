@@ -7,7 +7,7 @@ import {
   spokenLineHeat,
 } from './spoken-line';
 import { parseRoleplayScenes } from './roleplay';
-import { clipUrlIsVideo } from './clip-media-kind';
+import { clipUrlIsAnimatedImage, clipUrlIsVideo } from './clip-media-kind';
 import { castVoiceAuditionPrompt } from './cast-voice';
 import { voiceShiftArgs } from './cast-voice-server';
 import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from './ltx25-renderer';
@@ -69,6 +69,13 @@ describe('clips with sound in the lightbox', () => {
     assert.equal(clipUrlIsVideo('/api/gallery/media/b2?variant=original', { gallery }), false);
     assert.equal(clipUrlIsVideo('/api/comfyui/view?filename=x.mp4&type=output', { gallery: [] }), true);
     assert.equal(clipUrlIsVideo('/api/gallery/media/none', { gallery: [] }), false);
+  });
+  it('only a known WebP / GIF is silent: an unknown gallery clip is never dubbed automatically', () => {
+    const gallery = [entry('webp', 'Castcut_9.webp', 'wan-job'), entry('talk', 'Castcut_7.mp4', 'ltx-job')];
+    assert.equal(clipUrlIsAnimatedImage('/api/gallery/media/webp', { gallery }), true);
+    assert.equal(clipUrlIsAnimatedImage('/api/gallery/media/talk', { gallery }), false);
+    assert.equal(clipUrlIsAnimatedImage('/api/gallery/media/unknown', { gallery: [], promptId: 'ltx-job' }), false);
+    assert.equal(clipUrlIsAnimatedImage('/api/comfyui/view?filename=Castcut_1.webp&type=output', { gallery: [] }), true);
   });
   it('a voiced / extended MP4 kept in the gallery is a video though its slot keeps the WebP job id', () => {
     const gallery = [entry('webp', 'Castcut_9.webp', 'wan-job'), entry('kept', 'castcut-extended-1.mp4', 'extend-kept')];

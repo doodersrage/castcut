@@ -826,17 +826,34 @@ export const LTX25_EXTEND_SAVE_NODE = LTX25_SPEECH_SAVE_NODE;
  * close-up and the next part rebuilt the room as a café full of strangers — the place is named in
  * every part, and close-ups and other people are ruled out.
  */
-export function extendSegmentPrompt(beat: string, place?: string): string {
+export function extendSegmentPrompt(
+  beat: string,
+  place?: string,
+  speech?: { line?: string; speaker?: 'She' | 'He' }
+): string {
   const setting = place?.trim().replace(/[.\s]+$/, '');
+  const line = normalizeSpokenLine(speech?.line);
+  const who = speech?.speaker ?? 'She';
   return [
     beat.trim().replace(/\s+/g, ' '),
+    // A part with a line talks like a talking clip, while doing its beat.
+    line
+      ? `As ${who === 'He' ? 'he' : 'she'} does, ${who === 'He' ? 'he' : 'she'} says clearly, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
+      : '',
     setting
       ? `The place stays the same (${setting}), with the same light; one continuous shot.`
       : 'Same place and light as the first frames; one continuous shot.',
     'Same people and clothes; no one else appears.',
     'Camera: locked-off, the framing stays as wide as the first frames — no close-ups. Natural, smooth, continuous motion.',
-    'Only the sound of the room; nobody speaks.',
-  ].join(' ');
+    // "Nobody speaks" made LTX write digital silence (−91 dB, live 2026-10-10); describing the
+    // place's sound gives room tone and movement (peaks about −32 dB) and no speech — speech
+    // stays in the negative.
+    line
+      ? ''
+      : `Sound: the natural sound of ${setting ? `the ${setting.replace(/^(a|an|the)\s+/i, '')}` : 'the place'} — soft room tone, the small sounds of what is happening, footsteps and clothes moving.`,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 export function buildLtx25ExtendGraph(input: {
@@ -851,13 +868,20 @@ export function buildLtx25ExtendGraph(input: {
   longSide?: number;
   /** ReActor restore model for the face pass, when installed. */
   restoreFace?: string;
+  /** The part says a line: speech is no longer in the negative. */
+  speaks?: boolean;
 }): Workflow {
   const stub: Workflow = {
     '1': { class_type: 'LoadImage', inputs: { image: input.lastFrame } },
     '2': { class_type: 'CLIPTextEncode', inputs: { text: input.prompt, clip: ['9', 0] } },
     '3': {
       class_type: 'CLIPTextEncode',
-      inputs: { text: 'talking, speech, words, singing, cut, scene change', clip: ['9', 0] },
+      inputs: {
+        text: input.speaks
+          ? 'cut, scene change'
+          : 'talking, speech, words, singing, cut, scene change',
+        clip: ['9', 0],
+      },
     },
     '4': {
       class_type: 'WanImageToVideo',

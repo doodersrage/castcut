@@ -35,3 +35,25 @@ export function clipUrlIsVideo(
     (promptId ? gallery.find(item => item.promptId === promptId) : undefined);
   return entry ? entryFileIsVideo(entry) === true : false;
 }
+
+/**
+ * The clip is known to be a silent animated image (WAN's WebP / GIF) — what automatic Add voice
+ * may dub. Unknown is not silent: in a fresh browser the gallery is not loaded yet, and
+ * `!clipUrlIsVideo` then dubbed LTX talking clips over their spoken line (live, 2026-10-10).
+ */
+export function clipUrlIsAnimatedImage(
+  url: string | null | undefined,
+  options: { promptId?: string | null; gallery?: ComfyGalleryEntry[] } = {}
+): boolean {
+  const clip = url?.trim() ?? '';
+  if (!clip) return false;
+  if (VIDEO_EXT.test(clip)) return false;
+  if (ANIMATED_IMAGE_EXT.test(clip)) return true;
+  const gallery = options.gallery ?? loadComfyGallery();
+  const promptId = options.promptId?.trim();
+  const mediaId = clip.match(/\/api\/gallery\/media\/([^/?#]+)/)?.[1];
+  const entry =
+    (mediaId ? gallery.find(item => item.id === mediaId) : undefined) ??
+    (promptId ? gallery.find(item => item.promptId === promptId) : undefined);
+  return entry ? entryFileIsVideo(entry) === false : false;
+}

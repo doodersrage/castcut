@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Make it 30 s parts have sound.** Parts without a line came out as digital silence (LTX took *"nobody speaks"* literally); they now describe the place's sound — room tone, the small sounds of what is happening — and keep speech out through the negative only.
+- **Lines in a 30-second clip.** After *Write the beats*, each part of an LTX clip has an optional *Says…* line: that part speaks it, lip-synced, while doing its beat (the speech negative is dropped for it). WAN clips (two-person adult clips) cannot move lips to words — the sheet says so and their parts stay wordless.
+- **Fix: a voiced clip could turn silent again.** Day's gallery sync put back the URL of the clip's original render, so an *Add voice* (and now *Make it 30 s*) result could be replaced by the short, silent clip a moment later. A replaced clip now points at its own Gallery entry (the render's job is kept for *Make it 30 s* to replay), and "the clip changed while…" compares clip jobs, not URLs the sync rewrites.
+
 - **Long and voiced clips are kept in the Gallery.** *Make it 30 s* and *Add voice* results used to live only as a ComfyUI input file linked from the slot — not in the Gallery, and lost if ComfyUI's input folder was cleaned. They are now stored like any Gallery clip (kinds *Extend* and *Voice*, linked to the clip they came from) and the slot points at the kept copy.
 - **Make it 30 s survives leaving the page.** The job is remembered on the slot / scene: reload, switch tools or close the tab and it is picked up again when Day or Story opens (if the server restarted meanwhile, the slot says so and stops waiting).
 - **Make it 30 s waits its turn.** Its parts queue behind renders already waiting in ComfyUI instead of jumping ahead of them.

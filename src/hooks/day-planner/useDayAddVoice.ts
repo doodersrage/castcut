@@ -3,7 +3,7 @@
 import { keepClipInGallery } from '@/lib/clip-gallery-keep';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { clipUrlIsAnimatedImage } from '@/lib/clip-media-kind';
 import { requestClipVoice } from '@/lib/clip-voice';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { upsertDaySlotStill, type DaySlot } from '@/lib/day-planner';
@@ -38,7 +38,11 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
         });
         // Latest stills: other slots may have landed during the minute this took.
         const latest = stillsRef.current.find(entry => entry.slotId === slot.id);
-        if (!latest || latest.clipUrl?.trim() !== clipUrl) {
+        // Same clip = same clip job (the gallery sync may rewrite the URL of the same clip).
+        const same = still.clipPromptId?.trim()
+          ? latest?.clipPromptId?.trim() === still.clipPromptId.trim()
+          : latest?.clipUrl?.trim() === clipUrl;
+        if (!latest || !same) {
           return 'The clip changed while its voice was being made — try again.';
         }
         // Kept in the Gallery (not only as a ComfyUI input file).
@@ -51,7 +55,13 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
         });
         const now = stillsRef.current.find(entry => entry.slotId === slot.id) ?? latest;
         updateToolSettings({
-          stills: upsertDaySlotStill(stillsRef.current, { ...now, clipUrl: kept.url }),
+          stills: upsertDaySlotStill(stillsRef.current, {
+            ...now,
+            clipUrl: kept.url,
+            // The kept copy's entry: the gallery sync used to put the silent clip back.
+            clipPromptId: kept.promptId,
+            clipRenderPromptId: now.clipRenderPromptId ?? now.clipPromptId,
+          }),
         });
         return null;
       } catch (error) {
@@ -74,7 +84,8 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
       const still = stills.find(entry => entry.slotId === slot.id);
       const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
       if (!clipUrl || triedRef.current.has(clipUrl)) continue;
-      if (clipUrlIsVideo(clipUrl, { promptId: still?.clipPromptId })) continue;
+      if (still?.extendJobId) continue;
+      if (!clipUrlIsAnimatedImage(clipUrl, { promptId: still?.clipPromptId })) continue;
       triedRef.current.add(clipUrl);
       void addVoiceToSlot(slot);
       return;
