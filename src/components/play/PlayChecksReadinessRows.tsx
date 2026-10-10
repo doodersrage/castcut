@@ -12,6 +12,7 @@ const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; labe
   { key: 'review', label: 'Still review (vision model)' },
   { key: 'adultGate', label: 'Adult check (not an Auto-review switch)' },
   { key: 'talkFace', label: 'Talking-clip face pass (ReActor)' },
+  { key: 'filmScore', label: 'Score this film (ACE-Step 1.5)' },
 ];
 
 function Row({

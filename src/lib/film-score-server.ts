@@ -16,28 +16,40 @@ import {
   type FilmScoreBrief,
 } from './film-score';
 
+/** Whether this ComfyUI has the ACE-Step 1.5 nodes and model (null model: could not tell). */
+export async function probeFilmScore(
+  baseUrl: string,
+  options?: { fresh?: boolean }
+): Promise<{ nodes: boolean; model: boolean | null }> {
+  for (const node of ACE_STEP_REQUIRED_NODES) {
+    if (!(await resolveComfyNode(baseUrl, [node], options))) return { nodes: false, model: null };
+  }
+  const loader = await resolveComfyNode(baseUrl, ['CheckpointLoaderSimple'], options);
+  const spec = loader?.info.input?.required?.ckpt_name;
+  const names = Array.isArray(spec)
+    ? Array.isArray(spec[0])
+      ? spec[0]
+      : ((spec[1] as { options?: unknown } | undefined)?.options ?? [])
+    : null;
+  return {
+    nodes: true,
+    model: Array.isArray(names)
+      ? names.some(name => String(name).split(/[\\/]/).pop() === ACE_STEP_CHECKPOINT)
+      : null,
+  };
+}
+
 export async function renderFilmScore(input: {
   brief: FilmScoreBrief;
   cutSeconds: number;
   comfyUrl?: string;
 }): Promise<{ url: string; label: string; seconds: number }> {
   const baseUrl = comfyBaseUrl(input.comfyUrl);
-  for (const node of ACE_STEP_REQUIRED_NODES) {
-    if (!(await resolveComfyNode(baseUrl, [node]))) {
-      throw new Error('Scoring needs a newer ComfyUI (the ACE-Step 1.5 audio nodes).');
-    }
+  const probe = await probeFilmScore(baseUrl);
+  if (!probe.nodes) {
+    throw new Error('Scoring needs a newer ComfyUI (the ACE-Step 1.5 audio nodes).');
   }
-  const loader = await resolveComfyNode(baseUrl, ['CheckpointLoaderSimple']);
-  const spec = loader?.info.input?.required?.ckpt_name;
-  const options = Array.isArray(spec)
-    ? Array.isArray(spec[0])
-      ? spec[0]
-      : ((spec[1] as { options?: unknown } | undefined)?.options ?? [])
-    : [];
-  if (
-    Array.isArray(options) &&
-    !options.some(name => String(name).split(/[\\/]/).pop() === ACE_STEP_CHECKPOINT)
-  ) {
+  if (probe.model === false) {
     throw new Error(
       'Scoring needs the ACE-Step 1.5 model — download “ACE-Step 1.5 (film scores)” under Settings → ComfyUI → Models.'
     );

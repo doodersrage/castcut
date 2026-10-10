@@ -22,6 +22,8 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
   controlnet: ['models/controlnet'],
   // ReActor's face restore models (CodeFormer / GFPGAN).
   facerestore: ['models/facerestore_models'],
+  // LTX-2's two-pass upscaler (LatentUpscaleModelLoader).
+  latentupscale: ['models/latent_upscale_models'],
 };
 
 export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {

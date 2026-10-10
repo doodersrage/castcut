@@ -115,6 +115,11 @@ Four slots (Morning → Night) by default, with wardrobe, setting, and beat per 
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
+- **What sound needs** (Settings → ComfyUI → Models, filter LTX-2.5; Settings → Overview → Play checks shows what is missing):
+  - *Talking clips, conversations, Add voice:* the five LTX-2.5 files (distilled int8 transformer, Gemma 4 text encoder, video VAE, audio VAE, latent upscaler — about 39 GB). Lightricks gates them: accept the terms on huggingface.co/Lightricks/LTX-2.5 once, then set `HF_TOKEN`.
+  - *Kept Cast voice (optional):* the LTX-2.3 ID-LoRA.
+  - *Face pass (recommended):* ComfyUI-ReActor (Install in Play checks) and *CodeFormer face restore*.
+  - *Score this film:* *ACE-Step 1.5 (film scores)*, 10 GB, on ComfyUI's built-in audio nodes.
 - **Talking clips** — a slot (or Story scene) with a **Line in the clip** animates on LTX-2.5 with sound: the Cast says the line to the camera, lip-synced (about 5 s). *Suggest a line* writes one from the beat, the time of day, the mood and the Cast's personality (Intimate / Raunchy lines sound like the moment, not small talk). Two-person adult clips stay on WAN, which makes no sound — **Add voice** (⋯, or automatically for a slot with a line) gives the finished clip LTX's soundtrack with the picture untouched. Cut film keeps the speech and turns the music down under it.
 - **Conversations** — on a two-person (clothed) still, add *Their reply* under the line: the clip has the lead say the line and the other person answer, each in their own voice. *Suggest a reply* writes the answer.
 - **Score this film** (Cut options) — an original instrumental in the Day mood / Story tone, sized to the cut (ACE-Step 1.5, Settings → ComfyUI → Models).

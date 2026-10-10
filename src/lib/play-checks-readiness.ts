@@ -32,6 +32,8 @@ export type PlayChecksReadiness = {
   adultGate?: PlayCheckReadiness;
   /** The face pass on talking clips (ReActor + a CodeFormer / GFPGAN model); absent on older probes. */
   talkFace?: PlayCheckReadiness;
+  /** Score this film (ACE-Step 1.5 nodes + model); absent on older probes. */
+  filmScore?: PlayCheckReadiness;
 };
 
 export const DWPOSE_PACK = {
@@ -95,6 +97,8 @@ export function buildPlayChecksReadiness(input: {
   system?: { os?: string | null; embeddedPython?: boolean } | null;
   /** ReActorRestoreFace and the restore models it lists (null: not probed). */
   faceRestore?: { node: boolean; models: string[] } | null;
+  /** ACE-Step 1.5 nodes and model (null: not probed; model null: could not tell). */
+  filmScore?: { nodes: boolean; model: boolean | null } | null;
 }): PlayChecksReadiness {
   const { faceNodes, ffmpeg } = input;
   const faceMissing = [
@@ -158,9 +162,27 @@ export function buildPlayChecksReadiness(input: {
               detail:
                 'ReActor has no face restore model — download “CodeFormer face restore” under Settings → ComfyUI → Models',
             };
+  const score = input.filmScore;
+  const filmScore: PlayCheckReadiness | undefined = !score
+    ? undefined
+    : !input.comfyReachable
+      ? { ready: false, detail: 'ComfyUI unreachable' }
+      : !score.nodes
+        ? {
+            ready: false,
+            detail: 'ComfyUI is too old for the ACE-Step 1.5 audio nodes — update it',
+          }
+        : score.model === false
+          ? {
+              ready: false,
+              detail:
+                'no model — download “ACE-Step 1.5 (film scores)” under Settings → ComfyUI → Models (10 GB)',
+            }
+          : { ready: true, detail: 'ACE-Step 1.5 — Cut options → Score this film' };
   return {
     ...(review ? { review } : {}),
     ...(talkFace ? { talkFace } : {}),
+    ...(filmScore ? { filmScore } : {}),
     ...(adultGate ? { adultGate } : {}),
     comfyReachable: input.comfyReachable,
     pose: input.poseNode

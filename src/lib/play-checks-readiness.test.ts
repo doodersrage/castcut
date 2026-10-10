@@ -107,3 +107,24 @@ describe('talking-clip face pass check', () => {
     assert.equal(buildPlayChecksReadiness(base).talkFace, undefined);
   });
 });
+
+describe('film score readiness', () => {
+  const base = {
+    comfyReachable: true,
+    poseNode: null,
+    faceNodes: { models: true, distance: true, previewAny: true },
+    ffmpeg: { available: true, drawtext: true, font: true },
+  };
+  it('ready with the nodes and model, else says what to get', () => {
+    assert.equal(buildPlayChecksReadiness({ ...base, filmScore: { nodes: true, model: true } }).filmScore?.ready, true);
+    assert.match(
+      buildPlayChecksReadiness({ ...base, filmScore: { nodes: true, model: false } }).filmScore!.detail,
+      /ACE-Step 1\.5 \(film scores\)/
+    );
+    assert.match(
+      buildPlayChecksReadiness({ ...base, filmScore: { nodes: false, model: null } }).filmScore!.detail,
+      /update it/
+    );
+    assert.equal(buildPlayChecksReadiness(base).filmScore, undefined);
+  });
+});

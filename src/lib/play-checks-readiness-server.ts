@@ -2,6 +2,7 @@
  * Server-only: probe ComfyUI (object_info) and the local ffmpeg for Play's optional checks.
  */
 
+import { probeFilmScore } from './film-score-server';
 import { isLlmEnabled } from '@/lib/llm-client';
 import { detectVisionModel } from '@/lib/vision-model-auto';
 import { detectLmStudio } from '@/lib/vision-model-download-server';
@@ -79,6 +80,7 @@ export async function probePlayChecksReadiness(
     faceRestore: reachable
       ? { node: Boolean(reactor), models: restoreModelOptions(reactor?.info) }
       : null,
+    filmScore: reachable ? await probeFilmScore(baseUrl, { fresh: true }) : null,
   });
 }
 
