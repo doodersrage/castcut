@@ -49,10 +49,33 @@ export function suggestiveBeatIsImpliedNudity(beat: string | null | undefined): 
   return IMPLIED_NUDITY_RE.test(beat ?? '');
 }
 
+/**
+ * Implied nudity, covered by what the beat itself has. Live (2026-10-09, Rapid, open-shirt beats
+ * 2 of 2): the generic line's "a sheet or a towel" put a towel in her hands over the shirt — the
+ * line names only the cover the scene has.
+ */
+export function impliedNudityCoverageLine(beat: string | null | undefined): string {
+  const text = beat ?? '';
+  const tail = 'no nipples, no genitals and no bare bottom show.';
+  if (/\bshirt\b/i.test(text)) {
+    return `Implied nudity only: the shirt itself covers her chest and her hands hold nothing; ${tail}`;
+  }
+  if (/\bsheets?\b/i.test(text)) {
+    return `Implied nudity only: the sheet covers her chest; ${tail}`;
+  }
+  if (/\btowel\b/i.test(text)) {
+    return `Implied nudity only: the towel covers her chest; ${tail}`;
+  }
+  if (/\b(bath|bubbles|foam)\b/i.test(text)) {
+    return `Implied nudity only: bath foam covers her chest; ${tail}`;
+  }
+  return IMPLIED_NUDITY_COVERAGE_LINE;
+}
+
 /** The coverage line a Suggestive beat takes: clothed, or implied nudity. */
 export function suggestiveCoverageLine(beat: string | null | undefined): string {
   return suggestiveBeatIsImpliedNudity(beat)
-    ? IMPLIED_NUDITY_COVERAGE_LINE
+    ? impliedNudityCoverageLine(beat)
     : SUGGESTIVE_COVERAGE_LINE;
 }
 

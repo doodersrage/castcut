@@ -1,5 +1,6 @@
 'use client';
 
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
@@ -95,6 +96,7 @@ export function RoleplayStoryBeatCard({
   const edit = useStoryBeatEditActions();
   const [sheetOpen, setSheetOpen] = useState(false);
   const voice = useTakeCastVoice();
+  const [addVoiceNote, setAddVoiceNote] = useState<string | null>(null);
   const voiceKey = storyBeatKey(beat);
   const voiceNote = voice.noteFor(voiceKey);
   const takingVoice = voice.taking(voiceKey);
@@ -282,6 +284,27 @@ export function RoleplayStoryBeatCard({
                 })}
               </button>
             ) : null}
+            {edit &&
+            beat.clipStatus === 'completed' &&
+            beat.clipUrl?.trim() &&
+            !clipUrlIsVideo(beat.clipUrl, { promptId: beat.clipPromptId }) ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || Boolean(edit.voicingKey)}
+                title="Give this silent clip a soundtrack (and its line, if it has one) — the picture stays as it is."
+                data-testid="story-beat-add-voice"
+                onClick={() => {
+                  void edit
+                    .voiceBeatClip(beat)
+                    .then(error =>
+                      setAddVoiceNote(error ?? 'Voice added — the clip now has sound.')
+                    );
+                }}
+              >
+                {edit.voicingKey === storyBeatKey(beat) ? 'Adding voice…' : 'Add voice'}
+              </button>
+            ) : null}
             {canTakeVoice ? (
               <button
                 type="button"
@@ -332,6 +355,17 @@ export function RoleplayStoryBeatCard({
               data-testid="story-beat-line-shown"
             >
               “{beat.line.trim()}”
+            </p>
+          ) : null}
+          {edit?.voicingKey === storyBeatKey(beat) || addVoiceNote ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-add-voice-note"
+            >
+              {edit?.voicingKey === storyBeatKey(beat)
+                ? 'Adding voice… (about a minute)'
+                : addVoiceNote}
             </p>
           ) : null}
           {voiceNote ? (

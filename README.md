@@ -17,9 +17,11 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 1. **Pick or create a character** on Play (Cast)
 2. **Set the look** — Look → Outfit
 3. **Generate the stills** — Day slots (one Quality preset: Fast / Balanced / Best)
-4. **Animate** — I2V clips when you want motion
-5. **Cut film** — server ffmpeg or browser fallback
+4. **Animate** — I2V clips when you want motion; give a scene a **line** and the Cast says it (talking clips with sound, LTX-2.5), in a voice you auditioned on the Cast page
+5. **Cut film** — server ffmpeg (keeps clip speech, music ducked under it) or browser fallback
 6. **Save to Cast** — watch, keep, cut another
+
+**Consistency:** one face (the Cast plate), one dressed plate per outfit, and one home and workplace per Cast (**Places**), so a Day's bedroom, kitchen and office are the same rooms every time.
 
 **Flagship loop:** Cast → Look → Outfit → Day → (optional Story) → Gallery → **Cut film**.
 

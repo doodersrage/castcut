@@ -128,6 +128,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     watchPlaylist,
     activeSlot,
     character,
+    addVoiceToSlot,
+    voicingSlotId,
     hasPlate,
     plate,
     isolateSubject,
@@ -843,6 +845,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onOpenStill={openProgressLightbox}
           onRetrySlot={slot => void queueSlot(slot)}
           onAnimateSlot={slot => void animateSlot(slot)}
+          onAddVoice={addVoiceToSlot}
+          voicingSlotId={voicingSlotId}
           onQueueSlot={slot => void queueSlot(slot)}
           onRerollSlot={slot => {
             rerollActiveSlotScene({ slotId: slot.id });

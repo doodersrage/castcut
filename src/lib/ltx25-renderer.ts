@@ -544,3 +544,142 @@ export function buildLtx25TalkingClipGraph(input: {
   if (!converted) throw new Error(reason ?? 'Could not build the talking clip.');
   return workflow;
 }
+
+/** The SaveVideo node a dubbed clip comes out of (see buildLtx25DubGraph). */
+export const LTX25_DUB_SAVE_NODE = '25';
+
+/** LTX frame counts are 8k+1: the most a clip of `frames` (at 24 fps) can give without padding. */
+export function ltx25DubFrames(frames: number): number {
+  return Math.max(9, 8 * Math.floor((Math.max(9, Math.floor(frames)) - 1) / 8) + 1);
+}
+
+/**
+ * Add a soundtrack to a finished clip without touching its picture ("Add voice"): the clip is
+ * VAE-encoded and frozen (LTXVFreezeLatent), and LTX-2.5 denoises only the audio latent, from the
+ * prompt (scene + the quoted line) and what it sees. The output muxes the clip's own frames with
+ * the new sound. For two-person adult clips, which stay on WAN (LTX drifts off the act) and are
+ * silent. Live (2026-10-09): a WAN straddle clip, 39 s, the line heard word for word.
+ */
+export function buildLtx25DubGraph(input: {
+  /** ComfyUI input video (24 fps, `frames` long). */
+  video: string;
+  prompt: string;
+  frames: number;
+  /** Encode size (multiples of 32); the output keeps the clip's own frames. */
+  width: number;
+  height: number;
+  seed: number;
+  prefix: string;
+}): Workflow {
+  const F = LTX25_FILES;
+  return {
+    '1': {
+      class_type: 'UNETLoader',
+      inputs: { unet_name: F.transformer, weight_dtype: 'default' },
+    },
+    '2': {
+      class_type: 'CLIPLoader',
+      inputs: { clip_name: F.textEncoder, type: 'ltxv', device: 'default' },
+    },
+    '3': { class_type: 'VAELoader', inputs: { vae_name: F.videoVae } },
+    '4': { class_type: 'VAELoader', inputs: { vae_name: F.audioVae } },
+    '5': { class_type: 'CLIPTextEncode', inputs: { clip: ['2', 0], text: input.prompt } },
+    '6': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        clip: ['2', 0],
+        text: 'music, background music, distorted audio, robotic voice, silence',
+      },
+    },
+    '7': {
+      class_type: 'LTXVConditioning',
+      inputs: { positive: ['5', 0], negative: ['6', 0], frame_rate: LTX25_FPS },
+    },
+    '10': { class_type: 'LoadVideo', inputs: { file: input.video } },
+    '11': { class_type: 'GetVideoComponents', inputs: { video: ['10', 0] } },
+    '12': {
+      class_type: 'ImageScale',
+      inputs: {
+        image: ['11', 0],
+        upscale_method: 'lanczos',
+        width: input.width,
+        height: input.height,
+        crop: 'center',
+      },
+    },
+    '13': { class_type: 'VAEEncode', inputs: { pixels: ['12', 0], vae: ['3', 0] } },
+    '14': { class_type: 'LTXVFreezeLatent', inputs: { latent: ['13', 0] } },
+    '15': {
+      class_type: 'LTXVEmptyLatentAudio',
+      inputs: {
+        frames_number: input.frames,
+        frame_rate: LTX25_FPS,
+        batch_size: 1,
+        audio_vae: ['4', 0],
+      },
+    },
+    '16': {
+      class_type: 'LTXVConcatAVLatent',
+      inputs: { video_latent: ['14', 0], audio_latent: ['15', 0] },
+    },
+    '17': {
+      class_type: 'LTXVDualCFGGuider',
+      inputs: {
+        model: ['1', 0],
+        positive: ['7', 0],
+        negative: ['7', 1],
+        video_cfg: 1,
+        audio_cfg: 1,
+      },
+    },
+    '18': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler_ancestral' } },
+    '19': {
+      class_type: 'ManualSigmas',
+      inputs: { sigmas: '1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0' },
+    },
+    '20': { class_type: 'RandomNoise', inputs: { noise_seed: input.seed } },
+    '21': {
+      class_type: 'SamplerCustomAdvanced',
+      inputs: {
+        noise: ['20', 0],
+        guider: ['17', 0],
+        sampler: ['18', 0],
+        sigmas: ['19', 0],
+        latent_image: ['16', 0],
+      },
+    },
+    '22': { class_type: 'LTXVSeparateAVLatent', inputs: { av_latent: ['21', 0] } },
+    '23': { class_type: 'LTXVAudioVAEDecode', inputs: { samples: ['22', 1], audio_vae: ['4', 0] } },
+    '24': {
+      class_type: 'CreateVideo',
+      inputs: { images: ['11', 0], fps: LTX25_FPS, audio: ['23', 0] },
+    },
+    [LTX25_DUB_SAVE_NODE]: {
+      class_type: 'SaveVideo',
+      inputs: { video: ['24', 0], filename_prefix: input.prefix, format: 'mp4', codec: 'h264' },
+    },
+  };
+}
+
+/** The dub prompt: the scene, then the line as it would be said at that heat. */
+export function dubPrompt(input: {
+  scene: string;
+  line?: string;
+  heat?: 'clean' | 'flirty' | 'sensual' | 'explicit';
+  lead?: 'woman' | 'man';
+}): string {
+  const who = input.lead === 'man' ? 'He' : 'She';
+  const scene = input.scene.trim().replace(/[.\s]+$/, '');
+  const line = normalizeSpokenLine(input.line);
+  const hot = input.heat === 'sensual' || input.heat === 'explicit';
+  const said = line
+    ? hot
+      ? `${who} moans softly and whispers breathlessly, "${line}"`
+      : `${who} says clearly, "${line}"`
+    : hot
+      ? `${who} breathes heavily and moans softly.`
+      : '';
+  return [`${scene}.`, said, hot ? 'Close, intimate sounds, a quiet room.' : 'Natural room sound.']
+    .filter(Boolean)
+    .join(' ');
+}

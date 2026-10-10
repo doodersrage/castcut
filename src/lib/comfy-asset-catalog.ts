@@ -805,6 +805,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
 
   // ── LTX Video ─────────────────────────────────────────────────────
   {
+    id: 'ltx-2.3-id-lora-talkvid',
+    label: 'LTX ID-LoRA (Cast voices)',
+    kind: 'lora',
+    filename: 'ltx-2.3-id-lora-talkvid-3k.safetensors',
+    url: 'https://huggingface.co/AviadDahan/LTX-2.3-ID-LoRA-TalkVid-3K/resolve/main/lora_weights.safetensors',
+    bytes: 1157884304,
+    modelIds: ['ltx-video-2.5'],
+    notes:
+      'Keeps a Cast voice in talking clips (Cast → Voice). Trained on LTX-2.3; on LTX-2.5 it pulls the voice toward the sample. LTX-2 Community License.',
+  },
+  {
     id: 'ltx-video-2b-098-distilled',
     label: 'LTX Video 2B 0.9.8 distilled',
     kind: 'checkpoint',

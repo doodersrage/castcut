@@ -255,6 +255,7 @@ export function useRoleplayToolOrchestration() {
 
   const beatEdit = useStoryBeatEdit({
     storyRef,
+    story: toolSettings.story,
     updateToolSettings,
     bio,
     requestBody,

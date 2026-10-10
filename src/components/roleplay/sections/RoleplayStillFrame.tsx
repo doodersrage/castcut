@@ -1,5 +1,6 @@
 'use client';
 
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { type MouseEvent } from 'react';
 import { Spinner } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
@@ -51,7 +52,11 @@ export function RoleplayStillFrame({
   const completedUrl = beat.stillStatus === 'completed' ? beat.imageUrl : undefined;
   const clipUrl = beatMotionUrl(beat) ?? '';
   const motionClip = Boolean(clipUrl && looksLikeMotionUrl(clipUrl));
-  const playHtmlVideo = Boolean(clipUrl && isHtmlVideoViewUrl(clipUrl));
+  // Controls on real videos (talking clips have sound to unmute); gallery URLs carry no extension.
+  const playHtmlVideo = Boolean(
+    clipUrl &&
+    (isHtmlVideoViewUrl(clipUrl) || clipUrlIsVideo(clipUrl, { promptId: beat.clipPromptId }))
+  );
   const openableUrl = beatPreviewUrl(beat, liveUrl);
   const displayUrl = beatPreviewUrl(beat, liveUrl) || lastCompletedRoleplayStillUrl(beat);
   const frameUrl = displayUrl;

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { fetchComfyLoraInventory } from '@/lib/comfyui-object-info-cache';
+import { LTX25_ID_LORA } from '@/lib/ltx25-renderer';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
@@ -36,6 +38,21 @@ export default function CastVoiceSection({
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // Without the ID-LoRA a kept voice changes nothing (the clips skip it) — say so.
+  const [idLora, setIdLora] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchComfyLoraInventory()
+      .then(loras => {
+        if (!cancelled && loras) {
+          setIdLora(loras.some(name => name.split(/[\\/]/).pop() === LTX25_ID_LORA));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refresh = () => {
     const next = getCharacter(character.id);
@@ -84,6 +101,15 @@ export default function CastVoiceSection({
       data-testid="cast-voice-section"
     >
       <div className="space-y-3">
+        {idLora === false ? (
+          <p
+            className="type-caption text-[var(--tint-warning-text)]"
+            data-testid="cast-voice-needs-lora"
+          >
+            Talking clips only keep a voice with the LTX ID-LoRA — install “LTX ID-LoRA (Cast
+            voices)” under Settings → ComfyUI → Models. Auditions work without it.
+          </p>
+        ) : null}
         {voice ? (
           <div className="flex flex-wrap items-center gap-2" data-testid="cast-voice-current">
             <audio

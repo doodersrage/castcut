@@ -1,5 +1,6 @@
 'use client';
 
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
@@ -48,6 +49,13 @@ export type DaySlotBoardProps = {
   /** A finished still opens full size (the lightbox) on tap. */
   onOpenStill?: (slotId: DaySlotId) => void;
   onRetrySlot?: (slot: DaySlot) => void;
+  /**
+   * Add voice to a finished silent clip (two-person adult clips render on WAN, without sound).
+   * Resolves to an error message, or null when the slot now has the voiced clip.
+   */
+  onAddVoice?: (slot: DaySlot) => Promise<string | null>;
+  /** The slot Day is adding a voice to right now (a tap or the automatic pass). */
+  voicingSlotId?: string | null;
   onAnimateSlot?: (slot: DaySlot) => void;
   onRerollSlot?: (slot: DaySlot) => void;
   /** Queue this slot only (an unrendered slot's ⋯ menu). */
@@ -91,6 +99,8 @@ export default function DaySlotBoard({
   onOpenStill,
   onRetrySlot,
   onAnimateSlot,
+  onAddVoice,
+  voicingSlotId = null,
   onRerollSlot,
   onQueueSlot,
   qualityLedger,
@@ -101,6 +111,17 @@ export default function DaySlotBoard({
   onFixArea,
 }: DaySlotBoardProps) {
   const voice = useTakeCastVoice();
+  const [tapVoicing, setVoicing] = useState<string | null>(null);
+  const voicing = tapVoicing ?? voicingSlotId;
+  const [voicedNote, setVoicedNote] = useState<{ slotId: string; text: string } | null>(null);
+  const addVoice = async (slot: DaySlot) => {
+    if (!onAddVoice) return;
+    setVoicing(slot.id);
+    setVoicedNote(null);
+    const error = await onAddVoice(slot);
+    setVoicing(null);
+    setVoicedNote({ slotId: slot.id, text: error ?? 'Voice added — the clip now has sound.' });
+  };
   const promptKey = useMemo(
     () =>
       stills
@@ -305,6 +326,21 @@ export default function DaySlotBoard({
                 }}
               >
                 Queue this slot only
+              </button>
+            ) : null}
+            {onAddVoice &&
+            clipState === 'done' &&
+            doneClip &&
+            !clipUrlIsVideo(doneClip, { promptId: still?.clipPromptId }) ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || voicing !== null}
+                title="Give this silent clip a soundtrack (and its line, if it has one) — the picture stays as it is."
+                data-testid={`day-progress-add-voice-${slot.id}`}
+                onClick={() => void addVoice(slot)}
+              >
+                {voicing === slot.id ? 'Adding voice…' : 'Add voice'}
               </button>
             ) : null}
             {slot.line?.trim() && clipState === 'done' && doneClip ? (
@@ -610,6 +646,15 @@ export default function DaySlotBoard({
                     data-testid={`day-progress-clip-${slot.id}`}
                   >
                     Clip failed
+                  </p>
+                ) : null}
+                {voicing === slot.id || voicedNote?.slotId === slot.id ? (
+                  <p
+                    className="type-caption mt-1 text-[var(--text-muted)]"
+                    role="status"
+                    data-testid={`day-progress-add-voice-note-${slot.id}`}
+                  >
+                    {voicing === slot.id ? 'Adding voice… (about a minute)' : voicedNote?.text}
                   </p>
                 ) : null}
                 {voice.noteFor(slot.id) ? (

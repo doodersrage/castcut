@@ -115,6 +115,10 @@ Four slots (Morning → Night) by default, with wardrobe, setting, and beat per 
 
 Deep links: `/day?character=<id>&wardrobe=<kit>` · Look handoff: `?from=look`.
 
+- **Talking clips** — a slot (or Story scene) with a **Line in the clip** animates on LTX-2.5 with sound: the Cast says the line to the camera, lip-synced (about 5 s). *Suggest a line* writes one from the beat, the time of day, the mood and the Cast's personality (Intimate / Raunchy lines sound like the moment, not small talk). Two-person adult clips stay on WAN, which makes no sound — **Add voice** (⋯, or automatically for a slot with a line) gives the finished clip LTX's soundtrack with the picture untouched. Cut film keeps the speech and turns the music down under it.
+- **Voice** (Cast → Bible) — *Audition voices* renders four short clips of the Cast saying hello in different voices; keep one (or *Use this voice* on any talking clip) and nudge it *Deeper* / *Higher*. Later talking clips are steered toward it with the **LTX ID-LoRA** (Settings → ComfyUI → Models).
+- **Places** (Cast → Bible) — every Cast has one home and one workplace; any still set in one of their rooms (bedroom, kitchen, living room, bathroom, hallway, balcony; desk, meeting room, office kitchen) uses that place's look, so the rooms match from slot to slot. Pick another design, describe your own, or turn it off. Clothed moods and Story; not Intimate / Raunchy yet.
+
 ### 5. Story (`/story`)
 
 **Optional** after the first Day cut: continues the Cast lead you started on Film (no re-casting).

@@ -1,5 +1,7 @@
 'use client';
 
+import { withCastPlace } from '@/lib/cast-places';
+import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { useCallback, type MutableRefObject } from 'react';
 import { getCharacter } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
@@ -63,7 +65,13 @@ export function useRoleplayRequestBody({
         customPersona: toolSettings.customPersona,
         characterName: toolSettings.characterName,
         extraHints: toolSettings.extraHints,
-        setting: toolSettings.setting,
+        // Her home / office look the same in every scene set there (cast-places.ts).
+        setting:
+          withCastPlace(
+            toolSettings.setting,
+            getCharacter(shared.activeCharacterId),
+            leadIsMan() ? 'man' : 'woman'
+          ) ?? toolSettings.setting,
         tone,
         content,
         allowGore: toolSettings.allowGore,

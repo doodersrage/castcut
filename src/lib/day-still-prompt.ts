@@ -682,13 +682,12 @@ export function buildDaySlotPromptForStill(
     sameSexPartner && slot.sceneHints
       ? { ...slot, sceneHints: sameSexPartnerBeat(slot.sceneHints) }
       : slot;
-  // Her home and office look the same in every still (cast-places.ts). Clothed moods only for
-  // now: the adult recipes are short on purpose (long briefs cost Rapid its poses).
+  // Her home and office look the same in every still (cast-places.ts). Clothed moods only: the
+  // adult recipes pick and write their own rooms (live 2026-10-09: the place never reached an
+  // Intimate prompt), and they are short on purpose. Written for a woman like the rest of the
+  // brief — a man lead's prompt is swapped whole.
   const setting = resolveRoleplaySetting(beatSlot.location, state.lockedLocation);
-  const placed = isDayAdultMood(dayMood)
-    ? setting
-    : // Written for a woman like the rest of the brief — a man lead's prompt is swapped whole.
-      withCastPlace(setting, state.character);
+  const placed = isDayAdultMood(dayMood) ? setting : withCastPlace(setting, state.character);
   const placedSlot = placed && placed !== setting ? { ...beatSlot, location: placed } : beatSlot;
   return buildDaySlotPrompt({
     // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).

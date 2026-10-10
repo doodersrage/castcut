@@ -136,6 +136,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     watchPlaylist,
     activeSlot,
     character,
+    addVoiceToSlot,
+    voicingSlotId,
     selectedModel,
     plate,
     hasPlate,
@@ -896,6 +898,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onOpenStill={openProgressLightbox}
             onRetrySlot={slot => void queueSlot(slot, { byPlayer: true })}
             onAnimateSlot={slot => void animateSlot(slot)}
+            onAddVoice={addVoiceToSlot}
+            voicingSlotId={voicingSlotId}
             onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
             onRerollSlot={slot => {
               rerollActiveSlotScene({ slotId: slot.id });

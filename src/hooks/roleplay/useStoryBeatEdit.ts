@@ -1,6 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { requestClipVoice } from '@/lib/clip-voice';
+import { spokenLineHeat } from '@/lib/spoken-line';
+import { loadSettingsCache } from '@/lib/settings-cache';
+import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { normalizeSpokenLine } from '@/lib/ltx25-renderer';
 import {
   storyBeatKey,
@@ -26,6 +31,8 @@ import type { RoleplayToolCache } from '@/lib/play-settings';
 
 type UseStoryBeatEditOptions = {
   storyRef: MutableRefObject<RoleplayStoryBeat[]>;
+  /** The story as rendered — watched for silent clips with a line (automatic Add voice). */
+  story?: RoleplayStoryBeat[];
   updateToolSettings: (patch: Partial<RoleplayToolCache>) => void;
   bio: RoleplayBio | undefined;
   requestBody: (
@@ -49,6 +56,13 @@ export type StoryBeatEditActions = {
   saveBeatText: (beat: RoleplayStoryBeat, text: { title: string; blurb: string }) => boolean;
   /** Set (or clear) what the lead says in the scene's clip. */
   saveBeatLine: (beat: RoleplayStoryBeat, line: string) => void;
+  /**
+   * Give a finished silent clip a soundtrack (and the scene's line) — two-person adult clips
+   * render on WAN without sound. Resolves to an error message, or null when done.
+   */
+  voiceBeatClip: (beat: RoleplayStoryBeat) => Promise<string | null>;
+  /** The scene whose clip is getting its voice, if any (see `storyBeatKey`). */
+  voicingKey: string | null;
   /** Write the scene's still again from its text and queue it. */
   rewriteBeat: (beat: RoleplayStoryBeat) => Promise<void>;
   /** The scene being written again, if any (see `storyBeatKey`). */
@@ -61,6 +75,7 @@ export type StoryBeatEditActions = {
  */
 export function useStoryBeatEdit({
   storyRef,
+  story,
   updateToolSettings,
   bio,
   requestBody,
@@ -157,9 +172,56 @@ export function useStoryBeatEdit({
     [bio, commitStill, referenceMissingMessage, requestBody, setError, storyRef, updateToolSettings]
   );
 
+  const [voicingKey, setVoicingKey] = useState<string | null>(null);
+  const voiceBeatClip = useCallback(
+    async (beat: RoleplayStoryBeat): Promise<string | null> => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      const clipUrl = latest?.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
+      if (!latest || !clipUrl) return 'This scene has no finished clip.';
+      setVoicingKey(storyBeatKey(latest));
+      try {
+        const url = await requestClipVoice({
+          clipUrl,
+          scene: `${latest.title}. ${latest.blurb}`,
+          line: latest.line,
+          heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+          lead: leadIsMan() ? 'man' : 'woman',
+        });
+        const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+        if (!now || now.clipUrl?.trim() !== clipUrl) {
+          return 'The clip changed while its voice was being made — try again.';
+        }
+        updateToolSettings({
+          story: patchRoleplayStoryBeat(storyRef.current, now, { clipUrl: url }),
+        });
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Add voice failed.';
+      } finally {
+        setVoicingKey(null);
+      }
+    },
+    [storyRef, updateToolSettings]
+  );
+
+  // A scene with a line whose clip came back silent (WAN): add the voice without a tap. Once per
+  // clip, one at a time.
+  const triedVoiceRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (voicingKey || !story) return;
+    for (const entry of story) {
+      const clipUrl = entry.clipStatus === 'completed' ? entry.clipUrl?.trim() : '';
+      if (!entry.line?.trim() || !clipUrl || triedVoiceRef.current.has(clipUrl)) continue;
+      if (clipUrlIsVideo(clipUrl, { promptId: entry.clipPromptId })) continue;
+      triedVoiceRef.current.add(clipUrl);
+      void voiceBeatClip(entry);
+      return;
+    }
+  }, [story, voiceBeatClip, voicingKey]);
+
   // One object per change: it is a context value, and every card in the reel reads it.
   return useMemo(
-    () => ({ saveBeatText, saveBeatLine, rewriteBeat, rewritingKey }),
-    [rewriteBeat, rewritingKey, saveBeatLine, saveBeatText]
+    () => ({ saveBeatText, saveBeatLine, voiceBeatClip, voicingKey, rewriteBeat, rewritingKey }),
+    [rewriteBeat, rewritingKey, saveBeatLine, saveBeatText, voiceBeatClip, voicingKey]
   );
 }

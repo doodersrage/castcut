@@ -1,4 +1,5 @@
 import type {
+  Ref,
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
@@ -28,7 +29,10 @@ export function FieldLabel({
   );
 }
 
-export function TextInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function TextInput({
+  className = '',
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { ref?: Ref<HTMLInputElement> }) {
   return <input className={`${inputClassName} ${className}`.trim()} {...props} />;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { TextInput } from '@/components/ui/Field';
 import { normalizeSpokenLine, SPOKEN_LINE_MAX_CHARS } from '@/lib/ltx25-renderer';
 
@@ -34,6 +34,7 @@ export default function SpokenLineField({
   note?: string;
 }) {
   const [value, setValue] = useState(line ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const commit = (raw = value) => {
@@ -52,6 +53,9 @@ export default function SpokenLineField({
       setError(err instanceof Error ? err.message : 'Could not suggest a line.');
     } finally {
       setAsking(false);
+      // The tapped button was disabled while writing, which drops focus out of the sheet (and
+      // Escape stops closing it) — put it back in the field.
+      requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
   return (
@@ -60,6 +64,7 @@ export default function SpokenLineField({
         Line in the clip (optional)
       </label>
       <TextInput
+        ref={inputRef}
         id={`${testId}-input`}
         value={value}
         disabled={disabled || asking}
