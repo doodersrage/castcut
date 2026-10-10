@@ -406,6 +406,7 @@ function injectPromptsIntoWorkflow(
     availableVaes?: string[] | null;
     availableClips?: string[] | null;
     availableLoras?: string[] | null;
+    availableFaceRestoreModels?: string[] | null;
     supportsNeuralUpscaleTileSize?: boolean;
     availableNodeTypes?: Iterable<string> | null;
     webpSaveAdapters?: import('./workflow-save-format').WebpSaveAdapter[] | null;
@@ -522,6 +523,7 @@ function injectPromptsIntoWorkflow(
       availableVaes: enrichInventory?.availableVaes,
       availableClips: enrichInventory?.availableClips,
       availableLoras: enrichInventory?.availableLoras,
+      availableFaceRestoreModels: enrichInventory?.availableFaceRestoreModels,
       qualityProfile: runtime?.queueQualityProfile,
       loraLibrary: runtime?.loraLibrary,
       availableNodeTypes: enrichInventory?.availableNodeTypes,
@@ -615,6 +617,7 @@ export async function queuePromptToComfyUi(
             availableVaes: objectInfo?.models.vaes,
             availableClips: objectInfo?.models.clips,
             availableLoras: objectInfo?.models.loras,
+            availableFaceRestoreModels: objectInfo?.models.faceRestoreModels,
             supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
             availableNodeTypes: objectInfo?.nodeTypes,
             webpSaveAdapters: objectInfo?.webpSaveAdapters,
@@ -743,6 +746,7 @@ export async function queuePromptToComfyUi(
           availableVaes: objectInfo?.models.vaes,
           availableClips: objectInfo?.models.clips,
           availableLoras: objectInfo?.models.loras,
+          availableFaceRestoreModels: objectInfo?.models.faceRestoreModels,
           supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
           availableNodeTypes: objectInfo?.nodeTypes,
           webpSaveAdapters: objectInfo?.webpSaveAdapters,

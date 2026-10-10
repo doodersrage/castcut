@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Talking clips get a face pass.** LTX-2.5's fast model still smeared her mouth in some frames while she talked (user: "still a little facial distortion"). When ComfyUI has ReActor with CodeFormer (or GFPGAN), each talking clip's frames go through it at visibility 0.6 / fidelity 0.7 before the sound is added. Replaying the user's clip on its seed: the smeared and blurred frames came out sharp, same face, no added flicker (frame-to-frame jitter 0.893 → 0.883), lip-sync unchanged. More refine steps, no start-frame compression or no voice did not help. Without ReActor the clip is unchanged.
+
 - **Full-frame talking clips render larger.** With *Keep the full frame* (or a still that isn't cropped) the face was about 60 px in a 768-px clip and the moving mouth smeared (user: "back to getting the face distortion"). Those clips now render with a 1152-px long side: replaying the user's clip on its seed, the face and mouth stayed clean (about 63 s instead of 45 s). Chest-up clips stay at 768.
 
 - **Keep the full frame.** A Day slot or Story scene with a line has a *Keep the full frame* switch: its talking clip animates the whole still instead of starting chest-up when her face is small. For cuts where the wide framing matters more than readable lips.

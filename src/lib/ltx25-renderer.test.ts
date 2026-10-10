@@ -241,6 +241,19 @@ describe('LTX-2.5 talking clips', () => {
     assert.notEqual(clipEngineForShot('ltx-video-2.5', { adultDuo: true, speaking: true }), 'ltx-video-2.5');
   });
 
+  it('a talking clip gets the face pass when a restore model is installed', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+      speech: { restoreFace: 'codeformer-v0.1.0.pth' },
+    }) as { workflow: G };
+    const face = byClass(workflow, 'ReActorRestoreFace')[0]!;
+    assert.deepEqual(face.inputs!.image, ['29', 0]);
+    assert.equal(face.inputs!.visibility, 0.6);
+    assert.equal(face.inputs!.codeformer_weight, 0.7);
+    assert.deepEqual(byClass(workflow, 'CreateVideo')[0]!.inputs!.images, ['59', 0]);
+    const plain = convertVideoWorkflowToLtx25(wanClipGraph(), { speech: {} }) as { workflow: G };
+    assert.equal(byClass(plain.workflow, 'ReActorRestoreFace').length, 0);
+  });
+
   it('a full-frame talking clip renders at a larger long side', () => {
     const big = convertVideoWorkflowToLtx25(wanClipGraph(), { sizeFromStill: true, longSide: 1152 })
       .workflow as Record<string, { inputs?: Record<string, unknown> }>;

@@ -20,6 +20,8 @@ export type ComfyUiModelLists = {
   clipVisions?: string[];
   /** Textual-inversion embedding stems from `GET /embeddings`. */
   embeddings?: string[];
+  /** ReActor face restore models (CodeFormer / GFPGAN) — the talking-clip face pass. */
+  faceRestoreModels?: string[];
 };
 
 function readNodeInputOptions(
@@ -111,6 +113,9 @@ export function parseComfyObjectInfoModelLists(
     ],
     controlNets: readNodeInputOptions(objectInfo, 'ControlNetLoader', 'control_net_name'),
     clipVisions: readNodeInputOptions(objectInfo, 'CLIPVisionLoader', 'clip_name'),
+    faceRestoreModels: readNodeInputOptions(objectInfo, 'ReActorRestoreFace', 'model').filter(
+      name => name !== 'none'
+    ),
     embeddings: [],
   };
 }
@@ -185,6 +190,7 @@ function cloneObjectInfoPayload(payload: ComfyObjectInfoPayload): ComfyObjectInf
       loras: [...payload.models.loras],
       controlNets: [...payload.models.controlNets],
       clipVisions: [...(payload.models.clipVisions ?? [])],
+      faceRestoreModels: [...(payload.models.faceRestoreModels ?? [])],
       embeddings: [...(payload.models.embeddings ?? [])],
     },
     nodeTypes: new Set(payload.nodeTypes),

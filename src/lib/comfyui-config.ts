@@ -5,6 +5,7 @@ import {
   LTX25_SPEECH_NODES,
   LTX25_VOICE_NODE,
   LTX25_ID_LORA,
+  LTX25_FACE_RESTORE_NODE,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -1385,6 +1386,8 @@ export function injectPromptsWithFallbacks(
     availableVaes?: string[] | null;
     availableClips?: string[] | null;
     availableLoras?: string[] | null;
+    /** ReActor face restore models — a talking clip's face pass when one is installed. */
+    availableFaceRestoreModels?: string[] | null;
     qualityProfile?: QueueQualityProfile;
     samplerPresetTier?: ModelSamplerPresetTier;
     /** Active LoRA stack (strengths/enabled/order) — patched at queue time (incl. Lightning). */
@@ -1894,7 +1897,10 @@ export function injectPromptsWithFallbacks(
         ...(input.params?.videoSpeech === 'on' &&
         (!nodeTypes || LTX25_SPEECH_NODES.every(type => nodeTypes.has(type)))
           ? {
-              speech: ltx25SpeechOptions(input.params?.videoVoiceSample, nodeTypes, options),
+              speech: {
+                ...ltx25SpeechOptions(input.params?.videoVoiceSample, nodeTypes, options),
+                ...ltx25FaceRestoreOption(nodeTypes, options),
+              },
             }
           : {}),
       });
@@ -2223,4 +2229,16 @@ function ltx25SpeechOptions(
   );
   // Without the ID-LoRA the sample made no measurable difference — skip the extra pass.
   return idLora ? { voiceSample: sample, idLora } : {};
+}
+
+/** The face pass for a talking clip: CodeFormer (else GFPGAN) through ReActor, when installed. */
+function ltx25FaceRestoreOption(
+  nodeTypes: Set<string> | null,
+  options: { availableFaceRestoreModels?: string[] | null } | undefined
+): { restoreFace?: string } {
+  if (!nodeTypes?.has(LTX25_FACE_RESTORE_NODE)) return {};
+  const models = options?.availableFaceRestoreModels ?? [];
+  const model =
+    models.find(name => /codeformer/i.test(name)) ?? models.find(name => /gfpgan/i.test(name));
+  return model ? { restoreFace: model } : {};
 }

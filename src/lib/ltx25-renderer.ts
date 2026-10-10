@@ -47,6 +47,14 @@ export const LTX25_ID_LORA = 'ltx-2.3-id-lora-talkvid-3k.safetensors';
 /** ID-LoRA strength (first pass only, see addLtx25Speech): 1.0 warped faces on LTX-2.5. */
 export const LTX25_ID_LORA_STRENGTH = 0.5;
 
+/**
+ * Face pass on talking clips (ReActor CodeFormer). LTX-2.5's fast model smears the mouth in some
+ * frames while she talks; replaying the user's clip on its seed, CodeFormer at visibility 0.6 /
+ * fidelity 0.7 cleaned those frames, same face, no added flicker (frame-to-frame jitter 0.893 →
+ * 0.883), lip-sync unchanged. More refine steps, no start-frame compression or no voice did not.
+ */
+export const LTX25_FACE_RESTORE_NODE = 'ReActorRestoreFace';
+
 export const LTX25_FPS = 24;
 const LTX25_NEGATIVE = 'pc game, console game, video game, cartoon, childish, ugly';
 /** Long side of the full-size (second pass) clip. */
@@ -195,7 +203,7 @@ export function convertVideoWorkflowToLtx25(
      * `voiceSample` (a ComfyUI input audio file, ~5 s) steers the voice; `idLora` is the
      * ID-LoRA file to apply with it (without it the sample does nothing measurable).
      */
-    speech?: { voiceSample?: string; idLora?: string };
+    speech?: { voiceSample?: string; idLora?: string; restoreFace?: string };
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
@@ -446,7 +454,7 @@ function addLtx25EndGuide(next: Workflow, endImage: string): void {
  */
 function addLtx25Speech(
   next: Workflow,
-  speech: { voiceSample?: string; idLora?: string },
+  speech: { voiceSample?: string; idLora?: string; restoreFace?: string },
   prefix: string
 ): void {
   const voiceSample = speech.voiceSample?.trim();
@@ -495,9 +503,22 @@ function addLtx25Speech(
     class_type: 'LTXVAudioVAEDecode',
     inputs: { samples: ['28', 1], audio_vae: ['4', 0] },
   };
+  const restoreFace = speech.restoreFace?.trim();
+  if (restoreFace) {
+    next['59'] = {
+      class_type: LTX25_FACE_RESTORE_NODE,
+      inputs: {
+        image: ['29', 0],
+        facedetection: 'retinaface_resnet50',
+        model: restoreFace,
+        visibility: 0.6,
+        codeformer_weight: 0.7,
+      },
+    };
+  }
   next['55'] = {
     class_type: 'CreateVideo',
-    inputs: { images: ['29', 0], fps: LTX25_FPS, audio: ['54', 0] },
+    inputs: { images: restoreFace ? ['59', 0] : ['29', 0], fps: LTX25_FPS, audio: ['54', 0] },
   };
   next['56'] = {
     class_type: 'SaveVideo',
