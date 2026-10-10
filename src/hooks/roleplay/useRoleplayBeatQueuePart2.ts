@@ -1,8 +1,9 @@
 'use client';
 
+import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
-import { clipEngineForShot, normalizeSpokenLine, withSpokenLine } from '@/lib/ltx25-renderer';
+import { clipEngineForShot, normalizeSpokenLine, talkingClipPrompt } from '@/lib/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
@@ -248,7 +249,9 @@ export function useRoleplayBeatQueuePart2(
       );
       const speaking = Boolean(spokenLine) && queueClipMode === 'i2v' && !adultDuo;
       if (speaking) {
-        prompt = withSpokenLine(prompt, spokenLine, leadIsMan() ? 'He' : 'She');
+        // Talking: she stays put facing the camera; an adult still's age sentence stays.
+        prompt = talkingClipPrompt({ line: spokenLine, speaker: leadIsMan() ? 'He' : 'She' });
+        if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
       const clipModel =
         queueClipMode === 'i2v'
@@ -262,6 +265,15 @@ export function useRoleplayBeatQueuePart2(
                 loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
             })
           : clipEngineForShot(videoModel, { adultDuo: true });
+
+      // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
+      if (speaking && hasInit && !inputImage && inputImageUrl) {
+        const framed = await framedTalkingStill(inputImageUrl);
+        if (framed) {
+          inputImage = framed;
+          inputImageUrl = undefined;
+        }
+      }
 
       let promptId: string | undefined;
       try {

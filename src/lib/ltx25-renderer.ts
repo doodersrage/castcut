@@ -684,3 +684,28 @@ export function dubPrompt(input: {
     hot ? 'Close, intimate sounds, a quiet room.' : 'Natural room sound.',
   ].join(' ');
 }
+
+/**
+ * A talking clip's whole prompt. The motion template animates the beat ("walking out of the office
+ * building … mid-stride") and asks for "no wide-open mouth" — live, she turned and walked out of
+ * frame while the line played (2026-10-10). Talking: she stays put, facing the camera, and speaks.
+ */
+export function talkingClipPrompt(input: {
+  /** Where she is (the Setting) — kept as the first frame shows it. */
+  setting?: string;
+  line: string;
+  speaker?: 'She' | 'He';
+}): string {
+  const who = input.speaker ?? 'She';
+  const line = normalizeSpokenLine(input.line);
+  const place = input.setting?.trim().replace(/[.\s]+$/, '');
+  return [
+    'One continuous shot that starts on the first frame.',
+    `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and says clearly, "${line}"`,
+    `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'he' : 'she'} stays in place, facing the camera, and does not walk away or turn around.`,
+    place
+      ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
+      : 'The place, light and clothes stay exactly as in the first frame.',
+    'Camera: locked-off, framing stays as the first frame.',
+  ].join(' ');
+}

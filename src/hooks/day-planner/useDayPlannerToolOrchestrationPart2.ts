@@ -1,6 +1,7 @@
 'use client';
 
-import { isLtx25Model, normalizeSpokenLine, withSpokenLine } from '@/lib/ltx25-renderer';
+import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
+import { isLtx25Model, normalizeSpokenLine, talkingClipPrompt } from '@/lib/ltx25-renderer';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
 import { swapDayForCast } from '@/lib/day-cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
@@ -416,17 +417,33 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           prompt = manLead ? swapDayPromptGender(clip) : clip;
         }
         if (speaking) {
-          prompt = withSpokenLine(prompt, spokenLine, manLead ? 'He' : 'She');
+          // Talking: she stays put facing the camera (the beat's motion walked her out of frame
+          // mid-line). An adult still's age sentence stays with the clip.
+          const ageLine = adultAgeLineIn(parentEntry?.prompt ?? '');
+          prompt = [
+            talkingClipPrompt({
+              setting: slot.location,
+              line: spokenLine,
+              speaker: manLead ? 'He' : 'She',
+            }),
+            ageLine,
+          ]
+            .filter(Boolean)
+            .join(' ');
         }
         // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {
           syncSharedIdentityToCast(character);
         }
         const castLoras = castLoraSessionIds(character);
+        // A talking clip starts chest-up when her face is small in the still (the lips are
+        // unreadable full-body) — not with an end pose, whose frame matches the full still.
+        const framed =
+          speaking && !endImageFilename && imageUrl ? await framedTalkingStill(imageUrl) : null;
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
-          inputImageUrl: imageUrl,
+          ...(framed ? { inputImage: framed } : { inputImageUrl: imageUrl }),
           parentGalleryEntryId: parentEntry?.id,
           derivedKind: 'i2v',
           clipMode: 'i2v',
