@@ -503,3 +503,44 @@ export function withSpokenLine(prompt: string, line: string, speaker = 'She'): s
   if (!clean) return prompt;
   return `${base} ${speaker} looks toward the camera and says clearly, "${clean}"`;
 }
+
+/** The SaveVideo node a talking clip's MP4 comes out of (see addLtx25Speech). */
+export const LTX25_SPEECH_SAVE_NODE = '56';
+
+/**
+ * A standalone talking clip graph (voice auditions): one still, a prompt with the quoted line,
+ * LTX-2.5 with its soundtrack saved as an MP4. Built from the same WAN stub the queue converts.
+ */
+export function buildLtx25TalkingClipGraph(input: {
+  image: string;
+  prompt: string;
+  seed: number;
+  prefix: string;
+  /** WAN-graph frames at 16 fps (80 ≈ 5 s). */
+  frames?: number;
+  voiceSample?: string;
+  idLora?: string;
+}): Workflow {
+  const stub: Workflow = {
+    '1': { class_type: 'LoadImage', inputs: { image: input.image } },
+    '2': { class_type: 'CLIPTextEncode', inputs: { text: input.prompt, clip: ['9', 0] } },
+    '3': { class_type: 'CLIPTextEncode', inputs: { text: '', clip: ['9', 0] } },
+    '4': {
+      class_type: 'WanImageToVideo',
+      inputs: { width: 768, height: 1024, length: input.frames ?? 80, start_image: ['1', 0] },
+    },
+    '5': {
+      class_type: 'KSampler',
+      inputs: { seed: input.seed, positive: ['2', 0], negative: ['3', 0], latent_image: ['4', 2] },
+    },
+    '6': { class_type: 'SaveAnimatedWEBP', inputs: { filename_prefix: input.prefix, fps: 16 } },
+    '9': { class_type: 'CLIPLoader', inputs: {} },
+  };
+  const { workflow, converted, reason } = convertVideoWorkflowToLtx25(stub, {
+    seed: input.seed,
+    sizeFromStill: true,
+    speech: { voiceSample: input.voiceSample, idLora: input.idLora },
+  });
+  if (!converted) throw new Error(reason ?? 'Could not build the talking clip.');
+  return workflow;
+}

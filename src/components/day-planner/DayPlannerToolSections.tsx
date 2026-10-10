@@ -1,5 +1,6 @@
 'use client';
 
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -369,7 +370,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {
-      const next = buildDayProgressLightboxState(slots, stills, slotId);
+      const next = buildDayProgressLightboxState(slots, stills, slotId, (url, still) =>
+        clipUrlIsVideo(url, { promptId: still.clipPromptId })
+      );
       if (!next) {
         return;
       }

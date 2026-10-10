@@ -1,5 +1,7 @@
 'use client';
 
+import { isDayAdultMood } from '@/lib/day-planner';
+import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import SpokenLineField from '@/components/SpokenLineField';
 import { useRef, useState, type ReactNode } from 'react';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
@@ -205,6 +207,15 @@ export default function DaySlotSheet({
           <SpokenLineField
             key={slot.id}
             line={slot.line}
+            hasVoice={activeCastHasVoice()}
+            onSuggest={() =>
+              suggestLineForActiveCast({
+                scene: slot.sceneHints?.trim() || slot.label,
+                setting: slot.location,
+                when: slot.label,
+                adult: isDayAdultMood(dayMood),
+              })
+            }
             onSave={line => updateSlot(slot.id, { line: line || undefined })}
             testId="day-slot-line"
           />

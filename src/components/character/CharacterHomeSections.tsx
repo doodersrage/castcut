@@ -1,5 +1,6 @@
 'use client';
 
+import CastVoiceSection from '@/components/character/CastVoiceSection';
 import CastPlacesSection from '@/components/character/CastPlacesSection';
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
@@ -129,6 +130,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         <>
           <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
           <CastPlacesSection character={character} onUpdated={props.persistApply} />
+          <CastVoiceSection character={character} onUpdated={props.persistApply} />
           <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
           <CharacterBibleSection character={character} onUpdated={props.persistApply} />
         </>

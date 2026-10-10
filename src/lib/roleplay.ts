@@ -1,4 +1,5 @@
 import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
+import { parseSpokenLine } from './spoken-line';
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
   POSE_GUIDE_ACTION_LOCK,
@@ -91,6 +92,8 @@ export type RoleplayScene = {
   kind?: RoleplaySceneKind;
   /** Structured pose from the scene writer — outranks the text read when drawing Image 3. */
   pose?: ScenePoseSpec;
+  /** The writer's suggested spoken line (spoken-line.ts) — offered, never used until picked. */
+  suggestedLine?: string;
 };
 
 export type RoleplayStillStatus = 'writing' | 'queued' | 'running' | 'completed' | 'error';
@@ -1861,10 +1864,12 @@ export function parseRoleplayScenes(payload: unknown): RoleplayScene[] {
       continue;
     }
     const pose = normalizeScenePoseSpec(record.pose);
+    const suggestedLine = parseSpokenLine(readString(record.line));
     scenes.push({
       id: slugId(title, index),
       title,
       blurb,
+      ...(suggestedLine ? { suggestedLine } : {}),
       ...(record.kind === 'ending' || record.kind === 'plot' ? { kind: record.kind } : {}),
       ...(pose ? { pose } : {}),
     });

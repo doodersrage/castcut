@@ -98,7 +98,8 @@ export default function ImageLightboxSlide({
             aria-hidden={ariaHidden || undefined}
             autoPlay={!ariaHidden}
             loop
-            muted
+            // The open clip plays with its sound (talking clips); the slides beside it stay quiet.
+            muted={Boolean(ariaHidden)}
             playsInline
             controls={!ariaHidden}
             onError={() => {

@@ -549,8 +549,9 @@ ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
 ${intimateMixCue}
-Return ONLY JSON: {"scenes":[{"title":"","blurb":"","pose":{"body":"","people":1,"act":"","limbs":{"right_arm":["",""],"left_arm":["",""]}}${finale ? ',"kind":"ending"' : ''}}]}
+Return ONLY JSON: {"scenes":[{"title":"","blurb":"","line":"","pose":{"body":"","people":1,"act":"","limbs":{"right_arm":["",""],"left_arm":["",""]}}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
+- line: what the lead says out loud to the camera in that scene, in their own voice — 3 to 12 words, no quotation marks, no stage directions${isRoleplayAdultContent(content) ? '; flirty is fine, never explicit' : ''}.
 ${scenePoseFieldLine(content)}
 ${formatRoleplayPoseVarietyCue(recentPoses)}${extraRule ? `\n${extraRule}` : ''}
 ${

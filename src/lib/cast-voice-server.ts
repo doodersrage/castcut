@@ -81,3 +81,58 @@ export async function extractVoiceSample(input: {
       .catch(() => undefined);
   }
 }
+
+/** About two semitones: enough to hear, small enough to stay the same person. */
+const VOICE_SHIFT = { deeper: 0.89, higher: 1.12 } as const;
+
+/** ffmpeg args: the sample pitched down / up at the same speed, mono 24 kHz WAV. */
+export function voiceShiftArgs(
+  input: string,
+  output: string,
+  direction: keyof typeof VOICE_SHIFT
+): string[] {
+  const ratio = VOICE_SHIFT[direction];
+  return [
+    '-y',
+    '-v',
+    'error',
+    '-i',
+    input,
+    '-af',
+    `asetrate=24000*${ratio},aresample=24000,atempo=${(1 / ratio).toFixed(4)}`,
+    '-ac',
+    '1',
+    '-ar',
+    '24000',
+    output,
+  ];
+}
+
+/** A kept voice sample (ComfyUI input) pitched deeper / higher, as WAV bytes. */
+export async function shiftVoiceSample(input: {
+  baseUrl: string;
+  sample: string;
+  direction: keyof typeof VOICE_SHIFT;
+}): Promise<Uint8Array> {
+  const ffmpeg = await resolveFfmpegBinary();
+  if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
+  const params = new URLSearchParams({ filename: input.sample, type: 'input' });
+  const response = await fetch(`${input.baseUrl}/view?${params.toString()}`);
+  if (!response.ok) throw new Error('That voice sample is gone from ComfyUI — keep a voice again.');
+  const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `voice-${randomUUID()}`);
+  await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
+  try {
+    const source = path.join(/* turbopackIgnore: true */ dir, 'in.wav');
+    const shifted = path.join(/* turbopackIgnore: true */ dir, 'out.wav');
+    await fs.writeFile(
+      /* turbopackIgnore: true */ source,
+      Buffer.from(await response.arrayBuffer())
+    );
+    await run(ffmpeg, voiceShiftArgs(source, shifted, input.direction));
+    return new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ shifted));
+  } finally {
+    await fs
+      .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })
+      .catch(() => undefined);
+  }
+}

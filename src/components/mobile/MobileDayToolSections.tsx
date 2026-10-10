@@ -1,5 +1,6 @@
 'use client';
 
+import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
@@ -357,7 +358,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
   const openProgressLightbox = useCallback(
     (slotId: string) => {
-      const next = buildDayProgressLightboxState(slots, stills, slotId);
+      const next = buildDayProgressLightboxState(slots, stills, slotId, (url, still) =>
+        clipUrlIsVideo(url, { promptId: still.clipPromptId })
+      );
       if (!next) {
         return;
       }

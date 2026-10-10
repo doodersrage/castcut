@@ -479,7 +479,10 @@ export const DEFAULT_DAY_SLOTS: DaySlot[] = [
 export function buildDayProgressLightboxState(
   slots: DaySlot[],
   stills: DaySlotStill[],
-  openSlotId: DaySlotId | string
+  openSlotId: DaySlotId | string,
+  /** Whether a finished clip plays as a video (clip-media-kind.ts); default: by its URL. */
+  clipIsVideo: (url: string, still: DaySlotStill) => boolean = url =>
+    /\.(mp4|webm|mov)(?:[?&#]|$)|format=video/i.test(url)
 ): {
   images: string[];
   titles: string[];
@@ -512,7 +515,7 @@ export function buildDayProgressLightboxState(
         slotId: slot.id,
         url,
         title,
-        video: Boolean(clipUrl && /\.(mp4|webm|mov)(?:[?&#]|$)|format=video/i.test(clipUrl)),
+        video: Boolean(clipUrl && still && clipIsVideo(clipUrl, still)),
       };
     })
     .filter(

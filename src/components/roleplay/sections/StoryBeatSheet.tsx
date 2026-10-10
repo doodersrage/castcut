@@ -1,5 +1,8 @@
 'use client';
 
+import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
+import { isRoleplayAdultContent, normalizeRoleplayContent } from '@/lib/roleplay';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import SideSheet from '@/components/ui/SideSheet';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
@@ -68,6 +71,15 @@ export default function StoryBeatSheet({
         {edit ? (
           <SpokenLineField
             line={beat.line}
+            suggestion={beat.suggestedLine}
+            hasVoice={activeCastHasVoice()}
+            onSuggest={() =>
+              suggestLineForActiveCast({
+                scene: `${beat.title}. ${beat.blurb}`,
+                adult: storyIsAdult(),
+                avoid: storyLines(),
+              })
+            }
             disabled={beat.clipStatus === 'queued' || beat.clipStatus === 'running'}
             onSave={line => edit.saveBeatLine(beat, line)}
             testId="story-beat-line"
@@ -91,4 +103,18 @@ export default function StoryBeatSheet({
       </div>
     </SideSheet>
   );
+}
+
+function storyIsAdult(): boolean {
+  return isRoleplayAdultContent(
+    normalizeRoleplayContent(loadSettingsCache().tools.roleplay?.content)
+  );
+}
+
+/** Lines already in this story, so a suggestion says something new. */
+function storyLines(): string[] {
+  return (loadSettingsCache().tools.roleplay?.story ?? [])
+    .map(entry => entry.line?.trim() ?? '')
+    .filter(Boolean)
+    .slice(-6);
 }

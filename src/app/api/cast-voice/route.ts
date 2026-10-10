@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { extractVoiceSample } from '@/lib/cast-voice-server';
+import { extractVoiceSample, shiftVoiceSample } from '@/lib/cast-voice-server';
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
@@ -14,7 +14,8 @@ export async function GET() {
 }
 
 /**
- * POST { clipUrl, comfyUrl? } → { sample }: a ~5 s voice sample cut from a talking clip, uploaded
+ * POST { clipUrl, comfyUrl? } → { sample }, or { sample, shift: 'deeper' | 'higher' } → the kept
+ * sample pitched about two semitones: a ~5 s voice sample cut from a talking clip, uploaded
  * to ComfyUI's input folder for LTXVReferenceAudio (cast-voice.ts).
  */
 export async function POST(request: Request) {
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
     return apiError('Invalid JSON body.', 400);
   }
   const clipUrl = typeof body.clipUrl === 'string' ? body.clipUrl.trim() : '';
-  if (!clipUrl) return apiError('clipUrl is required.', 400);
+  const shift = body.shift === 'deeper' || body.shift === 'higher' ? body.shift : null;
+  const sample = typeof body.sample === 'string' ? body.sample.trim() : '';
+  if (!clipUrl && !(shift && sample)) return apiError('clipUrl is required.', 400);
 
   let comfyUrl: string;
   try {
@@ -44,11 +47,13 @@ export async function POST(request: Request) {
 
   let bytes: Uint8Array;
   try {
-    bytes = await extractVoiceSample({
-      clipUrl,
-      requestOrigin: new URL(request.url).origin,
-      userId: user?.id ?? null,
-    });
+    bytes = shift
+      ? await shiftVoiceSample({ baseUrl: comfyUrl, sample, direction: shift })
+      : await extractVoiceSample({
+          clipUrl,
+          requestOrigin: new URL(request.url).origin,
+          userId: user?.id ?? null,
+        });
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Could not read that clip.', 422);
   }
