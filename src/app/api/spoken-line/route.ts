@@ -11,7 +11,7 @@ export async function GET() {
 const text = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
-/** POST { scene, setting?, when?, name?, personality?, lead?, adult?, avoid? } → { line }. */
+/** POST { scene, setting?, when?, name?, personality?, lead?, heat?, avoid? } → { line }. */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -23,7 +23,10 @@ export async function POST(request: Request) {
         name: text(body.name, 60) || undefined,
         personality: text(body.personality, 300) || undefined,
         lead: body.lead === 'man' ? 'man' : 'woman',
-        adult: body.adult === true,
+        heat:
+          body.heat === 'flirty' || body.heat === 'sensual' || body.heat === 'explicit'
+            ? body.heat
+            : 'clean',
         avoid: Array.isArray(body.avoid)
           ? body.avoid
               .filter((entry): entry is string => typeof entry === 'string')

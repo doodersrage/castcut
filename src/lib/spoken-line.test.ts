@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildSpokenLineMessages, parseSpokenLine } from './spoken-line';
+import { buildSpokenLineMessages, parseSpokenLine, spokenLineHeat } from './spoken-line';
 import { parseRoleplayScenes } from './roleplay';
 import { clipUrlIsVideo } from './clip-media-kind';
 import { castVoiceAuditionPrompt } from './cast-voice';
@@ -26,9 +26,19 @@ describe('suggested spoken lines', () => {
       avoid: ['Coffee first.'],
     });
     assert.match(system!.content, /Nora says out loud/);
-    assert.match(system!.content, /Keep it clean/);
+    assert.match(system!.content, /vlog[\s\S]*Keep it clean/);
     assert.match(user!.content, /stirring a pot of soup[\s\S]*evening[\s\S]*dry humour[\s\S]*Coffee first/);
-    assert.match(buildSpokenLineMessages({ scene: 'x', adult: true })[0]!.content, /never|no explicit/i);
+    const flirty = buildSpokenLineMessages({ scene: 'x', heat: spokenLineHeat('suggestive') })[0]!.content;
+    assert.match(flirty, /flirty[\s\S]*no explicit/i);
+    // Intimate / raunchy: what would really be said to a lover — never the vlog framing.
+    const sensual = buildSpokenLineMessages({ scene: 'x', heat: spokenLineHeat('intimate') })[0]!.content;
+    assert.match(sensual, /murmur/);
+    assert.doesNotMatch(sensual, /vlog/);
+    const explicit = buildSpokenLineMessages({ scene: 'x', heat: spokenLineHeat('raunchy') })[0]!.content;
+    assert.match(explicit, /dirty talk[\s\S]*Explicit words are fine[\s\S]*Consenting adults only/);
+    assert.equal(spokenLineHeat('sultry'), 'sensual');
+    assert.equal(spokenLineHeat('explicit'), 'explicit');
+    assert.equal(spokenLineHeat('everyday'), 'clean');
   });
 
   it("keeps the Story writer's line as a suggestion on the scene", () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
-import { isRoleplayAdultContent, normalizeRoleplayContent } from '@/lib/roleplay';
+import { spokenLineHeat } from '@/lib/spoken-line';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import SideSheet from '@/components/ui/SideSheet';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
@@ -76,7 +76,7 @@ export default function StoryBeatSheet({
             onSuggest={() =>
               suggestLineForActiveCast({
                 scene: `${beat.title}. ${beat.blurb}`,
-                adult: storyIsAdult(),
+                heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
                 avoid: storyLines(),
               })
             }
@@ -102,12 +102,6 @@ export default function StoryBeatSheet({
         ) : null}
       </div>
     </SideSheet>
-  );
-}
-
-function storyIsAdult(): boolean {
-  return isRoleplayAdultContent(
-    normalizeRoleplayContent(loadSettingsCache().tools.roleplay?.content)
   );
 }
 

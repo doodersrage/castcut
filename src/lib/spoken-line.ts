@@ -21,22 +21,70 @@ export type SpokenLineRequest = {
   personality?: string;
   /** 'man' writes him; else her. */
   lead?: 'woman' | 'man';
-  /** Adult mood / rating: flirty is fine, never explicit. */
-  adult?: boolean;
+  /** How hot the scene is (Day mood / Story rating) — see {@link spokenLineHeat}. */
+  heat?: SpokenLineHeat;
   /** Lines already used nearby — say something else. */
   avoid?: string[];
 };
 
+export type SpokenLineHeat = 'clean' | 'flirty' | 'sensual' | 'explicit';
+
+/** Day mood or Story rating → how a line may sound. */
+export function spokenLineHeat(moodOrRating: string | null | undefined): SpokenLineHeat {
+  switch (moodOrRating) {
+    case 'suggestive':
+      return 'flirty';
+    case 'intimate':
+    case 'sultry':
+      return 'sensual';
+    case 'raunchy':
+    case 'explicit':
+      return 'explicit';
+    default:
+      return 'clean';
+  }
+}
+
+/**
+ * Voice per heat. Live (2026-10-09): one "flirty is fine" rule under a vlog framing gave
+ * intimate and raunchy scenes small-talk quips — an adult scene needs what would really be said
+ * in that moment, to the lover as much as to the camera.
+ */
+const HEAT_RULES: Record<SpokenLineHeat, string[]> = {
+  clean: [
+    '- Natural spoken English, like a vlog or a moment caught on a phone.',
+    '- Keep it clean and friendly.',
+  ],
+  flirty: [
+    '- Teasing and flirty, said to someone they like behind the camera — confident, playful.',
+    '- Suggestive is fine; no explicit sexual words.',
+  ],
+  sensual: [
+    '- An intimate moment with a lover (in the scene or behind the camera): what they would really murmur — soft, breathy, warm, sensual. Short is better.',
+    '- Suggestive and sensual, not crude. Not the moment for jokes or small talk — their personality only colours the words.',
+    '- Tone only, write a new one: "Come here." / "Slower… stay right there." / "I missed this."',
+  ],
+  explicit: [
+    '- A heated sex scene: the dirty talk they would really say in that moment — breathless, short, direct, to their lover. Explicit words are fine.',
+    '- Not the moment for jokes or small talk — their personality only colours the words.',
+    '- Tone only, write a new one: "God, don\'t stop." / "Harder. Right there." / "Fuck, I needed this."',
+    '- Consenting adults only. Nothing about age, nothing non-consensual, no violence.',
+  ],
+};
+
+/** The local model opened nine lines of nine with "You're" — ask for a different start. */
+const OPENING_RULE = '- Do not start with "You\'re" or "You are"; vary how it opens.';
+
 export function buildSpokenLineMessages(input: SpokenLineRequest) {
   const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
+  const heat = input.heat ?? 'clean';
   const lines = [
-    `Write ONE line ${who} says out loud, looking into the camera, in a ~5 second video clip.`,
-    `- 3 to ${SPOKEN_LINE_MAX_WORDS - 2} words. Natural spoken English, like a vlog or a moment caught on a phone.`,
-    '- It must fit what is happening right now and the time of day. First person.',
+    `Write ONE line ${who} says out loud in a ~5 second video clip.`,
+    `- ${heat === 'clean' ? 3 : 2} to ${SPOKEN_LINE_MAX_WORDS - 2} words, first person.`,
+    '- It must fit exactly what is happening right now.',
+    ...HEAT_RULES[heat],
+    OPENING_RULE,
     '- No quotation marks, no stage directions, no emojis, no hashtags, no names of real people or brands.',
-    input.adult
-      ? '- Playful or flirty is fine; no explicit sexual words.'
-      : '- Keep it clean and friendly.',
     '- Reply with the line only.',
   ];
   const user = [

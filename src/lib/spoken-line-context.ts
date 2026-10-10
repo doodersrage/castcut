@@ -16,7 +16,7 @@ export function activeCastHasVoice(): boolean {
 }
 
 export function suggestLineForActiveCast(
-  input: Pick<SpokenLineRequest, 'scene' | 'setting' | 'when' | 'adult' | 'avoid'>
+  input: Pick<SpokenLineRequest, 'scene' | 'setting' | 'when' | 'heat' | 'avoid'>
 ): Promise<string> {
   const cache = loadSettingsCache();
   const cast = getCharacter(cache.shared.activeCharacterId?.trim() ?? '');

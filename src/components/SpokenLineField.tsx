@@ -18,6 +18,7 @@ export default function SpokenLineField({
   hasVoice = false,
   suggestion,
   onSuggest,
+  note,
 }: {
   line?: string;
   disabled?: boolean;
@@ -29,6 +30,8 @@ export default function SpokenLineField({
   suggestion?: string;
   /** Ask for a fresh line (LLM). Rejects with a message to show. */
   onSuggest?: () => Promise<string>;
+  /** A caveat under the field (e.g. clips here render without sound). */
+  note?: string;
 }) {
   const [value, setValue] = useState(line ?? '');
   const [asking, setAsking] = useState(false);
@@ -115,6 +118,7 @@ export default function SpokenLineField({
           {error}
         </p>
       ) : null}
+      {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
       <p className="type-caption text-[var(--text-muted)]">
         {value.trim()
           ? `Animate makes a talking clip: they say this to the camera, with sound (LTX-2.5, about 5 s)${hasVoice ? ', in their voice' : ''}.`

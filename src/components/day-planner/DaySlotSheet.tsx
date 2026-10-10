@@ -1,5 +1,6 @@
 'use client';
 
+import { spokenLineHeat } from '@/lib/spoken-line';
 import { isDayAdultMood } from '@/lib/day-planner';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import SpokenLineField from '@/components/SpokenLineField';
@@ -213,8 +214,13 @@ export default function DaySlotSheet({
                 scene: slot.sceneHints?.trim() || slot.label,
                 setting: slot.location,
                 when: slot.label,
-                adult: isDayAdultMood(dayMood),
+                heat: spokenLineHeat(dayMood),
               })
+            }
+            note={
+              isDayAdultMood(dayMood) && intimateMix !== 'solo'
+                ? 'Two-person adult clips render on WAN, without sound — a line is spoken on one-person clips only.'
+                : undefined
             }
             onSave={line => updateSlot(slot.id, { line: line || undefined })}
             testId="day-slot-line"

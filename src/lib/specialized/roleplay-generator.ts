@@ -1,4 +1,5 @@
 import { LIMB_DIRECTIONS } from '../pose-limb-presets';
+import { spokenLineHeat, type SpokenLineHeat } from '@/lib/spoken-line';
 import { chatCompletion } from '../llm-client';
 import {
   resolveRequestLlmEnabled,
@@ -350,6 +351,16 @@ function clarifyRoleplaySceneBlurbs(scenes: RoleplayScene[], adult: boolean): Ro
   }));
 }
 
+/** How the scene writer's suggested line sounds at each rating (spoken-line.ts). */
+const SCENE_LINE_TONE: Record<SpokenLineHeat, string> = {
+  clean: 'Natural, in character, like something caught on camera.',
+  flirty: 'Teasing and flirty; no explicit words.',
+  sensual:
+    'In an intimate scene: what they would really murmur to their lover — soft, sensual, never small talk.',
+  explicit:
+    'In a sex scene: the dirty talk they would really say in that moment — breathless and direct, explicit words are fine; never small talk.',
+};
+
 /** How long Story's writers wait for a busy LLM before using the built-in text. */
 const ROLEPLAY_LLM_SLOT_WAIT_MS = 90_000;
 
@@ -551,7 +562,7 @@ ${poseGuideCue}
 ${intimateMixCue}
 Return ONLY JSON: {"scenes":[{"title":"","blurb":"","line":"","pose":{"body":"","people":1,"act":"","limbs":{"right_arm":["",""],"left_arm":["",""]}}${finale ? ',"kind":"ending"' : ''}}]}
 - Exactly 4 scenes. Titles 2–6 words. Blurbs one sentence, visual, actionable.
-- line: what the lead says out loud to the camera in that scene, in their own voice — 3 to 12 words, no quotation marks, no stage directions${isRoleplayAdultContent(content) ? '; flirty is fine, never explicit' : ''}.
+- line: what the lead says out loud in that scene, in their own voice — 2 to 12 words, no quotation marks, no stage directions. ${SCENE_LINE_TONE[spokenLineHeat(content)]}
 ${scenePoseFieldLine(content)}
 ${formatRoleplayPoseVarietyCue(recentPoses)}${extraRule ? `\n${extraRule}` : ''}
 ${
