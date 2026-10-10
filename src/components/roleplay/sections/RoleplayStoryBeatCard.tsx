@@ -1,5 +1,6 @@
 'use client';
 
+import ClipExtendSheet from '@/components/ClipExtendSheet';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -98,6 +99,8 @@ export function RoleplayStoryBeatCard({
   const voice = useTakeCastVoice();
   const [addVoiceNote, setAddVoiceNote] = useState<string | null>(null);
   const [extendNote, setExtendNote] = useState<string | null>(null);
+  const [extendSheetOpen, setExtendSheetOpen] = useState(false);
+  const extendRequest = extendSheetOpen && edit ? edit.extendRequestFor(beat) : null;
   const voiceKey = storyBeatKey(beat);
   const voiceNote = voice.noteFor(voiceKey);
   const takingVoice = voice.taking(voiceKey);
@@ -313,14 +316,7 @@ export function RoleplayStoryBeatCard({
                 disabled={busy || Boolean(edit.extending)}
                 title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
                 data-testid="story-beat-extend"
-                onClick={() => {
-                  setExtendNote(null);
-                  void edit
-                    .extendBeatClip(beat)
-                    .then(error =>
-                      setExtendNote(error ?? 'Done — the clip is now about 30 seconds.')
-                    );
-                }}
+                onClick={() => setExtendSheetOpen(true)}
               >
                 {edit.extending?.key === storyBeatKey(beat) ? 'Making it longer…' : 'Make it 30 s'}
               </button>
@@ -376,6 +372,22 @@ export function RoleplayStoryBeatCard({
             >
               “{beat.line.trim()}”
             </p>
+          ) : null}
+          {edit && extendRequest ? (
+            <ClipExtendSheet
+              open
+              onClose={() => setExtendSheetOpen(false)}
+              request={extendRequest}
+              onStart={choice => {
+                setExtendNote(null);
+                void edit
+                  .extendBeatClip(beat, choice)
+                  .then(error =>
+                    setExtendNote(error ?? 'Done — the clip is now about 30 seconds.')
+                  );
+              }}
+              testId="story-extend-sheet"
+            />
           ) : null}
           {edit?.extending?.key === storyBeatKey(beat) || extendNote ? (
             <p

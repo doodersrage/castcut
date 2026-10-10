@@ -1,7 +1,8 @@
 'use client';
 
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { requestClipExtend } from '@/lib/clip-extend';
+import { requestClipExtend, type ClipExtendRequest } from '@/lib/clip-extend';
+import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { requestClipVoice } from '@/lib/clip-voice';
@@ -70,7 +71,11 @@ export type StoryBeatEditActions = {
   /** The scene whose clip is getting its voice, if any (see `storyBeatKey`). */
   voicingKey: string | null;
   /** "Make it 30 s": carry the scene's clip on in chained segments. Resolves to an error, or null. */
-  extendBeatClip: (beat: RoleplayStoryBeat) => Promise<string | null>;
+  extendBeatClip: (beat: RoleplayStoryBeat, choice?: ClipExtendChoice) => Promise<string | null>;
+  /** The scene's clip and text for the Make it 30 s sheet (null without a finished clip). */
+  extendRequestFor: (
+    beat: RoleplayStoryBeat
+  ) => Omit<ClipExtendRequest, 'direction' | 'beats'> | null;
   /** The scene being made longer, and how far it is. */
   extending: { key: string; note: string } | null;
   /** Write the scene's still again from its text and queue it. */
@@ -241,21 +246,31 @@ export function useStoryBeatEdit({
   );
 
   const [extending, setExtending] = useState<{ key: string; note: string } | null>(null);
-  const extendBeatClip = useCallback(
-    async (beat: RoleplayStoryBeat): Promise<string | null> => {
+  const extendRequestFor = useCallback(
+    (beat: RoleplayStoryBeat): Omit<ClipExtendRequest, 'direction' | 'beats'> | null => {
       const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
       const clipUrl = latest?.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
-      if (!latest || !clipUrl) return 'This scene has no finished clip.';
+      if (!latest || !clipUrl) return null;
+      return {
+        clipUrl,
+        clipPromptId: latest.clipPromptId,
+        scene: `${latest.title}. ${latest.blurb}`,
+        heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+      };
+    },
+    [storyRef]
+  );
+  const extendBeatClip = useCallback(
+    async (beat: RoleplayStoryBeat, choice?: ClipExtendChoice): Promise<string | null> => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      const request = extendRequestFor(beat);
+      const clipUrl = request?.clipUrl;
+      if (!latest || !request || !clipUrl) return 'This scene has no finished clip.';
       const key = storyBeatKey(latest);
       setExtending({ key, note: 'Writing what happens next…' });
       try {
         const job = await requestClipExtend(
-          {
-            clipUrl,
-            clipPromptId: latest.clipPromptId,
-            scene: `${latest.title}. ${latest.blurb}`,
-            heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
-          },
+          { ...request, direction: choice?.direction, beats: choice?.beats },
           {
             llmBody: sharedLlmRequestBody(loadSettingsCache().shared),
             onProgress: progress =>
@@ -280,7 +295,7 @@ export function useStoryBeatEdit({
         setExtending(null);
       }
     },
-    [storyRef, updateToolSettings]
+    [extendRequestFor, storyRef, updateToolSettings]
   );
 
   // A scene with a line whose clip came back silent (WAN): add the voice without a tap. Once per
@@ -308,12 +323,14 @@ export function useStoryBeatEdit({
       voiceBeatClip,
       voicingKey,
       extendBeatClip,
+      extendRequestFor,
       extending,
       rewriteBeat,
       rewritingKey,
     }),
     [
       extendBeatClip,
+      extendRequestFor,
       extending,
       rewriteBeat,
       rewritingKey,

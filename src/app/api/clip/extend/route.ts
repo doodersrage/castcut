@@ -1,7 +1,12 @@
 import { apiError, apiJson } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { getClipExtendJob, startClipExtendJob } from '@/lib/clip-extend-server';
+import {
+  getClipExtendJob,
+  planClipExtend,
+  startClipExtendJob,
+  type ClipExtendInput,
+} from '@/lib/clip-extend-server';
 import { parseLlmRequestOptions } from '@/lib/llm-request-options';
 
 export const runtime = 'nodejs';
@@ -18,7 +23,10 @@ export async function GET(request: Request) {
   return job ? apiJson({ job }) : apiError('Extension job not found.', 404);
 }
 
-/** POST { clipUrl, clipPromptId?, scene, setting?, heat?, targetSec?, comfyUrl?, …llm } → { job }. */
+/**
+ * POST { clipUrl, clipPromptId?, scene, setting?, heat?, targetSec?, direction?, beats?, comfyUrl?,
+ * …llm } → { job }; with `plan: true` → { plan: { total, beats, partSec } } and nothing rendered.
+ */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
   if (isAuthEnabled() && !user?.enabled) return apiError('Authentication required.', 401);
@@ -31,7 +39,7 @@ export async function POST(request: Request) {
   const clipUrl = text(body.clipUrl, 2000);
   if (!clipUrl) return apiError('clipUrl is required.', 400);
   const target = Number(body.targetSec);
-  const job = startClipExtendJob({
+  const input: ClipExtendInput = {
     clipUrl,
     clipPromptId: text(body.clipPromptId, 80) || undefined,
     scene: text(body.scene, 600) || 'The shot carries on.',
@@ -43,7 +51,25 @@ export async function POST(request: Request) {
     comfyUrl: text(body.comfyUrl, 300) || undefined,
     requestOrigin: new URL(request.url).origin,
     userId: user?.id ?? null,
+    direction: text(body.direction, 300) || undefined,
+    beats: Array.isArray(body.beats)
+      ? body.beats
+          .filter((beat): beat is string => typeof beat === 'string')
+          .map(beat => beat.trim().slice(0, 240))
+          .filter(Boolean)
+          .slice(0, 8)
+      : undefined,
     llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),
-  });
-  return apiJson({ job });
+  };
+  if (body.plan === true) {
+    try {
+      return apiJson({ plan: await planClipExtend(input) });
+    } catch (error) {
+      return apiError(
+        error instanceof Error ? error.message : 'Could not plan the extension.',
+        502
+      );
+    }
+  }
+  return apiJson({ job: startClipExtendJob(input) });
 }

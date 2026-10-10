@@ -18,6 +18,7 @@ import {
 } from './comfy-utility-graph-server';
 import {
   buildExtendBeatsMessages,
+  CLIP_EXTEND_MAX_SEGMENTS,
   colorMatchFilter,
   colorMatchGains,
   extendSegmentCount,
@@ -164,6 +165,7 @@ async function writeBeats(input: {
   setting?: string;
   count: number;
   heat: SpokenLineHeat;
+  direction?: string;
   llm?: LlmRequestOptions;
 }): Promise<string[]> {
   if (resolveRequestLlmEnabled(input.llm)) {
@@ -231,11 +233,89 @@ export type ClipExtendInput = {
   setting?: string;
   heat?: SpokenLineHeat;
   targetSec?: number;
+  direction?: string;
+  /** The player's beats, used as written (more beats than needed make it longer, up to the cap). */
+  beats?: string[];
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
   llm?: LlmRequestOptions;
 };
+
+/** The player's beats, padded with written ones up to `count`. */
+async function resolveBeats(input: ClipExtendInput, count: number): Promise<string[]> {
+  const given = (input.beats ?? [])
+    .map(beat => beat.trim())
+    .filter(Boolean)
+    .slice(0, count);
+  if (given.length >= count) return given;
+  const written = await writeBeats({
+    scene: [input.scene, ...given].join(' Then: '),
+    setting: input.setting,
+    count: count - given.length,
+    heat: input.heat ?? 'clean',
+    direction: input.direction,
+    llm: input.llm,
+  });
+  return [...given, ...written];
+}
+
+/** How many parts the clip needs (the player's beats can ask for more, up to the cap). */
+function partCount(
+  input: ClipExtendInput,
+  clipSec: number,
+  wan: boolean,
+  wanSegmentSec: number
+): { total: number; partSec: number } {
+  const segmentSec = wan ? wanSegmentSec : 121 / 24;
+  const overlapSec = (wan ? 1 : LTX25_EXTEND_OVERLAP) / 24;
+  const needed = extendSegmentCount({
+    currentSec: clipSec,
+    targetSec: input.targetSec,
+    segmentSec,
+    overlapSec,
+  });
+  const asked = (input.beats ?? []).filter(beat => beat.trim()).length;
+  return {
+    total: Math.min(CLIP_EXTEND_MAX_SEGMENTS, Math.max(needed, asked)),
+    partSec: Math.round((segmentSec - overlapSec) * 10) / 10,
+  };
+}
+
+/** The parts and the beats for them, nothing rendered ("Write the beats"). */
+export async function planClipExtend(
+  input: ClipExtendInput
+): Promise<{ total: number; beats: string[]; partSec: number }> {
+  const ffmpeg = await resolveFfmpegBinary();
+  if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
+  const { fetchFilmShotBytes } = await import('./video-shot-fetch');
+  const fetched = await fetchFilmShotBytes({
+    url: input.clipUrl,
+    requestOrigin: input.requestOrigin,
+    userId: input.userId,
+  });
+  const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `extend-plan-${randomUUID()}`);
+  await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
+  try {
+    const source = path.join(/* turbopackIgnore: true */ dir, 'clip.bin');
+    const at24 = path.join(/* turbopackIgnore: true */ dir, 'at24.mp4');
+    await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
+    const original = await probe(ffmpeg, source);
+    const clip = await normalizePiece(ffmpeg, source, at24, {
+      width: original.width & ~1,
+      height: original.height & ~1,
+    });
+    const history = await readHistoryGraph(comfyBaseUrl(input.comfyUrl), input.clipPromptId);
+    const wan = Boolean(history && isWanClipGraph(history));
+    const { total, partSec } = partCount(input, clip.frames / 24, wan, clip.frames / 24);
+    if (!total) throw new Error('This clip is already that long.');
+    return { total, partSec, beats: await resolveBeats({ ...input, beats: [] }, total) };
+  } finally {
+    await fs
+      .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })
+      .catch(() => undefined);
+  }
+}
 
 /** Start a job; returns at once. Poll with {@link getClipExtendJob}. */
 export function startClipExtendJob(input: ClipExtendInput): ClipExtendJob {
@@ -260,7 +340,6 @@ export async function extendClip(
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
-  const heat = input.heat ?? 'clean';
   const { fetchFilmShotBytes } = await import('./video-shot-fetch');
   const fetched = await fetchFilmShotBytes({
     url: input.clipUrl,
@@ -282,23 +361,10 @@ export async function extendClip(
     const history = await readHistoryGraph(baseUrl, input.clipPromptId);
     const wan = history && isWanClipGraph(history) ? history : null;
     // WAN segments last as long as the clip did; LTX ones 121 frames (5 s).
-    const segmentFrames = wan ? first.frames : 121;
-    const overlapFrames = wan ? 1 : LTX25_EXTEND_OVERLAP;
-    const total = extendSegmentCount({
-      currentSec: first.frames / 24,
-      targetSec: input.targetSec,
-      segmentSec: segmentFrames / 24,
-      overlapSec: overlapFrames / 24,
-    });
+    const { total } = partCount(input, first.frames / 24, Boolean(wan), first.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
-    const beats = await writeBeats({
-      scene: input.scene,
-      setting: input.setting,
-      count: total,
-      heat,
-      llm: input.llm,
-    });
+    const beats = await resolveBeats(input, total);
     let restoreFace: string | undefined;
     if (!wan) {
       const reactor = await resolveComfyNode(baseUrl, [LTX25_FACE_RESTORE_NODE]);
@@ -387,7 +453,7 @@ export async function extendClip(
         prompt = buildLtx25ExtendGraph({
           lastFrame: lastFrame.name,
           tailVideo: tail.name,
-          prompt: extendSegmentPrompt(beats[k]!),
+          prompt: extendSegmentPrompt(beats[k]!, input.setting),
           seed: seed + k * 7,
           prefix,
           longSide,

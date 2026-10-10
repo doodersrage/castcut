@@ -42,18 +42,27 @@ export function buildExtendBeatsMessages(input: {
   setting?: string;
   count: number;
   heat?: SpokenLineHeat;
+  /** Where the player wants it to go ("she finishes her coffee and heads out"). */
+  direction?: string;
 }) {
+  const direction = input.direction?.trim();
   const system = [
     `Continue a short video shot. Write ${input.count} beats, numbered 1-${input.count}, one per line.`,
     'Each beat is what happens in the next 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.',
-    'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips.',
+    'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips, nobody leaves the frame or the room.',
     'Small, believable steps — a gesture, a look, picking something up, moving a little — that add up to a tiny story.',
     BEAT_HEAT[input.heat ?? 'clean'],
+    direction
+      ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
+      : '',
     'Reply with the numbered beats only.',
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
   const user = [
     `The shot so far: ${input.scene.trim().slice(0, 500)}`,
     input.setting?.trim() ? `Where: ${input.setting.trim().slice(0, 200)}` : '',
+    direction ? `Where it should go: ${direction.slice(0, 300)}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -198,16 +207,41 @@ export type ClipExtendJob = {
   error?: string;
 };
 
+export type ClipExtendRequest = {
+  clipUrl: string;
+  clipPromptId?: string;
+  scene: string;
+  setting?: string;
+  heat?: SpokenLineHeat;
+  targetSec?: number;
+  /** Where the player wants it to go; steers the written beats. */
+  direction?: string;
+  /** The player's own beats, one per part, used as written. */
+  beats?: string[];
+};
+
+/** The parts this clip needs and the beats written for them, nothing rendered (client). */
+export async function requestClipExtendPlan(
+  input: ClipExtendRequest,
+  llmBody?: Record<string, unknown>
+): Promise<{ total: number; beats: string[]; partSec: number }> {
+  const response = await fetch('/api/clip/extend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ ...input, ...llmBody, plan: true }),
+  });
+  const body = (await response.json().catch(() => ({}))) as {
+    plan?: { total: number; beats: string[]; partSec: number };
+    error?: string;
+  };
+  if (!response.ok || !body.plan) throw new Error(body.error ?? 'Could not plan the extension.');
+  return body.plan;
+}
+
 /** Start "Make it 30 s" and wait for it (client). Calls `onProgress` as segments land. */
 export async function requestClipExtend(
-  input: {
-    clipUrl: string;
-    clipPromptId?: string;
-    scene: string;
-    setting?: string;
-    heat?: SpokenLineHeat;
-    targetSec?: number;
-  },
+  input: ClipExtendRequest,
   options?: {
     llmBody?: Record<string, unknown>;
     onProgress?: (job: ClipExtendJob) => void;

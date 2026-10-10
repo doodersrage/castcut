@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildExtendBeatsMessages,
   colorMatchFilter,
   colorMatchGains,
   extendSegmentCount,
@@ -72,4 +73,16 @@ describe('Make it 30 s', () => {
     assert.equal(colorMatchGains(ref, { mean: [0, 0, 0], std: [5, 5, 5] }).gain[0], 1.25);
     assert.match(colorMatchFilter(match), /^lutrgb=r='clip\(val\*1\+-40,0,255\)':g=/);
   });
+
+  it('steers the beats toward the player’s direction', () => {
+    const [system, user] = buildExtendBeatsMessages({
+      scene: 'at the counter with coffee',
+      count: 5,
+      direction: 'she grabs her keys and leaves',
+    });
+    assert.match(system!.content, /follow that, spread over the beats/);
+    assert.match(user!.content, /Where it should go: she grabs her keys and leaves/);
+    assert.doesNotMatch(buildExtendBeatsMessages({ scene: 'x', count: 2 })[0]!.content, /follow that/);
+  });
 });
+

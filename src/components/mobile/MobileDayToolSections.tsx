@@ -131,6 +131,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     addVoiceToSlot,
     voicingSlotId,
     extendSlotClip,
+    extendRequestFor,
     extending,
     hasPlate,
     plate,
@@ -851,6 +852,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onAddVoice={addVoiceToSlot}
           voicingSlotId={voicingSlotId}
           onExtendClip={extendSlotClip}
+          extendRequestFor={extendRequestFor}
           extending={extending}
           onQueueSlot={slot => void queueSlot(slot)}
           onRerollSlot={slot => {

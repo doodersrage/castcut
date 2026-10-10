@@ -9,6 +9,7 @@
   "src/app/api/play-slot-review/route.ts",
   "src/app/api/roleplay/route.ts",
   "src/components/ClipEngineNote.tsx",
+  "src/components/ClipExtendSheet.tsx",
   "src/components/CutProblemsDialog.tsx",
   "src/components/RegionalPromptBuilderPanel.tsx",
   "src/components/StillPromptCheckNote.tsx",

@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { requestClipExtend } from '@/lib/clip-extend';
+import { requestClipExtend, type ClipExtendRequest } from '@/lib/clip-extend';
+import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { upsertDaySlotStill, type DaySlot } from '@/lib/day-planner';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { loadSettingsCache } from '@/lib/settings-cache';
@@ -18,23 +19,33 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
   const dayMood = toolSettings.dayMood;
   const [extending, setExtending] = useState<{ slotId: string; note: string } | null>(null);
   const busyRef = useRef(false);
-  const extendSlotClip = useCallback(
-    async (slot: DaySlot): Promise<string | null> => {
+  /** The slot's clip and scene for "Make it 30 s" (null without a finished clip). */
+  const extendRequestFor = useCallback(
+    (slot: DaySlot): Omit<ClipExtendRequest, 'direction' | 'beats'> | null => {
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
-      if (!still || !clipUrl) return 'This slot has no finished clip.';
+      if (!still || !clipUrl) return null;
+      return {
+        clipUrl,
+        clipPromptId: still.clipPromptId,
+        scene: slot.sceneHints?.trim() || still.beatKey?.trim() || slot.label,
+        setting: slot.location,
+        heat: spokenLineHeat(dayMood),
+      };
+    },
+    [dayMood, stillsRef]
+  );
+  const extendSlotClip = useCallback(
+    async (slot: DaySlot, choice?: ClipExtendChoice): Promise<string | null> => {
+      const request = extendRequestFor(slot);
+      const clipUrl = request?.clipUrl;
+      if (!request || !clipUrl) return 'This slot has no finished clip.';
       if (busyRef.current) return 'Already making a clip longer — one at a time.';
       busyRef.current = true;
       setExtending({ slotId: slot.id, note: 'Writing what happens next…' });
       try {
         const job = await requestClipExtend(
-          {
-            clipUrl,
-            clipPromptId: still.clipPromptId,
-            scene: slot.sceneHints?.trim() || still.beatKey?.trim() || slot.label,
-            setting: slot.location,
-            heat: spokenLineHeat(dayMood),
-          },
+          { ...request, direction: choice?.direction, beats: choice?.beats },
           {
             llmBody: sharedLlmRequestBody(loadSettingsCache().shared),
             onProgress: progress =>
@@ -60,7 +71,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         setExtending(null);
       }
     },
-    [dayMood, stillsRef, updateToolSettings]
+    [extendRequestFor, stillsRef, updateToolSettings]
   );
-  return { extendSlotClip, extending };
+  return { extendSlotClip, extendRequestFor, extending };
 }

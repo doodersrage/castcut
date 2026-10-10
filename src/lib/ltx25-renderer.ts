@@ -820,12 +820,21 @@ export const LTX25_EXTEND_OVERLAP = 17;
 /** The SaveVideo node an extension segment comes out of. */
 export const LTX25_EXTEND_SAVE_NODE = LTX25_SPEECH_SAVE_NODE;
 
-/** What an extension segment is told: the beat, then hold the people, place and camera. */
-export function extendSegmentPrompt(beat: string): string {
+/**
+ * What an extension segment is told: the beat, then hold the people, place and camera. Live
+ * (2026-10-10, a directed "kiss goodbye and head out" in a kitchen): the kiss went to an extreme
+ * close-up and the next part rebuilt the room as a café full of strangers — the place is named in
+ * every part, and close-ups and other people are ruled out.
+ */
+export function extendSegmentPrompt(beat: string, place?: string): string {
+  const setting = place?.trim().replace(/[.\s]+$/, '');
   return [
     beat.trim().replace(/\s+/g, ' '),
-    'Same people, same clothes, same place and light as the first frames; one continuous shot.',
-    'Camera: locked-off, framing stays the same. Natural, smooth, continuous motion.',
+    setting
+      ? `The place stays the same (${setting}), with the same light; one continuous shot.`
+      : 'Same place and light as the first frames; one continuous shot.',
+    'Same people and clothes; no one else appears.',
+    'Camera: locked-off, the framing stays as wide as the first frames — no close-ups. Natural, smooth, continuous motion.',
     'Only the sound of the room; nobody speaks.',
   ].join(' ');
 }

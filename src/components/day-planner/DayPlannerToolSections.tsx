@@ -139,6 +139,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     addVoiceToSlot,
     voicingSlotId,
     extendSlotClip,
+    extendRequestFor,
     extending,
     selectedModel,
     plate,
@@ -904,6 +905,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onAddVoice={addVoiceToSlot}
             voicingSlotId={voicingSlotId}
             onExtendClip={extendSlotClip}
+            extendRequestFor={extendRequestFor}
             extending={extending}
             onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
             onRerollSlot={slot => {
