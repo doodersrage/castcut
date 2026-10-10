@@ -68,7 +68,9 @@ export default function FilmCutOptionsControls({
     setScoring(true);
     setUploadError(null);
     try {
-      const kept = (shots ?? []).filter(shot => value.shotEdits?.shots?.[shot.key]?.include !== false);
+      const kept = (shots ?? []).filter(
+        shot => value.shotEdits?.shots?.[shot.key]?.include !== false
+      );
       const track = await requestFilmScore({
         brief: scoreBrief,
         cutSeconds: estimateCutSeconds(kept, {
