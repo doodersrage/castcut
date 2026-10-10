@@ -1,5 +1,6 @@
 'use client';
 
+import { loadSettingsCache } from '@/lib/settings-cache';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
 import {
@@ -66,6 +67,7 @@ export default function RoleplayFilmCutActions({
       {filmCutOptions && onFilmCutOptionsChange ? (
         <div className="mb-2">
           <FilmCutOptionsDisclosure
+            scoreBrief={{ tone: loadSettingsCache().tools.roleplay?.tone }}
             value={filmCutOptions}
             onChange={onFilmCutOptionsChange}
             disabled={assemblingFilm}

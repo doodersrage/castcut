@@ -686,6 +686,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           <div className="mt-3 grid gap-2">
             {/* Same cut options as desk Day (vertical, crossfade, titles, length, music). */}
             <FilmCutOptionsDisclosure
+              scoreBrief={{ mood: dayMood }}
               value={filmCutOptions}
               onChange={setFilmCutOptions}
               disabled={assemblingFilm}

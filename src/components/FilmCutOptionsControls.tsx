@@ -12,6 +12,7 @@ import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film-audio-bed';
+import { estimateCutSeconds, requestFilmScore, type FilmScoreBrief } from '@/lib/film-score';
 
 export type FilmCutOptionsValue = {
   crossfadeSec: number;
@@ -47,6 +48,8 @@ type FilmCutOptionsControlsProps = {
   testIdPrefix?: string;
   /** Shots this cut would use (Day / Story) — shows the shot list when given. */
   shots?: KeyedShot[];
+  /** Day mood / theme or Story tone — offers "Score this film" (an original track, ACE-Step). */
+  scoreBrief?: FilmScoreBrief;
 };
 
 /** Crossfade, vertical export, and audio bed for Day/Story/Cast Cut (upload or URL). */
@@ -56,8 +59,30 @@ export default function FilmCutOptionsControls({
   disabled = false,
   testIdPrefix = 'film-cut',
   shots,
+  scoreBrief,
 }: FilmCutOptionsControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [scoring, setScoring] = useState(false);
+  const score = async () => {
+    if (!scoreBrief) return;
+    setScoring(true);
+    setUploadError(null);
+    try {
+      const kept = (shots ?? []).filter(shot => value.shotEdits?.shots?.[shot.key]?.include !== false);
+      const track = await requestFilmScore({
+        brief: scoreBrief,
+        cutSeconds: estimateCutSeconds(kept, {
+          crossfadeSec: value.crossfadeSec,
+          length: value.length,
+        }),
+      });
+      onChange({ ...value, audioBedUrl: track.url, audioBedName: track.label });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not score the film.');
+    } finally {
+      setScoring(false);
+    }
+  };
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const bedLabel = value.audioBedName?.trim() || '';
@@ -190,6 +215,21 @@ export default function FilmCutOptionsControls({
           >
             Upload audio
           </Button>
+          {scoreBrief ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={disabled || uploadBusy || scoring}
+              loading={scoring}
+              loadingLabel="Scoring"
+              title="An original instrumental in the film's mood, sized to the cut (ACE-Step 1.5 in ComfyUI)"
+              onClick={() => void score()}
+              data-testid={`${testIdPrefix}-score`}
+            >
+              {hasBed ? 'Score it again' : 'Score this film'}
+            </Button>
+          ) : null}
           {hasBed ? (
             <Button
               type="button"
@@ -310,6 +350,7 @@ export function FilmCutOptionsDisclosure({
   disabled = false,
   testIdPrefix = 'film-cut',
   shots,
+  scoreBrief,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -326,6 +367,7 @@ export function FilmCutOptionsDisclosure({
           disabled={disabled}
           testIdPrefix={testIdPrefix}
           shots={shots}
+          scoreBrief={scoreBrief}
         />
       </div>
     </details>

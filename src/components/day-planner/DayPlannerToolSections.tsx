@@ -730,6 +730,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 </p>
                 <div className="mt-2">
                   <FilmCutOptionsDisclosure
+                    scoreBrief={{ mood: dayMood }}
                     value={filmCutOptions}
                     onChange={setFilmCutOptions}
                     disabled={assemblingFilm}

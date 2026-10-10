@@ -2,6 +2,7 @@
   "src/app/api/cast-voice/audition/route.ts",
   "src/app/api/cast-voice/route.ts",
   "src/app/api/day-premise/route.ts",
+  "src/app/api/film/score/route.ts",
   "src/app/api/play-checks/prepare/route.ts",
   "src/app/api/play-checks/route.ts",
   "src/app/api/play-slot-review/route.ts",

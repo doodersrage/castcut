@@ -805,6 +805,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
 
   // ── LTX Video ─────────────────────────────────────────────────────
   {
+    id: 'ace-step-1.5-turbo-aio',
+    label: 'ACE-Step 1.5 (film scores)',
+    kind: 'checkpoint',
+    filename: 'ace_step_1.5_turbo_aio.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors',
+    bytes: 10025478736,
+    modelIds: ['ltx-video-2.5'],
+    notes:
+      'Cut film → Score this film: an original instrumental in the film’s mood (ComfyUI core ACE-Step nodes).',
+  },
+  {
     id: 'codeformer-face-restore',
     label: 'CodeFormer face restore (talking clips)',
     kind: 'facerestore',
