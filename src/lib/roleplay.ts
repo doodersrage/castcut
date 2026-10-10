@@ -142,6 +142,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * Animate makes a talking clip on LTX-2.5.
    */
   line?: string;
+  /** The talking clip keeps the whole still instead of starting chest-up. */
+  lineFullFrame?: boolean;
   /** I2V / extend clip queued from this beat. */
   clipPromptId?: string;
   clipUrl?: string;

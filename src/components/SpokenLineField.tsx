@@ -19,6 +19,8 @@ export default function SpokenLineField({
   suggestion,
   onSuggest,
   note,
+  fullFrame = false,
+  onFullFrameChange,
 }: {
   line?: string;
   disabled?: boolean;
@@ -32,6 +34,9 @@ export default function SpokenLineField({
   onSuggest?: () => Promise<string>;
   /** A caveat under the field (e.g. clips here render without sound). */
   note?: string;
+  /** Keep the whole still for the talking clip (else it starts chest-up when the face is small). */
+  fullFrame?: boolean;
+  onFullFrameChange?: (fullFrame: boolean) => void;
 }) {
   const [value, setValue] = useState(line ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -124,9 +129,21 @@ export default function SpokenLineField({
         </p>
       ) : null}
       {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
+      {onFullFrameChange && value.trim() ? (
+        <label className="type-caption flex items-center gap-2 text-[var(--text-secondary)]">
+          <input
+            type="checkbox"
+            checked={fullFrame}
+            disabled={disabled}
+            data-testid={`${testId}-full-frame`}
+            onChange={event => onFullFrameChange(event.target.checked)}
+          />
+          Keep the full frame (a small face lip-syncs less clearly)
+        </label>
+      ) : null}
       <p className="type-caption text-[var(--text-muted)]">
         {value.trim()
-          ? `Animate makes a talking clip: they say this to the camera, with sound (LTX-2.5, about 5 s)${hasVoice ? ', in their voice' : ''}. Lips follow the words best when the face is big in the frame and turned to the camera.`
+          ? `Animate makes a talking clip: they say this to the camera, with sound (LTX-2.5, about 5 s)${hasVoice ? ', in their voice' : ''}. ${fullFrame ? 'Starts from the whole still.' : 'Starts chest-up when the face is small in the still, so the lips can be read.'}`
           : 'Add a few words and Animate makes a talking clip with sound.'}
       </p>
     </div>

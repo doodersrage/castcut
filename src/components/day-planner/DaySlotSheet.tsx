@@ -208,6 +208,8 @@ export default function DaySlotSheet({
           <SpokenLineField
             key={slot.id}
             line={slot.line}
+            fullFrame={slot.lineFullFrame === true}
+            onFullFrameChange={on => updateSlot(slot.id, { lineFullFrame: on || undefined })}
             hasVoice={activeCastHasVoice()}
             onSuggest={() =>
               suggestLineForActiveCast({

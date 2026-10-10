@@ -267,7 +267,7 @@ export function useRoleplayBeatQueuePart2(
           : clipEngineForShot(videoModel, { adultDuo: true });
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
-      if (speaking && hasInit && !inputImage && inputImageUrl) {
+      if (speaking && hasInit && !inputImage && inputImageUrl && !latest.lineFullFrame) {
         const framed = await framedTalkingStill(inputImageUrl);
         if (framed) {
           inputImage = framed;

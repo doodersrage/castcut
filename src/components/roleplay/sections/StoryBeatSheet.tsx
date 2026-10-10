@@ -71,6 +71,8 @@ export default function StoryBeatSheet({
         {edit ? (
           <SpokenLineField
             line={beat.line}
+            fullFrame={beat.lineFullFrame === true}
+            onFullFrameChange={on => edit.saveBeatLineFullFrame(beat, on)}
             suggestion={beat.suggestedLine}
             hasVoice={activeCastHasVoice()}
             onSuggest={() =>

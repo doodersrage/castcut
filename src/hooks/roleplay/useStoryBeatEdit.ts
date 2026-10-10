@@ -56,6 +56,8 @@ export type StoryBeatEditActions = {
   saveBeatText: (beat: RoleplayStoryBeat, text: { title: string; blurb: string }) => boolean;
   /** Set (or clear) what the lead says in the scene's clip. */
   saveBeatLine: (beat: RoleplayStoryBeat, line: string) => void;
+  /** Keep the whole still for the scene's talking clip (else chest-up when the face is small). */
+  saveBeatLineFullFrame: (beat: RoleplayStoryBeat, fullFrame: boolean) => void;
   /**
    * Give a finished silent clip a soundtrack (and the scene's line) — two-person adult clips
    * render on WAN without sound. Resolves to an error message, or null when done.
@@ -172,6 +174,19 @@ export function useStoryBeatEdit({
     [bio, commitStill, referenceMissingMessage, requestBody, setError, storyRef, updateToolSettings]
   );
 
+  const saveBeatLineFullFrame = useCallback(
+    (beat: RoleplayStoryBeat, fullFrame: boolean) => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (!latest) return;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, {
+          lineFullFrame: fullFrame || undefined,
+        }),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
   const [voicingKey, setVoicingKey] = useState<string | null>(null);
   const voiceBeatClip = useCallback(
     async (beat: RoleplayStoryBeat): Promise<string | null> => {
@@ -221,7 +236,23 @@ export function useStoryBeatEdit({
 
   // One object per change: it is a context value, and every card in the reel reads it.
   return useMemo(
-    () => ({ saveBeatText, saveBeatLine, voiceBeatClip, voicingKey, rewriteBeat, rewritingKey }),
-    [rewriteBeat, rewritingKey, saveBeatLine, saveBeatText, voiceBeatClip, voicingKey]
+    () => ({
+      saveBeatText,
+      saveBeatLine,
+      saveBeatLineFullFrame,
+      voiceBeatClip,
+      voicingKey,
+      rewriteBeat,
+      rewritingKey,
+    }),
+    [
+      rewriteBeat,
+      rewritingKey,
+      saveBeatLine,
+      saveBeatLineFullFrame,
+      saveBeatText,
+      voiceBeatClip,
+      voicingKey,
+    ]
   );
 }

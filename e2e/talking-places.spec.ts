@@ -85,6 +85,12 @@ test('Day slot: a line in the clip is kept, a suggestion fills it, No line clear
   // Kept on the slot across the sheet closing.
   await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slot-line-input').first()).toHaveValue('Coffee first. Then people.');
+  // Keep the full frame: offered once there is a line, kept on the slot.
+  await page.getByTestId('day-slot-line-full-frame').first().check();
+  await closeDaySheets(page);
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-slot-line-full-frame').first()).toBeChecked();
   await page.getByTestId('day-slot-line-clear').first().click();
+  await expect(page.getByTestId('day-slot-line-full-frame')).toHaveCount(0);
   await expect(page.getByTestId('day-slot-line-input').first()).toHaveValue('');
 });

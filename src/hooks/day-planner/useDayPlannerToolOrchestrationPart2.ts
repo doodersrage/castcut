@@ -439,7 +439,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // A talking clip starts chest-up when her face is small in the still (the lips are
         // unreadable full-body) — not with an end pose, whose frame matches the full still.
         const framed =
-          speaking && !endImageFilename && imageUrl ? await framedTalkingStill(imageUrl) : null;
+          speaking && !endImageFilename && !slot.lineFullFrame && imageUrl
+            ? await framedTalkingStill(imageUrl)
+            : null;
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,

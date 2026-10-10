@@ -32,3 +32,15 @@ describe('talking clip prompt', async () => {
     assert.match(talkingClipPrompt({ line: 'Hi there', speaker: 'He' }), /He stops where he is.*His lips move/);
   });
 });
+
+describe('keep the full frame', async () => {
+  const { normalizeDaySlots } = await import('./day-planner');
+  it('is kept on a Day slot only when set', () => {
+    const [on, off] = normalizeDaySlots([
+      { id: 'morning', label: 'Morning', line: 'Hi there', lineFullFrame: true },
+      { id: 'evening', label: 'Evening', line: 'Hi there', lineFullFrame: false },
+    ] as never);
+    assert.equal(on!.lineFullFrame, true);
+    assert.equal('lineFullFrame' in off!, false);
+  });
+});
