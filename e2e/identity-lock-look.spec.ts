@@ -47,9 +47,12 @@ function lockCast() {
   };
 }
 
-/** Open the Engine panel's Identity lock section. */
+/** Open the Engine sheet and its Identity lock section. */
 async function identityLock(page: Page) {
   const summary = page.locator('summary').filter({ hasText: 'Identity lock' }).first();
+  if (!(await summary.isVisible().catch(() => false))) {
+    await page.getByTestId('tool-engine-chip').first().click();
+  }
   await expect(summary).toBeVisible({ timeout: 30_000 });
   const panel = page.getByTestId('identity-lock-session');
   const open = await summary.evaluate(el => (el.parentElement as HTMLDetailsElement | null)?.open);
@@ -62,6 +65,12 @@ async function identityLock(page: Page) {
 
 /** Day's Look & clothing → the whole Day's look. */
 async function chooseDayLook(page: Page, lookId: string) {
+  // The Engine sheet covers the page — close it first.
+  const engine = page.getByTestId('tool-engine-sheet');
+  if (await engine.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape');
+    await expect(engine).toBeHidden();
+  }
   await page.getByTestId('day-outfit-choose').click();
   const sheet = page.getByTestId('day-outfit-sheet');
   await expect(sheet).toBeVisible({ timeout: 15_000 });
