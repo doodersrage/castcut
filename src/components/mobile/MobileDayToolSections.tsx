@@ -3,7 +3,11 @@
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
-import { useDayCutReadiness, useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
+import {
+  useDayCutReadiness,
+  useDayPlannerBatchPlan,
+  useDayShotIdentity,
+} from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { useRenderBackend } from '@/lib/render-backend-status';
@@ -354,6 +358,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     campaignCompleted: firstCutCelebrate || firstFilmDone,
     slotCount: slots.length,
   });
+  const batchPlan = useDayPlannerBatchPlan({ slots, stills, model: shared.model });
   const cutReadiness = useDayCutReadiness({
     slots,
     stills,
@@ -945,6 +950,21 @@ export default function MobileDayToolSections(vm: ViewModel) {
             >
               Animate all
             </Button>
+          ) : null}
+          {/* How long the batch buttons would take here, behind what is queued (day-batch-plan). */}
+          {(batchPlan.queueLine && !queueBlocked) || (batchPlan.animateLine && canAnimateAll) ? (
+            <p className="type-caption text-[var(--text-muted)]" data-testid="day-batch-plan">
+              {[
+                batchPlan.queueLine && !queueBlocked
+                  ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
+                  : '',
+                batchPlan.animateLine && canAnimateAll
+                  ? `Animate all: ${batchPlan.animateLine}`
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' — ')}
+            </p>
           ) : null}
           <Button
             variant="secondary"
