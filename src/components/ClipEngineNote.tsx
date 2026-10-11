@@ -23,8 +23,8 @@ function pickedVideoModel(): string {
 
 /**
  * One line under Animate saying which engine the clips render on — only when LTX-2.5 is picked,
- * because two-person adult clips quietly stay on WAN there (LTX-2.5 drifts off the act) and take
- * about three times as long as the solo ones.
+ * because two-person adult clips stay on WAN there unless the player keeps LTX for them, and take
+ * about three times as long. Clothed one-person clips run on LTX unless the player opts out.
  */
 export default function ClipEngineNote({
   twoPersonAdultPossible,
@@ -34,7 +34,7 @@ export default function ClipEngineNote({
 }) {
   const model = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
   const [keepLtx, setKeepLtx] = useState(
-    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true
+    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo !== false
   );
   const [ltxDuo, setLtxDuo] = useState(
     () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true
@@ -69,7 +69,7 @@ export default function ClipEngineNote({
             });
           }}
         />
-        Use LTX-2.5 for clothed one-person clips too (faster, and kept her face closer in tests)
+        Use LTX-2.5 for clothed one-person clips (faster, and kept her face closer than WAN)
       </label>
       {twoPersonAdultPossible ? (
         <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">

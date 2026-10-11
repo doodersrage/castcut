@@ -289,7 +289,7 @@ export function useRoleplayBeatQueuePart2(
                 text => stillPromptPeople(text) === 1 && !isAdultContentPrompt(text)
               ),
               keepLtxForClothedSolo:
-                loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
+                loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo !== false,
               keepLtxForAdultDuo:
                 loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true,
             })

@@ -53,7 +53,7 @@ export function resolveDayClipEngine(input: {
       stillPromptPeople(stillPrompt) === 1 &&
       !isAdultContentPrompt(stillPrompt),
     keepLtxForClothedSolo:
-      loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
+      loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo !== false,
     keepLtxForAdultDuo: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true,
     speaking: input.speaking === true,
   });

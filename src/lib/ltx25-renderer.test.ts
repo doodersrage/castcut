@@ -165,18 +165,18 @@ describe('LTX-2.5 clip renderer', () => {
   it('two-person adult clips stay on WAN', () => {
     assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: true }), 'wan-video-rapid-aio');
     assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: false }), 'ltx-video-2.5');
-    // Clothed one-person clips keep the face on WAN unless the player keeps LTX for them.
+    // Clothed one-person clips stay on LTX unless the player sends them to WAN.
     assert.equal(
       clipEngineForShot('ltx-video-2.5', { adultDuo: false, clothedSolo: true }),
-      'wan-video-rapid-aio'
+      'ltx-video-2.5'
     );
     assert.equal(
       clipEngineForShot('ltx-video-2.5', {
         adultDuo: false,
         clothedSolo: true,
-        keepLtxForClothedSolo: true,
+        keepLtxForClothedSolo: false,
       }),
-      'ltx-video-2.5'
+      'wan-video-rapid-aio'
     );
     // Plain WAN Video loads the Rapid AIO file — its clips sample as Rapid AIO.
     assert.equal(

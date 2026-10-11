@@ -116,6 +116,7 @@ export function clipEngineForShot(
     /** The player keeps LTX-2.5 for two-person adult clips too (Video `ltxAdultDuo`). */
     keepLtxForAdultDuo?: boolean;
     clothedSolo?: boolean;
+    /** False: the player sends clothed one-person clips to WAN (Video `ltxClothedSolo`). */
     keepLtxForClothedSolo?: boolean;
     /** The clip has a spoken line — only LTX-2.5 makes sound, so it runs there whatever is picked. */
     speaking?: boolean;
@@ -128,7 +129,9 @@ export function clipEngineForShot(
   if (videoModel === 'wan-video') return WAN_CLIP_FALLBACK_MODEL;
   if (!isLtx25Model(videoModel)) return videoModel;
   if (shot.adultDuo) return shot.keepLtxForAdultDuo ? videoModel : WAN_CLIP_FALLBACK_MODEL;
-  if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return WAN_CLIP_FALLBACK_MODEL;
+  // Clothed one-person clips stay on LTX unless the player opted out: held at 0.85 and 1024, her
+  // face stayed closer to the still than on WAN (8 stills, 2026-10-11: 0.55 vs 0.79).
+  if (shot.clothedSolo && shot.keepLtxForClothedSolo === false) return WAN_CLIP_FALLBACK_MODEL;
   return videoModel;
 }
 
