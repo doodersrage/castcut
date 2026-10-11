@@ -9,6 +9,7 @@ import { stillWordsSeated } from '@/lib/talking-clip-framing';
 import {
   isLtx25Model,
   ROOM_SOUND_UNDER_TALKING,
+  stillHeldGesture,
   stillInMotion,
   withAdultLtxLines,
   conversationClipPrompt,
@@ -470,6 +471,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   framing,
                   seated,
                   inMotion: stillInMotion(parentEntry?.prompt),
+                  heldGesture: stillHeldGesture(parentEntry?.prompt),
                 }),
             ageLine,
           ]

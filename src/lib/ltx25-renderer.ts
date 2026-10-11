@@ -1178,6 +1178,18 @@ function addLtx25TalkingAmbience(next: Workflow, place: string): void {
 }
 
 /**
+ * The still holds an arm up — waving, raised overhead, pointing, a high-five. Kept as is, the
+ * wave stayed frozen in the air for the whole line; "finish the movement and settle" lowered it
+ * but turned her and walked her off at the end (4 of 4, the user's market still). Keeping her
+ * position and lowering the arm: lowered on 4 of 4, stayed on her spot (2026-10-11).
+ */
+export function stillHeldGesture(stillPrompt: string | null | undefined): boolean {
+  return /\b(waving|waves|arms? raised|raised (?:high )?overhead|pointing|reaching up|high-fiv\w*|cheering|blowing a kiss)\b/i.test(
+    String(stillPrompt ?? '')
+  );
+}
+
+/**
  * The still caught her mid-movement — walking, a stride, a spin, a dance, a jump — by the words
  * the still was made from (Day's "She walks mid-step…", "Moment: … mid-spin"). Climbing is not
  * counted: settling on stairs turned her round and up them.
@@ -1231,6 +1243,8 @@ export function talkingClipPrompt(input: {
    * and the seated words sat her down.
    */
   seated?: boolean;
+  /** The still holds an arm up (stillHeldGesture): she lowers it, keeping her spot. */
+  heldGesture?: boolean;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
@@ -1267,7 +1281,9 @@ export function talkingClipPrompt(input: {
         ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`
         : input.inMotion
           ? `${who} finishes the movement ${she} is in and settles into a natural, balanced pose where ${she} is, both feet on the ground, and ${spokenLineVerb(input.tone, who)} "${line}"`
-          : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
+          : input.heldGesture
+            ? `${who} keeps ${who === 'He' ? 'his' : 'her'} position and stance from the first frame, lowers ${who === 'He' ? 'his' : 'her'} raised arm naturally, and ${spokenLineVerb(input.tone, who)} "${line}"`
+            : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
       input.seated
         ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
         : input.inMotion

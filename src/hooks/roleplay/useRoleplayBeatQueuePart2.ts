@@ -12,6 +12,7 @@ import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
   clipEngineForShot,
   ROOM_SOUND_UNDER_TALKING,
+  stillHeldGesture,
   stillInMotion,
   withAdultLtxLines,
   isLtx25Model,
@@ -353,6 +354,7 @@ export function useRoleplayBeatQueuePart2(
           framing,
           seated,
           inMotion: stillInMotion(parentEntry?.prompt ?? latest.prompt),
+          heldGesture: stillHeldGesture(parentEntry?.prompt ?? latest.prompt),
         });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }

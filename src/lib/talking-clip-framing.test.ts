@@ -238,3 +238,14 @@ describe('seated or not', () => {
     }
   });
 });
+
+describe('a held gesture', () => {
+  it('keeps her spot and lowers the raised arm, instead of freezing the wave', async () => {
+    const { talkingClipPrompt, stillHeldGesture } = await import('./ltx25-renderer');
+    const prompt = talkingClipPrompt({ line: 'Hi', framing: 'mid', heldGesture: true });
+    assert.match(prompt, /She keeps her position and stance from the first frame, lowers her raised arm naturally, and says clearly, "Hi"/);
+    assert.doesNotMatch(prompt, /keeps exactly the pose|finishes the movement/);
+    assert.equal(stillHeldGesture('She stands waving, one arm raised high overhead, weight on one hip'), true);
+    assert.equal(stillHeldGesture('She stands with her hands on her hips'), false);
+  });
+});
