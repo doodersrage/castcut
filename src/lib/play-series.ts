@@ -5,6 +5,7 @@
  */
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
+import { normalizeEpisodeDay, type EpisodeDay } from './day-episode-snapshot';
 
 export const PLAY_SERIES_KEY = 'play-series-v1';
 export const PLAY_SERIES_UPDATED_EVENT = 'play-series-updated';
@@ -27,6 +28,8 @@ export type PlaySeriesEpisode = {
   places?: string[];
   /** The Day's beats in slot order, short. */
   beats?: string[];
+  /** The Day it was cut from — Open this Day again (day-episode-snapshot.ts). */
+  day?: EpisodeDay;
 };
 
 export type PlaySeries = {
@@ -69,6 +72,7 @@ function normalizeEpisode(value: unknown): PlaySeriesEpisode | null {
     posterUrl: text(raw.posterUrl, 2048) || undefined,
     places: textList(raw.places, 8, 120),
     beats: textList(raw.beats, 8, 160),
+    ...(raw.day ? { day: normalizeEpisodeDay(raw.day) } : {}),
   };
 }
 
@@ -166,6 +170,8 @@ export type AddEpisodeInput = {
   posterUrl?: string;
   places?: string[];
   beats?: string[];
+  /** The Day it was cut from (dayEpisodeSnapshot). */
+  day?: EpisodeDay;
   now: number;
   /** Injected for tests; defaults to crypto.randomUUID(). */
   newId?: () => string;
@@ -220,6 +226,7 @@ export function addSeriesEpisode(
       120
     ),
     beats: textList(input.beats, 8, 160),
+    ...(input.day ? { day: input.day } : {}),
   };
   const next: PlaySeries = {
     ...series,

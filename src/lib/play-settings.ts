@@ -114,6 +114,8 @@ export type FittingToolCache = {
 export type DayToolCache = {
   /** Other Casts' Days, parked when the Cast changed (day-cast-park). */
   parkedDays?: Record<string, import('./day-cast-park').ParkedDay>;
+  /** The Day an "Open this Day again" replaced, so it can come back (day-episode-snapshot). */
+  setAsideDay?: import('./day-episode-snapshot').SetAsideDay;
   slots?: import('./day-planner').DaySlot[];
   /** This Cast's run of Days: its idea and the last Day's beats, for Tomorrow (day-thread.ts). */
   dayThread?: import('./day-thread').DayThread;

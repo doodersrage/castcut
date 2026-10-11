@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
-import { seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
 
@@ -81,4 +81,101 @@ test('restore shows what a backup holds beside what is here, before it overwrite
       : [];
   });
   expect(names).toContain('Here Ada');
+});
+
+test('an episode shows what went into it, and its Day opens again without losing the one there', async ({
+  page,
+}) => {
+  const now = Date.now();
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  const castId = 'e2e-reopen';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Reo', version: 1, updatedAt: now }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: castId,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'gym', sceneHints: 'lifts weights' },
+          { id: 'afternoon', label: 'Afternoon', location: 'office', sceneHints: 'types' },
+          { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads' },
+        ],
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'now-m' }],
+      },
+    },
+  });
+  await putAppKv(page, {
+    'play-series-v1': {
+      version: 1,
+      series: [
+        {
+          id: 's1',
+          characterId: castId,
+          title: 'Reo · Season 1',
+          createdAt: now - 5000,
+          updatedAt: now,
+          episodes: [
+            {
+              id: 'e1',
+              cutAt: now - 5000,
+              filename: 'd1.mp4',
+              places: ['harbor terrace'],
+              day: {
+                slots: [
+                  {
+                    id: 'morning',
+                    label: 'Morning',
+                    location: 'harbor terrace',
+                    sceneHints: 'brunch with a mimosa',
+                  },
+                  { id: 'afternoon', label: 'Afternoon', location: 'bay', sceneHints: 'swims' },
+                  { id: 'evening', label: 'Evening', location: 'old town', sceneHints: 'waves' },
+                  {
+                    id: 'night',
+                    label: 'Night',
+                    location: 'beach bonfire',
+                    sceneHints: 'sits by the fire',
+                    line: 'Best day.',
+                  },
+                ],
+                stills: [
+                  { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'ep-m' },
+                  { slotId: 'night', status: 'completed', imageUrl: thumb, promptId: 'ep-n' },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await gotoStable(page, `/characters/${castId}?media=films`);
+  await dismissBlockingOverlays(page);
+  const episode = page.getByTestId('cast-season-episode').first();
+  await expect(episode).toBeVisible({ timeout: 30_000 });
+  await episode.getByTestId('cast-season-episode-day').locator('summary').click();
+  await expect(episode.getByTestId('cast-episode-slot-morning')).toContainText(
+    'harbor terrace · brunch with a mimosa'
+  );
+  await expect(episode.getByTestId('cast-episode-slot-night')).toContainText('“Best day.”');
+  await expect(episode.getByTestId('cast-episode-slot-afternoon')).toContainText('not rendered');
+  await episode.getByTestId('cast-episode-reopen').click();
+  await expect(page).toHaveURL(/\/day\?character=e2e-reopen/, { timeout: 30_000 });
+  await dismissBlockingOverlays(page);
+  // The episode's Day is on the board; the Day that was there is kept aside.
+  await expect(page.getByTestId('day-progress-scene-morning')).toContainText('harbor terrace', {
+    timeout: 30_000,
+  });
+  const aside = page.getByTestId('day-set-aside');
+  await expect(aside).toContainText('Reo · Season 1, episode 1');
+  await expect(aside).toContainText('1 still');
+  await aside.getByTestId('day-set-aside-back').click();
+  await expect(page.getByTestId('day-progress-scene-morning')).toContainText('gym');
+  // And the episode's Day can come back again.
+  await expect(page.getByTestId('day-set-aside')).toContainText('the episode you opened');
 });

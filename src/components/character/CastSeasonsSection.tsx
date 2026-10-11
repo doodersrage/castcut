@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import { episodeDayRows, reopenEpisodeDayPatch, type EpisodeDay } from '@/lib/day-episode-snapshot';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 import {
   loadPlaySeriesStore,
   PLAY_SERIES_UPDATED_EVENT,
@@ -24,7 +29,23 @@ const DATE = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric'
  * the still each opened on and the places it went. Films play from the Films tab below.
  */
 export default function CastSeasonsSection({ characterId }: { characterId: string }) {
+  const router = useRouter();
   const [seasons, setSeasons] = useState<PlaySeries[]>([]);
+  /** Open an episode's Day again; the Day it replaces is set aside (Day offers it back). */
+  const reopen = (snapshot: EpisodeDay, label: string) => {
+    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    saveToolSettings('day', {
+      ...day,
+      ...reopenEpisodeDayPatch({
+        day,
+        castId: characterId,
+        activeCastId: loadSettingsCache().shared.activeCharacterId,
+        snapshot,
+        label,
+      }),
+    });
+    router.push(`/day?character=${encodeURIComponent(characterId)}`);
+  };
   useEffect(() => {
     const refresh = () => setSeasons(readSeasons(characterId));
     const timer = window.setTimeout(refresh, 0);
@@ -89,6 +110,14 @@ export default function CastSeasonsSection({ characterId }: { characterId: strin
                         {episode.places.join(' · ')}
                       </p>
                     ) : null}
+                    {episode.day ? (
+                      <EpisodeDayDetails
+                        snapshot={episode.day}
+                        onReopen={() =>
+                          reopen(episode.day!, `${season.title}, episode ${index + 1}`)
+                        }
+                      />
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -97,5 +126,60 @@ export default function CastSeasonsSection({ characterId }: { characterId: strin
         );
       })}
     </ToolSection>
+  );
+}
+
+/** What went into an episode (each slot: its still or clip, place, beat, line) and a way back to it. */
+function EpisodeDayDetails({ snapshot, onReopen }: { snapshot: EpisodeDay; onReopen: () => void }) {
+  const rows = episodeDayRows(snapshot);
+  return (
+    <details className="pt-1" data-testid="cast-season-episode-day">
+      <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+        What went into it
+      </summary>
+      <ol className="mt-1.5 space-y-1.5">
+        {rows.map(row => (
+          <li
+            key={row.slotId}
+            className="flex gap-2"
+            data-testid={`cast-episode-slot-${row.slotId}`}
+          >
+            {row.thumb ? (
+              // eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery URLs
+              <img
+                src={row.thumb}
+                alt=""
+                loading="lazy"
+                className="h-12 w-9 shrink-0 rounded object-cover"
+              />
+            ) : (
+              <div className="h-12 w-9 shrink-0 rounded bg-[var(--bg-hover)]" aria-hidden />
+            )}
+            <div className="min-w-0">
+              <p className="type-caption font-medium text-[var(--text-primary)]">
+                {row.label}
+                <span className="ml-1 font-normal text-[var(--text-muted)]">
+                  · {row.kind === 'clip' ? 'clip' : row.kind === 'still' ? 'still' : 'not rendered'}
+                </span>
+              </p>
+              <p className="type-caption line-clamp-2 text-[var(--text-muted)]">
+                {[row.place, row.beat].filter(Boolean).join(' · ')}
+                {row.line ? ` · “${row.line}”` : ''}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <Button
+        size="sm"
+        variant="secondary"
+        className="mt-2"
+        title="Puts this Day back on the Day board; the Day there now is kept and can come back"
+        data-testid="cast-episode-reopen"
+        onClick={onReopen}
+      >
+        Open this Day again
+      </Button>
+    </details>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
+import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
 import { useDayCutReadiness, useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
@@ -235,6 +236,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     cutDayFilm,
     cutProblems,
     cutChecking,
+    setAsideDay,
+    bringBackSetAsideDay,
+    dismissSetAsideDay,
     resolveCutProblems,
     saveFilmToCast,
     completedShotCount,
@@ -786,6 +790,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
           advancedOpen={advancedOpen}
           onAdvancedToggle={() => setAdvancedOpen(open => !open)}
           advancedId={advancedId}
+        />
+        <DaySetAsideBanner
+          aside={setAsideDay}
+          castId={character?.id}
+          onBringBack={bringBackSetAsideDay}
+          onDismiss={dismissSetAsideDay}
         />
         <DayContinuityLocks
           locks={dayContinuityLocks({

@@ -1,6 +1,7 @@
 'use client';
 
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
+import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
 import {
   useDayCutReadiness,
@@ -251,6 +252,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     cutDayFilm,
     cutProblems,
     cutChecking,
+    setAsideDay,
+    bringBackSetAsideDay,
+    dismissSetAsideDay,
     resolveCutProblems,
     saveFilmToCast,
     goRoleplay,
@@ -852,6 +856,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             advancedId={advancedId}
           />
           <div className="mb-3 space-y-1.5">
+            <DaySetAsideBanner
+              aside={setAsideDay}
+              castId={character?.id}
+              onBringBack={bringBackSetAsideDay}
+              onDismiss={dismissSetAsideDay}
+            />
             <DayContinuityLocks
               locks={dayContinuityLocks({
                 cast: character,

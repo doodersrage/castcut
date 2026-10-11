@@ -27,6 +27,7 @@ import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { swapDayPromptGender } from '@/lib/day-lead-gender';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film-cut-plan';
+import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day-episode-snapshot';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -649,6 +650,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 .find(url => url && !url.startsWith('data:')) || undefined,
             places: slots.map(slot => slot.location?.trim() ?? '').filter(Boolean),
             beats: slots.map(slot => slot.sceneHints?.trim() ?? '').filter(Boolean),
+            // The Day itself, so the Cast page can show it and open it again.
+            day: dayEpisodeSnapshot({ ...toolSettings, slots, stills: stillsRef.current }),
           });
           setFilmNeedsCast(false);
           setFilmStatus(
@@ -702,7 +705,20 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         setAssemblingFilm(false);
       }
     },
-    [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots]
+    [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots, toolSettings]
+  );
+
+  // "Open this Day again" (Cast → Seasons) set the Day it replaced aside — offer it back.
+  const setAsideDay = toolSettings.setAsideDay ?? null;
+  const bringBackSetAsideDay = useCallback(() => {
+    const patch = bringBackSetAsideDayPatch(toolSettings);
+    if (!patch) return;
+    stillsRef.current = patch.stills ?? [];
+    updateToolSettings(patch);
+  }, [stillsRef, toolSettings, updateToolSettings]);
+  const dismissSetAsideDay = useCallback(
+    () => updateToolSettings({ setAsideDay: undefined }),
+    [updateToolSettings]
   );
 
   /** Save a poster frame from a finished still, matching the cut's aspect. */
@@ -1361,6 +1377,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   );
 
   return {
+    setAsideDay,
+    bringBackSetAsideDay,
+    dismissSetAsideDay,
     queueAll,
     animateSlot,
     animateAllClips,
