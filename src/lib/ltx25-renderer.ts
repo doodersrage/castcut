@@ -76,11 +76,27 @@ export function isLtx25Model(model: string | null | undefined): boolean {
  * 2026-10-05) — unless the player keeps LTX for them (Video `ltxClothedSolo`, for speed).
  */
 /**
- * The tempo line two-person adult clips get on LTX-2.5 (with `motionFrameRate` 12): LTX alone
- * moved about half as much as WAN on the same stills and drifted off the act in 1 of 4.
+ * The tempo line two-person adult clips get on LTX-2.5 (with `motionFrameRate` 12): plain LTX
+ * moved about half as much as WAN on the same stills and drifted off the act in 1 of 4. A strong
+ * line ("fast, vigorous… never slowing down") overshot to 2–5× WAN and looked sped up; this
+ * gentle one sits at ~0.9× WAN on average (four of the user's stills, 2026-10-11) and the user
+ * judged the motion right.
  */
 export const LTX_FAST_PACE_LINE =
-  'Fast, vigorous, rhythmic movement from the first frame to the last — a quick, energetic pace, never slowing down.';
+  'Steady, natural rhythmic movement throughout the clip, at a relaxed, realistic pace.';
+/**
+ * Two-person adult clips on LTX: the anatomy said outright (LTX runs at CFG 1, so the negative
+ * prompt cannot do it) — with LTX_PACED_STILL_HOLD it kept genitals one consistent shape.
+ */
+export const LTX_DUO_ANATOMY_LINE =
+  'Both bodies stay anatomically correct in every frame — his genitals stay attached to his body, one penis of the same size and shape, never merging, duplicating or melting into hers.';
+/**
+ * Long side those clips render at (default 768). 1024 held genital detail clearest and most
+ * consistent (768 too small to show it, 1152 no steadier); ~38 s against ~30 s per clip.
+ */
+export const LTX_PACED_LONG_SIDE = 1024;
+/** How strongly those clips hold the still on the first pass (default 0.7). */
+export const LTX_PACED_STILL_HOLD = 0.85;
 /** The conditioning frame rate for those clips (they still play at 24 fps). */
 export const LTX_FAST_PACE_FRAME_RATE = 12;
 
@@ -228,10 +244,16 @@ export function convertVideoWorkflowToLtx25(
     speech?: { voiceSample?: string; idLora?: string; restoreFace?: string };
     /**
      * The frame rate LTX is told the clip runs at (default 24, what it plays at). Lower = more
-     * movement per frame: two-person adult clips at 12 (with LTX_FAST_PACE_LINE) moved 2–5× more
-     * than at 24 and held the act 8 of 8 (2 seeds × 4 of the user's stills, 2026-10-11).
+     * movement per frame: two-person adult clips at 12 with LTX_FAST_PACE_LINE move about as much
+     * as WAN, and held the act on every still tried (14 clips, 10 of the user's stills).
      */
     motionFrameRate?: number;
+    /**
+     * How strongly the first pass holds the still (default 0.7). 0.85 kept two-person anatomy the
+     * same shape frame to frame where 0.7 let it blob and merge, at about the same motion
+     * (reverse-cowgirl and straddling stills, 2026-10-11).
+     */
+    stillHold?: number;
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
@@ -325,7 +347,16 @@ export function convertVideoWorkflowToLtx25(
     },
     '12': {
       class_type: 'LTXVImgToVideoInplace',
-      inputs: { vae: ['3', 0], image: ['10', 0], latent: ['11', 0], strength: 0.7, bypass: false },
+      inputs: {
+        vae: ['3', 0],
+        image: ['10', 0],
+        latent: ['11', 0],
+        strength:
+          typeof options.stillHold === 'number' && options.stillHold > 0 && options.stillHold <= 1
+            ? options.stillHold
+            : 0.7,
+        bypass: false,
+      },
     },
     // The distilled model is audio+video; the audio latent rides along (not decoded).
     '13': {

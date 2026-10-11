@@ -306,6 +306,17 @@ describe('two-person adult clips on LTX-2.5', () => {
       node => node.class_type === 'LTXVConditioning'
     );
     assert.equal(plainConditioning?.inputs?.frame_rate, 24);
+    // The paced path also holds the still harder on the first pass.
+    const held = convertVideoWorkflowToLtx25(wanClipGraph(), { stillHold: 0.85 });
+    const strengths = Object.values(held.workflow)
+      .filter(node => node.class_type === 'LTXVImgToVideoInplace')
+      .map(node => node.inputs?.strength);
+    assert.ok(strengths.includes(0.85));
+    assert.ok(
+      Object.values(plain.workflow)
+        .filter(node => node.class_type === 'LTXVImgToVideoInplace')
+        .some(node => node.inputs?.strength === 0.7)
+    );
     // Out of range: ignored.
     const odd = convertVideoWorkflowToLtx25(wanClipGraph(), { motionFrameRate: 2 });
     assert.equal(

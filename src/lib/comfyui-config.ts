@@ -7,6 +7,8 @@ import {
   LTX25_ID_LORA,
   LTX25_FACE_RESTORE_NODE,
   LTX_FAST_PACE_FRAME_RATE,
+  LTX_PACED_STILL_HOLD,
+  LTX_PACED_LONG_SIDE,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -1891,10 +1893,12 @@ export function injectPromptsWithFallbacks(
           !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
         ...(Number(input.params?.videoLongSide) > 0
           ? { longSide: Number(input.params?.videoLongSide) }
-          : {}),
+          : input.params?.videoMotionPace === 'fast'
+            ? { longSide: LTX_PACED_LONG_SIDE }
+            : {}),
         // A two-person adult clip kept on LTX: told a lower frame rate, so it moves like WAN.
         ...(input.params?.videoMotionPace === 'fast'
-          ? { motionFrameRate: LTX_FAST_PACE_FRAME_RATE }
+          ? { motionFrameRate: LTX_FAST_PACE_FRAME_RATE, stillHold: LTX_PACED_STILL_HOLD }
           : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))

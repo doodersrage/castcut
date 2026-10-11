@@ -3,6 +3,7 @@
 import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
+  LTX_DUO_ANATOMY_LINE,
   LTX_FAST_PACE_LINE,
   conversationClipPrompt,
   conversationPartnerNoun,
@@ -400,7 +401,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           isLtx25Model(videoModel) &&
           isDayAdultMood(toolSettings.dayMood) &&
           (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK);
-        if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE}`;
+        if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE} ${LTX_DUO_ANATOMY_LINE}`;
         // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
         // voice and their own lip movement).
         const replyLine = normalizeSpokenLine(slot.replyLine);

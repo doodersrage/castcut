@@ -6,6 +6,7 @@ import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/ad
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
   clipEngineForShot,
+  LTX_DUO_ANATOMY_LINE,
   LTX_FAST_PACE_LINE,
   isLtx25Model,
   conversationClipPrompt,
@@ -297,7 +298,7 @@ export function useRoleplayBeatQueuePart2(
       // A two-person adult clip kept on LTX-2.5 (Video ltxAdultDuo): a tempo line and a lower
       // conditioning frame rate, or it moves about half as much as WAN.
       const fastPace = adultDuo && !speaking && isLtx25Model(clipModel);
-      if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE}`;
+      if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE} ${LTX_DUO_ANATOMY_LINE}`;
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
       let talkingCropped = false;
