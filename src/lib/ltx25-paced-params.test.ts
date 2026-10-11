@@ -85,7 +85,7 @@ describe('refine detail', () => {
     assert.deepEqual(save?.inputs.images, ['92', 0]);
   });
 
-  it('is skipped without the LoRA, without the LTXVideo pack, or on a talking clip', () => {
+  it('is skipped without the LoRA or without the LTXVideo pack', () => {
     assert.equal(refined(buildClipGraph(false, { loras: [] })), false);
     assert.equal(refined(buildClipGraph(false)), false);
     assert.equal(
@@ -97,6 +97,16 @@ describe('refine detail', () => {
       ),
       false
     );
-    assert.equal(refined(buildClipGraph(false, { loras: [REFINE], speech: true })), false);
+  });
+
+  it('keeps a talking clip\'s voice: the refine sees it frozen, the MP4 takes it as decoded', () => {
+    const graph = buildClipGraph(false, { loras: [REFINE], speech: true });
+    assert.ok(refined(graph));
+    assert.equal(graph['93']?.class_type, 'LTXVFreezeLatent');
+    assert.deepEqual(graph['93']?.inputs.latent, ['28', 1]);
+    assert.deepEqual(graph['84']?.inputs.audio_latent, ['93', 0]);
+    const mp4 = Object.values(graph).find(node => node.class_type === 'CreateVideo');
+    assert.deepEqual(mp4?.inputs.images, ['92', 0]);
+    assert.deepEqual(mp4?.inputs.audio, ['54', 0]);
   });
 });

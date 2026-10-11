@@ -924,8 +924,9 @@ export type VideoToolCache = {
    */
   ltxAdultDuo?: boolean;
   /**
-   * Refine detail on LTX-2.5 clips (not talking ones): one more pass on Lightricks' Refine-Details
-   * IC-LoRA — crisper texture, ~2.3× the time, can shift her face a little. Off by default.
+   * Refine detail on LTX-2.5 clips: one more pass on Lightricks' Refine-Details IC-LoRA — crisper
+   * texture, ~2× the time, can shift her face a little; talking clips keep voice and lip timing.
+   * Off by default.
    */
   ltxRefine?: boolean;
   /** Output frame rate fed to {{VIDEO_FPS}} at queue time. */

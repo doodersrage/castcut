@@ -276,7 +276,7 @@ export function convertVideoWorkflowToLtx25(
     /**
      * Refine detail: re-render the finished clip once more through Lightricks' Refine-Details
      * IC-LoRA (this file), guided by its own frames — crisper texture, ~2.3× the time, and it can
-     * shift her face a little (2026-10-11). Not for talking clips.
+     * shift her face a little (2026-10-11). Talking clips keep their voice and lip timing.
      */
     refineLora?: string;
   } = {}
@@ -486,19 +486,23 @@ export function convertVideoWorkflowToLtx25(
   }
   if (endImage) addLtx25EndGuide(next, endImage);
   if (options.speech) addLtx25Speech(next, options.speech, prefix);
-  else if (options.refineLora?.trim()) addLtx25Refine(next, options.refineLora.trim(), seed);
+  if (options.refineLora?.trim()) addLtx25Refine(next, options.refineLora.trim(), seed);
   return { workflow: next, converted: true };
 }
 
 /**
  * The refine stage: the decoded clip is the in-context guide for one more 8-step distilled pass
  * at the same size on the Refine-Details IC-LoRA; the guide frames are cropped off and that
- * result is what gets saved.
+ * result is what gets saved. A talking clip keeps its voice: the refine pass sees the spoken
+ * audio frozen (so the lips stay on the words) and the MP4 takes the audio decoded before it.
  */
 function addLtx25Refine(next: Workflow, lora: string, seed: number): void {
-  const save = next['30']?.inputs;
+  const talking = Boolean(next['55']);
   const length = next['11']?.inputs?.length;
-  if (!save || !next['29'] || !next['7'] || !next['13']) return;
+  if ((!next['30'] && !talking) || !next['29'] || !next['7'] || !next['13']) return;
+  if (talking) {
+    next['93'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['28', 1] } };
+  }
   next['80'] = {
     class_type: 'LTXICLoRALoaderModelOnly',
     inputs: { model: ['1', 0], lora_name: lora, strength_model: 1 },
@@ -527,7 +531,7 @@ function addLtx25Refine(next: Workflow, lora: string, seed: number): void {
   };
   next['84'] = {
     class_type: 'LTXVConcatAVLatent',
-    inputs: { video_latent: ['83', 2], audio_latent: ['13', 0] },
+    inputs: { video_latent: ['83', 2], audio_latent: talking ? ['93', 0] : ['13', 0] },
   };
   next['85'] = {
     class_type: 'CFGGuider',
@@ -558,7 +562,16 @@ function addLtx25Refine(next: Workflow, lora: string, seed: number): void {
     class_type: 'VAEDecodeTiled',
     inputs: { ...next['29'].inputs, samples: ['91', 2] },
   };
-  save.images = ['92', 0];
+  // Whatever showed the decoded clip (the WebP save; a talking clip's face pass and MP4) now
+  // shows the refined one.
+  for (const id of ['30', '55', '59']) {
+    const inputs = next[id]?.inputs;
+    if (!inputs) continue;
+    for (const key of ['images', 'image']) {
+      const value = inputs[key];
+      if (Array.isArray(value) && value[0] === '29') inputs[key] = ['92', 0];
+    }
+  }
 }
 
 /**

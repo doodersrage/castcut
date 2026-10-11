@@ -380,8 +380,7 @@ export function useRoleplayBeatQueuePart2(
                   videoFrames: 64,
                   videoFps: 16,
                   ...(holdStill ? { videoStillHold: 'on' as const } : {}),
-                  ...(!speaking &&
-                  isLtx25Model(clipModel) &&
+                  ...(isLtx25Model(clipModel) &&
                   loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxRefine === true
                     ? { videoRefine: 'on' as const }
                     : {}),

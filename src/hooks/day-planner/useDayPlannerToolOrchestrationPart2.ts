@@ -480,9 +480,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
               videoFrames: conversation ? 96 : speaking ? 80 : 64,
               ...(holdStill ? { videoStillHold: 'on' as const } : {}),
-              // Refine detail (Video ltxRefine): LTX clips without a line.
-              ...(!spokenLine &&
-              isLtx25Model(videoModel) &&
+              // Refine detail (Video ltxRefine): any LTX clip — a talking one keeps its voice
+              // and lip timing (4 clips, 2026-10-11).
+              ...(isLtx25Model(videoModel) &&
               loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxRefine === true
                 ? { videoRefine: 'on' as const }
                 : {}),
