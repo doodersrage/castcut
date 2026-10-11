@@ -2,6 +2,7 @@
 
 import { locateFaceOnPlateBlob } from './face-locate-client';
 import {
+  stillPostureFromBody,
   TALKING_WIDE_FACE_SHARE,
   talkingClipCropRect,
   talkingFramingFromShare,
@@ -79,6 +80,22 @@ export async function framedTalkingStill(imageUrl: string): Promise<File | null>
     } finally {
       bitmap.close();
     }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Seated or not, read from the still's pose (/api/pose-detect, cached per image). `null` when the
+ * pose reader isn't installed or finds nobody — the caller falls back to the still's words.
+ */
+export async function talkingStillPosture(imageUrl: string): Promise<'seated' | 'upright' | null> {
+  try {
+    const { detectStillPoseShared } = await import('./pose-detect-client');
+    const result = await detectStillPoseShared(imageUrl);
+    if (!result.available) return null;
+    const body = result.pose.people[0];
+    return body ? stillPostureFromBody(body) : null;
   } catch {
     return null;
   }

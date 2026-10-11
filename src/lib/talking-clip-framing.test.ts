@@ -113,7 +113,7 @@ describe('wide talking prompt (full-body still kept whole)', async () => {
     assert.match(prompt, /She keeps exactly the pose and position of the first frame and says in a playful, teasing tone with a little smirk, "Want one\?"/);
     assert.doesNotMatch(prompt, /sitting|lying|stand up/);
     // Mid (seated / knees-up): the seated hold that kept the park-bench clip full-frame.
-    const mid = talkingClipPrompt({ line: 'Hi', framing: 'mid' });
+    const mid = talkingClipPrompt({ line: 'Hi', framing: 'mid', seated: true });
     assert.match(mid, /in the same pose as the first frame — sitting or lying, she stays that way/);
     assert.match(mid, /does not stand up/);
     assert.doesNotMatch(prompt, /into the camera|facing the camera/);
@@ -188,11 +188,53 @@ describe('caught mid-movement', () => {
     assert.match(moving, /She finishes the movement she is in and settles into a natural, balanced pose where she is, both feet on the ground, and says clearly, "Hi"/);
     assert.match(moving, /does not start another movement, walk away or turn around/);
     assert.doesNotMatch(moving, /keeps exactly the pose/);
-    // Mid (seated) keeps its own hold even if the words say walking.
-    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'mid', inMotion: true }), /sitting or lying/);
+    // Seated keeps its own hold even if the words say walking.
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'mid', seated: true, inMotion: true }), /sitting or lying/);
     assert.equal(stillInMotion('She walks mid-step, one foot ahead of the other.'), true);
     assert.equal(stillInMotion('Moment: dancing barefoot at the shoreline — both arms out mid-spin'), true);
     assert.equal(stillInMotion('Moment: climbing the stairs to the flat'), false);
     assert.equal(stillInMotion('She leans in the doorway.'), false);
+  });
+});
+
+describe('seated or not', () => {
+  // Bodies built from the user's stills: neck, hips and knees in 0–1 of the still.
+  const body = (neckY: number, hipY: number, kneeYs: [number | null, number | null], hipDx = 0) => {
+    const b: Array<{ x: number; y: number } | null> = Array(18).fill(null);
+    b[1] = { x: 0.5, y: neckY };
+    b[8] = { x: 0.48 + hipDx, y: hipY };
+    b[11] = { x: 0.52 + hipDx, y: hipY };
+    if (kneeYs[0] !== null) b[9] = { x: 0.48, y: hipY + kneeYs[0] * (hipY - neckY) };
+    if (kneeYs[1] !== null) b[12] = { x: 0.52, y: hipY + kneeYs[1] * (hipY - neckY) };
+    return b;
+  };
+
+  it('reads posture from the still, not from how big her face is', async () => {
+    const { stillPostureFromBody } = await import('./talking-clip-framing');
+    // Standing, waving (the still that sat down): thighs drop ~0.9 of a torso.
+    assert.equal(stillPostureFromBody(body(0.2, 0.45, [0.92, 0.87])), 'upright');
+    // The park bench, the record shop: thighs level.
+    assert.equal(stillPostureFromBody(body(0.3, 0.55, [0.27, -0.18])), 'seated');
+    assert.equal(stillPostureFromBody(body(0.3, 0.55, [-0.11, -0.16])), 'seated');
+    // Climbing stairs, one knee up: not seated.
+    assert.equal(stillPostureFromBody(body(0.2, 0.45, [0.77, 0.37])), 'upright');
+    // Lying: torso flat.
+    assert.equal(stillPostureFromBody(body(0.6, 0.62, [0.1, 0.1], 0.3)), 'seated');
+    // No hips: can't tell.
+    assert.equal(stillPostureFromBody(Array(18).fill(null)), null);
+  });
+
+  it('falls back to the still\'s words, ignoring "not …"', async () => {
+    const { stillWordsSeated } = await import('./talking-clip-framing');
+    assert.equal(stillWordsSeated('She stands waving, one arm raised high overhead'), false);
+    assert.equal(stillWordsSeated('She sits, knees bent. Moment: perched on a low wall'), true);
+    assert.equal(stillWordsSeated('Fix the pose: body sitting, not standing'), true);
+    assert.equal(stillWordsSeated('Fix the pose: body standing, not sitting'), false);
+  });
+
+  it('a standing still never gets the seated hold, whatever its framing', () => {
+    for (const framing of ['wide', 'mid'] as const) {
+      assert.doesNotMatch(talkingClipPrompt({ line: 'Hi', framing }), /sitting or lying|does not stand up/);
+    }
   });
 });

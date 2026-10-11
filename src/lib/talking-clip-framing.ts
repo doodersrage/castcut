@@ -55,3 +55,51 @@ export function talkingClipCropRect(width: number, height: number, face: FaceBox
   const y = Math.round(Math.min(Math.max(0, face.y - faceH * 0.9), h - cropH));
   return { x, y, width: cropW, height: cropH };
 }
+
+/**
+ * Whether the still shows her seated (or lying), from its body keypoints (OpenPose order, 0–1 of
+ * the still). The face-size band was used for this and is not a posture: a standing, waving still
+ * read "mid", got the seated hold and sat down (2026-10-11). Seated: both thighs near level — each
+ * knee less than half a torso length below its hip (one visible leg: under 0.3) — or the torso
+ * lying flat. On the user's stills: standing 0.87–0.92, the park bench 0.27 / −0.18, a record
+ * shop −0.11 / −0.16, climbing stairs 0.77 / 0.37 (not seated). `null` when it can't tell.
+ */
+export function stillPostureFromBody(
+  body: ReadonlyArray<{ x: number; y: number } | null | undefined>
+): 'seated' | 'upright' | null {
+  const neck = body[1];
+  const hips = [body[8], body[11]].filter(Boolean) as Array<{ x: number; y: number }>;
+  if (!neck || !hips.length) return null;
+  const hip = {
+    x: hips.reduce((s, p) => s + p.x, 0) / hips.length,
+    y: hips.reduce((s, p) => s + p.y, 0) / hips.length,
+  };
+  const torsoDy = hip.y - neck.y;
+  if (Math.abs(hip.x - neck.x) > Math.abs(torsoDy)) return 'seated';
+  if (torsoDy <= 0) return null;
+  const drops = (
+    [
+      [body[8], body[9]],
+      [body[11], body[12]],
+    ] as const
+  )
+    .filter(([h, k]) => h && k)
+    .map(([h, k]) => (k!.y - h!.y) / torsoDy);
+  if (!drops.length) return null;
+  if (drops.length === 1) return drops[0]! < 0.3 ? 'seated' : 'upright';
+  return drops.every(drop => drop < 0.5) ? 'seated' : 'upright';
+}
+
+/**
+ * The still's own words, when its pose can't be read: seated / kneeling-down / lying words, and
+ * no "stands". Negated phrases ("body sitting, not standing") don't count.
+ */
+export function stillWordsSeated(stillPrompt: string | null | undefined): boolean {
+  const text = String(stillPrompt ?? '')
+    .replace(/\bnot\s+(?:\w+\s+)?(?:sitting|standing|seated|lying|kneeling)\b/gi, '')
+    .replace(/do not keep the Image 1 \w+ pose/gi, '');
+  return (
+    /\b(sits|sitting|seated|perched|lying|lies|reclin\w*|lounging)\b/i.test(text) &&
+    !/\b(stands|standing)\b/i.test(text)
+  );
+}

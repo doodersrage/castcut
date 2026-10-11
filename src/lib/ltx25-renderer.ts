@@ -1225,6 +1225,12 @@ export function talkingClipPrompt(input: {
    * instead of holding a frozen stride or spin while she talks.
    */
   inMotion?: boolean;
+  /**
+   * The still shows her seated or lying (stillPostureFromBody, else the still's words): she gets
+   * the seated hold. Only then — the face-size band said "mid" for a standing, waving still,
+   * and the seated words sat her down.
+   */
+  seated?: boolean;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
@@ -1248,21 +1254,21 @@ export function talkingClipPrompt(input: {
   if (input.wide || input.framing === 'wide' || input.framing === 'mid') {
     return [
       'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
-      // Mid (seated / knees-up): keeping the first frame's pose stopped strong lines standing her
-      // up — the park-bench replays (angry line, 4 seeds) held seated and full-frame 4 of 4,
-      // against 2 of 4 without. Wide (full-body, usually standing): those words sat her down on
-      // the pavement on 6 of 6 standing replays (coffee, fountain, harbor); a hold without
-      // posture words kept her standing 8 of 8 (2026-10-11).
+      // Seated (the still's pose says so): keeping the first frame's pose stopped strong lines
+      // standing her up — the park-bench replays (angry line, 4 seeds) held seated and
+      // full-frame 4 of 4, against 2 of 4 without. Not seated: those words sat her down on the
+      // pavement on 6 of 6 standing replays (coffee, fountain, harbor) and on a standing, waving
+      // still whose face size read "mid"; a hold without posture words kept her standing 8 of 8.
       // Mid-movement (a stride, a spin, a dance with a knee up): holding the first frame froze her
       // mid-stride or arms-up for the whole line, or she walked into a close-up; finishing the
       // movement and settling held wide and standing on 8 of 8 (walking, spinning, dancing
       // stills, 2026-10-11). Climbing stairs is left out — she turned and walked on up.
-      input.framing === 'mid'
+      input.seated
         ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`
         : input.inMotion
           ? `${who} finishes the movement ${she} is in and settles into a natural, balanced pose where ${she} is, both feet on the ground, and ${spokenLineVerb(input.tone, who)} "${line}"`
           : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
-      input.framing === 'mid'
+      input.seated
         ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
         : input.inMotion
           ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; then ${who === 'He' ? 'his' : 'her'} body stays still — ${she} does not start another movement, walk away or turn around.`

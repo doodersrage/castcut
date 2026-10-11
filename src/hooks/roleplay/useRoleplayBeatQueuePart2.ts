@@ -1,7 +1,12 @@
 'use client';
 
 import { useRenderBackend } from '@/lib/render-backend-status';
-import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
+import {
+  framedTalkingStill,
+  talkingStillFraming,
+  talkingStillPosture,
+} from '@/lib/talking-clip-framing-client';
+import { stillWordsSeated } from '@/lib/talking-clip-framing';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
@@ -336,11 +341,17 @@ export function useRoleplayBeatQueuePart2(
           ? await talkingStillFraming(inputImageUrl)
           : 'close';
       if (framing !== 'close') {
+        // Seated or lying in the still (its pose, else its words) — only then the seated hold.
+        const seated =
+          ((inputImageUrl ? await talkingStillPosture(inputImageUrl) : null) ??
+            (stillWordsSeated(parentEntry?.prompt ?? latest.prompt) ? 'seated' : null)) ===
+          'seated';
         prompt = talkingClipPrompt({
           line: spokenLine,
           speaker: leadIsMan() ? 'He' : 'She',
           tone: latest.lineTone,
           framing,
+          seated,
           inMotion: stillInMotion(parentEntry?.prompt ?? latest.prompt),
         });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);

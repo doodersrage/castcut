@@ -1,6 +1,11 @@
 'use client';
 
-import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
+import {
+  framedTalkingStill,
+  talkingStillFraming,
+  talkingStillPosture,
+} from '@/lib/talking-clip-framing-client';
+import { stillWordsSeated } from '@/lib/talking-clip-framing';
 import {
   isLtx25Model,
   ROOM_SOUND_UNDER_TALKING,
@@ -436,6 +441,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           speaking && !conversation && !framed && imageUrl
             ? await talkingStillFraming(imageUrl)
             : 'close';
+        // Seated or lying in the still (its pose, else its words) — only then the seated hold.
+        const seated =
+          framing !== 'close' && imageUrl
+            ? ((await talkingStillPosture(imageUrl)) ??
+                (stillWordsSeated(parentEntry?.prompt) ? 'seated' : null)) === 'seated'
+            : false;
         if (speaking) {
           // Talking: she stays put facing the camera (the beat's motion walked her out of frame
           // mid-line). An adult still's age sentence stays with the clip.
@@ -457,6 +468,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   speaker: manLead ? 'He' : 'She',
                   tone: slot.lineTone,
                   framing,
+                  seated,
                   inMotion: stillInMotion(parentEntry?.prompt),
                 }),
             ageLine,
