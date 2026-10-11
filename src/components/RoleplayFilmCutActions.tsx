@@ -39,6 +39,8 @@ export type RoleplayFilmCutActionsProps = {
   cutShots?: KeyedShot[];
   /** Which checks have run on the shots going in (film-delivery-check.ts). */
   checksCoverage?: string;
+  /** The Story's name for the preview's title card. */
+  previewTitle?: string;
   /** Face match mark per shot in the Cut shot list. */
   shotIdentity?: (shot: KeyedShot) => IdentityMark | null;
   /** Optional leading controls (e.g. Download story) kept in the same flex row. */
@@ -67,6 +69,7 @@ export default function RoleplayFilmCutActions({
   cutShots,
   shotIdentity,
   checksCoverage,
+  previewTitle,
   children,
 }: RoleplayFilmCutActionsProps) {
   const showPostCut = Boolean(
@@ -85,6 +88,9 @@ export default function RoleplayFilmCutActions({
             testIdPrefix="story-cut"
             shots={cutShots}
             identityFor={shotIdentity}
+            previewTitleCard={
+              previewTitle ? { title: previewTitle, subtitle: 'A Castcut story' } : null
+            }
           />
         </div>
       ) : null}

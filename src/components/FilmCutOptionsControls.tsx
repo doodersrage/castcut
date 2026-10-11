@@ -1,6 +1,8 @@
 'use client';
 
 import FilmCutShotList from '@/components/FilmCutShotList';
+import FilmCutPreviewPlayer from '@/components/FilmCutPreviewPlayer';
+import type { FilmTitleCard } from '@/lib/video-polish';
 import {
   applyCutShotEdits,
   normalizeFilmCutLength,
@@ -76,6 +78,8 @@ type FilmCutOptionsControlsProps = {
   scoreBrief?: FilmScoreBrief;
   /** Face match mark per shot in the shot list (identity-mark.ts). */
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
+  /** The title card the cut opens on (shown in Preview the cut). */
+  previewTitleCard?: FilmTitleCard | null;
 };
 
 /** Crossfade, shape and size, and audio bed for Day/Story/Cast Cut (upload or URL). */
@@ -87,7 +91,9 @@ export default function FilmCutOptionsControls({
   shots,
   scoreBrief,
   identityFor,
+  previewTitleCard,
 }: FilmCutOptionsControlsProps) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [scoring, setScoring] = useState(false);
   const score = async () => {
@@ -239,6 +245,30 @@ export default function FilmCutOptionsControls({
         <p className="type-caption text-[var(--text-muted)]">
           Add a music track below to fit the cut to it or cut on its beat.
         </p>
+      ) : null}
+
+      {shots && shots.length > 0 ? (
+        previewOpen ? (
+          <FilmCutPreviewPlayer
+            shots={shots}
+            value={value}
+            titleCard={previewTitleCard}
+            testIdPrefix={testIdPrefix}
+            onClose={() => setPreviewOpen(false)}
+          />
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={disabled}
+            title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music"
+            onClick={() => setPreviewOpen(true)}
+            data-testid={`${testIdPrefix}-preview-open`}
+          >
+            ▶ Preview the cut
+          </Button>
+        )
       ) : null}
 
       {shots && shots.length > 0 ? (
@@ -429,6 +459,7 @@ export function FilmCutOptionsDisclosure({
   shots,
   scoreBrief,
   identityFor,
+  previewTitleCard,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -447,6 +478,7 @@ export function FilmCutOptionsDisclosure({
           shots={shots}
           scoreBrief={scoreBrief}
           identityFor={identityFor}
+          previewTitleCard={previewTitleCard}
         />
       </div>
     </details>

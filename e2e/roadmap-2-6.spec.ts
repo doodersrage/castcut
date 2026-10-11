@@ -336,3 +336,80 @@ test('Preview the mix plays the talking clip with the music settings', async ({ 
   await preview.click();
   await expect(preview).toContainText('Preview the mix');
 });
+
+test('Preview the cut plays the edit in its shape before encoding', async ({ page }) => {
+  const castId = 'e2e-preview';
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Pia', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: castId,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'waves', line: 'Hi!' },
+          { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'pv-m' },
+          {
+            slotId: 'afternoon',
+            status: 'completed',
+            imageUrl: thumb,
+            promptId: 'pv-a',
+            clipStatus: 'completed',
+            clipUrl: '/e2e-media/talk-2s.mp4',
+            clipPromptId: 'pv-a-clip',
+          },
+          { slotId: 'night', status: 'completed', imageUrl: thumb, promptId: 'pv-n' },
+        ],
+      },
+    },
+  });
+  const clip = readFileSync(join(__dirname, 'fixtures', 'talk-2s.mp4'));
+  await page.route('**/e2e-media/talk-2s.mp4', route =>
+    route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
+  );
+  await gotoStable(page, `/day?character=${castId}`);
+  await dismissBlockingOverlays(page);
+  const coach = page.getByTestId('day-cut-coach');
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
+  await coach.getByTestId('day-cut-shape').selectOption('square');
+  await coach.getByTestId('day-cut-titles').check();
+  await coach.getByTestId('day-cut-preview-open').click();
+  const preview = coach.getByTestId('day-cut-preview');
+  // Title card + 2.5 s + 2 s clip + 2.5 s: 3 shots, 0:09.
+  await expect(preview.getByTestId('day-cut-preview-notes')).toContainText('3 shots · 0:09', {
+    timeout: 20_000,
+  });
+  const canvas = preview.getByTestId('day-cut-preview-canvas');
+  await expect(canvas).toHaveAttribute('data-shape', 'square');
+  await expect(canvas).toHaveAttribute('width', '480');
+  // Seek past the title card onto the first still: the canvas shows the picture.
+  await preview.getByTestId('day-cut-preview-scrub').fill('3');
+  await expect
+    .poll(
+      () =>
+        canvas.evaluate(element => {
+          const context = (element as HTMLCanvasElement).getContext('2d')!;
+          const data = context.getImageData(200, 200, 80, 80).data;
+          let sum = 0;
+          for (let i = 0; i < data.length; i += 4) sum += data[i]! + data[i + 1]! + data[i + 2]!;
+          return sum / (data.length / 4) / 3;
+        }),
+      { timeout: 10_000 }
+    )
+    .toBeGreaterThan(20);
+  await preview.getByTestId('day-cut-preview-play').click();
+  await expect(preview.getByTestId('day-cut-preview-time')).toContainText('0:04', { timeout: 10_000 });
+  await preview.getByTestId('day-cut-preview-play').click();
+  await preview.getByTestId('day-cut-preview-close').click();
+  await expect(preview).toHaveCount(0);
+});

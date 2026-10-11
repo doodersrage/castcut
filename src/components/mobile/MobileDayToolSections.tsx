@@ -739,6 +739,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
               testIdPrefix="mobile-day-cut"
               shots={watchPlaylist as KeyedShot[]}
               identityFor={shotIdentity}
+              previewTitleCard={character?.name ? { title: character.name } : null}
             />
             <PrimaryButton
               disabled={busy || assemblingFilm || cutChecking}

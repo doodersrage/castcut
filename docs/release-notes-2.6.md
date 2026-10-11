@@ -36,7 +36,8 @@ And for the whole cut:
 
 - **Shape** — Widescreen 16:9, Vertical 9:16, or Square 1:1 (new) — and **Size**, 720p or 1080p.
 - **Music / Lines** levels, with the music still ducking under every line.
-- **▶ Preview the mix** — the music and every line, together, at those levels and where the encode will put them, before you spend an encode.
+- **▶ Preview the cut** — the whole film as it will come out, before any encode: order, holds, trims, framing, slow zoom, crossfades, captions, title card, in its shape, with the music and lines at their levels. Play, pause, scrub.
+- **▶ Preview the mix** — just the sound: the music and every line, together, where the encode will put them.
 
 ### Every film has a home
 

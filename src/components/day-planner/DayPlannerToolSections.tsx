@@ -789,6 +789,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     testIdPrefix="day-cut"
                     shots={watchPlaylist as KeyedShot[]}
                     identityFor={shotIdentity}
+                    previewTitleCard={character?.name ? { title: character.name } : null}
                   />
                 </div>
               </div>
