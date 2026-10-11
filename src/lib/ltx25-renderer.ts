@@ -9,7 +9,6 @@
  * laughed). LTX-2.5 isn't NSFW-tuned — two-person adult clips stay on WAN (`clipEngineForShot`).
  */
 
-import { DEFAULT_VIDEO_MODEL } from './comfy-models/registry';
 import { PRODUCT_OUTPUT_PREFIX } from './brand';
 
 export const LTX25_MODEL_ID = 'ltx-video-2.5';
@@ -87,11 +86,23 @@ export function clipEngineForShot(
   }
 ): string {
   if (shot.speaking && !shot.adultDuo) return LTX25_MODEL_ID;
+  // Plain "WAN Video" loads the same Rapid AIO file in Castcut's clip graph (the checkpoint
+  // pick prefers it; the one-loader graph can't run full WAN 2.2's two models) — sample it as
+  // Rapid AIO, not 40 steps at CFG 5.
+  if (videoModel === 'wan-video') return WAN_CLIP_FALLBACK_MODEL;
   if (!isLtx25Model(videoModel)) return videoModel;
-  if (shot.adultDuo) return DEFAULT_VIDEO_MODEL;
-  if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return DEFAULT_VIDEO_MODEL;
+  if (shot.adultDuo) return WAN_CLIP_FALLBACK_MODEL;
+  if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return WAN_CLIP_FALLBACK_MODEL;
   return videoModel;
 }
+
+/**
+ * The WAN engine a clip falls back to when LTX-2.5 is picked but can't take the shot: Rapid AIO,
+ * the checkpoint the app installs. Plain `wan-video` (DEFAULT_VIDEO_MODEL) loads that same Rapid
+ * AIO file but samples like full WAN 2.2 — 40 steps at CFG 5 with uni_pc (seen 2026-10-11 on a
+ * Day clip): ~10× slower and overcooked on a CFG-1 model.
+ */
+export const WAN_CLIP_FALLBACK_MODEL = 'wan-video-rapid-aio';
 
 /** LTX lengths are 8k+1 frames; keep the WAN clip's duration at 24 fps. */
 export function ltx25FrameCount(frames: number, fps: number): number {
