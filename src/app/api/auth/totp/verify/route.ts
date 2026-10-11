@@ -4,6 +4,12 @@ import { parsePendingLoginToken } from '@/lib/auth/pending-login';
 import { registerSession, touchSession } from '@/lib/auth/session-registry';
 import { findUserById, listAllowedFeatures, toPublicUser } from '@/lib/auth/store';
 import { verifyTotp } from '@/lib/auth/totp';
+import {
+  loginRetryAfterSec,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from '@/lib/auth/login-throttle';
+import { rateLimitClientKey } from '@/lib/api-rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -17,15 +23,26 @@ export async function POST(request: Request) {
   if (!user?.enabled || !user.totpSecret) {
     return apiError('Invalid login session.', 401);
   }
+  // Same throttle as the password step: a 6-digit code is guessable without one.
+  const attempt = { username: user.username, client: rateLimitClientKey(request) };
+  const wait = loginRetryAfterSec(attempt);
+  if (wait > 0) {
+    return apiJson(
+      { error: `Too many failed sign-in attempts. Try again in ${Math.ceil(wait / 60)} min.` },
+      { status: 429, headers: { 'Retry-After': String(wait) } }
+    );
+  }
   if (!body.code || !verifyTotp(user.totpSecret, body.code)) {
+    recordLoginFailure(attempt);
     return apiError('Invalid authenticator code.', 401);
   }
+  recordLoginSuccess(user.username);
 
   const sessionId = registerSession({
     userId: user.id,
     username: user.username,
     userAgent: request.headers.get('user-agent') ?? undefined,
-    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+    ip: rateLimitClientKey(request) === 'local' ? undefined : rateLimitClientKey(request),
   });
   touchSession(sessionId);
 

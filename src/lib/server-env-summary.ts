@@ -1,3 +1,4 @@
+import { isComfyClientUrlAllowed } from './url-safety';
 import { getComfyUiBaseUrl } from './comfyui-client';
 import { allowTemplateFallback, getLlmConfig, getLlmTemperature, isLlmEnabled } from './llm-client';
 import { isQueueArtifactExportEnabled } from './queue-artifacts';
@@ -235,7 +236,7 @@ export function getServerEnvSummary(): ServerEnvSummary {
         {
           key: 'COMFYUI_ALLOW_CLIENT_URL',
           label: 'Allow client URL override',
-          value: process.env.COMFYUI_ALLOW_CLIENT_URL === 'false' ? 'false' : 'true',
+          value: isComfyClientUrlAllowed() ? 'true' : 'false',
           configured: true,
           hint: 'Set false in production to block SSRF via custom URLs.',
         },

@@ -18,7 +18,10 @@ export async function GET(request: Request) {
 
   return apiJson({
     authEnabled,
-    defaultAdminUsername: getAuthBootstrapInfo().defaultAdminUsername,
+    // Signed out, the admin username only helped a password guesser (security audit, 2026-10-11).
+    ...(user?.enabled || !authEnabled
+      ? { defaultAdminUsername: getAuthBootstrapInfo().defaultAdminUsername }
+      : {}),
     user: user && user.enabled ? toPublicUser(user) : null,
     allowedFeatures: user && user.enabled ? listAllowedFeatures(user) : authEnabled ? [] : 'all',
     impersonating: Boolean(session?.impersonatorId),

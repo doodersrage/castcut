@@ -51,7 +51,7 @@ function isMetadataIpv4(octets: number[]): boolean {
   return octets[0] === 169 && octets[1] === 254;
 }
 
-function isPrivateOrLocalHostname(hostname: string): boolean {
+export function isPrivateOrLocalHostname(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '');
   if (
     host === 'localhost' ||
@@ -84,7 +84,7 @@ function isPrivateOrLocalHostname(hostname: string): boolean {
   return false;
 }
 
-function isBlockedMetadataHost(hostname: string): boolean {
+export function isBlockedMetadataHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '');
   if (METADATA_HOSTS.has(host)) {
     return true;
@@ -171,12 +171,21 @@ export function getComfyUiAllowedHosts(): string[] | undefined {
     .filter(Boolean);
 }
 
+/**
+ * Whether a request may name its own ComfyUI address. Unset: only with login off (a local,
+ * single-user install). With login on — a shared or exposed install — any signed-in user could
+ * otherwise point the server at an internal host (security audit, 2026-10-11).
+ */
 export function isComfyClientUrlAllowed(): boolean {
   const raw = process.env.COMFYUI_ALLOW_CLIENT_URL?.trim().toLowerCase();
   if (raw === '0' || raw === 'false' || raw === 'no') {
     return false;
   }
-  return true;
+  if (raw === '1' || raw === 'true' || raw === 'yes') {
+    return true;
+  }
+  const auth = process.env.PROMPT_AUTH_ENABLED?.trim().toLowerCase();
+  return !(auth === '1' || auth === 'true' || auth === 'yes');
 }
 
 export function isWebhookPrivateAllowed(): boolean {

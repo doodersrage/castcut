@@ -3200,11 +3200,31 @@ describe("api smoke routes", () => {
 
   it("health GET returns service payload", async () => {
     const { GET } = await import("../app/api/health/route");
-    const response = await GET(new Request("http://localhost/api/health"));
-    assert.equal(response.status, 200);
-    const data = (await response.json()) as { llm?: unknown; comfyui?: unknown };
-    assert.ok(data.llm);
-    assert.ok(data.comfyui);
+    const saved = { auth: process.env.PROMPT_AUTH_ENABLED, token: process.env.PROMPT_API_TOKEN };
+    process.env.PROMPT_API_TOKEN = "test-health-token";
+    try {
+      // With the service token: the full answer.
+      const response = await GET(
+        new Request("http://localhost/api/health", {
+          headers: { Authorization: "Bearer test-health-token" },
+        }),
+      );
+      assert.equal(response.status, 200);
+      const data = (await response.json()) as { llm?: unknown; comfyui?: unknown };
+      assert.ok(data.llm);
+      assert.ok(data.comfyui);
+      // Signed out with login on: only whether things are up.
+      process.env.PROMPT_AUTH_ENABLED = "true";
+      const anonymous = (await (
+        await GET(new Request("http://localhost/api/health"))
+      ).json()) as Record<string, unknown>;
+      assert.deepEqual(Object.keys(anonymous).sort(), ["auth", "comfyui"]);
+    } finally {
+      if (saved.auth === undefined) delete process.env.PROMPT_AUTH_ENABLED;
+      else process.env.PROMPT_AUTH_ENABLED = saved.auth;
+      if (saved.token === undefined) delete process.env.PROMPT_API_TOKEN;
+      else process.env.PROMPT_API_TOKEN = saved.token;
+    }
   });
 });
 

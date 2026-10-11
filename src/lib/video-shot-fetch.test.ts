@@ -20,6 +20,10 @@ mock.module("./gallery-media-store", {
 let storageEnabled = true;
 const isServerStorageEnabled = mock.fn((): boolean => storageEnabled);
 mock.module("./server-storage", { namedExports: { isServerStorageEnabled } });
+// Its DNS check is tested in proxy-hardening.test.ts; here hosts are made up and don't resolve.
+mock.module("./url-safety-server", {
+  namedExports: { assertPublicFetchUrl: async (raw: string) => new URL(raw) },
+});
 
 type FetchImpl = (url: string, init?: RequestInit) => Response | Promise<Response>;
 function installFetchStub(impl: FetchImpl) {

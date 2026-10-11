@@ -6,6 +6,25 @@
 const baseConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  // Security headers (audit, 2026-10-11): none were sent. Another site could frame the app and
+  // trick clicks (Restore backup, Delete), browsers could MIME-sniff media, full URLs leaked as
+  // Referer, and X-Powered-By named the framework. HSTS belongs on the TLS reverse proxy.
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Microphone stays allowed (Cast voice recording).
+          { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), payment=(), usb=()' },
+        ],
+      },
+    ];
+  },
   allowedDevOrigins: ['127.0.0.1'],
   env: {
     NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED:

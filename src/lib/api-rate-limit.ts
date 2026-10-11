@@ -83,9 +83,18 @@ export function rateLimitClientKey(request: Request): string {
   if (process.env.TRUST_PROXY_HEADERS?.trim().toLowerCase() !== 'true') {
     return 'local';
   }
-  const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  // The proxy's own header first; else the LAST X-Forwarded-For entry — the one the proxy
+  // appended. The first entry is whatever the visitor sent, so keying on it let anyone dodge the
+  // limits (and the login throttle) with a made-up address each request (security audit,
+  // 2026-10-11). Behind more than one proxy, have the outer one set X-Real-IP.
   const realIp = request.headers.get('x-real-ip')?.trim();
-  return forwarded || realIp || 'local';
+  const forwarded = request.headers
+    .get('x-forwarded-for')
+    ?.split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .at(-1);
+  return realIp || forwarded || 'local';
 }
 
 // Read-only image/video byte-serving routes (ComfyUI `/view`, gallery thumbs,

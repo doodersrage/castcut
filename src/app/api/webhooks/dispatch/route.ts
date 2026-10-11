@@ -30,6 +30,11 @@ export async function POST(request: Request) {
       safeUrl = assertSafeHttpUrl(url, {
         allowPrivate: isWebhookPrivateAllowed(),
       });
+      // A public-looking name that resolves to a private address is refused too.
+      if (!isWebhookPrivateAllowed()) {
+        const { assertPublicFetchUrl } = await import('@/lib/url-safety-server');
+        safeUrl = await assertPublicFetchUrl(safeUrl.toString());
+      }
     } catch (error) {
       return apiError(error instanceof Error ? error.message : 'Invalid webhook URL.', 400);
     }

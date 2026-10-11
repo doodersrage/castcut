@@ -211,9 +211,15 @@ export function findUserByUsername(username: string): AuthUser | null {
   return users.users.find(user => user.username.trim().toLowerCase() === normalized) ?? null;
 }
 
+// Hashed once so an unknown username costs the same scrypt as a real one — answering faster
+// told a guesser which accounts exist.
+let timingDummyHash: string | null = null;
+
 export function verifyUserCredentials(username: string, password: string): AuthUser | null {
   const user = findUserByUsername(username);
   if (!user || !user.enabled) {
+    timingDummyHash ??= hashPassword('castcut-timing-dummy');
+    verifyPassword(password, timingDummyHash);
     return null;
   }
 

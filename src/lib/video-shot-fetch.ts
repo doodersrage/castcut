@@ -163,7 +163,9 @@ export async function fetchFilmShotBytes(input: {
 
   if (input.entryId?.trim() && isServerStorageEnabled()) {
     const entryId = input.entryId.trim();
-    for (const owner of [input.userId, null] as const) {
+    // The shared `_global` area only when there is no signed-in user (login off): a signed-in
+    // user reads their own gallery, not another's.
+    for (const owner of input.userId ? [input.userId] : [null]) {
       try {
         const original = readGalleryOriginalFile({ userId: owner, entryId });
         if (original?.buffer?.byteLength) {
@@ -195,7 +197,7 @@ export async function fetchFilmShotBytes(input: {
 
   const gallery = parseGalleryMediaPath(parsed.pathname, parsed.searchParams);
   if (gallery && gallery.variant === 'original' && isServerStorageEnabled()) {
-    for (const owner of [input.userId, null] as const) {
+    for (const owner of input.userId ? [input.userId] : [null]) {
       try {
         const original = readGalleryOriginalFile({
           userId: owner,
@@ -230,7 +232,20 @@ export async function fetchFilmShotBytes(input: {
     }
   }
 
-  const safe = assertSafeHttpUrl(parsed.toString(), { allowPrivate: true });
+  // Anything else must be a public address — a shot URL comes from the browser, and this used to
+  // fetch private ones too (a logged-in user could make the server request the router, LM Studio
+  // or any local port). The configured ComfyUI and this app's own host may stay private.
+  const { assertPublicFetchUrl } = await import('./url-safety-server');
+  const ownHosts = [getComfyUiBaseUrl(), input.requestOrigin]
+    .map(value => {
+      try {
+        return value ? new URL(value).hostname : '';
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean);
+  const safe = await assertPublicFetchUrl(parsed.toString(), { allowHosts: ownHosts });
   const response = await fetch(safe.toString(), {
     redirect: 'manual',
     headers: { Accept: 'image/*,video/*,*/*' },

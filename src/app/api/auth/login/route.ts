@@ -10,7 +10,23 @@ import {
   findUserById,
 } from '@/lib/auth/store';
 
+import {
+  loginRetryAfterSec,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from '@/lib/auth/login-throttle';
+import { rateLimitClientKey } from '@/lib/api-rate-limit';
+
 export const runtime = 'nodejs';
+
+function tooManyAttempts(retryAfterSec: number) {
+  return apiJson(
+    {
+      error: `Too many failed sign-in attempts. Try again in ${Math.ceil(retryAfterSec / 60)} min.`,
+    },
+    { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+  );
+}
 
 export async function POST(request: Request) {
   if (!isAuthEnabled()) {
@@ -39,15 +55,20 @@ export async function POST(request: Request) {
     if (!user?.enabled || !user.totpSecret) {
       return apiError('Invalid login session.', 401);
     }
+    const attempt = { username: user.username, client: rateLimitClientKey(request) };
+    const wait = loginRetryAfterSec(attempt);
+    if (wait > 0) return tooManyAttempts(wait);
     const { verifyTotp } = await import('@/lib/auth/totp');
     if (!verifyTotp(user.totpSecret, body.totpCode)) {
+      recordLoginFailure(attempt);
       return apiError('Invalid authenticator code.', 401);
     }
+    recordLoginSuccess(user.username);
     const sessionId = registerSession({
       userId: user.id,
       username: user.username,
       userAgent: request.headers.get('user-agent') ?? undefined,
-      ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+      ip: rateLimitClientKey(request) === 'local' ? undefined : rateLimitClientKey(request),
     });
     touchSession(sessionId);
     const token = createSessionToken({
@@ -67,9 +88,13 @@ export async function POST(request: Request) {
   if (!username || !password) {
     return apiError('Username and password are required.', 400);
   }
+  const attempt = { username, client: rateLimitClientKey(request) };
+  const wait = loginRetryAfterSec(attempt);
+  if (wait > 0) return tooManyAttempts(wait);
 
   const user = verifyUserCredentials(username, password);
   if (!user) {
+    recordLoginFailure(attempt);
     return apiError('Invalid username or password.', 401);
   }
 
@@ -80,11 +105,13 @@ export async function POST(request: Request) {
     });
   }
 
+  recordLoginSuccess(user.username);
+
   const sessionId = registerSession({
     userId: user.id,
     username: user.username,
     userAgent: request.headers.get('user-agent') ?? undefined,
-    ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+    ip: rateLimitClientKey(request) === 'local' ? undefined : rateLimitClientKey(request),
   });
   touchSession(sessionId);
 

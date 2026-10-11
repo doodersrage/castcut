@@ -1,3 +1,6 @@
+import { isAuthEnabled } from '@/lib/auth/store';
+import { resolveRequestUser } from '@/lib/auth/access';
+import { timingSafeEqual } from 'node:crypto';
 import { detectVisionModel } from '@/lib/vision-model-auto';
 import {
   checkCollabHealth,
@@ -35,7 +38,34 @@ function parseRuntimeFromSearch(searchParams: URLSearchParams): ComfyUiRuntimeCo
   });
 }
 
+/**
+ * Signed out, with login on: only whether things are up. The full answer listed internal service
+ * addresses, model names, GPU and memory, versions, data folder paths and the env summary to
+ * anyone who could reach the login page (security audit, 2026-10-11).
+ */
+function isAnonymousRequest(request: Request): boolean {
+  if (!isAuthEnabled()) return false;
+  if (resolveRequestUser(request)) return false;
+  const expected = process.env.PROMPT_API_TOKEN?.trim();
+  const authorization = request.headers.get('authorization');
+  const provided =
+    (authorization?.toLowerCase().startsWith('bearer ') ? authorization.slice(7).trim() : '') ||
+    request.headers.get('x-prompt-api-token')?.trim() ||
+    '';
+  if (!expected || !provided) return true;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return !(a.length === b.length && timingSafeEqual(a, b));
+}
+
 export async function GET(request: Request) {
+  if (isAnonymousRequest(request)) {
+    const comfy = await getExpandedComfyUiHealth(undefined).catch(() => null);
+    return apiJson({
+      comfyui: { ok: Boolean((comfy as { ok?: boolean } | null)?.ok) },
+      auth: { enabled: true },
+    });
+  }
   const searchParams = new URL(request.url).searchParams;
   // Cached for minutes after the first look; capped so health never waits long on it.
   const visionModelDetected =
