@@ -82,6 +82,62 @@ export async function extractVoiceSample(input: {
   }
 }
 
+/** Biggest recording accepted for "Use my own recording" (a few minutes of phone audio). */
+export const VOICE_UPLOAD_MAX_BYTES = 40 * 1024 * 1024;
+
+/**
+ * ffmpeg args for a player's own recording: skip the silence before the first word, level it,
+ * then keep the first sample-length of speech, mono 24 kHz WAV. (A clip's sample keeps its
+ * lead-in — the clip is only ~5 s, and trimming left too little voice; a recording is longer.)
+ */
+export function voiceUploadArgs(input: string, output: string): string[] {
+  return [
+    '-y',
+    '-v',
+    'error',
+    '-i',
+    input,
+    '-vn',
+    '-af',
+    'silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.1,loudnorm=I=-20:TP=-2',
+    '-t',
+    String(CAST_VOICE_SAMPLE_SEC),
+    '-ac',
+    '1',
+    '-ar',
+    '24000',
+    output,
+  ];
+}
+
+/** A player's own recording (audio or video file) as a voice sample, WAV bytes. */
+export async function voiceSampleFromUpload(bytes: Uint8Array): Promise<Uint8Array> {
+  const ffmpeg = await resolveFfmpegBinary();
+  if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
+  const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `voice-${randomUUID()}`);
+  await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
+  try {
+    const source = path.join(/* turbopackIgnore: true */ dir, 'upload');
+    const wav = path.join(/* turbopackIgnore: true */ dir, 'voice.wav');
+    await fs.writeFile(/* turbopackIgnore: true */ source, bytes);
+    try {
+      await run(ffmpeg, voiceUploadArgs(source, wav));
+    } catch {
+      throw new Error('That file has no sound ffmpeg can read — try a WAV, MP3, M4A or video.');
+    }
+    const out = await fs.readFile(/* turbopackIgnore: true */ wav);
+    // 24 kHz mono 16-bit: under ~3 s of speech is too little to carry a voice.
+    if (out.byteLength < 3 * 48000) {
+      throw new Error('That recording has under 3 seconds of speech — record about 5 seconds.');
+    }
+    return new Uint8Array(out);
+  } finally {
+    await fs
+      .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })
+      .catch(() => undefined);
+  }
+}
+
 /** About two semitones: enough to hear, small enough to stay the same person. */
 const VOICE_SHIFT = { deeper: 0.89, higher: 1.12 } as const;
 

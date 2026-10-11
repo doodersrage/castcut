@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchComfyLoraInventory } from '@/lib/comfyui-object-info-cache';
 import { LTX25_ID_LORA } from '@/lib/ltx25-renderer';
 import { Button } from '@/components/ui/Button';
@@ -14,6 +14,7 @@ import {
   setCastVoiceSteer,
   shiftCastVoice,
   takeCastVoiceFromClip,
+  takeCastVoiceFromFile,
 } from '@/lib/cast-voice';
 import { getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
@@ -87,6 +88,44 @@ export default function CastVoiceSection({
     setNote(error ?? 'Voice kept. Switch on “Steer talking clips” to use it in clips.');
     refresh();
   };
+  const fileRef = useRef<HTMLInputElement>(null);
+  const keepRecording = async (file: File) => {
+    setBusy(true);
+    setNote(null);
+    const error = await takeCastVoiceFromFile({ castId: character.id, file });
+    setBusy(false);
+    setNote(error ?? 'Your recording is kept. Switch on “Steer talking clips” to use it in clips.');
+    refresh();
+  };
+  // Record in the browser (needs a microphone and https or localhost).
+  const [recording, setRecording] = useState(false);
+  const canRecord =
+    typeof window !== 'undefined' &&
+    typeof MediaRecorder !== 'undefined' &&
+    Boolean(navigator.mediaDevices?.getUserMedia);
+  const record = async () => {
+    setNote(null);
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setNote('No microphone — allow it in the browser, or upload a recording instead.');
+      return;
+    }
+    const recorder = new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = event => chunks.push(event.data);
+    recorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop());
+      setRecording(false);
+      const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+      void keepRecording(new File([blob], 'my-voice.webm', { type: blob.type }));
+    };
+    setRecording(true);
+    recorder.start();
+    // A little over the 5 s sample, so the first words' lead-in can be trimmed.
+    window.setTimeout(() => recorder.state !== 'inactive' && recorder.stop(), 6500);
+  };
   const shift = async (direction: 'deeper' | 'higher') => {
     setBusy(true);
     const error = await shiftCastVoice(character.id, direction);
@@ -109,6 +148,11 @@ export default function CastVoiceSection({
           >
             Talking clips only keep a voice with the LTX ID-LoRA — install “LTX ID-LoRA (Cast
             voices)” under Settings → ComfyUI → Models. Auditions work without it.
+          </p>
+        ) : null}
+        {voice?.fromFile ? (
+          <p className="type-caption text-[var(--text-muted)]">
+            From your recording: {voice.fromFile}
           </p>
         ) : null}
         {voice ? (
@@ -168,6 +212,48 @@ export default function CastVoiceSection({
         >
           {voice ? 'Hear other voices' : 'Audition voices'}
         </Button>
+        <div className="space-y-1" data-testid="cast-voice-own">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy || recording}
+              data-testid="cast-voice-upload"
+              onClick={() => fileRef.current?.click()}
+            >
+              Use my own recording
+            </Button>
+            {canRecord ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={recording}
+                loadingLabel="Recording — talk for 6 seconds"
+                disabled={busy || recording}
+                data-testid="cast-voice-record"
+                onClick={() => void record()}
+              >
+                Record
+              </Button>
+            ) : null}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*,video/*"
+              className="hidden"
+              data-testid="cast-voice-file"
+              onChange={event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (file) void keepRecording(file);
+              }}
+            />
+          </div>
+          <p className="type-caption text-[var(--text-muted)]">
+            About 5 seconds of one person talking, no music — the first 5 s of speech is used. Use
+            your own voice, or one you have permission to use.
+          </p>
+        </div>
         {auditions.length > 0 ? (
           <ul className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="cast-voice-auditions">
             {auditions.map(item => (

@@ -41,6 +41,10 @@ A finished clip's ⋯ menu (Day board, phone Day, Story) has **Make it 30 s**. S
 
 Known limits: faces and clothes can drift late in a long clip, and the camera can still creep in on some LTX clips. Small steps in one place work best — a different place is a new slot.
 
+### Your own voice
+
+Cast → Voice → **Use my own recording** (any audio or video file) or **Record** (6 s from the microphone): the first 5 s of speech becomes the Cast's voice sample. Switch on *Steer talking clips* to pull their clips toward it. Use your own voice, or one you have permission to use.
+
 ### How it is said
 
 Under a line, **How** picks *Natural, Whisper, Laughing, Excited, Tender, Teasing* or *Angry* — in talking clips, conversations and every *Says…* line of a 30-second clip. The words stay exact (14 of 14 in testing); a whisper comes out quieter and breathy, Excited and Angry pitch up and land the line with an exclamation, Tender sits low and warm.

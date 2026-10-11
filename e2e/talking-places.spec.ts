@@ -51,6 +51,36 @@ test('Cast → Places: pick a home design, own words, or off', async ({ page }) 
   await expect(page.getByTestId('cast-voice-section')).toContainText('No voice kept yet');
 });
 
+test('Cast → Voice: use my own recording', async ({ page }) => {
+  let upload = '';
+  await page.route('**/api/cast-voice', async route => {
+    upload = route.request().headers()['content-type'] ?? '';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ sample: 'castcut-voice-e2e.wav' }),
+    });
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-own-voice' },
+    characters: cast('e2e-own-voice'),
+  });
+  await gotoStable(page, '/characters/e2e-own-voice');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  const section = page.getByTestId('cast-voice-section');
+  await expect(section).toContainText('No voice kept yet', { timeout: 30_000 });
+  await page.getByTestId('cast-voice-file').setInputFiles({
+    name: 'me-talking.m4a',
+    mimeType: 'audio/mp4',
+    buffer: Buffer.from('not really audio'),
+  });
+  await expect(page.getByTestId('cast-voice-note')).toContainText('Your recording is kept');
+  expect(upload).toContain('multipart/form-data');
+  await expect(section).toContainText('From your recording: me-talking.m4a');
+  await expect(page.getByTestId('cast-voice-current')).toBeVisible();
+});
+
 test('Day slot: a line in the clip is kept, a suggestion fills it, No line clears it', async ({ page }) => {
   await page.route('**/api/spoken-line', route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ line: 'Coffee first. Then people.' }) })

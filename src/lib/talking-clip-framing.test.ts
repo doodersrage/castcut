@@ -98,3 +98,15 @@ describe('how the line is said', async () => {
     assert.equal(normalizeSpokenLineTone(3), undefined);
   });
 });
+
+describe('wide talking prompt (full-body still kept whole)', async () => {
+  const { talkingClipPrompt } = await import('./ltx25-renderer');
+  it('calls it a wide shot, does not address the camera, and rules out the close-up', () => {
+    const prompt = talkingClipPrompt({ line: 'Want one?', setting: 'florist', tone: 'teasing', wide: true });
+    assert.match(prompt, /^Wide shot, full body, seen from a few metres away/);
+    assert.match(prompt, /She stays where she is and says in a playful, teasing tone with a little smirk, "Want one\?"/);
+    assert.doesNotMatch(prompt, /into the camera|facing the camera/);
+    assert.match(prompt, /her whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up/);
+    assert.match(talkingClipPrompt({ line: 'Hi', speaker: 'He', wide: true }), /He stays where he is and says clearly.*his whole body/);
+  });
+});

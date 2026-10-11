@@ -10,6 +10,11 @@ import type { FaceBox } from './portrait-face-crop';
 
 /** Face (brow to chin) at least this share of the still's height: already close enough. */
 export const TALKING_CLOSE_FACE_SHARE = 0.16;
+/**
+ * Face under this share of the still's height: a full-body shot. Kept whole (Keep the full
+ * frame), it gets the wide-shot talking prompt (talkingClipPrompt `wide`).
+ */
+export const TALKING_WIDE_FACE_SHARE = 0.08;
 /** Crop height in face heights: head, shoulders and chest. */
 export const TALKING_CROP_FACE_HEIGHTS = 4.2;
 

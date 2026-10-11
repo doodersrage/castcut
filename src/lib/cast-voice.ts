@@ -69,6 +69,34 @@ export async function takeCastVoiceFromClip(input: {
 }
 
 /**
+ * "Use my own recording": the player's audio (or video) file → the first ~5 s of speech as the
+ * Cast's voice sample (server, /api/cast-voice). Returns an error message, or null when it worked.
+ */
+export async function takeCastVoiceFromFile(input: {
+  castId: string;
+  file: File;
+  comfyUrl?: string;
+}): Promise<string | null> {
+  const form = new FormData();
+  form.append('file', input.file);
+  if (input.comfyUrl) form.append('comfyUrl', input.comfyUrl);
+  let response: Response;
+  try {
+    response = await fetch('/api/cast-voice', { method: 'POST', body: form });
+  } catch {
+    return 'Could not reach the server.';
+  }
+  const data = (await response.json().catch(() => ({}))) as { sample?: string; error?: string };
+  if (!response.ok || !data.sample) return data.error || 'Could not use that recording.';
+  const saved = saveCastVoice(input.castId, {
+    sample: data.sample,
+    fromFile: input.file.name.slice(0, 120),
+    at: Date.now(),
+  });
+  return saved ? null : 'That Cast member is gone — pick them again.';
+}
+
+/**
  * Voice auditions: four kinds of voice to hear the Cast in before keeping one. Live (Nora,
  * 2026-10-09): 200 / 260 / 188 Hz for the first three; "husky, relaxed" came out the same voice
  * as "warm, low" (similarity 0.91), so the fourth asks for something further away.

@@ -799,10 +799,30 @@ export function talkingClipPrompt(input: {
   speaker?: 'She' | 'He';
   /** How the line is said (default: clearly). */
   tone?: SpokenLineTone;
+  /**
+   * A full-body still kept whole: LTX punched in to a face close-up within ~1.5 s on 7 of 8
+   * same-seed replays of the user's florist clip (2026-10-11), whatever the camera words said;
+   * an end-frame guide only dissolved back out. Calling it a wide shot and not having her
+   * address the camera held the wide framing 8 of 8 (an Excited line still stood her up and
+   * tightened to a mid shot in 2 of 4).
+   */
+  wide?: boolean;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
+  const she = who === 'He' ? 'he' : 'she';
+  if (input.wide) {
+    return [
+      'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
+      `${who} stays where ${she} is and ${spokenLineVerb(input.tone, who)} "${line}"`,
+      `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not walk away or turn around.`,
+      place
+        ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
+        : 'The place, light and clothes stay exactly as in the first frame.',
+      `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${who === 'He' ? 'his' : 'her'} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
+    ].join(' ');
+  }
   return [
     'One continuous shot that starts on the first frame.',
     `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and ${spokenLineVerb(input.tone, who)} "${line}"`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
+import { framedTalkingStill, talkingStillIsWide } from '@/lib/talking-clip-framing-client';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
@@ -306,6 +306,24 @@ export function useRoleplayBeatQueuePart2(
           inputImageUrl = undefined;
           talkingCropped = true;
         }
+      }
+      // Kept whole and full-body: a wide-shot prompt, or LTX punches in to her face.
+      if (
+        speaking &&
+        !conversation &&
+        !talkingCropped &&
+        hasInit &&
+        !inputImage &&
+        inputImageUrl &&
+        (await talkingStillIsWide(inputImageUrl))
+      ) {
+        prompt = talkingClipPrompt({
+          line: spokenLine,
+          speaker: leadIsMan() ? 'He' : 'She',
+          tone: latest.lineTone,
+          wide: true,
+        });
+        if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
 
       let promptId: string | undefined;

@@ -1,6 +1,6 @@
 'use client';
 
-import { framedTalkingStill } from '@/lib/talking-clip-framing-client';
+import { framedTalkingStill, talkingStillIsWide } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
   conversationClipPrompt,
@@ -428,6 +428,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const replyLine = normalizeSpokenLine(slot.replyLine);
         const conversation =
           speaking && Boolean(replyLine) && stillPromptPeople(parentEntry?.prompt) >= 2;
+        // A talking clip starts chest-up when her face is small in the still (the lips are
+        // unreadable full-body) — not with an end pose, whose frame matches the full still.
+        const framed =
+          speaking && !conversation && !endImageFilename && !slot.lineFullFrame && imageUrl
+            ? await framedTalkingStill(imageUrl)
+            : null;
+        // Kept whole and full-body: a wide-shot prompt, or LTX punches in to her face.
+        const wide =
+          speaking && !conversation && !framed && imageUrl
+            ? await talkingStillIsWide(imageUrl)
+            : false;
         if (speaking) {
           // Talking: she stays put facing the camera (the beat's motion walked her out of frame
           // mid-line). An adult still's age sentence stays with the clip.
@@ -448,6 +459,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   line: spokenLine,
                   speaker: manLead ? 'He' : 'She',
                   tone: slot.lineTone,
+                  wide,
                 }),
             ageLine,
           ]
@@ -459,12 +471,6 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           syncSharedIdentityToCast(character);
         }
         const castLoras = castLoraSessionIds(character);
-        // A talking clip starts chest-up when her face is small in the still (the lips are
-        // unreadable full-body) — not with an end pose, whose frame matches the full still.
-        const framed =
-          speaking && !conversation && !endImageFilename && !slot.lineFullFrame && imageUrl
-            ? await framedTalkingStill(imageUrl)
-            : null;
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
