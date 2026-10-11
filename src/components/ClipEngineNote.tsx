@@ -42,9 +42,6 @@ export default function ClipEngineNote({
   const [refine, setRefine] = useState(
     () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxRefine === true
   );
-  const [roomSound, setRoomSound] = useState(
-    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false
-  );
   // Says so here, before Animate fails, when this ComfyUI can't run the clip engine.
   const health = (
     <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
@@ -111,22 +108,6 @@ export default function ClipEngineNote({
         />
         Refine detail (crisper; about 2× slower and can shift the face a little — needs the
         Refine-Details LoRA)
-      </label>
-      <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
-        <input
-          type="checkbox"
-          checked={roomSound}
-          data-testid="clip-engine-talk-ambience"
-          onChange={event => {
-            const next = event.target.checked;
-            setRoomSound(next);
-            saveToolSettings('video', {
-              ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
-              talkAmbience: next,
-            });
-          }}
-        />
-        Room sound under talking clips (the place&rsquo;s sounds, quietly under the voice)
       </label>
       {health}
     </>

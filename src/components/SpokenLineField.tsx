@@ -8,6 +8,7 @@ import {
   SPOKEN_LINE_TONES,
   type SpokenLineTone,
 } from '@/lib/ltx25-renderer';
+import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 
 /**
  * What the lead says in a clip (Story scene / Day slot). A line makes Animate render a talking
@@ -57,6 +58,9 @@ export default function SpokenLineField({
   onToneChange?: (tone: SpokenLineTone) => void;
 }) {
   const [value, setValue] = useState(line ?? '');
+  const [roomSound, setRoomSound] = useState(
+    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const replyRef = useRef<HTMLInputElement>(null);
   const [replyValue, setReplyValue] = useState(reply ?? '');
@@ -244,6 +248,26 @@ export default function SpokenLineField({
             onChange={event => onFullFrameChange(event.target.checked)}
           />
           Keep the full frame (a small face lip-syncs less clearly)
+        </label>
+      ) : null}
+      {value.trim() ? (
+        <label className="type-caption flex items-center gap-2 text-[var(--text-secondary)]">
+          <input
+            type="checkbox"
+            checked={roomSound}
+            disabled={disabled}
+            data-testid={`${testId}-room-sound`}
+            onChange={event => {
+              const next = event.target.checked;
+              setRoomSound(next);
+              // One setting for every talking clip (Video talkAmbience).
+              saveToolSettings('video', {
+                ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+                talkAmbience: next,
+              });
+            }}
+          />
+          Room sound under the voice (the place&rsquo;s sounds, quietly — all talking clips)
         </label>
       ) : null}
       <p className="type-caption text-[var(--text-muted)]">
