@@ -109,11 +109,16 @@ describe('wide talking prompt (full-body still kept whole)', async () => {
   it('calls it a wide shot, does not address the camera, and rules out the close-up', () => {
     const prompt = talkingClipPrompt({ line: 'Want one?', setting: 'florist', tone: 'teasing', wide: true });
     assert.match(prompt, /^Wide shot, full body, seen from a few metres away/);
-    assert.match(prompt, /She stays where she is, in the same pose as the first frame — sitting or lying, she stays that way — and says in a playful, teasing tone with a little smirk, "Want one\?"/);
-    assert.match(prompt, /does not stand up/);
+    // Wide (usually standing): no posture words — "sitting or lying" sat standing women down.
+    assert.match(prompt, /She keeps exactly the pose and position of the first frame and says in a playful, teasing tone with a little smirk, "Want one\?"/);
+    assert.doesNotMatch(prompt, /sitting|lying|stand up/);
+    // Mid (seated / knees-up): the seated hold that kept the park-bench clip full-frame.
+    const mid = talkingClipPrompt({ line: 'Hi', framing: 'mid' });
+    assert.match(mid, /in the same pose as the first frame — sitting or lying, she stays that way/);
+    assert.match(mid, /does not stand up/);
     assert.doesNotMatch(prompt, /into the camera|facing the camera/);
     assert.match(prompt, /her whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up/);
-    assert.match(talkingClipPrompt({ line: 'Hi', speaker: 'He', wide: true }), /He stays where he is, in the same pose as the first frame.*says clearly.*his whole body/);
+    assert.match(talkingClipPrompt({ line: 'Hi', speaker: 'He', wide: true }), /He keeps exactly the pose and position of the first frame and says clearly.*his body stays still.*his whole body/);
   });
 });
 
@@ -152,5 +157,26 @@ describe('room sound (Add sound)', () => {
     assert.match(prompt, /no talking/);
     // Without a place: as before.
     assert.match(dubPrompt({ scene: 'She reads' }), /Natural room sound\.$/);
+  });
+});
+
+describe('scene stays alive', () => {
+  it('names what keeps moving, from the place and the line, and only names the place', async () => {
+    const { talkingClipPrompt, sceneMotionCues } = await import('./ltx25-renderer');
+    const coffee = talkingClipPrompt({
+      line: 'That coffee steam’s doing a little dance in the sun.',
+      setting: 'quiet neighborhood sidewalk at sunrise',
+      wide: true,
+    });
+    assert.match(coffee, /The place is the one in the first frame \(quiet neighborhood sidewalk at sunrise\)/);
+    assert.match(coffee, /Around her the scene stays alive: wisps of steam keep rising and curling from the hot drink\./);
+    assert.equal(
+      sceneMotionCues('old-town plaza with a fountain and café lights', 'He'),
+      'Around him the scene stays alive: the fountain keeps splashing, and people in the background keep moving.'
+    );
+    // Nothing named that moves: the place stays as it was, no cue.
+    const office = talkingClipPrompt({ line: 'Finally. Friday.', setting: 'office lobby' });
+    assert.match(office, /The place stays as in the first frame \(office lobby\)/);
+    assert.doesNotMatch(office, /stays alive/);
   });
 });

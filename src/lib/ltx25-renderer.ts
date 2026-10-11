@@ -1028,6 +1028,44 @@ const AMBIENCE: Array<[RegExp, string]> = [
   ],
 ];
 
+/**
+ * Things in a scene that keep moving while she stands still, by the words that name them. A
+ * talking clip only describes her, so LTX froze the rest — the user's coffee clip: "That coffee
+ * steam's doing a little dance in the sun", and the steam never moved (2026-10-11).
+ */
+const SCENE_MOTION: Array<[RegExp, string]> = [
+  [
+    /\b(coffee|tea|latte|cappuccino|espresso|cocoa|hot chocolate|steam(?:ing)?|soup|ramen)\b/i,
+    'wisps of steam keep rising and curling from the hot drink',
+  ],
+  [/\b(candle|candles|candlelight|candlelit)\b/i, 'the candle flames flicker'],
+  [/\b(fireplace|campfire|bonfire|fire pit)\b/i, 'the flames of the fire dance'],
+  [/\b(fountain)\b/i, 'the fountain keeps splashing'],
+  [
+    /\b(sea|ocean|waves?|beach|bay|harbou?r|marina|lake|river|canal|pool|boats?)\b/i,
+    'the water keeps moving',
+  ],
+  [/\b(rain|raining|drizzle)\b/i, 'rain keeps falling'],
+  [/\b(snow|snowing|snowfall)\b/i, 'snow keeps falling'],
+  [
+    /\b(trees?|leaves|park|garden|forest|woods|meadow|grass|palm)\b/i,
+    'leaves sway in a light breeze',
+  ],
+  [
+    /\b(market|street|plaza|square|caf[eé]|terrace|station|crowd|festival|mall|bar)\b/i,
+    'people in the background keep moving',
+  ],
+  [/\b(curtains?|drapes|flags?|banners?|umbrellas?)\b/i, 'fabric stirs in the breeze'],
+];
+
+/** "Around her, …" — up to two things in the scene that keep moving ("" when none named). */
+export function sceneMotionCues(text: string, speaker: 'She' | 'He' = 'She'): string {
+  const cues = SCENE_MOTION.filter(([pattern]) => pattern.test(text)).map(([, cue]) => cue);
+  if (!cues.length) return '';
+  const list = cues.slice(0, 2).join(', and ');
+  return `Around ${speaker === 'He' ? 'him' : 'her'} the scene stays alive: ${list}.`;
+}
+
 /** Typical background sounds of a place, as a hint for the soundtrack ("" when unknown). */
 export function ambienceSounds(place: string): string {
   const night = /\b(night|midnight|3 a\.m\.|late|after dark|blue hour)\b/i.test(place);
@@ -1065,19 +1103,36 @@ export function talkingClipPrompt(input: {
   const line = normalizeSpokenLine(input.line);
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   const she = who === 'He' ? 'he' : 'she';
+  // What keeps moving around her (steam, water, leaves …), from the place and the line itself.
+  // Without it the scene froze; with it the coffee steam rose and curled on 2 of 2 seeds
+  // (2026-10-11). "The place stays as in the first frame" read as "freeze it", so with cues the
+  // place is only named.
+  const cues = sceneMotionCues(`${input.line} ${place ?? ''}`, who);
+  const placeLine = place
+    ? cues
+      ? `The place is the one in the first frame (${place}); the light and clothes stay the same. ${cues}`
+      : `The place stays as in the first frame (${place}); the light and clothes stay the same.`
+    : ['The place, light and clothes stay exactly as in the first frame.', cues]
+        .filter(Boolean)
+        .join(' ');
   // Mid (seated / knees-up) stills take the wide wording too: replaying the user's park-bench
   // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4 — 4 of 4
   // once it keeps her pose — and a "medium-wide, same distance" wording in 0 of 4.
   if (input.wide || input.framing === 'wide' || input.framing === 'mid') {
     return [
       'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
-      // Keeping the first frame's pose stopped strong lines standing her up: the park-bench
-      // replays (angry line, 4 seeds) held seated and full-frame 4 of 4, against 2 of 4 without.
-      `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`,
-      `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`,
-      place
-        ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
-        : 'The place, light and clothes stay exactly as in the first frame.',
+      // Mid (seated / knees-up): keeping the first frame's pose stopped strong lines standing her
+      // up — the park-bench replays (angry line, 4 seeds) held seated and full-frame 4 of 4,
+      // against 2 of 4 without. Wide (full-body, usually standing): those words sat her down on
+      // the pavement on 6 of 6 standing replays (coffee, fountain, harbor); a hold without
+      // posture words kept her standing 8 of 8 (2026-10-11).
+      input.framing === 'mid'
+        ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`
+        : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
+      input.framing === 'mid'
+        ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
+        : `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'his' : 'her'} body stays still, and ${she} does not walk away or turn around.`,
+      placeLine,
       `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${who === 'He' ? 'his' : 'her'} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
     ].join(' ');
   }
@@ -1085,9 +1140,7 @@ export function talkingClipPrompt(input: {
     'One continuous shot that starts on the first frame.',
     `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and ${spokenLineVerb(input.tone, who)} "${line}"`,
     `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'he' : 'she'} stays in place, facing the camera, and does not walk away or turn around.`,
-    place
-      ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
-      : 'The place, light and clothes stay exactly as in the first frame.',
+    placeLine,
     'Camera: locked-off, framing stays as the first frame.',
   ].join(' ');
 }
