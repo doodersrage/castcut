@@ -3,6 +3,7 @@
 import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
+  LTX_FAST_PACE_LINE,
   conversationClipPrompt,
   conversationPartnerNoun,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
@@ -77,6 +78,7 @@ import {
   isDayAdultMood,
 } from '@/lib/day-planner';
 import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day-clip-direction';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { adultAgeLineIn } from '@/lib/adult-age-safeguard';
@@ -391,6 +393,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           manLead,
           endPoseWords: endImageFilename ? endPose?.poseWords : undefined,
         });
+        // A two-person adult clip kept on LTX-2.5 (Video ltxAdultDuo): LTX moves about half as
+        // much as WAN there, so it is told a lower frame rate and given a tempo line.
+        const fastPace =
+          !spokenLine &&
+          isLtx25Model(videoModel) &&
+          isDayAdultMood(toolSettings.dayMood) &&
+          (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK);
+        if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE}`;
         // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
         // voice and their own lip movement).
         const replyLine = normalizeSpokenLine(slot.replyLine);
@@ -453,6 +463,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               // A talking clip runs ~5 s: room for a line of about 14 words.
               // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
               videoFrames: conversation ? 96 : speaking ? 80 : 64,
+              ...(fastPace ? { videoMotionPace: 'fast' as const } : {}),
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(speaking

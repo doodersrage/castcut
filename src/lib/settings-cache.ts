@@ -917,6 +917,11 @@ export type VideoToolCache = {
    * on WAN even with LTX-2.5 picked (clipEngineForShot).
    */
   ltxClothedSolo?: boolean;
+  /**
+   * Keep LTX-2.5 for two-person adult clips (tuned for pace — LTX_FAST_PACE_*; they get sound
+   * through Add sound). Off: those clips render on WAN (clipEngineForShot).
+   */
+  ltxAdultDuo?: boolean;
   /** Output frame rate fed to {{VIDEO_FPS}} at queue time. */
   fps?: number;
   hintSource?: import('./scene-hint-source').SceneHintSource;

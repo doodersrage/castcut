@@ -6,6 +6,7 @@ import {
   LTX25_VOICE_NODE,
   LTX25_ID_LORA,
   LTX25_FACE_RESTORE_NODE,
+  LTX_FAST_PACE_FRAME_RATE,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -226,6 +227,8 @@ export type WorkflowParamValues = {
    * spoken) and saves as an MP4. Ignored on WAN.
    */
   videoSpeech?: 'on';
+  /** A two-person adult clip kept on LTX-2.5: tell LTX a lower frame rate (LTX_FAST_PACE_*). */
+  videoMotionPace?: 'fast';
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -1888,6 +1891,10 @@ export function injectPromptsWithFallbacks(
           !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
         ...(Number(input.params?.videoLongSide) > 0
           ? { longSide: Number(input.params?.videoLongSide) }
+          : {}),
+        // A two-person adult clip kept on LTX: told a lower frame rate, so it moves like WAN.
+        ...(input.params?.videoMotionPace === 'fast'
+          ? { motionFrameRate: LTX_FAST_PACE_FRAME_RATE }
           : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))

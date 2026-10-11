@@ -75,10 +75,21 @@ export function isLtx25Model(model: string | null | undefined): boolean {
  * LTX-2.5 lost the face (mean match 0.33 vs WAN's 0.58 over 8 Day stills, clip sweep
  * 2026-10-05) — unless the player keeps LTX for them (Video `ltxClothedSolo`, for speed).
  */
+/**
+ * The tempo line two-person adult clips get on LTX-2.5 (with `motionFrameRate` 12): LTX alone
+ * moved about half as much as WAN on the same stills and drifted off the act in 1 of 4.
+ */
+export const LTX_FAST_PACE_LINE =
+  'Fast, vigorous, rhythmic movement from the first frame to the last — a quick, energetic pace, never slowing down.';
+/** The conditioning frame rate for those clips (they still play at 24 fps). */
+export const LTX_FAST_PACE_FRAME_RATE = 12;
+
 export function clipEngineForShot(
   videoModel: string,
   shot: {
     adultDuo: boolean;
+    /** The player keeps LTX-2.5 for two-person adult clips too (Video `ltxAdultDuo`). */
+    keepLtxForAdultDuo?: boolean;
     clothedSolo?: boolean;
     keepLtxForClothedSolo?: boolean;
     /** The clip has a spoken line — only LTX-2.5 makes sound, so it runs there whatever is picked. */
@@ -91,7 +102,7 @@ export function clipEngineForShot(
   // Rapid AIO, not 40 steps at CFG 5.
   if (videoModel === 'wan-video') return WAN_CLIP_FALLBACK_MODEL;
   if (!isLtx25Model(videoModel)) return videoModel;
-  if (shot.adultDuo) return WAN_CLIP_FALLBACK_MODEL;
+  if (shot.adultDuo) return shot.keepLtxForAdultDuo ? videoModel : WAN_CLIP_FALLBACK_MODEL;
   if (shot.clothedSolo && !shot.keepLtxForClothedSolo) return WAN_CLIP_FALLBACK_MODEL;
   return videoModel;
 }
@@ -215,10 +226,22 @@ export function convertVideoWorkflowToLtx25(
      * ID-LoRA file to apply with it (without it the sample does nothing measurable).
      */
     speech?: { voiceSample?: string; idLora?: string; restoreFace?: string };
+    /**
+     * The frame rate LTX is told the clip runs at (default 24, what it plays at). Lower = more
+     * movement per frame: two-person adult clips at 12 (with LTX_FAST_PACE_LINE) moved 2–5× more
+     * than at 24 and held the act 8 of 8 (2 seeds × 4 of the user's stills, 2026-10-11).
+     */
+    motionFrameRate?: number;
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
   const entries = Object.entries(workflow);
+  const motionRate =
+    typeof options.motionFrameRate === 'number' &&
+    options.motionFrameRate >= 8 &&
+    options.motionFrameRate <= 30
+      ? options.motionFrameRate
+      : LTX25_FPS;
   const sampler = entries.find(([, node]) => SAMPLERS.has(node?.class_type ?? ''))?.[1];
   const save = entries.find(([, node]) => SAVES.has(node?.class_type ?? ''))?.[1];
   const endLoader = findEndImageLoader(workflow);
@@ -276,7 +299,7 @@ export function convertVideoWorkflowToLtx25(
     },
     '7': {
       class_type: 'LTXVConditioning',
-      inputs: { positive: ['5', 0], negative: ['6', 0], frame_rate: LTX25_FPS },
+      inputs: { positive: ['5', 0], negative: ['6', 0], frame_rate: motionRate },
     },
     '8': { class_type: 'LoadImage', inputs: { image } },
     '9': {
@@ -307,7 +330,7 @@ export function convertVideoWorkflowToLtx25(
     // The distilled model is audio+video; the audio latent rides along (not decoded).
     '13': {
       class_type: 'LTXVEmptyLatentAudio',
-      inputs: { frames_number: frames, frame_rate: LTX25_FPS, batch_size: 1, audio_vae: ['4', 0] },
+      inputs: { frames_number: frames, frame_rate: motionRate, batch_size: 1, audio_vae: ['4', 0] },
     },
     '14': {
       class_type: 'LTXVConcatAVLatent',

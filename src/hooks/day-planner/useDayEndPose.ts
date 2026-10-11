@@ -54,6 +54,7 @@ export function resolveDayClipEngine(input: {
       !isAdultContentPrompt(stillPrompt),
     keepLtxForClothedSolo:
       loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
+    keepLtxForAdultDuo: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true,
     speaking: input.speaking === true,
   });
 }

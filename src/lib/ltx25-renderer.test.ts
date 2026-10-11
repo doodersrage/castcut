@@ -282,3 +282,36 @@ describe('LTX-2.5 talking clips', () => {
     assert.ok(long.length <= SPOKEN_LINE_MAX_CHARS && !long.endsWith(' '));
   });
 });
+
+describe('two-person adult clips on LTX-2.5', () => {
+  it('stay on WAN unless the player keeps LTX for them', () => {
+    assert.equal(clipEngineForShot('ltx-video-2.5', { adultDuo: true }), 'wan-video-rapid-aio');
+    assert.equal(
+      clipEngineForShot('ltx-video-2.5', { adultDuo: true, keepLtxForAdultDuo: true }),
+      'ltx-video-2.5'
+    );
+    // The switch never moves a WAN pick onto LTX.
+    assert.equal(
+      clipEngineForShot('wan-video-rapid-aio', { adultDuo: true, keepLtxForAdultDuo: true }),
+      'wan-video-rapid-aio'
+    );
+  });
+
+  it('are told a lower frame rate for pace, and still play at 24 fps', () => {
+    const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), { motionFrameRate: 12 });
+    const conditioning = Object.values(workflow).find(node => node.class_type === 'LTXVConditioning');
+    assert.equal(conditioning?.inputs?.frame_rate, 12);
+    const plain = convertVideoWorkflowToLtx25(wanClipGraph());
+    const plainConditioning = Object.values(plain.workflow).find(
+      node => node.class_type === 'LTXVConditioning'
+    );
+    assert.equal(plainConditioning?.inputs?.frame_rate, 24);
+    // Out of range: ignored.
+    const odd = convertVideoWorkflowToLtx25(wanClipGraph(), { motionFrameRate: 2 });
+    assert.equal(
+      Object.values(odd.workflow).find(node => node.class_type === 'LTXVConditioning')?.inputs
+        ?.frame_rate,
+      24
+    );
+  });
+});

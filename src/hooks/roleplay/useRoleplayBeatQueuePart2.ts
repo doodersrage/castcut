@@ -6,6 +6,8 @@ import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/ad
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
 import {
   clipEngineForShot,
+  LTX_FAST_PACE_LINE,
+  isLtx25Model,
   conversationClipPrompt,
   conversationPartnerNoun,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
@@ -288,8 +290,14 @@ export function useRoleplayBeatQueuePart2(
               ),
               keepLtxForClothedSolo:
                 loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true,
+              keepLtxForAdultDuo:
+                loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true,
             })
           : clipEngineForShot(videoModel, { adultDuo: true });
+      // A two-person adult clip kept on LTX-2.5 (Video ltxAdultDuo): a tempo line and a lower
+      // conditioning frame rate, or it moves about half as much as WAN.
+      const fastPace = adultDuo && !speaking && isLtx25Model(clipModel);
+      if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE}`;
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
       let talkingCropped = false;
@@ -357,7 +365,11 @@ export function useRoleplayBeatQueuePart2(
                   // Not cropped chest-up: render larger so the small face holds.
                   ...(talkingCropped ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                 }
-              : { videoFrames: 64, videoFps: 16 }
+              : {
+                  videoFrames: 64,
+                  videoFps: 16,
+                  ...(fastPace ? { videoMotionPace: 'fast' as const } : {}),
+                }
           ),
         });
       } catch (err) {

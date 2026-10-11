@@ -36,6 +36,9 @@ export default function ClipEngineNote({
   const [keepLtx, setKeepLtx] = useState(
     () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo === true
   );
+  const [ltxDuo, setLtxDuo] = useState(
+    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true
+  );
   // Says so here, before Animate fails, when this ComfyUI can't run the clip engine.
   const health = (
     <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
@@ -45,10 +48,10 @@ export default function ClipEngineNote({
     <>
       <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
         {keepLtx
-          ? twoPersonAdultPossible
+          ? twoPersonAdultPossible && !ltxDuo
             ? 'Clips: LTX-2.5 (fast); two-person adult stills render on WAN, about 3× slower.'
             : 'Clips render on LTX-2.5 (fast).'
-          : twoPersonAdultPossible
+          : twoPersonAdultPossible && !ltxDuo
             ? 'Clips: clothed one-person and two-person adult stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'
             : 'Clips: clothed one-person stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'}
       </p>
@@ -68,6 +71,24 @@ export default function ClipEngineNote({
         />
         Use LTX-2.5 for clothed one-person clips too (faster; the face drifts)
       </label>
+      {twoPersonAdultPossible ? (
+        <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            checked={ltxDuo}
+            data-testid="clip-engine-ltx-adult-duo"
+            onChange={event => {
+              const next = event.target.checked;
+              setLtxDuo(next);
+              saveToolSettings('video', {
+                ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+                ltxAdultDuo: next,
+              });
+            }}
+          />
+          Use LTX-2.5 for two-person adult clips too (tuned for pace; Add sound gives them sound)
+        </label>
+      ) : null}
       {health}
     </>
   );
