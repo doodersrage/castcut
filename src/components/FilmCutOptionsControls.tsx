@@ -2,12 +2,14 @@
 
 import FilmCutShotList from '@/components/FilmCutShotList';
 import {
+  applyCutShotEdits,
   normalizeFilmCutLength,
   type CutShotEdits,
   type FilmCutLength,
   type KeyedShot,
 } from '@/lib/film-cut-plan';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { MixPreview } from '@/lib/film-mix-preview';
 import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
@@ -355,6 +357,7 @@ export default function FilmCutOptionsControls({
           hasBed={hasBed}
           hasLines={Boolean(shots?.some(shot => shot.kind === 'clip'))}
           testIdPrefix={testIdPrefix}
+          shots={shots}
         />
         <label className="flex flex-col gap-1">
           <span className="type-caption text-[var(--text-muted)]">Or paste a URL</span>
@@ -461,6 +464,7 @@ function SoundMixControls({
   hasBed,
   hasLines,
   testIdPrefix,
+  shots,
 }: {
   value: FilmCutOptionsValue;
   onChange: (next: FilmCutOptionsValue) => void;
@@ -468,8 +472,47 @@ function SoundMixControls({
   hasBed: boolean;
   hasLines: boolean;
   testIdPrefix: string;
+  /** The cut's shots (before edits) — Preview the mix plays their lines with the music. */
+  shots?: KeyedShot[];
 }) {
+  const previewRef = useRef<MixPreview | null>(null);
+  const [previewState, setPreviewState] = useState<'idle' | 'loading' | 'playing'>('idle');
+  const [previewNote, setPreviewNote] = useState<string | null>(null);
+  useEffect(() => () => previewRef.current?.stop(), []);
   if (!hasBed && !hasLines) return null;
+  const togglePreview = async () => {
+    if (previewRef.current) {
+      previewRef.current.stop();
+      previewRef.current = null;
+      setPreviewState('idle');
+      return;
+    }
+    setPreviewState('loading');
+    setPreviewNote(null);
+    try {
+      const { playMixPreview } = await import('@/lib/film-mix-preview');
+      const preview = await playMixPreview({
+        shots: applyCutShotEdits(shots ?? [], value.shotEdits),
+        audioBedUrl: value.audioBedUrl,
+        crossfadeSec: value.crossfadeSec,
+        titleCard: value.titles === true,
+        musicLevel: value.musicLevel,
+        voiceLevel: value.voiceLevel,
+        onEnded: () => {
+          previewRef.current = null;
+          setPreviewState('idle');
+        },
+      });
+      previewRef.current = preview;
+      setPreviewState('playing');
+      setPreviewNote(
+        `${Math.round(preview.totalSec)} s · ${preview.lines} line${preview.lines === 1 ? '' : 's'}`
+      );
+    } catch (error) {
+      setPreviewState('idle');
+      setPreviewNote(error instanceof Error ? error.message : 'Could not play the mix.');
+    }
+  };
   const music = normalizeMusicLevel(value.musicLevel);
   const voice = normalizeVoiceLevel(value.voiceLevel);
   const slider =
@@ -514,6 +557,27 @@ function SoundMixControls({
           />
           <span className="w-10 tabular-nums">{Math.round(voice * 100)}%</span>
         </label>
+      ) : null}
+      <button
+        type="button"
+        className="type-caption rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+        disabled={disabled || previewState === 'loading'}
+        onClick={() => void togglePreview()}
+        data-testid={`${testIdPrefix}-mix-preview`}
+      >
+        {previewState === 'playing'
+          ? '■ Stop'
+          : previewState === 'loading'
+            ? 'Loading the mix…'
+            : '▶ Preview the mix'}
+      </button>
+      {previewNote ? (
+        <span
+          className="type-caption text-[var(--text-muted)]"
+          data-testid={`${testIdPrefix}-mix-preview-note`}
+        >
+          {previewNote}
+        </span>
       ) : null}
       {music !== 1 || voice !== 1 ? (
         <button

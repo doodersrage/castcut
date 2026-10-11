@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
@@ -279,4 +281,58 @@ test('a film shows what is in it and re-cuts in another shape', async ({ page })
   await recut.getByTestId('film-recut-run').click();
   await expect.poll(() => body?.resolution ?? null, { timeout: 30_000 }).toBe('1080p-vertical');
   expect(body!.shots).toHaveLength(2);
+});
+
+test('Preview the mix plays the talking clip with the music settings', async ({ page }) => {
+  const castId = 'e2e-mix';
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Mika', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: castId,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'waves', line: 'Hi!' },
+          { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'mix-m' },
+          {
+            slotId: 'afternoon',
+            status: 'completed',
+            imageUrl: thumb,
+            promptId: 'mix-a',
+            clipStatus: 'completed',
+            clipUrl: '/e2e-media/talk-2s.mp4',
+            clipPromptId: 'mix-a-clip',
+          },
+        ],
+      },
+    },
+  });
+  const clip = readFileSync(join(__dirname, 'fixtures', 'talk-2s.mp4'));
+  await page.route('**/e2e-media/talk-2s.mp4', route =>
+    route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
+  );
+  await gotoStable(page, `/day?character=${castId}`);
+  await dismissBlockingOverlays(page);
+  const coach = page.getByTestId('day-cut-coach');
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
+  const preview = coach.getByTestId('day-cut-mix-preview');
+  await expect(preview).toBeVisible();
+  await preview.click();
+  await expect(coach.getByTestId('day-cut-mix-preview-note')).toContainText('1 line', {
+    timeout: 20_000,
+  });
+  await expect(preview).toContainText('Stop');
+  await preview.click();
+  await expect(preview).toContainText('Preview the mix');
 });
