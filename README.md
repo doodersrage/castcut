@@ -17,7 +17,7 @@ Powered by ComfyUI · FLUX · Qwen · WAN · Hunyuan · LTX · and more — mode
 1. **Pick or create a character** on Play (Cast)
 2. **Set the look** — Look → Outfit
 3. **Generate the stills** — Day slots (one Quality preset: Fast / Balanced / Best)
-4. **Animate** — I2V clips on LTX-2.5 (WAN for two-person adult scenes), with an editable direction; give a scene a **line** and the Cast says it — lip-synced, in a voice you auditioned on the Cast page, with the place's room sound under it
+4. **Animate** — I2V clips on LTX-2.5 (WAN for two-person adult scenes), with an editable direction; give a scene a **line** and the Cast says it — lip-synced, in a voice you auditioned on the Cast page
 5. **Cut film** — a small editor (trim, frame, poster, shape, music and line levels, **Preview the cut**), checks the shots first, then server ffmpeg (keeps clip speech, music ducked under it) or browser fallback
 6. **Save to Cast** — watch, keep, cut another
 

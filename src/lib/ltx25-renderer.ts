@@ -32,6 +32,12 @@ export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const
 
 /** Nodes a talking clip (LTX's own soundtrack decoded and muxed into an MP4) needs. */
 export const LTX25_SPEECH_NODES = ['LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'] as const;
+/**
+ * Room sound under talking clips — off. The sound-only pass runs on the talking picture, saw her
+ * lips move and generated a second, garbled line (the user's night clip: −14 dB after the boost,
+ * louder than her voice at −24, 2026-10-11). Kept for a fix (a pass that can't see her mouth).
+ */
+export const ROOM_SOUND_UNDER_TALKING = false;
 /** A talking clip's room sound: a sound-only pass mixed under the voice. */
 export const LTX25_AMBIENCE_NODES = ['AudioAdjustVolume', 'AudioMerge'] as const;
 /** Refine detail (Video `ltxRefine`): Lightricks' IC-LoRA, from the ComfyUI-LTXVideo pack. */

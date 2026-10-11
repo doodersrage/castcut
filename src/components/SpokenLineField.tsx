@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { TextInput } from '@/components/ui/Field';
 import {
   normalizeSpokenLine,
+  ROOM_SOUND_UNDER_TALKING,
   SPOKEN_LINE_MAX_CHARS,
   SPOKEN_LINE_TONES,
   type SpokenLineTone,
@@ -250,7 +251,7 @@ export default function SpokenLineField({
           Keep the full frame (a small face lip-syncs less clearly)
         </label>
       ) : null}
-      {value.trim() ? (
+      {ROOM_SOUND_UNDER_TALKING && value.trim() ? (
         <label className="type-caption flex items-center gap-2 text-[var(--text-secondary)]">
           <input
             type="checkbox"
