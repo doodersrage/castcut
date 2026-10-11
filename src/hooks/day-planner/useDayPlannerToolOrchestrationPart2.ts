@@ -496,8 +496,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     ...(conversation ? {} : castVoiceSampleFor(shared.activeCharacterId)),
                     // Not cropped chest-up: render larger so the small face holds.
                     ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
-                    // Room sound is off: its sound-only pass saw her lips move and spoke a second,
-                    // garbled line louder than hers (the user's night clip, 2026-10-11).
+                    // The place's room sound under the voice (ROOM_SOUND_UNDER_TALKING; the
+                    // talkAmbience checkbox under the line, on by default).
                     ...(ROOM_SOUND_UNDER_TALKING &&
                     slot.location?.trim() &&
                     loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false

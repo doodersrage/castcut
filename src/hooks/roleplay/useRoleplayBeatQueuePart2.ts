@@ -376,7 +376,7 @@ export function useRoleplayBeatQueuePart2(
                     : castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId)),
                   // Not cropped chest-up: render larger so the small face holds.
                   ...(talkingCropped ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
-                  // Room sound is off until its pass stops speaking (see ROOM_SOUND_UNDER_TALKING).
+                  // The Story's setting as room sound under the voice (ROOM_SOUND_UNDER_TALKING).
                   ...(ROOM_SOUND_UNDER_TALKING &&
                   toolSettings.setting?.trim() &&
                   loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false

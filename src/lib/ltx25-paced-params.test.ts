@@ -116,11 +116,17 @@ describe('room sound under a talking clip', () => {
   const talking = (ambience?: string, nodeTypes?: string[]) =>
     buildClipGraph(false, { on: false, speech: true, ambience, nodeTypes });
 
-  it('adds a sound-only pass of the place, brought up and mixed under the voice', () => {
+  it('adds a sound-only pass of the place, matched and mixed under the voice', () => {
     const graph = talking('harbor-side brunch terrace');
     assert.match(String(graph['100']?.inputs.text), /harbor-side brunch terrace: low murmur of other guests/);
-    assert.deepEqual(graph['103']?.inputs.latent, ['20', 0]);
-    assert.equal(graph['111']?.inputs.volume, 18);
+    // It hears a blurred copy of the first pass (no lips to read) …
+    assert.deepEqual(graph['113']?.inputs.samples, ['20', 0]);
+    assert.equal(graph['114']?.class_type, 'ImageBlur');
+    assert.deepEqual(graph['103']?.inputs.latent, ['115', 0]);
+    // … and is matched 15 dB under her spoken level, not boosted by a fixed amount.
+    assert.equal(graph['111']?.class_type, 'CastcutAudioMatchLevel');
+    assert.deepEqual(graph['111']?.inputs.reference, ['54', 0]);
+    assert.equal(graph['111']?.inputs.offset_db, -15);
     assert.deepEqual(graph['112']?.inputs.audio1, ['54', 0]);
     const mp4 = Object.values(graph).find(node => node.class_type === 'CreateVideo');
     assert.deepEqual(mp4?.inputs.audio, ['112', 0]);

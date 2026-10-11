@@ -33,13 +33,13 @@ export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const
 /** Nodes a talking clip (LTX's own soundtrack decoded and muxed into an MP4) needs. */
 export const LTX25_SPEECH_NODES = ['LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'] as const;
 /**
- * Room sound under talking clips — off. The sound-only pass runs on the talking picture, saw her
- * lips move and generated a second, garbled line (the user's night clip: −14 dB after the boost,
- * louder than her voice at −24, 2026-10-11). Kept for a fix (a pass that can't see her mouth).
+ * Room sound under talking clips. The first version heard her lips on the talking picture and
+ * spoke a second, garbled line louder than hers (the user's night clip, 2026-10-11); it now hears
+ * a blurred picture and is level-matched by castcut-nodes 1.7.0 (LTX25_AMBIENCE_NODES).
  */
-export const ROOM_SOUND_UNDER_TALKING = false;
+export const ROOM_SOUND_UNDER_TALKING = true;
 /** A talking clip's room sound: a sound-only pass mixed under the voice. */
-export const LTX25_AMBIENCE_NODES = ['AudioAdjustVolume', 'AudioMerge'] as const;
+export const LTX25_AMBIENCE_NODES = ['AudioMerge', 'ImageBlur', 'CastcutAudioMatchLevel'] as const;
 /** Refine detail (Video `ltxRefine`): Lightricks' IC-LoRA, from the ComfyUI-LTXVideo pack. */
 export const LTX25_REFINE_LORA = 'ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors';
 export const LTX25_REFINE_NODES = [
@@ -1017,6 +1017,10 @@ const AMBIENCE: Array<[RegExp, string]> = [
   [/\b(bar|pub|club|lounge)\b/i, 'a busy room murmuring, glasses clinking'],
   [/\b(fountain|plaza|piazza)\b/i, 'a fountain splashing, footsteps and voices across the square'],
   [
+    /\b(shop|store|boutique|bookstore|bookshop|record|vinyl|mall|pharmacy|bakery|florist)\b/i,
+    'soft footsteps, people browsing, a door chime, a quiet hum',
+  ],
+  [
     /\b(street|city|downtown|crosswalk|sidewalk|market|square)\b/i,
     'city traffic, footsteps, a distant siren',
   ],
@@ -1077,18 +1081,15 @@ export function sceneMotionCues(text: string, speaker: 'She' | 'He' = 'She'): st
   return `Around ${speaker === 'He' ? 'him' : 'her'} the scene stays alive: ${list}.`;
 }
 
-/**
- * Gain on a talking clip's room sound (dB). LTX makes it very quiet (25–30 dB under her voice);
- * +12 only matched the faint bed LTX already leaves between words, +18 puts it ~10 dB under the
- * voice, clearly there — the line still transcribed word for word at both (3 clips, 2026-10-11).
- */
-export const LTX25_TALK_AMBIENCE_DB = 18;
+/** Where a talking clip's room sound sits under her spoken level (dB). */
+export const LTX25_TALK_AMBIENCE_DB = -15;
 
 /**
  * A talking clip's room sound. Asking for it in the talking prompt did nothing measurable — the
  * background stayed at the same level with or without it (6 pairs, 2026-10-11) — so it gets its
- * own pass, as Add sound does: the first pass's picture frozen, sound only, then brought up
- * (LTX25_TALK_AMBIENCE_DB) and added under her voice. Not with an end pose (that draft carries extra guide frames).
+ * own sound-only pass, as Add sound does, on a blurred copy of the first pass's picture, matched
+ * LTX25_TALK_AMBIENCE_DB under her spoken level and added under her voice. Not with an end pose
+ * (that draft carries extra guide frames).
  */
 function addLtx25TalkingAmbience(next: Workflow, place: string): void {
   const audio = next['13']?.inputs;
@@ -1109,7 +1110,16 @@ function addLtx25TalkingAmbience(next: Workflow, place: string): void {
     class_type: 'LTXVConditioning',
     inputs: { positive: ['100', 0], negative: ['101', 0], frame_rate: LTX25_FPS },
   };
-  next['103'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['20', 0] } };
+  // The sound pass hears a blurred picture: on the sharp one it read her lips and spoke a second,
+  // garbled line (the user's night clip); on a frozen still it made silence. Blurred (radius 31),
+  // the room tracks of 3 of the user's clips held no words (2026-10-11).
+  next['113'] = { class_type: 'VAEDecode', inputs: { samples: ['20', 0], vae: ['3', 0] } };
+  next['114'] = {
+    class_type: 'ImageBlur',
+    inputs: { image: ['113', 0], blur_radius: 31, sigma: 10 },
+  };
+  next['115'] = { class_type: 'VAEEncode', inputs: { pixels: ['114', 0], vae: ['3', 0] } };
+  next['103'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['115', 0] } };
   next['104'] = {
     class_type: 'LTXVEmptyLatentAudio',
     inputs: {
@@ -1150,9 +1160,15 @@ function addLtx25TalkingAmbience(next: Workflow, place: string): void {
     class_type: 'LTXVAudioVAEDecode',
     inputs: { samples: ['109', 1], audio_vae: ['4', 0] },
   };
+  // The pass's level varies by ~30 dB from clip to clip (−32 to −64 dB on the same three), so it
+  // is matched to her spoken level rather than boosted by a fixed amount (castcut-nodes 1.7.0).
   next['111'] = {
-    class_type: 'AudioAdjustVolume',
-    inputs: { audio: ['110', 0], volume: LTX25_TALK_AMBIENCE_DB },
+    class_type: 'CastcutAudioMatchLevel',
+    inputs: {
+      audio: ['110', 0],
+      reference: next['55'].inputs.audio,
+      offset_db: LTX25_TALK_AMBIENCE_DB,
+    },
   };
   next['112'] = {
     class_type: 'AudioMerge',

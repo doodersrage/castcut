@@ -9,6 +9,7 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 > - **Re-cut needs films cut in 2.6.** Only films cut from now on carry the recipe *Re-cut* uses. Shots that lived only in the browser (demo stills, uploads) can't come back.
 > - **Music and voice levels are a server-encode feature.** The browser fallback cuts picture only, as before.
 > - **LTX-2.5 runs every clip except two-person adult ones.** With LTX-2.5 picked, clothed one-person clips no longer fall back to WAN — held harder on the still, her face stayed closer on LTX than on WAN (0.55 vs 0.79 face distance on 8 stills). Untick *Use LTX-2.5 for clothed one-person clips* under Animate to keep them on WAN. Two-person adult clips stay on WAN unless you tick *Use LTX-2.5 for two-person adult clips too*.
+> - **Talking clips have room sound** once castcut-nodes 1.7.0 is in ComfyUI. Untick *Room sound under the voice* (under the line) for voice only.
 > - **Closer framing is a crop.** Asking the image engine for a close-up doesn't work (Edit 2511 kept her thighs in frame on 4 of 4 tries), so *waist up* / *chest up* crop the finished still around her face — never under 420 px tall.
 
 ## What's new
@@ -22,6 +23,7 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 
 ### Talking clips
 
+- **Room sound under the voice** — the place's sounds (a café's cups and voices, a shop's footsteps and door chime, a fountain, traffic) in their own pass, 15 dB under her spoken level, the line still transcribed word for word. The pass listens to a blurred copy of the clip, so it can't read her lips and speak along. Needs castcut-nodes 1.7.0 in ComfyUI; *Room sound under the voice* under the line turns it off.
 - **The scene keeps moving.** Steam from a coffee, candle flames, a fountain, water, leaves, people passing — whatever the place and the line name — keep moving while she talks. Before, LTX froze everything but her.
 - **She keeps her pose.** A full-body still stays a wide shot and she stays standing (or seated) as in the still; earlier 2.6 builds sat standing women down on the pavement, and seated stills punched in to her face.
 - **Eleven ways to say a line**, in a dropdown: Natural, Whisper, Laughing, Excited, Tender, Teasing, Angry, Nervous, Scared, Shouting, Sing-song.
