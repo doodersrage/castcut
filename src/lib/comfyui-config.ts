@@ -6,7 +6,6 @@ import {
   LTX25_VOICE_NODE,
   LTX25_ID_LORA,
   LTX25_FACE_RESTORE_NODE,
-  LTX_FAST_PACE_FRAME_RATE,
   LTX_PACED_STILL_HOLD,
   LTX_PACED_LONG_SIDE,
 } from './ltx25-renderer';
@@ -1897,9 +1896,7 @@ export function injectPromptsWithFallbacks(
             ? { longSide: LTX_PACED_LONG_SIDE }
             : {}),
         // A two-person adult clip kept on LTX: told a lower frame rate, so it moves like WAN.
-        ...(input.params?.videoMotionPace === 'fast'
-          ? { motionFrameRate: LTX_FAST_PACE_FRAME_RATE, stillHold: LTX_PACED_STILL_HOLD }
-          : {}),
+        ...(input.params?.videoMotionPace === 'fast' ? { stillHold: LTX_PACED_STILL_HOLD } : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
           ? { endImage }

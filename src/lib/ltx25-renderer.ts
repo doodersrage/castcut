@@ -97,7 +97,10 @@ export const LTX_DUO_ANATOMY_LINE =
 export const LTX_PACED_LONG_SIDE = 1024;
 /** How strongly those clips hold the still on the first pass (default 0.7). */
 export const LTX_PACED_STILL_HOLD = 0.85;
-/** The conditioning frame rate for those clips (they still play at 24 fps). */
+/**
+ * Conditioning frame rate the A/B used to match WAN's pace (they still played at 24 fps). Not
+ * used: the user preferred these clips at the same rate as every other LTX clip (2026-10-11).
+ */
 export const LTX_FAST_PACE_FRAME_RATE = 12;
 
 export function clipEngineForShot(
