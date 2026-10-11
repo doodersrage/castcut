@@ -3,6 +3,7 @@
 import { AppNavSidebarGroups } from '@/components/app-nav/AppNavSidebarGroups';
 import { AppNavSidebarFooter } from '@/components/app-nav/AppNavSidebarFooter';
 import { useAppNavSidebar } from '@/components/app-nav/useAppNavSidebar';
+import AppSlot from '@/components/AppSlot';
 
 export function AppNavSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const vm = useAppNavSidebar();
@@ -22,6 +23,8 @@ export function AppNavSidebarContent({ onNavigate }: { onNavigate?: () => void }
           </button>
         </div>
       ) : null}
+
+      {vm.navReady && !vm.guestShell ? <AppSlot name="nav.top" onNavigate={onNavigate} /> : null}
 
       <AppNavSidebarGroups
         pathname={vm.pathname}

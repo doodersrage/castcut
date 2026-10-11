@@ -1,9 +1,18 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { stillReferenceViewUrl, type StillReference } from '@/lib/still-references';
 import { loadStillReferences } from '@/lib/still-references-client';
+
+/** A way to change (or pin) one reference, offered under its picture. */
+export type StillReferenceAction = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  testId?: string;
+};
 
 /**
  * "Made with": the pictures this still was rendered from (face, look, clothes, partner, pose
@@ -14,11 +23,14 @@ export default function StillReferenceTray({
   promptId,
   place,
   testId = 'still-references',
+  actions,
 }: {
   promptId?: string;
   /** The Setting the still was written for. */
   place?: string;
   testId?: string;
+  /** Replace / pin controls per reference (the review's "replace or lock without restarting"). */
+  actions?: (ref: StillReference) => StillReferenceAction[];
 }) {
   const [refs, setRefs] = useState<StillReference[] | null>(null);
   useEffect(() => {
@@ -61,6 +73,28 @@ export default function StillReferenceTray({
             <span className="type-caption mt-0.5 block truncate text-center text-[var(--text-secondary)]">
               {ref.label}
             </span>
+            {(actions?.(ref) ?? []).map(action =>
+              action.href ? (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="ui-text-link type-caption block text-center"
+                  data-testid={action.testId}
+                >
+                  {action.label}
+                </Link>
+              ) : (
+                <button
+                  key={action.label}
+                  type="button"
+                  className="ui-text-link type-caption block w-full text-center"
+                  data-testid={action.testId}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </button>
+              )
+            )}
           </li>
         ))}
         {place?.trim() ? (

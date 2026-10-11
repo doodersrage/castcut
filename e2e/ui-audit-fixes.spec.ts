@@ -90,7 +90,10 @@ test('Online: no banner; the Made with tray names what a still used', async ({ p
         comfyUrl: 'http://127.0.0.1:9',
         workflow: {
           '900': { class_type: 'LoadImage', inputs: { image: 'day-vacation-keep-a.png' } },
-          '901': { class_type: 'LoadImage', inputs: { image: 'day-pose-guide-stand-b.png' } },
+          '901': {
+            class_type: 'LoadImage',
+            inputs: { image: 'day-pose-guide-sit-a1b2c3-x1-0123456789abcdef.png' },
+          },
           '902': { class_type: 'LoadImage', inputs: { image: 'day-face-id-ref-c.png' } },
         },
       }),
@@ -115,6 +118,13 @@ test('Online: no banner; the Made with tray names what a still used', async ({ p
   await expect(tray.getByTestId('day-slot-references-look')).toContainText('Look');
   await expect(tray.getByTestId('day-slot-references-pose')).toContainText('Pose guide');
   await expect(tray.getByTestId('day-slot-references-place')).toContainText('morning kitchen');
+  // Change or keep: the face opens the Cast; the pose can be pinned for the next take.
+  await expect(tray.getByTestId('day-slot-references-face-change')).toHaveAttribute(
+    'href',
+    /\/characters\/e2e-audit/
+  );
+  await tray.getByTestId('day-slot-references-pose-keep').click();
+  await expect(tray.getByTestId('day-slot-references-pose-keep')).toHaveCount(0);
 });
 
 test('Film steps: Cast, Day and Cut film are counted; the optional steps are named', async ({
@@ -146,4 +156,23 @@ test('Film steps: Cast, Day and Cut film are counted; the optional steps are nam
   // The highlighted step is the film's (Day), not the optional Look.
   await expect(page.getByTestId('play-campaign-step-day')).toContainText('Continue');
   await expect(page.getByTestId('play-campaign-step-moodboard')).not.toContainText('Continue');
+});
+
+test('Studio keeps the film in view, with a way back to Film', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('comfy-workspace-mode-v1', 'studio');
+    localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay() },
+  });
+  await gotoStable(page, '/gallery');
+  await dismissBlockingOverlays(page);
+  const context = page.getByTestId('studio-film-context').first();
+  await expect(context).toBeVisible({ timeout: 30_000 });
+  await expect(context).toContainText('Audit Cast');
+  await expect(context).toContainText('of 3');
+  await expect(page.getByTestId('studio-film-context-back').first()).toBeVisible();
 });

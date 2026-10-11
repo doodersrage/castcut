@@ -27,6 +27,8 @@ export type AppSlotProps = {
   'gallery.empty': GalleryEmptySlotProps;
   /** Settings → Connection first run: feature checks, re-read when `refreshKey` changes. */
   'settings.firstRunChecks': { refreshKey: string };
+  /** Top of the sidebar (Studio): a feature's current-work context (Play: the film in progress). */
+  'nav.top': { onNavigate?: () => void };
 };
 
 export type AppSlotName = keyof AppSlotProps;

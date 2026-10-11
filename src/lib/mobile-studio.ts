@@ -14,23 +14,25 @@ export type MobileStudioTab = {
 };
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
-  { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
   { id: 'film', href: '/m/film', label: 'Film', hint: 'Resume or start a film' },
-  { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
-  { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
+  { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'Extend this character’s film' },
-  { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
+  { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
+  { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
+  { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
 ];
 
-/** Primary dock tabs — Queue / Gallery live under More on the phone shell. */
+/**
+ * Primary dock tabs — the same four as the desktop Film dock (Film, Day, Outfit, Story); Look,
+ * Cast, Gallery and Queue live under More on both. The phone had seven tabs to the desk's four
+ * (UI audit 2026-10-11).
+ */
 export const MOBILE_STUDIO_PRIMARY_TAB_IDS: MobileStudioTabId[] = [
-  'capture',
   'film',
-  'moodboard',
-  'fitting',
   'day',
+  'fitting',
   'story',
 ];
 

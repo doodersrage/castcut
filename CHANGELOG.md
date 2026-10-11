@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Three levels: Film, Studio, More tools.** Profile → Appearance describes them as such (Film is the default; *Back to Film* resets to it), and Studio's sidebar keeps the film in progress at the top — the Cast, "Film · 2 of 3 · Day", its next step and *Back to Film* — so switching to Studio no longer loses the film.
+- **Made with: change or keep.** Under each picture in a still's *Made with*: Face / Look → *Change* opens the Cast; Clothes / Shoes → *Change* opens the slot's clothing; Pose guide → *Keep* pins that pose for the next take (only when the guide names a pose Day knows) and *Change* jumps to the pose preview.
+- **A real sample Day.** The welcome's sample film and Day's *Demo stills* are four stills of the demo Cast, Nora, morning to night (a 10-second reel with slow zooms, 0.5 MB), not gradient cards.
+- **Phone tabs match the desk.** Mobile Studio's dock is Film · Day · Outfit · Story, like the desktop Film dock; Look, Cast, Gallery and Queue are under More (it had seven tabs to the desk's four).
+
 UI audit round (a hands-on pass over first run, Film, Cast, Outfit, Day, Story, Gallery, Queue and Settings on desktop, phone and dark mode, with ComfyUI up and down):
 
 - **ComfyUI offline is said everywhere.** The header chip names the problem in words — *ComfyUI offline* (red) or *LLM offline* (amber: rendering works, suggestions don't) — instead of an unlabelled dot; every page shows a *ComfyUI is offline* banner (your work is kept, *Check again*, *Connection settings*); Queue, Animate and Outfit try-ons are disabled with the reason beside them, and Story's automatic clips wait. A render queued while it is known to be down is refused with that sentence, and a non-JSON answer from in between (a proxy, a crashed server) reads as words, not "Unexpected token … is not valid JSON". Before, Day said "Ready to cut" with a green "plate ready" and live buttons.

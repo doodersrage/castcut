@@ -15,6 +15,9 @@ function subscribeWorkspaceChosen(onChange: () => void): () => void {
 }
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { Button } from '@/components/ui/Button';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
+
+const DEFAULT_MODE: WorkspaceMode = APP_HAS_PLAY ? 'play' : 'studio';
 
 type WorkspaceModeControlProps = {
   /** Compact chip row for the sidebar footer. */
@@ -71,7 +74,9 @@ export default function WorkspaceModeControl({
       <div>
         <p className="type-heading">Workspace</p>
         <p className="type-caption mt-1 text-[var(--text-muted)]">
-          Make · Control · Build — how much of the app shows in the sidebar and shared controls.
+          {DEFAULT_MODE === 'play'
+            ? 'Film for making, Studio for more control — and inside Studio, More tools for specialist tools and workflow graphs. Your film carries across.'
+            : 'Make · Control · Build — how much of the app shows in the sidebar and shared controls.'}
         </p>
       </div>
       <div className="grid gap-2">
@@ -112,9 +117,9 @@ export default function WorkspaceModeControl({
         variant="ghost"
         size="sm"
         className="!px-0"
-        onClick={() => apply('studio')}
+        onClick={() => apply(DEFAULT_MODE)}
       >
-        Reset to Studio
+        {DEFAULT_MODE === 'play' ? 'Back to Film (the default)' : 'Reset to Studio'}
       </Button>
     </div>
   );

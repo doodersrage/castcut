@@ -286,7 +286,7 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 
 ## UI & UX {#ui-ux}
 
-- **Workspace modes** — Play (**Make**, first-run default), Simple (**Make** lean), Studio (**Control**), or Full (**Build**) from the sidebar footer or Profile → Appearance; the saved mode is applied on first paint
+- **Workspace levels** — **Film** (the default: Cast, Look & Outfit, Day / Story, Gallery and Cut), **Studio** (more control: prompts, references, model settings and every tool, with the film in progress kept at the top of the sidebar) and, inside Studio, **More tools** (specialist tools, workflow graphs, integrations); switch in Profile → Appearance (a saved Simple opens Film, a saved Full opens Studio); the saved mode is applied on first paint
 - **Unified first-run path** — Welcome goal chooser → Heal & ready → landing CTA; Settings Heal and first-queue modal share dismiss state; Generate offers Photoreal / Illustration / Edit / Video goal chips before the full model list
 - **Post-Heal checklist** — Connection first-run card lists Generate → Queue → Gallery review after Heal succeeds
 - **Active jobs chip** — sidebar and mobile header show live queue count with a deep link to `/queue`

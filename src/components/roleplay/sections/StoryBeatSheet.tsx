@@ -52,7 +52,23 @@ export default function StoryBeatSheet({
     >
       <div className="space-y-4">
         {beat.stillStatus === 'completed' && beat.promptId ? (
-          <StillReferenceTray promptId={beat.promptId} testId="story-beat-references" />
+          <StillReferenceTray
+            promptId={beat.promptId}
+            testId="story-beat-references"
+            actions={ref => {
+              // Face and look come from the Story's Cast lead: change them on the Cast.
+              const castId = loadSettingsCache().shared.activeCharacterId?.trim();
+              return (ref.role === 'face' || ref.role === 'look') && castId
+                ? [
+                    {
+                      label: 'Change',
+                      href: `/characters/${encodeURIComponent(castId)}`,
+                      testId: `story-beat-references-${ref.role}-change`,
+                    },
+                  ]
+                : [];
+            }}
+          />
         ) : null}
         {edit && !textLocked ? (
           <StoryBeatTextEditor

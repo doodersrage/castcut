@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  poseLayoutFromGuideName,
   stillReferenceRole,
   stillReferencesFromGraph,
   stillReferenceViewUrl,
@@ -43,5 +44,14 @@ describe('still references', () => {
       stillReferenceViewUrl('clipspace/a.png'),
       '/api/comfyui/view?filename=a.png&type=input&subfolder=clipspace'
     );
+  });
+});
+
+describe('poseLayoutFromGuideName', () => {
+  it('reads the pose id before the short hash', () => {
+    assert.equal(poseLayoutFromGuideName('day-pose-guide-perch_edge-a3acbf-x1-85f3a51dd4618b07.png'), 'perch_edge');
+    assert.equal(poseLayoutFromGuideName('day-pose-guide-stairs-6220be-x1-312c5d5ec3a7488a.png'), 'stairs');
+    assert.equal(poseLayoutFromGuideName('day-pose-guide-selfie_duo-47191c-x2-bc11d24acc49d245.png'), 'selfie_duo');
+    assert.equal(poseLayoutFromGuideName('day-partner-vl-7cd4.png'), null);
   });
 });

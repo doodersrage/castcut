@@ -44,7 +44,7 @@ const ALL_WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = [
     label: 'Film',
     shortTag: 'Make',
     description:
-      'Make a film — Cast, Look, Outfit, Day, Gallery, Queue. One character, one day reel.',
+      'Everyday filmmaking (the default): Cast, Look & Outfit, Day / Story, Gallery and Cut — the creative decisions, nothing else.',
   },
   {
     id: 'simple',
@@ -56,8 +56,9 @@ const ALL_WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = [
     id: 'studio',
     label: 'Studio',
     shortTag: 'Control',
-    description:
-      'Control how they are made — full catalog in Create / Edit / Library / More tools. Advanced collapsed.',
+    description: APP_HAS_PLAY
+      ? 'More control: prompts, references, model settings and every tool, with your film kept in view. Specialist tools, workflow graphs and integrations sit under More tools.'
+      : 'Control how they are made — full catalog in Create / Edit / Library / More tools. Advanced collapsed.',
   },
   {
     id: 'full',

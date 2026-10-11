@@ -1,6 +1,8 @@
 'use client';
 
 import StillReferenceTray from '@/components/StillReferenceTray';
+import { poseLayoutFromGuideName } from '@/lib/still-references';
+import { daySlotPoseOverride } from '@/lib/day-slot-pose';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
 import { isDayAdultMood } from '@/lib/day-planner';
@@ -191,6 +193,52 @@ export default function DaySlotSheet({
             promptId={still.promptId}
             place={slot.location}
             testId="day-slot-references"
+            actions={ref => {
+              const jump = (testId: string) => () =>
+                document
+                  .querySelector(`[data-testid="${testId}"]`)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              if ((ref.role === 'face' || ref.role === 'look') && character?.id) {
+                return [
+                  {
+                    label: 'Change',
+                    href: `/characters/${encodeURIComponent(character.id)}`,
+                    testId: `day-slot-references-${ref.role}-change`,
+                  },
+                ];
+              }
+              if (ref.role === 'clothes' || ref.role === 'shoes') {
+                return [
+                  {
+                    label: 'Change',
+                    onClick: () => setClothingOpen(true),
+                    testId: `day-slot-references-${ref.role}-change`,
+                  },
+                ];
+              }
+              if (ref.role === 'pose') {
+                const layout = poseLayoutFromGuideName(ref.filename);
+                const pinnable =
+                  layout && daySlotPoseOverride(layout) && slot.poseLayout !== layout;
+                return [
+                  ...(pinnable
+                    ? [
+                        {
+                          label: 'Keep',
+                          onClick: () => updateSlot(slot.id, { poseLayout: layout }),
+                          testId: 'day-slot-references-pose-keep',
+                        },
+                      ]
+                    : []),
+                  {
+                    label: 'Change',
+                    onClick: jump('day-slot-pose'),
+                    testId: 'day-slot-references-pose-change',
+                  },
+                ];
+              }
+              return [];
+            }}
           />
         ) : null}
         <div className="grid gap-3" data-testid="day-active-plan">

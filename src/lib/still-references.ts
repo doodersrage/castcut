@@ -88,3 +88,14 @@ export function stillReferenceViewUrl(filename: string): string {
   if (parts.length) params.set('subfolder', parts.join('/'));
   return `/api/comfyui/view?${params.toString()}`;
 }
+
+/**
+ * The pose a Day pose guide was drawn for, read off its upload name
+ * ("day-pose-guide-perch_edge-a3acbf-x1-….png" → "perch_edge"); null when the name has none.
+ * Callers check it is a pose they know before pinning it (daySlotPoseOverride).
+ */
+export function poseLayoutFromGuideName(filename: string): string | null {
+  const name = filename.split(/[\\/]/).pop() ?? '';
+  const match = /^day-pose-guide-(.+?)-[0-9a-f]{6}(?:-x\d+)?(?:-|\.|$)/.exec(name);
+  return match?.[1]?.trim() || null;
+}

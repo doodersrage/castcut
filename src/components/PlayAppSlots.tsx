@@ -7,6 +7,7 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import PlayGalleryEmptyPanel from '@/components/play/PlayGalleryEmptyPanel';
 import PlayChecksReadinessRows from '@/components/play/PlayChecksReadinessRows';
+import PlayStudioFilmContext from '@/components/play/PlayStudioFilmContext';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 
 /** Play's cards in shared screens (AppSlot), registered once by PlayFeatures. */
@@ -45,3 +46,6 @@ registerAppSlot('settings.firstRunChecks', 'play-checks', PlayFirstRunChecks, 0)
 
 // First run: what do you want to make? (sample film, starter film).
 registerAppSlot('shell.welcome', 'play-welcome', WorkspaceWelcome, 0);
+
+// Studio sidebar: the film in progress (Cast, progress, next step, back to Film).
+registerAppSlot('nav.top', 'play-film-context', PlayStudioFilmContext, 0);

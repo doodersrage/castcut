@@ -2335,9 +2335,9 @@ test('mobile desk bridge links to Film on desk', async ({ page }) => {
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-desk-play')).toHaveAttribute('href', /\/play/);
-  // The tabs appear once the session's features have loaded.
-  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
+  // The tabs appear once the session's features have loaded (the desk's four: Film, Day,
+  // Outfit, Story; Look sits under More).
+  await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-film')).toBeVisible();
 });
@@ -2359,7 +2359,7 @@ test('navigation survives a session request that fails or is rate-limited', asyn
   await gotoStable(page, '/m');
   await dismissBlockingOverlays(page);
   // It used to stay on an empty tab bar until a reload.
-  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('mobile-tab-day')).toBeVisible({ timeout: 30_000 });
   expect(calls).toBeGreaterThan(2);
 });
 
@@ -3840,10 +3840,12 @@ test('mobile studio first-class film loop tabs and desk bridge', async ({ page }
   await seedFirstFilmDone(page);
   await gotoStable(page, '/m');
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('mobile-tab-moodboard')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('mobile-tab-film')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('mobile-tab-fitting')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-day')).toBeVisible();
   await expect(page.getByTestId('mobile-tab-story')).toBeVisible();
+  // Look and Cast sit under More, as on the desk.
+  await expect(page.getByTestId('mobile-tab-moodboard')).toBeHidden();
   await expect(page.getByTestId('mobile-desk-bridge')).toBeVisible();
   await expect(page.getByRole('link', { name: /^Desk$/i })).toBeVisible();
 });

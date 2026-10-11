@@ -6,14 +6,15 @@ Routes, workspace modes, keyboard shortcuts, and common npm commands. For narrat
 
 ## Workspace modes
 
-| Mode | Sidebar | Advanced UI |
-| --- | --- | --- |
-| **Simple** (default) | Essentials + More tools | Collapsed |
-| **Play** | Film, Look, Outfit, Day, Story, Gallery, Queue | Lean Story rail |
-| **Studio** | Edit / Media / Library groups | Collapsed sections |
-| **Full** | Same as Studio, expanded | Quality sections open |
+Castcut has three levels:
 
-Toggle: sidebar footer or **Profile → Appearance**.
+| Level | What it is for | Where |
+| --- | --- | --- |
+| **Film** (default) | Everyday filmmaking — Cast, Look & Outfit, Day / Story, Gallery and Cut | Film dock: Film · Day · Outfit · Story, the rest under More (the same on a phone) |
+| **Studio** | More control — prompts, references, model settings, every tool | Sidebar groups; the film in progress stays at the top of the sidebar with its next step and **Back to Film** |
+| **More tools** (inside Studio) | Specialist tools, workflow graphs, integrations | Studio's *More tools* group, ⌘K, Settings → All settings |
+
+Switch in **Profile → Appearance**. Older saved modes map over: Simple → Film, Full → Studio.
 
 ---
 
