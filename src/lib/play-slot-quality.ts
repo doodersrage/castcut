@@ -45,7 +45,65 @@ export type SlotQualityReport = {
   flags: SlotReviewFlag[];
   /** One-sentence critique from the reviewer (may be empty). */
   note: string;
+  /**
+   * What she is wearing, in the second look's own words (OUTFIT_DESCRIBE_PROMPT) — set when the
+   * review's outfit miss was checked again and stood.
+   */
+  outfitSeen?: string;
 };
+
+/**
+ * Second look at an outfit miss. The one-call review flagged 7 of 30 correctly dressed Day stills
+ * as the wrong outfit (a tuxedo seen as "blazer and trousers", cycling kit as "black top and
+ * shorts") — each a wasted re-roll. Asked to describe the clothes plainly and then judged
+ * loosely against the plan, it agreed with 0 of those 7 while still confirming 20 of the 25
+ * real swaps it caught (30 Day stills, each also paired with another still's outfit,
+ * 2026-10-11, nsfwvision-qwen3-vl-8b).
+ */
+export const OUTFIT_DESCRIBE_PROMPT =
+  'Describe only the clothing the woman in this photo is wearing, in one short line: each garment ' +
+  'and its main colour (for example "red strapless mini dress, black heels"). No other words.';
+
+export function outfitJudgePrompt(planned: string, seen: string): string {
+  return (
+    `A photo was meant to show a woman wearing: "${planned}".\nA description of what she wears: "${seen}".\n` +
+    'Could the description be that outfit, loosely read? Count it as the same when it is the same ' +
+    "general kind of clothing in a similar colour: any athletic wear fits a sport's sportswear " +
+    '(a wetsuit fits surfing), a costume fits its pieces (armour, robe, kimono), a suit or tuxedo ' +
+    'fits a blazer with trousers, and close colours count (burgundy/maroon, sand/gold, taupe/silver). ' +
+    'Shoes and accessories do not matter. Answer no only when it is clearly a different kind of ' +
+    'clothing (a dress instead of a suit, jeans instead of a uniform, a nightie instead of swimwear) ' +
+    'or a clearly different colour. Answer only yes or no.'
+  );
+}
+
+/** The review said the outfit is wrong (a hard flag or the lowest score). */
+export function reportFlagsOutfit(report: SlotQualityReport): boolean {
+  return report.flags.includes('wrong-outfit') || report.outfitMatch <= 1;
+}
+
+/**
+ * Apply the second look: a "yes, that could be it" clears the outfit miss (no re-roll); a "no"
+ * keeps it and records what she is wearing. An unreadable answer changes nothing.
+ */
+export function withOutfitSecondLook(
+  report: SlotQualityReport,
+  look: { seen: string; answer: string } | null
+): SlotQualityReport {
+  if (!look || !look.seen.trim()) return report;
+  const answer = look.answer.trim().toLowerCase();
+  if (answer.startsWith('yes')) {
+    return {
+      ...report,
+      flags: report.flags.filter(flag => flag !== 'wrong-outfit'),
+      outfitMatch: Math.max(report.outfitMatch, 3),
+    };
+  }
+  if (answer.startsWith('no')) {
+    return { ...report, outfitSeen: look.seen.trim().replace(/^"|"$/g, '').slice(0, 160) };
+  }
+  return report;
+}
 
 export type SlotQualityAction = 'keep' | 'reroll' | 'flag';
 
@@ -329,7 +387,11 @@ export function decideSlotQuality(
     // The measured headcount already said it — don't list the reviewer's guess as well.
     if (flag === 'extra-person' && headcountMiss) continue;
     if (policy.hardFlags.includes(flag)) {
-      reasons.push(slotReviewFlagLabel(flag));
+      reasons.push(
+        flag === 'wrong-outfit' && report.outfitSeen
+          ? `outfit does not match — she is in ${report.outfitSeen}`
+          : slotReviewFlagLabel(flag)
+      );
     }
   }
   const scores: Array<[string, number]> = [

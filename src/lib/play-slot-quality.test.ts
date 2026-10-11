@@ -5,6 +5,9 @@ import {
   buildSlotReviewPrompt,
   DEFAULT_SLOT_QUALITY_POLICY,
   decideSlotQuality,
+  outfitJudgePrompt,
+  reportFlagsOutfit,
+  withOutfitSecondLook,
   flaggedSlotIds,
   parseSlotQualityReport,
   recordSlotDecision,
@@ -329,5 +332,43 @@ describe('play slot quality — realism', () => {
     // An ordinary or retouched photo passes.
     assert.equal(decideSlotQuality(CLEAN, 0, undefined, { photoLook: 7 }).action, 'keep');
     assert.equal(decideSlotQuality(CLEAN, 0).realismMiss, undefined);
+  });
+});
+
+describe('outfit second look', () => {
+  const flaggedReport = {
+    faceIntegrity: 5,
+    outfitMatch: 2,
+    anatomy: 5,
+    flags: ['wrong-outfit' as const],
+    note: '',
+  };
+
+  it('runs only when the review called the outfit wrong', () => {
+    assert.equal(reportFlagsOutfit(flaggedReport), true);
+    assert.equal(reportFlagsOutfit({ ...flaggedReport, flags: [], outfitMatch: 1 }), true);
+    assert.equal(reportFlagsOutfit({ ...flaggedReport, flags: [], outfitMatch: 3 }), false);
+  });
+
+  it('clears a miss the plain description fits, keeps one it does not', () => {
+    const cleared = withOutfitSecondLook(flaggedReport, {
+      seen: 'maroon blazer, maroon trousers',
+      answer: 'Yes',
+    });
+    assert.deepEqual(cleared.flags, []);
+    assert.equal(cleared.outfitMatch, 3);
+    assert.equal(decideSlotQuality(cleared).action, 'keep');
+    const kept = withOutfitSecondLook(flaggedReport, {
+      seen: '"white floral nightie"',
+      answer: 'no.',
+    });
+    assert.deepEqual(kept.flags, ['wrong-outfit']);
+    assert.equal(kept.outfitSeen, 'white floral nightie');
+    assert.ok(
+      decideSlotQuality(kept).reasons.includes('outfit does not match — she is in white floral nightie')
+    );
+    // An unreadable answer changes nothing.
+    assert.equal(withOutfitSecondLook(flaggedReport, { seen: 'x', answer: 'maybe' }), flaggedReport);
+    assert.match(outfitJudgePrompt('a red dress', 'red gown'), /"a red dress".*\n.*"red gown"/);
   });
 });

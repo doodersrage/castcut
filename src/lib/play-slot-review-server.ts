@@ -1,5 +1,5 @@
 import { resolveVisionModel } from '@/lib/vision-model-auto';
-import { visionCompletion } from './llm-client';
+import { chatCompletion, visionCompletion } from './llm-client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
@@ -10,6 +10,10 @@ import {
   DUO_ANATOMY_PROBE_PROMPT,
   parseDuoAnatomyProbe,
   withDuoAnatomyProbe,
+  OUTFIT_DESCRIBE_PROMPT,
+  outfitJudgePrompt,
+  reportFlagsOutfit,
+  withOutfitSecondLook,
   parseSlotQualityReport,
   type SlotQualityReport,
   type SlotReviewContext,
@@ -56,6 +60,7 @@ export async function reviewPlaySlotStill(options: {
       'Slot review returned an unreadable reply. Try again or use a larger vision model.'
     );
   }
+  const checked = await outfitSecondLook(report, options, visionModel);
   // Two-person stills: a second, counting question catches fused bodies, phantom limbs and
   // misplaced genitals the general review scores as clean.
   if (options.context?.expectedPeople === 2 && options.context.referencePair !== true) {
@@ -71,10 +76,56 @@ export async function reviewPlaySlotStill(options: {
         endpoint: resolveRequestLlmEndpoint(options.llm),
         usageContext: { route: 'play-slot-review' },
       });
-      return withDuoAnatomyProbe(report, parseDuoAnatomyProbe(probe, 2));
+      return withDuoAnatomyProbe(checked, parseDuoAnatomyProbe(probe, 2));
     } catch {
-      return report;
+      return checked;
     }
   }
-  return report;
+  return checked;
+}
+
+/**
+ * The review called the outfit wrong on a one-person still: describe the clothes plainly and
+ * judge that loosely against the plan before it costs a re-roll (OUTFIT_DESCRIBE_PROMPT).
+ * Any failure keeps the review as it was.
+ */
+async function outfitSecondLook(
+  report: SlotQualityReport,
+  options: { imageDataUrl: string; context?: SlotReviewContext; llm?: LlmRequestOptions },
+  visionModel: string
+): Promise<SlotQualityReport> {
+  const outfit = options.context?.outfit?.trim();
+  if (
+    !outfit ||
+    !reportFlagsOutfit(report) ||
+    options.context?.expectedPeople === 2 ||
+    options.context?.referencePair === true
+  ) {
+    return report;
+  }
+  try {
+    const endpoint = resolveRequestLlmEndpoint(options.llm);
+    const seen = await visionCompletion({
+      systemPrompt: '',
+      textPrompt: OUTFIT_DESCRIBE_PROMPT,
+      imageDataUrl: options.imageDataUrl,
+      maxTokens: 120,
+      temperature: 0,
+      model: visionModel,
+      endpoint,
+      usageContext: { route: 'play-slot-review' },
+    });
+    // Text only, on the same model, as calibrated.
+    const answer = await chatCompletion({
+      messages: [{ role: 'user', content: outfitJudgePrompt(outfit, seen.trim()) }],
+      maxTokens: 5,
+      temperature: 0,
+      model: visionModel,
+      endpoint,
+      usageContext: { route: 'play-slot-review' },
+    });
+    return withOutfitSecondLook(report, { seen, answer });
+  } catch {
+    return report;
+  }
 }
