@@ -109,7 +109,8 @@ export function RoleplayCastToneSettingSection({
           </div>
         ) : adultGateReady ? (
           <p className="type-caption text-[var(--text-muted)]" data-testid="roleplay-adult-hint">
-            Adult heat tones stay off until the NSFW generator env flag is enabled.
+            Adult heat tones are switched off on this install (an admin turns them on in the
+            server’s settings).
           </p>
         ) : null}
         <ChipButton

@@ -168,30 +168,34 @@ export default function FootwearField({
             >
               Barefoot
             </ChipButton>
-            <SelectInput
-              aria-label="Footwear type"
-              value={group}
-              disabled={busy}
-              className={`ml-auto w-auto! py-1 text-sm ${accentFocusClass(accent)}`}
-              onChange={event => setGroup(event.target.value as FootwearKitGroup | 'All')}
-            >
-              {GROUPS.map(option => (
-                <option key={option} value={option}>
-                  {option === 'All' ? `All footwear (${FOOTWEAR_KITS.length})` : option}
-                </option>
-              ))}
-            </SelectInput>
-            {/* The strip shows a handful at a time; Browse shows them all, searchable — as the
-                clothing kits have. */}
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              data-testid={`${testIdPrefix}-footwear-browse`}
-              onClick={() => setBrowse('kits')}
-            >
-              Browse
-            </Button>
+            {/* The type filter and Browse wrap together: alone, Browse fell to a line of its own
+                under the chips (UI audit 2026-10-11). */}
+            <div className="ml-auto flex items-center gap-2">
+              <SelectInput
+                aria-label="Footwear type"
+                value={group}
+                disabled={busy}
+                className={`w-auto! py-1 text-sm ${accentFocusClass(accent)}`}
+                onChange={event => setGroup(event.target.value as FootwearKitGroup | 'All')}
+              >
+                {GROUPS.map(option => (
+                  <option key={option} value={option}>
+                    {option === 'All' ? `All footwear (${FOOTWEAR_KITS.length})` : option}
+                  </option>
+                ))}
+              </SelectInput>
+              {/* The strip shows a handful at a time; Browse shows them all, searchable — as the
+                  clothing kits have. */}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                data-testid={`${testIdPrefix}-footwear-browse`}
+                onClick={() => setBrowse('kits')}
+              >
+                Browse
+              </Button>
+            </div>
           </div>
           <WardrobeKitBrowser
             open={browse === 'kits'}

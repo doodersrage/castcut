@@ -42,10 +42,10 @@ export function SettingsOverviewSetupSection({
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-medium text-[var(--accent-text)]">Heal & ready</p>
             <p className="type-caption text-[var(--text-secondary)]">
-              One click for new installs: enable system workflows, merge suggested loader maps,
-              adapt from ComfyUI inventory, install missing Manager packs on each pool host, wait
-              for restart, and refresh health. Cloud engines skip this — add the API key under
-              Settings → Inference engine instead.
+              One click to get a new install working: it turns on the built-in workflows, matches
+              them to the models your ComfyUI has, installs any missing ComfyUI add-ons (ComfyUI
+              restarts once), then checks everything again. Using a cloud engine instead? Add its
+              API key under Settings → Inference engine.
             </p>
           </div>
           <Button
@@ -103,13 +103,17 @@ export function SettingsOverviewSetupSection({
                   ok: Boolean(health.auth?.enabled),
                   label: 'Auth',
                   detail: health.auth?.enabled ? 'accounts on' : 'off',
+                  optional: true,
                 },
                 {
                   ok: Boolean(health.email?.configured),
                   label: 'SMTP',
-                  detail: health.email?.configured ? 'mail configured' : 'not configured',
+                  detail: health.email?.configured
+                    ? 'mail configured'
+                    : 'not set up — only needed for password-reset emails',
+                  optional: true,
                 },
-              ] as Array<{ ok: boolean; label: string; detail: string }>
+              ] as Array<{ ok: boolean; label: string; detail: string; optional?: boolean }>
             ).map(item => (
               <li
                 key={item.label}
@@ -117,7 +121,9 @@ export function SettingsOverviewSetupSection({
               >
                 <span
                   className="ui-health-dot mt-0.5"
-                  data-status={item.ok ? 'ok' : 'error'}
+                  // Optional services that are off are not a problem (SMTP read red on every
+                  // local install — UI audit 2026-10-11).
+                  data-status={item.ok ? 'ok' : item.optional ? 'off' : 'error'}
                   aria-hidden
                 />
                 <span>

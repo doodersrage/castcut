@@ -193,6 +193,8 @@ export type PlayFunnelLike = {
   keepTryOn?: number;
   saveToCast?: number;
   campaignMaxStep?: number;
+  /** Story reels cut (local-observability) — Story shows as done once one was. */
+  filmCutRoleplay?: number;
 };
 
 export type PlayCampaignLike = {
@@ -215,6 +217,8 @@ export type PlayArtifacts = {
   filmNeedsCast?: boolean;
   /** Stills that count as a complete Day (defaults to the standard four dayparts). */
   slotCount?: number;
+  /** The Cast picked now — with no saved film for them, their film starts at Day (journey). */
+  activeCharacterId?: string | null;
 };
 
 export type DerivedPlayProgress = {
@@ -803,4 +807,106 @@ export function resolvePlayStall(artifacts: PlayArtifacts = {}): PlayFunnelStall
     reason: reasons[stepId],
     daysSinceCampaignStart,
   };
+}
+
+/** The film's steps as every reader shows them: Cast → Day → Cut film, with optional extras. */
+export type PlayJourneyStepId = PlayCampaignStepId | 'cut';
+
+export type PlayJourneyStep = {
+  id: PlayJourneyStepId;
+  label: string;
+  optional: boolean;
+  /** 1–3 for the core steps; null for the optional ones (named, never numbered). */
+  number: number | null;
+  state: 'done' | 'current' | 'todo' | 'locked';
+};
+
+export type PlayJourney = {
+  steps: PlayJourneyStep[];
+  /** The step the film is at (null before a Cast exists, or once the film is complete). */
+  current: PlayJourneyStepId | null;
+  /** "Film · 2 of 3 · Day" — the header, the Play status line and the strip agree. */
+  label: string;
+};
+
+const PLAY_JOURNEY_ORDER: Array<{ id: PlayJourneyStepId; label: string; optional: boolean }> = [
+  { id: 'character', label: 'Cast', optional: false },
+  { id: 'moodboard', label: 'Look', optional: true },
+  { id: 'fitting', label: 'Outfit', optional: true },
+  { id: 'day', label: 'Day', optional: false },
+  { id: 'cut', label: 'Cut film', optional: false },
+  { id: 'roleplay', label: 'Story', optional: true },
+];
+
+export const PLAY_JOURNEY_CORE_COUNT = PLAY_JOURNEY_ORDER.filter(step => !step.optional).length;
+
+/**
+ * One progress model for the header label, the step strip, the Play Steps list and the next
+ * action. UI audit (2026-10-11): the header said "Film · 2 of 2 · Day", the strip numbered five
+ * steps with Story but no Cut, and the Steps list counted a third way — the film's end (Cut)
+ * was not a step anywhere. Core steps are Cast, Day and Cut film; Look, Outfit and Story are
+ * named as optional and never counted.
+ */
+export function derivePlayJourney(artifacts: PlayArtifacts = {}): PlayJourney {
+  const funnel = artifacts.funnel ?? {};
+  const campaign = artifacts.campaign ?? null;
+  const progress = derivePlayProgress(artifacts);
+  const complete = Boolean(campaign?.completedAt);
+  const hasFilm = Boolean(campaign?.characterId?.trim());
+  // A Cast is picked but has no saved film yet: their film is at Day (Cast is done).
+  const castOnly = !hasFilm && Boolean(artifacts.activeCharacterId?.trim());
+
+  let current: PlayJourneyStepId | null;
+  if (complete) {
+    current = null;
+  } else if (!hasFilm && !castOnly) {
+    current = 'character';
+  } else if (castOnly || progress.resumeStepId === 'day') {
+    current = progress.dayPhase === 'cut' || progress.dayPhase === 'save' ? 'cut' : 'day';
+  } else {
+    current = progress.resumeStepId;
+  }
+
+  const slotCount = readSlotCount(artifacts) ?? DEFAULT_DAY_SLOT_COUNT;
+  const done: Record<PlayJourneyStepId, boolean> = {
+    character: (Boolean(progress.characterId) || castOnly) && current !== 'character',
+    moodboard: Boolean(progress.pack),
+    fitting: (funnel.keepTryOn ?? 0) > 0,
+    day: complete || progress.completedStills >= slotCount || current === 'cut',
+    // Lifetime cuts are not this film's: only a saved film's first cut counts.
+    cut: complete || (hasFilm && progress.firstFilmDone),
+    roleplay: (funnel.filmCutRoleplay ?? 0) > 0,
+  };
+
+  let number = 0;
+  const steps = PLAY_JOURNEY_ORDER.map((step): PlayJourneyStep => {
+    if (!step.optional) number += 1;
+    const state: PlayJourneyStep['state'] =
+      step.id === current
+        ? 'current'
+        : done[step.id]
+          ? 'done'
+          : step.id === 'roleplay' && progress.storyLocked
+            ? 'locked'
+            : 'todo';
+    return {
+      id: step.id,
+      label: step.label,
+      optional: step.optional,
+      number: step.optional ? null : number,
+      state,
+    };
+  });
+
+  const at = steps.find(step => step.id === current);
+  const label = complete
+    ? 'Film · done'
+    : !hasFilm && !castOnly
+      ? 'Film · start'
+      : !at
+        ? 'Film'
+        : at.number == null
+          ? `Film · ${at.label} (optional)`
+          : `Film · ${at.number} of ${PLAY_JOURNEY_CORE_COUNT} · ${at.label}`;
+  return { steps, current, label };
 }

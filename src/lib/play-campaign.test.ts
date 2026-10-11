@@ -193,8 +193,73 @@ describe('playEffectiveProgressLabel', () => {
     // A kept try-on means Outfit is done — the strip shows Day, and so must the header.
     assert.equal(
       playEffectiveProgressLabel({ campaign, funnel: { keepTryOn: 1 } }),
-      'Film · 2 of 2 · Day'
+      'Film · 2 of 3 · Day'
     );
     assert.equal(playEffectiveProgressLabel({ campaign: null, funnel: { keepTryOn: 1 } }), 'Film · start');
+  });
+});
+
+describe('derivePlayJourney', () => {
+  it('counts Cast, Day and Cut film; names Look, Outfit and Story as optional', async () => {
+    const { derivePlayJourney } = await import('./play-step-machine');
+    const campaign = { characterId: 'c1', stepIndex: 3 };
+    const journey = derivePlayJourney({ campaign, completedStills: 1, slotCount: 4 });
+    assert.deepEqual(
+      journey.steps.map(step => [step.id, step.number, step.optional]),
+      [
+        ['character', 1, false],
+        ['moodboard', null, true],
+        ['fitting', null, true],
+        ['day', 2, false],
+        ['cut', 3, false],
+        ['roleplay', null, true],
+      ]
+    );
+    assert.equal(journey.current, 'day');
+    assert.equal(journey.label, 'Film · 2 of 3 · Day');
+    assert.equal(journey.steps.find(step => step.id === 'character')?.state, 'done');
+  });
+  it('a full Day of stills moves the film to Cut film (3 of 3)', async () => {
+    const { derivePlayJourney } = await import('./play-step-machine');
+    const journey = derivePlayJourney({
+      campaign: { characterId: 'c1', stepIndex: 3 },
+      completedStills: 4,
+      completedClips: 4,
+      slotCount: 4,
+    });
+    assert.equal(journey.current, 'cut');
+    assert.equal(journey.label, 'Film · 3 of 3 · Cut film');
+    assert.equal(journey.steps.find(step => step.id === 'day')?.state, 'done');
+  });
+  it('no film yet starts at Cast; a completed film is done', async () => {
+    const { derivePlayJourney } = await import('./play-step-machine');
+    assert.equal(derivePlayJourney({ campaign: null }).label, 'Film · start');
+    assert.equal(derivePlayJourney({ campaign: null }).current, 'character');
+    const done = derivePlayJourney({
+      campaign: { characterId: 'c1', stepIndex: 3, completedAt: 5 },
+      funnel: { firstFilmCut: 1 },
+    });
+    assert.equal(done.label, 'Film · done');
+    assert.equal(done.current, null);
+  });
+});
+
+describe('derivePlayJourney with a picked Cast and no saved film', () => {
+  it('starts their film at Day (Cast done); a full Day of stills makes it the cut; old cuts do not count', async () => {
+    const { derivePlayJourney } = await import('./play-step-machine');
+    const fresh = derivePlayJourney({ campaign: null, activeCharacterId: 'nora', completedStills: 0 });
+    assert.equal(fresh.current, 'day');
+    assert.equal(fresh.label, 'Film · 2 of 3 · Day');
+    assert.equal(fresh.steps.find(step => step.id === 'character')?.state, 'done');
+    const stills = derivePlayJourney({
+      campaign: null,
+      activeCharacterId: 'nora',
+      completedStills: 4,
+      slotCount: 4,
+      funnel: { firstFilmCut: 3 },
+      metrics: { version: 1, firstFilmCutAt: 1 },
+    });
+    assert.equal(stills.current, 'cut');
+    assert.equal(stills.steps.find(step => step.id === 'cut')?.state, 'current');
   });
 });

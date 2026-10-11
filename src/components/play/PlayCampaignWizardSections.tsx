@@ -3,7 +3,7 @@
 import { isPlayStoryLocked } from '@/lib/play-step-machine';
 
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import PlayCampaignCharacterSection from '@/components/play/PlayCampaignCharacterSection';
 import PlayCampaignShareLookPackSection from '@/components/play/PlayCampaignShareLookPackSection';
@@ -77,6 +77,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
       goToStep={props.goToStep}
       pushPlay={props.pushPlay}
       storyOpen={storyOpen}
+      journey={props.journey}
     />
   );
 
@@ -107,6 +108,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
             campaignComplete={props.campaignComplete}
             characterId={props.characterId}
             resumeStep={props.resumeStep}
+            nextAction={props.nextAction}
+            journey={props.journey}
             activeLookPack={props.activeLookPack}
             goToStep={props.goToStep}
             startNewCampaign={props.startNewCampaign}
@@ -123,20 +126,32 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           >
             <p className="type-overline text-[var(--accent-text)]">Continue</p>
             <p className="type-heading mt-1 text-[var(--text-primary)]">
-              Pick up at {props.resumeStep!.label}
+              {props.nextAction?.label ?? `Pick up at ${props.resumeStep!.label}`}
             </p>
             <p className="type-caption mt-1 text-[var(--text-muted)]">
-              {props.resumeStep!.description}
+              {props.nextAction?.reason ?? props.resumeStep!.description}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="primary"
-                data-testid="play-campaign-continue"
-                onClick={() => props.goToStep(props.resumeStep!.id, props.activeLookPack)}
-              >
-                Continue to {props.resumeStep!.label}
-              </Button>
+              {/* The film's next step, the same one the header and the step strip name. */}
+              {props.nextAction ? (
+                <ButtonLink
+                  href={props.mapHref(props.nextAction.href)}
+                  size="sm"
+                  variant="primary"
+                  data-testid="play-campaign-continue"
+                >
+                  {props.nextAction.label}
+                </ButtonLink>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  data-testid="play-campaign-continue"
+                  onClick={() => props.goToStep(props.resumeStep!.id, props.activeLookPack)}
+                >
+                  Continue to {props.resumeStep!.label}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -225,6 +240,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
             campaignComplete={props.campaignComplete}
             characterId={props.characterId}
             resumeStep={props.resumeStep}
+            nextAction={props.nextAction}
+            journey={props.journey}
             activeLookPack={props.activeLookPack}
             goToStep={props.goToStep}
             startNewCampaign={props.startNewCampaign}

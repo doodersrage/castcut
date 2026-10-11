@@ -1,5 +1,6 @@
 'use client';
 
+import StillReferenceTray from '@/components/StillReferenceTray';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
 import { isDayAdultMood } from '@/lib/day-planner';
@@ -185,6 +186,13 @@ export default function DaySlotSheet({
       }
     >
       <div className="space-y-3" data-testid="day-slots">
+        {done && still?.promptId ? (
+          <StillReferenceTray
+            promptId={still.promptId}
+            place={slot.location}
+            testId="day-slot-references"
+          />
+        ) : null}
         <div className="grid gap-3" data-testid="day-active-plan">
           <label className="space-y-1.5">
             <FieldLabel>Setting</FieldLabel>

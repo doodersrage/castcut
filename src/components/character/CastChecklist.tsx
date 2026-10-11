@@ -57,7 +57,7 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
                     ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
                     : 'border-transparent hover:border-[var(--border-subtle)] hover:bg-[var(--bg-active)]'
                 }`}
-                aria-label={`${item.label}: ${item.done ? 'done' : 'not done'}, ${item.detail}. ${item.action}`}
+                aria-label={`${item.label}${item.optional ? ' (optional)' : ''}: ${item.done ? 'done' : 'not done'}, ${item.detail}. ${item.action}`}
                 aria-current={isNext ? 'step' : undefined}
                 data-testid={`cast-checklist-${item.id}`}
                 data-done={item.done ? 'true' : 'false'}
@@ -82,7 +82,7 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
                     {item.label}
                   </span>
                   <span className="type-caption block truncate text-[var(--text-muted)]">
-                    {item.detail}
+                    {item.optional && !item.done ? `optional · ${item.detail}` : item.detail}
                   </span>
                 </span>
                 {isNext ? (

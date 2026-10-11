@@ -15,6 +15,8 @@ type PlayCampaignActionsSectionProps = Pick<
   | 'campaignComplete'
   | 'characterId'
   | 'resumeStep'
+  | 'nextAction'
+  | 'journey'
   | 'activeLookPack'
   | 'goToStep'
   | 'startNewCampaign'
@@ -35,6 +37,8 @@ export default function PlayCampaignActionsSection({
   campaignComplete,
   characterId,
   resumeStep,
+  nextAction,
+  journey,
   activeLookPack,
   goToStep,
   startNewCampaign,
@@ -127,26 +131,31 @@ export default function PlayCampaignActionsSection({
           </>
         ) : (
           <>
-            {!compact && resumeStep ? (
+            {/* One next step, the same one the header names (resolveNextPlayAction): this
+                page offered "Start at Day" under a header "Continue to Day" while the Steps list
+                highlighted the optional Look (UI audit 2026-10-11). With no film yet it is Day. */}
+            {characterId &&
+            savedCampaign &&
+            !campaignCharacterMismatch &&
+            nextAction &&
+            (!compact || !resumeStep) ? (
+              <ButtonLink
+                href={mapHref(nextAction.href)}
+                size="sm"
+                variant="primary"
+                data-testid="play-campaign-continue"
+              >
+                {nextAction.label}
+              </ButtonLink>
+            ) : characterId && !savedCampaign ? (
               <Button
                 size="sm"
                 variant="primary"
-                disabled={!characterId}
-                data-testid="play-campaign-continue"
-                onClick={() => goToStep(resumeStep.id, activeLookPack)}
-              >
-                Continue to {resumeStep.label}
-              </Button>
-            ) : null}
-            {/* Hidden until a Cast exists — a disabled primary read as the next step. */}
-            {characterId && (!compact || !resumeStep) ? (
-              <Button
-                size="sm"
-                variant={resumeStep ? 'secondary' : 'primary'}
                 data-testid="play-campaign-start-day"
                 onClick={() => goToStep('day', activeLookPack)}
               >
-                {resumeStep ? 'Restart at Day' : 'Start at Day'}
+                {/* Their Day already has its stills: the next step is the cut, on Day. */}
+                {journey?.current === 'cut' ? 'Cut film on Day' : 'Start at Day'}
               </Button>
             ) : null}
           </>

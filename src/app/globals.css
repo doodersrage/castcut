@@ -1629,6 +1629,11 @@ html[data-theme='light'] .page-canvas::before {
   background: rgb(251 191 36);
 }
 
+.ui-health-dot[data-status='off'] {
+  background: var(--text-muted);
+  opacity: 0.6;
+}
+
 .ui-code-block {
   overflow-x: auto;
   white-space: pre-wrap;
@@ -1891,6 +1896,12 @@ html[data-theme='light'] .page-canvas::before {
 }
 
 .ui-input:focus-visible {
+  /* The ring itself is static: the animation only eases it in, and reduced motion turns
+     animations off — focused inputs then had no ring at all (UI audit 2026-10-11). */
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 4px var(--accent-ring),
+    0 0 0 1px var(--accent-border);
   animation: ui-input-focus 200ms ease-out forwards;
   background: color-mix(in oklab, var(--bg-muted) 55%, var(--bg-elevated));
 }

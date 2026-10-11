@@ -142,7 +142,9 @@ export function useDayFaceFinish(
         }
         const faceUrl = comfyInputViewUrl(face.facePlate?.filename);
         if (!faceUrl) {
-          setStatus(`Face finish skipped on ${target.label} — no Cast face crop.`);
+          setStatus(
+            `Face finish skipped on ${target.label} — there is no face picture of the Cast to match yet (it is cut from the plate; open the Cast and prepare the plate).`
+          );
           return;
         }
         const comfyStillUrl = comfyViewUrlForStill(targetStill, loadComfyGallery());

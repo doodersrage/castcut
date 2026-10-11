@@ -35,11 +35,14 @@ export default function TaskRequirementsCard({
   task,
   input,
   testId = 'task-requirements',
+  onMissingChange,
 }: {
   /** "this Day", "Animate"… — used in the heading. */
   task: string;
   input: TaskRequirementInput;
   testId?: string;
+  /** Told whether anything is missing (e.g. so Animate all stops being the main button). */
+  onMissingChange?: (missing: boolean) => void;
 }) {
   const [runnableModels, setRunnableModels] = useState<Set<string> | null>(null);
   const requirements = useMemo(
@@ -123,6 +126,15 @@ export default function TaskRequirementsCard({
     pollRef.current = window.setInterval(() => void load(true), 3000);
     return () => window.clearInterval(pollRef.current);
   }, [activeJobs.length, load]);
+
+  const anyMissing = (() => {
+    if (!rows || !runnableModels) return false;
+    const found = missingTaskRequirements(requirements, rows, nodeTypes);
+    return found.assets.length + found.manual.length + found.nodePacks.length > 0;
+  })();
+  useEffect(() => {
+    onMissingChange?.(anyMissing);
+  }, [anyMissing, onMissingChange]);
 
   if (!rows || !runnableModels || dismissed) return null;
   const missing = missingTaskRequirements(requirements, rows, nodeTypes);

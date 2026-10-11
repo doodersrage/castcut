@@ -1,5 +1,6 @@
 'use client';
 
+import StillReferenceTray from '@/components/StillReferenceTray';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { loadSettingsCache } from '@/lib/settings-cache';
@@ -50,6 +51,9 @@ export default function StoryBeatSheet({
       dataAttributes={{ 'data-beat-index': String(index) }}
     >
       <div className="space-y-4">
+        {beat.stillStatus === 'completed' && beat.promptId ? (
+          <StillReferenceTray promptId={beat.promptId} testId="story-beat-references" />
+        ) : null}
         {edit && !textLocked ? (
           <StoryBeatTextEditor
             beat={beat}

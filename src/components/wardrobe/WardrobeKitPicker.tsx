@@ -206,8 +206,10 @@ export default function WardrobeKitPicker({
         }
       />
 
-      {/* Narrow: search + Browse on top, the extra control full width below. Wider: one row. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex">
+      {/* Search + Browse on top, the extra control (clothing type) full width below — at every
+          width: Outfit's clothes column is narrow even on desktop, and one row squeezed the
+          search box to ~40 px under the type filter (UI audit 2026-10-11). */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <UiIcon
             name="search"
@@ -229,11 +231,7 @@ export default function WardrobeKitPicker({
             }}
           />
         </div>
-        {toolbarExtra ? (
-          <div className="order-last col-span-2 flex sm:order-none sm:col-span-1">
-            {toolbarExtra}
-          </div>
-        ) : null}
+        {toolbarExtra ? <div className="order-last col-span-2 flex">{toolbarExtra}</div> : null}
         <Button
           variant="secondary"
           disabled={disabled}

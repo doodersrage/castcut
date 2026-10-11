@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import { realKitId } from '@/lib/outfit-handoff';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import {
@@ -2594,11 +2595,13 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
 
+  const renderOffline = useRenderBackend().state === 'offline';
   const queueBlockReason = dayQueueBlockReason({
     hasCharacter: Boolean(character),
     hasPlate,
     isolateSubject,
     isolatePending,
+    renderOffline,
   });
 
   return {

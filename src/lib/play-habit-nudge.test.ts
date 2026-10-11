@@ -112,3 +112,13 @@ describe('play habit nudge', () => {
     assert.ok(raw!.includes('dismissedAt'));
   });
 });
+
+describe('sinceCutLabel', async () => {
+  const { sinceCutLabel } = await import('./play-habit-nudge');
+  it('says days, not hours', () => {
+    const h = 1000 * 60 * 60;
+    assert.equal(sinceCutLabel(25 * h), 'about a day');
+    assert.equal(sinceCutLabel(188 * h), '8 days');
+    assert.equal(sinceCutLabel(47 * h), '2 days');
+  });
+});

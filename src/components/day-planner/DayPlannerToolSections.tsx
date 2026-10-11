@@ -81,6 +81,7 @@ import {
   PLAY_METRICS_UPDATED_EVENT,
 } from '@/lib/play-metrics';
 import { deriveDayPhase } from '@/lib/play-step-machine';
+import { useRenderBackend } from '@/lib/render-backend-status';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -282,6 +283,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [sampleWatch, setSampleWatch] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
   const [fixAreaTarget, setFixAreaTarget] = useState<FixAreaTarget | null>(null);
+  // Nothing renders while ComfyUI is down (the shell's banner says why); Animate all also stops
+  // being the main button when ComfyUI lacks the clip files.
+  const renderOffline = useRenderBackend().state === 'offline';
+  const [animateFilesMissing, setAnimateFilesMissing] = useState(false);
   const [progressLightboxSlotIds, setProgressLightboxSlotIds] = useState<DaySlotId[]>([]);
   const [slotSheetOpen, setSlotSheetOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
@@ -312,7 +317,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   });
   const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
   const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
-  const queueBlocked = Boolean(queueBlockReason);
+  const queueBlocked = Boolean(queueBlockReason) || renderOffline;
+  const shownQueueBlockReason = renderOffline
+    ? 'ComfyUI is offline — Queue and Animate wait until it’s back.'
+    : queueBlockReason;
   const canAnimateAll =
     completedShotCount > 0 &&
     completedClipCount < completedShotCount &&
@@ -951,10 +959,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             {canAnimateAll ? (
               <Button
                 size="sm"
-                variant={dayPhase === 'animate' ? 'primary' : 'secondary'}
-                disabled={busy}
+                variant={dayPhase === 'animate' && !animateFilesMissing ? 'primary' : 'secondary'}
+                disabled={busy || renderOffline}
                 data-testid="day-animate-all"
-                title="Animate every finished still into a clip — clips preferred, Cut works from stills alone"
+                title={
+                  animateFilesMissing
+                    ? 'ComfyUI is missing files clips need — see the note in Day reel'
+                    : 'Animate every finished still into a clip — clips preferred, Cut works from stills alone'
+                }
                 onClick={() => void animateAllClips()}
               >
                 Animate all
@@ -984,12 +996,21 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               </Button>
             ) : null}
           </ToolActionRow>
-          {queueBlockReason ? (
+          {animateFilesMissing && canAnimateAll && !renderOffline ? (
+            <p
+              className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
+              data-testid="day-animate-files-missing"
+            >
+              Animate needs files ComfyUI doesn’t have yet — the note in Day reel says which. Cut
+              film works from the stills alone.
+            </p>
+          ) : null}
+          {shownQueueBlockReason ? (
             <p
               className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
               data-testid="day-queue-block-reason"
             >
-              {queueBlockReason}
+              {shownQueueBlockReason}
             </p>
           ) : null}
           {completedShotCount > 0 && !firstCutCelebrate ? (
@@ -1009,6 +1030,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           <TaskRequirementsCard
             task="Animate"
             testId="day-animate-requirements"
+            onMissingChange={setAnimateFilesMissing}
             input={{ animate: true, adult: isDayAdultMood(dayMood) && intimateEnabled }}
           />
           <FilmWatchPlayer

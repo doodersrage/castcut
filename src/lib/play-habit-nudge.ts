@@ -24,6 +24,8 @@ export type PlayHabitNudge = {
   characterName: string;
   href: string;
   hoursSinceCut: number;
+  /** "about a day", "8 days" — "188 hours" read like a timer (UI audit 2026-10-11). */
+  sinceCutLabel: string;
   /** True when the latest campaign close was a Story cut. */
   fromStory?: boolean;
 };
@@ -44,6 +46,14 @@ export function dismissPlayHabitNudge(at = Date.now()): void {
 }
 
 /** True when latest cut is ≥24h ago and nudge not dismissed after that cut. */
+/** Time since the last cut in words: "about a day" up to 36 h, then whole days. */
+export function sinceCutLabel(elapsedMs: number): string {
+  const hours = elapsedMs / (1000 * 60 * 60);
+  if (hours < 36) return 'about a day';
+  const days = Math.round(hours / 24);
+  return `${days} days`;
+}
+
 export function resolvePlayHabitNudge(
   metrics: PlayMetrics = loadPlayMetrics(),
   now = Date.now()
@@ -62,7 +72,9 @@ export function resolvePlayHabitNudge(
   }
   const campaign = loadPlayCampaignState();
   const sharedCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
-  const characterId = campaign?.characterId?.trim() || sharedCharacterId;
+  // The Cast you have picked now: the last film's lead was named on a page all about another
+  // Cast ("Cut another Day film for Tomas?" with Nora active — UI audit 2026-10-11).
+  const characterId = sharedCharacterId || campaign?.characterId?.trim() || '';
   if (!characterId) {
     return null;
   }
@@ -81,6 +93,7 @@ export function resolvePlayHabitNudge(
     characterName: name,
     href: remixDayFilmHref(characterId),
     hoursSinceCut: Math.floor(elapsed / (1000 * 60 * 60)),
+    sinceCutLabel: sinceCutLabel(elapsed),
     fromStory,
   };
 }

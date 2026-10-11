@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { loadPlayCampaignState } from '@/lib/play-campaign';
+import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { CastExportButton } from '@/components/cast/CastTransferControls';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
@@ -17,6 +20,18 @@ export default function CharacterHomeActionRow({
   removeFromCast,
   continueRoleplay,
 }: CharacterHomeActionRowProps) {
+  // A film already under way with this Cast: carry on with it ("Start a film" sat under a
+  // header saying "Continue to Day").
+  const [filmUnderWay, setFilmUnderWay] = useState(false);
+  const characterId = character?.id;
+  useEffect(() => {
+    scheduleAfterCommit(() => {
+      const campaign = loadPlayCampaignState();
+      setFilmUnderWay(
+        Boolean(campaign && campaign.characterId === characterId && !campaign.completedAt)
+      );
+    });
+  }, [characterId]);
   if (!character) {
     return null;
   }
@@ -30,7 +45,7 @@ export default function CharacterHomeActionRow({
           data-testid="character-home-start-film"
           onClick={() => go(playCampaignHref(character.id))}
         >
-          Start a film
+          {filmUnderWay ? 'Continue the film' : 'Start a film'}
         </Button>
       </ToolActionRow>
       <div data-testid="character-home-continue">

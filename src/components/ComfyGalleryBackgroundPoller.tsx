@@ -57,11 +57,15 @@ export default function ComfyGalleryBackgroundPoller() {
 
     const onGalleryUpdated = () => {
       // Only resume when something is actually waiting — avoids re-entry loops
-      // when a poll marks a job error and saves the gallery.
-      if (!hasPendingGalleryPollMeta()) {
+      // when a poll marks a job error and saves the gallery. Jobs that arrived by server sync
+      // count too (they have no resume note of their own).
+      if (hasPendingGalleryPollMeta()) {
+        resumeIfNeeded();
         return;
       }
-      resumeIfNeeded();
+      void import('@/lib/comfyui-gallery-poller').then(({ galleryHasUnpolledJobs }) => {
+        if (!cancelled && galleryHasUnpolledJobs()) resumeIfNeeded();
+      });
     };
 
     const onVisibilityChange = () => {

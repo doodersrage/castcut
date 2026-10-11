@@ -19,6 +19,8 @@ export type CastChecklistItem = {
   done: boolean;
   /** Short state line ("3 stills", "not yet"). */
   detail: string;
+  /** Not needed for a film (traits, bible, outfit, Story) — never marked Next. */
+  optional?: boolean;
   /** Button text for the step. */
   action: string;
   target: CastChecklistTarget;
@@ -27,7 +29,7 @@ export type CastChecklistItem = {
 export type CastChecklist = {
   items: CastChecklistItem[];
   doneCount: number;
-  /** The first row not done — absent once everything is. */
+  /** The first film step not done (plate → Day → film); never an optional row. */
   nextId: CastChecklistItemId | null;
   allDone: boolean;
 };
@@ -50,6 +52,8 @@ export type CastChecklistFacts = {
   /** Beats in this Cast's Story session. */
   storyBeatCount: number;
 };
+
+const OPTIONAL_ITEMS = new Set<CastChecklistItemId>(['traits', 'bible', 'outfit', 'story']);
 
 function plural(count: number, one: string, many = `${one}s`): string {
   return `${count} ${count === 1 ? one : many}`;
@@ -131,13 +135,18 @@ export function castChecklist(facts: CastChecklistFacts): CastChecklist {
     },
   ];
 
+  // Next is the film's next step. UI audit (2026-10-11): with a film cut, Next sat on the optional
+  // "Outfit kept" while the header said "Continue to Day".
+  for (const item of items) {
+    if (OPTIONAL_ITEMS.has(item.id)) item.optional = true;
+  }
   const doneCount = items.filter(item => item.done).length;
-  const next = items.find(item => !item.done);
+  const next = items.find(item => !item.done && !item.optional);
   return {
     items,
     doneCount,
     nextId: next?.id ?? null,
-    allDone: !next,
+    allDone: items.every(item => item.done),
   };
 }
 

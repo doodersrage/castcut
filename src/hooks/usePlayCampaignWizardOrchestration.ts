@@ -1,8 +1,14 @@
 'use client';
 
 import { loadLocalObservability } from '@/lib/local-observability';
-import { loadPlayMetrics } from '@/lib/play-metrics';
-import { derivePlayProgress } from '@/lib/play-step-machine';
+import {
+  loadPlayMetrics,
+  PLAY_METRICS_UPDATED_EVENT,
+  resolveNextPlayAction,
+} from '@/lib/play-metrics';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
+import { loadOnboardingState } from '@/lib/onboarding-store';
+import { derivePlayJourney, derivePlayProgress } from '@/lib/play-step-machine';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -31,7 +37,9 @@ import {
 import { markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import {
   clearPlayCampaignState,
+  loadActivePlayCampaign,
   loadPlayCampaignState,
+  PLAY_CAMPAIGN_UPDATED_EVENT,
   PLAY_CAMPAIGN_STEPS,
   playCampaignHref,
   resolveCampaignLookPackId,
@@ -64,6 +72,10 @@ export function usePlayCampaignWizardOrchestration({
   const [stepOverride, setStepOverride] = useState<PlayCampaignStepId | null>(null);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
   const [charactersRevision, setCharactersRevision] = useState(0);
+  // The saved film can land after mount (server sync, another tab, a step finishing): re-read
+  // it then. Read once on mount, this page highlighted Cast and named last week's lead while
+  // the header and the step strip said Day (UI audit 2026-10-11).
+  const [filmRevision, setFilmRevision] = useState(0);
 
   const mobileStudio = isMobileStudioPath(pathname);
   const mapHref = useCallback(
@@ -82,6 +94,20 @@ export function usePlayCampaignWizardOrchestration({
     },
     [mapHref, router]
   );
+
+  useEffect(() => {
+    const bump = () => setFilmRevision(revision => revision + 1);
+    const events = [
+      PLAY_CAMPAIGN_UPDATED_EVENT,
+      PLAY_METRICS_UPDATED_EVENT,
+      SETTINGS_SYNCED_WITH_SERVER_EVENT,
+      'focus',
+    ];
+    for (const name of events) window.addEventListener(name, bump);
+    return () => {
+      for (const name of events) window.removeEventListener(name, bump);
+    };
+  }, []);
 
   useEffect(() => {
     const onCharactersUpdated = () => setCharactersRevision(revision => revision + 1);
@@ -123,7 +149,33 @@ export function usePlayCampaignWizardOrchestration({
       return null;
     }
     return stepIndex === saved.stepIndex ? saved : { ...saved, stepIndex };
-  }, [mounted]);
+    // filmRevision: re-read when the saved film changes or lands from the server.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, filmRevision]);
+
+  // The film's steps and next action — the same model the header, the step strip and the
+  // header's Continue chip read (derivePlayJourney / resolveNextPlayAction).
+  const { journey, nextAction } = useMemo(() => {
+    if (!mounted) return { journey: null, nextAction: null };
+    const artifacts = {
+      metrics: loadPlayMetrics(),
+      funnel: loadLocalObservability(),
+      campaign: loadActivePlayCampaign(characterId),
+      lookPack: loadLookPack(),
+      activeCharacterId: characterId,
+    };
+    return {
+      journey: derivePlayJourney(artifacts),
+      nextAction: resolveNextPlayAction({
+        ...artifacts,
+        watchedFirstFilm: loadOnboardingState().some(
+          step => step.id === 'watch-first-film' && step.done
+        ),
+      }),
+    };
+    // Re-read with durableCampaign above, and for the Cast picked now.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, filmRevision, characterId]);
 
   const campaignCharacterMismatch = Boolean(
     durableCampaign && characterId && durableCampaign.characterId !== characterId
@@ -482,6 +534,8 @@ export function usePlayCampaignWizardOrchestration({
     effectiveLookPackId,
     activeStep,
     resumeStep,
+    journey,
+    nextAction,
     campaignComplete,
     savedLookPacks,
     activeLookPack,

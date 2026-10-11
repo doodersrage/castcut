@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -124,6 +125,7 @@ export default function RoleplayToolSections({
     : '/characters';
   const filmHref = activeCharacterId ? playCampaignHref(activeCharacterId) : '/play';
 
+  const renderOffline = useRenderBackend().state === 'offline';
   const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
   const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
   const showAnimateCoach =
@@ -411,7 +413,7 @@ export default function RoleplayToolSections({
                   <ToolActionRow>
                     <Button
                       variant="primary"
-                      disabled={busy || film.assemblingFilm}
+                      disabled={busy || film.assemblingFilm || renderOffline}
                       data-testid="story-animate-all"
                       onClick={() => void animateAllReady()}
                     >

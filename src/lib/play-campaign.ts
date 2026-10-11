@@ -9,7 +9,7 @@ import type { LookPack } from './look-pack';
 import { saveLookPack } from './look-pack';
 import {
   canEnterPlayStep,
-  derivePlayProgress,
+  derivePlayJourney,
   PLAY_CAMPAIGN_STEPS,
   PLAY_CORE_STEP_IDS,
   type PlayArtifacts,
@@ -99,14 +99,7 @@ export function playCampaignProgressLabel(
  * the strip beside it.
  */
 export function playEffectiveProgressLabel(artifacts: PlayArtifacts = {}): string {
-  const campaign = artifacts.campaign ?? null;
-  if (!campaign || campaign.completedAt) {
-    return playCampaignProgressLabel(campaign);
-  }
-  return playCampaignProgressLabel({
-    ...campaign,
-    stepIndex: derivePlayProgress(artifacts).effectiveStepIndex,
-  });
+  return derivePlayJourney(artifacts).label;
 }
 
 export const PLAY_CAMPAIGN_KEY = 'play-campaign-v1';
@@ -192,6 +185,20 @@ function mergePlayCampaignState(
     completedAt: durable.completedAt ?? session.completedAt,
     updatedAt: Math.max(durable.updatedAt, session.updatedAt),
   };
+}
+
+/**
+ * The saved film when it belongs to the Cast picked now (or when none is picked). A film saved
+ * for another Cast is not this one's progress: the header said "Film · 2 of 3 · Day" for last
+ * week's lead while a different Cast was picked (UI audit 2026-10-11).
+ */
+export function loadActivePlayCampaign(
+  activeCharacterId?: string | null
+): PlayCampaignState | null {
+  const campaign = loadPlayCampaignState();
+  const active = activeCharacterId?.trim();
+  if (!campaign || !active) return campaign;
+  return campaign.characterId === active ? campaign : null;
 }
 
 export function loadPlayCampaignState(): PlayCampaignState | null {

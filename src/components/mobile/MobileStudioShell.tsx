@@ -1,5 +1,6 @@
 'use client';
 
+import RenderOfflineBanner from '@/components/RenderOfflineBanner';
 import { isPlayStoryLocked } from '@/lib/play-step-machine';
 
 import Link from 'next/link';
@@ -113,6 +114,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       </header>
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <div className="mb-3 space-y-3">
+          <RenderOfflineBanner />
           <PlayHabitNudgeBanner />
           {tab !== 'film' ? <PlayFunnelStrip compact /> : null}
         </div>

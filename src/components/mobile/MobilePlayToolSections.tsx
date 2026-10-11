@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
 import StoryScenePoseFigure from '@/components/roleplay/StoryScenePoseFigure';
@@ -187,6 +188,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     // One scene is written at a time: picking a card mid-rewrite would save over its result.
     Boolean(beatEdit.rewritingKey);
   const adultEnabled = useNsfwGeneratorEnabled();
+  const renderOffline = useRenderBackend().state === 'offline';
   const completedShotCount = useMemo(() => countRoleplayCompletedStills(story), [story]);
   const completedClipCount = useMemo(() => countRoleplayCompletedClips(story), [story]);
   const storyPhase = useMemo(
@@ -627,7 +629,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
           </p>
           <Button
             variant="primary"
-            disabled={busy}
+            disabled={busy || renderOffline}
             data-testid="story-animate-all"
             onClick={() => void animateAllReady()}
             className="w-full justify-center"

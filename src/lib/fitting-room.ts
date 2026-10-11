@@ -156,7 +156,12 @@ export function fittingQueueBlockReason(input: {
   isolateSubject?: boolean;
   isolatePending?: boolean;
   busy?: boolean;
+  /** ComfyUI unreachable (render-backend-status): nothing can render. */
+  renderOffline?: boolean;
 }): string | null {
+  if (input.renderOffline) {
+    return 'ComfyUI is offline — try-ons wait until it’s back.';
+  }
   if (!input.hasCharacter) {
     return 'Pick a Cast character first.';
   }

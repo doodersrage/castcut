@@ -41,6 +41,7 @@ import '@/lib/video-last-frame';
 import '@/components/MobileStickyQueueBar';
 import '@/components/PromptDiagnosticsPanel';
 import '@/components/ToolSetupBanner';
+import RenderOfflineBanner from '@/components/RenderOfflineBanner';
 import '@/components/ui/ComfyUiJobStatusPanel';
 import '@/components/ui/PageCanvas';
 import '@/components/ui/StatusToastStrip';
@@ -111,7 +112,23 @@ export default function AppShell({ children, kiosk }: { children: ReactNode; kio
           only pushed the page down 43 px. */}
       {!mobileStudio && !kioskOn ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
-      {kioskOn ? <div className={kiosk?.contentClassName}>{children}</div> : children}
+      {kioskOn ? (
+        <div className={kiosk?.contentClassName}>
+          <div className="px-4">
+            <RenderOfflineBanner />
+          </div>
+          {children}
+        </div>
+      ) : mobileStudio ? (
+        children
+      ) : (
+        <>
+          <div className="px-4 lg:px-8">
+            <RenderOfflineBanner />
+          </div>
+          {children}
+        </>
+      )}
     </div>
   );
 }

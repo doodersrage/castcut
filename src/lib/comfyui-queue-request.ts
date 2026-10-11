@@ -8,6 +8,7 @@
 import { parseEngineId } from './engine/capabilities';
 import { registerAppComfyJob } from './comfy-model-turn';
 import { loadComfyUiSettings } from './comfyui-settings';
+import { assertRenderBackendReachable } from './render-backend-status';
 import {
   createComfyUiClientId,
   openComfyPreviewSocketBeforeQueue,
@@ -60,12 +61,37 @@ export function isComfyQueueResponseOk(responseOk: boolean, raw: Record<string, 
 }
 
 /**
+ * The queue route's JSON — or, when something in between answered with a page or plain text (a
+ * proxy, a crashed server), an `error` in words instead of "Unexpected token … is not valid JSON"
+ * (UI audit 2026-10-11: that reached a Story toast verbatim).
+ */
+export async function readQueueResponseJson(response: Response): Promise<Record<string, unknown>> {
+  const text = await response.text().catch(() => '');
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // fall through
+  }
+  return {
+    error:
+      response.status >= 500 || response.status === 0
+        ? `The server couldn’t reach ComfyUI (HTTP ${response.status}). Check that ComfyUI is running, then try again.`
+        : `The server answered in an unexpected way (HTTP ${response.status}). Try again in a moment.`,
+  };
+}
+
+/**
  * POST /api/comfyui with a live-preview client id. Prefer this over raw fetch
  * whenever the job will appear in the gallery.
  */
 export async function postComfyUiPrompt(
   body: Record<string, unknown>
 ): Promise<ComfyUiQueueRequestResult> {
+  // Known offline: say so plainly instead of queueing into nothing.
+  await assertRenderBackendReachable();
   const settings = loadComfyUiSettings();
   const clientId =
     (typeof body.clientId === 'string' && body.clientId.trim()) || createComfyUiClientId();
@@ -93,7 +119,7 @@ export async function postComfyUiPrompt(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, clientId }),
     });
-    const raw = (await response.json()) as Record<string, unknown>;
+    const raw = await readQueueResponseJson(response);
     const promptId = typeof raw.promptId === 'string' ? raw.promptId : undefined;
     const batchResults = Array.isArray(raw.results)
       ? (raw.results as Array<{ promptId?: unknown }>)

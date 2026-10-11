@@ -88,7 +88,8 @@ export function DayMoodHints({
       ) : null}
       {!intimateEnabled ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-nsfw-hint">
-          Intimate and Raunchy stay off until the NSFW generator env flag is enabled.
+          Intimate and Raunchy are switched off on this install (an admin turns them on in the
+          server’s settings).
         </p>
       ) : null}
     </>

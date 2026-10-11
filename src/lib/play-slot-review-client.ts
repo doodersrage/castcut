@@ -1,4 +1,5 @@
 import { sharedLlmRequestBody } from './llm-request-options';
+import { lastRenderBackendStatus } from './render-backend-status';
 import type { SlotQualityReport, SlotReviewContext } from './play-slot-quality';
 import type { SharedToolSettings } from './settings-cache';
 import {
@@ -22,6 +23,10 @@ export async function reviewDaySlotStill(options: {
     | 'sessionLlmApiKey'
   >;
 }): Promise<SlotQualityReport> {
+  // The LLM is known to be down: don't send a still it can't read (the caller turns the check off).
+  if (lastRenderBackendStatus().llmOk === false) {
+    throw new Error('the LLM is offline');
+  }
   // `imageUrl` may be a plain still or a side-by-side identity pair built on the client; both
   // are just an image to the endpoint, and `context.referencePair` tells the reviewer which.
   const still = await resolveStillFileForVisionScan({

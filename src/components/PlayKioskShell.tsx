@@ -1,5 +1,7 @@
 'use client';
 
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import { isPlayStoryLocked } from '@/lib/play-step-machine';
 
 import { loadLocalObservability } from '@/lib/local-observability';
@@ -21,7 +23,7 @@ import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/workspace-m
 import { galleryNavHref } from '@/lib/gallery-session-state';
 import { accentForPath } from '@/lib/tool-theme';
 import {
-  loadPlayCampaignState,
+  loadActivePlayCampaign,
   playCampaignProgressLabel,
   PLAY_CAMPAIGN_UPDATED_EVENT,
 } from '@/lib/play-campaign';
@@ -77,7 +79,7 @@ export default function PlayKioskShell() {
   useEffect(() => {
     const refresh = () => {
       const metrics = loadPlayMetrics();
-      const campaign = loadPlayCampaignState();
+      const campaign = loadActivePlayCampaign(loadSettingsCache().shared.activeCharacterId);
       // Story's tab: after the first cut, or once a whole Day of stills has rendered.
       setFirstFilmDone(!isPlayStoryLocked(metrics, loadLocalObservability()));
       setProgressLabel(
@@ -86,6 +88,7 @@ export default function PlayKioskShell() {
           funnel: loadLocalObservability(),
           campaign,
           lookPack: loadLookPack(),
+          activeCharacterId: loadSettingsCache().shared.activeCharacterId,
         })
       );
     };
@@ -94,11 +97,14 @@ export default function PlayKioskShell() {
     window.addEventListener(PLAY_CAMPAIGN_UPDATED_EVENT, refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
+    // The picked Cast can land after mount (server sync): re-read whose film it is.
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, refresh);
     return () => {
       window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
       window.removeEventListener(PLAY_CAMPAIGN_UPDATED_EVENT, refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, refresh);
     };
   }, []);
 

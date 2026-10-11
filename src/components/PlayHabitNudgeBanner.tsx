@@ -54,8 +54,8 @@ export default function PlayHabitNudgeBanner() {
       </p>
       <p className="type-caption mt-1 text-[var(--text-muted)]">
         {nudge.fromStory
-          ? `It's been about ${nudge.hoursSinceCut} hours since your Story cut — same look, fresh Day stills.`
-          : `It's been about ${nudge.hoursSinceCut} hours since your last cut — same look, fresh stills.`}
+          ? `It’s been ${nudge.sinceCutLabel} since your Story cut — same look, fresh Day stills.`
+          : `It’s been ${nudge.sinceCutLabel} since your last cut — same look, fresh stills.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <ButtonLink href={href} size="sm" variant="primary" data-testid="play-habit-nudge-open">

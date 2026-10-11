@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import { framedTalkingStill, talkingStillIsWide } from '@/lib/talking-clip-framing-client';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
 import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
@@ -404,8 +405,11 @@ export function useRoleplayBeatQueuePart2(
     queueBeatMotionRef.current = queueBeatMotion;
   }, [queueBeatMotion]);
 
+  // Auto-clips wait while ComfyUI is down (they would only fail on page open) and run once it
+  // is back — nothing is marked queued meanwhile.
+  const renderOffline = useRenderBackend().state === 'offline';
   useEffect(() => {
-    if (beatOutput !== 'clip' || !autoQueue) {
+    if (beatOutput !== 'clip' || !autoQueue || renderOffline) {
       return;
     }
     for (const beat of toolSettings.story ?? []) {
@@ -416,7 +420,7 @@ export function useRoleplayBeatQueuePart2(
       autoClipQueuedRef.current.add(key);
       void queueBeatMotion(beat);
     }
-  }, [autoQueue, beatOutput, queueBeatMotion, toolSettings.story]);
+  }, [autoQueue, beatOutput, queueBeatMotion, renderOffline, toolSettings.story]);
 
   return {
     queueBeatMotion,

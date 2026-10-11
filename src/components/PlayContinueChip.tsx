@@ -1,10 +1,12 @@
 'use client';
 
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadPlayCampaignState, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play-campaign';
+import { loadActivePlayCampaign, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play-campaign';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
@@ -57,7 +59,7 @@ export default function PlayContinueChip({
         return;
       }
       const metrics = loadPlayMetrics();
-      const campaign = loadPlayCampaignState();
+      const campaign = loadActivePlayCampaign(loadSettingsCache().shared.activeCharacterId);
       const funnel = loadLocalObservability();
       const watched = loadOnboardingState().some(
         step => step.id === 'watch-first-film' && step.done
@@ -88,16 +90,23 @@ export default function PlayContinueChip({
     window.addEventListener(ONBOARDING_UPDATED_EVENT, refresh);
     window.addEventListener('storage', refresh);
     window.addEventListener('focus', refresh);
+    // The picked Cast can land after mount (server sync): re-read whose film it is.
+    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, refresh);
     return () => {
       window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
       window.removeEventListener(PLAY_CAMPAIGN_UPDATED_EVENT, refresh);
       window.removeEventListener(ONBOARDING_UPDATED_EVENT, refresh);
       window.removeEventListener('storage', refresh);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, refresh);
     };
   }, [hideWhenHabit, hideWhenIdle, pathname]);
 
   if (!cta) {
+    return null;
+  }
+  // Film (/play) shows the same next step as its own primary button.
+  if (pathname === '/play' || pathname === '/m/play') {
     return null;
   }
   // "Continue to Day" while on Day went nowhere — and the page showed it twice.

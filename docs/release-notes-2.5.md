@@ -41,6 +41,13 @@ A finished clip's ⋯ menu (Day board, phone Day, Story) has **Make it 30 s**. S
 
 Known limits: faces and clothes can drift late in a long clip, and the camera can still creep in on some LTX clips. Small steps in one place work best — a different place is a new slot.
 
+### Clearer about what's happening
+
+- **ComfyUI offline is obvious.** A banner, a named header chip (*ComfyUI offline* / *LLM offline*), and Queue / Animate disabled with the reason — instead of "Ready to cut" and a green dot. Your work is kept.
+- **Lost jobs end.** A job ComfyUI no longer has (it restarted, or its queue was cleared) shows as failed with Retry instead of "Running" forever.
+- **One progress: Cast → Day → Cut film.** Header, step strip, Steps list and *What's next* count the same three steps; Look, Outfit and Story are named as optional.
+- **Made with.** A finished still's sheet shows the face, look, clothes, partner and pose guide it was made from, and its place.
+
 ### Your own voice
 
 Cast → Voice → **Use my own recording** (any audio or video file) or **Record** (6 s from the microphone): the first 5 s of speech becomes the Cast's voice sample. Switch on *Steer talking clips* to pull their clips toward it. Use your own voice, or one you have permission to use.

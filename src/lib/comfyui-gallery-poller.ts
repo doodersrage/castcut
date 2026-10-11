@@ -156,6 +156,20 @@ export function resumePendingGalleryPolls(): void {
   }
 }
 
+/**
+ * Pending / running Gallery jobs nothing is polling — e.g. ones that arrived by server sync after
+ * the first resume (a fresh browser). Those were never checked, so a job ComfyUI had lost showed
+ * "Running" for a week (UI audit 2026-10-11).
+ */
+export function galleryHasUnpolledJobs(): boolean {
+  return loadComfyGallery().some(
+    entry =>
+      (entry.status === 'pending' || entry.status === 'running') &&
+      Boolean(entry.promptId?.trim()) &&
+      !activePolls.has(entry.promptId.trim())
+  );
+}
+
 export function isComfyGalleryPollActive(promptId: string): boolean {
   return activePolls.has(promptId.trim());
 }

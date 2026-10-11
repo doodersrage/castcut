@@ -36,7 +36,10 @@ function deriveChipHealth(data: RawHealthResponse): ChipHealth {
   };
 }
 
-function toneClass(ok: boolean | null): string {
+function toneClass(ok: boolean | 'warn' | null): string {
+  if (ok === 'warn') {
+    return 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]';
+  }
   if (ok == null) {
     return 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-muted)]';
   }
@@ -65,40 +68,63 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
   // Diffusers is optional — chip "connected" means LLM + at least one image backend.
   const imageOk = Boolean(health?.comfyOk || health?.diffusersOk);
   const connected = Boolean(health?.llmOk && imageOk);
+  // Rendering down is the one that stops work (red); the LLM only writes suggestions (amber).
+  // Both are named in words, also in the compact header — a bare red dot meant nothing (UI audit
+  // 2026-10-11).
   const label =
     health == null
       ? 'Checking…'
       : connected
         ? 'Ready'
-        : !health.llmOk && !imageOk
-          ? 'LLM & engines down'
-          : !health.llmOk
-            ? 'LLM unreachable'
-            : health.comfyOk === false
-              ? 'ComfyUI unreachable'
-              : 'Image engine unreachable';
+        : !imageOk
+          ? health.diffusersOk
+            ? 'Image engine offline'
+            : 'ComfyUI offline'
+          : 'LLM offline';
+  const tone: boolean | 'warn' | null =
+    health == null ? null : connected ? true : !imageOk ? false : 'warn';
+  const title =
+    health == null
+      ? 'Checking ComfyUI and the LLM…'
+      : connected
+        ? 'ComfyUI and the LLM answer — open Settings → Overview'
+        : !imageOk
+          ? 'ComfyUI isn’t reachable: nothing can render. Open Settings → Overview to fix the connection.'
+          : 'The LLM isn’t reachable: rendering works, but suggested lines, written beats and reviews are off.';
 
   return (
     <Link
       href={settingsTabHref('overview')}
-      title="Open Settings → Overview for Heal & ready"
-      className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-[11px] font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(
-        health == null ? null : connected
-      )}`}
+      title={title}
+      data-testid="connection-health-chip"
+      data-state={
+        tone === true
+          ? 'ready'
+          : tone === false
+            ? 'offline'
+            : tone === 'warn'
+              ? 'llm-offline'
+              : 'checking'
+      }
+      className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-[11px] font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(tone)}`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          health == null
+          tone == null
             ? 'bg-[var(--text-muted)]'
-            : connected
+            : tone === true
               ? 'bg-[var(--tint-success-text)]'
-              : 'bg-[var(--tint-danger-text)]'
+              : tone === 'warn'
+                ? 'bg-[var(--tint-warning-text)]'
+                : 'bg-[var(--tint-danger-text)]'
         }`}
         aria-hidden
       />
       {compact ? (
-        // Phone headers are tight: dot only below sm, the word beside it from sm up.
-        <span className="sr-only sm:not-sr-only">{label}</span>
+        // Phone headers are tight: a dot alone while all is well; a problem is always in words.
+        <span className={tone === true || tone == null ? 'sr-only' : 'whitespace-nowrap'}>
+          {label}
+        </span>
       ) : (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span>{label}</span>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -238,6 +239,7 @@ export function useFittingRoomToolOrchestrationPart3(
     toolSettings.customGarmentImageFilename?.trim()
   );
   const isolatePending = isolateSubject && toolSettings.referenceIsolated !== true && !error;
+  const renderOffline = useRenderBackend().state === 'offline';
   const queueBlockReason = fittingQueueBlockReason({
     hasCharacter: Boolean(character),
     hasPlate: hasReference,
@@ -247,6 +249,7 @@ export function useFittingRoomToolOrchestrationPart3(
     isolateSubject,
     isolatePending,
     busy,
+    renderOffline,
   });
   const queueBlocked = Boolean(queueBlockReason);
 

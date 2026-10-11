@@ -1,7 +1,7 @@
 'use client';
 
 import { PLAY_CAMPAIGN_STEPS } from '@/lib/play-campaign';
-import { canEnterPlayStep } from '@/lib/play-step-machine';
+import { canEnterPlayStep, derivePlayJourney, type PlayJourney } from '@/lib/play-step-machine';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -12,7 +12,12 @@ type PlayCampaignStepsSectionProps = Pick<
 > & {
   /** Story is open: a film was cut or a whole Day has rendered (isPlayStoryLocked). */
   storyOpen?: boolean;
+  /** The film's steps (derivePlayJourney) — the same count and next step as the header. */
+  journey?: PlayJourney | null;
 };
+
+const CUT_DESCRIPTION =
+  'Cut the Day’s stills and clips into one film — on Day, once the stills are in.';
 
 export default function PlayCampaignStepsSection({
   activeStep,
@@ -22,8 +27,9 @@ export default function PlayCampaignStepsSection({
   goToStep,
   pushPlay,
   storyOpen = false,
+  journey,
 }: PlayCampaignStepsSectionProps) {
-  const steps = PLAY_CAMPAIGN_STEPS;
+  const steps = (journey ?? derivePlayJourney({})).steps;
 
   return (
     <ToolSection
@@ -32,18 +38,25 @@ export default function PlayCampaignStepsSection({
       data-testid="play-campaign-steps"
     >
       <ol className="space-y-2">
-        {steps.map((step, index) => {
-          const isActive = step.id === activeStep;
-          const isOptional = Boolean(step.optional);
-          const gate = canEnterPlayStep(step.id, {
-            metrics: storyOpen ? { version: 1, firstFullDayAt: 1 } : { version: 1 },
-            campaign: characterId ? { characterId, stepIndex: 0 } : null,
-            lookPack: activeLookPack,
-          });
+        {steps.map(step => {
+          // The film's next step (the header's Continue points at it too); not the page's own
+          // default — that highlighted the optional Look under "Continue to Day".
+          const isActive = journey ? step.state === 'current' : step.id === activeStep;
+          const isOptional = step.optional;
+          const campaignStep =
+            step.id === 'cut' ? null : PLAY_CAMPAIGN_STEPS.find(s => s.id === step.id);
+          const gate =
+            step.id === 'cut'
+              ? { ok: true as const, reason: undefined }
+              : canEnterPlayStep(step.id, {
+                  metrics: storyOpen ? { version: 1, firstFullDayAt: 1 } : { version: 1 },
+                  campaign: characterId ? { characterId, stepIndex: 0 } : null,
+                  lookPack: activeLookPack,
+                });
           // Story is the step that unlocks after the first film; Outfit is optional but open.
           const isStory = step.id === 'roleplay';
           const storyLocked = isStory && !gate.ok;
-          const coreNumber = steps.filter((entry, at) => at <= index && !entry.optional).length;
+          const coreNumber = step.number;
           const openDisabled = (!characterId && step.id !== 'character') || !gate.ok;
           return (
             <li
@@ -59,12 +72,13 @@ export default function PlayCampaignStepsSection({
                 <div className="min-w-0">
                   <p className="type-overline mb-1 text-[var(--text-muted)]">
                     {isOptional ? 'Optional' : `Step ${coreNumber}`}
+                    {step.state === 'done' ? ' · done' : ''}
                   </p>
                   <p className="type-heading">
                     {step.label}
-                    {isStory ? (
+                    {isStory && !storyOpen ? (
                       <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-                        {storyOpen ? 'unlocked' : 'after a full Day'}
+                        after a full Day
                       </span>
                     ) : null}
                   </p>
@@ -72,7 +86,7 @@ export default function PlayCampaignStepsSection({
                     {storyLocked
                       ? (gate.reason ??
                         'Finish a Day first (every still rendered) — Story stays optional after that.')
-                      : step.description}
+                      : (campaignStep?.description ?? CUT_DESCRIPTION)}
                   </p>
                 </div>
                 <Button
@@ -82,6 +96,10 @@ export default function PlayCampaignStepsSection({
                   data-testid={storyLocked ? 'play-campaign-step-roleplay-locked' : undefined}
                   onClick={() => {
                     if (openDisabled) {
+                      return;
+                    }
+                    if (step.id === 'cut') {
+                      goToStep('day', activeLookPack);
                       return;
                     }
                     setStepOverride(step.id);

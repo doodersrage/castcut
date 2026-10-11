@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
@@ -297,9 +298,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
     slotTotal,
     kitLabel: wardrobeLabelFor(activeSlot.wardrobeId),
   });
+  const renderOffline = useRenderBackend().state === 'offline';
+  const [animateFilesMissing, setAnimateFilesMissing] = useState(false);
   const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
   const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
-  const queueBlocked = Boolean(queueBlockReason);
+  const queueBlocked = Boolean(queueBlockReason) || renderOffline;
+  const shownQueueBlockReason = renderOffline
+    ? 'ComfyUI is offline — Queue and Animate wait until it’s back.'
+    : queueBlockReason;
   const canAnimateAll =
     completedShotCount > 0 &&
     completedClipCount < completedShotCount &&
@@ -885,8 +891,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           </PrimaryButton>
           {canAnimateAll ? (
             <Button
-              variant={dayPhase === 'animate' ? 'primary' : 'secondary'}
-              disabled={busy}
+              variant={dayPhase === 'animate' && !animateFilesMissing ? 'primary' : 'secondary'}
+              disabled={busy || renderOffline}
               data-testid="day-animate-all"
               onClick={() => void animateAllClips()}
               className="w-full justify-center"
@@ -926,12 +932,21 @@ export default function MobileDayToolSections(vm: ViewModel) {
             </Button>
           ) : null}
         </div>
-        {queueBlockReason ? (
+        {animateFilesMissing && canAnimateAll && !renderOffline ? (
+          <p
+            className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
+            data-testid="day-animate-files-missing"
+          >
+            Animate needs files ComfyUI doesn’t have yet — the note in Day reel says which. Cut film
+            works from the stills alone.
+          </p>
+        ) : null}
+        {shownQueueBlockReason ? (
           <p
             className="type-caption text-[var(--accent-text)]"
             data-testid="day-queue-block-reason"
           >
-            {queueBlockReason}
+            {shownQueueBlockReason}
           </p>
         ) : null}
       </div>
@@ -941,6 +956,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         <TaskRequirementsCard
           task="Animate"
           testId="day-animate-requirements"
+          onMissingChange={setAnimateFilesMissing}
           input={{ animate: true, adult: isDayAdultMood(dayMood) && intimateEnabled }}
         />
         <FilmWatchPlayer

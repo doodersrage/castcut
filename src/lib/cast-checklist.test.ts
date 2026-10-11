@@ -25,14 +25,23 @@ describe('castChecklist', () => {
     assert.equal(list.allDone, false);
   });
 
-  it('Next is the first step not done, even when a later one is done', () => {
+  it('Next is the first film step not done — optional rows (bible, outfit, Story) never are', () => {
     const list = castChecklist({
       ...NOTHING,
       plateReady: true,
       traitsSet: true,
       storyBeatCount: 3,
     });
-    assert.equal(list.nextId, 'bible');
+    assert.equal(list.nextId, 'day');
+    assert.deepEqual(
+      list.items.filter(item => item.optional).map(item => item.id),
+      ['traits', 'bible', 'outfit', 'story']
+    );
+    // A film cut with no outfit kept: nothing is Next (it pointed at Outfit).
+    assert.equal(
+      castChecklist({ ...NOTHING, plateReady: true, dayStillCount: 4, filmCount: 1 }).nextId,
+      null
+    );
     assert.equal(list.doneCount, 3);
     assert.equal(list.items.find(item => item.id === 'story')?.detail, '3 beats');
   });

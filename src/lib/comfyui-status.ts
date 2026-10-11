@@ -151,6 +151,58 @@ function applyQueueContext(
   return status;
 }
 
+/** Matches the client's lost-job pattern (comfyui-gallery-client: /not found|engine restarted/). */
+export const COMFY_PROMPT_LOST_MESSAGE =
+  'Job not found — ComfyUI no longer has it (it restarted or its queue was cleared). Queue it again.';
+
+/** Ids ComfyUI is running or holding, or null when the queue can't be read. */
+async function fetchQueuedPromptIds(comfyUrl: string): Promise<Set<string> | null> {
+  try {
+    const response = await fetch(`${comfyUrl}/queue`, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as ComfyQueueResponse;
+    return new Set(
+      [...(payload.queue_running ?? []), ...(payload.queue_pending ?? [])].map(item =>
+        String(item[1])
+      )
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function historyHasPrompt(comfyUrl: string, promptId: string): Promise<boolean | null> {
+  try {
+    const response = await fetch(`${comfyUrl}/history/${promptId}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as Record<string, unknown>;
+    return Object.keys(payload ?? {}).length > 0;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True only when ComfyUI answers and has the job in neither its queue nor its history — twice,
+ * a moment apart (a job finishing between the two reads is in one of them on the second look).
+ */
+export async function confirmComfyPromptLost(
+  promptId: string,
+  comfyUrl: string,
+  waitMs = 1500
+): Promise<boolean> {
+  for (let pass = 0; pass < 2; pass += 1) {
+    if (pass > 0) await new Promise(resolve => setTimeout(resolve, waitMs));
+    const queued = await fetchQueuedPromptIds(comfyUrl);
+    if (!queued || queued.has(promptId)) return false;
+    const inHistory = await historyHasPrompt(comfyUrl, promptId);
+    if (inHistory !== false) return false;
+  }
+  return true;
+}
+
 export async function getComfyUiPromptStatus(
   promptId: string,
   runtime?: ComfyUiRuntimeConfig
@@ -199,6 +251,14 @@ export async function getComfyUiPromptStatus(
 
     if (response.ok) {
       const payload = (await response.json()) as Record<string, ComfyHistoryEntry>;
+      // Neither finished nor waiting: ComfyUI restarted or its queue was cleared. Without this the
+      // job read "pending" forever (UI audit 2026-10-11: a week-old job still "Running").
+      if (
+        Object.keys(payload ?? {}).length === 0 &&
+        (await confirmComfyPromptLost(promptId, comfyUrl))
+      ) {
+        return { promptId, status: 'error', statusMessage: COMFY_PROMPT_LOST_MESSAGE, comfyUrl };
+      }
       const entry = payload[promptId] ?? (payload as unknown as ComfyHistoryEntry);
       const status = interpretHistoryEntry(promptId, comfyUrl, entry);
       const queue = await resolveQueueContext(promptId, comfyUrl);

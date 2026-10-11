@@ -3202,7 +3202,12 @@ export function dayQueueBlockReason(input: {
   hasPlate: boolean;
   isolateSubject?: boolean;
   isolatePending?: boolean;
+  /** ComfyUI unreachable (render-backend-status): nothing can render. */
+  renderOffline?: boolean;
 }): string | null {
+  if (input.renderOffline) {
+    return 'ComfyUI is offline — Queue and Animate wait until it’s back.';
+  }
   if (!input.hasCharacter) {
     return 'Pick a Cast character in Setup first.';
   }

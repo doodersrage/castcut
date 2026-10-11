@@ -1,5 +1,6 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/render-backend-status';
 import { useEffect, useState } from 'react';
 import BrandMark from '@/components/BrandMark';
 import BrandStudioIllustration from '@/components/BrandStudioIllustration';
@@ -176,7 +177,7 @@ export default function WorkspaceWelcome() {
             withWordmark
             wordmarkClassName="type-brand type-heading tracking-tight"
           />
-          <div className="ui-stepper" aria-label={`Step ${step} of 3`}>
+          <div className="ui-stepper" role="img" aria-label={`Step ${step} of 3`}>
             {[1, 2, 3].map(n => (
               <span
                 key={n}
@@ -203,6 +204,7 @@ export default function WorkspaceWelcome() {
               Castcut turns a Cast lead into a short day-in-the-life film — or a single still when
               you just need an image.
             </p>
+            <WelcomeSetupState />
             <div
               className="mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-3 py-3"
               data-testid="welcome-sample-film"
@@ -401,5 +403,35 @@ export default function WorkspaceWelcome() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Setup state on the first screen (UI audit 2026-10-11: health came only as an optional second
+ * step): ready to create, or what needs attention — you can still look around either way.
+ */
+function WelcomeSetupState() {
+  const { state } = useRenderBackend();
+  if (state === 'checking') return null;
+  const ready = state === 'online';
+  return (
+    <p
+      className={`type-caption mt-3 flex items-start gap-2 rounded-[var(--radius-md)] border px-3 py-2 ${
+        ready
+          ? 'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] text-[var(--tint-success-text)]'
+          : 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]'
+      }`}
+      data-testid="welcome-setup-state"
+      data-ready={ready ? 'true' : 'false'}
+    >
+      <span
+        className="ui-health-dot mt-1 shrink-0"
+        data-status={ready ? 'ok' : 'warn'}
+        aria-hidden
+      />
+      {ready
+        ? 'Ready to create — ComfyUI answers. The next step checks its models and add-ons.'
+        : 'Needs attention — ComfyUI isn’t reachable yet. Look around and plan freely; renders start once it runs (the next step helps set it up).'}
+    </p>
   );
 }
