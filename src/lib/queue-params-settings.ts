@@ -340,6 +340,9 @@ export function resolveQueueParams(
   if (base?.videoRefine === 'on') {
     merged.videoRefine = 'on';
   }
+  if (base?.videoAmbience?.trim()) {
+    merged.videoAmbience = base.videoAmbience.trim();
+  }
   if (base?.castcutPoseGuide?.trim()) {
     merged.castcutPoseGuide = base.castcutPoseGuide.trim();
   }

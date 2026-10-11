@@ -495,6 +495,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     ...(conversation ? {} : castVoiceSampleFor(shared.activeCharacterId)),
                     // Not cropped chest-up: render larger so the small face holds.
                     ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
+                    // The place's room sound under the voice (Video talkAmbience, on by default).
+                    ...(slot.location?.trim() &&
+                    loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false
+                      ? { videoAmbience: slot.location.trim() }
+                      : {}),
                   }
                 : {}),
             },

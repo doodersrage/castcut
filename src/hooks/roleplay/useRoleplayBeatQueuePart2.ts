@@ -375,6 +375,11 @@ export function useRoleplayBeatQueuePart2(
                     : castVoiceSampleFor(loadSettingsCache().shared.activeCharacterId)),
                   // Not cropped chest-up: render larger so the small face holds.
                   ...(talkingCropped ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
+                  // The Story's setting as room sound under the voice (Video talkAmbience).
+                  ...(toolSettings.setting?.trim() &&
+                  loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).talkAmbience !== false
+                    ? { videoAmbience: toolSettings.setting.trim() }
+                    : {}),
                 }
               : {
                   videoFrames: 64,
@@ -421,6 +426,7 @@ export function useRoleplayBeatQueuePart2(
       setError,
       shared.model,
       storyRef,
+      toolSettings.setting,
       updateToolSettings,
     ]
   );

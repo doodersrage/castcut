@@ -32,6 +32,8 @@ export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const
 
 /** Nodes a talking clip (LTX's own soundtrack decoded and muxed into an MP4) needs. */
 export const LTX25_SPEECH_NODES = ['LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'] as const;
+/** A talking clip's room sound: a sound-only pass mixed under the voice. */
+export const LTX25_AMBIENCE_NODES = ['AudioAdjustVolume', 'AudioMerge'] as const;
 /** Refine detail (Video `ltxRefine`): Lightricks' IC-LoRA, from the ComfyUI-LTXVideo pack. */
 export const LTX25_REFINE_LORA = 'ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors';
 export const LTX25_REFINE_NODES = [
@@ -260,7 +262,7 @@ export function convertVideoWorkflowToLtx25(
      * `voiceSample` (a ComfyUI input audio file, ~5 s) steers the voice; `idLora` is the
      * ID-LoRA file to apply with it (without it the sample does nothing measurable).
      */
-    speech?: { voiceSample?: string; idLora?: string; restoreFace?: string };
+    speech?: { voiceSample?: string; idLora?: string; restoreFace?: string; ambience?: string };
     /**
      * The frame rate LTX is told the clip runs at (default 24, what it plays at). Lower = more
      * movement per frame: two-person adult clips at 12 with LTX_FAST_PACE_LINE move about as much
@@ -629,7 +631,7 @@ function addLtx25EndGuide(next: Workflow, endImage: string): void {
  */
 function addLtx25Speech(
   next: Workflow,
-  speech: { voiceSample?: string; idLora?: string; restoreFace?: string },
+  speech: { voiceSample?: string; idLora?: string; restoreFace?: string; ambience?: string },
   prefix: string
 ): void {
   const voiceSample = speech.voiceSample?.trim();
@@ -695,6 +697,8 @@ function addLtx25Speech(
     class_type: 'CreateVideo',
     inputs: { images: restoreFace ? ['59', 0] : ['29', 0], fps: LTX25_FPS, audio: ['54', 0] },
   };
+  const place = speech.ambience?.trim();
+  if (place && !next['46']) addLtx25TalkingAmbience(next, place);
   next['56'] = {
     class_type: 'SaveVideo',
     inputs: { video: ['55', 0], filename_prefix: prefix, format: 'mp4', codec: 'h264' },
@@ -1005,6 +1009,7 @@ const AMBIENCE: Array<[RegExp, string]> = [
     'low murmur of other guests, cups and cutlery clinking',
   ],
   [/\b(bar|pub|club|lounge)\b/i, 'a busy room murmuring, glasses clinking'],
+  [/\b(fountain|plaza|piazza)\b/i, 'a fountain splashing, footsteps and voices across the square'],
   [
     /\b(street|city|downtown|crosswalk|sidewalk|market|square)\b/i,
     'city traffic, footsteps, a distant siren',
@@ -1064,6 +1069,90 @@ export function sceneMotionCues(text: string, speaker: 'She' | 'He' = 'She'): st
   if (!cues.length) return '';
   const list = cues.slice(0, 2).join(', and ');
   return `Around ${speaker === 'He' ? 'him' : 'her'} the scene stays alive: ${list}.`;
+}
+
+/**
+ * Gain on a talking clip's room sound (dB). LTX makes it very quiet (25–30 dB under her voice);
+ * +12 only matched the faint bed LTX already leaves between words, +18 puts it ~10 dB under the
+ * voice, clearly there — the line still transcribed word for word at both (3 clips, 2026-10-11).
+ */
+export const LTX25_TALK_AMBIENCE_DB = 18;
+
+/**
+ * A talking clip's room sound. Asking for it in the talking prompt did nothing measurable — the
+ * background stayed at the same level with or without it (6 pairs, 2026-10-11) — so it gets its
+ * own pass, as Add sound does: the first pass's picture frozen, sound only, then brought up
+ * (LTX25_TALK_AMBIENCE_DB) and added under her voice. Not with an end pose (that draft carries extra guide frames).
+ */
+function addLtx25TalkingAmbience(next: Workflow, place: string): void {
+  const audio = next['13']?.inputs;
+  if (!next['20'] || !audio || !next['55']?.inputs) return;
+  const sounds = ambienceSounds(place);
+  next['100'] = {
+    class_type: 'CLIPTextEncode',
+    inputs: {
+      clip: ['2', 0],
+      text: `The natural background sound of ${place}${sounds ? `: ${sounds}` : ''}, clearly audible. No talking close by, no music.`,
+    },
+  };
+  next['101'] = {
+    class_type: 'CLIPTextEncode',
+    inputs: { clip: ['2', 0], text: 'speech, talking, words, music, background music, silence' },
+  };
+  next['102'] = {
+    class_type: 'LTXVConditioning',
+    inputs: { positive: ['100', 0], negative: ['101', 0], frame_rate: LTX25_FPS },
+  };
+  next['103'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['20', 0] } };
+  next['104'] = {
+    class_type: 'LTXVEmptyLatentAudio',
+    inputs: {
+      frames_number: audio.frames_number,
+      frame_rate: audio.frame_rate,
+      batch_size: 1,
+      audio_vae: ['4', 0],
+    },
+  };
+  next['105'] = {
+    class_type: 'LTXVConcatAVLatent',
+    inputs: { video_latent: ['103', 0], audio_latent: ['104', 0] },
+  };
+  next['106'] = {
+    class_type: 'LTXVDualCFGGuider',
+    inputs: {
+      model: ['1', 0],
+      positive: ['102', 0],
+      negative: ['102', 1],
+      video_cfg: 1,
+      audio_cfg: 1,
+    },
+  };
+  const seed = Number(next['18']?.inputs?.noise_seed) || 0;
+  next['107'] = { class_type: 'RandomNoise', inputs: { noise_seed: seed + 3 } };
+  next['108'] = {
+    class_type: 'SamplerCustomAdvanced',
+    inputs: {
+      noise: ['107', 0],
+      guider: ['106', 0],
+      sampler: ['16', 0],
+      sigmas: ['17', 0],
+      latent_image: ['105', 0],
+    },
+  };
+  next['109'] = { class_type: 'LTXVSeparateAVLatent', inputs: { av_latent: ['108', 0] } };
+  next['110'] = {
+    class_type: 'LTXVAudioVAEDecode',
+    inputs: { samples: ['109', 1], audio_vae: ['4', 0] },
+  };
+  next['111'] = {
+    class_type: 'AudioAdjustVolume',
+    inputs: { audio: ['110', 0], volume: LTX25_TALK_AMBIENCE_DB },
+  };
+  next['112'] = {
+    class_type: 'AudioMerge',
+    inputs: { audio1: next['55'].inputs.audio, audio2: ['111', 0], merge_method: 'add' },
+  };
+  next['55'].inputs.audio = ['112', 0];
 }
 
 /** Typical background sounds of a place, as a hint for the soundtrack ("" when unknown). */

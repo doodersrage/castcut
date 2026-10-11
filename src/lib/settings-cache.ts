@@ -929,6 +929,8 @@ export type VideoToolCache = {
    * Off by default.
    */
   ltxRefine?: boolean;
+  /** Room sound under talking clips (the place's sounds, ~10 dB under her voice). On unless false. */
+  talkAmbience?: boolean;
   /** Output frame rate fed to {{VIDEO_FPS}} at queue time. */
   fps?: number;
   hintSource?: import('./scene-hint-source').SceneHintSource;

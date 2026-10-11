@@ -13,7 +13,7 @@ type Node = { class_type: string; inputs: Record<string, unknown> };
 /** The LTX clip graph the queue builds for a still, paced (two-person adult) or not. */
 function buildClipGraph(
   paced: boolean,
-  refine?: { loras?: string[]; nodeTypes?: string[]; speech?: boolean }
+  refine?: { loras?: string[]; nodeTypes?: string[]; speech?: boolean; ambience?: string; on?: boolean }
 ) {
   const params = resolveQueueParams(undefined, {
     seed: '7',
@@ -23,7 +23,8 @@ function buildClipGraph(
     videoFps: 16,
     inputImageFilename: 'day-still.png',
     ...(paced ? { videoStillHold: 'on' as const } : {}),
-    ...(refine ? { videoRefine: 'on' as const } : {}),
+    ...(refine && refine.on !== false ? { videoRefine: 'on' as const } : {}),
+    ...(refine?.ambience ? { videoAmbience: refine.ambience } : {}),
     ...(refine?.speech ? { videoSpeech: 'on' as const } : {}),
   });
   return injectPromptsWithFallbacks(
@@ -108,5 +109,30 @@ describe('refine detail', () => {
     const mp4 = Object.values(graph).find(node => node.class_type === 'CreateVideo');
     assert.deepEqual(mp4?.inputs.images, ['92', 0]);
     assert.deepEqual(mp4?.inputs.audio, ['54', 0]);
+  });
+});
+
+describe('room sound under a talking clip', () => {
+  const talking = (ambience?: string, nodeTypes?: string[]) =>
+    buildClipGraph(false, { on: false, speech: true, ambience, nodeTypes });
+
+  it('adds a sound-only pass of the place, brought up and mixed under the voice', () => {
+    const graph = talking('harbor-side brunch terrace');
+    assert.match(String(graph['100']?.inputs.text), /harbor-side brunch terrace: low murmur of other guests/);
+    assert.deepEqual(graph['103']?.inputs.latent, ['20', 0]);
+    assert.equal(graph['111']?.inputs.volume, 18);
+    assert.deepEqual(graph['112']?.inputs.audio1, ['54', 0]);
+    const mp4 = Object.values(graph).find(node => node.class_type === 'CreateVideo');
+    assert.deepEqual(mp4?.inputs.audio, ['112', 0]);
+  });
+
+  it('is left off without a place or without the audio mix nodes', () => {
+    assert.equal(talking()['112'], undefined);
+    const mp4 = Object.values(talking()).find(node => node.class_type === 'CreateVideo');
+    assert.deepEqual(mp4?.inputs.audio, ['54', 0]);
+    assert.equal(
+      talking('park bench', ['LTXVImgToVideoInplace', 'LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'])['112'],
+      undefined
+    );
   });
 });

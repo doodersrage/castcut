@@ -10,6 +10,7 @@ import {
   LTX_PACED_LONG_SIDE,
   LTX25_REFINE_LORA,
   LTX25_REFINE_NODES,
+  LTX25_AMBIENCE_NODES,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -234,6 +235,8 @@ export type WorkflowParamValues = {
   videoStillHold?: 'on';
   /** Refine detail on an LTX-2.5 clip (Video ltxRefine), when the LoRA and nodes are there. */
   videoRefine?: 'on';
+  /** A talking clip's place: its room sound goes under the voice (Video talkAmbience). */
+  videoAmbience?: string;
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -549,6 +552,9 @@ export function resolveQueueParams(
   }
   if (merged.videoRefine === 'on') {
     result.videoRefine = 'on';
+  }
+  if (merged.videoAmbience?.trim()) {
+    result.videoAmbience = merged.videoAmbience.trim();
   }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
@@ -1919,6 +1925,10 @@ export function injectPromptsWithFallbacks(
               speech: {
                 ...ltx25SpeechOptions(input.params?.videoVoiceSample, nodeTypes, options),
                 ...ltx25FaceRestoreOption(nodeTypes, options),
+                ...(input.params?.videoAmbience?.trim() &&
+                (!nodeTypes || LTX25_AMBIENCE_NODES.every(type => nodeTypes.has(type)))
+                  ? { ambience: input.params.videoAmbience.trim() }
+                  : {}),
               },
             }
           : {}),
