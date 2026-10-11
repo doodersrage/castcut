@@ -1,6 +1,8 @@
 'use client';
 
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
+import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
+import type { DayLength, DaySlot } from '@/lib/day-planner';
 import { useDayExtendClip } from '@/hooks/day-planner/useDayExtendClip';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
@@ -54,6 +56,18 @@ import {
 export function useDayPlannerToolOrchestration() {
   const core = useDayPlannerToolOrchestrationCore();
   const part2 = useDayPlannerToolOrchestrationPart2(core);
+  // Undo / redo for the plan (day-plan-history.ts) — the slot count comes back with the slots.
+  const { updateToolSettings: updateDayTool } = core;
+  const applyPlanSlots = useCallback(
+    (next: DaySlot[]) => updateDayTool({ slots: next, dayLength: next.length as DayLength }),
+    [updateDayTool]
+  );
+  const planHistory = useDayPlanHistory({
+    slots: core.slots,
+    owner:
+      core.toolSettings.stillsCharacterId?.trim() || core.shared.activeCharacterId?.trim() || '',
+    applySlots: applyPlanSlots,
+  });
   // Balanced: the pose check runs on each take as it lands and Face finish waits for it — a
   // take the check redoes is never face-finished (day-finish-order.ts).
   const checksFirst = dayChecksRunBeforeFaceFinish({
@@ -415,6 +429,7 @@ export function useDayPlannerToolOrchestration() {
     ...extendClip,
     ...season,
     ...outfitScope,
+    ...planHistory,
     cutDayFilm,
     cutChecking,
     cutProblems,

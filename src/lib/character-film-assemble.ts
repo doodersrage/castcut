@@ -9,6 +9,7 @@ import { filmDownloadFilename, type FilmPlaylistShot } from './media-kind';
 import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from './video-assemble';
 import type { FilmResolutionPreset } from './video-resolution';
 import type { FilmTitleCard } from './video-polish';
+import { cutRecipeFrom, type CutRecipe } from './cut-recipe';
 
 export * from './video-assemble';
 
@@ -31,6 +32,10 @@ export async function assembleAndStampFilm(input: {
   /** Music bed / lines gain (server encode). */
   musicLevel?: number;
   voiceLevel?: number;
+  /** Where the cut came from — kept in its recipe. */
+  source?: CutRecipe['source'];
+  /** Film this one re-cuts (its parent in the Gallery). */
+  parentGalleryEntryId?: string;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
   filename: string;
@@ -74,6 +79,21 @@ export async function assembleAndStampFilm(input: {
     lookId: input.lookId,
     mimeType: assembled.mimeType,
     serverEncoded: assembled.encodePath === 'server',
+    parentGalleryEntryId: input.parentGalleryEntryId,
+    cutRecipe: cutRecipeFrom({
+      source: input.source,
+      shots: input.shots,
+      resolution: input.resolution,
+      crossfadeSec: input.crossfadeSec,
+      audioBedUrl: input.audioBedUrl,
+      stillMotion: input.stillMotion,
+      captions: input.captions,
+      titleCard: input.titleCard,
+      length: input.length,
+      beatSnap: input.beatSnap,
+      musicLevel: input.musicLevel,
+      voiceLevel: input.voiceLevel,
+    }),
     onProgress: input.onProgress,
   });
   return {

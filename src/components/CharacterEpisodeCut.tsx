@@ -88,6 +88,7 @@ export default function CharacterEpisodeCut({
     setStatus('Encoding the episode…');
     try {
       const result = await assembleAndStampFilm({
+        source: 'episode',
         shots: cutShots,
         characterId,
         characterName,

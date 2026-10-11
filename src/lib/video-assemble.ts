@@ -17,6 +17,7 @@ import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { persistGalleryOriginal } from './gallery-media-client';
 import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from './gallery-video-stitch';
 import { clipTrimWindow } from './clip-trim';
+import type { CutRecipe } from './cut-recipe';
 import {
   FILM_PRESET_SIZE,
   isFixedCanvasFilmResolution,
@@ -737,6 +738,8 @@ export async function stampAssembledFilm(input: {
   projectId?: string;
   userTags?: string[];
   serverEncoded?: boolean;
+  /** How it was cut (kept on the entry for "what's in this film" and Re-cut). */
+  cutRecipe?: CutRecipe;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{ persisted: boolean; entryId?: string; reason?: 'too-large' | 'storage' }> {
   if (!canStampAssembledFilm(input.blob.size, { serverEncoded: input.serverEncoded })) {
@@ -778,6 +781,7 @@ export async function stampAssembledFilm(input: {
     durableThumbPath: persisted.thumbPath,
     sourceImageUrl: persisted.originalUrl,
     userTags: input.userTags ?? ['film'],
+    ...(input.cutRecipe ? { cutRecipe: input.cutRecipe } : {}),
   });
 
   return { persisted: true, entryId: id };

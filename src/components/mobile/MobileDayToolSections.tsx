@@ -2,6 +2,7 @@
 
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
+import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
 import {
   useDayCutReadiness,
@@ -241,6 +242,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
     cutProblems,
     cutChecking,
     setAsideDay,
+    canUndoPlan,
+    canRedoPlan,
+    undoPlanLabel,
+    redoPlanLabel,
+    undoPlan,
+    redoPlan,
     bringBackSetAsideDay,
     dismissSetAsideDay,
     resolveCutProblems,
@@ -795,6 +802,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
           advancedOpen={advancedOpen}
           onAdvancedToggle={() => setAdvancedOpen(open => !open)}
           advancedId={advancedId}
+        />
+        <DayPlanUndo
+          canUndo={canUndoPlan}
+          canRedo={canRedoPlan}
+          undoLabel={undoPlanLabel}
+          redoLabel={redoPlanLabel}
+          onUndo={undoPlan}
+          onRedo={redoPlan}
         />
         <DaySetAsideBanner
           aside={setAsideDay}

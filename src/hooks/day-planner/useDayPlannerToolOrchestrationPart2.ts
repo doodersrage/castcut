@@ -608,6 +608,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setFilmStatus('Checking shots…');
       try {
         const result = await assembleAndStampFilm({
+          source: 'day',
           shots,
           characterId: character?.id ?? '',
           characterName: name,

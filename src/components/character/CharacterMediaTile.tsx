@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
+import FilmRecutPanel from '@/components/character/FilmRecutPanel';
 import { isAssembledFilmEntry } from '@/lib/character-film';
 import {
   galleryEntryHeroPreviewUrl,
@@ -18,6 +19,7 @@ export default function CharacterMediaTile({
   onToggleKeeper,
   onAnimateStill,
   onRemoveFromCharacter,
+  characterName,
 }: {
   entry: ComfyGalleryEntry;
   characterId: string;
@@ -26,6 +28,8 @@ export default function CharacterMediaTile({
   onToggleKeeper?: () => void;
   onAnimateStill?: () => void;
   onRemoveFromCharacter?: () => void;
+  /** For a film's Re-cut (FilmRecutPanel). */
+  characterName?: string;
 }) {
   const previewSrc = galleryEntryHeroPreviewUrl(entry);
   const clip = isGalleryClipEntry({
@@ -102,6 +106,9 @@ export default function CharacterMediaTile({
             </>
           ) : null}
         </p>
+        {isAssembledFilmEntry(entry) && entry.cutRecipe ? (
+          <FilmRecutPanel entry={entry} characterName={characterName?.trim() || 'Cast'} />
+        ) : null}
       </div>
     </li>
   );

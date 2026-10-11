@@ -281,6 +281,7 @@ export default function CharacterMediaSection({
               key={entry.id}
               entry={entry}
               characterId={character.id}
+              characterName={character.name}
               kept={keepers.some(keeper => keeper.id === entry.id)}
               onOpen={galleryEntryHeroPreviewUrl(entry) ? () => openEntry(entry.id) : undefined}
               onToggleKeeper={currentLook ? () => toggleKeeper(entry.id) : undefined}

@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
-import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { putAppKv, replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
+import { closeDaySheets, openDaySlotSheet } from './helpers/day';
 
 test.beforeEach(async ({ page }) => {
   await isolateServerStorage(page);
@@ -178,4 +179,104 @@ test('an episode shows what went into it, and its Day opens again without losing
   await expect(page.getByTestId('day-progress-scene-morning')).toContainText('gym');
   // And the episode's Day can come back again.
   await expect(page.getByTestId('day-set-aside')).toContainText('the episode you opened');
+});
+
+test('the Day plan undoes and redoes an edit', async ({ page }) => {
+  const castId = 'e2e-undo';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Una', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: castId,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads on a bench' },
+          { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/day?character=${castId}`);
+  await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'afternoon');
+  await page.getByTestId('day-slot-beat').fill('feeds the ducks');
+  await closeDaySheets(page);
+  const scene = page.getByTestId('day-progress-scene-afternoon');
+  await expect(scene).toContainText('feeds the ducks');
+  const undo = page.getByTestId('day-plan-undo-button');
+  await expect(undo).toBeVisible();
+  await undo.click();
+  await expect(scene).toContainText('reads on a bench');
+  await expect(page.getByTestId('day-plan-redo-button')).toBeVisible();
+  await page.getByTestId('day-plan-redo-button').click();
+  await expect(scene).toContainText('feeds the ducks');
+  await expect(undo).toContainText("Afternoon's beat");
+});
+
+test('a film shows what is in it and re-cuts in another shape', async ({ page }) => {
+  const now = Date.now();
+  const castId = 'e2e-recut';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Remy', version: 1, updatedAt: now }],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, `/characters/${castId}?media=films`);
+  await replaceGalleryIdb(page, [
+    {
+      id: 'e2e-film-1',
+      promptId: 'film-e2e-film-1',
+      prompt: 'Assembled film · Remy',
+      tool: 'day',
+      derivedKind: 'film',
+      characterId: castId,
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      queuedAt: now,
+      completedAt: now,
+      images: [{ filename: 'remy-day.mp4', subfolder: '', type: 'output', format: 'video/mp4' }],
+      userTags: ['film'],
+      cutRecipe: {
+        version: 1,
+        source: 'day',
+        resolution: '720p',
+        shots: [
+          { key: 'morning', title: 'Morning', url: '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp', kind: 'still', framing: 'close' },
+          { key: 'night', title: 'Night', url: '/e2e/night.mp4', kind: 'clip', trimStartSec: 1 },
+        ],
+      },
+    },
+  ]);
+  // The film's own render request — answered with an error so nothing encodes.
+  let body: { resolution?: string; shots?: unknown[] } | null = null;
+  await page.route('**/api/film/assemble', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { ok: true, available: true, encoder: 'ffmpeg' } });
+      return;
+    }
+    body = route.request().postDataJSON() as typeof body;
+    await route.fulfill({ status: 503, json: { error: 'e2e: no encode' } });
+  });
+  await gotoStable(page, `/characters/${castId}?media=films`);
+  await dismissBlockingOverlays(page);
+  const recut = page.getByTestId('film-recut');
+  await expect(recut).toBeVisible({ timeout: 30_000 });
+  await recut.locator('summary').click();
+  await expect(recut.getByTestId('film-recut-summary')).toContainText('2 shots · 1 clip · 720p');
+  await expect(recut.getByTestId('film-recut-shots')).toContainText('chest up');
+  // Widescreen films start on vertical — the common re-cut.
+  await expect(recut.getByTestId('film-recut-shape')).toHaveValue('vertical');
+  await recut.getByTestId('film-recut-quality').selectOption('1080p');
+  await recut.getByTestId('film-recut-run').click();
+  await expect.poll(() => body?.resolution ?? null, { timeout: 30_000 }).toBe('1080p-vertical');
+  expect(body!.shots).toHaveLength(2);
 });

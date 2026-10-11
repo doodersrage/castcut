@@ -91,6 +91,8 @@ export type ComfyGalleryEntry = {
   visionTags?: string[];
   /** User-applied labels (distinct from LLM visionTags). */
   userTags?: string[];
+  /** A cut film: how it was cut, so it can be shown and re-cut (cut-recipe.ts). */
+  cutRecipe?: import('./cut-recipe').CutRecipe;
   /** Named custom group assigned from gallery multi-select. One group per entry. */
   customGroup?: string;
   /**

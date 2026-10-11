@@ -143,6 +143,7 @@ export function useRoleplayFilmActions(input: {
       setFilmStatus('Checking shots…');
       try {
         const result = await assembleAndStampFilm({
+          source: 'story',
           shots,
           characterId: character?.id ?? '',
           characterName: name,

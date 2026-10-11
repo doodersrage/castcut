@@ -441,6 +441,7 @@ export default function CharacterFilmStudio({
             setError(null);
             setStatus('Encoding the cut…');
             void assembleAndStampFilm({
+              source: 'cast',
               shots: playlist,
               characterId,
               characterName,
