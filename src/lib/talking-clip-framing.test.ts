@@ -180,3 +180,19 @@ describe('scene stays alive', () => {
     assert.doesNotMatch(office, /stays alive/);
   });
 });
+
+describe('caught mid-movement', () => {
+  it('a wide clip finishes the stride or spin and settles instead of freezing it', async () => {
+    const { talkingClipPrompt, stillInMotion } = await import('./ltx25-renderer');
+    const moving = talkingClipPrompt({ line: 'Hi', framing: 'wide', inMotion: true });
+    assert.match(moving, /She finishes the movement she is in and settles into a natural, balanced pose where she is, both feet on the ground, and says clearly, "Hi"/);
+    assert.match(moving, /does not start another movement, walk away or turn around/);
+    assert.doesNotMatch(moving, /keeps exactly the pose/);
+    // Mid (seated) keeps its own hold even if the words say walking.
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'mid', inMotion: true }), /sitting or lying/);
+    assert.equal(stillInMotion('She walks mid-step, one foot ahead of the other.'), true);
+    assert.equal(stillInMotion('Moment: dancing barefoot at the shoreline — both arms out mid-spin'), true);
+    assert.equal(stillInMotion('Moment: climbing the stairs to the flat'), false);
+    assert.equal(stillInMotion('She leans in the doorway.'), false);
+  });
+});

@@ -4,6 +4,7 @@ import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-fram
 import {
   isLtx25Model,
   ROOM_SOUND_UNDER_TALKING,
+  stillInMotion,
   withAdultLtxLines,
   conversationClipPrompt,
   conversationPartnerNoun,
@@ -456,6 +457,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   speaker: manLead ? 'He' : 'She',
                   tone: slot.lineTone,
                   framing,
+                  inMotion: stillInMotion(parentEntry?.prompt),
                 }),
             ageLine,
           ]

@@ -23,8 +23,9 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 
 ### Talking clips
 
-- **Room sound under the voice** — the place's sounds (a café's cups and voices, a shop's footsteps and door chime, a fountain, traffic) in their own pass, 15 dB under her spoken level, the line still transcribed word for word. The pass listens to a blurred copy of the clip, so it can't read her lips and speak along. Needs castcut-nodes 1.7.0 in ComfyUI; *Room sound under the voice* under the line turns it off.
+- **Room sound under the voice** — the place's sounds (a café's cups and voices, a shop's footsteps and door chime, a fountain, traffic) in their own pass, 20 dB under her spoken level, the line still transcribed word for word. The pass listens to a blurred copy of the clip, so it can't read her lips and speak along. Needs castcut-nodes 1.7.0 in ComfyUI; *Room sound under the voice* under the line turns it off.
 - **The scene keeps moving.** Steam from a coffee, candle flames, a fountain, water, leaves, people passing — whatever the place and the line name — keep moving while she talks. Before, LTX froze everything but her.
+- **Caught mid-step, she settles.** A still taken mid-stride, mid-spin or mid-dance finishes the movement and stands before she talks, instead of freezing it.
 - **She keeps her pose.** A full-body still stays a wide shot and she stays standing (or seated) as in the still; earlier 2.6 builds sat standing women down on the pavement, and seated stills punched in to her face.
 - **Eleven ways to say a line**, in a dropdown: Natural, Whisper, Laughing, Excited, Tender, Teasing, Angry, Nervous, Scared, Shouting, Sing-song.
 - **Add sound names the place** — a silent clip's sound is the place's (waves and gulls in a bay, guests in a café), not generic room tone.

@@ -1082,7 +1082,7 @@ export function sceneMotionCues(text: string, speaker: 'She' | 'He' = 'She'): st
 }
 
 /** Where a talking clip's room sound sits under her spoken level (dB). */
-export const LTX25_TALK_AMBIENCE_DB = -15;
+export const LTX25_TALK_AMBIENCE_DB = -20;
 
 /**
  * A talking clip's room sound. Asking for it in the talking prompt did nothing measurable — the
@@ -1177,6 +1177,17 @@ function addLtx25TalkingAmbience(next: Workflow, place: string): void {
   next['55'].inputs.audio = ['112', 0];
 }
 
+/**
+ * The still caught her mid-movement — walking, a stride, a spin, a dance, a jump — by the words
+ * the still was made from (Day's "She walks mid-step…", "Moment: … mid-spin"). Climbing is not
+ * counted: settling on stairs turned her round and up them.
+ */
+export function stillInMotion(stillPrompt: string | null | undefined): boolean {
+  return /\b(walks|walking|mid-step|mid-stride|strid(?:e|ing)|strolling|mid-spin|spinning|twirl(?:s|ing)?|mid-twirl|dancing|dances|jumping|mid-jump|mid-air|leaping|knee lifted|running|jogging)\b/i.test(
+    String(stillPrompt ?? '')
+  );
+}
+
 /** Typical background sounds of a place, as a hint for the soundtrack ("" when unknown). */
 export function ambienceSounds(place: string): string {
   const night = /\b(night|midnight|3 a\.m\.|late|after dark|blue hour)\b/i.test(place);
@@ -1209,6 +1220,11 @@ export function talkingClipPrompt(input: {
    * wide-shot wording (no "looks into the camera", which drew LTX in to her face).
    */
   framing?: 'wide' | 'mid' | 'close';
+  /**
+   * The still caught her mid-movement (stillInMotion): a wide clip has her finish it and settle,
+   * instead of holding a frozen stride or spin while she talks.
+   */
+  inMotion?: boolean;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
@@ -1237,12 +1253,20 @@ export function talkingClipPrompt(input: {
       // against 2 of 4 without. Wide (full-body, usually standing): those words sat her down on
       // the pavement on 6 of 6 standing replays (coffee, fountain, harbor); a hold without
       // posture words kept her standing 8 of 8 (2026-10-11).
+      // Mid-movement (a stride, a spin, a dance with a knee up): holding the first frame froze her
+      // mid-stride or arms-up for the whole line, or she walked into a close-up; finishing the
+      // movement and settling held wide and standing on 8 of 8 (walking, spinning, dancing
+      // stills, 2026-10-11). Climbing stairs is left out — she turned and walked on up.
       input.framing === 'mid'
         ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`
-        : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
+        : input.inMotion
+          ? `${who} finishes the movement ${she} is in and settles into a natural, balanced pose where ${she} is, both feet on the ground, and ${spokenLineVerb(input.tone, who)} "${line}"`
+          : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
       input.framing === 'mid'
         ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
-        : `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'his' : 'her'} body stays still, and ${she} does not walk away or turn around.`,
+        : input.inMotion
+          ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; then ${who === 'He' ? 'his' : 'her'} body stays still — ${she} does not start another movement, walk away or turn around.`
+          : `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'his' : 'her'} body stays still, and ${she} does not walk away or turn around.`,
       placeLine,
       `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${who === 'He' ? 'his' : 'her'} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
     ].join(' ');

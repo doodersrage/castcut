@@ -123,10 +123,10 @@ describe('room sound under a talking clip', () => {
     assert.deepEqual(graph['113']?.inputs.samples, ['20', 0]);
     assert.equal(graph['114']?.class_type, 'ImageBlur');
     assert.deepEqual(graph['103']?.inputs.latent, ['115', 0]);
-    // … and is matched 15 dB under her spoken level, not boosted by a fixed amount.
+    // … and is matched 20 dB under her spoken level, not boosted by a fixed amount.
     assert.equal(graph['111']?.class_type, 'CastcutAudioMatchLevel');
     assert.deepEqual(graph['111']?.inputs.reference, ['54', 0]);
-    assert.equal(graph['111']?.inputs.offset_db, -15);
+    assert.equal(graph['111']?.inputs.offset_db, -20);
     assert.deepEqual(graph['112']?.inputs.audio1, ['54', 0]);
     const mp4 = Object.values(graph).find(node => node.class_type === 'CreateVideo');
     assert.deepEqual(mp4?.inputs.audio, ['112', 0]);
