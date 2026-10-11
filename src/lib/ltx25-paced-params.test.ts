@@ -11,7 +11,10 @@ import { buildWorkflowScaffoldForModel } from './workflow-scaffold';
 type Node = { class_type: string; inputs: Record<string, unknown> };
 
 /** The LTX clip graph the queue builds for a still, paced (two-person adult) or not. */
-function buildClipGraph(paced: boolean) {
+function buildClipGraph(
+  paced: boolean,
+  refine?: { loras?: string[]; nodeTypes?: string[]; speech?: boolean }
+) {
   const params = resolveQueueParams(undefined, {
     seed: '7',
     width: '960',
@@ -20,12 +23,20 @@ function buildClipGraph(paced: boolean) {
     videoFps: 16,
     inputImageFilename: 'day-still.png',
     ...(paced ? { videoStillHold: 'on' as const } : {}),
+    ...(refine ? { videoRefine: 'on' as const } : {}),
+    ...(refine?.speech ? { videoSpeech: 'on' as const } : {}),
   });
   return injectPromptsWithFallbacks(
     JSON.parse(buildWorkflowScaffoldForModel('ltx-video-2.5').json) as Record<string, unknown>,
     { positive: 'she rocks her hips slowly', negative: 'flicker', params },
     resolvePlaceholderTokens(),
-    { model: 'ltx-video-2.5', directWorkflowPatching: true, videoRenderer: 'ltx-2.5' }
+    {
+      model: 'ltx-video-2.5',
+      directWorkflowPatching: true,
+      videoRenderer: 'ltx-2.5',
+      ...(refine?.loras ? { availableLoras: refine.loras } : {}),
+      ...(refine?.nodeTypes ? { availableNodeTypes: refine.nodeTypes } : {}),
+    }
   ).workflow as Record<string, Node>;
 }
 
@@ -57,5 +68,35 @@ describe('adult LTX clip prompt', () => {
       withAdultLtxLines('She rocks.', true),
       `She rocks. ${LTX_FAST_PACE_LINE} ${LTX_DUO_ANATOMY_LINE}`
     );
+  });
+});
+
+describe('refine detail', () => {
+  const REFINE = 'ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors';
+  const refined = (graph: Record<string, Node>) =>
+    Object.values(graph).some(node => node.class_type === 'LTXAddVideoICLoRAGuide');
+
+  it('re-renders the clip on the IC-LoRA, guided by its own frames, and saves that', () => {
+    const graph = buildClipGraph(false, { loras: [`ltx/${REFINE}`] });
+    assert.equal(graph['80']?.inputs.lora_name, `ltx/${REFINE}`);
+    assert.deepEqual(graph['83']?.inputs.image, ['29', 0]);
+    assert.deepEqual(graph['92']?.inputs.samples, ['91', 2]);
+    const save = Object.values(graph).find(node => node.class_type === 'SaveAnimatedWEBP');
+    assert.deepEqual(save?.inputs.images, ['92', 0]);
+  });
+
+  it('is skipped without the LoRA, without the LTXVideo pack, or on a talking clip', () => {
+    assert.equal(refined(buildClipGraph(false, { loras: [] })), false);
+    assert.equal(refined(buildClipGraph(false)), false);
+    assert.equal(
+      refined(
+        buildClipGraph(false, {
+          loras: [REFINE],
+          nodeTypes: ['LTXVImgToVideoInplace', 'GetImageSize', 'ComfyMathExpression'],
+        })
+      ),
+      false
+    );
+    assert.equal(refined(buildClipGraph(false, { loras: [REFINE], speech: true })), false);
   });
 });

@@ -923,6 +923,11 @@ export type VideoToolCache = {
    * through Add sound). Off: those clips render on WAN (clipEngineForShot).
    */
   ltxAdultDuo?: boolean;
+  /**
+   * Refine detail on LTX-2.5 clips (not talking ones): one more pass on Lightricks' Refine-Details
+   * IC-LoRA — crisper texture, ~2.3× the time, can shift her face a little. Off by default.
+   */
+  ltxRefine?: boolean;
   /** Output frame rate fed to {{VIDEO_FPS}} at queue time. */
   fps?: number;
   hintSource?: import('./scene-hint-source').SceneHintSource;

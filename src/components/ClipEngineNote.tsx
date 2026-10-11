@@ -39,6 +39,9 @@ export default function ClipEngineNote({
   const [ltxDuo, setLtxDuo] = useState(
     () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxAdultDuo === true
   );
+  const [refine, setRefine] = useState(
+    () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxRefine === true
+  );
   // Says so here, before Animate fails, when this ComfyUI can't run the clip engine.
   const health = (
     <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
@@ -89,6 +92,23 @@ export default function ClipEngineNote({
           Use LTX-2.5 for two-person adult clips too (tuned for pace; Add sound gives them sound)
         </label>
       ) : null}
+      <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+        <input
+          type="checkbox"
+          checked={refine}
+          data-testid="clip-engine-ltx-refine"
+          onChange={event => {
+            const next = event.target.checked;
+            setRefine(next);
+            saveToolSettings('video', {
+              ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+              ltxRefine: next,
+            });
+          }}
+        />
+        Refine detail (crisper; about 2× slower and can shift the face a little — needs the
+        Refine-Details LoRA)
+      </label>
       {health}
     </>
   );

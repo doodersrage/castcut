@@ -337,6 +337,9 @@ export function resolveQueueParams(
   if (base?.videoStillHold === 'on') {
     merged.videoStillHold = 'on';
   }
+  if (base?.videoRefine === 'on') {
+    merged.videoRefine = 'on';
+  }
   if (base?.castcutPoseGuide?.trim()) {
     merged.castcutPoseGuide = base.castcutPoseGuide.trim();
   }

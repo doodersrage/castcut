@@ -32,6 +32,13 @@ export const LTX25_END_GUIDE_NODES = ['LTXVAddGuide', 'LTXVCropGuides'] as const
 
 /** Nodes a talking clip (LTX's own soundtrack decoded and muxed into an MP4) needs. */
 export const LTX25_SPEECH_NODES = ['LTXVAudioVAEDecode', 'CreateVideo', 'SaveVideo'] as const;
+/** Refine detail (Video `ltxRefine`): Lightricks' IC-LoRA, from the ComfyUI-LTXVideo pack. */
+export const LTX25_REFINE_LORA = 'ltx-2.5-22b-ic-lora-refine-details-1.0.safetensors';
+export const LTX25_REFINE_NODES = [
+  'LTXICLoRALoaderModelOnly',
+  'LTXAddVideoICLoRAGuide',
+  'LTXVCropGuides',
+] as const;
 
 /** Speaker-identity node (core ComfyUI, PR #13111): conditions the voice on a short sample. */
 export const LTX25_VOICE_NODE = 'LTXVReferenceAudio';
@@ -266,6 +273,12 @@ export function convertVideoWorkflowToLtx25(
      * (reverse-cowgirl and straddling stills, 2026-10-11).
      */
     stillHold?: number;
+    /**
+     * Refine detail: re-render the finished clip once more through Lightricks' Refine-Details
+     * IC-LoRA (this file), guided by its own frames — crisper texture, ~2.3× the time, and it can
+     * shift her face a little (2026-10-11). Not for talking clips.
+     */
+    refineLora?: string;
   } = {}
 ): Ltx25ConvertResult {
   const workflow = input as Workflow;
@@ -473,7 +486,79 @@ export function convertVideoWorkflowToLtx25(
   }
   if (endImage) addLtx25EndGuide(next, endImage);
   if (options.speech) addLtx25Speech(next, options.speech, prefix);
+  else if (options.refineLora?.trim()) addLtx25Refine(next, options.refineLora.trim(), seed);
   return { workflow: next, converted: true };
+}
+
+/**
+ * The refine stage: the decoded clip is the in-context guide for one more 8-step distilled pass
+ * at the same size on the Refine-Details IC-LoRA; the guide frames are cropped off and that
+ * result is what gets saved.
+ */
+function addLtx25Refine(next: Workflow, lora: string, seed: number): void {
+  const save = next['30']?.inputs;
+  const length = next['11']?.inputs?.length;
+  if (!save || !next['29'] || !next['7'] || !next['13']) return;
+  next['80'] = {
+    class_type: 'LTXICLoRALoaderModelOnly',
+    inputs: { model: ['1', 0], lora_name: lora, strength_model: 1 },
+  };
+  next['81'] = { class_type: 'GetImageSize', inputs: { image: ['29', 0] } };
+  next['82'] = {
+    class_type: 'EmptyLTXVLatentVideo',
+    inputs: { width: ['81', 0], height: ['81', 1], length, batch_size: 1 },
+  };
+  next['83'] = {
+    class_type: 'LTXAddVideoICLoRAGuide',
+    inputs: {
+      positive: ['7', 0],
+      negative: ['7', 1],
+      vae: ['3', 0],
+      latent: ['82', 0],
+      image: ['29', 0],
+      frame_idx: 0,
+      strength: 1,
+      latent_downscale_factor: 1,
+      crop: 'disabled',
+      use_tiled_encode: false,
+      tile_size: 256,
+      tile_overlap: 64,
+    },
+  };
+  next['84'] = {
+    class_type: 'LTXVConcatAVLatent',
+    inputs: { video_latent: ['83', 2], audio_latent: ['13', 0] },
+  };
+  next['85'] = {
+    class_type: 'CFGGuider',
+    inputs: { model: ['80', 0], positive: ['83', 0], negative: ['83', 1], cfg: 1 },
+  };
+  next['86'] = { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } };
+  next['87'] = {
+    class_type: 'ManualSigmas',
+    inputs: { sigmas: '1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0' },
+  };
+  next['88'] = { class_type: 'RandomNoise', inputs: { noise_seed: seed + 2 } };
+  next['89'] = {
+    class_type: 'SamplerCustomAdvanced',
+    inputs: {
+      noise: ['88', 0],
+      guider: ['85', 0],
+      sampler: ['86', 0],
+      sigmas: ['87', 0],
+      latent_image: ['84', 0],
+    },
+  };
+  next['90'] = { class_type: 'LTXVSeparateAVLatent', inputs: { av_latent: ['89', 0] } };
+  next['91'] = {
+    class_type: 'LTXVCropGuides',
+    inputs: { positive: ['83', 0], negative: ['83', 1], latent: ['90', 0] },
+  };
+  next['92'] = {
+    class_type: 'VAEDecodeTiled',
+    inputs: { ...next['29'].inputs, samples: ['91', 2] },
+  };
+  save.images = ['92', 0];
 }
 
 /**

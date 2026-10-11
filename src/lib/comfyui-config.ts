@@ -8,6 +8,8 @@ import {
   LTX25_FACE_RESTORE_NODE,
   LTX_PACED_STILL_HOLD,
   LTX_PACED_LONG_SIDE,
+  LTX25_REFINE_LORA,
+  LTX25_REFINE_NODES,
 } from './ltx25-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
@@ -230,6 +232,8 @@ export type WorkflowParamValues = {
   videoSpeech?: 'on';
   /** A two-person adult clip kept on LTX-2.5: tell LTX a lower frame rate (LTX_FAST_PACE_*). */
   videoStillHold?: 'on';
+  /** Refine detail on an LTX-2.5 clip (Video ltxRefine), when the LoRA and nodes are there. */
+  videoRefine?: 'on';
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -542,6 +546,9 @@ export function resolveQueueParams(
   }
   if (merged.videoStillHold === 'on') {
     result.videoStillHold = 'on';
+  }
+  if (merged.videoRefine === 'on') {
+    result.videoRefine = 'on';
   }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
@@ -1900,6 +1907,7 @@ export function injectPromptsWithFallbacks(
             : {}),
         // A two-person adult clip kept on LTX: holds the still harder (anatomy stays one shape).
         ...(input.params?.videoStillHold === 'on' ? { stillHold: LTX_PACED_STILL_HOLD } : {}),
+        ...ltx25RefineOption(input.params?.videoRefine, nodeTypes, options),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
           ? { endImage }
@@ -2225,6 +2233,20 @@ export function resolveWorkflowGraphEnrichOptions(runtime?: ComfyUiRuntimeConfig
         ? runtime?.workflowSharpenAfterUpscale !== false
         : runtime?.workflowSharpenAfterUpscale === true),
   };
+}
+
+/** Refine detail, only when this ComfyUI has the IC-LoRA and the LTXVideo pack's nodes. */
+function ltx25RefineOption(
+  refine: 'on' | undefined,
+  nodeTypes: Set<string> | null,
+  options: { availableLoras?: string[] | null } | undefined
+): { refineLora?: string } {
+  if (refine !== 'on') return {};
+  if (nodeTypes && !LTX25_REFINE_NODES.every(type => nodeTypes.has(type))) return {};
+  const lora = (options?.availableLoras ?? []).find(
+    name => name.split(/[\\/]/).pop() === LTX25_REFINE_LORA
+  );
+  return lora ? { refineLora: lora } : {};
 }
 
 /** Voice sample + ID-LoRA for a talking clip, each only when this ComfyUI has it. */

@@ -123,7 +123,12 @@ import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
-import { loadSettingsCache, loadToolSettings, saveSharedSettings } from '@/lib/settings-cache';
+import {
+  DEFAULT_VIDEO_TOOL_CACHE,
+  loadSettingsCache,
+  loadToolSettings,
+  saveSharedSettings,
+} from '@/lib/settings-cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
 
 const TOOL_ID = 'day' as const;
@@ -475,6 +480,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
               videoFrames: conversation ? 96 : speaking ? 80 : 64,
               ...(holdStill ? { videoStillHold: 'on' as const } : {}),
+              // Refine detail (Video ltxRefine): LTX clips without a line.
+              ...(!spokenLine &&
+              isLtx25Model(videoModel) &&
+              loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxRefine === true
+                ? { videoRefine: 'on' as const }
+                : {}),
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(speaking
