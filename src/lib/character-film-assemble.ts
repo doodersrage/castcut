@@ -3,7 +3,7 @@
  * (video-assemble.ts, shared) and keep the cut on the Cast.
  */
 
-import { prepareCutShots } from './film-cut-media';
+import { frameCutStills, prepareCutShots } from './film-cut-media';
 import type { FilmCutLength } from './film-cut-plan';
 import { filmDownloadFilename, type FilmPlaylistShot } from './media-kind';
 import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from './video-assemble';
@@ -28,6 +28,9 @@ export async function assembleAndStampFilm(input: {
   length?: FilmCutLength;
   /** Land still cuts on the music's beat. */
   beatSnap?: boolean;
+  /** Music bed / lines gain (server encode). */
+  musicLevel?: number;
+  voiceLevel?: number;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
   filename: string;
@@ -47,7 +50,10 @@ export async function assembleAndStampFilm(input: {
     titleCard: Boolean(input.titleCard?.title?.trim()),
     captions: input.captions,
   });
-  const assembled = await assembleFilmBlob(prepared.shots, {
+  // Waist-up / chest-up stills: cropped around the face before either encoder sees them.
+  const framed = await frameCutStills(prepared.shots);
+  if (framed.notes.length > 0) prepared.notes.push(...framed.notes);
+  const assembled = await assembleFilmBlob(framed.shots, {
     onProgress: input.onProgress,
     preferServer: input.preferServer,
     resolution: input.resolution,
@@ -56,6 +62,8 @@ export async function assembleAndStampFilm(input: {
     stillMotion: input.stillMotion,
     captions: input.captions,
     titleCard: input.titleCard,
+    musicLevel: input.musicLevel,
+    voiceLevel: input.voiceLevel,
   });
   const filename = filmDownloadFilename(input.characterName, assembled.extension);
   const stamped = await stampAssembledFilm({

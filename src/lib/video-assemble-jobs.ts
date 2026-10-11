@@ -104,6 +104,8 @@ export type StartFilmAssembleInput = {
   stillMotion?: boolean;
   captions?: boolean;
   titleCard?: FilmTitleCard | null;
+  musicLevel?: number;
+  voiceLevel?: number;
   requestOrigin?: string;
   userId?: string | null;
 };
@@ -152,6 +154,8 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         stillMotion: input.stillMotion === true,
         captions: input.captions === true,
         titleCard: normalizeFilmTitleCard(input.titleCard),
+        musicLevel: input.musicLevel,
+        voiceLevel: input.voiceLevel,
         userId: input.userId,
         onProgress: (ratio, label) => {
           const current = jobs.get(id);

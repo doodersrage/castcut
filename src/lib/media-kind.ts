@@ -63,6 +63,12 @@ export type FilmPlaylistShot = {
   key?: string;
   /** Caption when titles are on (default: `title`). */
   caption?: string;
+  /** Clips: play from this second (Cut shot list trim). */
+  trimStartSec?: number;
+  /** Clips: stop at this second of the clip (unset: its end). */
+  trimEndSec?: number;
+  /** Stills: closer framing, cropped around the face before the encode (Cut shot list). */
+  framing?: 'medium' | 'close';
 };
 
 export function isAssembledFilmEntry(

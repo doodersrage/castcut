@@ -1,5 +1,6 @@
 'use client';
 
+import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import Link from 'next/link';
 import ComfyUiGalleryPanel from '@/components/ComfyUiGalleryPanel';
 import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
@@ -64,7 +65,8 @@ export type SettingsDataTabProps = {
   updateSharedSettings: (patch: Partial<SharedToolSettings>) => void;
   backupReminder: string | null;
   reloadBrowserSettingsState: () => void;
-  handleImport: (file: File) => void | Promise<void>;
+  /** Unused since the guided restore (BackupRestoreFlow); kept for callers. */
+  handleImport?: (file: File) => void | Promise<void>;
   handleExportBackup: () => void;
   updateSettings: (patch: Partial<ComfyUiSettings>) => void;
   setStatus: (status: string | null) => void;
@@ -82,7 +84,6 @@ export default function SettingsDataTab({
   updateSharedSettings,
   backupReminder,
   reloadBrowserSettingsState,
-  handleImport,
   handleExportBackup,
   updateSettings,
   setStatus,
@@ -348,21 +349,13 @@ export default function SettingsDataTab({
           >
             Export backup
           </button>
-          <label className="cursor-pointer rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]">
-            Import backup
-            <input
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={event => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleImport(file);
-                }
-                event.target.value = '';
-              }}
-            />
-          </label>
+          <BackupRestoreFlow
+            label="Import backup"
+            testId="settings-backup-restore"
+            className="cursor-pointer rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-within:ring-2 focus-within:ring-[var(--accent-ring)]"
+            onRestored={setStatus}
+            onError={setStatus}
+          />
           <button
             type="button"
             onClick={() => {

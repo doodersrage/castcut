@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { normalizeFilmTitleCard } from '@/lib/video-polish';
+import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
@@ -44,6 +45,8 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
     const entryId = typeof record.entryId === 'string' ? record.entryId.trim() : undefined;
     // Edited in the Cut shot list — dropping it burned the shot title instead.
     const caption = typeof record.caption === 'string' ? record.caption.trim() : '';
+    const trimStartSec = positiveSec(record.trimStartSec);
+    const trimEndSec = positiveSec(record.trimEndSec);
     shots.push({
       url,
       title: title || 'shot',
@@ -51,9 +54,15 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
       ...(holdSec != null ? { holdSec } : {}),
       ...(entryId ? { entryId } : {}),
       ...(caption ? { caption } : {}),
+      ...(kind === 'clip' && trimStartSec != null ? { trimStartSec } : {}),
+      ...(kind === 'clip' && trimEndSec != null ? { trimEndSec } : {}),
     });
   }
   return shots;
+}
+
+function positiveSec(raw: unknown): number | undefined {
+  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : undefined;
 }
 
 export async function OPTIONS() {
@@ -121,6 +130,8 @@ export async function POST(request: Request) {
       stillMotion: body.stillMotion === true,
       captions: body.captions === true,
       titleCard: normalizeFilmTitleCard(body.titleCard),
+      musicLevel: normalizeMusicLevel(body.musicLevel),
+      voiceLevel: normalizeVoiceLevel(body.voiceLevel),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,
     });

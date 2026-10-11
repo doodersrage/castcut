@@ -26,6 +26,8 @@ import { applyCastLookPlateFromSource, ensureOutfitPlateAfterLook } from '@/lib/
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/comfyui-gallery';
+import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
+import { checkCutDelivery } from '@/lib/film-delivery-check-client';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
@@ -213,6 +215,9 @@ export function useDayPlannerToolOrchestration() {
   const { cutDayFilm: cutDayFilmNow } = part2;
   const { qualityLedger } = quality;
   const { filmCutOptions, stillsRef } = core;
+  // Delivery check (film-delivery-check.ts): the files themselves — missing, black, a talking
+  // clip with no sound — probed on the server while Cut says "Checking the shots…".
+  const [cutChecking, setCutChecking] = useState(false);
   const cutDayFilm = useCallback(async () => {
     const shots = applyCutShotEdits(
       dayWatchPlaylist(stillsRef.current, slots) as KeyedShot[],
@@ -230,8 +235,13 @@ export function useDayPlannerToolOrchestration() {
         ...checks,
       };
     });
-    if (problems.length > 0) {
-      setCutProblems(problems);
+    setCutChecking(true);
+    const delivery = await checkCutDelivery(shots, shot =>
+      Boolean(slots.find(slot => slot.id === shot.key)?.line?.trim())
+    ).finally(() => setCutChecking(false));
+    const all = mergeDeliveryProblems(problems, shots, delivery?.reasons);
+    if (all.length > 0) {
+      setCutProblems(all);
       return;
     }
     setCutProblems(null);
@@ -406,6 +416,7 @@ export function useDayPlannerToolOrchestration() {
     ...season,
     ...outfitScope,
     cutDayFilm,
+    cutChecking,
     cutProblems,
     resolveCutProblems,
     flaggedRetryCount,

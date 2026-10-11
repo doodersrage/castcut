@@ -49,6 +49,56 @@ describe('ffmpeg cut graph', () => {
     hasAudioBed: false,
   };
 
+  it('sets the music and the lines at their own levels', () => {
+    const { filter } = buildFilterComplex({
+      ...base,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [4],
+      speech: [true],
+      musicLevel: 0.6,
+      voiceLevel: 1.5,
+    });
+    assert.match(filter, /\[0:a\][^;]*volume=1\.5,adelay=/);
+    assert.match(filter, /\[1:a\][^;]*asetpts=PTS-STARTPTS,volume=0\.6/);
+    // As recorded: no volume filter at all.
+    const { filter: plain } = buildFilterComplex({
+      ...base,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [4],
+      speech: [true],
+    });
+    assert.doesNotMatch(plain, /volume=/);
+  });
+
+  it('plays only the trimmed piece of a clip, its sound cut the same way', () => {
+    const { filter } = buildFilterComplex({
+      ...base,
+      crossfadeSec: 0,
+      shotCount: 2,
+      kinds: ['still', 'clip'],
+      holdSecs: [3, 2.5],
+      speech: [false, true],
+      trimStarts: [null, 1.5],
+    });
+    assert.match(filter, /\[1:v\]trim=start=1\.500:end=4\.000,setpts=PTS-STARTPTS,scale=/);
+    assert.match(filter, /\[1:a\][^;]*atrim=1\.5:4,asetpts=PTS-STARTPTS,adelay=3000/);
+    // An untrimmed clip keeps its whole length.
+    const { filter: whole } = buildFilterComplex({
+      ...base,
+      crossfadeSec: 0,
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [4],
+    });
+    assert.doesNotMatch(whole, /trim=start/);
+  });
+
   it('ends every shot on a fixed frame rate so ffmpeg 7 xfade accepts it', () => {
     const { filter } = buildFilterComplex({
       ...base,

@@ -11,6 +11,7 @@ import {
   type FilmPlaylistShot,
 } from './character-film';
 import { TITLE_CARD_SEC } from './video-polish';
+import { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from './clip-trim';
 
 /** A shot with a stable key (Day slot id, Story beat id@at) the edits refer to. */
 export type KeyedShot = FilmPlaylistShot & { key: string };
@@ -22,13 +23,92 @@ export type CutShotEdit = {
   caption?: string;
   /** Still hold in seconds (ignored for clips; overridden by length fitting). */
   holdSec?: number;
+  /** Clips: start here (seconds into the clip). */
+  trimStartSec?: number;
+  /** Clips: end here (seconds into the clip; unset = the clip's end). */
+  trimEndSec?: number;
+  /** Stills: as shot (unset), waist up or chest up — a crop around the face. */
+  framing?: StillFraming;
 };
+
+/** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
+export type StillFraming = 'full' | 'medium' | 'close';
+
+/**
+ * Crop height in face heights (brow to chin): chest up matches the talking-clip crop, waist up
+ * about twice the face lower. Live, 2026-10-11: asking Edit 2511 for "a close-up from the chest
+ * up" / "the frame cuts off at her waist" on a seated vacation still kept her thighs in frame in
+ * all four renders — so a closer shot is a crop of the finished still.
+ */
+export const FRAMING_FACE_HEIGHTS: Record<'medium' | 'close', number> = {
+  medium: 7.5,
+  close: 4.2,
+};
+
+/** Smallest crop height in pixels (looser than asked when the face is tiny). */
+export const FRAMING_MIN_CROP_PX = 420;
+
+/**
+ * The 3:4 crop for a framing, or null when the still is already that close (the crop would
+ * keep most of it) — never upscaled past the still.
+ */
+export function framingCropRect(
+  width: number,
+  height: number,
+  face: { x: number; y: number; width: number; height: number },
+  framing: 'medium' | 'close'
+): { x: number; y: number; width: number; height: number } | null {
+  const w = Math.max(1, Math.floor(width));
+  const h = Math.max(1, Math.floor(height));
+  const faceH = Math.max(1, face.height);
+  // Never under 420 px tall: a 250 px chest-up crop of a full-body still is mush at 720p.
+  let cropH = Math.min(
+    h,
+    Math.max(FRAMING_MIN_CROP_PX, Math.round(faceH * FRAMING_FACE_HEIGHTS[framing]))
+  );
+  if (cropH >= h * 0.85) return null;
+  let cropW = Math.round(cropH * 0.75);
+  if (cropW > w) {
+    cropW = w;
+    cropH = Math.min(h, Math.round(cropW / 0.75));
+  }
+  const centerX = face.x + face.width / 2;
+  const x = Math.round(Math.min(Math.max(0, centerX - cropW / 2), w - cropW));
+  const y = Math.round(Math.min(Math.max(0, face.y - faceH * 0.9), h - cropH));
+  return { x, y, width: cropW, height: cropH };
+}
+
+export { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from './clip-trim';
 
 export type CutShotEdits = {
   /** Shot keys in the order the player set; unknown / new keys follow in natural order. */
   order?: string[];
   shots?: Record<string, CutShotEdit>;
+  /** The shot Save poster uses (a clip: the frame at `atSec`). Unset: the first still. */
+  poster?: { key: string; atSec?: number };
 };
+
+/** What Save poster should draw: a still, or one frame of a clip. */
+export type PosterPick = { imageUrl: string } | { videoUrl: string; timeSec: number };
+
+/**
+ * The poster the player picked in the shot list, if that shot is still in the cut. A clip's
+ * frame defaults to its trim's in point (else its first second).
+ */
+export function cutPosterPick(shots: KeyedShot[], edits?: CutShotEdits | null): PosterPick | null {
+  const pick = edits?.poster;
+  if (!pick) return null;
+  const shot = shots.find(entry => entry.key === pick.key);
+  if (!shot?.url?.trim()) return null;
+  if (shot.kind === 'still') return { imageUrl: shot.url };
+  const at =
+    typeof pick.atSec === 'number' && pick.atSec >= 0
+      ? pick.atSec
+      : shot.trimStartSec && shot.trimStartSec > 0
+        ? shot.trimStartSec
+        : 1;
+  return { videoUrl: shot.url, timeSec: Math.round(at * 10) / 10 };
+}
 
 /** How long the cut runs: as the shots hold, to the music track, or a set length. */
 export type FilmCutLength = 'shots' | 'music' | 15 | 30 | 60;
@@ -75,6 +155,7 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
     const edit = edits?.shots?.[shot.key];
     if (edit?.include === false) return [];
     const caption = edit?.caption?.trim();
+    const trim = shot.kind === 'clip' && edit && clipIsTrimmed(edit) ? clipTrimWindow(edit) : null;
     return [
       {
         ...shot,
@@ -82,6 +163,11 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
         ...(shot.kind === 'still' && typeof edit?.holdSec === 'number' && edit.holdSec > 0
           ? { holdSec: clampHold(edit.holdSec) }
           : {}),
+        ...(trim && trim.start > 0 ? { trimStartSec: trim.start } : {}),
+        ...(shot.kind === 'still' && (edit?.framing === 'medium' || edit?.framing === 'close')
+          ? { framing: edit.framing }
+          : {}),
+        ...(trim && trim.end != null ? { trimEndSec: trim.end } : {}),
       },
     ];
   });
@@ -101,10 +187,14 @@ function clampHold(value: number): number {
   return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(value * 10) / 10));
 }
 
-/** Seconds a shot occupies (clips: measured length, else their hold, else 4 s). */
+/** Seconds a shot occupies (clips: measured length, else their hold, else 4 s; less any trim). */
 export function shotSeconds(shot: FilmPlaylistShot, clipSec?: number | null): number {
   if (shot.kind === 'clip') {
-    return clipSec && clipSec > 0 ? clipSec : shot.holdSec && shot.holdSec > 0 ? shot.holdSec : 4;
+    const full =
+      clipSec && clipSec > 0 ? clipSec : shot.holdSec && shot.holdSec > 0 ? shot.holdSec : 4;
+    if (!clipIsTrimmed(shot)) return full;
+    const { start, end } = clipTrimWindow(shot, clipSec);
+    return Math.max(MIN_CLIP_TRIM_SEC, (end ?? full) - start);
   }
   return shot.holdSec && shot.holdSec > 0 ? shot.holdSec : DEFAULT_STILL_HOLD_SEC;
 }

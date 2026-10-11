@@ -29,7 +29,7 @@ import {
 } from '@/lib/character-film';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
 import { saveCharacterFilmCut } from '@/lib/play-cast';
-import { filmResolutionForCutOptions } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 import { remixDayFilmHref } from '@/lib/play-starter';
 import {
@@ -126,7 +126,9 @@ export default function CharacterFilmStudio({
   const latestFilmUrl = latestFilm ? galleryEntryPrimaryViewUrl(latestFilm) : null;
   const emptyCut = cut.items.length === 0 && playlist.length === 0;
   const cutOptionsSummary = [
-    filmCutOptions.vertical ? `${resolution} vertical` : resolution,
+    filmShapeOf(filmCutOptions) === 'wide'
+      ? resolution
+      : `${resolution} ${filmShapeOf(filmCutOptions)}`,
     `stills ${cut.stillHoldSec}s`,
     filmCutOptions.crossfadeSec > 0 ? `crossfade ${filmCutOptions.crossfadeSec}s` : '',
     filmCutOptions.stillMotion !== false ? 'slow zoom' : '',
@@ -445,10 +447,13 @@ export default function CharacterFilmStudio({
               lookId,
               resolution: filmResolutionForCutOptions({
                 vertical: filmCutOptions.vertical,
+                shape: filmCutOptions.shape,
                 quality: resolution,
               }),
               crossfadeSec: filmCutOptions.crossfadeSec,
               audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+              musicLevel: filmCutOptions.musicLevel,
+              voiceLevel: filmCutOptions.voiceLevel,
               stillMotion: filmCutOptions.stillMotion !== false,
               captions: filmCutOptions.titles === true,
               titleCard: filmCutOptions.titles ? { title: characterName } : null,
@@ -499,6 +504,7 @@ export default function CharacterFilmStudio({
               parentGalleryEntryId: lastFilmEntryId,
               resolution: filmResolutionForCutOptions({
                 vertical: filmCutOptions.vertical,
+                shape: filmCutOptions.shape,
                 quality: resolution,
               }),
               titleCard: filmCutOptions.titles ? { title: characterName } : null,

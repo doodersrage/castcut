@@ -13,12 +13,30 @@ import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film-audio-bed';
 import { estimateCutSeconds, requestFilmScore, type FilmScoreBrief } from '@/lib/film-score';
+import type { IdentityMark } from '@/lib/identity-mark';
+import {
+  mixLevelsSummary,
+  MUSIC_LEVEL_RANGE,
+  normalizeMusicLevel,
+  normalizeVoiceLevel,
+  VOICE_LEVEL_RANGE,
+} from '@/lib/audio-mix-levels';
+import {
+  FILM_SHAPES,
+  filmShapeOf,
+  normalizeFilmShape,
+  type FilmShape,
+} from '@/lib/video-resolution';
 
 export type FilmCutOptionsValue = {
   crossfadeSec: number;
   audioBedUrl: string;
-  /** Export a 9:16 vertical cut (Shorts / Reels / Stories) instead of landscape. */
+  /** Older toggle: a 9:16 vertical cut. Read when no `shape` was picked (filmShapeOf). */
   vertical?: boolean;
+  /** Frame shape: widescreen 16:9, vertical 9:16 or square 1:1. */
+  shape?: FilmShape;
+  /** Output size: 720p (default) or 1080p. */
+  quality?: '720p' | '1080p';
   /** Display name after a local upload (optional). */
   audioBedName?: string;
   /** Slow push-in / pull-out on stills (default on — a static hold reads as a slideshow). */
@@ -31,6 +49,10 @@ export type FilmCutOptionsValue = {
   beatSnap?: boolean;
   /** Day / Story shot list: order, leave-outs, captions, holds. */
   shotEdits?: CutShotEdits;
+  /** Music bed gain, 0–1.5 (1 = as recorded). */
+  musicLevel?: number;
+  /** Talking clips' lines gain, 0.5–2 (1 = as recorded). */
+  voiceLevel?: number;
 };
 
 /** Cut option defaults shared by Day, Story and Cast film. */
@@ -50,9 +72,11 @@ type FilmCutOptionsControlsProps = {
   shots?: KeyedShot[];
   /** Day mood / theme or Story tone — offers "Score this film" (an original track, ACE-Step). */
   scoreBrief?: FilmScoreBrief;
+  /** Face match mark per shot in the shot list (identity-mark.ts). */
+  identityFor?: (shot: KeyedShot) => IdentityMark | null;
 };
 
-/** Crossfade, vertical export, and audio bed for Day/Story/Cast Cut (upload or URL). */
+/** Crossfade, shape and size, and audio bed for Day/Story/Cast Cut (upload or URL). */
 export default function FilmCutOptionsControls({
   value,
   onChange,
@@ -60,6 +84,7 @@ export default function FilmCutOptionsControls({
   testIdPrefix = 'film-cut',
   shots,
   scoreBrief,
+  identityFor,
 }: FilmCutOptionsControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [scoring, setScoring] = useState(false);
@@ -114,14 +139,38 @@ export default function FilmCutOptionsControls({
           <span>s</span>
         </label>
         <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
+          <span>Shape</span>
+          <select
             disabled={disabled}
-            checked={value.vertical === true}
-            onChange={event => onChange({ ...value, vertical: event.target.checked })}
-            data-testid={`${testIdPrefix}-vertical`}
-          />
-          <span>Vertical 9:16</span>
+            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            value={filmShapeOf(value)}
+            onChange={event => {
+              const shape = normalizeFilmShape(event.target.value);
+              onChange({ ...value, shape, vertical: shape === 'vertical' });
+            }}
+            data-testid={`${testIdPrefix}-shape`}
+          >
+            {FILM_SHAPES.map(shape => (
+              <option key={shape.id} value={shape.id}>
+                {shape.label} · {shape.hint}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <span>Size</span>
+          <select
+            disabled={disabled}
+            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            value={value.quality === '1080p' ? '1080p' : '720p'}
+            onChange={event =>
+              onChange({ ...value, quality: event.target.value === '1080p' ? '1080p' : '720p' })
+            }
+            data-testid={`${testIdPrefix}-quality`}
+          >
+            <option value="720p">720p · smaller file</option>
+            <option value="1080p">1080p · sharper</option>
+          </select>
         </label>
         <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
           <input
@@ -199,6 +248,7 @@ export default function FilmCutOptionsControls({
           disabled={disabled}
           testIdPrefix={testIdPrefix}
           onChange={shotEdits => onChange({ ...value, shotEdits })}
+          identityFor={identityFor}
         />
       ) : null}
 
@@ -298,6 +348,14 @@ export default function FilmCutOptionsControls({
             {uploadError}
           </p>
         ) : null}
+        <SoundMixControls
+          value={value}
+          onChange={onChange}
+          disabled={disabled || uploadBusy}
+          hasBed={hasBed}
+          hasLines={Boolean(shots?.some(shot => shot.kind === 'clip'))}
+          testIdPrefix={testIdPrefix}
+        />
         <label className="flex flex-col gap-1">
           <span className="type-caption text-[var(--text-muted)]">Or paste a URL</span>
           <input
@@ -324,7 +382,9 @@ export default function FilmCutOptionsControls({
 /** One-line summary of the non-default cut options, e.g. "slow zoom · crossfade 0.5s · titles". */
 export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
   const parts = [
-    value.vertical ? 'vertical 9:16' : '',
+    filmShapeOf(value) === 'vertical' ? 'vertical 9:16' : '',
+    filmShapeOf(value) === 'square' ? 'square 1:1' : '',
+    value.quality === '1080p' ? '1080p' : '',
     value.crossfadeSec > 0 ? `crossfade ${value.crossfadeSec}s` : '',
     value.stillMotion !== false ? 'slow zoom' : 'no zoom',
     value.titles ? 'titles' : '',
@@ -338,6 +398,18 @@ export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
     Object.values(value.shotEdits?.shots ?? {}).some(edit => edit.include === false)
       ? 'shots left out'
       : '',
+    Object.values(value.shotEdits?.shots ?? {}).some(
+      edit => (edit.trimStartSec ?? 0) > 0 || (edit.trimEndSec ?? 0) > 0
+    )
+      ? 'clips trimmed'
+      : '',
+    value.shotEdits?.poster ? 'poster picked' : '',
+    Object.values(value.shotEdits?.shots ?? {}).some(
+      edit => edit.framing === 'medium' || edit.framing === 'close'
+    )
+      ? 'stills framed'
+      : '',
+    mixLevelsSummary(value.musicLevel, value.voiceLevel),
   ].filter(Boolean);
   return parts.join(' · ');
 }
@@ -353,6 +425,7 @@ export function FilmCutOptionsDisclosure({
   testIdPrefix = 'film-cut',
   shots,
   scoreBrief,
+  identityFor,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -370,8 +443,89 @@ export function FilmCutOptionsDisclosure({
           testIdPrefix={testIdPrefix}
           shots={shots}
           scoreBrief={scoreBrief}
+          identityFor={identityFor}
         />
       </div>
     </details>
+  );
+}
+
+/**
+ * Sound mix: how loud the music bed and the talking clips' lines sit (the music still ducks
+ * under every line). The server encode mixes sound; the browser fallback cuts picture only.
+ */
+function SoundMixControls({
+  value,
+  onChange,
+  disabled,
+  hasBed,
+  hasLines,
+  testIdPrefix,
+}: {
+  value: FilmCutOptionsValue;
+  onChange: (next: FilmCutOptionsValue) => void;
+  disabled: boolean;
+  hasBed: boolean;
+  hasLines: boolean;
+  testIdPrefix: string;
+}) {
+  if (!hasBed && !hasLines) return null;
+  const music = normalizeMusicLevel(value.musicLevel);
+  const voice = normalizeVoiceLevel(value.voiceLevel);
+  const slider =
+    'h-2 w-32 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50';
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-4 gap-y-1"
+      data-testid={`${testIdPrefix}-mix`}
+    >
+      {hasBed ? (
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <span>Music</span>
+          <input
+            type="range"
+            min={MUSIC_LEVEL_RANGE.min}
+            max={MUSIC_LEVEL_RANGE.max}
+            step={0.05}
+            disabled={disabled}
+            className={slider}
+            value={music}
+            aria-valuetext={`${Math.round(music * 100)}%`}
+            onChange={event => onChange({ ...value, musicLevel: Number(event.target.value) })}
+            data-testid={`${testIdPrefix}-music-level`}
+          />
+          <span className="w-10 tabular-nums">{Math.round(music * 100)}%</span>
+        </label>
+      ) : null}
+      {hasLines ? (
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <span>Lines</span>
+          <input
+            type="range"
+            min={VOICE_LEVEL_RANGE.min}
+            max={VOICE_LEVEL_RANGE.max}
+            step={0.05}
+            disabled={disabled}
+            className={slider}
+            value={voice}
+            aria-valuetext={`${Math.round(voice * 100)}%`}
+            onChange={event => onChange({ ...value, voiceLevel: Number(event.target.value) })}
+            data-testid={`${testIdPrefix}-voice-level`}
+          />
+          <span className="w-10 tabular-nums">{Math.round(voice * 100)}%</span>
+        </label>
+      ) : null}
+      {music !== 1 || voice !== 1 ? (
+        <button
+          type="button"
+          className="type-caption text-[var(--text-muted)] underline-offset-2 hover:underline"
+          disabled={disabled}
+          onClick={() => onChange({ ...value, musicLevel: undefined, voiceLevel: undefined })}
+          data-testid={`${testIdPrefix}-mix-reset`}
+        >
+          Reset levels
+        </button>
+      ) : null}
+    </div>
   );
 }

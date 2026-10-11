@@ -1,5 +1,14 @@
 'use client';
 
+import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
+import { dayContinuityLocks } from '@/lib/day-continuity-locks';
+import {
+  useDayCutReadiness,
+  useDayPlannerBatchPlan,
+  useDayShotIdentity,
+} from '@/hooks/useDayPlannerShotIdentity';
+import CutReadinessNotes from '@/components/CutReadinessNotes';
+import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
@@ -241,6 +250,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     reposeEndPose,
     cutDayFilm,
     cutProblems,
+    cutChecking,
     resolveCutProblems,
     saveFilmToCast,
     goRoleplay,
@@ -358,6 +368,20 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     campaignCompleted: firstCutCelebrate || firstFilmDone,
     slotCount: slots.length,
   });
+  const batchPlan = useDayPlannerBatchPlan({
+    slots,
+    stills,
+    model: shared.model,
+  });
+  const cutReadiness = useDayCutReadiness({
+    slots,
+    stills,
+    shotKeys: applyCutShotEdits(watchPlaylist as KeyedShot[], filmCutOptions.shotEdits).map(
+      shot => shot.key
+    ),
+    reviewOn: autoReviewStills,
+  });
+  const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
     : '/gallery';
@@ -740,6 +764,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     ? 'Cut with what you have, or wait for the rest of the day.'
                     : 'All stills ready — cut the reel.'}
                 </p>
+                <CutReadinessNotes
+                  coverage={cutReadiness.coverage}
+                  notes={cutReadiness.notes}
+                  testId="day-cut-readiness"
+                />
                 <div className="mt-2">
                   <FilmCutOptionsDisclosure
                     scoreBrief={{ mood: dayMood }}
@@ -748,6 +777,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     disabled={assemblingFilm}
                     testIdPrefix="day-cut"
                     shots={watchPlaylist as KeyedShot[]}
+                    identityFor={shotIdentity}
                   />
                 </div>
               </div>
@@ -755,7 +785,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 <Button
                   size="sm"
                   variant="primary"
-                  disabled={busy || assemblingFilm}
+                  disabled={busy || assemblingFilm || cutChecking}
+                  loading={cutChecking}
+                  loadingLabel="Checking the shots"
                   data-testid="day-cut-coach-cut"
                   onClick={() => void cutDayFilm()}
                 >
@@ -820,6 +852,20 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             advancedId={advancedId}
           />
           <div className="mb-3 space-y-1.5">
+            <DayContinuityLocks
+              locks={dayContinuityLocks({
+                cast: character,
+                hasPlate,
+                faceFinish,
+                clothing: {
+                  summary: clothingView.day.summary,
+                  set: Boolean(shared.lockedWardrobeId?.trim() || hasCustomGarment),
+                },
+                differingSlots: differingSlotIds.length,
+                slots,
+                weather: dayWeather,
+              })}
+            />
             <DayOutfitRow
               character={character}
               slots={slots}
@@ -901,6 +947,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             />
           ) : null}
           <DaySlotBoard
+            castName={character?.name}
             slots={slots}
             stills={stills}
             activeSlotId={activeSlotId}
@@ -996,6 +1043,21 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               </Button>
             ) : null}
           </ToolActionRow>
+          {/* How long the batch buttons would take here, behind what is queued (day-batch-plan). */}
+          {(batchPlan.queueLine && !queueBlocked) || (batchPlan.animateLine && canAnimateAll) ? (
+            <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-batch-plan">
+              {[
+                batchPlan.queueLine && !queueBlocked
+                  ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
+                  : '',
+                batchPlan.animateLine && canAnimateAll
+                  ? `Animate all: ${batchPlan.animateLine}`
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' — ')}
+            </p>
+          ) : null}
           {animateFilesMissing && canAnimateAll && !renderOffline ? (
             <p
               className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
@@ -1061,7 +1123,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 <Button
                   size="sm"
                   variant="primary"
-                  disabled={busy || assemblingFilm || completedShotCount === 0}
+                  disabled={busy || assemblingFilm || cutChecking || completedShotCount === 0}
+                  loading={cutChecking}
+                  loadingLabel="Checking the shots"
                   onClick={() => void cutDayFilm()}
                   data-testid="day-reel-cut"
                 >

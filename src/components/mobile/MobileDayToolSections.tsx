@@ -1,5 +1,10 @@
 'use client';
 
+import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
+import { dayContinuityLocks } from '@/lib/day-continuity-locks';
+import { useDayCutReadiness, useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
+import CutReadinessNotes from '@/components/CutReadinessNotes';
+import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
@@ -229,6 +234,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     reposeEndPose,
     cutDayFilm,
     cutProblems,
+    cutChecking,
     resolveCutProblems,
     saveFilmToCast,
     completedShotCount,
@@ -344,6 +350,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
     campaignCompleted: firstCutCelebrate || firstFilmDone,
     slotCount: slots.length,
   });
+  const cutReadiness = useDayCutReadiness({
+    slots,
+    stills,
+    shotKeys: applyCutShotEdits(watchPlaylist as KeyedShot[], filmCutOptions.shotEdits).map(
+      shot => shot.key
+    ),
+    reviewOn: autoReviewStills,
+  });
+  const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? toMobileStudioHref(`/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`)
     : toMobileStudioHref('/gallery');
@@ -693,6 +708,11 @@ export default function MobileDayToolSections(vm: ViewModel) {
               ? 'Cut with what you have, or wait for the rest.'
               : 'All stills ready — cut the reel.'}
           </p>
+          <CutReadinessNotes
+            coverage={cutReadiness.coverage}
+            notes={cutReadiness.notes}
+            testId="mobile-day-cut-readiness"
+          />
           <div className="mt-3 grid gap-2">
             {/* Same cut options as desk Day (vertical, crossfade, titles, length, music). */}
             <FilmCutOptionsDisclosure
@@ -702,11 +722,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
               disabled={assemblingFilm}
               testIdPrefix="mobile-day-cut"
               shots={watchPlaylist as KeyedShot[]}
+              identityFor={shotIdentity}
             />
             <PrimaryButton
-              disabled={busy || assemblingFilm}
-              loading={assemblingFilm}
-              loadingLabel="Cutting film"
+              disabled={busy || assemblingFilm || cutChecking}
+              loading={assemblingFilm || cutChecking}
+              loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
               className="w-full justify-center"
               data-testid="day-cut-coach-cut"
               onClick={() => void cutDayFilm()}
@@ -765,6 +786,20 @@ export default function MobileDayToolSections(vm: ViewModel) {
           advancedOpen={advancedOpen}
           onAdvancedToggle={() => setAdvancedOpen(open => !open)}
           advancedId={advancedId}
+        />
+        <DayContinuityLocks
+          locks={dayContinuityLocks({
+            cast: character,
+            hasPlate,
+            faceFinish,
+            clothing: {
+              summary: clothingView.day.summary,
+              set: Boolean(shared.lockedWardrobeId?.trim() || hasCustomGarment),
+            },
+            differingSlots: differingSlotIds.length,
+            slots,
+            weather: dayWeather,
+          })}
         />
         <DayOutfitRow
           character={character}
@@ -845,6 +880,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           />
         ) : null}
         <DaySlotBoard
+          castName={character?.name}
           slots={slots}
           stills={stills}
           activeSlotId={activeSlotId}
@@ -981,9 +1017,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
           <div className="grid gap-2">
             {!showCutCoach ? (
               <PrimaryButton
-                disabled={busy || assemblingFilm || completedShotCount === 0}
-                loading={assemblingFilm}
-                loadingLabel="Cutting film"
+                disabled={busy || assemblingFilm || cutChecking || completedShotCount === 0}
+                loading={assemblingFilm || cutChecking}
+                loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
                 onClick={() => void cutDayFilm()}
                 className="w-full justify-center"
                 data-testid="mobile-day-cut"

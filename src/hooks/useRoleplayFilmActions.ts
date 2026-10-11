@@ -1,7 +1,10 @@
 'use client';
 
+import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
+import { checkCutDelivery } from '@/lib/film-delivery-check-client';
 import {
   applyCutShotEdits,
+  cutPosterPick,
   cutShotProblems,
   type CutShotProblem,
   type KeyedShot,
@@ -61,6 +64,7 @@ export function useRoleplayFilmActions(input: {
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
 
   const [cutProblems, setCutProblems] = useState<CutShotProblem[] | null>(null);
+  const [cutChecking, setCutChecking] = useState(false);
 
   const cutRoleplayFilm = useCallback(
     async (options?: { excludeKeys?: string[]; skipCheck?: boolean }) => {
@@ -100,8 +104,14 @@ export function useRoleplayFilmActions(input: {
             ...(face?.miss ? { faceMiss: true, face: beat.faceMatch?.similarity } : {}),
           };
         });
-        if (problems.length > 0) {
-          setCutProblems(problems);
+        // Delivery check: missing files, black frames, a talking clip with no sound.
+        setCutChecking(true);
+        const delivery = await checkCutDelivery(shots, shot =>
+          Boolean(byKey.get(shot.key)?.line?.trim())
+        ).finally(() => setCutChecking(false));
+        const all = mergeDeliveryProblems(problems, shots, delivery?.reasons);
+        if (all.length > 0) {
+          setCutProblems(all);
           return;
         }
       }
@@ -138,8 +148,10 @@ export function useRoleplayFilmActions(input: {
           characterName: name,
           lookId: character?.activeLookId,
           crossfadeSec: filmCutOptions.crossfadeSec,
-          resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+          resolution: filmResolutionForCutOptions(filmCutOptions),
           audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+          musicLevel: filmCutOptions.musicLevel,
+          voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
           titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
@@ -272,8 +284,15 @@ export function useRoleplayFilmActions(input: {
 
   /** Save a poster frame from the first completed Story still, matching the cut's aspect. */
   const saveFilmPoster = useCallback(async () => {
-    const posterUrl = pickPosterShotUrl(roleplayWatchPlaylist(input.storyRef.current));
-    if (!posterUrl) {
+    // The shot picked as poster in the shot list (a clip: one of its frames), else a still.
+    const playlist = roleplayWatchPlaylist(input.storyRef.current) as KeyedShot[];
+    const picked = cutPosterPick(
+      applyCutShotEdits(playlist, filmCutOptions.shotEdits),
+      filmCutOptions.shotEdits
+    );
+    const posterUrl =
+      picked && 'imageUrl' in picked ? picked.imageUrl : pickPosterShotUrl(playlist);
+    if (!posterUrl && !picked) {
       setError('Queue and wait for a completed still before saving a poster.');
       return;
     }
@@ -283,11 +302,13 @@ export function useRoleplayFilmActions(input: {
     setFilmStatus('Rendering poster…');
     try {
       const poster = await exportFilmPoster({
-        imageUrl: posterUrl,
+        ...(picked && 'videoUrl' in picked
+          ? { videoFrame: { url: picked.videoUrl, timeSec: picked.timeSec } }
+          : { imageUrl: posterUrl ?? undefined }),
         characterName: name,
         characterId: filmCharacterId ?? undefined,
         parentGalleryEntryId: lastFilmEntryRef.current,
-        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+        resolution: filmResolutionForCutOptions(filmCutOptions),
         titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
       });
       downloadFilmBlob(poster.blob, poster.filename);
@@ -304,8 +325,7 @@ export function useRoleplayFilmActions(input: {
     }
   }, [
     filmCharacterId,
-    filmCutOptions.titles,
-    filmCutOptions.vertical,
+    filmCutOptions,
     input.bioName,
     input.storyRef,
     input.toolSettings.characterName,
@@ -348,6 +368,7 @@ export function useRoleplayFilmActions(input: {
     clearFirstCutCelebrate: () => setFirstCutCelebrate(false),
     cutRoleplayFilm,
     cutProblems,
+    cutChecking,
     resolveCutProblems,
     saveFilmToCast,
     shareLastCut,

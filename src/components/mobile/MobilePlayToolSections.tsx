@@ -1,5 +1,6 @@
 'use client';
 
+import { storyShotIdentity } from '@/lib/identity-mark';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
@@ -96,6 +97,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     clearFirstCutCelebrate,
     cutRoleplayFilm,
     cutProblems,
+    cutChecking,
     resolveCutProblems,
     saveFilmToCast,
     shareLastCut,
@@ -713,13 +715,14 @@ export default function MobilePlayToolSections({ description: _description, ...v
             disabled={assemblingFilm}
             testIdPrefix="mobile-story-cut"
             shots={roleplayWatchPlaylist(story) as KeyedShot[]}
+            identityFor={storyShotIdentity(story)}
           />
         ) : null}
         {!firstCutCelebrate ? (
           <PrimaryButton
-            loading={assemblingFilm}
-            loadingLabel="Cutting film"
-            disabled={story.length === 0 || assemblingFilm || bioLoading}
+            loading={assemblingFilm || cutChecking}
+            loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
+            disabled={story.length === 0 || assemblingFilm || cutChecking || bioLoading}
             onClick={() => void cutRoleplayFilm()}
             className="w-full justify-center"
             data-testid="mobile-play-cut"

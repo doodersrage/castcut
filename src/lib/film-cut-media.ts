@@ -6,9 +6,11 @@
 import {
   estimateTempoBpm,
   fitHoldsToLength,
+  framingCropRect,
   snapHoldsToBeat,
   type FilmCutLength,
 } from './film-cut-plan';
+import { locateFaceOnPlateBlob } from './face-locate-client';
 import type { FilmPlaylistShot } from './character-film';
 
 const PROBE_TIMEOUT_MS = 8_000;
@@ -124,4 +126,70 @@ export async function prepareCutShots(
     }
   }
   return { shots: next, notes };
+}
+
+/**
+ * Stills with a closer framing (waist up / chest up) become a crop around the face, as a JPEG
+ * data URL both encoders read. A still whose face can't be found, or that is already that close,
+ * stays as shot (named in the notes).
+ */
+export async function frameCutStills(
+  shots: FilmPlaylistShot[]
+): Promise<{ shots: FilmPlaylistShot[]; notes: string[] }> {
+  if (typeof document === 'undefined' || !shots.some(shot => shot.framing)) {
+    return { shots, notes: [] };
+  }
+  const notes: string[] = [];
+  const out: FilmPlaylistShot[] = [];
+  for (const shot of shots) {
+    if (shot.kind !== 'still' || !shot.framing) {
+      out.push(shot);
+      continue;
+    }
+    const framed = await cropStillToFraming(shot.url, shot.framing).catch(() => null);
+    if (framed === 'already') {
+      out.push(shot);
+    } else if (framed) {
+      out.push({ ...shot, url: framed });
+    } else {
+      notes.push(`${shot.title}: no face found — kept as shot`);
+      out.push(shot);
+    }
+  }
+  return { shots: out, notes };
+}
+
+async function cropStillToFraming(
+  url: string,
+  framing: 'medium' | 'close'
+): Promise<string | 'already' | null> {
+  const response = await fetch(url, { credentials: 'same-origin' });
+  if (!response.ok) return null;
+  const blob = await response.blob();
+  const located = await locateFaceOnPlateBlob(blob);
+  if (!located?.available || !located.face) return null;
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const rect = framingCropRect(bitmap.width, bitmap.height, located.face, framing);
+    if (!rect) return 'already';
+    const canvas = document.createElement('canvas');
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.drawImage(
+      bitmap,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      0,
+      0,
+      rect.width,
+      rect.height
+    );
+    return canvas.toDataURL('image/jpeg', 0.92);
+  } finally {
+    bitmap.close();
+  }
 }

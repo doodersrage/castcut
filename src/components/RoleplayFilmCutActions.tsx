@@ -1,5 +1,7 @@
 'use client';
 
+import CutReadinessNotes from '@/components/CutReadinessNotes';
+import type { IdentityMark } from '@/lib/identity-mark';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
@@ -14,6 +16,8 @@ import { remixDayFilmHref } from '@/lib/play-starter';
 
 export type RoleplayFilmCutActionsProps = {
   assemblingFilm: boolean;
+  /** The delivery check is probing the shots before the cut. */
+  cutChecking?: boolean;
   busy: boolean;
   storyEmpty: boolean;
   filmNeedsCast: boolean;
@@ -33,12 +37,17 @@ export type RoleplayFilmCutActionsProps = {
   posterBusy?: boolean;
   /** Shots the cut would use — shows the shot list under Cut options. */
   cutShots?: KeyedShot[];
+  /** Which checks have run on the shots going in (film-delivery-check.ts). */
+  checksCoverage?: string;
+  /** Face match mark per shot in the Cut shot list. */
+  shotIdentity?: (shot: KeyedShot) => IdentityMark | null;
   /** Optional leading controls (e.g. Download story) kept in the same flex row. */
   children?: ReactNode;
 };
 
 export default function RoleplayFilmCutActions({
   assemblingFilm,
+  cutChecking = false,
   busy,
   storyEmpty,
   filmNeedsCast,
@@ -56,6 +65,8 @@ export default function RoleplayFilmCutActions({
   onSavePoster,
   posterBusy = false,
   cutShots,
+  shotIdentity,
+  checksCoverage,
   children,
 }: RoleplayFilmCutActionsProps) {
   const showPostCut = Boolean(
@@ -73,15 +84,19 @@ export default function RoleplayFilmCutActions({
             disabled={assemblingFilm}
             testIdPrefix="story-cut"
             shots={cutShots}
+            identityFor={shotIdentity}
           />
         </div>
+      ) : null}
+      {checksCoverage && !storyEmpty ? (
+        <CutReadinessNotes coverage={checksCoverage} testId="story-cut-readiness" />
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Button
           variant="primary"
-          loading={assemblingFilm}
-          loadingLabel="Cutting film"
-          disabled={storyEmpty || (busy && !assemblingFilm)}
+          loading={assemblingFilm || cutChecking}
+          loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
+          disabled={storyEmpty || cutChecking || (busy && !assemblingFilm)}
           onClick={onCutFilm}
         >
           Cut film

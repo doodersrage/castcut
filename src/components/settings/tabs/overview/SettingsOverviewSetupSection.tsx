@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
@@ -20,7 +22,8 @@ type Props = {
   slimSettings?: boolean;
   onOpenComfyUiSection?: (section: ComfyUiSettingsSectionId) => void;
   onShowAllSettings?: () => void;
-  handleImport: (file: File) => void | Promise<void>;
+  /** Unused since the guided restore (BackupRestoreFlow); kept for callers. */
+  handleImport?: (file: File) => void | Promise<void>;
   handleExportBackup: () => void;
 };
 
@@ -32,9 +35,9 @@ export function SettingsOverviewSetupSection({
   slimSettings = false,
   onOpenComfyUiSection,
   onShowAllSettings,
-  handleImport,
   handleExportBackup,
 }: Props) {
+  const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   return (
     <ToolSection title="Get set up">
       <div className="mb-4 rounded-[var(--radius-xl)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 shadow-[var(--shadow-surface)]">
@@ -150,23 +153,20 @@ export function SettingsOverviewSetupSection({
             <Button size="sm" variant="secondary" onClick={handleExportBackup}>
               Export backup
             </Button>
-            <label className="ui-btn ui-btn-ghost ui-btn-sm cursor-pointer">
-              Import backup
-              <input
-                type="file"
-                accept="application/json,.json"
-                className="sr-only"
-                onChange={event => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void handleImport(file);
-                  }
-                  event.target.value = '';
-                }}
-              />
-            </label>
+            <BackupRestoreFlow
+              label="Import backup"
+              testId="settings-overview-backup-restore"
+              className="ui-btn ui-btn-ghost ui-btn-sm cursor-pointer"
+              onRestored={setRestoreStatus}
+              onError={setRestoreStatus}
+            />
           </div>
         </div>
+        {restoreStatus ? (
+          <p className="type-caption mt-2 text-[var(--text-secondary)]" role="status">
+            {restoreStatus}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

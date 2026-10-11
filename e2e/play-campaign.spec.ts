@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
-import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { putAppKv, replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { closeDaySheets, openDayAdvanced, openDaySetup, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { closeOutfitSheets, openOutfitAdvanced, openOutfitClothing } from './helpers/outfit';
@@ -2143,6 +2143,146 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
   await expect(dialog).toBeVisible({ timeout: 20_000 });
   await expect(dialog.getByTestId('cut-problem-morning')).toContainText('missed its pose (31%)');
   await expect(dialog.getByTestId('cut-problems-leave-out')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});
+
+test('day cut: face marks, what the cut leaves out, shape, clip trim, and a missing file', async ({
+  page,
+}) => {
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-day-deliver' },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-day-deliver',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          {
+            id: 'afternoon',
+            label: 'Afternoon',
+            location: 'park',
+            sceneHints: 'reads on a bench',
+            line: 'What a day.',
+          },
+          { id: 'evening', label: 'Evening', location: 'rooftop', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'e2e-dl-m' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'e2e-dl-a' },
+          { slotId: 'evening', status: 'error', promptId: 'e2e-dl-e' },
+          {
+            slotId: 'night',
+            status: 'completed',
+            imageUrl: thumb,
+            promptId: 'e2e-dl-n',
+            clipStatus: 'completed',
+            clipUrl: '/e2e-missing/night-clip.mp4',
+            clipPromptId: 'e2e-dl-n-clip',
+          },
+        ],
+      },
+    },
+  });
+  await page.addInitScript(() => {
+    const now = Date.now();
+    window.localStorage.setItem(
+      'comfy-prompt-characters-v1',
+      JSON.stringify({
+        version: 1,
+        characters: [{ id: 'e2e-day-deliver', name: 'Mira', version: 1, updatedAt: now }],
+        removedIds: [],
+      })
+    );
+  });
+  // The file check: the night clip is gone.
+  let checked: Array<{ key: string; expectSpeech?: boolean }> = [];
+  await page.route('**/api/film/check', async route => {
+    checked = (route.request().postDataJSON() as { shots: typeof checked }).shots;
+    await route.fulfill({
+      json: {
+        ok: true,
+        ffmpeg: true,
+        results: checked.map(shot =>
+          shot.key === 'night' ? { key: 'night', missing: 'not found' } : { key: shot.key }
+        ),
+      },
+    });
+  });
+  await gotoStable(page, '/day?character=e2e-day-deliver');
+  // The stills' face checks live on their gallery entries (the IndexedDB gallery store).
+  const now = Date.now();
+  const entry = (id: string, face: number) => ({
+    id,
+    promptId: id,
+    prompt: `${id} still`,
+    tool: 'day',
+    comfyUrl: 'http://127.0.0.1:8188',
+    status: 'completed',
+    queuedAt: now,
+    completedAt: now,
+    images: [{ filename: `${id}.png`, subfolder: '', type: 'output' }],
+    playChecks: { face, faceMiss: face < 0.4, at: now },
+  });
+  await replaceGalleryIdb(page, [entry('e2e-dl-m', 0.72), entry('e2e-dl-a', 0.2)]);
+  await gotoStable(page, '/day?character=e2e-day-deliver');
+  await dismissBlockingOverlays(page);
+  // What the Day holds the same, and how long the batch buttons would take.
+  await expect(page.getByTestId('day-continuity-face')).toContainText('Face · no plate');
+  await expect(page.getByTestId('day-continuity-face')).toHaveAttribute('data-held', 'false');
+  await expect(page.getByTestId('day-continuity-place')).toBeVisible();
+  await expect(page.getByTestId('day-batch-plan')).toContainText('Animate all: 2 clips');
+  // Each finished still says whether it looks like the Cast.
+  await expect(page.getByTestId('day-progress-identity-morning')).toContainText('Looks like Mira');
+  await expect(page.getByTestId('day-progress-identity-afternoon')).toContainText('Not Mira?');
+  await expect(page.getByTestId('day-progress-identity-afternoon')).toHaveAttribute(
+    'data-tone',
+    'miss'
+  );
+  const coach = page.getByTestId('day-cut-coach');
+  await expect(coach).toBeVisible({ timeout: 30_000 });
+  // What the cut will quietly do, and which checks ran.
+  const notes = coach.getByTestId('day-cut-readiness-notes');
+  await expect(notes).toContainText("Afternoon: its line won't be heard (no talking clip)");
+  await expect(notes).toContainText('Evening: the still failed — left out');
+  await expect(coach.getByTestId('day-cut-readiness-coverage')).toContainText(
+    'Checked: faces 2 of 3'
+  );
+  await expect(coach.getByTestId('day-cut-readiness-coverage')).toContainText('Not checked: pose');
+  // Shape and size, a face mark per shot, and a clip trim.
+  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
+  await coach.getByTestId('day-cut-shape').selectOption('square');
+  await coach.getByTestId('day-cut-quality').selectOption('1080p');
+  await expect(coach.getByTestId('day-cut-shot-identity-afternoon')).toHaveAttribute(
+    'data-tone',
+    'miss'
+  );
+  await coach.getByTestId('day-cut-shot-trim-night-start').fill('1');
+  // A closer frame for a still, the poster from a clip frame, and the lines' level.
+  await coach.getByTestId('day-cut-shot-framing-morning').selectOption('close');
+  await coach.getByTestId('day-cut-shot-poster-night').click();
+  await expect(coach.getByTestId('day-cut-shot-poster-night')).toHaveAttribute('aria-pressed', 'true');
+  await coach.getByTestId('day-cut-shot-poster-at-night').fill('2.5');
+  await coach.getByTestId('day-cut-voice-level').fill('1.5');
+  const summary = coach.getByTestId('day-cut-options-disclosure').locator('summary');
+  await expect(summary).toContainText('square 1:1');
+  await expect(summary).toContainText('1080p');
+  await expect(summary).toContainText('clips trimmed');
+  await expect(summary).toContainText('poster picked');
+  await expect(summary).toContainText('stills framed');
+  await expect(summary).toContainText('lines 150%');
+  // Cut: the missing clip and the face miss come up before the encode.
+  await coach.getByRole('button', { name: 'Cut film', exact: true }).click();
+  const dialog = page.getByTestId('cut-problems');
+  await expect(dialog).toBeVisible({ timeout: 20_000 });
+  await expect(dialog.getByTestId('cut-problem-night')).toContainText(
+    'the file is missing (not found)'
+  );
+  await expect(dialog.getByTestId('cut-problem-afternoon')).toContainText(
+    "doesn't look like the Cast"
+  );
+  expect(checked.map(shot => shot.key).sort()).toEqual(['afternoon', 'morning', 'night']);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
 });

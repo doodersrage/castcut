@@ -26,7 +26,7 @@ import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { swapDayPromptGender } from '@/lib/day-lead-gender';
-import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
+import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film-cut-plan';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -612,8 +612,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           characterName: name,
           lookId: character?.activeLookId ?? shared.activeLookId,
           crossfadeSec: filmCutOptions.crossfadeSec,
-          resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+          resolution: filmResolutionForCutOptions(filmCutOptions),
           audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
+          musicLevel: filmCutOptions.musicLevel,
+          voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
           titleCard: filmCutOptions.titles
@@ -705,8 +707,19 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
 
   /** Save a poster frame from a finished still, matching the cut's aspect. */
   const saveFilmPoster = useCallback(async () => {
-    const posterUrl = pickPosterStillUrl(slots, stillsRef.current, activeSlotId);
-    if (!posterUrl) {
+    // The shot picked as poster in the shot list (a clip: one of its frames), else a still.
+    const picked = cutPosterPick(
+      applyCutShotEdits(
+        dayWatchPlaylist(stillsRef.current, slots) as KeyedShot[],
+        filmCutOptions.shotEdits
+      ),
+      filmCutOptions.shotEdits
+    );
+    const posterUrl =
+      picked && 'imageUrl' in picked
+        ? picked.imageUrl
+        : pickPosterStillUrl(slots, stillsRef.current, activeSlotId);
+    if (!posterUrl && !picked) {
       setError('Queue and wait for at least one completed slot still before saving a poster.');
       return;
     }
@@ -715,12 +728,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setFilmStatus('Rendering poster…');
     try {
       const poster = await exportFilmPoster({
-        imageUrl: posterUrl,
+        ...(picked && 'videoUrl' in picked
+          ? { videoFrame: { url: picked.videoUrl, timeSec: picked.timeSec } }
+          : { imageUrl: posterUrl ?? undefined }),
         characterName: character?.name?.trim() || 'day',
         characterId: character?.id,
         lookId: character?.activeLookId,
         parentGalleryEntryId: lastFilmEntryRef.current,
-        resolution: filmResolutionForCutOptions({ vertical: filmCutOptions.vertical }),
+        resolution: filmResolutionForCutOptions(filmCutOptions),
         // The episode was recorded at Cut, so the poster names the season it landed in.
         titleCard: filmCutOptions.titles
           ? { title: character?.name?.trim() || 'Day', subtitle: dayPosterSubtitle(character?.id) }
@@ -738,7 +753,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setPosterBusy(false);
     }
-  }, [activeSlotId, character, filmCutOptions.titles, filmCutOptions.vertical, slots]);
+  }, [activeSlotId, character, filmCutOptions, slots]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {

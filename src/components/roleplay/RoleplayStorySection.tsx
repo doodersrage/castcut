@@ -1,5 +1,8 @@
 'use client';
 
+import { applyCutShotEdits } from '@/lib/film-cut-plan';
+import { storyCutCoverageLine } from '@/lib/film-delivery-check';
+import { storyShotIdentity } from '@/lib/identity-mark';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
@@ -59,6 +62,8 @@ export type RoleplayStorySectionProps = {
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
   filmCutOptions?: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue;
+  /** The delivery check is probing the shots before the cut. */
+  cutChecking?: boolean;
   /** Desk Story: the newest scene large on a stage, earlier ones as a strip (RoleplayStoryReel). */
   stage?: boolean;
   onFilmCutOptionsChange?: (
@@ -105,12 +110,22 @@ export default function RoleplayStorySection({
   filmCutOptions,
   onFilmCutOptionsChange,
   stage = false,
+  cutChecking = false,
 }: RoleplayStorySectionProps) {
   // Desk stage: Cut film under the story, not above its pictures.
   const cutActions = (
     <RoleplayFilmCutActions
       cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
+      shotIdentity={storyShotIdentity(story)}
+      checksCoverage={storyCutCoverageLine(
+        story,
+        applyCutShotEdits(
+          roleplayWatchPlaylist(story) as KeyedShot[],
+          filmCutOptions?.shotEdits
+        ).map(shot => shot.key)
+      )}
       assemblingFilm={assemblingFilm}
+      cutChecking={cutChecking}
       busy={busy}
       storyEmpty={story.length === 0}
       filmNeedsCast={filmNeedsCast}

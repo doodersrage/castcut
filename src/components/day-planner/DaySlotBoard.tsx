@@ -1,5 +1,7 @@
 'use client';
 
+import IdentityMarkChip from '@/components/IdentityMarkChip';
+import { DAY_IDENTITY_BARS, identityMark } from '@/lib/identity-mark';
 import ClipExtendSheet, { type ClipExtendChoice } from '@/components/ClipExtendSheet';
 import type { ClipExtendRequest } from '@/lib/clip-extend';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
@@ -72,6 +74,8 @@ export type DaySlotBoardProps = {
   onQueueSlot?: (slot: DaySlot) => void;
   /** Quality-gate outcomes per slot — drives the review badge on each card. */
   qualityLedger?: SlotQualityLedger;
+  /** The Cast's name, for the "Looks like …" mark on finished stills. */
+  castName?: string;
   /** "Redo pose misses once" marks by slot id ("Redone for the pose"). */
   poseRedoMarks?: Record<string, string>;
   /** Animate clip checks by slot id (Auto-review). */
@@ -118,6 +122,7 @@ export default function DaySlotBoard({
   onRerollSlot,
   onQueueSlot,
   qualityLedger,
+  castName,
   poseRedoMarks,
   clipChecks,
   onPickTwoTake,
@@ -249,6 +254,15 @@ export default function DaySlotBoard({
             Boolean(doneThumb) && Boolean(onRetrySlot) && !queueBlocked && state === 'done';
           const canQueue = state === 'idle' && Boolean(onQueueSlot) && !queueBlocked;
           const reviewBadge = qualityLedger ? slotQualityBadge(qualityLedger, slot.id) : null;
+          // Does the shown still look like the Cast (its measured face match)?
+          const identity =
+            state === 'done' && stillPromptId
+              ? identityMark(
+                  jobsByPrompt.get(stillPromptId)?.playChecks?.face,
+                  DAY_IDENTITY_BARS,
+                  castName
+                )
+              : null;
           const poseRedoMark = poseRedoMarks?.[slot.id];
           const looksWrongMark = dayLooksWrongMark(still);
           const clipCheck = clipChecks?.[slot.id];
@@ -631,6 +645,14 @@ export default function DaySlotBoard({
                     >
                       {reviewBadge.label}
                       {reviewBadge.detail ? ` · ${reviewBadge.detail}` : ''}
+                    </p>
+                  ) : null}
+                  {identity ? (
+                    <p className="mt-1">
+                      <IdentityMarkChip
+                        mark={identity}
+                        testId={`day-progress-identity-${slot.id}`}
+                      />
                     </p>
                   ) : null}
                   {poseRedoMark ? (

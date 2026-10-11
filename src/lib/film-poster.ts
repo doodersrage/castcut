@@ -72,8 +72,8 @@ export function pickPosterStillUrl(
 }
 
 /**
- * Poster source from a film playlist: the first completed still. Clips are skipped — a poster
- * frame would need video decoding, and every Day / Story cut has at least one still.
+ * Poster source from a film playlist when nothing was picked: the first completed still. (A clip
+ * frame is used only when picked in the shot list — cutPosterPick.)
  */
 export function pickPosterShotUrl(shots: Array<{ kind?: string; url?: string }>): string | null {
   for (const shot of shots) {
@@ -121,6 +121,46 @@ async function loadPosterSource(imageUrl: string): Promise<PosterSource> {
     };
   } catch (error) {
     URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+}
+
+/** One frame of a clip, at `timeSec` (clamped to the clip), as a poster source. */
+async function loadVideoFrameSource(videoUrl: string, timeSec: number): Promise<PosterSource> {
+  const response = await fetch(videoUrl, { credentials: 'same-origin' });
+  if (!response.ok) {
+    throw new Error(`Could not load that clip (HTTP ${response.status}).`);
+  }
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  const close = () => {
+    video.removeAttribute('src');
+    video.load();
+    URL.revokeObjectURL(objectUrl);
+  };
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error('Could not decode that clip.'));
+      video.src = objectUrl;
+    });
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const target = Math.max(0, Math.min(timeSec, Math.max(0, duration - 0.05)));
+    await new Promise<void>(resolve => {
+      const done = () => {
+        video.removeEventListener('seeked', done);
+        resolve();
+      };
+      video.addEventListener('seeked', done);
+      video.currentTime = target;
+      window.setTimeout(done, 4_000);
+    });
+    return { width: video.videoWidth, height: video.videoHeight, draw: video, close };
+  } catch (error) {
+    close();
     throw error;
   }
 }
@@ -195,7 +235,9 @@ export type FilmPosterResult = {
 
 /** Render and stamp a poster frame. Throws with a readable message when the still cannot load. */
 export async function exportFilmPoster(input: {
-  imageUrl: string;
+  imageUrl?: string;
+  /** Draw one frame of a clip instead (the shot list's poster pick). */
+  videoFrame?: { url: string; timeSec: number };
   characterName: string;
   characterId?: string;
   lookId?: string;
@@ -209,7 +251,14 @@ export async function exportFilmPoster(input: {
     throw new Error('Posters can only be exported in the browser.');
   }
   const { width, height } = posterSizeFor(input.resolution);
-  const source = await loadPosterSource(input.imageUrl);
+  const source = input.videoFrame
+    ? await loadVideoFrameSource(input.videoFrame.url, input.videoFrame.timeSec)
+    : input.imageUrl
+      ? await loadPosterSource(input.imageUrl)
+      : null;
+  if (!source) {
+    throw new Error('Pick a still or a clip frame for the poster.');
+  }
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;

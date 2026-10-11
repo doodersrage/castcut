@@ -520,16 +520,22 @@ test.describe('Play dogfood glue', () => {
       } else if ((await page.getByTestId('day-open-cast-film').count()) > 0) {
         await expect(page.getByTestId('day-open-cast-film')).toHaveAttribute('href', /media=films/);
       }
-      const cutRecorded = await page.evaluate(() => {
-        try {
-          const raw = window.localStorage.getItem('comfy-play-metrics-v1');
-          const metrics = raw ? (JSON.parse(raw) as { firstFilmCutAt?: number }) : {};
-          return typeof metrics.firstFilmCutAt === 'number';
-        } catch {
-          return false;
-        }
-      });
-      expect(cutRecorded).toBe(true);
+      // Cut checks the shots' files first, so the cut lands a moment after the click.
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              try {
+                const raw = window.localStorage.getItem('comfy-play-metrics-v1');
+                const metrics = raw ? (JSON.parse(raw) as { firstFilmCutAt?: number }) : {};
+                return typeof metrics.firstFilmCutAt === 'number';
+              } catch {
+                return false;
+              }
+            }),
+          { timeout: 45_000 }
+        )
+        .toBe(true);
     }
 
     await putAppKv(page, {

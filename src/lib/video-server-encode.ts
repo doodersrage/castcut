@@ -25,6 +25,8 @@ import {
   TITLE_CARD_SEC,
   type FilmTitleCard,
 } from './video-polish';
+import { clipIsTrimmed, clipTrimWindow } from './clip-trim';
+import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import {
   buildFilmScaleFilter,
   FILM_PRESET_SIZE,
@@ -52,6 +54,10 @@ export type FilmServerEncodeOptions = {
   audioBedUrl?: string;
   /** Keep talking clips' own sound (lines), ducking the bed under them. Default on. */
   clipSound?: boolean;
+  /** Music bed gain (1 = as recorded; audio-mix-levels.ts). */
+  musicLevel?: number;
+  /** Talking clips' lines gain (1 = as recorded). */
+  voiceLevel?: number;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -167,6 +173,28 @@ async function clipAudioSec(ffmpeg: string, file: string): Promise<number | null
   }
 }
 
+/** Container length of a downloaded clip in seconds, or null when ffmpeg can't tell. */
+async function clipDurationSec(ffmpeg: string, file: string): Promise<number | null> {
+  try {
+    const { stderr } = await runCapture(ffmpeg, [
+      '-hide_banner',
+      '-i',
+      file,
+      '-f',
+      'null',
+      '-t',
+      '0',
+      '-',
+    ]);
+    const match = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+    if (!match) return null;
+    const sec = Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+    return sec > 0 ? sec : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchShotBytes(
   url: string,
   requestOrigin?: string,
@@ -258,6 +286,15 @@ export function buildFilterComplex(input: {
   fontFile?: string | null;
   /** Per shot: the clip carries its own sound (a talking clip) — mixed in at the shot's start. */
   speech?: boolean[];
+  /**
+   * Per shot: a trimmed clip's in point in seconds (null / unset: not trimmed). A trimmed clip
+   * plays `holdSecs[i]` from there; its video and sound are cut the same way.
+   */
+  trimStarts?: Array<number | null>;
+  /** Music bed gain (default 1). */
+  musicLevel?: number;
+  /** Lines gain (default 1). */
+  voiceLevel?: number;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -312,6 +349,10 @@ export function buildFilterComplex(input: {
         `setsar=1,format=yuv420p,fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`;
     } else if (kind === 'still') {
       chain = `[${i}:v]${scalePad},trim=duration=${hold},setpts=PTS-STARTPTS`;
+    } else if (input.trimStarts?.[i] != null && hold > 0) {
+      // A trimmed clip (Cut shot list): only its in → out piece.
+      const start = input.trimStarts[i]!;
+      chain = `[${i}:v]trim=start=${start.toFixed(3)}:end=${(start + hold).toFixed(3)},setpts=PTS-STARTPTS,${scalePad}`;
     } else {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
@@ -358,10 +399,15 @@ export function buildFilterComplex(input: {
   const fadeOut = `afade=t=out:st=${Math.max(0.1, end - 1)}:d=1`;
   const voiced = filmSpeechStarts({ kinds, holdSecs, crossfadeSec, speech: input.speech });
   const stereo = 'aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo';
+  const voiceLevel = normalizeVoiceLevel(input.voiceLevel);
+  const musicLevel = normalizeMusicLevel(input.musicLevel);
+  const voiceGain = voiceLevel !== 1 ? `volume=${voiceLevel},` : '';
+  const musicGain = musicLevel !== 1 ? `,volume=${musicLevel}` : '';
   for (const { index, startSec, holdSec } of voiced) {
     const delayMs = Math.round(startSec * 1000);
+    const from = input.trimStarts?.[index] ?? 0;
     parts.push(
-      `[${index}:a]${stereo},atrim=0:${holdSec},asetpts=PTS-STARTPTS,adelay=${delayMs}:all=1[s${index}]`
+      `[${index}:a]${stereo},atrim=${from}:${from + holdSec},asetpts=PTS-STARTPTS,${voiceGain}adelay=${delayMs}:all=1[s${index}]`
     );
   }
   if (voiced.length > 0) {
@@ -372,7 +418,7 @@ export function buildFilterComplex(input: {
   }
   if (hasAudioBed) {
     const audioIndex = shotCount;
-    const bed = `[${audioIndex}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS`;
+    const bed = `[${audioIndex}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS${musicGain}`;
     if (voiced.length > 0) {
       // Duck the music under the lines, then lay the lines on top.
       parts.push(`[speech]asplit=2[sp1][sp2]`);
@@ -484,6 +530,7 @@ export async function encodeFilmPlaylistServer(
     const kinds: FilmShotKind[] = [];
     const holdSecs: number[] = [];
     const speech: boolean[] = [];
+    const trimStarts: Array<number | null> = [];
 
     for (const [index, shot] of shots.entries()) {
       options.onProgress?.(0.05 + (0.35 * index) / shots.length, `Fetching ${shot.title}`);
@@ -498,13 +545,24 @@ export async function encodeFilmPlaylistServer(
           ? await clipAudioSec(ffmpeg, filePath)
           : null;
       speech.push(soundSec !== null);
+      // A trimmed clip (Cut shot list) plays from its in point to its out point.
+      const fullSec =
+        shot.kind === 'clip' && clipIsTrimmed(shot)
+          ? ((await clipDurationSec(ffmpeg, filePath)) ?? soundSec)
+          : null;
+      const trim =
+        shot.kind === 'clip' && clipIsTrimmed(shot) ? clipTrimWindow(shot, fullSec) : null;
+      const trimmedSec = trim ? (trim.end ?? fullSec ?? 0) - trim.start : 0;
+      trimStarts.push(trim && trimmedSec > 0 ? trim.start : null);
       holdSecs.push(
         shot.kind === 'still'
           ? clampStillHoldSec(shot.holdSec, DEFAULT_STILL_HOLD_SEC)
-          : typeof shot.holdSec === 'number' && shot.holdSec > 0
-            ? shot.holdSec
-            : // A talking clip holds for its whole line (the 4 s default would cut it off).
-              (soundSec ?? 0)
+          : trim && trimmedSec > 0
+            ? trimmedSec
+            : typeof shot.holdSec === 'number' && shot.holdSec > 0
+              ? shot.holdSec
+              : // A talking clip holds for its whole line (the 4 s default would cut it off).
+                (soundSec ?? 0)
       );
     }
 
@@ -537,12 +595,14 @@ export async function encodeFilmPlaylistServer(
     const graphHolds: number[] = [];
     const graphText: FilmGraphText[] = [];
     const graphSpeech: boolean[] = [];
+    const graphTrims: Array<number | null> = [];
     const inputArgs: string[][] = [];
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
       : null;
     if (titleText) {
       graphSpeech.push(false);
+      graphTrims.push(null);
       graphKinds.push('title');
       graphHolds.push(TITLE_CARD_SEC);
       graphText.push({
@@ -562,6 +622,7 @@ export async function encodeFilmPlaylistServer(
     }
     for (let i = 0; i < localFiles.length; i += 1) {
       graphSpeech.push(speech[i] === true);
+      graphTrims.push(trimStarts[i] ?? null);
       graphKinds.push(kinds[i]!);
       graphHolds.push(holdSecs[i]!);
       graphText.push({
@@ -598,6 +659,9 @@ export async function encodeFilmPlaylistServer(
       text: graphText,
       fontFile: usableFont,
       speech: graphSpeech,
+      trimStarts: graphTrims,
+      musicLevel: options.musicLevel,
+      voiceLevel: options.voiceLevel,
     });
 
     const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');

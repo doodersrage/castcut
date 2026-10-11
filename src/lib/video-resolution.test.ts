@@ -5,6 +5,8 @@ import {
   FILM_PRESET_SIZE,
   FILM_RESOLUTION_PRESETS,
   filmResolutionForCutOptions,
+  filmShapeOf,
+  isFixedCanvasFilmResolution,
   isVerticalFilmResolution,
   normalizeFilmResolution,
 } from './video-resolution';
@@ -18,6 +20,8 @@ describe('video-resolution', () => {
     assert.equal(normalizeFilmResolution('1080p-vertical'), '1080p-vertical');
     assert.equal(normalizeFilmResolution('9:16'), '720p-vertical');
     assert.equal(normalizeFilmResolution('bogus'), '720p');
+    assert.equal(normalizeFilmResolution('1080p-square'), '1080p-square');
+    assert.equal(normalizeFilmResolution('1:1'), '720p-square');
   });
 
   it('gives every preset an even size and flags vertical ones', () => {
@@ -35,6 +39,16 @@ describe('video-resolution', () => {
     assert.equal(filmResolutionForCutOptions({ vertical: true }), '720p-vertical');
     assert.equal(filmResolutionForCutOptions({ vertical: true, quality: '1080p' }), '1080p-vertical');
     assert.equal(filmResolutionForCutOptions({ vertical: false, quality: '1080p' }), '1080p');
+    assert.equal(filmResolutionForCutOptions({ shape: 'square', quality: '1080p' }), '1080p-square');
+    // A picked shape wins over the older vertical toggle.
+    assert.equal(filmResolutionForCutOptions({ vertical: true, shape: 'wide' }), '720p');
+    assert.equal(filmShapeOf({ vertical: true }), 'vertical');
+    assert.ok(isFixedCanvasFilmResolution('720p-square'));
+    assert.ok(!isFixedCanvasFilmResolution('1080p'));
+  });
+
+  it('crop-fills square', () => {
+    assert.match(buildFilmScaleFilter(720, 720), /crop=720:720/);
   });
 
   it('letterboxes landscape and crop-fills vertical', () => {

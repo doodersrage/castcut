@@ -305,6 +305,7 @@ export default function RoleplayToolSections({
               {story.length > 0 || dayOpening || film.firstCutCelebrate ? (
                 <RoleplayStorySection
                   stage
+                  cutChecking={film.cutChecking}
                   beatOutput={beatOutput}
                   autoQueue={autoQueue}
                   assemblingFilm={film.assemblingFilm}

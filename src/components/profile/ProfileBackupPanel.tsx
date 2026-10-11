@@ -3,11 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import {
-  downloadStudioBackup,
-  importStudioBackup,
-  parseStudioBackupFile,
-} from '@/lib/studio-backup';
+import BackupRestoreFlow from '@/components/BackupRestoreFlow';
+import { downloadStudioBackup } from '@/lib/studio-backup';
 
 export default function ProfileBackupPanel() {
   const [status, setStatus] = useState<string | null>(null);
@@ -15,17 +12,6 @@ export default function ProfileBackupPanel() {
   function exportBackup() {
     downloadStudioBackup();
     setStatus('Backup downloaded.');
-  }
-
-  async function importBackup(file: File) {
-    try {
-      const text = await file.text();
-      importStudioBackup(parseStudioBackupFile(text));
-      setStatus('Backup restored. Reloading…');
-      window.setTimeout(() => window.location.reload(), 600);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Invalid backup file.');
-    }
   }
 
   return (
@@ -38,20 +24,14 @@ export default function ProfileBackupPanel() {
         <Button variant="secondary" onClick={exportBackup}>
           Download backup
         </Button>
-        <label className="ui-btn ui-btn-secondary cursor-pointer">
-          Restore backup
-          <input
-            type="file"
-            accept="application/json"
-            className="sr-only"
-            onChange={event => {
-              const file = event.target.files?.[0];
-              if (file) {
-                void importBackup(file);
-              }
-            }}
-          />
-        </label>
+        <BackupRestoreFlow
+          testId="profile-backup-restore"
+          onRestored={message => {
+            setStatus(`${message.replace(/ Reload to finish\.$/, '')} Reloading…`);
+            window.setTimeout(() => window.location.reload(), 600);
+          }}
+          onError={setStatus}
+        />
       </div>
       {status ? <p className="mt-2 text-sm text-[var(--tint-success-text)]">{status}</p> : null}
     </ToolSection>

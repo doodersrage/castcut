@@ -1,5 +1,6 @@
 'use client';
 
+import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import type { PromptHistoryEntry } from '@/hooks/usePromptHistory';
 import { Button } from '@/components/ui/Button';
 import {
@@ -15,7 +16,8 @@ type HistoryToolbarActionsProps = {
   onSendBatchFavorites: (prompts: string[]) => void;
   onClearHistory: () => void;
   onRemoveEntries?: (ids: string[]) => void;
-  onImportBackup: (file: File) => void | Promise<void>;
+  /** Unused since the guided restore (BackupRestoreFlow); kept for callers. */
+  onImportBackup?: (file: File) => void | Promise<void>;
   onBackupStatusChange: (status: string | null) => void;
 };
 
@@ -26,7 +28,6 @@ export default function HistoryToolbarActions({
   onSendBatchFavorites,
   onClearHistory,
   onRemoveEntries,
-  onImportBackup,
   onBackupStatusChange,
 }: HistoryToolbarActionsProps) {
   return (
@@ -134,21 +135,14 @@ export default function HistoryToolbarActions({
           >
             Export backup
           </Button>
-          <label className="ui-btn-ghost ui-btn-sm ui-file-input-label cursor-pointer px-4">
-            Import backup
-            <input
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={event => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void onImportBackup(file);
-                }
-                event.target.value = '';
-              }}
-            />
-          </label>
+          {/* Reads the file first and shows it beside what is here before restoring. */}
+          <BackupRestoreFlow
+            label="Import backup"
+            testId="studio-backup-restore"
+            className="ui-btn-ghost ui-btn-sm ui-file-input-label cursor-pointer px-4"
+            onRestored={onBackupStatusChange}
+            onError={onBackupStatusChange}
+          />
         </div>
       </details>
     </div>

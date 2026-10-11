@@ -14,6 +14,8 @@ export type DaySlotJobEntry = {
   queuePosition?: number | null;
   progressValue?: number;
   progressMax?: number;
+  /** Pose / face checks on the finished still (the slot card's identity mark). */
+  playChecks?: { face?: number };
 };
 
 export type DaySlotJobProgress = {

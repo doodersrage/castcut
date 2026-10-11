@@ -16,9 +16,10 @@ import {
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { persistGalleryOriginal } from './gallery-media-client';
 import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from './gallery-video-stitch';
+import { clipTrimWindow } from './clip-trim';
 import {
   FILM_PRESET_SIZE,
-  isVerticalFilmResolution,
+  isFixedCanvasFilmResolution,
   normalizeFilmResolution,
   type FilmResolutionPreset,
 } from './video-resolution';
@@ -58,6 +59,9 @@ export type AssembleFilmOptions = {
   captions?: boolean;
   /** Opening title card. */
   titleCard?: FilmTitleCard | null;
+  /** Music bed / lines gain (server encode only; audio-mix-levels.ts). */
+  musicLevel?: number;
+  voiceLevel?: number;
 };
 
 export type AssembledFilmResult = {
@@ -368,6 +372,23 @@ async function paintAnimatedImage(
   );
 }
 
+/** Seek a loaded video and wait for the frame (no-op at 0 on a fresh load). */
+function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
+  if (!(time > 0)) {
+    video.currentTime = 0;
+    return Promise.resolve();
+  }
+  return new Promise(resolve => {
+    const done = () => {
+      video.removeEventListener('seeked', done);
+      resolve();
+    };
+    video.addEventListener('seeked', done);
+    video.currentTime = time;
+    window.setTimeout(done, 3_000);
+  });
+}
+
 async function probeSize(shots: FilmPlaylistShot[]): Promise<{ width: number; height: number }> {
   for (const shot of shots) {
     try {
@@ -417,6 +438,8 @@ async function assembleFilmBlobOnServer(
         stillMotion: options?.stillMotion === true,
         captions: options?.captions === true,
         titleCard: normalizeFilmTitleCard(options?.titleCard),
+        musicLevel: options?.musicLevel,
+        voiceLevel: options?.voiceLevel,
       }),
     });
     if (!startRes.ok) {
@@ -529,11 +552,11 @@ export async function assembleFilmBlob(
       }
     }
 
-    // Vertical presets use a fixed 9:16 canvas (drawCover fills it); landscape follows the shots.
-    const verticalPreset = options?.resolution ? normalizeFilmResolution(options.resolution) : null;
+    // Vertical / square presets use a fixed canvas (drawCover fills it); landscape follows the shots.
+    const fixedPreset = options?.resolution ? normalizeFilmResolution(options.resolution) : null;
     const { width, height } =
-      verticalPreset && isVerticalFilmResolution(verticalPreset)
-        ? FILM_PRESET_SIZE[verticalPreset]
+      fixedPreset && isFixedCanvasFilmResolution(fixedPreset)
+        ? FILM_PRESET_SIZE[fixedPreset]
         : await probeSize(resolvedShots.map(entry => ({ ...entry.shot, url: entry.src })));
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -620,7 +643,11 @@ export async function assembleFilmBlob(
           continue;
         }
         const video = await loadVideo(src);
-        video.currentTime = 0;
+        // A trimmed clip (Cut shot list) plays only its in → out piece.
+        const trim = clipTrimWindow(shot, Number.isFinite(video.duration) ? video.duration : null);
+        const clipEnd =
+          trim.end ?? (Number.isFinite(video.duration) ? video.duration : Number.POSITIVE_INFINITY);
+        await seekVideo(video, trim.start);
         const played = await video.play().then(
           () => true,
           () => false
@@ -633,13 +660,13 @@ export async function assembleFilmBlob(
                 context,
                 caption,
                 captionOpacity(
-                  video.currentTime,
-                  Number.isFinite(video.duration) ? video.duration : 4
+                  video.currentTime - trim.start,
+                  (Number.isFinite(clipEnd) ? clipEnd : 4 + trim.start) - trim.start
                 ),
                 width,
                 height
               );
-              if (video.ended) {
+              if (video.ended || video.currentTime >= clipEnd) {
                 resolve();
                 return;
               }
@@ -650,9 +677,13 @@ export async function assembleFilmBlob(
             requestAnimationFrame(draw);
           });
         } else {
-          const duration = Number.isFinite(video.duration) ? video.duration : 0;
+          const duration = Number.isFinite(clipEnd)
+            ? clipEnd
+            : Number.isFinite(video.duration)
+              ? video.duration
+              : 0;
           const step = 1 / FRAME_RATE;
-          for (let time = 0; time <= duration; time += step) {
+          for (let time = trim.start; time <= duration; time += step) {
             await new Promise<void>((resolve, reject) => {
               video.onseeked = () => {
                 drawCover(context, video, video.videoWidth, video.videoHeight, width, height);
