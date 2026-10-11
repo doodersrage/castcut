@@ -357,7 +357,7 @@ describe('outfit second look', () => {
     });
     assert.deepEqual(cleared.flags, []);
     assert.equal(cleared.outfitMatch, 3);
-    assert.equal(decideSlotQuality(cleared).action, 'keep');
+    assert.equal(decideSlotQuality(cleared, 0).action, 'keep');
     const kept = withOutfitSecondLook(flaggedReport, {
       seen: '"white floral nightie"',
       answer: 'no.',
@@ -365,7 +365,7 @@ describe('outfit second look', () => {
     assert.deepEqual(kept.flags, ['wrong-outfit']);
     assert.equal(kept.outfitSeen, 'white floral nightie');
     assert.ok(
-      decideSlotQuality(kept).reasons.includes('outfit does not match — she is in white floral nightie')
+      decideSlotQuality(kept, 0).reasons.includes('outfit does not match — she is in white floral nightie')
     );
     // An unreadable answer changes nothing.
     assert.equal(withOutfitSecondLook(flaggedReport, { seen: 'x', answer: 'maybe' }), flaggedReport);

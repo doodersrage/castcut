@@ -20,6 +20,8 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 
 ### Looks like the Cast
 
+**Auto-review no longer re-rolls good outfits.** Before an outfit miss costs a re-roll, Auto-review describes her clothes plainly and checks that loosely against the plan. On 30 of your Day stills it used to flag 7 correctly dressed ones (a tuxedo read as "blazer and trousers"); now 0, while 20 of 30 deliberately wrong outfits are still caught. A miss that stands says what she is wearing.
+
 Each finished Day still shows a face mark — *Looks like Nora 72%*, *Face may drift 48%*, *Not Nora? 31%* — from its measured face match, and the Cut shot list shows it per shot (Day and Story, each with its own bars).
 
 ### A small film editor
