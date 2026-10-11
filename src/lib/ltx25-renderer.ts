@@ -902,13 +902,15 @@ export function talkingClipPrompt(input: {
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   const she = who === 'He' ? 'he' : 'she';
   // Mid (seated / knees-up) stills take the wide wording too: replaying the user's park-bench
-  // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4, a
-  // "medium-wide, same distance" wording in 0 of 4 (3 punch-ins, 1 walk-off).
+  // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4 — 4 of 4
+  // once it keeps her pose — and a "medium-wide, same distance" wording in 0 of 4.
   if (input.wide || input.framing === 'wide' || input.framing === 'mid') {
     return [
       'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
-      `${who} stays where ${she} is and ${spokenLineVerb(input.tone, who)} "${line}"`,
-      `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not walk away or turn around.`,
+      // Keeping the first frame's pose stopped strong lines standing her up: the park-bench
+      // replays (angry line, 4 seeds) held seated and full-frame 4 of 4, against 2 of 4 without.
+      `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`,
+      `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`,
       place
         ? `The place stays as in the first frame (${place}); the light and clothes stay the same.`
         : 'The place, light and clothes stay exactly as in the first frame.',

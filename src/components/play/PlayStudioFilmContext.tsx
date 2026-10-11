@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getCharacter } from '@/lib/character-os';
+import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadLookPack } from '@/lib/look-pack';
 import {
@@ -16,7 +16,7 @@ import {
   resolveNextPlayAction,
 } from '@/lib/play-metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
 import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
 import { saveWorkspaceMode } from '@/lib/workspace-mode';
 
@@ -53,10 +53,14 @@ export default function PlayStudioFilmContext({ onNavigate }: { onNavigate?: () 
         });
       });
     refresh();
+    // The Cast list and settings load from browser storage after first paint; without these the
+    // card missed a Cast that arrived a moment after mount and stayed hidden (CI, slow runner).
     const events = [
       PLAY_CAMPAIGN_UPDATED_EVENT,
       PLAY_METRICS_UPDATED_EVENT,
       SETTINGS_SYNCED_WITH_SERVER_EVENT,
+      CHARACTERS_UPDATED_EVENT,
+      SETTINGS_CACHE_UPDATED_EVENT,
       'focus',
     ];
     for (const name of events) window.addEventListener(name, refresh);
