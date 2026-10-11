@@ -8,9 +8,26 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 > - **Plain "WAN Video" clips sample as Rapid AIO.** The clip graph has always loaded the Rapid AIO file for every WAN engine. *WAN Video* (and the WAN fallback when LTX-2.5 can't take a shot) used full-WAN sampling — Max meant 40 steps at CFG 5 on a CFG-1 model. Those clips now use Rapid AIO's sampling (Max = 8 steps, CFG 1): much faster, no overcooked frames.
 > - **Re-cut needs films cut in 2.6.** Only films cut from now on carry the recipe *Re-cut* uses. Shots that lived only in the browser (demo stills, uploads) can't come back.
 > - **Music and voice levels are a server-encode feature.** The browser fallback cuts picture only, as before.
+> - **LTX-2.5 runs every clip except two-person adult ones.** With LTX-2.5 picked, clothed one-person clips no longer fall back to WAN — held harder on the still, her face stayed closer on LTX than on WAN (0.55 vs 0.79 face distance on 8 stills). Untick *Use LTX-2.5 for clothed one-person clips* under Animate to keep them on WAN. Two-person adult clips stay on WAN unless you tick *Use LTX-2.5 for two-person adult clips too*.
+> - **Talking clips have room sound.** The place's sounds play quietly under her voice (an extra few seconds of render). Untick *Room sound under talking clips* under Animate for voice only.
 > - **Closer framing is a crop.** Asking the image engine for a close-up doesn't work (Edit 2511 kept her thighs in frame on 4 of 4 tries), so *waist up* / *chest up* crop the finished still around her face — never under 420 px tall.
 
 ## What's new
+
+### Clips on LTX-2.5
+
+- **Animate asks what should happen.** Animate opens the clip's direction — the default from the beat, editable. Your own words are formatted for the engine the clip runs on.
+- **Faces hold.** One-person and adult clips hold the still harder (0.85) and render at 1024 on the long side. Clothed clips kept her face closer to the still than on WAN; one-person adult clips kept their anatomy where plain LTX lost it, and moved like WAN instead of overshooting.
+- **Two-person adult clips on LTX (opt-in).** Tuned over a day of A/Bs: a calm tempo line, the anatomy said outright and the firmer hold. Across 10 stills they held the act every time (WAN drifted on 2 of 6). A small amount of unnatural genital interaction is left; the LoRA trained for it on LTX-2.5 is still in early access.
+- **Refine detail (opt-in).** One more pass through Lightricks' Refine-Details IC-LoRA, guided by the clip's own frames: crisper texture, about twice the time, and the face can shift a little. Works on talking clips too — the voice is kept exactly and the lips stay on the words.
+
+### Talking clips
+
+- **Room sound under the voice** — the place's sounds (a café's cups and voices, a fountain, birdsong, traffic) in their own pass, about 10 dB under her voice; the line still transcribes word for word.
+- **The scene keeps moving.** Steam from a coffee, candle flames, a fountain, water, leaves, people passing — whatever the place and the line name — keep moving while she talks. Before, LTX froze everything but her.
+- **She keeps her pose.** A full-body still stays a wide shot and she stays standing (or seated) as in the still; earlier 2.6 builds sat standing women down on the pavement, and seated stills punched in to her face.
+- **Eleven ways to say a line**, in a dropdown: Natural, Whisper, Laughing, Excited, Tender, Teasing, Angry, Nervous, Scared, Shouting, Sing-song.
+- **Add sound names the place** — a silent clip's sound is the place's (waves and gulls in a bay, guests in a café), not generic room tone.
 
 ### Checked before the cut
 
@@ -49,6 +66,11 @@ And for the whole cut:
 - **Undo / Redo for the Day plan** — places, beats, outfits, lines, poses and slot count, up to 30 steps.
 - **Held across the Day** — above the clothing row: face from the plate (+ face finish), the Day's clothes, the Cast's recurring places, the weather — and what each still is free to change.
 - **How long a batch will take** — under Queue the rest / Animate all, from this machine's own recent renders, behind what is already queued.
+
+### Fixes
+
+- *Clip unavailable* on Day cards after a reload (the clip played fine in the lightbox) — the card retries now, with *Try again*.
+- Studio's sidebar sometimes lost the film card while the Cast list loaded.
 
 ### Backups you can check
 
