@@ -3,6 +3,8 @@
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
+import type { DaySlot } from '@/lib/day-planner';
+import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
 import {
   useDayCutReadiness,
@@ -242,6 +244,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     queueSlot,
     queueAll,
     animateSlot,
+    previewSlotClip,
     animateAllClips,
     endPoseStatus,
     endPoseReposingSlotId,
@@ -392,6 +395,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     ),
     reviewOn: autoReviewStills,
   });
+  // Animate opens a sheet: the engine, and the direction to edit (DayAnimateSheet).
+  const [animateTarget, setAnimateTarget] = useState<DaySlot | null>(null);
   const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
@@ -584,6 +589,17 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
   return (
     <>
+      <DayAnimateSheet
+        key={animateTarget?.id ?? 'none'}
+        slot={animateTarget}
+        preview={previewSlotClip}
+        busy={busy}
+        onClose={() => setAnimateTarget(null)}
+        onAnimate={(slot, direction) => {
+          setAnimateTarget(null);
+          void animateSlot(slot, { direction });
+        }}
+      />
       <CutProblemsDialog
         problems={cutProblems}
         onResolve={action => void resolveCutProblems(action)}
@@ -983,7 +999,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onEditSlot={openSlotSheet}
             onOpenStill={openProgressLightbox}
             onRetrySlot={slot => void queueSlot(slot, { byPlayer: true })}
-            onAnimateSlot={slot => void animateSlot(slot)}
+            onAnimateSlot={slot => setAnimateTarget(slot)}
             onAddVoice={addVoiceToSlot}
             voicingSlotId={voicingSlotId}
             onExtendClip={extendSlotClip}
@@ -1455,7 +1471,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         onPickTwoTake={keep => pickTwoTake(activeSlot.id, keep)}
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot, { byPlayer: true })}
-        onAnimateSlot={() => void animateSlot(activeSlot)}
+        onAnimateSlot={() => setAnimateTarget(activeSlot)}
       />
       <SideSheet
         open={setupOpen}

@@ -556,7 +556,17 @@ export function normalizeSpokenLine(value: unknown): string {
 
 /** How a line is said (the "How" choice beside a line). */
 export type SpokenLineTone =
-  'natural' | 'whisper' | 'laughing' | 'excited' | 'tender' | 'teasing' | 'angry';
+  | 'natural'
+  | 'whisper'
+  | 'laughing'
+  | 'excited'
+  | 'tender'
+  | 'teasing'
+  | 'angry'
+  | 'nervous'
+  | 'scared'
+  | 'shouting'
+  | 'singsong';
 
 export const SPOKEN_LINE_TONES: { id: SpokenLineTone; label: string }[] = [
   { id: 'natural', label: 'Natural' },
@@ -566,6 +576,10 @@ export const SPOKEN_LINE_TONES: { id: SpokenLineTone; label: string }[] = [
   { id: 'tender', label: 'Tender' },
   { id: 'teasing', label: 'Teasing' },
   { id: 'angry', label: 'Angry' },
+  { id: 'nervous', label: 'Nervous' },
+  { id: 'scared', label: 'Scared' },
+  { id: 'shouting', label: 'Shouting' },
+  { id: 'singsong', label: 'Sing-song' },
 ];
 
 /** A stored tone, or undefined for natural / unknown values. */
@@ -601,6 +615,18 @@ export function spokenLineVerb(
       return 'says in a playful, teasing tone with a little smirk,';
     case 'angry':
       return `snaps angrily, ${her} voice sharp and raised,`;
+    // Live 2026-10-11 (same still, line and seed; words exact in every clip, vs natural ~195 Hz,
+    // −15.7 LUFS, 60% voiced): nervous 252 Hz with a wide wobble, 35% voiced (breaks);
+    // scared louder (−12.9) and faster; shouting +3.5 LU at 380 Hz, flat, ending on "!";
+    // sing-song 278 Hz, 80% voiced, slower.
+    case 'nervous':
+      return `says nervously, hesitating, ${her} voice shaky and quick,`;
+    case 'scared':
+      return `gasps and says fearfully, ${her} voice small, breathless and frightened,`;
+    case 'shouting':
+      return `shouts at the top of ${her} voice, calling out loudly,`;
+    case 'singsong':
+      return 'sings the words in a light, lilting sing-song melody,';
     default:
       return 'says clearly,';
   }
@@ -785,17 +811,64 @@ export function dubPrompt(input: {
   scene: string;
   heat?: 'clean' | 'flirty' | 'sensual' | 'explicit';
   lead?: 'woman' | 'man';
+  /** Where it happens (the Setting) — names the ambience the clip gets. */
+  place?: string;
 }): string {
   const who = input.lead === 'man' ? 'He' : 'She';
   const scene = input.scene.trim().replace(/[.\s]+$/, '');
   const hot = input.heat === 'sensual' || input.heat === 'explicit';
+  const place = input.place?.trim().replace(/[.\s]+$/, '');
+  const ambience = place ? ambienceSounds(place) : '';
   return [
     `${scene}.`,
     hot
       ? `${who} breathes heavily and moans softly, with no words.`
       : 'Soft natural sounds of the moment, no talking.',
-    hot ? 'Close, intimate sounds, a quiet room.' : 'Natural room sound.',
+    place
+      ? `The natural background sound of ${place}${ambience ? `: ${ambience}` : ''}, clearly audible.`
+      : hot
+        ? 'Close, intimate sounds, a quiet room.'
+        : 'Natural room sound.',
   ].join(' ');
+}
+
+const AMBIENCE: Array<[RegExp, string]> = [
+  [/\b(beach|shore|shoreline|bay|ocean|sea|surf|coast)\b/i, 'waves breaking, wind, distant gulls'],
+  [/\b(pool|poolside)\b/i, 'water lapping, distant splashes'],
+  [/\b(rain|storm)\b/i, 'steady rain, drops on glass'],
+  [
+    /\b(caf[eé]|coffee shop|bistro|brunch|restaurant|diner|terrace)\b/i,
+    'low murmur of other guests, cups and cutlery clinking',
+  ],
+  [/\b(bar|pub|club|lounge)\b/i, 'a busy room murmuring, glasses clinking'],
+  [
+    /\b(street|city|downtown|crosswalk|sidewalk|market|square)\b/i,
+    'city traffic, footsteps, a distant siren',
+  ],
+  [
+    /\b(park|garden|bench|meadow|lawn)\b/i,
+    'birdsong, a light breeze in the trees, distant traffic',
+  ],
+  [/\b(forest|woods|trail|hike|mountain)\b/i, 'birds, wind in leaves, twigs underfoot'],
+  [/\b(kitchen)\b/i, 'a kettle, dishes, a fridge humming'],
+  [
+    /\b(office|desk|meeting|coworking)\b/i,
+    'keyboards tapping, air conditioning hum, a phone in the distance',
+  ],
+  [/\b(gym|studio|court|track)\b/i, 'weights clanking, footsteps, a ventilation hum'],
+  [/\b(car|train|bus|subway|plane)\b/i, 'the engine hum and road noise'],
+  [/\b(bath|bathroom|shower)\b/i, 'running water, a tiled-room echo'],
+  [
+    /\b(bedroom|bed|living room|sofa|couch|apartment|home)\b/i,
+    'quiet room tone, a clock, faint traffic outside',
+  ],
+];
+
+/** Typical background sounds of a place, as a hint for the soundtrack ("" when unknown). */
+export function ambienceSounds(place: string): string {
+  const night = /\b(night|midnight|3 a\.m\.|late|after dark|blue hour)\b/i.test(place);
+  const hit = AMBIENCE.find(([pattern]) => pattern.test(place))?.[1] ?? '';
+  return hit && night ? `${hit}, hushed for the late hour` : hit;
 }
 
 /**
@@ -818,12 +891,20 @@ export function talkingClipPrompt(input: {
    * tightened to a mid shot in 2 of 4).
    */
   wide?: boolean;
+  /**
+   * How a still kept whole is framed (talking-clip-framing.ts): `wide` and `mid` both get the
+   * wide-shot wording (no "looks into the camera", which drew LTX in to her face).
+   */
+  framing?: 'wide' | 'mid' | 'close';
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   const she = who === 'He' ? 'he' : 'she';
-  if (input.wide) {
+  // Mid (seated / knees-up) stills take the wide wording too: replaying the user's park-bench
+  // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4, a
+  // "medium-wide, same distance" wording in 0 of 4 (3 punch-ins, 1 walk-off).
+  if (input.wide || input.framing === 'wide' || input.framing === 'mid') {
     return [
       'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
       `${who} stays where ${she} is and ${spokenLineVerb(input.tone, who)} "${line}"`,

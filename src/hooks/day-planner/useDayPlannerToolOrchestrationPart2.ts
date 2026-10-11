@@ -1,6 +1,6 @@
 'use client';
 
-import { framedTalkingStill, talkingStillIsWide } from '@/lib/talking-clip-framing-client';
+import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
   conversationClipPrompt,
@@ -23,9 +23,7 @@ import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { dayPartnerNoun } from '@/lib/day-partner';
-import { swapDayPromptGender } from '@/lib/day-lead-gender';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film-cut-plan';
 import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day-episode-snapshot';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
@@ -57,14 +55,12 @@ import {
   fetchClothingSelectOptions,
   getCachedClothingLabel,
 } from '@/lib/clothing-catalog-client';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
 } from '@/lib/comfyui-gallery';
 import {
-  buildDaySlotMotionSubject,
   buildDaySlotPrompt,
   dayStillShownImage,
   dayStillsBelongToCharacter,
@@ -80,8 +76,9 @@ import {
   type DaySlotId,
   isDayAdultMood,
 } from '@/lib/day-planner';
-import { buildIntimateClipPrompt } from '@/lib/intimate-clip-prompt';
-import { buildStillClipPrompt, stillPromptPeople } from '@/lib/still-clip-prompt';
+import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day-clip-direction';
+import { getComfyModelDefinition } from '@/lib/comfy-models/client';
+import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { adultAgeLineIn } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
@@ -334,7 +331,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   }, [queueAll]);
 
   const animateSlot = useCallback(
-    async (slot: DaySlot, options?: { manageBusy?: boolean }) => {
+    async (slot: DaySlot, options?: { manageBusy?: boolean; direction?: string }) => {
       const manageBusy = options?.manageBusy !== false;
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const imageUrl = still?.status === 'completed' ? still.imageUrl?.trim() : '';
@@ -383,47 +380,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         }
         // A man lead: the beats are written for a woman (see day-lead-gender).
         const manLead = dayPartnerNoun(character ?? {}) === 'man';
-        const subject = manLead
-          ? swapDayPromptGender(buildDaySlotMotionSubject(slot, character?.name))
-          : buildDaySlotMotionSubject(slot, character?.name);
-        let prompt = subject;
-        // Sex clips: the LLM writer added camera moves, the gag as motion and laughter — clips
-        // turned the rider around, dropped the partner and grew cackles. Same-seed replays held
-        // pose, framing and calm faces with the fixed template instead.
-        const adultClip = isDayAdultMood(toolSettings.dayMood);
-        if (adultClip) {
-          // A Cast woman as the partner (Day Partner on Rapid): the still says so in its prompt.
-          // Same-sex duo (Day Partner / a man lead): the still's recipe names the partner.
-          const stillPrompt = parentEntry?.prompt ?? '';
-          const twoWomen = /\bher girlfriend has (?:the face from|her own face)/.test(stillPrompt);
-          const twoMen = /\bhis boyfriend has (?:the face from|his own face)/.test(stillPrompt);
-          prompt = buildIntimateClipPrompt(slot.sceneHints?.trim() || subject, 4, {
-            twoWomen,
-            twoMen,
-            // The still's own age sentence, so the clip names the same ages.
-            ageLine: adultAgeLineIn(stillPrompt),
-          });
-          // A man lead alone (the duo motions already put him right): swap the solo clip.
-          if (manLead && !stillPrompt.includes(RAPID_DUO_RECIPE_MARK)) {
-            prompt = swapDayPromptGender(prompt, { solo: true });
-          }
-        } else {
-          // Clothed clips: the LLM writer never saw the still — it orbited / dollied the camera
-          // and restaged the scene. The fixed template animates the beat on the first frame.
-          // Built from the unswapped beat, then swapped once for a man lead (the swap goes both
-          // ways, so swapping `subject` again would undo it).
-          const clip = buildStillClipPrompt(
-            slot.sceneHints?.trim() || buildDaySlotMotionSubject(slot, character?.name),
-            {
-              durationSec: 4,
-              people: stillPromptPeople(parentEntry?.prompt),
-              ...(endImageFilename && endPose?.poseWords
-                ? { endPoseWords: endPose.poseWords }
-                : {}),
-            }
-          );
-          prompt = manLead ? swapDayPromptGender(clip) : clip;
-        }
+        // The slot's beat, or the direction the player gave in the Animate sheet — formatted by
+        // the same templates either way (day-clip-direction.ts).
+        let prompt = buildDaySlotClipPrompt({
+          slot,
+          direction: options?.direction,
+          characterName: character?.name,
+          dayMood: toolSettings.dayMood,
+          stillPrompt: parentEntry?.prompt,
+          manLead,
+          endPoseWords: endImageFilename ? endPose?.poseWords : undefined,
+        });
         // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
         // voice and their own lip movement).
         const replyLine = normalizeSpokenLine(slot.replyLine);
@@ -435,11 +402,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           speaking && !conversation && !endImageFilename && !slot.lineFullFrame && imageUrl
             ? await framedTalkingStill(imageUrl)
             : null;
-        // Kept whole and full-body: a wide-shot prompt, or LTX punches in to her face.
-        const wide =
+        // Kept whole and not already close: wording that holds the framing, or LTX punches in
+        // to her face (talking-clip-framing.ts).
+        const framing =
           speaking && !conversation && !framed && imageUrl
-            ? await talkingStillIsWide(imageUrl)
-            : false;
+            ? await talkingStillFraming(imageUrl)
+            : 'close';
         if (speaking) {
           // Talking: she stays put facing the camera (the beat's motion walked her out of frame
           // mid-line). An adult still's age sentence stays with the clip.
@@ -460,7 +428,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   line: spokenLine,
                   speaker: manLead ? 'He' : 'She',
                   tone: slot.lineTone,
-                  wide,
+                  framing,
                 }),
             ageLine,
           ]
@@ -707,6 +675,48 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
     },
     [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots, toolSettings]
+  );
+
+  /**
+   * What Animate would send for a slot, for the Animate sheet: the engine, and the prompt built
+   * from a direction (the beat by default) the way Animate builds it. A talking slot speaks its
+   * line instead (talkingClipPrompt), so the direction does not apply there.
+   */
+  const previewSlotClip = useCallback(
+    (slot: DaySlot, direction?: string) => {
+      const still = stillsRef.current.find(entry => entry.slotId === slot.id);
+      const parentEntry = still?.promptId
+        ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
+        : undefined;
+      const spokenLine = normalizeSpokenLine(slot.line);
+      const engine = resolveDayClipEngine({
+        stillPromptId: still?.promptId,
+        dayMood: toolSettings.dayMood,
+        sharedModel: shared.model,
+        speaking: Boolean(spokenLine),
+      });
+      const talking = Boolean(spokenLine) && isLtx25Model(engine);
+      const prompt = talking
+        ? talkingClipPrompt({ setting: slot.location, line: spokenLine, tone: slot.lineTone })
+        : buildDaySlotClipPrompt({
+            slot,
+            direction,
+            characterName: character?.name,
+            dayMood: toolSettings.dayMood,
+            stillPrompt: parentEntry?.prompt,
+            manLead: dayPartnerNoun(character ?? {}) === 'man',
+          });
+      return {
+        engine,
+        engineLabel: isLtx25Model(engine)
+          ? 'LTX-2.5'
+          : (getComfyModelDefinition(engine)?.label ?? engine),
+        talking,
+        prompt,
+        defaultDirection: defaultDayClipDirection(slot, character?.name),
+      };
+    },
+    [character, shared.model, stillsRef, toolSettings.dayMood]
   );
 
   // "Open this Day again" (Cast → Seasons) set the Day it replaced aside — offer it back.
@@ -1378,6 +1388,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   );
 
   return {
+    previewSlotClip,
     setAsideDay,
     bringBackSetAsideDay,
     dismissSetAsideDay,

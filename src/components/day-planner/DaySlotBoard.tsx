@@ -147,7 +147,10 @@ export default function DaySlotBoard({
     setVoicedNote(null);
     const error = await onAddVoice(slot);
     setVoicing(null);
-    setVoicedNote({ slotId: slot.id, text: error ?? 'Voice added — the clip now has sound.' });
+    setVoicedNote({
+      slotId: slot.id,
+      text: error ?? 'Sound added — the clip now has its room sound.',
+    });
   };
   const promptKey = useMemo(
     () =>
@@ -374,11 +377,11 @@ export default function DaySlotBoard({
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
                   disabled={busy || voicing !== null}
-                  title="Give this silent clip its sound — breathing, moans, the room — with the picture as it is. No words: the picture cannot move the lips."
+                  title="Give this silent clip its sound — the place around it (birds, traffic, waves, a room), and breathing on intimate clips — with the picture as it is. No words: the picture cannot move the lips."
                   data-testid={`day-progress-add-voice-${slot.id}`}
                   onClick={() => void addVoice(slot)}
                 >
-                  {voicing === slot.id ? 'Adding voice…' : 'Add voice'}
+                  {voicing === slot.id ? 'Adding sound…' : 'Add sound'}
                 </button>
               ) : null}
               {onExtendClip && clipState === 'done' && doneClip ? (
@@ -712,7 +715,7 @@ export default function DaySlotBoard({
                       role="status"
                       data-testid={`day-progress-add-voice-note-${slot.id}`}
                     >
-                      {voicing === slot.id ? 'Adding voice… (about a minute)' : voicedNote?.text}
+                      {voicing === slot.id ? 'Adding sound… (about a minute)' : voicedNote?.text}
                     </p>
                   ) : null}
                   {extending?.slotId === slot.id ||

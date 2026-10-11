@@ -75,6 +75,8 @@ export async function dubClipWithVoice(input: {
   line?: string;
   heat?: 'clean' | 'flirty' | 'sensual' | 'explicit';
   lead?: 'woman' | 'man';
+  /** Where the clip happens — its ambience (dubPrompt). */
+  place?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;

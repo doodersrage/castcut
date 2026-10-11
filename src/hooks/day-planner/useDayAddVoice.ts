@@ -32,6 +32,7 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
         const url = await requestClipVoice({
           clipUrl,
           scene: slot.sceneHints?.trim() || slot.label,
+          place: slot.location?.trim() || undefined,
           line: slot.line,
           heat: spokenLineHeat(dayMood),
           lead: dayPartnerNoun(character ?? {}) === 'man' ? 'man' : 'woman',

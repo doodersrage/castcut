@@ -256,6 +256,7 @@ export function useStoryBeatEdit({
         const url = await requestClipVoice({
           clipUrl,
           scene: `${latest.title}. ${latest.blurb}`,
+          place: loadSettingsCache().tools.roleplay?.setting?.trim() || undefined,
           line: latest.line,
           heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
           lead: leadIsMan() ? 'man' : 'woman',

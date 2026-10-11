@@ -18,6 +18,23 @@ export const TALKING_WIDE_FACE_SHARE = 0.08;
 /** Crop height in face heights: head, shoulders and chest. */
 export const TALKING_CROP_FACE_HEIGHTS = 4.2;
 
+/**
+ * How a still kept whole (Keep the full frame, or a face that was not cropped) is framed, for
+ * the talking prompt: `wide` (full body, face under 8%) and `mid` (seated / knees-up, 8–16%) both
+ * get wording that holds the framing; `close` is already close. A face that can't be found
+ * counts as `mid` — the clip keeps the frame rather than risk a punch-in. Live 2026-10-11: a
+ * park-bench still at ~8% face height fell just above the old full-body bar, got the plain
+ * "looks into the camera" wording, and LTX punched in to a face close-up within 2 s.
+ */
+export type TalkingFraming = 'wide' | 'mid' | 'close';
+
+export function talkingFramingFromShare(share: number | null | undefined): TalkingFraming {
+  if (typeof share !== 'number' || !Number.isFinite(share) || share <= 0) return 'mid';
+  if (share < TALKING_WIDE_FACE_SHARE) return 'wide';
+  if (share < TALKING_CLOSE_FACE_SHARE) return 'mid';
+  return 'close';
+}
+
 export type CropRect = { x: number; y: number; width: number; height: number };
 
 /** The chest-up 3:4 crop for a talking clip, or null when the still is already close. */

@@ -1,7 +1,34 @@
 'use client';
 
 import { locateFaceOnPlateBlob } from './face-locate-client';
-import { TALKING_WIDE_FACE_SHARE, talkingClipCropRect } from './talking-clip-framing';
+import {
+  TALKING_WIDE_FACE_SHARE,
+  talkingClipCropRect,
+  talkingFramingFromShare,
+  type TalkingFraming,
+} from './talking-clip-framing';
+
+/**
+ * How a still kept whole is framed (talkingFramingFromShare): wide, mid or close. Unreadable or
+ * faceless stills count as `mid`, so the clip holds its framing.
+ */
+export async function talkingStillFraming(imageUrl: string): Promise<TalkingFraming> {
+  try {
+    const response = await fetch(imageUrl, { credentials: 'same-origin' });
+    if (!response.ok) return 'mid';
+    const blob = await response.blob();
+    const located = await locateFaceOnPlateBlob(blob);
+    if (!located?.available || !located.face) return 'mid';
+    const bitmap = await createImageBitmap(blob);
+    try {
+      return talkingFramingFromShare(located.face.height / Math.max(1, bitmap.height));
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    return 'mid';
+  }
+}
 
 /**
  * True when the still is a full-body shot (face under {@link TALKING_WIDE_FACE_SHARE} of its

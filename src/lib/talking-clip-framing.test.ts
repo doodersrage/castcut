@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { talkingClipCropRect } from './talking-clip-framing';
+import { talkingClipPrompt } from './ltx25-renderer';
 
 describe('talking clip framing', () => {
   it('crops a full-body still chest-up around the face, 3:4, face in the upper third', () => {
@@ -79,6 +80,10 @@ describe('how the line is said', async () => {
     assert.match(talkingClipPrompt({ line: 'Hi', tone: 'whisper' }), /looks into the camera and leans in and whispers, in a soft breathy whisper, "Hi"/);
     assert.match(talkingClipPrompt({ line: 'Hi', tone: 'angry', speaker: 'He' }), /snaps angrily, his voice sharp and raised, "Hi"/);
     assert.equal(spokenLineVerb('laughing', 'She'), 'laughs and says through her laughter,');
+    assert.equal(spokenLineVerb('shouting', 'He'), 'shouts at the top of his voice, calling out loudly,');
+    assert.equal(spokenLineVerb('nervous', 'She'), 'says nervously, hesitating, her voice shaky and quick,');
+    assert.equal(normalizeSpokenLineTone('singsong'), 'singsong');
+    assert.equal(normalizeSpokenLineTone('sleepy'), undefined);
   });
   it('reaches conversations and 30-second parts', () => {
     assert.match(
@@ -108,5 +113,43 @@ describe('wide talking prompt (full-body still kept whole)', async () => {
     assert.doesNotMatch(prompt, /into the camera|facing the camera/);
     assert.match(prompt, /her whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up/);
     assert.match(talkingClipPrompt({ line: 'Hi', speaker: 'He', wide: true }), /He stays where he is and says clearly.*his whole body/);
+  });
+});
+
+describe('talking framing bands', () => {
+  it('splits kept-whole stills into wide, mid and close', async () => {
+    const { talkingFramingFromShare } = await import('./talking-clip-framing');
+    assert.equal(talkingFramingFromShare(0.05), 'wide');
+    // The park-bench still that punched in: ~8% face, just over the old full-body bar.
+    assert.equal(talkingFramingFromShare(0.085), 'mid');
+    assert.equal(talkingFramingFromShare(0.2), 'close');
+    // No face found: hold the frame rather than risk a punch-in.
+    assert.equal(talkingFramingFromShare(null), 'mid');
+  });
+
+  it('mid stills take the wide wording and never ask her to look into the camera', () => {
+    const prompt = talkingClipPrompt({ line: 'Hi', framing: 'mid', setting: 'park bench' });
+    assert.match(prompt, /^Wide shot, full body/);
+    assert.match(prompt, /no close-up/);
+    assert.doesNotMatch(prompt, /looks into the camera/);
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'wide' }), /^Wide shot, full body/);
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'close' }), /looks into the camera/);
+  });
+});
+
+describe('room sound (Add sound)', () => {
+  it('names the place and its likely sounds, never words', async () => {
+    const { dubPrompt, ambienceSounds } = await import('./ltx25-renderer');
+    assert.equal(ambienceSounds('harbor-side brunch terrace'), 'low murmur of other guests, cups and cutlery clinking');
+    assert.equal(
+      ambienceSounds('park bench under amber streetlights at blue hour'),
+      'birdsong, a light breeze in the trees, distant traffic, hushed for the late hour'
+    );
+    assert.equal(ambienceSounds('somewhere'), '');
+    const prompt = dubPrompt({ scene: 'She reads', place: 'calm turquoise bay' });
+    assert.match(prompt, /The natural background sound of calm turquoise bay: waves breaking, wind, distant gulls, clearly audible\./);
+    assert.match(prompt, /no talking/);
+    // Without a place: as before.
+    assert.match(dubPrompt({ scene: 'She reads' }), /Natural room sound\.$/);
   });
 });

@@ -3,6 +3,8 @@
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
+import type { DaySlot } from '@/lib/day-planner';
+import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
 import {
   useDayCutReadiness,
@@ -230,6 +232,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     queueSlot,
     queueAll,
     animateSlot,
+    previewSlotClip,
     animateAllClips,
     endPoseStatus,
     endPoseReposingSlotId,
@@ -374,6 +377,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     ),
     reviewOn: autoReviewStills,
   });
+  // Animate opens a sheet: the engine, and the direction to edit (DayAnimateSheet).
+  const [animateTarget, setAnimateTarget] = useState<DaySlot | null>(null);
   const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? toMobileStudioHref(`/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`)
@@ -546,6 +551,17 @@ export default function MobileDayToolSections(vm: ViewModel) {
 
   return (
     <div className="space-y-4" data-testid="mobile-day">
+      <DayAnimateSheet
+        key={animateTarget?.id ?? 'none'}
+        slot={animateTarget}
+        preview={previewSlotClip}
+        busy={busy}
+        onClose={() => setAnimateTarget(null)}
+        onAnimate={(slot, direction) => {
+          setAnimateTarget(null);
+          void animateSlot(slot, { direction });
+        }}
+      />
       <CutProblemsDialog
         problems={cutProblems}
         onResolve={action => void resolveCutProblems(action)}
@@ -922,7 +938,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onEditSlot={openSlotSheet}
           onOpenStill={openProgressLightbox}
           onRetrySlot={slot => void queueSlot(slot)}
-          onAnimateSlot={slot => void animateSlot(slot)}
+          onAnimateSlot={slot => setAnimateTarget(slot)}
           onAddVoice={addVoiceToSlot}
           voicingSlotId={voicingSlotId}
           onExtendClip={extendSlotClip}
@@ -1357,7 +1373,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         onPickTwoTake={keep => pickTwoTake(activeSlot.id, keep)}
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot)}
-        onAnimateSlot={() => void animateSlot(activeSlot)}
+        onAnimateSlot={() => setAnimateTarget(activeSlot)}
         compact
       />
       <SideSheet

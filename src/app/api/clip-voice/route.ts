@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       line: text(body.line, 200) || undefined,
       heat,
       lead: body.lead === 'man' ? 'man' : 'woman',
+      place: text(body.place, 200) || undefined,
       comfyUrl: text(body.comfyUrl, 300) || undefined,
       requestOrigin: new URL(request.url).origin,
       userId: user?.id ?? null,

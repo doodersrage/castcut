@@ -413,3 +413,48 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await preview.getByTestId('day-cut-preview-close').click();
   await expect(preview).toHaveCount(0);
 });
+
+test('Animate opens a sheet with the engine and an editable direction', async ({ page }) => {
+  const castId = 'e2e-animate';
+  const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: castId },
+    characters: {
+      version: 1,
+      characters: [{ id: castId, name: 'Ana', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: castId,
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee by the window' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'sleeps' },
+        ],
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'an-m' }],
+      },
+    },
+  });
+  await gotoStable(page, `/day?character=${castId}`);
+  await dismissBlockingOverlays(page);
+  // The slot sheet's Animate (the card's ⋯ Animate waits for a plate; this Cast has none).
+  await openDaySlotSheet(page, 'morning');
+  await page.getByTestId('day-animate-active').click();
+  const sheet = page.getByTestId('day-animate-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId('day-animate-engine')).toContainText('Runs on');
+  const direction = sheet.getByTestId('day-animate-direction');
+  await expect(direction).toHaveValue('pours coffee by the window');
+  await sheet.locator('summary').click();
+  await expect(sheet.getByTestId('day-animate-prompt')).toContainText('pours coffee by the window');
+  await direction.fill('turns to the window and laughs');
+  await expect(sheet.getByTestId('day-animate-prompt')).toContainText('turns to the window and laughs');
+  await expect(sheet.getByTestId('day-animate-prompt')).not.toContainText('pours coffee');
+  await sheet.getByTestId('day-animate-reset').click();
+  await expect(direction).toHaveValue('pours coffee by the window');
+  await sheet.getByTestId('day-animate-cancel').click();
+  await expect(sheet).toHaveCount(0);
+});

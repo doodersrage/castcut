@@ -92,23 +92,13 @@ test('Day slot: How the line is said is picked and kept', async ({ page }) => {
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
   await openDaySlotSheet(page, 'morning');
-  const natural = page.getByTestId('day-slot-line-tone-natural').first();
-  await expect(natural).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
-  await page.getByTestId('day-slot-line-tone-whisper').first().click();
-  await expect(page.getByTestId('day-slot-line-tone-whisper').first()).toHaveAttribute(
-    'aria-pressed',
-    'true'
-  );
+  const how = page.getByTestId('day-slot-line-tone-select').first();
+  await expect(how).toHaveValue('natural', { timeout: 30_000 });
+  await how.selectOption('whisper');
+  await expect(how).toHaveValue('whisper');
   await closeDaySheets(page);
   await openDaySlotSheet(page, 'morning');
-  await expect(page.getByTestId('day-slot-line-tone-whisper').first()).toHaveAttribute(
-    'aria-pressed',
-    'true'
-  );
-  await expect(page.getByTestId('day-slot-line-tone-natural').first()).toHaveAttribute(
-    'aria-pressed',
-    'false'
-  );
+  await expect(page.getByTestId('day-slot-line-tone-select').first()).toHaveValue('whisper');
 });
 
 test('Make it 30 s: direction, written beats, an edit, and the long clip in place', async ({

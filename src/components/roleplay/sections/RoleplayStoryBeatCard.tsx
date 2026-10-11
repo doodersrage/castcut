@@ -302,11 +302,11 @@ export function RoleplayStoryBeatCard({
                   void edit
                     .voiceBeatClip(beat)
                     .then(error =>
-                      setAddVoiceNote(error ?? 'Voice added — the clip now has sound.')
+                      setAddVoiceNote(error ?? 'Sound added — the clip now has its room sound.')
                     );
                 }}
               >
-                {edit.voicingKey === storyBeatKey(beat) ? 'Adding voice…' : 'Add voice'}
+                {edit.voicingKey === storyBeatKey(beat) ? 'Adding sound…' : 'Add sound'}
               </button>
             ) : null}
             {edit && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
@@ -409,7 +409,7 @@ export function RoleplayStoryBeatCard({
               data-testid="story-beat-add-voice-note"
             >
               {edit?.voicingKey === storyBeatKey(beat)
-                ? 'Adding voice… (about a minute)'
+                ? 'Adding sound… (about a minute)'
                 : addVoiceNote}
             </p>
           ) : null}

@@ -166,40 +166,50 @@ export default function ClipExtendSheet({
                     data-testid={`${testId}-beat-${index}`}
                   />
                   {engine === 'ltx' ? (
-                    <TextInput
-                      value={lines[index] ?? ''}
-                      maxLength={90}
-                      placeholder="Says… (optional)"
-                      aria-label={`Line for part ${index + 1}`}
-                      onChange={event =>
-                        setLines(list => {
-                          const next = [...list];
-                          next[index] = event.target.value;
-                          return next;
-                        })
-                      }
-                      data-testid={`${testId}-line-${index}`}
-                    />
-                  ) : null}
-                  {engine === 'ltx' && (lines[index] ?? '').trim() ? (
-                    <SelectInput
-                      value={tones[index] || 'natural'}
-                      aria-label={`How part ${index + 1}'s line is said`}
-                      onChange={event =>
-                        setTones(list => {
-                          const next = [...list];
-                          next[index] = event.target.value === 'natural' ? '' : event.target.value;
-                          return next;
-                        })
-                      }
-                      data-testid={`${testId}-tone-${index}`}
-                    >
-                      {SPOKEN_LINE_TONES.map(option => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </SelectInput>
+                    // The line and how it's said side by side, so the tone is there from the start.
+                    <div className="flex flex-wrap items-center gap-2">
+                      <TextInput
+                        value={lines[index] ?? ''}
+                        maxLength={90}
+                        placeholder="Says… (optional)"
+                        aria-label={`Line for part ${index + 1}`}
+                        className="min-w-[12rem] flex-1"
+                        onChange={event =>
+                          setLines(list => {
+                            const next = [...list];
+                            next[index] = event.target.value;
+                            return next;
+                          })
+                        }
+                        data-testid={`${testId}-line-${index}`}
+                      />
+                      <SelectInput
+                        value={tones[index] || 'natural'}
+                        aria-label={`How part ${index + 1}'s line is said`}
+                        title={
+                          (lines[index] ?? '').trim()
+                            ? undefined
+                            : 'How the line is said — type a line first'
+                        }
+                        disabled={!(lines[index] ?? '').trim()}
+                        className="w-auto"
+                        onChange={event =>
+                          setTones(list => {
+                            const next = [...list];
+                            next[index] =
+                              event.target.value === 'natural' ? '' : event.target.value;
+                            return next;
+                          })
+                        }
+                        data-testid={`${testId}-tone-${index}`}
+                      >
+                        {SPOKEN_LINE_TONES.map(option => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </div>
                   ) : null}
                 </div>
                 <button

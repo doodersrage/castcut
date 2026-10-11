@@ -176,31 +176,25 @@ export default function SpokenLineField({
       ) : null}
       {note ? <p className="type-caption text-[var(--text-muted)]">{note}</p> : null}
       {onToneChange && value.trim() ? (
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="How it is said"
+        <label
+          className="flex items-center gap-2 type-caption text-[var(--text-muted)]"
           data-testid={`${testId}-tone`}
         >
-          <span className="type-caption text-[var(--text-muted)]">How</span>
-          {SPOKEN_LINE_TONES.map(option => {
-            const active = (tone ?? 'natural') === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                className="ui-chip"
-                data-active={active ? 'true' : 'false'}
-                aria-pressed={active}
-                disabled={disabled || asking}
-                data-testid={`${testId}-tone-${option.id}`}
-                onClick={() => onToneChange(option.id)}
-              >
+          How it&apos;s said
+          <select
+            disabled={disabled || asking}
+            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            value={tone ?? 'natural'}
+            data-testid={`${testId}-tone-select`}
+            onChange={event => onToneChange(event.target.value as SpokenLineTone)}
+          >
+            {SPOKEN_LINE_TONES.map(option => (
+              <option key={option.id} value={option.id}>
                 {option.label}
-              </button>
-            );
-          })}
-        </div>
+              </option>
+            ))}
+          </select>
+        </label>
       ) : null}
       {onReplySave && value.trim() ? (
         <div className="space-y-1">

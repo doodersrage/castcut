@@ -9,6 +9,8 @@ export async function requestClipVoice(input: {
   line?: string;
   heat?: 'clean' | 'flirty' | 'sensual' | 'explicit';
   lead?: 'woman' | 'man';
+  /** Where it happens — the room / place sound it gets. */
+  place?: string;
 }): Promise<string> {
   const response = await fetch('/api/clip-voice', {
     method: 'POST',
