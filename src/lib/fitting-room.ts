@@ -601,7 +601,6 @@ export function buildFittingOutfitPrompt(input: {
         `— exactly these, worn on both feet (on ${/\bon his\b/.test(whole) ? 'his' : 'her'} feet, not set down beside ${/\bon his\b/.test(whole) ? 'him' : 'her'}); no bare feet`
     );
   const hasShoes = Boolean(footwear) && !/barefoot/i.test(footwear);
-  const name = input.characterName?.trim();
   const notes = fittingStylingNotes(input.notes);
   // No trailing full stop: the description is followed by one ("throughout.. Keep face").
   const garmentDescription = input.garmentDescription?.trim().replace(/[.\s]+$/, '');
@@ -620,7 +619,8 @@ export function buildFittingOutfitPrompt(input: {
         ? 'Image 1 is the person plate; Image 2 is a packshot of the shoes only (no person)'
         : null,
     'keep: face, hair, body identity, skin tone, and likeness from the reference plate only',
-    name ? `subject: ${name}` : null,
+    // No `subject: <name>`: identity is Image 1's, and an unusual name ("Gloovi the
+    // Cap-Weaver") was painted into the try-on as a logo (2026-10-11).
     // Never inject Cast look / bible notes — they often name the plate's clothes and
     // the edit model will "keep" them. Wardrobe authority is outfit / Image 2 only.
     'ignore Cast look notes, character bible clothing, and any wardrobe described on the character record',

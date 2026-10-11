@@ -119,7 +119,6 @@ export function synthesizeMoodboardPrompt(input: {
 }): string {
   const templateId = normalizeMoodboardTemplateId(input.templateId);
   const tiles = normalizeMoodboardTiles(input.tiles);
-  const name = input.characterName?.trim();
   const descriptor = input.characterDescriptor?.trim();
   const instruction = input.instruction?.trim();
 
@@ -144,7 +143,7 @@ export function synthesizeMoodboardPrompt(input: {
 
   return [
     templateLead(templateId),
-    name ? `subject: ${name}` : null,
+    // No `subject: <name>` — an unusual name was painted into the picture as text.
     descriptor ? `character notes: ${descriptor}` : null,
     instruction ? `direction: ${instruction}` : null,
     tileLines.length > 0 ? 'moodboard cues:\n' + tileLines.join('\n') : null,

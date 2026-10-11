@@ -263,7 +263,8 @@ describe('day-planner', () => {
       notes: 'cozy autumn',
     });
     assert.match(prompt, /morning/i);
-    assert.match(prompt, /Rin/);
+    // The Cast's name is never in an image brief (an unusual one was painted as text).
+    assert.doesNotMatch(prompt, /Rin/);
     assert.match(prompt, /linen set/);
     assert.match(prompt, /quiet breakfast/);
     assert.match(prompt, /cozy autumn/);

@@ -3391,7 +3391,6 @@ export function buildDaySlotPrompt(input: {
   outfitIsDressedPlate?: boolean;
 }): string {
   const slot = input.slot;
-  const name = input.characterName?.trim();
   const descriptor = input.characterDescriptor?.trim();
   const outfit = input.wardrobeLabel?.trim() || slot.wardrobeId?.trim() || '';
   const rawSetting = resolveRoleplaySetting(slot.location, input.lockedLocation);
@@ -4147,7 +4146,7 @@ export function buildDaySlotPrompt(input: {
         descriptor
           ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
           : null,
-        name ? `subject: ${name}` : 'subject: the active Cast character',
+        'subject: the active Cast character', // never the name — painted as text
         keepOutfitLine,
         hints ? `beat: ${hints}` : null,
         notes ? `notes: ${notes}` : null,
@@ -4281,7 +4280,7 @@ export function buildDaySlotPrompt(input: {
       descriptor
         ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
         : null,
-      name ? `subject: ${name}` : 'subject: the active Cast character',
+      'subject: the active Cast character', // never the name — painted as text
       garmentReinforce && !omitGarment && !replaceKeepOutfit
         ? 'replace clothing with the garments from Image 2'
         : castOutfitLine,
@@ -4316,7 +4315,7 @@ export function buildDaySlotPrompt(input: {
     descriptor
       ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
       : null,
-    name ? `subject: ${name}` : 'subject: the active Cast character',
+    'subject: the active Cast character', // never the name — painted as text
     nudeOutfitLine ??
       sportOutfitLine ??
       (outfit ? `outfit: ${outfit}` : 'outfit: catalog wardrobe kit for this slot'),

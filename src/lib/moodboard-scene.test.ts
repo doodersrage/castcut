@@ -57,7 +57,7 @@ describe('moodboard-scene', () => {
       ],
     });
     assert.match(prompt, /lighting/i);
-    assert.match(prompt, /Kai/);
+    assert.doesNotMatch(prompt, /Kai/);
     assert.match(prompt, /golden hour rim light/);
     assert.match(prompt, /wide cinematic frame/);
   });
