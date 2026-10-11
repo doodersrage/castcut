@@ -52,8 +52,8 @@ export default function ClipEngineNote({
             ? 'Clips: LTX-2.5 (fast); two-person adult stills render on WAN, about 3× slower.'
             : 'Clips render on LTX-2.5 (fast).'
           : twoPersonAdultPossible && !ltxDuo
-            ? 'Clips: clothed one-person and two-person adult stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'
-            : 'Clips: clothed one-person stills render on WAN (holds the face, about 3× slower); the rest on LTX-2.5.'}
+            ? 'Clips: clothed one-person and two-person adult stills render on WAN (about 3× slower); the rest on LTX-2.5.'
+            : 'Clips: clothed one-person stills render on WAN (about 3× slower); the rest on LTX-2.5.'}
       </p>
       <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
         <input
@@ -69,7 +69,7 @@ export default function ClipEngineNote({
             });
           }}
         />
-        Use LTX-2.5 for clothed one-person clips too (faster; the face drifts)
+        Use LTX-2.5 for clothed one-person clips too (faster, and kept her face closer in tests)
       </label>
       {twoPersonAdultPossible ? (
         <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">

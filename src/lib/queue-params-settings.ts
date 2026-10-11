@@ -334,8 +334,8 @@ export function resolveQueueParams(
   }
   // Two-person adult LTX clips (still hold, size) — dropped here until 2026-10-11, so only
   // their prompt lines reached the graph.
-  if (base?.videoMotionPace === 'fast') {
-    merged.videoMotionPace = 'fast';
+  if (base?.videoStillHold === 'on') {
+    merged.videoStillHold = 'on';
   }
   if (base?.castcutPoseGuide?.trim()) {
     merged.castcutPoseGuide = base.castcutPoseGuide.trim();

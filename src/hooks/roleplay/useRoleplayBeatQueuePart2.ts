@@ -302,6 +302,13 @@ export function useRoleplayBeatQueuePart2(
         isLtx25Model(clipModel) &&
         (adultDuo || isAdultContentPrompt(parentEntry?.prompt ?? latest.prompt));
       if (fastPace) prompt = withAdultLtxLines(prompt, adultDuo);
+      // A clothed one-person clip on LTX also holds the still harder at 1024 (closer face).
+      const holdStill =
+        fastPace ||
+        (!speaking &&
+          isLtx25Model(clipModel) &&
+          stillPromptPeople(parentEntry?.prompt ?? latest.prompt) === 1 &&
+          !isAdultContentPrompt(parentEntry?.prompt ?? latest.prompt));
 
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
       let talkingCropped = false;
@@ -372,7 +379,7 @@ export function useRoleplayBeatQueuePart2(
               : {
                   videoFrames: 64,
                   videoFps: 16,
-                  ...(fastPace ? { videoMotionPace: 'fast' as const } : {}),
+                  ...(holdStill ? { videoStillHold: 'on' as const } : {}),
                 }
           ),
         });

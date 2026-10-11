@@ -242,9 +242,9 @@ test('two-person adult LTX clips keep their pace flag on the way to the queue', 
 
   const params = resolveQueueParams({
     model: 'ltx-video-2.5',
-    base: { seed: '1', videoFrames: 64, videoMotionPace: 'fast' },
+    base: { seed: '1', videoFrames: 64, videoStillHold: 'on' },
   });
-  assert.equal(params.videoMotionPace, 'fast');
+  assert.equal(params.videoStillHold, 'on');
   const plain = resolveQueueParams({ model: 'ltx-video-2.5', base: { seed: '1' } });
-  assert.equal(plain.videoMotionPace, undefined);
+  assert.equal(plain.videoStillHold, undefined);
 });

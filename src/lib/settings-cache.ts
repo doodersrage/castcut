@@ -913,8 +913,9 @@ export type VideoToolCache = {
   /** Frame count / length fed to {{VIDEO_FRAMES}} at queue time. */
   frames?: number;
   /**
-   * Keep LTX-2.5 for clothed one-person clips (faster; the face drifts). Off: those clips render
-   * on WAN even with LTX-2.5 picked (clipEngineForShot).
+   * Keep LTX-2.5 for clothed one-person clips (faster; held at 0.85 and 1024 it kept her face
+   * closer than WAN, 2026-10-11). Off: those clips render on WAN even with LTX-2.5 picked
+   * (clipEngineForShot).
    */
   ltxClothedSolo?: boolean;
   /**

@@ -19,7 +19,7 @@ function buildClipGraph(paced: boolean) {
     videoFrames: 64,
     videoFps: 16,
     inputImageFilename: 'day-still.png',
-    ...(paced ? { videoMotionPace: 'fast' as const } : {}),
+    ...(paced ? { videoStillHold: 'on' as const } : {}),
   });
   return injectPromptsWithFallbacks(
     JSON.parse(buildWorkflowScaffoldForModel('ltx-video-2.5').json) as Record<string, unknown>,

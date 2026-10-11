@@ -229,7 +229,7 @@ export type WorkflowParamValues = {
    */
   videoSpeech?: 'on';
   /** A two-person adult clip kept on LTX-2.5: tell LTX a lower frame rate (LTX_FAST_PACE_*). */
-  videoMotionPace?: 'fast';
+  videoStillHold?: 'on';
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -540,8 +540,8 @@ export function resolveQueueParams(
   if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
     result.videoLongSide = merged.videoLongSide;
   }
-  if (merged.videoMotionPace === 'fast') {
-    result.videoMotionPace = 'fast';
+  if (merged.videoStillHold === 'on') {
+    result.videoStillHold = 'on';
   }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
@@ -1895,11 +1895,11 @@ export function injectPromptsWithFallbacks(
           !nodeTypes || (nodeTypes.has('GetImageSize') && nodeTypes.has('ComfyMathExpression')),
         ...(Number(input.params?.videoLongSide) > 0
           ? { longSide: Number(input.params?.videoLongSide) }
-          : input.params?.videoMotionPace === 'fast'
+          : input.params?.videoStillHold === 'on'
             ? { longSide: LTX_PACED_LONG_SIDE }
             : {}),
         // A two-person adult clip kept on LTX: holds the still harder (anatomy stays one shape).
-        ...(input.params?.videoMotionPace === 'fast' ? { stillHold: LTX_PACED_STILL_HOLD } : {}),
+        ...(input.params?.videoStillHold === 'on' ? { stillHold: LTX_PACED_STILL_HOLD } : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
           ? { endImage }

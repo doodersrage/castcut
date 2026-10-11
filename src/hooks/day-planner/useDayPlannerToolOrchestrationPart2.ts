@@ -404,6 +404,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           isDayAdultMood(toolSettings.dayMood) &&
           (adultDuoStill || isAdultContentPrompt(parentEntry?.prompt));
         if (fastPace) prompt = withAdultLtxLines(prompt, adultDuoStill);
+        // A clothed one-person clip on LTX also holds the still harder at 1024: her face stayed
+        // closer to the still than plain LTX or WAN (8 stills, 2026-10-11: 0.55 vs 0.71 / 0.79).
+        const holdStill =
+          fastPace ||
+          (!spokenLine &&
+            isLtx25Model(videoModel) &&
+            stillPromptPeople(parentEntry?.prompt) === 1 &&
+            !isAdultContentPrompt(parentEntry?.prompt));
         // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
         // voice and their own lip movement).
         const replyLine = normalizeSpokenLine(slot.replyLine);
@@ -466,7 +474,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               // A talking clip runs ~5 s: room for a line of about 14 words.
               // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
               videoFrames: conversation ? 96 : speaking ? 80 : 64,
-              ...(fastPace ? { videoMotionPace: 'fast' as const } : {}),
+              ...(holdStill ? { videoStillHold: 'on' as const } : {}),
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(speaking
