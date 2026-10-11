@@ -40,6 +40,25 @@ export function acceptedRequestOrigins(input: {
   return origins;
 }
 
+/**
+ * Behind a reverse proxy the Host header is usually the upstream (127.0.0.1:47832) while the
+ * browser's Origin is the public name (https://castcut.example.com), so the two never match — a
+ * login through the proxy was refused (2026-10-11). An Origin whose hostname the operator listed
+ * in PROMPT_TRUSTED_HOSTS is accepted whatever Host the proxy forwarded.
+ */
+export function isTrustedOriginHost(origin: string, trustedHosts?: string | null): boolean {
+  const trusted = (trustedHosts ?? '')
+    .split(',')
+    .map(name => name.trim().toLowerCase())
+    .filter(Boolean);
+  if (!trusted.length) return false;
+  try {
+    return trusted.includes(new URL(origin).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 /** 192.168.1.5, ::1 / [::1] — a literal address, never a name that DNS could rebind. */
 export function isIpLiteral(hostname: string): boolean {
   const bare = hostname.replace(/^\[|\]$/g, '');

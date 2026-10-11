@@ -162,6 +162,19 @@ describe('auth/session', async () => {
     });
   });
 
+  describe('Secure follows the scheme the browser used', () => {
+    it('is Secure behind a TLS proxy, not over plain HTTP', () => {
+      const tls = new Request('http://127.0.0.1:47832/api/auth/login', {
+        headers: { 'x-forwarded-proto': 'https' },
+      });
+      assert.match(sessionCookieValue('a.b', tls), /; Secure/);
+      const lan = new Request('http://192.168.12.43:47832/api/auth/login');
+      assert.doesNotMatch(sessionCookieValue('a.b', lan), /Secure/);
+      assert.doesNotMatch(clearSessionCookieValue(lan), /Secure/);
+      assert.match(sessionCookieValue('a.b', new Request('https://castcut.example.com/x')), /; Secure/);
+    });
+  });
+
   describe('clearSessionCookieValue', () => {
     it('clears the cookie with Max-Age=0', () => {
       const value = clearSessionCookieValue();

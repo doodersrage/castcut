@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   return apiJson(
     { user: toPublicUser(target), impersonating: true },
-    { headers: { 'Set-Cookie': sessionCookieValue(token) } }
+    { headers: { 'Set-Cookie': sessionCookieValue(token, request) } }
   );
 }
 
@@ -82,6 +82,6 @@ export async function DELETE(request: Request) {
 
   return apiJson(
     { user: toPublicUser(admin), impersonating: false },
-    { headers: { 'Set-Cookie': sessionCookieValue(token) } }
+    { headers: { 'Set-Cookie': sessionCookieValue(token, request) } }
   );
 }

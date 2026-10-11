@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { acceptedRequestOrigins, isIpLiteral } from './same-origin-host';
+import { acceptedRequestOrigins, isIpLiteral, isTrustedOriginHost } from './same-origin-host';
 
 const server = { serverOrigin: 'http://localhost:47832', protocol: 'http:' };
 
@@ -39,5 +39,13 @@ describe('same-origin hosts', () => {
     assert.equal(isIpLiteral('999.1.1.1'), false);
     assert.equal(isIpLiteral('localhost'), false);
     assert.equal(isIpLiteral('cafe.example'), false);
+  });
+
+  it('accepts a listed public name behind a reverse proxy, whatever Host it forwards', () => {
+    assert.equal(isTrustedOriginHost('https://castcut.example.com', 'castcut.example.com'), true);
+    assert.equal(isTrustedOriginHost('https://castcut.example.com:8443/x', 'other.lan, castcut.example.com'), true);
+    assert.equal(isTrustedOriginHost('https://evil.example', 'castcut.example.com'), false);
+    assert.equal(isTrustedOriginHost('https://castcut.example.com', ''), false);
+    assert.equal(isTrustedOriginHost('not a url', 'castcut.example.com'), false);
   });
 });

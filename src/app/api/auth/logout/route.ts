@@ -3,12 +3,12 @@ import { clearSessionCookieValue } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
 
-export async function POST() {
+export async function POST(request: Request) {
   return apiJson(
     { ok: true },
     {
       headers: {
-        'Set-Cookie': clearSessionCookieValue(),
+        'Set-Cookie': clearSessionCookieValue(request),
       },
     }
   );

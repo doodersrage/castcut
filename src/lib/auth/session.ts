@@ -67,13 +67,32 @@ export function parseSessionToken(token: string | undefined | null): AuthSession
   return session;
 }
 
-export function sessionCookieValue(token: string): string {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+/**
+ * Secure only when the browser came over HTTPS (X-Forwarded-Proto from a TLS proxy, or the URL):
+ * a plain-HTTP visit — the machine's LAN address, an HTTP reverse proxy — drops a Secure cookie,
+ * so the login never stuck. Without a request, production stays Secure as before.
+ */
+function cookieSecure(request?: Request): string {
+  if (!request) return process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const forwarded = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim().toLowerCase();
+  let https = forwarded === 'https';
+  if (!forwarded) {
+    try {
+      https = new URL(request.url).protocol === 'https:';
+    } catch {
+      https = false;
+    }
+  }
+  return https ? '; Secure' : '';
+}
+
+export function sessionCookieValue(token: string, request?: Request): string {
+  const secure = cookieSecure(request);
   return `${SESSION_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SEC}${secure}`;
 }
 
-export function clearSessionCookieValue(): string {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+export function clearSessionCookieValue(request?: Request): string {
+  const secure = cookieSecure(request);
   return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
 }
 

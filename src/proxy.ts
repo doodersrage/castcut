@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { acceptedRequestOrigins } from '@/lib/same-origin-host';
+import { acceptedRequestOrigins, isTrustedOriginHost } from '@/lib/same-origin-host';
 import type { NextRequest } from 'next/server';
 import {
   checkRateLimit,
@@ -47,7 +47,10 @@ function isTrustedSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   if (origin) {
     try {
-      return accepted.includes(new URL(origin).origin);
+      return (
+        accepted.includes(new URL(origin).origin) ||
+        isTrustedOriginHost(origin, process.env.PROMPT_TRUSTED_HOSTS)
+      );
     } catch {
       return false;
     }
@@ -60,7 +63,10 @@ function isTrustedSameOrigin(request: NextRequest): boolean {
   const referer = request.headers.get('referer');
   if (referer) {
     try {
-      return accepted.includes(new URL(referer).origin);
+      return (
+        accepted.includes(new URL(referer).origin) ||
+        isTrustedOriginHost(referer, process.env.PROMPT_TRUSTED_HOSTS)
+      );
     } catch {
       return false;
     }

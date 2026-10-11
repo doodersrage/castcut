@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     });
     return apiJson(
       { user: toPublicUser(user), allowedFeatures: listAllowedFeatures(user) },
-      { headers: { 'Set-Cookie': sessionCookieValue(token) } }
+      { headers: { 'Set-Cookie': sessionCookieValue(token, request) } }
     );
   }
 
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     },
     {
       headers: {
-        'Set-Cookie': sessionCookieValue(token),
+        'Set-Cookie': sessionCookieValue(token, request),
       },
     }
   );

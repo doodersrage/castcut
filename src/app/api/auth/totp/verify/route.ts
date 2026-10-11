@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       user: toPublicUser(user),
       allowedFeatures: listAllowedFeatures(user),
     },
-    { headers: { 'Set-Cookie': sessionCookieValue(token) } }
+    { headers: { 'Set-Cookie': sessionCookieValue(token, request) } }
   );
 }
 
