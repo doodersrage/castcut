@@ -3,8 +3,7 @@
 import { framedTalkingStill, talkingStillFraming } from '@/lib/talking-clip-framing-client';
 import {
   isLtx25Model,
-  LTX_DUO_ANATOMY_LINE,
-  LTX_FAST_PACE_LINE,
+  withAdultLtxLines,
   conversationClipPrompt,
   conversationPartnerNoun,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
@@ -82,7 +81,7 @@ import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day-clip-
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
-import { adultAgeLineIn } from '@/lib/adult-age-safeguard';
+import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -394,14 +393,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           manLead,
           endPoseWords: endImageFilename ? endPose?.poseWords : undefined,
         });
-        // A two-person adult clip kept on LTX-2.5 (Video ltxAdultDuo): LTX moves about half as
-        // much as WAN there, so it is told a lower frame rate and given a tempo line.
+        // An adult clip on LTX-2.5 — two-person (Video ltxAdultDuo) or a nude solo still: a calm
+        // tempo line, a firmer hold on the still and 1024 (comfyui-config); two-person clips also
+        // say the anatomy outright. Solo (2026-10-11): kept her anatomy where the plain clip lost
+        // it, and moved like WAN where plain LTX overshot.
+        const adultDuoStill = (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK);
         const fastPace =
           !spokenLine &&
           isLtx25Model(videoModel) &&
           isDayAdultMood(toolSettings.dayMood) &&
-          (parentEntry?.prompt ?? '').includes(RAPID_DUO_RECIPE_MARK);
-        if (fastPace) prompt = `${prompt.trim()} ${LTX_FAST_PACE_LINE} ${LTX_DUO_ANATOMY_LINE}`;
+          (adultDuoStill || isAdultContentPrompt(parentEntry?.prompt));
+        if (fastPace) prompt = withAdultLtxLines(prompt, adultDuoStill);
         // A reply on a two-person still: a one-shot conversation (both speak, LTX gives each a
         // voice and their own lip movement).
         const replyLine = normalizeSpokenLine(slot.replyLine);

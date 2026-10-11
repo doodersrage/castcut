@@ -46,3 +46,16 @@ describe('two-person adult LTX clips', () => {
     assert.ok(!sizes(buildClipGraph(false)).some(text => text.includes('1024')));
   });
 });
+
+describe('adult LTX clip prompt', () => {
+  it('adds the calm tempo line, and the anatomy line only for two people', async () => {
+    const { withAdultLtxLines, LTX_FAST_PACE_LINE, LTX_DUO_ANATOMY_LINE } = await import(
+      './ltx25-renderer'
+    );
+    assert.equal(withAdultLtxLines(' She rocks. ', false), `She rocks. ${LTX_FAST_PACE_LINE}`);
+    assert.equal(
+      withAdultLtxLines('She rocks.', true),
+      `She rocks. ${LTX_FAST_PACE_LINE} ${LTX_DUO_ANATOMY_LINE}`
+    );
+  });
+});

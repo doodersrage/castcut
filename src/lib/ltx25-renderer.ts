@@ -95,6 +95,12 @@ export const LTX_DUO_ANATOMY_LINE =
  * consistent (768 too small to show it, 1152 no steadier); ~38 s against ~30 s per clip.
  */
 export const LTX_PACED_LONG_SIDE = 1024;
+/** An adult LTX clip's prompt: the calm tempo line, plus the anatomy line for two people. */
+export function withAdultLtxLines(prompt: string, twoPeople: boolean): string {
+  return [prompt.trim(), LTX_FAST_PACE_LINE, twoPeople ? LTX_DUO_ANATOMY_LINE : '']
+    .filter(Boolean)
+    .join(' ');
+}
 /** How strongly those clips hold the still on the first pass (default 0.7). */
 export const LTX_PACED_STILL_HOLD = 0.85;
 /**
