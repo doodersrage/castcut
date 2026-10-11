@@ -6,16 +6,23 @@ import { assertSafeHttpUrl, isBlockedMetadataHost, isPrivateOrLocalHostname } fr
  * A URL the server may fetch on a user's behalf: http(s), and every address its hostname resolves
  * to is public. assertSafeHttpUrl only reads the hostname as written, so a name that resolves to
  * 127.0.0.1 or 192.168.x.x passed and the server fetched the internal service (security audit,
- * 2026-10-11). `allowHosts` (exact hostnames, e.g. the configured ComfyUI) skip the check.
+ * 2026-10-11). `allowOrigins` (exact scheme://host:port, e.g. the configured ComfyUI) skip the
+ * check — by origin, not hostname: allowing the host 127.0.0.1 opened every port on it.
  */
 export async function assertPublicFetchUrl(
   raw: string,
-  options: { allowHosts?: string[] } = {}
+  options: { allowOrigins?: string[] } = {}
 ): Promise<URL> {
   const url = assertSafeHttpUrl(raw, { allowPrivate: true });
   const hostname = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  const allowed = (options.allowHosts ?? []).map(host => host.trim().toLowerCase());
-  if (allowed.includes(hostname)) return url;
+  const allowed = (options.allowOrigins ?? []).flatMap(value => {
+    try {
+      return [new URL(value).origin];
+    } catch {
+      return [];
+    }
+  });
+  if (allowed.includes(url.origin)) return url;
   const addresses = isIP(hostname)
     ? [hostname]
     : (await lookup(hostname, { all: true, verbatim: true })).map(entry => entry.address);

@@ -10,7 +10,9 @@ export type SendEmailInput = {
   html?: string;
 };
 
-let transporter: nodemailer.Transporter | null = null;
+type Transporter = ReturnType<typeof nodemailer.createTransport>;
+
+let transporter: Transporter | null = null;
 let transporterSignature = '';
 
 function smtpSignature(): string {
@@ -31,7 +33,7 @@ export function invalidateEmailTransporter(): void {
   transporterSignature = '';
 }
 
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): Transporter {
   const config = getEmailConfig();
   const signature = smtpSignature();
   if (!transporter || transporterSignature !== signature) {

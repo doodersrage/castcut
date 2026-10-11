@@ -4,3 +4,6 @@ allowBuilds:
   protobufjs: true
   sharp: true
   unrs-resolver: true
+# Patched sharp everywhere, incl. @huggingface/transformers' copy (libvips/libheif CVEs) — matches package.json overrides.
+overrides:
+  sharp: ^0.35.5

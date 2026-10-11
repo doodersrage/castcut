@@ -9,11 +9,11 @@ import {
   normalizeComfyViewType,
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
-  assertSafeHttpUrl,
 } from './url-safety';
 import { getComfyUiBaseUrl } from './comfyui-client';
 import { stripEmptyComfyUiRuntime } from './comfyui-config';
 import { readGalleryOriginalFile } from './gallery-media-store';
+import { assertPublicFetchUrl } from './url-safety-server';
 import { isServerStorageEnabled } from './server-storage';
 
 export type FilmShotFetchResult = {
@@ -235,17 +235,9 @@ export async function fetchFilmShotBytes(input: {
   // Anything else must be a public address — a shot URL comes from the browser, and this used to
   // fetch private ones too (a logged-in user could make the server request the router, LM Studio
   // or any local port). The configured ComfyUI and this app's own host may stay private.
-  const { assertPublicFetchUrl } = await import('./url-safety-server');
-  const ownHosts = [getComfyUiBaseUrl(), input.requestOrigin]
-    .map(value => {
-      try {
-        return value ? new URL(value).hostname : '';
-      } catch {
-        return '';
-      }
-    })
-    .filter(Boolean);
-  const safe = await assertPublicFetchUrl(parsed.toString(), { allowHosts: ownHosts });
+  const safe = await assertPublicFetchUrl(parsed.toString(), {
+    allowOrigins: [getComfyUiBaseUrl(), input.requestOrigin ?? ''].filter(Boolean),
+  });
   const response = await fetch(safe.toString(), {
     redirect: 'manual',
     headers: { Accept: 'image/*,video/*,*/*' },

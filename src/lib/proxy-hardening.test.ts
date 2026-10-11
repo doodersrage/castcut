@@ -43,8 +43,14 @@ describe('behind a reverse proxy', () => {
       await assert.rejects(assertPublicFetchUrl(url), /private or local|not allowed/i, url);
     }
     await assert.rejects(assertPublicFetchUrl('http://169.254.169.254/latest/meta-data'));
-    const ok = await assertPublicFetchUrl('http://127.0.0.1:8188/view', { allowHosts: ['127.0.0.1'] });
+    const ok = await assertPublicFetchUrl('http://127.0.0.1:8188/view', {
+      allowOrigins: ['http://127.0.0.1:8188'],
+    });
     assert.equal(ok.hostname, '127.0.0.1');
+    // The allowed origin is exact: another port on the same host is still refused.
+    await assert.rejects(
+      assertPublicFetchUrl('http://127.0.0.1:1234/v1/models', { allowOrigins: ['http://127.0.0.1:8188'] })
+    );
     const pub = await assertPublicFetchUrl('http://93.184.216.34/');
     assert.equal(pub.hostname, '93.184.216.34');
   });

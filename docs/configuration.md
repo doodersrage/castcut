@@ -41,6 +41,43 @@ Before exposing Castcut beyond a trusted LAN:
 
 **Batch tools:** Topics and Variations show per-row readiness scores; toggle **Ready only** before queueing. Workflow library **Apply bindings** injects `{{POSITIVE}}` / `{{NEGATIVE}}` placeholders from suggested node maps. Gallery **Tag untagged** backfills vision tags on completed entries.
 
+## Running behind a reverse proxy
+
+Castcut can be reached through nginx, Caddy, Traefik or a tunnel. Checklist:
+
+- **Login on.** `PROMPT_AUTH_ENABLED=true`, a long random `PROMPT_SESSION_SECRET`, your own `PROMPT_ADMIN_PASSWORD` (startup refuses the defaults). Turn on an authenticator (TOTP) for the admin under Profile.
+- **Your public name.** `PROMPT_TRUSTED_HOSTS=castcut.example.com` — the browser's origin must be recognised or every request (login included) is refused with *Unauthorized*. Only names you list are trusted; IP addresses and `localhost` already are.
+- **The client's address.** `TRUST_PROXY_HEADERS=true`, and have the proxy **set** `X-Real-IP` (or append to `X-Forwarded-For` — Castcut reads the last entry, the one the proxy added, never the first). Rate limits and the login throttle use it; without it every visitor shares one limit.
+- **HTTPS.** Terminate TLS at the proxy, send `X-Forwarded-Proto` (the session cookie is then `Secure`) and add HSTS there (`Strict-Transport-Security: max-age=31536000`).
+- **Bind Castcut to loopback** when the proxy runs on the same machine (`HOSTNAME=127.0.0.1` / `-H 127.0.0.1`), so nobody can skip the proxy and its TLS. Keep ComfyUI (8188) and the LLM server on loopback or a private network — never forward them.
+- **Uploads and long renders.** Allow large bodies (`client_max_body_size 200m`) and long reads (`proxy_read_timeout 600s`) for clip encodes.
+
+What Castcut does on its side (2.6): signed-out visitors get only *is it up* from `/api/health` and no admin username from `/api/auth/session`; 5 failed sign-ins for a username lock it for 15 minutes (20 per client address), whatever address they come from; the server refuses to fetch private or local addresses for shot and webhook URLs (checked after DNS resolution); a request may not name its own ComfyUI address while login is on (`COMFYUI_ALLOW_CLIENT_URL`, unset); pages send `X-Frame-Options`, `frame-ancestors 'self'`, `nosniff`, a referrer policy and no `X-Powered-By`.
+
+nginx example:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name castcut.example.com;
+  # ssl_certificate / ssl_certificate_key …
+  add_header Strict-Transport-Security "max-age=31536000" always;
+  client_max_body_size 200m;
+
+  location / {
+    proxy_pass http://127.0.0.1:47832;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 600s;
+  }
+}
+```
+
 ## Docker
 
 Published images (from [GitHub Releases](https://github.com/doodersrage/castcut/releases); see [Releases](releasing.md)):
@@ -96,6 +133,7 @@ The generator calls any **OpenAI-compatible** chat completions API. Configure vi
 | `ALLOW_TEMPLATE_FALLBACK`              | `true`                           | Fall back if LLM is unreachable                                                                                                                                                        |
 | `PROMPT_API_TOKEN`                     | _(empty)_                        | Optional API bearer token for non-browser clients                                                                                                                                      |
 | `PROMPT_TRUSTED_HOSTS`                 | _(empty)_                        | Comma-separated hostnames the UI is opened at (a reverse proxy's public name). Counted as same-origin; IP addresses and `localhost` already are.                                       |
+| `TRUST_PROXY_HEADERS`                  | `false`                          | Behind a reverse proxy: key rate limits and the login throttle on `X-Real-IP` (else the last `X-Forwarded-For` entry). Off: every client is one.                                    |
 | `PROMPT_NSFW_GENERATOR_ENABLED`        | `false`                          | Unlock Adult generator and Roleplay Sultry / Explicit / Raunchy on the server                                                                                                          |
 | `NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED` | `false`                     | Same lockout for nav/UI (rebuild required). `next.config` copies the server flag when this is unset. Desktop installers bake both flags on. Adult stills always carry the age wording and the adult check — see [Adult content safeguards](play-guide.md#adult-content-safeguards). |
 | `PROMPT_DESKTOP` / `NEXT_PUBLIC_PROMPT_DESKTOP` | `false`                 | Set by the Tauri shell / desktop Next build. First launch opens Settings → ComfyUI connection.                                                                                         |
@@ -138,7 +176,7 @@ The generator calls any **OpenAI-compatible** chat completions API. Configure vi
 | `TRAINER_COMMAND`                      | _(empty)_                        | Escape hatch: argv spawned without a shell when `TRAINER_URL` is unset (dataset/output/trigger appended). Wins over first-party kohya templates                                         |
 | `TRAINER_KOHYA_SCRIPT`                 | _(empty)_                        | Path to sd-scripts `train_network.py`. When URL/command are unset, start builds a first-party kohya argv (rank/steps/resolution/base) and spawns `TRAINER_PYTHON` / `python3`        |
 | `TRAINER_PYTHON`                       | `python3`                        | Interpreter for `TRAINER_KOHYA_SCRIPT` when the script ends in `.py` (`PYTHON` is also accepted)                                                                                      |
-| `COMFYUI_ALLOW_CLIENT_URL`             | `true`                           | Allow clients to override ComfyUI URL                                                                                                                                                  |
+| `COMFYUI_ALLOW_CLIENT_URL`             | _(unset)_                        | Allow clients to override the ComfyUI URL. Unset: allowed only with login off (local single-user); with login on it is refused.                                                   |
 | `COMFYUI_ALLOWED_HOSTS`                | _(empty)_                        | Optional comma-separated ComfyUI host allowlist. Empty = any host (still blocks metadata). Settings extras cannot change this                                                          |
 | `COMFYUI_POOL`                         | _(empty)_                        | Comma-separated ComfyUI URLs merged with Settings extras at queue time. Copy a snippet from Settings → ComfyUI cluster after Test                                                      |
 | `COMFYUI_QUEUE_EXPORT_DIR`             | _(empty)_                        | Write JSON sidecars after successful queue. Settings → Automation can overlay a directory when this env is unset                                                                       |

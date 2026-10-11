@@ -14,6 +14,11 @@ Castcut 2.6 is about trust and finishing. Before a film is cut, Castcut now chec
 
 ## What's new
 
+### Safe behind a reverse proxy
+
+Castcut can be reached at the machine's IP address or through a reverse proxy (nginx, Caddy, a tunnel): list the public name in `PROMPT_TRUSTED_HOSTS` and follow the new checklist in *docs/configuration.md → Running behind a reverse proxy*. A security audit for that setup closed what an outside visitor could see or try: the health and session endpoints say nothing useful to someone signed out, sign-in locks a username for 15 minutes after 5 wrong passwords (or authenticator codes), rate limits key on the address the proxy saw, the server won't fetch private or local addresses on a user's behalf, and pages send anti-framing and other security headers. Image decoding (`sharp`) and mail (`nodemailer`) were updated past their known vulnerabilities.
+
+
 ### Clips on LTX-2.5
 
 - **Animate asks what should happen.** Animate opens the clip's direction — the default from the beat, editable. Your own words are formatted for the engine the clip runs on.
