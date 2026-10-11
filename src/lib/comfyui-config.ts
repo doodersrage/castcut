@@ -540,6 +540,9 @@ export function resolveQueueParams(
   if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
     result.videoLongSide = merged.videoLongSide;
   }
+  if (merged.videoMotionPace === 'fast') {
+    result.videoMotionPace = 'fast';
+  }
   if (merged.castcutPoseGuide?.trim()) {
     result.castcutPoseGuide = merged.castcutPoseGuide.trim();
   }
@@ -1895,7 +1898,7 @@ export function injectPromptsWithFallbacks(
           : input.params?.videoMotionPace === 'fast'
             ? { longSide: LTX_PACED_LONG_SIDE }
             : {}),
-        // A two-person adult clip kept on LTX: told a lower frame rate, so it moves like WAN.
+        // A two-person adult clip kept on LTX: holds the still harder (anatomy stays one shape).
         ...(input.params?.videoMotionPace === 'fast' ? { stillHold: LTX_PACED_STILL_HOLD } : {}),
         // End pose only when this ComfyUI has the guide nodes (else the plain clip).
         ...(endImage && (!nodeTypes || LTX25_END_GUIDE_NODES.every(type => nodeTypes.has(type)))
