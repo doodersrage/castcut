@@ -268,7 +268,8 @@ export default function DaySlotSheet({
             />
           </label>
           <SpokenLineField
-            key={slot.id}
+            // A new picture clears the slot's line (clearDaySlotLine): start the field afresh.
+            key={`${slot.id}:${still?.promptId ?? ''}`}
             line={slot.line}
             fullFrame={slot.lineFullFrame === true}
             tone={slot.lineTone}

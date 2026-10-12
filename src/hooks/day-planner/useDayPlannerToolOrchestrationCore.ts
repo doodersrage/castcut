@@ -104,6 +104,7 @@ import {
   promoteDayStillsToSoftPassChildren,
   rerollDaySlotScene,
   upsertDaySlotStill,
+  clearDaySlotLine,
   dayStillShownImage,
   restorePreviousDayTake,
   type DaySlotStill,
@@ -2461,8 +2462,18 @@ export function useDayPlannerToolOrchestrationCore() {
           referenceNote: referenceNotes.length > 0 ? referenceNotes.join(' ') : undefined,
         });
         stillsRef.current = nextStills;
+        // A new picture over a finished one: its line, tone and reply were for the old picture.
+        const replacing = Boolean(promptId) && lastTake?.status === 'completed';
+        const slotsAfter = replacing
+          ? workingSlots.map(entry =>
+              entry.id === queueTarget.id ? clearDaySlotLine(entry) : entry
+            )
+          : null;
         updateToolSettings({
           ...dayStillsCachePatch(nextStills, shared.activeCharacterId),
+          ...(slotsAfter && slotsAfter.some((entry, index) => entry !== workingSlots[index])
+            ? { slots: slotsAfter }
+            : {}),
           ...(partnerSentFace
             ? {
                 partnerSentFace: {

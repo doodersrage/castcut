@@ -3319,3 +3319,24 @@ describe('intimate solo beats with partners allowed (People: Mixed)', () => {
     assert.doesNotMatch(duo, /One woman alone, masturbating/);
   });
 });
+
+describe('a new still clears the slot line', () => {
+  it('drops the line, tone and reply but keeps the full-frame choice', async () => {
+    const { clearDaySlotLine } = await import('./day-planner');
+    const slot = {
+      id: 'morning',
+      label: 'Morning',
+      line: 'Hi there.',
+      lineTone: 'excited',
+      replyLine: 'Hey!',
+      lineFullFrame: true,
+    } as unknown as Parameters<typeof clearDaySlotLine>[0];
+    const cleared = clearDaySlotLine(slot);
+    assert.equal(cleared.line, undefined);
+    assert.equal(cleared.lineTone, undefined);
+    assert.equal(cleared.replyLine, undefined);
+    assert.equal(cleared.lineFullFrame, true);
+    const plain = { id: 'noon', label: 'Noon' } as unknown as Parameters<typeof clearDaySlotLine>[0];
+    assert.equal(clearDaySlotLine(plain), plain);
+  });
+});

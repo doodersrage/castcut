@@ -374,6 +374,20 @@ export type DaySlot = {
   replyLine?: string;
 };
 
+/**
+ * A new still replaces the slot's last one: what was said to that picture goes with it — the
+ * line, how it is said and the reply (the user: "the line is likely going to be different per
+ * image"). Keep the full frame stays (a framing preference, not about this picture). Returns the
+ * slot itself when it has none of them.
+ */
+export function clearDaySlotLine(slot: DaySlot): DaySlot {
+  if (slot.line === undefined && slot.lineTone === undefined && slot.replyLine === undefined) {
+    return slot;
+  }
+  const { line: _line, lineTone: _lineTone, replyLine: _replyLine, ...rest } = slot;
+  return rest;
+}
+
 export type DaySlotStillStatus = 'queued' | 'running' | 'completed' | 'error';
 
 export type DaySlotClipStatus = 'queued' | 'running' | 'completed' | 'error';
