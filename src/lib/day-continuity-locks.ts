@@ -25,6 +25,8 @@ export function dayContinuityLocks(input: {
   /** Slots whose clothing differs from the Day's. */
   differingSlots: number;
   slots: ReadonlyArray<{ location?: string }>;
+  /** One event (day-event.ts): every moment is an edit of the one before, in this place. */
+  eventPlace?: string;
   /** Weather on every setting ('' = whatever each setting says). */
   weather: string;
 }): ContinuityLock[] {
@@ -69,6 +71,16 @@ export function dayContinuityLocks(input: {
         }
   );
 
+  const eventPlace = input.eventPlace?.trim();
+  if (eventPlace) {
+    locks.push({
+      id: 'place',
+      held: true,
+      label: `Place · ${eventPlace}`,
+      detail:
+        'One event: each moment after the first is made from the one before — same room, light and camera.',
+    });
+  }
   const counts = { home: 0, work: 0 };
   for (const slot of input.slots) {
     const room = placeRoomOfSetting(slot.location);
@@ -78,7 +90,9 @@ export function dayContinuityLocks(input: {
     .map(kind => ({ kind, place: resolveCastPlace(input.cast, kind), count: counts[kind] }))
     .filter(entry => entry.count > 0);
   const kept = placed.filter(entry => entry.place);
-  if (kept.length > 0) {
+  if (eventPlace) {
+    // Held above.
+  } else if (kept.length > 0) {
     locks.push({
       id: 'place',
       held: true,

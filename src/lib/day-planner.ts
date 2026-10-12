@@ -372,6 +372,8 @@ export type DaySlot = {
   lineTone?: SpokenLineTone;
   /** Two-person slots: what the other person answers (one-shot conversation, LTX-2.5). */
   replyLine?: string;
+  /** One event (day-event.ts): what she does in this slot's clip, into the next moment. */
+  eventMove?: string;
 };
 
 /**
@@ -783,6 +785,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,
       outfitByHand: slot.outfitByHand === true || undefined,
+      eventMove: readEditableText(slot.eventMove, 160) || undefined,
     });
   }
   const resolvedLength =

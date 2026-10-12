@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
+import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
@@ -150,7 +151,10 @@ export function useDayEndPose(ctx: DayPlannerToolOrchestrationCore) {
         const parentEntry = forTake
           ? loadComfyGallery().find(entry => entry.promptId === forTake)
           : undefined;
-        // The Prepare plate edit's settings: Edit 2511, keep framing, no face lock re-inject.
+        // The Prepare plate edit's settings: Edit 2511, keep framing, no face lock re-inject —
+        // at the still's own shape (the square sidebar latent made a portrait still 1328² and
+        // wider, so the clip cut to it instead of moving there).
+        const size = await probeImageUrlDimensions(imageUrl).catch(() => null);
         const promptId = await actions.sendComfyUi(
           buildDayEndPoseEditPrompt(words, noun),
           undefined,
@@ -162,6 +166,7 @@ export function useDayEndPose(ctx: DayPlannerToolOrchestrationCore) {
             queueTool: 'fitting',
             turboEditStrength: 'balanced',
             preserveInputAspect: true,
+            ...(size ? { castPlateReference: true, figurePixelSize: size } : {}),
             explicitNegative: DAY_END_POSE_EDIT_NEGATIVE,
             queueHints: '',
             parentGalleryEntryId: parentEntry?.id,

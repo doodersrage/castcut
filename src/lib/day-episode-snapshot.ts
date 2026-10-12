@@ -79,6 +79,7 @@ const PARK_FIELDS = [
   'intimateMix',
   'allowCompanions',
   'dayThread',
+  'dayEvent',
 ] as const;
 
 function parkOf(day: Partial<DayToolCache>, now: number): ParkedDay {

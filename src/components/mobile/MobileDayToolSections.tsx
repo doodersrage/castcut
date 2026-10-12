@@ -48,6 +48,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
+import { normalizeDayEvent } from '@/lib/day-event';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -215,6 +216,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
+    writeDayEvent,
+    leaveDayEvent,
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine,
@@ -836,6 +839,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         />
         <DayContinuityLocks
           locks={dayContinuityLocks({
+            eventPlace: normalizeDayEvent(toolSettings.dayEvent)?.place,
             cast: character,
             hasPlate,
             faceFinish,
@@ -961,6 +965,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
           busy={busy}
           slotCount={slots.length}
           onWrite={writeDayFromIdea}
+          event={normalizeDayEvent(toolSettings.dayEvent)}
+          onWriteEvent={writeDayEvent}
+          onLeaveEvent={leaveDayEvent}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

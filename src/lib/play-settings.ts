@@ -119,6 +119,8 @@ export type DayToolCache = {
   slots?: import('./day-planner').DaySlot[];
   /** This Cast's run of Days: its idea and the last Day's beats, for Tomorrow (day-thread.ts). */
   dayThread?: import('./day-thread').DayThread;
+  /** One event (day-event.ts): every slot a moment of it; unset = an ordinary Day. */
+  dayEvent?: import('./day-event').DayEvent;
   /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
   outfitHandoffKept?: import('./day-outfit-scope').DayOutfitHandoffNotice;
   /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */

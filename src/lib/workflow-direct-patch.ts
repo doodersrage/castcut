@@ -1570,6 +1570,14 @@ export function patchVideoImageToVideoWiringInWorkflow(
     samplerInputs.latent_image = [newNodeId, 1];
   } else if (wanEndImageFilename(input)) {
     const endLoadId = String(Number(newNodeId) + 1);
+    // WAN renders 1 + 4n frames: at Day's 64 it made 61 and the end picture (frame 64) fell off
+    // the end — the clip never reached it (live, 2026-10-12: last frame vs end picture 50 → 29
+    // grey levels apart at 65, the pose landing on it).
+    const numericLength = Number(length);
+    const endLength =
+      Number.isFinite(numericLength) && numericLength > 1
+        ? Math.ceil((numericLength - 1) / 4) * 4 + 1
+        : length;
     next[endLoadId] = {
       class_type: 'LoadImage',
       inputs: { image: wanEndImageFilename(input) },
@@ -1583,7 +1591,7 @@ export function patchVideoImageToVideoWiringInWorkflow(
         vae: vaeRef,
         width,
         height,
-        length,
+        length: endLength,
         batch_size: batchSize,
         start_image: startImageRef,
         end_image: [endLoadId, 0],

@@ -36,6 +36,15 @@ import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
+import {
+  applyDayEventPlan,
+  clearDayEventSlots,
+  dayEventMomentWords,
+  normalizeDayEvent,
+  requestDayEventPlan,
+} from '@/lib/day-event';
+import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day-end-pose';
+import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
 import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day-thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
@@ -104,6 +113,7 @@ import {
   promoteDayStillsToSoftPassChildren,
   rerollDaySlotScene,
   upsertDaySlotStill,
+  daySlotDefaultLabel,
   clearDaySlotLine,
   dayStillShownImage,
   restorePreviousDayTake,
@@ -1008,6 +1018,93 @@ export function useDayPlannerToolOrchestrationCore() {
     return () => window.removeEventListener(PLAY_METRICS_UPDATED_EVENT, refresh);
   }, []);
 
+  /**
+   * One event, moment 2 on: a same-camera edit of the moment before (day-event.ts), so the room,
+   * light, camera and clothes carry over and the clips can end on each other. The edit's job is
+   * recorded on the slot like any still, and the board picks it up from the gallery.
+   */
+  const queueEventMoment = useCallback(
+    async (slot: DaySlot, previous: DaySlot): Promise<string | null> => {
+      const prevStill = stillsRef.current.find(entry => entry.slotId === previous.id);
+      const prevEntry = prevStill?.promptId
+        ? loadComfyGallery().find(entry => entry.promptId === prevStill.promptId)
+        : undefined;
+      // The gallery can know the take is done before the board has caught up.
+      const imageUrl =
+        (prevStill?.status === 'completed' ? prevStill.imageUrl?.trim() : '') ||
+        (prevEntry?.status === 'completed' ? galleryEntryPrimaryViewUrl(prevEntry)?.trim() : '') ||
+        '';
+      if (!imageUrl) {
+        setError(
+          `This moment is made from the one before it — queue ${previous.label} (the moment before) first and wait for its still.`
+        );
+        return null;
+      }
+      const words = dayEventMomentWords(slot);
+      if (!words) {
+        setError('Write what she is doing in this moment first.');
+        return null;
+      }
+      setError(null);
+      setActiveSlotId(slot.id);
+      actions.resetStatuses();
+      // The edit renders at the moment's own shape: on the sidebar's square latent a portrait
+      // still came back 1328² and wider, and the clip could not end on it (live, 2026-10-12).
+      const size = await probeImageUrlDimensions(imageUrl).catch(() => null);
+      const promptId = await actions.sendComfyUi(
+        buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {})),
+        undefined,
+        undefined,
+        {
+          inputImageUrl: imageUrl,
+          identityLock: false,
+          queueModel: resolveCastPlatePrepareModel(shared.model),
+          queueTool: 'fitting',
+          turboEditStrength: 'balanced',
+          preserveInputAspect: true,
+          ...(size ? { castPlateReference: true, figurePixelSize: size } : {}),
+          explicitNegative: DAY_END_POSE_EDIT_NEGATIVE,
+          queueHints: '',
+          parentGalleryEntryId: prevEntry?.id,
+          characterId: shared.activeCharacterId,
+          lookId: slot.lookId ?? shared.activeLookId ?? character?.activeLookId,
+          sourceImageUrl: imageUrl,
+        }
+      );
+      const id = typeof promptId === 'string' ? promptId.trim() : '';
+      const lastTake = stillsRef.current.find(entry => entry.slotId === slot.id);
+      const nextStills = upsertDaySlotStill(stillsRef.current, {
+        slotId: slot.id,
+        promptId: id || undefined,
+        status: id ? 'queued' : 'error',
+        imageUrl: undefined,
+        clipPromptId: undefined,
+        clipUrl: undefined,
+        clipStatus: undefined,
+        promptCheck: undefined,
+        beatKey: rerollBeatKey(slot.sceneHints) || undefined,
+        previousTake: undefined,
+        bestOfTwo: undefined,
+        twoTakes: undefined,
+        redoReason: undefined,
+      });
+      stillsRef.current = nextStills;
+      const slotsAfter =
+        id && lastTake?.status === 'completed'
+          ? slots.map(entry => (entry.id === slot.id ? clearDaySlotLine(entry) : entry))
+          : null;
+      updateToolSettings({
+        ...dayStillsCachePatch(nextStills, shared.activeCharacterId),
+        ...(slotsAfter && slotsAfter.some((entry, index) => entry !== slots[index])
+          ? { slots: slotsAfter }
+          : {}),
+      });
+      if (!id) setError('ComfyUI did not accept the moment edit — is it running?');
+      return id || null;
+    },
+    [actions, character, shared, slots, updateToolSettings]
+  );
+
   const queueSlot = useCallback(
     async (
       slot: DaySlot,
@@ -1041,6 +1138,20 @@ export function useDayPlannerToolOrchestrationCore() {
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
+      // One event, moment 2 on: an edit of the moment before, not a Day still of its own.
+      const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
+      const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
+      if (dayEvent && momentIndex > 0) {
+        if (manageBusy) setBusy(true);
+        try {
+          await queueEventMoment(slot, slots[momentIndex - 1]!);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Could not queue that moment.');
+        } finally {
+          if (manageBusy) setBusy(false);
+        }
+        return;
+      }
       if (options?.byPlayer) {
         // The same beat again on this slot is a re-roll (play-metrics): layouts kept re-rolled
         // get best of two, beats kept re-rolled are skipped by Suggest day.
@@ -2508,6 +2619,7 @@ export function useDayPlannerToolOrchestrationCore() {
       isolateSubject,
       leanChrome,
       leadNoun,
+      queueEventMoment,
       resolveSlotLook,
       resolveSlotStillModel,
       shared.activeCharacterId,
@@ -2517,6 +2629,7 @@ export function useDayPlannerToolOrchestrationCore() {
       toolSettings.allowCompanions,
       toolSettings.autoReviewStills,
       toolSettings.bestOfTwoHardPoses,
+      toolSettings.dayEvent,
       toolSettings.dayMood,
       toolSettings.identityBoost,
       toolSettings.intimateMix,
@@ -2573,6 +2686,30 @@ export function useDayPlannerToolOrchestrationCore() {
     },
     [shared, slots, toolSettings.allowCompanions, toolSettings.dayThread, updateToolSettings]
   );
+
+  // One event: the LLM writes consecutive moments of one event in one place (day-event.ts).
+  const writeDayEvent = useCallback(
+    async (event: string): Promise<number> => {
+      const plan = await requestDayEventPlan({
+        event,
+        count: slots.length,
+        llmBody: sharedLlmRequestBody(shared),
+      });
+      updateToolSettings({
+        slots: applyDayEventPlan(slots, plan),
+        dayEvent: normalizeDayEvent({ text: event, place: plan.place, time: plan.time }),
+      });
+      return plan.moments.length;
+    },
+    [shared, slots, updateToolSettings]
+  );
+
+  const leaveDayEvent = useCallback(() => {
+    updateToolSettings({
+      slots: clearDayEventSlots(slots, daySlotDefaultLabel),
+      dayEvent: undefined,
+    });
+  }, [slots, updateToolSettings]);
 
   const rerollActiveSlotScene = useCallback(
     (options?: {
@@ -2845,6 +2982,8 @@ export function useDayPlannerToolOrchestrationCore() {
     },
     suggestDayScenes,
     writeDayFromIdea,
+    writeDayEvent,
+    leaveDayEvent,
     rerollActiveSlotScene,
     queueBlockReason,
     poseGuideLine: summarizePoseGuideOutcomes(poseGuideOutcomes),

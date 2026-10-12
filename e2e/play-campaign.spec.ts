@@ -4613,6 +4613,43 @@ test('Day from an idea writes every slot from one line', async ({ page }) => {
   await expect(page.getByTestId('day-progress-scene-night').first()).toContainText('windowsill');
 });
 
+test('One event: every slot a moment of one event, then back to a whole day', async ({ page }) => {
+  await stubDayPremise(page);
+  const plan = {
+    place: 'candlelit trattoria',
+    time: 'Evening',
+    moments: [
+      { beat: 'sitting at the table reading the menu', move: '' },
+      { beat: 'leaning forward with a fork of pasta', move: 'puts the menu down and picks up her fork' },
+      { beat: 'sitting back with a glass of red wine', move: 'sets the fork down and lifts her glass' },
+      { beat: 'raising the glass in a toast', move: 'raises the glass higher' },
+    ],
+    ending: 'smiles and sips',
+  };
+  await page.route('**/api/day-event', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan }) })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-event-cast' },
+    characters: {
+      version: 1,
+      characters: [{ id: 'e2e-event-cast', name: 'Event Cast', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: { day: { stillsCharacterId: 'e2e-event-cast', dayMood: 'everyday' } },
+  });
+  await gotoStable(page, '/day?character=e2e-event-cast');
+  await dismissBlockingOverlays(page);
+  await page.getByRole('tab', { name: 'One event' }).first().click({ timeout: 30_000 });
+  await page.getByTestId('day-idea-input').first().fill('a dinner date at a trattoria');
+  await page.getByTestId('day-idea-write').first().click();
+  await expect(page.getByTestId('day-idea-note').first()).toContainText('4 moments', { timeout: 20_000 });
+  await expect(page.getByTestId('day-event-current').first()).toContainText('candlelit trattoria');
+  await expect(page.getByTestId('day-progress-scene-afternoon').first()).toContainText('trattoria');
+  await page.getByTestId('day-event-leave').first().click();
+  await expect(page.getByTestId('day-event-current')).toHaveCount(0);
+});
+
 test('Tomorrow after a cut: next day follows on, stills cleared', async ({ page }) => {
   const { bodies } = await stubDayPremise(page);
   await installFakeMediaRecorder(page);

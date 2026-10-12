@@ -834,6 +834,8 @@ describe("video I2V auto-wiring (patchVideoImageToVideoWiringInWorkflow)", () =>
     const endLoad = result.workflow[endRef[0]] as AnyNode;
     assert.equal(endLoad.class_type, "LoadImage");
     assert.equal(endLoad.inputs?.image, "end-pose.png");
+    // 1 + 4n frames, or the end picture falls off the end (64 → 61 rendered).
+    assert.equal(wireNode.inputs?.length, 65);
     assert.deepEqual(sampler.inputs?.positive, [wireNodeId, 0]);
     assert.deepEqual(sampler.inputs?.negative, [wireNodeId, 1]);
     assert.equal(

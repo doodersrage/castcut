@@ -17,6 +17,7 @@ export type ParkedDay = Pick<
   | 'intimateMix'
   | 'allowCompanions'
   | 'dayThread'
+  | 'dayEvent'
 > & { at: number };
 
 /** At most this many Casts keep a parked Day (oldest dropped). */
@@ -31,6 +32,7 @@ const PARKED_FIELDS = [
   'intimateMix',
   'allowCompanions',
   'dayThread',
+  'dayEvent',
 ] as const;
 
 /**

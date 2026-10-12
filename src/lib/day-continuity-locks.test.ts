@@ -48,3 +48,23 @@ describe('day continuity locks', () => {
     assert.equal(off[2]!.label, 'Place · places off');
   });
 });
+
+describe('one event holds the place', () => {
+  it('says the event place is held', async () => {
+    const { dayContinuityLocks } = await import('./day-continuity-locks');
+    const locks = dayContinuityLocks({
+      cast: null,
+      hasPlate: true,
+      faceFinish: false,
+      clothing: { summary: 'red dress', set: true },
+      differingSlots: 0,
+      slots: [{ location: 'trattoria' }, { location: 'trattoria' }],
+      weather: '',
+      eventPlace: 'candlelit trattoria',
+    });
+    const place = locks.find(lock => lock.id === 'place');
+    assert.equal(place?.held, true);
+    assert.equal(place?.label, 'Place · candlelit trattoria');
+    assert.equal(locks.filter(lock => lock.id === 'place').length, 1);
+  });
+});

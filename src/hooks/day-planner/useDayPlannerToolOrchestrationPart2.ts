@@ -28,6 +28,14 @@ import {
   type DayPremiseBeat,
 } from '@/lib/day-premise';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import {
+  clearDayEventSlots,
+  DAY_EVENT_CROSSFADE_SEC,
+  dayEventClipPrompt,
+  dayEventMomentWords,
+  normalizeDayEvent,
+} from '@/lib/day-event';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
@@ -81,6 +89,7 @@ import {
   normalizeDaySlotStills,
   normalizeDaySlots,
   upsertDaySlotStill,
+  daySlotDefaultLabel,
   type DaySlot,
   type DaySlotId,
   isDayAdultMood,
@@ -300,6 +309,30 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         if (moodAligned.changed || diversified.changed) {
           updateToolSettings({ slots: queueSlots });
         }
+        // One event: each moment is made from the one before, so they run in order and each
+        // waits for the last. From the first moment without a still (all done: from the top);
+        // a moment that fails stops the rest, which would be made from it.
+        if (normalizeDayEvent(toolSettings.dayEvent)) {
+          const firstOpen = queueSlots.findIndex(
+            slot =>
+              stillsRef.current.find(still => still.slotId === slot.id)?.status !== 'completed'
+          );
+          for (const slot of queueSlots.slice(Math.max(0, firstOpen))) {
+            await queueSlot(slot, {
+              manageBusy: false,
+              qualityProfile: options?.qualityProfile,
+              byPlayer: true,
+            });
+            const promptId = stillsRef.current.find(still => still.slotId === slot.id)?.promptId;
+            if (!promptId) break;
+            const [entry] = await waitForGalleryPromptIds([promptId], {
+              timeoutMs: 20 * 60_000,
+              pollMs: 3_000,
+            });
+            if (entry?.status !== 'completed') break;
+          }
+          return;
+        }
         // Model-aware queue: a mixed Day (Rapid SFW clothed + NSFW nude stills, 2511 handing
         // nude stills to Rapid, 2.1 handing clothed duos to Rapid) runs each engine's stills
         // together instead of switching models between them.
@@ -330,7 +363,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       queueSlot,
       resolveSlotStillModel,
       slots,
+      stillsRef,
       toolSettings.allowCompanions,
+      toolSettings.dayEvent,
       toolSettings.dayMood,
       toolSettings.intimateMix,
       updateToolSettings,
@@ -378,7 +413,28 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const speaking = Boolean(spokenLine) && isLtx25Model(videoModel);
         // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
         // has the node for the engine; otherwise the plain clip, said once.
-        const endPose = activeDayEndPose(still);
+        // One event: the clip ends on the next moment's still (day-event.ts) — the joins line up
+        // in Cut. An end pose picked by hand still wins. A moment with a line talks in place (the
+        // talking hold keeps her pose; Cut's crossfade covers that join).
+        const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
+        const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
+        const nextMoment = momentIndex >= 0 ? slots[momentIndex + 1] : undefined;
+        const nextMomentStill = nextMoment
+          ? stillsRef.current.find(entry => entry.slotId === nextMoment.id)
+          : undefined;
+        const eventEndPose =
+          !spokenLine &&
+          nextMoment &&
+          nextMomentStill?.status === 'completed' &&
+          nextMomentStill.imageUrl?.trim()
+            ? {
+                imageUrl: nextMomentStill.imageUrl.trim(),
+                source: 'still' as const,
+                fromSlotId: nextMoment.id,
+                poseWords: dayEventMomentWords(nextMoment),
+              }
+            : undefined;
+        const endPose = activeDayEndPose(still) ?? eventEndPose;
         let endImageFilename: string | undefined;
         let endPoseNote = '';
         if (endPose) {
@@ -406,6 +462,19 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           manLead,
           endPoseWords: endImageFilename ? endPose?.poseWords : undefined,
         });
+        // One event, no line and no direction of the player's: she moves into the next moment
+        // (or, on the last, rounds the event off) with the camera held.
+        if (dayEvent && !spokenLine && !options?.direction?.trim()) {
+          prompt = dayEventClipPrompt({
+            place: dayEvent.place,
+            move: slot.eventMove,
+            nextBeat:
+              endImageFilename && endPose === eventEndPose
+                ? dayEventMomentWords(nextMoment ?? {})
+                : undefined,
+            speaker: manLead ? 'He' : 'She',
+          });
+        }
         // An adult clip on LTX-2.5 — two-person (Video ltxAdultDuo) or a nude solo still: a calm
         // tempo line, a firmer hold on the still and 1024 (comfyui-config); two-person clips also
         // say the anatomy outright. Solo (2026-10-11): kept her anatomy where the plain clip lost
@@ -570,6 +639,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       shared.activeLookId,
       shared.ipAdapterStrength,
       shared.model,
+      slots,
+      stillsRef,
+      toolSettings.dayEvent,
       toolSettings.dayMood,
       updateToolSettings,
     ]
@@ -643,7 +715,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           characterId: character?.id ?? '',
           characterName: name,
           lookId: character?.activeLookId ?? shared.activeLookId,
-          crossfadeSec: filmCutOptions.crossfadeSec,
+          // One event: the clips end on each other's first frame — a short crossfade hides the
+          // grain change at each join (unless the player set their own).
+          crossfadeSec:
+            normalizeDayEvent(toolSettings.dayEvent) && !(filmCutOptions.crossfadeSec > 0)
+              ? DAY_EVENT_CROSSFADE_SEC
+              : filmCutOptions.crossfadeSec,
           resolution: filmResolutionForCutOptions(filmCutOptions),
           audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
           musicLevel: filmCutOptions.musicLevel,
@@ -956,7 +1033,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
       stillsRef.current = [];
       updateToolSettings({
-        slots: next.slots,
+        // A new Day is a whole day again (One event ends with its Day).
+        slots: next.dayEvent
+          ? clearDayEventSlots(next.slots ?? [], daySlotDefaultLabel)
+          : next.slots,
+        dayEvent: undefined,
         dayMood: next.dayMood,
         ...dayStillsCachePatch([], undefined),
         notes: next.notes,
@@ -1017,8 +1098,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const episode = nextDayFilmTitleCard(loadPlaySeriesStore(), castId, castName).subtitle;
     stillsRef.current = [];
     updateToolSettings({
-      slots: nextSlots,
+      slots: toolSettings.dayEvent ? clearDayEventSlots(nextSlots, daySlotDefaultLabel) : nextSlots,
       dayThread: thread,
+      dayEvent: undefined,
       ...dayStillsCachePatch([], undefined),
     });
     setWritingTomorrow(false);
@@ -1045,6 +1127,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     slots,
     stillsRef,
     toolSettings.allowCompanions,
+    toolSettings.dayEvent,
     toolSettings.dayMood,
     toolSettings.dayThread,
     toolSettings.intimateMix,
@@ -1081,7 +1164,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
     stillsRef.current = [];
     updateToolSettings({
-      slots: next.slots,
+      // A new Day is a whole day again (One event ends with its Day).
+      slots: next.dayEvent ? clearDayEventSlots(next.slots ?? [], daySlotDefaultLabel) : next.slots,
+      dayEvent: undefined,
       customGarmentImageUrl: undefined,
       customGarmentImageFilename: undefined,
       customGarmentDescription: undefined,
@@ -1119,7 +1204,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
       stillsRef.current = [];
       updateToolSettings({
-        slots: next.slots,
+        // A new Day is a whole day again (One event ends with its Day).
+        slots: next.dayEvent
+          ? clearDayEventSlots(next.slots ?? [], daySlotDefaultLabel)
+          : next.slots,
+        dayEvent: undefined,
         dayMood: next.dayMood,
         ...dayStillsCachePatch([], undefined),
         notes: next.notes,
