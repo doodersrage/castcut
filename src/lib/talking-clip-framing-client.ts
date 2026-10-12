@@ -2,7 +2,10 @@
 
 import { locateFaceOnPlateBlob } from './face-locate-client';
 import {
+  stillFootSupported,
+  stillLimbHolds,
   stillPostureFromBody,
+  type StillLimbHolds,
   TALKING_WIDE_FACE_SHARE,
   talkingClipCropRect,
   talkingFramingFromShare,
@@ -96,6 +99,33 @@ export async function talkingStillPosture(imageUrl: string): Promise<'seated' | 
     if (!result.available) return null;
     const body = result.pose.people[0];
     return body ? stillPostureFromBody(body) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The still's pose for a talking clip: seated or not, and the limbs it caught mid-action (a raised
+ * arm, a lifted foot, a lunge, bent over) — `null` when the pose reader isn't installed or finds
+ * nobody. A foot resting on a step or a wall (the still's words) is not a lifted foot.
+ */
+export async function talkingStillBody(
+  imageUrl: string,
+  stillPrompt?: string | null
+): Promise<{ posture: 'seated' | 'upright' | null; limbs: StillLimbHolds } | null> {
+  try {
+    const { detectStillPoseShared } = await import('./pose-detect-client');
+    const result = await detectStillPoseShared(imageUrl);
+    if (!result.available) return null;
+    const body = result.pose.people[0];
+    if (!body) return null;
+    const { width, height } = result.pose.canvas;
+    const limbs = stillLimbHolds(body, width > 0 && height > 0 ? width / height : undefined);
+    return {
+      posture: stillPostureFromBody(body),
+      limbs:
+        limbs.footOff && stillFootSupported(stillPrompt) ? { ...limbs, footOff: false } : limbs,
+    };
   } catch {
     return null;
   }

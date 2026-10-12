@@ -10,6 +10,7 @@
  */
 
 import { PRODUCT_OUTPUT_PREFIX } from './brand';
+import type { StillLimbHolds } from './talking-clip-framing';
 
 export const LTX25_MODEL_ID = 'ltx-video-2.5';
 
@@ -1245,11 +1246,18 @@ export function talkingClipPrompt(input: {
   seated?: boolean;
   /** The still holds an arm up (stillHeldGesture): she lowers it, keeping her spot. */
   heldGesture?: boolean;
+  /**
+   * Limbs the still caught mid-action, read from its pose (stillLimbHolds) — a foot resting on a
+   * step or a wall already left out (stillFootSupported).
+   */
+  limbs?: StillLimbHolds;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
   const place = input.setting?.trim().replace(/[.\s]+$/, '');
   const she = who === 'He' ? 'he' : 'she';
+  const her = who === 'He' ? 'his' : 'her';
+  const Her = who === 'He' ? 'His' : 'Her';
   // What keeps moving around her (steam, water, leaves …), from the place and the line itself.
   // Without it the scene froze; with it the coffee steam rose and curled on 2 of 2 seeds
   // (2026-10-11). "The place stays as in the first frame" read as "freeze it", so with cues the
@@ -1262,10 +1270,43 @@ export function talkingClipPrompt(input: {
     : ['The place, light and clothes stay exactly as in the first frame.', cues]
         .filter(Boolean)
         .join(' ');
+  const limbs = input.limbs;
+  const armsUp = limbs?.armsUp ?? 0;
+  const raisedArm =
+    armsUp === 2
+      ? 'both raised arms'
+      : armsUp === 1 || input.heldGesture
+        ? `${her} raised arm`
+        : '';
+  const says = `${spokenLineVerb(input.tone, who)} "${line}"`;
   // Mid (seated / knees-up) stills take the wide wording too: replaying the user's park-bench
   // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4 — 4 of 4
   // once it keeps her pose — and a "medium-wide, same distance" wording in 0 of 4.
   if (input.wide || input.framing === 'wide' || input.framing === 'mid') {
+    // Bent over on straight legs is standing, whatever the posture read said.
+    const seated = Boolean(input.seated) && !limbs?.bent;
+    const moving = Boolean(input.inMotion) && !seated;
+    // The strict hold keeps her on her spot; anything the still caught mid-action is the one
+    // exception. Held as it was, a talking clip froze it for the whole line — arms overhead, a
+    // jump shot's ball, a knee up, a lunge, a dance — and "finish the movement and settle" turned
+    // her round and walked her off (35 stills × 2 seeds, 2026-10-11: limbs held or walked off on
+    // 44 of 70 clips, 19 of 70 with the exceptions).
+    const exceptions = [
+      moving ? 'stops where she is' : '',
+      raisedArm ? `lowers ${raisedArm} to a relaxed position` : '',
+      limbs?.bent ? 'straightens up' : '',
+      limbs?.footOff ? `puts ${her} lifted foot down` : '',
+      moving || limbs?.stride || limbs?.footOff ? 'stands evenly on both feet' : '',
+    ]
+      .filter(Boolean)
+      .map(part => part.replace(/\bshe\b/g, she));
+    const except = exceptions.length
+      ? `, except that ${she} ${
+          exceptions.length > 1
+            ? `${exceptions.slice(0, -1).join(', ')} and ${exceptions.at(-1)}`
+            : exceptions[0]
+        } naturally,`
+      : '';
     return [
       'Wide shot, full body, seen from a few metres away — one continuous shot that starts on the first frame.',
       // Seated (the still's pose says so): keeping the first frame's pose stopped strong lines
@@ -1273,32 +1314,24 @@ export function talkingClipPrompt(input: {
       // full-frame 4 of 4, against 2 of 4 without. Not seated: those words sat her down on the
       // pavement on 6 of 6 standing replays (coffee, fountain, harbor) and on a standing, waving
       // still whose face size read "mid"; a hold without posture words kept her standing 8 of 8.
-      // Mid-movement (a stride, a spin, a dance with a knee up): holding the first frame froze her
-      // mid-stride or arms-up for the whole line, or she walked into a close-up; finishing the
-      // movement and settling held wide and standing on 8 of 8 (walking, spinning, dancing
-      // stills, 2026-10-11). Climbing stairs is left out — she turned and walked on up.
-      input.seated
-        ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way — and ${spokenLineVerb(input.tone, who)} "${line}"`
-        : input.inMotion
-          ? `${who} finishes the movement ${she} is in and settles into a natural, balanced pose where ${she} is, both feet on the ground, and ${spokenLineVerb(input.tone, who)} "${line}"`
-          : input.heldGesture
-            ? `${who} keeps exactly the pose and position of the first frame, except that ${she} lowers ${who === 'He' ? 'his' : 'her'} raised hand naturally, and ${spokenLineVerb(input.tone, who)} "${line}"`
-            : `${who} keeps exactly the pose and position of the first frame and ${spokenLineVerb(input.tone, who)} "${line}"`,
-      input.seated
-        ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
-        : input.inMotion
-          ? `${who === 'He' ? 'His' : 'Her'} lips move with every word; then ${who === 'He' ? 'his' : 'her'} body stays still — ${she} does not start another movement, walk away or turn around.`
-          : `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'his' : 'her'} body stays still, and ${she} does not walk away or turn around.`,
+      seated
+        ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way —${except ? except.slice(1) : ''} and ${says}`
+        : `${who} keeps exactly the pose and position of the first frame${except} and ${says}`,
+      seated
+        ? `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
+        : `${Her} lips move with every word; only small natural head and hand movements — ${her} body stays still, ${she} keeps facing the same way, and ${she} does not walk away, turn around or step toward the camera.`,
       placeLine,
-      `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${who === 'He' ? 'his' : 'her'} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
+      `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${her} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
     ].join(' ');
   }
+  // Close (a chest-up crop): a raised arm is lowered — kept, the camera stayed at her eye for the
+  // whole line — and after the line she keeps looking at the camera (she turned away at the end).
   return [
     'One continuous shot that starts on the first frame.',
-    `${who} stops where ${who === 'He' ? 'he' : 'she'} is, looks into the camera and ${spokenLineVerb(input.tone, who)} "${line}"`,
-    `${who === 'He' ? 'His' : 'Her'} lips move with every word; only small natural head and hand movements — ${who === 'He' ? 'he' : 'she'} stays in place, facing the camera, and does not walk away or turn around.`,
+    `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks into the camera and ${says}`,
+    `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, facing the camera, and does not walk away or turn around; when ${she} finishes speaking ${she} keeps looking at the camera, exactly where ${she} is, until the shot ends.`,
     placeLine,
-    'Camera: locked-off, framing stays as the first frame.',
+    'Camera: locked-off, framing stays as the first frame; the camera does not move or zoom.',
   ].join(' ');
 }
 

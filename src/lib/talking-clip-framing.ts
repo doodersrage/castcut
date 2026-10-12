@@ -75,6 +75,9 @@ export function stillPostureFromBody(
     y: hips.reduce((s, p) => s + p.y, 0) / hips.length,
   };
   const torsoDy = hip.y - neck.y;
+  // Bent over on straight legs (picking up keys) is standing: read as seated, it got the seated
+  // hold and she squatted down on the pavement (2 of 2, 2026-10-11).
+  if (stillLimbHolds(body).bent) return 'upright';
   if (Math.abs(hip.x - neck.x) > Math.abs(torsoDy)) return 'seated';
   if (torsoDy <= 0) return null;
   const drops = (
@@ -101,5 +104,85 @@ export function stillWordsSeated(stillPrompt: string | null | undefined): boolea
   return (
     /\b(sits|sitting|seated|perched|lying|lies|reclin\w*|lounging)\b/i.test(text) &&
     !/\b(stands|standing)\b/i.test(text)
+  );
+}
+
+type BodyPoint = { x: number; y: number } | null | undefined;
+
+/** Limbs a still holds mid-action, read from its body keypoints (stillLimbHolds). */
+export type StillLimbHolds = {
+  /** Arms raised above the shoulder (0, 1 or 2), standing upright. */
+  armsUp: 0 | 1 | 2;
+  /** One foot off the floor (a lifted knee, a kick, on the balls of one foot), standing. */
+  footOff: boolean;
+  /** Feet planted wide apart (a lunge, a fighting stance), standing. */
+  stride: boolean;
+  /** Bent forward at the hips on straight legs (picking something up). */
+  bent: boolean;
+};
+
+export const NO_LIMB_HOLDS: StillLimbHolds = {
+  armsUp: 0,
+  footOff: false,
+  stride: false,
+  bent: false,
+};
+
+/**
+ * Which limbs the still caught mid-action, from its body keypoints (OpenPose order, 0–1 of the
+ * still; `aspect` = width / height). Kept as they were, a talking clip froze them for the whole
+ * line — arms overhead, a jump shot's ball, a knee lifted, a lunge — or she walked off. The
+ * still's words missed half of them: of 229 solo Day stills, 23 with an arm up and 23 with a foot
+ * off or a wide stance said nothing a word rule could catch (golf swings, pull-ups, stretches).
+ */
+export function stillLimbHolds(body: ReadonlyArray<BodyPoint>, aspect = 0.75): StillLimbHolds {
+  const neck = body[1];
+  const rHip = body[8];
+  const lHip = body[11];
+  if (!neck || !rHip || !lHip) return NO_LIMB_HOLDS;
+  const hip = { x: (rHip.x + lHip.x) / 2, y: (rHip.y + lHip.y) / 2 };
+  const dx = (hip.x - neck.x) * aspect;
+  const dy = hip.y - neck.y;
+  const torso = Math.hypot(dx, dy);
+  if (torso <= 0) return NO_LIMB_HOLDS;
+  const tilt = (Math.atan2(Math.abs(dx), dy) * 180) / Math.PI;
+  // A standing leg: knee well below its hip, ankle below the knee, the leg near vertical.
+  const standingLeg = (h: BodyPoint, k: BodyPoint, a: BodyPoint) =>
+    Boolean(
+      h &&
+      k &&
+      a &&
+      (k.y - h.y) / torso > 0.5 &&
+      a.y > k.y &&
+      a.y - h.y > 2 * Math.abs(a.x - h.x) * aspect
+    );
+  const rLeg = standingLeg(rHip, body[9], body[10]);
+  const lLeg = standingLeg(lHip, body[12], body[13]);
+  const upright = (rLeg || lLeg) && tilt < 30;
+  const raised = (wrist: BodyPoint, shoulder: BodyPoint) =>
+    Boolean(wrist && shoulder && wrist.y < shoulder.y - 0.1 * torso);
+  const rAnkle = body[10];
+  const lAnkle = body[13];
+  const kneeUp = (h: BodyPoint, k: BodyPoint) => Boolean(h && k && (k.y - h.y) / torso < 0.45);
+  const footOff =
+    upright &&
+    ((rAnkle && lAnkle ? Math.abs(rAnkle.y - lAnkle.y) > 0.3 * torso : false) ||
+      (rLeg !== lLeg && (kneeUp(rHip, body[9]) || kneeUp(lHip, body[12]))));
+  return {
+    armsUp: upright
+      ? ((Number(raised(body[4], body[2])) + Number(raised(body[7], body[5]))) as 0 | 1 | 2)
+      : 0,
+    footOff,
+    stride: Boolean(
+      upright && rAnkle && lAnkle && Math.abs(rAnkle.x - lAnkle.x) * aspect > 1.0 * torso
+    ),
+    bent: rLeg && lLeg && tilt >= 30,
+  };
+}
+
+/** A foot resting on something (a step, a wall): a pose she can hold, not a lifted foot. */
+export function stillFootSupported(stillPrompt: string | null | undefined): boolean {
+  return /\bfoot (?:up |raised )?(?:on|onto|against) (?:a |the )?(?:step|stair|bench|wall|ledge|rail|railing|chair|crate|box|bumper)\b|\bfoot (?:up )?against\b/i.test(
+    String(stillPrompt ?? '')
   );
 }

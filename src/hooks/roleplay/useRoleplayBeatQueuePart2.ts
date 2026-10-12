@@ -4,7 +4,7 @@ import { useRenderBackend } from '@/lib/render-backend-status';
 import {
   framedTalkingStill,
   talkingStillFraming,
-  talkingStillPosture,
+  talkingStillBody,
 } from '@/lib/talking-clip-framing-client';
 import { stillWordsSeated } from '@/lib/talking-clip-framing';
 import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
@@ -318,6 +318,8 @@ export function useRoleplayBeatQueuePart2(
           stillPromptPeople(parentEntry?.prompt ?? latest.prompt) === 1 &&
           !isAdultContentPrompt(parentEntry?.prompt ?? latest.prompt));
 
+      // The whole still, for its pose (the crop below replaces the URL with the crop).
+      const stillPoseUrl = hasInit && !inputImage ? inputImageUrl : undefined;
       // A talking clip starts chest-up when her face is small in the still (talking-clip-framing).
       let talkingCropped = false;
       if (
@@ -341,20 +343,23 @@ export function useRoleplayBeatQueuePart2(
         speaking && !conversation && !talkingCropped && hasInit && !inputImage && inputImageUrl
           ? await talkingStillFraming(inputImageUrl)
           : 'close';
-      if (framing !== 'close') {
-        // Seated or lying in the still (its pose, else its words) — only then the seated hold.
+      // The still's pose: seated or lying (else its words) — only then the seated hold — and the
+      // limbs it caught mid-action, which the clip relaxes instead of freezing. Read from the
+      // whole still, before any chest-up crop.
+      if (speaking && !conversation && stillPoseUrl) {
+        const stillBody = await talkingStillBody(stillPoseUrl, stillText);
         const seated =
-          ((inputImageUrl ? await talkingStillPosture(inputImageUrl) : null) ??
-            (stillWordsSeated(parentEntry?.prompt ?? latest.prompt) ? 'seated' : null)) ===
-          'seated';
+          framing !== 'close' &&
+          (stillBody?.posture ?? (stillWordsSeated(stillText) ? 'seated' : null)) === 'seated';
         prompt = talkingClipPrompt({
           line: spokenLine,
           speaker: leadIsMan() ? 'He' : 'She',
           tone: latest.lineTone,
           framing,
           seated,
-          inMotion: stillInMotion(parentEntry?.prompt ?? latest.prompt),
-          heldGesture: stillHeldGesture(parentEntry?.prompt ?? latest.prompt),
+          inMotion: stillInMotion(stillText),
+          heldGesture: stillHeldGesture(stillText),
+          ...(stillBody ? { limbs: stillBody.limbs } : {}),
         });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }

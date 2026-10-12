@@ -182,18 +182,103 @@ describe('scene stays alive', () => {
 });
 
 describe('caught mid-movement', () => {
-  it('a wide clip finishes the stride or spin and settles instead of freezing it', async () => {
+  it('a wide clip stops her where she is instead of freezing the stride, or walking her off', async () => {
     const { talkingClipPrompt, stillInMotion } = await import('./ltx25-renderer');
     const moving = talkingClipPrompt({ line: 'Hi', framing: 'wide', inMotion: true });
-    assert.match(moving, /She finishes the movement she is in and settles into a natural, balanced pose where she is, both feet on the ground, and says clearly, "Hi"/);
-    assert.match(moving, /does not start another movement, walk away or turn around/);
-    assert.doesNotMatch(moving, /keeps exactly the pose/);
+    assert.match(moving, /She keeps exactly the pose and position of the first frame, except that she stops where she is and stands evenly on both feet naturally, and says clearly, "Hi"/);
+    assert.match(moving, /she keeps facing the same way, and she does not walk away, turn around or step toward the camera/);
+    assert.doesNotMatch(moving, /finishes the movement/);
     // Seated keeps its own hold even if the words say walking.
-    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'mid', seated: true, inMotion: true }), /sitting or lying/);
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'mid', seated: true, inMotion: true }), /sitting or lying, she stays that way — and says/);
     assert.equal(stillInMotion('She walks mid-step, one foot ahead of the other.'), true);
     assert.equal(stillInMotion('Moment: dancing barefoot at the shoreline — both arms out mid-spin'), true);
     assert.equal(stillInMotion('Moment: climbing the stairs to the flat'), false);
     assert.equal(stillInMotion('She leans in the doorway.'), false);
+  });
+});
+
+describe('limbs caught mid-action', () => {
+  // OpenPose order, 0–1 of a 3:4 still: a standing woman, then one change at a time.
+  const standing = () => {
+    const b: Array<{ x: number; y: number } | null> = Array(18).fill(null);
+    b[1] = { x: 0.5, y: 0.2 }; // neck
+    b[2] = { x: 0.45, y: 0.2 }; // right shoulder
+    b[5] = { x: 0.55, y: 0.2 };
+    b[4] = { x: 0.44, y: 0.45 }; // right wrist, down
+    b[7] = { x: 0.56, y: 0.45 };
+    b[8] = { x: 0.47, y: 0.45 }; // hips
+    b[11] = { x: 0.53, y: 0.45 };
+    b[9] = { x: 0.47, y: 0.65 }; // knees
+    b[12] = { x: 0.53, y: 0.65 };
+    b[10] = { x: 0.47, y: 0.85 }; // ankles
+    b[13] = { x: 0.53, y: 0.85 };
+    return b;
+  };
+
+  it('reads raised arms, a lifted foot, a wide stance and a bend from the pose', async () => {
+    const { stillLimbHolds, NO_LIMB_HOLDS } = await import('./talking-clip-framing');
+    assert.deepEqual(stillLimbHolds(standing()), NO_LIMB_HOLDS);
+    const wave = standing();
+    wave[4] = { x: 0.4, y: 0.05 };
+    assert.equal(stillLimbHolds(wave).armsUp, 1);
+    const stretch = standing();
+    stretch[4] = { x: 0.45, y: 0.02 };
+    stretch[7] = { x: 0.55, y: 0.02 };
+    assert.equal(stillLimbHolds(stretch).armsUp, 2);
+    const knee = standing();
+    knee[12] = { x: 0.56, y: 0.5 }; // knee lifted toward the hip
+    knee[13] = { x: 0.6, y: 0.62 };
+    assert.equal(stillLimbHolds(knee).footOff, true);
+    const lunge = standing();
+    lunge[10] = { x: 0.3, y: 0.85 };
+    lunge[13] = { x: 0.7, y: 0.85 };
+    lunge[9] = { x: 0.39, y: 0.65 };
+    lunge[12] = { x: 0.61, y: 0.65 };
+    assert.equal(stillLimbHolds(lunge).stride, true);
+    const bent = standing();
+    bent[1] = { x: 0.25, y: 0.4 }; // torso forward over straight legs
+    assert.equal(stillLimbHolds(bent).bent, true);
+  });
+
+  it('a bend on straight legs is standing, not seated', async () => {
+    const { stillPostureFromBody } = await import('./talking-clip-framing');
+    const bent = standing();
+    bent[1] = { x: 0.2, y: 0.44 };
+    assert.equal(stillPostureFromBody(bent), 'upright');
+  });
+
+  it('a foot on a step or a wall is resting, not lifted', async () => {
+    const { stillFootSupported } = await import('./talking-clip-framing');
+    assert.equal(stillFootSupported('posing under neon, one foot up on a step'), true);
+    assert.equal(stillFootSupported('leaning against a wall, one foot against it'), true);
+    assert.equal(stillFootSupported('dancing alone: both arms raised, one knee lifted'), false);
+  });
+
+  it('the hold names each limb she relaxes', () => {
+    const prompt = talkingClipPrompt({
+      line: 'Hi',
+      framing: 'wide',
+      limbs: { armsUp: 2, footOff: true, stride: false, bent: false },
+    });
+    assert.match(prompt, /except that she lowers both raised arms to a relaxed position, puts her lifted foot down and stands evenly on both feet naturally, and says clearly, "Hi"/);
+    assert.match(
+      talkingClipPrompt({ line: 'Hi', framing: 'wide', seated: true, limbs: { armsUp: 0, footOff: false, stride: false, bent: true } }),
+      /except that she straightens up naturally, and says/
+    );
+    assert.match(
+      talkingClipPrompt({ line: 'Hi', framing: 'wide', speaker: 'He', limbs: { armsUp: 1, footOff: false, stride: true, bent: false } }),
+      /except that he lowers his raised arm to a relaxed position and stands evenly on both feet naturally/
+    );
+    // Nothing caught mid-action: the plain hold.
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'wide' }), /She keeps exactly the pose and position of the first frame and says/);
+  });
+
+  it('a chest-up clip lowers the raised arm and keeps looking at the camera after the line', () => {
+    const prompt = talkingClipPrompt({ line: 'Hi', framing: 'close', limbs: { armsUp: 2, footOff: false, stride: false, bent: false } });
+    assert.match(prompt, /She stops where she is, lowers both raised arms naturally, looks into the camera and says clearly, "Hi"/);
+    assert.match(prompt, /when she finishes speaking she keeps looking at the camera, exactly where she is, until the shot ends/);
+    assert.match(prompt, /the camera does not move or zoom/);
+    assert.match(talkingClipPrompt({ line: 'Hi', framing: 'close' }), /She stops where she is, looks into the camera and says/);
   });
 });
 
@@ -243,7 +328,7 @@ describe('a held gesture', () => {
   it('keeps her spot and lowers the raised arm, instead of freezing the wave', async () => {
     const { talkingClipPrompt, stillHeldGesture } = await import('./ltx25-renderer');
     const prompt = talkingClipPrompt({ line: 'Hi', framing: 'mid', heldGesture: true });
-    assert.match(prompt, /She keeps exactly the pose and position of the first frame, except that she lowers her raised hand naturally, and says clearly, "Hi"/);
+    assert.match(prompt, /She keeps exactly the pose and position of the first frame, except that she lowers her raised arm to a relaxed position naturally, and says clearly, "Hi"/);
     assert.doesNotMatch(prompt, /finishes the movement/);
     assert.equal(stillHeldGesture('Pose: one hand raised touching the hair behind the ear, elbow up and out.'), true);
     assert.equal(stillHeldGesture('She stands waving, one arm raised high overhead, weight on one hip'), true);
