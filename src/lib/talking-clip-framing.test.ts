@@ -240,6 +240,28 @@ describe('limbs caught mid-action', () => {
     assert.equal(stillLimbHolds(bent).bent, true);
   });
 
+  it('a crouch with nothing else caught is read as a bend over a wide stance', async () => {
+    const { stillLimbHolds } = await import('./talking-clip-framing');
+    // The volleyball ready stance (a square still): hips dropped, one knee bent, both feet down.
+    const crouch: Array<{ x: number; y: number } | null> = Array(18).fill(null);
+    Object.assign(crouch, {
+      1: { x: 0.508, y: 0.325 },
+      2: { x: 0.452, y: 0.321 },
+      4: { x: 0.246, y: 0.404 },
+      5: { x: 0.564, y: 0.33 },
+      7: { x: 0.292, y: 0.386 },
+      8: { x: 0.483, y: 0.556 },
+      9: { x: 0.343, y: 0.637 },
+      10: { x: 0.392, y: 0.837 },
+      11: { x: 0.572, y: 0.554 },
+      12: { x: 0.65, y: 0.693 },
+      13: { x: 0.76, y: 0.83 },
+    });
+    const h = stillLimbHolds(crouch, 1);
+    assert.equal(h.bent, true);
+    assert.equal(h.stride, true);
+  });
+
   it('a bend on straight legs is standing, not seated', async () => {
     const { stillPostureFromBody } = await import('./talking-clip-framing');
     const bent = standing();

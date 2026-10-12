@@ -168,7 +168,7 @@ export function stillLimbHolds(body: ReadonlyArray<BodyPoint>, aspect = 0.75): S
     upright &&
     ((rAnkle && lAnkle ? Math.abs(rAnkle.y - lAnkle.y) > 0.3 * torso : false) ||
       (rLeg !== lLeg && (kneeUp(rHip, body[9]) || kneeUp(lHip, body[12]))));
-  return {
+  const holds: StillLimbHolds = {
     armsUp: upright
       ? ((Number(raised(body[4], body[2])) + Number(raised(body[7], body[5]))) as 0 | 1 | 2)
       : 0,
@@ -178,6 +178,42 @@ export function stillLimbHolds(body: ReadonlyArray<BodyPoint>, aspect = 0.75): S
     ),
     bent: rLeg && lLeg && tilt >= 30,
   };
+  // A crouch (a volleyball ready stance): torso upright, hips dropped, a knee bent. Nothing above
+  // caught it and the stance held on 2 of 3 seeds; read as a bend over a wide stance she stood up
+  // 3 of 3 (2026-10-12). Only alone — added to a lunge's own exceptions she stepped forward.
+  const someHold = holds.armsUp > 0 || holds.footOff || holds.stride || holds.bent;
+  if (!someHold && crouched(body, aspect, torso, tilt))
+    return { ...holds, bent: true, stride: true };
+  return holds;
+}
+
+function kneeAngle(hip: BodyPoint, knee: BodyPoint, ankle: BodyPoint, aspect: number): number {
+  if (!hip || !knee || !ankle) return 180;
+  const a = [(hip.x - knee.x) * aspect, hip.y - knee.y];
+  const b = [(ankle.x - knee.x) * aspect, ankle.y - knee.y];
+  const length = Math.hypot(a[0]!, a[1]!) * Math.hypot(b[0]!, b[1]!);
+  if (length <= 0) return 180;
+  const cos = (a[0]! * b[0]! + a[1]! * b[1]!) / length;
+  return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+}
+
+/**
+ * Torso upright, both thighs angled down (seated thighs are level), both feet on the floor (a foot
+ * up on a wall is a lean), the ankles under 1.3 torsos below the hips (standing ≈ 1.6–1.8) and a
+ * knee bent.
+ */
+function crouched(body: ReadonlyArray<BodyPoint>, aspect: number, torso: number, tilt: number) {
+  const [rHip, rKnee, rAnkle, lHip, lKnee, lAnkle] = [8, 9, 10, 11, 12, 13].map(i => body[i]);
+  if (!rHip || !rKnee || !rAnkle || !lHip || !lKnee || !lAnkle || tilt >= 30) return false;
+  const drop = (Math.max(rAnkle.y, lAnkle.y) - (rHip.y + lHip.y) / 2) / torso;
+  return (
+    (rKnee.y - rHip.y) / torso > 0.3 &&
+    (lKnee.y - lHip.y) / torso > 0.3 &&
+    Math.abs(rAnkle.y - lAnkle.y) / torso < 0.15 &&
+    drop > 0.8 &&
+    drop < 1.3 &&
+    Math.min(kneeAngle(rHip, rKnee, rAnkle, aspect), kneeAngle(lHip, lKnee, lAnkle, aspect)) < 140
+  );
 }
 
 /** A foot resting on something (a step, a wall): a pose she can hold, not a lifted foot. */
