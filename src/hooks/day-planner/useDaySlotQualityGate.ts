@@ -63,6 +63,7 @@ type DaySlotAttempt = {
   missView?: PoseMissView;
 };
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
+import { normalizeDayEvent } from '@/lib/day-event';
 
 /**
  * Opt-in Day quality gate: when a still lands, vision-review it and requeue the slot (bounded
@@ -463,6 +464,12 @@ export function useDaySlotQualityGate(
           setQualityStatus(
             `${target.label} needs a look: ${decision.reasons.join(', ')}. Retry or reroll it.`
           );
+        } else if (normalizeDayEvent(toolSettings.dayEvent)) {
+          // One event: the moments after this one were made from it, so a silent redo would
+          // break the chain (and wiped a clip mid-Animate, live 2026-10-12) — flag it instead.
+          setQualityStatus(
+            `${target.label} needs a look: ${decision.reasons.join(', ')}. Redo it by hand — then redo the moments after it too.`
+          );
         } else {
           const nudge = [
             slotRerollNudge(report.flags),
@@ -511,6 +518,7 @@ export function useDaySlotQualityGate(
     stillsRef,
     tick,
     toolSettings.allowCompanions,
+    toolSettings.dayEvent,
     toolSettings.customGarmentDescription,
     toolSettings.dayMood,
     toolSettings.intimateMix,
