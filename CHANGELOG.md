@@ -10,7 +10,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 - **Fix: the Cast's name painted into a try-on.** Image briefs (Outfit try-on, Day, Look) said `subject: <name>`; an unusual name ("Gloovi the Cap-Weaver") came out as a logo panel beside her. Identity comes from the plate image, so briefs no longer name the Cast.
-- **Talking clips from a waving / raised-arm still lower the arm.** Kept as is, the wave stayed frozen in the air for the whole line; she now keeps her spot and lowers it naturally (4 of 4 on the user's market still; "finish the movement" lowered it too but walked her off at the end).
+- **Talking clips from a waving / raised-hand still lower the hand.** Kept as is, a wave or a hair-tuck stayed frozen for the whole line. The strict hold now has one exception — she lowers the raised hand naturally — 4 of 4 (wave, hair-tuck); also read from "hand to her hair / ear", "elbow up" and similar.
 - **Fix: a standing still read as "mid" no longer sits her down.** The seated hold was chosen by how big her face was in the frame, and a standing, waving still at the farmers market came out sitting. Seated is now read from the still's pose (both thighs near level, or lying — the park bench, a record shop, a library read seated; standing, waving and stair-climbing stills don't), else from its words; only then the seated hold. Re-rendered: standing on 2 of 2 (the camera still drifts in a little at the end).
 
 ## [v2.6.0] - 2026-10-11
