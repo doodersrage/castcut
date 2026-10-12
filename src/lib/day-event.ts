@@ -449,9 +449,12 @@ export function dayEventMomentWords(slot: Pick<DaySlot, 'sceneHints'>): string {
 /**
  * Added to a moment's re-pose edit: the camera stays put. "Same camera framing" alone let Edit 2511
  * move in or overhead for a big pose change, and the clip then swung the camera (2026-10-12).
+ * Picking something up: without the last sentence the edit drew a second book in her hands and
+ * left the first on the towel (2 of 2); with it, one book, lifted from the towel (2 of 2, the user's
+ * beach event, 2026-10-12).
  */
 export const DAY_EVENT_EDIT_CAMERA_LINE =
-  'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before. Anything she holds or has beside her is the same object as in Image 1.';
+  'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before. Anything she holds or has beside her is the same object as in Image 1. Anything she now holds is picked up from where it lay in Image 1 — it is no longer lying there; there is only one of each thing.';
 
 /**
  * A moment's clip (no spoken line): it moves into the next moment's still, which it ends on. The
