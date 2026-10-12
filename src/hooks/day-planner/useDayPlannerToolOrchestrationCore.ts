@@ -39,6 +39,7 @@ import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise'
 import {
   applyDayEventPlan,
   clearDayEventSlots,
+  dayEventBefore,
   DAY_EVENT_EDIT_CAMERA_LINE,
   dayEventMomentWords,
   normalizeDayEvent,
@@ -2696,21 +2697,47 @@ export function useDayPlannerToolOrchestrationCore() {
         count: slots.length,
         llmBody: sharedLlmRequestBody(shared),
       });
+      // The Day's own scenes, for Back to a whole day — kept from before the first event, not
+      // from an event written over another.
+      const current = normalizeDayEvent(toolSettings.dayEvent);
       updateToolSettings({
         slots: applyDayEventPlan(slots, plan),
-        dayEvent: normalizeDayEvent({ text: event, place: plan.place, time: plan.time }),
+        dayEvent: normalizeDayEvent({
+          text: event,
+          place: plan.place,
+          time: plan.time,
+          before: current ? current.before : dayEventBefore(slots),
+        }),
       });
       return plan.moments.length;
     },
-    [shared, slots, updateToolSettings]
+    [shared, slots, toolSettings.dayEvent, updateToolSettings]
   );
 
   const leaveDayEvent = useCallback(() => {
-    updateToolSettings({
-      slots: clearDayEventSlots(slots, daySlotDefaultLabel),
-      dayEvent: undefined,
+    // The Day's own scenes come back; a slot that had none is filled the usual way.
+    const restored = clearDayEventSlots(
+      slots,
+      daySlotDefaultLabel,
+      normalizeDayEvent(toolSettings.dayEvent)?.before ?? []
+    );
+    const filled = diversifyDaySlotScenes(restored, {
+      forceLocations: false,
+      forceBeats: false,
+      fillBeats: true,
+      allowCompanions: toolSettings.allowCompanions === true,
+      dayMood: toolSettings.dayMood,
+      intimateMix: toolSettings.intimateMix,
     });
-  }, [slots, updateToolSettings]);
+    updateToolSettings({ slots: filled.slots, dayEvent: undefined });
+  }, [
+    slots,
+    toolSettings.allowCompanions,
+    toolSettings.dayEvent,
+    toolSettings.dayMood,
+    toolSettings.intimateMix,
+    updateToolSettings,
+  ]);
 
   const rerollActiveSlotScene = useCallback(
     (options?: {

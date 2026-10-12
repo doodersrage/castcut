@@ -13,9 +13,9 @@ import {
 } from './llm-request-options';
 
 /**
- * The event's moments from the LLM. Three tries: a small local model (Llama 3.2 3B) gave a usable
+ * The event's moments from the LLM. Four tries: a small local model (Llama 3.2 3B) gave a usable
  * plan for 3 of 7 events, Qwen3-VL 8B for 6 of 7 — and 3 of 5 tries on a dinner *date*, where it
- * kept naming the date or a waiter (2026-10-12). Throws when the LLM is off or no try is usable.
+ * kept naming the date or a waiter; 7 of 15 once moments were kept to small steps (2026-10-12). Throws when the LLM is off or no try is usable.
  */
 export async function writeDayEventPlan(options: {
   event: string;
@@ -28,7 +28,7 @@ export async function writeDayEventPlan(options: {
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('One event needs the LLM. Turn it on under Settings → LLM.');
   }
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
     const reply = await chatCompletion({
       messages: buildDayEventMessages({ event, count: options.count }),
       maxTokens: 200 + 110 * options.count,

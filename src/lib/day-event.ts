@@ -14,8 +14,6 @@ import type { ChatMessage } from '@/lib/llm-client';
 import type { DaySlot } from '@/lib/day-planner';
 
 export const DAY_EVENT_MAX_LENGTH = 240;
-/** Cut's crossfade at an event's joins (the test video's 0.25 s hid the grain change). */
-export const DAY_EVENT_CROSSFADE_SEC = 0.25;
 const BEAT_MAX = 200;
 const MOVE_MAX = 160;
 const PLACE_MAX = 120;
@@ -31,7 +29,55 @@ export type DayEvent = {
   place: string;
   /** When it happens — every slot is labelled with it (the still prompt reads the label). */
   time: DayEventTime;
+  /** The Day's own scenes from before the event — Back to a whole day puts them back. */
+  before?: DayEventSlotBefore[];
 };
+
+/** One slot's own scene from before the event. */
+export type DayEventSlotBefore = Partial<
+  Pick<
+    DaySlot,
+    'label' | 'location' | 'sceneHints' | 'sceneHintsTyped' | 'sceneHintsDay' | 'poseLayout'
+  >
+> & { id: string };
+
+const BEFORE_TEXT_FIELDS = [
+  'label',
+  'location',
+  'sceneHints',
+  'sceneHintsTyped',
+  'sceneHintsDay',
+  'poseLayout',
+] as const;
+
+/** The slots' own scenes, kept when they become an event. */
+export function dayEventBefore(slots: ReadonlyArray<DaySlot>): DayEventSlotBefore[] {
+  return slots.map(slot => {
+    const entry: DayEventSlotBefore = { id: slot.id };
+    for (const field of BEFORE_TEXT_FIELDS) {
+      const value = slot[field];
+      if (typeof value === 'string' && value.trim()) entry[field] = value;
+    }
+    return entry;
+  });
+}
+
+function normalizeBefore(value: unknown): DayEventSlotBefore[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: DayEventSlotBefore[] = [];
+  for (const row of value.slice(0, 12)) {
+    if (!row || typeof row !== 'object') continue;
+    const record = row as Record<string, unknown>;
+    if (typeof record.id !== 'string' || !record.id.trim()) continue;
+    const entry: DayEventSlotBefore = { id: record.id.trim() };
+    for (const field of BEFORE_TEXT_FIELDS) {
+      const text = record[field];
+      if (typeof text === 'string' && text.trim()) entry[field] = text.slice(0, 320);
+    }
+    out.push(entry);
+  }
+  return out.length ? out : undefined;
+}
 
 export function normalizeDayEvent(value: unknown): DayEvent | undefined {
   if (!value || typeof value !== 'object') return undefined;
@@ -40,7 +86,8 @@ export function normalizeDayEvent(value: unknown): DayEvent | undefined {
     typeof record.text === 'string' ? record.text.trim().slice(0, DAY_EVENT_MAX_LENGTH) : '';
   const place = typeof record.place === 'string' ? record.place.trim().slice(0, PLACE_MAX) : '';
   const time = TIMES.find(t => t === record.time) ?? 'Evening';
-  return text && place ? { text, place, time } : undefined;
+  const before = normalizeBefore(record.before);
+  return text && place ? { text, place, time, ...(before ? { before } : {}) } : undefined;
 }
 
 export type DayEventMoment = { beat: string; move: string };
@@ -98,7 +145,7 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
         'Each moment follows straight on from the one before, a few seconds later: a small, clear change of pose or action, never a jump in time or place.',
         'She stays on ONE spot the whole time (at the same table, on the same towel, at the same counter): the moments change her pose and what she does there, never where she is — the camera cannot follow her around.',
         'Write each moment as ONE short line (under 25 words) that STARTS with her body position (sitting, standing, walking, leaning…), then what her hands hold and where she looks.',
-        'Keep ONE body position for the whole event — seated at a table stays seated, standing at a counter stays standing; the moments are what her hands and face do. At most one change, only standing up or sitting down right where she is. Never kneel or crouch unless the action is down on the floor, and she never lies down.',
+        'Keep ONE body position for the whole event — seated at a table stays seated, standing at a counter stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). At most one change of position, only standing up or sitting down right where she is — never from sitting onto her knees or her hands. Never kneel or crouch unless the action is down on the floor, and she never lies down.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
         'Keep her props from moment to moment; anything new she picks up is already there in the place (on the table, on the counter).',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
@@ -167,11 +214,61 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
     if (index > 0 && !move) return null;
     moments.push({ beat, move: index > 0 ? move : '' });
   }
+  putDownDroppedProps(moments);
   const written = cleanLine(record.ending, MOVE_MAX);
   if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
   const ending =
     written && !LEAVES_RE.test(written) && !LYING_RE.test(written) ? written : STAY_ENDING;
   return moments.length === count ? { place, time, moments, ending } : null;
+}
+
+/** Things she can hold. */
+const PROP_WORDS =
+  'seashells?|shells?|cups?|mugs?|glass(?:es)?|bottles?|books?|phones?|forks?|spoons?|menus?|hairbrush|brush|lipstick|bucket|camera|umbrella|flowers?|bouquet|napkin|spatula|bowl|tray|pen|notebook|ice cream|cone|sunglasses|fan|letter|card|tablet|guitar|ball|drink';
+/** A prop she holds: "holding a seashell", "a mug in both hands", "the glass to her lips". */
+const HELD_RE = new RegExp(
+  `\\b(?:holding|holds|grips?|gripping|cradling|carrying|raising|lifting|clutching)\\s+(?:up\\s+)?(?:a|an|the|her|his|both)?\\s*(?:[\\w-]+\\s+){0,3}?(${PROP_WORDS})\\b|\\b(${PROP_WORDS})\\s+(?:in (?:her|his|one|both) hands?|to (?:her|his) (?:ear|lips|mouth|chest))`,
+  'gi'
+);
+/** What else says the prop is still in play (a book being read, a drink being sipped). */
+const STILL_USING: Record<string, RegExp> = {
+  book: /\b(?:page|pages|reading|reads|text|words)\b/i,
+  notebook: /\b(?:page|pages|writing|writes)\b/i,
+  phone: /\b(?:screen|scrolling|texting|call)\b/i,
+  drink: /\b(?:sip|sips|sipping)\b/i,
+};
+const PUT_DOWN_RE = /\b(?:puts?|sets?|places?|lays?|drops?|tucks?|leaves?)\b/i;
+
+function heldProps(beat: string): string[] {
+  const found = new Set<string>();
+  for (const match of beat.matchAll(HELD_RE)) {
+    const word = (match[1] ?? match[2] ?? '').toLowerCase();
+    if (word) found.add(word);
+  }
+  return [...found];
+}
+
+/**
+ * A prop she was holding that is gone from the next moment is put down in the move. The next
+ * moment's edit leaves it out, and the clip made it vanish mid-gesture (the user's beach event: a
+ * shell at her ear, gone the next frame). Only things she holds count — not the towel she sits on.
+ */
+function putDownDroppedProps(moments: DayEventMoment[]): void {
+  for (let i = 1; i < moments.length; i += 1) {
+    const now = `${moments[i]!.beat} ${moments[i]!.move}`.toLowerCase();
+    const dropped = heldProps(moments[i - 1]!.beat).filter(prop => {
+      const stem = prop.replace(/(?:es|s)$/, '');
+      if (now.includes(stem)) return false;
+      return !STILL_USING[stem]?.test(now);
+    });
+    if (dropped.length === 0 || PUT_DOWN_RE.test(moments[i]!.move)) continue;
+    const list =
+      dropped.length > 1 ? `${dropped.slice(0, -1).join(', ')} and ${dropped.at(-1)}` : dropped[0];
+    moments[i] = {
+      ...moments[i]!,
+      move: `${moments[i]!.move}, putting the ${list} down beside her`,
+    };
+  }
 }
 
 /**
@@ -199,14 +296,31 @@ export function applyDayEventPlan<T extends DaySlot>(slots: T[], plan: DayEventP
   });
 }
 
-/** Back to an ordinary Day: the event's labels and moves go; beats and places stay to edit. */
+/**
+ * Back to an ordinary Day: each slot gets its own scene from before the event back (label, place,
+ * beat, pose), and the moves go. A slot with nothing kept is left blank for Day to fill — the
+ * event's beach moments used to stay on every card.
+ */
 export function clearDayEventSlots<T extends DaySlot>(
   slots: T[],
-  defaultLabel: (id: T['id']) => string
+  defaultLabel: (id: T['id']) => string,
+  before?: ReadonlyArray<DayEventSlotBefore>
 ): T[] {
+  const byId = new Map((before ?? []).map(entry => [entry.id, entry]));
   return slots.map(slot => {
     const { eventMove: _eventMove, ...rest } = slot;
-    return { ...rest, label: defaultLabel(slot.id) } as T;
+    if (!before) return { ...rest, label: defaultLabel(slot.id) } as T;
+    const kept = byId.get(slot.id);
+    return {
+      ...rest,
+      label: kept?.label || defaultLabel(slot.id),
+      location: kept?.location,
+      sceneHints: kept?.sceneHints,
+      sceneHintsTyped: kept?.sceneHintsTyped,
+      sceneHintsDay: kept?.sceneHintsDay,
+      poseLayout: kept?.poseLayout,
+      posePhoto: undefined,
+    } as T;
   });
 }
 

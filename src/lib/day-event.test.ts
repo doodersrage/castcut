@@ -113,14 +113,49 @@ describe('one event — the Day', () => {
     assert.equal(normalizeDaySlots(applied, 4)[0]!.eventMove, four[1]!.move);
   });
 
-  it('back to a whole day: labels come back, moves go, beats stay to edit', () => {
-    const cleared = clearDayEventSlots(applyDayEventPlan(slots, plan), daySlotDefaultLabel);
-    assert.deepEqual(
-      cleared.map(slot => slot.label),
-      slots.map(slot => slot.label)
-    );
+  it("back to a whole day: the Day's own scenes come back, moves go", async () => {
+    const { dayEventBefore } = await import('./day-event');
+    const own = slots.map(slot => ({ ...slot, location: `own ${slot.id}`, sceneHints: `own beat ${slot.id}` }));
+    const before = dayEventBefore(own);
+    const cleared = clearDayEventSlots(applyDayEventPlan(own, plan), daySlotDefaultLabel, before);
+    assert.deepEqual(cleared.map(slot => slot.label), slots.map(slot => slot.label));
     assert.ok(cleared.every((slot: DaySlot) => slot.eventMove === undefined));
-    assert.equal(cleared[1]!.sceneHints, four[1]!.beat);
+    assert.equal(cleared[1]!.location, `own ${slots[1]!.id}`);
+    assert.equal(cleared[1]!.sceneHints, `own beat ${slots[1]!.id}`);
+    // An event from before scenes were kept: the cards are left blank for Day to fill.
+    const blank = clearDayEventSlots(applyDayEventPlan(own, plan), daySlotDefaultLabel, []);
+    assert.ok(blank.every(slot => !slot.location && !slot.sceneHints));
+    // The scenes survive a save and load with the event.
+    assert.equal(
+      normalizeDayEvent({ text: 'x', place: 'y', time: 'Night', before })?.before?.[0]?.sceneHints,
+      `own beat ${slots[0]!.id}`
+    );
+  });
+
+  it('a prop that vanishes is put down in the move', () => {
+    const shell = [
+      { beat: 'sitting on the towel holding a seashell to her ear, smiling', move: '' },
+      { beat: 'sitting on the towel with both hands on her knees', move: 'lowers her hand' },
+      { beat: 'sitting on the towel, hands on her knees, looking at the sea', move: 'turns her head' },
+      { beat: 'sitting on the towel, smiling at the camera', move: 'looks at the camera' },
+    ];
+    const parsed = parseDayEventPlan(reply(shell), 4);
+    assert.equal(parsed?.moments[1]!.move, 'lowers her hand, putting the seashell down beside her');
+    assert.equal(parsed?.moments[2]!.move, 'turns her head');
+  });
+
+  it('only things she holds are put down — not the towel she sits on, not a book she reads', () => {
+    const plan = parseDayEventPlan(
+      reply([
+        { beat: 'sitting on the towel holding a book open in both hands', move: '' },
+        { beat: 'sitting on the towel, turning a page, eyes on the text', move: 'turns a page' },
+        { beat: 'sitting on the towel, hands on her knees', move: 'lowers her hands' },
+        { beat: 'sitting on the towel, smiling', move: 'smiles' },
+      ]),
+      4
+    );
+    assert.equal(plan?.moments[1]!.move, 'turns a page');
+    assert.doesNotMatch(plan?.moments[2]!.move ?? '', /towel/);
   });
 
   it('keeps the event only with its text and place', () => {

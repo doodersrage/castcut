@@ -30,7 +30,6 @@ import {
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import {
   clearDayEventSlots,
-  DAY_EVENT_CROSSFADE_SEC,
   dayEventClipPrompt,
   dayEventMomentWords,
   normalizeDayEvent,
@@ -715,12 +714,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           characterId: character?.id ?? '',
           characterName: name,
           lookId: character?.activeLookId ?? shared.activeLookId,
-          // One event: the clips end on each other's first frame — a short crossfade hides the
-          // grain change at each join (unless the player set their own).
-          crossfadeSec:
-            normalizeDayEvent(toolSettings.dayEvent) && !(filmCutOptions.crossfadeSec > 0)
-              ? DAY_EVENT_CROSSFADE_SEC
-              : filmCutOptions.crossfadeSec,
+          crossfadeSec: filmCutOptions.crossfadeSec,
           resolution: filmResolutionForCutOptions(filmCutOptions),
           audioBedUrl: filmCutOptions.audioBedUrl.trim() || undefined,
           musicLevel: filmCutOptions.musicLevel,
