@@ -141,6 +141,14 @@ function postureOf(beat: string): 'standing' | 'sitting' | null {
   return standing === sitting ? null : standing ? 'standing' : 'sitting';
 }
 
+/**
+ * Handing a prop on: picking it up, putting it down, reaching for it. Each one was a chance for the
+ * edit to invent or drop an object — a second book, a vanished book, a magic wine glass (the
+ * user's runs) — so she holds what she uses from first to last and never hands it on.
+ */
+const HANDOFF_RE =
+  /\b(?:picks? up|picking up|puts?\b[^,;.]{0,25}\bdown|putting\b[^,;.]{0,25}\bdown|sets?\b[^,;.]{0,25}\bdown|setting\b[^,;.]{0,25}\bdown|places?|placing|lays? (?:it|them|the|her)|reach(?:es|ing)? (?:for|over)|grabs?|grabbing|drops?|dropping|hands? (?:it|them|over)|takes? (?:out|from)|picks? out)\b/i;
+
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|dancing|dances)\b/i;
 /**
@@ -171,7 +179,7 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
         'Write each moment as ONE short line (under 25 words) that STARTS with her body position (sitting, standing, walking, leaning…), then what her hands hold and where she looks.',
         'Keep ONE body position for the whole event — if she starts seated she stays seated, if she starts standing she stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). She never stands up, sits down, kneels or lies down during the event.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
-        'List every object she holds or touches during the event in "props", each with one short fixed description ("a glass of red wine", "a small paperback book") — all of them are within her reach from the very first moment, and every moment calls each one by exactly those words. Nothing appears that is not in props.',
+        'She holds what she uses from the very first moment to the last: one or two things, listed in "props" with one short fixed description each ("a paperback book", "a glass of red wine"), called by exactly those words in every moment. She never picks anything up, puts anything down, reaches for anything or hands anything over — the moments are what she does with what she holds (turns a page, takes a sip, a brushstroke, a stitch, a bite) and with her face and head.',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
         'She is the only person in the picture: never mention anyone else (no waiter, date, friend or crowd) — she can look across the table, out of the window or at the camera. Fully clothed, everyday and non-sexual.',
         'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": a small gesture that rounds off the last moment and leaves her as she was — a smile, a glance, a breath — in under 15 words.',
@@ -185,7 +193,7 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
     {
       role: 'assistant',
       content:
-        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","props":["a steaming white mug of coffee","a folded newspaper"],"moments":[{"beat":"standing at the balcony railing holding a steaming white mug of coffee in both hands, looking out at the view","move":""},{"beat":"standing at the railing, the steaming white mug of coffee raised to her lips, eyes closed","move":"lifts the mug and takes a slow sip"},{"beat":"standing at the railing, the mug in one hand and the folded newspaper in the other, glancing down at it","move":"lowers the mug and picks up the folded newspaper from the railing"}],"ending":"looks up from the newspaper and smiles at the morning"}',
+        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","props":["a steaming white mug of coffee"],"moments":[{"beat":"standing at the balcony railing holding a steaming white mug of coffee in both hands, looking out at the view","move":""},{"beat":"standing at the railing, the steaming white mug of coffee raised to her lips, eyes closed","move":"lifts the mug and takes a slow sip"},{"beat":"standing at the railing, the mug of coffee lowered to her chest, smiling at the street below","move":"lowers the mug and smiles down at the street"}],"ending":"breathes in the morning air and smiles"}',
     },
     { role: 'user', content: `Event: ${event}\nMoments: ${input.count}` },
   ];
@@ -232,6 +240,7 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
     if (!beat || (index === 0 && !STANCE_LEAD_RE.test(beat))) return null;
     if (LYING_RE.test(beat) || LYING_RE.test(move)) return null;
     if (RELOCATE_RE.test(move)) return null;
+    if (HANDOFF_RE.test(beat) || HANDOFF_RE.test(move)) return null;
     if (ADULT_RE.test(beat) || ADULT_RE.test(move)) return null;
     if (IN_FRAME_COMPANY_RE.test(beat) || IN_FRAME_COMPANY_RE.test(move)) return null;
     if (LEAVES_RE.test(beat) || LEAVES_RE.test(move)) return null;
@@ -250,7 +259,8 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
         .filter(prop => prop && !ADULT_RE.test(prop) && !IN_FRAME_COMPANY_RE.test(prop))
         .slice(0, 6)
     : [];
-  if (props.length > 0) setOutListedProps(moments, props);
+  if (props.length > 2) return null;
+  if (props.length > 0) holdListedProps(moments, props);
   else setOutLaterProps(moments);
   const written = cleanLine(record.ending, MOVE_MAX);
   if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
@@ -334,6 +344,18 @@ function fullestPropPhrase(moments: ReadonlyArray<DayEventMoment>, prop: string)
     }
   }
   return best;
+}
+
+/** The first moment shows her holding every listed prop (she holds them from first to last). */
+function holdListedProps(moments: DayEventMoment[], props: ReadonlyArray<string>): void {
+  const first = moments[0];
+  if (!first) return;
+  const beat = first.beat.toLowerCase();
+  const missing = props.filter(prop => !beat.includes(propHead(prop)));
+  if (missing.length === 0) return;
+  const list =
+    missing.length > 1 ? `${missing.slice(0, -1).join(' and ')} and ${missing.at(-1)}` : missing[0];
+  moments[0] = { ...first, beat: `${first.beat}, holding ${list}` };
 }
 
 /** "a glass of red wine" → "glass", "a kettle on a burner" → "kettle": the noun the beats use. */
@@ -475,7 +497,7 @@ export function dayEventKeepPropsLine(props: ReadonlyArray<string> | undefined):
     .filter(Boolean);
   if (names.length === 0) return '';
   const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
-  return `${list.charAt(0).toUpperCase()}${list.slice(1)} stay exactly where they are in Image 1 unless she picks them up or puts them down now.`;
+  return `She is still holding ${list}, the same as in Image 1; nothing else appears in her hands or around her.`;
 }
 
 export const DAY_EVENT_EDIT_CAMERA_LINE =

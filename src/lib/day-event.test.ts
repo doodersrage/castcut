@@ -21,10 +21,10 @@ const reply = (moments: Array<{ beat: string; move: string }>, extra: Record<str
   });
 
 const four = [
-  { beat: 'sitting at the table with the menu open, looking down at it', move: '' },
-  { beat: 'leaning forward, a fork of pasta near her mouth', move: 'puts the menu down and picks up her fork' },
-  { beat: 'sitting back with a glass of red wine in her hand, smiling across the table', move: 'sets the fork down and lifts her glass' },
-  { beat: 'raising the glass in a toast toward the camera', move: 'raises the glass higher in a toast' },
+  { beat: 'sitting at the table holding a glass of red wine, looking at the candle', move: '' },
+  { beat: 'sitting at the table, the glass of red wine raised to her lips', move: 'lifts the glass and takes a sip' },
+  { beat: 'sitting back, the glass of red wine lowered to her chest, smiling across the table', move: 'lowers the glass and smiles' },
+  { beat: 'sitting at the table, raising the glass of red wine toward the camera in a toast', move: 'raises the glass in a toast' },
 ];
 
 describe('one event — the plan', () => {
@@ -53,7 +53,7 @@ describe('one event — the plan', () => {
   it('wants a stance only on the first moment (later moments are edits)', () => {
     const noStance = [{ beat: 'the menu is open on the table', move: '' }, ...four.slice(1)];
     assert.equal(parseDayEventPlan(reply(noStance), 4), null);
-    const laterNoStance = [four[0]!, { beat: 'a fork of pasta near her mouth', move: 'picks up her fork' }, ...four.slice(2)];
+    const laterNoStance = [four[0]!, { beat: 'the glass of red wine near her lips', move: 'brings the glass closer' }, ...four.slice(2)];
     assert.ok(parseDayEventPlan(reply(laterNoStance), 4));
   });
 
@@ -112,8 +112,7 @@ describe('one event — the Day', () => {
       ['Evening', 'Evening', 'Evening', 'Evening']
     );
     assert.ok(applied.every(slot => slot.location === plan.place));
-    // What she picks up later (the wine glass) is set out beside her in the first moment.
-    assert.equal(applied[0]!.sceneHints, `${four[0]!.beat}, with a glass of red wine within reach in front of her`);
+    assert.equal(applied[0]!.sceneHints, four[0]!.beat);
     assert.equal(applied[0]!.eventMove, four[1]!.move);
     assert.equal(applied[2]!.eventMove, four[3]!.move);
     // The last moment rounds the event off.
@@ -141,117 +140,28 @@ describe('one event — the Day', () => {
     );
   });
 
-  it('a prop that vanishes is put down in the move', () => {
-    const shell = [
-      { beat: 'sitting on the towel holding a seashell to her ear, smiling', move: '' },
-      { beat: 'sitting on the towel with both hands on her knees', move: 'lowers her hand' },
-      { beat: 'sitting on the towel, hands on her knees, looking at the sea', move: 'turns her head' },
-      { beat: 'sitting on the towel, smiling at the camera', move: 'looks at the camera' },
-    ];
-    const parsed = parseDayEventPlan(reply(shell), 4);
-    assert.equal(parsed?.moments[1]!.move, 'lowers her hand, putting the seashell down beside her');
-    assert.equal(parsed?.moments[2]!.move, 'turns her head');
+  it('she holds what she uses from first to last — a plan that picks up or puts down is rejected', () => {
+    const pickUp = [...four.slice(0, 3), { beat: 'sitting at the table holding the menu', move: 'puts the glass down and picks up the menu' }];
+    assert.equal(parseDayEventPlan(reply(pickUp), 4), null);
+    const reach = [...four.slice(0, 3), { beat: 'sitting at the table, glass in hand', move: 'reaches for the bread' }];
+    assert.equal(parseDayEventPlan(reply(reach), 4), null);
   });
 
-  it('what she picks up later is beside her from the first moment', () => {
-    const plan = parseDayEventPlan(
-      reply([
-        { beat: 'sitting on the towel, hands on her knees', move: '' },
-        { beat: 'sitting on the towel holding a seashell to her ear', move: 'picks up a shell' },
-        { beat: 'sitting on the towel holding a water bottle in both hands', move: 'picks up the bottle' },
-        { beat: 'sitting on the towel holding a water bottle, smiling', move: 'smiles' },
-      ]),
-      4
-    );
-    assert.equal(
-      plan?.moments[0]!.beat,
-      'sitting on the towel, hands on her knees, with a seashell and a water bottle within reach in front of her'
-    );
-  });
-
-  it('the props the LLM lists are all in the first picture, as it described them', () => {
+  it('the first moment holds every listed prop; more than two is not one take', () => {
     const plan = parseDayEventPlan(
       reply(
         [
-          { beat: 'standing at the easel holding a thin paintbrush, looking at the canvas', move: '' },
-          { beat: 'standing at the easel, dabbing the brush on the palette', move: 'dips the brush in paint' },
-          { beat: 'standing at the easel, sipping from the mug of tea', move: 'lifts the mug of tea' },
-          { beat: 'standing at the easel, smiling at the painting', move: 'tilts her head at the painting' },
+          { beat: 'sitting on the towel, looking at the sea', move: '' },
+          { beat: 'sitting on the towel, the paperback book open in her lap', move: 'opens the book' },
+          { beat: 'sitting on the towel, turning a page of the paperback book', move: 'turns a page' },
+          { beat: 'sitting on the towel, smiling at the camera over the book', move: 'looks up' },
         ],
-        { props: ['a thin paintbrush', 'a wooden palette with dabs of paint', 'a chipped blue mug of tea'] }
+        { props: ['a paperback book'] }
       ),
       4
     );
-    assert.equal(
-      plan?.moments[0]!.beat,
-      'standing at the easel holding a thin paintbrush, looking at the canvas, with a wooden palette with dabs of paint and a chipped blue mug of tea within reach in front of her'
-    );
-    assert.deepEqual(plan?.props?.length, 3);
-  });
-
-  it('a listed prop the first moment already shows is not set out twice', () => {
-    const plan = parseDayEventPlan(
-      reply(
-        [
-          { beat: 'standing at the counter looking down at the kettle', move: '' },
-          { beat: 'standing at the counter holding the ceramic mug', move: 'picks up the mug' },
-          { beat: 'standing at the counter pouring from the kettle', move: 'lifts the kettle' },
-          { beat: 'standing at the counter, smiling', move: 'smiles' },
-        ],
-        { props: ['a kettle on a burner', 'a ceramic mug'] }
-      ),
-      4
-    );
-    assert.equal(
-      plan?.moments[0]!.beat,
-      'standing at the counter looking down at the kettle, with a ceramic mug within reach in front of her'
-    );
-  });
-
-  it('a wineglass and a glass of red wine are one glass, set out in front of her', () => {
-    const plan = parseDayEventPlan(
-      reply([
-        { beat: 'sitting upright, hands clasped on the table', move: '' },
-        { beat: 'sitting back holding a wineglass to her lips', move: 'raises the wineglass' },
-        { beat: 'sitting upright holding a glass of red wine, smiling', move: 'smiles' },
-        { beat: 'sitting upright holding the glass, looking at the camera', move: 'looks up' },
-      ]),
-      4
-    );
-    assert.equal(
-      plan?.moments[0]!.beat,
-      'sitting upright, hands clasped on the table, with a glass of red wine within reach in front of her'
-    );
-  });
-
-  it('a prop set out early takes its fullest description from the plan', () => {
-    const plan = parseDayEventPlan(
-      reply([
-        { beat: 'sitting on the towel, hands on her knees', move: '' },
-        { beat: 'sitting on the towel holding a small plastic cup', move: 'picks up the cup' },
-        { beat: 'sitting on the towel holding the cup to her lips', move: 'sips' },
-        { beat: 'sitting on the towel holding the cup, smiling', move: 'smiles' },
-      ]),
-      4
-    );
-    assert.equal(
-      plan?.moments[0]!.beat,
-      'sitting on the towel, hands on her knees, with a small plastic cup within reach in front of her'
-    );
-  });
-
-  it('only things she holds are put down — not the towel she sits on, not a book she reads', () => {
-    const plan = parseDayEventPlan(
-      reply([
-        { beat: 'sitting on the towel holding a book open in both hands', move: '' },
-        { beat: 'sitting on the towel, turning a page, eyes on the text', move: 'turns a page' },
-        { beat: 'sitting on the towel, hands on her knees', move: 'lowers her hands' },
-        { beat: 'sitting on the towel, smiling', move: 'smiles' },
-      ]),
-      4
-    );
-    assert.equal(plan?.moments[1]!.move, 'turns a page');
-    assert.doesNotMatch(plan?.moments[2]!.move ?? '', /towel/);
+    assert.equal(plan?.moments[0]!.beat, 'sitting on the towel, looking at the sea, holding a paperback book');
+    assert.equal(parseDayEventPlan(reply(four, { props: ['a', 'b', 'c'] }), 4), null);
   });
 
   it('keeps the event only with its text and place', () => {
@@ -297,7 +207,7 @@ describe('one event — the clips', () => {
     const { dayEventKeepPropsLine } = await import('./day-event');
     assert.equal(
       dayEventKeepPropsLine(['a paperback book', 'a plastic cup of lemonade']),
-      'The paperback book and the plastic cup of lemonade stay exactly where they are in Image 1 unless she picks them up or puts them down now.'
+      'She is still holding the paperback book and the plastic cup of lemonade, the same as in Image 1; nothing else appears in her hands or around her.'
     );
     assert.equal(dayEventKeepPropsLine(undefined), '');
     assert.deepEqual(

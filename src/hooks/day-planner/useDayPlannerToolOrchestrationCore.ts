@@ -3046,6 +3046,7 @@ export function useDayPlannerToolOrchestrationCore() {
     updateSlot,
     wardrobeLabelFor,
     queueSlot,
+    queueEventMoment,
     resolveSlotStillModel,
     leanChrome,
   };

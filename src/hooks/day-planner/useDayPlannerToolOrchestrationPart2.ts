@@ -203,6 +203,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     updateSlot,
     wardrobeLabelFor,
     queueSlot,
+    queueEventMoment,
     resolveSlotStillModel,
     leanChrome,
   } = ctx;
@@ -329,6 +330,19 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               pollMs: 3_000,
             });
             if (entry?.status !== 'completed') break;
+            // Moment 1 is a Day still, which follows its pose drawing more than its words (legs
+            // out where the beat said cross-legged) — the next moments are edits that follow the
+            // words, and clip 1 dissolved between the two. One edit of moment 1 to its own beat
+            // makes it match the moments after it.
+            if (slot.id === queueSlots[0]?.id) {
+              const settled = await queueEventMoment(slot, slot);
+              if (!settled) break;
+              const [settledEntry] = await waitForGalleryPromptIds([settled], {
+                timeoutMs: 20 * 60_000,
+                pollMs: 3_000,
+              });
+              if (settledEntry?.status !== 'completed') break;
+            }
           }
           return;
         }
@@ -359,6 +373,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
     },
     [
+      queueEventMoment,
       queueSlot,
       resolveSlotStillModel,
       slots,

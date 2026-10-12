@@ -28,17 +28,28 @@ export async function writeDayEventPlan(options: {
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('One event needs the LLM. Turn it on under Settings → LLM.');
   }
+  let lastError: unknown = null;
   for (let attempt = 0; attempt < 6; attempt += 1) {
-    const reply = await chatCompletion({
-      messages: buildDayEventMessages({ event, count: options.count }),
-      maxTokens: 200 + 110 * options.count,
-      temperature: 0.7,
-      model: resolveRequestLlmModel(options.llm),
-      endpoint: resolveRequestLlmEndpoint(options.llm),
-      usageContext: { route: 'day-event' },
-    });
+    // A failed request (LM Studio's "failed to decode") is one try, like a plan that falls short.
+    let reply: string;
+    try {
+      reply = await chatCompletion({
+        messages: buildDayEventMessages({ event, count: options.count }),
+        maxTokens: 200 + 110 * options.count,
+        temperature: 0.7,
+        model: resolveRequestLlmModel(options.llm),
+        endpoint: resolveRequestLlmEndpoint(options.llm),
+        usageContext: { route: 'day-event' },
+      });
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
     const plan = parseDayEventPlan(reply, options.count);
     if (plan) return plan;
+  }
+  if (lastError) {
+    throw lastError instanceof Error ? lastError : new Error('The LLM request failed.');
   }
   throw new Error('The LLM did not write a usable event. Try again, or say it another way.');
 }
