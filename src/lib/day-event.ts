@@ -55,6 +55,21 @@ export type DayEventPlan = {
 const ADULT_RE =
   /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip\w*|undress\w*)\b/i;
 /** The beat opens with her body position (the Everyday recipe and the re-pose edit read it). */
+/**
+ * Moving to another spot. The edit recomposes the picture around her new spot (the user's beach
+ * event, "standing at the water's edge": a new view of the sea, the beach gone) — and the clip then
+ * has to swing the camera. Moves stay on the spot.
+ */
+const RELOCATE_RE =
+  /\b(?:walks?|walking|strolls?|strolling|wanders?|paces|heads? (?:to|over|back|toward|towards)|goes (?:to|over|back)|moves (?:to|over|across|toward|towards)|crosses|steps (?:over|to|toward|towards|into|out|back|away))\b/i;
+
+/**
+ * Lying down. The moment edit can't show it from the same camera: on the user's beach event
+ * (2026-10-12) "lying on back in shallow surf" came back as a close, overhead shot, and the clips
+ * into and out of it swung the whole camera round — twice. Events keep her upright.
+ */
+const LYING_RE =
+  /\b(?:lying|lies|lie down|lies down|lays? (?:down|back)|laying|reclin\w*|sprawl\w*|on (?:her|his) (?:back|stomach|front|side)|rolls? (?:onto|over)|flat on)\b/i;
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|dancing|dances)\b/i;
 /**
@@ -81,8 +96,9 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
       content: [
         'You plan a short video of one woman at ONE event, as consecutive moments filmed from one fixed camera in one place.',
         'Each moment follows straight on from the one before, a few seconds later: a small, clear change of pose or action, never a jump in time or place.',
+        'She stays on ONE spot the whole time (at the same table, on the same towel, at the same counter): the moments change her pose and what she does there, never where she is — the camera cannot follow her around.',
         'Write each moment as ONE short line (under 25 words) that STARTS with her body position (sitting, standing, walking, leaning…), then what her hands hold and where she looks.',
-        'Use the position the action needs and keep it while the action allows: at a table she stays seated, at a counter she stays standing. Never kneel or crouch unless the action is down on the floor.',
+        'Keep ONE body position for the whole event — seated at a table stays seated, standing at a counter stays standing; the moments are what her hands and face do. At most one change, only standing up or sitting down right where she is. Never kneel or crouch unless the action is down on the floor, and she never lies down.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
         'Keep her props from moment to moment; anything new she picks up is already there in the place (on the table, on the counter).',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
@@ -143,6 +159,8 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
     // The first moment is made the usual Day way, whose recipe reads her stance from the beat's
     // first words; later moments are edits and take any wording.
     if (!beat || (index === 0 && !STANCE_LEAD_RE.test(beat))) return null;
+    if (LYING_RE.test(beat) || LYING_RE.test(move)) return null;
+    if (RELOCATE_RE.test(move)) return null;
     if (ADULT_RE.test(beat) || ADULT_RE.test(move)) return null;
     if (IN_FRAME_COMPANY_RE.test(beat) || IN_FRAME_COMPANY_RE.test(move)) return null;
     if (LEAVES_RE.test(beat) || LEAVES_RE.test(move)) return null;
@@ -151,7 +169,8 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
   }
   const written = cleanLine(record.ending, MOVE_MAX);
   if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
-  const ending = written && !LEAVES_RE.test(written) ? written : STAY_ENDING;
+  const ending =
+    written && !LEAVES_RE.test(written) && !LYING_RE.test(written) ? written : STAY_ENDING;
   return moments.length === count ? { place, time, moments, ending } : null;
 }
 
@@ -198,6 +217,13 @@ export function clearDayEventSlots<T extends DaySlot>(
 export function dayEventMomentWords(slot: Pick<DaySlot, 'sceneHints'>): string {
   return (slot.sceneHints ?? '').trim().replace(/[.\s]+$/, '');
 }
+
+/**
+ * Added to a moment's re-pose edit: the camera stays put. "Same camera framing" alone let Edit 2511
+ * move in or overhead for a big pose change, and the clip then swung the camera (2026-10-12).
+ */
+export const DAY_EVENT_EDIT_CAMERA_LINE =
+  'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before.';
 
 /**
  * A moment's clip (no spoken line): it moves into the next moment's still, which it ends on. The

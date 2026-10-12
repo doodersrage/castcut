@@ -39,6 +39,7 @@ import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise'
 import {
   applyDayEventPlan,
   clearDayEventSlots,
+  DAY_EVENT_EDIT_CAMERA_LINE,
   dayEventMomentWords,
   normalizeDayEvent,
   requestDayEventPlan,
@@ -1052,7 +1053,7 @@ export function useDayPlannerToolOrchestrationCore() {
       // still came back 1328² and wider, and the clip could not end on it (live, 2026-10-12).
       const size = await probeImageUrlDimensions(imageUrl).catch(() => null);
       const promptId = await actions.sendComfyUi(
-        buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {})),
+        `${buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {}))} ${DAY_EVENT_EDIT_CAMERA_LINE}`,
         undefined,
         undefined,
         {

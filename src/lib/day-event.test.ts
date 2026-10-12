@@ -74,6 +74,17 @@ describe('one event — the plan', () => {
     assert.equal(plan?.ending, 'smiles and settles where she is');
   });
 
+  it('she never lies down (the edit reframes to an overhead shot)', () => {
+    const lie = [...four.slice(0, 3), { beat: 'lying on her back in the shallow surf, arms spread', move: 'rolls onto her back' }];
+    assert.equal(parseDayEventPlan(reply(lie), 4), null);
+    assert.equal(parseDayEventPlan(reply(four, { ending: 'lies back on the towel and closes her eyes' }), 4)?.ending, 'smiles and settles where she is');
+  });
+
+  it('she stays on her spot (a move to a new spot makes the edit recompose the picture)', () => {
+    const walk = [...four.slice(0, 3), { beat: 'standing by the window with her glass', move: 'walks over to the window' }];
+    assert.equal(parseDayEventPlan(reply(walk), 4), null);
+  });
+
   it('a short or broken plan is no plan (a gap would break the chain)', () => {
     assert.equal(parseDayEventPlan(reply(four.slice(0, 3)), 4), null);
     assert.equal(parseDayEventPlan(reply([four[0]!, { beat: four[1]!.beat, move: '' }, ...four.slice(2)]), 4), null);
