@@ -240,7 +240,7 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
 
 /** Things she can hold. */
 const PROP_WORDS =
-  'seashells?|shells?|cups?|mugs?|glass(?:es)?|bottles?|books?|phones?|forks?|spoons?|menus?|hairbrush|brush|lipstick|bucket|camera|umbrella|flowers?|bouquet|napkin|spatula|bowl|tray|pen|notebook|ice cream|cone|sunglasses|fan|letter|card|tablet|guitar|ball|drink';
+  'seashells?|shells?|cups?|mugs?|wine ?glass(?:es)?|glass(?:es)?|bottles?|books?|phones?|forks?|spoons?|menus?|hairbrush|brush|lipstick|bucket|camera|umbrella|flowers?|bouquet|napkin|spatula|bowl|tray|pen|notebook|ice cream|cone|sunglasses|fan|letter|card|tablet|guitar|ball|drink';
 /** A prop she holds: "holding a seashell", "a mug in both hands", "the glass to her lips". */
 const HELD_RE = new RegExp(
   `\\b(?:holding|holds|grips?|gripping|cradling|carrying|raising|lifting|clutching)\\s+(?:up\\s+)?(?:a|an|the|her|his|both)?\\s*(?:[\\w-]+\\s+){0,3}?(${PROP_WORDS})\\b|\\b(${PROP_WORDS})\\s+(?:in (?:her|his|one|both) hands?|to (?:her|his) (?:ear|lips|mouth|chest))`,
@@ -255,10 +255,15 @@ const STILL_USING: Record<string, RegExp> = {
 };
 const PUT_DOWN_RE = /\b(?:puts?|sets?|places?|lays?|drops?|tucks?|leaves?)\b/i;
 
+/** One prop under one name: a "wineglass" is the "glass" (of wine) of the other moments. */
+function canonicalProp(word: string): string {
+  return word.toLowerCase().replace(/^wine ?(glass(?:es)?)$/, '$1');
+}
+
 function heldProps(beat: string): string[] {
   const found = new Set<string>();
   for (const match of beat.matchAll(HELD_RE)) {
-    const word = (match[1] ?? match[2] ?? '').toLowerCase();
+    const word = canonicalProp(match[1] ?? match[2] ?? '');
     if (word) found.add(word);
   }
   return [...found];
@@ -289,8 +294,10 @@ function putDownDroppedProps(moments: DayEventMoment[]): void {
 
 /** The longest "small plastic cup" the plan writes for a prop (its own word when it has none). */
 function fullestPropPhrase(moments: ReadonlyArray<DayEventMoment>, prop: string): string {
+  const word = prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // "small plastic cup", "glass of red wine", "wineglass" (the same glass).
   const pattern = new RegExp(
-    `\\b(?:a|an|the|her|his)\\s+((?:[\\w-]+\\s+){0,3}${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`,
+    `\\b(?:a|an|the|her|his)\\s+((?:[\\w-]+\\s+){0,3}(?:wine ?)?${word}(?:\\s+of\\s+(?:[\\w-]+\\s+)?[\\w-]+)?)\\b`,
     'gi'
   );
   let best = prop;
@@ -298,7 +305,8 @@ function fullestPropPhrase(moments: ReadonlyArray<DayEventMoment>, prop: string)
     for (const match of moment.beat.matchAll(pattern)) {
       const phrase = match[1]!.toLowerCase().replace(/\s+/g, ' ').trim();
       // Not "holding a towel and a cup" — words that run on from something else.
-      if (/\b(?:and|with|of|or|holding|holds)\b/.test(phrase)) continue;
+      if (/\b(?:and|with|or|holding|holds)\b/.test(phrase)) continue;
+      if (/\bof\b/.test(phrase.split(word)[0] ?? '')) continue;
       if (phrase.length > best.length) best = phrase;
     }
   }
@@ -333,7 +341,9 @@ function setOutLaterProps(moments: DayEventMoment[]): void {
   );
   const list =
     things.length > 1 ? `${things.slice(0, -1).join(', ')} and ${things.at(-1)}` : things[0];
-  moments[0] = { ...first, beat: `${first.beat}, with ${list} within reach beside her` };
+  // In front of her: "beside her" at a table put the glass off to one side, and the edit gave her a
+  // new glass of wine instead of picking it up (the user's dinner date).
+  moments[0] = { ...first, beat: `${first.beat}, with ${list} within reach in front of her` };
 }
 
 /**

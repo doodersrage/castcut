@@ -113,7 +113,7 @@ describe('one event — the Day', () => {
     );
     assert.ok(applied.every(slot => slot.location === plan.place));
     // What she picks up later (the wine glass) is set out beside her in the first moment.
-    assert.equal(applied[0]!.sceneHints, `${four[0]!.beat}, with a glass within reach beside her`);
+    assert.equal(applied[0]!.sceneHints, `${four[0]!.beat}, with a glass of red wine within reach in front of her`);
     assert.equal(applied[0]!.eventMove, four[1]!.move);
     assert.equal(applied[2]!.eventMove, four[3]!.move);
     // The last moment rounds the event off.
@@ -165,7 +165,23 @@ describe('one event — the Day', () => {
     );
     assert.equal(
       plan?.moments[0]!.beat,
-      'sitting on the towel, hands on her knees, with a seashell and a water bottle within reach beside her'
+      'sitting on the towel, hands on her knees, with a seashell and a water bottle within reach in front of her'
+    );
+  });
+
+  it('a wineglass and a glass of red wine are one glass, set out in front of her', () => {
+    const plan = parseDayEventPlan(
+      reply([
+        { beat: 'sitting upright, hands clasped on the table', move: '' },
+        { beat: 'sitting back holding a wineglass to her lips', move: 'raises the wineglass' },
+        { beat: 'sitting upright holding a glass of red wine, smiling', move: 'smiles' },
+        { beat: 'sitting upright holding the glass, looking at the camera', move: 'looks up' },
+      ]),
+      4
+    );
+    assert.equal(
+      plan?.moments[0]!.beat,
+      'sitting upright, hands clasped on the table, with a glass of red wine within reach in front of her'
     );
   });
 
@@ -181,7 +197,7 @@ describe('one event — the Day', () => {
     );
     assert.equal(
       plan?.moments[0]!.beat,
-      'sitting on the towel, hands on her knees, with a small plastic cup within reach beside her'
+      'sitting on the towel, hands on her knees, with a small plastic cup within reach in front of her'
     );
   });
 

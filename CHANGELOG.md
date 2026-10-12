@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **One event: no magic wine glass.** A *wineglass*, a *glass* and a *glass of red wine* in one plan are now the same prop, set out in the first moment with its fullest wording and *in front of her* ("beside her" at a table put it to one side, and the edit conjured a new glass of wine in her hand).
 - **One event: the same cup all the way through.** A prop set out in the first moment takes the plan's fullest description (*a small plastic cup*, not *a cup*), and every moment edit says whatever she holds is the same object as before — the user's coffee cup turned into something else between moments.
 - **Fix: an event's first moment was redone behind the scenes.** *Redo pose misses once* (Balanced) re-rendered moment 1 after the later moments had been made from it, mid-Animate, so clip 1 started from a different picture than moment 2 was made from. On an event Day, pose-miss and realism redos and *Best of two* no longer redo a moment; the card says it needs a look (redo it, and the moments after it, by hand).
 - **One event, round four:** one posture for the whole event — a plan that has her stand and later sit (standing → sitting on the towel dissolved into the next picture) is rejected; the last moment ends on its own picture (its camera pushed in to her face with nothing to land on) after a small gesture that leaves her as she was. Six planner tries (6 of 15 single tries pass with one posture).
