@@ -8,7 +8,11 @@ import {
   readBrowserValue,
   writeBrowserValue,
 } from './browser-storage';
-import { normalizeCastBiblePicture, type CastBiblePicture } from './character-bible-picture';
+import {
+  normalizeCastBiblePicture,
+  type CastBiblePicture,
+  type CastBiblePictureSwap,
+} from './character-bible-picture';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import { normalizePlateStance, type PlateStance } from './plate-stance';
 import {
@@ -919,6 +923,20 @@ export function saveCharacterBiblePicture(
   if (!character || !normalized) {
     return undefined;
   }
+  upsertCharacter({ ...character, biblePicture: normalized, looks: looksOf(character) });
+  return getCharacter(character.id);
+}
+
+/** Keep the "Gender swap" of the Cast's current bible picture. */
+export function saveCharacterBiblePictureSwap(
+  characterId: string,
+  swapped: CastBiblePictureSwap
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId.trim());
+  const picture = character?.biblePicture;
+  if (!character || !picture) return undefined;
+  const normalized = normalizeCastBiblePicture({ ...picture, swapped });
+  if (!normalized?.swapped) return undefined;
   upsertCharacter({ ...character, biblePicture: normalized, looks: looksOf(character) });
   return getCharacter(character.id);
 }

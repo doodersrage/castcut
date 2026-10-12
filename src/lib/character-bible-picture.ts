@@ -14,6 +14,16 @@ export type CastBiblePicture = {
   imageUrl: string;
   promptId?: string;
   at: number;
+  /** "Gender swap": the same picture with the lead as the other gender (a new picture drops it). */
+  swapped?: CastBiblePictureSwap;
+};
+
+export type CastBiblePictureSwap = {
+  imageUrl: string;
+  promptId?: string;
+  at: number;
+  /** Who the swapped picture shows. */
+  as: 'woman' | 'man';
 };
 
 export type CastBiblePictureLead = 'woman' | 'man' | 'person';
@@ -93,5 +103,40 @@ export function normalizeCastBiblePicture(value: unknown): CastBiblePicture | un
   }
   const promptId = typeof entry.promptId === 'string' ? entry.promptId.trim() : '';
   const at = typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : 0;
-  return { imageUrl, ...(promptId ? { promptId } : {}), at };
+  const swapped = normalizeSwap(entry.swapped);
+  return { imageUrl, ...(promptId ? { promptId } : {}), at, ...(swapped ? { swapped } : {}) };
+}
+
+function normalizeSwap(value: unknown): CastBiblePictureSwap | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const entry = value as Partial<CastBiblePictureSwap>;
+  const imageUrl = typeof entry.imageUrl === 'string' ? entry.imageUrl.trim() : '';
+  if (!imageUrl || (entry.as !== 'woman' && entry.as !== 'man')) return undefined;
+  const promptId = typeof entry.promptId === 'string' ? entry.promptId.trim() : '';
+  const at = typeof entry.at === 'number' && Number.isFinite(entry.at) ? entry.at : 0;
+  return { imageUrl, ...(promptId ? { promptId } : {}), at, as: entry.as };
+}
+
+/**
+ * "Gender swap" on the bible picture: an Edit 2511 edit of the rendered picture itself, so the
+ * scene, pose, outfit and camera stay. Live (2026-10-12, two bible pictures × 2 seeds): 4 of 4
+ * read as the male version of the same person, office and studio, outfit and props kept; a
+ * "male twin" wording came out younger and more androgynous.
+ */
+export function buildCastBibleGenderSwapPrompt(from: 'woman' | 'man'): string {
+  const to = from === 'woman' ? 'man' : 'woman';
+  const [her, theirFace] =
+    from === 'woman' ? ['her', "a man's face, jaw and build"] : ['his', "a woman's face and build"];
+  const hair = from === 'woman' ? "hair cut in a man's style" : "hair grown in a woman's style";
+  return [
+    `Edit Image 1: turn this ${from} into a ${to} — the ${to === 'man' ? 'male' : 'female'} version of the same person: ${theirFace}, with ${her} eye shape, skin tone and hair colour (${hair}).`,
+    `Same pose, same scene, background, light and camera framing; the same outfit colours and style, cut for a ${to}. One person only. Photoreal.`,
+  ].join(' ');
+}
+
+export function buildCastBibleGenderSwapNegative(from: 'woman' | 'man'): string {
+  return [
+    from === 'woman' ? 'woman, female, breasts, makeup' : 'man, male, beard, stubble, flat chest',
+    'two people, different background, changed camera angle, cartoon, text',
+  ].join(', ');
 }

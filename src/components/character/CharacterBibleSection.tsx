@@ -16,6 +16,7 @@ import {
   type CharacterRecord,
 } from '@/lib/character-os';
 import { saveCharacterBio } from '@/lib/play-cast';
+import { dayPartnerNoun } from '@/lib/day-partner';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
 import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {
@@ -37,6 +38,10 @@ const ACCENT = 'sky' as const;
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 
+const CastBibleGenderSwapButton = dynamic(
+  () => import('@/components/character/CastBibleGenderSwapButton'),
+  { ssr: false }
+);
 const CastBiblePictureButton = dynamic(
   () => import('@/components/character/CastBiblePictureButton'),
   { ssr: false, loading: () => null }
@@ -127,6 +132,13 @@ export default function CharacterBibleSection({
   const photoUrl = castPicture.imageUrl;
   const hasPicture = Boolean(castPicture.filename || castPicture.imageUrl);
   const biblePictureUrl = character.biblePicture?.imageUrl;
+  const swappedUrl = character.biblePicture?.swapped?.imageUrl;
+  // Gender swap needs to know who the picture shows (Appearance / hints say woman or man).
+  const leadNoun = dayPartnerNoun({
+    descriptor: activeLook(character).descriptor?.trim() || character.descriptor,
+    hints: character.hints,
+    traits: character.traits,
+  });
   // A bible look still holding the rolled description a photo Cast was given before 2.3.
   const lookIsMadeUp = Boolean(photoUrl && isRolledAppearanceDescriptor(bio?.look));
 
@@ -329,16 +341,30 @@ export default function CharacterBibleSection({
           </div>
           <div className="mt-4" data-testid="character-bible-picture-block">
             {hasPicture ? (
-              <CastBiblePictureButton
-                character={character}
-                bio={bio}
-                pictureUrl={castPicture}
-                onPictured={next => {
-                  onUpdated?.(next);
-                  setStatus('Pictured — the still is in the gallery too.');
-                }}
-                onError={setPictureError}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <CastBiblePictureButton
+                  character={character}
+                  bio={bio}
+                  pictureUrl={castPicture}
+                  onPictured={next => {
+                    onUpdated?.(next);
+                    setStatus('Pictured — the still is in the gallery too.');
+                  }}
+                  onError={setPictureError}
+                />
+                {biblePictureUrl && leadNoun !== 'person' ? (
+                  <CastBibleGenderSwapButton
+                    character={character}
+                    pictureUrl={biblePictureUrl}
+                    from={leadNoun}
+                    onSwapped={next => {
+                      onUpdated?.(next);
+                      setStatus('Swapped — the picture is in the gallery too.');
+                    }}
+                    onError={setPictureError}
+                  />
+                ) : null}
+              </div>
             ) : (
               <p
                 className="type-caption text-[var(--text-muted)]"
@@ -357,28 +383,54 @@ export default function CharacterBibleSection({
               </p>
             ) : null}
             {biblePictureUrl ? (
-              <button
-                type="button"
-                className="mt-3 block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                aria-label="Open the bible picture full size"
-                title="View larger"
-                data-testid="character-bible-picture-open"
-                onClick={() =>
-                  setLightbox({
-                    images: [biblePictureUrl],
-                    index: 0,
-                    title: `${bio.name} · bible picture`,
-                  })
-                }
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL */}
-                <img
-                  src={biblePictureUrl}
-                  alt={`${bio.name} as the bible describes them`}
-                  className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-                  data-testid="character-bible-picture-image"
-                />
-              </button>
+              <div className="mt-3 flex flex-wrap items-start gap-3">
+                <button
+                  type="button"
+                  className="block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  aria-label="Open the bible picture full size"
+                  title="View larger"
+                  data-testid="character-bible-picture-open"
+                  onClick={() =>
+                    setLightbox({
+                      images: [biblePictureUrl],
+                      index: 0,
+                      title: `${bio.name} · bible picture`,
+                    })
+                  }
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL */}
+                  <img
+                    src={biblePictureUrl}
+                    alt={`${bio.name} as the bible describes them`}
+                    className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                    data-testid="character-bible-picture-image"
+                  />
+                </button>
+                {swappedUrl ? (
+                  <button
+                    type="button"
+                    className="block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    aria-label="Open the gender-swapped picture full size"
+                    title="View larger"
+                    data-testid="character-bible-swap-open"
+                    onClick={() =>
+                      setLightbox({
+                        images: [biblePictureUrl, swappedUrl],
+                        index: 1,
+                        title: `${bio.name} · bible picture and gender swap`,
+                      })
+                    }
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI / gallery media URL */}
+                    <img
+                      src={swappedUrl}
+                      alt={`${bio.name} as a ${character.biblePicture?.swapped?.as ?? 'swap'}`}
+                      className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                      data-testid="character-bible-swap-image"
+                    />
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </>

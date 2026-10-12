@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Gender swap on the Cast bible picture.** Cast → Bible: *Gender swap* beside *Picture this bible* edits the rendered picture (Edit 2511) into the Cast's other-gender version — same scene, pose, outfit and camera — and shows it beside the original (also in the gallery). Live: two women → men (4 of 4 read as the same person) and a man → woman in the app. A new bible picture drops the old swap.
 - **One event keeps her on one spot, upright.** On the user's beach event, a moment *lying in the surf* came back as a close overhead shot and one *at the water's edge* as a new view of the sea, so the clips into them swung the whole camera round (twice, same result). Moments now keep one body position on one spot (at most one sit-down or stand-up), never lie down, and moves that walk her elsewhere are rejected; the moment edit also says the camera does not move. The planner gives a usable event 10 of 15 tries (96% within its three).
 - **Day clips default to LTX-2.5.** Day's clips followed Video → Model (WAN by default); they now run on LTX-2.5 except two-person adult clips (WAN unless *Use LTX-2.5 for two-person adult clips too*). *Day clips on → WAN* in the engine note under the cards switches Day back to WAN; talking clips stay on LTX-2.5 either way. Story still follows Video → Model.
 - **Fix: an event Day showed *Whole day* in the idea row after a reload** (the row picked its mode before the saved event loaded).

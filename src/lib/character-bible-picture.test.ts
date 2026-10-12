@@ -85,3 +85,31 @@ describe('Stored bible picture', () => {
     assert.equal(normalizeCastBiblePicture(null), undefined);
   });
 });
+
+describe('bible picture gender swap', () => {
+  it('turns her into the male version of the same person, keeping the scene', async () => {
+    const { buildCastBibleGenderSwapPrompt, buildCastBibleGenderSwapNegative } = await import(
+      './character-bible-picture'
+    );
+    const toMan = buildCastBibleGenderSwapPrompt('woman');
+    assert.match(toMan, /turn this woman into a man — the male version of the same person: a man's face, jaw and build, with her eye shape/);
+    assert.match(toMan, /Same pose, same scene, background, light and camera framing; the same outfit colours and style, cut for a man/);
+    assert.match(buildCastBibleGenderSwapPrompt('man'), /turn this man into a woman — the female version of the same person: a woman's face and build, with his eye shape/);
+    assert.match(buildCastBibleGenderSwapNegative('woman'), /^woman, female/);
+  });
+
+  it('keeps the swap with its picture', async () => {
+    const { normalizeCastBiblePicture } = await import('./character-bible-picture');
+    const picture = normalizeCastBiblePicture({
+      imageUrl: '/a.png',
+      at: 1,
+      swapped: { imageUrl: '/b.png', at: 2, as: 'man' },
+    });
+    assert.equal(picture?.swapped?.imageUrl, '/b.png');
+    assert.equal(picture?.swapped?.as, 'man');
+    assert.equal(
+      normalizeCastBiblePicture({ imageUrl: '/a.png', at: 1, swapped: { imageUrl: '/b.png', at: 2, as: 'x' } })?.swapped,
+      undefined
+    );
+  });
+});
