@@ -58,6 +58,24 @@ COLOURS = [(0, 0, 255), (0, 85, 255), (0, 170, 255), (0, 255, 255), (0, 255, 170
            (255, 0, 0), (255, 0, 85), (255, 0, 170), (255, 0, 255), (170, 0, 255)]
 
 
+# Links that died after harvest (checked 2026-10-12): deleted accounts lose the link and keep the
+# name; a removed photo points at its archived copy. Re-check with a link crawl of the docs site.
+GONE_LINKS: dict[str, str | None] = {
+    "https://www.flickr.com/people/166457025@N05": None,
+    "https://www.flickr.com/people/193634460@N03": None,
+    "https://www.flickr.com/people/30011527@N05": None,
+    "https://www.flickr.com/people/56594044@N06": None,
+    "https://www.flickr.com/people/7306733@N06": None,
+    "https://profiles.google.com/107032119251641097362": None,
+    "https://www.flickr.com/photos/95329455@N02/10608704843":
+        "https://web.archive.org/web/20210125140930/https://www.flickr.com/photos/95329455@N02/10608704843",
+}
+
+
+def live_link(url: str | None) -> str | None:
+    return GONE_LINKS.get(url, url) if url else url
+
+
 def credit_of(ref: dict) -> dict:
     photo = ref["photo"]
     credit = {
@@ -66,11 +84,11 @@ def credit_of(ref: dict) -> dict:
         "licence": photo["licence"],
         "licenceVersion": photo["licence_version"],
         "licenceUrl": photo["licence_url"],
-        "source": photo["landing_url"],
+        "source": live_link(photo["landing_url"]),
         "provider": photo["provider"],
     }
-    if photo.get("creator_url"):
-        credit["creatorUrl"] = photo["creator_url"]
+    if live_link(photo.get("creator_url")):
+        credit["creatorUrl"] = live_link(photo["creator_url"])
     return credit
 
 

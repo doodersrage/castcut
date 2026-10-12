@@ -64,7 +64,7 @@ WEBKIT_DISABLE_DMABUF_RENDERER=1 ./Castcut_*.AppImage
 
 ## Local build
 
-See [desktop/README.md](../desktop/README.md). From the repo root:
+See [desktop/README.md](https://github.com/doodersrage/castcut/blob/main/desktop/README.md). From the repo root:
 
 ```bash
 npm install

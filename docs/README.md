@@ -73,36 +73,36 @@
 
 ## Pick your path
 
-<div class="ps-paths" markdown="0">
+<div class="ps-paths" markdown="1">
 
-<div class="ps-path">
-  <h3>Operators</h3>
-  <p>Run the studio day-to-day.</p>
-  <ul>
-    <li><a href="operator.md">Operator guide</a></li>
-    <li><a href="configuration.md">Configuration</a></li>
-    <li><a href="desktop.md">Desktop app</a></li>
-  </ul>
+<div class="ps-path" markdown="1">
+<p class="ps-path-title">Operators</p>
+<p>Run the studio day-to-day.</p>
+
+- [Operator guide](operator.md)
+- [Configuration](configuration.md)
+- [Desktop app](desktop.md)
+
 </div>
 
-<div class="ps-path">
-  <h3>Creators</h3>
-  <p>Tools, limits, and workflow behavior.</p>
-  <ul>
-    <li><a href="features.md">Features by area</a></li>
-    <li><a href="prompt-limits.md">Prompt limits</a></li>
-    <li><a href="workflow-takeover.md">Workflow takeover</a></li>
-  </ul>
+<div class="ps-path" markdown="1">
+<p class="ps-path-title">Creators</p>
+<p>Tools, limits, and workflow behavior.</p>
+
+- [Features by area](features.md)
+- [Prompt limits](prompt-limits.md)
+- [Workflow takeover](workflow-takeover.md)
+
 </div>
 
-<div class="ps-path">
-  <h3>Contributors</h3>
-  <p>Architecture, releases, performance.</p>
-  <ul>
-    <li><a href="architecture.md">Architecture</a></li>
-    <li><a href="releasing.md">Releases</a></li>
-    <li><a href="performance/guide.md">Performance</a></li>
-  </ul>
+<div class="ps-path" markdown="1">
+<p class="ps-path-title">Contributors</p>
+<p>Architecture, releases, performance.</p>
+
+- [Architecture](architecture.md)
+- [Releases](releasing.md)
+- [Performance](performance/guide.md)
+
 </div>
 
 </div>
@@ -168,6 +168,6 @@ pip install -r docs/requirements-docs.txt
 npm run docs:serve
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
+Open `http://127.0.0.1:8000` (the local preview).
 
 **GitHub Pages:** pushes to `main` that touch `docs/` or `mkdocs.yml` publish here. Actions → **Docs** → **Run workflow** republishes without a docs change.

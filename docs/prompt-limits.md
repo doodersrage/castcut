@@ -1,6 +1,6 @@
 # Prompt size limits
 
-Limits are enforced per **model × detail** combination. See also [Supported models](../README.md#supported-models) in the main README.
+Limits are enforced per **model × detail** combination. See also [Supported models](https://github.com/doodersrage/castcut/blob/main/README.md#supported-models) in the main README.
 
 Limits are enforced per **model × detail** combination. All models have Concise / Balanced / Rich presets; long-form models also enforce `minChars`:
 

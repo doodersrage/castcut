@@ -9,6 +9,13 @@ copyright: Copyright &copy; 2026 Robert McDowell · MIT
 docs_dir: docs
 site_dir: site
 
+# Broken links and anchors fail the docs build (`mkdocs build --strict` in CI).
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
+
 theme:
   name: material
   logo: assets/brand-mark.svg

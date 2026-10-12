@@ -41,13 +41,13 @@ npm run dev:analyze
 ANALYZE=true npm run build   # production bundle report
 ```
 
-**CI before deploy:** `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e` (see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)). **Cut a GitHub Release:** [Releases](../releasing.md).
+**CI before deploy:** `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e` (see [`.github/workflows/ci.yml`](https://github.com/doodersrage/castcut/blob/main/.github/workflows/ci.yml)). **Cut a GitHub Release:** [Releases](../releasing.md).
 
 ---
 
 ## Prettier
 
-All format scripts use `--cache` for incremental runs. Large generated files are excluded via [`.prettierignore`](../../.prettierignore).
+All format scripts use `--cache` for incremental runs. Large generated files are excluded via [`.prettierignore`](https://github.com/doodersrage/castcut/blob/main/.prettierignore).
 
 ```bash
 npm run format              # whole repo
@@ -64,7 +64,7 @@ prettier --clear-cache      # if formatting feels stale
 
 ## Build & Next.js
 
-Key settings live in [`next.config.ts`](../../next.config.ts) and [`tsconfig.json`](../../tsconfig.json):
+Key settings live in [`next.config.ts`](https://github.com/doodersrage/castcut/blob/main/next.config.ts) and [`tsconfig.json`](https://github.com/doodersrage/castcut/blob/main/tsconfig.json):
 
 - `optimizeCss`, `optimizePackageImports` for `@tanstack/react-virtual` and `@xyflow/react`
 - TypeScript `incremental` + `composite` builds

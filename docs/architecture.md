@@ -1,6 +1,6 @@
 # Architecture
 
-Contributor map of how Castcut is wired. Product setup and feature lists live in the [documentation hub](README.md) and [main README](../README.md).
+Contributor map of how Castcut is wired. Product setup and feature lists live in the [documentation hub](README.md) and [main README](https://github.com/doodersrage/castcut/blob/main/README.md).
 
 ## Shape
 

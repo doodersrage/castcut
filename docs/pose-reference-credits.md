@@ -206,11 +206,11 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 ### Reading (`read`)
 
 - 1. [A young woman enjoys a peaceful moment reading a book on a winding road](<https://commons.wikimedia.org/wiki/File:A_young_woman_enjoys_a_peaceful_moment_reading_a_book_on_a_winding_road.jpg>) by [Shixart1985](<https://commons.wikimedia.org/wiki/User:Shixart1985>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
-- 2. [Katerina - Flickr - zhxdmu (1)](<https://commons.wikimedia.org/wiki/File:Katerina_-_Flickr_-_zhxdmu_(1).jpg>) by [zhxdmu](<https://www.flickr.com/people/166457025@N05>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
+- 2. [Katerina - Flickr - zhxdmu (1)](<https://commons.wikimedia.org/wiki/File:Katerina_-_Flickr_-_zhxdmu_(1).jpg>) by zhxdmu, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
 
 ### Carrying a bag (`carry`)
 
-- 1. [非耐久財 家事用消耗品 (52479950072)](<https://commons.wikimedia.org/wiki/File:%E9%9D%9E%E8%80%90%E4%B9%85%E8%B2%A1_%E5%AE%B6%E4%BA%8B%E7%94%A8%E6%B6%88%E8%80%97%E5%93%81_(52479950072).jpg>) by [DLKR from Tokyo, Japan](<https://www.flickr.com/people/193634460@N03>), [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>) — via wikimedia
+- 1. [非耐久財 家事用消耗品 (52479950072)](<https://commons.wikimedia.org/wiki/File:%E9%9D%9E%E8%80%90%E4%B9%85%E8%B2%A1_%E5%AE%B6%E4%BA%8B%E7%94%A8%E6%B6%88%E8%80%97%E5%93%81_(52479950072).jpg>) by DLKR from Tokyo, Japan, [CC0](<http://creativecommons.org/publicdomain/zero/1.0/deed.en>) — via wikimedia
 
 ### Waving (`wave`)
 
@@ -265,7 +265,7 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 - 2. [Kai nervously leaning on the rail](<https://www.flickr.com/photos/16105436@N00/295597476>) by [Kai Hendry](<https://www.flickr.com/photos/16105436@N00>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0/>) — via flickr
 - 3. [Silhouette of a drinking man in Berlin (10945120673)](<https://commons.wikimedia.org/wiki/File:Silhouette_of_a_drinking_man_in_Berlin_(10945120673).jpg>) by [Sascha Kohlmann from Berlin, Deutschland](<https://www.flickr.com/people/96323831@N06>), [CC BY-SA 2.0](<https://creativecommons.org/licenses/by-sa/2.0>) — via wikimedia
 - 4. [Valentine at the university of zambia](<https://commons.wikimedia.org/wiki/File:Valentine_at_the_university_of_zambia.jpg>) by [Valethatbeatboii](<https://commons.wikimedia.org/w/index.php?title=User:Valethatbeatboii&amp;action=edit&amp;redlink=1>), [CC BY-SA 4.0](<https://creativecommons.org/licenses/by-sa/4.0>) — via wikimedia
-- 5. [Z2a1 (3986226178)](<https://commons.wikimedia.org/wiki/File:Z2a1_(3986226178).jpg>) by [Gavin Schaefer from Halifax, Canada](<https://www.flickr.com/people/7306733@N06>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
+- 5. [Z2a1 (3986226178)](<https://commons.wikimedia.org/wiki/File:Z2a1_(3986226178).jpg>) by Gavin Schaefer from Halifax, Canada, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
 
 ### On the stairs (`stairs`)
 
@@ -283,7 +283,7 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 ### Perched on an edge (`perch_edge`)
 
 - 1. [DSC 8862 a woman sitting on a ledge with her legs crossed (54321141489)](<https://commons.wikimedia.org/wiki/File:DSC_8862_a_woman_sitting_on_a_ledge_with_her_legs_crossed_(54321141489).jpg>) by [Pattaya Patrol from Pattaya](<https://www.flickr.com/people/194424926@N05>), [CC BY-SA 2.0](<https://creativecommons.org/licenses/by-sa/2.0>) — via wikimedia
-- 2. [Novokuznetsk 047](<https://commons.wikimedia.org/wiki/File:Novokuznetsk_047.jpg>) by [Michael E](<https://profiles.google.com/107032119251641097362>), [CC BY 3.0](<https://creativecommons.org/licenses/by/3.0>) — via wikimedia
+- 2. [Novokuznetsk 047](<https://commons.wikimedia.org/wiki/File:Novokuznetsk_047.jpg>) by Michael E, [CC BY 3.0](<https://creativecommons.org/licenses/by/3.0>) — via wikimedia
 
 ### Hands behind head (`hands_behind_head`)
 
@@ -315,7 +315,7 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 
 ### Hug (`hug`)
 
-- 1. [Affectionate elderly couple hugs on the porch](<https://www.flickr.com/photos/95329455@N02/10608704843>) by [simpleinsomnia](<https://www.flickr.com/photos/95329455@N02>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0/>) — via flickr
+- 1. [Affectionate elderly couple hugs on the porch](<https://web.archive.org/web/20210125140930/https://www.flickr.com/photos/95329455@N02/10608704843>) by [simpleinsomnia](<https://www.flickr.com/photos/95329455@N02>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0/>) — via flickr
 - 2. [Two hikers affectionately posing in front of the Gamájåhkå rapids in Kvikkjokk, Sweden (DSCF2456)](<https://commons.wikimedia.org/wiki/File:Two_hikers_affectionately_posing_in_front_of_the_Gam%C3%A1j%C3%A5hk%C3%A5_rapids_in_Kvikkjokk,_Sweden_(DSCF2456).jpg>) by [Trougnouf (Benoit Brummer)](<https://commons.wikimedia.org/wiki/User:Trougnouf>), [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>) — via wikimedia
 
 ### Holding hands (`hold_hands`)
@@ -326,7 +326,7 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 
 ### High five (`high_five`)
 
-- 1. [Flickr - Official U.S. Navy Imagery - Two Marines high-five after a 5k run.](<https://commons.wikimedia.org/wiki/File:Flickr_-_Official_U.S._Navy_Imagery_-_Two_Marines_high-five_after_a_5k_run..jpg>) by [Official Navy Page from United States of America MC1 Elizabeth Merriam/U.S. Navy](<https://www.flickr.com/people/56594044@N06>), [Public Domain Mark](<https://creativecommons.org/publicdomain/mark/1.0/>) — via wikimedia
+- 1. [Flickr - Official U.S. Navy Imagery - Two Marines high-five after a 5k run.](<https://commons.wikimedia.org/wiki/File:Flickr_-_Official_U.S._Navy_Imagery_-_Two_Marines_high-five_after_a_5k_run..jpg>) by Official Navy Page from United States of America MC1 Elizabeth Merriam/U.S. Navy, [Public Domain Mark](<https://creativecommons.org/publicdomain/mark/1.0/>) — via wikimedia
 
 ### Sprint (`sport_sprint`)
 
@@ -340,8 +340,8 @@ is listed in the pose editor's real poses but skipped by *Try another*.
 
 - 1. [Yoga (9707554768)](<https://commons.wikimedia.org/wiki/File:Yoga_(9707554768).jpg>) by [Dave Rosenblum](<https://www.flickr.com/people/32418484@N02>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
 - 2. [Yagnesh Shulinasan](<https://commons.wikimedia.org/wiki/File:Yagnesh_Shulinasan.jpg>) by [LYU ykpatel](<https://commons.wikimedia.org/w/index.php?title=User:LYU_ykpatel&amp;action=edit&amp;redlink=1>), [CC BY 4.0](<https://creativecommons.org/licenses/by/4.0>) — via wikimedia
-- 3. [Virabhadrasana II - Warrior II Pose](<https://commons.wikimedia.org/wiki/File:Virabhadrasana_II_-_Warrior_II_Pose.jpg>) by [lululemon athletica](<https://www.flickr.com/people/30011527@N05>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
-- 4. [Yoga Warrior I](<https://commons.wikimedia.org/wiki/File:Yoga_Warrior_I.jpg>) by [lululemon athletica](<https://www.flickr.com/people/30011527@N05>), [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
+- 3. [Virabhadrasana II - Warrior II Pose](<https://commons.wikimedia.org/wiki/File:Virabhadrasana_II_-_Warrior_II_Pose.jpg>) by lululemon athletica, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
+- 4. [Yoga Warrior I](<https://commons.wikimedia.org/wiki/File:Yoga_Warrior_I.jpg>) by lululemon athletica, [CC BY 2.0](<https://creativecommons.org/licenses/by/2.0>) — via wikimedia
 
 ### Cycling (`sport_cycle`)
 

@@ -212,10 +212,12 @@
   background: var(--md-code-bg-color);
 }
 
-.ps-path h3 {
+.ps-path h3,
+.ps-path .ps-path-title {
   margin: 0 0 0.35rem;
   font-family: 'Fraunces', Georgia, serif;
   font-size: 1.05rem;
+  color: var(--md-default-fg-color);
 }
 
 .ps-path p {
