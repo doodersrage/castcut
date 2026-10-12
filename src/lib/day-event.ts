@@ -31,6 +31,8 @@ export type DayEvent = {
   time: DayEventTime;
   /** The Day's own scenes from before the event — Back to a whole day puts them back. */
   before?: DayEventSlotBefore[];
+  /** The props the plan listed — every moment edit keeps them where they lie. */
+  props?: string[];
 };
 
 /** One slot's own scene from before the event. */
@@ -87,7 +89,15 @@ export function normalizeDayEvent(value: unknown): DayEvent | undefined {
   const place = typeof record.place === 'string' ? record.place.trim().slice(0, PLACE_MAX) : '';
   const time = TIMES.find(t => t === record.time) ?? 'Evening';
   const before = normalizeBefore(record.before);
-  return text && place ? { text, place, time, ...(before ? { before } : {}) } : undefined;
+  const props = Array.isArray(record.props)
+    ? record.props
+        .filter((prop): prop is string => typeof prop === 'string' && Boolean(prop.trim()))
+        .map(prop => prop.trim().slice(0, 60))
+        .slice(0, 6)
+    : [];
+  return text && place
+    ? { text, place, time, ...(before ? { before } : {}), ...(props.length ? { props } : {}) }
+    : undefined;
 }
 
 export type DayEventMoment = { beat: string; move: string };
@@ -453,6 +463,21 @@ export function dayEventMomentWords(slot: Pick<DaySlot, 'sceneHints'>): string {
  * left the first on the towel (2 of 2); with it, one book, lifted from the towel (2 of 2, the user's
  * beach event, 2026-10-12).
  */
+/**
+ * Added to a moment's edit when the plan listed props: they stay where they lie unless this moment
+ * moves them. The edit only kept what the beat named — a book in her lap vanished when the next
+ * beat said "hands resting on her knees", then reappeared later (the user's beach event). Named:
+ * the book stayed, 2 of 2 (1 of 2 without).
+ */
+export function dayEventKeepPropsLine(props: ReadonlyArray<string> | undefined): string {
+  const names = (props ?? [])
+    .map(prop => prop.trim().replace(/^(?:a|an)\s+/i, 'the '))
+    .filter(Boolean);
+  if (names.length === 0) return '';
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+  return `${list.charAt(0).toUpperCase()}${list.slice(1)} stay exactly where they are in Image 1 unless she picks them up or puts them down now.`;
+}
+
 export const DAY_EVENT_EDIT_CAMERA_LINE =
   'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before. Anything she holds or has beside her is the same object as in Image 1. Anything she now holds is picked up from where it lay in Image 1 — it is no longer lying there; there is only one of each thing.';
 

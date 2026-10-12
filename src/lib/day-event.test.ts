@@ -293,6 +293,19 @@ describe('one event — the clips', () => {
     assert.match(prompt, /his face, hair and clothes stay the same/);
   });
 
+  it('the listed props are kept where they lie in every moment edit', async () => {
+    const { dayEventKeepPropsLine } = await import('./day-event');
+    assert.equal(
+      dayEventKeepPropsLine(['a paperback book', 'a plastic cup of lemonade']),
+      'The paperback book and the plastic cup of lemonade stay exactly where they are in Image 1 unless she picks them up or puts them down now.'
+    );
+    assert.equal(dayEventKeepPropsLine(undefined), '');
+    assert.deepEqual(
+      normalizeDayEvent({ text: 'x', place: 'y', time: 'Night', props: ['a book', 3] })?.props,
+      ['a book']
+    );
+  });
+
   it('a later moment is an edit of the one before, posed by its beat', () => {
     assert.equal(dayEventMomentWords({ sceneHints: 'sitting at the table. ' }), 'sitting at the table');
   });

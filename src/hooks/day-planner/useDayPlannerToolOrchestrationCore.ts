@@ -41,6 +41,7 @@ import {
   clearDayEventSlots,
   dayEventBefore,
   DAY_EVENT_EDIT_CAMERA_LINE,
+  dayEventKeepPropsLine,
   dayEventMomentWords,
   normalizeDayEvent,
   requestDayEventPlan,
@@ -1054,7 +1055,13 @@ export function useDayPlannerToolOrchestrationCore() {
       // still came back 1328² and wider, and the clip could not end on it (live, 2026-10-12).
       const size = await probeImageUrlDimensions(imageUrl).catch(() => null);
       const promptId = await actions.sendComfyUi(
-        `${buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {}))} ${DAY_EVENT_EDIT_CAMERA_LINE}`,
+        [
+          buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {})),
+          DAY_EVENT_EDIT_CAMERA_LINE,
+          dayEventKeepPropsLine(normalizeDayEvent(toolSettings.dayEvent)?.props),
+        ]
+          .filter(Boolean)
+          .join(' '),
         undefined,
         undefined,
         {
@@ -1104,7 +1111,7 @@ export function useDayPlannerToolOrchestrationCore() {
       if (!id) setError('ComfyUI did not accept the moment edit — is it running?');
       return id || null;
     },
-    [actions, character, shared, slots, updateToolSettings]
+    [actions, character, shared, slots, toolSettings.dayEvent, updateToolSettings]
   );
 
   const queueSlot = useCallback(
@@ -2707,6 +2714,7 @@ export function useDayPlannerToolOrchestrationCore() {
           place: plan.place,
           time: plan.time,
           before: current ? current.before : dayEventBefore(slots),
+          props: plan.props,
         }),
       });
       return plan.moments.length;
