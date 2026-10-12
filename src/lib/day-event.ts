@@ -215,6 +215,7 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
     moments.push({ beat, move: index > 0 ? move : '' });
   }
   putDownDroppedProps(moments);
+  setOutLaterProps(moments);
   const written = cleanLine(record.ending, MOVE_MAX);
   if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
   const ending =
@@ -269,6 +270,34 @@ function putDownDroppedProps(moments: DayEventMoment[]): void {
       move: `${moments[i]!.move}, putting the ${list} down beside her`,
     };
   }
+}
+
+/**
+ * Everything she picks up later is already beside her in the first moment. Later moments are
+ * edits of the first, so a prop the first picture lacks appeared in her hand from nowhere (the
+ * user's beach event: a shell, sunglasses and a bottle materialised mid-clip).
+ */
+function setOutLaterProps(moments: DayEventMoment[]): void {
+  const first = moments[0];
+  if (!first) return;
+  const have = new Set(heldProps(first.beat).map(prop => prop.replace(/(?:es|s)$/, '')));
+  const later: string[] = [];
+  for (const moment of moments.slice(1)) {
+    for (const prop of heldProps(moment.beat)) {
+      const stem = prop.replace(/(?:es|s)$/, '');
+      if (have.has(stem) || first.beat.toLowerCase().includes(stem)) continue;
+      have.add(stem);
+      later.push(prop);
+    }
+  }
+  if (later.length === 0) return;
+  // "glasses" / "flowers" stand alone; "glass" is one.
+  const things = later.map(prop =>
+    /[^s]s$/.test(prop) || prop === 'ice cream' ? prop : `a ${prop}`
+  );
+  const list =
+    things.length > 1 ? `${things.slice(0, -1).join(', ')} and ${things.at(-1)}` : things[0];
+  moments[0] = { ...first, beat: `${first.beat}, with ${list} within reach beside her` };
 }
 
 /**
@@ -351,6 +380,12 @@ export function dayEventClipPrompt(input: {
   /** The next moment's beat — where the clip ends (unset on the last moment). */
   nextBeat?: string;
   speaker?: 'She' | 'He';
+  /**
+   * A spoken line: said while she moves into the next moment. Talking in place froze a raised
+   * hand or jumped mid-clip and drifted the camera; moving while speaking said the line word for
+   * word and landed on the next moment (the user's beach event, 2026-10-12).
+   */
+  line?: string;
 }): string {
   const who = input.speaker ?? 'She';
   const she = who === 'He' ? 'he' : 'she';
@@ -362,8 +397,13 @@ export function dayEventClipPrompt(input: {
   return [
     'One continuous shot that starts on the first frame; the camera stays still and keeps the same framing — it does not move, zoom or push in.',
     `In the ${place}, ${she} ${move.replace(/^(?:she|he)\s+/i, '')}${next ? `; by the end of the clip ${she} is ${next}` : ''}.`,
+    input.line?.trim()
+      ? `As ${she} moves ${she} says clearly, "${input.line.trim()}" — ${her} lips move with every word.`
+      : null,
     `Natural, unhurried movement; ${her} face, hair and clothes stay the same.`,
-  ].join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** Ask `/api/day-event` for the plan (client). Rejects with the server's message. */

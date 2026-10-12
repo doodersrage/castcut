@@ -104,7 +104,8 @@ describe('one event — the Day', () => {
       ['Evening', 'Evening', 'Evening', 'Evening']
     );
     assert.ok(applied.every(slot => slot.location === plan.place));
-    assert.equal(applied[0]!.sceneHints, four[0]!.beat);
+    // What she picks up later (the wine glass) is set out beside her in the first moment.
+    assert.equal(applied[0]!.sceneHints, `${four[0]!.beat}, with a glass within reach beside her`);
     assert.equal(applied[0]!.eventMove, four[1]!.move);
     assert.equal(applied[2]!.eventMove, four[3]!.move);
     // The last moment rounds the event off.
@@ -144,6 +145,22 @@ describe('one event — the Day', () => {
     assert.equal(parsed?.moments[2]!.move, 'turns her head');
   });
 
+  it('what she picks up later is beside her from the first moment', () => {
+    const plan = parseDayEventPlan(
+      reply([
+        { beat: 'sitting on the towel, hands on her knees', move: '' },
+        { beat: 'sitting on the towel holding a seashell to her ear', move: 'picks up a shell' },
+        { beat: 'sitting on the towel holding a water bottle in both hands', move: 'picks up the bottle' },
+        { beat: 'sitting on the towel holding a water bottle, smiling', move: 'smiles' },
+      ]),
+      4
+    );
+    assert.equal(
+      plan?.moments[0]!.beat,
+      'sitting on the towel, hands on her knees, with a seashell and a bottle within reach beside her'
+    );
+  });
+
   it('only things she holds are put down — not the towel she sits on, not a book she reads', () => {
     const plan = parseDayEventPlan(
       reply([
@@ -178,6 +195,16 @@ describe('one event — the clips', () => {
     });
     assert.match(prompt, /the camera stays still and keeps the same framing — it does not move, zoom or push in/);
     assert.match(prompt, /In the candlelit trattoria, she pulls out the chair and sits down; by the end of the clip she is sitting at the table, forearms on the tablecloth\./);
+  });
+
+  it('a spoken line is said on the way into the next moment', () => {
+    const prompt = dayEventClipPrompt({
+      place: 'beach',
+      move: 'leans back and rests her palms behind her head',
+      nextBeat: 'leaning back with hands behind head',
+      line: 'Still holding those shades?',
+    });
+    assert.match(prompt, /by the end of the clip she is leaning back with hands behind head\. As she moves she says clearly, "Still holding those shades\?" — her lips move with every word\./);
   });
 
   it('the last moment has nothing to land on', () => {

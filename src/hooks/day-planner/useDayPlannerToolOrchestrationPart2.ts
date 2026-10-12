@@ -413,8 +413,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
         // has the node for the engine; otherwise the plain clip, said once.
         // One event: the clip ends on the next moment's still (day-event.ts) — the joins line up
-        // in Cut. An end pose picked by hand still wins. A moment with a line talks in place (the
-        // talking hold keeps her pose; Cut's crossfade covers that join).
+        // in Cut. An end pose picked by hand still wins. A moment with a line says it on the way
+        // (the last moment, with nothing to land on, talks in place).
         const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
         const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
         const nextMoment = momentIndex >= 0 ? slots[momentIndex + 1] : undefined;
@@ -422,10 +422,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ? stillsRef.current.find(entry => entry.slotId === nextMoment.id)
           : undefined;
         const eventEndPose =
-          !spokenLine &&
-          nextMoment &&
-          nextMomentStill?.status === 'completed' &&
-          nextMomentStill.imageUrl?.trim()
+          nextMoment && nextMomentStill?.status === 'completed' && nextMomentStill.imageUrl?.trim()
             ? {
                 imageUrl: nextMomentStill.imageUrl.trim(),
                 source: 'still' as const,
@@ -526,26 +523,34 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           const ageLine = adultAgeLineIn(parentEntry?.prompt ?? '');
           const lead = manLead ? 'man' : 'woman';
           prompt = [
-            conversation
-              ? conversationClipPrompt({
-                  setting: slot.location,
-                  line: spokenLine,
-                  reply: replyLine,
-                  tone: slot.lineTone,
-                  lead,
-                  partner: conversationPartnerNoun(parentEntry?.prompt, lead),
-                })
-              : talkingClipPrompt({
-                  setting: slot.location,
-                  line: spokenLine,
+            dayEvent && !conversation && endImageFilename && endPose === eventEndPose
+              ? dayEventClipPrompt({
+                  place: dayEvent.place,
+                  move: slot.eventMove,
+                  nextBeat: dayEventMomentWords(nextMoment ?? {}),
                   speaker: manLead ? 'He' : 'She',
-                  tone: slot.lineTone,
-                  framing,
-                  seated,
-                  inMotion: stillInMotion(parentEntry?.prompt),
-                  heldGesture: stillHeldGesture(parentEntry?.prompt),
-                  ...(stillBody ? { limbs: stillBody.limbs } : {}),
-                }),
+                  line: spokenLine,
+                })
+              : conversation
+                ? conversationClipPrompt({
+                    setting: slot.location,
+                    line: spokenLine,
+                    reply: replyLine,
+                    tone: slot.lineTone,
+                    lead,
+                    partner: conversationPartnerNoun(parentEntry?.prompt, lead),
+                  })
+                : talkingClipPrompt({
+                    setting: slot.location,
+                    line: spokenLine,
+                    speaker: manLead ? 'He' : 'She',
+                    tone: slot.lineTone,
+                    framing,
+                    seated,
+                    inMotion: stillInMotion(parentEntry?.prompt),
+                    heldGesture: stillHeldGesture(parentEntry?.prompt),
+                    ...(stillBody ? { limbs: stillBody.limbs } : {}),
+                  }),
             ageLine,
           ]
             .filter(Boolean)
