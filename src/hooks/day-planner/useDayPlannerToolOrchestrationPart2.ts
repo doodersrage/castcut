@@ -204,6 +204,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     wardrobeLabelFor,
     queueSlot,
     queueEventMoment,
+    queueEventEnding,
     resolveSlotStillModel,
     leanChrome,
   } = ctx;
@@ -343,6 +344,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               });
               if (settledEntry?.status !== 'completed') break;
             }
+            // The last moment's ending as its end picture: the last clip moves into it.
+            if (slot.id === queueSlots.at(-1)?.id) await queueEventEnding(slot);
           }
           return;
         }
@@ -373,6 +376,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
     },
     [
+      queueEventEnding,
       queueEventMoment,
       queueSlot,
       resolveSlotStillModel,
@@ -484,7 +488,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             place: dayEvent.place,
             move: slot.eventMove,
             nextBeat:
-              endImageFilename && endPose === eventEndPose
+              endImageFilename && endPose === eventEndPose && !lastMoment
                 ? dayEventMomentWords(landOn ?? {})
                 : undefined,
             speaker: manLead ? 'He' : 'She',
@@ -546,7 +550,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               ? dayEventClipPrompt({
                   place: dayEvent.place,
                   move: slot.eventMove,
-                  nextBeat: dayEventMomentWords(landOn ?? {}),
+                  nextBeat: lastMoment ? undefined : dayEventMomentWords(landOn ?? {}),
                   speaker: manLead ? 'He' : 'She',
                   line: spokenLine,
                 })

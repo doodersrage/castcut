@@ -120,7 +120,7 @@ const ADULT_RE =
  * has to swing the camera. Moves stay on the spot.
  */
 const RELOCATE_RE =
-  /\b(?:walks?|walking|strolls?|strolling|wanders?|paces|heads? (?:to|over|back|toward|towards)|goes (?:to|over|back)|moves (?:to|over|across|toward|towards)|crosses|steps (?:over|to|toward|towards|into|out|back|away))\b/i;
+  /\b(?:walks?|walking|strolls?|strolling|wanders?|paces|heads (?:to|over|back|toward|towards)|goes (?:to|over|back)|moves (?:to|over|across|toward|towards)|crosses|steps (?:over|to|toward|towards|into|out|back|away))\b/i;
 
 /**
  * Lying down. The moment edit can't show it from the same camera: on the user's beach event
@@ -147,7 +147,7 @@ function postureOf(beat: string): 'standing' | 'sitting' | null {
  * user's runs) — so she holds what she uses from first to last and never hands it on.
  */
 const HANDOFF_RE =
-  /\b(?:picks? up|picking up|puts?\b[^,;.]{0,25}\bdown|putting\b[^,;.]{0,25}\bdown|sets?\b[^,;.]{0,25}\bdown|setting\b[^,;.]{0,25}\bdown|places?|placing|lays? (?:it|them|the|her)|reach(?:es|ing)? (?:for|over)|grabs?|grabbing|drops?|dropping|hands? (?:it|them|over)|takes? (?:out|from)|picks? out)\b/i;
+  /\b(?:picks? up|picking up|puts?\b[^,;.]{0,25}\bdown|putting\b[^,;.]{0,25}\bdown|sets?\b[^,;.]{0,25}\bdown|setting\b[^,;.]{0,25}\bdown|places?|placing|lays? (?:it|them|the|her)|reach(?:es|ing)? (?:for|over)|grabs?|grabbing|drops?|dropping|(?<!\b(?:both|her|his|two|free|cupped|other|my)\s)hands? (?:it|them|over)|takes? (?:out|from)|picks? out)\b/i;
 
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|dancing|dances)\b/i;
@@ -156,16 +156,22 @@ const STANCE_LEAD_RE =
  * an empty room (an 8B model still wrote "walks out into the alley" as an ending).
  */
 const LEAVES_RE =
-  /\b(?:walks?|walking|heads?|heading|steps?|stepping)\s+(?:out|away|off|outside|for the door|to the door|toward the door|towards the door)\b|\b(?:leaves|leaving|exits?|exiting)\b|\bout of (?:frame|the frame|view|the picture|the room|sight)\b/i;
-/** The last clip when the LLM's ending would leave the picture. */
-const STAY_ENDING = 'smiles and settles where she is';
+  /\b(?:walks?|walking|heads?|heading|steps?|stepping)\s+(?:out|away|off|outside|for the door|to the door|toward the door|towards the door)\b|(?<!\b(?:the|its|their|his|her|green|basil|mint|plant|fallen|dry|dried|tea|lettuce|palm|wet)\s)\b(?:leaves|leaving)\b(?!\s+(?:her\s+|one\s+|a\s+|the\s+)?(?:left\s+|right\s+|free\s+|other\s+)?(?:hands?|fingers?|palms?|thumbs?)\b)|\b(?:exits?|exiting)\b|\bout of (?:frame|the frame|view|the picture|the room|sight)\b/i;
+
+/**
+ * A move that is only her face or breath ("breathes deeply", "closes her eyes", "gazes out to
+ * sea", "pauses"): nothing to animate, and the clip stalls (the beach film's last seconds).
+ * A move that leads with what her hands do and adds a look or smile is fine.
+ */
+const PASSIVE_MOVE_RE =
+  /^(?:\w+ly\s+)?(?:(?:she|then|and)\s+)?(?:breath|smil|clos(?:es|ing)\s+(?:her\s+)?eyes|eyes\b|looks?\b|gaz|glanc|stares?|watch|rests?\b|paus|sighs?|stays?|remains?|still\b(?!\s+(?:pouring|stirring|strumming|writing|knitting|stitching|painting|sipping|reading|turning|brushing|watering|eating|drinking|playing|chopping|scrolling|typing|sketching)\b)|holds?\s+(?:still|the\s+pose|(?:the\s+|her\s+)?\w+\s+(?:still|steady|in place))\b|nods?|blinks?|relax|exhal|inhal|lets?\b|savou?rs?|enjoys?|listens?|thinks?|waits?|tilts?\s+(?:her\s+)?head|turns?\s+(?:her\s+)?(?:head|gaze|eyes|face)|lifts?\s+(?:her\s+)?(?:head|gaze|eyes|chin)|a\s+(?:quiet|soft|slow|deep|gentle|small)\s+(?:sigh|breath|smile))/i;
 
 /**
  * Anyone else at all. Said to be off camera ("looking at the server"), the edit painted the waiter
  * in, and the moment stayed seated instead of standing (live, 2026-10-12) — so beats name nobody.
  */
 const IN_FRAME_COMPANY_RE =
-  /\b(together|both of them|the two of them|couple|arm in arm|hand in hand|hugs?|hugging|kiss(?:es|ing)?|dancing with|crowd|group of|him|waiter|waitress|server|bartender|barista|date|partner|boyfriend|girlfriend|husband|wife|friends?|guests?|someone|stranger|people)\b/i;
+  /\b(cyclists?|joggers?|runners?|skaters?|surfers?|swimmers?|dog walkers?|pedestrians?|passers?-?by|passersby|onlookers?|tourists?|diners?|customers?|neighbou?rs?|children|kids|together|both of them|the two of them|couple|arm in arm|hand in hand|hugs?|hugging|kiss(?:es|ing)?|dancing with|crowd|group of|him|waiter|waitress|server|bartender|barista|date|partner|boyfriend|girlfriend|husband|wife|friends?|guests?|someone|stranger|people)\b/i;
 
 export function buildDayEventMessages(input: { event: string; count: number }): ChatMessage[] {
   const event = input.event.trim().slice(0, DAY_EVENT_MAX_LENGTH);
@@ -180,20 +186,22 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
         'Keep ONE body position for the whole event — if she starts seated she stays seated, if she starts standing she stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). She never stands up, sits down, kneels or lies down during the event.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
         'She holds what she uses from the very first moment to the last: one or two things, listed in "props" with one short fixed description each ("a paperback book", "a glass of red wine"), called by exactly those words in every moment. She never picks anything up, puts anything down, reaches for anything or hands anything over — the moments are what she does with what she holds (turns a page, takes a sip, a brushstroke, a stitch, a bite) and with her face and head.',
+        'Every move, and the ending, is something her hands do with what she holds (turns a page, takes a sip, a brushstroke, a stitch, a stir); her face can join in, but a move is never only a breath, a look, a smile, a nod, a pause or closing her eyes — there must be something to watch. The activity keeps going to the very end: the last moments are still mid-activity (mid-sip, mid-stitch, mid-stroke), never winding down (no resting, letting things rest, setting things aside or settling back).',
+        'Moves and the ending say only what she does with her hands, face and what she holds — never the light, the weather or anything around her moving or changing.',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
-        'She is the only person in the picture: never mention anyone else (no waiter, date, friend or crowd) — she can look across the table, out of the window or at the camera. Fully clothed, everyday and non-sexual.',
-        'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": a small gesture that rounds off the last moment and leaves her as she was — a smile, a glance, a breath — in under 15 words.',
+        'She is the only person in the picture: never mention anyone else (no waiter, date, friend, passers-by or crowd) — she can look across the table, out of the window or at the camera. Fully clothed, everyday and non-sexual.',
+        'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": one last small action with what she holds that rounds off the event and leaves her as she was (one more sip, a final brushstroke, closes the book on her lap), in under 15 words.',
         'Answer with JSON only: {"place":"...","time":"...","props":["..."],"moments":[{"beat":"...","move":"..."}],"ending":"..."}, the first move empty.',
       ].join(' '),
     },
     {
       role: 'user',
-      content: 'Event: morning coffee on the balcony\nMoments: 3',
+      content: 'Event: morning coffee on the balcony\nMoments: 4',
     },
     {
       role: 'assistant',
       content:
-        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","props":["a steaming white mug of coffee"],"moments":[{"beat":"standing at the balcony railing holding a steaming white mug of coffee in both hands, looking out at the view","move":""},{"beat":"standing at the railing, the steaming white mug of coffee raised to her lips, eyes closed","move":"lifts the mug and takes a slow sip"},{"beat":"standing at the railing, the mug of coffee lowered to her chest, smiling at the street below","move":"lowers the mug and smiles down at the street"}],"ending":"breathes in the morning air and smiles"}',
+        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","props":["a steaming white mug of coffee"],"moments":[{"beat":"standing at the balcony railing holding a steaming white mug of coffee in both hands, looking out at the view","move":""},{"beat":"standing at the railing, the steaming white mug of coffee raised to her lips, eyes closed","move":"lifts the mug and takes a slow sip"},{"beat":"standing at the railing, the mug of coffee lowered to her chest, smiling at the street below","move":"lowers the mug and smiles down at the street"},{"beat":"standing at the railing, blowing gently across the steaming white mug of coffee held up in both hands","move":"raises the mug and blows across the hot coffee"}],"ending":"takes one more slow sip and smiles over the mug"}',
     },
     { role: 'user', content: `Event: ${event}\nMoments: ${input.count}` },
   ];
@@ -211,64 +219,117 @@ function cleanLine(value: unknown, max: number): string {
 
 /**
  * The plan in the reply, checked: every moment needs a stance-led beat with no adult word and
- * no second person, and every later one a move. Null when it falls short of `count` — a gap would
- * break the chain, so the player is asked to try again rather than given a partial event.
+ * no second person, every later one a move her hands make, and the ending one too. A plan that
+ * falls short says why in words the LLM is asked to fix (`writeDayEventPlan`) — a gap would break
+ * the chain, so the player never gets a partial event.
  */
-export function parseDayEventPlan(reply: string, count: number): DayEventPlan | null {
+export function checkDayEventPlan(
+  reply: string,
+  count: number
+): { plan: DayEventPlan } | { problem: string } {
+  const fail = (problem: string) => ({ problem });
   const match = reply.match(/\{[\s\S]*\}/);
-  if (!match) return null;
-  let parsed: unknown;
+  let parsed: unknown = null;
   try {
-    parsed = JSON.parse(match[0]);
+    parsed = match ? JSON.parse(match[0]) : null;
   } catch {
-    return null;
+    parsed = null;
   }
-  if (!parsed || typeof parsed !== 'object') return null;
+  if (!parsed || typeof parsed !== 'object') return fail('The answer was not the JSON asked for.');
   const record = parsed as Record<string, unknown>;
   const place = cleanLine(record.place, PLACE_MAX);
   const timeWord = cleanLine(record.time, 20).toLowerCase();
   const time = TIMES.find(t => t.toLowerCase() === timeWord) ?? 'Evening';
-  if (!place || ADULT_RE.test(place) || !Array.isArray(record.moments)) return null;
-  const moments: DayEventMoment[] = [];
-  for (const [index, row] of record.moments.entries()) {
-    if (moments.length >= count) break;
-    if (!row || typeof row !== 'object') return null;
-    const beat = cleanLine((row as Record<string, unknown>).beat, BEAT_MAX);
-    const move = cleanLine((row as Record<string, unknown>).move, MOVE_MAX);
-    // The first moment is made the usual Day way, whose recipe reads her stance from the beat's
-    // first words; later moments are edits and take any wording.
-    if (!beat || (index === 0 && !STANCE_LEAD_RE.test(beat))) return null;
-    if (LYING_RE.test(beat) || LYING_RE.test(move)) return null;
-    if (RELOCATE_RE.test(move)) return null;
-    if (HANDOFF_RE.test(beat) || HANDOFF_RE.test(move)) return null;
-    if (ADULT_RE.test(beat) || ADULT_RE.test(move)) return null;
-    if (IN_FRAME_COMPANY_RE.test(beat) || IN_FRAME_COMPANY_RE.test(move)) return null;
-    if (LEAVES_RE.test(beat) || LEAVES_RE.test(move)) return null;
-    if (index > 0 && !move) return null;
-    moments.push({ beat, move: index > 0 ? move : '' });
-  }
-  // One posture: a plan that mixes standing and sitting moments is not one take.
-  const postures = new Set(moments.map(moment => postureOf(moment.beat)).filter(Boolean));
-  if (postures.size > 1) return null;
-  putDownDroppedProps(moments);
-  // The props the LLM listed go into the first picture as it described them; without a list,
-  // the props read from the beats do.
+  if (!place) return fail('Give the place.');
+  if (ADULT_RE.test(place)) return fail('Keep it fully clothed, everyday and non-sexual.');
+  if (!Array.isArray(record.moments)) return fail(`Write exactly ${count} moments.`);
   const props = Array.isArray(record.props)
     ? record.props
         .map(prop => cleanLine(prop, 60))
         .filter(prop => prop && !ADULT_RE.test(prop) && !IN_FRAME_COMPANY_RE.test(prop))
         .slice(0, 6)
     : [];
-  if (props.length > 2) return null;
-  if (props.length > 0) holdListedProps(moments, props);
-  else setOutLaterProps(moments);
-  const written = cleanLine(record.ending, MOVE_MAX);
-  if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
-  const ending =
-    written && !LEAVES_RE.test(written) && !LYING_RE.test(written) ? written : STAY_ENDING;
-  return moments.length === count
-    ? { place, time, moments, ending, ...(props.length ? { props } : {}) }
-    : null;
+  if (props.length > 2) return fail('List one or two props, not more.');
+  const held = props.length ? props.join(' and ') : 'what she holds';
+  const moments: DayEventMoment[] = [];
+  for (const [index, row] of record.moments.entries()) {
+    if (moments.length >= count) break;
+    const n = index + 1;
+    if (!row || typeof row !== 'object') return fail(`Write exactly ${count} moments.`);
+    const beat = cleanLine((row as Record<string, unknown>).beat, BEAT_MAX);
+    const move = cleanLine((row as Record<string, unknown>).move, MOVE_MAX);
+    // The first moment is made the usual Day way, whose recipe reads her stance from the beat's
+    // first words; later moments are edits and take any wording.
+    if (!beat) return fail(`Moment ${n} needs a beat.`);
+    if (index === 0 && !STANCE_LEAD_RE.test(beat)) {
+      return fail('Moment 1 must start with her body position (sitting, standing, leaning…).');
+    }
+    const both = `${beat} ${move}`;
+    if (LYING_RE.test(both)) {
+      return fail(
+        `Moment ${n} has her lying down; she keeps one body position and never lies down.`
+      );
+    }
+    if (RELOCATE_RE.test(move)) {
+      return fail(`Move ${n} ("${move}") takes her to another spot; she stays on one spot.`);
+    }
+    if (HANDOFF_RE.test(both)) {
+      return fail(
+        `Moment ${n} has her picking up, putting down or reaching for something; she holds ${held} from the first moment to the last and never lets go.`
+      );
+    }
+    if (ADULT_RE.test(both)) return fail('Keep it fully clothed, everyday and non-sexual.');
+    if (IN_FRAME_COMPANY_RE.test(both)) {
+      return fail(
+        `Moment ${n} mentions someone else ("${IN_FRAME_COMPANY_RE.exec(both)?.[0]}"); she is the only person, so say nothing about anyone else — she can look at what she holds, the view or the camera.`
+      );
+    }
+    if (LEAVES_RE.test(both)) return fail(`Moment ${n} has her leaving; she stays in view.`);
+    if (index > 0 && !move) return fail(`Moment ${n} needs a move.`);
+    if (index > 0 && PASSIVE_MOVE_RE.test(move)) {
+      return fail(
+        `Move ${n} ("${move}") is only a look, breath, smile or rest — nothing to watch. Make it something her hands do with ${held}; her face can join in.`
+      );
+    }
+    moments.push({ beat, move: index > 0 ? move : '' });
+  }
+  if (moments.length !== count) return fail(`Write exactly ${count} moments.`);
+  // One posture: a plan that mixes standing and sitting moments is not one take.
+  const postures = new Set(moments.map(moment => postureOf(moment.beat)).filter(Boolean));
+  if (postures.size > 1) {
+    return fail('She changes body position between moments; keep one body position throughout.');
+  }
+  // The props the LLM listed are held first to last; without a list, the props read from the
+  // beats are set out in the first picture and put down when a beat drops them.
+  if (props.length > 0) {
+    holdListedProps(moments, props);
+  } else {
+    putDownDroppedProps(moments);
+    setOutLaterProps(moments);
+  }
+  // The last clip moves into the ending; with none (or only a breath or smile) it stalls.
+  const ending = cleanLine(record.ending, MOVE_MAX);
+  if (!ending) return fail(`Give an ending: one last small action with ${held}.`);
+  if (ADULT_RE.test(ending)) return fail('Keep it fully clothed, everyday and non-sexual.');
+  if (IN_FRAME_COMPANY_RE.test(ending)) {
+    return fail('The ending mentions someone else; she is the only person.');
+  }
+  if (LEAVES_RE.test(ending) || LYING_RE.test(ending)) {
+    return fail(
+      `The ending ("${ending}") has her leave or lie down; she stays as she is, in view.`
+    );
+  }
+  if (PASSIVE_MOVE_RE.test(ending)) {
+    return fail(
+      `The ending ("${ending}") is only a look, breath, smile or rest. Make it one last small action with ${held}.`
+    );
+  }
+  return { plan: { place, time, moments, ending, ...(props.length ? { props } : {}) } };
+}
+
+export function parseDayEventPlan(reply: string, count: number): DayEventPlan | null {
+  const checked = checkDayEventPlan(reply, count);
+  return 'plan' in checked ? checked.plan : null;
 }
 
 /** Things she can hold. */
@@ -491,6 +552,20 @@ export function dayEventMomentWords(slot: Pick<DaySlot, 'sceneHints'>): string {
  * beat said "hands resting on her knees", then reappeared later (the user's beach event). Named:
  * the book stayed, 2 of 2 (1 of 2 without).
  */
+/**
+ * What she does, without the world around her: "smiling as the sun hits her face through the
+ * trees" made the ending edit paint a park behind the café. A trailing clause about light,
+ * weather or passers-by is cut; her own action is kept.
+ */
+export function dayEventActionWords(words: string): string {
+  return words
+    .replace(
+      /\s*[,;]?\s*(?:as|while|when|with)\s+(?:the|a|an|some)\s+(?:\w+\s+){0,2}?(?:sun|sunlight|light|wind|breeze|rain|waves?|birds?|clouds?|trees?|leaves|people|crowd|cars?|traffic|cyclists?|music|city|street|sea|ocean|sky)\b.*$/i,
+      ''
+    )
+    .trim();
+}
+
 export function dayEventKeepPropsLine(props: ReadonlyArray<string> | undefined): string {
   const names = (props ?? [])
     .map(prop => prop.trim().replace(/^(?:a|an)\s+/i, 'the '))

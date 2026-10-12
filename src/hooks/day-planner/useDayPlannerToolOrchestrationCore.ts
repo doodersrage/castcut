@@ -39,6 +39,7 @@ import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise'
 import {
   applyDayEventPlan,
   clearDayEventSlots,
+  dayEventActionWords,
   dayEventBefore,
   DAY_EVENT_EDIT_CAMERA_LINE,
   dayEventKeepPropsLine,
@@ -46,6 +47,8 @@ import {
   normalizeDayEvent,
   requestDayEventPlan,
 } from '@/lib/day-event';
+import { SAME_SHOT_MAX_DIFF } from '@/lib/image-similarity';
+import { pictureGreyDifference } from '@/lib/image-similarity-client';
 import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day-end-pose';
 import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
 import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
@@ -183,6 +186,7 @@ import {
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { dayThemeOf } from '@/lib/day-themes';
 import { normalizeDayWeather } from '@/lib/day-weather';
 import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day-clothed-lead';
@@ -1112,6 +1116,77 @@ export function useDayPlannerToolOrchestrationCore() {
       return id || null;
     },
     [actions, character, shared, slots, toolSettings.dayEvent, updateToolSettings]
+  );
+
+  /**
+   * One event, last moment: its ending as an end picture — a same-camera edit of the last still,
+   * kept as that card's End pose. Ending the last clip on its own still held the framing but
+   * froze her for its last seconds (the beach film, 0.03 motion/s); moving into the ending keeps
+   * her moving with the camera held.
+   */
+  const queueEventEnding = useCallback(
+    async (slot: DaySlot): Promise<boolean> => {
+      const words = dayEventActionWords(slot.eventMove?.trim().replace(/[.\s]+$/, '') ?? '');
+      const still = stillsRef.current.find(entry => entry.slotId === slot.id);
+      const entry = still?.promptId
+        ? loadComfyGallery().find(galleryEntry => galleryEntry.promptId === still.promptId)
+        : undefined;
+      const imageUrl =
+        (still?.status === 'completed' ? still.imageUrl?.trim() : '') ||
+        (entry?.status === 'completed' ? galleryEntryPrimaryViewUrl(entry)?.trim() : '') ||
+        '';
+      if (!words || !imageUrl) return false;
+      const size = await probeImageUrlDimensions(imageUrl).catch(() => null);
+      const promptId = await actions.sendComfyUi(
+        [
+          buildDayEndPoseEditPrompt(words, dayPartnerNoun(character ?? {})),
+          DAY_EVENT_EDIT_CAMERA_LINE,
+          dayEventKeepPropsLine(normalizeDayEvent(toolSettings.dayEvent)?.props),
+        ]
+          .filter(Boolean)
+          .join(' '),
+        undefined,
+        undefined,
+        {
+          inputImageUrl: imageUrl,
+          identityLock: false,
+          queueModel: resolveCastPlatePrepareModel(shared.model),
+          queueTool: 'fitting',
+          turboEditStrength: 'balanced',
+          preserveInputAspect: true,
+          ...(size ? { castPlateReference: true, figurePixelSize: size } : {}),
+          explicitNegative: DAY_END_POSE_EDIT_NEGATIVE,
+          queueHints: '',
+          parentGalleryEntryId: entry?.id,
+          characterId: shared.activeCharacterId,
+          lookId: slot.lookId ?? shared.activeLookId ?? character?.activeLookId,
+          sourceImageUrl: imageUrl,
+        }
+      );
+      const id = typeof promptId === 'string' ? promptId.trim() : '';
+      if (!id) return false;
+      const [done] = await waitForGalleryPromptIds([id], { timeoutMs: 20 * 60_000, pollMs: 3_000 });
+      const endUrl = done?.status === 'completed' ? galleryEntryPrimaryViewUrl(done)?.trim() : '';
+      if (!endUrl) return false;
+      // An ending that rebuilt the place is not kept: the last clip ends on its own still.
+      const drift = await pictureGreyDifference(imageUrl, endUrl);
+      if (drift !== null && drift > SAME_SHOT_MAX_DIFF) return false;
+      const current = stillsRef.current.find(entry => entry.slotId === slot.id);
+      const nextStills = upsertDaySlotStill(stillsRef.current, {
+        ...(current ?? { slotId: slot.id }),
+        slotId: slot.id,
+        endPose: {
+          imageUrl: endUrl,
+          source: 'edit',
+          poseWords: words,
+          ...(current?.promptId ? { forTake: current.promptId } : {}),
+        },
+      });
+      stillsRef.current = nextStills;
+      updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      return true;
+    },
+    [actions, character, shared, toolSettings.dayEvent, updateToolSettings]
   );
 
   const queueSlot = useCallback(
@@ -3047,6 +3122,7 @@ export function useDayPlannerToolOrchestrationCore() {
     wardrobeLabelFor,
     queueSlot,
     queueEventMoment,
+    queueEventEnding,
     resolveSlotStillModel,
     leanChrome,
   };

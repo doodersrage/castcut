@@ -1,6 +1,11 @@
 'use client';
 
-import { greyValues, looksLikeSamePicture, SIMILARITY_THUMB } from './image-similarity';
+import {
+  greyValues,
+  looksLikeSamePicture,
+  meanGreyDifference,
+  SIMILARITY_THUMB,
+} from './image-similarity';
 
 async function greyThumbnail(url: string): Promise<number[] | null> {
   try {
@@ -25,6 +30,12 @@ async function greyThumbnail(url: string): Promise<number[] | null> {
   } catch {
     return null;
   }
+}
+
+/** Mean grey difference of the two pictures' thumbnails (0–255); null when either could not be read. */
+export async function pictureGreyDifference(a: string, b: string): Promise<number | null> {
+  const [first, second] = await Promise.all([greyThumbnail(a), greyThumbnail(b)]);
+  return first && second ? meanGreyDifference(first, second) : null;
 }
 
 /** True when the two pictures are the same picture; null when either could not be read. */

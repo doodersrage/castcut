@@ -29,6 +29,14 @@ export function meanGreyDifference(a: readonly number[], b: readonly number[]): 
   return total / a.length;
 }
 
+/**
+ * Mean grey difference (24 px thumbnails) above which an edit of a picture is no longer the same
+ * shot. Same-camera One event edits differ by 1–13 (a hand, a sip, a glance); the ones that
+ * rebuilt the place — trees behind the café, a walk to the water's edge, a passing cyclist painted
+ * in — by 23–72 (167 edits, 2026-10-12).
+ */
+export const SAME_SHOT_MAX_DIFF = 20;
+
 export function looksLikeSamePicture(a: readonly number[], b: readonly number[]): boolean {
   const difference = meanGreyDifference(a, b);
   return difference !== null && difference < SAME_PICTURE_MAX_DIFF;
