@@ -97,6 +97,8 @@ export type DayEventPlan = {
   moments: DayEventMoment[];
   /** What she does in the last moment's clip (it has no next moment to move into). */
   ending: string;
+  /** Everything she touches, as the LLM described it once — all in the first picture. */
+  props?: string[];
 };
 
 const ADULT_RE =
@@ -159,11 +161,11 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
         'Write each moment as ONE short line (under 25 words) that STARTS with her body position (sitting, standing, walking, leaning…), then what her hands hold and where she looks.',
         'Keep ONE body position for the whole event — if she starts seated she stays seated, if she starts standing she stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). She never stands up, sits down, kneels or lies down during the event.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
-        'Keep her props from moment to moment; anything new she picks up is already there in the place (on the table, on the counter).',
+        'List every object she holds or touches during the event in "props", each with one short fixed description ("a glass of red wine", "a small paperback book") — all of them are within her reach from the very first moment, and every moment calls each one by exactly those words. Nothing appears that is not in props.',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
         'She is the only person in the picture: never mention anyone else (no waiter, date, friend or crowd) — she can look across the table, out of the window or at the camera. Fully clothed, everyday and non-sexual.',
         'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": a small gesture that rounds off the last moment and leaves her as she was — a smile, a glance, a breath — in under 15 words.',
-        'Answer with JSON only: {"place":"...","time":"...","moments":[{"beat":"...","move":"..."}],"ending":"..."}, the first move empty.',
+        'Answer with JSON only: {"place":"...","time":"...","props":["..."],"moments":[{"beat":"...","move":"..."}],"ending":"..."}, the first move empty.',
       ].join(' '),
     },
     {
@@ -173,7 +175,7 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
     {
       role: 'assistant',
       content:
-        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","moments":[{"beat":"standing at the balcony door holding a steaming mug in both hands, looking out at the view","move":""},{"beat":"leaning on the railing with both forearms, the mug in one hand, smiling at the street below","move":"walks to the railing and leans on it with both forearms"},{"beat":"sitting on the small chair by the railing, the mug raised to her lips, eyes closed","move":"sits down on the chair beside her and lifts the mug to take a sip"}],"ending":"lowers the mug, opens her eyes and smiles at the morning"}',
+        '{"place":"small sunny balcony with potted plants and a railing","time":"Morning","props":["a steaming white mug of coffee","a folded newspaper"],"moments":[{"beat":"standing at the balcony railing holding a steaming white mug of coffee in both hands, looking out at the view","move":""},{"beat":"standing at the railing, the steaming white mug of coffee raised to her lips, eyes closed","move":"lifts the mug and takes a slow sip"},{"beat":"standing at the railing, the mug in one hand and the folded newspaper in the other, glancing down at it","move":"lowers the mug and picks up the folded newspaper from the railing"}],"ending":"looks up from the newspaper and smiles at the morning"}',
     },
     { role: 'user', content: `Event: ${event}\nMoments: ${input.count}` },
   ];
@@ -230,12 +232,23 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
   const postures = new Set(moments.map(moment => postureOf(moment.beat)).filter(Boolean));
   if (postures.size > 1) return null;
   putDownDroppedProps(moments);
-  setOutLaterProps(moments);
+  // The props the LLM listed go into the first picture as it described them; without a list,
+  // the props read from the beats do.
+  const props = Array.isArray(record.props)
+    ? record.props
+        .map(prop => cleanLine(prop, 60))
+        .filter(prop => prop && !ADULT_RE.test(prop) && !IN_FRAME_COMPANY_RE.test(prop))
+        .slice(0, 6)
+    : [];
+  if (props.length > 0) setOutListedProps(moments, props);
+  else setOutLaterProps(moments);
   const written = cleanLine(record.ending, MOVE_MAX);
   if (ADULT_RE.test(written) || IN_FRAME_COMPANY_RE.test(written)) return null;
   const ending =
     written && !LEAVES_RE.test(written) && !LYING_RE.test(written) ? written : STAY_ENDING;
-  return moments.length === count ? { place, time, moments, ending } : null;
+  return moments.length === count
+    ? { place, time, moments, ending, ...(props.length ? { props } : {}) }
+    : null;
 }
 
 /** Things she can hold. */
@@ -311,6 +324,32 @@ function fullestPropPhrase(moments: ReadonlyArray<DayEventMoment>, prop: string)
     }
   }
   return best;
+}
+
+/** "a glass of red wine" → "glass", "a kettle on a burner" → "kettle": the noun the beats use. */
+function propHead(prop: string): string {
+  const before = prop
+    .toLowerCase()
+    .split(/\s+(?:of|on|in|with|from|for)\s+/)[0]!
+    .trim();
+  return (before.split(/\s+/).at(-1) ?? before).replace(/(?:es|s)$/, '');
+}
+
+/**
+ * The listed props the first moment does not already show go into it, in front of her, as the
+ * LLM described them — whatever the event, nothing she touches later is new to the picture.
+ */
+function setOutListedProps(moments: DayEventMoment[], props: ReadonlyArray<string>): void {
+  const first = moments[0];
+  if (!first) return;
+  const beat = first.beat.toLowerCase();
+  const missing = props
+    .filter(prop => !beat.includes(propHead(prop)))
+    .map(prop => prop.replace(/^(?:the)\s+/i, 'a '));
+  if (missing.length === 0) return;
+  const list =
+    missing.length > 1 ? `${missing.slice(0, -1).join(', ')} and ${missing.at(-1)}` : missing[0];
+  moments[0] = { ...first, beat: `${first.beat}, with ${list} within reach in front of her` };
 }
 
 /**

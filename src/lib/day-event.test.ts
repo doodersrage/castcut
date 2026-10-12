@@ -169,6 +169,45 @@ describe('one event — the Day', () => {
     );
   });
 
+  it('the props the LLM lists are all in the first picture, as it described them', () => {
+    const plan = parseDayEventPlan(
+      reply(
+        [
+          { beat: 'standing at the easel holding a thin paintbrush, looking at the canvas', move: '' },
+          { beat: 'standing at the easel, dabbing the brush on the palette', move: 'dips the brush in paint' },
+          { beat: 'standing at the easel, sipping from the mug of tea', move: 'lifts the mug of tea' },
+          { beat: 'standing at the easel, smiling at the painting', move: 'tilts her head at the painting' },
+        ],
+        { props: ['a thin paintbrush', 'a wooden palette with dabs of paint', 'a chipped blue mug of tea'] }
+      ),
+      4
+    );
+    assert.equal(
+      plan?.moments[0]!.beat,
+      'standing at the easel holding a thin paintbrush, looking at the canvas, with a wooden palette with dabs of paint and a chipped blue mug of tea within reach in front of her'
+    );
+    assert.deepEqual(plan?.props?.length, 3);
+  });
+
+  it('a listed prop the first moment already shows is not set out twice', () => {
+    const plan = parseDayEventPlan(
+      reply(
+        [
+          { beat: 'standing at the counter looking down at the kettle', move: '' },
+          { beat: 'standing at the counter holding the ceramic mug', move: 'picks up the mug' },
+          { beat: 'standing at the counter pouring from the kettle', move: 'lifts the kettle' },
+          { beat: 'standing at the counter, smiling', move: 'smiles' },
+        ],
+        { props: ['a kettle on a burner', 'a ceramic mug'] }
+      ),
+      4
+    );
+    assert.equal(
+      plan?.moments[0]!.beat,
+      'standing at the counter looking down at the kettle, with a ceramic mug within reach in front of her'
+    );
+  });
+
   it('a wineglass and a glass of red wine are one glass, set out in front of her', () => {
     const plan = parseDayEventPlan(
       reply([
