@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeDayEvent } from '@/lib/day-event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
@@ -49,6 +50,7 @@ export function useDayBestOfTwo(
   const { autoReviewStills, bestOfTwoHardPoses, busy, mounted, queueBlockReason, queueSlot } = ctx;
   const { poseGuideExpectRef, slots, stills, stillsRef, updateToolSettings } = ctx;
   const { leadNoun, shared } = ctx;
+  const dayEventActive = Boolean(normalizeDayEvent(ctx.toolSettings.dayEvent));
   const characterId = ctx.shared.activeCharacterId;
   const active = bestOfTwoHardPoses && !autoReviewStills;
 
@@ -252,6 +254,8 @@ export function useDayBestOfTwo(
           return;
         }
         if (decision.action !== 'queue-second') return;
+        // One event: a second take would change a moment the later ones were made from.
+        if (dayEventActive) return;
         const shown = dayStillShownImage(current);
         setStatus(
           `${target.label}: second take for the pose (first ${Math.round(decision.firstScore * 100)}%).`
@@ -269,6 +273,7 @@ export function useDayBestOfTwo(
       }
     })();
   }, [
+    dayEventActive,
     active,
     autoReviewStills,
     bestOfTwoHardPoses,

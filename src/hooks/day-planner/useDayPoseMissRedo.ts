@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeDayEvent } from '@/lib/day-event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
@@ -66,6 +67,7 @@ export function useDayPoseMissRedo(
   const { bestOfTwoHardPoses } = ctx;
   const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
   const { leadNoun, shared } = ctx;
+  const dayEventActive = Boolean(normalizeDayEvent(ctx.toolSettings.dayEvent));
   const active = redoPoseMisses && !autoReviewStills;
 
   const [ledger, setLedger] = useState<PoseRedoLedger>({});
@@ -193,6 +195,14 @@ export function useDayPoseMissRedo(
 
     /** Queue the redo the decision asked for, with its nudge. */
     const redoFor = async (reason: 'pose' | 'realism', nudge: string, message: string) => {
+      // One event: the moments after this one were made from it — a redo here (moment 1, mid
+      // Animate) left clip 1 no longer matching moment 2 (2026-10-12). Say so; the player redoes it.
+      if (dayEventActive) {
+        setStatus(
+          `${target.label}: ${reason === 'pose' ? 'the pose missed' : 'it looked computer-made'} — on an event Day, redo it by hand (and the moments after it).`
+        );
+        return;
+      }
       if (nudge) rerollNudgeRef.current[target.id] = nudge;
       ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take, reason } };
       setLedger(ledgerRef.current);
@@ -360,6 +370,7 @@ export function useDayPoseMissRedo(
       }
     })();
   }, [
+    dayEventActive,
     active,
     autoReviewStills,
     bestOfTwoHardPoses,
