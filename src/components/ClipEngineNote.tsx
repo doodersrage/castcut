@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
-import { isLtx25Model } from '@/lib/ltx25-renderer';
+import { dayClipVideoModel, isLtx25Model } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
@@ -28,11 +28,42 @@ function pickedVideoModel(): string {
  */
 export default function ClipEngineNote({
   twoPersonAdultPossible,
+  day = false,
 }: {
   /** The day / story can hold two-person adult stills (their clips render on WAN). */
   twoPersonAdultPossible: boolean;
+  /** Day: its clips are LTX-2.5 unless the player picks WAN here (Video `dayClips`). */
+  day?: boolean;
 }) {
-  const model = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
+  const picked = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
+  const [dayClips, setDayClips] = useState<'ltx' | 'wan'>(() =>
+    loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).dayClips === 'wan' ? 'wan' : 'ltx'
+  );
+  const model = day && picked ? dayClipVideoModel(dayClips, picked) : picked;
+  const dayChoice = day ? (
+    <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
+      Day clips on
+      <select
+        className="ui-input !w-auto !py-0.5"
+        value={dayClips}
+        data-testid="clip-engine-day"
+        onChange={event => {
+          const next = event.target.value === 'wan' ? 'wan' : 'ltx';
+          setDayClips(next);
+          saveToolSettings('video', {
+            ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+            dayClips: next,
+          });
+        }}
+      >
+        <option value="ltx">LTX-2.5 (default)</option>
+        <option value="wan">WAN</option>
+      </select>
+      {dayClips === 'wan' ? (
+        <span>— talking clips still use LTX-2.5 (only it makes sound)</span>
+      ) : null}
+    </label>
+  ) : null;
   const [keepLtx, setKeepLtx] = useState(
     () => loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).ltxClothedSolo !== false
   );
@@ -46,9 +77,17 @@ export default function ClipEngineNote({
   const health = (
     <EngineHealthNote model={model} hideReady className="mt-2" testId="clip-engine-health" />
   );
-  if (!isLtx25Model(model)) return health;
+  if (!isLtx25Model(model)) {
+    return (
+      <>
+        {dayChoice}
+        {health}
+      </>
+    );
+  }
   return (
     <>
+      {dayChoice}
       <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
         {keepLtx
           ? twoPersonAdultPossible && !ltxDuo

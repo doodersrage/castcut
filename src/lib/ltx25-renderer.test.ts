@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   clipEngineForShot,
+  dayClipVideoModel,
   convertVideoWorkflowToLtx25,
   LTX25_FILES,
   LTX25_ID_LORA,
@@ -324,5 +325,19 @@ describe('two-person adult clips on LTX-2.5', () => {
         ?.frame_rate,
       24
     );
+  });
+});
+
+describe('Day clips default to LTX-2.5', () => {
+  it('LTX unless the player chose WAN for Day; two-person adult still goes to WAN', () => {
+    assert.equal(dayClipVideoModel(undefined, 'wan-video'), 'ltx-video-2.5');
+    assert.equal(dayClipVideoModel('ltx', 'wan-video'), 'ltx-video-2.5');
+    assert.equal(dayClipVideoModel('wan', 'wan-video'), 'wan-video');
+    assert.equal(dayClipVideoModel('wan', 'ltx-video-2.5'), 'wan-video');
+    const day = dayClipVideoModel(undefined, 'wan-video');
+    assert.equal(clipEngineForShot(day, { adultDuo: true }), 'wan-video-rapid-aio');
+    assert.equal(clipEngineForShot(day, { adultDuo: false, clothedSolo: true }), 'ltx-video-2.5');
+    // WAN for Day: a talking clip still needs LTX for its sound.
+    assert.equal(clipEngineForShot(dayClipVideoModel('wan', 'wan-video'), { adultDuo: false, speaking: true }), 'ltx-video-2.5');
   });
 });

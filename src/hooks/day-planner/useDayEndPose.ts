@@ -21,7 +21,7 @@ import {
   upsertDaySlotStill,
   type DaySlotId,
 } from '@/lib/day-planner';
-import { clipEngineForShot } from '@/lib/ltx25-renderer';
+import { clipEngineForShot, dayClipVideoModel } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
@@ -42,10 +42,12 @@ export function resolveDayClipEngine(input: {
   const parentEntry = input.stillPromptId
     ? loadComfyGallery().find(entry => entry.promptId === input.stillPromptId)
     : undefined;
-  const picked = resolvePreferredVideoModel({
-    toolModel: loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).model,
-    sharedModel: input.sharedModel,
-  });
+  const videoSettings = loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE);
+  // Day clips: LTX-2.5 unless the player chose WAN for Day (Video `dayClips`).
+  const picked = dayClipVideoModel(
+    videoSettings.dayClips,
+    resolvePreferredVideoModel({ toolModel: videoSettings.model, sharedModel: input.sharedModel })
+  );
   const stillPrompt = parentEntry?.prompt ?? '';
   return clipEngineForShot(picked, {
     adultDuo: isDayAdultMood(input.dayMood) && stillPrompt.includes(RAPID_DUO_RECIPE_MARK),

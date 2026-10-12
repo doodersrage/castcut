@@ -34,7 +34,9 @@ export default function DayIdeaRow({
   onLeaveEvent?: () => void;
   className?: string;
 }) {
-  const [mode, setMode] = useState<IdeaMode>(event ? 'event' : 'day');
+  // Unset until the player picks: follows the Day (an event loads after the first render).
+  const [pickedMode, setMode] = useState<IdeaMode | null>(null);
+  const mode: IdeaMode = pickedMode ?? (event ? 'event' : 'day');
   const [premise, setPremise] = useState('');
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState<string | null>(null);

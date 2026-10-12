@@ -159,6 +159,19 @@ export function clipEngineForShot(
  */
 export const WAN_CLIP_FALLBACK_MODEL = 'wan-video-rapid-aio';
 
+/**
+ * The engine Day's clips start from, before clipEngineForShot's per-shot rules: LTX-2.5 unless the
+ * player chose WAN for Day (Video `dayClips`). Day used to follow Video → Model, which is WAN by
+ * default; on LTX an event's joins vanished (max frame change 5.4 vs 17–22 on WAN, 2026-10-12).
+ */
+export function dayClipVideoModel(
+  dayClips: 'ltx' | 'wan' | undefined,
+  pickedVideoModel: string
+): string {
+  if (dayClips !== 'wan') return LTX25_MODEL_ID;
+  return isLtx25Model(pickedVideoModel) ? 'wan-video' : pickedVideoModel;
+}
+
 /** LTX lengths are 8k+1 frames; keep the WAN clip's duration at 24 fps. */
 export function ltx25FrameCount(frames: number, fps: number): number {
   const seconds = frames > 0 && fps > 0 ? frames / fps : 4;

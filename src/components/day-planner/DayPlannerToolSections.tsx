@@ -1126,6 +1126,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           ) : null}
           {completedShotCount > 0 && !firstCutCelebrate ? (
             <ClipEngineNote
+              day
               twoPersonAdultPossible={
                 isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
               }
