@@ -413,21 +413,25 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
         // has the node for the engine; otherwise the plain clip, said once.
         // One event: the clip ends on the next moment's still (day-event.ts) — the joins line up
-        // in Cut. An end pose picked by hand still wins. A moment with a line says it on the way
-        // (the last moment, with nothing to land on, talks in place).
+        // in Cut. An end pose picked by hand still wins. A moment with a line says it on the way.
         const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
         const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
         const nextMoment = momentIndex >= 0 ? slots[momentIndex + 1] : undefined;
         const nextMomentStill = nextMoment
           ? stillsRef.current.find(entry => entry.slotId === nextMoment.id)
           : undefined;
+        // The last moment ends on its own still: with nothing to land on, its camera pushed in to
+        // her face; its ending is a small gesture that leaves her as she was.
+        const lastMoment = momentIndex >= 0 && !nextMoment;
+        const landOn = lastMoment ? slot : nextMoment;
+        const landOnStill = lastMoment ? still : nextMomentStill;
         const eventEndPose =
-          nextMoment && nextMomentStill?.status === 'completed' && nextMomentStill.imageUrl?.trim()
+          landOn && landOnStill?.status === 'completed' && landOnStill.imageUrl?.trim()
             ? {
-                imageUrl: nextMomentStill.imageUrl.trim(),
+                imageUrl: landOnStill.imageUrl.trim(),
                 source: 'still' as const,
-                fromSlotId: nextMoment.id,
-                poseWords: dayEventMomentWords(nextMoment),
+                fromSlotId: landOn.id,
+                poseWords: dayEventMomentWords(landOn),
               }
             : undefined;
         const endPose = activeDayEndPose(still) ?? eventEndPose;
@@ -466,7 +470,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             move: slot.eventMove,
             nextBeat:
               endImageFilename && endPose === eventEndPose
-                ? dayEventMomentWords(nextMoment ?? {})
+                ? dayEventMomentWords(landOn ?? {})
                 : undefined,
             speaker: manLead ? 'He' : 'She',
           });
@@ -527,7 +531,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               ? dayEventClipPrompt({
                   place: dayEvent.place,
                   move: slot.eventMove,
-                  nextBeat: dayEventMomentWords(nextMoment ?? {}),
+                  nextBeat: dayEventMomentWords(landOn ?? {}),
                   speaker: manLead ? 'He' : 'She',
                   line: spokenLine,
                 })

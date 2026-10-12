@@ -36,7 +36,7 @@ describe('one event — the plan', () => {
     const system = messages[0];
     const user = messages.at(-1);
     assert.match(system!.content as string, /ONE event, as consecutive moments filmed from one fixed camera in one place/);
-    assert.match(system!.content as string, /Never kneel or crouch unless the action is down on the floor/);
+    assert.match(system!.content as string, /She never stands up, sits down, kneels or lies down during the event/);
     assert.equal(user!.content, 'Event: dinner date at a trattoria\nMoments: 4');
   });
 
@@ -83,6 +83,14 @@ describe('one event — the plan', () => {
   it('she stays on her spot (a move to a new spot makes the edit recompose the picture)', () => {
     const walk = [...four.slice(0, 3), { beat: 'standing by the window with her glass', move: 'walks over to the window' }];
     assert.equal(parseDayEventPlan(reply(walk), 4), null);
+  });
+
+  it('one posture: standing and sitting moments in one plan are rejected', () => {
+    const mixed = [
+      { beat: 'standing at the water holding a towel', move: '' },
+      ...four.slice(1),
+    ];
+    assert.equal(parseDayEventPlan(reply(mixed), 4), null);
   });
 
   it('a short or broken plan is no plan (a gap would break the chain)', () => {

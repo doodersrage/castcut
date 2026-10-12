@@ -117,6 +117,18 @@ const RELOCATE_RE =
  */
 const LYING_RE =
   /\b(?:lying|lies|lie down|lies down|lays? (?:down|back)|laying|reclin\w*|sprawl\w*|on (?:her|his) (?:back|stomach|front|side)|rolls? (?:onto|over)|flat on)\b/i;
+/**
+ * Standing vs sitting. One posture for the whole event: standing → sitting on the towel was too
+ * big a move for one clip, and LTX dissolved into the next picture (the user's beach run).
+ */
+const STANDING_RE = /\b(?:standing|stands|stand)\b/i;
+const SITTING_RE = /\b(?:sitting|sits|seated|cross-legged|perched)\b/i;
+function postureOf(beat: string): 'standing' | 'sitting' | null {
+  const standing = STANDING_RE.test(beat);
+  const sitting = SITTING_RE.test(beat);
+  return standing === sitting ? null : standing ? 'standing' : 'sitting';
+}
+
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|dancing|dances)\b/i;
 /**
@@ -145,12 +157,12 @@ export function buildDayEventMessages(input: { event: string; count: number }): 
         'Each moment follows straight on from the one before, a few seconds later: a small, clear change of pose or action, never a jump in time or place.',
         'She stays on ONE spot the whole time (at the same table, on the same towel, at the same counter): the moments change her pose and what she does there, never where she is — the camera cannot follow her around.',
         'Write each moment as ONE short line (under 25 words) that STARTS with her body position (sitting, standing, walking, leaning…), then what her hands hold and where she looks.',
-        'Keep ONE body position for the whole event — seated at a table stays seated, standing at a counter stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). At most one change of position, only standing up or sitting down right where she is — never from sitting onto her knees or her hands. Never kneel or crouch unless the action is down on the floor, and she never lies down.',
+        'Keep ONE body position for the whole event — if she starts seated she stays seated, if she starts standing she stays standing; the moments are what her hands, head and face do, or one small shift (leaning in, sitting back). She never stands up, sits down, kneels or lies down during the event.',
         'Each moment after the first also gets a "move": what she does to get there from the moment before, in under 20 words.',
         'Keep her props from moment to moment; anything new she picks up is already there in the place (on the table, on the counter).',
         'She stays in view the whole time: no moment and no ending leaves the picture.',
         'She is the only person in the picture: never mention anyone else (no waiter, date, friend or crowd) — she can look across the table, out of the window or at the camera. Fully clothed, everyday and non-sexual.',
-        'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": a small action that rounds off the last moment, in under 20 words.',
+        'Give the place (under 12 words), the time (Morning, Afternoon, Evening or Night) and an "ending": a small gesture that rounds off the last moment and leaves her as she was — a smile, a glance, a breath — in under 15 words.',
         'Answer with JSON only: {"place":"...","time":"...","moments":[{"beat":"...","move":"..."}],"ending":"..."}, the first move empty.',
       ].join(' '),
     },
@@ -214,6 +226,9 @@ export function parseDayEventPlan(reply: string, count: number): DayEventPlan | 
     if (index > 0 && !move) return null;
     moments.push({ beat, move: index > 0 ? move : '' });
   }
+  // One posture: a plan that mixes standing and sitting moments is not one take.
+  const postures = new Set(moments.map(moment => postureOf(moment.beat)).filter(Boolean));
+  if (postures.size > 1) return null;
   putDownDroppedProps(moments);
   setOutLaterProps(moments);
   const written = cleanLine(record.ending, MOVE_MAX);
