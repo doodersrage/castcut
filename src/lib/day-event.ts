@@ -287,6 +287,24 @@ function putDownDroppedProps(moments: DayEventMoment[]): void {
   }
 }
 
+/** The longest "small plastic cup" the plan writes for a prop (its own word when it has none). */
+function fullestPropPhrase(moments: ReadonlyArray<DayEventMoment>, prop: string): string {
+  const pattern = new RegExp(
+    `\\b(?:a|an|the|her|his)\\s+((?:[\\w-]+\\s+){0,3}${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`,
+    'gi'
+  );
+  let best = prop;
+  for (const moment of moments) {
+    for (const match of moment.beat.matchAll(pattern)) {
+      const phrase = match[1]!.toLowerCase().replace(/\s+/g, ' ').trim();
+      // Not "holding a towel and a cup" — words that run on from something else.
+      if (/\b(?:and|with|of|or|holding|holds)\b/.test(phrase)) continue;
+      if (phrase.length > best.length) best = phrase;
+    }
+  }
+  return best;
+}
+
 /**
  * Everything she picks up later is already beside her in the first moment. Later moments are
  * edits of the first, so a prop the first picture lacks appeared in her hand from nowhere (the
@@ -306,9 +324,12 @@ function setOutLaterProps(moments: DayEventMoment[]): void {
     }
   }
   if (later.length === 0) return;
+  // The fullest description the plan gives ("a small plastic cup", not "a cup"): a vague first
+  // picture let each edit draw its own cup, coffee one moment and something else the next.
+  const described = later.map(prop => fullestPropPhrase(moments, prop));
   // "glasses" / "flowers" stand alone; "glass" is one.
-  const things = later.map(prop =>
-    /[^s]s$/.test(prop) || prop === 'ice cream' ? prop : `a ${prop}`
+  const things = described.map(phrase =>
+    /[^s]s$/.test(phrase) || /ice cream$/.test(phrase) ? phrase : `a ${phrase}`
   );
   const list =
     things.length > 1 ? `${things.slice(0, -1).join(', ')} and ${things.at(-1)}` : things[0];
@@ -381,7 +402,7 @@ export function dayEventMomentWords(slot: Pick<DaySlot, 'sceneHints'>): string {
  * move in or overhead for a big pose change, and the clip then swung the camera (2026-10-12).
  */
 export const DAY_EVENT_EDIT_CAMERA_LINE =
-  'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before.';
+  'The camera does not move: same height, distance and angle as Image 1, the whole room and her whole body framed as before. Anything she holds or has beside her is the same object as in Image 1.';
 
 /**
  * A moment's clip (no spoken line): it moves into the next moment's still, which it ends on. The

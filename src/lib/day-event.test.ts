@@ -165,7 +165,23 @@ describe('one event — the Day', () => {
     );
     assert.equal(
       plan?.moments[0]!.beat,
-      'sitting on the towel, hands on her knees, with a seashell and a bottle within reach beside her'
+      'sitting on the towel, hands on her knees, with a seashell and a water bottle within reach beside her'
+    );
+  });
+
+  it('a prop set out early takes its fullest description from the plan', () => {
+    const plan = parseDayEventPlan(
+      reply([
+        { beat: 'sitting on the towel, hands on her knees', move: '' },
+        { beat: 'sitting on the towel holding a small plastic cup', move: 'picks up the cup' },
+        { beat: 'sitting on the towel holding the cup to her lips', move: 'sips' },
+        { beat: 'sitting on the towel holding the cup, smiling', move: 'smiles' },
+      ]),
+      4
+    );
+    assert.equal(
+      plan?.moments[0]!.beat,
+      'sitting on the towel, hands on her knees, with a small plastic cup within reach beside her'
     );
   });
 
