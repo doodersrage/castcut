@@ -1560,7 +1560,7 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
   ],
   evening: [
     'lying on the couch with feet up on the armrest, takeout container on the chest',
-    'sitting at a dinner table twirling pasta, one elbow on the table',
+    'sitting at a dinner table twirling spaghetti on her fork, one elbow on the table',
     'perched on a bar stool with a cocktail, legs crossed at the ankle',
     'crouching to pick a record from a crate in a vinyl shop',
     'kneeling on the floor sorting a stack of board games',

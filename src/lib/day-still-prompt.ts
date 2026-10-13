@@ -10,6 +10,7 @@
  */
 
 import { withCastPlace } from './cast-places';
+import { withEatingUtensil } from './eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day-clothed-lead';
 import {
   inDayPromptVoice,
@@ -577,9 +578,10 @@ export function dayStillSceneSlot<
   if (!hints?.trim() || isDayAdultMood(dayPlayedMood(context.dayMood, context.intimateEnabled))) {
     return slot;
   }
-  const fitted = fitBeatToSetting(
-    hints,
-    resolveRoleplaySetting(slot.location, context.lockedLocation)
+  // Furniture fitted to the place, and a fork / chopsticks / spoon for food she eats (pasta
+  // twirled with no fork named was eaten by hand).
+  const fitted = withEatingUtensil(
+    fitBeatToSetting(hints, resolveRoleplaySetting(slot.location, context.lockedLocation))
   );
   if (fitted === hints) return slot;
   return {

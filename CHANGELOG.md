@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **She eats with a fork.** "Sitting at a dinner table twirling pasta" named no fork, and a Day still fed her spaghetti by hand. An eating beat that names no utensil now gets one for that still — a fork for pasta, salad, cake or steak, chopsticks for noodles, ramen or sushi, a spoon for soup or cereal; finger food (pizza, a sandwich, a croissant) and cereal straight from the box are left alone. The built-in dinner beat now says *twirling spaghetti on her fork*.
 - **Switching the idea row from *One event* to *Whole day* leaves the event.** It does what *Suggest day* does — fresh whole-day scenes on every card, the event gone — instead of only changing the tab while the event ran on underneath. Checked in the app with a reload.
 
 ## [v2.7.2] - 2026-10-13
