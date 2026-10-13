@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { choosePhoneView } from '@/lib/phone-view';
 import BrandMark from '@/components/BrandMark';
 import ActiveJobsChip from '@/components/ActiveJobsChip';
 import { AppNavSidebarContent } from '@/components/app-nav/AppNavSidebarContent';
@@ -40,7 +41,7 @@ export default function AppNav() {
         </Link>
         <div className="flex items-center gap-2">
           <ActiveJobsChip />
-          <Link href="/m" className="ui-btn-secondary px-3 py-2">
+          <Link href="/m" className="ui-btn-secondary px-3 py-2" onClick={() => choosePhoneView()}>
             Phone
           </Link>
           <button

@@ -29,6 +29,7 @@ import {
 } from '@/lib/play-campaign';
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { choosePhoneView } from '@/lib/phone-view';
 
 type KioskTab = {
   href: string;
@@ -196,6 +197,19 @@ export default function PlayKioskShell() {
                   onClick={() => setMoreOpen(false)}
                 >
                   Profile
+                </Link>
+                {/* The way back after Desk on a phone (lib/phone-view.ts). */}
+                <Link
+                  href="/m/film"
+                  role="menuitem"
+                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] lg:hidden"
+                  data-testid="film-phone-view"
+                  onClick={() => {
+                    choosePhoneView();
+                    setMoreOpen(false);
+                  }}
+                >
+                  Phone view
                 </Link>
                 <div className="px-3 py-2 text-sm">
                   <ReportBugLink className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />

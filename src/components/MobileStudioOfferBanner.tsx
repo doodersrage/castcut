@@ -9,6 +9,7 @@ import {
   shouldOfferMobileStudio,
 } from '@/lib/mobile-studio-offer';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { choosePhoneView } from '@/lib/phone-view';
 
 /** Narrow-viewport offer to switch into Mobile Studio (/m). */
 export default function MobileStudioOfferBanner() {
@@ -59,7 +60,10 @@ export default function MobileStudioOfferBanner() {
         <Link
           href="/m/film"
           className="rounded-lg border border-[var(--accent-border)] bg-[var(--bg-base)]/50 px-2.5 py-1 font-medium transition hover:brightness-110"
-          onClick={() => dismissMobileStudioOffer()}
+          onClick={() => {
+            dismissMobileStudioOffer();
+            choosePhoneView();
+          }}
         >
           Open Film
         </Link>

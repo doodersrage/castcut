@@ -26,6 +26,7 @@ import { followCurrentPlayLoopHref } from '@/lib/play-loop-nav-click';
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache } from '@/lib/settings-cache';
+import { chooseDeskView } from '@/lib/phone-view';
 import { accentForPath } from '@/lib/tool-theme';
 
 function deskBridgeHref(): string {
@@ -107,6 +108,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
             className="ui-btn-secondary shrink-0 px-3 py-2 text-xs"
             title="Optional desk handoff for large screens"
             data-testid="mobile-desk-play"
+            // Remembered, or a phone would be sent straight back to /m.
+            onClick={() => chooseDeskView()}
           >
             Desk
           </Link>

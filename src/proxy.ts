@@ -13,6 +13,7 @@ import { findUserById, listGroups } from '@/lib/auth/store';
 import { checkUserRateLimit } from '@/lib/user-quotas';
 import { logApiUsage } from '@/lib/api-usage-log';
 import { authorizeAppRequest } from '@/lib/auth/access';
+import { phoneViewRedirect, VIEW_COOKIE } from '@/lib/phone-view';
 
 function timingSafeEqualString(left: string, right: string): boolean {
   if (left.length !== right.length) {
@@ -200,6 +201,19 @@ export function proxy(request: NextRequest) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('next', `${path}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // A phone opening a desk page gets the phone app, unless it picked Desk (lib/phone-view.ts).
+  if (!isApiRoute && (request.method === 'GET' || request.method === 'HEAD')) {
+    const phonePath = phoneViewRedirect({
+      pathname: path,
+      search: request.nextUrl.search,
+      userAgent: request.headers.get('user-agent'),
+      viewCookie: request.cookies.get(VIEW_COOKIE)?.value,
+    });
+    if (phonePath) {
+      return NextResponse.redirect(new URL(phonePath, request.url));
     }
   }
 
