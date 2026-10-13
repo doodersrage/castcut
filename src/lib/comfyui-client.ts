@@ -255,11 +255,37 @@ function envComfyUiBaseUrl(): string {
   );
 }
 
+function isLoopbackComfyUrl(raw: string): boolean {
+  try {
+    const host = new URL(raw.includes('://') ? raw : `http://${raw}`).hostname.replace(
+      /^\[|\]$/g,
+      ''
+    );
+    return host === 'localhost' || host === '::1' || /^127\./.test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A browser-side 127.0.0.1 / localhost ComfyUI address is the built-in default (gallery entries,
+ * old settings). When the server has its own non-loopback COMFYUI_API_URL — the Docker case,
+ * where the container's loopback has no ComfyUI — use that instead of the browser's loopback.
+ */
+function dropLoopbackClientUrl<T extends { apiUrl?: string }>(runtime: T): T {
+  const clientUrl = runtime.apiUrl?.trim();
+  const envUrl = process.env.COMFYUI_API_URL?.trim();
+  if (!clientUrl || !envUrl || !isLoopbackComfyUrl(clientUrl) || isLoopbackComfyUrl(envUrl)) {
+    return runtime;
+  }
+  return { ...runtime, apiUrl: undefined };
+}
+
 export function getComfyUiBaseUrlWithRouting(
   runtime?: ComfyUiRuntimeConfig,
   routingSeed?: string
 ): { url: string; routing?: ComfyUiPoolRoutingMeta } {
-  const runtimeWithUser = applyUserComfyUiOverride(runtime ?? {});
+  const runtimeWithUser = dropLoopbackClientUrl(applyUserComfyUiOverride(runtime ?? {}));
   const allowedHosts = getComfyUiAllowedHosts();
   const clientUrl = runtimeWithUser.apiUrl?.trim();
 
