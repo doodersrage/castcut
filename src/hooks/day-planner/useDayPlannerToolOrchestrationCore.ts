@@ -1104,20 +1104,22 @@ export function useDayPlannerToolOrchestrationCore() {
         redoReason: undefined,
       });
       stillsRef.current = nextStills;
+      // From the latest slots: an event's moments are queued one after another in one callback.
+      const slotsBefore = latestSlotsRef.current;
       const slotsAfter =
         id && lastTake?.status === 'completed'
-          ? slots.map(entry => (entry.id === slot.id ? clearDaySlotLine(entry) : entry))
+          ? slotsBefore.map(entry => (entry.id === slot.id ? clearDaySlotLine(entry) : entry))
           : null;
+      const lineCleared = Boolean(slotsAfter?.some((entry, index) => entry !== slotsBefore[index]));
+      if (slotsAfter && lineCleared) latestSlotsRef.current = slotsAfter;
       updateToolSettings({
         ...dayStillsCachePatch(nextStills, shared.activeCharacterId),
-        ...(slotsAfter && slotsAfter.some((entry, index) => entry !== slots[index])
-          ? { slots: slotsAfter }
-          : {}),
+        ...(slotsAfter && lineCleared ? { slots: slotsAfter } : {}),
       });
       if (!id) setError('ComfyUI did not accept the moment edit — is it running?');
       return id || null;
     },
-    [actions, character, shared, slots, toolSettings.dayEvent, updateToolSettings]
+    [actions, character, shared, toolSettings.dayEvent, updateToolSettings]
   );
 
   /**
@@ -1283,15 +1285,22 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // Fill blank Setting/Beat so a single Queue doesn't fall back to a generic time-of-day line.
         // Adult Solo/Duo: also replace stale everyday notebook/bookstore beats left from prior mood.
-        let workingSlots = slots;
-        const moodAligned = ensureDaySlotsMatchMood(slots, {
+        // From the latest slots, not this render's: Queue day runs every slot through one
+        // callback, and writing its `slots` back would undo what the slots before it saved (a
+        // new still's cleared line came back on the card).
+        const saveSlots = (next: DaySlot[]) => {
+          latestSlotsRef.current = next;
+          updateToolSettings({ slots: next });
+        };
+        let workingSlots = latestSlotsRef.current;
+        const moodAligned = ensureDaySlotsMatchMood(workingSlots, {
           dayMood: toolSettings.dayMood,
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
         });
         if (moodAligned.changed) {
           workingSlots = moodAligned.slots;
-          updateToolSettings({ slots: moodAligned.slots });
+          saveSlots(moodAligned.slots);
         }
         let queueTarget = workingSlots.find(entry => entry.id === slot.id) ?? slot;
         const needsScene = !queueTarget.location?.trim() || !queueTarget.sceneHints?.trim();
@@ -1306,7 +1315,7 @@ export function useDayPlannerToolOrchestrationCore() {
           );
           if (diversified.changed) {
             workingSlots = diversified.slots;
-            updateToolSettings({ slots: diversified.slots });
+            saveSlots(diversified.slots);
             queueTarget =
               diversified.slots.find(entry => entry.id === queueTarget.id) ?? queueTarget;
           }
@@ -1341,7 +1350,7 @@ export function useDayPlannerToolOrchestrationCore() {
           const next = redrawn.slots.find(entry => entry.id === queueTarget.id);
           if (next?.sceneHints?.trim()) {
             workingSlots = redrawn.slots;
-            updateToolSettings({ slots: redrawn.slots });
+            saveSlots(redrawn.slots);
             queueTarget = dayStillSceneSlot(next, sceneContext);
           }
         }
@@ -1412,11 +1421,12 @@ export function useDayPlannerToolOrchestrationCore() {
                 ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
                 : entry
             );
-            updateToolSettings({ slots: workingSlots });
-            latestSlotsRef.current = latestSlotsRef.current.map(entry =>
-              entry.id === queueTarget.id
-                ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
-                : entry
+            saveSlots(
+              latestSlotsRef.current.map(entry =>
+                entry.id === queueTarget.id
+                  ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
+                  : entry
+              )
             );
           }
         }
@@ -2661,16 +2671,19 @@ export function useDayPlannerToolOrchestrationCore() {
         stillsRef.current = nextStills;
         // A new picture over a finished one: its line, tone and reply were for the old picture.
         const replacing = Boolean(promptId) && lastTake?.status === 'completed';
+        const slotsBefore = latestSlotsRef.current;
         const slotsAfter = replacing
-          ? workingSlots.map(entry =>
+          ? slotsBefore.map(entry =>
               entry.id === queueTarget.id ? clearDaySlotLine(entry) : entry
             )
           : null;
+        const lineCleared = Boolean(
+          slotsAfter?.some((entry, index) => entry !== slotsBefore[index])
+        );
+        if (slotsAfter && lineCleared) latestSlotsRef.current = slotsAfter;
         updateToolSettings({
           ...dayStillsCachePatch(nextStills, shared.activeCharacterId),
-          ...(slotsAfter && slotsAfter.some((entry, index) => entry !== workingSlots[index])
-            ? { slots: slotsAfter }
-            : {}),
+          ...(slotsAfter && lineCleared ? { slots: slotsAfter } : {}),
           ...(partnerSentFace
             ? {
                 partnerSentFace: {
@@ -3157,6 +3170,7 @@ export function useDayPlannerToolOrchestrationCore() {
     wardrobeKitCount,
     actions,
     updateSlot,
+    latestSlotsRef,
     wardrobeLabelFor,
     queueSlot,
     queueEventMoment,

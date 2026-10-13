@@ -201,6 +201,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     wardrobeKitCount,
     actions,
     updateSlot,
+    latestSlotsRef,
     wardrobeLabelFor,
     queueSlot,
     queueEventMoment,
@@ -308,6 +309,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         });
         const queueSlots = diversified.slots;
         if (moodAligned.changed || diversified.changed) {
+          // queueSlot reads the latest slots before the next render.
+          latestSlotsRef.current = queueSlots;
           updateToolSettings({ slots: queueSlots });
         }
         // One event: each moment is made from the one before, so they run in order and each
@@ -376,6 +379,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
     },
     [
+      latestSlotsRef,
       queueEventEnding,
       queueEventMoment,
       queueSlot,
