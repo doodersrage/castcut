@@ -4,6 +4,8 @@ import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import Link from 'next/link';
 import ComfyUiGalleryPanel from '@/components/ComfyUiGalleryPanel';
 import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
+import PicturesBackupPanel from '@/components/settings/PicturesBackupPanel';
+import GalleryMediaCleanupPanel from '@/components/settings/GalleryMediaCleanupPanel';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import { clearAllLocalPromptData, localDataKeys } from '@/lib/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui-settings';
@@ -255,6 +257,10 @@ export default function SettingsDataTab({
         </label>
       </ToolSection>
 
+      <ToolSection title="Gallery disk space">
+        <GalleryMediaCleanupPanel />
+      </ToolSection>
+
       <ToolSection title="Gallery exact-replay graphs">
         <p className="text-sm text-[var(--text-secondary)]">
           Stored workflow JSON enables Replay exact graph. Older graphs are pruned by age, then by a
@@ -378,6 +384,10 @@ export default function SettingsDataTab({
           <summary className="cursor-pointer">What this clears (storage keys)</summary>
           <p className="mt-1 break-words font-mono">{localDataKeys().join(', ')}</p>
         </details>
+      </ToolSection>
+
+      <ToolSection title="Pictures backup">
+        <PicturesBackupPanel />
       </ToolSection>
     </>
   );

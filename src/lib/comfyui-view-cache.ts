@@ -446,6 +446,42 @@ function cleanupExpiredDiskCache(): void {
   }
 }
 
+function folderBytes(dir: string): number {
+  let bytes = 0;
+  for (const entry of fs.readdirSync(/* turbopackIgnore: true */ dir, { withFileTypes: true })) {
+    const full = path.join(/* turbopackIgnore: true */ dir, entry.name);
+    try {
+      bytes += entry.isDirectory() ? folderBytes(full) : fs.statSync(full).size;
+    } catch {
+      /* vanished */
+    }
+  }
+  return bytes;
+}
+
+/** Size of the thumbnail cache on disk now (a full walk, unlike getCacheSize's snapshot). */
+export function measureViewDiskCache(): number {
+  try {
+    return folderBytes(cacheRoot());
+  } catch {
+    return 0;
+  }
+}
+
+/** Empty the thumbnail cache (memory and disk). Every entry is rebuilt from ComfyUI on demand. */
+export function clearViewDiskCache(): { freedBytes: number } {
+  const freedBytes = measureViewDiskCache();
+  memory.clear();
+  totalMemoryBytes = 0;
+  try {
+    fs.rmSync(/* turbopackIgnore: true */ cacheRoot(), { recursive: true, force: true });
+  } catch {
+    /* nothing there */
+  }
+  lastKnownDiskBytes = 0;
+  return { freedBytes };
+}
+
 export function getCacheSize(): { memory: number; disk: number } {
   return {
     memory: getMemorySize(),

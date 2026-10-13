@@ -28,6 +28,20 @@ function mergeOwnedAndGlobalGallery(
   );
 }
 
+/**
+ * Deleting Gallery entries (delete, Purge, Archive & purge) used to leave their kept copies in
+ * gallery-media forever. Remove them after this write, unless something still links to them.
+ */
+function removeDeletedEntryMediaSoon(userId: string | null | undefined, ids: string[]): void {
+  setImmediate(() => {
+    void import('../gallery-media-cleanup-server')
+      .then(({ removeDeletedGalleryEntryMedia }) => removeDeletedGalleryEntryMedia({ userId, ids }))
+      .catch(() => {
+        // Left for Settings → Data → Clean up old copies.
+      });
+  });
+}
+
 export function readNamespaceStorage<T>(
   namespace: StorageNamespace,
   userId?: string | null
@@ -59,7 +73,10 @@ export function writeNamespaceStorage(
     return;
   }
   if (namespace === 'gallery-deleted-ids') {
+    const before = new Set(readGalleryDeletedIds(owner));
     writeGalleryDeletedIds(owner, data);
+    const deleted = readGalleryDeletedIds(owner).filter(id => !before.has(id));
+    if (deleted.length > 0) removeDeletedEntryMediaSoon(userId, deleted);
     return;
   }
   writeKv(scope, namespace, data);
