@@ -61,8 +61,9 @@ export default function LoginForm() {
       allowedFeatures,
     });
     await refresh();
-    router.replace(next);
-    router.refresh();
+    // A full load, not router.replace: the router kept what it prefetched while signed out (every
+    // page redirecting to /login), and on an iPhone sign-in stayed on the form.
+    window.location.replace(next);
   }
 
   async function onSubmit(event: React.FormEvent) {

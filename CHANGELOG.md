@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Signing in leaves the login form.** On an iPhone sign-in worked but stayed on the form: the app reused the pages it had fetched while signed out (each a redirect to the login). Sign-in now loads the next page in full.
 - **Phones open the phone app.** A phone browser asking for a desk page is sent to its /m twin (`/` → Film, `/day` → phone Day); iPads and tablets keep the desk. *Desk* on the phone is remembered, and *Phone view* (Film's More menu on small screens, the Phone button, the banner) goes back. The Film kiosk had no way to the phone app at all.
 - **Render previews survive a reverse proxy.** Behind Cloudflare a job waiting in ComfyUI's queue left the preview stream silent, the proxy closed it after ~100 s and that render showed no preview. The stream now sends a keep-alive line every 20 s, and a stream that drops after it opened is opened again (up to 5 times) without an error.
 - **Queue day clears every card's old line.** A new still over a finished one clears the card's *Line in the clip*, tone and reply, but in Queue day each card saved the plan as it was before the run, putting back the lines the cards before it had just cleared (only the last card lost its old line). The still queue now works from the latest cards.
