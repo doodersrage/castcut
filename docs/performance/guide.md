@@ -89,7 +89,7 @@ Clothing UI labels live in `clothing-catalog-fields.ts` so Outfit/Day (`wardrobe
 ```bash
 npm run perf:monitor    # scripts/performance-monitor.mjs — build time, bundle, file stats
 npm run perf:test       # scripts/performance-test.mjs — formatting & timing scenarios
-npm run compose:validate-exposed  # smoke-check docker-compose exposed auth profile
+npm run compose:validate  # smoke-check docker/compose.yml: published address = PROMPT_BIND_HOST, data volume
 ```
 
 Use React DevTools Profiler and Chrome Performance tab for runtime UI issues. Gallery list virtualization uses `@tanstack/react-virtual`.

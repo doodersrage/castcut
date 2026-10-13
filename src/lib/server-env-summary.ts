@@ -374,7 +374,7 @@ export function getServerEnvSummary(): ServerEnvSummary {
           label: 'Network-exposed flag',
           value: process.env.PROMPT_EXPOSED?.trim() || 'false',
           configured: true,
-          hint: 'Set by docker compose --profile exposed. With auth off, startup fails unless PROMPT_ALLOW_INSECURE_AUTH=1.',
+          hint: 'Marks the server as reachable from the network. With auth off, startup fails unless PROMPT_ALLOW_INSECURE_AUTH=1.',
         },
         {
           key: 'API_RATE_LIMIT_MAX',

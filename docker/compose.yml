@@ -1,0 +1,50 @@
+# Castcut in Docker.
+#
+#   cd docker
+#   cp .env.example .env      # then fill in the few lines at the top
+#   docker compose up -d --build
+#
+# Open http://<this machine>:47832. Everything you make (Cast, Gallery, settings, kept renders)
+# lives in the castcut_data volume and survives rebuilds; see docs/configuration.md#docker for
+# moving an existing install in. Optional extras: `--profile ollama` (local LLM) and
+# `--profile comfyui` (a ComfyUI container) — most setups point at ones already running instead.
+services:
+  castcut:
+    build: ..
+    image: castcut:local
+    env_file: .env
+    environment:
+      PORT: 47832
+      PROMPT_DATA_DIR: /data
+      # The address the port is published on (below). The app's startup check reads it: on a
+      # network address it refuses to start with sign-in off.
+      PROMPT_BIND_HOST: ${CASTCUT_BIND:-0.0.0.0}
+    ports:
+      - '${CASTCUT_BIND:-0.0.0.0}:${CASTCUT_PORT:-47832}:47832'
+    volumes:
+      - castcut_data:/data
+    extra_hosts:
+      # Lets COMFYUI_API_URL / LLM_API_BASE_URL say host.docker.internal on Linux too.
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+
+  ollama:
+    profiles: ['ollama']
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  comfyui:
+    profiles: ['comfyui']
+    image: ghcr.io/ai-dock/comfyui:latest
+    ports:
+      - '127.0.0.1:8188:8188'
+    environment:
+      COMFY_PROMPT_API_URL: http://castcut:47832
+      PROMPT_API_TOKEN: ${PROMPT_API_TOKEN:-}
+    restart: unless-stopped
+
+volumes:
+  castcut_data:
+  ollama_data:

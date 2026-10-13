@@ -12,7 +12,7 @@ When exposing beyond localhost:
 2. Set `PROMPT_SESSION_SECRET` to a long random string (required when auth is on — the hardcoded fallback is rejected at startup). Prefer not to reuse `PROMPT_API_TOKEN` as the session secret.
 3. Set `PROMPT_API_TOKEN` — cross-origin and non-browser clients must send `Authorization: Bearer <token>` (same-origin UI still works). The UI counts as same-origin when it is opened at `localhost`, an IP address (the machine's LAN address), or a hostname listed in `PROMPT_TRUSTED_HOSTS` — **behind a reverse proxy, list its public name there** (e.g. `PROMPT_TRUSTED_HOSTS=castcut.example.com`), or the login is refused with *Unauthorized*. The proxy should send `X-Forwarded-Proto` so the session cookie is `Secure` over HTTPS (it is left off over plain HTTP, where browsers drop it). ComfyUI nodes read the same token from `PROMPT_API_TOKEN`. Service tokens bypass user login but should be kept secret.
 4. Set `COMFYUI_ALLOW_CLIENT_URL=false` so callers cannot override the ComfyUI base URL (SSRF). Prefer `COMFYUI_ALLOWED_HOSTS` for a hostname allowlist.
-5. Prefer binding to loopback (`127.0.0.1`) — default `docker-compose.yml` already does this. To publish beyond LAN use `docker compose --profile exposed up` (sets `PROMPT_EXPOSED=true` and requires `PROMPT_SESSION_SECRET`, `PROMPT_ADMIN_PASSWORD`, `PROMPT_API_TOKEN`, and `PROMPT_API_URL`). Do not run `0.0.0.0` binds with auth off.
+5. In Docker, the compose file in `docker/` publishes on `CASTCUT_BIND` and tells the app the same address (`PROMPT_BIND_HOST`): on a network address the app refuses to start with sign-in off. Do not run `0.0.0.0` binds with auth off.
 6. Webhook dispatch blocks private/metadata URLs unless `WEBHOOK_ALLOW_PRIVATE=true`.
 7. Set `PROMPT_API_URL` to the public origin so invite and reset emails are not `http://127.0.0.1:47832`. A non-loopback `PROMPT_API_URL` is treated as network-exposed and requires auth + secrets.
 
@@ -22,7 +22,7 @@ Startup fail-closed signals (`src/lib/bind-exposure-check.ts`): `PROMPT_EXPOSED`
 
 Before exposing Castcut beyond a trusted LAN:
 
-- [ ] Do not publish compose ports without `--profile exposed` (auth + secrets + `PROMPT_EXPOSED` required)
+- [ ] In Docker, publish beyond the host (`CASTCUT_BIND=0.0.0.0`) only with sign-in on and a real password + session secret in `docker/.env`
 - [ ] Confirm Settings → Overview shows Auth = accounts on
 - [ ] Set strong `PROMPT_ADMIN_PASSWORD` — if `PROMPT_AUTH_ENABLED=true` and this is unset, the server **refuses to start** (fail closed)
 - [ ] Set `PROMPT_SESSION_SECRET` (long random string; do not reuse API tokens) — if auth is on and this is unset, the server **refuses to start** (no hardcoded session fallback)
@@ -80,44 +80,62 @@ server {
 
 ## Docker
 
-Published images (from [GitHub Releases](https://github.com/doodersrage/castcut/releases); see [Releases](releasing.md)):
+Everything lives in the [`docker/`](https://github.com/doodersrage/castcut/tree/main/docker) folder: one compose file and one settings file.
 
 ```bash
-docker pull ghcr.io/doodersrage/castcut:latest
+cd docker
+cp .env.example .env        # fill in ComfyUI, the LLM, and a sign-in password + secret
+docker compose up -d --build
+docker compose logs -f castcut   # a missing password or secret is reported here
+```
+
+Open `http://<docker host>:47832`. `.env` is the only file to edit, and changes apply on `docker compose up -d` (no rebuild needed).
+
+- **ComfyUI / LLM on the Docker host:** use `http://host.docker.internal:<port>` (works on Linux too, through the compose file's `host-gateway`). ComfyUI must listen beyond localhost (`--listen`), or the container cannot reach it. On another machine, use that machine's address.
+- **Who can open it:** `CASTCUT_BIND=0.0.0.0` (the default) publishes on your network, and the app refuses to start unless sign-in is on with a real `PROMPT_ADMIN_PASSWORD` and `PROMPT_SESSION_SECRET` (`openssl rand -hex 32`). `CASTCUT_BIND=127.0.0.1` keeps it on the Docker host only, and then sign-in may be off. The compose file passes the same address to the app as `PROMPT_BIND_HOST`, so the startup check sees where the port really is.
+- **Reverse proxy:** set `PROMPT_TRUSTED_HOSTS` to the public name, `TRUST_PROXY_HEADERS=true` and `PROMPT_API_URL`, and allow request bodies of at least 40 MB (a Pictures backup restore uploads 32 MB pieces).
+- **Your data** (Cast, Gallery, settings, kept renders) lives in the `castcut_data` volume at `/data`, and survives rebuilds and image updates.
+- **Extras:** `docker compose --profile ollama up -d` adds a local Ollama (`LLM_API_BASE_URL=http://ollama:11434/v1`); `--profile comfyui` adds a ComfyUI container.
+
+**Moving an existing install in.** Either use the app: on the old server use *Settings → Data → Export backup* and *Download pictures backup*; on the new server *Import backup*, then *Restore pictures backup*. Or copy the old `PROMPT_DATA_DIR` folder into the volume, with the old app stopped so `studio.sqlite` is complete:
+
+```bash
+docker compose down
+docker run --rm -v docker_castcut_data:/data -v /path/to/old-data:/src alpine \
+  sh -c 'cp -a /src/. /data/ && chown -R 1001:1001 /data'
+docker compose up -d
+```
+
+(The volume is named `<compose project>_castcut_data`, which is `docker_castcut_data` when run from `docker/`; `docker volume ls` shows it.) Cast plates are pictures in ComfyUI's `input/` and `output/` folders. If the new server uses a different ComfyUI, the Pictures backup carries them; with a folder copy, copy those ComfyUI folders too.
+
+**Without compose** (published image, from [GitHub Releases](https://github.com/doodersrage/castcut/releases); see [Releases](releasing.md)). This publishes on your network, so other machines can open `http://<docker host>:47832`, and sign-in is required:
+
+```bash
 docker run -d --name castcut --restart=always \
-  -p 127.0.0.1:47832:47832 \
-  -e LLM_API_BASE_URL=http://host.docker.internal:11434/v1 \
-  -e LLM_MODEL=hermes3 \
-  -e LLM_VISION_MODEL=gemma4:latest \
+  -p 47832:47832 \
+  -v castcut_data:/data \
+  --add-host=host.docker.internal:host-gateway \
+  -e PROMPT_AUTH_ENABLED=true \
+  -e PROMPT_ADMIN_PASSWORD='choose-a-password' \
+  -e PROMPT_SESSION_SECRET="$(openssl rand -hex 32)" \
+  -e COMFYUI_API_URL=http://host.docker.internal:8188 \
+  -e LLM_API_BASE_URL=http://host.docker.internal:1234/v1 \
   ghcr.io/doodersrage/castcut:latest
 ```
 
-Docker Hub (`doodersrage/castcut`) is updated on the same release when Hub secrets are set.
+Generate the session secret once and keep it, because a new one signs everyone out: put these lines in a file and pass `--env-file castcut.env` instead of the `-e` flags.
 
-Build locally:
-
-```bash
-docker build -t castcut .
-docker run --rm -p 127.0.0.1:47832:47832 \
-  -e LLM_API_BASE_URL=http://host.docker.internal:11434/v1 \
-  -e LLM_MODEL=dolphin-llama3 \
-  -e LLM_VISION_MODEL=qwen3-vl:latest \
-  castcut
-```
-
-On Linux, add `--add-host=host.docker.internal:host-gateway` if Ollama runs on the host. Override `PORT` only if you map a different host port.
-
-**Publish beyond LAN (auth required):**
+**Only on the Docker host** (a browser on that same machine; nothing else can reach it, which is useless for a VM or a server): publish on loopback and tell the app so, and sign-in may be off:
 
 ```bash
-export PROMPT_SESSION_SECRET="$(openssl rand -hex 32)"
-export PROMPT_ADMIN_PASSWORD='change-me'
-export PROMPT_API_TOKEN="$(openssl rand -hex 24)"
-export PROMPT_API_URL='https://studio.example.com'
-docker compose --profile exposed up -d
+docker run -d --name castcut --restart=always \
+  -p 127.0.0.1:47832:47832 -e PROMPT_BIND_HOST=127.0.0.1 \
+  -v castcut_data:/data --add-host=host.docker.internal:host-gateway \
+  -e COMFYUI_API_URL=http://host.docker.internal:8188 \
+  ghcr.io/doodersrage/castcut:latest
 ```
 
-Default `docker compose up` stays on `127.0.0.1` with auth off. Do not publish `0.0.0.0` without the `exposed` profile (or equivalent auth env).
+Inside the container the server always listens on `0.0.0.0`, which the startup check counts as network-exposed. `PROMPT_BIND_HOST=127.0.0.1` tells it the port is really only published on loopback; without it, a sign-in-off container refuses to start. Docker Hub (`doodersrage/castcut`) is updated on the same release when Hub secrets are set. Build locally with `docker build -t castcut .`.
 
 ## LLM configuration
 
@@ -157,7 +175,7 @@ The generator calls any **OpenAI-compatible** chat completions API. Configure vi
 | `PROMPT_ADMIN_USERNAME`                | `admin`                          | Default admin username (seeded on first enable)                                                                                                                                        |
 | `PROMPT_ADMIN_PASSWORD`                | _(required when auth on)_        | Bootstrap admin password. When auth is on and unset, startup fails closed (no silent `"admin"` default on exposed paths).                                                              |
 | `PROMPT_SESSION_SECRET`                | _(required when auth on)_        | HMAC secret for session cookies. When auth is on and unset, startup fails closed (hardcoded fallback rejected).                                                                        |
-| `PROMPT_EXPOSED`                       | `false`                          | Marks the process as network-exposed (set by compose `--profile exposed`). With auth off, startup fails unless `PROMPT_ALLOW_INSECURE_AUTH=1`.                                         |
+| `PROMPT_EXPOSED`                       | `false`                          | Marks the process as network-exposed (for a server published some way the bind check cannot see). With auth off, startup fails unless `PROMPT_ALLOW_INSECURE_AUTH=1`.                                         |
 | `PROMPT_ALLOW_INSECURE_AUTH`           | `false`                          | Emergency escape hatch only — never use on a reachable network.                                                                                                                        |
 | `PROMPT_AUTH_DIR`                      | _(uses `PROMPT_DATA_DIR/auth`)_  | Legacy JSON import directory (`users.json`, `groups.json`, analytics). Live auth now lives in `studio.sqlite`.                                                                         |
 | `PROMPT_DATA_DIR`                      | _(empty)_                        | Server SQLite root (`studio.sqlite`) for `/api/storage`, auth, collab rooms, SMTP overlay, queue-export overlay, and `{PROMPT_DATA_DIR}/plugins` server plugin registry |

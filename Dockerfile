@@ -36,7 +36,11 @@ ENV HOSTNAME=0.0.0.0
 # font-dejavu: drawtext needs a font file for Cut title cards and captions.
 RUN apk add --no-cache ffmpeg font-dejavu \
   && addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
+  && adduser --system --uid 1001 nextjs \
+  && mkdir -p /data && chown nextjs:nodejs /data
+
+# Server storage (Cast, gallery, settings, gallery-media originals). Mount a volume here.
+ENV PROMPT_DATA_DIR=/data
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

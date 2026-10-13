@@ -52,7 +52,8 @@ function isLoopbackHostname(hostname: string | null | undefined): boolean {
 
 /**
  * True when operators have signaled this process is reachable beyond loopback
- * (compose `--profile exposed`, public PROMPT_API_URL, or an all-interfaces bind).
+ * (PROMPT_EXPOSED, public PROMPT_API_URL, or an all-interfaces bind — in Docker, PROMPT_BIND_HOST
+ * is the address docker/compose.yml publishes the port on).
  * Desktop shells always count as local.
  */
 export function isNetworkExposedDeployment(): boolean {
@@ -85,7 +86,7 @@ export const AUTH_OFF_EXPOSED_ERROR =
   'Auth is off (PROMPT_AUTH_ENABLED unset/false) but this process looks network-exposed ' +
   '(PROMPT_EXPOSED, HOSTNAME/HOST/PROMPT_BIND_HOST is 0.0.0.0/::, or PROMPT_API_URL is not ' +
   'loopback). Auth-off is localhost-only. Set PROMPT_AUTH_ENABLED=true with ' +
-  'PROMPT_SESSION_SECRET and PROMPT_ADMIN_PASSWORD, use docker compose --profile exposed, ' +
+  'PROMPT_SESSION_SECRET and PROMPT_ADMIN_PASSWORD (in Docker: docker/.env, or CASTCUT_BIND=127.0.0.1), ' +
   'or set PROMPT_ALLOW_INSECURE_AUTH=1 only for emergency recovery. See docs/configuration.md.';
 
 /**

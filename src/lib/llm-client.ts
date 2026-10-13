@@ -71,7 +71,7 @@ export function getLlmConfig(override?: LlmEndpointOverride): LlmConfig {
     process.env.LLM_API_BASE_URL?.replace(/\/$/, '') ||
     'http://localhost:11434/v1';
   const apiKey = override?.apiKey?.trim() || process.env.LLM_API_KEY || '';
-  const model = process.env.LLM_MODEL ?? 'dolphin-llama3';
+  const model = process.env.LLM_MODEL?.trim() || 'dolphin-llama3';
   const visionModel =
     process.env.LLM_VISION_MODEL?.trim() || process.env.LLM_MODEL?.trim() || model;
 

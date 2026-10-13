@@ -119,6 +119,26 @@ describe('bind-exposure-check', () => {
       assert.equal(getSecureExposureViolation(), null);
     });
 
+    it('Docker (docker/compose.yml): the image binds 0.0.0.0; PROMPT_BIND_HOST is the published address', () => {
+      clearSecurityEnv();
+      setEnv('HOSTNAME', '0.0.0.0');
+      setEnv('PROMPT_BIND_HOST', '127.0.0.1');
+      assert.equal(getSecureExposureViolation(), null);
+
+      setEnv('PROMPT_BIND_HOST', '0.0.0.0');
+      assert.equal(getSecureExposureViolation(), AUTH_OFF_EXPOSED_ERROR);
+
+      // docker/.env.example as copied: sign-in on, password and secret still blank.
+      setEnv('PROMPT_AUTH_ENABLED', 'true');
+      setEnv('PROMPT_ADMIN_PASSWORD', '');
+      setEnv('PROMPT_SESSION_SECRET', '');
+      assert.notEqual(getSecureExposureViolation(), null);
+
+      setEnv('PROMPT_ADMIN_PASSWORD', 'a-strong-password');
+      setEnv('PROMPT_SESSION_SECRET', 'a-real-secret');
+      assert.equal(getSecureExposureViolation(), null);
+    });
+
     it('honors PROMPT_ALLOW_INSECURE_AUTH', () => {
       clearSecurityEnv();
       setEnv('PROMPT_EXPOSED', 'true');

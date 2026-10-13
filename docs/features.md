@@ -282,7 +282,7 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 - **Best-of-N campaigns** — scheduled profile or Automation tab runs optionally over-generate (2–4×) and LLM-rank prompts by text quality before queue; with **Vision-rank** enabled, queues all variants then vision-scores outputs and culls losers from the gallery; Profile server campaigns and headless server batch support the same path; `/api/best-of-n/rank-images` ranks generated images with `LLM_VISION_MODEL`
 - **Prompt recipes API** — `/api/recipes/run` executes lint/fix/compact/queue chains server-side; result panels call it from Recipes & shootout shortcuts
 - **Email notifications** — SMTP alerts for invites, password reset, batch/campaign completion, and password changes (Settings → Users → SMTP; Profile → Email)
-- **Docker Compose** — `docker compose up` for app + Ollama (+ optional ComfyUI profile)
+- **Docker Compose** — `docker/`: copy `.env.example` to `.env`, `docker compose up -d --build`; data in a volume; optional Ollama / ComfyUI profiles
 - **GitHub Actions CI** — runs unit tests, build, and Playwright smoke on push/PR
 
 ## UI & UX {#ui-ux}

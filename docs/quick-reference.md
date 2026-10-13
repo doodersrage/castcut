@@ -88,14 +88,11 @@ and client and shows up as React hydration error #418 on every page.
 ## Docker (production)
 
 ```bash
-docker pull ghcr.io/doodersrage/castcut:latest
-docker run -d --name castcut -p 127.0.0.1:47832:47832 \
-  -e COMFYUI_API_URL=http://host.docker.internal:8188 \
-  -e LLM_MODEL=… -e LLM_VISION_MODEL=… \
-  ghcr.io/doodersrage/castcut:latest
+cd docker && cp .env.example .env   # edit: ComfyUI, LLM, sign-in password + secret
+docker compose up -d --build
 ```
 
-Exposed profile + auth: [configuration — Docker](configuration.md#docker).
+Opens on your network at `http://<docker host>:47832` with sign-in. Plain `docker run`, a Docker-host-only setup, and moving an install in: [configuration — Docker](configuration.md#docker).
 
 ---
 
