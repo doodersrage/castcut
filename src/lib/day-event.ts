@@ -509,6 +509,20 @@ export function applyDayEventPlan<T extends DaySlot>(slots: T[], plan: DayEventP
  * event's beach moments used to stay on every card.
  */
 /**
+ * The event this Day is running, if any. Saved alone it is not enough: every slot must still
+ * carry its event move (written with the plan; whole-day slots never have one) — so an event
+ * left behind under a whole day can never chain its edits, hold back reviews or join its clips.
+ */
+export function activeDayEvent(
+  event: unknown,
+  slots: ReadonlyArray<Pick<DaySlot, 'eventMove'>>
+): DayEvent | undefined {
+  const normalized = normalizeDayEvent(event);
+  if (!normalized || slots.length < 2) return undefined;
+  return slots.every(slot => Boolean(slot.eventMove?.trim())) ? normalized : undefined;
+}
+
+/**
  * The slots a whole-day action (Write the day, Suggest) starts from: on an event Day, the event's
  * labels and moves are cleared and `leaves` says the event must go too — otherwise its chained
  * edits, flag-only reviews and joined clips carried on under the new whole-day scenes.

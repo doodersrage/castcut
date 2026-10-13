@@ -24,7 +24,7 @@ import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPan
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
-import { normalizeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day-event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -899,7 +899,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             />
             <DayContinuityLocks
               locks={dayContinuityLocks({
-                eventPlace: normalizeDayEvent(toolSettings.dayEvent)?.place,
+                eventPlace: activeDayEvent(toolSettings.dayEvent, slots)?.place,
                 cast: character,
                 hasPlate,
                 faceFinish,
@@ -1027,7 +1027,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             busy={busy}
             slotCount={slots.length}
             onWrite={writeDayFromIdea}
-            event={normalizeDayEvent(toolSettings.dayEvent)}
+            event={activeDayEvent(toolSettings.dayEvent, slots)}
             onWriteEvent={writeDayEvent}
             onLeaveEvent={leaveDayEvent}
           />

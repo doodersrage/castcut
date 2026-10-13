@@ -39,6 +39,7 @@ import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise'
 import {
   applyDayEventPlan,
   clearDayEventSlots,
+  activeDayEvent,
   dayEventActionWords,
   dayEventBefore,
   DAY_EVENT_EDIT_CAMERA_LINE,
@@ -1224,7 +1225,7 @@ export function useDayPlannerToolOrchestrationCore() {
     ) => {
       const manageBusy = options?.manageBusy !== false;
       // One event, moment 2 on: an edit of the moment before, not a Day still of its own.
-      const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
+      const dayEvent = activeDayEvent(toolSettings.dayEvent, slots);
       const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
       if (dayEvent && momentIndex > 0) {
         if (manageBusy) setBusy(true);
@@ -2847,25 +2848,32 @@ export function useDayPlannerToolOrchestrationCore() {
       rerollBeat?: boolean;
     }) => {
       const slotId = options?.slotId ?? activeSlotId;
-      const next = rerollDaySlotScene(slots, slotId, {
+      // A whole-day scene on one card leaves an event: kept, that card was still made as an edit
+      // of the moment before (a rooftop ledge drawn over the stairs picture, the old props in hand).
+      const whole = slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
+      const next = rerollDaySlotScene(whole.slots, slotId, {
         rerollLocation: options?.rerollLocation !== false,
         rerollBeat: options?.rerollBeat !== false,
         allowCompanions: toolSettings.allowCompanions === true,
         dayMood: toolSettings.dayMood,
         intimateMix: toolSettings.intimateMix,
       });
-      if (next.changed) {
+      if (next.changed || whole.leaves) {
         if (slotId !== activeSlotId) {
           setActiveSlotId(slotId);
         }
-        updateToolSettings({ slots: next.slots });
+        updateToolSettings({
+          slots: next.slots,
+          ...(whole.leaves ? { dayEvent: undefined } : {}),
+        });
       }
-      return next.changed;
+      return next.changed || whole.leaves;
     },
     [
       activeSlotId,
       slots,
       toolSettings.allowCompanions,
+      toolSettings.dayEvent,
       toolSettings.dayMood,
       toolSettings.intimateMix,
       updateToolSettings,
@@ -2935,10 +2943,16 @@ export function useDayPlannerToolOrchestrationCore() {
     setDayLength: (next: number) => {
       const length = normalizeDayLength(next);
       // Keep every slot's plan and still by id; growing adds the late slots, shrinking drops them.
-      const nextSlots = normalizeDaySlots(slots, length);
+      // An event's moments are one chain for its count, so another count leaves the event.
+      const whole =
+        length === slots.length
+          ? { slots, leaves: false }
+          : slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
+      const nextSlots = normalizeDaySlots(whole.slots, length);
       updateToolSettings({
         dayLength: length,
         slots: nextSlots,
+        ...(whole.leaves ? { dayEvent: undefined } : {}),
         stills: normalizeDaySlotStills(stillsRef.current, nextSlots),
       });
     },
@@ -2973,14 +2987,19 @@ export function useDayPlannerToolOrchestrationCore() {
       const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
       // Date night / Night out beats need a second person — turn companions on with them.
       const allowCompanions = theme?.companions ? true : toolSettings.allowCompanions === true;
-      const aligned = ensureDaySlotsMatchMood(slots, {
+      // Another mood is another Day: an event (clothed, one chain) is left, not carried into it.
+      const whole =
+        mood === normalizeDayMood(toolSettings.dayMood)
+          ? { slots, leaves: false }
+          : slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
+      const aligned = ensureDaySlotsMatchMood(whole.slots, {
         dayMood: mood,
         intimateMix: mix,
         allowCompanions,
       });
       // A theme dresses from its own pool: kits picked under another mood (a suit on a Cosplay
       // day, overalls on Date night) are dropped so the queue picks a fitting one.
-      const baseSlots = aligned.changed ? aligned.slots : slots;
+      const baseSlots = aligned.changed ? aligned.slots : whole.slots;
       const redressed = theme
         ? baseSlots.map(slot =>
             slot.wardrobeId &&
@@ -3001,7 +3020,8 @@ export function useDayPlannerToolOrchestrationCore() {
                 : {}),
             }
           : {}),
-        ...(aligned.changed || kitsChanged ? { slots: redressed } : {}),
+        ...(aligned.changed || kitsChanged || whole.leaves ? { slots: redressed } : {}),
+        ...(whole.leaves ? { dayEvent: undefined } : {}),
       });
     },
     intimateEnabled,

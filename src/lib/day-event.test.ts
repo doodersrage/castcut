@@ -9,6 +9,7 @@ import {
   dayEventClipPrompt,
   dayEventMomentWords,
   normalizeDayEvent,
+  activeDayEvent,
   parseDayEventPlan,
   slotsForWholeDay,
 } from './day-event';
@@ -313,5 +314,21 @@ describe('one event — leaving it for a whole day', () => {
   it('a whole day stays as it is', () => {
     const slots = normalizeDaySlots([{ id: 'morning', label: 'Morning', sceneHints: 'jogging in the park' }]) as DaySlot[];
     assert.deepEqual(slotsForWholeDay(slots, undefined, daySlotDefaultLabel), { slots, leaves: false });
+  });
+});
+
+describe('one event — only while its moments are there', () => {
+  const event = { text: 'wine at a trattoria', place: 'candlelit trattoria', time: 'Evening' };
+  it('runs while every slot carries its move', () => {
+    const moments = applyDayEventPlan(normalizeDaySlots([], 4) as DaySlot[], parseDayEventPlan(reply(four), 4)!);
+    assert.equal(activeDayEvent(event, moments)?.text, 'wine at a trattoria');
+  });
+  it('a saved event under whole-day slots does nothing (the rooftop drawn over the stairs)', () => {
+    const moments = applyDayEventPlan(normalizeDaySlots([], 4) as DaySlot[], parseDayEventPlan(reply(four), 4)!);
+    assert.equal(activeDayEvent(event, normalizeDaySlots([], 4)), undefined);
+    // One card re-rolled to a whole-day scene breaks the chain.
+    const rerolled = moments.map((slot, index) => (index === 2 ? { ...slot, eventMove: undefined } : slot));
+    assert.equal(activeDayEvent(event, rerolled), undefined);
+    assert.equal(activeDayEvent(undefined, moments), undefined);
   });
 });

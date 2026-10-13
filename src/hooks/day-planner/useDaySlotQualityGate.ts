@@ -63,7 +63,7 @@ type DaySlotAttempt = {
   missView?: PoseMissView;
 };
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
-import { normalizeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day-event';
 
 /**
  * Opt-in Day quality gate: when a still lands, vision-review it and requeue the slot (bounded
@@ -464,7 +464,7 @@ export function useDaySlotQualityGate(
           setQualityStatus(
             `${target.label} needs a look: ${decision.reasons.join(', ')}. Retry or reroll it.`
           );
-        } else if (normalizeDayEvent(toolSettings.dayEvent)) {
+        } else if (activeDayEvent(toolSettings.dayEvent, slots)) {
           // One event: the moments after this one were made from it, so a silent redo would
           // break the chain (and wiped a clip mid-Animate, live 2026-10-12) — flag it instead.
           setQualityStatus(

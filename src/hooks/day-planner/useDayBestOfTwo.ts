@@ -1,6 +1,6 @@
 'use client';
 
-import { normalizeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day-event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
@@ -50,7 +50,7 @@ export function useDayBestOfTwo(
   const { autoReviewStills, bestOfTwoHardPoses, busy, mounted, queueBlockReason, queueSlot } = ctx;
   const { poseGuideExpectRef, slots, stills, stillsRef, updateToolSettings } = ctx;
   const { leadNoun, shared } = ctx;
-  const dayEventActive = Boolean(normalizeDayEvent(ctx.toolSettings.dayEvent));
+  const dayEventActive = Boolean(activeDayEvent(ctx.toolSettings.dayEvent, slots));
   const characterId = ctx.shared.activeCharacterId;
   const active = bestOfTwoHardPoses && !autoReviewStills;
 

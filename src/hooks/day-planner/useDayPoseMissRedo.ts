@@ -1,6 +1,6 @@
 'use client';
 
-import { normalizeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day-event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
@@ -67,7 +67,7 @@ export function useDayPoseMissRedo(
   const { bestOfTwoHardPoses } = ctx;
   const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
   const { leadNoun, shared } = ctx;
-  const dayEventActive = Boolean(normalizeDayEvent(ctx.toolSettings.dayEvent));
+  const dayEventActive = Boolean(activeDayEvent(ctx.toolSettings.dayEvent, slots));
   const active = redoPoseMisses && !autoReviewStills;
 
   const [ledger, setLedger] = useState<PoseRedoLedger>({});

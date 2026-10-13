@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fix: the rest of One event's leaks into a whole day.** Changing the number of stills or the mood, or *Reroll plan* on a card, also left the event on underneath — a re-rolled card was still made as an edit of the one before (a rooftop ledge drawn over the stairs picture, an old event's towel and book still in her hands). They now leave the event too, and as a safety net a Day only runs as an event while every card still carries its event move, so an event left behind can't chain edits, hold back Auto-review or join clips. Checked in the app with a reload after each.
+
 ## [v2.7.1] - 2026-10-13
 
 - **Fix: One event's rules carried on into a whole day.** Switching the idea row to *Whole day* and pressing *Write the day* (or *Suggest day*) rewrote the cards but left the event on underneath, so the new whole day still queued each card as a same-camera edit of the one before, only flagged Auto-review misses and joined the clips. Both now leave the event the way *Back to a whole day* does — checked in the app, including after a reload.

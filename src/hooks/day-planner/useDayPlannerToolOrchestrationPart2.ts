@@ -32,7 +32,7 @@ import {
   clearDayEventSlots,
   dayEventClipPrompt,
   dayEventMomentWords,
-  normalizeDayEvent,
+  activeDayEvent,
 } from '@/lib/day-event';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
@@ -313,7 +313,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // One event: each moment is made from the one before, so they run in order and each
         // waits for the last. From the first moment without a still (all done: from the top);
         // a moment that fails stops the rest, which would be made from it.
-        if (normalizeDayEvent(toolSettings.dayEvent)) {
+        if (activeDayEvent(toolSettings.dayEvent, queueSlots)) {
           const firstOpen = queueSlots.findIndex(
             slot =>
               stillsRef.current.find(still => still.slotId === slot.id)?.status !== 'completed'
@@ -433,7 +433,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // has the node for the engine; otherwise the plain clip, said once.
         // One event: the clip ends on the next moment's still (day-event.ts) — the joins line up
         // in Cut. An end pose picked by hand still wins. A moment with a line says it on the way.
-        const dayEvent = normalizeDayEvent(toolSettings.dayEvent);
+        const dayEvent = activeDayEvent(toolSettings.dayEvent, slots);
         const momentIndex = dayEvent ? slots.findIndex(entry => entry.id === slot.id) : -1;
         const nextMoment = momentIndex >= 0 ? slots[momentIndex + 1] : undefined;
         const nextMomentStill = nextMoment
