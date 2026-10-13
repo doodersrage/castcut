@@ -1030,6 +1030,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             event={activeDayEvent(toolSettings.dayEvent, slots)}
             onWriteEvent={writeDayEvent}
             onLeaveEvent={leaveDayEvent}
+            onSwitchToWholeDay={() => void suggestDayScenes()}
           />
           {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
           <ToolActionRow className="mt-3">

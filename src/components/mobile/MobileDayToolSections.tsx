@@ -968,6 +968,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           event={activeDayEvent(toolSettings.dayEvent, slots)}
           onWriteEvent={writeDayEvent}
           onLeaveEvent={leaveDayEvent}
+          onSwitchToWholeDay={() => void suggestDayScenes()}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

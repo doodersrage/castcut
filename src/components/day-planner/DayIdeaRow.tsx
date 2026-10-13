@@ -22,6 +22,7 @@ export default function DayIdeaRow({
   event,
   onWriteEvent,
   onLeaveEvent,
+  onSwitchToWholeDay,
   className = '',
 }: {
   dayMood: string | null | undefined;
@@ -32,6 +33,8 @@ export default function DayIdeaRow({
   event?: DayEvent;
   onWriteEvent?: (event: string) => Promise<number>;
   onLeaveEvent?: () => void;
+  /** Whole day picked while an event runs: fresh whole-day scenes, the event left (as Suggest day). */
+  onSwitchToWholeDay?: () => void;
   className?: string;
 }) {
   // Unset until the player picks: follows the Day (an event loads after the first render).
@@ -85,6 +88,12 @@ export default function DayIdeaRow({
           onChange={next => {
             setMode(next);
             setNote(null);
+            // Leaving the event with the toggle, not only with Back to a whole day: kept, it ran on
+            // under the whole day's cards (each made as an edit of the one before).
+            if (next === 'day' && event && onSwitchToWholeDay) {
+              onSwitchToWholeDay();
+              setNote('A whole day again — new scenes on every card.');
+            }
           }}
           options={[
             { value: 'day', label: 'Whole day' },
