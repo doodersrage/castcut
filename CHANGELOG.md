@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.7.1] - 2026-10-13
+
 - **Fix: One event's rules carried on into a whole day.** Switching the idea row to *Whole day* and pressing *Write the day* (or *Suggest day*) rewrote the cards but left the event on underneath, so the new whole day still queued each card as a same-camera edit of the one before, only flagged Auto-review misses and joined the clips. Both now leave the event the way *Back to a whole day* does — checked in the app, including after a reload.
 
 ## [v2.7.0] - 2026-10-13
