@@ -39,7 +39,9 @@ type LiveBridgeEvent =
       message?: string;
       status?: 'executing' | 'progress' | 'finished' | 'error';
     }
-  | { type: 'error'; message?: string };
+  | { type: 'error'; message?: string }
+  /** Keep-alive from the server; nothing to do. */
+  | { type: 'ping' };
 
 type SharedLiveSession = {
   clientId: string;
@@ -61,6 +63,8 @@ type SharedLiveSession = {
   queuePosition: number | null;
   /** Its stream is being closed to free the slot for a job that runs sooner. */
   evicting: boolean;
+  /** Times its stream was opened again after dropping (a proxy cut it). */
+  reconnects: number;
 };
 
 /** One browser→app live stream per clientId (server shares the Comfy WS). */
@@ -75,6 +79,9 @@ const sharedSessions = new Map<string, SharedLiveSession>();
 export const MAX_LIVE_STREAMS = 3;
 let openStreams = 0;
 const waitingSessions: SharedLiveSession[] = [];
+/** A stream that drops while its job is still watched (a proxy cut it) is opened again. */
+const MAX_LIVE_RECONNECTS = 5;
+const LIVE_RECONNECT_DELAY_MS = 2_000;
 
 /**
  * A job about to show progress: running, or next in ComfyUI's queue. ComfyUI runs jobs by queue
@@ -99,6 +106,10 @@ function sortWaiting(): void {
 
 function releaseStream(): void {
   openStreams = Math.max(0, openStreams - 1);
+  startWaitingStreams();
+}
+
+function startWaitingStreams(): void {
   sortWaiting();
   while (openStreams < MAX_LIVE_STREAMS && waitingSessions.length > 0) {
     const next = waitingSessions.shift()!;
@@ -331,6 +342,7 @@ function ensureSharedLiveSession(input: {
     jobState: 'unknown',
     queuePosition: null,
     evicting: false,
+    reconnects: 0,
   };
 
   sharedSessions.set(clientId, shared);
@@ -351,6 +363,8 @@ function startLiveStream(shared: SharedLiveSession): void {
   shared.streaming = true;
   openStreams += 1;
   const abort = shared.abort;
+  /** The bridge answered; a stream that drops after this was cut on the way (a proxy). */
+  let opened = false;
   const params = new URLSearchParams({ clientId });
   if (shared.comfyUrlHint) {
     params.set('comfyUrl', shared.comfyUrlHint);
@@ -374,10 +388,16 @@ function startLiveStream(shared: SharedLiveSession): void {
         }
         throw new Error(detail || `Live bridge failed (${response.status})`);
       }
+      opened = true;
       await readNdjsonStream(shared, response);
     })
     .catch((error: unknown) => {
       if (abort.signal.aborted || shared.evicting) {
+        shared.resolveReady();
+        return;
+      }
+      if (opened && canReconnect(shared)) {
+        // A dropped connection (proxy reset) is opened again in finally, not reported.
         shared.resolveReady();
         return;
       }
@@ -399,11 +419,33 @@ function startLiveStream(shared: SharedLiveSession): void {
         return;
       }
       shared.evicting = false;
+      if (opened && canReconnect(shared)) {
+        // The stream ended while its job is still watched: a proxy cut it. Open it again.
+        shared.reconnects += 1;
+        shared.streaming = false;
+        shared.abort = new AbortController();
+        releaseStream();
+        setTimeout(() => {
+          if (sharedSessions.get(clientId) !== shared || shared.abort.signal.aborted) return;
+          waitingSessions.push(shared);
+          startWaitingStreams();
+        }, LIVE_RECONNECT_DELAY_MS);
+        return;
+      }
       if (sharedSessions.get(clientId) === shared) {
         sharedSessions.delete(clientId);
       }
       releaseStream();
     });
+}
+
+function canReconnect(shared: SharedLiveSession): boolean {
+  return (
+    !shared.abort.signal.aborted &&
+    sharedSessions.get(shared.clientId) === shared &&
+    shared.refCount > 0 &&
+    shared.reconnects < MAX_LIVE_RECONNECTS
+  );
 }
 
 /**

@@ -6,6 +6,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 /** Long-running generations keep this stream open. */
 export const maxDuration = 600;
+/** A line this often keeps proxies from closing an idle stream. */
+const LIVE_KEEPALIVE_MS = 20_000;
 
 /**
  * Same-origin NDJSON stream of ComfyUI progress + latent preview frames.
@@ -24,6 +26,7 @@ export async function GET(request: Request) {
 
   let closeBridge: (() => void) | undefined;
   let closed = false;
+  let keepAlive: ReturnType<typeof setInterval> | undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -60,11 +63,18 @@ export async function GET(request: Request) {
         }
       }
 
+      // A job waiting in ComfyUI's queue (or loading its model) sends nothing; a proxy in front
+      // (Cloudflare drops a connection silent for ~100 s) would cut the stream and its previews.
+      if (!closed) {
+        keepAlive = setInterval(() => write({ type: 'ping' }), LIVE_KEEPALIVE_MS);
+      }
+
       const onAbort = () => {
         if (closed) {
           return;
         }
         closed = true;
+        clearInterval(keepAlive);
         closeBridge?.();
         try {
           controller.close();
@@ -77,6 +87,7 @@ export async function GET(request: Request) {
     },
     cancel() {
       closed = true;
+      clearInterval(keepAlive);
       closeBridge?.();
     },
   });

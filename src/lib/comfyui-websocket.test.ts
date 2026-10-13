@@ -471,20 +471,40 @@ describe("comfyui-websocket", async () => {
       win.restore();
     });
 
-    it("opens a fresh session (and issues a new fetch) once the previous stream for that clientId has finished", async () => {
+    it("opens a stream again when it drops while its job is still watched (a proxy cut it)", async () => {
+      const win = installWindowStub();
+      const errors: string[] = [];
+      const stub = installFetchStub(() => ndjsonResponse(['{"type":"ready"}', '{"type":"ping"}']));
+
+      const sub = subscribeComfyUiWebSocket({
+        clientId: "reopen-1",
+        onProgress: () => {},
+        onError: message => errors.push(message),
+      });
+      await sub.ready;
+      await flushMicrotasks();
+      assert.equal(stub.calls.length, 1);
+      await new Promise(resolve => setTimeout(resolve, 2_100));
+      assert.equal(stub.calls.length, 2);
+      assert.equal(stub.calls[1]?.url, "/api/comfyui/live?clientId=reopen-1");
+      assert.deepEqual(errors, []);
+
+      sub.close();
+      stub.restore();
+      win.restore();
+    });
+
+    it("does not open a dropped stream again once its subscriber has closed", async () => {
       const win = installWindowStub();
       const stub = installFetchStub(() => ndjsonResponse(['{"type":"ready"}']));
 
-      const sub1 = subscribeComfyUiWebSocket({ clientId: "reopen-1", onProgress: () => {} });
-      await sub1.ready;
+      const sub = subscribeComfyUiWebSocket({ clientId: "reopen-2", onProgress: () => {} });
+      await sub.ready;
       await flushMicrotasks();
-      await flushMicrotasks();
+      sub.close();
+      await new Promise(resolve => setTimeout(resolve, 2_100));
+      assert.equal(stub.calls.length, 1);
 
-      const sub2 = subscribeComfyUiWebSocket({ clientId: "reopen-1", onProgress: () => {} });
-      await sub2.ready;
-      assert.equal(stub.calls.length, 2);
-
-      sub2.close();
       stub.restore();
       win.restore();
     });
