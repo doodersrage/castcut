@@ -508,6 +508,21 @@ export function applyDayEventPlan<T extends DaySlot>(slots: T[], plan: DayEventP
  * beat, pose), and the moves go. A slot with nothing kept is left blank for Day to fill — the
  * event's beach moments used to stay on every card.
  */
+/**
+ * The slots a whole-day action (Write the day, Suggest) starts from: on an event Day, the event's
+ * labels and moves are cleared and `leaves` says the event must go too — otherwise its chained
+ * edits, flag-only reviews and joined clips carried on under the new whole-day scenes.
+ */
+export function slotsForWholeDay<T extends DaySlot>(
+  slots: T[],
+  event: unknown,
+  defaultLabel: (id: T['id']) => string
+): { slots: T[]; leaves: boolean } {
+  return normalizeDayEvent(event)
+    ? { slots: clearDayEventSlots(slots, defaultLabel), leaves: true }
+    : { slots, leaves: false };
+}
+
 export function clearDayEventSlots<T extends DaySlot>(
   slots: T[],
   defaultLabel: (id: T['id']) => string,

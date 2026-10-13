@@ -46,6 +46,7 @@ import {
   dayEventMomentWords,
   normalizeDayEvent,
   requestDayEventPlan,
+  slotsForWholeDay,
 } from '@/lib/day-event';
 import { SAME_SHOT_MAX_DIFF } from '@/lib/image-similarity';
 import { pictureGreyDifference } from '@/lib/image-similarity-client';
@@ -2729,7 +2730,10 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
   const suggestDayScenes = useCallback(() => {
-    const diversified = diversifyDaySlotScenes(slots, {
+    // New scenes for the whole day leave an event: its labels and moves go with it, or the event's
+    // chained edits and flag-only reviews would carry on under the new scenes.
+    const whole = slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
+    const diversified = diversifyDaySlotScenes(whole.slots, {
       forceLocations: true,
       forceBeats: true,
       fillBeats: true,
@@ -2737,13 +2741,17 @@ export function useDayPlannerToolOrchestrationCore() {
       dayMood: toolSettings.dayMood,
       intimateMix: toolSettings.intimateMix,
     });
-    if (diversified.changed) {
-      updateToolSettings({ slots: diversified.slots });
+    if (diversified.changed || whole.leaves) {
+      updateToolSettings({
+        slots: diversified.slots,
+        ...(whole.leaves ? { dayEvent: undefined } : {}),
+      });
     }
-    return diversified.changed;
+    return diversified.changed || whole.leaves;
   }, [
     slots,
     toolSettings.allowCompanions,
+    toolSettings.dayEvent,
     toolSettings.dayMood,
     toolSettings.intimateMix,
     updateToolSettings,
@@ -2758,8 +2766,11 @@ export function useDayPlannerToolOrchestrationCore() {
         companions: toolSettings.allowCompanions === true,
         llmBody: sharedLlmRequestBody(shared),
       });
+      // A whole day from an idea leaves an event (the toggle alone left it on underneath).
+      const whole = slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
       updateToolSettings({
-        slots: applyDayPremiseBeats(slots, beats),
+        slots: applyDayPremiseBeats(whole.slots, beats),
+        ...(whole.leaves ? { dayEvent: undefined } : {}),
         // Tomorrow keeps following the idea.
         dayThread: normalizeDayThread({
           ...normalizeDayThread(toolSettings.dayThread),
@@ -2768,7 +2779,14 @@ export function useDayPlannerToolOrchestrationCore() {
       });
       return beats.length;
     },
-    [shared, slots, toolSettings.allowCompanions, toolSettings.dayThread, updateToolSettings]
+    [
+      shared,
+      slots,
+      toolSettings.allowCompanions,
+      toolSettings.dayEvent,
+      toolSettings.dayThread,
+      updateToolSettings,
+    ]
   );
 
   // One event: the LLM writes consecutive moments of one event in one place (day-event.ts).

@@ -10,6 +10,7 @@ import {
   dayEventMomentWords,
   normalizeDayEvent,
   parseDayEventPlan,
+  slotsForWholeDay,
 } from './day-event';
 import { dayEventFixMessages } from './day-event-server';
 import { daySlotDefaultLabel, normalizeDaySlots, type DaySlot } from './day-planner';
@@ -291,5 +292,26 @@ describe('one event — the clips', () => {
 
   it('a later moment is an edit of the one before, posed by its beat', () => {
     assert.equal(dayEventMomentWords({ sceneHints: 'sitting at the table. ' }), 'sitting at the table');
+  });
+});
+
+describe('one event — leaving it for a whole day', () => {
+  it('Write the day / Suggest on an event Day clear the event, its labels and moves', () => {
+    const slots = normalizeDaySlots([
+      { id: 'morning', label: 'Evening', sceneHints: 'sitting at the table holding a glass of red wine', eventMove: 'lifts the glass' },
+      { id: 'afternoon', label: 'Evening', sceneHints: 'sitting at the table, sipping', eventMove: 'lowers the glass' },
+    ]) as DaySlot[];
+    const event = { text: 'wine at a trattoria', place: 'candlelit trattoria', time: 'Evening' };
+    const whole = slotsForWholeDay(slots, event, daySlotDefaultLabel);
+    assert.equal(whole.leaves, true);
+    assert.deepEqual(
+      whole.slots.map(slot => [slot.label, slot.eventMove]),
+      slots.map(slot => [daySlotDefaultLabel(slot.id), undefined])
+    );
+  });
+
+  it('a whole day stays as it is', () => {
+    const slots = normalizeDaySlots([{ id: 'morning', label: 'Morning', sceneHints: 'jogging in the park' }]) as DaySlot[];
+    assert.deepEqual(slotsForWholeDay(slots, undefined, daySlotDefaultLabel), { slots, leaves: false });
   });
 });
