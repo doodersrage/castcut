@@ -225,3 +225,22 @@ export function castMarkEditPhrases(marks: CastMark[] | undefined): string[] {
       : phrase;
   });
 }
+
+/**
+ * A try-on's marks line (Outfit): the marks this outfit shows, written for a man lead when the
+ * Cast is one (Day's lines are written for a woman).
+ */
+export function tryOnMarksLine(
+  marks: CastMark[] | undefined,
+  outfit: string,
+  notes?: string | null,
+  man = false
+): string {
+  const line = castMarksLine(marks, { outfit, beat: notes });
+  return man
+    ? line
+        .replace(/\bShe\b/g, 'He')
+        .replace(/\bher\b/g, 'his')
+        .replace(/\bHer\b/g, 'His')
+    : line;
+}

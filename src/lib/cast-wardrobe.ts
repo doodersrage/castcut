@@ -198,3 +198,28 @@ export function backfillCastWardrobe(
   if (next) upsertCharacter({ ...character, wardrobe: next });
   return (next ?? normalizeCastWardrobe(character.wardrobe) ?? []).length;
 }
+
+/** The turn-around clip direction for an outfit (live-tested 2026-10-14). */
+export const RUNWAY_CLIP_PROMPT =
+  'She turns slowly in place to show the whole outfit: a full turn from the front to the side, her back, the other side and the front again, then stands still facing the camera. Her face, hair and clothes stay exactly the same. The camera stays still, her whole body in frame, head to feet.';
+
+/** A man lead's runway direction. */
+export function runwayClipPrompt(man = false): string {
+  return man
+    ? RUNWAY_CLIP_PROMPT.replace(/\bShe\b/g, 'He')
+        .replace(/\bher\b/g, 'his')
+        .replace(/\bHer\b/g, 'His')
+    : RUNWAY_CLIP_PROMPT;
+}
+
+/** Keep an outfit's runway clip (made from `from`, the outfit's picture). */
+export function saveOutfitRunway(castId: string, key: string, url: string, from: string) {
+  const character = getCharacter(castId);
+  const list = normalizeCastWardrobe(character?.wardrobe);
+  if (!character || !list?.some(item => item.key === key)) return undefined;
+  const next = list.map(item =>
+    item.key === key ? { ...item, runwayUrl: url, runwayFor: from } : item
+  );
+  upsertCharacter({ ...character, wardrobe: next });
+  return getCharacter(castId);
+}

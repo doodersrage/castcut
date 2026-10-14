@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import DayPartnerPicker, { type DayPartnerOption } from '@/components/day-planner/DayPartnerPicker';
 import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
@@ -29,6 +30,8 @@ export type DayPartnerRowProps = {
   onKeepPartnerAsCast?: () => string | null;
   /** The face picture actually sent for the Cast partner on the last two-person still. */
   partnerSentFaceUrl?: string;
+  /** What the Cast partner wears on two-person stills (their kept outfit), or null. */
+  partnerOutfit?: string | null;
 };
 
 /**
@@ -48,6 +51,7 @@ export default function DayPartnerRow({
   onNewPartnerStandIn,
   onKeepPartnerAsCast,
   partnerSentFaceUrl,
+  partnerOutfit,
 }: DayPartnerRowProps) {
   if (people === 'solo') return null;
   const mood = normalizeDayMood(dayMood);
@@ -96,6 +100,21 @@ export default function DayPartnerRow({
             was given.
           </span>
         </div>
+      ) : null}
+      {partner && !partner.invented && !isDayAdultMood(mood) ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-partner-outfit">
+          {partnerOutfit
+            ? `${partner.name} wears ${partnerOutfit} on every two-person still. `
+            : `${partner.name} has no kept outfit, so each still dresses them anew. `}
+          <Link
+            className="ui-text-link"
+            href={`/fitting?character=${encodeURIComponent(partner.id)}`}
+            title={`Outfit opens with ${partner.name} as the active Cast — switch back to your lead afterwards`}
+          >
+            {partnerOutfit ? `Dress ${partner.name} again` : `Dress ${partner.name} in Outfit`}
+          </Link>{' '}
+          (Outfit switches to {partner.name}; switch back to your lead after Keep).
+        </p>
       ) : null}
       {partner ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-partner-hint">

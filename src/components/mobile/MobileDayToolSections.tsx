@@ -186,6 +186,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     faceFinishStatus,
     afterChecksStatus,
     checkMarks,
+    partnerOutfit,
     setCheckMarks,
     widescreenFilm,
     setWidescreenFilm,
@@ -907,6 +908,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           leadNoun={leadNoun}
           partnerStandInUrl={partnerStandInUrl}
           partnerSentFaceUrl={partnerSentFaceUrl}
+          partnerOutfit={partnerOutfit}
           onNewPartnerStandIn={newPartnerStandIn}
           onKeepPartnerAsCast={keepPartnerAsCast}
         />

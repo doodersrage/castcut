@@ -693,3 +693,18 @@ describe('back view shoe sentence', () => {
     assert.doesNotMatch(buildFittingBackViewPrompt({}), /On her feet/);
   });
 });
+
+describe('try-on keeps her marks', () => {
+  it('says her marks and keeps them out of the accessory discard', () => {
+    const prompt = buildFittingOutfitPrompt({
+      outfitLabel: 'a sleeveless red sundress',
+      marksLine: 'She wears round tortoiseshell glasses — no other ink.',
+    });
+    assert.match(prompt, /keep the person's own marks.*round tortoiseshell glasses/);
+    assert.match(prompt, /accessory from Image 1 .*\(the marks above stay\)/);
+    assert.doesNotMatch(
+      buildFittingOutfitPrompt({ outfitLabel: 'a red sundress' }),
+      /own marks|marks above/
+    );
+  });
+});

@@ -13,10 +13,14 @@ import {
   wornOutfitKey,
 } from '@/lib/cast-wardrobe';
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
+import { dayPartnerNoun } from '@/lib/day-partner';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
+const OutfitRunwayButton = dynamic(() => import('@/components/character/OutfitRunwayButton'), {
+  ssr: false,
+});
 
 function when(at: number): string {
   return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -142,9 +146,31 @@ export default function CastWardrobeSection({
                   No still kept
                 </div>
               )}
+              {item.runwayUrl ? (
+                <video
+                  src={item.runwayUrl}
+                  className="aspect-[3/4] w-full rounded-[var(--radius-sm)] bg-black object-cover"
+                  controls
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  data-testid={`cast-wardrobe-${item.key}-runway-video`}
+                />
+              ) : null}
               <p className="truncate text-sm text-[var(--text-primary)]" title={item.label}>
                 {item.label}
               </p>
+              {fullFor(item.promptIds) ? (
+                <OutfitRunwayButton
+                  character={character}
+                  outfitKey={item.key}
+                  imageUrl={fullFor(item.promptIds)!}
+                  man={dayPartnerNoun(character) === 'man'}
+                  onDone={next => onUpdated?.(next)}
+                  onStatus={setNote}
+                />
+              ) : null}
               <p className="type-caption text-[var(--text-muted)]">
                 {item.outfit.footwear ? `${item.outfit.footwear} · ` : ''}
                 last {when(item.lastAt)}

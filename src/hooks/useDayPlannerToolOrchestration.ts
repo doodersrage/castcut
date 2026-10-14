@@ -1,5 +1,8 @@
 'use client';
 
+import { getCharacter } from '@/lib/character-os';
+import { partnerOutfitWords } from '@/lib/day-partner-outfit';
+import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
 import { clipUrlIsSilent } from '@/lib/clip-sound';
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
@@ -442,6 +445,13 @@ export function useDayPlannerToolOrchestration() {
     faceFinishStatus: faceFinish.faceFinishStatus,
     afterChecksStatus: afterChecks.afterChecksStatus,
     checkMarks: core.toolSettings.checkMarks !== false,
+    // What the Cast partner wears on two-person stills (their kept outfit from Outfit).
+    partnerOutfit: partnerOutfitWords(
+      core.toolSettings.partnerCharacterId
+        ? getCharacter(core.toolSettings.partnerCharacterId)
+        : null,
+      kitId => formatWardrobeKitLabel(core.wardrobeLabelFor(kitId) || '')
+    ),
     widescreenFilm: core.toolSettings.widescreenFilm === true,
     setWidescreenFilm: (next: boolean) => core.updateToolSettings({ widescreenFilm: next }),
     setCheckMarks: (next: boolean) => core.updateToolSettings({ checkMarks: next }),

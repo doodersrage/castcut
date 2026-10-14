@@ -196,6 +196,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     faceFinishStatus,
     afterChecksStatus,
     checkMarks,
+    partnerOutfit,
     setCheckMarks,
     widescreenFilm,
     setWidescreenFilm,
@@ -973,6 +974,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               leadNoun={leadNoun}
               partnerStandInUrl={partnerStandInUrl}
               partnerSentFaceUrl={partnerSentFaceUrl}
+              partnerOutfit={partnerOutfit}
               onNewPartnerStandIn={newPartnerStandIn}
               onKeepPartnerAsCast={keepPartnerAsCast}
             />

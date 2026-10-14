@@ -1,5 +1,6 @@
 'use client';
 
+import { partnerOutfitWords } from '@/lib/day-partner-outfit';
 import { castMarksLine } from '@/lib/cast-marks';
 import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
 import { castRelationOf, relationAllowsRomance } from '@/lib/cast-relationships';
@@ -2211,13 +2212,12 @@ export function useDayPlannerToolOrchestrationCore() {
           leadNoun,
           leadDescriptor,
           partner: slotPartner,
-          partnerOutfit: partnerCharacter?.lockedWardrobeId?.trim()
-            ? dayOutfitPromptName(
-                formatWardrobeKitLabel(
-                  wardrobeLabelFor(partnerCharacter.lockedWardrobeId.trim()) || ''
-                )
-              ) || null
-            : null,
+          // The partner Cast's own outfit, as dressed in Outfit (their look's kept outfit: a kit,
+          // or a clothing photo's description, and their shoes) — said the same on every still,
+          // else they were dressed anew each time.
+          partnerOutfit: partnerOutfitWords(partnerCharacter, kitId =>
+            formatWardrobeKitLabel(wardrobeLabelFor(kitId) || '')
+          ),
           // Her own clothing photo counts too: on a two-person still the partner's face takes
           // the clothing image's slot, and unnamed she fell back to a plain top (sweep
           // 2026-10-02: a beige tank on 4 of 6 Rapid duo stills).

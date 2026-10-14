@@ -78,3 +78,11 @@ describe('wardrobeFromGallery', async () => {
     assert.equal(wardrobeFromGallery([], 'c'), null);
   });
 });
+
+describe('runway clip direction', async () => {
+  const { runwayClipPrompt } = await import('./cast-wardrobe');
+  it('turns her around, and him for a man lead', () => {
+    assert.match(runwayClipPrompt(), /^She turns slowly in place/);
+    assert.match(runwayClipPrompt(true), /^He turns slowly in place.*his whole body/);
+  });
+});

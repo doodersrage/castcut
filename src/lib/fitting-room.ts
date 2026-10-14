@@ -587,6 +587,12 @@ export function buildFittingOutfitPrompt(input: {
   footwearLine?: string;
   /** The shoes are pictured in Image 2: under the clothing, or as Image 2 on their own. */
   footwearImage?: 'combined' | 'alone' | null;
+  /**
+   * The Cast's marks that show in this outfit (cast-marks.ts castMarksLine), ready-made like the
+   * footwear line. Glasses are not an accessory to discard; a tattoo shows where the outfit
+   * leaves the skin bare.
+   */
+  marksLine?: string;
 }): string {
   const outfit = input.outfitLabel.trim();
   const footwear = (input.footwearLine ?? '')
@@ -632,9 +638,14 @@ export function buildFittingOutfitPrompt(input: {
       ? 'if Image 2 shows only a top, she also wears simple bottoms that go with it (shorts, a skirt or trousers) — never underwear showing; a one-piece garment (dress, romper, bodysuit) needs nothing added'
       : null,
     footwear || null,
-    hasShoes
-      ? 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them — the footwear above replaces its shoes'
-      : 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them',
+    input.marksLine?.trim()
+      ? `keep the person's own marks (part of them, not clothing): ${input.marksLine.trim()}`
+      : null,
+    `${
+      hasShoes
+        ? 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them — the footwear above replaces its shoes'
+        : 'discard every garment, uniform, shoe, bag, hat, and accessory from Image 1 unless the new outfit explicitly includes them'
+    }${input.marksLine?.trim() ? ' (the marks above stay)' : ''}`,
     'do not restore the reference photo street clothes even if they match older look notes',
     input.isolated
       ? 'background: clean plain studio / white seamless; no scene from the original photo'

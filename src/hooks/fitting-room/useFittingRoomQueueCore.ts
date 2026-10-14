@@ -1,5 +1,7 @@
 'use client';
 
+import { tryOnMarksLine } from '@/lib/cast-marks';
+import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
@@ -161,6 +163,13 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
   const pendingTryOnRef = useRef<FittingPendingTryOn | null>(null);
   // Jobs that already landed (or failed) here: never followed again, whatever the settings say.
   const handledPromptIdsRef = useRef(new Set<string>());
+  // Her marks on a try-on whose front is final (useFittingMarksCheck); the gallery listener and
+  // the shoe check reach the current one through this ref.
+  const checkTryOnMarks = useFittingMarksCheck(input, setCompareTryOns);
+  const checkTryOnMarksRef = useRef(checkTryOnMarks);
+  useEffect(() => {
+    checkTryOnMarksRef.current = checkTryOnMarks;
+  }, [checkTryOnMarks]);
   // Compare and the try-on in flight are saved with Outfit's settings: they lived in page memory
   // only, and a reload (or another device) lost the try-ons the player was choosing between.
   const compareRestoredRef = useRef(false);
@@ -259,6 +268,14 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           footwearImage
         ),
         footwearImage,
+        // Her glasses / tattoos that this outfit shows (2026-10-14: try-ons said nothing and
+        // "discard every accessory" took her glasses).
+        marksLine: tryOnMarksLine(
+          input.character?.marks,
+          hasCustomGarment ? garmentDescription || '' : outfitLabel,
+          input.toolSettings.notes,
+          dayPartnerNoun(input.character ?? {}) === 'man'
+        ),
       });
     },
     [
@@ -642,6 +659,14 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           landedJob,
           footwearNeedsFeetPass(verdict, landedJob.feetPass.whenUnchecked !== false)
         );
+        if (next !== 'feet-pass') {
+          // The shoes are right: this front is final — her marks next.
+          checkTryOnMarksRef.current({
+            promptId: landedJob.replacesPromptId?.trim() || landedJob.promptId,
+            imageUrl: landed.imageUrl,
+            outfit: landedJob.wardrobeLabel || '',
+          });
+        }
         if (!next) {
           input.setSaveStatus(null);
           return;
@@ -842,6 +867,14 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             // try-on → (feet pass) → back view. Cleared above first: a reload while the next
             // pass is being staged keeps the card in Compare and nothing half-done in flight.
             const step = fittingNextChainStep(pending);
+            // A front that no feet pass follows is final: her marks are checked on it.
+            if (!backOf && step !== 'feet-pass') {
+              checkTryOnMarksRef.current({
+                promptId: replaces || pending.promptId,
+                imageUrl,
+                outfit: pending.wardrobeLabel || '',
+              });
+            }
             if (step) {
               void queueChainPassRef.current(step, pending, {
                 imageUrl,

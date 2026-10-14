@@ -209,6 +209,9 @@ export type CastWornOutfit = {
   count: number;
   /** Latest stills made in it (Gallery prompt ids), newest first. */
   promptIds: string[];
+  /** A turn-around clip of the outfit (Cast home → Wardrobe → Runway), and the picture it came from. */
+  runwayUrl?: string;
+  runwayFor?: string;
 };
 
 export type ReferenceSheetViewId =

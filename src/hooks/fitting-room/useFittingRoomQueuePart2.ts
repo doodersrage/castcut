@@ -1,6 +1,7 @@
 'use client';
 
 import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/outfit-handoff';
+import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
 import { useCallback, useEffect } from 'react';
 import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
 import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
@@ -270,6 +271,22 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
           // The session's outfit lock is the active look's.
           input.updateShared({ lockedWardrobeId: lockAfter });
         }
+      }
+      // The Wardrobe on Cast home has it now, with this try-on as its picture — not only once a
+      // Day still is made in it.
+      if (keptNow) {
+        const kept = keptLookOutfitFromTryOn(tryOn, input.toolSettings);
+        const { entryId: _entry, dressPlateKey: _plate, ...worn } = kept;
+        void _entry;
+        void _plate;
+        recordCastOutfitWorn(characterId, {
+          outfit: worn,
+          label:
+            tryOn.wardrobeLabel?.trim() ||
+            input.toolSettings.customGarmentDescription?.trim().slice(0, 60) ||
+            'Kept outfit',
+          promptId: tryOn.promptId,
+        });
       }
       if (keptNow && tryOn.imageUrl?.trim() && tryOn.dressPlateKey) {
         const plate = { key: tryOn.dressPlateKey, model: input.shared.model };
