@@ -2,6 +2,26 @@
 // Plain CommonJS so both apps' next.config.ts can require it: Next compiles a TypeScript config to
 // CommonJS, which cannot require another .ts file.
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS config (see above)
+const os = require('node:os');
+
+// `next dev` serves its scripts only to localhost unless the page's host is listed here, so
+// opening it at the machine's LAN IP or through the reverse proxy left the login form dead
+// (a plain form submit back to /login, 2026-10-14). This machine's own addresses and the
+// PROMPT_TRUSTED_HOSTS names are what the app already accepts as same-origin.
+function devOrigins() {
+  const hosts = new Set(['127.0.0.1']);
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const entry of list ?? []) {
+      if (entry.family === 'IPv4') hosts.add(entry.address);
+    }
+  }
+  for (const name of (process.env.PROMPT_TRUSTED_HOSTS ?? '').split(',')) {
+    if (name.trim()) hosts.add(name.trim().toLowerCase());
+  }
+  return [...hosts];
+}
+
 /** @type {import('next').NextConfig} */
 const baseConfig = {
   output: 'standalone',
@@ -25,7 +45,7 @@ const baseConfig = {
       },
     ];
   },
-  allowedDevOrigins: ['127.0.0.1'],
+  allowedDevOrigins: devOrigins(),
   env: {
     NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED:
       process.env.NEXT_PUBLIC_PROMPT_NSFW_GENERATOR_ENABLED ??
