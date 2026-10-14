@@ -30,7 +30,9 @@ export function comfyInventoryFingerprint(models: ComfyUiModelLists): string {
 
 export type InventoryAutoSyncOutcome =
   | { status: 'unchanged' | 'unreachable' | 'off' }
-  | { status: 'synced'; filled: number; message: string };
+  | { status: 'synced'; filled: number; message: string }
+  /** First look at this ComfyUI: the maps were filled quietly — nothing "changed" to announce. */
+  | { status: 'first'; filled: number };
 
 function readFingerprint(comfyUrl: string): string | null {
   try {
@@ -102,7 +104,8 @@ export async function autoSyncLoaderMapsIfInventoryChanged(input?: {
   }
   if (!models) return { status: 'unreachable' };
   const fingerprint = comfyInventoryFingerprint(models);
-  if (readFingerprint(comfyUrl) === fingerprint) return { status: 'unchanged' };
+  const previous = readFingerprint(comfyUrl);
+  if (previous === fingerprint) return { status: 'unchanged' };
   writeFingerprint(comfyUrl, fingerprint);
   const latest = loadSettingsCache();
   const { result, filled, changed } = fillLoaderMapsFromInventory(models, latest.shared);
@@ -117,6 +120,9 @@ export async function autoSyncLoaderMapsIfInventoryChanged(input?: {
       modelControlNetMap: result.modelControlNetMap,
     },
   });
+  // A fresh install greeted the player with "mapped 68 new entries" (fresh-install walk,
+  // 2026-10-13): the first fill is setup, not news.
+  if (previous === null) return { status: 'first', filled };
   return {
     status: 'synced',
     filled,

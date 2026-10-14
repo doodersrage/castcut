@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import SettingsConnectionFirstRun from '@/components/settings/SettingsConnectionFirstRun';
 import ServiceDiscoveryCard from '@/components/settings/ServiceDiscoveryCard';
 import QueueExportSettingsPanel from '@/components/settings/QueueExportSettingsPanel';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
@@ -43,8 +42,6 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
     handleResetComfySettings,
     refreshHealth,
     health,
-    healBusy = false,
-    healProgress = null,
     handleHealAndReady,
     setStatus,
     updateQueueParam,
@@ -84,15 +81,6 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
           window.setTimeout(() => void refreshHealth(), 300);
         }}
       />
-      {handleHealAndReady ? (
-        <SettingsConnectionFirstRun
-          health={health}
-          systemWorkflowsEnabled={sharedSettings.useSystemWorkflows === true}
-          healBusy={healBusy}
-          healProgress={healProgress}
-          onHealAndReady={handleHealAndReady}
-        />
-      ) : null}
 
       <SettingsComfyConnectionDesktopNotice health={health} />
 
@@ -106,6 +94,7 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
         refreshHealth={refreshHealth}
         updateQueueParam={updateQueueParam}
         showPlaceholderTokens={!manualInjectionFolded}
+        showAdvanced={showAdvanced}
       />
 
       {(() => {
@@ -142,6 +131,8 @@ export default function SettingsComfyConnectionPanel(props: SettingsComfyConnect
         );
         // System workflows build every queue themselves: placeholder tokens, custom tokens and the
         // fallback workflow only matter for hand-made workflows — keep them out of the way.
+        // Essentials view: system workflows on, nothing hand-made — the fold is not shown at all.
+        if (manualInjectionFolded && !showAdvanced) return null;
         return manualInjectionFolded ? (
           <CollapsibleSection
             title="Manual workflow injection"

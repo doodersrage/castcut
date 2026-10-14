@@ -12,6 +12,13 @@ export function SettingsOverviewAboutSection() {
     <>
       <ToolSection title="About">
         <AppUpdateStatus />
+        <p className="mt-3 text-sm text-[var(--text-secondary)]">
+          Theme, density and queue toasts are in{' '}
+          <a href="/profile" className="underline underline-offset-2">
+            Profile → Appearance
+          </a>
+          .
+        </p>
         {APP_HAS_PLAY ? (
           <p
             className="mt-3 text-sm text-[var(--text-secondary)]"

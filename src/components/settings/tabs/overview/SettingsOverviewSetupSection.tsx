@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import AppSlot from '@/components/AppSlot';
 import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -39,7 +40,7 @@ export function SettingsOverviewSetupSection({
 }: Props) {
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   return (
-    <ToolSection title="Get set up">
+    <ToolSection title="Get set up" data-testid="settings-get-set-up">
       <div className="mb-4 rounded-[var(--radius-xl)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 shadow-[var(--shadow-surface)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
@@ -71,9 +72,13 @@ export function SettingsOverviewSetupSection({
             {(
               [
                 {
-                  ok: health.llm.ok,
+                  ok: health.llm.ok && !health.llm.modelMissing,
                   label: 'LLM',
-                  detail: health.llm.enabled ? (health.llm.model ?? 'connected') : 'disabled',
+                  detail: !health.llm.enabled
+                    ? 'disabled'
+                    : health.llm.modelMissing
+                      ? `${health.llm.model} is not on the LLM server — load it, or pick one in Settings → LLM`
+                      : (health.llm.model ?? 'connected'),
                 },
                 {
                   ok: health.comfyui.ok,
@@ -93,9 +98,9 @@ export function SettingsOverviewSetupSection({
                     ]
                   : []),
                 {
-                  ok: Boolean(health.config.visionModel?.trim()),
+                  ok: Boolean(health.config?.visionModel?.trim()),
                   label: 'Vision model',
-                  detail: health.config.visionModel?.trim() || 'unset — vision tools will fail',
+                  detail: health.config?.visionModel?.trim() || 'unset — vision tools will fail',
                 },
                 {
                   ok: Boolean(health.storage?.enabled),
@@ -138,6 +143,17 @@ export function SettingsOverviewSetupSection({
             ))}
           </ul>
         ) : null}
+        {/* Film's own checks (pose, face, cut, still review…) — moved here from the ComfyUI tab's
+            "First run" panel, which repeated this card's Heal & ready. */}
+        <details className="mt-3" data-testid="setup-film-checks">
+          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+            Film checks
+          </summary>
+          <AppSlot
+            name="settings.firstRunChecks"
+            refreshKey={`${health?.comfyui?.ok === true}:${healBusy ? 1 : 0}`}
+          />
+        </details>
       </div>
 
       <div className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-4">
@@ -145,8 +161,8 @@ export function SettingsOverviewSetupSection({
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-medium text-[var(--text-primary)]">Move to a new machine</p>
             <p className="type-caption text-[var(--text-secondary)]">
-              Export history, settings, gallery, and extras (including gallery ELO). Import the JSON
-              on the other browser, then reload.
+              Export backup carries settings, the Cast, history and the gallery list; the pictures
+              travel in Settings → Data → Pictures backup. Import both on the other machine.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { e2eCredentials, ensureAuthenticated } from './helpers/auth';
 import { seedGalleryFixture } from './helpers/gallery';
 import { putAppKv, seedSettingsCacheOnNextLoad } from './helpers/idb';
-import { gotoStable, openComfyUiSettingsTab } from './helpers/navigation';
+import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
 test.describe('Workflow editor', { tag: '@classic' }, () => {
@@ -135,18 +135,15 @@ test.describe('Heal failure path', () => {
       });
     });
 
-    await gotoStable(page, '/settings?tab=comfyui&section=connection');
-    await openComfyUiSettingsTab(page);
-    // Banner Heal shares the same label but does not set heal-status — dismiss if present.
+    // Heal & ready lives once, in Overview's Get set up card (the ComfyUI tab's "First run"
+    // panel repeated it until 2026-10-13).
+    await gotoStable(page, '/settings?tab=overview');
     const dismissBanner = page.getByRole('button', { name: /^Dismiss$/i });
     if (await dismissBanner.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await dismissBanner.click();
     }
-    const connection = page.locator('#settings-comfyui-connection');
+    const connection = page.getByTestId('settings-get-set-up');
     await expect(connection).toBeVisible({ timeout: 30_000 });
-    // No explicit scroll: the hub re-renders when health lands, and scrolling a detached node
-    // flaked in CI. The click below scrolls the (re-resolved) button into view itself.
-    // Scope to the connection hub — SetupReadinessBanner also has Heal & ready without heal-status.
     const heal = connection
       .getByTestId('heal-and-ready')
       .or(connection.getByRole('button', { name: /Heal & ready/i }))

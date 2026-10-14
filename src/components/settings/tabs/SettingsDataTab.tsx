@@ -11,7 +11,7 @@ import { clearAllLocalPromptData, localDataKeys } from '@/lib/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui-settings';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { ComfyUiSettings } from '@/lib/comfyui-settings';
-import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { TextArea, FieldLabel, TextInput } from '@/components/ui/Field';
 import {
   normalizeGalleryWorkflowMaxBytes,
@@ -98,141 +98,62 @@ export default function SettingsDataTab({
 
   return (
     <>
-      <ToolSection>
-        <ComfyUiGalleryPanel limit={6} compact showHeader />
+      {/* Backup & move first, disk space next, the rest folded (fresh-install walk 2026-10-13:
+          eleven sections, the backups at the bottom). */}
+
+      <ToolSection title="Backup & move">
+        <p className="text-sm text-[var(--text-secondary)]">
+          Full studio backup includes history, settings, gallery, workflows, extras (gallery ELO,
+          recipes, views), and ComfyUI prefs. On a new machine: Import backup, then reload. Prefer
+          Settings export above when you only need prefs.
+        </p>
+        {backupReminder ? (
+          <p className="mb-3 text-sm text-[var(--tint-warning-text)]">{backupReminder}</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2 text-sm">
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          >
+            Export backup
+          </button>
+          <BackupRestoreFlow
+            label="Import backup"
+            testId="settings-backup-restore"
+            className="cursor-pointer rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-within:ring-2 focus-within:ring-[var(--accent-ring)]"
+            onRestored={setStatus}
+            onError={setStatus}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm('Clear all local prompt history, settings, presets, and templates?')
+              ) {
+                clearAllLocalPromptData();
+                resetComfyUiSettings();
+                updateSettings(DEFAULT_COMFYUI_SETTINGS);
+                setStatus('Local data cleared. Reload the page.');
+              }
+            }}
+            className="rounded-lg border border-[var(--tint-danger-border)] px-4 py-2 text-[var(--tint-danger-text)] transition hover:border-[var(--tint-danger-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          >
+            Reset local data
+          </button>
+        </div>
+        {/* The storage key names are for support, not for reading — folded away. */}
+        <details className="text-xs text-[var(--text-muted)]">
+          <summary className="cursor-pointer">What this clears (storage keys)</summary>
+          <p className="mt-1 break-words font-mono">{localDataKeys().join(', ')}</p>
+        </details>
       </ToolSection>
 
-      <ToolSection title="Reliability">
-        <div id="settings-data-reliability" className="scroll-mt-24 space-y-4">
-          <p className="text-sm text-[var(--text-secondary)]">{reliability.headline}</p>
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Exact-replay share</dt>
-              <dd className="mt-1 text-lg text-[var(--text-primary)]">
-                {formatRate(reliability.replayHitRate)}
-              </dd>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {metrics.exactReplay} replays · {metrics.firstQueueSuccess} first successes
-              </p>
-            </div>
-            {APP_HAS_PLAY ? (
-              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-                <dt className="text-xs text-[var(--text-muted)]">Film loop funnel</dt>
-                <dd
-                  className="mt-1 text-lg text-[var(--text-primary)]"
-                  data-testid="settings-play-funnel"
-                >
-                  {formatRate(playFunnel.cutRate)} cut · {formatRate(playFunnel.saveRate)} save
-                </dd>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  {metrics.firstFilmCut}/{metrics.firstPlayCampaign || 0} cuts/starts · keep{' '}
-                  {metrics.keepTryOn} · save-to-cast {metrics.saveToCast}
-                  {playFunnel.maxStep > 0 || playFunnel.dayShare != null
-                    ? ` · Day ${formatRate(playFunnel.dayShare)} / Story ${formatRate(playFunnel.roleplayShare)} · max step ${playFunnel.maxStep}`
-                    : ''}
-                </p>
-              </div>
-            ) : null}
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Playbook CTA rate</dt>
-              <dd className="mt-1 text-lg text-[var(--text-primary)]">
-                {formatRate(reliability.playbookClickRate)}
-              </dd>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {metrics.playbookCtaClick} opens · {metrics.queueFailures} failures
-              </p>
-            </div>
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Setup completion</dt>
-              <dd className="mt-1 text-lg text-[var(--text-primary)]">
-                {formatRate(reliability.setupCompletionRate)}
-              </dd>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {metrics.firstQueueSetupCompleted}/{metrics.firstQueueSetupShown} · dismissals{' '}
-                {metrics.firstQueueSetupDismissed}
-              </p>
-            </div>
-            <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
-              <dt className="text-xs text-[var(--text-muted)]">Failures · 7 days</dt>
-              <dd className="mt-1 text-lg text-[var(--text-primary)]">{metrics.queueFailures}</dd>
-              <FailureSparkline series={failureSparklineSeries(metrics)} />
-            </div>
-          </dl>
-          {metrics.lastFailureMessage ? (
-            <p className="mt-3 text-xs text-[var(--text-muted)]">
-              Last failure
-              {metrics.lastFailureAt
-                ? ` · ${new Date(metrics.lastFailureAt).toLocaleString()}`
-                : ''}
-              : {metrics.lastFailureMessage}
-              {metrics.lastFailureHref ? (
-                <>
-                  {' '}
-                  <Link
-                    href={metrics.lastFailureHref}
-                    className="text-[var(--accent-text)] underline-offset-2 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                  >
-                    Open fix
-                  </Link>
-                </>
-              ) : null}
-            </p>
-          ) : null}
-          {metrics.lastBlockedSetupStep ? (
-            <p className="mt-2 text-xs text-[var(--text-muted)]">
-              First-queue funnel often blocked on{' '}
-              <span className="text-[var(--text-secondary)]">{metrics.lastBlockedSetupStep}</span>
-              {metrics.firstQueueSetupStepFails[metrics.lastBlockedSetupStep]
-                ? ` (${metrics.firstQueueSetupStepFails[metrics.lastBlockedSetupStep]}×)`
-                : ''}
-              .
-            </p>
-          ) : null}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {metrics.lastFailureHref ? (
-              <ButtonLink href={metrics.lastFailureHref} size="sm" variant="secondary">
-                Open last failure
-              </ButtonLink>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                resetFirstQueueSetupModal();
-                setStatus(
-                  'First-queue setup reset — queue again or reload to reopen the checklist.'
-                );
-              }}
-            >
-              Re-run first-queue setup
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                downloadLocalObservabilityExport();
-                setStatus('Reliability export downloaded.');
-              }}
-            >
-              Export metrics
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                clearLocalObservability();
-                setStatus('Local reliability metrics cleared.');
-                reloadBrowserSettingsState();
-              }}
-            >
-              Clear metrics
-            </Button>
-          </div>
-        </div>
+      <ToolSection title="Pictures backup">
+        <PicturesBackupPanel />
       </ToolSection>
+
+      <SettingsBundlePanel onImported={reloadBrowserSettingsState} onStatus={setStatus} />
 
       <ToolSection title="Gallery backups">
         <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
@@ -314,81 +235,170 @@ export default function SettingsDataTab({
         </div>
       </ToolSection>
 
-      <ToolSection title="Active character descriptor">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Shared mandatory descriptor injected into Character generation requests.
-        </p>
-        <TextArea
-          rows={3}
-          value={sharedSettings.activeCharacterDescriptor ?? ''}
-          onChange={event =>
-            updateSharedSettings({
-              activeCharacterDescriptor: event.target.value || undefined,
-            })
-          }
-          placeholder="e.g. athletic woman, mid-20s, short copper hair, green eyes"
-          className={accentFocusClass()}
-        />
-      </ToolSection>
+      <CollapsibleSection
+        title="More"
+        summary="Gallery preview, reliability, the active character descriptor, settings changed from defaults"
+        defaultOpen={false}
+        persistKey="settings-data-more"
+      >
+        <ToolSection>
+          <ComfyUiGalleryPanel limit={6} compact showHeader />
+        </ToolSection>
 
-      <ChangedSettingsPanel
-        sharedSettings={sharedSettings}
-        updateSharedSettings={updateSharedSettings}
-      />
+        <ToolSection title="Reliability">
+          <div id="settings-data-reliability" className="scroll-mt-24 space-y-4">
+            <p className="text-sm text-[var(--text-secondary)]">{reliability.headline}</p>
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                <dt className="text-xs text-[var(--text-muted)]">Exact-replay share</dt>
+                <dd className="mt-1 text-lg text-[var(--text-primary)]">
+                  {formatRate(reliability.replayHitRate)}
+                </dd>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {metrics.exactReplay} replays · {metrics.firstQueueSuccess} first successes
+                </p>
+              </div>
+              {APP_HAS_PLAY ? (
+                <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                  <dt className="text-xs text-[var(--text-muted)]">Film loop funnel</dt>
+                  <dd
+                    className="mt-1 text-lg text-[var(--text-primary)]"
+                    data-testid="settings-play-funnel"
+                  >
+                    {formatRate(playFunnel.cutRate)} cut · {formatRate(playFunnel.saveRate)} save
+                  </dd>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {metrics.firstFilmCut}/{metrics.firstPlayCampaign || 0} cuts/starts · keep{' '}
+                    {metrics.keepTryOn} · save-to-cast {metrics.saveToCast}
+                    {playFunnel.maxStep > 0 || playFunnel.dayShare != null
+                      ? ` · Day ${formatRate(playFunnel.dayShare)} / Story ${formatRate(playFunnel.roleplayShare)} · max step ${playFunnel.maxStep}`
+                      : ''}
+                  </p>
+                </div>
+              ) : null}
+              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                <dt className="text-xs text-[var(--text-muted)]">Playbook CTA rate</dt>
+                <dd className="mt-1 text-lg text-[var(--text-primary)]">
+                  {formatRate(reliability.playbookClickRate)}
+                </dd>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {metrics.playbookCtaClick} opens · {metrics.queueFailures} failures
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                <dt className="text-xs text-[var(--text-muted)]">Setup completion</dt>
+                <dd className="mt-1 text-lg text-[var(--text-primary)]">
+                  {formatRate(reliability.setupCompletionRate)}
+                </dd>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {metrics.firstQueueSetupCompleted}/{metrics.firstQueueSetupShown} · dismissals{' '}
+                  {metrics.firstQueueSetupDismissed}
+                </p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-3">
+                <dt className="text-xs text-[var(--text-muted)]">Failures · 7 days</dt>
+                <dd className="mt-1 text-lg text-[var(--text-primary)]">{metrics.queueFailures}</dd>
+                <FailureSparkline series={failureSparklineSeries(metrics)} />
+              </div>
+            </dl>
+            {metrics.lastFailureMessage ? (
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                Last failure
+                {metrics.lastFailureAt
+                  ? ` · ${new Date(metrics.lastFailureAt).toLocaleString()}`
+                  : ''}
+                : {metrics.lastFailureMessage}
+                {metrics.lastFailureHref ? (
+                  <>
+                    {' '}
+                    <Link
+                      href={metrics.lastFailureHref}
+                      className="text-[var(--accent-text)] underline-offset-2 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    >
+                      Open fix
+                    </Link>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+            {metrics.lastBlockedSetupStep ? (
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                First-queue funnel often blocked on{' '}
+                <span className="text-[var(--text-secondary)]">{metrics.lastBlockedSetupStep}</span>
+                {metrics.firstQueueSetupStepFails[metrics.lastBlockedSetupStep]
+                  ? ` (${metrics.firstQueueSetupStepFails[metrics.lastBlockedSetupStep]}×)`
+                  : ''}
+                .
+              </p>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {metrics.lastFailureHref ? (
+                <ButtonLink href={metrics.lastFailureHref} size="sm" variant="secondary">
+                  Open last failure
+                </ButtonLink>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  resetFirstQueueSetupModal();
+                  setStatus(
+                    'First-queue setup reset — queue again or reload to reopen the checklist.'
+                  );
+                }}
+              >
+                Re-run first-queue setup
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  downloadLocalObservabilityExport();
+                  setStatus('Reliability export downloaded.');
+                }}
+              >
+                Export metrics
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  clearLocalObservability();
+                  setStatus('Local reliability metrics cleared.');
+                  reloadBrowserSettingsState();
+                }}
+              >
+                Clear metrics
+              </Button>
+            </div>
+          </div>
+        </ToolSection>
 
-      <SettingsBundlePanel onImported={reloadBrowserSettingsState} onStatus={setStatus} />
-
-      <ToolSection title="Local data">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Full studio backup includes history, settings, gallery, workflows, extras (gallery ELO,
-          recipes, views), and ComfyUI prefs. On a new machine: Import backup, then reload. Prefer
-          Settings export above when you only need prefs.
-        </p>
-        {backupReminder ? (
-          <p className="mb-3 text-sm text-[var(--tint-warning-text)]">{backupReminder}</p>
-        ) : null}
-        <div className="flex flex-wrap gap-2 text-sm">
-          <button
-            type="button"
-            onClick={handleExportBackup}
-            className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-          >
-            Export backup
-          </button>
-          <BackupRestoreFlow
-            label="Import backup"
-            testId="settings-backup-restore"
-            className="cursor-pointer rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-within:ring-2 focus-within:ring-[var(--accent-ring)]"
-            onRestored={setStatus}
-            onError={setStatus}
+        <ToolSection title="Active character descriptor">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Shared mandatory descriptor injected into Character generation requests.
+          </p>
+          <TextArea
+            rows={3}
+            value={sharedSettings.activeCharacterDescriptor ?? ''}
+            onChange={event =>
+              updateSharedSettings({
+                activeCharacterDescriptor: event.target.value || undefined,
+              })
+            }
+            placeholder="e.g. athletic woman, mid-20s, short copper hair, green eyes"
+            className={accentFocusClass()}
           />
-          <button
-            type="button"
-            onClick={() => {
-              if (
-                window.confirm('Clear all local prompt history, settings, presets, and templates?')
-              ) {
-                clearAllLocalPromptData();
-                resetComfyUiSettings();
-                updateSettings(DEFAULT_COMFYUI_SETTINGS);
-                setStatus('Local data cleared. Reload the page.');
-              }
-            }}
-            className="rounded-lg border border-[var(--tint-danger-border)] px-4 py-2 text-[var(--tint-danger-text)] transition hover:border-[var(--tint-danger-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-          >
-            Reset local data
-          </button>
-        </div>
-        {/* The storage key names are for support, not for reading — folded away. */}
-        <details className="text-xs text-[var(--text-muted)]">
-          <summary className="cursor-pointer">What this clears (storage keys)</summary>
-          <p className="mt-1 break-words font-mono">{localDataKeys().join(', ')}</p>
-        </details>
-      </ToolSection>
+        </ToolSection>
 
-      <ToolSection title="Pictures backup">
-        <PicturesBackupPanel />
-      </ToolSection>
+        <ChangedSettingsPanel
+          sharedSettings={sharedSettings}
+          updateSharedSettings={updateSharedSettings}
+        />
+      </CollapsibleSection>
     </>
   );
 }

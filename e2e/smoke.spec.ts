@@ -34,41 +34,22 @@ test('queue page loads', async ({ page }) => {
   });
 });
 
-test('settings connection first-run hub loads', async ({ page }) => {
+test('settings: ComfyUI connection loads; Heal & ready is on Overview', async ({ page }) => {
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   await openComfyUiSettingsTab(page);
   // Settings shell remounts while ComfyUI connection hydrates — always re-query the section.
   const connection = page.locator('#settings-comfyui-connection').first();
   await expect(connection).toBeVisible({ timeout: 30_000 });
-  // Skip scroll when the node remounts mid-call; heal/CTA waits below re-query live locators.
-  await connection.scrollIntoViewIfNeeded().catch(() => undefined);
-  // Dynamic ComfyUI tab can finish after the shell — wait for the first-run CTA.
-  const heal = page
-    .locator('#settings-comfyui-connection')
-    .getByTestId('heal-and-ready')
-    .or(
-      page
-        .locator('#settings-comfyui-connection')
-        .getByRole('button', { name: /Heal & ready|Healing/i })
-    );
-  await expect(heal.first()).toBeVisible({ timeout: 45_000 });
-  await expect(
-    page.locator('#settings-comfyui-connection').getByRole('link', { name: 'Open Generate', exact: true })
-  ).toHaveAttribute('href', '/?source=random', { timeout: 30_000 });
-  const queueLink = page
-    .locator('#settings-comfyui-connection')
-    .getByRole('link', { name: /Generate & queue first scene/i });
-  if (await queueLink.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await expect(queueLink).toHaveAttribute(
-      'href',
-      '/?source=random&autogen=1&autoqueue=1'
-    );
-  }
   await expect(
     page.locator('#settings-comfyui-connection').getByRole('button', { name: /Test connection/i })
-  ).toBeVisible({
-    timeout: 30_000,
-  });
+  ).toBeVisible({ timeout: 30_000 });
+  // One setup button, on Overview (the ComfyUI tab's "First run" panel repeated it until
+  // 2026-10-13).
+  await expect(connection.getByTestId('heal-and-ready')).toHaveCount(0);
+  await gotoStable(page, '/settings?tab=overview');
+  await expect(
+    page.getByTestId('settings-get-set-up').getByTestId('heal-and-ready')
+  ).toBeVisible({ timeout: 30_000 });
 });
 
 test('command palette lists heal and gallery continue items', async ({ page }) => {
