@@ -93,6 +93,11 @@ export default function AppShell({ children, kiosk }: { children: ReactNode; kio
   const mobileStudio = isMobileStudioPath(pathname);
   const kioskOn = Boolean(kiosk) && workspaceMode === kiosk?.workspace && !mobileStudio;
 
+  // A film review link (/review/<token>) is for someone without an account: no app around it.
+  if (pathname?.startsWith('/review/')) {
+    return <div className="relative z-[1] min-h-full">{children}</div>;
+  }
+
   return (
     <div
       className={

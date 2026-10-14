@@ -193,6 +193,8 @@ export type DayToolCache = {
    * Unset = on; only runs when the Cast has marks that should show.
    */
   checkMarks?: boolean;
+  /** Widescreen film: each still is widened to 16:9 (Edit 2511) before it is animated or cut. */
+  widescreenFilm?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMoodSetting;
   /** Cast member who plays the second person on duo stills (unset: an invented stranger). */

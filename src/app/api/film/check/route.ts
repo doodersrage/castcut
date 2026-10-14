@@ -2,9 +2,10 @@ import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/re
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { probeDeliveryShots, type DeliveryCheckShot } from '@/lib/film-delivery-check-server';
+import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 240;
 
 const MAX_SHOTS = 60;
 
@@ -25,6 +26,7 @@ function parseShots(raw: unknown): DeliveryCheckShot[] {
       kind,
       ...(entryId ? { entryId } : {}),
       ...(record.expectSpeech === true ? { expectSpeech: true } : {}),
+      ...(record.readText === true ? { readText: true } : {}),
     });
   }
   return shots;
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
   const { ffmpeg, results } = await probeDeliveryShots(shots, {
     requestOrigin: new URL(request.url).origin,
     userId: user?.id ?? null,
+    llm: parseLlmRequestOptions(body as LlmRequestBody),
   });
   return apiJson({ ok: true, ffmpeg, results });
 }

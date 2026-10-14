@@ -73,6 +73,8 @@ export type DaySlotSheetProps = {
   endPose?: ReactNode;
   onQueueSlot: () => void;
   onAnimateSlot: () => void;
+  /** Make a face close-up and a detail shot of this still for the cut (film-angles-client.ts). */
+  onAddCloseUps?: () => void;
   /** Phone: the compact pose preview. */
   compact?: boolean;
 };
@@ -112,6 +114,7 @@ export default function DaySlotSheet({
   endPose,
   onQueueSlot,
   onAnimateSlot,
+  onAddCloseUps,
   compact = false,
 }: DaySlotSheetProps) {
   const [clothingOpen, setClothingOpen] = useState(false);
@@ -186,6 +189,20 @@ export default function DaySlotSheet({
               onClick={onAnimateSlot}
             >
               Animate {label}
+            </Button>
+          ) : null}
+          {done && onAddCloseUps ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              data-testid="day-slot-close-ups"
+              title="Two more shots of this moment for the film — a face close-up and a detail (hands, what is held) — cut in for a beat right after it. Two Edit 2511 passes, about a minute."
+              onClick={onAddCloseUps}
+            >
+              {still?.angles?.some(angle => angle.for === still.imageUrl)
+                ? 'Redo close-ups'
+                : 'Add close-ups'}
             </Button>
           ) : null}
         </div>
@@ -317,6 +334,11 @@ export default function DaySlotSheet({
             onSave={line => updateSlot(slot.id, { line: line || undefined })}
             testId="day-slot-line"
           />
+          <NarrationField
+            key={`${slot.id}:narration`}
+            value={slot.narration ?? ''}
+            onSave={narration => updateSlot(slot.id, { narration: narration || undefined })}
+          />
         </div>
         <DaySlotPosePreview
           slot={slot}
@@ -427,5 +449,32 @@ export default function DaySlotSheet({
         {clothingOpen ? renderClothingPicker() : null}
       </ClothingSheet>
     </SideSheet>
+  );
+}
+
+/**
+ * Voice-over for this slot's shot in the film — not said on screen, recorded when the film is
+ * cut (film-narration.ts), in the Cast's kept voice when they have one. Saved on blur.
+ */
+function NarrationField({ value, onSave }: { value: string; onSave: (next: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  return (
+    <label className="space-y-1.5">
+      <FieldLabel>Narration</FieldLabel>
+      <TextArea
+        rows={2}
+        maxLength={140}
+        data-testid="day-slot-narration"
+        value={draft}
+        className="min-h-[3.5rem] [field-sizing:content]"
+        placeholder="Voice-over for the film, e.g. Some mornings the city feels like it was made for me."
+        onChange={event => setDraft(event.target.value)}
+        onBlur={() => onSave(draft.replace(/\s+/g, ' ').trim())}
+      />
+      <span className="type-caption text-[var(--text-muted)]">
+        Heard over this shot when the film is cut, not said on screen — in the Cast&apos;s voice
+        when one is kept.
+      </span>
+    </label>
   );
 }

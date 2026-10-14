@@ -6,6 +6,8 @@
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { normalizeEpisodeDay, type EpisodeDay } from './day-episode-snapshot';
+import { dayWatchPlaylist } from './day-planner';
+import type { FilmPlaylistShot } from './media-kind';
 
 export const PLAY_SERIES_KEY = 'play-series-v1';
 export const PLAY_SERIES_UPDATED_EVENT = 'play-series-updated';
@@ -371,4 +373,40 @@ export function seasonPlaces(series: PlaySeries): string[] {
     }
   }
   return [...seen.values()];
+}
+
+/** How long each "Previously on" shot holds (a clip plays its first seconds). */
+export const PREVIOUSLY_ON_SHOT_SEC = 2;
+
+/**
+ * "Previously on" for the next episode (2026-10-14): up to three shots from the season's last
+ * episode — its first, middle and last finished shot, clips over stills — each held
+ * {@link PREVIOUSLY_ON_SHOT_SEC}, the first captioned. Empty when there is no earlier episode
+ * in an open season (a first episode has nothing to recap).
+ */
+export function previouslyOnShots(
+  store: PlaySeriesStore,
+  characterId: string,
+  characterName: string
+): FilmPlaylistShot[] {
+  const active = activeSeriesForCast(store, characterId);
+  const last = active?.episodes.at(-1);
+  if (!last?.day) return [];
+  const shots = dayWatchPlaylist(last.day.stills, last.day.slots).filter(
+    shot => !shot.url.startsWith('data:')
+  );
+  if (shots.length === 0) return [];
+  const picks = [...new Set([0, Math.floor((shots.length - 1) / 2), shots.length - 1])]
+    .map(index => shots[index]!)
+    .slice(0, 3);
+  const name = characterName.trim() || 'last time';
+  return picks.map((shot, index) => ({
+    ...shot,
+    key: `previously-${index}`,
+    holdSec: PREVIOUSLY_ON_SHOT_SEC,
+    ...(shot.kind === 'clip' ? { trimStartSec: 0, trimEndSec: PREVIOUSLY_ON_SHOT_SEC } : {}),
+    ...(index === 0
+      ? { title: `Previously on ${name}`, caption: `Previously on ${name}…` }
+      : { captionless: true }),
+  }));
 }

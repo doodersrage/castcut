@@ -1,6 +1,7 @@
 'use client';
 
 import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
+import { clipUrlIsSilent } from '@/lib/clip-sound';
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
 import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
 import type { DayLength, DaySlot } from '@/lib/day-planner';
@@ -119,6 +120,20 @@ export function useDayPlannerToolOrchestration() {
   const clips = useDayClipQualityCheck(core);
   const endPose = useDayEndPose(core);
   const addVoice = useDayAddVoice(core);
+  // Cut: silent clips (WAN renders no sound) are offered sound in one go, via Add voice.
+  const silentClipSlotIds = core.slots
+    .filter(slot => {
+      const still = core.stills.find(entry => entry.slotId === slot.id);
+      return still?.clipStatus === 'completed' && clipUrlIsSilent(still.clipUrl);
+    })
+    .map(slot => slot.id);
+  const { addVoiceToSlot } = addVoice;
+  const addSoundToSilentClips = useCallback(async () => {
+    for (const slotId of silentClipSlotIds) {
+      const slot = core.slots.find(entry => entry.id === slotId);
+      if (slot) await addVoiceToSlot(slot);
+    }
+  }, [addVoiceToSlot, core.slots, silentClipSlotIds]);
   const extendClip = useDayExtendClip(core);
   const season = useDaySeries(core.character?.id);
   const outfitScope = useDayOutfitScope(core);
@@ -427,16 +442,21 @@ export function useDayPlannerToolOrchestration() {
     faceFinishStatus: faceFinish.faceFinishStatus,
     afterChecksStatus: afterChecks.afterChecksStatus,
     checkMarks: core.toolSettings.checkMarks !== false,
+    widescreenFilm: core.toolSettings.widescreenFilm === true,
+    setWidescreenFilm: (next: boolean) => core.updateToolSettings({ widescreenFilm: next }),
     setCheckMarks: (next: boolean) => core.updateToolSettings({ checkMarks: next }),
     adultGateStatus: adultGate.adultGateStatus,
     ...clips,
     ...endPose,
     ...addVoice,
+    silentClipSlotIds,
+    addSoundToSilentClips,
     ...extendClip,
     ...season,
     ...outfitScope,
     ...planHistory,
     cutDayFilm,
+    addCloseUps: part2.addCloseUps,
     cutChecking,
     cutProblems,
     resolveCutProblems,

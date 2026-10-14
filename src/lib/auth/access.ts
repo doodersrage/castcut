@@ -16,7 +16,10 @@ export function isPublicAuthPath(pathname: string): boolean {
     path === '/api/auth/profile' ||
     path === '/api/auth/totp/verify' ||
     path === '/api/shared-presets' ||
-    path === '/api/health'
+    path === '/api/health' ||
+    // A film review link (film-review-store.ts): the token is the key; only that film plays.
+    /^\/review\/[A-Za-z0-9_-]{32,64}$/.test(path) ||
+    /^\/api\/review\/[A-Za-z0-9_-]{32,64}(?:\/video)?$/.test(path)
   );
 }
 

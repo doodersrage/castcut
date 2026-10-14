@@ -108,7 +108,7 @@ describe('checks coverage', () => {
     assert.deepEqual(coverage, { checked: ['faces 3 of 4', 'auto-review'], notChecked: ['pose'] });
     assert.equal(
       cutChecksCoverageLine(coverage),
-      'Checked: faces 3 of 4, auto-review · Not checked: pose · files, black frames and sound are checked when you cut'
+      'Checked: faces 3 of 4, auto-review · Not checked: pose · files, black frames, sound, look-alike shots and garbled writing are checked when you cut'
     );
   });
 
@@ -140,5 +140,43 @@ describe('merging delivery problems', () => {
       { key: 'a', title: 'A', reasons: ['the picture is black', 'missed its pose'] },
       { key: 'b', title: 'B', reasons: ['the file is missing (not found)'] },
     ]);
+  });
+});
+
+describe('look-alike shots and garbled writing', async () => {
+  const { dhashGray, dhashDistance, duplicateShots, parseShotText, shotDeliveryReasons } = await import(
+    './film-delivery-check'
+  );
+  const frame = (fn: (x: number, y: number) => number) => {
+    const g = new Uint8Array(32 * 32);
+    for (let y = 0; y < 32; y += 1) for (let x = 0; x < 32; x += 1) g[y * 32 + x] = fn(x, y);
+    return g;
+  };
+  it('hashes a frame so near-identical pictures match and different ones do not', () => {
+    const a = dhashGray(frame((x, y) => (x * 7 + y * 3) % 256), 32);
+    const nearA = dhashGray(frame((x, y) => Math.min(255, ((x * 7 + y * 3) % 256) + 2)), 32);
+    const b = dhashGray(frame((x, y) => (255 - x * 8 + ((y * 37) % 50)) & 255), 32);
+    assert.equal(a.length, 16);
+    assert.ok(dhashDistance(a, nearA) <= 6);
+    assert.ok(dhashDistance(a, b) > 6);
+    const twins = duplicateShots([
+      { key: '1', title: 'Morning', dhash: a },
+      { key: '2', title: 'Noon', dhash: b },
+      { key: '3', title: 'Evening', dhash: nearA },
+    ]);
+    assert.deepEqual([...twins], [['3', 'Morning']]);
+  });
+  it('reads the writing verdict and names garbled text', () => {
+    assert.deepEqual(parseShotText('{"text": true, "garbled": true, "what": "CAFFE BRNST"}'), {
+      present: true,
+      garbled: true,
+      what: 'CAFFE BRNST',
+    });
+    assert.equal(parseShotText('{"text": false, "garbled": true}')?.garbled, false);
+    assert.equal(parseShotText('nope'), null);
+    assert.match(
+      shotDeliveryReasons({ key: 'k', text: { present: true, garbled: true, what: 'CAFFE BRNST' } }, 'still')[0]!,
+      /garbled writing in the frame \(“CAFFE BRNST”\)/
+    );
   });
 });

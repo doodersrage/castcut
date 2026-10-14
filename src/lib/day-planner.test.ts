@@ -42,6 +42,7 @@ import {
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
   dayWatchPlaylist,
+  DAY_ANGLE_HOLD_SEC,
   diversifyDaySlotScenes,
   DEFAULT_DAY_SLOTS,
   dayMoodReplacesKeepOutfit,
@@ -3389,5 +3390,30 @@ describe('diversifyDaySlotScenes keeps a typed beat in its own place (sweep 2026
     const morning = out.slots.find(slot => slot.id === 'morning')!;
     assert.equal(morning.sceneHints, beat);
     assert.equal(morning.location, dayVacationSettingForBeat(beat));
+  });
+});
+
+describe('close-up angles in the Day film', () => {
+  it('cuts a still\'s close-ups in right after it, captionless and short, only while they match', () => {
+    const slots = normalizeDaySlots(DEFAULT_DAY_SLOTS).slice(0, 2);
+    const stills = [
+      {
+        slotId: slots[0]!.id,
+        status: 'completed' as const,
+        imageUrl: '/a.png',
+        angles: [
+          { kind: 'face' as const, imageUrl: '/a-face.png', for: '/a.png' },
+          { kind: 'detail' as const, imageUrl: '/old-detail.png', for: '/older.png' },
+        ],
+      },
+      { slotId: slots[1]!.id, status: 'completed' as const, imageUrl: '/b.png' },
+    ];
+    const shots = dayWatchPlaylist(stills, slots);
+    assert.deepEqual(
+      shots.map(shot => shot.url),
+      ['/a.png', '/a-face.png', '/b.png']
+    );
+    assert.equal(shots[1]!.captionless, true);
+    assert.equal(shots[1]!.holdSec, DAY_ANGLE_HOLD_SEC);
   });
 });

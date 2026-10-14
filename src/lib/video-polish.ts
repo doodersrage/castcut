@@ -71,7 +71,12 @@ export function sanitizeFilmCaption(text: string | null | undefined, max = 60): 
 }
 
 /** Caption burned onto a shot: the one edited in the Cut shot list, else the shot title. */
-export function filmShotCaption(shot: { title?: string; caption?: string }): string {
+export function filmShotCaption(shot: {
+  title?: string;
+  caption?: string;
+  captionless?: boolean;
+}): string {
+  if (shot.captionless) return '';
   return sanitizeFilmCaption(shot.caption?.trim() || shot.title);
 }
 

@@ -26,7 +26,7 @@ import {
   type FilmTitleCard,
 } from './video-polish';
 import { clipIsTrimmed, clipTrimWindow } from './clip-trim';
-import { filmSpeechStarts } from './cut-timeline';
+import { filmShotStarts, filmSpeechStarts } from './cut-timeline';
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import {
   buildFilmScaleFilter,
@@ -268,6 +268,8 @@ export function buildFilterComplex(input: {
   musicLevel?: number;
   /** Lines gain (default 1). */
   voiceLevel?: number;
+  /** Narration tracks (film-narration.ts): ffmpeg input index → the shot it starts with. */
+  narration?: Array<{ input: number; shot: number }>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -383,16 +385,32 @@ export function buildFilterComplex(input: {
       `[${index}:a]${stereo},atrim=${from}:${from + holdSec},asetpts=PTS-STARTPTS,${voiceGain}adelay=${delayMs}:all=1[s${index}]`
     );
   }
-  if (voiced.length > 0) {
-    const speechLabels = voiced.map(({ index }) => `[s${index}]`).join('');
+  // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
+  const narrationLabels: string[] = [];
+  const narrated = input.narration ?? [];
+  if (narrated.length > 0) {
+    const starts = filmShotStarts({ kinds, holdSecs, crossfadeSec });
+    for (const entry of narrated) {
+      const start = starts[entry.shot];
+      if (start === undefined) continue;
+      parts.push(
+        `[${entry.input}:a]${stereo},asetpts=PTS-STARTPTS,${voiceGain}adelay=${Math.round(start * 1000)}:all=1[n${entry.shot}]`
+      );
+      narrationLabels.push(`[n${entry.shot}]`);
+    }
+  }
+  const speechCount = voiced.length + narrationLabels.length;
+  if (speechCount > 0) {
+    const speechLabels =
+      voiced.map(({ index }) => `[s${index}]`).join('') + narrationLabels.join('');
     parts.push(
-      `${speechLabels}${voiced.length > 1 ? `amix=inputs=${voiced.length}:duration=longest:normalize=0` : 'anull'},apad=whole_dur=${end}[speech]`
+      `${speechLabels}${speechCount > 1 ? `amix=inputs=${speechCount}:duration=longest:normalize=0` : 'anull'},apad=whole_dur=${end}[speech]`
     );
   }
   if (hasAudioBed) {
     const audioIndex = shotCount;
     const bed = `[${audioIndex}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS${musicGain}`;
-    if (voiced.length > 0) {
+    if (speechCount > 0) {
       // Duck the music under the lines, then lay the lines on top.
       parts.push(`[speech]asplit=2[sp1][sp2]`);
       parts.push(`${bed},apad=whole_dur=${end}[bed]`);
@@ -406,7 +424,7 @@ export function buildFilterComplex(input: {
       parts.push(`${bed},${fadeOut}[aout]`);
     }
     audioLabel = 'aout';
-  } else if (voiced.length > 0) {
+  } else if (speechCount > 0) {
     parts.push(`[speech]atrim=0:${end},${fadeOut}[aout]`);
     audioLabel = 'aout';
   }
@@ -548,6 +566,21 @@ export async function encodeFilmPlaylistServer(
       await fs.writeFile(/* turbopackIgnore: true */ audioPath, audioFetched.buffer);
     }
 
+    // Narration tracks, one per narrated shot (film-narration.ts).
+    const narrationFiles: Array<{ shot: number; path: string }> = [];
+    for (const [index, shot] of shots.entries()) {
+      const url = shot.narrationUrl?.trim();
+      if (!url) continue;
+      try {
+        const fetched = await fetchShotBytes(url, requestOrigin, undefined, options.userId);
+        const filePath = path.join(/* turbopackIgnore: true */ workDir, `narration-${index}.audio`);
+        await fs.writeFile(/* turbopackIgnore: true */ filePath, fetched.buffer);
+        narrationFiles.push({ shot: index, path: filePath });
+      } catch {
+        options.onProgress?.(0.43, `Narration for ${shot.title} could not be fetched — left out`);
+      }
+    }
+
     // Titles and captions need drawtext and a font; without either the cut still encodes.
     const wantsText = Boolean(options.titleCard?.title?.trim() || options.captions);
     const fontFile =
@@ -635,6 +668,12 @@ export async function encodeFilmPlaylistServer(
       trimStarts: graphTrims,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
+      // Graph shot index = shot index + the title card when there is one; narration inputs follow
+      // the shots and the music bed.
+      narration: narrationFiles.map((entry, k) => ({
+        input: graphKinds.length + (audioPath ? 1 : 0) + k,
+        shot: entry.shot + (graphKinds.length - localFiles.length),
+      })),
     });
 
     const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');
@@ -644,6 +683,9 @@ export async function encodeFilmPlaylistServer(
     }
     if (audioPath) {
       args.push('-i', audioPath);
+    }
+    for (const entry of narrationFiles) {
+      args.push('-i', entry.path);
     }
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {

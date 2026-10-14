@@ -63,6 +63,10 @@ export type FilmPlaylistShot = {
   key?: string;
   /** Caption when titles are on (default: `title`). */
   caption?: string;
+  /** No caption even with titles on (a close-up angle, a recap shot after the first). */
+  captionless?: boolean;
+  /** A voice-over that starts with this shot (film-narration.ts; a ComfyUI audio view URL). */
+  narrationUrl?: string;
   /** Clips: play from this second (Cut shot list trim). */
   trimStartSec?: number;
   /** Clips: stop at this second of the clip (unset: its end). */

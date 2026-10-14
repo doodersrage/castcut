@@ -1,5 +1,6 @@
 'use client';
 
+import { loadPlaySeriesStore, previouslyOnShots } from '@/lib/play-series';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
@@ -153,6 +154,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     activeSlot,
     character,
     addVoiceToSlot,
+    silentClipSlotIds,
+    addSoundToSilentClips,
     voicingSlotId,
     extendSlotClip,
     extendRequestFor,
@@ -194,6 +197,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     afterChecksStatus,
     checkMarks,
     setCheckMarks,
+    widescreenFilm,
+    setWidescreenFilm,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -262,6 +267,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     clearEndPose,
     reposeEndPose,
     cutDayFilm,
+    addCloseUps,
     cutProblems,
     cutChecking,
     setAsideDay,
@@ -804,6 +810,21 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   notes={cutReadiness.notes}
                   testId="day-cut-readiness"
                 />
+                {silentClipSlotIds.length > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-1"
+                    disabled={assemblingFilm || Boolean(voicingSlotId)}
+                    data-testid="day-cut-add-sound"
+                    title="WAN clips have no sound — give each one LTX-2.5's room sound (and its line, if it has one), picture unchanged"
+                    onClick={() => void addSoundToSilentClips()}
+                  >
+                    {voicingSlotId
+                      ? 'Adding sound…'
+                      : `Give the ${silentClipSlotIds.length} silent clip${silentClipSlotIds.length === 1 ? '' : 's'} sound`}
+                  </Button>
+                ) : null}
                 <div className="mt-2">
                   <FilmCutOptionsDisclosure
                     scoreBrief={{ mood: dayMood }}
@@ -814,6 +835,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     shots={watchPlaylist as KeyedShot[]}
                     identityFor={shotIdentity}
                     previewTitleCard={character?.name ? { title: character.name } : null}
+                    previouslyAvailable={
+                      Boolean(character?.id) &&
+                      previouslyOnShots(loadPlaySeriesStore(), character!.id, character!.name)
+                        .length > 0
+                    }
                   />
                 </div>
               </div>
@@ -979,6 +1005,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onFaceFinishChange={setFaceFinish}
               checkMarks={checkMarks}
               onCheckMarksChange={setCheckMarks}
+              widescreenFilm={widescreenFilm}
+              onWidescreenFilmChange={setWidescreenFilm}
               autoReviewStills={autoReviewStills}
               onAutoReviewStillsChange={setAutoReviewStills}
               redoPoseMisses={redoPoseMisses}
@@ -1495,6 +1523,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot, { byPlayer: true })}
         onAnimateSlot={() => setAnimateTarget(activeSlot)}
+        onAddCloseUps={() => void addCloseUps(activeSlot.id)}
       />
       <SideSheet
         open={setupOpen}

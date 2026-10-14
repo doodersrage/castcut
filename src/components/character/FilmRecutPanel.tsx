@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import FilmReviewShare from '@/components/character/FilmReviewShare';
 import { cutRecipeSummary, isCutRecipe } from '@/lib/cut-recipe';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { recipeShapeAndSize, recutFilm } from '@/lib/film-recut';
@@ -159,6 +160,7 @@ export default function FilmRecutPanel({
           {status}
         </p>
       ) : null}
+      <FilmReviewShare entryId={entry.id} title={`${characterName} — a film`} />
     </details>
   );
 }

@@ -389,6 +389,8 @@ export type DaySlot = {
   replyLine?: string;
   /** One event (day-event.ts): what she does in this slot's clip, into the next moment. */
   eventMove?: string;
+  /** Voice-over over this slot's shot in the cut (film-narration.ts) — not said on screen. */
+  narration?: string;
 };
 
 /**
@@ -438,6 +440,18 @@ export type DaySlotStill = {
   clipStatus?: DaySlotClipStatus;
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
+  /**
+   * Close-ups of the same moment (film-angles.ts): a face close-up and a detail shot, cut in
+   * right after this slot's shot. `for` is the image they were made from.
+   */
+  angles?: Array<{ kind: 'face' | 'detail'; imageUrl: string; for: string }>;
+  /** The still widened to 16:9 for a widescreen film (film-widen-client.ts). */
+  wideUrl?: string;
+  /** The image `wideUrl` was widened from — a new still needs widening again. */
+  wideFor?: string;
+  /** The slot's narration rendered (film-narration.ts) and the line it says. */
+  narrationUrl?: string;
+  narrationFor?: string;
   /**
    * The ComfyUI job that rendered the clip, once a voiced / extended copy replaced it
    * (`clipPromptId` then names that copy's gallery entry, so the gallery sync keeps it).
@@ -790,6 +804,9 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       ...(slot.lineFullFrame === true ? { lineFullFrame: true } : {}),
       lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
+      ...(normalizeSpokenLine(slot.narration)
+        ? { narration: normalizeSpokenLine(slot.narration) }
+        : {}),
       poseVariant:
         typeof slot.poseVariant === 'number' && slot.poseVariant > 0
           ? Math.min(99, Math.floor(slot.poseVariant))
@@ -4548,6 +4565,32 @@ export function normalizeDaySlotStills(
         : {}),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
+      ...(Array.isArray(still.angles)
+        ? {
+            angles: still.angles
+              .filter(
+                angle =>
+                  angle &&
+                  (angle.kind === 'face' || angle.kind === 'detail') &&
+                  readText(angle.imageUrl, 2048) &&
+                  readText(angle.for, 2048)
+              )
+              .slice(0, 4)
+              .map(angle => ({
+                kind: angle.kind,
+                imageUrl: readText(angle.imageUrl, 2048),
+                for: readText(angle.for, 2048),
+              })),
+          }
+        : {}),
+      ...(readText(still.wideUrl, 2048) ? { wideUrl: readText(still.wideUrl, 2048) } : {}),
+      ...(readText(still.wideFor, 2048) ? { wideFor: readText(still.wideFor, 2048) } : {}),
+      ...(readText(still.narrationUrl, 2048) && readText(still.narrationFor, 400)
+        ? {
+            narrationUrl: readText(still.narrationUrl, 2048),
+            narrationFor: readText(still.narrationFor, 400),
+          }
+        : {}),
       ...withPromptCheck(still.promptCheck),
       ...(readText(still.beatKey, 400) ? { beatKey: readText(still.beatKey, 400) } : {}),
       ...(readText(still.previousTake?.imageUrl, 2048)
@@ -4830,6 +4873,7 @@ export function dayWatchPlaylist(
   for (const slot of normalizeDaySlots(slots)) {
     const still = bySlot.get(slot.id);
     const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
+    const url = still?.status === 'completed' ? still.imageUrl?.trim() : '';
     if (clipUrl) {
       shots.push({
         key: slot.id,
@@ -4839,24 +4883,38 @@ export function dayWatchPlaylist(
         url: clipUrl,
         kind: 'clip',
       });
+    } else if (url) {
+      shots.push({
+        key: slot.id,
+        caption: captionFromBeat(slot.sceneHints) || slot.label,
+        entryId: still?.promptId?.trim() || slot.id,
+        title: slot.label,
+        url,
+        kind: 'still',
+        holdSec: hold,
+      });
+    } else {
       continue;
     }
-    const url = still?.status === 'completed' ? still.imageUrl?.trim() : '';
-    if (!url) {
-      continue;
+    // Close-ups of the same moment (film-angles.ts), only while they match the slot's still.
+    for (const angle of still?.angles ?? []) {
+      if (!url || angle.for !== url) continue;
+      shots.push({
+        key: `${slot.id}#${angle.kind}`,
+        captionless: true,
+        entryId: `${slot.id}-${angle.kind}`,
+        title: `${slot.label} · ${angle.kind === 'face' ? 'close-up' : 'detail'}`,
+        url: angle.imageUrl,
+        kind: 'still',
+        holdSec: DAY_ANGLE_HOLD_SEC,
+      });
     }
-    shots.push({
-      key: slot.id,
-      caption: captionFromBeat(slot.sceneHints) || slot.label,
-      entryId: still?.promptId?.trim() || slot.id,
-      title: slot.label,
-      url,
-      kind: 'still',
-      holdSec: hold,
-    });
   }
   return shots;
 }
+
+/** How long a close-up angle holds in the cut: a beat, not a scene. */
+export const DAY_ANGLE_HOLD_SEC = 1.5;
 
 /** Motion prompt subject for a day slot I2V clip. */
 export function buildDaySlotMotionSubject(slot: DaySlot, characterName?: string): string {

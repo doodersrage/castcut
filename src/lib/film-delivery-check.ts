@@ -22,6 +22,10 @@ export type ShotProbe = {
   /** Loudest moment of the sound track, dB (unset when there is none). */
   maxVolumeDb?: number;
   durationSec?: number;
+  /** 64-bit difference hash of the shot's middle frame (hex), for near-duplicate shots. */
+  dhash?: string;
+  /** What the vision model read as text in the frame (readText on). */
+  text?: { present: boolean; garbled: boolean; what: string };
 };
 
 /** `missing` when the file's host (ComfyUI) could not be reached — not proof it's gone. */
@@ -35,6 +39,92 @@ export const MOSTLY_BLACK_SHARE = 0.8;
 export const BLACK_RUN_SEC = 1.5;
 /** A sound track whose loudest moment is below this is silent. */
 export const SILENT_MAX_DB = -45;
+
+/**
+ * A 64-bit difference hash (hex) of one gray frame (`size`×`size` bytes, row-major): 9×8 cell
+ * means, each bit = a cell brighter than its right neighbour. Two shots whose hashes differ in
+ * at most {@link DUPLICATE_HASH_BITS} bits look the same (2026-10-14: a re-roll that came back
+ * the same, or one still used twice).
+ */
+export function dhashGray(gray: Uint8Array, size: number): string {
+  const cell = (cx: number, cy: number, cw: number, ch: number) => {
+    const x0 = Math.floor((cx * size) / cw);
+    const x1 = Math.max(x0 + 1, Math.floor(((cx + 1) * size) / cw));
+    const y0 = Math.floor((cy * size) / ch);
+    const y1 = Math.max(y0 + 1, Math.floor(((cy + 1) * size) / ch));
+    let sum = 0;
+    for (let y = y0; y < y1; y += 1) for (let x = x0; x < x1; x += 1) sum += gray[y * size + x]!;
+    return sum / ((x1 - x0) * (y1 - y0));
+  };
+  let bits = '';
+  for (let y = 0; y < 8; y += 1) {
+    for (let x = 0; x < 8; x += 1) bits += cell(x, y, 9, 8) > cell(x + 1, y, 9, 8) ? '1' : '0';
+  }
+  let hex = '';
+  for (let i = 0; i < 64; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  return hex;
+}
+
+export const DUPLICATE_HASH_BITS = 6;
+
+export function dhashDistance(a: string, b: string): number {
+  let bits = 0;
+  for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
+    let x = parseInt(a[i]!, 16) ^ parseInt(b[i]!, 16);
+    while (x) {
+      bits += x & 1;
+      x >>= 1;
+    }
+  }
+  return bits;
+}
+
+/** Later shots that look the same as an earlier one: key → the earlier shot's title. */
+export function duplicateShots(
+  shots: ReadonlyArray<{ key: string; title: string; dhash?: string }>
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (let i = 0; i < shots.length; i += 1) {
+    const a = shots[i]!;
+    if (!a.dhash) continue;
+    for (let j = 0; j < i; j += 1) {
+      const b = shots[j]!;
+      if (b.dhash && dhashDistance(a.dhash, b.dhash) <= DUPLICATE_HASH_BITS) {
+        out.set(a.key, b.title);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Asked of one frame per shot; never told what text to expect (echoed back otherwise). */
+export const SHOT_TEXT_PROMPT = [
+  'Look at this video frame.',
+  'Answer strict JSON only:',
+  '{"text": true|false, "garbled": true|false, "what": "<the text as written, at most 6 words>"}',
+  '- text: there is written text in the picture — a sign, a label, a screen, a page, a logo with letters.',
+  '- garbled: any of that text is misspelled, made of letter-like shapes, or not real words.',
+].join('\n');
+
+export function parseShotText(
+  raw: string | null | undefined
+): { present: boolean; garbled: boolean; what: string } | null {
+  const text = (raw ?? '').trim();
+  const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json) as { text?: unknown; garbled?: unknown; what?: unknown };
+    if (typeof parsed.text !== 'boolean') return null;
+    return {
+      present: parsed.text,
+      garbled: parsed.text && parsed.garbled === true,
+      what: String(parsed.what ?? '').slice(0, 60),
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** Why a probed shot needs a look before the cut (empty: it's fine). */
 export function shotDeliveryReasons(
@@ -54,6 +144,11 @@ export function shotDeliveryReasons(
       reasons.push('the clip is mostly black');
     else if (kind === 'clip' && (probe.blackRunSec ?? 0) >= BLACK_RUN_SEC)
       reasons.push(`the clip goes black for ${Math.round(probe.blackRunSec! * 10) / 10} s`);
+  }
+  if (probe.text?.garbled) {
+    reasons.push(
+      `garbled writing in the frame${probe.text.what ? ` (“${probe.text.what}”)` : ''} — re-roll or fix the area`
+    );
   }
   if (kind === 'clip' && options?.expectSpeech) {
     if (probe.hasAudio === false) reasons.push("no sound — its line won't be heard");
@@ -170,7 +265,7 @@ export function cutChecksCoverageLine(coverage: {
   const parts = [
     coverage.checked.length ? `Checked: ${coverage.checked.join(', ')}` : '',
     coverage.notChecked.length ? `Not checked: ${coverage.notChecked.join(', ')}` : '',
-    'files, black frames and sound are checked when you cut',
+    'files, black frames, sound, look-alike shots and garbled writing are checked when you cut',
   ].filter(Boolean);
   return parts.join(' · ');
 }

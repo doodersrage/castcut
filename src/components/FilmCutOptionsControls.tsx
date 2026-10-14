@@ -51,6 +51,8 @@ export type FilmCutOptionsValue = {
   length?: FilmCutLength;
   /** Land still cuts on the music's beat (needs an audio bed). */
   beatSnap?: boolean;
+  /** Day episodes: open with a few shots of the last episode (default on when there is one). */
+  previouslyOn?: boolean;
   /** Day / Story shot list: order, leave-outs, captions, holds. */
   shotEdits?: CutShotEdits;
   /** Music bed gain, 0–1.5 (1 = as recorded). */
@@ -76,6 +78,8 @@ type FilmCutOptionsControlsProps = {
   shots?: KeyedShot[];
   /** Day mood / theme or Story tone — offers "Score this film" (an original track, ACE-Step). */
   scoreBrief?: FilmScoreBrief;
+  /** The season has an earlier episode — offer "Previously on". */
+  previouslyAvailable?: boolean;
   /** Face match mark per shot in the shot list (identity-mark.ts). */
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
   /** The title card the cut opens on (shown in Preview the cut). */
@@ -92,6 +96,7 @@ export default function FilmCutOptionsControls({
   scoreBrief,
   identityFor,
   previewTitleCard,
+  previouslyAvailable = false,
 }: FilmCutOptionsControlsProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -240,6 +245,18 @@ export default function FilmCutOptionsControls({
           />
           <span>Cut on the beat</span>
         </label>
+        {previouslyAvailable ? (
+          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+            <input
+              type="checkbox"
+              disabled={disabled}
+              checked={value.previouslyOn !== false}
+              onChange={event => onChange({ ...value, previouslyOn: event.target.checked })}
+              data-testid={`${testIdPrefix}-previously-on`}
+            />
+            <span title="Three short shots from the last episode open this one">Previously on</span>
+          </label>
+        ) : null}
       </ToolActionRow>
       {!value.audioBedUrl.trim() && (value.length === 'music' || value.beatSnap) ? (
         <p className="type-caption text-[var(--text-muted)]">
@@ -460,6 +477,7 @@ export function FilmCutOptionsDisclosure({
   scoreBrief,
   identityFor,
   previewTitleCard,
+  previouslyAvailable = false,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -479,6 +497,7 @@ export function FilmCutOptionsDisclosure({
           scoreBrief={scoreBrief}
           identityFor={identityFor}
           previewTitleCard={previewTitleCard}
+          previouslyAvailable={previouslyAvailable}
         />
       </div>
     </details>

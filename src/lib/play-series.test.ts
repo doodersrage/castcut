@@ -289,3 +289,47 @@ describe('season page fields', () => {
     assert.deepEqual(restored.series[0]?.episodes[0]?.beats, ['pours coffee']);
   });
 });
+
+describe('previouslyOnShots', async () => {
+  const { previouslyOnShots } = await import('./play-series');
+  const slots = [
+    { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'coffee' },
+    { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'walk' },
+    { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'drink' },
+    { id: 'night', label: 'Night', location: 'bed', sceneHints: 'read' },
+  ];
+  const stills = slots.map((slot, index) => ({
+    slotId: slot.id,
+    status: 'completed' as const,
+    imageUrl: `/api/comfyui/view?filename=${slot.id}.png`,
+    ...(index === 1 ? { clipStatus: 'completed' as const, clipUrl: `/api/comfyui/view?filename=${slot.id}.mp4` } : {}),
+  }));
+  const store = {
+    version: 1 as const,
+    series: [
+      {
+        id: 's1',
+        characterId: 'nora',
+        title: 'Season 1',
+        createdAt: 1,
+        updatedAt: 1,
+        episodes: [{ id: 'e1', cutAt: 1, filename: 'e1.mp4', day: { slots, stills } as never }],
+      },
+    ],
+  };
+  it('takes the first, middle and last shot of the last episode, the first captioned', () => {
+    const shots = previouslyOnShots(store, 'nora', 'Nora');
+    assert.equal(shots.length, 3);
+    assert.equal(shots[0]!.caption, 'Previously on Nora…');
+    assert.ok(shots.every(shot => shot.holdSec === 2));
+    const clip = shots.find(shot => shot.kind === 'clip');
+    assert.equal(clip?.trimEndSec, 2);
+  });
+  it('is empty for a Cast with no earlier episode or a closed season', () => {
+    assert.deepEqual(previouslyOnShots(store, 'sam', 'Sam'), []);
+    assert.deepEqual(
+      previouslyOnShots({ ...store, series: [{ ...store.series[0]!, closedAt: 2 }] }, 'nora', 'Nora'),
+      []
+    );
+  });
+});

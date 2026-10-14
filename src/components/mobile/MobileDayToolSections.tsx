@@ -145,6 +145,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     activeSlot,
     character,
     addVoiceToSlot,
+    silentClipSlotIds,
+    addSoundToSilentClips,
     voicingSlotId,
     extendSlotClip,
     extendRequestFor,
@@ -185,6 +187,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     afterChecksStatus,
     checkMarks,
     setCheckMarks,
+    widescreenFilm,
+    setWidescreenFilm,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -250,6 +254,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     clearEndPose,
     reposeEndPose,
     cutDayFilm,
+    addCloseUps,
     cutProblems,
     cutChecking,
     setAsideDay,
@@ -753,6 +758,21 @@ export default function MobileDayToolSections(vm: ViewModel) {
             notes={cutReadiness.notes}
             testId="mobile-day-cut-readiness"
           />
+          {silentClipSlotIds.length > 0 ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mt-1"
+              disabled={assemblingFilm || Boolean(voicingSlotId)}
+              data-testid="day-cut-add-sound"
+              title="WAN clips have no sound — give each one LTX-2.5's room sound (and its line, if it has one), picture unchanged"
+              onClick={() => void addSoundToSilentClips()}
+            >
+              {voicingSlotId
+                ? 'Adding sound…'
+                : `Give the ${silentClipSlotIds.length} silent clip${silentClipSlotIds.length === 1 ? '' : 's'} sound`}
+            </Button>
+          ) : null}
           <div className="mt-3 grid gap-2">
             {/* Same cut options as desk Day (vertical, crossfade, titles, length, music). */}
             <FilmCutOptionsDisclosure
@@ -917,6 +937,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onFaceFinishChange={setFaceFinish}
             checkMarks={checkMarks}
             onCheckMarksChange={setCheckMarks}
+            widescreenFilm={widescreenFilm}
+            onWidescreenFilmChange={setWidescreenFilm}
             autoReviewStills={autoReviewStills}
             onAutoReviewStillsChange={setAutoReviewStills}
             redoPoseMisses={redoPoseMisses}
@@ -1396,6 +1418,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot)}
         onAnimateSlot={() => setAnimateTarget(activeSlot)}
+        onAddCloseUps={() => void addCloseUps(activeSlot.id)}
         compact
       />
       <SideSheet

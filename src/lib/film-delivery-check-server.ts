@@ -11,13 +11,20 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
   blackStats,
+  dhashGray,
   parseMaxVolumeDb,
+  parseShotText,
+  SHOT_TEXT_PROMPT,
   SHOT_SOURCE_UNREACHABLE as UNREACHABLE,
   type ShotProbe,
 } from './film-delivery-check';
 import { resolvePromptDataDir } from './prompt-data-paths';
 import { fetchFilmShotBytes } from './video-shot-fetch';
 import { resolveFfmpegBinary } from './video-server-encode';
+import { freeComfyUiMemoryServer } from './comfyui-free-server';
+import { visionCompletion } from './llm-client';
+import { resolveRequestLlmEndpoint, type LlmRequestOptions } from './llm-request-options';
+import { resolveVisionModel } from './vision-model-auto';
 
 export type DeliveryCheckShot = {
   key: string;
@@ -26,6 +33,8 @@ export type DeliveryCheckShot = {
   entryId?: string;
   /** A talking clip: read its sound level. */
   expectSpeech?: boolean;
+  /** Ask the vision model whether writing in the frame is garbled. */
+  readText?: boolean;
 };
 
 /** Frames per second sampled from a clip, and the gray thumbnail size. */
@@ -70,7 +79,8 @@ function durationFrom(stderr: string): number | undefined {
 async function probeFile(
   ffmpeg: string,
   file: string,
-  shot: DeliveryCheckShot
+  shot: DeliveryCheckShot,
+  text: TextReader | null = null
 ): Promise<Omit<ShotProbe, 'key'>> {
   const out: Omit<ShotProbe, 'key'> = {};
   const frames = await run(ffmpeg, [
@@ -89,7 +99,13 @@ async function probeFile(
     'rawvideo',
     '-',
   ]);
-  const stats = blackStats(new Uint8Array(frames.stdout), THUMB * THUMB, SAMPLE_FPS);
+  const gray = new Uint8Array(frames.stdout);
+  const stats = blackStats(gray, THUMB * THUMB, SAMPLE_FPS);
+  const frameCount = Math.floor(gray.length / (THUMB * THUMB));
+  if (frameCount > 0) {
+    const mid = Math.floor(frameCount / 2) * THUMB * THUMB;
+    out.dhash = dhashGray(gray.subarray(mid, mid + THUMB * THUMB), THUMB);
+  }
   if (stats) {
     out.blackShare = stats.blackShare;
     if (shot.kind === 'clip') out.blackRunSec = stats.blackRunSec;
@@ -119,7 +135,67 @@ async function probeFile(
       }
     }
   }
+  if (shot.readText && text) {
+    const at = shot.kind === 'clip' && duration ? (duration / 2).toFixed(2) : '0';
+    const jpeg = await run(ffmpeg, [
+      '-hide_banner',
+      '-v',
+      'error',
+      '-ss',
+      at,
+      '-i',
+      file,
+      '-frames:v',
+      '1',
+      '-vf',
+      "scale='min(1280,iw)':-2",
+      '-f',
+      'image2',
+      '-vcodec',
+      'mjpeg',
+      '-',
+    ]);
+    if (jpeg.stdout.byteLength) {
+      const reading = await text(`data:image/jpeg;base64,${jpeg.stdout.toString('base64')}`);
+      if (reading) out.text = reading;
+    }
+  }
   return out;
+}
+
+type TextReader = (imageDataUrl: string) => Promise<ShotProbe['text'] | null>;
+
+/**
+ * One vision read per shot for garbled writing (a sign, a label). The vision model often can't
+ * load while ComfyUI keeps its models on the GPU; then ComfyUI is asked once to free memory
+ * (between jobs, never interrupting one) and the read is tried again. Null: no reader.
+ */
+async function shotTextReader(llm: LlmRequestOptions | undefined): Promise<TextReader | null> {
+  const model = await resolveVisionModel(llm).catch(() => null);
+  if (!model) return null;
+  let freed = false;
+  return async imageDataUrl => {
+    const ask = () =>
+      visionCompletion({
+        systemPrompt: '',
+        textPrompt: SHOT_TEXT_PROMPT,
+        imageDataUrl,
+        maxTokens: 200,
+        temperature: 0,
+        model,
+        endpoint: resolveRequestLlmEndpoint(llm),
+        usageContext: { route: 'film-check-text' },
+      });
+    try {
+      return parseShotText(await ask());
+    } catch (error) {
+      if (freed || !/failed to load model/i.test(String(error))) return null;
+      freed = true;
+      await freeComfyUiMemoryServer();
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      return parseShotText(await ask().catch(() => null));
+    }
+  };
 }
 
 /**
@@ -128,9 +204,10 @@ async function probeFile(
  */
 export async function probeDeliveryShots(
   shots: DeliveryCheckShot[],
-  context: { requestOrigin?: string; userId?: string | null }
+  context: { requestOrigin?: string; userId?: string | null; llm?: LlmRequestOptions }
 ): Promise<{ ffmpeg: boolean; results: ShotProbe[] }> {
   const ffmpeg = await resolveFfmpegBinary();
+  const text = shots.some(shot => shot.readText) ? await shotTextReader(context.llm) : null;
   const workDir = path.join(
     /* turbopackIgnore: true */ resolvePromptDataDir(),
     'film-work',
@@ -172,7 +249,7 @@ export async function probeDeliveryShots(
       const file = path.join(/* turbopackIgnore: true */ workDir, `shot-${index}`);
       try {
         await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
-        results[index] = { key: shot.key, ...(await probeFile(ffmpeg, file, shot)) };
+        results[index] = { key: shot.key, ...(await probeFile(ffmpeg, file, shot, text)) };
       } catch {
         results[index] = { key: shot.key };
       } finally {

@@ -1,6 +1,12 @@
 'use client';
 
 import { pronounceForCast } from '@/lib/cast-speech';
+import { previouslyOnShots } from '@/lib/play-series';
+import { widenStillForFilm } from '@/lib/film-widen-client';
+import { makeFilmAngles } from '@/lib/film-angles-client';
+import { castVoiceOf } from '@/lib/cast-voice';
+import { renderNarrationLine } from '@/lib/film-narration-client';
+import { filmShapeOf } from '@/lib/video-resolution';
 import {
   framedTalkingStill,
   talkingStillFraming,
@@ -403,6 +409,31 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     queueAllRef.current = queueAll;
   }, [queueAll]);
 
+  /** The slot's still widened to 16:9 — made once per still and kept on it. */
+  const wideStillUrl = useCallback(
+    async (slotId: DaySlotId, imageUrl: string): Promise<string | null> => {
+      const current = stillsRef.current.find(entry => entry.slotId === slotId);
+      if (current?.wideUrl && current.wideFor === imageUrl) return current.wideUrl;
+      setFilmStatus('Widening the still to 16:9…');
+      const wide = await widenStillForFilm({
+        imageUrl,
+        sendComfyUi: actions.sendComfyUi,
+        model: shared.model,
+        characterId: shared.activeCharacterId,
+      }).catch(() => null);
+      if (!wide) return null;
+      const nextStills = upsertDaySlotStill(stillsRef.current, {
+        slotId,
+        wideUrl: wide,
+        wideFor: imageUrl,
+      });
+      stillsRef.current = nextStills;
+      updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      return wide;
+    },
+    [actions.sendComfyUi, shared.activeCharacterId, shared.model, stillsRef, updateToolSettings]
+  );
+
   const animateSlot = useCallback(
     async (slot: DaySlot, options?: { manageBusy?: boolean; direction?: string }) => {
       const manageBusy = options?.manageBusy !== false;
@@ -589,10 +620,16 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           syncSharedIdentityToCast(character);
         }
         const castLoras = castLoraSessionIds(character);
+        // Widescreen film: the clip starts from the still widened to 16:9 (kept on the still).
+        let startUrl = imageUrl;
+        if (toolSettings.widescreenFilm === true && !framed) {
+          const wide = await wideStillUrl(slot.id, imageUrl);
+          if (wide) startUrl = wide;
+        }
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
-          ...(framed ? { inputImage: framed } : { inputImageUrl: imageUrl }),
+          ...(framed ? { inputImage: framed } : { inputImageUrl: startUrl }),
           parentGalleryEntryId: parentEntry?.id,
           derivedKind: 'i2v',
           clipMode: 'i2v',
@@ -665,6 +702,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
     },
     [
+      toolSettings.widescreenFilm,
+      wideStillUrl,
       actions,
       character,
       shared.activeCharacterId,
@@ -709,6 +748,55 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     }
   }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
 
+  /** Close-ups of a slot's still (a face close-up and a detail), cut in right after it. */
+  const addCloseUps = useCallback(
+    async (slotId: DaySlotId) => {
+      const slot = slots.find(entry => entry.id === slotId);
+      const still = stillsRef.current.find(entry => entry.slotId === slotId);
+      const imageUrl = still?.status === 'completed' ? still.imageUrl?.trim() : '';
+      if (!slot || !imageUrl) return;
+      setFilmStatus(`Making close-ups of ${slot.label}…`);
+      setBusy(true);
+      try {
+        const angles = await makeFilmAngles({
+          imageUrl,
+          moment: slot.sceneHints ?? '',
+          manLead: dayPartnerNoun(character ?? {}) === 'man',
+          sendComfyUi: actions.sendComfyUi,
+          model: shared.model,
+          characterId: shared.activeCharacterId,
+        });
+        if (!angles.length) {
+          setError('The close-ups did not finish — check the queue and try again.');
+          return;
+        }
+        const nextStills = upsertDaySlotStill(stillsRef.current, {
+          slotId,
+          angles: angles.map(angle => ({ ...angle, for: imageUrl })),
+        });
+        stillsRef.current = nextStills;
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+        setFilmStatus(
+          `${slot.label}: ${angles.length} close-up${angles.length === 1 ? '' : 's'} added to the cut.`
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not make the close-ups.');
+        setFilmStatus(null);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [
+      actions.sendComfyUi,
+      character,
+      shared.activeCharacterId,
+      shared.model,
+      slots,
+      stillsRef,
+      updateToolSettings,
+    ]
+  );
+
   const cutDayFilm = useCallback(
     async (options?: { excludeKeys?: string[] }) => {
       // The shot list (order, leave-outs, captions, holds), plus any shots left out at the
@@ -736,6 +824,47 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
       const name = character?.name?.trim() || 'day';
       setAssemblingFilm(true);
+      // Widescreen film: stills in a 16:9 cut are widened too (clips already start from one).
+      if (toolSettings.widescreenFilm === true && filmShapeOf(filmCutOptions) === 'wide') {
+        for (const [index, shot] of shots.entries()) {
+          const slotId = shot.key as DaySlotId | undefined;
+          if (shot.kind !== 'still' || !slotId || !slots.some(slot => slot.id === slotId)) continue;
+          setFilmStatus(`Widening ${shot.title} to 16:9…`);
+          const wide = await wideStillUrl(slotId, shot.url);
+          if (wide) shots[index] = { ...shot, url: wide };
+        }
+      }
+      // Narration: each slot's voice-over, rendered once per line and kept on the still.
+      for (const [index, shot] of shots.entries()) {
+        const slot = slots.find(entry => entry.id === shot.key);
+        const line = slot?.narration?.trim();
+        if (!slot || !line) continue;
+        const still = stillsRef.current.find(entry => entry.slotId === slot.id);
+        let url = still?.narrationFor === line ? still.narrationUrl : undefined;
+        if (!url) {
+          setFilmStatus(`Recording the narration for ${slot.label}…`);
+          url = await renderNarrationLine({
+            line,
+            speaker: dayPartnerNoun(character ?? {}) === 'man' ? 'man' : 'woman',
+            voiceSample: castVoiceOf(character?.id)?.sample,
+          }).catch(() => undefined);
+          if (url) {
+            const nextStills = upsertDaySlotStill(stillsRef.current, {
+              slotId: slot.id,
+              narrationUrl: url,
+              narrationFor: line,
+            });
+            stillsRef.current = nextStills;
+            updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+          }
+        }
+        if (url) shots[index] = { ...shots[index]!, narrationUrl: url };
+      }
+      // "Previously on": a few shots of the season's last episode open this one.
+      const recap =
+        character && filmCutOptions.previouslyOn !== false
+          ? previouslyOnShots(loadPlaySeriesStore(), character.id, name)
+          : [];
       setError(null);
       setFilmGuideHref(null);
       setFilmNeedsCast(false);
@@ -743,7 +872,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       try {
         const result = await assembleAndStampFilm({
           source: 'day',
-          shots,
+          shots: recap.length ? [...(recap as KeyedShot[]), ...shots] : shots,
           characterId: character?.id ?? '',
           characterName: name,
           lookId: character?.activeLookId ?? shared.activeLookId,
@@ -840,7 +969,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         setAssemblingFilm(false);
       }
     },
-    [character, filmCutOptions, shared.activeLookId, setFilmGuideHref, slots, toolSettings]
+    [
+      character,
+      filmCutOptions,
+      shared.activeLookId,
+      setFilmGuideHref,
+      slots,
+      toolSettings,
+      wideStillUrl,
+    ]
   );
 
   /**
@@ -1578,6 +1715,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     animateSlot,
     animateAllClips,
     cutDayFilm,
+    addCloseUps,
     saveFilmToCast,
     shareLastCut,
     saveFilmPoster,

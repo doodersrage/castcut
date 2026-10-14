@@ -24,6 +24,9 @@ export type DayQualitySwitches = {
   /** Check (and repair) the Cast's glasses / tattoos on each solo still. */
   checkMarks?: boolean;
   onCheckMarksChange?: (next: boolean) => void;
+  /** Widen each still to 16:9 before it is animated or cut (film-widen-client.ts). */
+  widescreenFilm?: boolean;
+  onWidescreenFilmChange?: (next: boolean) => void;
   autoReviewStills: boolean;
   onAutoReviewStillsChange: (next: boolean) => void;
   redoPoseMisses: boolean;
@@ -150,6 +153,8 @@ export default function DayAdvancedDrawer({
   onFaceFinishChange,
   checkMarks,
   onCheckMarksChange,
+  widescreenFilm,
+  onWidescreenFilmChange,
   autoReviewStills,
   onAutoReviewStillsChange,
   redoPoseMisses,
@@ -256,6 +261,17 @@ export default function DayAdvancedDrawer({
               onChange={onCheckMarksChange}
             >
               Check marks
+            </SwitchButton>
+          ) : null}
+          {onWidescreenFilmChange ? (
+            <SwitchButton
+              checked={widescreenFilm === true}
+              disabled={busy}
+              data-testid="day-widescreen-film"
+              title="Each still is widened to 16:9 before its clip is made (and before a widescreen cut), by continuing the scene to the sides — no black bars. One Edit 2511 pass per still, about 40 s."
+              onChange={onWidescreenFilmChange}
+            >
+              Widescreen film
             </SwitchButton>
           ) : null}
           <SwitchButton

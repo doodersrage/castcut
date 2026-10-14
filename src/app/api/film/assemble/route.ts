@@ -54,6 +54,11 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
       ...(holdSec != null ? { holdSec } : {}),
       ...(entryId ? { entryId } : {}),
       ...(caption ? { caption } : {}),
+      ...(record.captionless === true ? { captionless: true } : {}),
+      ...(typeof record.narrationUrl === 'string' &&
+      record.narrationUrl.startsWith('/api/comfyui/view?')
+        ? { narrationUrl: record.narrationUrl }
+        : {}),
       ...(kind === 'clip' && trimStartSec != null ? { trimStartSec } : {}),
       ...(kind === 'clip' && trimEndSec != null ? { trimEndSec } : {}),
     });
