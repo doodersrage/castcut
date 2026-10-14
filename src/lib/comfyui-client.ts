@@ -36,6 +36,7 @@ import { resolveActiveLoraStack } from './lora-stack';
 import { fetchComfyObjectInfoPayload } from './comfyui-object-info';
 import { formatComfyUiQueueValidationError } from './comfyui-queue-validation-error';
 import { workflowContentHash } from './workflow-content-hash';
+import { findMissingComfyInputs, missingComfyInputsMessage } from './comfy-input-presence';
 
 export type ComfyQueueRequest = {
   prompt: string;
@@ -695,6 +696,22 @@ export async function queuePromptToComfyUi(
 
     if (promptBody.kind === 'preflight_failed') {
       return buildPreflightFailure(promptBody.preflight, config.apiUrl);
+    }
+    // One ComfyUI only: in a pool the pictures may sit on whichever host the job is routed to.
+    const singleHost =
+      !poolRouting?.strategy || ['user', 'client', 'env'].includes(poolRouting.strategy);
+    if (promptBody.kind === 'ready' && runPreflight && singleHost) {
+      const missingInputs = await findMissingComfyInputs(
+        config.apiUrl,
+        promptBody.injected.workflow as Record<string, unknown>
+      );
+      if (missingInputs.length > 0) {
+        return {
+          ok: false,
+          error: missingComfyInputsMessage(missingInputs),
+          comfyUrl: config.apiUrl,
+        };
+      }
     }
 
     const resolvedPromptBody =
