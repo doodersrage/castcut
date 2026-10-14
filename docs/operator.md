@@ -148,16 +148,14 @@ Copy or snapshot `PROMPT_DATA_DIR` as part of host backups. Settings → Advance
 
 ```env
 PROMPT_AUTH_ENABLED=true
-PROMPT_ADMIN_USERNAME=admin
-PROMPT_ADMIN_PASSWORD="change-me"
-PROMPT_SESSION_SECRET=use-a-long-random-string
 PROMPT_DATA_DIR=/var/lib/prompt-studio
-PROMPT_API_URL=https://studio.example.com
 ```
 
-Quote passwords that contain `$` or `#`. Restart after changing admin credentials — the bootstrap admin syncs from env on startup. Sign in at `/login`.
+That is all: open `/login` and create the admin (username + password; on a network-exposed server also the one-time setup code from the server log, kept in `<data>/auth/setup-code`). The session secret is generated into `<data>/auth/session-secret`.
 
-`PROMPT_API_URL` is the public origin used in **invite and password-reset links**. If it is unset, emails point at `http://127.0.0.1:47832`.
+Optional: `PROMPT_ADMIN_USERNAME` / `PROMPT_ADMIN_PASSWORD` create the admin on start instead (quote passwords that contain `$` or `#`); the env password is applied again only when it changes, so one changed in the app sticks. `PROMPT_SESSION_SECRET` pins the secret.
+
+Invite and password-reset links use the address an admin last signed in at; `PROMPT_API_URL=https://studio.example.com` pins it.
 
 ### SMTP
 

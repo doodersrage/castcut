@@ -19,6 +19,8 @@ export type AuthUser = {
   id: string;
   username: string;
   passwordHash: string;
+  /** The PROMPT_ADMIN_PASSWORD last applied to this account (so a password changed in the app sticks). */
+  envPasswordHash?: string;
   role: AuthRole;
   groupIds: string[];
   blockedFeatures: AppFeatureId[];
@@ -48,7 +50,7 @@ export type AuthGroup = {
 };
 
 /** Safe for session/profile/admin list payloads — never includes password or TOTP secrets. */
-export type AuthUserPublic = Omit<AuthUser, 'passwordHash' | 'totpSecret'>;
+export type AuthUserPublic = Omit<AuthUser, 'passwordHash' | 'envPasswordHash' | 'totpSecret'>;
 
 export type AuthSession = {
   userId: string;

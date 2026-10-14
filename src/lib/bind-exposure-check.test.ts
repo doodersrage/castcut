@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { resetGeneratedSecretCache } from './auth/generated-secrets';
 import { afterEach, describe, it } from 'node:test';
 import {
   AUTH_OFF_EXPOSED_ERROR,
@@ -90,17 +91,33 @@ describe('bind-exposure-check', () => {
       assert.equal(getSecureExposureViolation(), null);
     });
 
-    it('fails when auth is on without a real session secret', () => {
+    it('fails when auth is on, no secret is set and none can be generated', () => {
       clearSecurityEnv();
       setEnv('PROMPT_AUTH_ENABLED', 'true');
       setEnv('PROMPT_ADMIN_PASSWORD', 'strong-password');
-      assert.match(getSecureExposureViolation() ?? '', /PROMPT_SESSION_SECRET/);
+      const saved = process.env.CASTCUT_SECRETS_DIR;
+      process.env.CASTCUT_SECRETS_DIR = '/dev/null/castcut-unwritable';
+      resetGeneratedSecretCache();
+      try {
+        assert.match(getSecureExposureViolation() ?? '', /PROMPT_SESSION_SECRET/);
+      } finally {
+        if (saved === undefined) delete process.env.CASTCUT_SECRETS_DIR;
+        else process.env.CASTCUT_SECRETS_DIR = saved;
+        resetGeneratedSecretCache();
+      }
     });
 
-    it('fails when auth is on without PROMPT_ADMIN_PASSWORD', () => {
+    it('starts with no secret and no admin password (generated secret, first admin on the page)', () => {
+      clearSecurityEnv();
+      setEnv('PROMPT_AUTH_ENABLED', 'true');
+      assert.equal(getSecureExposureViolation(), null);
+    });
+
+    it('fails when PROMPT_ADMIN_PASSWORD is the well-known "admin"', () => {
       clearSecurityEnv();
       setEnv('PROMPT_AUTH_ENABLED', 'true');
       setEnv('PROMPT_SESSION_SECRET', 'a-real-secret');
+      setEnv('PROMPT_ADMIN_PASSWORD', 'admin');
       assert.match(getSecureExposureViolation() ?? '', /PROMPT_ADMIN_PASSWORD/);
     });
 
@@ -128,11 +145,12 @@ describe('bind-exposure-check', () => {
       setEnv('PROMPT_BIND_HOST', '0.0.0.0');
       assert.equal(getSecureExposureViolation(), AUTH_OFF_EXPOSED_ERROR);
 
-      // docker/.env.example as copied: sign-in on, password and secret still blank.
+      // docker/.env.example as copied (or no .env): sign-in on, password and secret blank —
+      // the secret is generated and the admin made on the sign-in page.
       setEnv('PROMPT_AUTH_ENABLED', 'true');
       setEnv('PROMPT_ADMIN_PASSWORD', '');
       setEnv('PROMPT_SESSION_SECRET', '');
-      assert.notEqual(getSecureExposureViolation(), null);
+      assert.equal(getSecureExposureViolation(), null);
 
       setEnv('PROMPT_ADMIN_PASSWORD', 'a-strong-password');
       setEnv('PROMPT_SESSION_SECRET', 'a-real-secret');

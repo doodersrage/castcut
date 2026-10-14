@@ -7,22 +7,33 @@ import { DEFAULT_SHARED_SETTINGS, type SharedToolSettings } from '@/lib/settings
 import { changedSettings, resetSettingsPatch } from '@/lib/settings-defaults-diff';
 import { settingsSearchHref } from '@/lib/settings-search-index';
 import { APP_HAS_PLAY } from '@/lib/app-profile';
+import type { SettingsTab } from '@/lib/settings-nav';
 
-/** Settings that differ from a fresh install, grouped by area, each with a reset. */
+/**
+ * Settings that differ from a fresh install, grouped by area, each with a reset. With `tab`, only
+ * that tab's, and nothing at all when none changed (each tab ends with its own list, 2026-10-14).
+ */
 export default function ChangedSettingsPanel({
   sharedSettings,
   updateSharedSettings,
+  tab,
 }: {
   sharedSettings: SharedToolSettings;
   updateSharedSettings: (patch: Partial<SharedToolSettings>) => void;
+  tab?: SettingsTab;
 }) {
-  const changed = changedSettings(sharedSettings, DEFAULT_SHARED_SETTINGS);
+  const changed = changedSettings(sharedSettings, DEFAULT_SHARED_SETTINGS).filter(
+    entry => !tab || entry.area.tab === tab
+  );
+  if (tab && changed.length === 0) return null;
   const areas = [...new Set(changed.map(entry => entry.area.label))];
 
   return (
     <ToolSection
-      id="settings-changed-defaults"
-      title="Changed from defaults"
+      id={tab ? `settings-changed-defaults-${tab}` : 'settings-changed-defaults'}
+      title={
+        tab ? `Changed from defaults on this tab (${changed.length})` : 'Changed from defaults'
+      }
       description={`Preferences that differ from a fresh install — reset one, an area, or all. Keys, loader maps and your ${APP_HAS_PLAY ? 'Cast' : 'characters'} are never listed or reset here.`}
     >
       {changed.length === 0 ? (

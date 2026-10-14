@@ -14,7 +14,8 @@
  * `node --test`.
  */
 
-import { readdirSync, statSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -44,6 +45,9 @@ console.log(
 );
 
 const extraArgs = process.argv.slice(2);
+// Secrets the server generates on first start (auth/generated-secrets.ts) go to a throwaway
+// folder, not the checkout's .prompt-studio-data.
+const secretsDir = mkdtempSync(join(tmpdir(), 'castcut-test-secrets-'));
 const result = spawnSync(
   process.execPath,
   [
@@ -54,7 +58,8 @@ const result = spawnSync(
     ...extraArgs,
     ...allTestFiles.map(f => relative(ROOT, f)),
   ],
-  { stdio: 'inherit', cwd: ROOT }
+  { stdio: 'inherit', cwd: ROOT, env: { ...process.env, CASTCUT_SECRETS_DIR: secretsDir } }
 );
+rmSync(secretsDir, { recursive: true, force: true });
 
 process.exit(result.status ?? 1);

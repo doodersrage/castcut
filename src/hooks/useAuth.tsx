@@ -23,6 +23,9 @@ type AuthState = {
   allowedFeatures: AppFeatureId[] | 'all';
   impersonating: boolean;
   impersonatorUsername?: string;
+  /** No account yet: the sign-in page makes the first admin (setupCodeRequired: ask for the log's code). */
+  needsFirstAdmin?: boolean;
+  setupCodeRequired?: boolean;
 };
 
 const INITIAL: AuthState = {
@@ -129,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         defaultAdminUsername?: string;
         impersonating?: boolean;
         impersonatorUsername?: string;
+        needsFirstAdmin?: boolean;
+        setupCodeRequired?: boolean;
       };
       setState({
         loading: false,
@@ -142,6 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : [],
         impersonating: Boolean(data.impersonating),
         impersonatorUsername: data.impersonatorUsername,
+        needsFirstAdmin: Boolean(data.needsFirstAdmin),
+        setupCodeRequired: Boolean(data.setupCodeRequired),
       });
       if (data.authEnabled && data.user) {
         setActiveUserScope({ id: data.user.id, username: data.user.username });

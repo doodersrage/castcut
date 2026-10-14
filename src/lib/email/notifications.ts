@@ -1,3 +1,4 @@
+import { publicAppOrigin } from '@/lib/public-app-origin';
 import 'server-only';
 
 import { findUserById } from '@/lib/auth/store';
@@ -18,7 +19,7 @@ function resolveRecipient(user: AuthUser | null | undefined): string | null {
 }
 
 function appOrigin(): string {
-  return process.env.PROMPT_API_URL?.trim() || 'http://127.0.0.1:47832';
+  return publicAppOrigin();
 }
 
 export async function notifyUserInvite(input: {

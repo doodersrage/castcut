@@ -45,4 +45,8 @@ if (exampleBind && exampleBind !== '127.0.0.1' && value('PROMPT_AUTH_ENABLED') !
   fail('.env.example publishes beyond loopback, so it must set PROMPT_AUTH_ENABLED=true');
 }
 
+if (!/PROMPT_AUTH_ENABLED:\s*\$\{PROMPT_AUTH_ENABLED:-true\}/.test(compose)) {
+  fail('castcut must default PROMPT_AUTH_ENABLED to true (the .env file is optional)');
+}
+
 console.log('validate-compose: ok');

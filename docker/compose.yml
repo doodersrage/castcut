@@ -1,7 +1,7 @@
 # Castcut in Docker.
 #
 #   cd docker
-#   cp .env.example .env      # then fill in the few lines at the top
+#   cp .env.example .env      # optional: only to change the defaults
 #   docker compose up -d --build
 #
 # Open http://<this machine>:47832. Everything you make (Cast, Gallery, settings, kept renders)
@@ -12,9 +12,13 @@ services:
   castcut:
     build: ..
     image: castcut:local
-    env_file: .env
+    # Optional: with no .env, sign-in is on and the admin is made on the first visit.
+    env_file:
+      - path: .env
+        required: false
     environment:
       PORT: 47832
+      PROMPT_AUTH_ENABLED: ${PROMPT_AUTH_ENABLED:-true}
       PROMPT_DATA_DIR: /data
       # The address the port is published on (below). The app's startup check reads it: on a
       # network address it refuses to start with sign-in off.

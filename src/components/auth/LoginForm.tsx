@@ -10,14 +10,14 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadLastToolRoute, resolveLandingRoute } from '@/lib/last-tool-route';
 import { PRODUCT_NAME } from '@/lib/brand';
 
-type LoginMode = 'sign-in' | 'totp' | 'forgot' | 'reset';
+type LoginMode = 'sign-in' | 'totp' | 'forgot' | 'reset' | 'setup';
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const auth = useAuth();
 
-  const [mode, setMode] = useState<LoginMode>('sign-in');
+  const [pickedMode, setMode] = useState<LoginMode>('sign-in');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [resetPassword, setResetPassword] = useState('');
@@ -29,6 +29,7 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [setupCode, setSetupCode] = useState('');
   // Set once sign-in succeeded: the button stays busy until the next page loads (under
   // `next dev` that page can take a while to compile, and the idle form looked like a failure).
   const [leaving, setLeaving] = useState(false);
@@ -61,6 +62,8 @@ export default function LoginForm() {
   if (!auth) return null;
 
   const { refresh } = auth;
+  // No account yet (no PROMPT_ADMIN_PASSWORD): this page makes the first admin.
+  const mode: LoginMode = auth.needsFirstAdmin && pickedMode === 'sign-in' ? 'setup' : pickedMode;
 
   async function completeLogin(data: { user?: unknown; allowedFeatures?: unknown }) {
     if (!data.user) {
@@ -105,6 +108,24 @@ export default function LoginForm() {
           throw new Error(data.error ?? 'Could not send reset email.');
         }
         setInfo(data.message ?? 'If an account exists, a reset link was sent.');
+        return;
+      }
+
+      if (mode === 'setup') {
+        if (password !== resetPasswordConfirm) {
+          throw new Error('Passwords do not match.');
+        }
+        const response = await fetch('/api/auth/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ username: username.trim() || 'admin', password, setupCode }),
+        });
+        const data = (await response.json()) as { error?: string; user?: unknown };
+        if (!response.ok) {
+          throw new Error(data.error ?? 'Could not create the account.');
+        }
+        await completeLogin(data);
         return;
       }
 
@@ -172,7 +193,9 @@ export default function LoginForm() {
         ? 'Forgot password'
         : mode === 'reset'
           ? 'Reset password'
-          : 'Sign in';
+          : mode === 'setup'
+            ? 'Create your admin account'
+            : 'Sign in';
 
   const description =
     mode === 'totp'
@@ -181,7 +204,9 @@ export default function LoginForm() {
         ? 'Enter your username or email. If SMTP is configured, a reset link is sent when a match exists.'
         : mode === 'reset'
           ? 'Choose a new password for your account.'
-          : `Use your ${PRODUCT_NAME} account to continue.`;
+          : mode === 'setup'
+            ? `No account yet. This one runs ${PRODUCT_NAME}: it can add people and change settings.`
+            : `Use your ${PRODUCT_NAME} account to continue.`;
 
   return (
     <form onSubmit={onSubmit} className="ui-auth-card space-y-5">
@@ -224,6 +249,54 @@ export default function LoginForm() {
           >
             Forgot password?
           </button>
+        </>
+      ) : null}
+
+      {mode === 'setup' ? (
+        <>
+          <label className="block space-y-2">
+            <span className="type-caption text-[var(--text-muted)]">Username</span>
+            <TextInput
+              value={username}
+              placeholder="admin"
+              onChange={event => setUsername(event.target.value)}
+              autoComplete="username"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="type-caption text-[var(--text-muted)]">Password (8+ characters)</span>
+            <TextInput
+              type="password"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="type-caption text-[var(--text-muted)]">Password again</span>
+            <TextInput
+              type="password"
+              value={resetPasswordConfirm}
+              onChange={event => setResetPasswordConfirm(event.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+          {auth.setupCodeRequired ? (
+            <label className="block space-y-2">
+              <span className="type-caption text-[var(--text-muted)]">Setup code</span>
+              <TextInput
+                value={setupCode}
+                onChange={event => setSetupCode(event.target.value)}
+                autoComplete="one-time-code"
+                spellCheck={false}
+                data-testid="setup-code"
+              />
+              <span className="type-caption block text-[var(--text-muted)]">
+                Other machines can reach this server, so it printed a one-time code in its log —
+                Docker: <code>docker compose logs castcut</code>.
+              </span>
+            </label>
+          ) : null}
         </>
       ) : null}
 
@@ -287,7 +360,9 @@ export default function LoginForm() {
                 ? 'Send reset link'
                 : mode === 'reset'
                   ? 'Update password'
-                  : 'Sign in'}
+                  : mode === 'setup'
+                    ? 'Create account'
+                    : 'Sign in'}
       </Button>
 
       {mode === 'forgot' || mode === 'reset' ? (

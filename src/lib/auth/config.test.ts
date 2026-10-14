@@ -55,14 +55,14 @@ describe('auth/config', () => {
   });
 
   describe('getDefaultAdminPassword', () => {
-    it('falls back to "admin" when unset', () => {
+    it('is null when unset (the first admin is made on the sign-in page)', () => {
       setEnv('PROMPT_ADMIN_PASSWORD', undefined);
-      assert.equal(getDefaultAdminPassword(), 'admin');
+      assert.equal(getDefaultAdminPassword(), null);
     });
 
-    it('falls back to "admin" when set to an empty/whitespace string', () => {
+    it('is null when set to an empty/whitespace string', () => {
       setEnv('PROMPT_ADMIN_PASSWORD', '   ');
-      assert.equal(getDefaultAdminPassword(), 'admin');
+      assert.equal(getDefaultAdminPassword(), null);
     });
 
     it('uses the trimmed env value when set', () => {
@@ -99,10 +99,13 @@ describe('auth/config', () => {
   });
 
   describe('getSessionSecret', () => {
-    it('falls back to the dev default when nothing is set', () => {
+    it('generates and keeps a random secret when nothing is set', () => {
       setEnv('PROMPT_SESSION_SECRET', undefined);
       setEnv('PROMPT_API_TOKEN', undefined);
-      assert.equal(getSessionSecret(), 'prompt-studio-dev-session-secret');
+      const secret = getSessionSecret();
+      assert.match(secret, /^[0-9a-f]{64}$/);
+      assert.notEqual(secret, 'prompt-studio-dev-session-secret');
+      assert.equal(getSessionSecret(), secret);
     });
 
     it('uses PROMPT_SESSION_SECRET when set', () => {

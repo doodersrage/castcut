@@ -17,8 +17,25 @@ export function acceptedRequestOrigins(input: {
   forwardedProto?: string | null;
   /** PROMPT_TRUSTED_HOSTS, comma-separated hostnames (no ports). */
   trustedHosts?: string | null;
+  /**
+   * X-Forwarded-Host: the public name a reverse proxy was opened at. A browser page can't set it
+   * (it isn't a CORS-safelisted header, and the preflight doesn't allow it), so an Origin that
+   * matches it came through the proxy — PROMPT_TRUSTED_HOSTS isn't needed for that (2026-10-14).
+   */
+  forwardedHost?: string | null;
 }): string[] {
   const origins = [input.serverOrigin];
+  const forwarded = input.forwardedHost?.split(',')[0]?.trim().toLowerCase();
+  if (forwarded) {
+    const forwardedProto =
+      (input.forwardedProto?.split(',')[0]?.trim().toLowerCase() ||
+        input.protocol.replace(/:$/, '')) + ':';
+    try {
+      origins.push(new URL(`${forwardedProto}//${forwarded}`).origin);
+    } catch {
+      // Not a host name.
+    }
+  }
   const host = input.host?.trim().toLowerCase();
   if (!host) return origins;
   const proto =

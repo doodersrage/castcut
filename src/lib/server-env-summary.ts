@@ -354,9 +354,11 @@ export function getServerEnvSummary(): ServerEnvSummary {
             ? 'INSECURE - using hardcoded fallback'
             : flag(process.env.PROMPT_SESSION_SECRET) || flag(process.env.PROMPT_API_TOKEN)
               ? 'configured'
-              : 'not needed (login not required)',
+              : isAuthExplicitlyEnabled()
+                ? 'generated (kept in the data folder)'
+                : 'not needed (login not required)',
           configured: !isUsingInsecureSessionSecret(),
-          hint: 'Required when PROMPT_AUTH_ENABLED is on — missing values fail startup (hardcoded fallback is no longer accepted). Set a long random string before exposing beyond localhost.',
+          hint: 'Optional: with none set the server makes a random one on first start and keeps it in the data folder (auth/session-secret). Startup fails only when it can write neither.',
         },
         {
           key: 'PROMPT_ADMIN_PASSWORD',
@@ -365,9 +367,11 @@ export function getServerEnvSummary(): ServerEnvSummary {
             ? `INSECURE - "${getDefaultAdminUsername()}" is still on the default password`
             : flag(process.env.PROMPT_ADMIN_PASSWORD)
               ? 'configured'
-              : 'not needed (login not required)',
+              : isAuthExplicitlyEnabled()
+                ? 'not set (admin made on the sign-in page)'
+                : 'not needed (login not required)',
           configured: !isUsingDefaultAdminCredentials(),
-          hint: 'Required when PROMPT_AUTH_ENABLED is on — missing values fail startup so the bootstrap admin cannot stay on the well-known default password ("admin").',
+          hint: 'Optional: leave it empty and the first visit creates the admin. When set it is applied on start whenever it changes, so a password changed in the app sticks. "admin" is refused.',
         },
         {
           key: 'PROMPT_EXPOSED',

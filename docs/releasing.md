@@ -45,11 +45,12 @@ Pushing `v*.*.*` runs the same publish path (tests, GitHub Release, image) witho
 ```bash
 docker pull ghcr.io/doodersrage/castcut:latest
 docker run -d --name castcut --restart=always -p 47832:47832 -v castcut_data:/data \
-  -e PROMPT_AUTH_ENABLED=true -e PROMPT_ADMIN_PASSWORD='choose-a-password' \
-  -e PROMPT_SESSION_SECRET="$(openssl rand -hex 32)" \
-  -e COMFYUI_API_URL=http://<comfyui-host>:8188 \
+  -e PROMPT_AUTH_ENABLED=true -e COMFYUI_API_URL=http://<comfyui-host>:8188 \
   ghcr.io/doodersrage/castcut:latest
+docker logs castcut   # the one-time setup code for the admin account
 ```
+
+Open `http://<host>:47832`, create the admin with that code. The session secret is generated into the `castcut_data` volume.
 
 With Compose, use the [`docker/`](https://github.com/doodersrage/castcut/tree/main/docker) folder. For a Docker-host-only install (`-p 127.0.0.1:…`, sign-in off), see [Configuration — Docker](configuration.md#docker): it also needs `-e PROMPT_BIND_HOST=127.0.0.1`.
 

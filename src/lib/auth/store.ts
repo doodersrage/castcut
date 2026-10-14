@@ -34,14 +34,20 @@ export function invalidateAuthStoreCache(): void {
 const DEFAULT_ADMIN_USER_ID = 'user-admin-default';
 
 function defaultUsersDocument(): UsersDocument {
+  const password = getDefaultAdminPassword();
+  // No PROMPT_ADMIN_PASSWORD: no account until the first admin is made on the sign-in page
+  // (createFirstAdmin). The built-in "admin" password is gone (2026-10-14).
+  if (!password) return { version: 1, users: [] };
   const now = Date.now();
+  const passwordHash = hashPassword(password);
   return {
     version: 1,
     users: [
       {
         id: DEFAULT_ADMIN_USER_ID,
         username: getDefaultAdminUsername(),
-        passwordHash: hashPassword(getDefaultAdminPassword()),
+        passwordHash,
+        envPasswordHash: passwordHash,
         role: 'admin',
         groupIds: [],
         blockedFeatures: [],
@@ -64,6 +70,9 @@ function syncDefaultAdminFromEnv(users: UsersDocument): UsersDocument {
 
   const username = getDefaultAdminUsername();
   const password = getDefaultAdminPassword();
+  if (!password) {
+    return users;
+  }
   const now = Date.now();
 
   let index = users.users.findIndex(user => user.id === DEFAULT_ADMIN_USER_ID);
@@ -76,11 +85,13 @@ function syncDefaultAdminFromEnv(users: UsersDocument): UsersDocument {
   }
 
   if (index < 0) {
+    const passwordHash = hashPassword(password);
     const nextUsers = [
       {
         id: DEFAULT_ADMIN_USER_ID,
         username,
-        passwordHash: hashPassword(password),
+        passwordHash,
+        envPasswordHash: passwordHash,
         role: 'admin' as const,
         groupIds: [],
         blockedFeatures: [],
@@ -103,8 +114,18 @@ function syncDefaultAdminFromEnv(users: UsersDocument): UsersDocument {
     changed = true;
   }
 
-  if (!verifyPassword(password, current.passwordHash)) {
-    next.passwordHash = hashPassword(password);
+  // The env password is applied when it is new or changed — not on every start, which put back
+  // the env password over one changed in the app (2026-10-14). envPasswordHash is the env value
+  // last applied; an account from before it existed gets it once (the old behaviour, once).
+  const envApplied = current.envPasswordHash
+    ? verifyPassword(password, current.envPasswordHash)
+    : false;
+  if (!envApplied) {
+    const passwordHash = verifyPassword(password, current.passwordHash)
+      ? current.passwordHash
+      : hashPassword(password);
+    next.passwordHash = passwordHash;
+    next.envPasswordHash = passwordHash;
     changed = true;
   }
 
@@ -142,11 +163,14 @@ export function ensureAuthStore(): { users: UsersDocument; groups: GroupsDocumen
   }
 
   if (authStoreCache && now - authStoreCache.loadedAt < AUTH_STORE_CACHE_MS) {
-    const { groups } = authStoreCache;
+    const { groups, loadedAt } = authStoreCache;
     const users = isAuthExplicitlyEnabled()
       ? syncDefaultAdminFromEnv(authStoreCache.users)
       : authStoreCache.users;
-    authStoreCache = { users, groups, loadedAt: now, dbPath: currentDbPath };
+    // Keep the load time: refreshing it on every hit never let a busy process (the proxy, which
+    // the app polls every few seconds) re-read, so it missed accounts made elsewhere — the first
+    // admin made on the sign-in page couldn't open a page (2026-10-14).
+    authStoreCache = { users, groups, loadedAt, dbPath: currentDbPath };
     return { users, groups };
   }
 
@@ -186,7 +210,12 @@ export function isAuthEnabled(): boolean {
 }
 
 export function toPublicUser(user: AuthUser): AuthUserPublic {
-  const { passwordHash: _passwordHash, totpSecret: _totpSecret, ...publicUser } = user;
+  const {
+    passwordHash: _passwordHash,
+    envPasswordHash: _envPasswordHash,
+    totpSecret: _totpSecret,
+    ...publicUser
+  } = user;
   return publicUser;
 }
 
@@ -270,6 +299,7 @@ export function upsertUser(input: {
     id: input.id ?? randomUUID(),
     username: input.username.trim(),
     passwordHash: existing?.passwordHash ?? hashPassword(input.password || randomUUID()),
+    envPasswordHash: existing?.envPasswordHash,
     role: input.role,
     groupIds: input.groupIds,
     blockedFeatures: input.blockedFeatures,
@@ -502,6 +532,46 @@ export function userCanAccessFeature(user: AuthUser | null, feature: AppFeatureI
     return true;
   }
   return !resolveBlockedFeatures(user).has(feature);
+}
+
+/** Sign-in is on and there is no account yet (no PROMPT_ADMIN_PASSWORD): the sign-in page makes the first admin. */
+export function needsFirstAdmin(): boolean {
+  if (!isAuthEnabled()) return false;
+  return ensureAuthStore().users.users.length === 0;
+}
+
+/** Passwords the first-admin and password forms refuse: short, or the old built-in default. */
+export function weakPasswordReason(password: string): string | null {
+  const trimmed = password.trim();
+  if (trimmed.length < 8) return 'Use at least 8 characters.';
+  if (['admin', 'password', 'castcut', '12345678'].includes(trimmed.toLowerCase())) {
+    return 'Pick a password that is not a common default.';
+  }
+  return null;
+}
+
+/** The first admin, made on the sign-in page; refused once any account exists. */
+export function createFirstAdmin(input: { username: string; password: string }): AuthUser {
+  const username = input.username.trim();
+  if (!username) throw new Error('Pick a username.');
+  const weak = weakPasswordReason(input.password);
+  if (weak) throw new Error(weak);
+  invalidateAuthStoreCache();
+  if (!needsFirstAdmin()) throw new Error('An account already exists — sign in instead.');
+  const now = Date.now();
+  const user: AuthUser = {
+    id: DEFAULT_ADMIN_USER_ID,
+    username,
+    passwordHash: hashPassword(input.password.trim()),
+    role: 'admin',
+    groupIds: [],
+    blockedFeatures: [],
+    enabled: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+  saveUsers([user]);
+  return user;
 }
 
 export function getAuthBootstrapInfo(): { enabled: boolean; defaultAdminUsername: string } {

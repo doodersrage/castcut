@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import SettingsSubNav from '@/components/settings/SettingsSubNav';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
@@ -294,6 +295,14 @@ export default function SettingsToolSections(vm: SettingsToolViewModel) {
               handleHealAndReady={handleHealAndReady}
             />
           )}
+
+          {tab === 'llm' || tab === 'comfyui' ? (
+            <ChangedSettingsPanel
+              tab={tab}
+              sharedSettings={sharedSettings}
+              updateSharedSettings={updateSharedSettings}
+            />
+          ) : null}
 
           {tab === 'automation' && (
             <SettingsAutomationTab

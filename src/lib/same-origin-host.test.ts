@@ -32,6 +32,18 @@ describe('same-origin hosts', () => {
     );
   });
 
+  it('accepts the public name a proxy forwards in X-Forwarded-Host (no PROMPT_TRUSTED_HOSTS)', () => {
+    const accepted = acceptedRequestOrigins({
+      ...server,
+      host: '127.0.0.1:47832',
+      forwardedProto: 'https',
+      forwardedHost: 'castcut.example.com',
+    });
+    assert.ok(accepted.includes('https://castcut.example.com'));
+    // A page's own Host alone still isn't enough for a name.
+    assert.ok(!acceptedRequestOrigins({ ...server, host: 'castcut.example.com' }).includes('http://castcut.example.com'));
+  });
+
   it('tells IP literals from names', () => {
     assert.equal(isIpLiteral('192.168.12.43'), true);
     assert.equal(isIpLiteral('::1'), true);

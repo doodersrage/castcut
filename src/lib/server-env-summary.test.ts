@@ -427,12 +427,12 @@ describe("server-env-summary", async () => {
       });
     });
 
-    it("flags an insecure fallback session secret only when auth is enabled and unset", () => {
+    it("reports a generated session secret when auth is enabled and none is set", () => {
       withCleanEnv({ PROMPT_AUTH_ENABLED: "true" }, () => {
         const fields = findGroup(getServerEnvSummary(), "security").fields;
         const field = findField(fields, "PROMPT_SESSION_SECRET");
-        assert.equal(field.value, "INSECURE - using hardcoded fallback");
-        assert.equal(field.configured, false);
+        assert.equal(field.value, "generated (kept in the data folder)");
+        assert.equal(field.configured, true);
       });
       withCleanEnv({ PROMPT_AUTH_ENABLED: "true", PROMPT_SESSION_SECRET: "a-real-secret" }, () => {
         const fields = findGroup(getServerEnvSummary(), "security").fields;
@@ -455,14 +455,14 @@ describe("server-env-summary", async () => {
       });
     });
 
-    it("flags default admin credentials only when auth is enabled and the password is unset", () => {
+    it("flags default admin credentials only when the env password is \"admin\"", () => {
       withCleanEnv({ PROMPT_AUTH_ENABLED: "true" }, () => {
         const fields = findGroup(getServerEnvSummary(), "security").fields;
         const field = findField(fields, "PROMPT_ADMIN_PASSWORD");
-        assert.equal(field.value, 'INSECURE - "admin" is still on the default password');
-        assert.equal(field.configured, false);
+        assert.equal(field.value, "not set (admin made on the sign-in page)");
+        assert.equal(field.configured, true);
       });
-      withCleanEnv({ PROMPT_AUTH_ENABLED: "true", PROMPT_ADMIN_USERNAME: "root" }, () => {
+      withCleanEnv({ PROMPT_AUTH_ENABLED: "true", PROMPT_ADMIN_USERNAME: "root", PROMPT_ADMIN_PASSWORD: "admin" }, () => {
         const fields = findGroup(getServerEnvSummary(), "security").fields;
         const field = findField(fields, "PROMPT_ADMIN_PASSWORD");
         assert.equal(field.value, 'INSECURE - "root" is still on the default password');

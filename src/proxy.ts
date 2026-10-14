@@ -44,6 +44,7 @@ function isTrustedSameOrigin(request: NextRequest): boolean {
     protocol: request.nextUrl.protocol,
     forwardedProto: request.headers.get('x-forwarded-proto'),
     trustedHosts: process.env.PROMPT_TRUSTED_HOSTS,
+    forwardedHost: request.headers.get('x-forwarded-host'),
   });
   const origin = request.headers.get('origin');
   if (origin) {

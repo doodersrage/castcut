@@ -10,7 +10,7 @@ import type { AuthGroup, AuthUser } from './types';
 // --- config ---
 let authExplicitlyEnabled = false;
 let defaultAdminUsername = 'admin';
-let defaultAdminPassword = 'admin';
+let defaultAdminPassword: string | null = 'admin';
 const isAuthExplicitlyEnabled = mock.fn(() => authExplicitlyEnabled);
 const getDefaultAdminUsername = mock.fn(() => defaultAdminUsername);
 const getDefaultAdminPassword = mock.fn(() => defaultAdminPassword);
@@ -86,6 +86,7 @@ function makeUser(overrides: Partial<AuthUser> = {}): AuthUser {
     email: overrides.email,
     emailNotifyBatch: overrides.emailNotifyBatch,
     emailNotifySecurity: overrides.emailNotifySecurity,
+    envPasswordHash: overrides.envPasswordHash,
   };
 }
 
@@ -161,6 +162,8 @@ describe('auth/store', async () => {
     listUsersWithCampaigns,
     userCanAccessFeature,
     getAuthBootstrapInfo,
+    needsFirstAdmin,
+    createFirstAdmin,
   } = await import('./store');
 
   describe('ensureAuthStore bootstrap and caching', () => {
@@ -206,6 +209,24 @@ describe('auth/store', async () => {
       const second = ensureAuthStore();
       assert.equal(loadUsers.mock.calls.length, 1);
       assert.equal(second.users.users[0]!.username, first.users.users[0]!.username);
+    });
+
+    it('re-reads once the window passes, even while reads keep coming (no sliding expiry)', () => {
+      const realNow = Date.now;
+      let clock = 1_000_000;
+      Date.now = () => clock;
+      try {
+        usersTable = [];
+        ensureAuthStore();
+        usersTable = [makeUser({ username: 'made-elsewhere' })];
+        for (let step = 0; step < 5; step += 1) {
+          clock += 900;
+          ensureAuthStore();
+        }
+        assert.equal(ensureAuthStore().users.users[0]?.username, 'made-elsewhere');
+      } finally {
+        Date.now = realNow;
+      }
     });
 
     it('re-reads after invalidateAuthStoreCache is called', () => {
@@ -308,10 +329,68 @@ describe('auth/store', async () => {
           username: 'admin',
           role: 'admin',
           passwordHash: 'hashed:admin',
+          envPasswordHash: 'hashed:admin',
         }),
       ];
       ensureAuthStore();
       assert.equal(saveUsers.mock.calls.length, 0);
+    });
+
+    it('keeps a password changed in the app (the env password was already applied)', () => {
+      authExplicitlyEnabled = true;
+      usersTable = [
+        makeUser({
+          id: 'user-admin-default',
+          username: 'admin',
+          role: 'admin',
+          passwordHash: 'hashed:changed-in-app',
+          envPasswordHash: 'hashed:admin',
+        }),
+      ];
+      ensureAuthStore();
+      assert.equal(saveUsers.mock.calls.length, 0);
+      assert.equal(usersTable[0]!.passwordHash, 'hashed:changed-in-app');
+    });
+
+    it('applies a new env password once, over the app one', () => {
+      authExplicitlyEnabled = true;
+      defaultAdminPassword = 'new-env-pass';
+      usersTable = [
+        makeUser({
+          id: 'user-admin-default',
+          username: 'admin',
+          role: 'admin',
+          passwordHash: 'hashed:changed-in-app',
+          envPasswordHash: 'hashed:admin',
+        }),
+      ];
+      ensureAuthStore();
+      assert.equal(usersTable[0]!.passwordHash, 'hashed:new-env-pass');
+      assert.equal(usersTable[0]!.envPasswordHash, 'hashed:new-env-pass');
+      invalidateAuthStoreCache();
+      saveUsers.mock.resetCalls();
+      ensureAuthStore();
+      assert.equal(saveUsers.mock.calls.length, 0);
+    });
+  });
+
+  describe('first admin (no PROMPT_ADMIN_PASSWORD)', () => {
+    it('makes no account, then the first admin once', () => {
+      authExplicitlyEnabled = true;
+      defaultAdminPassword = null;
+      usersTable = [];
+      assert.equal(ensureAuthStore().users.users.length, 0);
+      assert.equal(needsFirstAdmin(), true);
+      assert.throws(() => createFirstAdmin({ username: 'robert', password: 'password' }), /common/);
+      assert.throws(() => createFirstAdmin({ username: 'robert', password: 'short' }), /8/);
+      const user = createFirstAdmin({ username: 'robert', password: 'a-long-password' });
+      assert.equal(user.role, 'admin');
+      assert.equal(usersTable.length, 1);
+      assert.equal(needsFirstAdmin(), false);
+      assert.throws(
+        () => createFirstAdmin({ username: 'mallory', password: 'another-long-one' }),
+        /already exists/
+      );
     });
   });
 

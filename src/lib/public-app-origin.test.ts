@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { afterEach, describe, it, mock } from 'node:test';
+
+const kv = new Map<string, unknown>();
+mock.module('@/lib/sqlite/kv', {
+  namedExports: {
+    readKv: (scope: string, key: string) => kv.get(`${scope}/${key}`) ?? null,
+    writeKv: (scope: string, key: string, data: unknown) => kv.set(`${scope}/${key}`, data),
+  },
+});
+
+const login = (origin?: string) =>
+  new Request('http://127.0.0.1:47832/api/auth/login', {
+    method: 'POST',
+    headers: origin ? { origin } : {},
+  });
+
+afterEach(() => {
+  kv.clear();
+  delete process.env.PROMPT_API_URL;
+});
+
+describe('publicAppOrigin', async () => {
+  const { publicAppOrigin, rememberPublicAppOrigin } = await import('./public-app-origin');
+
+  it('is localhost until an admin signs in, then the address they used', () => {
+    assert.equal(publicAppOrigin(), 'http://127.0.0.1:47832');
+    rememberPublicAppOrigin(login('https://castcut.example.com'), 'admin');
+    assert.equal(publicAppOrigin(), 'https://castcut.example.com');
+  });
+
+  it('ignores sign-ins by non-admins and pages with no or odd Origin', () => {
+    rememberPublicAppOrigin(login('https://evil.example'), 'user');
+    rememberPublicAppOrigin(login(), 'admin');
+    rememberPublicAppOrigin(login('javascript:alert(1)'), 'admin');
+    assert.equal(publicAppOrigin(), 'http://127.0.0.1:47832');
+  });
+
+  it('PROMPT_API_URL wins and is never overwritten', () => {
+    process.env.PROMPT_API_URL = 'https://pinned.example.com/';
+    rememberPublicAppOrigin(login('https://castcut.example.com'), 'admin');
+    assert.equal(publicAppOrigin(), 'https://pinned.example.com');
+    delete process.env.PROMPT_API_URL;
+    assert.equal(publicAppOrigin(), 'http://127.0.0.1:47832');
+  });
+});

@@ -1,3 +1,4 @@
+import { publicAppOrigin } from '@/lib/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { appendAuditLog } from '@/lib/auth/audit-log';
 import type { AppFeatureId } from '@/lib/auth/features';
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     });
 
     const token = createPasswordResetToken(user.id);
-    const origin = process.env.PROMPT_API_URL?.trim() || 'http://127.0.0.1:47832';
+    const origin = publicAppOrigin();
     const resetUrl = `${origin}/login?reset=${encodeURIComponent(token)}`;
     const sent = await notifyUserInvite({
       to: email,

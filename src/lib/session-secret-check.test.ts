@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { resetGeneratedSecretCache } from './auth/generated-secrets';
 import { afterEach, describe, it } from 'node:test';
 import {
   isUsingInsecureSessionSecret,
@@ -35,18 +36,27 @@ describe('session-secret-check', () => {
       assert.equal(isUsingInsecureSessionSecret(), false);
     });
 
-    it('is true when auth is enabled and neither secret is set', () => {
+    it('is false when auth is enabled and neither secret is set (one is generated)', () => {
       setEnv('PROMPT_AUTH_ENABLED', 'true');
       setEnv('PROMPT_SESSION_SECRET', undefined);
       setEnv('PROMPT_API_TOKEN', undefined);
-      assert.equal(isUsingInsecureSessionSecret(), true);
+      assert.equal(isUsingInsecureSessionSecret(), false);
     });
 
-    it('is true when auth is enabled and secrets are blank strings', () => {
+    it('is true when no secret is set and the data folder cannot hold one', () => {
       setEnv('PROMPT_AUTH_ENABLED', 'yes');
       setEnv('PROMPT_SESSION_SECRET', '   ');
       setEnv('PROMPT_API_TOKEN', '');
-      assert.equal(isUsingInsecureSessionSecret(), true);
+      const saved = process.env.CASTCUT_SECRETS_DIR;
+      process.env.CASTCUT_SECRETS_DIR = '/dev/null/castcut-unwritable';
+      resetGeneratedSecretCache();
+      try {
+        assert.equal(isUsingInsecureSessionSecret(), true);
+      } finally {
+        if (saved === undefined) delete process.env.CASTCUT_SECRETS_DIR;
+        else process.env.CASTCUT_SECRETS_DIR = saved;
+        resetGeneratedSecretCache();
+      }
     });
 
     it('is false when auth is enabled and PROMPT_SESSION_SECRET is set', () => {

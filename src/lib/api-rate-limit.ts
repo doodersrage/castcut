@@ -80,7 +80,12 @@ export function checkRateLimit(key: string, route = 'api', maxOverride?: number)
 // them; otherwise every direct client collapses into one shared bucket,
 // which is stricter than intended but never spoofable.
 export function rateLimitClientKey(request: Request): string {
-  if (process.env.TRUST_PROXY_HEADERS?.trim().toLowerCase() !== 'true') {
+  // Unset = auto: a proxy's X-Real-IP / X-Forwarded-For is used when it is there (2026-10-14).
+  // Without it every visitor behind a proxy shared one 'local' bucket, so 20 wrong passwords
+  // from anyone locked every client out. A made-up header on a directly reachable server only
+  // dodges the per-client bucket; the per-username sign-in limit still holds. 'false' turns it off.
+  const trust = process.env.TRUST_PROXY_HEADERS?.trim().toLowerCase();
+  if (trust === 'false' || trust === '0' || trust === 'no') {
     return 'local';
   }
   // The proxy's own header first; else the LAST X-Forwarded-For entry — the one the proxy

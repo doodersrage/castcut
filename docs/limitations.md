@@ -94,10 +94,13 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
 - **Auth-off is localhost-only.** Network-exposed signals (`PROMPT_EXPOSED`,
   all-interfaces bind, or a non-loopback `PROMPT_API_URL`) fail startup unless
   auth is enabled with real secrets (or `PROMPT_ALLOW_INSECURE_AUTH=1`).
-- **Auth-on refuses insecure defaults.** If `PROMPT_AUTH_ENABLED=true` without
-  `PROMPT_SESSION_SECRET` / `PROMPT_API_TOKEN` or without `PROMPT_ADMIN_PASSWORD`,
-  the process exits at instrumentation time instead of signing cookies with a
-  hardcoded secret or keeping the bootstrap admin on `"admin"`.
+- **Auth-on refuses insecure defaults.** With `PROMPT_AUTH_ENABLED=true` the
+  session secret is generated into the data folder when none is set; if that
+  folder can't be written, or `PROMPT_ADMIN_PASSWORD` is `admin`, the process
+  exits at instrumentation time instead of signing cookies with a hardcoded
+  secret or keeping the admin on `"admin"`. There is no built-in password: with
+  none set, the first admin is made on the sign-in page (with a setup code from
+  the server log when the server is network-exposed).
 
 ## Testing and platform
 

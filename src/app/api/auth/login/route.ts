@@ -16,6 +16,7 @@ import {
   recordLoginSuccess,
 } from '@/lib/auth/login-throttle';
 import { rateLimitClientKey } from '@/lib/api-rate-limit';
+import { rememberPublicAppOrigin } from '@/lib/public-app-origin';
 
 export const runtime = 'nodejs';
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
       return apiError('Invalid authenticator code.', 401);
     }
     recordLoginSuccess(user.username);
+    rememberPublicAppOrigin(request, user.role);
     const sessionId = registerSession({
       userId: user.id,
       username: user.username,
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
   }
 
   recordLoginSuccess(user.username);
+  rememberPublicAppOrigin(request, user.role);
 
   const sessionId = registerSession({
     userId: user.id,

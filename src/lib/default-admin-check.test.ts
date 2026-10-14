@@ -34,15 +34,15 @@ describe('default-admin-check', () => {
       assert.equal(isUsingDefaultAdminCredentials(), false);
     });
 
-    it('is true when auth is enabled and PROMPT_ADMIN_PASSWORD is unset', () => {
+    it('is false when PROMPT_ADMIN_PASSWORD is unset (no built-in password any more)', () => {
       setEnv('PROMPT_AUTH_ENABLED', 'true');
       setEnv('PROMPT_ADMIN_PASSWORD', undefined);
-      assert.equal(isUsingDefaultAdminCredentials(), true);
+      assert.equal(isUsingDefaultAdminCredentials(), false);
     });
 
-    it('is true when auth is enabled and PROMPT_ADMIN_PASSWORD is a blank string', () => {
+    it('is true when auth is enabled and PROMPT_ADMIN_PASSWORD is "admin"', () => {
       setEnv('PROMPT_AUTH_ENABLED', 'yes');
-      setEnv('PROMPT_ADMIN_PASSWORD', '   ');
+      setEnv('PROMPT_ADMIN_PASSWORD', ' Admin ');
       assert.equal(isUsingDefaultAdminCredentials(), true);
     });
 

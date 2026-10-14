@@ -1,3 +1,4 @@
+import { rememberPublicAppOrigin } from '@/lib/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { createSessionToken, sessionCookieValue } from '@/lib/auth/session';
 import { parsePendingLoginToken } from '@/lib/auth/pending-login';
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     return apiError('Invalid authenticator code.', 401);
   }
   recordLoginSuccess(user.username);
+  rememberPublicAppOrigin(request, user.role);
 
   const sessionId = registerSession({
     userId: user.id,

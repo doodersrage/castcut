@@ -10,6 +10,7 @@ export function isPublicAuthPath(pathname: string): boolean {
     path === '/login' ||
     path === '/forbidden' ||
     path === '/api/auth/login' ||
+    path === '/api/auth/setup' ||
     path === '/api/auth/logout' ||
     path === '/api/auth/session' ||
     path === '/api/auth/profile' ||

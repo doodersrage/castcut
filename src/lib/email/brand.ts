@@ -1,3 +1,4 @@
+import { publicAppOrigin } from '@/lib/public-app-origin';
 /**
  * Shared branded HTML shell for transactional email.
  * Uses inline styles + table layout for client compatibility.
@@ -15,7 +16,7 @@ export function brandedEmailHtml(input: {
   footerUrl?: string;
   preheader?: string;
 }): string {
-  const origin = input.footerUrl ?? process.env.PROMPT_API_URL?.trim() ?? 'http://127.0.0.1:47832';
+  const origin = input.footerUrl ?? publicAppOrigin();
   const preheader = input.preheader
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeEmailHtml(input.preheader)}</div>`
     : '';

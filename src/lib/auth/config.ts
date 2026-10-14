@@ -1,9 +1,12 @@
+import { generatedSecret } from './generated-secrets';
+
 export function getDefaultAdminUsername(): string {
   return process.env.PROMPT_ADMIN_USERNAME?.trim() || 'admin';
 }
 
-export function getDefaultAdminPassword(): string {
-  return process.env.PROMPT_ADMIN_PASSWORD?.trim() || 'admin';
+/** PROMPT_ADMIN_PASSWORD, or null: then the first admin is made on the sign-in page (no built-in password). */
+export function getDefaultAdminPassword(): string | null {
+  return process.env.PROMPT_ADMIN_PASSWORD?.trim() || null;
 }
 
 export function isAuthExplicitlyEnabled(): boolean {
@@ -15,6 +18,7 @@ export function getSessionSecret(): string {
   return (
     process.env.PROMPT_SESSION_SECRET?.trim() ||
     process.env.PROMPT_API_TOKEN?.trim() ||
+    generatedSecret('session-secret') ||
     'prompt-studio-dev-session-secret'
   );
 }

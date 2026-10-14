@@ -1,3 +1,4 @@
+import { publicAppOrigin } from '@/lib/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   const completed = body.completed ?? 1;
-  const origin = process.env.PROMPT_API_URL?.trim() || 'http://127.0.0.1:47832';
+  const origin = publicAppOrigin();
   const textLines = [
     `Hello ${user.username},`,
     '',

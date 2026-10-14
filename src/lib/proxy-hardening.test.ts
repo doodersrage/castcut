@@ -23,8 +23,13 @@ describe('behind a reverse proxy', () => {
       headers: { 'x-forwarded-for': '1.2.3.4', 'x-real-ip': '198.51.100.20' },
     });
     assert.equal(rateLimitClientKey(realIp), '198.51.100.20');
+    // Unset = auto: the proxy's address is used when sent; 'false' ignores the headers.
     delete process.env.TRUST_PROXY_HEADERS;
+    assert.equal(rateLimitClientKey(spoofed), '198.51.100.9');
+    assert.equal(rateLimitClientKey(new Request('http://x/')), 'local');
+    process.env.TRUST_PROXY_HEADERS = 'false';
     assert.equal(rateLimitClientKey(spoofed), 'local');
+    delete process.env.TRUST_PROXY_HEADERS;
   });
 
   it('only lets a request pick its ComfyUI address with login off, unless set', () => {
