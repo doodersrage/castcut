@@ -33,6 +33,7 @@ export default function SpokenLineField({
   onSuggestReply,
   tone,
   onToneChange,
+  catchphrases,
 }: {
   line?: string;
   disabled?: boolean;
@@ -57,6 +58,8 @@ export default function SpokenLineField({
   /** How the line is said (unset = natural). */
   tone?: SpokenLineTone;
   onToneChange?: (tone: SpokenLineTone) => void;
+  /** The Cast's own lines (Cast → Voice), each one tap (cast-speech.ts). */
+  catchphrases?: string[];
 }) {
   const [value, setValue] = useState(line ?? '');
   const [roomSound, setRoomSound] = useState(
@@ -136,6 +139,24 @@ export default function SpokenLineField({
           }
         }}
       />
+      {catchphrases?.some(phrase => phrase.trim() && phrase.trim() !== value.trim()) ? (
+        <div className="flex flex-wrap items-center gap-2" data-testid={`${testId}-catchphrases`}>
+          {catchphrases
+            .filter(phrase => phrase.trim() && phrase.trim() !== value.trim())
+            .map(phrase => (
+              <button
+                key={phrase}
+                type="button"
+                className="ui-chip max-w-full truncate text-left"
+                disabled={disabled || asking}
+                title="One of their lines"
+                onClick={() => commit(phrase)}
+              >
+                “{phrase}”
+              </button>
+            ))}
+        </div>
+      ) : null}
       {offered || onSuggest ? (
         <div className="flex flex-wrap items-center gap-2">
           {offered ? (

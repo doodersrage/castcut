@@ -1,3 +1,4 @@
+import { castMarksPlateLine } from './cast-marks';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/character-identity';
 import {
   activeLook,
@@ -209,17 +210,20 @@ export function reinforceAppearanceForPlate(appearance: string): string {
 }
 
 /** Negative prompt terms that fight the Cast ethnicity when generating a body plate. */
-export function buildLookCastPlateNegative(appearance: string): string {
+export function buildLookCastPlateNegative(appearance: string, marks?: string): string {
   const key = inferPlateEthnicityKey(appearance);
   const ethnicityNeg = key ? PLATE_ETHNICITY_NEGATIVES[key] : 'wrong race, incorrect skin tone';
   return [
     ethnicityNeg,
     'different person, race swap, ethnicity swap, skin tone change',
-    'tattoo, tattoos, tattoo sleeve, inked skin, body ink',
+    // Not when one of her marks is a tattoo (cast-marks.ts).
+    /\btattoo/i.test(marks ?? '') ? '' : 'tattoo, tattoos, tattoo sleeve, inked skin, body ink',
     '3D render, CGI, clay sculpt, grey clay, monochrome sculpture, base mesh, ZBrush, Blender viewport, untextured, albedo only, plastic mannequin, statue, doll, blank eyes, no pupils, featureless face, video-game character',
     'cartoon, anime, illustration, painting',
     'crowd, multiple people, busy wardrobe, outerwear, text overlay',
-  ].join(', ');
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 /** Drop people / race / body cues from Look vibe so style notes cannot redefine the subject. */
@@ -277,6 +281,8 @@ export function buildLookCastPlatePrompt(input: {
   vibePrompt?: string;
   /** What this look changes (hair, makeup) — Cast home's Generate plate. */
   lookNote?: string;
+  /** Her marks (cast-marks.ts castMarksPlateLine): the plate carries them into every still. */
+  marks?: string;
 }): string {
   const name = input.characterName?.trim() || 'the Cast lead';
   const appearance = reinforceAppearanceForPlate(
@@ -295,6 +301,7 @@ export function buildLookCastPlatePrompt(input: {
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
     lookNote ? `THIS LOOK (same person, same face and body; only this changes): ${lookNote}` : null,
+    input.marks?.trim() ? `MARKS (keep exactly, clearly visible): ${input.marks.trim()}` : null,
     triggers.length > 0 ? `identity triggers: ${triggers.join(', ')}` : null,
     'shot on a DSLR, natural skin with visible pores and subsurface color, real eyes with irises and pupils, real hair strands, lifelike soft shadows',
     style
@@ -791,9 +798,13 @@ export async function ensureOutfitPlateAfterLook(input: {
     descriptor: appearance.appearance || undefined,
     loraTriggers: appearance.loraTriggers,
     lookNote: input.lookNote,
+    marks: castMarksPlateLine(fresh.marks),
   });
   const lookId = input.lookId?.trim() || fresh.activeLookId || shared.activeLookId;
-  const explicitNegative = buildLookCastPlateNegative(appearance.appearance);
+  const explicitNegative = buildLookCastPlateNegative(
+    appearance.appearance,
+    castMarksPlateLine(fresh.marks)
+  );
   const strength = shared.ipAdapterStrength ?? 0.75;
   try {
     const faceQueueParams = castFaceQueueParamsBase(fresh, strength);

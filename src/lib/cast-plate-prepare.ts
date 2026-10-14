@@ -8,7 +8,8 @@
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { setLookPlateStance, type CharacterRecord } from '@/lib/character-os';
+import { getCharacter, setLookPlateStance, type CharacterRecord } from '@/lib/character-os';
+import { castMarkEditPhrases } from '@/lib/cast-marks';
 import type { DayPartnerNoun } from '@/lib/day-partner';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { measureStillFaceMatch } from '@/lib/face-match-client';
@@ -29,6 +30,8 @@ export type CastPlatePrepareOptions = {
   baseLayer: boolean;
   /** Plain white instead of the photo's scene. */
   whiteBackground: boolean;
+  /** Paint the Cast's marks on (cast-marks.ts): the plate carries them into every still. */
+  marks?: boolean;
 };
 
 export const DEFAULT_CAST_PLATE_PREPARE_OPTIONS: CastPlatePrepareOptions = {
@@ -38,7 +41,7 @@ export const DEFAULT_CAST_PLATE_PREPARE_OPTIONS: CastPlatePrepareOptions = {
 };
 
 export function hasCastPlatePrepareStep(options: CastPlatePrepareOptions): boolean {
-  return options.stand || options.baseLayer || options.whiteBackground;
+  return options.stand || options.baseLayer || options.whiteBackground || options.marks === true;
 }
 
 /** The base layer, said for who wears it (a man's plate isn't put in a bra). */
@@ -67,8 +70,11 @@ export function buildCastPlatePreparePrompt(input: {
   noun?: DayPartnerNoun;
   /** The plate is already a cutout on white. */
   onWhite?: boolean;
+  /** Her marks for the edit (castMarkEditPhrases), when options.marks. */
+  marks?: string[];
 }): string {
   const { stand, baseLayer, whiteBackground } = input.options;
+  const marks = input.options.marks ? (input.marks ?? []).filter(Boolean) : [];
   const noun = input.noun ?? 'woman';
   const possessive = noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their';
   const white = whiteBackground || input.onWhite === true;
@@ -85,8 +91,10 @@ export function buildCastPlatePreparePrompt(input: {
         ? 'change the clothing and the background.'
         : 'change only the clothing.'
     );
-  } else {
+  } else if (whiteBackground) {
     parts.push('change only the background.');
+  } else {
+    parts.push(`add only ${input.noun === 'man' ? 'his' : 'her'} marks.`);
   }
   if (baseLayer) {
     parts.push(
@@ -95,6 +103,12 @@ export function buildCastPlatePreparePrompt(input: {
   }
   if (white) {
     parts.push('Plain pure white background, no props.');
+  }
+  if (marks.length) {
+    // Live (2026-10-14, Edit 2511 Lightning-8): glasses, a mole and a forearm rose added with the
+    // rest kept; "left" alone put the tattoo on the wrong arm 1 of 2, so the side is said as the
+    // picture shows it (castMarkEditPhrases).
+    parts.push(`Add ${possessive} marks, clearly visible: ${joinAnd(marks)}.`);
   }
   if (stand) {
     parts.push(
@@ -107,6 +121,11 @@ export function buildCastPlatePreparePrompt(input: {
   }
   parts.push('One person. Photoreal.');
   return parts.join(' ');
+}
+
+function joinAnd(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
+  return `${items.slice(0, -1).join('; ')} and ${items.at(-1)}`;
 }
 
 export function buildCastPlatePrepareNegative(
@@ -171,7 +190,7 @@ type SendComfyUi = (
 ) => Promise<string | undefined | void>;
 
 /** Upload the current plate to Comfy input so the edit (and Undo) have a stable filename. */
-async function snapshotPlate(
+export async function snapshotPlate(
   plate: FittingPlate,
   model: string | undefined
 ): Promise<CastPlateSnapshot> {
@@ -253,6 +272,7 @@ export async function prepareCastPlate(input: {
     options: input.options,
     noun: input.noun,
     onWhite: before.isolated,
+    marks: castMarkEditPhrases(getCharacter(input.characterId)?.marks),
   });
   const canvas = stand ? CAST_PLATE_PREPARE_STANDING_CANVAS : before.size;
   const promptId = await input.sendComfyUi(prompt, null, undefined, {

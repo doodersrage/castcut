@@ -8,6 +8,12 @@ export const CLEAN_SKIN_NEGATIVE =
   'tattoo, tattoos, tattoo sleeve, inked skin, body ink, tribal tattoo';
 
 export const CLEAN_SKIN_POSITIVE_LOCK = 'clean unmarked skin with no tattoos or body ink';
+/** The lock when the prompt names a mark of her own (a scar, a mole, freckles). */
+export const NO_INK_POSITIVE_LOCK = 'no tattoos or body ink';
+/** With a Cast's own tattoo: the spread seen live (both forearms, scattered dots). */
+const CAST_MARK_EXTRA_INK_NEGATIVE =
+  'tattoo sleeve, many tattoos, extra tattoos, tattoos on both arms, scattered small tattoos, dark dots on skin';
+const SKIN_MARK_RE = /\b(scars?|moles?|beauty mark|birthmarks?|freckles?|freckled)\b/i;
 
 const TATTOO_INTENT_RE =
   /\b(tattoo|tattoos|tattooed|inked|body\s*ink|tattoo\s*sleeve|sleeve\s*tattoo|tribal\s*tattoo|henna)\b/i;
@@ -41,7 +47,10 @@ export function mergeCleanSkinNegatives(
   appearanceOrPrompt?: string | null
 ): string | undefined {
   if (appearanceAllowsTattoos(appearanceOrPrompt) || appearanceAllowsTattoos(negative)) {
-    return negative?.trim() || undefined;
+    // A Cast's own tattoo (cast-marks.ts): keep the extras out.
+    return /the same in every picture of her\. No other ink or marks/.test(appearanceOrPrompt ?? '')
+      ? mergeCommaList(negative, CAST_MARK_EXTRA_INK_NEGATIVE) || undefined
+      : negative?.trim() || undefined;
   }
   const merged = mergeCommaList(negative, CLEAN_SKIN_NEGATIVE);
   return merged || undefined;
@@ -70,10 +79,12 @@ export function appendCleanSkinPositive(
     promptHasNoPerson(trimmed) ||
     appearanceAllowsTattoos(trimmed) ||
     appearanceAllowsTattoos(appearanceOrPrompt) ||
-    /clean unmarked skin/i.test(trimmed)
+    /clean unmarked skin|no tattoos or body ink/i.test(trimmed)
   ) {
     return trimmed;
   }
   const separator = /[.!?]$/.test(trimmed) ? ' ' : '. ';
-  return `${trimmed}${separator}${CLEAN_SKIN_POSITIVE_LOCK}.`;
+  // A Cast's scar, mole or freckles (cast-marks.ts): "clean unmarked skin" would erase them.
+  const lock = SKIN_MARK_RE.test(trimmed) ? NO_INK_POSITIVE_LOCK : CLEAN_SKIN_POSITIVE_LOCK;
+  return `${trimmed}${separator}${lock}.`;
 }

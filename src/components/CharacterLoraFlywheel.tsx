@@ -23,6 +23,7 @@ import {
   trainJobsForCharacter,
 } from '@/lib/character-lora-flywheel';
 import { downloadLoraDatasetZip } from '@/lib/gallery-lora-dataset-export';
+import { checkLoraKeepers } from '@/lib/lora-keeper-check';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { normalizeTrainJobs, type TrainJob } from '@/lib/lora-train-job';
@@ -107,6 +108,7 @@ export default function CharacterLoraFlywheel({
     return () => window.clearInterval(timer);
   }, [refreshJobs, activeJob?.status]);
 
+  const keeperCheck = checkLoraKeepers(keepers);
   const persistTrigger = () => {
     onApplied(setCharacterTrigger(character.id, trigger));
   };
@@ -216,6 +218,22 @@ export default function CharacterLoraFlywheel({
           : ''}
       </p>
 
+      {keepers.length > 0 && phase === 'train' ? (
+        <div className="space-y-1" data-testid="lora-flywheel-keeper-check">
+          <p className="type-caption text-[var(--text-secondary)]">
+            {keeperCheck.count} keepers · {keeperCheck.places} place
+            {keeperCheck.places === 1 ? '' : 's'}
+            {keeperCheck.face !== null
+              ? ` · face match ${Math.round(keeperCheck.face * 100)}% (${keeperCheck.measured} measured)`
+              : ' · face match not measured (Overview → Likeness → Measure)'}
+          </p>
+          {keeperCheck.problems.map(problem => (
+            <p key={problem} className="ui-alert-warning type-caption">
+              {problem}
+            </p>
+          ))}
+        </div>
+      ) : null}
       <ToolActionRow>
         <Button
           size="sm"

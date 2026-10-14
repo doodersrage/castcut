@@ -1,7 +1,14 @@
 'use client';
 
 import CastVoiceSection from '@/components/character/CastVoiceSection';
+import CastLikenessSection from '@/components/character/CastLikenessSection';
+import CastMarksSection from '@/components/character/CastMarksSection';
 import CastPlacesSection from '@/components/character/CastPlacesSection';
+import CastPropsSection from '@/components/character/CastPropsSection';
+import CastReferenceSheetSection from '@/components/character/CastReferenceSheetSection';
+import CastRelationshipsSection from '@/components/character/CastRelationshipsSection';
+import CastSpeechSection from '@/components/character/CastSpeechSection';
+import CastWardrobeSection from '@/components/character/CastWardrobeSection';
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -117,6 +124,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           stance={props.plateStance}
           noun={props.plateSubjectNoun}
           faceDrift={props.plateFaceDrift}
+          hasMarks={Boolean(character.marks?.length)}
           plates={props.plateTiles}
           activePlateId={character.activeLookId}
           onSelectPlate={props.selectPlate}
@@ -129,11 +137,39 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           onRestorePlate={props.restoreActivePlate}
         />
       ) : null}
+      {props.homeTab === 'overview' ? (
+        <CastReferenceSheetSection
+          character={character}
+          noun={props.plateSubjectNoun}
+          onUpdated={props.persistApply}
+        />
+      ) : null}
+      {props.homeTab === 'overview' ? (
+        <CastWardrobeSection
+          character={character}
+          entries={props.entries}
+          onUpdated={props.persistApply}
+        />
+      ) : null}
+      {props.homeTab === 'overview' ? (
+        <CastLikenessSection
+          character={character}
+          entries={props.entries}
+          onRemakePlate={lookId => {
+            props.selectPlate(lookId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      ) : null}
       {props.homeTab === 'bible' ? (
         <>
           <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
+          <CastMarksSection character={character} onUpdated={props.persistApply} />
           <CastPlacesSection character={character} onUpdated={props.persistApply} />
+          <CastPropsSection character={character} onUpdated={props.persistApply} />
           <CastVoiceSection character={character} onUpdated={props.persistApply} />
+          <CastSpeechSection character={character} onUpdated={props.persistApply} />
+          <CastRelationshipsSection character={character} onUpdated={props.persistApply} />
           <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
           <CharacterBibleSection character={character} onUpdated={props.persistApply} />
         </>

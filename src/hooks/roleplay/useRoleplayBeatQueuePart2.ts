@@ -1,5 +1,6 @@
 'use client';
 
+import { pronounceForCast } from '@/lib/cast-speech';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import {
   framedTalkingStill,
@@ -275,14 +276,14 @@ export function useRoleplayBeatQueuePart2(
         const lead = leadIsMan() ? 'man' : 'woman';
         prompt = conversation
           ? conversationClipPrompt({
-              line: spokenLine,
-              reply: replyLine,
+              line: pronounceForCast(spokenLine, shared.activeCharacterId),
+              reply: replyLine && pronounceForCast(replyLine, shared.activeCharacterId),
               tone: latest.lineTone,
               lead,
               partner: conversationPartnerNoun(stillText, lead),
             })
           : talkingClipPrompt({
-              line: spokenLine,
+              line: pronounceForCast(spokenLine, shared.activeCharacterId),
               speaker: leadIsMan() ? 'He' : 'She',
               tone: latest.lineTone,
             });
@@ -352,7 +353,7 @@ export function useRoleplayBeatQueuePart2(
           framing !== 'close' &&
           (stillBody?.posture ?? (stillWordsSeated(stillText) ? 'seated' : null)) === 'seated';
         prompt = talkingClipPrompt({
-          line: spokenLine,
+          line: pronounceForCast(spokenLine, shared.activeCharacterId),
           speaker: leadIsMan() ? 'He' : 'She',
           tone: latest.lineTone,
           framing,

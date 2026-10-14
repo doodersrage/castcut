@@ -77,6 +77,16 @@ export type CharacterRecord = CharacterFeatureFields & {
    * design picked from the Cast's id, so every Cast has a home without setting one up.
    */
   places?: CastPlaces;
+  /** Tattoos, scars, moles, freckles, glasses… kept in every still where they show (cast-marks.ts). */
+  marks?: CastMark[];
+  /** Her phone, bag, car, dog… described once, the same whenever a beat mentions it (cast-props.ts). */
+  props?: CastProp[];
+  /** Words the clip voice says wrong (sounds-like spellings) and lines they'd say (cast-speech.ts). */
+  speech?: CastSpeech;
+  /** Who the other Cast are to them — partner, sister, best friend (cast-relationships.ts). */
+  relationships?: CastRelationship[];
+  /** Outfits Day stills were queued in, newest first (cast-wardrobe.ts). */
+  wardrobe?: CastWornOutfit[];
   /** Last "Picture this bible" still (Cast → Bible), shown again on a revisit. */
   biblePicture?: CastBiblePicture;
   /**
@@ -131,6 +141,89 @@ export type CastVoice = {
   at: number;
 };
 
+/** A tattoo, scar, mole, freckles or glasses kept from still to still (cast-marks.ts). */
+export type CastMarkSpot =
+  | 'face'
+  | 'neck'
+  | 'left arm'
+  | 'right arm'
+  | 'hands'
+  | 'chest'
+  | 'stomach'
+  | 'back'
+  | 'left leg'
+  | 'right leg'
+  | 'ankle';
+
+export type CastMark = {
+  id: string;
+  /** What it is, in a few words: "a small black rose tattoo", "a thin scar", "round wire glasses". */
+  what: string;
+  where: CastMarkSpot;
+  /** Words for exactly where, when "left arm" is too loose: "on the inside of her left wrist". */
+  detail?: string;
+};
+
+/** Her phone, bag, car, dog… (cast-props.ts). */
+export type CastProp = {
+  id: string;
+  /** What it is, as a beat would say it: "phone", "dog". */
+  name: string;
+  /** What hers looks like: "rose-gold with a clear case". */
+  looks: string;
+};
+
+export type CastPronunciation = { word: string; sayAs: string };
+
+/** How a Cast talks beyond the voice sample (cast-speech.ts). */
+export type CastSpeech = {
+  pronunciations?: CastPronunciation[];
+  catchphrases?: string[];
+};
+
+export type CastRelationKind =
+  | 'partner'
+  | 'spouse'
+  | 'ex'
+  | 'best-friend'
+  | 'friend'
+  | 'roommate'
+  | 'coworker'
+  | 'rival'
+  | 'sibling'
+  | 'cousin'
+  | 'parent'
+  | 'child';
+
+/** What another Cast is to this one (cast-relationships.ts). */
+export type CastRelationship = { castId: string; kind: CastRelationKind };
+
+/** An outfit a Day still was queued in (cast-wardrobe.ts). */
+export type CastWornOutfit = {
+  /** wardrobeId, or the clothing photo's file name. */
+  key: string;
+  label: string;
+  outfit: CharacterLookOutfit;
+  firstAt: number;
+  lastAt: number;
+  count: number;
+  /** Latest stills made in it (Gallery prompt ids), newest first. */
+  promptIds: string[];
+};
+
+export type ReferenceSheetViewId =
+  'three-quarter' | 'side' | 'back' | 'smile' | 'laugh' | 'serious' | 'surprised';
+
+/** One render of a look's reference sheet (cast-reference-sheet.ts). */
+export type ReferenceSheetView = {
+  id: ReferenceSheetViewId;
+  label: string;
+  /** Gallery view URL of the render. */
+  url: string;
+  promptId?: string;
+  at: number;
+};
+
 /** What a Cast keeps for one kind of place (cast-places.ts): a design, their own words, or off. */
 export type CastPlaceChoice = { design: string } | { custom: string } | { off: true };
 
@@ -163,6 +256,8 @@ export type CharacterLook = {
   keptOutfit?: CharacterLookOutfit;
   /** Plates this look had before, newest first (Cast home → Looks → Earlier plates). */
   plateHistory?: CharacterLookPlateRecord[];
+  /** Side, back and expression renders of this look's plate (cast-reference-sheet.ts). */
+  referenceSheet?: ReferenceSheetView[];
 };
 
 /** A plate a look had before it was replaced or removed, with the face that went with it. */

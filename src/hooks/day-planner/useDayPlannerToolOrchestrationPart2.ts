@@ -1,5 +1,6 @@
 'use client';
 
+import { pronounceForCast } from '@/lib/cast-speech';
 import {
   framedTalkingStill,
   talkingStillFraming,
@@ -556,20 +557,20 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   move: slot.eventMove,
                   nextBeat: lastMoment ? undefined : dayEventMomentWords(landOn ?? {}),
                   speaker: manLead ? 'He' : 'She',
-                  line: spokenLine,
+                  line: pronounceForCast(spokenLine, shared.activeCharacterId),
                 })
               : conversation
                 ? conversationClipPrompt({
                     setting: slot.location,
-                    line: spokenLine,
-                    reply: replyLine,
+                    line: pronounceForCast(spokenLine, shared.activeCharacterId),
+                    reply: replyLine && pronounceForCast(replyLine, shared.activeCharacterId),
                     tone: slot.lineTone,
                     lead,
                     partner: conversationPartnerNoun(parentEntry?.prompt, lead),
                   })
                 : talkingClipPrompt({
                     setting: slot.location,
-                    line: spokenLine,
+                    line: pronounceForCast(spokenLine, shared.activeCharacterId),
                     speaker: manLead ? 'He' : 'She',
                     tone: slot.lineTone,
                     framing,
@@ -862,7 +863,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       });
       const talking = Boolean(spokenLine) && isLtx25Model(engine);
       const prompt = talking
-        ? talkingClipPrompt({ setting: slot.location, line: spokenLine, tone: slot.lineTone })
+        ? talkingClipPrompt({
+            setting: slot.location,
+            line: pronounceForCast(spokenLine, shared.activeCharacterId),
+            tone: slot.lineTone,
+          })
         : buildDaySlotClipPrompt({
             slot,
             direction,

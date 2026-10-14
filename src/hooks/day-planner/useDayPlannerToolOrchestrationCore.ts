@@ -1,5 +1,9 @@
 'use client';
 
+import { castMarksLine } from '@/lib/cast-marks';
+import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
+import { castRelationOf, relationAllowsRomance } from '@/lib/cast-relationships';
+import { castPropsLine } from '@/lib/cast-props';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import { realKitId } from '@/lib/outfit-handoff';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
@@ -1752,8 +1756,12 @@ export function useDayPlannerToolOrchestrationCore() {
           toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== lookCharacter?.id
             ? getCharacter(toolSettings.partnerCharacterId)
             : null;
+        const castPartner = toDayPartner(partnerCharacter);
         const partnerCandidate =
-          inventedDayPartner(toolSettings.partnerCharacterId) ?? toDayPartner(partnerCharacter);
+          inventedDayPartner(toolSettings.partnerCharacterId) ??
+          (castPartner
+            ? { ...castPartner, relation: castRelationOf(lookCharacter, partnerCharacter?.id) }
+            : null);
         let slotPartner: DayPartner | null = null;
         let partnerFace: { filename?: string; imageUrl?: string } | null = null;
         if (partnerCandidate && lookHasPlate) {
@@ -1776,6 +1784,9 @@ export function useDayPlannerToolOrchestrationCore() {
               adultMood: isDayAdultMood(partnerMood),
               lead: leadNoun,
               sameSexLayouts: poseProfileForModel(stillModel).sameSexLayouts,
+              romanticMood:
+                partnerMood === 'suggestive' ||
+                dayThemeOf(toolSettings.dayMood)?.id === 'date-night',
             })
           ) {
             if (partnerCandidate.invented && partnerCandidate.noun !== 'person') {
@@ -1854,6 +1865,15 @@ export function useDayPlannerToolOrchestrationCore() {
                 }
               }
             }
+          } else if (
+            headcount === 2 &&
+            partnerCandidate.relation &&
+            !relationAllowsRomance(partnerCandidate.relation)
+          ) {
+            // Family never plays the partner in a romantic or adult mood (cast-relationships.ts).
+            referenceNotes.push(
+              `${partnerCandidate.name} is family — left out of this still (pick another partner for this mood).`
+            );
           }
         }
         const clothingReinforce = dayStillClothingReinforce({
@@ -2224,6 +2244,20 @@ export function useDayPlannerToolOrchestrationCore() {
           kleinFace: Boolean(kleinFaceFilename),
           qualityNudge,
           sportActionCue: poseProfileForModel(stillModel).sportActionCue,
+          leadMarks: castMarksLine(lookCharacter?.marks, {
+            outfit:
+              !omitGarment && !replaceKeepOutfit && wardrobeId
+                ? formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || '')
+                : !omitGarment && !replaceKeepOutfit
+                  ? outfit.customGarmentDescription
+                  : null,
+            beat: queueTarget.sceneHints,
+            undressed: adultStill,
+          }),
+          leadProps: castPropsLine(lookCharacter?.props, {
+            beat: queueTarget.sceneHints,
+            setting: queueTarget.location,
+          }),
         });
         if (assembled.cued && poseExpectation) {
           poseExpectation.cued = true;
@@ -2630,6 +2664,27 @@ export function useDayPlannerToolOrchestrationCore() {
           } catch (secondError) {
             console.warn('Day: the second take was not queued:', queueTarget.label, secondError);
           }
+        }
+        // What she wore, for Cast home's wardrobe (cast-wardrobe.ts) — not a beat that drops the
+        // outfit (nude, or the mood's own clothes).
+        if (typeof promptId === 'string' && !omitGarment && !replaceKeepOutfit) {
+          recordCastOutfitWorn(lookCharacter?.id, {
+            outfit: {
+              wardrobeId: wardrobeId || undefined,
+              customGarmentImageUrl: wardrobeId ? undefined : outfit.customGarmentImageUrl,
+              customGarmentImageFilename: wardrobeId
+                ? undefined
+                : outfit.customGarmentImageFilename,
+              customGarmentDescription: wardrobeId ? undefined : outfit.customGarmentDescription,
+              footwear: outfit.footwear,
+              footwearImageUrl: outfit.footwearImageUrl,
+              footwearImageFilename: outfit.footwearImageFilename,
+            },
+            label: wardrobeId
+              ? formatWardrobeKitLabel(wardrobeLabelFor(wardrobeId) || '') || wardrobeId
+              : dayGarmentPromptName(outfit.customGarmentDescription) || 'Clothing photo',
+            promptId,
+          });
         }
         // Pose × engine stats: the take, and whether it redoes the slot's last one.
         if (typeof promptId === 'string') {

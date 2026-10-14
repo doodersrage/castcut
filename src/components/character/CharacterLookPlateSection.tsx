@@ -48,6 +48,8 @@ export type CharacterLookPlateSectionProps = {
   noun?: DayPartnerNoun;
   /** The prepared plate's face scored under the bar against the previous one. */
   faceDrift?: boolean;
+  /** The Cast has marks: Prepare offers painting them on. */
+  hasMarks?: boolean;
   /** Every look of the Cast, one picture tile each (a look with no plate shows Add plate). */
   plates?: CastPlateTile[];
   activePlateId?: string;
@@ -221,6 +223,7 @@ export default function CharacterLookPlateSection({
   stance = null,
   noun = 'person',
   faceDrift = false,
+  hasMarks = false,
   plates = [],
   activePlateId,
   onSelectPlate,
@@ -408,8 +411,10 @@ export default function CharacterLookPlateSection({
             />
             {onPreparePlate ? (
               <CastPlatePrepareControl
+                key={hasMarks ? 'marks' : 'plain'}
                 disabled={uploading}
                 noun={noun}
+                hasMarks={hasMarks}
                 onPrepare={onPreparePlate}
               />
             ) : null}

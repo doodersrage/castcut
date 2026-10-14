@@ -10,6 +10,7 @@
  */
 
 import { withCastPlace } from './cast-places';
+import { castRelationSentence } from './cast-relationships';
 import { withEatingUtensil } from './eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day-clothed-lead';
 import {
@@ -116,6 +117,10 @@ export type DayStillPromptFacts = {
    * The engine wants the layout's cue after the sport ACTION sentence (pose-model-profile:
    * sportActionCue) — the long sport brief has none of its own.
    */
+  /** Her marks that show in this still (cast-marks.ts castMarksLine), or ''. */
+  leadMarks?: string;
+  /** Her phone / dog / car when the beat mentions it (cast-props.ts castPropsLine), or ''. */
+  leadProps?: string;
   sportActionCue?: boolean;
 };
 
@@ -317,8 +322,13 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
         : /face from the second image|own face\./.test(basePrompt)
           ? ''
           : forLead(dayPartnerRecipeLine(facts.partner, 'second', undefined, facts.leadNoun)),
+    // How the pair relate (cast-relationships.ts): a sibling duo read as a date without it.
+    facts.partner?.relation ? castRelationSentence(facts.partner.relation) : '',
     poseCueLine,
     lookLine,
+    // Her tattoo / scar / glasses, when that part of her shows (cast-marks.ts).
+    facts.leadMarks?.trim() || '',
+    facts.leadProps?.trim() || '',
     facts.kleinFace ? KLEIN_FACE_REFERENCE_LINE : '',
     qualityNudge ? `QUALITY FIX: ${qualityNudge}` : '',
   ]

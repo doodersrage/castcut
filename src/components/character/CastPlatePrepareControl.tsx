@@ -28,17 +28,30 @@ const STEPS: Array<{ key: keyof CastPlatePrepareOptions; label: string }> = [
 export default function CastPlatePrepareControl({
   disabled,
   noun,
+  hasMarks = false,
   onPrepare,
 }: {
   disabled: boolean;
   noun: DayPartnerNoun;
+  /** The Cast has marks (Bible → Marks): offer painting them on, ticked. */
+  hasMarks?: boolean;
   onPrepare: (sendComfyUi: SendComfyUi, options: CastPlatePrepareOptions) => void;
 }) {
   const [model] = useState(() => loadSettingsCache().shared.model);
   const actions = usePromptResultActions({ tool: 'fitting', model });
-  const [options, setOptions] = useState<CastPlatePrepareOptions>(
-    DEFAULT_CAST_PLATE_PREPARE_OPTIONS
-  );
+  const [options, setOptions] = useState<CastPlatePrepareOptions>(() => ({
+    ...DEFAULT_CAST_PLATE_PREPARE_OPTIONS,
+    marks: hasMarks,
+  }));
+  const steps = hasMarks
+    ? [
+        ...STEPS,
+        {
+          key: 'marks' as const,
+          label: `${noun === 'man' ? 'His' : noun === 'woman' ? 'Her' : 'Their'} marks`,
+        },
+      ]
+    : STEPS;
   const pronoun = noun === 'man' ? 'him' : noun === 'woman' ? 'her' : 'them';
   const possessive = noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their';
 
@@ -55,14 +68,14 @@ export default function CastPlatePrepareControl({
         Prepare plate
       </Button>
       <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {STEPS.map(step => (
+        {steps.map(step => (
           <label
             key={step.key}
             className="flex items-center gap-1.5 type-caption text-[var(--text-secondary)]"
           >
             <input
               type="checkbox"
-              checked={options[step.key]}
+              checked={options[step.key] === true}
               disabled={disabled}
               data-testid={`cast-look-plate-prepare-${step.key}`}
               onChange={event =>

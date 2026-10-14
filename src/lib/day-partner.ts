@@ -7,6 +7,7 @@
  * lead need Rapid AIO (its duo recipe has those layouts); clothed duo beats take anyone.
  */
 
+import { relationAllowsRomance, type CastRelationKind } from './cast-relationships';
 import { inferSubjectGenderFromHints } from '@/lib/distinct-people';
 import type { CharacterAgeBand } from '@/lib/character-appearance';
 
@@ -20,6 +21,8 @@ export type DayPartner = {
   ageBand?: CharacterAgeBand;
   /** No Cast face — a new man / woman each still. */
   invented?: boolean;
+  /** What the partner Cast is to the lead (cast-relationships.ts). */
+  relation?: CastRelationKind | null;
 };
 
 /** Partner setting values for an invented partner (next to Cast ids). */
@@ -83,9 +86,14 @@ export function dayPartnerApplies(input: {
   lead?: DayPartnerNoun;
   /** Rapid AIO's duo recipe has two-women, two-men and man-lead layouts. */
   sameSexLayouts?: boolean;
+  /** Suggestive and the adult moods: a family member never plays the partner. */
+  romanticMood?: boolean;
 }): boolean {
   const { partner } = input;
   if (!partner || input.headcount !== 2) {
+    return false;
+  }
+  if ((input.romanticMood || input.adultMood) && !relationAllowsRomance(partner.relation)) {
     return false;
   }
   if (!input.adultMood) {

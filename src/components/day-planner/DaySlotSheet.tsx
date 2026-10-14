@@ -1,5 +1,8 @@
 'use client';
 
+import { castCatchphrases } from '@/lib/cast-speech';
+import { getCharacter } from '@/lib/character-os';
+import { loadSettingsCache } from '@/lib/settings-cache';
 import StillReferenceTray from '@/components/StillReferenceTray';
 import { poseLayoutFromGuideName } from '@/lib/still-references';
 import { daySlotPoseOverride } from '@/lib/day-slot-pose';
@@ -269,6 +272,9 @@ export default function DaySlotSheet({
             />
           </label>
           <SpokenLineField
+            catchphrases={castCatchphrases(
+              getCharacter(loadSettingsCache().shared.activeCharacterId?.trim() || '')
+            )}
             // A new picture clears the slot's line (clearDaySlotLine): start the field afresh.
             key={`${slot.id}:${still?.promptId ?? ''}`}
             line={slot.line}

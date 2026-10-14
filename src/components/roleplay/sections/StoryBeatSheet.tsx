@@ -1,5 +1,7 @@
 'use client';
 
+import { castCatchphrases } from '@/lib/cast-speech';
+import { getCharacter } from '@/lib/character-os';
 import StillReferenceTray from '@/components/StillReferenceTray';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import { spokenLineHeat } from '@/lib/spoken-line';
@@ -90,6 +92,9 @@ export default function StoryBeatSheet({
         )}
         {edit ? (
           <SpokenLineField
+            catchphrases={castCatchphrases(
+              getCharacter(loadSettingsCache().shared.activeCharacterId?.trim() || '')
+            )}
             line={beat.line}
             fullFrame={beat.lineFullFrame === true}
             tone={beat.lineTone}
