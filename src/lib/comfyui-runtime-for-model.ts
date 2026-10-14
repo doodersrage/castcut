@@ -1,5 +1,6 @@
 'use client';
 
+import { isH3Model } from './h3-renderer';
 import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
 import { qwenImage21FastSampler } from './qwen-image-21-renderer';
@@ -521,6 +522,7 @@ export function resolveRuntimeForQueue(
       : {}),
     // The picked clip engine renders on LTX-2.5; the graph above is its WAN base.
     ...(isLtx25Model(model) ? { videoRenderer: 'ltx-2.5' as const } : {}),
+    ...(isH3Model(model) ? { videoRenderer: 'minimax-h3' as const } : {}),
     queueQualityProfile: resolvedProfile,
     modelSamplerOverrides: shared.modelSamplerOverrides,
     // System packs may disable enrich when the *global* profile is Draft. Tool-level

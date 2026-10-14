@@ -274,3 +274,21 @@ describe('still framing', () => {
     assert.equal(applyCutShotEdits(shots, { shots: { a: { framing: 'full' } } })[0]!.framing, undefined);
   });
 });
+
+describe('fixed holds when fitting a length', async () => {
+  const { fitHoldsToLength } = await import('./film-cut-plan');
+  it('keeps close-ups and recap shots at their hold and stretches the rest', () => {
+    const shots = fitHoldsToLength({
+      shots: [
+        { key: 'a', title: 'A', url: '/a.png', kind: 'still', holdSec: 3 },
+        { key: 'a#face', title: 'A', url: '/f.png', kind: 'still', holdSec: 1.5, holdFixed: true },
+        { key: 'b', title: 'B', url: '/b.png', kind: 'still', holdSec: 3 },
+      ],
+      targetSec: 11.5,
+    });
+    assert.deepEqual(
+      shots.map(shot => shot.holdSec),
+      [5, 1.5, 5]
+    );
+  });
+});

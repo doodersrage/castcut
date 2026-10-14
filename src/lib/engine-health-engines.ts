@@ -5,6 +5,7 @@
  */
 
 import { LTX25_REQUIRED_NODE } from './ltx25-renderer';
+import { H3_REQUIRED_NODE } from './h3-renderer';
 
 export type EngineHealthEngine = {
   id: string;
@@ -65,6 +66,13 @@ export const ENGINE_HEALTH_ENGINES: readonly EngineHealthEngine[] = [
     model: 'ltx-video-2.5',
     kind: 'clip',
     extraNodeTypes: [LTX25_REQUIRED_NODE],
+  },
+  {
+    id: 'minimax-h3',
+    label: 'MiniMax-H3',
+    model: 'minimax-h3',
+    kind: 'clip',
+    extraNodeTypes: [H3_REQUIRED_NODE],
   },
 ];
 

@@ -227,18 +227,20 @@ export function fitHoldsToLength(input: {
   crossfadeSec?: number;
   titleCard?: boolean;
 }): FilmPlaylistShot[] {
-  const stills = input.shots.filter(shot => shot.kind === 'still').length;
+  const stretches = (shot: FilmPlaylistShot) => shot.kind === 'still' && !shot.holdFixed;
+  const stills = input.shots.filter(stretches).length;
   if (stills === 0 || !(input.targetSec > 0)) return input.shots;
+  // Clips and fixed-hold stills (close-ups, recap shots) keep their length.
   const clipsSec = input.shots.reduce(
     (sum, shot, index) =>
-      shot.kind === 'clip' ? sum + shotSeconds(shot, input.clipSecs?.[index]) : sum,
+      stretches(shot) ? sum : sum + shotSeconds(shot, input.clipSecs?.[index]),
     0
   );
   const pieces = input.shots.length + (input.titleCard ? 1 : 0);
   const fades = Math.max(0, pieces - 1) * Math.max(0, input.crossfadeSec ?? 0);
   const fixed = clipsSec + (input.titleCard ? TITLE_CARD_SEC : 0) - fades;
   const hold = clampHold((input.targetSec - fixed) / stills);
-  return input.shots.map(shot => (shot.kind === 'still' ? { ...shot, holdSec: hold } : shot));
+  return input.shots.map(shot => (stretches(shot) ? { ...shot, holdSec: hold } : shot));
 }
 
 /**

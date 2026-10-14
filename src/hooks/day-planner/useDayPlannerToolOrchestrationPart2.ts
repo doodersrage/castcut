@@ -3,6 +3,7 @@
 import { pronounceForCast } from '@/lib/cast-speech';
 import { previouslyOnShots } from '@/lib/play-series';
 import { widenStillForFilm } from '@/lib/film-widen-client';
+import { isH3Model } from '@/lib/h3-renderer';
 import { makeFilmAngles } from '@/lib/film-angles-client';
 import { castVoiceOf } from '@/lib/cast-voice';
 import { renderNarrationLine } from '@/lib/film-narration-client';
@@ -464,7 +465,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           sharedModel: shared.model,
           speaking: Boolean(spokenLine),
         });
-        const speaking = Boolean(spokenLine) && isLtx25Model(videoModel);
+        // MiniMax-H3 speaks a line too (with its own sound); the voice sample, room sound and
+        // larger canvas below are LTX-2.5's and do nothing there.
+        const speaking = Boolean(spokenLine) && (isLtx25Model(videoModel) || isH3Model(videoModel));
         // End pose: the clip lands on a second picture (first+last frame) when this ComfyUI
         // has the node for the engine; otherwise the plain clip, said once.
         // One event: the clip ends on the next moment's still (day-event.ts) — the joins line up
@@ -749,6 +752,34 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
 
   /** Close-ups of a slot's still (a face close-up and a detail), cut in right after it. */
+  /** A close-up widened to 16:9 for a widescreen cut — made once and kept on the angle. */
+  const wideAngleUrl = useCallback(
+    async (slotId: DaySlotId, imageUrl: string): Promise<string | null> => {
+      const angles = stillsRef.current.find(entry => entry.slotId === slotId)?.angles ?? [];
+      const angle = angles.find(entry => entry.imageUrl === imageUrl);
+      if (!angle) return null;
+      if (angle.wideUrl) return angle.wideUrl;
+      const wide = await widenStillForFilm({
+        imageUrl,
+        sendComfyUi: actions.sendComfyUi,
+        model: shared.model,
+        characterId: shared.activeCharacterId,
+      }).catch(() => null);
+      if (!wide) return null;
+      const latest = stillsRef.current.find(entry => entry.slotId === slotId)?.angles ?? [];
+      const nextStills = upsertDaySlotStill(stillsRef.current, {
+        slotId,
+        angles: latest.map(entry =>
+          entry.imageUrl === imageUrl ? { ...entry, wideUrl: wide } : entry
+        ),
+      });
+      stillsRef.current = nextStills;
+      updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      return wide;
+    },
+    [actions.sendComfyUi, shared.activeCharacterId, shared.model, stillsRef, updateToolSettings]
+  );
+
   const addCloseUps = useCallback(
     async (slotId: DaySlotId) => {
       const slot = slots.find(entry => entry.id === slotId);
@@ -827,10 +858,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       // Widescreen film: stills in a 16:9 cut are widened too (clips already start from one).
       if (toolSettings.widescreenFilm === true && filmShapeOf(filmCutOptions) === 'wide') {
         for (const [index, shot] of shots.entries()) {
-          const slotId = shot.key as DaySlotId | undefined;
-          if (shot.kind !== 'still' || !slotId || !slots.some(slot => slot.id === slotId)) continue;
+          if (shot.kind !== 'still' || !shot.key) continue;
+          // A close-up's key is "<slot>#face" / "<slot>#detail".
+          const [slotKey, angleKind] = shot.key.split('#');
+          const slotId = slotKey as DaySlotId;
+          if (!slots.some(slot => slot.id === slotId)) continue;
           setFilmStatus(`Widening ${shot.title} to 16:9…`);
-          const wide = await wideStillUrl(slotId, shot.url);
+          const wide = angleKind
+            ? await wideAngleUrl(slotId, shot.url)
+            : await wideStillUrl(slotId, shot.url);
           if (wide) shots[index] = { ...shot, url: wide };
         }
       }
@@ -883,10 +919,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
+          // After a "Previously on" recap, the title card follows it.
           titleCard: filmCutOptions.titles
-            ? character
-              ? nextDayFilmTitleCard(loadPlaySeriesStore(), character.id, name)
-              : { title: name }
+            ? {
+                ...(character
+                  ? nextDayFilmTitleCard(loadPlaySeriesStore(), character.id, name)
+                  : { title: name }),
+                ...(recap.length ? { afterShots: recap.length } : {}),
+              }
             : null,
           length: filmCutOptions.length,
           beatSnap: filmCutOptions.beatSnap,
@@ -927,8 +967,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           setFilmNeedsCast(true);
           setFilmStatus(
             character
-              ? `Downloaded ${result.filename} (${result.encodePath} encode). Save to Cast to stamp a studio copy.`
-              : `Downloaded ${result.filename} (${result.encodePath} encode) unstamped. Save to Cast to attach this film.`
+              ? `Downloaded ${result.filename} (${result.encodePath} encode${
+                  result.cutNotes.length ? ` · ${result.cutNotes.join(' · ')}` : ''
+                }). Save to Cast to stamp a studio copy.`
+              : `Downloaded ${result.filename} (${result.encodePath} encode${
+                  result.cutNotes.length ? ` · ${result.cutNotes.join(' · ')}` : ''
+                }) unstamped. Save to Cast to attach this film.`
           );
           if (character && !result.persisted) {
             setError('Film downloaded — Save film to Cast to stamp it into Gallery.');
@@ -976,6 +1020,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setFilmGuideHref,
       slots,
       toolSettings,
+      wideAngleUrl,
+      shared.activeCharacterId,
+      stillsRef,
+      updateToolSettings,
       wideStillUrl,
     ]
   );

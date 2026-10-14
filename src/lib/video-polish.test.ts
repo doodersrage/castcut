@@ -253,3 +253,13 @@ describe('talking clips in the cut', () => {
     assert.doesNotMatch(filter, /sidechaincompress/);
   });
 });
+
+describe('title card after a recap', () => {
+  it('keeps a whole positive afterShots and drops the rest', () => {
+    assert.deepEqual(normalizeFilmTitleCard({ title: 'Ep 2', afterShots: 3 }), {
+      title: 'Ep 2',
+      afterShots: 3,
+    });
+    assert.deepEqual(normalizeFilmTitleCard({ title: 'Ep 2', afterShots: -1 }), { title: 'Ep 2' });
+  });
+});

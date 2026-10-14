@@ -9,6 +9,7 @@
  * framing (another slot's still) made both cut hard to the end frame instead of moving there.
  */
 
+import { H3_REQUIRED_NODE, isH3Model } from './h3-renderer';
 import { LTX25_END_GUIDE_NODES, isLtx25Model, WAN_FIRST_LAST_FRAME_NODE } from './ltx25-renderer';
 
 export type DayEndPoseSource = 'still' | 'edit';
@@ -64,6 +65,7 @@ export function activeDayEndPose(
 
 /** ComfyUI nodes the end pose needs on the engine the clip queues on. */
 export function dayEndPoseRequiredNodes(clipEngine: string): readonly string[] {
+  if (isH3Model(clipEngine)) return [H3_REQUIRED_NODE];
   return isLtx25Model(clipEngine) ? LTX25_END_GUIDE_NODES : [WAN_FIRST_LAST_FRAME_NODE];
 }
 
@@ -76,7 +78,9 @@ export function dayEndPoseSupported(
   nodeTypes: ReadonlySet<string> | null | undefined
 ): boolean {
   if (!nodeTypes || nodeTypes.size === 0) return false;
-  if (!isLtx25Model(clipEngine) && !/wan/i.test(clipEngine)) return false;
+  if (!isLtx25Model(clipEngine) && !isH3Model(clipEngine) && !/wan/i.test(clipEngine)) {
+    return false;
+  }
   return dayEndPoseRequiredNodes(clipEngine).every(type => nodeTypes.has(type));
 }
 

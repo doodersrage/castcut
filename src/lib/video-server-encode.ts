@@ -606,7 +606,12 @@ export async function encodeFilmPlaylistServer(
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
       : null;
-    if (titleText) {
+    // The title card opens the film, or follows a "Previously on" recap (afterShots).
+    const titleAt = titleText
+      ? Math.min(localFiles.length, options.titleCard?.afterShots ?? 0)
+      : -1;
+    const pushTitle = async () => {
+      if (!titleText) return;
       graphSpeech.push(false);
       graphTrims.push(null);
       graphKinds.push('title');
@@ -625,8 +630,9 @@ export async function encodeFilmPlaylistServer(
         '-i',
         `color=c=black:s=${even(width)}x${even(height)}:r=30`,
       ]);
-    }
+    };
     for (let i = 0; i < localFiles.length; i += 1) {
+      if (i === titleAt) await pushTitle();
       graphSpeech.push(speech[i] === true);
       graphTrims.push(trimStarts[i] ?? null);
       graphKinds.push(kinds[i]!);
@@ -653,6 +659,10 @@ export async function encodeFilmPlaylistServer(
       }
     }
 
+    if (titleAt === localFiles.length) await pushTitle();
+    /** Graph position of shot i (the title card takes one slot before shot `titleAt`). */
+    const graphIndexOf = (i: number) => (titleAt >= 0 && i >= titleAt ? i + 1 : i);
+
     const { filter, videoLabel, audioLabel } = buildFilterComplex({
       shotCount: graphKinds.length,
       kinds: graphKinds,
@@ -672,7 +682,7 @@ export async function encodeFilmPlaylistServer(
       // the shots and the music bed.
       narration: narrationFiles.map((entry, k) => ({
         input: graphKinds.length + (audioPath ? 1 : 0) + k,
-        shot: entry.shot + (graphKinds.length - localFiles.length),
+        shot: graphIndexOf(entry.shot),
       })),
     });
 

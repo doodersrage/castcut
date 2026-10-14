@@ -404,6 +404,7 @@ export function previouslyOnShots(
     ...shot,
     key: `previously-${index}`,
     holdSec: PREVIOUSLY_ON_SHOT_SEC,
+    holdFixed: true,
     ...(shot.kind === 'clip' ? { trimStartSec: 0, trimEndSec: PREVIOUSLY_ON_SHOT_SEC } : {}),
     ...(index === 0
       ? { title: `Previously on ${name}`, caption: `Previously on ${name}…` }

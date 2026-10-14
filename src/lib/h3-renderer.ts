@@ -1,0 +1,177 @@
+/**
+ * MiniMax-H3 clip engine (2026-10-14): image-to-video with its own sound, from MiniMax's FL2VA
+ * model (pruned int8) with lightx2v's 8-step Turbo LoRA run at 6 steps, the nvfp4 text encoder.
+ *
+ * Live on four Day stills against LTX-2.5 and WAN (same directions): the best motion and scene
+ * coherence by eye, fuller sound (mean −14 dB vs LTX −25/−28), spoken lines word for word — at
+ * ~145 s a clip (LTX ~29 s, WAN ~190 s silent). Face match median 0.24 (LTX 0.17, WAN 0.37).
+ * Tried and left out: the 4-step Turbo v1.2 LoRA (~106 s; light streaks, less motion, face
+ * 0.18), Reference-to-video from the plate (invents a new scene), the int8 text encoder (spilled
+ * into RAM and swap on a 24 GB card).
+ *
+ * Adult (2026-10-14, 7 sweep stills × two prompt sets): solo poses held 3 of 3; two-person acts
+ * held 8 of 8 where WAN held 2 of 8 (its "motion" was mostly the pair coming apart — he gets up,
+ * the camera pushes in). H3 moves about a third as much as WAN; a harder pace line raised it
+ * ~1.4× but lost the oral clip, so the app's own intimate clip prompt is kept. Its sound there is
+ * breathing and sighs, no words.
+ *
+ * Licence: MiniMax's model licence excludes use in the US, EU, UK and South Korea — said where
+ * the engine is offered and downloaded. Rides the WAN clip graph like LTX-2.5 (ltx25-renderer.ts).
+ */
+
+import { PRODUCT_OUTPUT_PREFIX } from './brand';
+import {
+  CLIP_SAMPLERS,
+  CLIP_SAVES,
+  findEndImageLoader,
+  findStartImage,
+  traceText,
+} from './ltx25-renderer';
+
+export const H3_MODEL_ID = 'minimax-h3';
+export const H3_REQUIRED_NODE = 'MiniMaxH3ImageToVideo';
+export const H3_FILES = {
+  transformer: 'minimax_h3_fl2va_pruned_int8_convrot.safetensors',
+  turboLora: 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors',
+  textEncoder: 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
+  videoVae: 'minimax_h3_video_vae_fp16.safetensors',
+  audioVae: 'minimax_h3_audio_vae_fp32.safetensors',
+} as const;
+export const H3_LICENCE_NOTE =
+  'MiniMax-H3’s licence does not allow use in the US, EU, UK or South Korea.';
+/** The live test's step count for the 8-step Turbo LoRA (as good as 8, a quarter faster). */
+export const H3_STEPS = 6;
+/** Long side of the clip (the tested 768×1024 for a 3:4 still). */
+export const H3_LONG_SIDE = 1024;
+const H3_FPS = 24;
+/** Frame counts sit on a 17k+5 grid; 124 (~5 s) is the shortest trained length. */
+const H3_MIN_FRAMES = 124;
+const H3_MAX_FRAMES = 362;
+
+export function isH3Model(model: string | null | undefined): boolean {
+  return String(model ?? '').trim() === H3_MODEL_ID;
+}
+
+/** H3 frames for a WAN clip's length (frames at `fps`): 17k+5, between 124 and 362. */
+export function h3FrameCount(frames: number, fps: number): number {
+  const seconds = frames > 0 && fps > 0 ? frames / fps : 4;
+  const snapped = Math.round((seconds * H3_FPS - 5) / 17) * 17 + 5;
+  return Math.min(H3_MAX_FRAMES, Math.max(H3_MIN_FRAMES, snapped));
+}
+
+type WorkflowNode = { class_type?: string; inputs?: Record<string, unknown>; _meta?: unknown };
+type Workflow = Record<string, WorkflowNode>;
+
+const isRef = (value: unknown): value is [string, number] =>
+  Array.isArray(value) && value.length === 2 && typeof value[0] === 'string';
+
+export type H3ConvertResult = { workflow: Workflow; converted: boolean; reason?: string };
+
+/**
+ * WAN (or any KSampler + LoadImage + video save) clip graph → MiniMax-H3 first(+last)-frame graph
+ * with sound, saved as an MP4. The canvas follows the still's aspect (GetImageSize + math) at a
+ * long side of 1024. A quoted line in the prompt is spoken. Unchanged when it isn't a clip graph.
+ */
+export function convertVideoWorkflowToH3(
+  input: Record<string, unknown>,
+  options: { seed?: number; endImage?: string } = {}
+): H3ConvertResult {
+  const workflow = input as Workflow;
+  const entries = Object.entries(workflow);
+  const sampler = entries.find(([, node]) => CLIP_SAMPLERS.has(node?.class_type ?? ''))?.[1];
+  const save = entries.find(([, node]) => CLIP_SAVES.has(node?.class_type ?? ''))?.[1];
+  const endLoader = findEndImageLoader(workflow);
+  const image = findStartImage(workflow, endLoader);
+  const endFromGraph = endLoader ? workflow[endLoader]?.inputs?.image : undefined;
+  const endImage = [options.endImage, endFromGraph]
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .find(value => value && !value.includes('{{'));
+  if (!sampler?.inputs || !save?.inputs || !image) {
+    return { workflow, converted: false, reason: 'not an image-to-video clip graph' };
+  }
+  const positive = traceText(workflow, sampler.inputs.positive) ?? '';
+  if (!positive.trim()) return { workflow, converted: false, reason: 'no prompt text' };
+
+  const i2v = entries.find(([, node]) =>
+    /ImageToVideo|ImgToVideo|FrameToVideo/.test(node?.class_type ?? '')
+  )?.[1];
+  const latentRef = sampler.inputs.latent_image;
+  const latent = isRef(latentRef) ? workflow[latentRef[0]] : undefined;
+  const sized = i2v?.inputs?.length !== undefined ? i2v : latent;
+  const length = Number(sized?.inputs?.length) || 64;
+  const fps = Number(save.inputs.fps ?? save.inputs.frame_rate) || 16;
+  const seed = Number(options.seed ?? sampler.inputs.seed ?? sampler.inputs.noise_seed) || 0;
+  const prefix = String(save.inputs.filename_prefix ?? PRODUCT_OUTPUT_PREFIX);
+  // The still's own side scaled so its long side is H3_LONG_SIDE, on the 32-px grid.
+  const side = (own: 'a' | 'b') =>
+    `max(256, round(${own} * ${H3_LONG_SIDE} / max(a, b) / 32) * 32)`;
+
+  const next: Workflow = {
+    '1': {
+      class_type: 'UNETLoader',
+      inputs: { unet_name: H3_FILES.transformer, weight_dtype: 'default' },
+    },
+    '2': {
+      class_type: 'LoraLoaderModelOnly',
+      inputs: { model: ['1', 0], lora_name: H3_FILES.turboLora, strength_model: 1 },
+    },
+    '3': {
+      class_type: 'CLIPLoader',
+      inputs: { clip_name: H3_FILES.textEncoder, type: 'minimax', device: 'default' },
+    },
+    '4': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.videoVae } },
+    '5': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.audioVae } },
+    '6': { class_type: 'LoadImage', inputs: { image } },
+    '7': { class_type: 'GetImageSize', inputs: { image: ['6', 0] } },
+    '8': {
+      class_type: 'ComfyMathExpression',
+      inputs: { expression: side('a'), 'values.a': ['7', 0], 'values.b': ['7', 1] },
+    },
+    '9': {
+      class_type: 'ComfyMathExpression',
+      inputs: { expression: side('b'), 'values.a': ['7', 0], 'values.b': ['7', 1] },
+    },
+    '10': {
+      class_type: H3_REQUIRED_NODE,
+      inputs: {
+        clip: ['3', 0],
+        vae: ['4', 0],
+        prompt: positive.trim(),
+        width: ['8', 1],
+        height: ['9', 1],
+        length: h3FrameCount(length, fps),
+        first_frame: ['6', 0],
+        ...(endImage ? { last_frame: ['11', 0] } : {}),
+      },
+    },
+    '12': { class_type: 'RandomNoise', inputs: { noise_seed: seed } },
+    '13': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'res_multistep' } },
+    '14': {
+      class_type: 'BasicScheduler',
+      inputs: { model: ['2', 0], scheduler: 'simple', steps: H3_STEPS, denoise: 1 },
+    },
+    '15': { class_type: 'BasicGuider', inputs: { model: ['2', 0], conditioning: ['10', 0] } },
+    '16': {
+      class_type: 'SamplerCustomAdvanced',
+      inputs: {
+        noise: ['12', 0],
+        guider: ['15', 0],
+        sampler: ['13', 0],
+        sigmas: ['14', 0],
+        latent_image: ['10', 1],
+      },
+    },
+    '17': { class_type: 'VAEDecode', inputs: { samples: ['16', 0], vae: ['4', 0] } },
+    '18': { class_type: 'VAEDecodeAudio', inputs: { samples: ['16', 0], vae: ['5', 0] } },
+    '19': {
+      class_type: 'CreateVideo',
+      inputs: { images: ['17', 0], audio: ['18', 0], fps: H3_FPS },
+    },
+    '20': {
+      class_type: 'SaveVideo',
+      inputs: { video: ['19', 0], filename_prefix: prefix, format: 'mp4', codec: 'h264' },
+    },
+  };
+  if (endImage) next['11'] = { class_type: 'LoadImage', inputs: { image: endImage } };
+  return { workflow: next, converted: true };
+}

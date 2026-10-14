@@ -854,6 +854,21 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     clipHint: 'gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors',
   },
   {
+    id: 'minimax-h3',
+    label: 'MiniMax-H3 (best motion, sound)',
+    category: 'video',
+    comfyNode: 'MiniMaxH3ImageToVideo',
+    comfyClass: 'MiniMaxH3',
+    description:
+      'MiniMax-H3 first/last-frame video with audio, Turbo LoRA at 6 steps — the best motion and scene coherence in the 2026-10-14 test, lines spoken with sound; ~2½ min a 5 s clip. Holds two-person adult acts (8/8 vs WAN 2/8) with gentler motion. Licence: not for use in the US, EU, UK or South Korea. Rides the WAN clip graph.',
+    profile: 'video_motion',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.video_motion,
+    unetHint: 'minimax_h3_fl2va_pruned_int8_convrot.safetensors',
+    vaeHint: 'minimax_h3_video_vae_fp16.safetensors',
+    clipHint: 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
+  },
+  {
     id: 'stable-audio',
     label: 'Stable Audio',
     category: 'audio',

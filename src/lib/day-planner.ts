@@ -444,7 +444,7 @@ export type DaySlotStill = {
    * Close-ups of the same moment (film-angles.ts): a face close-up and a detail shot, cut in
    * right after this slot's shot. `for` is the image they were made from.
    */
-  angles?: Array<{ kind: 'face' | 'detail'; imageUrl: string; for: string }>;
+  angles?: Array<{ kind: 'face' | 'detail'; imageUrl: string; for: string; wideUrl?: string }>;
   /** The still widened to 16:9 for a widescreen film (film-widen-client.ts). */
   wideUrl?: string;
   /** The image `wideUrl` was widened from — a new still needs widening again. */
@@ -4580,6 +4580,9 @@ export function normalizeDaySlotStills(
                 kind: angle.kind,
                 imageUrl: readText(angle.imageUrl, 2048),
                 for: readText(angle.for, 2048),
+                ...(readText(angle.wideUrl, 2048)
+                  ? { wideUrl: readText(angle.wideUrl, 2048) }
+                  : {}),
               })),
           }
         : {}),
@@ -4902,6 +4905,7 @@ export function dayWatchPlaylist(
       shots.push({
         key: `${slot.id}#${angle.kind}`,
         captionless: true,
+        holdFixed: true,
         entryId: `${slot.id}-${angle.kind}`,
         title: `${slot.label} · ${angle.kind === 'face' ? 'close-up' : 'detail'}`,
         url: angle.imageUrl,

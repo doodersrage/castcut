@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
+import { H3_LICENCE_NOTE } from '@/lib/h3-renderer';
 import { dayClipVideoModel, isLtx25Model } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import {
@@ -36,9 +37,10 @@ export default function ClipEngineNote({
   day?: boolean;
 }) {
   const picked = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
-  const [dayClips, setDayClips] = useState<'ltx' | 'wan'>(() =>
-    loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).dayClips === 'wan' ? 'wan' : 'ltx'
-  );
+  const [dayClips, setDayClips] = useState<'ltx' | 'wan' | 'h3'>(() => {
+    const saved = loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).dayClips;
+    return saved === 'wan' || saved === 'h3' ? saved : 'ltx';
+  });
   const model = day && picked ? dayClipVideoModel(dayClips, picked) : picked;
   const dayChoice = day ? (
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
@@ -48,7 +50,8 @@ export default function ClipEngineNote({
         value={dayClips}
         data-testid="clip-engine-day"
         onChange={event => {
-          const next = event.target.value === 'wan' ? 'wan' : 'ltx';
+          const value = event.target.value;
+          const next = value === 'wan' || value === 'h3' ? value : 'ltx';
           setDayClips(next);
           saveToolSettings('video', {
             ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
@@ -58,9 +61,17 @@ export default function ClipEngineNote({
       >
         <option value="ltx">LTX-2.5 (default)</option>
         <option value="wan">WAN</option>
+        <option value="h3">MiniMax-H3 (best motion, with sound — about 5× slower)</option>
       </select>
       {dayClips === 'wan' ? (
         <span>— talking clips still use LTX-2.5 (only it makes sound)</span>
+      ) : null}
+      {dayClips === 'h3' ? (
+        <span data-testid="clip-engine-h3-note">
+          — about 2½ min a clip; lines are spoken with sound (no kept Cast voice); two-person adult
+          clips stay on H3 too (it kept the act together where WAN let it come apart, with gentler
+          motion). {H3_LICENCE_NOTE}
+        </span>
       ) : null}
     </label>
   ) : null;

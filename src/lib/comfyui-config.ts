@@ -12,6 +12,7 @@ import {
   LTX25_REFINE_NODES,
   LTX25_AMBIENCE_NODES,
 } from './ltx25-renderer';
+import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from './h3-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from './wan-clip-canvas';
 import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from './qwen-image-21-renderer';
 import { isQwenLightningModel, patchModelSamplingInWorkflow } from './model-sampling-patch';
@@ -327,7 +328,7 @@ export type ComfyUiRuntimeConfig = {
   /** Qwen-Image 2.1 Pruna: the 8-step LoRA on its fixed sigmas. */
   qwenImage21EightStep?: boolean;
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
-  videoRenderer?: 'ltx-2.5';
+  videoRenderer?: 'ltx-2.5' | 'minimax-h3';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
   queueTargetModel?: string;
   /** Effective queue quality profile for this request (sampler, resolution, upscale). */
@@ -1422,7 +1423,7 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
-    videoRenderer?: 'ltx-2.5';
+    videoRenderer?: 'ltx-2.5' | 'minimax-h3';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
     kleinEnhancerTextEnabled?: boolean;
     kleinEnhancerColorAnchorEnabled?: boolean;
@@ -1897,6 +1898,7 @@ export function injectPromptsWithFallbacks(
     }
   }
 
+  // The clip left the WAN graph (LTX-2.5 or MiniMax-H3): WAN canvas sizing no longer applies.
   let onLtx25 = false;
   if (options?.videoRenderer === 'ltx-2.5') {
     // Older ComfyUI has no LTX-2 nodes — keep the WAN graph rather than queue a broken one.
@@ -1933,6 +1935,19 @@ export function injectPromptsWithFallbacks(
             }
           : {}),
       });
+      if (converted.converted) {
+        injected = { ...injected, workflow: converted.workflow };
+        onLtx25 = true;
+      }
+    }
+  }
+
+  // MiniMax-H3 (h3-renderer.ts): its own graph with sound — when this ComfyUI has its nodes.
+  if (options?.videoRenderer === 'minimax-h3') {
+    const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
+    if (!nodeTypes || nodeTypes.has(H3_REQUIRED_NODE)) {
+      const endImage = input.params?.videoEndImageFilename?.trim();
+      const converted = convertVideoWorkflowToH3(injected.workflow, endImage ? { endImage } : {});
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };
         onLtx25 = true;
@@ -2123,8 +2138,8 @@ export function stripEmptyComfyUiRuntime(
   if (runtime.qwenImage21EightStep === true) {
     result.qwenImage21EightStep = true;
   }
-  if (runtime.videoRenderer === 'ltx-2.5') {
-    result.videoRenderer = 'ltx-2.5';
+  if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
+    result.videoRenderer = runtime.videoRenderer;
   }
 
   if (runtime.queueQualityProfile) {

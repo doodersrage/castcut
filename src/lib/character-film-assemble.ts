@@ -70,6 +70,19 @@ export async function assembleAndStampFilm(input: {
     musicLevel: input.musicLevel,
     voiceLevel: input.voiceLevel,
   });
+  // The browser recorder draws pictures only: say what the server encode would have added.
+  if (assembled.encodePath === 'browser') {
+    const lost = [
+      framed.shots.some(shot => shot.narrationUrl) ? 'narration' : '',
+      input.audioBedUrl?.trim() ? 'music' : '',
+      framed.shots.some(shot => shot.kind === 'clip') ? "the clips' sound" : '',
+    ].filter(Boolean);
+    if (lost.length) {
+      prepared.notes.push(
+        `made in the browser without ${lost.join(', ')} — the server encode (ffmpeg) was not available; cut again once it is`
+      );
+    }
+  }
   const filename = filmDownloadFilename(input.characterName, assembled.extension);
   const stamped = await stampAssembledFilm({
     blob: assembled.blob,

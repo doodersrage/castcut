@@ -5,7 +5,12 @@
  */
 
 /** Opening title card: film title plus an optional second line. */
-export type FilmTitleCard = { title: string; subtitle?: string };
+export type FilmTitleCard = {
+  title: string;
+  subtitle?: string;
+  /** Shown after this many shots instead of first (after a "Previously on" recap). */
+  afterShots?: number;
+};
 
 export const TITLE_CARD_SEC = 2.4;
 
@@ -83,9 +88,17 @@ export function filmShotCaption(shot: {
 /** Normalize a title card; null when there is no title to show. */
 export function normalizeFilmTitleCard(value: unknown): FilmTitleCard | null {
   if (!value || typeof value !== 'object') return null;
-  const raw = value as { title?: unknown; subtitle?: unknown };
+  const raw = value as { title?: unknown; subtitle?: unknown; afterShots?: unknown };
   const title = sanitizeFilmCaption(typeof raw.title === 'string' ? raw.title : '', 48);
   if (!title) return null;
   const subtitle = sanitizeFilmCaption(typeof raw.subtitle === 'string' ? raw.subtitle : '', 64);
-  return subtitle ? { title, subtitle } : { title };
+  const afterShots =
+    typeof raw.afterShots === 'number' && Number.isFinite(raw.afterShots) && raw.afterShots > 0
+      ? Math.min(20, Math.floor(raw.afterShots))
+      : 0;
+  return {
+    title,
+    ...(subtitle ? { subtitle } : {}),
+    ...(afterShots ? { afterShots } : {}),
+  };
 }

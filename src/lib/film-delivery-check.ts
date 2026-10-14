@@ -102,9 +102,10 @@ export function duplicateShots(
 export const SHOT_TEXT_PROMPT = [
   'Look at this video frame.',
   'Answer strict JSON only:',
-  '{"text": true|false, "garbled": true|false, "what": "<the text as written, at most 6 words>"}',
+  '{"text": true|false, "prominent": true|false, "garbled": true|false, "what": "<the most prominent text as written, at most 6 words>"}',
   '- text: there is written text in the picture — a sign, a label, a screen, a page, a logo with letters.',
-  '- garbled: any of that text is misspelled, made of letter-like shapes, or not real words.',
+  '- prominent: some of that text is large or central — a main sign, a shop or marquee name, the print on a shirt or jersey, a book or box cover up front — something a viewer would read. Small text in the background, on tiny labels, posters, screens or gear, is not prominent.',
+  '- garbled: the prominent text is misspelled, made of letter-like shapes, or not real words.',
 ].join('\n');
 
 export function parseShotText(
@@ -114,11 +115,18 @@ export function parseShotText(
   const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
   if (!json) return null;
   try {
-    const parsed = JSON.parse(json) as { text?: unknown; garbled?: unknown; what?: unknown };
+    const parsed = JSON.parse(json) as {
+      text?: unknown;
+      prominent?: unknown;
+      garbled?: unknown;
+      what?: unknown;
+    };
     if (typeof parsed.text !== 'boolean') return null;
     return {
       present: parsed.text,
-      garbled: parsed.text && parsed.garbled === true,
+      // Only writing a viewer would read counts: small background text is garbled in most
+      // generated pictures and nobody notices it.
+      garbled: parsed.text && parsed.prominent !== false && parsed.garbled === true,
       what: String(parsed.what ?? '').slice(0, 60),
     };
   } catch {

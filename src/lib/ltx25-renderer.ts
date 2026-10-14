@@ -81,6 +81,10 @@ const LTX25_LONG_SIDE = 768;
  */
 export const LTX25_TALKING_FULL_FRAME_LONG_SIDE = 1152;
 
+/** MiniMax-H3's id (h3-renderer.ts imports this module, so it is spelled here too). */
+const H3_MODEL_ID_FOR_DAY = 'minimax-h3';
+const isH3ModelId = (model: string) => model.trim() === H3_MODEL_ID_FOR_DAY;
+
 export function isLtx25Model(model: string | null | undefined): boolean {
   return String(model ?? '').trim() === LTX25_MODEL_ID;
 }
@@ -138,6 +142,9 @@ export function clipEngineForShot(
     speaking?: boolean;
   }
 ): string {
+  // MiniMax-H3 takes every shot: it makes its own sound (a line is spoken there too), and it
+  // held two-person adult acts where WAN let them come apart (8 of 8 vs 2 of 8, 2026-10-14).
+  if (isH3ModelId(videoModel)) return videoModel;
   if (shot.speaking && !shot.adultDuo) return LTX25_MODEL_ID;
   // Plain "WAN Video" loads the same Rapid AIO file in Castcut's clip graph (the checkpoint
   // pick prefers it; the one-loader graph can't run full WAN 2.2's two models) — sample it as
@@ -165,9 +172,10 @@ export const WAN_CLIP_FALLBACK_MODEL = 'wan-video-rapid-aio';
  * default; on LTX an event's joins vanished (max frame change 5.4 vs 17–22 on WAN, 2026-10-12).
  */
 export function dayClipVideoModel(
-  dayClips: 'ltx' | 'wan' | undefined,
+  dayClips: 'ltx' | 'wan' | 'h3' | undefined,
   pickedVideoModel: string
 ): string {
+  if (dayClips === 'h3') return H3_MODEL_ID_FOR_DAY;
   if (dayClips !== 'wan') return LTX25_MODEL_ID;
   return isLtx25Model(pickedVideoModel) ? 'wan-video' : pickedVideoModel;
 }
@@ -197,12 +205,17 @@ type Workflow = Record<string, WorkflowNode>;
 const isRef = (value: unknown): value is [string, number] =>
   Array.isArray(value) && value.length === 2 && typeof value[0] === 'string';
 
-const SAMPLERS = new Set(['KSampler', 'KSamplerAdvanced']);
-const SAVES = new Set(['SaveAnimatedWEBP', 'VHS_VideoCombine', 'SaveVideo', 'SaveWEBM']);
+export const CLIP_SAMPLERS = new Set(['KSampler', 'KSamplerAdvanced']);
+export const CLIP_SAVES = new Set([
+  'SaveAnimatedWEBP',
+  'VHS_VideoCombine',
+  'SaveVideo',
+  'SaveWEBM',
+]);
 const I2V = /ImageToVideo|ImgToVideo|FrameToVideo/;
 
 /** Follow a conditioning link back to its prompt text (through WanImageToVideo and the like). */
-function traceText(workflow: Workflow, ref: unknown, depth = 0): string | undefined {
+export function traceText(workflow: Workflow, ref: unknown, depth = 0): string | undefined {
   if (!isRef(ref) || depth > 8) return undefined;
   const node = workflow[ref[0]];
   if (!node?.inputs) return undefined;
@@ -218,7 +231,7 @@ function traceText(workflow: Workflow, ref: unknown, depth = 0): string | undefi
 }
 
 /** The LoadImage behind an I2V node's `end_image` (WAN first+last frame), through resizes. */
-function findEndImageLoader(workflow: Workflow): string | undefined {
+export function findEndImageLoader(workflow: Workflow): string | undefined {
   for (const node of Object.values(workflow)) {
     if (!I2V.test(node?.class_type ?? '')) continue;
     let ref = node.inputs?.end_image;
@@ -231,7 +244,7 @@ function findEndImageLoader(workflow: Workflow): string | undefined {
   return undefined;
 }
 
-function findStartImage(workflow: Workflow, skipLoader?: string): string | undefined {
+export function findStartImage(workflow: Workflow, skipLoader?: string): string | undefined {
   const loads = Object.entries(workflow).filter(
     ([id, node]) => node?.class_type === 'LoadImage' && id !== skipLoader
   );
@@ -311,8 +324,8 @@ export function convertVideoWorkflowToLtx25(
     options.motionFrameRate <= 30
       ? options.motionFrameRate
       : LTX25_FPS;
-  const sampler = entries.find(([, node]) => SAMPLERS.has(node?.class_type ?? ''))?.[1];
-  const save = entries.find(([, node]) => SAVES.has(node?.class_type ?? ''))?.[1];
+  const sampler = entries.find(([, node]) => CLIP_SAMPLERS.has(node?.class_type ?? ''))?.[1];
+  const save = entries.find(([, node]) => CLIP_SAVES.has(node?.class_type ?? ''))?.[1];
   const endLoader = findEndImageLoader(workflow);
   const image = findStartImage(workflow, endLoader);
   const endFromGraph = endLoader ? workflow[endLoader]?.inputs?.image : undefined;

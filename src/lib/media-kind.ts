@@ -65,6 +65,8 @@ export type FilmPlaylistShot = {
   caption?: string;
   /** No caption even with titles on (a close-up angle, a recap shot after the first). */
   captionless?: boolean;
+  /** A still whose hold stays as set when the cut is fitted to a length (close-ups, recap). */
+  holdFixed?: boolean;
   /** A voice-over that starts with this shot (film-narration.ts; a ComfyUI audio view URL). */
   narrationUrl?: string;
   /** Clips: play from this second (Cut shot list trim). */

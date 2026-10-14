@@ -524,14 +524,18 @@ export async function assembleFilmBlob(
     const captionFor = (shot: FilmPlaylistShot) => (options?.captions ? filmShotCaption(shot) : '');
 
     try {
-      if (titleCard) {
+      // The title card opens the film, or follows a "Previously on" recap (afterShots).
+      const titleAt = titleCard ? Math.min(resolvedShots.length, titleCard.afterShots ?? 0) : -1;
+      const paintTitle = async () => {
+        if (!titleCard) return;
         await paintFor(
           context,
           elapsed => drawTitleCard(context, titleCard, elapsed, width, height),
           TITLE_CARD_SEC
         );
-      }
+      };
       for (const [index, entry] of resolvedShots.entries()) {
+        if (index === titleAt) await paintTitle();
         const shot = entry.shot;
         const src = entry.src;
         const caption = captionFor(shot);
@@ -620,6 +624,7 @@ export async function assembleFilmBlob(
         video.removeAttribute('src');
         video.load();
       }
+      if (titleAt === resolvedShots.length) await paintTitle();
     } finally {
       if (recorder.state !== 'inactive') {
         recorder.stop();

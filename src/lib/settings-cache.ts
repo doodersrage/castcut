@@ -923,7 +923,7 @@ export type VideoToolCache = {
    * it) or WAN. Two-person adult clips stay on WAN either way unless `ltxAdultDuo`; talking clips
    * are LTX-2.5 either way (only it makes sound). See dayClipVideoModel.
    */
-  dayClips?: 'ltx' | 'wan';
+  dayClips?: 'ltx' | 'wan' | 'h3';
   /**
    * Keep LTX-2.5 for two-person adult clips (tuned for pace — LTX_FAST_PACE_*; they get sound
    * through Add sound). Off: those clips render on WAN (clipEngineForShot).
