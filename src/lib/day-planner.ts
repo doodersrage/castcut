@@ -1796,7 +1796,7 @@ export const DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS: Record<DayPart, string[]> = {
     'partner mid-sex on the bed when the smoke alarm chirps at 3 a.m. — missionary, both adults fully visible, laughing',
     'straddling a partner on the bedroom floor mid-sex after falling off the bed — two adults mid-contact, both fully visible',
     'lying face-down across the bed mid-sex with a partner stretched along her back when the bed slats give out at 3 a.m. — both adults fully visible',
-    'she goes down on her partner in the glow of the open fridge at 3 a.m. — oral, both adults fully visible',
+    'she goes down on her partner on the couch at 3 a.m. by the light of a single lamp — oral, both adults fully visible',
   ],
 };
 
@@ -1816,7 +1816,9 @@ export const DAY_LATE_SLOT_HEAT_SETTING_PRESETS: Record<DayPart, string[]> = {
   ],
   night: [
     'dark bedroom at 3 a.m. lit by a bedside lamp — curtains closed, opaque walls only',
-    'apartment at midnight lit by the open fridge and a single lamp — blinds closed',
+    // No open fridge here: as a Setting it went into every still in the slot (a fridge glowing
+    // behind bed and couch scenes, 2026-10-14). Fridge beats say the fridge themselves.
+    'apartment at midnight lit by a single lamp — blinds closed',
   ],
 };
 

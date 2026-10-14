@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Fewer open fridges in adult night scenes.** One of the two late-night adult Settings was "apartment at midnight lit by the open fridge", and a Setting goes into every still in its slot — so bed and couch scenes kept getting a glowing fridge behind them. That Setting is now lit by a single lamp, and the Raunchy oral beat at the fridge moved to the couch; the one beat that is about the fridge (solo, at the open fridge) keeps it.
+
 ## [v2.9.0] - 2026-10-14
 
 - **Day scenes match their place.** A beat that named somewhere other than the slot's Setting (a gym beat in a bedroom, a beach beat at the office) mixed the two into one picture; the beat and the Setting now agree — Suggestive and sport/vacation days kept their beat's venue. On the clothed sweep, misfit Suggest-day stills went from about a third to none (24 of 24 live).
