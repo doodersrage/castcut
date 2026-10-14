@@ -29,6 +29,8 @@ export type RoleplayFilmCutActionsProps = {
   /** While first-cut celebrate owns Watch/Share/Remix, hide duplicate Cast links. */
   hidePostCutLinks?: boolean;
   filmCutOptions?: FilmCutOptionsValue;
+  /** This Cast has an earlier Story to open with ("Previously on"). */
+  previouslyAvailable?: boolean;
   onFilmCutOptionsChange?: (next: FilmCutOptionsValue) => void;
   onCutFilm: () => void;
   onSaveToCast: () => void;
@@ -60,6 +62,7 @@ export default function RoleplayFilmCutActions({
   canShareCut = false,
   hidePostCutLinks = false,
   filmCutOptions,
+  previouslyAvailable = false,
   onFilmCutOptionsChange,
   onCutFilm,
   onSaveToCast,
@@ -86,6 +89,8 @@ export default function RoleplayFilmCutActions({
             onChange={onFilmCutOptionsChange}
             disabled={assemblingFilm}
             testIdPrefix="story-cut"
+            storyExtras
+            previouslyAvailable={previouslyAvailable}
             shots={cutShots}
             identityFor={shotIdentity}
             previewTitleCard={

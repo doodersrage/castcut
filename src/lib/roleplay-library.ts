@@ -196,6 +196,29 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
   if (record.faceMatch && typeof record.faceMatch === 'object') {
     beat.faceMatch = record.faceMatch as RoleplayStoryBeat['faceMatch'];
   }
+  if (Array.isArray(record.angles)) {
+    const angles = (record.angles as Array<Record<string, unknown>>)
+      .filter(angle => angle && (angle.kind === 'face' || angle.kind === 'detail'))
+      .map(angle => ({
+        kind: angle.kind as 'face' | 'detail',
+        imageUrl: readString(angle.imageUrl, 2048),
+        for: readString(angle.for, 2048),
+      }))
+      .filter(angle => angle.imageUrl && angle.for)
+      .slice(0, 4);
+    if (angles.length) beat.angles = angles;
+  }
+  if (record.marksCheck && typeof record.marksCheck === 'object') {
+    const marks = record.marksCheck as Record<string, unknown>;
+    const imageUrl = readString(marks.imageUrl, 2048);
+    if (imageUrl) {
+      beat.marksCheck = {
+        imageUrl,
+        note: readString(marks.note, 300),
+        ...(marks.repaired === true ? { repaired: true } : {}),
+      };
+    }
+  }
   if (record.stillTakePinned === true) {
     beat.stillTakePinned = true;
   }

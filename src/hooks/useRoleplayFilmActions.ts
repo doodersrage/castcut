@@ -33,6 +33,7 @@ import { characterFromRoleplaySession, upsertCharacterFromRoleplaySession } from
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { completePlayCampaign } from '@/lib/play-campaign';
 import {
+  loadRoleplayLibrary,
   persistRoleplayLibraryFromCache,
   snapshotRoleplaySession,
   upsertRoleplayLibrarySession,
@@ -41,13 +42,21 @@ import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { type RoleplayToolCache } from '@/lib/play-settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import { filmResolutionForCutOptions } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
+import { widenStillForFilm } from '@/lib/film-widen-client';
+import { renderNarrationLine } from '@/lib/film-narration-client';
+import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story-film';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
+
+/** The page's queue function, as widened stills need it. */
+export type FilmSendComfyUi = Parameters<typeof widenStillForFilm>[0]['sendComfyUi'];
 
 export function useRoleplayFilmActions(input: {
   toolSettings: RoleplayToolCache;
   storyRef: MutableRefObject<RoleplayStoryBeat[]>;
   bioName?: string;
+  /** The queue (filled once the page's actions exist) — widened stills need it. */
+  sendComfyUiRef?: MutableRefObject<FilmSendComfyUi | null>;
 }) {
   const [assemblingFilm, setAssemblingFilm] = useState(false);
   const [filmStatus, setFilmStatus] = useState<string | null>(null);
@@ -64,6 +73,9 @@ export function useRoleplayFilmActions(input: {
   const [filmGuideHref, setFilmGuideHref] = useState<string | null>(null);
 
   const [cutProblems, setCutProblems] = useState<CutShotProblem[] | null>(null);
+  /** Narration and widened stills made this session, by line / by image (not re-rendered). */
+  const narrationCacheRef = useRef(new Map<string, string>());
+  const wideCacheRef = useRef(new Map<string, string>());
   const [cutChecking, setCutChecking] = useState(false);
 
   const cutRoleplayFilm = useCallback(
@@ -142,9 +154,58 @@ export function useRoleplayFilmActions(input: {
       setFilmNeedsCast(false);
       setFilmStatus('Checking shots…');
       try {
+        const shared = loadSettingsCache().shared;
+        const byKey = new Map(input.storyRef.current.map(beat => [`${beat.id}@${beat.at}`, beat]));
+        // Widen stills to 16:9 for a widescreen cut (one Edit 2511 pass a still, kept this session).
+        const send = input.sendComfyUiRef?.current;
+        if (filmCutOptions.widen === true && filmShapeOf(filmCutOptions) === 'wide' && send) {
+          for (const [index, shot] of shots.entries()) {
+            if (shot.kind !== 'still') continue;
+            let wide = wideCacheRef.current.get(shot.url);
+            if (!wide) {
+              setFilmStatus(`Widening ${shot.title} to 16:9…`);
+              wide =
+                (await widenStillForFilm({
+                  imageUrl: shot.url,
+                  sendComfyUi: send,
+                  model: shared.model,
+                  characterId: character?.id,
+                }).catch(() => null)) ?? undefined;
+              if (wide) wideCacheRef.current.set(shot.url, wide);
+            }
+            if (wide) shots[index] = { ...shot, url: wide };
+          }
+        }
+        // Narrate: each scene's first sentence over its shot (the narrated still holds for it).
+        if (filmCutOptions.narrate === true) {
+          const man = getCharacter(character?.id ?? '')?.traits?.sex === 'man';
+          for (const [index, shot] of shots.entries()) {
+            const beat = byKey.get(shot.key);
+            const line = beat ? storyNarrationLine(beat) : '';
+            if (!line) continue;
+            let url = narrationCacheRef.current.get(line);
+            if (!url) {
+              setFilmStatus(`Recording the narration for ${shot.title}…`);
+              url = await renderNarrationLine({ line, speaker: man ? 'man' : 'woman' }).catch(
+                () => undefined
+              );
+              if (url) narrationCacheRef.current.set(line, url);
+            }
+            if (url) shots[index] = { ...holdForNarration(shot, line), narrationUrl: url };
+          }
+        }
+        // "Previously on": three shots of this Cast's last Story open this one.
+        const recap =
+          character && filmCutOptions.previouslyOn !== false
+            ? storyPreviouslyOnShots(loadRoleplayLibrary(), {
+                castId: character.id,
+                currentSessionId: input.toolSettings.activeSessionId,
+                name,
+              })
+            : [];
         const result = await assembleAndStampFilm({
           source: 'story',
-          shots,
+          shots: recap.length ? [...(recap as KeyedShot[]), ...shots] : shots,
           characterId: character?.id ?? '',
           characterName: name,
           lookId: character?.activeLookId,
@@ -155,7 +216,13 @@ export function useRoleplayFilmActions(input: {
           voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
-          titleCard: filmCutOptions.titles ? { title: name, subtitle: 'A Castcut story' } : null,
+          titleCard: filmCutOptions.titles
+            ? {
+                title: name,
+                subtitle: 'A Castcut story',
+                ...(recap.length ? { afterShots: recap.length } : {}),
+              }
+            : null,
           length: filmCutOptions.length,
           beatSnap: filmCutOptions.beatSnap,
           onProgress: progress => setFilmStatus(progress.label),
@@ -358,7 +425,18 @@ export function useRoleplayFilmActions(input: {
     },
     [cutProblems, cutRoleplayFilm, input.storyRef]
   );
+  // "Previously on" is offered when this Cast has an earlier Story with a still in it.
+  const activeCastId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
+  const storyPreviouslyAvailable =
+    Boolean(activeCastId) &&
+    storyPreviouslyOnShots(loadRoleplayLibrary(), {
+      castId: activeCastId,
+      currentSessionId: input.toolSettings.activeSessionId,
+      name: '',
+    }).length > 0;
+
   return {
+    storyPreviouslyAvailable,
     assemblingFilm,
     saveFilmPoster,
     posterBusy,

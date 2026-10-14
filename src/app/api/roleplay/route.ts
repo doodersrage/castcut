@@ -61,6 +61,7 @@ type RoleplayRequestBody = {
   hasGarmentReference?: boolean;
   leadSex?: unknown;
   leadDescriptor?: unknown;
+  leadPeople?: unknown;
 };
 
 /** The Cast lead's Sex trait, only one of the three Cast values. */
@@ -146,6 +147,10 @@ export async function POST(request: Request) {
       leadDescriptor:
         typeof body.leadDescriptor === 'string'
           ? body.leadDescriptor.trim().slice(0, 300) || undefined
+          : undefined,
+      leadPeople:
+        typeof body.leadPeople === 'string'
+          ? body.leadPeople.replace(/\s+/g, ' ').trim().slice(0, 600) || undefined
           : undefined,
       bio: body.bio ? parseRoleplayBio(body.bio) : undefined,
       story: parseStory(body.story),

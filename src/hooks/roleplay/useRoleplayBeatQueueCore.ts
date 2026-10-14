@@ -34,6 +34,7 @@ import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catal
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { applyCharacterRecord, castLoraSessionIds, getCharacter } from '@/lib/character-os';
+import { storyCastLines, storyFamilyRomance, storyPeople } from '@/lib/story-cast-lines';
 import { upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
 import { buildRoleplayQueueStillOptions, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import { buildStoryClothedDuoRecipe, buildStoryRapidDuoRecipe } from '@/lib/rapid-duo-recipe';
@@ -860,6 +861,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           adult
         ),
         poseGuide?.cueLine ?? '',
+        // The Cast's marks that show in this scene and the props it mentions (as Day's stills).
+        storyCastLines(getCharacter(shared.activeCharacterId?.trim() || ''), {
+          scene: [beat.title, beat.blurb].filter(Boolean).join('. '),
+          outfit: promptSource,
+          setting: toolSettings.setting,
+          undressed: adult,
+          man: leadIsMan(),
+        }),
       ]
         .filter(Boolean)
         .join('\n');
@@ -893,7 +902,23 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         promptCheck: undefined,
         ...(stillBrief ? { stillBrief } : {}),
       };
-      if (queueStill) {
+      // Family never plays a romantic or sexual part (cast-relationships.ts): such a scene is
+      // not drawn, and its card says why.
+      const leadCast = getCharacter(shared.activeCharacterId?.trim() || '');
+      const familyClash = queueStill
+        ? storyFamilyRomance(
+            [beat.title, beat.blurb, promptSource].filter(Boolean).join('. '),
+            storyPeople(leadCast, castId => getCharacter(castId)),
+            adult
+          )
+        : null;
+      if (familyClash) {
+        stillPatch = {
+          ...stillPatch,
+          referenceNote: `${familyClash} is family — never in a romantic or sexual scene. Rewrite this scene without ${familyClash}, or pick another.`,
+        };
+      }
+      if (queueStill && !familyClash) {
         await loadWardrobeGarmentThumbManifest();
         const nudeFace = await resolveNudeFaceForBeat(beat);
         const kleinFace = await resolveKleinFaceReferenceForBeat(

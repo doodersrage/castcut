@@ -55,6 +55,10 @@ type Props = {
   onRetry?: (beat: RoleplayStoryBeat) => void;
   onRetryClip?: (beat: RoleplayStoryBeat) => void;
   onAnimate?: (beat: RoleplayStoryBeat) => void;
+  /** Make a face close-up and a detail of the still for the film (useStoryCloseUps). */
+  onCloseUps?: (beat: RoleplayStoryBeat) => void;
+  /** The scene whose close-ups are being made. */
+  closeUpsBusy?: boolean;
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
@@ -86,6 +90,8 @@ export function RoleplayStoryBeatCard({
   onRetry,
   onRetryClip,
   onAnimate,
+  onCloseUps,
+  closeUpsBusy = false,
   onExtend,
   onSelectTake,
   onSelectClipTake,
@@ -249,6 +255,22 @@ export function RoleplayStoryBeatCard({
                 onClick={() => onAnimate?.(beat)}
               >
                 {canAnimateStill ? 'Animate still' : 'Text to video'}
+              </button>
+            ) : null}
+            {onCloseUps && lastCompletedRoleplayStillUrl(beat) ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || closeUpsBusy}
+                title="Two more shots of this moment for the film — a face close-up and a detail — cut in for a beat right after it. Two Edit 2511 passes, about a minute."
+                data-testid="story-beat-close-ups"
+                onClick={() => onCloseUps(beat)}
+              >
+                {closeUpsBusy
+                  ? 'Making close-ups…'
+                  : beat.angles?.some(angle => angle.for === lastCompletedRoleplayStillUrl(beat))
+                    ? 'Redo close-ups'
+                    : 'Add close-ups'}
               </button>
             ) : null}
             {canRetryStillAction ? (
@@ -500,6 +522,15 @@ export function RoleplayStoryBeatCard({
               data-testid="story-beat-withheld"
             >
               {ADULT_GATE_WITHHELD_MESSAGE}
+            </p>
+          ) : null}
+          {beat.marksCheck?.note && beat.marksCheck.imageUrl === beat.imageUrl ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-marks-check"
+            >
+              {beat.marksCheck.note}
             </p>
           ) : null}
           {beat.referenceNote ? (

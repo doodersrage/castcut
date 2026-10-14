@@ -46,6 +46,8 @@ export default function RoleplayStoryReel({
   onRetry,
   onRetryClip,
   onAnimate,
+  onCloseUps,
+  closeUpsBeatId,
   onExtend,
   onSelectTake,
   onSelectClipTake,
@@ -71,6 +73,8 @@ export default function RoleplayStoryReel({
   onRetry?: (beat: RoleplayStoryBeat) => void;
   onRetryClip?: (beat: RoleplayStoryBeat) => void;
   onAnimate?: (beat: RoleplayStoryBeat) => void;
+  onCloseUps?: (beat: RoleplayStoryBeat) => void;
+  closeUpsBeatId?: string | null;
   onExtend?: (beat: RoleplayStoryBeat) => void;
   onSelectTake?: (beat: RoleplayStoryBeat, index: number) => void;
   onSelectClipTake?: (beat: RoleplayStoryBeat, index: number) => void;
@@ -364,6 +368,8 @@ export default function RoleplayStoryReel({
                   onRetry={onRetry}
                   onRetryClip={onRetryClip}
                   onAnimate={onAnimate}
+                  onCloseUps={onCloseUps}
+                  closeUpsBusy={closeUpsBeatId === beat.id}
                   onExtend={onExtend}
                   onSelectTake={onSelectTake}
                   onSelectClipTake={onSelectClipTake}
@@ -456,6 +462,8 @@ export default function RoleplayStoryReel({
                 onRetry={onRetry}
                 onRetryClip={onRetryClip}
                 onAnimate={onAnimate}
+                onCloseUps={onCloseUps}
+                closeUpsBusy={closeUpsBeatId === beat.id}
                 onExtend={onExtend}
                 onSelectTake={onSelectTake}
                 onSelectClipTake={onSelectClipTake}

@@ -38,6 +38,7 @@ import {
   loadToolSettings,
 } from '@/lib/settings-cache';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
+import { H3_MODEL_ID } from '@/lib/h3-renderer';
 import {
   beginRoleplayClipRetryPatch,
   lastCompletedRoleplayStillUrl,
@@ -289,9 +290,15 @@ export function useRoleplayBeatQueuePart2(
             });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
+      // Story clips follow Video → Model, unless the player picked MiniMax-H3 for Story (Video
+      // `storyClips`) — image-to-video only (H3 starts from a frame here).
+      const storyClipModel =
+        loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips === 'h3'
+          ? H3_MODEL_ID
+          : videoModel;
       const clipModel =
         queueClipMode === 'i2v'
-          ? clipEngineForShot(videoModel, {
+          ? clipEngineForShot(storyClipModel, {
               adultDuo,
               speaking,
               clothedSolo: [latest.prompt, parentEntry?.prompt].every(

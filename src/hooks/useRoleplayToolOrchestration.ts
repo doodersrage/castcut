@@ -9,7 +9,7 @@ import { useRoleplayBeatQueue } from '@/hooks/useRoleplayBeatQueue';
 import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayReferenceImage } from '@/hooks/useRoleplayReferenceImage';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
-import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
+import { useRoleplayFilmActions, type FilmSendComfyUi } from '@/hooks/useRoleplayFilmActions';
 import { useRoleplayLibraryPersist } from '@/hooks/useRoleplayLibraryPersist';
 import { useRoleplayBioFlow } from '@/hooks/useRoleplayBioFlow';
 import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
@@ -79,9 +79,12 @@ export function useRoleplayToolOrchestration() {
     onSessionChange: clearScenes,
   });
 
+  // The film hook runs before the page's actions exist; widened stills queue through this.
+  const filmSendRef = useRef<FilmSendComfyUi | null>(null);
   const film = useRoleplayFilmActions({
     toolSettings,
     storyRef,
+    sendComfyUiRef: filmSendRef,
     bioName: bio?.name,
   });
 
@@ -159,6 +162,9 @@ export function useRoleplayToolOrchestration() {
     autoFixRules: shared.autoFixRules !== false,
     reformatTarget: getReformatTargetModel(shared.model),
   });
+  useEffect(() => {
+    filmSendRef.current = actions.sendComfyUi;
+  }, [actions.sendComfyUi]);
 
   const selectedModel = getComfyModelDefinition(shared.model);
   const lastPrompt = [...story].reverse().find(beat => beat.prompt?.trim())?.prompt;

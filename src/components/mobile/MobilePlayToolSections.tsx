@@ -104,6 +104,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmError,
     filmGuideHref,
     filmCutOptions,
+    storyPreviouslyAvailable,
     setFilmCutOptions,
     hasReferenceImage,
     playScene,
@@ -118,6 +119,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
     setBeatPose,
     selectClipTake,
     animateBeat,
+    addStoryCloseUps,
+    closeUpsBeatId,
     retryClip,
     extendBeat,
     plateUrl,
@@ -250,6 +253,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
           onRetry={beat => void queueBeat(beat, { retry: true })}
           onRetryClip={retryClip}
           onAnimate={animateBeat}
+          onCloseUps={addStoryCloseUps}
+          closeUpsBeatId={closeUpsBeatId}
           onExtend={extendBeat}
           onSelectTake={selectStillTake}
           onPoseChange={setBeatPose}
@@ -714,6 +719,8 @@ export default function MobilePlayToolSections({ description: _description, ...v
             onChange={setFilmCutOptions}
             disabled={assemblingFilm}
             testIdPrefix="mobile-story-cut"
+            storyExtras
+            previouslyAvailable={storyPreviouslyAvailable}
             shots={roleplayWatchPlaylist(story) as KeyedShot[]}
             identityFor={storyShotIdentity(story)}
           />

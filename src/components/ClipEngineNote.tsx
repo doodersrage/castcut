@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
-import { H3_LICENCE_NOTE } from '@/lib/h3-renderer';
+import { H3_LICENCE_NOTE, H3_MODEL_ID } from '@/lib/h3-renderer';
 import { dayClipVideoModel, isLtx25Model } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import {
@@ -30,18 +30,56 @@ function pickedVideoModel(): string {
 export default function ClipEngineNote({
   twoPersonAdultPossible,
   day = false,
+  story = false,
 }: {
   /** The day / story can hold two-person adult stills (their clips render on WAN). */
   twoPersonAdultPossible: boolean;
   /** Day: its clips are LTX-2.5 unless the player picks WAN here (Video `dayClips`). */
   day?: boolean;
+  /** Story: its clips follow Video → Model unless the player picks MiniMax-H3 (`storyClips`). */
+  story?: boolean;
 }) {
   const picked = useSyncExternalStore(subscribe, pickedVideoModel, () => '');
   const [dayClips, setDayClips] = useState<'ltx' | 'wan' | 'h3'>(() => {
     const saved = loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).dayClips;
     return saved === 'wan' || saved === 'h3' ? saved : 'ltx';
   });
-  const model = day && picked ? dayClipVideoModel(dayClips, picked) : picked;
+  const [storyClips, setStoryClips] = useState<'model' | 'h3'>(() =>
+    loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips === 'h3' ? 'h3' : 'model'
+  );
+  const model =
+    day && picked
+      ? dayClipVideoModel(dayClips, picked)
+      : story && storyClips === 'h3'
+        ? H3_MODEL_ID
+        : picked;
+  const storyChoice = story ? (
+    <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
+      Story clips on
+      <select
+        className="ui-input !w-auto !py-0.5"
+        value={storyClips}
+        data-testid="clip-engine-story"
+        onChange={event => {
+          const next = event.target.value === 'h3' ? 'h3' : 'model';
+          setStoryClips(next);
+          saveToolSettings('video', {
+            ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
+            storyClips: next,
+          });
+        }}
+      >
+        <option value="model">Video → Model (default)</option>
+        <option value="h3">MiniMax-H3 (best motion, with sound — about 5× slower)</option>
+      </select>
+      {storyClips === 'h3' ? (
+        <span data-testid="clip-engine-story-h3-note">
+          — about 2½ min a clip; lines are spoken with sound (no kept Cast voice); text-to-video
+          stays on the Video model. {H3_LICENCE_NOTE}
+        </span>
+      ) : null}
+    </label>
+  ) : null;
   const dayChoice = day ? (
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
       Day clips on
@@ -92,6 +130,7 @@ export default function ClipEngineNote({
     return (
       <>
         {dayChoice}
+        {storyChoice}
         {health}
       </>
     );
@@ -99,6 +138,7 @@ export default function ClipEngineNote({
   return (
     <>
       {dayChoice}
+      {storyChoice}
       <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
         {keepLtx
           ? twoPersonAdultPossible && !ltxDuo

@@ -215,6 +215,26 @@ export function resolveFilmPlaylist(
   return shots;
 }
 
+/** A scene's close-ups (as Day's), while they were made from the still it shows. */
+function pushStoryAngles(shots: FilmPlaylistShot[], beat: RoleplayStoryBeat, stillUrl: string) {
+  for (const angle of beat.angles ?? []) {
+    if (angle.for !== stillUrl) continue;
+    shots.push({
+      key: `${beat.id}@${beat.at}#${angle.kind}`,
+      entryId: `${beat.id}-${angle.kind}`,
+      title: `${beat.title} · ${angle.kind === 'face' ? 'close-up' : 'detail'}`,
+      url: angle.imageUrl,
+      kind: 'still',
+      holdSec: STORY_ANGLE_HOLD_SEC,
+      holdFixed: true,
+      captionless: true,
+    });
+  }
+}
+
+/** A close-up holds for a beat, not a scene (Day's DAY_ANGLE_HOLD_SEC). */
+const STORY_ANGLE_HOLD_SEC = 1.5;
+
 export function roleplayWatchPlaylist(
   story: RoleplayStoryBeat[],
   stillHoldSec = DEFAULT_STILL_HOLD_SEC
@@ -233,6 +253,8 @@ export function roleplayWatchPlaylist(
         kind: asClip ? 'clip' : 'still',
         holdSec: asClip ? undefined : hold,
       });
+      const shownStill = lastCompletedRoleplayStillUrl(beat) || beat.imageUrl?.trim() || '';
+      if (shownStill) pushStoryAngles(shots, beat, shownStill);
       continue;
     }
     const stillUrl =
@@ -250,6 +272,7 @@ export function roleplayWatchPlaylist(
       kind: 'still',
       holdSec: hold,
     });
+    pushStoryAngles(shots, beat, stillUrl);
   }
   return shots;
 }

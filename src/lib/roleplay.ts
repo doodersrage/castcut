@@ -166,6 +166,16 @@ export type RoleplayStoryBeat = RoleplayScene & {
   poseGuideExpect?: StoryPoseGuideExpect;
   /** DWPose check of the shown still against its guide. */
   poseMatch?: StoryPoseMatch;
+  /**
+   * The Cast's marks (glasses, tattoos…) checked on the shown still (useStoryMarksCheck): what
+   * was found, and whether a repair pass replaced the picture. Keyed by the checked image.
+   */
+  marksCheck?: { imageUrl: string; note: string; repaired?: boolean };
+  /**
+   * Close-ups of the shown still (film-angles-client.ts): a face close-up and a detail, cut in
+   * right after the scene's shot while `for` is still the shown image.
+   */
+  angles?: Array<{ kind: 'face' | 'detail'; imageUrl: string; for: string }>;
   /** Pose picked on the beat card (a layout or posture id); unset = the writer's / text's pose. */
   poseLayout?: string;
   /** "Try another" count for this beat's pose guide. */

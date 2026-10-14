@@ -9,7 +9,7 @@ import {
 } from '@/lib/character-os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useRoleplayFilmActions } from '@/hooks/useRoleplayFilmActions';
+import { useRoleplayFilmActions, type FilmSendComfyUi } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useStorySessionGuard } from '@/hooks/roleplay/useStorySessionGuard';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -118,6 +118,8 @@ export function useMobilePlayToolOrchestrationCore() {
   const storyProgress = formatRoleplayStoryProgress(story);
   const autoQueue = toolSettings.autoQueue === true;
   const beatOutput = normalizeRoleplayBeatOutput(toolSettings.beatOutput);
+  // The film hook runs before the page's actions exist; widened stills queue through this.
+  const filmSendRef = useRef<FilmSendComfyUi | null>(null);
   const {
     assemblingFilm,
     filmStatus,
@@ -135,9 +137,11 @@ export function useMobilePlayToolOrchestrationCore() {
     filmGuideHref,
     filmCutOptions,
     setFilmCutOptions,
+    storyPreviouslyAvailable,
   } = useRoleplayFilmActions({
     toolSettings,
     storyRef,
+    sendComfyUiRef: filmSendRef,
     bioName: bio?.name,
   });
 
@@ -294,6 +298,9 @@ export function useMobilePlayToolOrchestrationCore() {
     autoFixRules: shared.autoFixRules !== false,
     reformatTarget: getReformatTargetModel(shared.model),
   });
+  useEffect(() => {
+    filmSendRef.current = actions.sendComfyUi;
+  }, [actions.sendComfyUi]);
 
   const beatQueue = useRoleplayBeatQueue({
     storyRef,
@@ -452,6 +459,7 @@ export function useMobilePlayToolOrchestrationCore() {
     filmGuideHref,
     filmCutOptions,
     setFilmCutOptions,
+    storyPreviouslyAvailable,
     actions,
     beatQueue,
     wardrobe,

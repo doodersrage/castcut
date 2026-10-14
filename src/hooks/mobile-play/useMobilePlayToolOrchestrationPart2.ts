@@ -191,6 +191,9 @@ export function useMobilePlayToolOrchestrationPart2(ctx: MobilePlayToolOrchestra
     setBeatPose,
     selectClipTake,
     animateBeat,
+    addStoryCloseUps: (beat: Parameters<typeof beatQueue.addStoryCloseUps>[0]) =>
+      void beatQueue.addStoryCloseUps(beat),
+    closeUpsBeatId: beatQueue.closeUpsBeatId,
     retryClip,
     extendBeat,
     plateUrl,

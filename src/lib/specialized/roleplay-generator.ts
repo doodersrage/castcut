@@ -90,6 +90,8 @@ export type RoleplaySharedOptions = SharedGenerationOptions & {
   leadSex?: 'woman' | 'man' | 'nonbinary';
   /** The Cast lead's physical descriptor ("a tall man, 30s"), read when no Sex is picked. */
   leadDescriptor?: string;
+  /** Who the lead's people are (story-cast-lines.ts storyPeopleLine) — family never romantic. */
+  leadPeople?: string;
 };
 
 /** What decides whether the story's stills may show effects (fantasy / sci-fi setups only). */
@@ -556,6 +558,7 @@ export async function generateRoleplayScenes(
       system: `You write choose-your-own-adventure forks for an image roleplay.
 ${toneLine(tone)}
 ${uncensoredAdultLine(content)}
+${options.leadPeople ?? ''}
 ${settingCue}
 ${wardrobeCue}
 ${poseGuideCue}
@@ -718,6 +721,7 @@ export async function generateRoleplayPrompt(
     toolInstructions: `You write a single image prompt for a roleplay still.
 ${toneLine(tone)}
 ${uncensoredAdultLine(content)}
+${options.leadPeople ?? ''}
 ${contentLine(content, allowGore)}
 ${referenceLine(hasReferenceImage, isolatedSubject)}
 ${settingCue}

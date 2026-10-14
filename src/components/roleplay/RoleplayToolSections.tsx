@@ -342,10 +342,13 @@ export default function RoleplayToolSections({
                   canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
                   filmCutOptions={film.filmCutOptions}
                   onFilmCutOptionsChange={film.setFilmCutOptions}
+                  previouslyAvailable={film.storyPreviouslyAvailable}
                   onQueue={beat => void beatQueue.queueBeat(beat)}
                   onRetry={beat => void beatQueue.queueBeat(beat, { retry: true })}
                   onRetryClip={beat => void beatQueue.queueBeatMotion(beat, { retry: true })}
                   onAnimate={beat => void beatQueue.queueBeatMotion(beat)}
+                  onCloseUps={beat => void beatQueue.addStoryCloseUps(beat)}
+                  closeUpsBeatId={beatQueue.closeUpsBeatId}
                   onExtend={extendBeat}
                   onSelectTake={session.selectStillTake}
                   fixAreaFor={session.fixAreaTargetForBeat}
@@ -421,7 +424,7 @@ export default function RoleplayToolSections({
                       Animate all ready stills
                     </Button>
                   </ToolActionRow>
-                  <ClipEngineNote twoPersonAdultPossible />
+                  <ClipEngineNote twoPersonAdultPossible story />
                 </ToolSection>
               ) : null}
               <CollapsibleSection

@@ -924,6 +924,8 @@ export type VideoToolCache = {
    * are LTX-2.5 either way (only it makes sound). See dayClipVideoModel.
    */
   dayClips?: 'ltx' | 'wan' | 'h3';
+  /** Story clips: Video → Model (default) or MiniMax-H3 (h3-renderer.ts). */
+  storyClips?: 'model' | 'h3';
   /**
    * Keep LTX-2.5 for two-person adult clips (tuned for pace — LTX_FAST_PACE_*; they get sound
    * through Add sound). Off: those clips render on WAN (clipEngineForShot).

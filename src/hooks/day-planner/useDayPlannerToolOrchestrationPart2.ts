@@ -7,6 +7,7 @@ import { isH3Model } from '@/lib/h3-renderer';
 import { makeFilmAngles } from '@/lib/film-angles-client';
 import { castVoiceOf } from '@/lib/cast-voice';
 import { renderNarrationLine } from '@/lib/film-narration-client';
+import { holdForNarration } from '@/lib/story-film';
 import { filmShapeOf } from '@/lib/video-resolution';
 import {
   framedTalkingStill,
@@ -894,7 +895,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
           }
         }
-        if (url) shots[index] = { ...shots[index]!, narrationUrl: url };
+        if (url) shots[index] = { ...holdForNarration(shots[index]!, line), narrationUrl: url };
       }
       // "Previously on": a few shots of the season's last episode open this one.
       const recap =

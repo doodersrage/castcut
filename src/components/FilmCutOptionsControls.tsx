@@ -53,6 +53,10 @@ export type FilmCutOptionsValue = {
   beatSnap?: boolean;
   /** Day episodes: open with a few shots of the last episode (default on when there is one). */
   previouslyOn?: boolean;
+  /** Story: each scene's first sentence read as a voice-over over its shot (story-film.ts). */
+  narrate?: boolean;
+  /** Story: stills widened to 16:9 for a widescreen cut (film-widen-client.ts). */
+  widen?: boolean;
   /** Day / Story shot list: order, leave-outs, captions, holds. */
   shotEdits?: CutShotEdits;
   /** Music bed gain, 0–1.5 (1 = as recorded). */
@@ -80,6 +84,8 @@ type FilmCutOptionsControlsProps = {
   scoreBrief?: FilmScoreBrief;
   /** The season has an earlier episode — offer "Previously on". */
   previouslyAvailable?: boolean;
+  /** Story: offer "Narrate the story" and "Widen stills to 16:9". */
+  storyExtras?: boolean;
   /** Face match mark per shot in the shot list (identity-mark.ts). */
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
   /** The title card the cut opens on (shown in Preview the cut). */
@@ -97,6 +103,7 @@ export default function FilmCutOptionsControls({
   identityFor,
   previewTitleCard,
   previouslyAvailable = false,
+  storyExtras = false,
 }: FilmCutOptionsControlsProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -256,6 +263,36 @@ export default function FilmCutOptionsControls({
             />
             <span title="Three short shots from the last episode open this one">Previously on</span>
           </label>
+        ) : null}
+        {storyExtras ? (
+          <>
+            <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+              <input
+                type="checkbox"
+                disabled={disabled}
+                checked={value.narrate === true}
+                onChange={event => onChange({ ...value, narrate: event.target.checked })}
+                data-testid={`${testIdPrefix}-narrate`}
+              />
+              <span title="Each scene's first sentence is read over its shot (LTX-2.5, about 15 s a scene the first time; scenes with their own spoken line are left as they are)">
+                Narrate the story
+              </span>
+            </label>
+            {filmShapeOf(value) === 'wide' ? (
+              <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+                <input
+                  type="checkbox"
+                  disabled={disabled}
+                  checked={value.widen === true}
+                  onChange={event => onChange({ ...value, widen: event.target.checked })}
+                  data-testid={`${testIdPrefix}-widen`}
+                />
+                <span title="Each portrait still is widened to 16:9 by continuing the scene to the sides (one Edit 2511 pass a still, about 40 s) — no black bars">
+                  Widen stills to 16:9
+                </span>
+              </label>
+            ) : null}
+          </>
         ) : null}
       </ToolActionRow>
       {!value.audioBedUrl.trim() && (value.length === 'music' || value.beatSnap) ? (
@@ -478,6 +515,7 @@ export function FilmCutOptionsDisclosure({
   identityFor,
   previewTitleCard,
   previouslyAvailable = false,
+  storyExtras = false,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -498,6 +536,7 @@ export function FilmCutOptionsDisclosure({
           identityFor={identityFor}
           previewTitleCard={previewTitleCard}
           previouslyAvailable={previouslyAvailable}
+          storyExtras={storyExtras}
         />
       </div>
     </details>

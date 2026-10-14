@@ -1,3 +1,5 @@
+import { getCharacter, type CharacterRecord } from './character-os';
+import { storyPeople, storyPeopleLine } from './story-cast-lines';
 import { avoidedTokensRequestBody } from './avoided-tokens';
 import { getCachedClothingLabel } from './clothing-catalog-client';
 import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from './isolate-subject';
@@ -85,18 +87,26 @@ export type RoleplayQueueStillOptions = {
 export type RoleplayLeadCast = {
   descriptor?: string;
   traits?: { sex?: string };
+  /** Their people (cast-relationships.ts) — the writer is told who they are. */
+  relationships?: CharacterRecord['relationships'];
 };
 
 /** The lead's Sex trait (when picked) and descriptor for a /api/roleplay body. */
 export function roleplayLeadFields(lead: RoleplayLeadCast | null | undefined): {
   leadSex?: 'woman' | 'man' | 'nonbinary';
   leadDescriptor?: string;
+  leadPeople?: string;
 } {
   const sex = lead?.traits?.sex;
   const descriptor = lead?.descriptor?.trim();
+  const people = storyPeopleLine(
+    storyPeople(lead, castId => getCharacter(castId)),
+    sex === 'man'
+  );
   return {
     ...(sex === 'woman' || sex === 'man' || sex === 'nonbinary' ? { leadSex: sex } : {}),
     ...(descriptor ? { leadDescriptor: descriptor } : {}),
+    ...(people ? { leadPeople: people } : {}),
   };
 }
 

@@ -42,6 +42,8 @@ export type RoleplayStorySectionProps = {
   onRetry: (beat: RoleplayStoryBeat) => void;
   onRetryClip: (beat: RoleplayStoryBeat) => void;
   onAnimate: (beat: RoleplayStoryBeat) => void;
+  onCloseUps?: (beat: RoleplayStoryBeat) => void;
+  closeUpsBeatId?: string | null;
   onExtend: (beat: RoleplayStoryBeat) => void;
   onSelectTake: (beat: RoleplayStoryBeat, index: number) => void;
   onPoseChange?: (
@@ -62,6 +64,8 @@ export type RoleplayStorySectionProps = {
   /** Cast home where bible rewrite/edit/clear live. */
   castBibleHref?: string;
   filmCutOptions?: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue;
+  /** This Cast has an earlier Story to open with ("Previously on"). */
+  previouslyAvailable?: boolean;
   /** The delivery check is probing the shots before the cut. */
   cutChecking?: boolean;
   /** Desk Story: the newest scene large on a stage, earlier ones as a strip (RoleplayStoryReel). */
@@ -97,6 +101,8 @@ export default function RoleplayStorySection({
   onRetry,
   onRetryClip,
   onAnimate,
+  onCloseUps,
+  closeUpsBeatId,
   onExtend,
   onSelectTake,
   onPoseChange,
@@ -109,6 +115,7 @@ export default function RoleplayStorySection({
   castBibleHref,
   filmCutOptions,
   onFilmCutOptionsChange,
+  previouslyAvailable,
   stage = false,
   cutChecking = false,
 }: RoleplayStorySectionProps) {
@@ -136,6 +143,7 @@ export default function RoleplayStorySection({
       hidePostCutLinks={firstCutCelebrate}
       filmCutOptions={filmCutOptions}
       onFilmCutOptionsChange={onFilmCutOptionsChange}
+      previouslyAvailable={previouslyAvailable}
       onCutFilm={onCutFilm}
       onSaveToCast={onSaveToCast}
       onShareCut={onShareCut}
@@ -255,6 +263,8 @@ export default function RoleplayStorySection({
           onRetry={onRetry}
           onRetryClip={onRetryClip}
           onAnimate={onAnimate}
+          onCloseUps={onCloseUps}
+          closeUpsBeatId={closeUpsBeatId}
           onExtend={onExtend}
           onSelectTake={onSelectTake}
           onPoseChange={onPoseChange}
