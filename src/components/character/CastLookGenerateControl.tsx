@@ -4,7 +4,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
+import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
+import {
+  fetchComfyObjectInfoModelsCached,
+  readCachedComfyObjectInfoModels,
+} from '@/lib/comfyui-object-info-cache';
 import { ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
+import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**
@@ -37,10 +43,17 @@ export default function CastLookGenerateControl({
   const generate = async () => {
     setBusy(true);
     try {
+      // As Look does: UltraReal Fine-Tune v4 when this ComfyUI has it, else Edit 2511.
+      const inventory =
+        readCachedComfyObjectInfoModels() ??
+        (await fetchComfyObjectInfoModelsCached().catch(() => null));
+      const queueModel =
+        resolvePreferredLookModel({ inventory }) ?? resolveCastPlatePrepareModel(undefined);
       const result = await ensureOutfitPlateAfterLook({
         characterId,
         lookId,
         lookNote: note,
+        ...(queueModel ? { queueModel } : {}),
         replaceWhenReady: true,
         tiles: [],
         sendComfyUi: actions.sendComfyUi,

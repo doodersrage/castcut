@@ -678,6 +678,8 @@ export async function ensureOutfitPlateAfterLook(input: {
   lookId?: string;
   /** What this look changes (hair, makeup), added to the plate prompt. */
   lookNote?: string;
+  /** The engine the plate renders on (default: the queue's model). */
+  queueModel?: SendComfyUiOptions['queueModel'];
   sendComfyUi: (
     prompt: string,
     sport?: null,
@@ -694,6 +696,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       | 'queueHints'
       | 'explicitNegative'
       | 'queueParamsBase'
+      | 'queueModel'
     >
   ) => Promise<string | undefined>;
 }): Promise<OutfitPlateEnsureResult> {
@@ -814,6 +817,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       identityLock: false,
       queueHints: '',
       explicitNegative,
+      ...(input.queueModel ? { queueModel: input.queueModel } : {}),
       // Pin this Cast's face when it has one; otherwise Fresh sync already cleared
       // shared IP so a previous character cannot race-swap the plate.
       ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),
