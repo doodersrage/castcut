@@ -381,6 +381,36 @@ export function inferDaySportFromScene(
   return null;
 }
 
+/**
+ * The venues for the sport a beat shows: the sports (or cycling disciplines) whose action the beat
+ * opens with, else the sport the words name. A beat kept on the card takes its venue from these —
+ * a golf putt drew a surf break and a fencing lunge a forest loop (overnight sweep, 2026-10-13).
+ * Empty when the beat shows no known sport.
+ */
+export function daySportSettingsForBeat(beat: string | null | undefined): string[] {
+  const text = beat?.trim().toLowerCase() ?? '';
+  if (!text) return [];
+  const opens = (poses: readonly string[]) =>
+    poses.some(pose => pose.trim() && text.startsWith(pose.trim().toLowerCase()));
+  const settings = new Set<string>();
+  for (const discipline of CYCLING_DISCIPLINES) {
+    if (opens(listCyclingDisciplinePoses(discipline))) {
+      for (const setting of listCyclingDisciplineSettings(discipline)) settings.add(setting);
+    }
+  }
+  for (const sport of Object.keys(SPORT_LABEL) as AthleticSport[]) {
+    if (sport === 'cycling') continue;
+    if (opens(listSportActionPoses(sport))) {
+      for (const setting of listSportActionSettings(sport)) settings.add(setting);
+    }
+  }
+  if (settings.size === 0) {
+    const sport = inferDaySportFromScene(beat, null);
+    if (sport) for (const setting of listSportActionSettings(sport)) settings.add(setting);
+  }
+  return [...settings];
+}
+
 /** Compact MOOD + wardrobe lock for Day Sport stills. */
 export function buildDaySportPromptLocks(input: {
   beat?: string | null;

@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parsePoseGuideIntent } from './day-pose-guide';
 import { DAY_SLOT_SPORT_BEAT_PRESETS } from './day-sport';
-import { DAY_SLOT_VACATION_BEAT_PRESETS } from './day-vacation';
+import {
+  DAY_SLOT_VACATION_BEAT_PRESETS,
+  dayVacationDuoBeatPresetsForSlot,
+  dayVacationSettingForBeat,
+} from './day-vacation';
 import { resolveSoloMasturbationPoseKind } from '@/lib/day-pose-guide';
 import {
   dayEverydayPoseClass,
@@ -3338,5 +3342,52 @@ describe('a new still clears the slot line', () => {
     assert.equal(cleared.lineFullFrame, true);
     const plain = { id: 'noon', label: 'Noon' } as unknown as Parameters<typeof clearDaySlotLine>[0];
     assert.equal(clearDaySlotLine(plain), plain);
+  });
+});
+
+describe('diversifyDaySlotScenes keeps a typed beat in its own place (sweep 2026-10-13)', () => {
+  const seeded = () => {
+    let seed = 11;
+    return () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  };
+  const four = (sceneHints: string) =>
+    (['morning', 'afternoon', 'evening', 'night'] as const).map(id => ({
+      id,
+      label: id,
+      location: '',
+      sceneHints: id === 'night' ? sceneHints : 'walking with purpose, natural arm swing, looking ahead',
+    }));
+
+  it('Everyday: a beat whose hour has no fitting place takes one from another hour', () => {
+    const out = diversifyDaySlotScenes(four('cooking a midnight omelette at the stove'), {
+      dayMood: 'everyday',
+      random: seeded(),
+    });
+    const night = out.slots.find(slot => slot.id === 'night')!;
+    assert.equal(night.sceneHints, 'cooking a midnight omelette at the stove');
+    assert.match(night.location ?? '', /kitchen/i);
+  });
+
+  it('Sport: a kept beat gets a venue of its own sport', () => {
+    for (let run = 0; run < 5; run += 1) {
+      const out = diversifyDaySlotScenes(
+        four('rolling a putt with quiet shoulders and steady head'),
+        { dayMood: 'sport', random: seeded() }
+      );
+      const night = out.slots.find(slot => slot.id === 'night')!;
+      assert.equal(night.sceneHints, 'rolling a putt with quiet shoulders and steady head');
+      assert.match(night.location ?? '', /green|fairway|range|golf|bunker|tee|course/i);
+    }
+  });
+
+  it('Vacation: a kept couple beat goes back to the venue it was written with', () => {
+    const beat = dayVacationDuoBeatPresetsForSlot('morning')[0]!;
+    const out = diversifyDaySlotScenes(
+      [{ id: 'morning', label: 'Morning', location: '', sceneHints: beat }],
+      { dayMood: 'vacation', allowCompanions: true, intimateMix: 'duo', random: seeded() }
+    );
+    const morning = out.slots.find(slot => slot.id === 'morning')!;
+    assert.equal(morning.sceneHints, beat);
+    assert.equal(morning.location, dayVacationSettingForBeat(beat));
   });
 });

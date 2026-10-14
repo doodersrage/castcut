@@ -17,6 +17,7 @@ import {
 import { dayStillSceneRedraw, dayStillSceneSlot } from './day-still-prompt';
 import {
   beatFitsSetting,
+  beatPlaceConflicts,
   fitBeatToSetting,
   sceneSurfaceConflicts,
   sceneSurfaces,
@@ -171,6 +172,7 @@ describe('fitBeatToSetting', () => {
     ];
     let fitted = 0;
     let redrawn = 0;
+    let wrongPlace = 0;
     for (const [beats, settings] of pools) {
       for (const beat of beats) {
         for (const setting of settings) {
@@ -184,6 +186,12 @@ describe('fitBeatToSetting', () => {
             intimateEnabled: false,
             pairedScenes: false,
           });
+          // A beat set somewhere else ("on the balcony" in a café) has no words to swap: redrawn.
+          if (beatPlaceConflicts(slot.sceneHints, setting).length > 0) {
+            assert.ok(redraw, `${beat} @ ${setting}`);
+            wrongPlace += 1;
+            continue;
+          }
           if (redraw) {
             redrawn += 1;
             continue;
@@ -195,6 +203,7 @@ describe('fitBeatToSetting', () => {
     }
     assert.ok(fitted > 100, `fitted ${fitted}`);
     assert.ok(redrawn < fitted / 2, `redrawn ${redrawn}`);
+    assert.ok(wrongPlace > 0, 'some beats name another place');
   });
 });
 
@@ -345,5 +354,40 @@ describe('transit kneel', () => {
     assert.match(sceneSurfaces('subway car at rush hour')!.kneel, /floor of the carriage/);
     assert.match(sceneSurfaces('train carriage window seat')!.kneel, /floor of the carriage/);
     assert.match(sceneSurfaces('subway platform late at night')!.kneel, /platform/);
+  });
+});
+
+describe('beatPlaceConflicts', () => {
+  it('finds a beat set in another place (overnight sweep, 2026-10-13)', () => {
+    const office = 'open-plan office corner desk with monitors and afternoon window light';
+    assert.deepEqual(
+      beatPlaceConflicts("piggyback ride on a friend's back across the park, both laughing", office),
+      ['across the park']
+    );
+    assert.ok(
+      beatPlaceConflicts(
+        'diner booth across from a friend, leaning into conversation',
+        'underground subway platform with tiled walls and approaching train lights'
+      ).length > 0
+    );
+    assert.ok(
+      beatPlaceConflicts(
+        'standing side by side with her partner at the water’s edge at sunrise, barefoot in the shallows',
+        'hotel balcony at sunrise with a railing, potted palms, and the bay below'
+      ).length > 0
+    );
+    assert.equal(beatFitsSetting('waving hello from the balcony, other hand on the rail', 'bright brunch café with marble tables and hanging plants'), false);
+  });
+
+  it('lets the place the beat names, or a Setting that is both', () => {
+    assert.deepEqual(beatPlaceConflicts('arm-in-arm with a roommate on the balcony', 'apartment balcony overlooking quiet residential streets at dawn'), []);
+    // A sidewalk café terrace is a street and a café.
+    assert.deepEqual(beatPlaceConflicts('seated across a brunch table from a friend', 'busy sidewalk café terrace with chalkboard menus and passing traffic'), []);
+    assert.deepEqual(beatPlaceConflicts('SEATED at a sidewalk café table after dinner', 'late sidewalk café with empty tables and warm streetlamp pools'), []);
+    // "splash trail" is not a hiking trail; a place it never names is fine.
+    assert.deepEqual(beatPlaceConflicts('driving a freestyle stroke with a high elbow catch and splash trail', 'outdoor lap pool with sun on the water surface'), []);
+    assert.deepEqual(beatPlaceConflicts('leaning against a brick wall waiting for a friend', 'quiet library reading room with tall windows'), []);
+    // A Setting of no known kind is left alone.
+    assert.deepEqual(beatPlaceConflicts('out for a morning run through the park', 'somewhere nice'), []);
   });
 });

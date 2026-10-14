@@ -518,7 +518,7 @@ const SURFACE_VENUES: Record<SurfaceKind, readonly SceneVenue[]> = {
   counter: ['kitchen', 'cafe', 'bar', 'restaurant', 'shop', 'bathroom', 'hotel'],
   desk: ['office', 'bedroom', 'living', 'library', 'hotel', 'studio', 'shop'],
   'kitchen-table': ['kitchen', 'living'],
-  stool: ['bar', 'cafe', 'kitchen', 'restaurant', 'studio', 'shop'],
+  stool: ['bar', 'cafe', 'kitchen', 'restaurant', 'studio', 'shop', 'market'],
   curb: ['street', 'plaza', 'market'],
   bathtub: ['bathroom', 'hotel', 'spa'],
   booth: ['cafe', 'restaurant', 'bar'],
@@ -769,10 +769,178 @@ const SKY_MOMENT_RE =
 const SKY_VIEW_SETTING_RE =
   /\b(?:rooftop|roof|balcony|terrace|deck|patio|street|avenue|park|garden|river|riverside|beach|pier|bridge|harbou?r|marina|plaza|square|lawn|field|hill|outdoor|outside|courtyard|promenade|boardwalk|window|skyline|overlook|boat|lake)\b/i;
 
+// ── Places a beat names ─────────────────────────────────────────────────────────────────
+
+const HOME: readonly SceneVenue[] = ['bedroom', 'living', 'kitchen', 'bathroom', 'hall', 'hotel'];
+const EAT: readonly SceneVenue[] = ['cafe', 'restaurant', 'bar'];
+const STREETS: readonly SceneVenue[] = ['street', 'plaza', 'market'];
+
 /**
- * True when the beat's furniture and posture fit the Setting as they are, and a sky moment
- * ("throws both arms up as the fireworks start") has a sky to happen in — paired with a record
- * shop, every seed drew fireworks bursting indoors (overnight sweep, 2026-10-08).
+ * A beat that says where it happens ("on the balcony", "at the bar rail", "across the park"): the
+ * kinds of place that are that place, and Setting words that make any place it (a "sidewalk café
+ * terrace" is a street that is also a café). The overnight sweep of 2026-10-13 drew a park
+ * piggyback in an office, a diner booth on a subway platform and a water's-edge hug on a hotel
+ * balcony — furniture-only checks passed all three, and the model built both places into one.
+ */
+const BEAT_PLACE_RULES: ReadonlyArray<{
+  re: RegExp;
+  venues: readonly SceneVenue[];
+  setting?: RegExp;
+}> = [
+  {
+    re: /\b(?:on|from|at|onto)\s+the\s+balcony\b|\bbalcony\s+(?:rail|railing)\b/i,
+    venues: ['balcony', 'rooftop'],
+    setting: /\bbalcon/i,
+  },
+  // A balcony door is inside, looking out.
+  {
+    re: /\bbalcony\s+door\b/i,
+    venues: ['balcony', 'rooftop', 'hotel', 'living', 'bedroom'],
+  },
+  {
+    re: /\b(?:on|from|at|onto|across)\s+(?:the|a)\s+(?:\w+\s+)?(?:patio|terrace|veranda|porch)\b/i,
+    venues: ['balcony', 'rooftop', 'hotel', ...EAT],
+  },
+  { re: /\brooftop\b|\bon\s+the\s+roof\b/i, venues: ['rooftop', 'balcony'], setting: /\broof/i },
+  {
+    re: /\b(?:in|across|through|at|to)\s+the\s+park\b/i,
+    venues: ['park', 'trail'],
+    setting: /\b(?:park|garden|lawn|grass|meadow|trees?)\b/i,
+  },
+  {
+    re: /\b(?:hike|hiking|trailhead)\b|\b(?:at|on)\s+the\s+(?:summit|(?:scenic\s+)?overlook|viewpoint)\b|\b(?:on|along|up|down)\s+the\s+trail\b/i,
+    venues: ['trail', 'park'],
+    setting: /\b(?:mountain|summit|overlook|viewpoint|cliff\w*|trail|ridge)\b/i,
+  },
+  {
+    re: /\b(?:sidewalk|crosswalk|at\s+the\s+crossing|at\s+the\s+curb|street\s*(?:lights?|lamps?|sign)|streetlights?|streetlamps?|storefront|across\s+the\s+street|on\s+the\s+(?:street\s+)?corner|bike\s+rack|lock\s+a\s+bike|down\s+the\s+block|market\s+street)\b/i,
+    venues: STREETS,
+    setting:
+      /\b(?:street|sidewalk|outside|exterior|corner|crosswalk|avenue|block|road|lane|plaza|square|alley)\b/i,
+  },
+  {
+    re: /\bbar\s+(?:rail|counter|stool)\b|\bat\s+(?:the|a)\s+(?:beach\s+)?bar\b/i,
+    venues: ['bar'],
+    setting: /\b(?:bar|lounge|pub|club)\b/i,
+  },
+  {
+    re: /\bdiner\b|\b(?:café|cafe)\s+table\b|\bat\s+(?:a|the)\s+(?:café|cafe)(?![\w])|\bmenu\b/i,
+    venues: EAT,
+    setting: /\b(?:caf(?:e|é)(?![\w])|(?:diner|restaurant|bistro|brunch|terrace)\b)/i,
+  },
+  {
+    re: /\b(?:brunch|breakfast|dinner)\s+table\b|\bcandlelit\s+(?:dinner\s+)?table\b/i,
+    venues: [...EAT, 'kitchen', 'hotel', 'living', 'balcony'],
+    setting:
+      /\b(?:caf(?:e|é)(?![\w])|(?:diner|restaurant|bistro|brunch|breakfast|dinner|table|terrace)\b)/i,
+  },
+  {
+    re: /\b(?:stove|kettle|cupboard|the\s+fridge|pot\s+of\s+\w+)\b/i,
+    venues: ['kitchen'],
+    setting: /\bkitchen/i,
+  },
+  {
+    re: /\bin\s+the\s+living\s+room\b/i,
+    venues: ['living', 'hotel'],
+    setting: /\b(?:living[- ]room|lounge|couch|sofa)\b/i,
+  },
+  {
+    re: /\b(?:just\s+inside|by|at)\s+the\s+(?:front\s+)?door\b|\bthe\s+mail\b|\bhall\s+mirror\b|\bto\s+the\s+flat\b/i,
+    venues: HOME,
+    setting: /\b(?:apartment|flat|home|loft|front\s+door)\b/i,
+  },
+  {
+    re: /\b(?:beach|shore(?:line)?|water[’']s\s+edge|in\s+the\s+shallows|bonfire|campfire)\b/i,
+    venues: ['beach', 'water', 'pool'],
+    setting: /\b(?:beach|shore\w*|surf|sand|fire\s*pit|bonfire)\b/i,
+  },
+  {
+    re: /\b(?:boardwalk|promenade|pier)\b/i,
+    venues: [...STREETS, 'water', 'beach', 'park'],
+  },
+  {
+    re: /\bfarmers?\s+market\b/i,
+    venues: STREETS,
+  },
+  { re: /\b(?:at|in)\s+the\s+gym\b/i, venues: ['gym', 'studio'] },
+];
+
+/**
+ * Where the beat says it happens that the Setting is not ("on the balcony" in a bathroom). Empty
+ * for a Setting of no known kind, or a beat that names no place.
+ */
+export function beatPlaceConflicts(
+  beat: string | null | undefined,
+  setting: string | null | undefined
+): string[] {
+  const place = setting?.trim();
+  const venue = sceneVenue(place);
+  if (!place || !venue) return [];
+  const body = stripNegatedClauses(beat ?? '');
+  const found: string[] = [];
+  for (const rule of BEAT_PLACE_RULES) {
+    const hit = rule.re.exec(body)?.[0];
+    if (!hit || rule.venues.includes(venue) || rule.setting?.test(place)) continue;
+    found.push(hit);
+  }
+  if (found.length > 0) return found;
+  // Any other place the beat is in ("dancing in the kitchen", "out of the laundromat"): the
+  // Setting is that kind of place, a near kind, or names it. Shops are told apart by name.
+  for (const match of body.matchAll(BEAT_IN_PLACE_RE)) {
+    const words = match[2]!.trim().split(/\s+/);
+    let phrase = '';
+    let named: SceneVenue | null = null;
+    let n = 2;
+    for (; n <= words.length && !named; n += 1) {
+      phrase = words.slice(0, n).join(' ');
+      named = sceneVenue(phrase);
+    }
+    // "across a brunch table" is the table; the word after the place counts too.
+    const withNext = words.slice(0, n).join(' ');
+    if (!named || poseSurfaces(`on ${withNext}`).length > 0 || PLACE_FURNITURE_RE.test(withNext)) {
+      continue;
+    }
+    const noun = phrase
+      .split(/\s+/)
+      .pop()!
+      .replace(/[^\w-]/g, '');
+    const namesIt = new RegExp(`\\b${noun}`, 'i').test(place);
+    if (named === venue && (venue !== 'shop' || namesIt || /^(?:shop|store)$/i.test(noun)))
+      continue;
+    const near =
+      named !== venue && VENUE_KIN.some(kin => kin.includes(named) && kin.includes(venue));
+    const leaving = /^out\s+of\b/i.test(match[1]!) && STREETS.includes(venue);
+    if (near || leaving || namesIt) continue;
+    found.push(`${match[1]} ${phrase}`);
+  }
+  return found;
+}
+
+/** "in the kitchen", "at a juice bar", "out of the laundromat", "steps of a museum". */
+const BEAT_IN_PLACE_RE =
+  /\b(in|inside|into|at|out\s+of|of|across|through|up\s+to)\s+((?:the|a|an|her)(?:\s+[\w’'-]+){1,3})/gi;
+/** Things in a place, not the place ("in the hall mirror", "at the kitchen counter"). */
+const PLACE_FURNITURE_RE =
+  /\b(?:bed|sofa|couch|fireplace|desk|counter|booth|stool|bench|table|window|door|mirror|shower|tub|sink|stove|fridge|chair|seat|sill|rail|railing|wall|stairs|steps|light|lights|sun|rain|crowd)\b/i;
+/** Kinds of place that stand in for each other. */
+const VENUE_KIN: ReadonlyArray<readonly SceneVenue[]> = [
+  EAT,
+  STREETS,
+  ['park', 'trail'],
+  ['beach', 'water', 'pool'],
+  ['rooftop', 'balcony'],
+  ['hotel', 'bedroom', 'bathroom', 'living'],
+  ['bedroom', 'living'],
+  ['gym', 'studio'],
+  ['library', 'shop'],
+  ['museum', 'cinema'],
+];
+
+/**
+ * True when the beat's furniture and posture fit the Setting as they are, the place it names is
+ * the Setting, and a sky moment ("throws both arms up as the fireworks start") has a sky to happen
+ * in — paired with a record shop, every seed drew fireworks bursting indoors (overnight sweep,
+ * 2026-10-08).
  */
 export function beatFitsSetting(
   beat: string | null | undefined,
@@ -781,7 +949,10 @@ export function beatFitsSetting(
   if (SKY_MOMENT_RE.test(beat ?? '') && setting?.trim() && !SKY_VIEW_SETTING_RE.test(setting)) {
     return false;
   }
-  return sceneSurfaceConflicts(beat ?? '', setting).length === 0;
+  return (
+    sceneSurfaceConflicts(beat ?? '', setting).length === 0 &&
+    beatPlaceConflicts(beat, setting).length === 0
+  );
 }
 
 // ── Fixtures a beat's action needs ──────────────────────────────────────────────────────

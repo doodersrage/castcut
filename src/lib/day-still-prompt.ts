@@ -44,7 +44,7 @@ import {
 } from '@/lib/day-plate';
 import { dayStillLiesDown } from '@/lib/day-still-plan';
 import { resolveRoleplaySetting } from '@/lib/roleplay';
-import { fitBeatToSetting, sceneSurfaceConflicts, withSceneGround } from '@/lib/scene-surface';
+import { beatFitsSetting, fitBeatToSetting, withSceneGround } from '@/lib/scene-surface';
 import { withDayWeather } from '@/lib/day-weather';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
@@ -617,7 +617,7 @@ export function dayStillSceneRedraw(
     return null;
   }
   const setting = resolveRoleplaySetting(slot.location, context.lockedLocation);
-  if (sceneSurfaceConflicts(hints, setting).length === 0) return null;
+  if (beatFitsSetting(hints, setting)) return null;
   return context.pairedScenes && !context.lockedLocation?.trim()
     ? { sceneHints: undefined, sceneHintsTyped: undefined, location: undefined }
     : { sceneHints: undefined, sceneHintsTyped: undefined };

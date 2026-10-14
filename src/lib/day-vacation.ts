@@ -649,6 +649,21 @@ export function isDayVacationDuoSetting(setting: string | null | undefined): boo
   return Boolean(text) && ALL_VACATION_DUO_SCENES.some(scene => scene.setting === text);
 }
 
+/**
+ * The venue a Vacation beat was written with, from any part of the day: a beat kept on the card
+ * goes back to its own place (a kept "water's edge" couple beat drew a hotel balcony, 2026-10-13).
+ */
+export function dayVacationSettingForBeat(beat: string | null | undefined): string | undefined {
+  const text = beat?.trim().toLowerCase();
+  if (!text) return undefined;
+  const scenes = [
+    ...Object.values(VACATION_SCENES).flat(),
+    ...Object.values(LATE_VACATION_SCENES).flat(),
+    ...ALL_VACATION_DUO_SCENES,
+  ];
+  return scenes.find(scene => scene.beat.trim().toLowerCase() === text)?.setting;
+}
+
 /** Vacation couple beats for a slot (the beat picker's Duo list). */
 export function dayVacationDuoBeatPresetsForSlot(slotId: DaySlotId | string): string[] {
   return (VACATION_DUO_SCENES[dayPartOf(slotId)] ?? []).map(scene => scene.beat);

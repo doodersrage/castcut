@@ -63,6 +63,7 @@ import {
   daySportSettingPresetsForSlot,
   buildDaySportPromptLocks,
   pickDaySportScenePair,
+  daySportSettingsForBeat,
   DAY_SPORT_STALE_SETTING_RE,
   daySportFootwear,
   inferDaySportFromScene,
@@ -78,6 +79,7 @@ import {
   daySceneLeadLine,
   buildDayVacationPromptLocks,
   pickDayVacationScenePair,
+  dayVacationSettingForBeat,
   vacationPoseClassFromBeat,
   vacationStanceDirective,
   clothedHeatUnlockPoseClass,
@@ -2450,6 +2452,10 @@ function settingPoolForDayMood(
   return [...heat, ...base];
 }
 
+/** A Setting that says when it is ("at dawn", "after dark", "in late-morning sun"). */
+const SETTING_TIME_OF_DAY_RE =
+  /\b(?:dawn|sunrise|morning|noon|afternoon|sun|sunlit|sunset|golden[- ]hour|dusk|blue hour|evening|night|midnight|dark|after\s+dark|late show|streetlights?|neon)\b/i;
+
 /**
  * Fill empty Day slot settings (and optional beats) with distinct time-of-day presets
  * so Queue day does not repeat one vague backdrop across morning→night.
@@ -2520,11 +2526,19 @@ export function diversifyDaySlotScenes(
 
     // Sport: pick one sport then matching beat+venue together (never road pin-up + tennis text).
     if (dayMood === 'sport' && (forceLocations || forceBeats || !location || !sceneHints)) {
-      const pair = pickDaySportScenePair(slot.id, {
-        usedBeats,
-        usedLocations,
-        random,
-      });
+      // A beat kept on the card takes a venue of its own sport (a putt drew a surf break).
+      const keptVenues = sceneHints && !forceBeats ? daySportSettingsForBeat(sceneHints) : [];
+      const pair =
+        keptVenues.length > 0
+          ? {
+              beat: sceneHints,
+              setting: pickUnusedPreset(keptVenues, usedLocations, random) ?? keptVenues[0]!,
+            }
+          : pickDaySportScenePair(slot.id, {
+              usedBeats,
+              usedLocations,
+              random,
+            });
       if (pair) {
         if (forceLocations || !location) {
           location = pair.setting;
@@ -2594,16 +2608,25 @@ export function diversifyDaySlotScenes(
 
     // Vacation: matched travel beat + venue; prefer a fresh pose class each slot.
     if (dayMood === 'vacation' && (forceLocations || forceBeats || !location || !sceneHints)) {
-      const pair = pickDayVacationScenePair(slot.id, {
-        usedBeats,
-        usedLocations,
-        usedPoseClasses: usedVacationPoseClasses,
-        random,
-        // People → Duo: every slot is the couple; Mixed: some are.
-        ...(allowCompanions
-          ? { duo: intimateMix === 'duo' ? ('only' as const) : ('mix' as const) }
-          : {}),
-      });
+      // A beat kept on the card goes back to the venue it was written with.
+      const keptSetting =
+        sceneHints && !forceBeats ? dayVacationSettingForBeat(sceneHints) : undefined;
+      const pair = keptSetting
+        ? {
+            beat: sceneHints,
+            setting: keptSetting,
+            poseClass: vacationPoseClassFromBeat(sceneHints),
+          }
+        : pickDayVacationScenePair(slot.id, {
+            usedBeats,
+            usedLocations,
+            usedPoseClasses: usedVacationPoseClasses,
+            random,
+            // People → Duo: every slot is the couple; Mixed: some are.
+            ...(allowCompanions
+              ? { duo: intimateMix === 'duo' ? ('only' as const) : ('mix' as const) }
+              : {}),
+          });
       if (pair) {
         if (forceLocations || !location) {
           location = pair.setting;
@@ -2635,12 +2658,25 @@ export function diversifyDaySlotScenes(
     // Clothed moods: the beat and the Setting are drawn apart, so each is drawn from those that
     // fit the other — a sofa beat on a busy plaza painted the sofa there (Castcut_02403).
     const keptBeat = fillBeats && (!sceneHints || forceBeats) ? '' : sceneHints;
-    const hostsBeat = (pool: string[]) => {
-      if (isDayAdultMood(dayMood) || !keptBeat) return pool;
-      const fitting = pool.filter(setting => beatFitsSetting(keptBeat, setting));
-      return fitting.length > 0 ? fitting : pool;
+    const hostsBeat = (pool: string[], beat = keptBeat) => {
+      if (isDayAdultMood(dayMood) || !beat) return pool;
+      const fitting = pool.filter(setting => beatFitsSetting(beat, setting));
+      if (fitting.length > 0) return fitting;
+      // Nothing at this hour fits (night has no kitchen for "at the stove"): a place from another
+      // part of the day that does, one that names no time of day of its own first.
+      if (dayMood !== 'everyday') return pool;
+      const anyHour = [
+        ...new Set(
+          [...DAY_PARTS, ...DAY_PARTS.map(part => `${part}-2`)].flatMap(id =>
+            everydaySettingPresets(id)
+          )
+        ),
+      ].filter(setting => beatFitsSetting(beat, setting));
+      const timeless = anyHour.filter(setting => !SETTING_TIME_OF_DAY_RE.test(setting));
+      return timeless.length > 0 ? timeless : anyHour.length > 0 ? anyHour : pool;
     };
-    if (!location || forceLocations) {
+    const drawsLocation = !location || forceLocations;
+    if (drawsLocation) {
       const picked = pickUnusedPreset(
         hostsBeat(settingPoolForDayMood(slot.id, dayMood, intimateMix)),
         usedLocations,
@@ -2686,6 +2722,24 @@ export function diversifyDaySlotScenes(
       if (picked && picked !== sceneHints) {
         sceneHints = picked;
         slotChanged = true;
+      }
+      // No beat at this hour fits the place just drawn ("sitting on the curb" in a living room):
+      // draw the place again for the beat.
+      if (
+        drawsLocation &&
+        sceneHints &&
+        location &&
+        !isDayAdultMood(dayMood) &&
+        !beatFitsSetting(sceneHints, location)
+      ) {
+        usedLocations.delete(location.toLowerCase());
+        const redrawn = pickUnusedPreset(
+          hostsBeat(settingPoolForDayMood(slot.id, dayMood, intimateMix), sceneHints),
+          usedLocations,
+          random
+        );
+        if (redrawn && beatFitsSetting(sceneHints, redrawn)) location = redrawn;
+        usedLocations.add(location.toLowerCase());
       }
     }
     if (sceneHints) {
