@@ -359,3 +359,24 @@ describe('sport ACTION pose cue (Rapid sport briefs)', () => {
     assert.equal(withSportActionPoseCue('no action line here', 'sport_box'), 'no action line here');
   });
 });
+
+describe('pose fix and hands in the words', () => {
+  it('leaves the arms out when the prompt already gives the hands a job', async () => {
+    const { poseLimbFixNudge, promptGivesHandsAJob } = await import('./pose-coaching');
+    const misses = [
+      { part: 'body', guide: 'standing', still: 'kneeling' },
+      { part: 'left arm', guide: 'down', still: 'bent at the elbow' },
+      { part: 'left leg', guide: 'straight down', still: 'lifted' },
+    ];
+    assert.equal(
+      poseLimbFixNudge(misses, 3, { handsInWords: true }),
+      'Fix the pose: body standing, not kneeling; left leg straight down, not lifted.'
+    );
+    assert.match(poseLimbFixNudge(misses), /left arm down/);
+    assert.equal(promptGivesHandsAJob('her left hand cups her breast'), true);
+    assert.equal(promptGivesHandsAJob('One hand is braced on the bed; the other grips it'), true);
+    assert.equal(promptGivesHandsAJob('She walks to the other side of the room.'), false);
+    assert.equal(promptGivesHandsAJob('She stands by the window, smiling.'), false);
+  });
+});
+

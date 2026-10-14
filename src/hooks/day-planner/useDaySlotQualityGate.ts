@@ -48,6 +48,7 @@ import {
   buildPoseMissView,
   gestureMissWords,
   poseLimbFixNudge,
+  promptGivesHandsAJob,
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
@@ -349,7 +350,11 @@ export function useDaySlotQualityGate(
               })
             : null;
           poseLimbNudge = [
-            missView ? poseLimbFixNudge(missView.misses) : '',
+            missView
+              ? poseLimbFixNudge(missView.misses, 3, {
+                  handsInWords: promptGivesHandsAJob(stillPrompt),
+                })
+              : '',
             decision.poseMiss
               ? gestureFixNudge(gestureMissWords(poseMatch), expectation.poseKey, leadNoun)
               : '',

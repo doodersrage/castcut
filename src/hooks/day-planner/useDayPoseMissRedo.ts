@@ -19,6 +19,7 @@ import {
   buildPoseMissView,
   gestureMissWords,
   poseLimbFixNudge,
+  promptGivesHandsAJob,
   type PoseMissView,
 } from '@/lib/pose-coaching';
 import { gestureFixNudge } from '@/lib/pose-gesture';
@@ -349,7 +350,11 @@ export function useDayPoseMissRedo(
           'pose',
           [
             POSE_MISMATCH_NUDGE,
-            missView ? poseLimbFixNudge(missView.misses) : '',
+            missView
+              ? poseLimbFixNudge(missView.misses, 3, {
+                  handsInWords: promptGivesHandsAJob(stillPrompt),
+                })
+              : '',
             gestureFixNudge(gestureMissed, expectation.poseKey, leadNoun),
           ]
             .filter(Boolean)

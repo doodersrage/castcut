@@ -91,6 +91,7 @@ import {
   ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
   poseLimbFixNudge,
+  promptGivesHandsAJob,
   poseLookLine,
   postureCueLine,
 } from '@/lib/pose-coaching';
@@ -1109,7 +1110,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           afterPoseMiss && poseGuide
             ? `QUALITY FIX: ${[
                 POSE_MISMATCH_NUDGE,
-                poseLimbFixNudge(lastMatch?.missView?.misses ?? []),
+                poseLimbFixNudge(lastMatch?.missView?.misses ?? [], 3, {
+                  handsInWords: promptGivesHandsAJob(promptSource),
+                }),
               ]
                 .filter(Boolean)
                 .join(' ')}`

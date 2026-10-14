@@ -803,11 +803,15 @@ function soloPlacement(
         : /\bsink\b/i.test(beat)
           ? // "Leaning back against the mirror" drew her reflection as a second figure 3/3; a plain
             // wall said outright gave 0/3 (live 2026-10-08).
-            'She sits on the edge of the bathroom sink, leaning back on both hands on the counter, thighs apart, facing the camera. The wall behind her is plain white tile with no mirror; she is the only figure in the picture.'
+            'She sits on the edge of the bathroom sink, leaning back on one hand on the counter, thighs apart, facing the camera. The wall behind her is plain white tile with no mirror; she is the only figure in the picture.'
           : `She leans back against ${on('counter')}, hips at its edge, thighs apart, facing the camera.`;
     case 'seated':
     default:
-      return `She sits on ${on('bed edge')}, leaning back on one hand with her thighs spread, facing the camera.`;
+      // Say the guide's legs (day-pose-guide.ts seated: shins down, feet on the floor, knees a
+      // little apart). "Thighs spread" drew both legs up on the bed plus the guide's hanging leg
+      // — a third leg (live 2026-10-13, a hotel bed-edge toy still), as on_back did before its
+      // guide-matching line.
+      return `She sits on ${on('bed edge')}, leaning back on one hand, knees apart, her lower legs hanging down over the edge and both feet flat on the floor, facing the camera — two legs only.`;
   }
 }
 
@@ -823,7 +827,45 @@ const SOLO_FINGERS_INSIDE =
 /** The beat's two-handed wording, said as the hands line says it (see soloHands). */
 const SOLO_BOTH_HANDS_RE = /\bboth hands\b[^,—.;]*/gi;
 
-function soloHands(beat: string, toy: boolean, kind?: SoloMasturbationPoseKind): string {
+/**
+ * What the placement already spends her hands on. On all fours, bent over, flat on her stomach or
+ * leaning back on a hand, one hand holds her up — and the default "one hand between her thighs,
+ * the other on her breast" then gave her a third hand (live 2026-10-13: all fours, laundry-pile
+ * prone; the guide draws the supporting arm). The all-fours line with a braced hand: 2 hands.
+ */
+function soloSupportHand(placement: string): 'braced' | 'prone' | 'leaning' | null {
+  if (/\bon all fours\b|\bbent forward over\b/i.test(placement)) return 'braced';
+  if (/\bflat on her stomach\b|\bon her stomach\b/i.test(placement)) return 'prone';
+  if (/\bleaning back on one hand\b/i.test(placement)) return 'leaning';
+  return null;
+}
+
+const SOLO_FINGERS_IN_RE = /\bboth\s+hands\b|\bfingers?\s+(?:deep\s+)?inside\b|\binside\s+her\b/i;
+
+function soloHands(
+  beat: string,
+  toy: boolean,
+  kind?: SoloMasturbationPoseKind,
+  placement = ''
+): string {
+  const support = soloSupportHand(placement);
+  if (toy && support) {
+    return support === 'prone'
+      ? 'One arm reaches down under her hips and grips only the base of a bright purple silicone dildo pushed halfway inside her vagina, angled into her body; her other forearm is folded under her chest.'
+      : 'One hand is braced on the bed; the other grips only the base of a bright purple silicone dildo pushed halfway inside her vagina between her spread thighs, angled into her body.';
+  }
+  if (!toy && support) {
+    const touch = SOLO_FINGERS_IN_RE.test(beat)
+      ? 'two fingers pushed inside her vagina, her palm against her vulva'
+      : 'her fingers on her vulva';
+    if (support === 'braced') {
+      return `One hand reaches back between her thighs, ${touch}; the other is braced on the bed.`;
+    }
+    if (support === 'prone') {
+      return `One arm reaches down under her hips, her hand between her thighs, ${touch}; her other forearm is folded under her chest.`;
+    }
+    return `She holds herself up on that one hand; her other hand is between her thighs, ${touch}.`;
+  }
   if (toy) {
     // A bright colour keeps the toy an object: "realistic" flesh tones rendered as her own penis.
     // Saying where the toy goes ("halfway inside … angled into her body") put its tip in her on
@@ -930,12 +972,20 @@ export function buildRapidSoloRecipe(input: {
     input.clothedOutfit === undefined ? legsSet.replace(SOLO_WORN_CLOTHES_RE, '') : legsSet
   )
     .replace(MEAL_TIME_RE, '')
-    .replace(input.toy === true ? /$^/ : SOLO_BOTH_HANDS_RE, 'her fingers inside her');
+    .replace(
+      input.toy === true
+        ? soloSupportHand(placement)
+          ? SOLO_BOTH_HANDS_RE
+          : /$^/
+        : SOLO_BOTH_HANDS_RE,
+      // A pose that holds her up leaves one hand: the Moment's "both hands" must not undo that.
+      input.toy === true ? 'one hand on the toy' : 'her fingers inside her'
+    );
   return [
     RAPID_SOLO_RECIPE_MARK,
     'One woman alone, masturbating.',
     placement,
-    soloHands(beat, input.toy === true, kind),
+    soloHands(beat, input.toy === true, kind, placement),
     ownGaze ? null : 'Eyes half-closed, looking down at her body.',
     `Moment: ${calmSexLaughter(moment)}.`,
     recipeRoom(beat, surface, input.setting, input.timeOfDay),

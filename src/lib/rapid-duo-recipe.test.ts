@@ -24,6 +24,7 @@ import {
   beatLiesDown,
   buildCompactDayRecipe,
   buildRapidDuoRecipe,
+  buildRapidSoloRecipe,
   calmSexLaughter,
   buildRapidSuggestiveRecipe,
   buildRapidVacationRecipe,
@@ -285,6 +286,40 @@ describe('Rapid solo recipe', () => {
         assert.equal(reinforceIntimateStillPrompt(prompt), prompt);
       }
     }
+  });
+
+  it('never gives her a third hand: a pose that holds her up leaves one hand free', () => {
+    // Live 2026-10-13: all fours / face-down on the laundry with "the other hand rests on her
+    // breast" drew three hands (the guide draws the supporting arm).
+    const beats = [
+      ...SOLO_BEATS,
+      ...RAUNCHY_SOLO_BEATS,
+      'solo naked on all fours on the bed, looking back over a shoulder, one hand reaching between her thighs',
+      'alone naked face-down on a pile of clean laundry grinding into the towels, one hand between her thighs',
+      'solo fingering on the bathroom sink, both hands between her thighs',
+      'on all fours on the bed with a purple dildo, both hands on it',
+    ];
+    let supported = 0;
+    for (const beat of beats) {
+      for (const toy of [false, true]) {
+        const prompt = buildRapidSoloRecipe({ beat, poseGuide: true, toy }) ?? '';
+        if (/on both hands/.test(prompt)) assert.fail(`both hands spent on support: ${beat}`);
+        if (!/on all fours|bent forward over|on her stomach|leaning back on one hand/.test(prompt))
+          continue;
+        supported += 1;
+        assert.doesNotMatch(
+          prompt,
+          /rests on her breast|cups her breast|both of her hands|both hands/,
+          beat
+        );
+        assert.match(
+          prompt,
+          /braced on the bed|forearm is folded under her chest|holds herself up on that one hand/,
+          beat
+        );
+      }
+    }
+    assert.ok(supported >= 6, `only ${supported} supporting poses covered`);
   });
 
   it("keeps the beat's own room and names the toy", async () => {

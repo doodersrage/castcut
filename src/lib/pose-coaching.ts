@@ -595,10 +595,30 @@ export function gestureMissWords(
   return result?.gestureCheck?.miss ? result.gestureCheck.missed : null;
 }
 
-/** Requeue nudge naming the limbs to fix ("left arm raised, not down"). */
-export function poseLimbFixNudge(misses: PoseLimbMiss[], max = 3): string {
-  if (misses.length === 0) return '';
-  const parts = misses.slice(0, max).map(miss => `${miss.part} ${miss.guide}, not ${miss.still}`);
+/**
+ * The prompt already says what a hand does ("her left hand cups her breast", "one hand is
+ * braced on the bed", "the other grips the sheets").
+ */
+export function promptGivesHandsAJob(text: string | null | undefined): boolean {
+  return /\b(?:(?:her|his|their)\s+(?:left|right|other|free|top|bottom)\s+(?:hand|arm)|one\s+(?:hand|arm)|the\s+other\s+(?:hand|arm)|;\s*the\s+other\s+(?:is|grips|rests|holds|hooks|cups)|both\s+(?:of\s+(?:her|his|their)\s+)?hands)\b/i.test(
+    text ?? ''
+  );
+}
+
+/**
+ * Requeue nudge naming the limbs to fix ("left arm raised, not down"). With `handsInWords` the
+ * arms are left out: a beat that gives each hand a job ("her left hand cups her breast") plus
+ * "left arm down, not bent at the elbow" was obeyed both ways — a third hand (live 2026-10-13,
+ * Rapid redos of a counter lean and a laundry-pile prone still).
+ */
+export function poseLimbFixNudge(
+  misses: PoseLimbMiss[],
+  max = 3,
+  options?: { handsInWords?: boolean }
+): string {
+  const kept = options?.handsInWords ? misses.filter(miss => !/\barm\b/.test(miss.part)) : misses;
+  if (kept.length === 0) return '';
+  const parts = kept.slice(0, max).map(miss => `${miss.part} ${miss.guide}, not ${miss.still}`);
   return `Fix the pose: ${parts.join('; ')}.`;
 }
 
