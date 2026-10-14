@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * The 3D view buttons (Outfit stage, Wardrobe). Off while TRELLIS.2's models aren't presentable
+ * (face and hair geometry; 2026-10-14) — Hunyuan3D 2.1 with Paint is being tried instead.
+ */
+export const OUTFIT_3D_ENABLED = false;
+
 /** Models built this session, by picture (a reopened 3D view is not rebuilt). */
 const built = new Map<string, string>();
 

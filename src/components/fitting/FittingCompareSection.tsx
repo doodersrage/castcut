@@ -13,6 +13,7 @@ import { suggestTryOnToKeep, type TryOnReview } from '@/lib/fitting-tryon-review
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import Outfit3dSheet from '@/components/fitting/Outfit3dSheet';
+import { OUTFIT_3D_ENABLED } from '@/lib/outfit-3d-client';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 
 export { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
@@ -350,27 +351,29 @@ export default function FittingCompareSection({
                     Fix
                   </Button>
                 ) : null}
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={busy || !done}
-                  title="See this outfit in 3D — turn her around (a few minutes the first time; TRELLIS.2)"
-                  data-testid="fitting-3d-try-on"
-                  onClick={() => {
-                    if (!picked?.imageUrl) return;
-                    const imageUrl = isComfyViewUrl(picked.imageUrl)
-                      ? picked.imageUrl
-                      : comfyViewUrlForStill({ promptId: picked.promptId }, loadComfyGallery());
-                    if (imageUrl) {
-                      setModel3d({
-                        imageUrl,
-                        title: picked.wardrobeLabel || picked.wardrobeId || 'Try-on',
-                      });
-                    }
-                  }}
-                >
-                  3D
-                </Button>
+                {OUTFIT_3D_ENABLED ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy || !done}
+                    title="See this outfit in 3D — turn her around (a few minutes the first time; TRELLIS.2)"
+                    data-testid="fitting-3d-try-on"
+                    onClick={() => {
+                      if (!picked?.imageUrl) return;
+                      const imageUrl = isComfyViewUrl(picked.imageUrl)
+                        ? picked.imageUrl
+                        : comfyViewUrlForStill({ promptId: picked.promptId }, loadComfyGallery());
+                      if (imageUrl) {
+                        setModel3d({
+                          imageUrl,
+                          title: picked.wardrobeLabel || picked.wardrobeId || 'Try-on',
+                        });
+                      }
+                    }}
+                  >
+                    3D
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="ghost"

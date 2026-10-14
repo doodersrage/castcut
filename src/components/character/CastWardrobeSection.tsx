@@ -16,6 +16,7 @@ import {
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import { galleryEntryComfyStillUrl } from '@/lib/fix-area-gallery';
+import { OUTFIT_3D_ENABLED } from '@/lib/outfit-3d-client';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 
@@ -180,7 +181,7 @@ export default function CastWardrobeSection({
               <p className="truncate text-sm text-[var(--text-primary)]" title={item.label}>
                 {item.label}
               </p>
-              {comfyFor(item.promptIds) ? (
+              {OUTFIT_3D_ENABLED && comfyFor(item.promptIds) ? (
                 <button
                   type="button"
                   className="ui-text-link type-caption"
