@@ -295,22 +295,32 @@ export function buildLookCastPlatePrompt(input: {
   const style = stripDemographicCuesFromStyle(styleRaw);
   const lookNote = input.lookNote?.replace(/\s+/g, ' ').trim().slice(0, 300);
   // Lead with photo language — "body plate" / grey seamless alone steers some models into clay CGI.
-  // Full length from a distance, on a 3:4 canvas (plateCanvasOrientation): on a square canvas
-  // with "full-body" UltraReal cut at the thighs; this line + 3:4 kept head to feet 3 of 3.
+  // Full length from a distance, facing the camera, on a 3:4 canvas: on a square canvas with
+  // "full-body" UltraReal cut at the thighs; this line + 3:4 kept head to feet 3 of 3. Without
+  // "facing the camera" and a named, clearly-worn base layer, a second Cast came out from
+  // behind, side-on, topless or as a face close-up (0 of 4 usable); with them, clothed and
+  // facing 4 of 4, full length 3 of 4 (2026-10-14).
+  const man =
+    /\b(?:man|male|boy|guy)\b/i.test(appearance) && !/\b(?:woman|female|girl)\b/i.test(appearance);
   return [
-    `Full-length color photograph of ${name}, a real living person, standing, taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
+    `Full-length color photograph of ${name}, a real living person, standing and facing the camera (front view, looking into the lens), taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
     appearance
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
     lookNote ? `THIS LOOK (same person, same face and body; only this changes): ${lookNote}` : null,
-    input.marks?.trim() ? `MARKS (keep exactly, clearly visible): ${input.marks.trim()}` : null,
+    // "Clearly visible" freckles pulled the camera in to her face; they are details of a full-length picture.
+    input.marks?.trim()
+      ? `MARKS (keep exactly, as small details in the full-length picture): ${input.marks.trim()}`
+      : null,
     triggers.length > 0 ? `identity triggers: ${triggers.join(', ')}` : null,
     'shot on a DSLR, natural skin with visible pores and subsurface color, real eyes with irises and pupils, real hair strands, lifelike soft shadows',
     style
       ? `STYLE ONLY (lighting / palette / mood — ignore any people or race if still present): ${style}`
       : 'even soft studio beauty light, clean seamless backdrop',
-    'single person, head-to-toe in frame, feet visible, arms slightly away from torso',
-    'wearing plain light underwear or a form-fitting neutral base layer only — no outerwear, no accessories, no busy patterns',
+    'single person facing the camera, head-to-toe in frame, feet visible, arms relaxed at the sides slightly away from the torso',
+    man
+      ? 'wearing plain light-grey boxer briefs, clearly on — no outerwear, no accessories, no busy patterns'
+      : 'wearing a plain light-grey sports bra and plain light-grey briefs, both clearly on — no outerwear, no accessories, no busy patterns',
     'not a 3D model, not clay, not grey sculpt, not a mannequin, not CGI, not a statue, not blank-eyed',
   ]
     .filter(Boolean)

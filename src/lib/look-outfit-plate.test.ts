@@ -173,7 +173,7 @@ describe('look-outfit-plate', () => {
     assert.match(prompt, /STYLE ONLY/);
     assert.match(prompt, /neon rain/);
     assert.match(prompt, /full-body|head-to-toe/);
-    assert.match(prompt, /underwear|base layer/);
+    assert.match(prompt, /facing the camera[\s\S]*both clearly on/);
     // Subject block must keep Cast appearance; vibe people must not become the subject line.
     const subjectLine = prompt.split('\n').find(line => line.startsWith('SUBJECT'));
     assert.ok(subjectLine?.includes('skinny East Asian'));
@@ -579,7 +579,7 @@ describe('look-outfit-plate', () => {
     assert.ok(!queuedPrompt.includes('STYLE ONLY'));
     assert.ok(!queuedPrompt.toLowerCase().includes('black woman'));
     assert.match(queuedPrompt, /full-body|head-to-toe/);
-    assert.match(queuedPrompt, /underwear|base layer/);
+    assert.match(queuedPrompt, /facing the camera[\s\S]*both clearly on/);
     assert.match(queuedPrompt, /Color photograph|DSLR/i);
     assert.match(queuedPrompt, /not a 3D model|not clay/i);    assert.equal(queuedOptions?.identityLock, false);
     assert.equal(queuedOptions?.queueParamsBase?.ipAdapterImageFilename, 'nova-face.png');
@@ -710,5 +710,14 @@ describe('look-outfit-plate', () => {
     const after = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
     assert.equal(after.pendingOutfitPlatePromptId, undefined);
     assert.equal(after.pendingOutfitPlateLookId, undefined);
+  });
+});
+
+describe('look plate for a man lead', async () => {
+  const { buildLookCastPlatePrompt } = await import('./look-outfit-plate');
+  it('wears boxer briefs, not a sports bra', () => {
+    const prompt = buildLookCastPlatePrompt({ characterName: 'Tomas', descriptor: 'a man in his thirties, short dark hair' });
+    assert.match(prompt, /boxer briefs, clearly on/);
+    assert.doesNotMatch(prompt, /sports bra/);
   });
 });
