@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
@@ -19,6 +21,8 @@ import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day-partner';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { loadSettingsCache } from '@/lib/settings-cache';
+
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 
 const BODY_CANVAS = { width: 1104, height: 1472 };
 const HEAD_CANVAS = { width: 1024, height: 1024 };
@@ -48,6 +52,7 @@ export default function CastReferenceSheetSection({
   const actions = usePromptResultActions({ tool: 'fitting', model });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const look = activeLook(character);
   const sheet = normalizeReferenceSheet(look.referenceSheet) ?? [];
   const plate = (() => {
@@ -158,13 +163,36 @@ export default function CastReferenceSheetSection({
               return (
                 <li key={view.id} className="space-y-1" data-testid={`cast-reference-${view.id}`}>
                   {made ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URLs
-                    <img
-                      src={made.url}
-                      alt={`${look.name}, ${view.label.toLowerCase()}`}
-                      loading="lazy"
-                      className="aspect-[3/4] w-full rounded-[var(--radius-sm)] object-cover"
-                    />
+                    <button
+                      type="button"
+                      className="block w-full cursor-zoom-in rounded-[var(--radius-sm)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      aria-label={`Open the ${view.label.toLowerCase()} view full size`}
+                      title="View larger"
+                      data-testid={`cast-reference-${view.id}-open`}
+                      onClick={() => {
+                        // The whole sheet in order, opened at this view (arrows step through it).
+                        const shown = REFERENCE_SHEET_VIEWS.flatMap(entry => {
+                          const url = sheet.find(item => item.id === entry.id)?.url;
+                          return url ? [{ id: entry.id, url }] : [];
+                        });
+                        setLightbox({
+                          images: shown.map(item => item.url),
+                          index: Math.max(
+                            0,
+                            shown.findIndex(item => item.id === view.id)
+                          ),
+                          title: `${look.name} · reference sheet`,
+                        });
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URLs */}
+                      <img
+                        src={made.url}
+                        alt={`${look.name}, ${view.label.toLowerCase()}`}
+                        loading="lazy"
+                        className="aspect-[3/4] w-full rounded-[var(--radius-sm)] object-cover"
+                      />
+                    </button>
                   ) : (
                     <div className="aspect-[3/4] w-full rounded-[var(--radius-sm)] bg-[var(--bg-subtle)]" />
                   )}
@@ -183,6 +211,15 @@ export default function CastReferenceSheetSection({
           </ul>
         ) : null}
       </div>
+      {lightbox ? (
+        <ImageLightbox
+          state={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndexChange={index =>
+            setLightbox(current => (current ? { ...current, index } : current))
+          }
+        />
+      ) : null}
     </ToolSection>
   );
 }

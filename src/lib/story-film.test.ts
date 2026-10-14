@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { roleplayWatchPlaylist } from './character-film';
+import type { FilmPlaylistShot } from './media-kind';
 import type { RoleplayStoryBeat } from './roleplay';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from './story-film';
 
@@ -29,8 +30,9 @@ describe('Story film', () => {
     assert.ok(long.length <= 140 && long.endsWith('.'));
   });
   it('holds a narrated still for its line, fixed when the cut is fitted', () => {
+    const still: FilmPlaylistShot = { key: 'k', title: 'K', url: '/k.png', kind: 'still', holdSec: 3 };
     const shot = holdForNarration(
-      { key: 'k', title: 'K', url: '/k.png', kind: 'still', holdSec: 3 },
+      still,
       'She steps off the night train into the rain and looks around.'
     );
     assert.ok((shot.holdSec ?? 0) > 3);
