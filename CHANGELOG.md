@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Export for an editor.** A film's *What's in it · Re-cut · Export* (Cast page → Films) now downloads a zip for DaVinci Resolve, Premiere Pro or Final Cut: an FCPXML timeline (each shot in order with its trims and holds, the music under the cut), a CMX 3600 EDL, the captions as SRT subtitles, and the shots themselves — clips converted to H.264 MP4 (WAN's animated WebP imports nowhere), stills to PNG. Crossfades, the title card and still motion stay Castcut's; the README says how to add a dissolve.
 ## [v2.8.0] - 2026-10-14
 
 - **No more third hands or legs on solo adult stills.** Three causes, all words fighting the pose map: (1) a pose that holds her up (all fours, bent over, flat on her stomach, leaning back on a hand) still got "one hand between her thighs, the other on her breast" — the map's supporting arm made a third hand; the hands line now braces one hand (all fours, laundry prone: third hand 3/3 and 2/3 → 0/3 each on the same seeds). (2) The pose redo's "left arm down, not bent at the elbow" fought the beat's "her left hand cups her breast" — the redo now leaves arms out when the words give the hands a job (Day automatic and Look-wrong redos, Story). (3) Sitting on the bed edge said "thighs spread" while the map hangs her shins down: legs up on the bed plus the map's leg; it now says the map's legs ("lower legs hanging down … two legs only", 3/3 clean, toy held in one hand).

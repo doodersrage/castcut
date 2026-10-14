@@ -49,10 +49,43 @@ export default function FilmRecutPanel({
     }
   };
 
+  /** The cut for an editing app: FCPXML + EDL + SRT + media (film-nle-export.ts). */
+  const exportForEditor = async () => {
+    setBusy(true);
+    setStatus('Preparing the editor package — converting each shot…');
+    try {
+      const response = await fetch('/api/film/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipe, name: `${characterName} film` }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        url?: string;
+        shots?: number;
+        skipped?: number;
+        error?: string;
+      };
+      if (!response.ok || !body.url) throw new Error(body.error ?? `HTTP ${response.status}`);
+      const link = document.createElement('a');
+      link.href = body.url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setStatus(
+        `Downloading ${body.shots} shots with the timeline (FCPXML for Resolve, Premiere, Final Cut; EDL; subtitles).` +
+          (body.skipped ? ` ${body.skipped} shot(s) could not be fetched — see README.txt.` : '')
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Could not export this film.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <details className="border-t border-[var(--border-subtle)] px-2 py-1" data-testid="film-recut">
       <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
-        What&apos;s in it · Re-cut
+        What&apos;s in it · Re-cut · Export
       </summary>
       <p className="type-caption mt-1 text-[var(--text-muted)]" data-testid="film-recut-summary">
         {cutRecipeSummary(recipe)}
@@ -105,6 +138,16 @@ export default function FilmRecutPanel({
           onClick={() => void run()}
         >
           Re-cut
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          data-testid="film-export-editor"
+          title="A zip with the shots and a timeline for DaVinci Resolve, Premiere Pro or Final Cut, plus subtitles"
+          onClick={() => void exportForEditor()}
+        >
+          Export for an editor
         </Button>
       </div>
       {status ? (

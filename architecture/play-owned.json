@@ -5,6 +5,7 @@
   "src/app/api/day-event/route.ts",
   "src/app/api/day-premise/route.ts",
   "src/app/api/film/check/route.ts",
+  "src/app/api/film/export/route.ts",
   "src/app/api/film/score/route.ts",
   "src/app/api/play-checks/prepare/route.ts",
   "src/app/api/play-checks/route.ts",
