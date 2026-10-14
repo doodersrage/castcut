@@ -44,3 +44,37 @@ describe('cast wardrobe', () => {
     assert.equal(normalizeCastWardrobe([...list, { ...list[0]!, lastAt: 1 }])?.length, 2);
   });
 });
+
+describe('wardrobeFromGallery', async () => {
+  const { wardrobeFromGallery } = await import('./cast-wardrobe');
+  const still = (prompt: string, second: string, at: number, promptId: string) => ({
+    characterId: 'c',
+    tool: 'image-prompt',
+    prompt,
+    promptId,
+    completedAt: at,
+    queueParams: { inputImageFilenames: ['plate.png', second, 'guide.png'] },
+  });
+  it('finds outfits in earlier Day stills: a garment photo kept, a dressed plate as words', () => {
+    const list = wardrobeFromGallery(
+      [
+        still('OUTFIT (mandatory): she wears a one-piece swimsuit — exactly', 'fitting-garment-packshot-1.png', 1, 'a'),
+        still('OUTFIT (mandatory): she wears a burgundy mini dress — exactly', 'day-dress-plate-2.png', 2, 'b'),
+        still('OUTFIT (mandatory): she wears tennis sportswear and court shoes — exactly', '', 3, 'c'),
+        still('no outfit line here', '', 4, 'd'),
+        { ...still('OUTFIT (mandatory): she wears a red coat — x', '', 5, 'e'), characterId: 'other' },
+      ],
+      'c'
+    )!;
+    assert.deepEqual(
+      list.map(item => [item.key, item.outfit.customGarmentImageFilename ?? null]),
+      [
+        ['words:a burgundy mini dress', null],
+        ['fitting-garment-packshot-1.png', 'fitting-garment-packshot-1.png'],
+      ]
+    );
+  });
+  it('changes nothing when there is nothing new', () => {
+    assert.equal(wardrobeFromGallery([], 'c'), null);
+  });
+});

@@ -191,6 +191,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     faceFinish,
     setFaceFinish,
     faceFinishStatus,
+    afterChecksStatus,
+    checkMarks,
+    setCheckMarks,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -953,6 +956,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               redoPoseMisses={redoPoseMisses}
               bestOfTwoHardPoses={bestOfTwoHardPoses}
               faceFinishStatus={faceFinishStatus}
+              afterChecksStatus={afterChecksStatus}
               qualityStatus={qualityStatus}
               poseRedoStatus={poseRedoStatus}
               bestOfTwoStatus={bestOfTwoStatus}
@@ -973,6 +977,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onIdentityBoostChange={setIdentityBoost}
               faceFinish={faceFinish}
               onFaceFinishChange={setFaceFinish}
+              checkMarks={checkMarks}
+              onCheckMarksChange={setCheckMarks}
               autoReviewStills={autoReviewStills}
               onAutoReviewStillsChange={setAutoReviewStills}
               redoPoseMisses={redoPoseMisses}

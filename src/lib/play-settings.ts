@@ -188,6 +188,11 @@ export type DayToolCache = {
    * 8/8 Rapid stills closer to the Cast (0.659 → 0.492).
    */
   faceFinish?: boolean;
+  /**
+   * Check each solo still for the Cast's glasses / tattoos and repair a miss (useDayStillAfterChecks).
+   * Unset = on; only runs when the Cast has marks that should show.
+   */
+  checkMarks?: boolean;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMoodSetting;
   /** Cast member who plays the second person on duo stills (unset: an invented stranger). */

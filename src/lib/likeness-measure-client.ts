@@ -7,7 +7,7 @@
  * check runs on ComfyUI's CPU through the Castcut nodes — no render job, the queue is untouched.
  */
 
-import type { CharacterLook, CharacterRecord } from '@/lib/character-os';
+import { looksOf, type CharacterLook, type CharacterRecord } from '@/lib/character-os';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
@@ -92,4 +92,62 @@ export async function measureLookLikeness(input: {
   }
   input.onProgress?.(todo.length, todo.length);
   return { measured, noFace, total: todo.length };
+}
+
+export type LookPlateComparison = {
+  lookId: string;
+  name: string;
+  face: number | null;
+  note?: string;
+};
+
+/**
+ * Each look's plate face against the reference look's (Default, else the oldest): a plate that
+ * drifted from the Cast drags every still made from it (2026-10-14). Plates are clean frontal
+ * pictures, so they compare higher than stills do (PLATE_DRIFT_BELOW).
+ */
+export const PLATE_DRIFT_BELOW = 0.6;
+
+export async function compareLookPlates(
+  character: CharacterRecord,
+  onProgress?: (done: number, total: number) => void
+): Promise<LookPlateComparison[]> {
+  const looks = looksOf(character);
+  // The look named Default, else the oldest — the Cast as first made.
+  const reference =
+    looks.find(look => /^default$/i.test(look.name.trim())) ??
+    [...looks].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0]!;
+  const referenceUrl = lookPlateFaceUrl(reference);
+  const results: LookPlateComparison[] = [];
+  for (const [index, look] of looks.entries()) {
+    onProgress?.(index, looks.length);
+    if (look.id === reference.id) continue;
+    const url = lookPlateFaceUrl(look);
+    if (!referenceUrl || !url) {
+      results.push({ lookId: look.id, name: look.name, face: null, note: 'no plate' });
+      continue;
+    }
+    try {
+      const measured = await measureStillFaceMatch({ referenceUrl, imageUrl: url });
+      results.push({
+        lookId: look.id,
+        name: look.name,
+        face: measured?.available ? measured.similarity : null,
+        ...(measured && !measured.available
+          ? { note: measured.reason }
+          : measured
+            ? {}
+            : { note: 'no face found' }),
+      });
+    } catch (error) {
+      results.push({
+        lookId: look.id,
+        name: look.name,
+        face: null,
+        note: error instanceof Error ? error.message : 'check failed',
+      });
+    }
+  }
+  onProgress?.(looks.length, looks.length);
+  return results;
 }

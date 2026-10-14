@@ -4,8 +4,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { followLookOutfitInSessions } from '@/lib/cast-plate-switch';
-import { normalizeCastWardrobe, wearOutfitAgain, wornOutfitKey } from '@/lib/cast-wardrobe';
-import { activeLook, type CharacterRecord } from '@/lib/character-os';
+import {
+  backfillCastWardrobe,
+  normalizeCastWardrobe,
+  wearOutfitAgain,
+  wornOutfitKey,
+} from '@/lib/cast-wardrobe';
+import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl } from '@/lib/comfyui-gallery';
 
@@ -29,7 +34,20 @@ export default function CastWardrobeSection({
 }) {
   const [note, setNote] = useState<string | null>(null);
   const wardrobe = normalizeCastWardrobe(character.wardrobe) ?? [];
-  if (!wardrobe.length) return null;
+  const hasDayStills = entries.some(
+    entry => entry.characterId === character.id && entry.tool === 'image-prompt'
+  );
+  if (!wardrobe.length && !hasDayStills) return null;
+  const findEarlier = () => {
+    const count = backfillCastWardrobe(character.id, entries);
+    const next = getCharacter(character.id);
+    if (next) onUpdated?.(next);
+    setNote(
+      count
+        ? `${count} outfit${count === 1 ? '' : 's'} in the wardrobe. Outfits that were only described come back as words.`
+        : 'No earlier outfits found in this Cast’s Day stills.'
+    );
+  };
   const currentKey =
     wornOutfitKey(activeLook(character).keptOutfit ?? {}) ||
     activeLook(character).lockedWardrobeId ||
@@ -50,6 +68,17 @@ export default function CastWardrobeSection({
       data-testid="cast-wardrobe-section"
     >
       {note ? <p className="type-caption mb-2 text-[var(--text-secondary)]">{note}</p> : null}
+      {hasDayStills ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="mb-2"
+          data-testid="cast-wardrobe-backfill"
+          onClick={findEarlier}
+        >
+          Find earlier outfits
+        </Button>
+      ) : null}
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {wardrobe.map(item => {
           const thumb = thumbFor(item.promptIds);

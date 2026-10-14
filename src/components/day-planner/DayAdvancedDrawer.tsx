@@ -21,6 +21,9 @@ export type DayQualitySwitches = {
   onIdentityBoostChange: (next: boolean) => void;
   faceFinish: boolean;
   onFaceFinishChange: (next: boolean) => void;
+  /** Check (and repair) the Cast's glasses / tattoos on each solo still. */
+  checkMarks?: boolean;
+  onCheckMarksChange?: (next: boolean) => void;
   autoReviewStills: boolean;
   onAutoReviewStillsChange: (next: boolean) => void;
   redoPoseMisses: boolean;
@@ -38,6 +41,8 @@ export type DayQualityStatusProps = {
   bestOfTwoHardPoses: boolean;
   /** Latest Face finish line (running / applied / skipped / paused). */
   faceFinishStatus?: string | null;
+  /** Latest marks check line (useDayStillAfterChecks). */
+  afterChecksStatus?: string | null;
   /** Latest quality-gate line (reviewing / passed / requeueing / paused). */
   qualityStatus?: string | null;
   /** Latest pose-redo line (checking / matched / redoing). */
@@ -60,6 +65,7 @@ export function DayQualityStatusLines({
   redoPoseMisses,
   bestOfTwoHardPoses,
   faceFinishStatus = null,
+  afterChecksStatus = null,
   qualityStatus = null,
   poseRedoStatus = null,
   bestOfTwoStatus = null,
@@ -69,6 +75,9 @@ export function DayQualityStatusLines({
   const lines: Array<{ id: string; text: string; live?: boolean }> = [];
   if (faceFinish && faceFinishStatus) {
     lines.push({ id: 'day-face-finish-status', text: faceFinishStatus });
+  }
+  if (afterChecksStatus) {
+    lines.push({ id: 'day-marks-check-status', text: afterChecksStatus, live: true });
   }
   if (autoReviewStills && qualityStatus) {
     lines.push({ id: 'day-quality-status', text: qualityStatus, live: true });
@@ -139,6 +148,8 @@ export default function DayAdvancedDrawer({
   onIdentityBoostChange,
   faceFinish,
   onFaceFinishChange,
+  checkMarks,
+  onCheckMarksChange,
   autoReviewStills,
   onAutoReviewStillsChange,
   redoPoseMisses,
@@ -236,6 +247,17 @@ export default function DayAdvancedDrawer({
           >
             Face finish
           </SwitchButton>
+          {onCheckMarksChange ? (
+            <SwitchButton
+              checked={checkMarks !== false}
+              disabled={busy}
+              data-testid="day-check-marks"
+              title="When the Cast has glasses or a tattoo (Cast → Marks), look at each solo still and repair a missing or extra one with a short Edit 2511 pass (needs a vision model)."
+              onChange={onCheckMarksChange}
+            >
+              Check marks
+            </SwitchButton>
+          ) : null}
           <SwitchButton
             checked={autoReviewStills}
             disabled={busy}

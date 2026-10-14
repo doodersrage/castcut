@@ -6,7 +6,13 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
 import { DAY_IDENTITY_BARS } from '@/lib/identity-mark';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { measureLookLikeness, unmeasuredLookStills } from '@/lib/likeness-measure-client';
+import {
+  compareLookPlates,
+  measureLookLikeness,
+  PLATE_DRIFT_BELOW,
+  unmeasuredLookStills,
+  type LookPlateComparison,
+} from '@/lib/likeness-measure-client';
 import { likenessModelLabel, likenessTrend } from '@/lib/likeness-trend';
 
 const WIDTH = 320;
@@ -39,6 +45,8 @@ export default function CastLikenessSection({
     total: number;
   } | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [plates, setPlates] = useState<LookPlateComparison[] | null>(null);
+  const [comparing, setComparing] = useState(false);
   const trends = useMemo(
     () =>
       looks
@@ -60,7 +68,7 @@ export default function CastLikenessSection({
         .filter(({ trend, unmeasured }) => trend.points.length > 0 || unmeasured > 0),
     [character.id, current.id, entries, looks]
   );
-  if (!trends.length) return null;
+  if (!trends.length && looks.length < 2) return null;
   const measure = async (lookId: string) => {
     const look = looks.find(item => item.id === lookId);
     if (!look || measuring) return;
@@ -219,6 +227,52 @@ export default function CastLikenessSection({
             </div>
           );
         })}
+        {looks.length > 1 ? (
+          <div className="space-y-1.5" data-testid="cast-likeness-plates">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={comparing}
+              onClick={() => {
+                setComparing(true);
+                void compareLookPlates(character)
+                  .then(setPlates)
+                  .finally(() => setComparing(false));
+              }}
+            >
+              {comparing ? 'Comparing plates…' : "Compare the looks' plates"}
+            </Button>
+            {plates ? (
+              <ul className="space-y-0.5 text-sm">
+                {plates.map(item => (
+                  <li key={item.lookId} className="flex flex-wrap items-center gap-2">
+                    <span className="text-[var(--text-primary)]">{item.name}</span>
+                    <span
+                      className={
+                        item.face !== null && item.face < PLATE_DRIFT_BELOW
+                          ? 'type-caption text-[var(--tint-warning-text)]'
+                          : 'type-caption text-[var(--text-muted)]'
+                      }
+                    >
+                      {item.face === null
+                        ? (item.note ?? 'not measured')
+                        : `${Math.round(item.face * 100)}% like the Default look${item.face < PLATE_DRIFT_BELOW ? ' — this plate has drifted; re-make it' : ''}`}
+                    </span>
+                    {item.face !== null && item.face < PLATE_DRIFT_BELOW && onRemakePlate ? (
+                      <button
+                        type="button"
+                        className="ui-text-link type-caption"
+                        onClick={() => onRemakePlate(item.lookId)}
+                      >
+                        Open it
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
         <p className="type-caption text-[var(--text-muted)]">
           Dashed line: where Day cards start warning ({Math.round(DAY_IDENTITY_BARS.warn * 100)}%).
           Grey lines: a plate was replaced.

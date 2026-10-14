@@ -182,6 +182,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     faceFinish,
     setFaceFinish,
     faceFinishStatus,
+    afterChecksStatus,
+    checkMarks,
+    setCheckMarks,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -893,6 +896,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           redoPoseMisses={redoPoseMisses}
           bestOfTwoHardPoses={bestOfTwoHardPoses}
           faceFinishStatus={faceFinishStatus}
+          afterChecksStatus={afterChecksStatus}
           qualityStatus={qualityStatus}
           poseRedoStatus={poseRedoStatus}
           bestOfTwoStatus={bestOfTwoStatus}
@@ -911,6 +915,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onIdentityBoostChange={setIdentityBoost}
             faceFinish={faceFinish}
             onFaceFinishChange={setFaceFinish}
+            checkMarks={checkMarks}
+            onCheckMarksChange={setCheckMarks}
             autoReviewStills={autoReviewStills}
             onAutoReviewStillsChange={setAutoReviewStills}
             redoPoseMisses={redoPoseMisses}

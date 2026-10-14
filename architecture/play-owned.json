@@ -4,6 +4,7 @@
   "src/app/api/clip/extend/route.ts",
   "src/app/api/day-event/route.ts",
   "src/app/api/day-premise/route.ts",
+  "src/app/api/marks-check/route.ts",
   "src/app/api/film/check/route.ts",
   "src/app/api/film/export/route.ts",
   "src/app/api/film/score/route.ts",

@@ -120,3 +120,81 @@ export function wearOutfitAgain(
   const next = setLookKeptOutfit(castId, look.id, { outfit });
   return next ? { character: next, previous: look.keptOutfit } : undefined;
 }
+
+/**
+ * Outfits from Day stills made before the wardrobe was kept (Cast home → Wardrobe → Find earlier
+ * outfits). The prompt says what she wore ("OUTFIT (mandatory): she wears …"); the still's second
+ * input image is the clothing photo when it is a garment packshot (a dressed plate is a picture of
+ * her, not of the clothes, and is left out — that outfit comes back as words). Pure.
+ */
+export function wardrobeFromGallery(
+  entries: ReadonlyArray<{
+    characterId?: string;
+    tool?: string;
+    prompt?: string;
+    promptId?: string;
+    completedAt?: number;
+    queuedAt?: number;
+    queueParams?: { inputImageFilenames?: unknown } | null;
+  }>,
+  castId: string,
+  existing?: CastWornOutfit[]
+): CastWornOutfit[] | null {
+  let list = normalizeCastWardrobe(existing) ?? [];
+  const before = JSON.stringify(list);
+  const stills = entries
+    .filter(entry => entry.characterId === castId && entry.tool === 'image-prompt')
+    .sort((a, b) => (a.completedAt ?? a.queuedAt ?? 0) - (b.completedAt ?? b.queuedAt ?? 0));
+  for (const entry of stills) {
+    const words = /OUTFIT[^:\n]*:\s*(?:she|he) wears ([^\n]+?)(?:\s+—|;|\.\s|$)/i
+      .exec(entry.prompt ?? '')?.[1]
+      ?.trim();
+    // Not the mood's own clothes (Sport's kit for the sport) — only what she was dressed in.
+    if (!words || /underwear in Image 1|nothing|naked|nude|\bsportswear\b/i.test(words)) continue;
+    const files = Array.isArray(entry.queueParams?.inputImageFilenames)
+      ? (entry.queueParams!.inputImageFilenames as unknown[])
+      : [];
+    const second = typeof files[1] === 'string' ? (files[1] as string).trim() : '';
+    const garment = /^fitting-garment-packshot/i.test(second) ? second : '';
+    const outfit: CharacterLookOutfit = garment
+      ? { customGarmentImageFilename: garment, customGarmentDescription: words }
+      : { customGarmentDescription: words };
+    const key = garment || `words:${words.toLowerCase().slice(0, 80)}`;
+    const at = entry.completedAt ?? entry.queuedAt ?? 0;
+    const found = list.find(item => item.key === key);
+    const promptId = entry.promptId?.trim();
+    const item: CastWornOutfit = found
+      ? {
+          ...found,
+          lastAt: Math.max(found.lastAt, at),
+          count: found.count + (at - found.lastAt > 30 * 60 * 1000 ? 1 : 0),
+          promptIds: promptId
+            ? [promptId, ...found.promptIds.filter(id => id !== promptId)].slice(0, 3)
+            : found.promptIds,
+        }
+      : {
+          key,
+          label: words.length > 60 ? `${words.slice(0, 57)}…` : words,
+          outfit,
+          firstAt: at,
+          lastAt: at,
+          count: 1,
+          promptIds: promptId ? [promptId] : [],
+        };
+    list = [item, ...list.filter(other => other.key !== key)];
+  }
+  const next = normalizeCastWardrobe(list) ?? [];
+  return JSON.stringify(next) === before ? null : next;
+}
+
+/** Fill a Cast's wardrobe from its earlier Day stills; returns how many outfits it holds after. */
+export function backfillCastWardrobe(
+  castId: string,
+  entries: Parameters<typeof wardrobeFromGallery>[0]
+): number {
+  const character = getCharacter(castId);
+  if (!character) return 0;
+  const next = wardrobeFromGallery(entries, castId, character.wardrobe);
+  if (next) upsertCharacter({ ...character, wardrobe: next });
+  return (next ?? normalizeCastWardrobe(character.wardrobe) ?? []).length;
+}

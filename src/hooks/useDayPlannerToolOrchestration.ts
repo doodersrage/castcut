@@ -1,5 +1,6 @@
 'use client';
 
+import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
 import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
 import type { DayLength, DaySlot } from '@/lib/day-planner';
@@ -97,6 +98,8 @@ export function useDayPlannerToolOrchestration() {
   );
   // Always on (not an Auto-review switch): adult stills are held until they read as adults.
   const adultGate = useDayAdultGate(core);
+  // Every solo still: face match kept for Likeness, and the Cast's marks checked and repaired.
+  const afterChecks = useDayStillAfterChecks(core, faceFinishHold);
   const quality = useDaySlotQualityGate(core, faceFinishHold);
   const poseRedo = useDayPoseMissRedo(
     core,
@@ -422,6 +425,9 @@ export function useDayPlannerToolOrchestration() {
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     twoTakesOrderStatus: twoTakesOrder.twoTakesOrderStatus,
     faceFinishStatus: faceFinish.faceFinishStatus,
+    afterChecksStatus: afterChecks.afterChecksStatus,
+    checkMarks: core.toolSettings.checkMarks !== false,
+    setCheckMarks: (next: boolean) => core.updateToolSettings({ checkMarks: next }),
     adultGateStatus: adultGate.adultGateStatus,
     ...clips,
     ...endPose,
