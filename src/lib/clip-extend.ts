@@ -324,3 +324,42 @@ export function colorMatchFilter(match: ColorMatch): string {
     `${name}='clip(val*${match.gain[c]}+${match.offset[c]},0,255)'`;
   return `lutrgb=${channel('r', 0)}:${channel('g', 1)}:${channel('b', 2)}`;
 }
+
+/**
+ * Detail in a greyscale frame: the variance of its Laplacian (edges and texture; a softer frame
+ * scores lower).
+ */
+export function laplacianVariance(grey: ArrayLike<number>, width: number, height: number): number {
+  let sum = 0;
+  let sumSq = 0;
+  let n = 0;
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const i = y * width + x;
+      const v = grey[i - width]! + grey[i + width]! + grey[i - 1]! + grey[i + 1]! - 4 * grey[i]!;
+      sum += v;
+      sumSq += v * v;
+      n += 1;
+    }
+  }
+  return n ? sumSq / n - (sum / n) ** 2 : 0;
+}
+
+/**
+ * Unsharp-mask strengths tried on a WAN hop's start frame, gentlest first. Live (2026-10-13, a
+ * 3-part WAN chain at dusk): WAN renders each part softer than the frame it starts from, and the
+ * softening compounded — detail 172 → 30 by 14 s. Sharpening each start frame back toward the
+ * clip's first frame (never past it) held 84 at 14 s with no halos at 1:1; an UltraSharp 4×
+ * round trip held less (60) and waxed the skin.
+ */
+export const WAN_START_SHARPEN_STEPS = [0.5, 1, 1.5, 2, 3] as const;
+
+/** Index of the strongest step whose result stays at or under the clip's own detail; -1 = none. */
+export function pickStartSharpenIndex(target: number, detailAfter: ReadonlyArray<number>): number {
+  let chosen = -1;
+  for (let i = 0; i < detailAfter.length && i < WAN_START_SHARPEN_STEPS.length; i += 1) {
+    if (detailAfter[i]! > target) break;
+    chosen = i;
+  }
+  return chosen;
+}

@@ -7,7 +7,9 @@ import {
   extendSegmentCount,
   extendStitchFilter,
   fallbackExtendBeats,
+  laplacianVariance,
   parseExtendBeats,
+  pickStartSharpenIndex,
   patchWanReplayGraph,
 } from './clip-extend';
 import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from './ltx25-renderer';
@@ -100,3 +102,20 @@ describe('Make it 30 s', () => {
   });
 });
 
+
+describe('WAN start-frame sharpening', () => {
+  it('laplacianVariance is zero on a flat frame and rises with edges', () => {
+    const flat = new Uint8Array(16 * 16).fill(128);
+    assert.equal(laplacianVariance(flat, 16, 16), 0);
+    const checker = Uint8Array.from({ length: 16 * 16 }, (_, i) =>
+      ((i % 16) + Math.floor(i / 16)) % 2 ? 255 : 0
+    );
+    assert.ok(laplacianVariance(checker, 16, 16) > 1000);
+  });
+
+  it('pickStartSharpenIndex takes the strongest step that does not pass the clip', () => {
+    assert.equal(pickStartSharpenIndex(100, [60, 80, 95, 120]), 2);
+    assert.equal(pickStartSharpenIndex(100, [130]), -1);
+    assert.equal(pickStartSharpenIndex(500, [60, 80, 95, 120, 160]), 4);
+  });
+});

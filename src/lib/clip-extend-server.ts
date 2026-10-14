@@ -21,6 +21,9 @@ import {
   CLIP_EXTEND_MAX_SEGMENTS,
   colorMatchFilter,
   colorMatchGains,
+  laplacianVariance,
+  pickStartSharpenIndex,
+  WAN_START_SHARPEN_STEPS,
   extendSegmentCount,
   type ChannelStats,
   extendStitchFilter,
@@ -99,7 +102,36 @@ async function frameStats(file: string): Promise<ChannelStats> {
   };
 }
 
-/** One frame of `file` at `seconds` as a PNG. */
+async function frameDetail(input: Buffer | string): Promise<number> {
+  const sharp = (await import('sharp')).default;
+  const { data, info } = await sharp(input).greyscale().raw().toBuffer({ resolveWithObject: true });
+  return laplacianVariance(data, info.width, info.height);
+}
+
+/**
+ * A WAN hop's start frame sharpened back toward the clip's own detail (WAN_START_SHARPEN_STEPS):
+ * each part starts from the last one's softest frame, and the softening otherwise compounds.
+ */
+async function sharpenStartFrame(png: Buffer, target: number): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
+  if ((await frameDetail(png)) >= target) return png;
+  const tries: Buffer[] = [];
+  const detail: number[] = [];
+  for (const m2 of WAN_START_SHARPEN_STEPS) {
+    const out = await sharp(png).sharpen({ sigma: 1, m1: 0, m2 }).png().toBuffer();
+    tries.push(out);
+    detail.push(await frameDetail(out));
+    if (detail[detail.length - 1]! > target) break;
+  }
+  const chosen = pickStartSharpenIndex(target, detail);
+  return chosen < 0 ? png : tries[chosen]!;
+}
+
+/**
+ * One frame of `file` at `seconds` as a PNG. The seek is on the output side (decode up to it):
+ * ffmpeg cannot seek into an animated WebP — WAN's output — and an input-side `-ss` there exited 0
+ * with no frame written, so every WAN segment's colour match silently fell away.
+ */
 async function grabFrame(
   ffmpeg: string,
   file: string,
@@ -110,10 +142,10 @@ async function grabFrame(
     '-y',
     '-v',
     'error',
-    '-ss',
-    seconds.toFixed(3),
     '-i',
     file,
+    '-ss',
+    seconds.toFixed(3),
     '-frames:v',
     '1',
     out,
@@ -370,6 +402,7 @@ export async function extendClip(
     // Colours stay those of the clip's first frame (colorMatchGains).
     await grabFrame(ffmpeg, at('piece0.mp4'), 0, at('reference.png'));
     const reference = await frameStats(at('reference.png'));
+    const referenceDetail = await frameDetail(at('reference.png'));
     const history = await readHistoryGraph(baseUrl, input.clipPromptId);
     const wan = history && isWanClipGraph(history) ? history : null;
     // WAN segments last as long as the clip did; LTX ones 121 frames (5 s).
@@ -412,10 +445,11 @@ export async function extendClip(
       ]);
       const sharp = (await import('sharp')).default;
       const match = colorMatchGains(reference, await frameStats(at(`last${k}.png`)));
-      const startBytes = await sharp(at(`last${k}.png`))
+      const matched = await sharp(at(`last${k}.png`))
         .linear(match.gain, match.offset)
         .png()
         .toBuffer();
+      const startBytes = wan ? await sharpenStartFrame(matched, referenceDetail) : matched;
       const lastFrame = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(startBytes),
