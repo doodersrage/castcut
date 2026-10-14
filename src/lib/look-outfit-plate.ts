@@ -295,8 +295,10 @@ export function buildLookCastPlatePrompt(input: {
   const style = stripDemographicCuesFromStyle(styleRaw);
   const lookNote = input.lookNote?.replace(/\s+/g, ' ').trim().slice(0, 300);
   // Lead with photo language — "body plate" / grey seamless alone steers some models into clay CGI.
+  // Full length from a distance, on a 3:4 canvas (plateCanvasOrientation): on a square canvas
+  // with "full-body" UltraReal cut at the thighs; this line + 3:4 kept head to feet 3 of 3.
   return [
-    `Color photograph of ${name}, a real living person, full-body standing pose for wardrobe try-on:`,
+    `Full-length color photograph of ${name}, a real living person, standing, taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
     appearance
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
@@ -697,6 +699,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       | 'explicitNegative'
       | 'queueParamsBase'
       | 'queueModel'
+      | 'resolutionOrientation'
     >
   ) => Promise<string | undefined>;
 }): Promise<OutfitPlateEnsureResult> {
@@ -818,6 +821,8 @@ export async function ensureOutfitPlateAfterLook(input: {
       queueHints: '',
       explicitNegative,
       ...(input.queueModel ? { queueModel: input.queueModel } : {}),
+      // A plate is a standing figure: 3:4 portrait, not the square default (it cropped her).
+      resolutionOrientation: 'portrait-34',
       // Pin this Cast's face when it has one; otherwise Fresh sync already cleared
       // shared IP so a previous character cannot race-swap the plate.
       ...(faceQueueParams ? { queueParamsBase: faceQueueParams } : {}),

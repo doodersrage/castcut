@@ -1,7 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import ImageLightboxBottomChrome from '@/components/ui/image-lightbox/ImageLightboxBottomChrome';
 import ImageLightboxImageStage from '@/components/ui/image-lightbox/ImageLightboxImageStage';
@@ -40,6 +47,11 @@ type ImageLightboxProps = {
   slideshow?: ImageLightboxSlideshowOptions;
   /** Review / iterate chrome for the active slide. */
   slideChrome?: ImageLightboxSlideChrome | null;
+  /**
+   * Go straight to Fix an area for the shown slide (a "Fix" button elsewhere): the dialog opens
+   * on its own, and closing it closes the lightbox too.
+   */
+  fixAreaOnly?: boolean;
 };
 
 export default function ImageLightbox({
@@ -49,10 +61,17 @@ export default function ImageLightbox({
   onDownloadImage,
   slideshow,
   slideChrome: slideChromeProp = null,
+  fixAreaOnly = false,
 }: ImageLightboxProps) {
   // "Fix an area": the dialog opens over the lightbox for the still shown when it was asked for.
   const [fixTarget, setFixTarget] = useState<FixAreaTarget | null>(null);
   const fixArea = slideChromeProp?.fixArea ?? null;
+  const fixOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!fixAreaOnly || !fixArea || fixOpenedRef.current) return;
+    fixOpenedRef.current = true;
+    setFixTarget(fixArea);
+  }, [fixArea, fixAreaOnly]);
   const slideChrome = useMemo(
     () =>
       slideChromeProp && fixArea
@@ -262,7 +281,13 @@ export default function ImageLightbox({
   // Kept outside the shell (and above the early return): a gallery refresh that briefly empties
   // the lightbox state must not remount the dialog and lose the painted strokes.
   const fixDialog = fixTarget ? (
-    <FixAreaDialog target={fixTarget} onClose={() => setFixTarget(null)} />
+    <FixAreaDialog
+      target={fixTarget}
+      onClose={() => {
+        setFixTarget(null);
+        if (fixAreaOnly) onClose();
+      }}
+    />
   ) : null;
 
   if (!mounted || !open || !currentUrl || !state) {

@@ -167,7 +167,7 @@ describe('look-outfit-plate', () => {
     assert.match(prompt, /Ava/);
     assert.match(prompt, /skinny East Asian woman/);
     assert.match(prompt, /SUBJECT \(mandatory/);
-    assert.match(prompt, /Color photograph/);
+    assert.match(prompt, /^Full-length color photograph .*top of the head to both feet/);
     assert.match(prompt, /DSLR|natural skin/i);
     assert.match(prompt, /not a 3D model|not clay/i);
     assert.match(prompt, /STYLE ONLY/);

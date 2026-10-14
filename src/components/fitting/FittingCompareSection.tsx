@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 import { StageFrame } from '@/components/fitting/FittingStagePending';
 import { Button } from '@/components/ui/Button';
@@ -93,6 +93,8 @@ export default function FittingCompareSection({
     )
   );
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+  // Fix (stage button): the lightbox opens straight into Fix an area.
+  const [fixOnly, setFixOnly] = useState(false);
 
   const openLightbox = useCallback(
     (tryOn: FittingCompareTryOn, options?: { back?: boolean }) => {
@@ -100,6 +102,8 @@ export default function FittingCompareSection({
       if (!next) {
         return;
       }
+      // A plain open shows the picture; Fix sets fixOnly after this.
+      setFixOnly(false);
       setLightbox({
         images: next.images,
         titles: next.titles,
@@ -202,7 +206,11 @@ export default function FittingCompareSection({
   const lightboxElement = (
     <ImageLightbox
       state={lightbox}
-      onClose={() => setLightbox(null)}
+      onClose={() => {
+        setLightbox(null);
+        setFixOnly(false);
+      }}
+      fixAreaOnly={fixOnly}
       slideChrome={slideChrome}
       onIndexChange={index =>
         setLightbox(previous =>
@@ -322,7 +330,11 @@ export default function FittingCompareSection({
                     disabled={busy || !done}
                     title="Open full size and fix an area (a hand, the shoes…)"
                     data-testid="fitting-fix-try-on"
-                    onClick={() => picked && openLightbox(picked)}
+                    onClick={() => {
+                      if (!picked) return;
+                      openLightbox(picked);
+                      setFixOnly(true);
+                    }}
                   >
                     Fix
                   </Button>
