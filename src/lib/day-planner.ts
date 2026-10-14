@@ -324,6 +324,14 @@ export function raunchyBeatsForMix(slotId: DaySlotId, mix: DayIntimateMix): stri
   return pool.filter(beat => !isDayRaunchySoloBeat(beat));
 }
 
+/** Day's still engines a single slot can be pinned to (pose-engine-report: POSE_REPORT_ENGINES). */
+export const DAY_SLOT_ENGINES = ['rapid-aio', 'qwen-edit-2511', 'qwen-image-2.1'] as const;
+export type DaySlotEngine = (typeof DAY_SLOT_ENGINES)[number];
+
+export function normalizeDaySlotEngine(value: unknown): DaySlotEngine | undefined {
+  return DAY_SLOT_ENGINES.includes(value as DaySlotEngine) ? (value as DaySlotEngine) : undefined;
+}
+
 export type DaySlot = {
   id: DaySlotId;
   label: string;
@@ -359,6 +367,11 @@ export type DaySlot = {
    * changing the active look (day-slot-look.ts). Unset = the active look.
    */
   lookId?: string;
+  /**
+   * The engine this still renders on (one of Day's three), over the Day's — a hard pose sent to
+   * the engine that holds it, redone alone. Unset = the Day's engine and its own hand-offs.
+   */
+  engine?: DaySlotEngine;
   /**
    * The slot's own look / kit was picked by hand in its sheet: a new Day-wide outfit (Outfit's
    * Keep, Use on Day) leaves it and says so, instead of clearing it (day-outfit-scope.ts).
@@ -784,6 +797,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,
+      engine: normalizeDaySlotEngine(slot.engine),
       outfitByHand: slot.outfitByHand === true || undefined,
       eventMove: readEditableText(slot.eventMove, 160) || undefined,
     });

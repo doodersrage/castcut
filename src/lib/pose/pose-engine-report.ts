@@ -36,6 +36,18 @@ export const POSE_REPORT_ENGINES: readonly PoseReportEngine[] = [
   'qwen-image-2.1',
 ];
 
+/**
+ * The model a still pinned to an engine family renders on (a Day card's own engine): the first
+ * installed variant, best first. Null when none of the family is installed — the still then
+ * stays on the Day's engine.
+ */
+export function pinnedEngineModel(
+  family: PoseReportEngine,
+  installed: (modelId: string) => boolean
+): string | null {
+  return POSE_REPORT_ENGINE_MODELS[family].find(modelId => installed(modelId)) ?? null;
+}
+
 /** Short names for the card line. */
 export const POSE_REPORT_ENGINE_LABELS: Record<PoseReportEngine, string> = {
   'rapid-aio': 'Rapid AIO',

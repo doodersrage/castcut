@@ -12,6 +12,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
+import DaySlotEnginePicker from '@/components/day-planner/DaySlotEnginePicker';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
@@ -357,6 +358,7 @@ export default function DaySlotSheet({
             disabled={busy}
             updateSlot={updateSlot}
           />
+          <DaySlotEnginePicker slot={slot} model={model} disabled={busy} updateSlot={updateSlot} />
           <ClothingSummaryRow
             summary={clothingSummary}
             thumbs={clothingThumbs}

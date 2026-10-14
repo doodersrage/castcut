@@ -29,7 +29,7 @@ import {
   fetchComfyObjectInfoNodeTypesCached,
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui-object-info-cache';
-import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
+import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
@@ -181,7 +181,7 @@ import {
   plannedDaySlotPoseKey,
 } from '@/lib/day-slot-pose';
 import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose-outcome-stats';
-import { pickPoseEngine } from '@/lib/pose/pose-engine-report';
+import { pickPoseEngine, pinnedEngineModel } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -938,7 +938,10 @@ export function useDayPlannerToolOrchestrationCore() {
       const bestEnginePerPose =
         toolSettings.bestEnginePerPose === true && resolveSlotLook(queueTarget).hasPlate;
       const handOffInventory =
-        handOffProfile.adultEngine || handOffProfile.clothedDuoEngine || bestEnginePerPose
+        handOffProfile.adultEngine ||
+        handOffProfile.clothedDuoEngine ||
+        bestEnginePerPose ||
+        queueTarget.engine
           ? (readCachedComfyObjectInfoModels() ??
             (await fetchComfyObjectInfoModelsCached().catch(() => null)))
           : null;
@@ -991,7 +994,12 @@ export function useDayPlannerToolOrchestrationCore() {
           report: blendedPoseEngineReport(),
         });
       }
-      const stillModel = poseEngineSwap?.model ?? routedStillModel;
+      // The card's own engine (its sheet's "Engine for this shot") wins over every hand-off; not
+      // installed (the sheet only offers installed ones), the still stays on the Day's engine.
+      const pinnedEngine = queueTarget.engine
+        ? (pinnedEngineModel(queueTarget.engine, installed) as ComfyImageModel | null)
+        : null;
+      const stillModel = pinnedEngine ?? poseEngineSwap?.model ?? routedStillModel;
       // As queueSlot sends it: with a plate, the Edit-capable (and adult nude: NSFW) variant.
       const queueModel = resolveSlotLook(queueTarget).hasPlate
         ? resolveAdultNudePlateQueueModel(stillModel, {
