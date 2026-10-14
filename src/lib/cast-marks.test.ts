@@ -65,7 +65,7 @@ describe('cast marks', () => {
   it('puts every mark on a plate made from the description, and keeps tattoos out of its negative', () => {
     const line = castMarksPlateLine([rose, back, glasses]);
     const prompt = buildLookCastPlatePrompt({ characterName: 'Nora', descriptor: 'a woman', marks: line });
-    assert.match(prompt, /MARKS \(keep exactly, clearly visible\): She has a small fine-line rose tattoo/);
+    assert.match(prompt, /MARKS \(keep exactly, as small details in the full-length picture\): She has a small fine-line rose tattoo/);
     assert.match(prompt, /lotus tattoo on her back/);
     assert.doesNotMatch(buildLookCastPlateNegative('a woman', line), /tattoo/);
     assert.match(buildLookCastPlateNegative('a woman', castMarksPlateLine([mole])), /tattoo/);
