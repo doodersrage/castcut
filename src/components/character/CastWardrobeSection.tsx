@@ -192,7 +192,9 @@ export default function CastWardrobeSection({
                       key: item.key,
                       label: item.label,
                       imageUrl,
-                      ...(item.modelUrl && item.modelFor === imageUrl
+                      // Only a painted model (outfit-3d-paint.ts); earlier ones kept TRELLIS's colours.
+                      ...(item.modelUrl?.startsWith('/api/outfit-3d/model/') &&
+                      item.modelFor === imageUrl
                         ? { modelUrl: item.modelUrl }
                         : {}),
                     });

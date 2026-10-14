@@ -9,6 +9,9 @@
 
 export const OUTFIT_3D_LOAD_NODE = '122';
 export const OUTFIT_3D_SAVE_NODE = '900';
+/** The cut-out picture TRELLIS sees, and its mask (same crop) — what is painted onto the front. */
+export const OUTFIT_3D_FRONT_NODE = '905';
+export const OUTFIT_3D_MASK_NODE = '906';
 export const OUTFIT_3D_SEED_NODES = ['23', '12', '18', '3'] as const;
 
 type Graph = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
@@ -354,6 +357,17 @@ export function buildOutfit3dGraph(input: { image: string; prefix: string; seed:
   const graph = JSON.parse(JSON.stringify(TEMPLATE)) as Graph;
   graph[OUTFIT_3D_LOAD_NODE]!.inputs.image = input.image;
   graph[OUTFIT_3D_SAVE_NODE]!.inputs.filename_prefix = `3d/${input.prefix}`;
+  const crop = graph['312']!.inputs;
+  graph['901'] = { class_type: 'MaskToImage', inputs: { mask: ['192', 0] } };
+  graph['902'] = { class_type: 'ImageCropToMask', inputs: { ...crop, images: ['901', 0] } };
+  graph[OUTFIT_3D_FRONT_NODE] = {
+    class_type: 'SaveImage',
+    inputs: { images: ['312', 0], filename_prefix: `3d/${input.prefix}-front` },
+  };
+  graph[OUTFIT_3D_MASK_NODE] = {
+    class_type: 'SaveImage',
+    inputs: { images: ['902', 0], filename_prefix: `3d/${input.prefix}-mask` },
+  };
   for (const [index, id] of OUTFIT_3D_SEED_NODES.entries()) {
     graph[id]!.inputs.seed = input.seed + index;
   }

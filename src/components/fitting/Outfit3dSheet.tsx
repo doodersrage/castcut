@@ -53,7 +53,7 @@ export default function Outfit3dSheet({
       open={open}
       onClose={onClose}
       title={`3D · ${title}`}
-      description="Drag to turn her around, scroll or pinch to zoom. Made from this picture by TRELLIS.2 — the clothes, shoes and back hold up best; the face is rough."
+      description="Drag to turn her around, scroll or pinch to zoom. Shaped by TRELLIS.2 with this picture painted on the front; the back is guessed, and hair over the face can blur it."
       size="lg"
       testId="outfit-3d-sheet"
     >

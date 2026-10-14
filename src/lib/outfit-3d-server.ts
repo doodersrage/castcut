@@ -9,7 +9,13 @@ import {
   stageComfyImageAsInput,
   type ComfyHistoryEntry,
 } from './comfy-utility-graph-server';
-import { buildOutfit3dGraph, OUTFIT_3D_SAVE_NODE } from './outfit-3d-graph';
+import {
+  buildOutfit3dGraph,
+  OUTFIT_3D_FRONT_NODE,
+  OUTFIT_3D_MASK_NODE,
+  OUTFIT_3D_SAVE_NODE,
+} from './outfit-3d-graph';
+import { paintOutfitGlb, storeOutfitModel } from './outfit-3d-store-server';
 
 export const OUTFIT_3D_MODEL_FILE = 'trellis_2_int8_convrot.safetensors';
 const REQUIRED_NODES = [
@@ -53,7 +59,8 @@ export async function renderOutfit3d(input: {
     ref,
     `outfit-3d-${createHash('sha1').update(`${ref.subfolder}/${ref.filename}`).digest('hex').slice(0, 12)}`
   );
-  const run = await runComfyUtilityGraph<{ filename: string; subfolder?: string; type?: string }>({
+  type OutFile = { filename: string; subfolder?: string; type?: string };
+  const run = await runComfyUtilityGraph<{ glb: OutFile; front?: OutFile; mask?: OutFile }>({
     baseUrl,
     label: 'outfit-3d',
     timeoutMs: 12 * 60_000,
@@ -65,18 +72,42 @@ export async function renderOutfit3d(input: {
       seed: Math.floor(Math.random() * 1_000_000_000),
     }),
     read: (entry: ComfyHistoryEntry) => {
-      const outputs = entry.outputs?.[OUTFIT_3D_SAVE_NODE] as
-        { '3d'?: Array<{ filename: string; subfolder?: string; type?: string }> } | undefined;
-      const file = outputs?.['3d']?.[0];
-      return file?.filename ? file : undefined;
+      const pick = (node: string, kind: string) =>
+        ((entry.outputs?.[node] as Record<string, OutFile[] | undefined> | undefined)?.[kind] ??
+          [])[0];
+      const glb = pick(OUTFIT_3D_SAVE_NODE, '3d');
+      if (!glb?.filename) return undefined;
+      return {
+        glb,
+        front: pick(OUTFIT_3D_FRONT_NODE, 'images'),
+        mask: pick(OUTFIT_3D_MASK_NODE, 'images'),
+      };
     },
   });
-  const file = run.result;
-  if (!file) throw new Error('The 3D model finished without a file — check the ComfyUI log.');
-  const params = new URLSearchParams({
-    filename: file.filename,
-    subfolder: file.subfolder ?? '',
-    type: file.type || 'output',
-  });
-  return { url: `/api/comfyui/view?${params.toString()}` };
+  const files = run.result;
+  if (!files) throw new Error('The 3D model finished without a file — check the ComfyUI log.');
+  const viewUrl = (file: OutFile) =>
+    `/view?${new URLSearchParams({ filename: file.filename, subfolder: file.subfolder ?? '', type: file.type || 'output' }).toString()}`;
+  const fetchBytes = async (file: OutFile) => {
+    const response = await fetch(`${baseUrl}${viewUrl(file)}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status} reading ${file.filename}`);
+    return new Uint8Array(await response.arrayBuffer());
+  };
+  // The picture painted on (outfit-3d-paint.ts); TRELLIS's own colours if that fails.
+  if (files.front && files.mask) {
+    try {
+      const [glb, front, mask] = await Promise.all([
+        fetchBytes(files.glb),
+        fetchBytes(files.front),
+        fetchBytes(files.mask),
+      ]);
+      const painted = await paintOutfitGlb({ glb, front, mask });
+      return { url: await storeOutfitModel(painted) };
+    } catch (error) {
+      console.warn('Outfit 3D: painting the picture on failed; keeping TRELLIS colours:', error);
+    }
+  }
+  return { url: `/api/comfyui${viewUrl(files.glb)}` };
 }
