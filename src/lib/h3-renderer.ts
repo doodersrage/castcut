@@ -65,6 +65,30 @@ type Workflow = Record<string, WorkflowNode>;
 const isRef = (value: unknown): value is [string, number] =>
   Array.isArray(value) && value.length === 2 && typeof value[0] === 'string';
 
+/**
+ * H3 runs with no negative prompt, and a camera sentence that names what must not happen ("does
+ * not move, zoom or push in, and there is no close-up") made it cut to a face close-up mid-clip:
+ * a night talking clip replayed on its own seed cut at 2.0 s every time with that sentence and
+ * never with it said positively (2026-10-14; 9 other seeds cut on neither). Each camera sentence
+ * becomes one fixed tripod framing, and the words zoom / push-in / close-up go.
+ */
+export function h3CameraWords(prompt: string): string {
+  return (
+    prompt
+      // "Camera: … " sentences that list what the camera must not do — the wording that held.
+      .replace(/Camera:[^.]*\b(?:zoom|push[- ]?in|close-?ups?)\b[^.]*\./gi, match => {
+        const who = /\b(her|his|their) whole body\b/i.exec(match)?.[1];
+        return `Camera: one fixed wide shot on a tripod for the whole clip, ${
+          who ? `${who} whole body in view from head to feet, ` : ''
+        }the same framing as the first frame from start to end.`;
+      })
+      // Any other sentence naming them ("it does not move, zoom or push in").
+      .replace(/[^.]*\b(?:zoom|push(?:es)?[- ]?in|close-?ups?)\b[^.]*\.\s*/gi, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  );
+}
+
 export type H3ConvertResult = { workflow: Workflow; converted: boolean; reason?: string };
 
 /**
@@ -136,7 +160,7 @@ export function convertVideoWorkflowToH3(
       inputs: {
         clip: ['3', 0],
         vae: ['4', 0],
-        prompt: positive.trim(),
+        prompt: h3CameraWords(positive.trim()),
         width: ['8', 1],
         height: ['9', 1],
         length: h3FrameCount(length, fps),

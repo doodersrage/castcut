@@ -79,3 +79,21 @@ describe('MiniMax-H3 clip renderer', () => {
     assert.equal(clipEngineForShot('minimax-h3', { adultDuo: true }), 'minimax-h3');
   });
 });
+
+describe('H3 camera words', async () => {
+  const { h3CameraWords } = await import('./h3-renderer');
+  it('says the framing positively and drops zoom / push-in / close-up', () => {
+    const intimate = h3CameraWords(
+      'Motion: slow. Camera: locked-off static tripod shot — no camera movement, no zoom, no push-in, framing stays as the first frame. Stable identity.'
+    );
+    assert.equal(
+      intimate,
+      'Motion: slow. Camera: one fixed wide shot on a tripod for the whole clip, the same framing as the first frame from start to end. Stable identity.'
+    );
+    const event = h3CameraWords(
+      'She walks on. One continuous shot that starts on the first frame; the camera stays still and keeps the same framing — it does not move, zoom or push in. The end.'
+    );
+    assert.equal(event, 'She walks on. The end.');
+    assert.doesNotMatch(event + intimate, /zoom|push-in|close-up/i);
+  });
+});
