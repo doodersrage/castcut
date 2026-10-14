@@ -65,6 +65,12 @@ export type LlmEndpointOverride = {
   apiKey?: string;
 };
 
+/** The model to write with when LLM_MODEL is unset (llm-text-model-auto: one the server lists). */
+async function resolveAutoTextModel(): Promise<string> {
+  const { resolveServerTextModel } = await import('./llm-text-model-auto');
+  return resolveServerTextModel();
+}
+
 export function getLlmConfig(override?: LlmEndpointOverride): LlmConfig {
   const baseUrl =
     override?.baseUrl?.replace(/\/$/, '') ||
@@ -902,7 +908,9 @@ export async function* chatCompletionStream(options: {
 }): AsyncGenerator<string, void, unknown> {
   const started = Date.now();
   const { baseUrl, apiKey, model } = getLlmConfig(options.endpoint);
-  const resolvedModel = options.model ?? model;
+  // No LLM_MODEL: a model the server actually lists, not the built-in name (llm-text-model-auto).
+  const resolvedModel =
+    options.model ?? (process.env.LLM_MODEL?.trim() ? model : await resolveAutoTextModel());
   const extraBody = { think: false, ...options.extraBody };
   const release = acquireLlmSlot();
   let ok = false;
@@ -993,7 +1001,9 @@ async function chatCompletionUnthrottled(options: {
 }): Promise<string> {
   const started = Date.now();
   const { baseUrl, apiKey, model } = getLlmConfig(options.endpoint);
-  const resolvedModel = options.model ?? model;
+  // No LLM_MODEL: a model the server actually lists, not the built-in name (llm-text-model-auto).
+  const resolvedModel =
+    options.model ?? (process.env.LLM_MODEL?.trim() ? model : await resolveAutoTextModel());
   const extraBody = { think: false, ...options.extraBody };
 
   try {

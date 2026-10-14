@@ -47,3 +47,18 @@ export function pickVisionCapableModel(
     .map((id, index) => ({ id, index, rank: rank(id) }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)[0]!.id;
 }
+
+/**
+ * A chat model to write with when none is configured: the first text model in the catalog, else
+ * the best vision model (they chat too). Never an embedding model. A fresh install used a
+ * built-in "dolphin-llama3" the server did not have — every LLM call failed while setup showed
+ * the LLM green (fresh-install walk, 2026-10-13).
+ */
+export function pickTextChatModel(
+  entries: ReadonlyArray<Pick<LlmCatalogEntry, 'id' | 'kind'>>
+): string | undefined {
+  const text = entries.find(
+    entry => entry.kind === 'text' && entry.id.trim() && !NOT_A_READER.test(entry.id)
+  );
+  return text?.id.trim() ?? pickVisionCapableModel(entries);
+}

@@ -123,7 +123,9 @@ export async function GET(request: Request) {
       llmEnabled: isLlmEnabled(),
       allowTemplateFallback: allowTemplateFallback(),
       llmModel: getLlmConfig().model,
-      visionModel: getLlmConfig().visionModel,
+      // What image checks will really use: LLM_VISION_MODEL, else one found in the list — not
+      // the text model's name (it showed "dolphin-llama3" for vision on a fresh install).
+      visionModel: process.env.LLM_VISION_MODEL?.trim() || visionModelDetected || '',
       llmApiKeyConfigured: Boolean(process.env.LLM_API_KEY?.trim()),
       visionModelConfigured: Boolean(process.env.LLM_VISION_MODEL?.trim()),
       // No LLM_VISION_MODEL: the vision model image checks will use, found in the model list.

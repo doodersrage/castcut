@@ -1,3 +1,4 @@
+import { resolveServerTextModel } from './llm-text-model-auto';
 import { getComfyUiBaseUrl } from './comfyui-client';
 import type { ComfyUiRuntimeConfig } from './comfyui-config';
 import { parseComfyUiPool, setComfyUiPoolStatsCache } from './comfyui-pool';
@@ -23,6 +24,8 @@ export type LlmHealth = {
   visionModel?: string;
   baseUrl?: string;
   error?: string;
+  /** LLM_MODEL names a model the server does not list (calls will fail). */
+  modelMissing?: boolean;
   inFlight: number;
   maxInflight: number;
   busy: boolean;
@@ -135,6 +138,7 @@ export async function getExpandedComfyUiHealth(
 export async function checkLlmHealth(): Promise<LlmHealth> {
   const enabled = isLlmEnabled();
   const config = getLlmConfig();
+  const configured = process.env.LLM_MODEL?.trim();
   const inFlight = getLlmInflightCount();
   const maxInflight = getLlmMaxInflight();
   const busy = isLlmBusy();
@@ -173,10 +177,21 @@ export async function checkLlmHealth(): Promise<LlmHealth> {
       };
     }
 
+    // The model calls really use: LLM_MODEL, else one the server lists (llm-text-model-auto) —
+    // the built-in name showed green on a server that did not have it.
+    const ids = await response
+      .json()
+      .then((body: { data?: Array<{ id?: unknown }> }) =>
+        (body.data ?? []).map(entry => String(entry.id ?? '')).filter(Boolean)
+      )
+      .catch(() => [] as string[]);
+    const model = configured || (await resolveServerTextModel());
+    const modelMissing = ids.length > 0 && !ids.includes(model);
     return {
       ok: true,
       enabled: true,
-      model: config.model,
+      model,
+      ...(modelMissing ? { modelMissing: true } : {}),
       visionModel: config.visionModel,
       baseUrl: config.baseUrl,
       inFlight,

@@ -84,6 +84,8 @@ export type HealthResponse = {
     visionModel?: string;
     baseUrl?: string;
     error?: string;
+    /** LLM_MODEL is not on the server's model list. */
+    modelMissing?: boolean;
     inFlight?: number;
     maxInflight?: number;
     busy?: boolean;
