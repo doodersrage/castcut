@@ -111,7 +111,9 @@ const GESTURE_SPECS: readonly GestureSpec[] = [
   },
   {
     id: 'cook',
-    beat: /\b(cook(?:ing|s)?|stir(?:ring|s)?|flip(?:ping|s)? (?:pancakes|eggs|burgers)|chop(?:ping|s)?|fry(?:ing)?|saut[eé](?:ing)?|spatula|wooden spoon)\b/i,
+    // Cooking words only: a utensil alone is not cooking ("a wooden spoon as a microphone" asked
+    // her to cook while both arms were up — the spoons floated in the air, 2026-10-14).
+    beat: /\b(cook(?:ing|s)?|stir(?:ring|s)?|flip(?:ping|s)? (?:pancakes|eggs|burgers)|chop(?:ping|s)?|fry(?:ing)?|saut[eé](?:ing)?)\b/i,
     layouts: ['cook'],
     question: p =>
       `Is ${p.subject} cooking — holding a kitchen utensil (spatula, spoon or knife) over a pan, pot or cutting board?`,
@@ -738,7 +740,11 @@ export function gestureFixNudge(
   lead: GestureLead = 'woman'
 ): string {
   if (!missed) return '';
-  const cue = poseLayoutCue((layout ?? '').split(':')[0]);
+  // The drawn layout's cue only when it is this gesture's own layout: a solo dance guide gave a
+  // "cooking" miss the two-person dance cue ("the two people face each other…").
+  // (When the guide draws a gesture, that is the one asked about — gestureQuestions.)
+  const key = (layout ?? '').split(':')[0]!;
+  const cue = GESTURE_SPECS.some(item => item.layouts.includes(key)) ? poseLayoutCue(key) : null;
   const subject = PRONOUNS[lead].subject;
   return `GESTURE (missed last time): ${subject} must be visibly ${missed}${cue ? ` — ${cue}` : ''}.`;
 }

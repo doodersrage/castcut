@@ -394,3 +394,21 @@ describe('gesture verdict', () => {
     assert.deepEqual(waving.hands, [{ kind: 'arm-raised', still: 'missing' }]);
   });
 });
+
+describe('floating utensils (2026-10-14)', async () => {
+  const { gestureFixNudge, gestureQuestions } = await import('./pose-gesture');
+  it('a spoon used as a microphone is not cooking', () => {
+    const asked = gestureQuestions({
+      beat: 'dancing alone in the kitchen with a wooden spoon as a microphone',
+      layout: 'dance',
+    });
+    assert.equal(asked.some(question => question.id === 'cook'), false);
+  });
+  it('a redo takes a pose cue only from the missed gesture own layout', () => {
+    assert.equal(
+      gestureFixNudge('cooking with a utensil', 'dance:1'),
+      'GESTURE (missed last time): she must be visibly cooking with a utensil.'
+    );
+    assert.match(gestureFixNudge('cooking with a utensil', 'cook:1'), /standing at a counter or stove/);
+  });
+});

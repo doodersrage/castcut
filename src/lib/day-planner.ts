@@ -1600,7 +1600,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'leaning against a brick wall outside a restaurant waiting for a table',
     'walking a lamplit street after dinner mid-stride, coat over one arm',
     'climbing the stairs up to a cinema with a bucket of popcorn',
-    'dancing alone in the kitchen with a wooden spoon as a microphone',
+    // No prop in the hands: the dance pose draws both arms up, and a spoon "microphone" floated.
+    'dancing alone in the kitchen, both arms up, singing along to the radio',
     'raising a glass for a toast at an outdoor table, other hand on the chair back',
     'checking a reflection in a shop window while fixing a collar',
     'standing at a food truck window counting coins into one palm',
