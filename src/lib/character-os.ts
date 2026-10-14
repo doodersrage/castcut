@@ -212,6 +212,9 @@ export type CastWornOutfit = {
   /** A turn-around clip of the outfit (Cast home → Wardrobe → Runway), and the picture it came from. */
   runwayUrl?: string;
   runwayFor?: string;
+  /** A 3D model of the outfit (Wardrobe → 3D view, outfit-3d-graph.ts), and the picture it came from. */
+  modelUrl?: string;
+  modelFor?: string;
 };
 
 export type ReferenceSheetViewId =

@@ -80,6 +80,7 @@
     ]
   },
   "dependencies": {
+    "@google/model-viewer": "4.3.1",
     "@huggingface/transformers": "^4.2.0",
     "@tanstack/react-virtual": "^3.14.7",
     "@xyflow/react": "^12.11.2",

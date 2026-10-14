@@ -223,3 +223,17 @@ export function saveOutfitRunway(castId: string, key: string, url: string, from:
   upsertCharacter({ ...character, wardrobe: next });
   return getCharacter(castId);
 }
+
+/** Keep an outfit's 3D model (a GLB view URL) made from `from`, the outfit's picture. */
+export function saveOutfitModel(castId: string, key: string, url: string, from: string) {
+  const character = getCharacter(castId);
+  const list = normalizeCastWardrobe(character?.wardrobe);
+  if (!character || !list?.some(item => item.key === key)) return undefined;
+  upsertCharacter({
+    ...character,
+    wardrobe: list.map(item =>
+      item.key === key ? { ...item, modelUrl: url, modelFor: from } : item
+    ),
+  });
+  return getCharacter(castId);
+}
