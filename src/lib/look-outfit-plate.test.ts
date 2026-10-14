@@ -633,4 +633,82 @@ describe('look-outfit-plate', () => {
     assert.equal(fitting.pendingOutfitPlatePromptId, undefined);
     assert.equal(fitting.pendingOutfitPlateCharacterId, undefined);
   });
+
+  it('Cast home Generate plate: renders for a chosen look with its note, swaps the plate only when it lands', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Mira');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const first = activeLook(stored);
+    const plate = (name: string) => ({
+      originalUrl: `https://example.com/${name}`,
+      originalFilename: name,
+      isolatedUrl: `https://example.com/${name}`,
+      isolatedFilename: name,
+    });
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'mira-face.png' },
+      reference: plate('a.jpg'),
+      looks: [
+        { ...first, reference: plate('a.jpg'), ipAdapter: { imageFilename: 'mira-face.png' } },
+        {
+          ...first,
+          id: 'look-b',
+          name: 'Copper',
+          reference: plate('b-copy.jpg'),
+          ipAdapter: { imageFilename: 'mira-face.png' },
+        },
+      ],
+      activeLookId: first.id,
+    });
+
+    let queuedPrompt = '';
+    const result = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      lookId: 'look-b',
+      lookNote: 'short copper bob,\n winged eyeliner',
+      replaceWhenReady: true,
+      tiles: [],
+      sendComfyUi: async prompt => {
+        queuedPrompt = prompt;
+        return 'gen-b';
+      },
+    });
+    assert.equal(result, 'queued');
+    assert.match(queuedPrompt, /THIS LOOK .*: short copper bob, winged eyeliner/);
+    // Nothing cleared while it renders.
+    const waiting = getCharacter(blank.id)!;
+    assert.equal(waiting.looks?.[1]?.reference?.originalFilename, 'b-copy.jpg');
+    assert.equal(waiting.reference?.originalFilename, 'a.jpg');
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, 'gen-b');
+    assert.equal(fitting.pendingOutfitPlateLookId, 'look-b');
+
+    saveComfyGallery(
+      [
+        {
+          id: 'gen-b-entry',
+          promptId: 'gen-b',
+          prompt: 'look plate',
+          comfyUrl: 'http://127.0.0.1:8188',
+          status: 'completed',
+          queuedAt: Date.now(),
+          images: [{ filename: 'copper-plate.png', subfolder: '', type: 'output' }],
+        },
+      ],
+      { syncRemote: false }
+    );
+    tryAttachPendingOutfitPlate(blank.id);
+    const landed = getCharacter(blank.id)!;
+    assert.match(landed.looks?.[1]?.reference?.originalUrl ?? '', /copper-plate\.png/);
+    assert.equal(landed.looks?.[1]?.ipAdapter?.imageFilename, 'mira-face.png');
+    // The active look and the Cast's own plate are untouched.
+    assert.equal(landed.activeLookId, first.id);
+    assert.equal(landed.looks?.[0]?.reference?.originalFilename, 'a.jpg');
+    assert.equal(landed.reference?.originalFilename, 'a.jpg');
+    const after = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(after.pendingOutfitPlatePromptId, undefined);
+    assert.equal(after.pendingOutfitPlateLookId, undefined);
+  });
 });

@@ -275,6 +275,8 @@ export function buildLookCastPlatePrompt(input: {
   styleNotes?: string;
   /** @deprecated Prefer styleNotes — vibe often describes tile people and fights Cast. */
   vibePrompt?: string;
+  /** What this look changes (hair, makeup) — Cast home's Generate plate. */
+  lookNote?: string;
 }): string {
   const name = input.characterName?.trim() || 'the Cast lead';
   const appearance = reinforceAppearanceForPlate(
@@ -285,12 +287,14 @@ export function buildLookCastPlatePrompt(input: {
     input.styleNotes?.trim() ||
     (input.vibePrompt?.trim() ? styleNotesForLookPlate({ vibePrompt: input.vibePrompt }) : '');
   const style = stripDemographicCuesFromStyle(styleRaw);
+  const lookNote = input.lookNote?.replace(/\s+/g, ' ').trim().slice(0, 300);
   // Lead with photo language — "body plate" / grey seamless alone steers some models into clay CGI.
   return [
     `Color photograph of ${name}, a real living person, full-body standing pose for wardrobe try-on:`,
     appearance
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
+    lookNote ? `THIS LOOK (same person, same face and body; only this changes): ${lookNote}` : null,
     triggers.length > 0 ? `identity triggers: ${triggers.join(', ')}` : null,
     'shot on a DSLR, natural skin with visible pores and subsurface color, real eyes with irises and pupils, real hair strands, lifelike soft shadows',
     style
@@ -334,6 +338,7 @@ export function clearCharacterBodyPlate(characterId?: string | null): boolean {
       referenceIsolated: false,
       pendingOutfitPlatePromptId: undefined,
       pendingOutfitPlateCharacterId: undefined,
+      pendingOutfitPlateLookId: undefined,
       suppressAutoPlateSeed: true,
     });
     return true;
@@ -359,6 +364,7 @@ export function clearCharacterBodyPlate(characterId?: string | null): boolean {
     referenceIsolated: false,
     pendingOutfitPlatePromptId: undefined,
     pendingOutfitPlateCharacterId: undefined,
+    pendingOutfitPlateLookId: undefined,
     suppressAutoPlateSeed: true,
   });
   return true;
@@ -427,6 +433,7 @@ export function clearCharacterLookPlate(characterId?: string | null): boolean {
     referenceIsolated: false,
     pendingOutfitPlatePromptId: undefined,
     pendingOutfitPlateCharacterId: undefined,
+    pendingOutfitPlateLookId: undefined,
     suppressAutoPlateSeed: true,
   });
   return true;
@@ -469,6 +476,8 @@ export function assignOutfitPlateToCastAndFitting(input: {
   syncFitting?: boolean;
   /** Add the picture as another plate (a new look, made active) instead of replacing this one. */
   newLook?: { id?: string; name?: string };
+  /** Replace this look's plate (default: the active look's). Another look stays inactive. */
+  lookId?: string;
 }): CharacterRecord | null {
   const characterId = input.characterId.trim();
   const imageUrl = input.imageUrl.trim();
@@ -488,7 +497,37 @@ export function assignOutfitPlateToCastAndFitting(input: {
     isolated: input.isolated === true,
     isolateSubject: true,
   };
-  const look = activeLook(character);
+  const active = activeLook(character);
+  const target = input.lookId?.trim()
+    ? (character.looks ?? []).find(entry => entry.id === input.lookId?.trim())
+    : undefined;
+  if (target && target.id !== active.id && !input.newLook) {
+    // A plate for a look that is not the active one: that look changes, nothing else does.
+    const targetFace = target.ipAdapter;
+    const faceKept = Boolean(targetFace?.imageFilename?.trim() || targetFace?.imageUrl?.trim());
+    upsertCharacter({
+      ...character,
+      looks: (character.looks ?? []).map(entry =>
+        entry.id === target.id
+          ? {
+              ...entry,
+              reference,
+              ipAdapter: faceKept ? targetFace : { imageFilename: filename, imageUrl },
+            }
+          : entry
+      ),
+      updatedAt: Date.now(),
+    });
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    saveToolSettings('fitting', {
+      ...fitting,
+      pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
+      pendingOutfitPlateLookId: undefined,
+    });
+    return getCharacter(characterId) ?? null;
+  }
+  const look = active;
   // Outfit body-only attach keeps an existing face lock. Cast gallery/upload
   // replaces face so the new still is identity end-to-end.
   const existingFace = look.ipAdapter ?? character.ipAdapter;
@@ -536,6 +575,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
       ...previous,
       pendingOutfitPlatePromptId: undefined,
       pendingOutfitPlateCharacterId: undefined,
+      pendingOutfitPlateLookId: undefined,
     });
     return getCharacter(characterId) ?? null;
   }
@@ -550,6 +590,7 @@ export function assignOutfitPlateToCastAndFitting(input: {
     // Cancel in-flight Look→Outfit extract so a late still cannot clobber this plate.
     pendingOutfitPlatePromptId: undefined,
     pendingOutfitPlateCharacterId: undefined,
+    pendingOutfitPlateLookId: undefined,
     suppressAutoPlateSeed: false,
   });
 
@@ -558,14 +599,17 @@ export function assignOutfitPlateToCastAndFitting(input: {
 
 export function setPendingOutfitPlatePromptId(
   promptId: string | undefined,
-  characterId?: string
+  characterId?: string,
+  lookId?: string
 ): void {
   const previous = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const id = promptId?.trim() || undefined;
   const owner = id ? characterId?.trim() || previous.pendingOutfitPlateCharacterId : undefined;
+  const look = id ? lookId?.trim() || undefined : undefined;
   if (
     previous.pendingOutfitPlatePromptId === id &&
-    previous.pendingOutfitPlateCharacterId === owner
+    previous.pendingOutfitPlateCharacterId === owner &&
+    previous.pendingOutfitPlateLookId === look
   ) {
     return;
   }
@@ -573,6 +617,7 @@ export function setPendingOutfitPlatePromptId(
     ...previous,
     pendingOutfitPlatePromptId: id,
     pendingOutfitPlateCharacterId: owner,
+    pendingOutfitPlateLookId: look,
   });
 }
 
@@ -617,6 +662,15 @@ export async function ensureOutfitPlateAfterLook(input: {
   lookPack?: LookPack | null;
   /** Extract look — replace any existing Outfit / Cast plate. */
   forceReplace?: boolean;
+  /**
+   * Cast home's Generate plate: always render a new plate for `lookId`, and keep the current one
+   * until the new one lands (a failed render leaves the look as it was).
+   */
+  replaceWhenReady?: boolean;
+  /** The look the plate is for (default: the active look). */
+  lookId?: string;
+  /** What this look changes (hair, makeup), added to the plate prompt. */
+  lookNote?: string;
   sendComfyUi: (
     prompt: string,
     sport?: null,
@@ -663,13 +717,15 @@ export async function ensureOutfitPlateAfterLook(input: {
       referenceOriginalFilename: undefined,
       pendingOutfitPlatePromptId: undefined,
       pendingOutfitPlateCharacterId: undefined,
+      pendingOutfitPlateLookId: undefined,
       // Block Fitting auto-seed from a stale Cast plate until the queued still attaches.
       suppressAutoPlateSeed: true,
     };
     saveToolSettings('fitting', fitting);
   }
 
-  const forceNewPlate = forceReplace || fitting.suppressAutoPlateSeed === true;
+  const replaceWhenReady = input.replaceWhenReady === true;
+  const forceNewPlate = forceReplace || replaceWhenReady || fitting.suppressAutoPlateSeed === true;
 
   // Session plate already set — skip unless the user cleared it / Extract force-replace.
   if (
@@ -708,7 +764,7 @@ export async function ensureOutfitPlateAfterLook(input: {
   // Handoff / ensure: a Capture subject tile can seed Outfit immediately.
   // Extract (forceReplace) skips this — mood tiles are often clothed style refs;
   // queue a dedicated full-body minimal-clothing plate instead.
-  if (!forceReplace) {
+  if (!forceReplace && !replaceWhenReady) {
     const source = pickMoodboardPlateSource(input.tiles);
     if (source) {
       const imageUrl = resolveTileImageUrl(source);
@@ -734,14 +790,16 @@ export async function ensureOutfitPlateAfterLook(input: {
     characterName: appearance.name || fresh.name,
     descriptor: appearance.appearance || undefined,
     loraTriggers: appearance.loraTriggers,
+    lookNote: input.lookNote,
   });
+  const lookId = input.lookId?.trim() || fresh.activeLookId || shared.activeLookId;
   const explicitNegative = buildLookCastPlateNegative(appearance.appearance);
   const strength = shared.ipAdapterStrength ?? 0.75;
   try {
     const faceQueueParams = castFaceQueueParamsBase(fresh, strength);
     const promptId = await input.sendComfyUi(prompt, null, undefined, {
       characterId,
-      lookId: fresh.activeLookId ?? shared.activeLookId,
+      lookId,
       identityLock: false,
       queueHints: '',
       explicitNegative,
@@ -753,7 +811,7 @@ export async function ensureOutfitPlateAfterLook(input: {
     if (!id) {
       return 'failed';
     }
-    setPendingOutfitPlatePromptId(id, characterId);
+    setPendingOutfitPlatePromptId(id, characterId, input.lookId?.trim() || undefined);
     return 'queued';
   } catch {
     return 'failed';
@@ -937,6 +995,7 @@ export function tryAttachPendingOutfitPlate(characterId?: string): boolean {
       imageUrl: still.imageUrl,
       filename: still.filename,
       syncFitting,
+      lookId: fitting.pendingOutfitPlateLookId,
     });
     // False when the still belonged to another Cast — their record is updated,
     // and the Outfit session must not adopt that plate.
@@ -953,6 +1012,7 @@ export function tryAttachPendingOutfitPlate(characterId?: string): boolean {
     referenceOriginalFilename: still.filename,
     pendingOutfitPlatePromptId: undefined,
     pendingOutfitPlateCharacterId: undefined,
+    pendingOutfitPlateLookId: undefined,
     suppressAutoPlateSeed: false,
   });
   return true;

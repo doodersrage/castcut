@@ -87,6 +87,8 @@ export type FittingToolCache = {
   pendingOutfitPlatePromptId?: string;
   /** Cast that queued {@link pendingOutfitPlatePromptId}. Completion must not stamp whoever is active. */
   pendingOutfitPlateCharacterId?: string;
+  /** The look it was queued for (Cast home's Generate plate); unset = whichever look is active. */
+  pendingOutfitPlateLookId?: string;
   /**
    * User cleared the Outfit plate — do not auto-reseed from Cast, and let Look
    * Extract queue a fresh plate instead of reusing the old Cast look reference.

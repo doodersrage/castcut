@@ -21,6 +21,10 @@ const CastPlatePrepareControl = dynamic(
   () => import('@/components/character/CastPlatePrepareControl'),
   { ssr: false, loading: () => null }
 );
+const CastLookGenerateControl = dynamic(
+  () => import('@/components/character/CastLookGenerateControl'),
+  { ssr: false, loading: () => null }
+);
 
 export type CharacterLookPlateSectionProps = {
   characterId: string;
@@ -166,6 +170,7 @@ export default function CharacterLookPlateSection({
   onRenamePlate,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+  const [generateStatus, setGenerateStatus] = useState<string | null>(null);
   // Day / Outfit's "Prepare plate →" lands on #looks; the section mounts after the Cast store
   // hydrates, so the browser's own jump to the hash has already missed it.
   useEffect(() => {
@@ -238,6 +243,15 @@ export default function CharacterLookPlateSection({
       {status ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="cast-look-plate-status">
           {status}
+        </p>
+      ) : null}
+      {generateStatus ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          data-testid="cast-look-generate-status"
+          role="status"
+        >
+          {generateStatus}
         </p>
       ) : null}
       {error ? <FieldError>{error}</FieldError> : null}
@@ -322,6 +336,15 @@ export default function CharacterLookPlateSection({
                 {removeLook ? 'Remove look' : 'Remove plate'}
               </Button>
             </div>
+            <CastLookGenerateControl
+              key={activePlate?.id ?? 'look'}
+              characterId={characterId}
+              lookId={activePlate?.id}
+              lookName={activePlate?.label}
+              hasPlate
+              disabled={uploading}
+              onStatus={setGenerateStatus}
+            />
             {onPreparePlate ? (
               <CastPlatePrepareControl
                 disabled={uploading}
@@ -340,12 +363,22 @@ export default function CharacterLookPlateSection({
             {severalLooks && activePlate
               ? `“${activePlate.label}” has no plate yet — add one for this look.`
               : 'No look plate yet — Outfit, Day and Story need one.'}{' '}
-            Use a clear photo of this character, one person, face visible.
+            Generate one from the Cast&apos;s description and face, or use a clear photo of this
+            character — one person, face visible.
           </p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <CastLookGenerateControl
+              key={activePlate?.id ?? 'look'}
+              characterId={characterId}
+              lookId={activePlate?.id}
+              lookName={activePlate?.label}
+              hasPlate={false}
+              disabled={uploading}
+              onStatus={setGenerateStatus}
+            />
             <UploadButton
               label="Add plate"
-              variant="primary"
+              variant="secondary"
               disabled={uploading}
               ariaLabel={
                 activePlate ? `Add a plate to the look ${activePlate.label}` : 'Add a look plate'
