@@ -465,3 +465,30 @@ describe('several look plates per Cast', () => {
     assert.equal(loadSettingsCache().shared.ipAdapterImageFilename, 'plate-c.png');
   });
 });
+
+describe('a plate still rendering when the look changes', async () => {
+  const { pendingPlateAfterSwitch } = await import('./cast-plate-switch');
+  const job = { pendingOutfitPlatePromptId: 'p1', pendingOutfitPlateCharacterId: 'c1' };
+  it('stays pinned to the look it was for on a switch', () => {
+    assert.deepEqual(pendingPlateAfterSwitch(job, 'c1', 'look-a', ['look-a', 'look-b']), {
+      pendingOutfitPlatePromptId: 'p1',
+      pendingOutfitPlateCharacterId: 'c1',
+      pendingOutfitPlateLookId: 'look-a',
+    });
+    assert.equal(
+      pendingPlateAfterSwitch({ ...job, pendingOutfitPlateLookId: 'look-b' }, 'c1', 'look-a', [
+        'look-a',
+        'look-b',
+      ]).pendingOutfitPlateLookId,
+      'look-b'
+    );
+  });
+  it('is dropped when its look is gone, or when nothing was switched', () => {
+    assert.equal(
+      pendingPlateAfterSwitch(job, 'c1', 'look-a', ['look-b']).pendingOutfitPlatePromptId,
+      undefined
+    );
+    assert.equal(pendingPlateAfterSwitch(job, 'c1').pendingOutfitPlatePromptId, undefined);
+    assert.equal(pendingPlateAfterSwitch(job, 'c2', 'look-a').pendingOutfitPlatePromptId, undefined);
+  });
+});

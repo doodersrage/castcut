@@ -56,6 +56,47 @@ function samePlatePicture(
 }
 
 /**
+ * A plate job still rendering when the active look changes: kept and pinned to the look it is for
+ * (its own look, else the look active until now), so it lands on that look — not cleared, and
+ * never on the newly picked look. A job with no look to pin to is cleared, as before.
+ */
+export function pendingPlateAfterSwitch(
+  fitting: {
+    pendingOutfitPlatePromptId?: string;
+    pendingOutfitPlateCharacterId?: string;
+    pendingOutfitPlateLookId?: string;
+  },
+  characterId: string,
+  previousLookId?: string,
+  /** The Cast's looks after the change: a job for a look that is gone is dropped. */
+  lookIds?: readonly string[]
+): {
+  pendingOutfitPlatePromptId?: string;
+  pendingOutfitPlateCharacterId?: string;
+  pendingOutfitPlateLookId?: string;
+} {
+  const promptId = fitting.pendingOutfitPlatePromptId?.trim();
+  const owner = fitting.pendingOutfitPlateCharacterId?.trim() || characterId;
+  // Kept only on a switch (previousLookId given): a removed look's job, or one finishing after
+  // an earlier plate was put back, is cleared as before.
+  const lookId = previousLookId?.trim()
+    ? fitting.pendingOutfitPlateLookId?.trim() || previousLookId.trim()
+    : '';
+  if (!promptId || owner !== characterId || !lookId || (lookIds && !lookIds.includes(lookId))) {
+    return {
+      pendingOutfitPlatePromptId: undefined,
+      pendingOutfitPlateCharacterId: undefined,
+      pendingOutfitPlateLookId: undefined,
+    };
+  }
+  return {
+    pendingOutfitPlatePromptId: promptId,
+    pendingOutfitPlateCharacterId: owner,
+    pendingOutfitPlateLookId: lookId,
+  };
+}
+
+/**
  * After the Cast's plate changed (another plate picked, added or removed): Outfit's session plate
  * follows, as on an upload, and Story's From-photo follows when it was the previous plate (a
  * photo picked in Story stays). Day and the dressed plates read the Cast plate itself; dressed
@@ -66,7 +107,14 @@ export function followCastPlateInSessions(
   characterId: string,
   previous: FittingPlate | null,
   next: CharacterRecord,
-  options?: { fitting?: boolean }
+  options?: {
+    fitting?: boolean;
+    /**
+     * The look that was active before the switch. A plate still rendering for it stays pinned to
+     * it and lands there (switching looks mid-render used to drop the new plate when it landed).
+     */
+    previousLookId?: string;
+  }
 ): void {
   const shared = loadSettingsCache().shared;
   const activeId = shared.activeCharacterId?.trim();
@@ -97,8 +145,12 @@ export function followCastPlateInSessions(
       referenceImageFilename: plate?.filename,
       referenceOriginalUrl: plate ? plate.originalUrl || plate.imageUrl : undefined,
       referenceOriginalFilename: plate ? plate.originalFilename || plate.filename : undefined,
-      pendingOutfitPlatePromptId: undefined,
-      pendingOutfitPlateCharacterId: undefined,
+      ...pendingPlateAfterSwitch(
+        fitting,
+        characterId,
+        options?.previousLookId,
+        looksOf(next).map(look => look.id)
+      ),
       suppressAutoPlateSeed: false,
     });
   }
@@ -203,7 +255,7 @@ export function switchCastPlate(
   const previous = resolveFittingPlateFromCharacter(before);
   const next = activateLook(before.id, lookId);
   if (next && next.activeLookId !== before.activeLookId) {
-    followCastPlateInSessions(before.id, previous, next);
+    followCastPlateInSessions(before.id, previous, next, { previousLookId: before.activeLookId });
     followLookOutfitInSessions(
       before.id,
       activeLook(before).keptOutfit,
@@ -248,7 +300,7 @@ export function addBlankCastLook(characterId: string, name: string): CharacterRe
   upsertCharacter(withNewPlateLook(before, { name, reference: undefined, ipAdapter: undefined }));
   const next = getCharacter(before.id);
   if (next) {
-    followCastPlateInSessions(before.id, previous, next);
+    followCastPlateInSessions(before.id, previous, next, { previousLookId: before.activeLookId });
   }
   return next;
 }
