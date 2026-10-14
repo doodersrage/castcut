@@ -27,6 +27,9 @@ type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 const SAFE_OWNER = /^[A-Za-z0-9._-]{1,128}$/;
 const MANIFEST = 'castcut-media-backup.json';
+/** A Cast bundle's own data (Cast file v2): the record, its Story, Day plan and Gallery entries. */
+export const CAST_BUNDLE_DATA = 'castcut-cast.json';
+const MAX_CAST_DATA_BYTES = 64 * 1024 * 1024;
 const READ_CHUNK = 1024 * 1024;
 
 export function mediaBackupOwner(userId?: string | null): string {
@@ -80,8 +83,20 @@ export async function* mediaBackupTar(input: {
   owner: string;
   comfyUrl: string;
   comfyFiles: ComfyFileRef[];
+  /** Only these Gallery entries' kept copies, and no identity lock (a Cast bundle). */
+  galleryEntryIds?: string[];
+  /** A Cast bundle's data file, written first. */
+  castData?: string;
   fetchImpl?: FetchLike;
 }): AsyncGenerator<Uint8Array> {
+  const bundle = Array.isArray(input.galleryEntryIds);
+  const onlyEntries = bundle ? new Set(input.galleryEntryIds) : null;
+  if (input.castData) {
+    const bytes = new TextEncoder().encode(input.castData);
+    yield tarFileHeader(CAST_BUNDLE_DATA, bytes.length, Date.now() / 1000);
+    yield bytes;
+    yield tarPadding(bytes.length);
+  }
   const fetchImpl = input.fetchImpl ?? fetch;
   const counts: MediaBackupCounts = {
     galleryFiles: 0,
@@ -94,11 +109,15 @@ export async function* mediaBackupTar(input: {
     key: 'galleryFiles' | 'identityFiles';
   }> = [
     { prefix: 'gallery-media', key: 'galleryFiles' },
-    { prefix: 'identity', key: 'identityFiles' },
+    ...(bundle ? [] : [{ prefix: 'identity' as const, key: 'identityFiles' as const }]),
   ];
   for (const section of sections) {
     const root = path.join(/* turbopackIgnore: true */ dataRoot(), section.prefix, input.owner);
     for (const rel of walkFiles(root)) {
+      if (onlyEntries && section.prefix === 'gallery-media') {
+        const entryId = rel.split('/')[0] ?? '';
+        if (!onlyEntries.has(entryId)) continue;
+      }
       const filePath = path.join(root, rel);
       let stat: fs.Stats;
       try {
@@ -114,6 +133,7 @@ export async function* mediaBackupTar(input: {
   }
 
   const base = input.comfyUrl.replace(/\/+$/, '');
+  const missing: string[] = [];
   for (const ref of input.comfyFiles) {
     const params = new URLSearchParams({
       filename: ref.filename,
@@ -131,6 +151,7 @@ export async function* mediaBackupTar(input: {
     }
     if (!bytes) {
       counts.comfyMissing += 1;
+      missing.push(ref.subfolder ? `${ref.subfolder}/${ref.filename}` : ref.filename);
       continue;
     }
     const rel = [ref.type, ref.subfolder, ref.filename].filter(Boolean).join('/');
@@ -144,10 +165,12 @@ export async function* mediaBackupTar(input: {
     JSON.stringify(
       {
         app: 'castcut',
-        kind: 'media-backup',
+        kind: bundle ? 'cast-bundle' : 'media-backup',
         version: 1,
         exportedAt: new Date().toISOString(),
         counts,
+        // ComfyUI files the data names that the exporting install no longer had.
+        missing: missing.slice(0, 200),
       },
       null,
       2
@@ -167,7 +190,15 @@ export function mediaBackupWebStream(
 
 /* ---------- export tickets: POST the file list, then a plain GET downloads ---------- */
 
-type Ticket = { owner: string; comfyUrl?: string; comfyFiles: ComfyFileRef[]; expires: number };
+type Ticket = {
+  owner: string;
+  comfyUrl?: string;
+  comfyFiles: ComfyFileRef[];
+  galleryEntryIds?: string[];
+  castData?: string;
+  filename?: string;
+  expires: number;
+};
 const tickets = new Map<string, Ticket>();
 
 export function createMediaBackupTicket(ticket: Omit<Ticket, 'expires'>): string {
@@ -245,6 +276,10 @@ export type MediaRestoreJob = {
   skipped: number;
   errors: string[];
   message?: string;
+  /** A Cast bundle's data file (the browser adds the Cast from it). */
+  castData?: string;
+  /** Files the exporting install already lacked (from the archive's manifest). */
+  missingAtExport?: string[];
 };
 
 const jobs = new Map<string, MediaRestoreJob>();
@@ -380,6 +415,26 @@ export async function runMediaRestore(input: {
       if (header.type !== '0' && header.type !== '\0') continue;
       if (name === MANIFEST) {
         sawManifest = true;
+        try {
+          const manifest = JSON.parse(
+            new TextDecoder().decode(
+              await readExactly(handle, bodyAt, Math.min(header.size, 1 << 20))
+            )
+          ) as { missing?: unknown };
+          if (Array.isArray(manifest.missing)) {
+            job.missingAtExport = manifest.missing.filter(
+              (entry): entry is string => typeof entry === 'string'
+            );
+          }
+        } catch {
+          // An older manifest: no list.
+        }
+        continue;
+      }
+      if (name === CAST_BUNDLE_DATA) {
+        if (header.size > MAX_CAST_DATA_BYTES)
+          throw new Error('The Cast data in this bundle is too large.');
+        job.castData = new TextDecoder().decode(await readExactly(handle, bodyAt, header.size));
         continue;
       }
       try {

@@ -18,6 +18,10 @@ export type MediaRestoreStatus = {
   skipped: number;
   errors: string[];
   message?: string;
+  /** A Cast bundle's data file. */
+  castData?: string;
+  /** Files the exporting install already lacked. */
+  missingAtExport?: string[];
 };
 
 export type MediaRestoreProgress =

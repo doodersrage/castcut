@@ -36,17 +36,40 @@ function cleanRefs(raw: unknown): ComfyFileRef[] {
 export async function POST(request: Request) {
   const owner = mediaBackupRequestOwner(request);
   if (!owner) return apiError('Sign in required.', 401);
-  let body: { comfyFiles?: unknown; comfyUrl?: string } = {};
+  let body: {
+    comfyFiles?: unknown;
+    comfyUrl?: string;
+    galleryEntryIds?: unknown;
+    castData?: unknown;
+    filename?: unknown;
+  } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
     return apiError('Invalid JSON body.', 400);
   }
   const comfyFiles = cleanRefs(body.comfyFiles);
+  // A Cast bundle: only its Gallery entries' copies, plus its data file.
+  const galleryEntryIds = Array.isArray(body.galleryEntryIds)
+    ? body.galleryEntryIds
+        .filter((id): id is string => typeof id === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(id))
+        .slice(0, 20_000)
+    : undefined;
+  const castData = typeof body.castData === 'string' ? body.castData : undefined;
+  if (castData && castData.length > 64 * 1024 * 1024) {
+    return apiError('That Cast is too large to bundle.', 413);
+  }
+  const filename =
+    typeof body.filename === 'string'
+      ? body.filename.replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 120)
+      : undefined;
   const ticket = createMediaBackupTicket({
     owner,
     comfyUrl: typeof body.comfyUrl === 'string' ? body.comfyUrl : undefined,
     comfyFiles,
+    ...(galleryEntryIds ? { galleryEntryIds } : {}),
+    ...(castData ? { castData } : {}),
+    ...(filename ? { filename } : {}),
   });
   return apiJson({
     url: `/api/storage/media-backup?ticket=${ticket}`,
@@ -71,10 +94,17 @@ export async function GET(request: Request) {
     return apiError(error instanceof Error ? error.message : 'Invalid ComfyUI URL.', 400);
   }
   const day = new Date().toISOString().slice(0, 10);
-  return new Response(mediaBackupWebStream({ owner, comfyUrl, comfyFiles: ticket.comfyFiles }), {
+  const stream = mediaBackupWebStream({
+    owner,
+    comfyUrl,
+    comfyFiles: ticket.comfyFiles,
+    galleryEntryIds: ticket.galleryEntryIds,
+    castData: ticket.castData,
+  });
+  return new Response(stream, {
     headers: {
       'Content-Type': 'application/x-tar',
-      'Content-Disposition': `attachment; filename="castcut-pictures-${day}.tar"`,
+      'Content-Disposition': `attachment; filename="${ticket.filename || `castcut-pictures-${day}`}.tar"`,
       'Cache-Control': 'no-store',
     },
   });

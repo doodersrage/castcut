@@ -142,6 +142,43 @@ describe('media-backup-server', () => {
     assert.equal(job.state, 'failed');
   });
 
+  it('a Cast bundle carries its data file and only its entries, and reports what was missing', async () => {
+    write('gallery-media/u/film-1/original', 'FILM');
+    write('gallery-media/u/other/original', 'OTHER');
+    write('identity/u/lock', 'LOCK');
+    const comfy = new Map<string, Uint8Array>([['input//plate.png', new TextEncoder().encode('P')]]);
+    const tar = await collect(
+      mediaBackupTar({
+        owner: 'u',
+        comfyUrl: 'http://old:8188',
+        comfyFiles: [
+          { filename: 'plate.png', subfolder: '', type: 'input' },
+          { filename: 'gone.png', subfolder: '', type: 'input' },
+        ],
+        galleryEntryIds: ['film-1'],
+        castData: '{"kind":"castcut-cast-bundle"}',
+        fetchImpl: fakeComfy(comfy),
+      })
+    );
+    fs.rmSync(path.join(dir, 'gallery-media'), { recursive: true });
+    const id = startMediaRestoreUpload();
+    appendMediaRestoreChunk(id, 0, tar);
+    const job = await runMediaRestore({
+      uploadId: id,
+      owner: 'v',
+      comfyUrl: 'http://new:8188',
+      fetchImpl: fakeComfy(new Map()),
+    });
+    assert.equal(job.state, 'done', job.message);
+    assert.equal(job.castData, '{"kind":"castcut-cast-bundle"}');
+    assert.deepEqual(job.missingAtExport, ['gone.png']);
+    assert.equal(job.galleryFiles, 1);
+    assert.equal(job.identityFiles, 0);
+    assert.equal(job.comfyUploaded, 1);
+    assert.ok(fs.existsSync(path.join(dir, 'gallery-media/v/film-1/original')));
+    assert.equal(fs.existsSync(path.join(dir, 'gallery-media/v/other')), false);
+  });
+
   it('rejects a chunk that skips ahead', () => {
     const id = startMediaRestoreUpload();
     assert.throws(() => appendMediaRestoreChunk(id, 10, new Uint8Array(4)), /at 0 bytes/);
