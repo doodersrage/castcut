@@ -29,6 +29,9 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Set once sign-in succeeded: the button stays busy until the next page loads (under
+  // `next dev` that page can take a while to compile, and the idle form looked like a failure).
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (!auth) return;
@@ -40,6 +43,20 @@ export default function LoginForm() {
       });
     }
   }, [searchParams, auth]);
+
+  // Already signed in (a reload, or Back after signing in): go on instead of showing the form.
+  const signedInUser = auth?.authEnabled ? auth.user : null;
+  const signedInFeatures = auth?.allowedFeatures;
+  useEffect(() => {
+    if (!signedInUser || searchParams.get('reset')) return;
+    window.location.replace(
+      resolveLandingRoute({
+        explicitNext: searchParams.get('next'),
+        remembered: loadLastToolRoute(),
+        allowedFeatures: signedInFeatures ?? 'all',
+      })
+    );
+  }, [signedInUser, signedInFeatures, searchParams]);
 
   if (!auth) return null;
 
@@ -60,6 +77,7 @@ export default function LoginForm() {
       remembered: loadLastToolRoute(),
       allowedFeatures,
     });
+    setLeaving(true);
     await refresh();
     // A full load, not router.replace: the router kept what it prefetched while signed out (every
     // page redirecting to /login), and on an iPhone sign-in stayed on the form.
@@ -258,16 +276,18 @@ export default function LoginForm() {
       {error ? <p className="ui-alert-danger text-sm">{error}</p> : null}
       {info ? <p className="ui-alert-success text-sm">{info}</p> : null}
 
-      <Button type="submit" disabled={loading} className="w-full" variant="primary">
-        {loading
-          ? 'Working…'
-          : mode === 'totp'
-            ? 'Verify code'
-            : mode === 'forgot'
-              ? 'Send reset link'
-              : mode === 'reset'
-                ? 'Update password'
-                : 'Sign in'}
+      <Button type="submit" disabled={loading || leaving} className="w-full" variant="primary">
+        {leaving
+          ? 'Signed in — opening…'
+          : loading
+            ? 'Working…'
+            : mode === 'totp'
+              ? 'Verify code'
+              : mode === 'forgot'
+                ? 'Send reset link'
+                : mode === 'reset'
+                  ? 'Update password'
+                  : 'Sign in'}
       </Button>
 
       {mode === 'forgot' || mode === 'reset' ? (
