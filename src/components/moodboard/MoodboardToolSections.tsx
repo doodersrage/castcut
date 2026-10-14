@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -65,9 +67,12 @@ const TOOL_ID = 'moodboard' as const;
 const MAX_TILES = 4;
 
 type ViewModel = ReturnType<typeof useMoodboardToolOrchestration>;
+
+const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 type Props = ViewModel & { description: string };
 
 export default function MoodboardToolSections({ description, ...vm }: Props) {
+  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const {
     shared,
     toolSettings,
@@ -299,13 +304,24 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               ) : null}
             </div>
             {platePreviewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={platePreviewUrl}
-                alt="Look plate"
-                className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-                data-testid="moodboard-look-plate-preview"
-              />
+              <button
+                type="button"
+                className="block cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                aria-label="View larger"
+                title="View larger"
+                data-testid="moodboard-look-plate-open"
+                onClick={() =>
+                  setLightbox({ images: [platePreviewUrl], index: 0, title: 'Look plate' })
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={platePreviewUrl}
+                  alt="Look plate"
+                  className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                  data-testid="moodboard-look-plate-preview"
+                />
+              </button>
             ) : (
               <p className="type-caption text-[var(--text-muted)]">
                 No Cast plate yet — upload, Gallery, or Extract look.
@@ -435,12 +451,27 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
               </Button>
             </div>
             {activeTile.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={activeTile.imageUrl}
-                alt={activeTile.label || 'Look reference'}
-                className="mt-3 max-h-48 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-              />
+              <button
+                type="button"
+                className="block cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] mt-3"
+                aria-label="View larger"
+                title="View larger"
+                data-testid="look-tile-image-open"
+                onClick={() =>
+                  setLightbox({
+                    images: [activeTile.imageUrl ?? ''],
+                    index: 0,
+                    title: activeTile.label || 'Look reference',
+                  })
+                }
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={activeTile.imageUrl}
+                  alt={activeTile.label || 'Look reference'}
+                  className="max-h-48 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+                />
+              </button>
             ) : (
               <p className="type-caption mt-2 text-[var(--text-muted)]">
                 Optional reference still — used when extracting a look pack via vision; text notes
@@ -645,12 +676,23 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
           className="mt-3 flex flex-wrap items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3"
           data-testid="moodboard-scene-preview"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={scenePreviewUrl}
-            alt="Queued scene still"
-            className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
-          />
+          <button
+            type="button"
+            className="block cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            aria-label="View larger"
+            title="View larger"
+            data-testid="moodboard-scene-preview-open"
+            onClick={() =>
+              setLightbox({ images: [scenePreviewUrl], index: 0, title: 'Scene still' })
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={scenePreviewUrl}
+              alt="Queued scene still"
+              className="max-h-40 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
+            />
+          </button>
           <div className="space-y-2">
             <p className="type-caption text-[var(--text-muted)]">
               Scene still ready — Keep as Cast look plate, or requeue.
@@ -701,6 +743,13 @@ export default function MoodboardToolSections({ description, ...vm }: Props) {
         showQueueButton={false}
         onSendComfyUi={() => void queueScene()}
       />
+      {lightbox ? (
+        <ImageLightbox
+          state={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndexChange={() => {}}
+        />
+      ) : null}
     </ToolLayout>
   );
 }

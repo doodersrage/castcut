@@ -1,5 +1,6 @@
 'use client';
 
+import { lookPlateDrifted } from '@/lib/look-plate-guard';
 import CastVoiceSection from '@/components/character/CastVoiceSection';
 import CastLikenessSection from '@/components/character/CastLikenessSection';
 import CastMarksSection from '@/components/character/CastMarksSection';
@@ -134,6 +135,14 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           onRemovePlate={props.removeActivePlate}
           onRenamePlate={props.renameActivePlate}
           plateHistory={activeLook(character).plateHistory}
+          plateDrift={
+            lookPlateDrifted(activeLook(character)) && activeLook(character).plateCheck
+              ? {
+                  face: activeLook(character).plateCheck!.face ?? 0,
+                  against: activeLook(character).plateCheck!.against,
+                }
+              : null
+          }
           onRestorePlate={props.restoreActivePlate}
         />
       ) : null}

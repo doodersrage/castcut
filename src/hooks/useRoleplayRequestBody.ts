@@ -1,5 +1,6 @@
 'use client';
 
+import { storyHintsWithLook } from '@/lib/story-cast-lines';
 import { withCastPlace } from '@/lib/cast-places';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { useCallback, type MutableRefObject } from 'react';
@@ -64,7 +65,11 @@ export function useRoleplayRequestBody({
         personaId,
         customPersona: toolSettings.customPersona,
         characterName: toolSettings.characterName,
-        extraHints: toolSettings.extraHints,
+        // With the active look's Look notes (switching looks switches them).
+        extraHints: storyHintsWithLook(
+          toolSettings.extraHints,
+          getCharacter(shared.activeCharacterId)
+        ),
         // Her home / office look the same in every scene set there (cast-places.ts).
         setting:
           withCastPlace(

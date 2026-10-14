@@ -5,7 +5,13 @@ import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { applyCharacterRecordFresh, getCharacter } from '@/lib/character-os';
+import {
+  activeLook,
+  applyCharacterRecordFresh,
+  getCharacter,
+  setLookNotes,
+} from '@/lib/character-os';
+import { canReuseStagedLookPack, loadLookPack, lookPackNotes } from '@/lib/look-pack';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
@@ -266,6 +272,13 @@ export function useMoodboardToolOrchestrationCore() {
           isolate: true,
           model: loadSettingsCache().shared.model,
         });
+        // The look keeps this Look's notes (Story writes with the active look's).
+        const staged = loadLookPack();
+        const notes =
+          staged && canReuseStagedLookPack(staged, result.character.id)
+            ? lookPackNotes(staged).slice(0, 1200)
+            : '';
+        if (notes) setLookNotes(result.character.id, activeLook(result.character).id, notes);
         saveSharedSettings({
           ...loadSettingsCache().shared,
           ...applyCharacterRecordFresh(result.character),

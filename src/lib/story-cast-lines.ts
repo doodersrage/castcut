@@ -12,7 +12,7 @@ import { castMarksLine } from './cast-marks';
 import { placeRoomOfSetting, resolveCastPlace } from './cast-places';
 import { castPropsLine } from './cast-props';
 import { castRelationInfo, normalizeCastRelationships } from './cast-relationships';
-import type { CastRelationKind, CharacterRecord } from './character-os';
+import { activeLook, looksOf, type CastRelationKind, type CharacterRecord } from './character-os';
 
 type CastLike =
   | (Pick<CharacterRecord, 'marks' | 'props' | 'relationships' | 'places'> & { id?: string })
@@ -143,4 +143,26 @@ export function storyFamilyRomance(
     if (new RegExp(`\\b${escaped}\\b`, 'i').test(text)) return person.name;
   }
   return null;
+}
+
+/**
+ * Story's hints with the active look's Look notes (CharacterLook.lookNotes): hints that are one
+ * of this Cast's looks' notes (left by "Story from this look") are swapped for the active look's,
+ * so switching looks switches the mood, light and palette the writer is given; the player's own
+ * hints are kept, with the active look's notes after them.
+ */
+export function storyHintsWithLook(
+  hints: string | null | undefined,
+  cast: CharacterRecord | null | undefined
+): string | undefined {
+  const own = hints?.trim() ?? '';
+  const notes = cast ? activeLook(cast).lookNotes?.trim() : '';
+  if (!cast || !notes) return own || undefined;
+  const lookNotes = new Set(
+    looksOf(cast)
+      .map(look => look.lookNotes?.trim())
+      .filter(Boolean)
+  );
+  if (!own || lookNotes.has(own)) return notes;
+  return own.includes(notes) ? own : `${own}\n${notes}`;
 }

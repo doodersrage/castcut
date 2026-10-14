@@ -2,7 +2,12 @@
 
 import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { applyCharacterRecordFresh } from '@/lib/character-os';
+import {
+  activeLook,
+  applyCharacterRecordFresh,
+  getCharacter,
+  setLookNotes,
+} from '@/lib/character-os';
 import { addCharacterLookPack } from '@/lib/play-cast';
 import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -16,6 +21,7 @@ import {
   lookPackFittingHref,
   lookPackRoleplayHref,
   saveLookPack,
+  lookPackNotes,
 } from '@/lib/look-pack';
 import { ensureOutfitPlateAfterLook, withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
 import { markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
@@ -290,6 +296,9 @@ export function useMoodboardToolOrchestrationPart2(ctx: MoodboardToolOrchestrati
         wardrobeId: shared.lockedWardrobeId?.trim() || staged.wardrobeId,
       };
       saveLookPack(next);
+      // The look this pack dresses keeps its notes (Story writes with the active look's).
+      const owner = next.characterId ? getCharacter(next.characterId) : undefined;
+      if (owner) setLookNotes(owner.id, activeLook(owner).id, lookPackNotes(next));
       const plateResult = await ensureOutfitPlateAfterLook({
         characterId: next.characterId,
         tiles,

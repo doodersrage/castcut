@@ -62,6 +62,8 @@ export type CharacterLookPlateSectionProps = {
   /** The active look's earlier plates, newest first. */
   plateHistory?: CharacterLookPlateRecord[];
   onRestorePlate?: (replacedAt: number) => void;
+  /** The likeness guard read the active plate as someone else (look-plate-guard.ts). */
+  plateDrift?: { face: number; against: string } | null;
 };
 
 function EarlierPlates({
@@ -232,6 +234,7 @@ export default function CharacterLookPlateSection({
   onRenamePlate,
   plateHistory = [],
   onRestorePlate,
+  plateDrift = null,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [generateStatus, setGenerateStatus] = useState<string | null>(null);
@@ -481,6 +484,29 @@ export default function CharacterLookPlateSection({
           </div>
         </div>
       )}
+      {plateDrift ? (
+        <p
+          className="ui-alert-warning type-caption mt-2"
+          role="status"
+          data-testid="cast-look-plate-drift"
+        >
+          This plate doesn&apos;t look like the Cast — {Math.round(plateDrift.face * 100)}% match
+          with {plateDrift.against}. Every still of this look starts from it.{' '}
+          {plateHistory.length > 0 && onRestorePlate ? (
+            <button
+              type="button"
+              className="ui-text-link"
+              disabled={uploading}
+              data-testid="cast-look-plate-drift-restore"
+              onClick={() => onRestorePlate(plateHistory[0]!.replacedAt)}
+            >
+              Put back the earlier plate
+            </button>
+          ) : (
+            'Generate a new plate, or upload one.'
+          )}
+        </p>
+      ) : null}
       {plateHistory.length > 0 && onRestorePlate ? (
         <EarlierPlates history={plateHistory} disabled={uploading} onRestore={onRestorePlate} />
       ) : null}

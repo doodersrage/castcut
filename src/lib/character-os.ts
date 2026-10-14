@@ -261,6 +261,16 @@ export type CharacterLook = {
   plateHistory?: CharacterLookPlateRecord[];
   /** Side, back and expression renders of this look's plate (cast-reference-sheet.ts). */
   referenceSheet?: ReferenceSheetView[];
+  /**
+   * The likeness guard's reading of this look's plate (look-plate-guard.ts): its face against the
+   * Cast's reference look (or, for that look, its previous plate). `plate` is the plate checked.
+   */
+  plateCheck?: { plate: string; face: number | null; against: string; at: number };
+  /**
+   * The Look page's notes (mood, light, palette, place) when it gave this look its plate — Story
+   * writes with the active look's notes, so switching looks switches them.
+   */
+  lookNotes?: string;
 };
 
 /** A plate a look had before it was replaced or removed, with the face that went with it. */
@@ -1603,4 +1613,16 @@ export function saveCharacterTraits(
     looks,
   });
   return getCharacter(character.id);
+}
+
+/** Keep the Look page's notes on a look (CharacterLook.lookNotes). */
+export function setLookNotes(characterId: string, lookId: string, notes: string): void {
+  const character = getCharacter(characterId);
+  if (!character) return;
+  upsertCharacter({
+    ...character,
+    looks: (character.looks ?? []).map(look =>
+      look.id === lookId ? { ...look, lookNotes: notes.trim() || undefined } : look
+    ),
+  });
 }
