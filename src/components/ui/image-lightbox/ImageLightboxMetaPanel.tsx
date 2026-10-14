@@ -55,6 +55,8 @@ export default function ImageLightboxMetaPanel({
         dims ? dims : null,
         meta.derivedKind ? meta.derivedKind : null,
         meta.host ? `Host ${meta.host}` : null,
+        meta.usedIn ? `Used in ${meta.usedIn}` : null,
+        meta.needsLook ? `Needs a look: ${meta.needsLook}` : null,
         preferFullRes ? 'Viewing full-res' : hasDistinctFullRes ? 'Viewing mid-res' : null,
         fullResLoading ? 'Loading full-res…' : null,
       ].filter(Boolean) as string[])

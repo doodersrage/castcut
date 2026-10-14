@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 import GalleryCastFilter from '@/components/gallery/GalleryCastFilter';
+import GalleryRedoNeedsLook from '@/components/gallery/GalleryRedoNeedsLook';
 import GalleryLookFilter from '@/components/gallery/GalleryLookFilter';
 import type {
   ComfyGalleryFilter,
@@ -175,7 +176,7 @@ export default function GalleryFiltersPrimaryRow({
           <span className="type-caption text-[var(--text-muted)]">Checks</span>
           <FilterChip
             active={Boolean(filter.playCheckMissOnly)}
-            label="Missed pose / face"
+            label="Needs a look"
             testId="gallery-filter-play-miss"
             onClick={() =>
               setFilter(previous => ({
@@ -184,6 +185,7 @@ export default function GalleryFiltersPrimaryRow({
               }))
             }
           />
+          {filter.playCheckMissOnly ? <GalleryRedoNeedsLook castId={filter.characterId} /> : null}
         </div>
       ) : null}
 

@@ -12,7 +12,7 @@ import {
 } from '@/lib/cast-marks-check';
 import { checkStillMarks } from '@/lib/cast-marks-check-client';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast-plate-prepare';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { dayPartnerNoun } from '@/lib/day-partner';
 import type { FittingCompareTryOn } from '@/lib/fitting-room';
@@ -97,6 +97,9 @@ export function useFittingMarksCheck(
             issues = nextIssues;
           }
           if (!fixed) {
+            recordGalleryPlayChecks(card.promptId, {
+              marksMissing: issues?.length ? marksCheckNote(issues) : 'not as set',
+            });
             input.setSaveStatus(
               `Her marks: ${issues?.length ? marksCheckNote(issues) : 'not as set'} — the repair didn't take; the try-on is unchanged.`
             );

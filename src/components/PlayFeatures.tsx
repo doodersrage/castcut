@@ -4,6 +4,7 @@ import '@/lib/play-features';
 import '@/components/PlayAppSlots';
 import PlayCastPlateWatcher from '@/components/play/PlayCastPlateWatcher';
 import LookPlateGuardWatcher from '@/components/play/LookPlateGuardWatcher';
+import ClipCheckWatcher from '@/components/play/ClipCheckWatcher';
 // Shell hoists (as in AppShell): Play modules most Play routes use, shipped once in the root
 // chunk instead of copied into each route chunk by Turbopack. Check the build after changing.
 import '@/lib/fitting-room';
@@ -19,6 +20,7 @@ export default function PlayFeatures() {
     <>
       <PlayCastPlateWatcher />
       <LookPlateGuardWatcher />
+      <ClipCheckWatcher />
     </>
   );
 }

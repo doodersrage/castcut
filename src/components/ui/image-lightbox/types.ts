@@ -45,6 +45,10 @@ export type ImageLightboxSlideMeta = {
   negativePrompt?: string;
   derivedKind?: string;
   host?: string;
+  /** Cut films this still or clip is a shot in (gallery-used-in.ts). */
+  usedIn?: string;
+  /** What its checks found (gallery-needs-look.ts). */
+  needsLook?: string;
 };
 
 export type ImageLightboxJobChrome = {

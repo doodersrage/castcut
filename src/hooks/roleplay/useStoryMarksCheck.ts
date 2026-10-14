@@ -16,7 +16,11 @@ import {
 import { checkStillMarks } from '@/lib/cast-marks-check-client';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast-plate-prepare';
 import { getCharacter } from '@/lib/character-os';
-import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/comfyui-gallery';
+import {
+  galleryEntryPrimaryViewUrl,
+  loadComfyGallery,
+  recordGalleryPlayChecks,
+} from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import {
   isRoleplayAdultContent,
@@ -162,6 +166,9 @@ export function useStoryMarksCheck(options: UseRoleplayBeatQueueOptions): {
         // Only swap if the scene still shows the picture we checked (not re-rolled meanwhile).
         const now = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
         if (!fixed || now?.imageUrl?.trim() !== shownUrl) {
+          if (!fixed) {
+            recordGalleryPlayChecks(beat.promptId, { marksMissing: left || 'not as set' });
+          }
           record({
             marksCheck: {
               imageUrl: shownUrl,

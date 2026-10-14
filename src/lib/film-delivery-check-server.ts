@@ -17,6 +17,10 @@ import {
   SHOT_TEXT_PROMPT,
   SHOT_SOURCE_UNREACHABLE as UNREACHABLE,
   type ShotProbe,
+  clipCutAtSec,
+  CUT_SAMPLE_FPS,
+  CUT_SAMPLE_H,
+  CUT_SAMPLE_W,
 } from './film-delivery-check';
 import { resolvePromptDataDir } from './prompt-data-paths';
 import { fetchFilmShotBytes } from './video-shot-fetch';
@@ -112,6 +116,27 @@ async function probeFile(
   }
   const duration = durationFrom(frames.stderr);
   if (duration && shot.kind === 'clip') out.durationSec = duration;
+  if (shot.kind === 'clip') {
+    // A hard cut inside the clip (a model "cutting" to a close-up): frames at the cut pass's size.
+    const fine = await run(ffmpeg, [
+      '-hide_banner',
+      '-v',
+      'error',
+      '-t',
+      String(MAX_SAMPLE_SEC),
+      '-i',
+      file,
+      '-map',
+      '0:v:0',
+      '-vf',
+      `fps=${CUT_SAMPLE_FPS},scale=${CUT_SAMPLE_W}:${CUT_SAMPLE_H},format=gray`,
+      '-f',
+      'rawvideo',
+      '-',
+    ]);
+    const cut = clipCutAtSec(new Uint8Array(fine.stdout));
+    if (cut != null) out.cutAtSec = Math.round(cut * 10) / 10;
+  }
   if (shot.kind === 'clip' && shot.expectSpeech) {
     const sound = await run(ffmpeg, [
       '-hide_banner',

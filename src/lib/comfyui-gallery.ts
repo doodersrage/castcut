@@ -1,3 +1,4 @@
+import { galleryNeedsLookReasons } from './gallery-needs-look';
 import type { ComfyOutputImage, ComfyOutputMediaKind } from './comfyui-outputs';
 import {
   buildComfyViewSrcSet,
@@ -479,10 +480,7 @@ export function filterComfyGalleryEntries(
       idx += 1;
       continue;
     }
-    if (
-      filter.playCheckMissOnly &&
-      !(entry.playChecks?.poseMiss === true || entry.playChecks?.faceMiss === true)
-    ) {
+    if (filter.playCheckMissOnly && galleryNeedsLookReasons(entry).length === 0) {
       idx += 1;
       continue;
     }
@@ -1011,6 +1009,9 @@ export function recordGalleryPlayChecks(
       merged.face = checks.face;
       merged.faceMiss = checks.faceMiss === true;
     }
+    if ('clipCutAt' in checks) merged.clipCutAt = checks.clipCutAt;
+    if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
+    if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;
     return { ...entry, playChecks: merged };
   });
   if (changed) saveComfyGallery(next);

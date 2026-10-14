@@ -13,6 +13,9 @@ import {
 } from '@/lib/improve-output';
 import { comfyUiJobProgressPercent, comfyUiJobStatusLabel } from '@/lib/comfyui-job-status';
 import { formatComfyHostLabel } from '@/lib/queue-status-notes';
+import { filmsUsingEntry } from '@/lib/gallery-used-in';
+import { galleryEntryViewUrls } from '@/lib/comfyui-gallery';
+import { galleryNeedsLookReasons } from '@/lib/gallery-needs-look';
 import { galleryDerivedKindLabel } from '@/lib/gallery-derived-kind';
 import {
   applyGalleryPromptAndStackToSession,
@@ -268,6 +271,11 @@ export function buildGalleryLightboxSlideChrome({
       negativePrompt: entry.negativePrompt,
       derivedKind: galleryDerivedKindLabel(entry.derivedKind),
       host: formatComfyHostLabel(entry.comfyUrl) ?? undefined,
+      usedIn:
+        filmsUsingEntry(entry, entries, galleryEntryViewUrls(entry))
+          .map(film => `“${film.title}”`)
+          .join(', ') || undefined,
+      needsLook: galleryNeedsLookReasons(entry).join('; ') || undefined,
     },
     onCopyPrompt: entry.prompt
       ? () => {

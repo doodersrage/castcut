@@ -7,6 +7,12 @@ export type GalleryPlayChecks = {
   face?: number;
   poseMiss?: boolean;
   faceMiss?: boolean;
+  /** A clip that cuts to another shot partway (seconds in) — clip-check.ts. */
+  clipCutAt?: number;
+  /** A clip that should have sound and has none. */
+  clipSilent?: boolean;
+  /** The Cast's marks still missing after the repair (what is missing). */
+  marksMissing?: string;
   at: number;
 };
 

@@ -64,7 +64,7 @@ export function buildActiveFilterChips({
   if (filter.playCheckMissOnly) {
     chips.push({
       key: 'playCheckMiss',
-      label: 'Missed pose / face',
+      label: 'Needs a look',
       clear: () => setFilter(previous => ({ ...previous, playCheckMissOnly: undefined })),
     });
   }

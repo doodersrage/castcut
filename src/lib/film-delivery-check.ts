@@ -26,7 +26,41 @@ export type ShotProbe = {
   dhash?: string;
   /** What the vision model read as text in the frame (readText on). */
   text?: { present: boolean; garbled: boolean; what: string };
+  /** A clip that cuts to another shot partway: where (seconds). */
+  cutAtSec?: number;
 };
+
+/** Frames a second and frame size the cut pass samples at (calibrated on these). */
+export const CUT_SAMPLE_FPS = 12;
+export const CUT_SAMPLE_W = 96;
+export const CUT_SAMPLE_H = 128;
+
+/**
+ * A hard cut inside a clip, from its gray frames (CUT_SAMPLE_* size): the largest mean change
+ * between two frames, when it is both large (> 25 of 255) and far above the clip's usual change
+ * (> 6× the median). Calibrated 2026-10-14 on MiniMax-H3 clips: a cut to a face close-up read 66
+ * (8.4× median); continuous clips read 8–16 (≤ 4.2×). Null for a continuous clip.
+ */
+export function clipCutAtSec(gray: Uint8Array, fps = CUT_SAMPLE_FPS): number | null {
+  const size = CUT_SAMPLE_W * CUT_SAMPLE_H;
+  const frames = Math.floor(gray.length / size);
+  if (frames < 6) return null;
+  const diffs: number[] = [];
+  for (let f = 1; f < frames; f += 1) {
+    let sum = 0;
+    const a = (f - 1) * size;
+    const b = f * size;
+    for (let i = 0; i < size; i += 1) sum += Math.abs(gray[b + i]! - gray[a + i]!);
+    diffs.push(sum / size);
+  }
+  const sorted = [...diffs].sort((x, y) => x - y);
+  const median = sorted[Math.floor(sorted.length / 2)]! + 1e-3;
+  let peak = 0;
+  for (let i = 1; i < diffs.length; i += 1) if (diffs[i]! > diffs[peak]!) peak = i;
+  const max = diffs[peak] ?? 0;
+  // A spike in the first frames is the clip settling in, not a cut.
+  return max > 25 && max / median > 6 && peak >= 2 ? (peak + 1) / fps : null;
+}
 
 /** `missing` when the file's host (ComfyUI) could not be reached — not proof it's gone. */
 export const SHOT_SOURCE_UNREACHABLE = 'unreachable';
@@ -152,6 +186,9 @@ export function shotDeliveryReasons(
       reasons.push('the clip is mostly black');
     else if (kind === 'clip' && (probe.blackRunSec ?? 0) >= BLACK_RUN_SEC)
       reasons.push(`the clip goes black for ${Math.round(probe.blackRunSec! * 10) / 10} s`);
+  }
+  if (typeof probe.cutAtSec === 'number') {
+    reasons.push(`cuts to another shot at ${probe.cutAtSec.toFixed(1)} s — re-roll or trim it`);
   }
   if (probe.text?.garbled) {
     reasons.push(

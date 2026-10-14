@@ -203,6 +203,10 @@ export function useDayStillAfterChecks(
           setStatus(
             `${target.label}: ${issues?.length ? marksCheckNote(issues) : 'marks'} — the repair didn't take; the still is unchanged.`
           );
+          // On the Gallery entry too (Needs a look).
+          recordGalleryPlayChecks(targetStill.promptId, {
+            marksMissing: issues?.length ? marksCheckNote(issues) : 'not as set',
+          });
           return;
         }
         // Only swap if the slot still shows the image we checked (not requeued meanwhile).
