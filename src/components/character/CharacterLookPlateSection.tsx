@@ -14,6 +14,7 @@ import { galleryPickPath } from '@/lib/gallery-handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery-media-client';
 import type { CastPlatePrepareOptions, prepareCastPlate } from '@/lib/cast-plate-prepare';
 import { castLookPortraitTile, type CastPlateTile } from '@/lib/character-plate-thumb';
+import type { CharacterLookPlateRecord } from '@/lib/character-os';
 import type { DayPartnerNoun } from '@/lib/day-partner';
 import { plateStanceNote, type PlateStance } from '@/lib/plate-stance';
 
@@ -56,7 +57,65 @@ export type CharacterLookPlateSectionProps = {
   /** Drop the active look and its plate (only offered with several looks; asks first). */
   onRemovePlate?: () => void;
   onRenamePlate?: (name: string) => void;
+  /** The active look's earlier plates, newest first. */
+  plateHistory?: CharacterLookPlateRecord[];
+  onRestorePlate?: (replacedAt: number) => void;
 };
+
+function EarlierPlates({
+  history,
+  disabled,
+  onRestore,
+}: {
+  history: CharacterLookPlateRecord[];
+  disabled: boolean;
+  onRestore: (replacedAt: number) => void;
+}) {
+  return (
+    <details className="mt-3" data-testid="cast-look-plate-history">
+      <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+        Earlier plates ({history.length})
+      </summary>
+      <div className="mt-2 flex flex-wrap gap-3">
+        {history.map(entry => {
+          const url =
+            entry.reference?.isolatedUrl?.trim() ||
+            entry.reference?.originalUrl?.trim() ||
+            entry.ipAdapter?.imageUrl?.trim() ||
+            '';
+          const when = new Date(entry.replacedAt).toLocaleString(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          });
+          return (
+            <div key={entry.replacedAt} className="flex w-24 flex-col items-center gap-1">
+              {url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={cacheBustIdentityMediaUrl(url)}
+                  alt={`Plate replaced ${when}`}
+                  className="h-32 w-24 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] object-contain"
+                />
+              ) : (
+                <div className="h-32 w-24 rounded-[var(--radius-sm)] border border-dashed border-[var(--border-subtle)]" />
+              )}
+              <span className="type-caption text-center text-[var(--text-muted)]">{when}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={disabled}
+                data-testid="cast-look-plate-restore"
+                onClick={() => onRestore(entry.replacedAt)}
+              >
+                Restore
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
 
 /** Name of the active look, saved on blur or Enter. */
 function PlateNameField({ name, onRename }: { name: string; onRename: (name: string) => void }) {
@@ -168,6 +227,8 @@ export default function CharacterLookPlateSection({
   onNewLook,
   onRemovePlate,
   onRenamePlate,
+  plateHistory = [],
+  onRestorePlate,
 }: CharacterLookPlateSectionProps) {
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [generateStatus, setGenerateStatus] = useState<string | null>(null);
@@ -415,6 +476,9 @@ export default function CharacterLookPlateSection({
           </div>
         </div>
       )}
+      {plateHistory.length > 0 && onRestorePlate ? (
+        <EarlierPlates history={plateHistory} disabled={uploading} onRestore={onRestorePlate} />
+      ) : null}
       {plate?.isolated === true ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">
           Isolated on white for Outfit / Day / Story.

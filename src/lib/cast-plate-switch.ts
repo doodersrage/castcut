@@ -11,6 +11,7 @@ import {
   getCharacter,
   looksOf,
   removeLook,
+  restoreLookPlate,
   upsertCharacter,
   withNewPlateLook,
   type CharacterRecord,
@@ -249,5 +250,23 @@ export function addBlankCastLook(characterId: string, name: string): CharacterRe
   if (next) {
     followCastPlateInSessions(before.id, previous, next);
   }
+  return next;
+}
+
+/**
+ * Put an earlier plate back on one of the Cast's looks (Cast home → Earlier plates). Outfit and
+ * Story follow when it is the active look, as on an upload.
+ */
+export function restoreCastPlate(
+  characterId: string,
+  lookId: string,
+  replacedAt: number
+): CharacterRecord | undefined {
+  const before = getCharacter(characterId);
+  if (!before) return undefined;
+  const wasActive = activeLook(before).id === lookId;
+  const previous = wasActive ? resolveFittingPlateFromCharacter(before) : null;
+  const next = restoreLookPlate(characterId, lookId, replacedAt);
+  if (next && wasActive) followCastPlateInSessions(characterId, previous, next);
   return next;
 }

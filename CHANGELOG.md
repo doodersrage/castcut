@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Earlier plates.** Replacing a look's plate (upload, Gallery pick, Generate, Prepare, Look's extract) or removing it could not be undone, except Prepare's own Undo. Each look now keeps its last six plates, each with the face that went with it: Cast home → Looks → *Earlier plates* → *Restore* puts one back, and the current plate takes its place in the list.
 - **Generate a look's plate on Cast home.** The Looks block offered only an upload or a Gallery pick (Look's generator sat a page away). *Generate plate* (or *Generate new plate* on a look that has one) renders it from the Cast's description and face, the same plate Day's *Make a plate from the description* makes, with an optional line for what the look changes (hair, makeup). The current plate stays until the new one lands, and it lands on the look that asked even if another look is picked meanwhile.
 - **Make it 30 s on WAN keeps its detail and colour.** Each WAN part started from the last one's softest frame, and WAN renders softer than what it starts from, so detail compounded away (172 → 30 by 14 s on a live 3-part chain). Each part's start frame is now sharpened back toward the clip's own detail, never past it (84 at 14 s, no halos). The per-part colour match had also never run on WAN: ffmpeg cannot seek into WAN's animated WebP, the middle-frame grab wrote nothing and the error was swallowed. Grabbing by decoding fixes it — colour drift by the end 3.1 → 0.5.
 

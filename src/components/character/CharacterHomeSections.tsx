@@ -16,6 +16,7 @@ import CharacterBibleSection from '@/components/character/CharacterBibleSection'
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
+import { activeLook } from '@/lib/character-os';
 import CastSeasonsSection from '@/components/character/CastSeasonsSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';
@@ -124,6 +125,8 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           }}
           onRemovePlate={props.removeActivePlate}
           onRenamePlate={props.renameActivePlate}
+          plateHistory={activeLook(character).plateHistory}
+          onRestorePlate={props.restoreActivePlate}
         />
       ) : null}
       {props.homeTab === 'bible' ? (

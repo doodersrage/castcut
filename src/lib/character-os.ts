@@ -161,7 +161,109 @@ export type CharacterLook = {
    * puts them back in Outfit, Day and Story; a Day slot wearing the look queues with them.
    */
   keptOutfit?: CharacterLookOutfit;
+  /** Plates this look had before, newest first (Cast home → Looks → Earlier plates). */
+  plateHistory?: CharacterLookPlateRecord[];
 };
+
+/** A plate a look had before it was replaced or removed, with the face that went with it. */
+export type CharacterLookPlateRecord = {
+  reference?: CharacterRecord['reference'];
+  ipAdapter?: CharacterRecord['ipAdapter'];
+  plateStance?: PlateStance;
+  replacedAt: number;
+};
+
+/** Earlier plates kept per look. */
+export const MAX_LOOK_PLATE_HISTORY = 6;
+
+/** The picture a look's plate shows: its reference photo, else its face lock ('' = none). */
+export function lookPlateKey(
+  look: Pick<CharacterLook, 'reference' | 'ipAdapter'> | null | undefined
+): string {
+  const reference = look?.reference;
+  const face = look?.ipAdapter;
+  return (
+    reference?.isolatedUrl?.trim() ||
+    reference?.originalUrl?.trim() ||
+    reference?.isolatedFilename?.trim() ||
+    reference?.originalFilename?.trim() ||
+    face?.imageUrl?.trim() ||
+    face?.imageFilename?.trim() ||
+    ''
+  );
+}
+
+/**
+ * Every look whose plate changed (replaced, prepared, generated, removed) keeps the one it had in
+ * its history, so a bad replacement can be undone. Applied on every Cast save.
+ */
+export function withLookPlateHistory(
+  prev: CharacterRecord | undefined,
+  next: CharacterRecord,
+  now = Date.now()
+): CharacterRecord {
+  if (!prev || !next.looks?.length) return next;
+  const before = new Map(looksOf(prev).map(look => [look.id, look]));
+  let changed = false;
+  const looks = next.looks.map(look => {
+    const old = before.get(look.id);
+    if (!old) return look;
+    const history = look.plateHistory ?? old.plateHistory;
+    const oldKey = lookPlateKey(old);
+    const newKey = lookPlateKey(look);
+    if (!oldKey || oldKey === newKey) {
+      if (history === look.plateHistory) return look;
+      changed = true;
+      return history ? { ...look, plateHistory: history } : look;
+    }
+    const entry: CharacterLookPlateRecord = {
+      ...(old.reference ? { reference: old.reference } : {}),
+      ...(old.ipAdapter ? { ipAdapter: old.ipAdapter } : {}),
+      ...(old.plateStance ? { plateStance: old.plateStance } : {}),
+      replacedAt: now,
+    };
+    const kept = [entry, ...(history ?? [])].filter(
+      (item, index, all) =>
+        lookPlateKey(item) &&
+        lookPlateKey(item) !== newKey &&
+        all.findIndex(other => lookPlateKey(other) === lookPlateKey(item)) === index
+    );
+    changed = true;
+    return { ...look, plateHistory: kept.slice(0, MAX_LOOK_PLATE_HISTORY) };
+  });
+  return changed ? { ...next, looks } : next;
+}
+
+/**
+ * Put an earlier plate back on a look (its face lock too); the plate it replaces goes into the
+ * history in its place.
+ */
+export function restoreLookPlate(
+  characterId: string,
+  lookId: string,
+  replacedAt: number
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  if (!character) return character;
+  const looks = looksOf(character);
+  const look = looks.find(entry => entry.id === lookId);
+  const pick = look?.plateHistory?.find(entry => entry.replacedAt === replacedAt);
+  if (!look || !pick) return character;
+  const restored: CharacterLook = {
+    ...look,
+    reference: pick.reference,
+    ipAdapter: pick.ipAdapter ?? look.ipAdapter,
+    plateHistory: look.plateHistory?.filter(entry => entry !== pick),
+  };
+  if (pick.plateStance) restored.plateStance = pick.plateStance;
+  else delete restored.plateStance;
+  upsertCharacter({
+    ...character,
+    looks: looks.map(entry => (entry.id === lookId ? restored : entry)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
+}
 
 /** What a look wears, from the try-on kept on it (Outfit → Keep). */
 export type CharacterLookOutfit = {
@@ -853,6 +955,7 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
     ...(current.plateStance ? { plateStance: current.plateStance } : {}),
     // Only when set — an extra undefined key would differ in strict deep-equal checks.
     ...(current.keptOutfit ? { keptOutfit: current.keptOutfit } : {}),
+    ...(current.plateHistory ? { plateHistory: current.plateHistory } : {}),
   };
   const nextLooks = looks.some(look => look.id === nextLook.id)
     ? looks.map(look => (look.id === nextLook.id ? nextLook : look))
@@ -889,7 +992,9 @@ export function upsertCharacter(record: CharacterRecord): CharacterRecord[] {
     id,
     updatedAt: Date.now(),
   };
-  const nextRecord = prev ? mergeCharacterUpdate(prev, drafted) : normalizeCharacterRecord(drafted);
+  const nextRecord = prev
+    ? withLookPlateHistory(prev, mergeCharacterUpdate(prev, drafted))
+    : normalizeCharacterRecord(drafted);
   // Nothing but the time changed: keep the stored record. Story re-saved its lead on every
   // visit, and a fresh timestamp on unchanged data can win a sync over a real edit made on
   // another device.

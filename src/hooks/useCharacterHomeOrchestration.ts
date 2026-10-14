@@ -55,7 +55,12 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
-import { addBlankCastLook, removeCastPlate, switchCastPlate } from '@/lib/cast-plate-switch';
+import {
+  addBlankCastLook,
+  removeCastPlate,
+  restoreCastPlate,
+  switchCastPlate,
+} from '@/lib/cast-plate-switch';
 import { castPlateTiles, nextCastLookName } from '@/lib/character-plate-thumb';
 import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
 import {
@@ -578,6 +583,16 @@ export function useCharacterHomeOrchestration(characterId: string) {
     applyPlateChange(next, `Using the look “${next ? lookLabel(next, activeLook(next).id) : ''}”.`);
   };
 
+  /** Earlier plates → Restore: the plate goes back on the active look, the current one into history. */
+  const restoreActivePlate = (replacedAt: number) => {
+    if (!character) {
+      return;
+    }
+    const target = activeLook(character);
+    const next = restoreCastPlate(character.id, target.id, replacedAt);
+    applyPlateChange(next, `Earlier plate restored on “${lookLabel(character, target.id)}”.`);
+  };
+
   const removeActivePlate = () => {
     if (!character || looks.length < 2) {
       return;
@@ -747,6 +762,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     selectPlate,
     removeActivePlate,
     renameActivePlate,
+    restoreActivePlate,
     newLookFromCurrent,
     prepareLookPlate,
     undoLookPlatePrepare,
