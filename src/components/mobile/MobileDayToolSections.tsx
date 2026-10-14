@@ -48,6 +48,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
+import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day-event';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -216,6 +217,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
+    importDayScript,
     writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,
@@ -969,6 +971,12 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onWriteEvent={writeDayEvent}
           onLeaveEvent={leaveDayEvent}
           onSwitchToWholeDay={() => void suggestDayScenes()}
+        />
+        <DayScriptImport
+          className="mt-2"
+          busy={busy}
+          stillCount={stills.filter(still => still.imageUrl).length}
+          onImport={importDayScript}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

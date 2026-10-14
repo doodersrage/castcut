@@ -36,6 +36,7 @@ import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
+import { dayScriptSlots, type DayScript } from '@/lib/day-script-import';
 import {
   applyDayEventPlan,
   clearDayEventSlots,
@@ -2811,6 +2812,27 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
 
+  // A script or outline pasted in: its scenes become the cards, as typed beats (day-script-import).
+  const importDayScript = useCallback(
+    (script: DayScript) => {
+      const result = dayScriptSlots(script, {
+        leadName: character?.name ?? '',
+        leadNoun: dayPartnerNoun(character ?? {}) === 'man' ? 'man' : 'woman',
+      });
+      updateToolSettings({
+        dayLength: result.length,
+        slots: result.slots,
+        // The script is the whole Day: an event running underneath goes, and the old Day's
+        // stills leave the cards (they stay in the Gallery; the import asks first) — they showed
+        // "Done" under the script's beats and Cut film would cut them.
+        dayEvent: undefined,
+        stills: [],
+      });
+      return { used: result.used, dropped: result.dropped };
+    },
+    [character, updateToolSettings]
+  );
+
   // One event: the LLM writes consecutive moments of one event in one place (day-event.ts).
   const writeDayEvent = useCallback(
     async (event: string): Promise<number> => {
@@ -3152,6 +3174,7 @@ export function useDayPlannerToolOrchestrationCore() {
     },
     suggestDayScenes,
     writeDayFromIdea,
+    importDayScript,
     writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,

@@ -2958,6 +2958,9 @@ export function ensureDaySlotsMatchMood(
   const stale = normalized.map(slot => {
     const beat = slot.sceneHints?.trim() || '';
     const setting = slot.location?.trim() || '';
+    // The player's own words (typed, or an imported script) are never swapped for Day's: a
+    // mood check rerolled typed beats silently (sport venues 2026-09-29, script import).
+    if (dayBeatIsTyped(slot)) return false;
     if (theme) {
       return !beat || !dayThemeOwns(theme, beat, setting);
     }

@@ -24,6 +24,7 @@ import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPan
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
+import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day-event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -227,6 +228,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
+    importDayScript,
     writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,
@@ -1031,6 +1033,12 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onWriteEvent={writeDayEvent}
             onLeaveEvent={leaveDayEvent}
             onSwitchToWholeDay={() => void suggestDayScenes()}
+          />
+          <DayScriptImport
+            className="mt-2"
+            busy={busy}
+            stillCount={stills.filter(still => still.imageUrl).length}
+            onImport={importDayScript}
           />
           {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
           <ToolActionRow className="mt-3">
