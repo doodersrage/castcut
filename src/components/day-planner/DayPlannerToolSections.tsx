@@ -151,6 +151,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     slots,
     stills,
     watchPlaylist,
+    previewNarration,
+    recordDayNarration,
     activeSlot,
     character,
     addVoiceToSlot,
@@ -833,7 +835,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     onChange={setFilmCutOptions}
                     disabled={assemblingFilm}
                     testIdPrefix="day-cut"
-                    shots={watchPlaylist as KeyedShot[]}
+                    shots={previewNarration.shots}
+                    narrationToRecord={{
+                      lines: previewNarration.missing.length,
+                      record: () => recordDayNarration(previewNarration.missing),
+                    }}
                     identityFor={shotIdentity}
                     previewTitleCard={character?.name ? { title: character.name } : null}
                     previouslyAvailable={

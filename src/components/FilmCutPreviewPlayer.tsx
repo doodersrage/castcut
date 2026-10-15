@@ -28,10 +28,12 @@ type Loaded = {
   notes: string[];
 };
 
-/** The loaded pictures, clips and music (mutable media — kept in a ref, not state). */
+/** The loaded pictures, clips, narration and music (mutable media — kept in a ref, not state). */
 type Media = {
   images: Map<number, HTMLImageElement>;
   videos: Map<number, HTMLVideoElement>;
+  /** Narration by shot: a voice-over from its shot's start, as the encode mixes it. */
+  voices: Map<number, HTMLAudioElement>;
   bed: HTMLAudioElement | null;
 };
 
@@ -57,6 +59,16 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
   });
 }
 
+function loadAudio(url: string): Promise<HTMLAudioElement> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.onloadedmetadata = () => resolve(audio);
+    audio.onerror = () => reject(new Error('Could not load a narration line.'));
+    audio.src = url;
+  });
+}
+
 function format(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -65,7 +77,8 @@ function format(sec: number): string {
 /**
  * Preview the cut: the shots as the encode will put them together — order, holds (fitted to the
  * music / length), clip trims, waist-up / chest-up framing, slow zoom, crossfades, captions and
- * the title card, in the cut's shape — with the music and the lines at their levels. Built from
+ * the title card, in the cut's shape — with the music, the lines and the narration at their
+ * levels (the music ducks under both). Built from
  * the same timing and drawing as the encodes (film-cut-preview.ts, cut-canvas-draw.ts).
  */
 export default function FilmCutPreviewPlayer({
@@ -85,7 +98,12 @@ export default function FilmCutPreviewPlayer({
   const size = CANVAS[shape];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const mediaRef = useRef<Media>({ images: new Map(), videos: new Map(), bed: null });
+  const mediaRef = useRef<Media>({
+    images: new Map(),
+    videos: new Map(),
+    voices: new Map(),
+    bed: null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -117,6 +135,17 @@ export default function FilmCutPreviewPlayer({
             else images.set(index, await loadImage(shot.url));
           })
         );
+        // A line that will not load is left out, as the encode leaves it out.
+        const voices = new Map<number, HTMLAudioElement>();
+        await Promise.all(
+          framed.shots.map(async (shot, index) => {
+            const url = shot.narrationUrl?.trim();
+            if (url) {
+              const audio = await loadAudio(url).catch(() => null);
+              if (audio) voices.set(index, audio);
+            }
+          })
+        );
         const clipSecs = framed.shots.map((shot, index) => {
           const duration = videos.get(index)?.duration;
           return shot.kind === 'clip' && duration && Number.isFinite(duration) ? duration : null;
@@ -130,7 +159,7 @@ export default function FilmCutPreviewPlayer({
         });
         const bed = value.audioBedUrl.trim() ? new Audio(value.audioBedUrl) : null;
         if (cancelled) return;
-        mediaRef.current = { images, videos, bed };
+        mediaRef.current = { images, videos, voices, bed };
         setLoaded({ timeline, shots: framed.shots, notes: [...prepared.notes, ...framed.notes] });
       } catch (err) {
         if (!cancelled)
@@ -153,6 +182,7 @@ export default function FilmCutPreviewPlayer({
         video.removeAttribute('src');
         video.load();
       }
+      for (const voice of media.current.voices.values()) voice.pause();
       media.current.bed?.pause();
     };
   }, []);
@@ -236,10 +266,28 @@ export default function FilmCutPreviewPlayer({
       for (const [index, video] of mediaRef.current.videos) {
         if (!playingClips.has(index) && !video.paused) video.pause();
       }
+      // Narration: from its shot's start to the line's end (it may run on past the shot).
+      let speaking = false;
+      for (const shot of mediaRef.current.voices.keys()) {
+        const voice = mediaRef.current.voices.get(shot);
+        if (!voice) continue;
+        const start = loaded.timeline.items.find(item => item.shot === shot)?.startSec;
+        const local = start === undefined ? -1 : t - start;
+        const length = Number.isFinite(voice.duration) ? voice.duration : 0;
+        if (local >= 0 && local < length) {
+          speaking = true;
+          voice.volume = Math.min(1, normalizeVoiceLevel(value.voiceLevel));
+          if (Math.abs(voice.currentTime - local) > 0.3) voice.currentTime = local;
+          if (running && voice.paused) void voice.play().catch(() => undefined);
+          if (!running && !voice.paused) voice.pause();
+        } else if (!voice.paused) {
+          voice.pause();
+        }
+      }
       const bed = mediaRef.current.bed;
       if (bed) {
         const music = Math.min(1, normalizeMusicLevel(value.musicLevel));
-        bed.volume = playingClips.size > 0 ? music * DUCK : music;
+        bed.volume = playingClips.size > 0 || speaking ? music * DUCK : music;
         if (Number.isFinite(bed.duration) && t >= bed.duration) {
           bed.pause();
         } else {

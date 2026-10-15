@@ -1,5 +1,7 @@
 'use client';
 
+import { applyDayNarration } from '@/lib/day-narration';
+import type { KeyedShot } from '@/lib/film-cut-plan';
 import { partnerOutfitWords } from '@/lib/day-partner-outfit';
 import { castMarksLine } from '@/lib/cast-marks';
 import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
@@ -392,6 +394,11 @@ export function useDayPlannerToolOrchestrationCore() {
   );
   stillsRef.current = stills;
   const watchPlaylist = useMemo(() => dayWatchPlaylist(stills, slots), [slots, stills]);
+  // The Cut preview's shots: the narration already recorded on them, the rest listed to record.
+  const previewNarration = useMemo(
+    () => applyDayNarration(watchPlaylist as KeyedShot[], slots, stills),
+    [slots, stills, watchPlaylist]
+  );
   // Every slot has its still: Story opens (play-metrics firstFullDayAt) — no cut needed.
   const fullDay =
     slots.length > 0 &&
@@ -3024,6 +3031,7 @@ export function useDayPlannerToolOrchestrationCore() {
     slots,
     stills,
     watchPlaylist,
+    previewNarration,
     activeSlot,
     character,
     selectedModel,

@@ -235,3 +235,21 @@ describe('Suggestive couple recipe for any pair', () => {
     assert.match(recipe('woman'), /A woman and a man together/);
   });
 });
+
+describe('Suggestive duo with an outfit given', () => {
+  it("drops the beat's own clothes from the Moment, so the spare robe is not put on him", async () => {
+    const { buildRapidSuggestiveDuoRecipe, withoutBeatClothes } = await import('./rapid-duo-recipe');
+    const beat =
+      "sitting sideways on her partner's lap on the couch in a silk robe over a slip — his arm around her waist, her legs draped over his, about to kiss";
+    assert.equal(
+      withoutBeatClothes(beat),
+      "sitting sideways on her partner's lap on the couch — his arm around her waist, her legs draped over his, about to kiss"
+    );
+    const dressed = buildRapidSuggestiveDuoRecipe({ beat, outfitFromFirst: true })!;
+    assert.doesNotMatch(dressed, /robe|slip/);
+    assert.match(dressed, /wears the outfit from the first image/);
+    // No outfit: the beat's clothes are what she wears.
+    const own = buildRapidSuggestiveDuoRecipe({ beat })!;
+    assert.match(own, /Moment: [^.]*in a silk robe over a slip/);
+  });
+});

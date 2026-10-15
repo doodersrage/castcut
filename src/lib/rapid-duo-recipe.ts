@@ -1141,6 +1141,17 @@ function impliedNudityCover(beat: string): string | null {
   return null;
 }
 
+/** The beat without the clothes it names for her ("… on the couch in a silk robe over a slip"). */
+export function withoutBeatClothes(beat: string): string {
+  const match = stripNegatedClauses(beat).match(CLOTHES_RE);
+  if (!match?.[0] || !beat.includes(match[0])) return beat;
+  return beat
+    .replace(match[0], '')
+    .replace(/\s+([,;])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /** The outfit a clothed beat names ("in lingerie under an open shirt"), or null. */
 export function suggestiveBeatClothes(beat: string): string | null {
   const text = stripNegatedClauses(beat);
@@ -1775,6 +1786,9 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     : leadMan
       ? masculineClothes(swapDayPromptGender(cleaned))
       : cleaned;
+  const outfitGiven = Boolean(
+    input.outfitImage || input.outfitFromFirst || outfitWords(input.outfit)
+  );
   const leadWears = input.outfitImage
     ? `the outfit from the ${input.outfitImage} image`
     : input.outfitFromFirst
@@ -1782,6 +1796,10 @@ export function buildRapidSuggestiveDuoRecipe(input: {
       : (outfitWords(input.outfit) ??
         (leadMan ? null : suggestiveBeatClothes(cleaned)) ??
         (leadMan ? 'a fitted shirt and trousers' : 'a flirty dress'));
+  // The outfit is given: the beat's own clothes go from the Moment. "On his lap on the couch in a
+  // silk robe over a slip" next to "she wears the outfit from the first image" put the spare robe
+  // on him, 5 of 5 of the user's renders (3 re-rolled, 2026-10-14).
+  const moment = outfitGiven && !leadMan ? withoutBeatClothes(beat) : beat;
   // One name for a same-sex partner in every line — "another woman" up top, "her girlfriend" in
   // the beat and "the other woman" in the face line read as three people (3 women 6/6 → 4/6).
   const sameSexName = leadMan ? 'his boyfriend' : 'her girlfriend';
@@ -1807,7 +1825,7 @@ export function buildRapidSuggestiveDuoRecipe(input: {
       ? `A ${lead} and ${other} together, affectionate. ${impliedNudityDuoCoverageLine(lead, partnerNoun)}`
       : `A ${lead} and ${other} together, both fully clothed, affectionate.`,
     suggestiveDuoPlacement(beat),
-    `Moment: ${beat}.`,
+    `Moment: ${moment}.`,
     suggestiveBeatIsImpliedNudity(beat) && !input.outfitImage && !input.outfitFromFirst
       ? `${leadPronoun} ${impliedCoupleWear(beat, lead)}; ${otherWho} ${impliedCoupleWear(beat, partnerNoun)}.`
       : `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,

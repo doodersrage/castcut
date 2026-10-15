@@ -7,7 +7,7 @@ import { isH3Model } from '@/lib/h3-renderer';
 import { makeFilmAngles } from '@/lib/film-angles-client';
 import { castVoiceOf } from '@/lib/cast-voice';
 import { renderNarrationLine } from '@/lib/film-narration-client';
-import { holdForNarration } from '@/lib/story-film';
+import { applyDayNarration, type DayNarrationLine } from '@/lib/day-narration';
 import { filmShapeOf } from '@/lib/video-resolution';
 import {
   framedTalkingStill,
@@ -829,6 +829,29 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     ]
   );
 
+  /** Record narration lines not yet rendered (Cut film, and the Cut preview's Record button). */
+  const recordDayNarration = useCallback(
+    async (lines: DayNarrationLine[]) => {
+      for (const { slotId, label, line } of lines) {
+        setFilmStatus(`Recording the narration for ${label}…`);
+        const url = await renderNarrationLine({
+          line,
+          speaker: dayPartnerNoun(character ?? {}) === 'man' ? 'man' : 'woman',
+          voiceSample: castVoiceOf(character?.id)?.sample,
+        }).catch(() => undefined);
+        if (!url) continue;
+        const nextStills = upsertDaySlotStill(stillsRef.current, {
+          slotId: slotId as DaySlotId,
+          narrationUrl: url,
+          narrationFor: line,
+        });
+        stillsRef.current = nextStills;
+        updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      }
+    },
+    [character, setFilmStatus, shared.activeCharacterId, stillsRef, updateToolSettings]
+  );
+
   const cutDayFilm = useCallback(
     async (options?: { excludeKeys?: string[] }) => {
       // The shot list (order, leave-outs, captions, holds), plus any shots left out at the
@@ -871,32 +894,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           if (wide) shots[index] = { ...shot, url: wide };
         }
       }
-      // Narration: each slot's voice-over, rendered once per line and kept on the still.
-      for (const [index, shot] of shots.entries()) {
-        const slot = slots.find(entry => entry.id === shot.key);
-        const line = slot?.narration?.trim();
-        if (!slot || !line) continue;
-        const still = stillsRef.current.find(entry => entry.slotId === slot.id);
-        let url = still?.narrationFor === line ? still.narrationUrl : undefined;
-        if (!url) {
-          setFilmStatus(`Recording the narration for ${slot.label}…`);
-          url = await renderNarrationLine({
-            line,
-            speaker: dayPartnerNoun(character ?? {}) === 'man' ? 'man' : 'woman',
-            voiceSample: castVoiceOf(character?.id)?.sample,
-          }).catch(() => undefined);
-          if (url) {
-            const nextStills = upsertDaySlotStill(stillsRef.current, {
-              slotId: slot.id,
-              narrationUrl: url,
-              narrationFor: line,
-            });
-            stillsRef.current = nextStills;
-            updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
-          }
-        }
-        if (url) shots[index] = { ...holdForNarration(shots[index]!, line), narrationUrl: url };
-      }
+      // Narration: each slot's voice-over, rendered once per line and kept on the still (the
+      // Cut preview records them the same way — recordDayNarration).
+      await recordDayNarration(applyDayNarration(shots, slots, stillsRef.current).missing);
+      shots.splice(0, shots.length, ...applyDayNarration(shots, slots, stillsRef.current).shots);
       // "Previously on": a few shots of the season's last episode open this one.
       const recap =
         character && filmCutOptions.previouslyOn !== false
@@ -1764,6 +1765,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     animateSlot,
     animateAllClips,
     cutDayFilm,
+    recordDayNarration,
     addCloseUps,
     saveFilmToCast,
     shareLastCut,

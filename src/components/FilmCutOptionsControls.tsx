@@ -90,6 +90,11 @@ type FilmCutOptionsControlsProps = {
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
   /** The title card the cut opens on (shown in Preview the cut). */
   previewTitleCard?: FilmTitleCard | null;
+  /**
+   * Narration lines the cut has but the preview can't play yet (not recorded): offer to record
+   * them, so the preview plays the whole mix. Cut film reuses the recordings.
+   */
+  narrationToRecord?: { lines: number; record: () => Promise<void> };
 };
 
 /** Crossfade, shape and size, and audio bed for Day/Story/Cast Cut (upload or URL). */
@@ -104,8 +109,10 @@ export default function FilmCutOptionsControls({
   previewTitleCard,
   previouslyAvailable = false,
   storyExtras = false,
+  narrationToRecord,
 }: FilmCutOptionsControlsProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [scoring, setScoring] = useState(false);
   const score = async () => {
@@ -311,17 +318,37 @@ export default function FilmCutOptionsControls({
             onClose={() => setPreviewOpen(false)}
           />
         ) : (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={disabled}
-            title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music"
-            onClick={() => setPreviewOpen(true)}
-            data-testid={`${testIdPrefix}-preview-open`}
-          >
-            ▶ Preview the cut
-          </Button>
+          <ToolActionRow>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={disabled || recording}
+              title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music, lines and narration"
+              onClick={() => setPreviewOpen(true)}
+              data-testid={`${testIdPrefix}-preview-open`}
+            >
+              ▶ Preview the cut
+            </Button>
+            {narrationToRecord && narrationToRecord.lines > 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={disabled || recording}
+                title="Record the voice-over lines now, so the preview plays them (Cut film uses the same recordings)"
+                onClick={() => {
+                  setRecording(true);
+                  void narrationToRecord.record().finally(() => setRecording(false));
+                }}
+                data-testid={`${testIdPrefix}-preview-record-narration`}
+              >
+                {recording
+                  ? 'Recording narration…'
+                  : `Record narration to hear it (${narrationToRecord.lines} line${narrationToRecord.lines === 1 ? '' : 's'})`}
+              </Button>
+            ) : null}
+          </ToolActionRow>
         )
       ) : null}
 
@@ -516,6 +543,7 @@ export function FilmCutOptionsDisclosure({
   previewTitleCard,
   previouslyAvailable = false,
   storyExtras = false,
+  narrationToRecord,
 }: FilmCutOptionsControlsProps) {
   return (
     <details
@@ -537,6 +565,7 @@ export function FilmCutOptionsDisclosure({
           previewTitleCard={previewTitleCard}
           previouslyAvailable={previouslyAvailable}
           storyExtras={storyExtras}
+          narrationToRecord={narrationToRecord}
         />
       </div>
     </details>

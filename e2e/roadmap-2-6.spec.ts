@@ -354,7 +354,13 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
           { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
           { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'waves', line: 'Hi!' },
           { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'laughs' },
-          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads' },
+          {
+            id: 'night',
+            label: 'Night',
+            location: 'bedroom',
+            sceneHints: 'reads',
+            narration: 'She reads until late.',
+          },
         ],
         stills: [
           { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'pv-m' },
@@ -383,6 +389,8 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
   await coach.getByTestId('day-cut-shape').selectOption('square');
   await coach.getByTestId('day-cut-titles').check();
+  // Night's narration is not recorded yet: the preview offers to record it to hear it.
+  await expect(coach.getByTestId('day-cut-preview-record-narration')).toContainText('1 line');
   await coach.getByTestId('day-cut-preview-open').click();
   const preview = coach.getByTestId('day-cut-preview');
   // Title card + 2.5 s + 2 s clip + 2.5 s: 3 shots, 0:09.
