@@ -5,6 +5,7 @@ import { isPlayStoryLocked } from '@/lib/play-step-machine';
 import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import dynamic from 'next/dynamic';
 import PlayCampaignCharacterSection from '@/components/play/PlayCampaignCharacterSection';
 import PlayCampaignShareLookPackSection from '@/components/play/PlayCampaignShareLookPackSection';
 import PlayCampaignSavedLookPacksSection from '@/components/play/PlayCampaignSavedLookPacksSection';
@@ -16,10 +17,16 @@ import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import PlayIdentityReadyBanner from '@/components/PlayIdentityReadyBanner';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
+
 import { startStarterPlayFilm } from '@/lib/play-starter';
 import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { useSyncExternalStore } from 'react';
+
+// Owns a ComfyUI queue hook — loaded only once a Cast was just created.
+const CastFirstPlatePanel = dynamic(() => import('@/components/play/CastFirstPlatePanel'), {
+  ssr: false,
+});
 
 const ACCENT = 'amber' as const;
 
@@ -229,6 +236,11 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
               </div>
             </div>
           </>
+        ) : null}
+
+        {/* The Cast just created: its first plate and where to go next, above everything else. */}
+        {props.createdCastId && props.character?.id === props.createdCastId ? (
+          <CastFirstPlatePanel characterId={props.createdCastId} mapHref={props.mapHref} />
         ) : null}
 
         {!props.campaignComplete ? (

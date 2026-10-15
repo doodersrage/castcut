@@ -70,6 +70,8 @@ export function usePlayCampaignWizardOrchestration({
   const [status, setStatus] = useState<string | null>(null);
   const [shareCopyStatus, setShareCopyStatus] = useState<string | null>(null);
   const [stepOverride, setStepOverride] = useState<PlayCampaignStepId | null>(null);
+  /** The Cast Film just created — its first plate and next steps show (CastFirstPlatePanel). */
+  const [createdCastId, setCreatedCastId] = useState<string | null>(null);
   const lookPackFileRef = useRef<HTMLInputElement | null>(null);
   const [charactersRevision, setCharactersRevision] = useState(0);
   // The saved film can land after mount (server sync, another tab, a step finishing): re-read
@@ -415,7 +417,6 @@ export function usePlayCampaignWizardOrchestration({
   const createCharacter = useCallback(
     async (input: {
       name: string;
-      continueToMoodboard?: boolean;
       appearance?: CharacterAppearanceDraft | CharacterAppearanceFormDraft;
       personaId?: string;
       customPersona?: string;
@@ -459,42 +460,33 @@ export function usePlayCampaignWizardOrchestration({
         ...patch,
       });
       updateShared(patch);
-      // A film is Cast → Day now (Look is optional): continue to Day. Without a photo there is no
-      // plate yet — Day renders one from the description on arrival (makePlate=1).
+      // A film is Cast → Day: the film is at Day next. The Cast's first plate renders here, on
+      // Film (CastFirstPlatePanel, UltraReal), and the player picks Day, Outfit or Cast home —
+      // Create used to jump straight to Day, which made the plate on arrival.
       const dayIndex = PLAY_CAMPAIGN_STEPS.findIndex(entry => entry.id === 'day');
-      const continueToMoodboard = input.continueToMoodboard === true;
-      const moodboardIndex = dayIndex;
       savePlayCampaignState({
         version: 1,
         characterId: saved.id,
-        stepIndex: continueToMoodboard && moodboardIndex >= 0 ? moodboardIndex : 0,
+        stepIndex: dayIndex >= 0 ? dayIndex : 0,
         updatedAt: Date.now(),
       });
-      if (continueToMoodboard) {
-        markOnboardingFirstPlayCampaign();
-        void import('@/lib/local-observability').then(
-          ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
-            noteCampaignStepMetric();
-            noteCampaignMaxStepMetric(moodboardIndex >= 0 ? moodboardIndex : 0);
-          }
-        );
-        setStepOverride('day');
-        const needsPlate = !input.referenceFile;
-        setStatus(
-          needsPlate
-            ? `Created "${saved.name}" — opening Day and rendering a plate from the description.`
-            : `Created "${saved.name}" — opening Day.`
-        );
-        pushPlay(
-          `/day?character=${encodeURIComponent(saved.id)}${needsPlate ? '&makePlate=1' : ''}`
-        );
-        return;
-      }
+      markOnboardingFirstPlayCampaign();
+      void import('@/lib/local-observability').then(
+        ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
+          noteCampaignStepMetric();
+          noteCampaignMaxStepMetric(dayIndex >= 0 ? dayIndex : 0);
+        }
+      );
       setStepOverride('character');
-      setStatus(`Created "${saved.name}". Continue to Day when ready.`);
+      setCreatedCastId(saved.id);
+      setStatus(
+        input.referenceFile
+          ? `Created "${saved.name}" from the photo.`
+          : `Created "${saved.name}" — making the first plate.`
+      );
       replacePlay(`/play?character=${encodeURIComponent(saved.id)}`);
     },
-    [pushPlay, replacePlay, updateShared]
+    [replacePlay, updateShared]
   );
 
   const applySavedLookPack = useCallback(
@@ -543,6 +535,7 @@ export function usePlayCampaignWizardOrchestration({
     portableShareLink,
     persistCharacter,
     createCharacter,
+    createdCastId,
     goToStep,
     startNewCampaign,
     applySavedLookPack,

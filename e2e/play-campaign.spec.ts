@@ -3911,6 +3911,38 @@ test('play campaign empty cast offers create character CTA', async ({ page }) =>
   await expect(page.getByRole('link', { name: /Browse Cast/i })).toBeVisible();
 });
 
+test('Create stays on Film: the first plate starts and Day, Outfit and Cast home are offered', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+  });
+  await gotoStable(page, '/play');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('play-campaign-create-name').fill('Juno');
+  await page.getByTestId('play-campaign-create-continue').click();
+  const panel = page.getByTestId('play-campaign-first-plate');
+  await expect(panel).toBeVisible({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/play\?character=/);
+  // No ComfyUI in tests: the plate cannot queue, and the panel says so with a retry.
+  await expect(panel.getByTestId('play-campaign-first-plate-status')).toContainText(
+    /first plate|Could not queue/
+  );
+  await expect(panel.getByTestId('play-campaign-first-plate-day')).toHaveAttribute(
+    'href',
+    /\/day\?character=/
+  );
+  await expect(panel.getByTestId('play-campaign-first-plate-outfit')).toHaveAttribute(
+    'href',
+    /\/fitting\?character=/
+  );
+  await expect(panel.getByTestId('play-campaign-first-plate-cast')).toHaveAttribute(
+    'href',
+    /\/characters\//
+  );
+});
+
 test('dashboard elevates Start a film as primary studio path', async ({ page }) => {
   await gotoStable(page, '/dashboard');
   await dismissBlockingOverlays(page);

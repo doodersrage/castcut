@@ -1,5 +1,7 @@
 'use client';
 
+import { queueCastLookPlate } from '@/lib/cast-plate-queue';
+
 import { getCharacter } from '@/lib/character-os';
 import { partnerOutfitWords } from '@/lib/day-partner-outfit';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
@@ -29,7 +31,7 @@ import {
   type DayChecksGate,
   type DaySettledTakes,
 } from '@/lib/day-finish-order';
-import { applyCastLookPlateFromSource, ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
+import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
 import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/comfyui-gallery';
@@ -215,9 +217,9 @@ export function useDayPlannerToolOrchestration() {
     }
     setMakePlateStatus('Rendering a plate from the description…');
     try {
-      const result = await ensureOutfitPlateAfterLook({
+      // The same first plate Film and Cast home make (UltraReal; cast-plate-queue.ts).
+      const { result } = await queueCastLookPlate({
         characterId,
-        tiles: [],
         sendComfyUi: actions.sendComfyUi,
       });
       setMakePlateStatus(

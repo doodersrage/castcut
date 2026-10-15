@@ -97,13 +97,12 @@ export default function PlayCampaignCharacterSection({
     setReferenceFile(null);
   };
 
-  const submitCreate = async (continueToMoodboard: boolean) => {
+  const submitCreate = async () => {
     const name = draftName.trim() || 'Untitled character';
     setCreating(true);
     try {
       await createCharacter({
         name,
-        continueToMoodboard,
         appearance,
         personaId: personaId || undefined,
         customPersona: personaId ? customPersona : undefined,
@@ -138,7 +137,7 @@ export default function PlayCampaignCharacterSection({
               onKeyDown={event => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
-                  void submitCreate(true);
+                  void submitCreate();
                 }
               }}
               placeholder="e.g. Nova"
@@ -151,7 +150,7 @@ export default function PlayCampaignCharacterSection({
             <FieldLabel htmlFor="play-campaign-create-photo">From photo (optional)</FieldLabel>
             <p className="type-caption text-[var(--text-muted)]">
               Sets the Cast look plate so Outfit, Day, and Story share the same identity. Without
-              one, Day renders a plate from the description.
+              one, the first plate renders from the description right after Create.
             </p>
             <input
               id="play-campaign-create-photo"
@@ -187,19 +186,9 @@ export default function PlayCampaignCharacterSection({
               data-testid="play-campaign-create-continue"
               loading={creating}
               disabled={creating}
-              onClick={() => void submitCreate(true)}
+              onClick={() => void submitCreate()}
             >
-              Create & continue to Day
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              data-testid="play-campaign-create-only"
-              loading={creating}
-              disabled={creating}
-              onClick={() => void submitCreate(false)}
-            >
-              Create only
+              Create
             </Button>
           </div>
 

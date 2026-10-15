@@ -4,14 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
-import {
-  fetchComfyObjectInfoModelsCached,
-  readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
-import { getCharacter } from '@/lib/character-os';
-import { castOriginalPlate, ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
-import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
+import { queueCastLookPlate } from '@/lib/cast-plate-queue';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**
@@ -44,25 +37,10 @@ export default function CastLookGenerateControl({
   const generate = async () => {
     setBusy(true);
     try {
-      // UltraReal renders a Cast's first plate only. Every later plate is edited on Edit 2511
-      // from that original (the Cast's face lock) — rendered from words again it drifted to
-      // another face (look-outfit-plate.ts buildLookPlateEditPrompt).
-      const original = castOriginalPlate(getCharacter(characterId));
-      const inventory = original
-        ? null
-        : (readCachedComfyObjectInfoModels() ??
-          (await fetchComfyObjectInfoModelsCached().catch(() => null)));
-      const queueModel = original
-        ? resolveCastPlatePrepareModel(undefined)
-        : (resolvePreferredLookModel({ inventory }) ?? resolveCastPlatePrepareModel(undefined));
-      const result = await ensureOutfitPlateAfterLook({
+      const { result } = await queueCastLookPlate({
         characterId,
         lookId,
         lookNote: note,
-        ...(queueModel ? { queueModel } : {}),
-        ...(original ? { fromOriginal: original } : {}),
-        replaceWhenReady: true,
-        tiles: [],
         sendComfyUi: actions.sendComfyUi,
       });
       onStatus(
