@@ -22,8 +22,11 @@ export function signatureDiff(a: Uint8Array, b: Uint8Array): number {
  * moving (frame-to-frame motion above 40% of the clip's peak, smoothed over 5 frames) — LTX
  * turns in ~2.5 s and then stands, H3 turns over the whole clip. Whole-frame likeness to the
  * first frame does not work: the background and camera drift more than she changes.
- * `full` when the turn's last frame looks like its first (the viewer wraps; else it stops at the
- * ends). `turns` false when nothing moves.
+ * `full` when a frame in the turn's last third looks like its first (the viewer wraps there;
+ * else it stops at the ends). H3 turns for the whole clip and ends a little short of where she
+ * began: its last frame alone read 0.45 of the turn's widest difference in Chromium and 0.58 in
+ * Firefox, so Firefox played a full turn back and forth (2026-10-14); its closest frame reads
+ * ~0.45–0.51 in both. `turns` false when nothing moves.
  */
 export function turnLoop(signatures: Uint8Array[]): { end: number; full: boolean; turns: boolean } {
   const n = signatures.length;
@@ -48,8 +51,13 @@ export function turnLoop(signatures: Uint8Array[]): { end: number; full: boolean
   const first = signatures[0]!;
   let far = 0;
   for (let i = 1; i < end; i += 1) far = Math.max(far, signatureDiff(first, signatures[i]!));
-  const full = signatureDiff(first, signatures[end - 1]!) <= far * 0.5;
-  return { end, full, turns: true };
+  let back = end - 1;
+  for (let i = Math.max(8, Math.ceil((end * 2) / 3)); i < end; i += 1) {
+    if (signatureDiff(first, signatures[i]!) < signatureDiff(first, signatures[back]!)) back = i;
+  }
+  if (signatureDiff(first, signatures[back]!) > far * 0.6) return { end, full: false, turns: true };
+  // Wrap at the frame most like the first (it stands in for the first, so it is left out).
+  return { end: Math.max(back, 8), full: true, turns: true };
 }
 
 /** The frame shown after dragging `dx` pixels from `start` (wraps on a full turn). */

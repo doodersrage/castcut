@@ -21,6 +21,17 @@ describe('outfit turn', () => {
     assert.equal(loop.full, true);
   });
 
+  it('wraps a turn that runs the whole clip and ends a little short of the start', () => {
+    // H3: turning to the last frame, coming back to within 40% of the widest difference, with
+    // the last few frames drifting away again.
+    const turn = Array.from({ length: 141 }, (_, i) =>
+      flat(Math.round(100 * Math.sin((Math.PI * Math.min(i, 128)) / 141) + (i > 128 ? i - 128 : 0)))
+    );
+    const loop = turnLoop(turn);
+    assert.equal(loop.full, true);
+    assert.ok(loop.end >= 125 && loop.end <= 130, `end ${loop.end}`);
+  });
+
   it('keeps every frame and stops at the ends when the turn never comes back round', () => {
     const half = Array.from({ length: 60 }, (_, i) => flat(i * 2));
     const loop = turnLoop(half);

@@ -15,6 +15,46 @@ const FRAME_W = 360;
 
 type Frames = { bitmaps: ImageBitmap[]; full: boolean };
 
+/** A whole play-through with `schedule` calling back on each new frame; ends at the clip's end. */
+async function playThrough(
+  video: HTMLVideoElement,
+  schedule: (onFrame: () => void) => void,
+  capture: () => Promise<void>
+): Promise<void> {
+  // A second pass starts from the end: rewind first, or its first frame is a blank (Firefox).
+  if (video.currentTime !== 0) {
+    await new Promise<void>(resolve => {
+      video.onseeked = () => resolve();
+      video.currentTime = 0;
+    });
+  }
+  return new Promise<void>((resolve, reject) => {
+    let pending = Promise.resolve();
+    let done = false;
+    const finish = (error?: unknown) => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      video.onended = null;
+      if (error) reject(error);
+      else void pending.then(() => resolve(), reject);
+    };
+    // A stalled clip must not leave the viewer on "Getting the turn ready…" for good.
+    const timer = window.setTimeout(
+      () => finish(new Error('The runway clip stopped playing.')),
+      (video.duration || 10) * 3000 + 10_000
+    );
+    const onFrame = () => {
+      if (done) return;
+      pending = pending.then(capture);
+      if (!video.ended) schedule(onFrame);
+    };
+    schedule(onFrame);
+    video.onended = () => finish();
+    video.play().catch(finish);
+  });
+}
+
 async function readFrames(src: string, onProgress: (share: number) => void): Promise<Frames> {
   const video = document.createElement('video');
   video.muted = true;
@@ -32,9 +72,21 @@ async function readFrames(src: string, onProgress: (share: number) => void): Pro
   small.width = TURN_SIGNATURE_W;
   small.height = TURN_SIGNATURE_H;
   const smallCtx = small.getContext('2d', { willReadFrequently: true })!;
-  const bitmaps: ImageBitmap[] = [];
-  const signatures: Uint8Array[] = [];
+  let bitmaps: ImageBitmap[] = [];
+  let signatures: Uint8Array[] = [];
+  let lastFrame = -1;
+  const reset = () => {
+    for (const bitmap of bitmaps) bitmap.close();
+    bitmaps = [];
+    signatures = [];
+    lastFrame = -1;
+  };
   const capture = async () => {
+    // Animation ticks outnumber the clip's frames (and the clock moves between them): keep one
+    // capture per frame of the clip.
+    const frame = Math.round(video.currentTime * READ_FPS);
+    if (frame === lastFrame) return;
+    lastFrame = frame;
     bitmaps.push(await createImageBitmap(video, { resizeWidth: width, resizeHeight: height }));
     // Signature: the middle half of the width, where she stands, in grey.
     const vw = video.videoWidth;
@@ -50,20 +102,25 @@ async function readFrames(src: string, onProgress: (share: number) => void): Pro
     signatures.push(grey);
     onProgress(Math.min(bitmaps.length / count, 1));
   };
+  const enough = () => bitmaps.length >= count / 2;
+  // Played through, each shown frame kept: seeking re-decodes from the clip's only keyframe
+  // every time (~30 s for a 5 s clip); playing takes the clip's own length. Frame callbacks
+  // first; Firefox can skip them for a video that is not on the page (a turn that read no
+  // frames at all, 2026-10-14), so animation ticks next, and seeking last.
   if (typeof video.requestVideoFrameCallback === 'function') {
-    // Played once, each shown frame kept: seeking re-decodes from the clip's only keyframe
-    // every time (~30 s for a 5 s clip); playing takes the clip's own length.
-    await new Promise<void>((resolve, reject) => {
-      let pending = Promise.resolve();
-      const onFrame = () => {
-        pending = pending.then(capture);
-        if (!video.ended) video.requestVideoFrameCallback(onFrame);
-      };
-      video.requestVideoFrameCallback(onFrame);
-      video.onended = () => void pending.then(() => resolve());
-      video.play().catch(reject);
-    });
-  } else {
+    await playThrough(video, onFrame => video.requestVideoFrameCallback(onFrame), capture).catch(
+      () => undefined
+    );
+  }
+  if (!enough()) {
+    reset();
+    await playThrough(video, onFrame => window.requestAnimationFrame(onFrame), capture).catch(
+      () => undefined
+    );
+  }
+  if (!enough()) {
+    reset();
+    video.pause();
     for (let i = 0; i < count; i += 1) {
       await new Promise<void>(resolve => {
         video.onseeked = () => resolve();
@@ -74,6 +131,12 @@ async function readFrames(src: string, onProgress: (share: number) => void): Pro
   }
   video.removeAttribute('src');
   video.load();
+  if (bitmaps.length < 2) {
+    reset();
+    throw new Error(
+      'Could not read the frames of the runway clip — try again, or another browser.'
+    );
+  }
   const loop = turnLoop(signatures);
   for (const bitmap of bitmaps.slice(loop.end)) bitmap.close();
   return { bitmaps: bitmaps.slice(0, loop.end), full: loop.full };
