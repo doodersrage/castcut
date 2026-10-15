@@ -2467,14 +2467,7 @@ test('mobile play page exposes phone Day/Fitting and optional desk handoff', asy
   await expect(page.getByTestId('mobile-continue-desk-play')).toBeVisible();
 });
 
-test('mobile film funnel routes Moodboard → Fitting → Day', async ({ page }) => {
-  await gotoStable(page, '/m/moodboard');
-  await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('mobile-moodboard')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('mobile-moodboard-extract')).toBeVisible();
-  await expect(page.getByTestId('mobile-moodboard-continue-day')).toBeVisible();
-  await expect(page.getByTestId('mobile-moodboard-to-fitting')).toBeVisible();
-
+test('mobile film funnel routes Fitting → Day', async ({ page }) => {
   await gotoStable(page, '/m/fitting');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-fitting')).toBeVisible({ timeout: 30_000 });
