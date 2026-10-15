@@ -4212,6 +4212,18 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   );
   await page.getByTestId('play-campaign-create-hair-color').selectOption('bald');
   await expect(page.getByTestId('play-campaign-create-hair-style')).toBeDisabled();
+  // Facial hair is for men and nonbinary Casts; bust for women and nonbinary Casts.
+  await page.getByTestId('play-campaign-create-sex').selectOption('woman');
+  await expect(page.getByTestId('play-campaign-create-facial-hair')).toBeDisabled();
+  await expect(page.getByTestId('play-campaign-create-bust')).toBeEnabled();
+  await page.getByTestId('play-campaign-create-eye-color').selectOption('green');
+  await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
+    'Green eyes'
+  );
+  // Marks can be picked before the Cast exists (they go onto the first plate).
+  const marks = page.getByTestId('play-campaign-create-marks');
+  await marks.getByTestId('cast-mark-add-glasses').click();
+  await expect(marks.getByTestId('cast-marks-preview')).toContainText('glasses');
 });
 
 test('a Day slot can be made in another of the Cast’s looks, and keeps it', async ({ page }) => {

@@ -7,12 +7,19 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
   CHARACTER_AGE_BAND_OPTIONS,
   CHARACTER_BODY_BUILD_OPTIONS,
+  CHARACTER_BUST_OPTIONS,
   CHARACTER_ETHNICITY_OPTIONS,
+  CHARACTER_EYE_COLOR_OPTIONS,
+  CHARACTER_FACE_SHAPE_OPTIONS,
+  CHARACTER_FACIAL_HAIR_OPTIONS,
   CHARACTER_HAIR_COLOR_OPTIONS,
   CHARACTER_HAIR_LENGTH_OPTIONS,
   CHARACTER_HAIR_STYLE_OPTIONS,
   CHARACTER_HEIGHT_OPTIONS,
+  CHARACTER_HIPS_OPTIONS,
   CHARACTER_SEX_OPTIONS,
+  CHARACTER_SKIN_TONE_OPTIONS,
+  traitAppliesToSex,
   isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
   type CharacterTraits,
@@ -32,6 +39,12 @@ const FIELDS: Array<{
   { key: 'hairColor', label: 'Hair colour', options: CHARACTER_HAIR_COLOR_OPTIONS },
   { key: 'hairLength', label: 'Hair length', options: CHARACTER_HAIR_LENGTH_OPTIONS },
   { key: 'hairStyle', label: 'Hair style', options: CHARACTER_HAIR_STYLE_OPTIONS },
+  { key: 'facialHair', label: 'Facial hair', options: CHARACTER_FACIAL_HAIR_OPTIONS },
+  { key: 'skinTone', label: 'Skin tone', options: CHARACTER_SKIN_TONE_OPTIONS },
+  { key: 'faceShape', label: 'Face shape', options: CHARACTER_FACE_SHAPE_OPTIONS },
+  { key: 'eyeColor', label: 'Eye colour', options: CHARACTER_EYE_COLOR_OPTIONS },
+  { key: 'bust', label: 'Bust', options: CHARACTER_BUST_OPTIONS },
+  { key: 'hips', label: 'Hips', options: CHARACTER_HIPS_OPTIONS },
 ];
 
 /**
@@ -109,18 +122,29 @@ export default function CharacterAppearanceSection({
       ) : null}
       <div className="grid gap-3 sm:grid-cols-3" data-testid="cast-appearance-traits">
         {FIELDS.map(field => {
-          // Bald (hair colour) means no hair: length and style don't apply.
+          // Bald (hair colour) means no hair: length and style don't apply. Facial hair is for men
+          // and nonbinary Casts, bust for women and nonbinary Casts.
           const noHair =
             draft.hairColor === 'bald' && (field.key === 'hairLength' || field.key === 'hairStyle');
+          const notForSex =
+            (field.key === 'facialHair' || field.key === 'bust') &&
+            !traitAppliesToSex(field.key, draft.sex);
+          const off = noHair || notForSex;
           return (
             <label key={field.key} className="block space-y-1.5">
               <FieldLabel htmlFor={`cast-trait-${field.key}`}>{field.label}</FieldLabel>
               <SelectInput
                 id={`cast-trait-${field.key}`}
                 data-testid={`cast-trait-${field.key}`}
-                value={noHair ? '' : (draft[field.key] ?? '')}
-                disabled={noHair}
-                title={noHair ? 'Bald — no hair length or style' : undefined}
+                value={off ? '' : (draft[field.key] ?? '')}
+                disabled={off}
+                title={
+                  noHair
+                    ? 'Bald — no hair length or style'
+                    : notForSex
+                      ? `Not for a ${draft.sex}`
+                      : undefined
+                }
                 onChange={event => {
                   setStatus(null);
                   const value = event.target.value;

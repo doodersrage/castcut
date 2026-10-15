@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'next/navigation';
 import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
+import { CastMarksEditor } from '@/components/character/CastMarksSection';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
@@ -16,7 +17,14 @@ import {
   CHARACTER_AGE_BAND_SELECT_OPTIONS,
   CHARACTER_BODY_BUILD_SELECT_OPTIONS,
   CHARACTER_ETHNICITY_SELECT_OPTIONS,
+  CHARACTER_BUST_SELECT_OPTIONS,
+  CHARACTER_EYE_COLOR_SELECT_OPTIONS,
+  CHARACTER_FACE_SHAPE_SELECT_OPTIONS,
+  CHARACTER_FACIAL_HAIR_SELECT_OPTIONS,
   CHARACTER_HAIR_COLOR_SELECT_OPTIONS,
+  CHARACTER_HIPS_SELECT_OPTIONS,
+  CHARACTER_SKIN_TONE_SELECT_OPTIONS,
+  traitAppliesToSex,
   CHARACTER_HAIR_LENGTH_SELECT_OPTIONS,
   CHARACTER_HAIR_STYLE_SELECT_OPTIONS,
   CHARACTER_HEIGHT_SELECT_OPTIONS,
@@ -31,6 +39,7 @@ import {
   type CharacterHeight,
   type CharacterSex,
 } from '@/lib/character-appearance';
+import type { CastMark } from '@/lib/cast-marks';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 
 type PlayCampaignCharacterSectionProps = Pick<
@@ -60,6 +69,7 @@ export default function PlayCampaignCharacterSection({
   const [personaId, setPersonaId] = useState('');
   const [customPersona, setCustomPersona] = useState('');
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [marks, setMarks] = useState<CastMark[]>([]);
   const [creating, setCreating] = useState(false);
   const createNameRef = useRef<HTMLInputElement>(null);
   // Characters' "New character" opens Film with ?new=1: bring the create form to the front.
@@ -95,6 +105,7 @@ export default function PlayCampaignCharacterSection({
     setPersonaId('');
     setCustomPersona('');
     setReferenceFile(null);
+    setMarks([]);
   };
 
   const submitCreate = async () => {
@@ -107,6 +118,7 @@ export default function PlayCampaignCharacterSection({
         personaId: personaId || undefined,
         customPersona: personaId ? customPersona : undefined,
         referenceFile,
+        marks,
       });
       resetDraft();
     } finally {
@@ -197,7 +209,7 @@ export default function PlayCampaignCharacterSection({
             data-testid="play-campaign-create-more-traits"
           >
             <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-              More traits · Part, look, body, hair
+              More traits · Part, look, body, hair, face, marks
             </summary>
             <div className="mt-3 space-y-3">
               <p className="type-caption text-[var(--text-muted)]">
@@ -312,20 +324,39 @@ export default function PlayCampaignCharacterSection({
                     ['hairColor', 'Hair colour', CHARACTER_HAIR_COLOR_SELECT_OPTIONS],
                     ['hairLength', 'Hair length', CHARACTER_HAIR_LENGTH_SELECT_OPTIONS],
                     ['hairStyle', 'Hair style', CHARACTER_HAIR_STYLE_SELECT_OPTIONS],
+                    ['facialHair', 'Facial hair', CHARACTER_FACIAL_HAIR_SELECT_OPTIONS],
+                    ['skinTone', 'Skin tone', CHARACTER_SKIN_TONE_SELECT_OPTIONS],
+                    ['faceShape', 'Face shape', CHARACTER_FACE_SHAPE_SELECT_OPTIONS],
+                    ['eyeColor', 'Eye colour', CHARACTER_EYE_COLOR_SELECT_OPTIONS],
+                    ['bust', 'Bust', CHARACTER_BUST_SELECT_OPTIONS],
+                    ['hips', 'Hips', CHARACTER_HIPS_SELECT_OPTIONS],
                   ] as const
                 ).map(([key, label, options]) => {
-                  // Bald (hair colour) means no hair: length and style don't apply (as in the Cast editor).
-                  const noHair = appearance.hairColor === 'bald' && key !== 'hairColor';
-                  const id = `play-campaign-create-${key === 'hairColor' ? 'hair-color' : key === 'hairLength' ? 'hair-length' : 'hair-style'}`;
+                  // Bald (hair colour) means no hair: length and style don't apply; facial hair is
+                  // for men and nonbinary Casts, bust for women and nonbinary Casts (as in the Cast editor).
+                  const noHair =
+                    appearance.hairColor === 'bald' &&
+                    (key === 'hairLength' || key === 'hairStyle');
+                  const notForSex =
+                    (key === 'facialHair' || key === 'bust') &&
+                    !traitAppliesToSex(key, appearance.sex);
+                  const off = noHair || notForSex;
+                  const id = `play-campaign-create-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
                   return (
                     <label key={key} className="block space-y-1.5">
                       <FieldLabel htmlFor={id}>{label}</FieldLabel>
                       <SelectInput
                         id={id}
                         data-testid={id}
-                        value={noHair ? 'random' : (appearance[key] ?? 'random')}
-                        disabled={noHair}
-                        title={noHair ? 'Bald — no hair length or style' : undefined}
+                        value={off ? 'random' : (appearance[key] ?? 'random')}
+                        disabled={off}
+                        title={
+                          noHair
+                            ? 'Bald — no hair length or style'
+                            : notForSex
+                              ? `Not for a ${appearance.sex}`
+                              : undefined
+                        }
                         onChange={event => {
                           const value = event.target.value;
                           setAppearance(current => ({
@@ -354,6 +385,15 @@ export default function PlayCampaignCharacterSection({
               >
                 {summarizeCharacterAppearanceForm(appearance)}
               </p>
+
+              <div className="space-y-1.5" data-testid="play-campaign-create-marks">
+                <FieldLabel>Marks (optional)</FieldLabel>
+                <p className="type-caption text-[var(--text-muted)]">
+                  Tattoos, scars, moles, freckles, glasses — on the first plate and every still
+                  where that part shows.
+                </p>
+                <CastMarksEditor marks={marks} onChange={setMarks} />
+              </div>
 
               <CastPersonaPartChips
                 personaId={personaId}

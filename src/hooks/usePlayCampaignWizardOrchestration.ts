@@ -1,5 +1,7 @@
 'use client';
 
+import { saveCastMarks, type CastMark } from '@/lib/cast-marks';
+
 import { loadLocalObservability } from '@/lib/local-observability';
 import {
   loadPlayMetrics,
@@ -421,6 +423,8 @@ export function usePlayCampaignWizardOrchestration({
       personaId?: string;
       customPersona?: string;
       referenceFile?: File | null;
+      /** Marks picked on the create form — saved before the first plate, so it shows them. */
+      marks?: CastMark[];
     }) => {
       const name = input.name.trim() || 'Untitled character';
       const playAs = input.referenceFile ? ('photo' as const) : undefined;
@@ -451,6 +455,7 @@ export function usePlayCampaignWizardOrchestration({
           );
         }
       }
+      if (input.marks?.length) saved = saveCastMarks(saved.id, input.marks) ?? saved;
       // Drop the previous Cast's face lock / wardrobe / look pack / Moodboard tiles.
       clearLookPack();
       saveToolSettings('moodboard', { ...DEFAULT_MOODBOARD_TOOL_CACHE });

@@ -1,5 +1,7 @@
 'use client';
 
+import { getCharacter } from '@/lib/character-os';
+
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import ImageLightbox, { type ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -418,6 +420,7 @@ export default function CharacterLookPlateSection({
                 disabled={uploading}
                 noun={noun}
                 hasMarks={hasMarks}
+                cleanShaven={getCharacter(characterId)?.traits?.facialHair === 'clean-shaven'}
                 onPrepare={onPreparePlate}
               />
             ) : null}

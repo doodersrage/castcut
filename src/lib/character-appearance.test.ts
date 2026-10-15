@@ -208,3 +208,69 @@ describe('hair traits', () => {
     assert.equal(rolled.traits?.hairColor, 'grey');
   });
 });
+
+describe('finer traits', () => {
+  it('puts picked skin tone, face, eyes, facial hair and figure into a rolled description', async () => {
+    const { physicalDescriptionFromTraits } = await import('./character-appearance');
+    const man = physicalDescriptionFromTraits(
+      {
+        sex: 'man',
+        ethnicity: 'white',
+        ageBand: '40s',
+        facialHair: 'clean-shaven',
+        skinTone: 'olive',
+        faceShape: 'square',
+        eyeColor: 'blue',
+        hips: 'narrow',
+      },
+      { hasPicture: false }
+    );
+    assert.match(man.descriptor ?? '', /with olive skin, a square face with blue eyes, .*a clean-shaven face, and a body that is .*, with narrow hips$/);
+    // Facial hair was picked: the rolled hairstyle brings no beard of its own.
+    for (let i = 0; i < 20; i += 1) {
+      const again = physicalDescriptionFromTraits(
+        { sex: 'man', ethnicity: 'white', facialHair: 'stubble' },
+        { hasPicture: false }
+      );
+      assert.doesNotMatch(again.descriptor ?? '', /beard|goatee|mustache/);
+    }
+    assert.equal(man.traits?.facialHair, 'clean-shaven');
+    assert.match(man.hints ?? '', /Olive skin.*Blue eyes.*Clean-shaven/);
+  });
+
+  it('leaves out traits that do not fit the sex, and only says picks with a picture', async () => {
+    const { physicalDescriptionFromTraits } = await import('./character-appearance');
+    const woman = physicalDescriptionFromTraits(
+      { sex: 'woman', hairColor: 'red', bust: 'full', hips: 'curvy', eyeColor: 'green', facialHair: 'full-beard' },
+      { hasPicture: true }
+    );
+    assert.equal(woman.descriptor, 'a woman with green eyes and red hair, with a full bust and curvy hips');
+    assert.equal(woman.traits?.facialHair, undefined);
+    const man = physicalDescriptionFromTraits({ sex: 'man', bust: 'full' }, { hasPicture: true });
+    assert.doesNotMatch(man.descriptor ?? '', /bust/);
+  });
+
+  it('lets picked hips replace the build\'s own hip words', async () => {
+    const { physicalDescriptionFromTraits } = await import('./character-appearance');
+    const text =
+      physicalDescriptionFromTraits(
+        { sex: 'woman', bodyBuild: 'average', hips: 'curvy' },
+        { hasPicture: false }
+      ).descriptor ?? '';
+    assert.match(text, /an everyday untrained build with even shoulders, with curvy hips$/);
+  });
+
+  it('rolls no scars or freckles into the face (Cast marks are the only source)', async () => {
+    const { composeCharacterAppearanceDescriptor } = await import('./character-appearance');
+    for (let i = 0; i < 60; i += 1) {
+      const text = composeCharacterAppearanceDescriptor({
+        sex: 'woman',
+        ethnicity: i % 2 ? 'white' : 'nordic',
+        ageBand: '30s',
+        height: 'average',
+        bodyBuild: 'average',
+      } as never);
+      assert.doesNotMatch(text, /scar|freckle/);
+    }
+  });
+});

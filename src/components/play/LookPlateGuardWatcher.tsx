@@ -2,11 +2,19 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CastPlatePrepareOptions } from '@/lib/cast-plate-prepare';
 import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
 
 const LookPlateMarksRepair = dynamic(() => import('@/components/play/LookPlateMarksRepair'), {
   ssr: false,
 });
+
+const SHAVE_OPTIONS: CastPlatePrepareOptions = {
+  stand: false,
+  baseLayer: false,
+  whiteBackground: false,
+  shave: true,
+};
 
 /**
  * Watches the active Cast's look plates (look-plate-guard.ts): plates already there when the app
@@ -21,6 +29,8 @@ export default function LookPlateGuardWatcher() {
     characterId: string;
     lookId: string;
     name: string;
+    /** Missing marks painted on, or a Clean-shaven Cast's first plate shaved. */
+    kind: 'marks' | 'shave';
   } | null>(null);
   // One automatic repaint per look per session: the repainted plate is a plate change too.
   const repaintedRef = useRef(new Set<string>());
@@ -32,9 +42,13 @@ export default function LookPlateGuardWatcher() {
       void import('@/lib/system-tray-messages').then(({ pushSystemTrayMessage }) =>
         pushSystemTrayMessage({
           text:
-            result === 'painted'
-              ? `${job.name}'s marks were missing on the new plate — painted on (the plate before is in Earlier plates).`
-              : `${job.name}'s marks are missing on the new plate, and painting them on failed${note ? `: ${note}` : ''}.`,
+            job.kind === 'shave'
+              ? result === 'painted'
+                ? `${job.name} is set to clean-shaven — the first plate was shaved (the plate before is in Earlier plates).`
+                : `${job.name} is set to clean-shaven, and shaving the first plate failed${note ? `: ${note}` : ''}. Prepare plate on Cast home can try again.`
+              : result === 'painted'
+                ? `${job.name}'s marks were missing on the new plate — painted on (the plate before is in Earlier plates).`
+                : `${job.name}'s marks are missing on the new plate, and painting them on failed${note ? `: ${note}` : ''}.`,
           tone: result === 'painted' ? 'info' : 'warning',
           ttlMs: 20_000,
         })
@@ -65,11 +79,35 @@ export default function LookPlateGuardWatcher() {
         if (!character) return;
         for (const look of cast.looksOf(character)) {
           const plate = likeness.lookPlateFaceUrl(look);
-          if (!plate) continue;
           const key = `${character.id}:${look.id}`;
+          if (!plate) {
+            // No plate yet: when one lands it is this look's first plate ('').
+            if (!seen.has(key)) seen.set(key, '');
+            continue;
+          }
           const before = seen.get(key);
           seen.set(key, plate);
           if (before === undefined || before === plate) continue;
+          if (before === '') {
+            // A first plate has nothing to compare with. UltraReal draws stubble on men whatever
+            // the words say, so a Clean-shaven Cast's first plate is shaved once (2511 edit; the
+            // result becomes the face lock every later plate starts from).
+            const traits = character.traits;
+            if (
+              traits?.facialHair === 'clean-shaven' &&
+              traits.sex !== 'woman' &&
+              !repaintedRef.current.has(key)
+            ) {
+              repaintedRef.current.add(key);
+              setRepair({
+                characterId: character.id,
+                lookId: look.id,
+                name: character.name,
+                kind: 'shave',
+              });
+            }
+            continue;
+          }
           queue.push(async () => {
             const guard = await import('@/lib/look-plate-guard');
             const result = await guard.checkLookPlate({
@@ -86,7 +124,12 @@ export default function LookPlateGuardWatcher() {
               const missing = await marks.lookPlateMissesMarks(character.id, look.id);
               if (missing && !cancelled) {
                 repaintedRef.current.add(repairKey);
-                setRepair({ characterId: character.id, lookId: look.id, name: character.name });
+                setRepair({
+                  characterId: character.id,
+                  lookId: look.id,
+                  name: character.name,
+                  kind: 'marks',
+                });
               }
               return;
             }
@@ -116,6 +159,7 @@ export default function LookPlateGuardWatcher() {
     <LookPlateMarksRepair
       characterId={repair.characterId}
       lookId={repair.lookId}
+      options={repair.kind === 'shave' ? SHAVE_OPTIONS : undefined}
       onDone={onRepairDone}
     />
   ) : null;

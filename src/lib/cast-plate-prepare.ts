@@ -32,6 +32,12 @@ export type CastPlatePrepareOptions = {
   whiteBackground: boolean;
   /** Paint the Cast's marks on (cast-marks.ts): the plate carries them into every still. */
   marks?: boolean;
+  /**
+   * Shave him clean (the Cast's facial hair trait is Clean-shaven). UltraReal draws stubble on
+   * men whatever the words say (0 of 9 clean across three wordings and the lead line); this edit
+   * on Edit 2511 shaved 2 of 2 and kept the rest (2026-10-14).
+   */
+  shave?: boolean;
 };
 
 export const DEFAULT_CAST_PLATE_PREPARE_OPTIONS: CastPlatePrepareOptions = {
@@ -41,7 +47,13 @@ export const DEFAULT_CAST_PLATE_PREPARE_OPTIONS: CastPlatePrepareOptions = {
 };
 
 export function hasCastPlatePrepareStep(options: CastPlatePrepareOptions): boolean {
-  return options.stand || options.baseLayer || options.whiteBackground || options.marks === true;
+  return (
+    options.stand ||
+    options.baseLayer ||
+    options.whiteBackground ||
+    options.marks === true ||
+    options.shave === true
+  );
 }
 
 /** The base layer, said for who wears it (a man's plate isn't put in a bra). */
@@ -93,8 +105,15 @@ export function buildCastPlatePreparePrompt(input: {
     );
   } else if (whiteBackground) {
     parts.push('change only the background.');
+  } else if (input.options.shave && !marks.length) {
+    parts.push(`make ${noun === 'woman' ? 'her' : noun === 'man' ? 'him' : 'them'} clean-shaven.`);
   } else {
     parts.push(`add only ${input.noun === 'man' ? 'his' : 'her'} marks.`);
+  }
+  if (input.options.shave) {
+    parts.push(
+      `Shave off all ${possessive} stubble and beard so ${possessive} cheeks, jaw, chin and upper lip are smooth bare skin.`
+    );
   }
   if (baseLayer) {
     parts.push(
@@ -142,6 +161,7 @@ export function buildCastPlatePrepareNegative(
         `original outfit, dress, shirt, ${noun === 'man' ? '' : 'top, '}jacket, coat, pants, jeans, skirt, shorts, shoes, boots, heels, socks, jewelry, bag, hat, lace, busy pattern, nude, bare breasts, nipples, genitals`
       : 'different outfit, changed clothes, nude',
     options.whiteBackground ? 'scenery, room, furniture, props, grey backdrop' : null,
+    options.shave ? "beard, stubble, moustache, goatee, five o'clock shadow" : null,
     'text, logo, blurry',
   ]
     .filter(Boolean)

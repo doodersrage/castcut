@@ -32,7 +32,7 @@ import {
   type CharacterAppearanceFormDraft,
   characterAppearanceHints,
   composeCharacterAppearanceDescriptor,
-  createFormHairTraits,
+  createFormPickedTraits,
   describeChosenAppearance,
   normalizeCharacterTraits,
   physicalDescriptionFromTraits,
@@ -755,12 +755,12 @@ export function createBlankCharacter(
   options?: CreateBlankCharacterOptions
 ): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
-  // Hair picked on the create form: the description the Cast editor writes for the same traits.
-  const hair = createFormHairTraits(appearance as Partial<CharacterAppearanceFormDraft>);
-  if (hair) {
+  // Hair or finer traits picked on the create form: the description the Cast editor writes.
+  const picks = createFormPickedTraits(appearance as Partial<CharacterAppearanceFormDraft>);
+  if (picks) {
     const picked = options?.fromPhoto
-      ? { ...normalizeCharacterTraits(appearance), ...hair }
-      : { ...resolveCharacterAppearance(appearance ?? {}), ...hair };
+      ? { ...normalizeCharacterTraits(appearance), ...picks }
+      : { ...resolveCharacterAppearance(appearance ?? {}), ...picks };
     const physical = physicalDescriptionFromTraits(picked, {
       hasPicture: Boolean(options?.fromPhoto),
     });

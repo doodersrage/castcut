@@ -97,3 +97,16 @@ describe('cast-plate-prepare negative', () => {
     assert.match(keepPose, /changed pose/);
   });
 });
+
+describe('clean-shaven prepare step', () => {
+  it('shaves him and keeps everything else', async () => {
+    const { buildCastPlatePreparePrompt, buildCastPlatePrepareNegative, hasCastPlatePrepareStep } =
+      await import('./cast-plate-prepare');
+    const options = { stand: false, baseLayer: false, whiteBackground: false, shave: true };
+    assert.equal(hasCastPlatePrepareStep(options), true);
+    const prompt = buildCastPlatePreparePrompt({ options, noun: 'man' });
+    assert.match(prompt, /^Edit Image 1: make him clean-shaven\. Shave off all his stubble and beard/);
+    assert.match(prompt, /Keep the exact same person, face, hair, .*clothing and lighting and background/);
+    assert.match(buildCastPlatePrepareNegative(options, 'man'), /stubble/);
+  });
+});

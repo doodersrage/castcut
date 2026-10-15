@@ -29,12 +29,15 @@ export default function CastPlatePrepareControl({
   disabled,
   noun,
   hasMarks = false,
+  cleanShaven = false,
   onPrepare,
 }: {
   disabled: boolean;
   noun: DayPartnerNoun;
   /** The Cast has marks (Bible → Marks): offer painting them on, ticked. */
   hasMarks?: boolean;
+  /** The Cast's facial hair is Clean-shaven: offer shaving the plate (UltraReal adds stubble). */
+  cleanShaven?: boolean;
   onPrepare: (sendComfyUi: SendComfyUi, options: CastPlatePrepareOptions) => void;
 }) {
   const [model] = useState(() => loadSettingsCache().shared.model);
@@ -43,15 +46,18 @@ export default function CastPlatePrepareControl({
     ...DEFAULT_CAST_PLATE_PREPARE_OPTIONS,
     marks: hasMarks,
   }));
-  const steps = hasMarks
-    ? [
-        ...STEPS,
-        {
-          key: 'marks' as const,
-          label: `${noun === 'man' ? 'His' : noun === 'woman' ? 'Her' : 'Their'} marks`,
-        },
-      ]
-    : STEPS;
+  const steps = [
+    ...STEPS,
+    ...(hasMarks
+      ? [
+          {
+            key: 'marks' as const,
+            label: `${noun === 'man' ? 'His' : noun === 'woman' ? 'Her' : 'Their'} marks`,
+          },
+        ]
+      : []),
+    ...(cleanShaven ? [{ key: 'shave' as const, label: 'Clean-shaven' }] : []),
+  ];
   const pronoun = noun === 'man' ? 'him' : noun === 'woman' ? 'her' : 'them';
   const possessive = noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their';
 
