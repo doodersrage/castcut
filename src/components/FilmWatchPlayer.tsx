@@ -129,6 +129,9 @@ export default function FilmWatchPlayer({
       tabIndex={0}
       role="region"
       aria-label="Film reel player"
+      aria-keyshortcuts="ArrowLeft ArrowRight Space"
+      // Was a caption line under every reel (shown on phones too) — now hover text.
+      title="Keyboard: ← → to scrub · Space to watch"
       data-testid="film-watch-player"
     >
       <div className="relative aspect-video overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-base)]">
@@ -207,9 +210,6 @@ export default function FilmWatchPlayer({
           </Button>
         ) : null}
       </div>
-      <p className="type-caption text-[var(--text-muted)]">
-        Keyboard: ← → to scrub · Space to watch
-      </p>
     </div>
   );
 }

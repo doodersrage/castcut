@@ -78,8 +78,8 @@ export function RoleplayCastPhotoSection({
       {playAs === 'photo' ? (
         <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3">
           <p className="text-xs text-[var(--text-muted)]">
-            Every still starts from this picture. Isolate on white keeps face/body and drops the
-            photo&apos;s room — pair with Setting for a new place.
+            Every still starts from this picture. Cut out background keeps the person and drops the
+            photo&apos;s room.
           </p>
           <div className="flex flex-wrap gap-1.5">
             <ChipButton
@@ -118,7 +118,7 @@ export function RoleplayCastPhotoSection({
                 });
               }}
             >
-              Isolate on white
+              Cut out background
             </ChipButton>
           </div>
           <div className="flex flex-wrap items-center gap-2">

@@ -2,6 +2,7 @@
 
 import { ComfyUiGalleryJobPlaceholder } from '@/components/ui/ComfyUiJobStatusPanel';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { galleryFailureSummary } from '@/lib/gallery-failure-summary';
 
 type Props = {
   entry: ComfyGalleryEntry;
@@ -12,16 +13,11 @@ type Props = {
     qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
-  comfyHostLabel: string | null;
+  /** Unused since the extra retries moved to the More menu; kept for the callers. */
+  comfyHostLabel?: string | null;
 };
 
-export function GalleryCardPlaceholderStates({
-  entry,
-  isRendering,
-  onCancel,
-  onRequeue,
-  comfyHostLabel,
-}: Props) {
+export function GalleryCardPlaceholderStates({ entry, isRendering, onCancel, onRequeue }: Props) {
   if (isRendering) {
     return (
       <div className="relative flex h-full flex-col">
@@ -37,53 +33,28 @@ export function GalleryCardPlaceholderStates({
     );
   }
 
+  // One reason line + Retry; Replay exact, Retry on host and New seed are in the card's More menu
+  // (four stacked buttons and a cut-off paragraph crowded the list row — UI review 2026-10-15).
+  const reason =
+    entry.status === 'error' ? galleryFailureSummary(entry.statusMessage) : 'No image output';
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-      <p className="text-xs text-[var(--text-muted)]">
-        {entry.status === 'error'
-          ? (entry.statusMessage ?? 'Generation failed')
-          : 'No image output'}
+    <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center">
+      <p
+        className="line-clamp-2 text-xs text-[var(--text-muted)]"
+        title={entry.statusMessage?.trim() || undefined}
+        data-testid="gallery-card-failure-reason"
+      >
+        {reason}
       </p>
       {entry.status === 'error' ? (
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          {entry.hasStoredWorkflow || entry.workflowJson ? (
-            <button
-              type="button"
-              onClick={() => onRequeue(false, undefined, { exactGraph: true })}
-              className="ui-btn-secondary ui-btn-sm !text-[11px]"
-            >
-              Replay exact
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => onRequeue(false)}
-            className="ui-btn-primary ui-btn-sm !text-[11px]"
-          >
-            Retry
-          </button>
-          {entry.comfyUrl?.trim() ? (
-            <button
-              type="button"
-              onClick={() =>
-                onRequeue(false, undefined, {
-                  exactGraph: Boolean(entry.hasStoredWorkflow || entry.workflowJson),
-                  stickyHost: true,
-                })
-              }
-              className="ui-btn-secondary ui-btn-sm !text-[11px]"
-            >
-              Retry on {comfyHostLabel ?? 'this host'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => onRequeue(true)}
-            className="ui-btn-secondary ui-btn-sm !text-[11px]"
-          >
-            New seed
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onRequeue(false)}
+          title="Queue it again — Replay exact and New seed are under More"
+          className="ui-btn-primary ui-btn-sm !text-[11px]"
+        >
+          Retry
+        </button>
       ) : null}
     </div>
   );

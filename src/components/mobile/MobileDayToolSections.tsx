@@ -1459,12 +1459,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
           {hasPlate ? (
             <div className="flex flex-wrap gap-2">
               <ChipButton
+                title="Cuts the person out onto white, so the photo’s room and clothes don’t leak into the shots"
                 active={isolateSubject}
                 disabled={busy || isolateBusy || !hasPlate}
                 data-testid="day-plate-isolate"
                 onClick={() => setIsolateSubject(!isolateSubject)}
               >
-                Isolate on white
+                Cut out background
               </ChipButton>
               {isolateStatus ? (
                 <p

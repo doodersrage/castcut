@@ -43,9 +43,6 @@ export function GalleryFiltersLayoutGroup({
   setDensity,
   totalFiltered,
   totalEntries,
-  currentPage,
-  totalPages,
-  showPagination,
   embeddingSearchLoading,
   embeddingSearchUnavailable,
   similarSearchLoading,
@@ -153,8 +150,8 @@ export function GalleryFiltersLayoutGroup({
       </div>
 
       <p className="shrink-0 type-caption text-[var(--text-muted)]">
-        {totalFiltered} of {totalEntries}
-        {showPagination ? ` · page ${currentPage}/${totalPages}` : ''}
+        {/* The paginator says the range and page; here only how many match a filter. */}
+        {totalFiltered !== totalEntries ? `${totalFiltered} of ${totalEntries} match` : null}
         {!lean && embeddingSearchLoading ? ' · searching…' : null}
         {!lean && embeddingSearchUnavailable ? ' · semantic unavailable' : null}
         {!lean && similarSearchLoading ? ' · ranking similar…' : null}

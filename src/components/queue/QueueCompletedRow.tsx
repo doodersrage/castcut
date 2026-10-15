@@ -5,6 +5,7 @@ import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import { ButtonLink } from '@/components/ui/Button';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
 import { galleryCardCaption } from '@/lib/gallery-card-caption';
+import { engineFamilyLabel } from '@/lib/model-files';
 
 export default function QueueCompletedRow({ entry }: { entry: ComfyGalleryEntry }) {
   const galleryHref = buildGalleryFocusUrl(entry.id);
@@ -17,9 +18,12 @@ export default function QueueCompletedRow({ entry }: { entry: ComfyGalleryEntry 
         <p className="truncate text-sm text-[var(--text-secondary)]" title={entry.prompt}>
           {caption}
         </p>
-        <p className="type-caption">
-          {entry.status} · {entry.model}
-        </p>
+        {/* Under "Recent completed" the status said nothing; the engine by name, the id on hover. */}
+        {entry.model ? (
+          <p className="type-caption" title={entry.model}>
+            {engineFamilyLabel(entry.model)}
+          </p>
+        ) : null}
       </div>
       {/* One line — in the narrow list column the label wrapped into a three-line button. */}
       <ButtonLink

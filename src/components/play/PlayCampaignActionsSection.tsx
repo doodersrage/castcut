@@ -52,28 +52,33 @@ export default function PlayCampaignActionsSection({
     <div className="space-y-3">
       {status ? <p className="type-caption text-[var(--text-muted)]">{status}</p> : null}
 
-      {durableCampaign && campaignCharacterMismatch ? (
-        <p
-          className="type-caption text-[var(--text-muted)]"
-          data-testid="play-campaign-resume-mismatch"
-        >
-          {(() => {
-            const other = getCharacter(durableCampaign.characterId)?.name?.trim();
+      {durableCampaign && campaignCharacterMismatch
+        ? (() => {
+            const other =
+              getCharacter(durableCampaign.characterId)?.name?.trim() || 'another Cast member';
             const step = PLAY_CAMPAIGN_STEPS[durableCampaign.stepIndex]?.label;
-            return `Your saved film is for ${other || 'another Cast character'}${step ? ` (at ${step})` : ''}.`;
-          })()}{' '}
-          <ButtonLink
-            href={mapHref(
-              playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)
-            )}
-            size="sm"
-            variant="ghost"
-          >
-            Switch back
-          </ButtonLink>{' '}
-          or start a new one below.
-        </p>
-      ) : null}
+            // A small notice with its own button — "Switch back" sat mid-sentence before.
+            return (
+              <div
+                className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3 py-2"
+                data-testid="play-campaign-resume-mismatch"
+              >
+                <p className="type-caption text-[var(--text-secondary)]">
+                  Your saved film is {other}’s{step ? `, at ${step}` : ''}.
+                </p>
+                <ButtonLink
+                  href={mapHref(
+                    playCampaignHref(durableCampaign.characterId, durableCampaign.lookPackId)
+                  )}
+                  size="sm"
+                  variant="secondary"
+                >
+                  Back to {other}
+                </ButtonLink>
+              </div>
+            );
+          })()
+        : null}
 
       <div className="flex flex-wrap gap-2" data-testid="play-campaign-actions">
         {campaignComplete ? (

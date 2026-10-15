@@ -242,6 +242,7 @@ export default function GalleryCardBodyBlock({
               // Host and seed are for debugging a run, not for browsing (UI review 2026-10-15).
               title={
                 [
+                  [entry.tool, entry.model].filter(Boolean).join(' · '),
                   entry.comfyUrl ? `ComfyUI ${entry.comfyUrl}` : '',
                   entry.queueParams?.seed != null ? `seed ${entry.queueParams.seed}` : '',
                 ]

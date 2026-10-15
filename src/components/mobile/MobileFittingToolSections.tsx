@@ -182,6 +182,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         ) : null}
         {/* Desk Outfit's toggle: off uses the photo as it is, on cuts her out on white. */}
         <button
+          title="Cuts the person out onto white, so the photo’s room and clothes don’t leak into the shots"
           type="button"
           role="switch"
           aria-checked={isolateSubject}
@@ -222,7 +223,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             });
           }}
         >
-          Isolate on white{isolateSubject ? ' ✓' : ''}
+          Cut out background{isolateSubject ? ' ✓' : ''}
         </button>
       </div>
     </div>
@@ -265,7 +266,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Outfit</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Swipe kits on a locked plate. Keep a winner, then continue in Day.
+          Try clothes on, keep the one you like.
         </p>
       </div>
 
@@ -501,7 +502,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           data-testid="mobile-fitting-plate"
         >
           <summary className="flex min-h-8 cursor-pointer items-center text-sm text-[var(--text-secondary)]">
-            Plate · upload, Gallery, isolate
+            Plate
           </summary>
           <div className="mt-2">{plateBlock}</div>
         </details>

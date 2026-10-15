@@ -24,6 +24,8 @@ import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
 import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { galleryFailureSummary } from '@/lib/gallery-failure-summary';
+import { engineFamilyLabel } from '@/lib/model-files';
 
 const ACCENT = 'brand' as const;
 
@@ -300,8 +302,12 @@ export default function QueueToolSections({
                   >
                     <div className="ui-list-primary min-w-0 space-y-1">
                       <QueueJobTitle label={jobLabels.get(entry.id)} prompt={entry.prompt} />
-                      <p className="type-caption ui-status-danger">
-                        {entry.statusMessage ?? entry.status} · {entry.model}
+                      <p
+                        className="type-caption ui-status-danger"
+                        title={[entry.statusMessage, entry.model].filter(Boolean).join(' · ')}
+                      >
+                        {galleryFailureSummary(entry.statusMessage ?? entry.status)}
+                        {entry.model ? ` · ${engineFamilyLabel(entry.model)}` : ''}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
@@ -363,8 +369,12 @@ export default function QueueToolSections({
                   >
                     <div className="ui-list-primary min-w-0 space-y-1">
                       <QueueJobTitle label={jobLabels.get(entry.id)} prompt={entry.prompt} />
-                      <p className="type-caption ui-status-danger">
-                        {entry.statusMessage ?? entry.status} · {entry.model}
+                      <p
+                        className="type-caption ui-status-danger"
+                        title={[entry.statusMessage, entry.model].filter(Boolean).join(' · ')}
+                      >
+                        {galleryFailureSummary(entry.statusMessage ?? entry.status)}
+                        {entry.model ? ` · ${engineFamilyLabel(entry.model)}` : ''}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">

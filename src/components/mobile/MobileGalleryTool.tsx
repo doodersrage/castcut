@@ -154,8 +154,8 @@ export default function MobileGalleryTool() {
           {filmMode
             ? watchCharacter
               ? `${watchCharacter.name} — play Day films, then jump back into the reel.`
-              : 'Play your Day films. Remix the same look when you want another cut.'
-            : 'Rate stills. Upload your own. Tap one to rate it or open it in Story or Compose.'}
+              : 'Your Day films.'
+            : 'Everything you’ve made. Tap a picture to rate it.'}
         </p>
         {!filmMode ? (
           <GalleryUploadButton className="ui-btn-secondary mt-2 px-3 py-2 text-xs" />

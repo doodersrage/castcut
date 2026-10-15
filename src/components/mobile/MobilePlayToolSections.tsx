@@ -42,11 +42,7 @@ import {
   roleplayQueueBlockReason,
   storySessionStatusLine,
 } from '@/lib/roleplay';
-import {
-  roleplayPatchFromPlate,
-  toMobileStudioHref,
-  withCharacterQuery,
-} from '@/lib/mobile-studio';
+import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
 import {
   getCharacter,
@@ -550,7 +546,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
                 onClick={undoLastScene}
                 className="justify-center"
               >
-                Take back last scene
+                Undo last scene
               </Button>
               <Button
                 variant="ghost"
@@ -624,31 +620,28 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </div>
       ) : null}
 
-      {showAnimateCoach ? (
-        <div
-          className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3"
-          data-testid="story-animate"
-        >
-          <p className="type-caption text-[var(--text-muted)]">Next · Animate → Cut</p>
-          <p className="text-xs text-[var(--text-muted)]">
-            Stills are ready — animate into clips, then Cut film.
-          </p>
-          <Button
-            variant="primary"
-            disabled={busy || renderOffline}
-            data-testid="story-animate-all"
-            onClick={() => void animateAllReady()}
-            className="w-full justify-center"
-          >
-            Animate all ready stills
-          </Button>
-        </div>
-      ) : null}
-
       {story.length === 0 ? storyStage : null}
 
       <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/30 p-3">
         <p className="type-caption text-[var(--text-muted)]">Film</p>
+        {/* Animate sits in the film card: a separate "Next · Animate → Cut" card above made two
+            stops for one finish (UI review 2026-10-15). */}
+        {showAnimateCoach ? (
+          <div className="space-y-2" data-testid="story-animate">
+            <p className="text-xs text-[var(--text-muted)]">
+              Stills are ready — animate them, then cut.
+            </p>
+            <Button
+              variant="primary"
+              disabled={busy || renderOffline}
+              data-testid="story-animate-all"
+              onClick={() => void animateAllReady()}
+              className="w-full justify-center"
+            >
+              Animate all ready stills
+            </Button>
+          </div>
+        ) : null}
         {firstCutCelebrate ? (
           <div
             className="rounded-2xl border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-3"
@@ -747,10 +740,11 @@ export default function MobilePlayToolSections({ description: _description, ...v
             Share cut
           </Button>
         ) : null}
-        {!firstCutCelebrate ? (
+        {/* Only once there is a cut to save — a greyed button sat under every empty Story. */}
+        {!firstCutCelebrate && (filmNeedsCast || filmStatus) ? (
           <Button
             variant="secondary"
-            disabled={bioLoading || assemblingFilm || (!filmNeedsCast && !filmStatus)}
+            disabled={bioLoading || assemblingFilm}
             onClick={saveFilmToCast}
             className="w-full justify-center"
             data-testid="roleplay-save-film-cast"
@@ -792,46 +786,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}
       </div>
 
-      <div className="space-y-2">
-        <Link
-          href={withCharacterQuery('/m/day', castId)}
-          className="ui-btn-secondary w-full justify-center text-center text-sm"
-          data-testid="mobile-continue-day"
-        >
-          Open Day
-        </Link>
-        <Link
-          href={withCharacterQuery('/m/fitting', castId)}
-          className="ui-btn-ghost w-full justify-center text-center text-sm"
-          data-testid="mobile-continue-fitting"
-        >
-          Open Outfit
-        </Link>
-        <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
-          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            Optional desk handoff
-          </summary>
-          <div className="mt-2 grid gap-2">
-            <Link
-              href="/day"
-              className="ui-btn-ghost w-full justify-center text-center text-sm"
-              data-testid="mobile-continue-desk-day"
-            >
-              Day on desk
-            </Link>
-            <Link
-              href="/play"
-              className="ui-btn-ghost w-full justify-center text-center text-sm"
-              data-testid="mobile-continue-desk-play"
-            >
-              Film on desk
-            </Link>
-            <Link href="/story" className="ui-btn-ghost w-full justify-center text-center text-sm">
-              Full Story on desk
-            </Link>
-          </div>
-        </details>
-      </div>
+      {/* Day, Outfit and the desk view are in the dock and header — no second set of links here. */}
 
       {error || filmError ? (
         <div className="space-y-2">

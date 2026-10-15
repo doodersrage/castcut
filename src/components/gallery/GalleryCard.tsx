@@ -23,6 +23,8 @@ import { galleryDerivedKindLabel } from '@/lib/gallery-derived-kind';
 import { shouldUseHtmlVideoElement } from '@/lib/comfyui-outputs';
 import GalleryCardBodyBlock from '@/components/gallery/GalleryCardBodyBlock';
 import GalleryCardImageBlock from '@/components/gallery/GalleryCardImageBlock';
+import { describeQueueJob } from '@/lib/queue-job-context';
+import { engineFamilyLabel } from '@/lib/model-files';
 
 type GalleryCardProps = {
   entry: ComfyGalleryEntry;
@@ -338,9 +340,11 @@ export default function GalleryCard({
     entry.status === 'completed'
       ? formatRenderDuration(resolveGalleryRenderDurationMs(entry))
       : undefined;
+  // Names, not ids: "Outfit · Qwen Image Edit 2511", not "fitting · qwen-image-edit-2511-lightning-8"
+  // (the ids are on hover — UI review 2026-10-15).
   const metaLine = [
-    entry.tool,
-    entry.model,
+    describeQueueJob(entry, null).label,
+    entry.model ? engineFamilyLabel(entry.model) : undefined,
     entry.parentGalleryEntryId ? undefined : derivedLabel,
     renderDurationLabel ? `render ${renderDurationLabel}` : undefined,
   ]

@@ -182,10 +182,7 @@ export default function GalleryExperimentBlock({
           {paramDiffChips.length > 0 ? (
             <div data-testid="gallery-experiment-param-diff" className="flex flex-wrap gap-1.5">
               {paramDiffChips.map(chip => (
-                <span
-                  key={chip}
-                  className="rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)]"
-                >
+                <span key={chip} className="ui-badge" data-size="xs">
                   {chip}
                 </span>
               ))}

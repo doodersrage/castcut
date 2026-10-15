@@ -109,10 +109,11 @@ export default function ClipEngineNote({
         <span>— talking clips still use LTX-2.5 (only it makes sound)</span>
       ) : null}
       {dayClips === 'h3' ? (
-        <span data-testid="clip-engine-h3-note">
-          — about 2½ min a clip; lines are spoken with sound (no kept Cast voice); two-person adult
-          clips stay on H3 too (it kept the act together where WAN let it come apart, with gentler
-          motion). {H3_LICENCE_NOTE}
+        <span
+          data-testid="clip-engine-h3-note"
+          title="Lines are spoken with sound (no kept Cast voice). Two-person adult clips stay on H3 too — it kept the act together where WAN let it come apart, with gentler motion."
+        >
+          — about 2½ min a clip. {H3_LICENCE_NOTE}
         </span>
       ) : null}
     </label>
@@ -152,7 +153,10 @@ export default function ClipEngineNote({
             ? 'Clips: clothed one-person and two-person adult stills render on WAN (about 3× slower); the rest on LTX-2.5.'
             : 'Clips: clothed one-person stills render on WAN (about 3× slower); the rest on LTX-2.5.'}
       </p>
-      <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+      <label
+        className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]"
+        title="Uses LTX-2.5 instead of WAN — faster, and it kept her face closer"
+      >
         <input
           type="checkbox"
           checked={keepLtx}
@@ -166,10 +170,13 @@ export default function ClipEngineNote({
             });
           }}
         />
-        Use LTX-2.5 for clothed one-person clips (faster, and kept her face closer than WAN)
+        Faster clips for clothed one-person shots
       </label>
       {twoPersonAdultPossible ? (
-        <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+        <label
+          className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]"
+          title="Uses LTX-2.5 instead of WAN, tuned for pace; Add sound gives them sound"
+        >
           <input
             type="checkbox"
             checked={ltxDuo}
@@ -183,10 +190,13 @@ export default function ClipEngineNote({
               });
             }}
           />
-          Use LTX-2.5 for two-person adult clips too (tuned for pace; Add sound gives them sound)
+          Faster clips for two-person adult shots
         </label>
       ) : null}
-      <label className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]">
+      <label
+        className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]"
+        title="One more pass: crisper, about 2× slower, and can shift the face a little. Needs the Refine-Details LoRA."
+      >
         <input
           type="checkbox"
           checked={refine}
@@ -200,8 +210,7 @@ export default function ClipEngineNote({
             });
           }}
         />
-        Refine detail (crisper; about 2× slower and can shift the face a little — needs the
-        Refine-Details LoRA)
+        Refine detail (slower)
       </label>
       {health}
     </>

@@ -388,7 +388,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onImprove(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-info-text)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
                   >
                     Improve
                   </button>
@@ -441,7 +441,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onSoftSecondPass(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-info-text)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
                   >
                     Soft pass
                   </button>
@@ -450,7 +450,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onSkinRefine(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-info-text)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
                     data-testid="compare-skin-refine"
                   >
                     Skin refine

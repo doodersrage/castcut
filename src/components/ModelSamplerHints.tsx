@@ -96,7 +96,7 @@ export default function ModelSamplerHints({
             <span>
               KSampler overrides
               {overridesActive ? (
-                <span className="ml-1.5 rounded-full bg-[var(--tint-info-bg)] px-1.5 py-0.5 text-[10px] font-normal text-[var(--tint-info-text)]/80">
+                <span className="ui-badge ml-1.5" data-tone="accent" data-size="xs">
                   active
                 </span>
               ) : null}

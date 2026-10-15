@@ -51,14 +51,15 @@ export function SettingsOverviewHealthSection({
           <div className="grid gap-3 sm:grid-cols-2">
             <HealthCard
               title="LLM API"
-              ok={health.llm.ok}
+              // Off on purpose is not an error — same as the header's Ready dot.
+              ok={health.llm.enabled ? health.llm.ok : 'off'}
               detail={[
-                health.llm.enabled ? health.llm.model : 'disabled',
-                health.llm.baseUrl,
+                health.llm.enabled ? health.llm.model : 'Off on this server',
+                health.llm.enabled ? health.llm.baseUrl : null,
                 health.llm.enabled && typeof health.llm.inFlight === 'number'
                   ? `LLM busy: ${health.llm.inFlight}/${health.llm.maxInflight ?? '?'} in flight`
                   : null,
-                health.llm.error,
+                health.llm.enabled ? health.llm.error : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}

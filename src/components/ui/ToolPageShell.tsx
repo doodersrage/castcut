@@ -201,11 +201,24 @@ export function StatCard({
   );
 }
 
-export function HealthCard({ title, ok, detail }: { title: string; ok: boolean; detail: string }) {
+export function HealthCard({
+  title,
+  ok,
+  detail,
+}: {
+  title: string;
+  /** 'off': turned off on purpose (grey dot, not a red error). */
+  ok: boolean | 'off';
+  detail: string;
+}) {
   return (
     <div className="ui-health-card">
       <div className="ui-health-card-title">
-        <span className="ui-health-dot" data-status={ok ? 'ok' : 'error'} aria-hidden />
+        <span
+          className="ui-health-dot"
+          data-status={ok === 'off' ? 'off' : ok ? 'ok' : 'error'}
+          aria-hidden
+        />
         {title}
       </div>
       <p className="type-caption mt-2 break-all">{detail || '—'}</p>

@@ -16,13 +16,8 @@ export default function GalleryReviewTouchBar({
   onPrev,
 }: GalleryReviewTouchBarProps) {
   const dockRef = useBottomDockRef<HTMLDivElement>();
-  const ratingColors = [
-    'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)] hover:brightness-110',
-    'border-orange-600/50 bg-orange-900/18 text-orange-400 hover:bg-orange-500/35 hover:border-orange-500/75',
-    'border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] text-[var(--tint-info-text)] hover:bg-[var(--tint-info-bg)] hover:border-[var(--tint-info-border)]',
-    'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] text-[var(--tint-success-text)] hover:brightness-110',
-    'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)] hover:brightness-110',
-  ];
+  // One look for every rating (a red→orange→blue→green→accent rainbow before — UI review 2026-10-15).
+  const ratingClass = 'ui-btn-secondary';
 
   return (
     <div
@@ -38,12 +33,12 @@ export default function GalleryReviewTouchBar({
           Prev
         </button>
         <div className="flex gap-1">
-          {([1, 2, 3, 4, 5] as const).map((rating, idx) => (
+          {([1, 2, 3, 4, 5] as const).map(rating => (
             <button
               key={rating}
               type="button"
               onClick={() => onRate(rating)}
-              className={`min-h-11 min-w-11 rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${ratingColors[idx]}`}
+              className={`min-h-11 min-w-11 rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${ratingClass}`}
             >
               {rating}
             </button>

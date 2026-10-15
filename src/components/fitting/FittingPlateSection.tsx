@@ -74,11 +74,12 @@ export default function FittingPlateSection({
   return (
     <ToolSection
       title="Plate"
-      description="The picture every try-on starts from. Isolate on white so the photo’s clothes and scene do not leak."
+      description="The picture every try-on starts from."
       data-testid="fitting-plate"
     >
       <div className="flex flex-wrap gap-2">
         <ChipButton
+          title="Cuts the person out onto white, so the photo’s room and clothes don’t leak into the shots"
           active={isolateSubject}
           disabled={busy || referenceUploading}
           onClick={() => {
@@ -113,7 +114,7 @@ export default function FittingPlateSection({
             });
           }}
         >
-          Isolate on white
+          Cut out background
         </ChipButton>
       </div>
       {isolateStatus ? (
@@ -137,7 +138,7 @@ export default function FittingPlateSection({
               onFile={upload}
             />
             <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
-              Choose from Gallery
+              From Gallery
             </ButtonLink>
             {hasReference ? (
               <Button
@@ -172,7 +173,7 @@ export default function FittingPlateSection({
               onFile={upload}
             />
             <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
-              Choose from Gallery
+              From Gallery
             </ButtonLink>
           </div>
         </div>

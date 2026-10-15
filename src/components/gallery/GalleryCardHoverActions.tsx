@@ -79,7 +79,7 @@ export function GalleryCardHoverActions({
                   <button
                     type="button"
                     onClick={() => onRequeue(false, undefined, { exactGraph: true })}
-                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-info-text)] backdrop-blur transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 whitespace-nowrap rounded-lg border max-md:min-h-7 border-[var(--border-subtle)] bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] backdrop-blur transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     Exact
                   </button>

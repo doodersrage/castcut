@@ -408,8 +408,8 @@ export default function RoleplayToolSections({
             <div className="ui-section-stack min-w-0" data-testid="story-side">
               {showAnimateCoach ? (
                 <ToolSection
-                  title="Next · Animate → Cut"
-                  description="Stills are ready — animate into clips, then Cut film for a motion reel."
+                  title="Animate the stills"
+                  description="They're ready — turn them into clips, then cut the film."
                   data-testid="story-animate"
                 >
                   <ToolActionRow>

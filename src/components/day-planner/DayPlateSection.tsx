@@ -67,18 +67,19 @@ export default function DayPlateSection({
   return (
     <ToolSection
       title="Plate"
-      description="Identity still for Day queues. Isolate on white so scene clothes do not leak."
+      description="The picture every Day still starts from."
       data-testid="day-plate"
     >
       {onIsolateSubjectChange ? (
         <div className="mb-3 flex flex-wrap gap-2">
           <ChipButton
+            title="Cuts the person out onto white, so the photo’s room and clothes don’t leak into the shots"
             active={isolateSubject}
             disabled={busy || isolateBusy || !plate}
             data-testid="day-plate-isolate"
             onClick={() => onIsolateSubjectChange(!isolateSubject)}
           >
-            Isolate on white
+            Cut out background
           </ChipButton>
         </div>
       ) : null}

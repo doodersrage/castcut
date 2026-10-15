@@ -118,7 +118,9 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
         <div className="mb-3 space-y-3">
           <RenderOfflineBanner />
           <PlayHabitNudgeBanner />
-          {tab !== 'film' ? <PlayFunnelStrip compact /> : null}
+          {/* Film, Day and Story show their own step pills; a second row above them repeated the
+              dock (UI review 2026-10-15). */}
+          {tab !== 'film' && tab !== 'day' && tab !== 'story' ? <PlayFunnelStrip compact /> : null}
         </div>
         {children}
       </main>

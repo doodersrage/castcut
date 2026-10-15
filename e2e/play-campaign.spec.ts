@@ -2454,17 +2454,16 @@ test('navigation survives a session request that fails or is rate-limited', asyn
   expect(calls).toBeGreaterThan(2);
 });
 
-test('mobile play page exposes phone Day/Fitting and optional desk handoff', async ({ page }) => {
+// Day / Outfit live in the dock and the desk view in the header — Story has no second set of links.
+test('mobile Story reaches phone Day/Outfit and the desk view', async ({ page }) => {
   await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('mobile-play')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('mobile-continue-day')).toHaveAttribute('href', /\/m\/day/);
-  await expect(page.getByTestId('mobile-continue-fitting')).toHaveAttribute('href', /\/m\/fitting/);
   await expect(page.getByTestId('mobile-play-cut')).toBeVisible();
-  await expect(page.getByTestId('roleplay-save-film-cast')).toBeVisible();
-  await page.getByText(/Optional desk handoff/i).click();
-  await expect(page.getByTestId('mobile-continue-desk-day')).toBeVisible();
-  await expect(page.getByTestId('mobile-continue-desk-play')).toBeVisible();
+  // Nothing cut yet: no greyed Save to Cast.
+  await expect(page.getByTestId('roleplay-save-film-cast')).toHaveCount(0);
+  await expect(page.getByTestId('mobile-continue-day')).toHaveCount(0);
+  await expect(page.getByTestId('mobile-desk-play')).toBeVisible();
 });
 
 test('mobile film funnel routes Fitting → Day', async ({ page }) => {
