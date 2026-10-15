@@ -29,9 +29,14 @@ export default function OutfitRunwayButton({
 
   const make = async () => {
     setBusy(true);
-    onStatus('Making the runway clip — about a minute…');
+    onStatus('Making the runway clip…');
     try {
-      const url = await makeClip({ castId: character.id, imageUrl, man });
+      const url = await makeClip({
+        castId: character.id,
+        imageUrl,
+        man,
+        onEngine: engine => onStatus(`Making the runway clip on ${engine.label} — ${engine.wait}…`),
+      });
       const next = saveOutfitRunway(character.id, outfitKey, url, imageUrl);
       if (next) onDone(next);
       onStatus('Runway clip ready.');
@@ -48,7 +53,7 @@ export default function OutfitRunwayButton({
       className="ui-text-link type-caption"
       disabled={busy}
       data-testid={`cast-wardrobe-${outfitKey}-runway`}
-      title="A short clip of the outfit turning around, made from this picture (about a minute)"
+      title="A short clip of the outfit turning around, made from this picture (MiniMax-H3 when ComfyUI has it, then WAN, then LTX-2.5)"
       onClick={() => void make()}
     >
       {busy ? 'Making runway…' : 'Runway clip'}

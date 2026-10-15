@@ -12,9 +12,9 @@ import { dayPartnerNoun } from '@/lib/day-partner';
 const made = new Map<string, string>();
 
 /**
- * Outfit stage "Turn around": the try-on's runway clip (made the first time, about a minute) as a
- * drag-to-turn viewer. Kept on the Wardrobe outfit once the try-on is kept. Loaded lazily — it
- * owns a ComfyUI queue hook.
+ * Outfit stage "Turn around": the try-on's runway clip (made the first time, on the best runway
+ * engine — outfit-runway.ts) as a drag-to-turn viewer. Kept on the Wardrobe outfit once the
+ * try-on is kept. Loaded lazily — it owns a ComfyUI queue hook.
  */
 export default function OutfitTurnButton({
   characterId,
@@ -48,12 +48,13 @@ export default function OutfitTurnButton({
       return;
     }
     setBusy(true);
-    setStatus('Making the turn — about a minute…');
+    setStatus('Making the turn…');
     try {
       const url = await makeClip({
         castId: character.id,
         imageUrl,
         man: dayPartnerNoun(character) === 'man',
+        onEngine: engine => setStatus(`Making the turn on ${engine.label} — ${engine.wait}…`),
       });
       made.set(imageUrl, url);
       if (outfit) saveOutfitRunway(character.id, outfit.key, url, imageUrl);
@@ -72,7 +73,7 @@ export default function OutfitTurnButton({
         size="sm"
         variant="secondary"
         disabled={disabled || busy}
-        title="See this outfit from every side — drag to turn her around (a short clip, about a minute the first time)"
+        title="See this outfit from every side — drag to turn her around (a short clip on MiniMax-H3 when ComfyUI has it, a few minutes the first time)"
         data-testid="fitting-turn-try-on"
         onClick={() => void open()}
       >
