@@ -265,7 +265,14 @@ export type CharacterLook = {
    * The likeness guard's reading of this look's plate (look-plate-guard.ts): its face against the
    * Cast's reference look (or, for that look, its previous plate). `plate` is the plate checked.
    */
-  plateCheck?: { plate: string; face: number | null; against: string; at: number };
+  plateCheck?: {
+    plate: string;
+    face: number | null;
+    against: string;
+    at: number;
+    /** No face found on the plate (from behind, or cropped above the head). */
+    noFace?: boolean;
+  };
   /**
    * The Look page's notes (mood, light, palette, place) when it gave this look its plate — Story
    * writes with the active look's notes, so switching looks switches them.

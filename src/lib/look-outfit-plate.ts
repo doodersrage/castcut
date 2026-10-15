@@ -299,11 +299,13 @@ export function buildLookCastPlatePrompt(input: {
   // "full-body" UltraReal cut at the thighs; this line + 3:4 kept head to feet 3 of 3. Without
   // "facing the camera" and a named, clearly-worn base layer, a second Cast came out from
   // behind, side-on, topless or as a face close-up (0 of 4 usable); with them, clothed and
-  // facing 4 of 4, full length 3 of 4 (2026-10-14).
+  // facing 4 of 4, full length 3 of 4 (2026-10-14). On UltraReal that line still gave a back
+  // view on 1 of 8 seeds (the user's look 2 twice); "front-view … her face and the front of her
+  // body toward the camera" and a studio wall instead of a "backdrop": 0 of 8, same seeds.
   const man =
     /\b(?:man|male|boy|guy)\b/i.test(appearance) && !/\b(?:woman|female|girl)\b/i.test(appearance);
   return [
-    `Full-length color photograph of ${name}, a real living person, standing and facing the camera (front view, looking into the lens), taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
+    `Full-length front-view color photograph of ${name}, a real living person, ${man ? 'his' : 'her'} face and the front of ${man ? 'his' : 'her'} body toward the camera, looking into the lens, taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
     appearance
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
@@ -316,7 +318,7 @@ export function buildLookCastPlatePrompt(input: {
     'shot on a DSLR, natural skin with visible pores and subsurface color, real eyes with irises and pupils, real hair strands, lifelike soft shadows',
     style
       ? `STYLE ONLY (lighting / palette / mood — ignore any people or race if still present): ${style}`
-      : 'even soft studio beauty light, clean seamless backdrop',
+      : 'even soft studio beauty light, plain light-grey studio wall',
     'single person facing the camera, head-to-toe in frame, feet visible, arms relaxed at the sides slightly away from the torso',
     man
       ? 'wearing plain light-grey boxer briefs, clearly on — no outerwear, no accessories, no busy patterns'

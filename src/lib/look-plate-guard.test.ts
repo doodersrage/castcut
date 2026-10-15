@@ -26,6 +26,16 @@ describe('look plate guard', () => {
     assert.equal(lookPlateDrifted(read(0.8)), false);
     assert.equal(lookPlateDrifted(read(0.2, 'older-plate')), false);
   });
+
+  it('flags a plate with no face (from behind) as drifted', () => {
+    const look = { id: 'b', name: 'Two', reference: { isolatedFilename: 'back.png' } } as never;
+    const plate = lookPlateFaceUrl(look)!;
+    const read = {
+      ...(look as object),
+      plateCheck: { plate, face: 0, against: 'the Default look', at: 1, noFace: true },
+    } as never;
+    assert.equal(lookPlateDrifted(read), true);
+  });
 });
 
 describe('Story hints follow the active look', () => {

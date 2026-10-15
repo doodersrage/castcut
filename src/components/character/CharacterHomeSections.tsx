@@ -140,6 +140,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
               ? {
                   face: activeLook(character).plateCheck!.face ?? 0,
                   against: activeLook(character).plateCheck!.against,
+                  noFace: activeLook(character).plateCheck!.noFace,
                 }
               : null
           }

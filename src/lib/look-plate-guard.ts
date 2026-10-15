@@ -47,7 +47,7 @@ export async function checkLookPlate(input: {
   characterId: string;
   lookId: string;
   previousPlate?: string | null;
-}): Promise<{ face: number; against: string; look: CharacterLook } | null> {
+}): Promise<{ face: number; against: string; look: CharacterLook; noFace?: boolean } | null> {
   const character = getCharacter(input.characterId);
   const look = character ? looksOf(character).find(entry => entry.id === input.lookId) : undefined;
   const plate = look ? lookPlateFaceUrl(look) : null;
@@ -60,8 +60,14 @@ export async function checkLookPlate(input: {
       ? lookPlateFaceUrl(reference)
       : null;
   if (!referenceUrl || referenceUrl === plate) return null;
-  const measured = await measureStillFaceMatch({ referenceUrl, imageUrl: plate }).catch(() => null);
-  if (!measured?.available) return null;
+  // Null: no face found on the plate — a back view (UltraReal, 2026-10-14) or a crop above the
+  // head. That used to be skipped silently; it is the worst plate of all.
+  const measured = await measureStillFaceMatch({ referenceUrl, imageUrl: plate }).catch(
+    () => undefined
+  );
+  if (measured === undefined || (measured && !measured.available)) return null;
+  const noFace = measured === null;
+  const face = noFace ? 0 : measured.similarity;
   const against = isReference ? 'its previous plate' : `the ${reference!.name} look`;
   // Kept on the look as it is now (other edits since the read stay).
   const fresh = getCharacter(input.characterId);
@@ -70,9 +76,12 @@ export async function checkLookPlate(input: {
     ...fresh,
     looks: (fresh.looks ?? []).map(entry =>
       entry.id === look.id
-        ? { ...entry, plateCheck: { plate, face: measured.similarity, against, at: Date.now() } }
+        ? {
+            ...entry,
+            plateCheck: { plate, face, against, at: Date.now(), ...(noFace ? { noFace } : {}) },
+          }
         : entry
     ),
   });
-  return { face: measured.similarity, against, look };
+  return { face, against, look, ...(noFace ? { noFace } : {}) };
 }

@@ -63,7 +63,7 @@ export type CharacterLookPlateSectionProps = {
   plateHistory?: CharacterLookPlateRecord[];
   onRestorePlate?: (replacedAt: number) => void;
   /** The likeness guard read the active plate as someone else (look-plate-guard.ts). */
-  plateDrift?: { face: number; against: string } | null;
+  plateDrift?: { face: number; against: string; noFace?: boolean } | null;
 };
 
 function EarlierPlates({
@@ -490,8 +490,10 @@ export default function CharacterLookPlateSection({
           role="status"
           data-testid="cast-look-plate-drift"
         >
-          This plate doesn&apos;t look like the Cast — {Math.round(plateDrift.face * 100)}% match
-          with {plateDrift.against}. Every still of this look starts from it.{' '}
+          {plateDrift.noFace
+            ? 'This plate shows no face — likely from behind.'
+            : `This plate doesn't look like the Cast — ${Math.round(plateDrift.face * 100)}% match with ${plateDrift.against}.`}{' '}
+          Every still of this look starts from it.{' '}
           {plateHistory.length > 0 && onRestorePlate ? (
             <button
               type="button"

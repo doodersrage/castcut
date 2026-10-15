@@ -92,7 +92,9 @@ export default function LookPlateGuardWatcher() {
             }
             const { pushSystemTrayMessage } = await import('@/lib/system-tray-messages');
             pushSystemTrayMessage({
-              text: `The new plate for “${look.name}” doesn't look like ${character.name} (${Math.round(result.face * 100)}% match with ${result.against}). Every still starts from it — put back the earlier plate on Cast home → Looks.`,
+              text: result.noFace
+                ? `The new plate for “${look.name}” shows no face — likely ${character.name} from behind. Every still starts from it — make the plate again, or put back the earlier one on Cast home → Looks.`
+                : `The new plate for “${look.name}” doesn't look like ${character.name} (${Math.round(result.face * 100)}% match with ${result.against}). Every still starts from it — put back the earlier plate on Cast home → Looks.`,
               tone: 'warning',
               href: cast.characterLooksHref(character.id),
               actionLabel: 'Open Looks',
