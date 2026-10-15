@@ -591,7 +591,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           />
         </div>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Plan the day → Queue day → Cut film. Tap a card to open that time of day.
+          Plan the scenes, render the stills, then cut the film.
         </p>
       </div>
 

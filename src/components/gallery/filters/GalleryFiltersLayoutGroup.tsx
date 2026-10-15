@@ -6,7 +6,7 @@ import type {
   GalleryLayoutMode,
 } from '@/lib/comfyui-gallery';
 import type { GalleryDensity } from '@/lib/gallery-density';
-import { FilterChip } from '@/components/gallery/GalleryFilterChip';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { GALLERY_SORT_OPTIONS } from '@/components/gallery/gallery-filters-shared';
 
 type Props = {
@@ -129,27 +129,26 @@ export function GalleryFiltersLayoutGroup({
         </label>
       </div>
 
+      {/* Segmented, like every other either/or picker (chips here read as filters). */}
       <div className="hidden flex-wrap items-center gap-2 md:flex">
-        {(['grid', 'dense', 'list'] as const).map(mode => (
-          <FilterChip
-            key={mode}
-            active={layout === mode}
-            label={mode === 'grid' ? 'Grid' : mode === 'dense' ? 'Dense' : 'List'}
-            testId={`gallery-layout-${mode}`}
-            onClick={() => setLayout(mode)}
-          />
-        ))}
-        <FilterChip
-          active={density === 'comfortable'}
-          label="Comfort"
-          testId="gallery-density-comfortable"
-          onClick={() => setDensity('comfortable')}
+        <SegmentedControl
+          aria-label="Layout"
+          value={layout}
+          onChange={setLayout}
+          options={[
+            { value: 'grid', label: 'Grid', testId: 'gallery-layout-grid' },
+            { value: 'dense', label: 'Dense', testId: 'gallery-layout-dense' },
+            { value: 'list', label: 'List', testId: 'gallery-layout-list' },
+          ]}
         />
-        <FilterChip
-          active={density === 'compact'}
-          label="Compact"
-          testId="gallery-density-compact"
-          onClick={() => setDensity('compact')}
+        <SegmentedControl
+          aria-label="Density"
+          value={density}
+          onChange={setDensity}
+          options={[
+            { value: 'comfortable', label: 'Comfort', testId: 'gallery-density-comfortable' },
+            { value: 'compact', label: 'Compact', testId: 'gallery-density-compact' },
+          ]}
         />
       </div>
 

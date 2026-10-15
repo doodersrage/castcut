@@ -47,8 +47,9 @@ export default function PlayCampaignActionsSection({
   firstFilmDone = false,
   onOpenStory,
 }: PlayCampaignActionsSectionProps) {
+  // One block: as a fragment each line took a full section gap on Film (UI review 2026-10-15).
   return (
-    <>
+    <div className="space-y-3">
       {status ? <p className="type-caption text-[var(--text-muted)]">{status}</p> : null}
 
       {durableCampaign && campaignCharacterMismatch ? (
@@ -164,6 +165,6 @@ export default function PlayCampaignActionsSection({
           Cast roster
         </ButtonLink>
       </div>
-    </>
+    </div>
   );
 }

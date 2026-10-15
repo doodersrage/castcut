@@ -47,15 +47,14 @@ export type DayPlanBarProps = {
 
 const isHeatMood = (id: DayMoodSetting) => id === 'suggestive' || isDayAdultMood(id);
 
-/** One line on what the picked mood does to the plan (and the NSFW flag note). */
+/** One line on what the picked mood does to the plan (the NSFW flag note is the mood's title). */
 export function DayMoodHints({
   dayMood,
   intimateMix,
-  intimateEnabled,
 }: {
   dayMood: DayMoodSetting;
   intimateMix: DayIntimateMix;
-  intimateEnabled: boolean;
+  intimateEnabled?: boolean;
 }) {
   const mood = normalizeDayMood(dayMood);
   const mix = intimateMix;
@@ -84,12 +83,6 @@ export function DayMoodHints({
       {hint ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-hint">
           {hint}
-        </p>
-      ) : null}
-      {!intimateEnabled ? (
-        <p className="type-caption text-[var(--text-muted)]" data-testid="day-mood-nsfw-hint">
-          Intimate and Raunchy are switched off on this install (an admin turns them on in the
-          server’s settings).
         </p>
       ) : null}
     </>
@@ -189,6 +182,11 @@ export default function DayPlanBar({
             disabled={busy}
             aria-label="Day mood"
             data-testid="day-mood"
+            title={
+              intimateEnabled
+                ? undefined
+                : 'Intimate and Raunchy are off on this install — an admin turns them on in the server’s settings.'
+            }
             className="!w-auto"
             onChange={event => onDayMoodChange(event.target.value as DayMoodSetting)}
           >
@@ -266,7 +264,8 @@ export default function DayPlanBar({
             ))}
           </SelectInput>
         </label>
-        <div className={group}>
+        {/* What the preset does is its hover text, not a line under the bar (UI review 2026-10-15). */}
+        <div className={group} title={qualitySummary} data-testid="day-quality-summary">
           <span className={groupLabel}>Quality</span>
           <QualityPresetSegments
             label="Quality"
@@ -288,9 +287,6 @@ export default function DayPlanBar({
           Advanced {advancedOpen ? '▴' : '▾'}
         </button>
       </div>
-      <p className="type-caption mt-1.5 text-[var(--text-muted)]" data-testid="day-quality-summary">
-        {qualitySummary}
-      </p>
     </div>
   );
 }

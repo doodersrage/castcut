@@ -127,11 +127,6 @@ export default function DayPartnerRow({
               : ' Two women, two men or a man lead in adult poses need Qwen Rapid AIO — on this engine those stills invent the partner.'
             : ''}
         </p>
-      ) : !isDayAdultMood(mood) ? (
-        <p className="type-caption text-[var(--text-muted)]" data-testid="day-companions-hint">
-          Second adults allowed — friend or selfie companion with a different face (not a Cast
-          twin).
-        </p>
       ) : null}
       {partner?.invented && onNewPartnerStandIn ? (
         <div className="flex items-center gap-2" data-testid="day-partner-stand-in">

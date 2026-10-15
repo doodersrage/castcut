@@ -76,19 +76,26 @@ export function ToolEngineChip({
 }) {
   const summary = useEngineSummaryText(toolId);
   const model = useToolEffectiveModel(toolId);
+  // The chip names the engine family; the variant ("(Edit NSFW)") is in its hover text and the
+  // panel (UI review 2026-10-15: file-style names on every page header).
+  const shortSummary = summary.replace(/\s*\([^)]*\)/g, '');
   return (
     <button
       type="button"
       data-testid="tool-engine-chip"
       aria-expanded={open}
       aria-controls={controls}
-      title={open ? 'Hide the Engine controls' : 'Model, quality, LoRAs and workflow'}
+      title={
+        open
+          ? 'Hide the Engine controls'
+          : `${summary ? `${summary} — ` : ''}model, quality, LoRAs and workflow`
+      }
       onClick={onClick}
       className={`tool-engine-chip ${open ? 'tool-engine-chip-open' : ''}`.trim()}
     >
       <EngineGlyph />
       <span className="tool-engine-chip-label">Engine</span>
-      {summary ? <span className="tool-engine-chip-summary">{summary}</span> : null}
+      {shortSummary ? <span className="tool-engine-chip-summary">{shortSummary}</span> : null}
       <EngineHealthChipBadge model={model} />
       <svg
         viewBox="0 0 12 12"

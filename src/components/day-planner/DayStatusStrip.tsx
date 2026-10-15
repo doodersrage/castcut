@@ -35,7 +35,8 @@ export default function DayStatusStrip({
 }: DayStatusStripProps) {
   return (
     <div className={className.trim() || undefined} data-testid="day-status-strip" role="status">
-      <p className="type-caption text-[var(--text-secondary)]" data-testid="day-status-line">
+      {/* The step chips above already show stills and clips: read out, not shown twice. */}
+      <p className="sr-only" data-testid="day-status-line">
         {statusLine}
       </p>
       {dressPlateStatus ? (

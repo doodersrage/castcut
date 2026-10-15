@@ -1384,31 +1384,16 @@ html[data-theme='light'] .page-canvas::before {
 .ui-tool-header-row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
-@media (min-width: 640px) {
-  .ui-tool-header-row {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--space-6);
-  }
-}
-
+/* One quiet line under the title (full text on hover) — the two-line note right of every title
+   read as clutter (UI review 2026-10-15). */
 .ui-tool-header-desc {
-  max-width: 36rem;
-  flex-shrink: 0;
-  font-size: 0.75rem;
+  max-width: 44rem;
+  font-size: 0.875rem;
   line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-@media (min-width: 640px) {
-  .ui-tool-header-desc {
-    max-width: 20rem;
-    text-align: right;
-  }
+  color: var(--text-muted);
 }
 
 .ui-continue-card {
@@ -2039,9 +2024,11 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
   background: var(--bg-active);
 }
 
+/* Accent text so a ghost button reads as an action, not a label ("Forget", "Pass" looked like
+   captions — UI review 2026-10-15). Menu items set their own neutral colour. */
 .ui-btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--accent-text);
 }
 
 .ui-btn-ghost:hover:not(:disabled) {

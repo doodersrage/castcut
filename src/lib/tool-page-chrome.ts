@@ -58,11 +58,11 @@ export function descriptionForWorkspace(mode: WorkspaceMode, full: string, simpl
 export const HUB_PAGE_DESCRIPTIONS = {
   gallery: {
     full: 'Browse outputs, review and compare variants, run experiments, and queue follow-up work from one place.',
-    simple: 'Browse and review outputs — use search and filters when you need to dig in.',
+    simple: 'Everything you’ve made.',
   },
   queue: {
     full: 'Pending and running jobs across gallery entries. Live ComfyUI queue stats refresh every few seconds.',
-    simple: 'Active jobs at a glance — expand sections below for failed runs and recent outputs.',
+    simple: 'What’s rendering now, and what failed.',
   },
   dashboard: {
     full: 'Pending ComfyUI jobs, recent outputs, queue status, and your active project — without the generator UI in the way.',
@@ -71,8 +71,7 @@ export const HUB_PAGE_DESCRIPTIONS = {
   },
   settings: {
     full: 'Organized by area — browser overrides apply per session; server defaults come from .env.local (see Overview).',
-    simple:
-      'Essentials for Simple workspace — expand all settings when you need LLM, automation, or admin tools.',
+    simple: 'Connections, backups and defaults.',
   },
   settingsExpanded: {
     full: 'Organized by area — browser overrides apply per session; server defaults come from .env.local (see Overview).',

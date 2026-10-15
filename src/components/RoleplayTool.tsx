@@ -6,8 +6,8 @@ import RoleplayToolSections from '@/components/roleplay/RoleplayToolSections';
 
 export default function RoleplayTool() {
   const description = useToolPageDescription(
-    'Continue your Cast lead with story beats — stills and clips, then Cut film. Change the lead or their photo on Film or Cast.',
-    'Continue this Cast character — write a bio, tap a scene, Cut film.'
+    'Carry the story on, one scene at a time.',
+    'Carry the story on, one scene at a time.'
   );
   const vm = useRoleplayToolOrchestration();
 

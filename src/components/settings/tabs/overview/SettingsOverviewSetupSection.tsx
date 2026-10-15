@@ -79,6 +79,8 @@ export function SettingsOverviewSetupSection({
                     : health.llm.modelMissing
                       ? `${health.llm.model} is not on the LLM server — load it, or pick one in Settings → LLM`
                       : (health.llm.model ?? 'connected'),
+                  // Switched off on purpose is not a fault (grey, not red).
+                  optional: !health.llm.enabled,
                 },
                 {
                   ok: health.comfyui.ok,
@@ -100,12 +102,18 @@ export function SettingsOverviewSetupSection({
                 {
                   ok: Boolean(health.config?.visionModel?.trim()),
                   label: 'Vision model',
-                  detail: health.config?.visionModel?.trim() || 'unset — vision tools will fail',
+                  detail:
+                    health.config?.visionModel?.trim() ||
+                    (health.llm.enabled ? 'unset — vision tools will fail' : 'off with the LLM'),
+                  optional: !health.llm.enabled,
                 },
                 {
                   ok: Boolean(health.storage?.enabled),
-                  label: 'PROMPT_DATA_DIR',
-                  detail: health.storage?.enabled ? 'server sync on' : 'browser-only',
+                  // Plain names; the env var is in Settings → Data (UI review 2026-10-15).
+                  label: 'Server storage',
+                  detail: health.storage?.enabled
+                    ? 'on — synced across devices'
+                    : 'browser only (set PROMPT_DATA_DIR)',
                 },
                 {
                   ok: Boolean(health.auth?.enabled),
@@ -115,7 +123,7 @@ export function SettingsOverviewSetupSection({
                 },
                 {
                   ok: Boolean(health.email?.configured),
-                  label: 'SMTP',
+                  label: 'Email',
                   detail: health.email?.configured
                     ? 'mail configured'
                     : 'not set up — only needed for password-reset emails',

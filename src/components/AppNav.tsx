@@ -40,7 +40,7 @@ export default function AppNav() {
           />
         </Link>
         <div className="flex items-center gap-2">
-          <ActiveJobsChip />
+          <ActiveJobsChip trayToggle="top" />
           <Link href="/m" className="ui-btn-secondary px-3 py-2" onClick={() => choosePhoneView()}>
             Phone
           </Link>

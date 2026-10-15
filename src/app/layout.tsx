@@ -22,7 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         workspace: 'play',
         header: <PlayKioskShell />,
         contentClassName:
-          'pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] [--header-offset:4.35rem]',
+          'pt-[calc(4.25rem+env(safe-area-inset-top))] pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-10 [--header-offset:4.35rem]',
       }}
     >
       {children}

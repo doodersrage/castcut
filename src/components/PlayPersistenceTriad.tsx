@@ -78,9 +78,15 @@ export default function PlayPersistenceTriad({ compact = false }: PlayPersistenc
   const line = [castLook ?? 'No Cast picked yet', resume].join(' · ');
 
   if (compact) {
+    // The Film header already says where the film is ("Film · 2 of 3 · Day"); the line only
+    // names who and which look (UI review 2026-10-15: the same progress three times).
     return (
-      <p className="type-caption text-[var(--text-muted)]" data-testid="play-persistence-triad">
-        {line}
+      <p
+        className="type-caption text-[var(--text-muted)]"
+        data-testid="play-persistence-triad"
+        title={line}
+      >
+        {castLook ?? 'No Cast picked yet'}
       </p>
     );
   }

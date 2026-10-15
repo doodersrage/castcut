@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
+import ActiveJobsChip from '@/components/ActiveJobsChip';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ReportBugLink from '@/components/ReportBugLink';
 import { dockGridColsClass } from '@/lib/play-dock-cols';
@@ -37,6 +38,8 @@ type KioskTab = {
   requiresFirstFilm?: boolean;
   /** Primary film-loop dock vs More overflow. */
   primary?: boolean;
+  /** Desktop: in the header's tab row beside the film steps (on phones it stays in More). */
+  desk?: boolean;
 };
 
 const PLAY_KIOSK_TABS: KioskTab[] = [
@@ -45,8 +48,8 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
   // Optional and rarely needed now that Day plans the scenes: in More, not the dock.
-  { href: '/characters', label: 'Cast' },
-  { href: '/gallery', label: 'Gallery' },
+  { href: '/characters', label: 'Cast', desk: true },
+  { href: '/gallery', label: 'Gallery', desk: true },
   { href: '/queue', label: 'Queue' },
 ];
 
@@ -124,6 +127,10 @@ export default function PlayKioskShell() {
   // More sits in the same row on phones — counted, or it wrapped onto a second row.
   const colClass = dockGridColsClass(primaryTabs.length, moreTabs.length > 0);
   const moreActive = moreTabs.some(entry => tabIsActive(entry.href, pathname));
+  const deskTabs = useMemo(
+    () => visibleTabs.filter(entry => entry.primary || entry.desk),
+    [visibleTabs]
+  );
 
   return (
     <div data-accent={accent}>
@@ -145,9 +152,48 @@ export default function PlayKioskShell() {
             </p>
           </div>
         </div>
+        {/* Desktop: the sections are a tab row in the header, not a phone dock along the bottom
+            of a wide screen (UI review 2026-10-15). */}
+        <nav aria-label="Film sections" className="hidden min-w-0 flex-1 justify-center lg:flex">
+          <ul className="flex items-center gap-1">
+            {deskTabs.map((entry, index) => {
+              const active = tabIsActive(entry.href, pathname);
+              const href = entry.href === '/gallery' ? galleryHref : entry.href;
+              const firstAfterSteps = !entry.primary && deskTabs[index - 1]?.primary;
+              return (
+                <li
+                  key={entry.href}
+                  className={
+                    firstAfterSteps ? 'ml-2 border-l border-[var(--border-subtle)] pl-3' : undefined
+                  }
+                >
+                  <Link
+                    href={href}
+                    data-active={active ? 'true' : 'false'}
+                    aria-current={active ? 'page' : undefined}
+                    className={[
+                      'block rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium transition',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
+                      active
+                        ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                        : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
+                    ].join(' ')}
+                  >
+                    {entry.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
         <div className="relative flex shrink-0 items-center justify-end gap-2">
+          {/* Desktop only: phones keep the corner card (a wrapper — the chip's own inline-flex
+              beat a passed `hidden`). */}
+          <span className="hidden md:contents">
+            <ActiveJobsChip compact trayToggle />
+          </span>
           <ConnectionHealthChip compact />
-          <PlayContinueChip />
+          <PlayContinueChip variant="secondary" />
           <div className="relative">
             <button
               type="button"
@@ -172,7 +218,7 @@ export default function PlayKioskShell() {
                       key={entry.href}
                       href={href}
                       role="menuitem"
-                      className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      className={`${entry.desk ? 'lg:hidden ' : ''}block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]`}
                       onClick={() => setMoreOpen(false)}
                     >
                       {entry.label}
@@ -234,7 +280,8 @@ export default function PlayKioskShell() {
       <nav
         ref={dockRef}
         aria-label="Film"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--bg-base)_92%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
+        // Solid: page text showed through the translucent bar on phones (UI review 2026-10-15).
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border-subtle)] bg-[var(--bg-base)] pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <ul className={`mx-auto grid max-w-4xl ${colClass} gap-0.5 px-2 py-2`}>
           {primaryTabs.map(entry => {

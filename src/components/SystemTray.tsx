@@ -15,6 +15,7 @@ import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
 import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
 import { TrayNotice } from '@/components/system-tray/TrayNotice';
 import { SystemTrayActivityCard } from '@/components/system-tray/SystemTrayActivityCard';
+import { SYSTEM_TRAY_PANEL_EVENT, type SystemTrayPanelAnchor } from '@/lib/system-tray-panel';
 
 /** Space the floating Engine button keeps above this tray. Published on <html>. */
 export const SYSTEM_TRAY_HEIGHT_VAR = '--system-tray-height';
@@ -25,6 +26,8 @@ export default function SystemTray() {
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  // Where the jobs panel opens from: a header chip ('top') or the corner card / sidebar chip.
+  const [anchor, setAnchor] = useState<SystemTrayPanelAnchor>('bottom');
   const [showAllNotices, setShowAllNotices] = useState(false);
   const [cancellingGalleryIds, setCancellingGalleryIds] = useState<Set<string>>(() => new Set());
   const {
@@ -95,11 +98,24 @@ export default function SystemTray() {
   }, []);
 
   useEffect(() => {
+    const onOpen = (event: Event) => {
+      const next = (event as CustomEvent<{ anchor?: SystemTrayPanelAnchor }>).detail?.anchor;
+      setAnchor(next === 'top' ? 'top' : 'bottom');
+      setExpanded(value => !value);
+    };
+    window.addEventListener(SYSTEM_TRAY_PANEL_EVENT, onOpen);
+    return () => window.removeEventListener(SYSTEM_TRAY_PANEL_EVENT, onOpen);
+  }, []);
+
+  useEffect(() => {
     if (!expanded) {
       return;
     }
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Element | null;
+      // The header chip toggles it itself.
+      if (target?.closest?.('[data-testid="active-jobs-chip"]')) return;
+      if (!rootRef.current?.contains(target as Node)) {
         setExpanded(false);
       }
     };
@@ -161,7 +177,11 @@ export default function SystemTray() {
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)] right-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col ui-tray-stack transition-[bottom] duration-200"
+      className={`pointer-events-none fixed right-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col ui-tray-stack transition-[bottom] duration-200 ${
+        anchor === 'top' && expanded
+          ? 'top-[calc(4.75rem+env(safe-area-inset-top))] max-h-[calc(100dvh-6rem)] overflow-y-auto'
+          : 'bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)]'
+      }`}
       data-testid="system-tray"
       aria-live="polite"
     >

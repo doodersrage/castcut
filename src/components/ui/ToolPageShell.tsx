@@ -58,11 +58,11 @@ export const ToolPageHeader = memo(function ToolPageHeader({
         {description ? (
           typeof description === 'string' ? (
             <p className="ui-tool-header-desc" title={description}>
-              <span className="line-clamp-2">{description}</span>
+              <span className="line-clamp-1">{description}</span>
             </p>
           ) : (
             <div className="ui-tool-header-desc">
-              <div className="line-clamp-2">{description}</div>
+              <div className="line-clamp-1">{description}</div>
             </div>
           )
         ) : null}
@@ -235,6 +235,7 @@ export function SegmentedControl<T extends string>({
     value: T;
     label: string;
     tone?: 'default' | 'danger';
+    testId?: string;
   }>;
   'aria-label'?: string;
 }) {
@@ -248,6 +249,7 @@ export function SegmentedControl<T extends string>({
           aria-selected={value === option.value}
           data-active={value === option.value ? 'true' : 'false'}
           data-tone={option.tone}
+          data-testid={option.testId}
           className="ui-segmented-item"
           onClick={() => onChange(option.value)}
         >

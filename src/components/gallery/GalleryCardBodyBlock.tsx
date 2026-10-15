@@ -233,7 +233,18 @@ export default function GalleryCardBodyBlock({
             </p>
           )}
           {metaLine ? (
-            <p className="ui-gallery-caption mt-1.5 truncate">
+            <p
+              className="ui-gallery-caption mt-1.5 truncate"
+              // Host and seed are for debugging a run, not for browsing (UI review 2026-10-15).
+              title={
+                [
+                  entry.comfyUrl ? `ComfyUI ${entry.comfyUrl}` : '',
+                  entry.queueParams?.seed != null ? `seed ${entry.queueParams.seed}` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
+            >
               {entry.parentGalleryEntryId && onShowParent ? (
                 <>
                   <button
@@ -247,7 +258,6 @@ export default function GalleryCardBodyBlock({
                 </>
               ) : null}
               {metaLine}
-              {entry.queueParams?.seed != null ? ` · seed ${entry.queueParams.seed}` : ''}
               {entry.queueParams?.videoFrames != null ? ` · ${entry.queueParams.videoFrames}f` : ''}
               {entry.queueParams?.videoFps != null ? ` @ ${entry.queueParams.videoFps}fps` : ''}
               {entry.queuedAt ? ` · ${new Date(entry.queuedAt).toLocaleDateString()}` : ''}

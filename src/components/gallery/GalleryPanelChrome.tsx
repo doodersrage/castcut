@@ -70,7 +70,7 @@ export function GalleryPanelHeader({
             <button
               type="button"
               onClick={onArchiveThenPurge}
-              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs !text-[var(--text-secondary)] hover:!text-[var(--tint-danger-text)]"
               data-testid="gallery-archive-purge"
             >
               Archive & purge
@@ -78,7 +78,7 @@ export function GalleryPanelHeader({
             <button
               type="button"
               onClick={onFinishPendingPurge}
-              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs text-[var(--text-secondary)] hover:text-[var(--tint-danger-text)]"
+              className="ui-btn-ghost ui-btn-sm w-full !justify-start text-xs !text-[var(--text-secondary)] hover:!text-[var(--tint-danger-text)]"
               data-testid="gallery-finish-purge"
             >
               Finish purge

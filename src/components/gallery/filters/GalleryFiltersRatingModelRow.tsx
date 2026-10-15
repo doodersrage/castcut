@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
-import { FilterChip } from '@/components/gallery/GalleryFilterChip';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
 
 type Props = {
   filter: ComfyGalleryFilter;
@@ -12,34 +12,23 @@ type Props = {
 export function GalleryFiltersRatingModelRow({ filter, setFilter, models }: Props) {
   return (
     <div className="hidden flex-wrap items-center gap-2 md:flex">
-      {(
-        [
-          { rating: undefined as 1 | 2 | 3 | 4 | 5 | undefined, label: 'Any ★' },
-          { rating: 5 as const, label: '5★' },
-          { rating: 4 as const, label: '≥4★' },
-          { rating: 3 as const, label: '≥3★' },
-          { rating: 1 as const, label: '≥1★' },
-        ] as const
-      ).map(option => (
-        <FilterChip
-          key={option.label}
-          active={
-            option.rating === undefined ? !filter.minRating : filter.minRating === option.rating
-          }
-          label={option.label}
-          testId={
-            option.rating === undefined
-              ? 'gallery-filter-rating-any'
-              : `gallery-filter-rating-${option.rating}`
-          }
-          onClick={() =>
-            setFilter(previous => ({
-              ...previous,
-              minRating: option.rating,
-            }))
-          }
-        />
-      ))}
+      <SegmentedControl
+        aria-label="Minimum rating"
+        value={filter.minRating ? String(filter.minRating) : 'any'}
+        onChange={value =>
+          setFilter(previous => ({
+            ...previous,
+            minRating: value === 'any' ? undefined : (Number(value) as 1 | 3 | 4 | 5),
+          }))
+        }
+        options={[
+          { value: 'any', label: 'Any ★', testId: 'gallery-filter-rating-any' },
+          { value: '5', label: '5★', testId: 'gallery-filter-rating-5' },
+          { value: '4', label: '≥4★', testId: 'gallery-filter-rating-4' },
+          { value: '3', label: '≥3★', testId: 'gallery-filter-rating-3' },
+          { value: '1', label: '≥1★', testId: 'gallery-filter-rating-1' },
+        ]}
+      />
       {models.length > 0 ? (
         <label className="flex items-center gap-1.5 type-caption text-[var(--text-muted)]">
           Model
@@ -52,7 +41,7 @@ export function GalleryFiltersRatingModelRow({ filter, setFilter, models }: Prop
               })
             }
             data-testid="gallery-filter-model"
-            className="ui-input px-2 py-1 text-[11px]"
+            className="ui-input !w-auto min-w-[10rem] px-2 py-1 text-xs"
           >
             <option value="">All models</option>
             {models.map(model => (

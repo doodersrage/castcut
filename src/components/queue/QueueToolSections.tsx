@@ -234,9 +234,20 @@ export default function QueueToolSections({
                 className="ui-list-row flex-col items-stretch gap-2 sm:flex-row sm:items-start"
               >
                 <div className="ui-list-primary min-w-0 space-y-1">
-                  <p className="truncate font-mono text-sm text-[var(--text-primary)]">{job.id}</p>
+                  {/* A raw prompt UUID meant nothing to read (UI review 2026-10-15): say what it
+                      is, with a short id to tell rows apart; the full id is on hover. */}
+                  <p className="truncate text-sm text-[var(--text-primary)]" title={job.id}>
+                    Job from another app or session{' '}
+                    <span className="font-mono text-xs text-[var(--text-muted)]">
+                      {job.id.slice(0, 8)}
+                    </span>
+                  </p>
                   <p className="type-caption">
-                    {job.status}
+                    {job.status === 'running'
+                      ? 'Running'
+                      : job.status === 'pending'
+                        ? 'Waiting'
+                        : job.status}
                     {job.statusMessage ? ` · ${job.statusMessage}` : ''}
                     {orphanHostCount > 1 && job.comfyUrl ? ` · ${job.comfyUrl}` : ''}
                   </p>

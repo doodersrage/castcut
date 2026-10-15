@@ -96,8 +96,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         title={props.campaignComplete ? 'Film complete' : 'Your film'}
         description={
           props.campaignComplete
-            ? 'Watch on Cast, cut another Day with the same look, or continue in Story.'
-            : 'Create a Cast lead, then Day → Cut (Outfit is optional). Or jump straight to a starter Day film.'
+            ? 'Watch it, cut another Day, or carry on in Story.'
+            : 'Pick who it’s about, plan their Day, then cut the film.'
         }
       >
         {/* Shell already mounts habit on /m/* — avoid stacking on phone Film. */}

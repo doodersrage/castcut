@@ -1,5 +1,9 @@
 'use client';
 
+import ActionMenu, {
+  ACTION_MENU_DANGER_ITEM_CLASS,
+  ACTION_MENU_ITEM_CLASS,
+} from '@/components/ui/ActionMenu';
 import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
@@ -164,13 +168,10 @@ export default function CharacterCastRoster() {
       width="wide"
       badge={<ToolBadge accent="sky">Cast</ToolBadge>}
       title="Characters"
-      description="The character is the project. Open a home for looks, stills, clips, and LoRA — or start a film."
+      description="Everyone you make films with."
     >
       {characters.length > 0 ? (
-        <ToolSection
-          title="Film loop"
-          description="Guided Look → Outfit → Day → Story. Start a film with a character from the roster, or make a new one first."
-        >
+        <ToolSection title="Film loop" description="Start a film, or add someone new.">
           <div className="flex flex-wrap gap-2">
             {filmLead ? (
               <Button
@@ -325,41 +326,55 @@ export default function CharacterCastRoster() {
                     >
                       Start a film
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => applyAndTryOn(character.id)}
+                    {/* One clear action plus the next step; the rest in a menu (7 buttons per
+                        card read as clutter — UI review 2026-10-15). */}
+                    <ActionMenu
+                      label="⋯"
+                      caret={false}
+                      summaryAriaLabel={`More for ${character.name}`}
+                      summaryClassName="ui-btn-ghost ui-btn-sm"
+                      testId={`cast-roster-more-${character.id}`}
                     >
-                      Outfit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => applyAndPlanDay(character.id)}
-                    >
-                      Open Day
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => applyAndGenerate(character.id)}
-                    >
-                      Generate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      data-testid={`cast-roster-details-toggle-${character.id}`}
-                      aria-expanded={detailsOpen}
-                      onClick={() =>
-                        setDetailsId(current => (current === character.id ? null : character.id))
-                      }
-                    >
-                      {detailsOpen ? 'Hide details' : 'Details'}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => forgetCharacter(character.id)}>
-                      Remove
-                    </Button>
+                      <button
+                        type="button"
+                        className={ACTION_MENU_ITEM_CLASS}
+                        onClick={() => applyAndTryOn(character.id)}
+                      >
+                        Try on outfits
+                      </button>
+                      <button
+                        type="button"
+                        className={ACTION_MENU_ITEM_CLASS}
+                        onClick={() => applyAndPlanDay(character.id)}
+                      >
+                        Open Day
+                      </button>
+                      <button
+                        type="button"
+                        className={ACTION_MENU_ITEM_CLASS}
+                        onClick={() => applyAndGenerate(character.id)}
+                      >
+                        Generate a picture
+                      </button>
+                      <button
+                        type="button"
+                        className={ACTION_MENU_ITEM_CLASS}
+                        data-testid={`cast-roster-details-toggle-${character.id}`}
+                        aria-expanded={detailsOpen}
+                        onClick={() =>
+                          setDetailsId(current => (current === character.id ? null : character.id))
+                        }
+                      >
+                        {detailsOpen ? 'Hide details' : 'Details'}
+                      </button>
+                      <button
+                        type="button"
+                        className={ACTION_MENU_DANGER_ITEM_CLASS}
+                        onClick={() => forgetCharacter(character.id)}
+                      >
+                        Remove from cast…
+                      </button>
+                    </ActionMenu>
                   </div>
                 </li>
               );

@@ -333,12 +333,15 @@ export default function GalleryCard({
   const derivedLabel = galleryDerivedKindLabel(entry.derivedKind);
 
   const comfyHostLabel = formatComfyHostLabel(entry.comfyUrl);
-  const renderDurationLabel = formatRenderDuration(resolveGalleryRenderDurationMs(entry));
+  // A failed or cleared job's wall clock ran on for days ("render 283h") — finished renders only.
+  const renderDurationLabel =
+    entry.status === 'completed'
+      ? formatRenderDuration(resolveGalleryRenderDurationMs(entry))
+      : undefined;
   const metaLine = [
     entry.tool,
     entry.model,
     entry.parentGalleryEntryId ? undefined : derivedLabel,
-    comfyHostLabel ? `host ${comfyHostLabel}` : undefined,
     renderDurationLabel ? `render ${renderDurationLabel}` : undefined,
   ]
     .filter(Boolean)

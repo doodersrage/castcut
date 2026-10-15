@@ -17,6 +17,8 @@ import {
 
 type ChipHealth = {
   llmOk: boolean;
+  /** LLM_ENABLED=false: switched off on purpose — not a problem to flag. */
+  llmOff: boolean;
   comfyOk: boolean;
   diffusersOk: boolean;
 };
@@ -28,9 +30,11 @@ function deriveChipHealth(data: RawHealthResponse): ChipHealth {
     llm?: { ok?: boolean };
     comfyui?: { ok?: boolean };
     diffusers?: { ok?: boolean };
+    config?: { llmEnabled?: boolean };
   } | null;
   return {
     llmOk: Boolean(typed?.llm?.ok),
+    llmOff: typed?.config?.llmEnabled === false,
     comfyOk: Boolean(typed?.comfyui?.ok),
     diffusersOk: Boolean(typed?.diffusers?.ok),
   };
@@ -67,7 +71,7 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
 
   // Diffusers is optional — chip "connected" means LLM + at least one image backend.
   const imageOk = Boolean(health?.comfyOk || health?.diffusersOk);
-  const connected = Boolean(health?.llmOk && imageOk);
+  const connected = Boolean((health?.llmOk || health?.llmOff) && imageOk);
   // Rendering down is the one that stops work (red); the LLM only writes suggestions (amber).
   // Both are named in words, also in the compact header — a bare red dot meant nothing (UI audit
   // 2026-10-11).
@@ -87,7 +91,9 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
     health == null
       ? 'Checking ComfyUI and the LLM…'
       : connected
-        ? 'ComfyUI and the LLM answer — open Settings → Overview'
+        ? health.llmOff
+          ? 'ComfyUI answers; the LLM is switched off on this install — open Settings → Overview'
+          : 'ComfyUI and the LLM answer — open Settings → Overview'
         : !imageOk
           ? 'ComfyUI isn’t reachable: nothing can render. Open Settings → Overview to fix the connection.'
           : 'The LLM isn’t reachable: rendering works, but suggested lines, written beats and reviews are off.';
@@ -106,7 +112,12 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
               ? 'llm-offline'
               : 'checking'
       }
-      className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-[11px] font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(tone)}`}
+      className={
+        compact && tone === true
+          ? // All well: a quiet dot, not an empty green pill (UI review 2026-10-15).
+            'inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]'
+          : `inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-[11px] font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(tone)}`
+      }
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
@@ -130,8 +141,8 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
           <span>{label}</span>
           {health ? (
             <span className="font-normal opacity-80">
-              LLM {health.llmOk ? 'ok' : '—'} · Comfy {health.comfyOk ? 'ok' : '—'} · Diff{' '}
-              {health.diffusersOk ? 'ok' : '—'}
+              LLM {health.llmOk ? 'ok' : health.llmOff ? 'off' : '—'} · Comfy{' '}
+              {health.comfyOk ? 'ok' : '—'} · Diff {health.diffusersOk ? 'ok' : '—'}
             </span>
           ) : null}
         </span>

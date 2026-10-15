@@ -57,7 +57,7 @@ export default function ClipEngineNote({
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
       Story clips on
       <select
-        className="ui-input !w-auto !py-0.5"
+        className="ui-input !w-auto min-w-0 max-w-full !py-0.5"
         value={storyClips}
         data-testid="clip-engine-story"
         onChange={event => {
@@ -69,8 +69,10 @@ export default function ClipEngineNote({
           });
         }}
       >
-        <option value="model">Video → Model (default)</option>
-        <option value="h3">MiniMax-H3 (best motion, with sound — about 5× slower)</option>
+        <option value="model">Video model (default)</option>
+        <option value="h3" title="Best motion, with sound — about 5× slower">
+          MiniMax-H3 (best motion, slower)
+        </option>
       </select>
       {storyClips === 'h3' ? (
         <span data-testid="clip-engine-story-h3-note">
@@ -84,7 +86,7 @@ export default function ClipEngineNote({
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
       Day clips on
       <select
-        className="ui-input !w-auto !py-0.5"
+        className="ui-input !w-auto min-w-0 max-w-full !py-0.5"
         value={dayClips}
         data-testid="clip-engine-day"
         onChange={event => {
@@ -99,7 +101,9 @@ export default function ClipEngineNote({
       >
         <option value="ltx">LTX-2.5 (default)</option>
         <option value="wan">WAN</option>
-        <option value="h3">MiniMax-H3 (best motion, with sound — about 5× slower)</option>
+        <option value="h3" title="Best motion, with sound — about 5× slower">
+          MiniMax-H3 (best motion, slower)
+        </option>
       </select>
       {dayClips === 'wan' ? (
         <span>— talking clips still use LTX-2.5 (only it makes sound)</span>

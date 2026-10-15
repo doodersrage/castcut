@@ -97,4 +97,8 @@ export default function ActionMenu({
 
 /** Menu item class — left-aligned ghost button. */
 export const ACTION_MENU_ITEM_CLASS =
-  'ui-btn-ghost ui-btn-sm w-full !justify-start text-left type-caption text-[var(--text-secondary)] hover:text-[var(--text-primary)]';
+  'ui-btn-ghost ui-btn-sm w-full !justify-start text-left type-caption !text-[var(--text-secondary)] hover:!text-[var(--text-primary)]';
+
+/** Menu item for a destructive action (Remove, Delete). */
+export const ACTION_MENU_DANGER_ITEM_CLASS =
+  'ui-btn-ghost ui-btn-sm w-full !justify-start text-left type-caption !text-[var(--tint-danger-text)] hover:!bg-[var(--tint-danger-bg)]';

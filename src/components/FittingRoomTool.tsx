@@ -6,8 +6,8 @@ import FittingRoomToolSections from '@/components/fitting/FittingRoomToolSection
 
 export default function FittingRoomTool() {
   const description = useToolPageDescription(
-    'Try outfits on a Cast plate, Keep a kit, continue to Day.',
-    'Outfit try-ons — Keep a kit or skip to Day.'
+    'Try clothes on, keep the one you like.',
+    'Try clothes on, keep the one you like.'
   );
   const vm = useFittingRoomToolOrchestration();
   if (!vm.mounted) return null;

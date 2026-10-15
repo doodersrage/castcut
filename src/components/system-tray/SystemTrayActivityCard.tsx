@@ -65,8 +65,9 @@ export function SystemTrayActivityCard({
           ? 'ring-1 ring-[var(--accent-ring)]'
           : serverOnly
             ? // Phones: the pill sat over chips and links; the header's status dot covers it.
-              'w-fit max-w-full self-end max-md:hidden'
-            : 'max-md:w-fit max-md:max-w-full max-md:self-end'
+              // Desktop: the header / sidebar jobs chip opens it (it covered page content).
+              'w-fit max-w-full self-end max-md:hidden md:hidden'
+            : 'max-md:w-fit max-md:max-w-full max-md:self-end md:hidden'
       }`}
       data-compact={serverOnly ? 'true' : undefined}
     >
