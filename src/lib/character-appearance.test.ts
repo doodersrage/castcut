@@ -191,7 +191,7 @@ describe('hair traits', () => {
     assert.equal(hairPhrase({ hairColor: 'bald', hairLength: 'long', hairStyle: 'curly' }), 'a bald head');
     assert.deepEqual(normalizeCharacterTraits({ hairColor: 'bald' }), { hairColor: 'bald' });
     assert.equal(hairPhrase({ sex: 'woman' }), '');
-    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'teal', hairStyle: 'bun' }), {
+    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'chartreuse', hairStyle: 'bun' }), {
       hairStyle: 'bun',
     });
     // With a picture: the picked hair is said; without: it replaces the rolled hair.
@@ -392,3 +392,32 @@ describe('plate trait edit', () => {
   });
 });
 
+
+describe('dyed and custom hair colours', () => {
+  it('says dyed colours and the Cast’s own words; custom without words is dropped', async () => {
+    const { hairPhrase, normalizeCharacterTraits, sanitizeHairColorCustom, createFormPickedTraits, plateTraitEdit } =
+      await import('./character-appearance');
+    assert.equal(hairPhrase({ hairColor: 'teal', hairLength: 'long' }), 'long teal dyed hair');
+    assert.equal(
+      hairPhrase({ hairColor: 'custom', hairColorCustom: 'copper with blonde streaks', hairStyle: 'ponytail' }),
+      'hair coloured copper with blonde streaks, tied in a ponytail'
+    );
+    assert.equal(sanitizeHairColorCustom('  Midnight-BLUE hair!! <script>'), 'midnight-blue hair script');
+    assert.equal(sanitizeHairColorCustom('Midnight blue hair'), 'midnight blue');
+    assert.equal(sanitizeHairColorCustom('one two three four five six seven'), 'one two three four five six');
+    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'custom', hairColorCustom: '  ' }), undefined);
+    assert.deepEqual(normalizeCharacterTraits({ hairColor: 'black', hairColorCustom: 'pink' }), { hairColor: 'black' });
+    assert.deepEqual(
+      createFormPickedTraits({ hairColor: 'custom', hairColorCustom: 'Rose gold' }),
+      { hairColor: 'custom', hairColorCustom: 'rose gold' }
+    );
+    const before = { sex: 'woman' as const, hairColor: 'custom' as const, hairColorCustom: 'rose gold' };
+    assert.deepEqual(
+      plateTraitEdit(before, { ...before, hairColorCustom: 'black and blue' }).changes,
+      ['Change her hair colour to black and blue.']
+    );
+    assert.deepEqual(plateTraitEdit(before, { ...before, hairColorCustom: 'mint green' }).changes, [
+      'Change her hair to mint green hair.',
+    ]);
+  });
+});

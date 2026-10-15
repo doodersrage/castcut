@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { FieldLabel, SelectInput } from '@/components/ui/Field';
+import { FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
   CHARACTER_AGE_BAND_OPTIONS,
@@ -289,6 +289,23 @@ export default function CharacterAppearanceSection({
                   );
                 })}
               </div>
+              {group.id === 'hair' && draft.hairColor === 'custom' ? (
+                <label className="block space-y-1.5">
+                  <FieldLabel htmlFor="cast-trait-hairColorCustom">Custom hair colour</FieldLabel>
+                  <TextInput
+                    id="cast-trait-hairColorCustom"
+                    data-testid="cast-trait-hairColorCustom"
+                    value={draft.hairColorCustom ?? ''}
+                    maxLength={48}
+                    placeholder="e.g. copper with blonde streaks"
+                    onChange={event => {
+                      setStatus(null);
+                      const value = event.target.value;
+                      setDraft(previous => ({ ...previous, hairColorCustom: value }));
+                    }}
+                  />
+                </label>
+              ) : null}
             </fieldset>
           );
         })}

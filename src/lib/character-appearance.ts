@@ -48,6 +48,8 @@ export type CharacterAppearanceFormDraft = {
   ageBand: CharacterAppearancePick<CharacterAgeBand>;
   /** Hair, as the Cast editor picks it (CharacterTraits); unset or Random = rolled. */
   hairColor?: CharacterAppearancePick<CharacterHairColor>;
+  /** The words for a Custom… hair colour. */
+  hairColorCustom?: string;
   hairLength?: CharacterAppearancePick<CharacterHairLength>;
   hairStyle?: CharacterAppearancePick<CharacterHairStyle>;
   /** The finer traits (Cast editor and create form): unset or Random = rolled / left out. */
@@ -773,6 +775,7 @@ export function createFormPickedTraits(
   const bald = hairColor === 'bald';
   return normalizeCharacterTraits({
     hairColor,
+    hairColorCustom: hairColor === 'custom' ? form?.hairColorCustom : undefined,
     hairLength: bald ? undefined : pick(form?.hairLength),
     hairStyle: bald ? undefined : pick(form?.hairStyle),
     facialHair: pick(form?.facialHair),
@@ -803,6 +806,8 @@ export function isRolledAppearanceDescriptor(text: string | null | undefined): b
  */
 export type CharacterTraits = Partial<CharacterAppearanceDraft> & {
   hairColor?: CharacterHairColor;
+  /** Said when hairColor is 'custom' (sanitizeHairColorCustom). */
+  hairColorCustom?: string;
   hairLength?: CharacterHairLength;
   hairStyle?: CharacterHairStyle;
   /** Men and nonbinary Casts only. */
@@ -1157,6 +1162,17 @@ export type CharacterHairColor =
   | 'platinum-blonde'
   | 'grey'
   | 'white'
+  // Dyed colours: picked only, never rolled (random hair comes from the natural lists above).
+  | 'pastel-pink'
+  | 'pink'
+  | 'blue'
+  | 'teal'
+  | 'purple'
+  | 'lavender'
+  | 'green'
+  | 'silver'
+  /** The Cast's own words (CharacterTraits.hairColorCustom). */
+  | 'custom'
   | 'bald';
 export type CharacterHairLength =
   'bald' | 'buzzed' | 'short' | 'chin-length' | 'shoulder-length' | 'long' | 'very-long';
@@ -1186,6 +1202,15 @@ export const CHARACTER_HAIR_COLOR_OPTIONS: CharacterAppearanceOption<CharacterHa
   { value: 'platinum-blonde', label: 'Platinum blonde' },
   { value: 'grey', label: 'Grey' },
   { value: 'white', label: 'White' },
+  { value: 'pastel-pink', label: 'Pastel pink (dyed)' },
+  { value: 'pink', label: 'Pink (dyed)' },
+  { value: 'blue', label: 'Blue (dyed)' },
+  { value: 'teal', label: 'Teal (dyed)' },
+  { value: 'purple', label: 'Purple (dyed)' },
+  { value: 'lavender', label: 'Lavender (dyed)' },
+  { value: 'green', label: 'Green (dyed)' },
+  { value: 'silver', label: 'Silver (dyed)' },
+  { value: 'custom', label: 'Custom…' },
   { value: 'bald', label: 'Bald (no hair)' },
 ];
 export const CHARACTER_HAIR_LENGTH_OPTIONS: CharacterAppearanceOption<CharacterHairLength>[] = [
@@ -1221,7 +1246,7 @@ export const CHARACTER_HAIR_STYLE_SELECT_OPTIONS = withRandomAppearanceOption(
   CHARACTER_HAIR_STYLE_OPTIONS
 );
 
-const HAIR_COLOR_WORDS: Record<Exclude<CharacterHairColor, 'bald'>, string> = {
+const HAIR_COLOR_WORDS: Record<Exclude<CharacterHairColor, 'bald' | 'custom'>, string> = {
   black: 'black',
   'dark-brown': 'dark brown',
   brown: 'brown',
@@ -1233,7 +1258,41 @@ const HAIR_COLOR_WORDS: Record<Exclude<CharacterHairColor, 'bald'>, string> = {
   'platinum-blonde': 'platinum-blonde',
   grey: 'grey',
   white: 'white',
+  'pastel-pink': 'pastel-pink dyed',
+  pink: 'vivid pink dyed',
+  blue: 'vivid blue dyed',
+  teal: 'teal dyed',
+  purple: 'purple dyed',
+  lavender: 'lavender dyed',
+  green: 'green dyed',
+  silver: 'metallic silver dyed',
 };
+
+/**
+ * A custom hair colour in the Cast's own words ("copper with blonde streaks"): letters, spaces,
+ * hyphens and apostrophes, six words at most, without a trailing "hair". '' when nothing is left.
+ */
+export function sanitizeHairColorCustom(text: unknown): string {
+  if (typeof text !== 'string') return '';
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z' -]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/(?:^|\s)hair$/, '')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 6);
+  return words.join(' ').slice(0, 48).trim();
+}
+
+function hairColorWords(traits: CharacterTraits): string {
+  const { hairColor } = traits;
+  if (!hairColor || hairColor === 'bald') return '';
+  if (hairColor === 'custom') return sanitizeHairColorCustom(traits.hairColorCustom);
+  return HAIR_COLOR_WORDS[hairColor];
+}
 const HAIR_LENGTH_WORDS: Record<Exclude<CharacterHairLength, 'bald'>, string> = {
   buzzed: 'buzzed',
   short: 'short',
@@ -1267,15 +1326,21 @@ export function hairPhrase(traits: CharacterTraits | undefined): string {
   // Bald as the colour: no hair at all, whatever length or style was left picked.
   if (hairColor === 'bald') return 'a bald head';
   if (hairLength === 'bald') return 'a shaved head';
-  if (!hairColor && !hairLength && !hairStyle) return '';
+  if (!hairColorWords(traits) && !hairLength && !hairStyle) return '';
+  const colour = hairColorWords(traits);
+  // A custom colour of three or more words reads after the hair ("long hair coloured copper with blonde
+  // streaks"), not as one long adjective before it.
+  const after =
+    hairColor === 'custom' && (colour.split(' ').length > 2 || /\b(?:with|and)\b/.test(colour));
   const words = [
     hairLength ? HAIR_LENGTH_WORDS[hairLength] : '',
     hairStyle ? (HAIR_TEXTURE[hairStyle] ?? '') : '',
-    hairColor ? HAIR_COLOR_WORDS[hairColor] : '',
+    after ? '' : colour,
     'hair',
-    hairStyle ? (HAIR_WORN[hairStyle] ?? '') : '',
+    after ? `coloured ${colour}` : '',
   ].filter(Boolean);
-  return words.join(' ');
+  const worn = hairStyle ? (HAIR_WORN[hairStyle] ?? '') : '';
+  return worn ? `${words.join(' ')}${after ? ',' : ''} ${worn}` : words.join(' ');
 }
 
 const TRAIT_OPTIONS = {
@@ -1301,7 +1366,7 @@ const TRAIT_OPTIONS = {
   pubicHair: CHARACTER_PUBIC_HAIR_OPTIONS,
 } as const;
 
-export const CHARACTER_TRAIT_KEYS = Object.keys(TRAIT_OPTIONS) as Array<keyof CharacterTraits>;
+export const CHARACTER_TRAIT_KEYS = Object.keys(TRAIT_OPTIONS) as Array<keyof typeof TRAIT_OPTIONS>;
 
 /** The finer traits picked (facial hair / bust only where they apply to the Cast's sex). */
 function finerTraitsOf(traits: CharacterTraits | undefined): CharacterTraits {
@@ -1357,6 +1422,12 @@ export function normalizeCharacterTraits(input: unknown): CharacterTraits | unde
       traits[key] = value;
     }
   }
+  // Custom hair colour: kept only with its words; words without the pick are dropped.
+  const custom = sanitizeHairColorCustom(source.hairColorCustom);
+  if (traits.hairColor === 'custom') {
+    if (custom) traits.hairColorCustom = custom;
+    else delete traits.hairColor;
+  }
   return Object.keys(traits).length ? (traits as CharacterTraits) : undefined;
 }
 
@@ -1372,6 +1443,9 @@ export function physicalDescriptionFromTraits(
   const hair = hairPhrase(traits);
   const hairPicks = {
     ...(traits?.hairColor ? { hairColor: traits.hairColor } : {}),
+    ...(traits?.hairColor === 'custom' && traits.hairColorCustom
+      ? { hairColorCustom: traits.hairColorCustom }
+      : {}),
     ...(traits?.hairLength ? { hairLength: traits.hairLength } : {}),
     ...(traits?.hairStyle ? { hairStyle: traits.hairStyle } : {}),
   };
@@ -1568,13 +1642,19 @@ export function plateTraitEdit(
   const lower = possessive.toLowerCase();
   const changes: string[] = [];
   let shave = false;
-  const hairChanged = changed('hairColor') || changed('hairLength') || changed('hairStyle');
+  const hairChanged =
+    changed('hairColor') ||
+    changed('hairColorCustom') ||
+    changed('hairLength') ||
+    changed('hairStyle');
   const hair = hairChanged ? hairPhrase(now) : '';
   if (hair) {
     changes.push(
       hair === 'a bald head' || hair === 'a shaved head'
         ? `Shave ${lower} head: ${object === 'them' ? 'they have' : `${subject.toLowerCase()} has`} ${hair}, no hair on top.`
-        : `Change ${lower} hair to ${hair}.`
+        : hair.startsWith('hair coloured ')
+          ? `Change ${lower} hair colour to ${hair.slice('hair coloured '.length)}.`
+          : `Change ${lower} hair to ${hair}.`
     );
   }
   if (changed('facialHair') && traitAppliesToSex('facialHair', now.sex)) {

@@ -6,7 +6,7 @@ import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
 import { CastMarksEditor } from '@/components/character/CastMarksSection';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { FieldLabel, SelectInput } from '@/components/ui/Field';
+import { FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
   getCharactersSnapshot,
@@ -412,6 +412,24 @@ export default function PlayCampaignCharacterSection({
                         );
                       })}
                     </div>
+                    {group.id === 'hair' && appearance.hairColor === 'custom' ? (
+                      <label className="block space-y-1.5">
+                        <FieldLabel htmlFor="play-campaign-create-hair-color-custom">
+                          Custom hair colour
+                        </FieldLabel>
+                        <TextInput
+                          id="play-campaign-create-hair-color-custom"
+                          data-testid="play-campaign-create-hair-color-custom"
+                          value={appearance.hairColorCustom ?? ''}
+                          maxLength={48}
+                          placeholder="e.g. copper with blonde streaks"
+                          onChange={event => {
+                            const value = event.target.value;
+                            setAppearance(current => ({ ...current, hairColorCustom: value }));
+                          }}
+                        />
+                      </label>
+                    ) : null}
                   </fieldset>
                 ))}
               </div>

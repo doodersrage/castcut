@@ -2863,6 +2863,11 @@ test('Appearance locks who the Cast is after the first plate; Start over unlocks
   await expect(page.getByTestId('cast-trait-ageBand')).toBeDisabled();
   await expect(page.getByTestId('cast-trait-hairColor')).toBeEnabled();
   await expect(page.getByTestId('cast-trait-makeup')).toBeEnabled();
+  // A custom hair colour is a look trait: typed, saved, said in the description.
+  await page.getByTestId('cast-trait-hairColor').selectOption('custom');
+  await page.getByTestId('cast-trait-hairColorCustom').fill('Rose gold');
+  await page.getByTestId('cast-appearance-save').click();
+  await expect(page.getByTestId('cast-appearance-description')).toContainText('rose gold hair');
   page.once('dialog', dialog => void dialog.accept());
   await page.getByTestId('cast-appearance-start-over').click();
   await expect(page.getByTestId('cast-appearance-identity-locked')).toHaveCount(0);
