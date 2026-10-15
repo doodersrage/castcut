@@ -64,6 +64,7 @@ import {
 import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
 import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/prompt-recipe-mark';
+import { adultBodyPhrase } from '@/lib/character-appearance';
 import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
 import {
@@ -565,6 +566,11 @@ export type DayStillSlotState = {
   defaultPoseGuideStyle: PoseGuideStylePreference;
 };
 
+function withAdultBody(descriptor: string | undefined, adultBody: string): string | undefined {
+  if (!adultBody) return descriptor;
+  return descriptor?.trim() ? `${descriptor.trim()}, with ${adultBody}` : adultBody;
+}
+
 /** The mood a still plays as. */
 export function dayPlayedMood(dayMood: string | null | undefined, intimateEnabled: boolean) {
   return normalizeDayMood(isDayAdultMood(dayMood) && !intimateEnabled ? 'everyday' : dayMood);
@@ -708,7 +714,11 @@ export function buildDaySlotPromptForStill(
       : placedSlot,
     wardrobeLabel: state.wardrobeLabel,
     characterName: state.character?.name,
-    characterDescriptor: state.character?.descriptor || state.character?.hints,
+    characterDescriptor: withAdultBody(
+      state.character?.descriptor || state.character?.hints,
+      // Nude Intimate / Raunchy stills only: pubic hair is never in the description itself.
+      isDayAdultMood(dayMood) && omitGarment ? adultBodyPhrase(state.character?.traits) : ''
+    ),
     lockedLocation: state.lockedLocation,
     notes: state.notes,
     hasPlate: state.hasPlate,

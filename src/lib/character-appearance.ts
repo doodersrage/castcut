@@ -20,7 +20,7 @@ export type CharacterEthnicity =
   | 'mixed-race'
   | 'white';
 
-export type CharacterHeight = 'short' | 'average' | 'tall' | 'very-tall';
+export type CharacterHeight = 'little-person' | 'short' | 'average' | 'tall' | 'very-tall';
 
 export type CharacterBodyBuild =
   'petite' | 'slender' | 'average' | 'athletic' | 'curvy' | 'muscular' | 'stocky' | 'heavyset';
@@ -57,6 +57,13 @@ export type CharacterAppearanceFormDraft = {
   eyeColor?: CharacterAppearancePick<CharacterEyeColor>;
   bust?: CharacterAppearancePick<CharacterBust>;
   hips?: CharacterAppearancePick<CharacterHips>;
+  eyebrows?: CharacterAppearancePick<CharacterEyebrows>;
+  lips?: CharacterAppearancePick<CharacterLips>;
+  makeup?: CharacterAppearancePick<CharacterMakeup>;
+  bodyHair?: CharacterAppearancePick<CharacterBodyHair>;
+  muscleTone?: CharacterAppearancePick<CharacterMuscleTone>;
+  tan?: CharacterAppearancePick<CharacterTan>;
+  pubicHair?: CharacterAppearancePick<CharacterPubicHair>;
 };
 
 export type CharacterAppearanceOption<T extends string> = {
@@ -87,6 +94,7 @@ export const CHARACTER_ETHNICITY_OPTIONS: CharacterAppearanceOption<CharacterEth
 ];
 
 export const CHARACTER_HEIGHT_OPTIONS: CharacterAppearanceOption<CharacterHeight>[] = [
+  { value: 'little-person', label: 'Little person (dwarfism)' },
   { value: 'short', label: 'Short' },
   { value: 'average', label: 'Average height' },
   { value: 'tall', label: 'Tall' },
@@ -390,7 +398,11 @@ export function resolveCharacterAppearance(
   return {
     sex: resolvePick(form.sex, CHARACTER_SEX_OPTIONS),
     ethnicity: resolvePick(form.ethnicity, CHARACTER_ETHNICITY_OPTIONS),
-    height: resolvePick(form.height, CHARACTER_HEIGHT_OPTIONS),
+    // Little person is picked, never rolled.
+    height: resolvePick(
+      form.height,
+      CHARACTER_HEIGHT_OPTIONS.filter(option => option.value !== 'little-person')
+    ),
     bodyBuild: resolvePick(form.bodyBuild, CHARACTER_BODY_BUILD_OPTIONS),
     ageBand: resolvePick(form.ageBand, CHARACTER_AGE_BAND_OPTIONS),
   };
@@ -459,6 +471,9 @@ function heightPhrase(height: CharacterHeight): string {
     average: 'average height',
     tall: 'tall',
     'very-tall': 'very tall',
+    // "Adult" twice on purpose: short stature alone can read young to the engine.
+    'little-person':
+      'about four feet tall — an adult little person with achondroplasia dwarfism, shorter arms and legs, an adult face and torso',
   };
   return map[height];
 }
@@ -632,7 +647,9 @@ export function composeCharacterAppearanceDescriptor(
   const noun = nounForSex(draft.sex);
   const age = agePhrase(draft.ageBand, draft.sex);
   const skin = finer.skin || SKIN_TONE_BY_ETHNICITY[draft.ethnicity];
-  const face = finer.face || faceForEthnicity(draft.ethnicity);
+  const face = [finer.face || faceForEthnicity(draft.ethnicity), finer.faceExtras]
+    .filter(Boolean)
+    .join(', ');
   const hair =
     hairOverride?.trim() || hairForSex(draft.sex, draft.ethnicity, Boolean(finer.facialHair));
   const height = heightPhrase(draft.height);
@@ -643,7 +660,8 @@ export function composeCharacterAppearanceDescriptor(
         .replace(/soft hips and /, '')
     : bodyBuildPhrase(draft.bodyBuild);
   const facialHair = finer.facialHair ? `, ${finer.facialHair}` : '';
-  const figure = finer.figure ? `, with ${finer.figure}` : '';
+  const bodyWords = [finer.figure, finer.physique].filter(Boolean).join(', ');
+  const figure = bodyWords ? `, with ${bodyWords}` : '';
   return `${articleFor(ancestry)} ${ancestry} ${noun} ${age} with ${skin}, ${face}, ${hair}${facialHair}, and a body that is ${height}, ${body}${figure}`;
 }
 
@@ -764,6 +782,13 @@ export function createFormPickedTraits(
     eyeColor: pick(form?.eyeColor),
     bust: pick(form?.bust),
     hips: pick(form?.hips),
+    eyebrows: pick(form?.eyebrows),
+    lips: pick(form?.lips),
+    makeup: pick(form?.makeup),
+    bodyHair: pick(form?.bodyHair),
+    muscleTone: pick(form?.muscleTone),
+    tan: pick(form?.tan),
+    pubicHair: pick(form?.pubicHair),
   });
 }
 
@@ -791,6 +816,14 @@ export type CharacterTraits = Partial<CharacterAppearanceDraft> & {
   /** Women and nonbinary Casts only. */
   bust?: CharacterBust;
   hips?: CharacterHips;
+  eyebrows?: CharacterEyebrows;
+  lips?: CharacterLips;
+  makeup?: CharacterMakeup;
+  bodyHair?: CharacterBodyHair;
+  muscleTone?: CharacterMuscleTone;
+  tan?: CharacterTan;
+  /** Said only on nude adult stills (adultBodyPhrase), never in the description. */
+  pubicHair?: CharacterPubicHair;
 };
 
 export type CharacterFacialHair =
@@ -802,6 +835,13 @@ export type CharacterEyeColor =
   'dark-brown' | 'brown' | 'hazel' | 'amber' | 'green' | 'blue' | 'grey';
 export type CharacterBust = 'small' | 'medium' | 'full' | 'very-full';
 export type CharacterHips = 'narrow' | 'average' | 'curvy' | 'wide';
+export type CharacterEyebrows = 'thin' | 'natural' | 'thick' | 'bushy';
+export type CharacterLips = 'thin' | 'average' | 'full' | 'very-full';
+export type CharacterMakeup = 'none' | 'natural' | 'glam' | 'bold';
+export type CharacterBodyHair = 'smooth' | 'light' | 'natural' | 'hairy';
+export type CharacterMuscleTone = 'soft' | 'toned' | 'defined' | 'ripped';
+export type CharacterTan = 'sun-kissed' | 'tan-lines';
+export type CharacterPubicHair = 'shaved' | 'trimmed' | 'natural' | 'full';
 
 export const CHARACTER_FACIAL_HAIR_OPTIONS: CharacterAppearanceOption<CharacterFacialHair>[] = [
   { value: 'clean-shaven', label: 'Clean-shaven' },
@@ -850,6 +890,46 @@ export const CHARACTER_HIPS_OPTIONS: CharacterAppearanceOption<CharacterHips>[] 
   { value: 'curvy', label: 'Curvy' },
   { value: 'wide', label: 'Wide' },
 ];
+export const CHARACTER_EYEBROWS_OPTIONS: CharacterAppearanceOption<CharacterEyebrows>[] = [
+  { value: 'thin', label: 'Thin' },
+  { value: 'natural', label: 'Natural' },
+  { value: 'thick', label: 'Thick' },
+  { value: 'bushy', label: 'Bushy' },
+];
+export const CHARACTER_LIPS_OPTIONS: CharacterAppearanceOption<CharacterLips>[] = [
+  { value: 'thin', label: 'Thin' },
+  { value: 'average', label: 'Average' },
+  { value: 'full', label: 'Full' },
+  { value: 'very-full', label: 'Very full' },
+];
+export const CHARACTER_MAKEUP_OPTIONS: CharacterAppearanceOption<CharacterMakeup>[] = [
+  { value: 'none', label: 'No makeup' },
+  { value: 'natural', label: 'Natural makeup' },
+  { value: 'glam', label: 'Glam makeup' },
+  { value: 'bold', label: 'Bold eyeliner' },
+];
+export const CHARACTER_BODY_HAIR_OPTIONS: CharacterAppearanceOption<CharacterBodyHair>[] = [
+  { value: 'smooth', label: 'Smooth' },
+  { value: 'light', label: 'Light' },
+  { value: 'natural', label: 'Natural' },
+  { value: 'hairy', label: 'Hairy' },
+];
+export const CHARACTER_MUSCLE_TONE_OPTIONS: CharacterAppearanceOption<CharacterMuscleTone>[] = [
+  { value: 'soft', label: 'Soft' },
+  { value: 'toned', label: 'Toned' },
+  { value: 'defined', label: 'Defined' },
+  { value: 'ripped', label: 'Ripped' },
+];
+export const CHARACTER_TAN_OPTIONS: CharacterAppearanceOption<CharacterTan>[] = [
+  { value: 'sun-kissed', label: 'Sun-kissed' },
+  { value: 'tan-lines', label: 'Tan lines' },
+];
+export const CHARACTER_PUBIC_HAIR_OPTIONS: CharacterAppearanceOption<CharacterPubicHair>[] = [
+  { value: 'shaved', label: 'Shaved' },
+  { value: 'trimmed', label: 'Trimmed' },
+  { value: 'natural', label: 'Natural' },
+  { value: 'full', label: 'Full' },
+];
 export const CHARACTER_FACIAL_HAIR_SELECT_OPTIONS = withRandomAppearanceOption(
   CHARACTER_FACIAL_HAIR_OPTIONS
 );
@@ -864,6 +944,21 @@ export const CHARACTER_EYE_COLOR_SELECT_OPTIONS = withRandomAppearanceOption(
 );
 export const CHARACTER_BUST_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_BUST_OPTIONS);
 export const CHARACTER_HIPS_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_HIPS_OPTIONS);
+export const CHARACTER_EYEBROWS_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_EYEBROWS_OPTIONS
+);
+export const CHARACTER_LIPS_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_LIPS_OPTIONS);
+export const CHARACTER_MAKEUP_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_MAKEUP_OPTIONS);
+export const CHARACTER_BODY_HAIR_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_BODY_HAIR_OPTIONS
+);
+export const CHARACTER_MUSCLE_TONE_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_MUSCLE_TONE_OPTIONS
+);
+export const CHARACTER_TAN_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_TAN_OPTIONS);
+export const CHARACTER_PUBIC_HAIR_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_PUBIC_HAIR_OPTIONS
+);
 
 const FACIAL_HAIR_WORDS: Record<CharacterFacialHair, string> = {
   'clean-shaven': 'a clean-shaven face',
@@ -905,6 +1000,68 @@ const HIPS_WORDS: Record<CharacterHips, string> = {
   wide: 'wide hips',
 };
 
+const EYEBROWS_WORDS: Record<CharacterEyebrows, string> = {
+  thin: 'thin, finely shaped eyebrows',
+  natural: 'natural eyebrows',
+  thick: 'thick, full eyebrows',
+  bushy: 'bushy eyebrows',
+};
+const LIPS_WORDS: Record<CharacterLips, string> = {
+  thin: 'thin lips',
+  average: 'average lips',
+  full: 'full lips',
+  'very-full': 'very full lips',
+};
+const MAKEUP_WORDS: Record<CharacterMakeup, string> = {
+  none: 'a bare, makeup-free face',
+  natural: 'light natural makeup',
+  glam: 'polished glam makeup',
+  bold: 'bold makeup with dark winged eyeliner',
+};
+const MUSCLE_TONE_WORDS: Record<CharacterMuscleTone, string> = {
+  soft: 'soft, untoned muscles',
+  toned: 'toned muscles',
+  defined: 'clearly defined muscles',
+  ripped: 'very lean, ripped muscles with visible abs',
+};
+const TAN_WORDS: Record<CharacterTan, string> = {
+  'sun-kissed': 'sun-kissed skin',
+  'tan-lines': 'faint swimsuit tan lines',
+};
+const PUBIC_HAIR_WORDS: Record<CharacterPubicHair, string> = {
+  shaved: 'a fully shaved pubic area',
+  trimmed: 'neatly trimmed pubic hair',
+  natural: 'natural pubic hair',
+  full: 'full, untrimmed pubic hair',
+};
+
+/** Body hair, said for who has it (a man's is chest hair). */
+export function bodyHairPhrase(
+  bodyHair: CharacterBodyHair | undefined,
+  sex: CharacterSex | 'random' | undefined
+): string {
+  if (!bodyHair) return '';
+  const man = sex === 'man';
+  switch (bodyHair) {
+    case 'smooth':
+      return man ? 'a smooth hairless chest and body' : 'smooth, hairless skin';
+    case 'light':
+      return man ? 'light chest hair' : 'fine, light body hair';
+    case 'natural':
+      return man ? 'natural chest and body hair' : 'natural body hair';
+    case 'hairy':
+      return man ? 'a hairy chest, arms and belly' : 'noticeable body hair';
+  }
+}
+
+/**
+ * Words for a nude adult still only (Day Intimate / Raunchy with the clothes off): pubic hair is
+ * never in the description, which every clothed still and Story also uses. '' when unpicked.
+ */
+export function adultBodyPhrase(traits: CharacterTraits | undefined): string {
+  return traits?.pubicHair ? PUBIC_HAIR_WORDS[traits.pubicHair] : '';
+}
+
 /** Facial hair applies to men and nonbinary Casts; bust to women and nonbinary Casts. */
 export function traitAppliesToSex(
   key: 'facialHair' | 'bust',
@@ -917,9 +1074,11 @@ export function traitAppliesToSex(
 /** The finer traits as words, for a description: picked ones only. */
 export function finerTraitPhrases(traits: CharacterTraits | undefined): {
   face: string;
+  faceExtras: string;
   skin: string;
   facialHair: string;
   figure: string;
+  physique: string;
 } {
   const sex = traits?.sex;
   const shape = traits?.faceShape ? `${articleFor(traits.faceShape)} ${traits.faceShape} face` : '';
@@ -930,16 +1089,35 @@ export function finerTraitPhrases(traits: CharacterTraits | undefined): {
       : '';
   const bust = traits?.bust && traitAppliesToSex('bust', sex) ? BUST_WORDS[traits.bust] : '';
   const hips = traits?.hips ? HIPS_WORDS[traits.hips] : '';
+  const features = [
+    traits?.eyebrows ? EYEBROWS_WORDS[traits.eyebrows] : '',
+    traits?.lips ? LIPS_WORDS[traits.lips] : '',
+  ].filter(Boolean);
+  const shaped = shape && eyes ? `${shape} with ${eyes}` : shape || eyes;
+  const face = shaped
+    ? features.length
+      ? `${shaped}, ${features.join(', ')}`
+      : shaped
+    : features.join(', ');
   return {
-    face: shape && eyes ? `${shape} with ${eyes}` : shape || eyes,
+    face,
+    // Makeup sits on whatever face there is (picked or rolled). Freckles are a Cast mark.
+    faceExtras: [traits?.makeup ? MAKEUP_WORDS[traits.makeup] : ''].filter(Boolean).join(', '),
     skin: traits?.skinTone ? SKIN_TONE_WORDS[traits.skinTone] : '',
     facialHair,
     figure: [bust, hips].filter(Boolean).join(' and '),
+    physique: [
+      traits?.muscleTone ? MUSCLE_TONE_WORDS[traits.muscleTone] : '',
+      bodyHairPhrase(traits?.bodyHair, sex),
+      traits?.tan ? TAN_WORDS[traits.tan] : '',
+    ]
+      .filter(Boolean)
+      .join(', '),
   };
 }
 
 const FINER_TRAIT_LABELS: Array<{
-  key: 'facialHair' | 'faceShape' | 'skinTone' | 'eyeColor' | 'bust' | 'hips';
+  key: FinerTraitKey;
   options: ReadonlyArray<{ value: string; label: string }>;
   suffix: string;
 }> = [
@@ -949,7 +1127,27 @@ const FINER_TRAIT_LABELS: Array<{
   { key: 'facialHair', options: CHARACTER_FACIAL_HAIR_OPTIONS, suffix: '' },
   { key: 'bust', options: CHARACTER_BUST_OPTIONS, suffix: ' bust' },
   { key: 'hips', options: CHARACTER_HIPS_OPTIONS, suffix: ' hips' },
+  { key: 'eyebrows', options: CHARACTER_EYEBROWS_OPTIONS, suffix: ' brows' },
+  { key: 'lips', options: CHARACTER_LIPS_OPTIONS, suffix: ' lips' },
+  { key: 'makeup', options: CHARACTER_MAKEUP_OPTIONS, suffix: '' },
+  { key: 'muscleTone', options: CHARACTER_MUSCLE_TONE_OPTIONS, suffix: ' muscles' },
+  { key: 'bodyHair', options: CHARACTER_BODY_HAIR_OPTIONS, suffix: ' body hair' },
+  { key: 'tan', options: CHARACTER_TAN_OPTIONS, suffix: '' },
 ];
+
+type FinerTraitKey =
+  | 'facialHair'
+  | 'faceShape'
+  | 'skinTone'
+  | 'eyeColor'
+  | 'bust'
+  | 'hips'
+  | 'eyebrows'
+  | 'lips'
+  | 'makeup'
+  | 'bodyHair'
+  | 'muscleTone'
+  | 'tan';
 
 /** Short labels of the picked finer traits, for hints and summaries ("Olive skin", "Green eyes"). */
 export function finerTraitLabels(traits: CharacterTraits | undefined): string[] {
@@ -1111,6 +1309,13 @@ const TRAIT_OPTIONS = {
   eyeColor: CHARACTER_EYE_COLOR_OPTIONS,
   bust: CHARACTER_BUST_OPTIONS,
   hips: CHARACTER_HIPS_OPTIONS,
+  eyebrows: CHARACTER_EYEBROWS_OPTIONS,
+  lips: CHARACTER_LIPS_OPTIONS,
+  makeup: CHARACTER_MAKEUP_OPTIONS,
+  bodyHair: CHARACTER_BODY_HAIR_OPTIONS,
+  muscleTone: CHARACTER_MUSCLE_TONE_OPTIONS,
+  tan: CHARACTER_TAN_OPTIONS,
+  pubicHair: CHARACTER_PUBIC_HAIR_OPTIONS,
 } as const;
 
 export const CHARACTER_TRAIT_KEYS = Object.keys(TRAIT_OPTIONS) as Array<keyof CharacterTraits>;
@@ -1123,6 +1328,17 @@ function finerTraitsOf(traits: CharacterTraits | undefined): CharacterTraits {
   if (traits.skinTone) out.skinTone = traits.skinTone;
   if (traits.eyeColor) out.eyeColor = traits.eyeColor;
   if (traits.hips) out.hips = traits.hips;
+  for (const key of [
+    'eyebrows',
+    'lips',
+    'makeup',
+    'bodyHair',
+    'muscleTone',
+    'tan',
+    'pubicHair',
+  ] as const) {
+    if (traits[key]) (out as Record<string, string>)[key] = traits[key]!;
+  }
   if (traits.facialHair && traitAppliesToSex('facialHair', traits.sex)) {
     out.facialHair = traits.facialHair;
   }
@@ -1183,16 +1399,19 @@ export function physicalDescriptionFromTraits(
   if (options.hasPicture) {
     const chosen = describeChosenAppearance(traits ?? {});
     const finer = finerTraitPhrases(traits);
-    const withParts = [finer.skin, finer.face, hair, finer.facialHair].filter(Boolean);
-    if (!withParts.length && !finer.figure) {
+    const withParts = [finer.skin, finer.face, finer.faceExtras, hair, finer.facialHair].filter(
+      Boolean
+    );
+    const bodyWords = [finer.figure, finer.physique].filter(Boolean).join(', ');
+    if (!withParts.length && !bodyWords) {
       return { ...chosen, traits: applicableTraits(traits) };
     }
     const base = chosen.descriptor ?? 'a person';
     const withText = withParts.length
       ? `${base.includes(',') ? ',' : ''} with ${listWords(withParts)}`
       : '';
-    const figure = finer.figure
-      ? `${withText || base.includes(',') ? ',' : ''} with ${finer.figure}`
+    const figure = bodyWords
+      ? `${withText || base.includes(',') ? ',' : ''} with ${bodyWords}`
       : '';
     return {
       descriptor: `${base}${withText}${figure}`,
@@ -1207,3 +1426,26 @@ export function physicalDescriptionFromTraits(
     traits: { ...resolved, ...hairPicks, ...finerPicks },
   };
 }
+
+/**
+ * The trait pickers in groups, so the Cast editor and the create form don't show one wall of
+ * selects. Same order in both; Basics is the five every Cast has.
+ */
+export const CHARACTER_TRAIT_GROUPS: ReadonlyArray<{
+  id: 'basics' | 'hair' | 'face' | 'body';
+  label: string;
+  keys: ReadonlyArray<keyof CharacterTraits>;
+}> = [
+  { id: 'basics', label: 'Basics', keys: ['sex', 'ethnicity', 'ageBand', 'height', 'bodyBuild'] },
+  { id: 'hair', label: 'Hair', keys: ['hairColor', 'hairLength', 'hairStyle', 'facialHair'] },
+  {
+    id: 'face',
+    label: 'Face',
+    keys: ['skinTone', 'faceShape', 'eyeColor', 'eyebrows', 'lips', 'makeup'],
+  },
+  {
+    id: 'body',
+    label: 'Body',
+    keys: ['bust', 'hips', 'muscleTone', 'bodyHair', 'tan', 'pubicHair'],
+  },
+];

@@ -7,8 +7,10 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
   CHARACTER_AGE_BAND_OPTIONS,
   CHARACTER_BODY_BUILD_OPTIONS,
+  CHARACTER_BODY_HAIR_OPTIONS,
   CHARACTER_BUST_OPTIONS,
   CHARACTER_ETHNICITY_OPTIONS,
+  CHARACTER_EYEBROWS_OPTIONS,
   CHARACTER_EYE_COLOR_OPTIONS,
   CHARACTER_FACE_SHAPE_OPTIONS,
   CHARACTER_FACIAL_HAIR_OPTIONS,
@@ -17,14 +19,21 @@ import {
   CHARACTER_HAIR_STYLE_OPTIONS,
   CHARACTER_HEIGHT_OPTIONS,
   CHARACTER_HIPS_OPTIONS,
+  CHARACTER_LIPS_OPTIONS,
+  CHARACTER_MAKEUP_OPTIONS,
+  CHARACTER_MUSCLE_TONE_OPTIONS,
+  CHARACTER_PUBIC_HAIR_OPTIONS,
   CHARACTER_SEX_OPTIONS,
   CHARACTER_SKIN_TONE_OPTIONS,
+  CHARACTER_TAN_OPTIONS,
+  CHARACTER_TRAIT_GROUPS,
   traitAppliesToSex,
   isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
   type CharacterTraits,
 } from '@/lib/character-appearance';
 import { castHasPicture, saveCharacterTraits, type CharacterRecord } from '@/lib/character-os';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const FIELDS: Array<{
   key: keyof CharacterTraits;
@@ -45,6 +54,14 @@ const FIELDS: Array<{
   { key: 'eyeColor', label: 'Eye colour', options: CHARACTER_EYE_COLOR_OPTIONS },
   { key: 'bust', label: 'Bust', options: CHARACTER_BUST_OPTIONS },
   { key: 'hips', label: 'Hips', options: CHARACTER_HIPS_OPTIONS },
+  { key: 'eyebrows', label: 'Eyebrows', options: CHARACTER_EYEBROWS_OPTIONS },
+  { key: 'lips', label: 'Lips', options: CHARACTER_LIPS_OPTIONS },
+  { key: 'makeup', label: 'Makeup', options: CHARACTER_MAKEUP_OPTIONS },
+  { key: 'muscleTone', label: 'Muscle tone', options: CHARACTER_MUSCLE_TONE_OPTIONS },
+  { key: 'bodyHair', label: 'Body hair', options: CHARACTER_BODY_HAIR_OPTIONS },
+  { key: 'tan', label: 'Tan', options: CHARACTER_TAN_OPTIONS },
+  // Said on nude Intimate / Raunchy Day stills only; shown when Intimate is on.
+  { key: 'pubicHair', label: 'Pubic hair', options: CHARACTER_PUBIC_HAIR_OPTIONS },
 ];
 
 /**
@@ -59,6 +76,7 @@ export default function CharacterAppearanceSection({
   onUpdated?: (character: CharacterRecord) => void;
 }) {
   const hasPicture = castHasPicture(character);
+  const intimateEnabled = useNsfwGeneratorEnabled();
   const [draft, setDraft] = useState<CharacterTraits>(() => character.traits ?? {});
   const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
   const nextKey = `${character.id}:${character.updatedAt}`;
@@ -120,54 +138,74 @@ export default function CharacterAppearanceSection({
           only the body.
         </p>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-3" data-testid="cast-appearance-traits">
-        {FIELDS.map(field => {
-          // Bald (hair colour) means no hair: length and style don't apply. Facial hair is for men
-          // and nonbinary Casts, bust for women and nonbinary Casts.
-          const noHair =
-            draft.hairColor === 'bald' && (field.key === 'hairLength' || field.key === 'hairStyle');
-          const notForSex =
-            (field.key === 'facialHair' || field.key === 'bust') &&
-            !traitAppliesToSex(field.key, draft.sex);
-          const off = noHair || notForSex;
+      <div className="space-y-4" data-testid="cast-appearance-traits">
+        {CHARACTER_TRAIT_GROUPS.map(group => {
+          const fields = group.keys
+            .filter(key => key !== 'pubicHair' || intimateEnabled)
+            .map(key => FIELDS.find(field => field.key === key)!)
+            .filter(Boolean);
           return (
-            <label key={field.key} className="block space-y-1.5">
-              <FieldLabel htmlFor={`cast-trait-${field.key}`}>{field.label}</FieldLabel>
-              <SelectInput
-                id={`cast-trait-${field.key}`}
-                data-testid={`cast-trait-${field.key}`}
-                value={off ? '' : (draft[field.key] ?? '')}
-                disabled={off}
-                title={
-                  noHair
-                    ? 'Bald — no hair length or style'
-                    : notForSex
-                      ? `Not for a ${draft.sex}`
-                      : undefined
-                }
-                onChange={event => {
-                  setStatus(null);
-                  const value = event.target.value;
-                  setDraft(previous => {
-                    const next = { ...previous } as Record<string, string | undefined>;
-                    if (value) next[field.key] = value;
-                    else delete next[field.key];
-                    if (field.key === 'hairColor' && value === 'bald') {
-                      delete next.hairLength;
-                      delete next.hairStyle;
-                    }
-                    return next as CharacterTraits;
-                  });
-                }}
-              >
-                <option value="">{hasPicture ? 'Not set — the picture decides' : 'Not set'}</option>
-                {field.options.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectInput>
-            </label>
+            <fieldset
+              key={group.id}
+              className="space-y-2"
+              data-testid={`cast-appearance-group-${group.id}`}
+            >
+              <legend className="type-overline text-[var(--text-muted)]">{group.label}</legend>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {fields.map(field => {
+                  // Bald (hair colour) means no hair: length and style don't apply. Facial hair is for men
+                  // and nonbinary Casts, bust for women and nonbinary Casts.
+                  const noHair =
+                    draft.hairColor === 'bald' &&
+                    (field.key === 'hairLength' || field.key === 'hairStyle');
+                  const notForSex =
+                    (field.key === 'facialHair' || field.key === 'bust') &&
+                    !traitAppliesToSex(field.key, draft.sex);
+                  const off = noHair || notForSex;
+                  return (
+                    <label key={field.key} className="block space-y-1.5">
+                      <FieldLabel htmlFor={`cast-trait-${field.key}`}>{field.label}</FieldLabel>
+                      <SelectInput
+                        id={`cast-trait-${field.key}`}
+                        data-testid={`cast-trait-${field.key}`}
+                        value={off ? '' : (draft[field.key] ?? '')}
+                        disabled={off}
+                        title={
+                          noHair
+                            ? 'Bald — no hair length or style'
+                            : notForSex
+                              ? `Not for a ${draft.sex}`
+                              : undefined
+                        }
+                        onChange={event => {
+                          setStatus(null);
+                          const value = event.target.value;
+                          setDraft(previous => {
+                            const next = { ...previous } as Record<string, string | undefined>;
+                            if (value) next[field.key] = value;
+                            else delete next[field.key];
+                            if (field.key === 'hairColor' && value === 'bald') {
+                              delete next.hairLength;
+                              delete next.hairStyle;
+                            }
+                            return next as CharacterTraits;
+                          });
+                        }}
+                      >
+                        <option value="">
+                          {hasPicture ? 'Not set — the picture decides' : 'Not set'}
+                        </option>
+                        {field.options.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
           );
         })}
       </div>

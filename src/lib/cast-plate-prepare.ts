@@ -112,7 +112,9 @@ export function buildCastPlatePreparePrompt(input: {
   }
   if (input.options.shave) {
     parts.push(
-      `Shave off all ${possessive} stubble and beard so ${possessive} cheeks, jaw, chin and upper lip are smooth bare skin.`
+      // Live (2026-10-14): the face-only wording also took his chest hair and toned his body
+      // once — the face is the only thing shaved.
+      `Shave off all ${possessive} stubble and beard so ${possessive} cheeks, jaw, chin and upper lip are smooth bare skin. Shave only the face: keep ${possessive} chest hair, body hair and body exactly as they are.`
     );
   }
   if (baseLayer) {

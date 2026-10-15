@@ -24,6 +24,14 @@ import {
   CHARACTER_HAIR_COLOR_SELECT_OPTIONS,
   CHARACTER_HIPS_SELECT_OPTIONS,
   CHARACTER_SKIN_TONE_SELECT_OPTIONS,
+  CHARACTER_EYEBROWS_SELECT_OPTIONS,
+  CHARACTER_LIPS_SELECT_OPTIONS,
+  CHARACTER_MAKEUP_SELECT_OPTIONS,
+  CHARACTER_MUSCLE_TONE_SELECT_OPTIONS,
+  CHARACTER_BODY_HAIR_SELECT_OPTIONS,
+  CHARACTER_TAN_SELECT_OPTIONS,
+  CHARACTER_PUBIC_HAIR_SELECT_OPTIONS,
+  CHARACTER_TRAIT_GROUPS,
   traitAppliesToSex,
   CHARACTER_HAIR_LENGTH_SELECT_OPTIONS,
   CHARACTER_HAIR_STYLE_SELECT_OPTIONS,
@@ -40,6 +48,7 @@ import {
   type CharacterSex,
 } from '@/lib/character-appearance';
 import type { CastMark } from '@/lib/cast-marks';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 
 type PlayCampaignCharacterSectionProps = Pick<
@@ -53,6 +62,26 @@ type PlayCampaignCharacterSectionProps = Pick<
   | 'setStatus'
 >;
 
+/** The create form's Hair / Face / Body pickers (Basics are laid out above them), in group order. */
+const CREATE_TRAIT_SELECTS = [
+  ['hairColor', 'Hair colour', CHARACTER_HAIR_COLOR_SELECT_OPTIONS],
+  ['hairLength', 'Hair length', CHARACTER_HAIR_LENGTH_SELECT_OPTIONS],
+  ['hairStyle', 'Hair style', CHARACTER_HAIR_STYLE_SELECT_OPTIONS],
+  ['facialHair', 'Facial hair', CHARACTER_FACIAL_HAIR_SELECT_OPTIONS],
+  ['skinTone', 'Skin tone', CHARACTER_SKIN_TONE_SELECT_OPTIONS],
+  ['faceShape', 'Face shape', CHARACTER_FACE_SHAPE_SELECT_OPTIONS],
+  ['eyeColor', 'Eye colour', CHARACTER_EYE_COLOR_SELECT_OPTIONS],
+  ['eyebrows', 'Eyebrows', CHARACTER_EYEBROWS_SELECT_OPTIONS],
+  ['lips', 'Lips', CHARACTER_LIPS_SELECT_OPTIONS],
+  ['makeup', 'Makeup', CHARACTER_MAKEUP_SELECT_OPTIONS],
+  ['bust', 'Bust', CHARACTER_BUST_SELECT_OPTIONS],
+  ['hips', 'Hips', CHARACTER_HIPS_SELECT_OPTIONS],
+  ['muscleTone', 'Muscle tone', CHARACTER_MUSCLE_TONE_SELECT_OPTIONS],
+  ['bodyHair', 'Body hair', CHARACTER_BODY_HAIR_SELECT_OPTIONS],
+  ['tan', 'Tan', CHARACTER_TAN_SELECT_OPTIONS],
+  ['pubicHair', 'Pubic hair', CHARACTER_PUBIC_HAIR_SELECT_OPTIONS],
+] as const;
+
 export default function PlayCampaignCharacterSection({
   shared,
   updateShared,
@@ -62,6 +91,7 @@ export default function PlayCampaignCharacterSection({
   createCharacter,
   setStatus,
 }: PlayCampaignCharacterSectionProps) {
+  const intimateEnabled = useNsfwGeneratorEnabled();
   const [draftName, setDraftName] = useState('');
   const [appearance, setAppearance] = useState<CharacterAppearanceFormDraft>(() =>
     defaultCharacterAppearanceForm()
@@ -215,168 +245,176 @@ export default function PlayCampaignCharacterSection({
               <p className="type-caption text-[var(--text-muted)]">
                 Each trait defaults to Random — pick specifics only when you want them locked in.
               </p>
-              <div
-                className="grid gap-3 sm:grid-cols-2"
-                data-testid="play-campaign-create-appearance"
-              >
-                <label className="block space-y-1.5">
-                  <FieldLabel htmlFor="play-campaign-create-sex">Sex</FieldLabel>
-                  <SelectInput
-                    id="play-campaign-create-sex"
-                    data-testid="play-campaign-create-sex"
-                    value={appearance.sex}
-                    onChange={event =>
-                      patchAppearance(
-                        'sex',
-                        event.target.value as CharacterAppearancePick<CharacterSex>
-                      )
-                    }
-                  >
-                    {CHARACTER_SEX_SELECT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-                <label className="block space-y-1.5">
-                  <FieldLabel htmlFor="play-campaign-create-ethnicity">Ethnicity</FieldLabel>
-                  <SelectInput
-                    id="play-campaign-create-ethnicity"
-                    data-testid="play-campaign-create-ethnicity"
-                    value={appearance.ethnicity}
-                    onChange={event =>
-                      patchAppearance(
-                        'ethnicity',
-                        event.target.value as CharacterAppearancePick<CharacterEthnicity>
-                      )
-                    }
-                  >
-                    {CHARACTER_ETHNICITY_SELECT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-                <label className="block space-y-1.5">
-                  <FieldLabel htmlFor="play-campaign-create-age">Age</FieldLabel>
-                  <SelectInput
-                    id="play-campaign-create-age"
-                    data-testid="play-campaign-create-age"
-                    value={appearance.ageBand}
-                    onChange={event =>
-                      patchAppearance(
-                        'ageBand',
-                        event.target.value as CharacterAppearancePick<CharacterAgeBand>
-                      )
-                    }
-                  >
-                    {CHARACTER_AGE_BAND_SELECT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-                <label className="block space-y-1.5">
-                  <FieldLabel htmlFor="play-campaign-create-height">Height</FieldLabel>
-                  <SelectInput
-                    id="play-campaign-create-height"
-                    data-testid="play-campaign-create-height"
-                    value={appearance.height}
-                    onChange={event =>
-                      patchAppearance(
-                        'height',
-                        event.target.value as CharacterAppearancePick<CharacterHeight>
-                      )
-                    }
-                  >
-                    {CHARACTER_HEIGHT_SELECT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-                <label className="block space-y-1.5 sm:col-span-2">
-                  <FieldLabel htmlFor="play-campaign-create-body">Body type</FieldLabel>
-                  <SelectInput
-                    id="play-campaign-create-body"
-                    data-testid="play-campaign-create-body"
-                    value={appearance.bodyBuild}
-                    onChange={event =>
-                      patchAppearance(
-                        'bodyBuild',
-                        event.target.value as CharacterAppearancePick<CharacterBodyBuild>
-                      )
-                    }
-                  >
-                    {CHARACTER_BODY_BUILD_SELECT_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </label>
-                {(
-                  [
-                    ['hairColor', 'Hair colour', CHARACTER_HAIR_COLOR_SELECT_OPTIONS],
-                    ['hairLength', 'Hair length', CHARACTER_HAIR_LENGTH_SELECT_OPTIONS],
-                    ['hairStyle', 'Hair style', CHARACTER_HAIR_STYLE_SELECT_OPTIONS],
-                    ['facialHair', 'Facial hair', CHARACTER_FACIAL_HAIR_SELECT_OPTIONS],
-                    ['skinTone', 'Skin tone', CHARACTER_SKIN_TONE_SELECT_OPTIONS],
-                    ['faceShape', 'Face shape', CHARACTER_FACE_SHAPE_SELECT_OPTIONS],
-                    ['eyeColor', 'Eye colour', CHARACTER_EYE_COLOR_SELECT_OPTIONS],
-                    ['bust', 'Bust', CHARACTER_BUST_SELECT_OPTIONS],
-                    ['hips', 'Hips', CHARACTER_HIPS_SELECT_OPTIONS],
-                  ] as const
-                ).map(([key, label, options]) => {
-                  // Bald (hair colour) means no hair: length and style don't apply; facial hair is
-                  // for men and nonbinary Casts, bust for women and nonbinary Casts (as in the Cast editor).
-                  const noHair =
-                    appearance.hairColor === 'bald' &&
-                    (key === 'hairLength' || key === 'hairStyle');
-                  const notForSex =
-                    (key === 'facialHair' || key === 'bust') &&
-                    !traitAppliesToSex(key, appearance.sex);
-                  const off = noHair || notForSex;
-                  const id = `play-campaign-create-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
-                  return (
-                    <label key={key} className="block space-y-1.5">
-                      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+              <div className="space-y-4" data-testid="play-campaign-create-appearance">
+                <fieldset className="space-y-2" data-testid="play-campaign-create-group-basics">
+                  <legend className="type-overline text-[var(--text-muted)]">Basics</legend>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block space-y-1.5">
+                      <FieldLabel htmlFor="play-campaign-create-sex">Sex</FieldLabel>
                       <SelectInput
-                        id={id}
-                        data-testid={id}
-                        value={off ? 'random' : (appearance[key] ?? 'random')}
-                        disabled={off}
-                        title={
-                          noHair
-                            ? 'Bald — no hair length or style'
-                            : notForSex
-                              ? `Not for a ${appearance.sex}`
-                              : undefined
+                        id="play-campaign-create-sex"
+                        data-testid="play-campaign-create-sex"
+                        value={appearance.sex}
+                        onChange={event =>
+                          patchAppearance(
+                            'sex',
+                            event.target.value as CharacterAppearancePick<CharacterSex>
+                          )
                         }
-                        onChange={event => {
-                          const value = event.target.value;
-                          setAppearance(current => ({
-                            ...current,
-                            [key]: value,
-                            ...(key === 'hairColor' && value === 'bald'
-                              ? { hairLength: undefined, hairStyle: undefined }
-                              : {}),
-                          }));
-                        }}
                       >
-                        {options.map(option => (
+                        {CHARACTER_SEX_SELECT_OPTIONS.map(option => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
                         ))}
                       </SelectInput>
                     </label>
-                  );
-                })}
+                    <label className="block space-y-1.5">
+                      <FieldLabel htmlFor="play-campaign-create-ethnicity">Ethnicity</FieldLabel>
+                      <SelectInput
+                        id="play-campaign-create-ethnicity"
+                        data-testid="play-campaign-create-ethnicity"
+                        value={appearance.ethnicity}
+                        onChange={event =>
+                          patchAppearance(
+                            'ethnicity',
+                            event.target.value as CharacterAppearancePick<CharacterEthnicity>
+                          )
+                        }
+                      >
+                        {CHARACTER_ETHNICITY_SELECT_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                    <label className="block space-y-1.5">
+                      <FieldLabel htmlFor="play-campaign-create-age">Age</FieldLabel>
+                      <SelectInput
+                        id="play-campaign-create-age"
+                        data-testid="play-campaign-create-age"
+                        value={appearance.ageBand}
+                        onChange={event =>
+                          patchAppearance(
+                            'ageBand',
+                            event.target.value as CharacterAppearancePick<CharacterAgeBand>
+                          )
+                        }
+                      >
+                        {CHARACTER_AGE_BAND_SELECT_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                    <label className="block space-y-1.5">
+                      <FieldLabel htmlFor="play-campaign-create-height">Height</FieldLabel>
+                      <SelectInput
+                        id="play-campaign-create-height"
+                        data-testid="play-campaign-create-height"
+                        value={appearance.height}
+                        onChange={event =>
+                          patchAppearance(
+                            'height',
+                            event.target.value as CharacterAppearancePick<CharacterHeight>
+                          )
+                        }
+                      >
+                        {CHARACTER_HEIGHT_SELECT_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                    <label className="block space-y-1.5 sm:col-span-2">
+                      <FieldLabel htmlFor="play-campaign-create-body">Body type</FieldLabel>
+                      <SelectInput
+                        id="play-campaign-create-body"
+                        data-testid="play-campaign-create-body"
+                        value={appearance.bodyBuild}
+                        onChange={event =>
+                          patchAppearance(
+                            'bodyBuild',
+                            event.target.value as CharacterAppearancePick<CharacterBodyBuild>
+                          )
+                        }
+                      >
+                        {CHARACTER_BODY_BUILD_SELECT_OPTIONS.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                  </div>
+                </fieldset>
+                {CHARACTER_TRAIT_GROUPS.filter(group => group.id !== 'basics').map(group => (
+                  <fieldset
+                    key={group.id}
+                    className="space-y-2"
+                    data-testid={`play-campaign-create-group-${group.id}`}
+                  >
+                    <legend className="type-overline text-[var(--text-muted)]">
+                      {group.label}
+                    </legend>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {CREATE_TRAIT_SELECTS.filter(
+                        ([key]) =>
+                          group.keys.includes(key) &&
+                          // Pubic hair is said on nude Intimate / Raunchy Day stills only.
+                          (key !== 'pubicHair' || intimateEnabled)
+                      ).map(([key, label, options]) => {
+                        // Bald (hair colour) means no hair: length and style don't apply; facial hair is
+                        // for men and nonbinary Casts, bust for women and nonbinary Casts (as in the Cast editor).
+                        const noHair =
+                          appearance.hairColor === 'bald' &&
+                          (key === 'hairLength' || key === 'hairStyle');
+                        const notForSex =
+                          (key === 'facialHair' || key === 'bust') &&
+                          !traitAppliesToSex(key, appearance.sex);
+                        const off = noHair || notForSex;
+                        const id = `play-campaign-create-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
+                        return (
+                          <label key={key} className="block space-y-1.5">
+                            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                            <SelectInput
+                              id={id}
+                              data-testid={id}
+                              value={off ? 'random' : (appearance[key] ?? 'random')}
+                              disabled={off}
+                              title={
+                                noHair
+                                  ? 'Bald — no hair length or style'
+                                  : notForSex
+                                    ? `Not for a ${appearance.sex}`
+                                    : undefined
+                              }
+                              onChange={event => {
+                                const value = event.target.value;
+                                setAppearance(current => ({
+                                  ...current,
+                                  [key]: value,
+                                  ...(key === 'hairColor' && value === 'bald'
+                                    ? { hairLength: undefined, hairStyle: undefined }
+                                    : {}),
+                                }));
+                              }}
+                            >
+                              {options.map(option => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </SelectInput>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
               </div>
 
               <p

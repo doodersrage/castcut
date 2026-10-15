@@ -4220,6 +4220,19 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
     'Green eyes'
   );
+  // Pickers come in groups: face details under Face, body under Body.
+  const face = page.getByTestId('play-campaign-create-group-face');
+  await face.getByTestId('play-campaign-create-makeup').selectOption('bold');
+  await page
+    .getByTestId('play-campaign-create-group-body')
+    .getByTestId('play-campaign-create-muscle-tone')
+    .selectOption('toned');
+  await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
+    'Bold eyeliner'
+  );
+  await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
+    'Toned muscles'
+  );
   // Marks can be picked before the Cast exists (they go onto the first plate).
   const marks = page.getByTestId('play-campaign-create-marks');
   await marks.getByTestId('cast-mark-add-glasses').click();

@@ -150,6 +150,43 @@ describe('a beat the player typed for a man lead', () => {
   });
 });
 
+describe('pubic hair (a Cast trait)', () => {
+  it('is said on a nude Raunchy still and never on a clothed one', async () => {
+    const { buildDaySlotPromptForStill } = await import('./day-still-prompt');
+    const { resolveDayQueueIdentityPlate } = await import('./day-plate');
+    const plate = { filename: 'cast-plate-nora.png', source: 'cast' as const };
+    const character = {
+      id: 'char-nora',
+      name: 'Nora',
+      version: 1,
+      updatedAt: 1,
+      descriptor: 'a woman with long red hair',
+      traits: { sex: 'woman', pubicHair: 'trimmed' },
+    };
+    const build = (dayMood: string, sceneHints: string) =>
+      buildDaySlotPromptForStill(
+        { id: 'morning', label: 'morning', location: 'bedroom', sceneHints } as never,
+        {
+          plate,
+          queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate: plate } as never),
+          character,
+          hasPlate: true,
+          leadNoun: 'woman',
+          dayMood,
+          intimateEnabled: true,
+          allowCompanions: false,
+          model: 'qwen-image-edit-2511-lightning-8',
+          defaultPoseGuideStyle: 'openpose',
+        } as never
+      );
+    assert.match(
+      build('raunchy', 'solo naked lying on her back on the unmade bed fingering herself'),
+      /neatly trimmed pubic hair/
+    );
+    assert.doesNotMatch(build('everyday', 'making coffee in the kitchen'), /pubic/);
+  });
+});
+
   describe('piggyback and head on a shoulder are placed body by body (live A/B 2026-10-05)', () => {
     const PIGGYBACK = "piggyback ride on a friend's back across the park, both laughing";
     const HEAD = "resting her head on her partner's shoulder on a bench by the river at night";

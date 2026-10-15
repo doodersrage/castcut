@@ -274,3 +274,73 @@ describe('finer traits', () => {
     }
   });
 });
+
+describe('face and body detail traits', () => {
+  it('says brows, lips, makeup, muscle, body hair and tan; never pubic hair', async () => {
+    const { physicalDescriptionFromTraits } = await import('./character-appearance');
+    const woman = physicalDescriptionFromTraits(
+      {
+        sex: 'woman',
+        eyebrows: 'thick',
+        lips: 'full',
+        makeup: 'none',
+        muscleTone: 'toned',
+        bodyHair: 'smooth',
+        tan: 'tan-lines',
+        pubicHair: 'trimmed',
+      },
+      { hasPicture: true }
+    );
+    assert.equal(
+      woman.descriptor,
+      'a woman with thick, full eyebrows, full lips and a bare, makeup-free face, with toned muscles, smooth, hairless skin, faint swimsuit tan lines'
+    );
+    assert.doesNotMatch(woman.descriptor ?? '', /pubic/);
+    assert.equal(woman.traits?.pubicHair, 'trimmed');
+    assert.match(woman.hints ?? '', /Thick brows.*Full lips.*No makeup/);
+  });
+
+  it('replaces the rolled face when brows or lips are picked; makeup adds to it', async () => {
+    const { physicalDescriptionFromTraits } = await import('./character-appearance');
+    const picked = physicalDescriptionFromTraits(
+      { sex: 'woman', ethnicity: 'white', lips: 'thin', makeup: 'glam' },
+      { hasPicture: false }
+    ).descriptor!;
+    assert.match(picked, /, thin lips, polished glam makeup, /);
+    assert.doesNotMatch(picked, /full lips/);
+    const rolled = physicalDescriptionFromTraits(
+      { sex: 'woman', ethnicity: 'nordic', makeup: 'natural' },
+      { hasPicture: false }
+    ).descriptor!;
+    assert.match(rolled, /, light natural makeup, /);
+  });
+
+  it("says a man's body hair as chest hair", async () => {
+    const { bodyHairPhrase } = await import('./character-appearance');
+    assert.equal(bodyHairPhrase('hairy', 'man'), 'a hairy chest, arms and belly');
+    assert.equal(bodyHairPhrase('hairy', 'woman'), 'noticeable body hair');
+  });
+
+  it('gives pubic hair to nude adult stills only', async () => {
+    const { adultBodyPhrase } = await import('./character-appearance');
+    assert.equal(adultBodyPhrase({ pubicHair: 'shaved' }), 'a fully shaved pubic area');
+    assert.equal(adultBodyPhrase({}), '');
+  });
+});
+
+describe('little person (height)', () => {
+  it('is said as an adult little person, and never rolled at random', async () => {
+    const { physicalDescriptionFromTraits, resolveCharacterAppearance } = await import(
+      './character-appearance'
+    );
+    const text =
+      physicalDescriptionFromTraits(
+        { sex: 'woman', ageBand: '30s', height: 'little-person' },
+        { hasPicture: false }
+      ).descriptor ?? '';
+    assert.match(text, /a body that is about four feet tall — an adult little person with achondroplasia dwarfism/);
+    for (let i = 0; i < 200; i += 1) {
+      assert.notEqual(resolveCharacterAppearance({}).height, 'little-person');
+    }
+  });
+});
