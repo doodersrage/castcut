@@ -1463,7 +1463,6 @@ export function plateTraitDetails(traits: CharacterTraits | undefined): string {
   const man = traits.sex === 'man';
   const subject = man ? 'He' : traits.sex === 'woman' ? 'She' : 'They';
   const has = subject === 'They' ? 'have' : 'has';
-  const wears = subject === 'They' ? 'wear' : 'wears';
   const possessive = man ? 'His' : traits.sex === 'woman' ? 'Her' : 'Their';
   const sentences: string[] = [];
   if (traits.height === 'little-person') {
@@ -1479,34 +1478,126 @@ export function plateTraitDetails(traits: CharacterTraits | undefined): string {
     traits.lips ? PLATE_LIPS[traits.lips] : '',
   ].filter(Boolean);
   if (features.length) sentences.push(`${subject} ${has} ${features.join(' and ')}.`);
-  switch (traits.makeup) {
-    case 'none':
-      sentences.push(
-        `${possessive} face is bare with no makeup at all: natural uncoloured lips, bare lashes, visible skin texture and pores.`
-      );
-      break;
-    case 'natural':
-      sentences.push(
-        `${subject} ${wears} subtle natural makeup: light foundation, soft mascara and tinted lip balm.`
-      );
-      break;
-    case 'glam':
-      sentences.push(
-        `${subject} ${wears} polished glam makeup: contoured cheekbones, shimmering bronze eyeshadow, long false lashes and glossy rose lipstick.`
-      );
-      break;
-    case 'bold':
-      sentences.push(
-        `${subject} ${wears} bold makeup: sharp black winged eyeliner, smoky dark eyeshadow and deep red matte lipstick with clean edges.`
-      );
-      break;
-  }
+  const makeup = makeupSentence(traits.makeup, subject, possessive);
+  if (makeup) sentences.push(makeup);
   if (traits.muscleTone) {
     sentences.push(`${possessive} body is ${PLATE_MUSCLE[traits.muscleTone]}.`);
   }
   const bodyHair = bodyHairPhrase(traits.bodyHair, traits.sex);
   if (bodyHair) sentences.push(`${subject} ${has} ${bodyHair}.`);
   return sentences.join(' ');
+}
+
+function makeupSentence(
+  makeup: CharacterMakeup | undefined,
+  subject: 'He' | 'She' | 'They',
+  possessive: 'His' | 'Her' | 'Their'
+): string {
+  const wears = subject === 'They' ? 'wear' : 'wears';
+  switch (makeup) {
+    case 'none':
+      return `${possessive} face is bare with no makeup at all: natural uncoloured lips, bare lashes, visible skin texture and pores.`;
+    case 'natural':
+      return `${subject} ${wears} subtle natural makeup: light foundation, soft mascara and tinted lip balm.`;
+    case 'glam':
+      return `${subject} ${wears} polished glam makeup: contoured cheekbones, shimmering bronze eyeshadow, long false lashes and glossy rose lipstick.`;
+    case 'bold':
+      return `${subject} ${wears} bold makeup: sharp black winged eyeliner, smoky dark eyeshadow and deep red matte lipstick with clean edges.`;
+    default:
+      return '';
+  }
+}
+
+/**
+ * Traits the first plate fixes: who the person is. Once a Cast's first plate is rendered from the
+ * traits, these lock (the plate and every still built on it show them); changing one means a new
+ * first plate from scratch.
+ */
+export const CHARACTER_IDENTITY_TRAIT_KEYS: ReadonlyArray<keyof CharacterTraits> = [
+  'sex',
+  'ethnicity',
+  'ageBand',
+  'height',
+  'bodyBuild',
+  'skinTone',
+  'faceShape',
+  'eyeColor',
+  // Live (2026-10-15, 2511): any brow edit painted on heavy dark brows and moved the face (0 of
+  // 6 natural, three wordings) — brows are set by the first plate (plateTraitDetails, 2 of 3).
+  'eyebrows',
+  'lips',
+  'bust',
+  'hips',
+];
+
+/**
+ * Traits a person can change (hair, a beard, makeup): saving one edits the plate on Edit 2511 so
+ * the plate and the description agree (plateTraitEdit). Pubic hair is neither — never on a plate.
+ */
+export const CHARACTER_PLATE_EDIT_TRAIT_KEYS: ReadonlyArray<keyof CharacterTraits> = [
+  'hairColor',
+  'hairLength',
+  'hairStyle',
+  'facialHair',
+  'makeup',
+  'muscleTone',
+  'bodyHair',
+];
+
+export function isIdentityTrait(key: keyof CharacterTraits): boolean {
+  return CHARACTER_IDENTITY_TRAIT_KEYS.includes(key);
+}
+
+/**
+ * The plate edit for look traits changed from `before` to `after`: one sentence per change, said
+ * for Edit 2511 ("Edit Image 1: change only these details. …"), and whether the hair or the body
+ * changes (so the edit doesn't also say to keep them). Clean-shaven is the tested shave edit
+ * (cast-plate-prepare.ts). A trait set back to unset changes nothing — the picture decides.
+ */
+export function plateTraitEdit(
+  before: CharacterTraits | undefined,
+  after: CharacterTraits | undefined
+): { changes: string[]; shave: boolean; hair: boolean; body: boolean } {
+  const was = before ?? {};
+  const now = after ?? {};
+  const changed = (key: keyof CharacterTraits) => Boolean(now[key]) && now[key] !== was[key];
+  const man = now.sex === 'man';
+  const subject = man ? 'He' : now.sex === 'woman' ? 'She' : 'They';
+  const possessive = man ? 'His' : now.sex === 'woman' ? 'Her' : 'Their';
+  const object = man ? 'him' : now.sex === 'woman' ? 'her' : 'them';
+  const lower = possessive.toLowerCase();
+  const changes: string[] = [];
+  let shave = false;
+  const hairChanged = changed('hairColor') || changed('hairLength') || changed('hairStyle');
+  const hair = hairChanged ? hairPhrase(now) : '';
+  if (hair) {
+    changes.push(
+      hair === 'a bald head' || hair === 'a shaved head'
+        ? `Shave ${lower} head: ${object === 'them' ? 'they have' : `${subject.toLowerCase()} has`} ${hair}, no hair on top.`
+        : `Change ${lower} hair to ${hair}.`
+    );
+  }
+  if (changed('facialHair') && traitAppliesToSex('facialHair', now.sex)) {
+    if (now.facialHair === 'clean-shaven') shave = true;
+    else changes.push(`Give ${object} ${FACIAL_HAIR_WORDS[now.facialHair!]}.`);
+  }
+  if (changed('makeup')) {
+    changes.push(makeupSentence(now.makeup, subject, possessive));
+  }
+  if (changed('muscleTone')) {
+    // Live (2026-10-15, 2511): ripped / defined alone also tanned and oiled the skin 3 of 4.
+    changes.push(
+      `Make ${lower} body ${PLATE_MUSCLE[now.muscleTone!]}. Same skin colour as Image 1: matte, untanned, no oil or shine.`
+    );
+  }
+  const bodyHair = changed('bodyHair') ? bodyHairPhrase(now.bodyHair, now.sex) : '';
+  if (bodyHair) changes.push(`Give ${object} ${bodyHair}.`);
+  return {
+    changes,
+    shave,
+    hair: Boolean(hair),
+    body: changed('muscleTone') || Boolean(bodyHair),
+  };
 }
 
 /** Little person can't be drawn from words by the local engines (live 2026-10-15): the forms say so. */

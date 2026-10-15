@@ -27,12 +27,23 @@ import {
   CHARACTER_SKIN_TONE_OPTIONS,
   CHARACTER_TRAIT_GROUPS,
   LITTLE_PERSON_PHOTO_HINT,
+  isIdentityTrait,
+  plateTraitEdit,
   traitAppliesToSex,
   isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
   type CharacterTraits,
 } from '@/lib/character-appearance';
-import { castHasPicture, saveCharacterTraits, type CharacterRecord } from '@/lib/character-os';
+import { requestCastPlateTraitEdit } from '@/lib/cast-plate-trait-edit';
+import {
+  activeLook,
+  castHasPicture,
+  castIdentityTraitsLocked,
+  getCharacter,
+  saveCharacterTraits,
+  setCastPlateTraits,
+  type CharacterRecord,
+} from '@/lib/character-os';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const FIELDS: Array<{
@@ -64,8 +75,11 @@ const FIELDS: Array<{
 ];
 
 /**
- * The Cast's body: the traits picked when it was made, editable. They are the physical
- * description every picture uses (Day, Look, Outfit); the bible below is for Story.
+ * The Cast's body: the traits picked when it was made. They are the physical description every
+ * picture uses (Day, Look, Outfit); the bible below is for Story. Once the first plate is rendered
+ * from them, who the person is (age, build, face, eyes…) is read-only — the plate shows it — and
+ * Start over makes a new first plate. Hair, beard, makeup and the like stay editable: saving one
+ * edits the plate on Edit 2511 so the plate and the words agree.
  */
 export default function CharacterAppearanceSection({
   character,
@@ -75,6 +89,8 @@ export default function CharacterAppearanceSection({
   onUpdated?: (character: CharacterRecord) => void;
 }) {
   const hasPicture = castHasPicture(character);
+  const identityLocked = castIdentityTraitsLocked(character);
+  const [startingOver, setStartingOver] = useState(false);
   const intimateEnabled = useNsfwGeneratorEnabled();
   const [draft, setDraft] = useState<CharacterTraits>(() => character.traits ?? {});
   const [syncedKey, setSyncedKey] = useState(`${character.id}:${character.updatedAt}`);
@@ -99,13 +115,57 @@ export default function CharacterAppearanceSection({
 
   const save = () => {
     setError(null);
+    const before = normalizeCharacterTraits(character.traits);
     const next = saveCharacterTraits(character.id, normalizeCharacterTraits(draft));
     if (!next) {
       setError('Could not save the appearance — try again.');
       return;
     }
     onUpdated?.(next);
+    const edit = hasPicture ? plateTraitEdit(before, normalizeCharacterTraits(next.traits)) : null;
+    if (edit && (edit.changes.length || edit.shave)) {
+      requestCastPlateTraitEdit({
+        characterId: next.id,
+        lookId: activeLook(next).id,
+        options: {
+          stand: false,
+          baseLayer: false,
+          whiteBackground: false,
+          shave: edit.shave,
+          traits: { changes: edit.changes, hair: edit.hair, body: edit.body },
+        },
+      });
+      setStatus(
+        'Saved — editing the plate to match (about a minute; it lands on its own). Other looks keep their plates.'
+      );
+      return;
+    }
     setStatus('Saved — Day, Look and Outfit use this from the next still.');
+  };
+
+  const startOver = async () => {
+    if (
+      !window.confirm(
+        `Start ${character.name} over from scratch? Every look's plate is cleared (they stay in Earlier plates) and the next plate is rendered fresh from the traits — a new face, so Day and Story pictures will look different.`
+      )
+    ) {
+      return;
+    }
+    setStartingOver(true);
+    setError(null);
+    try {
+      const { clearCharacterLookPlate } = await import('@/lib/look-outfit-plate');
+      clearCharacterLookPlate(character.id);
+      const next = setCastPlateTraits(character.id, undefined) ?? getCharacter(character.id);
+      if (next) onUpdated?.(next);
+      setStatus(
+        'Plates cleared — change any trait, save, then Generate plate on Looks makes the new first plate.'
+      );
+    } catch {
+      setError('Could not clear the plates — try again.');
+    } finally {
+      setStartingOver(false);
+    }
   };
 
   return (
@@ -126,6 +186,28 @@ export default function CharacterAppearanceSection({
           This description was made up at random when the Cast was created and may not match the
           picture. Pick the traits that match it (or leave them unset) and save.
         </p>
+      ) : null}
+      {identityLocked ? (
+        <div
+          className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]"
+          data-testid="cast-appearance-identity-locked"
+        >
+          <span className="min-w-[14rem] flex-1">
+            Who {character.name} is — age, build, skin, face, eyes, brows, lips, figure — was set by
+            the first plate and every picture follows it. Hair, facial hair, makeup, muscle and body
+            hair can change: saving edits the plate to match.
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={startingOver}
+            data-testid="cast-appearance-start-over"
+            onClick={() => void startOver()}
+          >
+            Start over from scratch
+          </Button>
+        </div>
       ) : null}
       {fromBible ? (
         <p
@@ -160,6 +242,7 @@ export default function CharacterAppearanceSection({
                   const notForSex =
                     (field.key === 'facialHair' || field.key === 'bust') &&
                     !traitAppliesToSex(field.key, draft.sex);
+                  const locked = identityLocked && isIdentityTrait(field.key);
                   const off = noHair || notForSex;
                   return (
                     <label key={field.key} className="block space-y-1.5">
@@ -168,13 +251,15 @@ export default function CharacterAppearanceSection({
                         id={`cast-trait-${field.key}`}
                         data-testid={`cast-trait-${field.key}`}
                         value={off ? '' : (draft[field.key] ?? '')}
-                        disabled={off}
+                        disabled={off || locked}
                         title={
-                          noHair
-                            ? 'Bald — no hair length or style'
-                            : notForSex
-                              ? `Not for a ${draft.sex}`
-                              : undefined
+                          locked
+                            ? 'Set by the first plate — Start over from scratch to change it'
+                            : noHair
+                              ? 'Bald — no hair length or style'
+                              : notForSex
+                                ? `Not for a ${draft.sex}`
+                                : undefined
                         }
                         onChange={event => {
                           setStatus(null);

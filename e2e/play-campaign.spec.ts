@@ -2833,6 +2833,42 @@ test('a Cast whose look was made up offers Describe from photo', async ({ page }
   await expect(page.getByTestId('cast-bible-preview')).toContainText('Indigenous woman');
 });
 
+test('Appearance locks who the Cast is after the first plate; Start over unlocks it', async ({ page }) => {
+  const traits = { sex: 'woman', ageBand: '30s', eyeColor: 'green', hairColor: 'auburn' };
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-locked' },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: 'e2e-locked',
+          name: 'Locked',
+          version: 1,
+          updatedAt: Date.now(),
+          descriptor: 'a woman in her thirties with green eyes and auburn hair',
+          traits,
+          plateTraits: traits,
+          ipAdapter: { imageFilename: 'e2e-face.png', imageUrl: '/icon.svg' },
+          reference: { originalFilename: 'e2e-face.png', originalUrl: '/icon.svg' },
+        },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/characters/e2e-locked');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  await expect(page.getByTestId('cast-appearance-identity-locked')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cast-trait-eyeColor')).toBeDisabled();
+  await expect(page.getByTestId('cast-trait-ageBand')).toBeDisabled();
+  await expect(page.getByTestId('cast-trait-hairColor')).toBeEnabled();
+  await expect(page.getByTestId('cast-trait-makeup')).toBeEnabled();
+  page.once('dialog', dialog => void dialog.accept());
+  await page.getByTestId('cast-appearance-start-over').click();
+  await expect(page.getByTestId('cast-appearance-identity-locked')).toHaveCount(0);
+  await expect(page.getByTestId('cast-trait-eyeColor')).toBeEnabled();
+});
+
 test('Characters: New character opens Film with the create form', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: 'e2e-new-char-existing' },

@@ -355,3 +355,40 @@ describe('plate trait details', () => {
     assert.equal(plateTraitDetails({ sex: 'woman', pubicHair: 'shaved', eyeColor: 'green' }), '');
   });
 });
+
+describe('plate trait edit', () => {
+  it('turns changed look traits into edit sentences; identity and unset traits say nothing', async () => {
+    const { plateTraitEdit, isIdentityTrait } = await import('./character-appearance');
+    const woman = { sex: 'woman' as const, eyeColor: 'green' as const, hairColor: 'auburn' as const };
+    const edit = plateTraitEdit(woman, {
+      ...woman,
+      hairColor: 'black',
+      hairLength: 'long',
+      makeup: 'bold',
+      eyeColor: 'blue',
+    });
+    assert.equal(edit.hair, true);
+    assert.equal(edit.shave, false);
+    assert.match(edit.changes[0]!, /^Change her hair to long .*black hair\.$/);
+    assert.match(edit.changes[1]!, /^She wears bold makeup/);
+    assert.equal(edit.changes.length, 2);
+    // A trait set back to unset: the picture decides, nothing to edit.
+    assert.deepEqual(plateTraitEdit({ ...woman, makeup: 'glam' }, woman).changes, []);
+    const man = { sex: 'man' as const, facialHair: 'full-beard' as const };
+    assert.equal(plateTraitEdit(man, { ...man, facialHair: 'clean-shaven' }).shave, true);
+    assert.deepEqual(plateTraitEdit({ sex: 'man' }, man).changes, ['Give him a full beard.']);
+    assert.deepEqual(plateTraitEdit({ sex: 'man' }, { sex: 'man', hairColor: 'bald' }).changes, [
+      'Shave his head: he has a bald head, no hair on top.',
+    ]);
+    const body = plateTraitEdit({ sex: 'man' }, { sex: 'man', bodyHair: 'smooth', muscleTone: 'soft' });
+    assert.equal(body.body, true);
+    assert.match(body.changes.join(' '), /matte, untanned, no oil or shine/);
+    // Brows are set by the first plate: a brow edit made cartoon brows live.
+    assert.deepEqual(plateTraitEdit(woman, { ...woman, eyebrows: 'bushy' }).changes, []);
+    assert.equal(isIdentityTrait('eyebrows'), true);
+    assert.equal(isIdentityTrait('eyeColor'), true);
+    assert.equal(isIdentityTrait('hairColor'), false);
+    assert.equal(isIdentityTrait('pubicHair'), false);
+  });
+});
+

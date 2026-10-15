@@ -1,7 +1,7 @@
 'use client';
 
 import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter, setCastPlateTraits } from '@/lib/character-os';
 import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
@@ -29,7 +29,8 @@ export async function queueCastLookPlate(input: {
   lookNote?: string;
   sendComfyUi: SendComfyUi;
 }): Promise<{ result: OutfitPlateEnsureResult; fromOriginal: boolean }> {
-  const original = castOriginalPlate(getCharacter(input.characterId));
+  const character = getCharacter(input.characterId);
+  const original = castOriginalPlate(character);
   const inventory = original
     ? null
     : (readCachedComfyObjectInfoModels() ??
@@ -47,5 +48,10 @@ export async function queueCastLookPlate(input: {
     tiles: [],
     sendComfyUi: input.sendComfyUi,
   });
+  // A first plate from the description fixes who the Cast is: Cast home locks the identity traits
+  // it was made from (castIdentityTraitsLocked) once it lands as the face lock.
+  if (!original && result === 'queued' && character?.traits) {
+    setCastPlateTraits(input.characterId, character.traits);
+  }
   return { result, fromOriginal: Boolean(original) };
 }

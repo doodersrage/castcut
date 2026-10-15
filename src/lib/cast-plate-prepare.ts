@@ -38,6 +38,11 @@ export type CastPlatePrepareOptions = {
    * on Edit 2511 shaved 2 of 2 and kept the rest (2026-10-14).
    */
   shave?: boolean;
+  /**
+   * Look traits changed on Cast home (plateTraitEdit): one sentence each, so the plate matches the
+   * new description. `hair` / `body` say the edit changes them (not kept).
+   */
+  traits?: { changes: string[]; hair: boolean; body: boolean };
 };
 
 export const DEFAULT_CAST_PLATE_PREPARE_OPTIONS: CastPlatePrepareOptions = {
@@ -52,7 +57,8 @@ export function hasCastPlatePrepareStep(options: CastPlatePrepareOptions): boole
     options.baseLayer ||
     options.whiteBackground ||
     options.marks === true ||
-    options.shave === true
+    options.shave === true ||
+    Boolean(options.traits?.changes.length)
   );
 }
 
@@ -90,6 +96,7 @@ export function buildCastPlatePreparePrompt(input: {
   const noun = input.noun ?? 'woman';
   const possessive = noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their';
   const white = whiteBackground || input.onWhite === true;
+  const traitChanges = (input.options.traits?.changes ?? []).filter(Boolean);
   const parts: string[] = ['Edit Image 1:'];
   if (stand) {
     parts.push(
@@ -105,6 +112,8 @@ export function buildCastPlatePreparePrompt(input: {
     );
   } else if (whiteBackground) {
     parts.push('change only the background.');
+  } else if (traitChanges.length) {
+    parts.push('change only these details.');
   } else if (input.options.shave && !marks.length) {
     parts.push(`make ${noun === 'woman' ? 'her' : noun === 'man' ? 'him' : 'them'} clean-shaven.`);
   } else {
@@ -117,6 +126,7 @@ export function buildCastPlatePreparePrompt(input: {
       `Shave off all ${possessive} stubble and beard so ${possessive} cheeks, jaw, chin and upper lip are smooth bare skin. Shave only the face: keep ${possessive} chest hair, body hair and body exactly as they are.`
     );
   }
+  parts.push(...traitChanges);
   if (baseLayer) {
     parts.push(
       `Replace every garment, shoe and accessory with ${baseLayerWords(noun)} — barefoot.`
@@ -136,8 +146,10 @@ export function buildCastPlatePreparePrompt(input: {
       `Keep ${possessive} face, hair, skin tone and body shape${baseLayer ? '' : ' and the outfit'} exactly.${white ? '' : ' Same place and light as Image 1.'}`
     );
   } else {
+    const keepHair = input.options.traits?.hair ? '' : ' hair,';
+    const keepBody = input.options.traits?.body ? ' build,' : ' body shape,';
     parts.push(
-      `Keep the exact same person, face, hair, skin tone, body shape, pose, framing${baseLayer ? '' : ', clothing'} and lighting${white ? '' : ' and background'}.`
+      `Keep the exact same person, face,${keepHair} skin tone,${keepBody} pose, framing${baseLayer ? '' : ', clothing'} and lighting${white ? '' : ' and background'}.`
     );
   }
   parts.push('One person. Photoreal.');
@@ -154,7 +166,9 @@ export function buildCastPlatePrepareNegative(
   noun: DayPartnerNoun = 'woman'
 ): string {
   return [
-    'different person, different face, changed hairstyle, extra people',
+    options.traits?.hair
+      ? 'different person, different face, extra people'
+      : 'different person, different face, changed hairstyle, extra people',
     options.stand
       ? 'sitting, kneeling, lying down, crouching, cropped body, cut-off feet'
       : 'changed pose, cropped body',

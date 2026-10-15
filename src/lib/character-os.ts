@@ -74,6 +74,12 @@ export type CharacterRecord = CharacterFeatureFields & {
    */
   traits?: CharacterTraits;
   /**
+   * The traits the Cast's first plate was rendered from (UltraReal, cast-plate-queue.ts). While it
+   * and a face lock stand, the identity traits (CHARACTER_IDENTITY_TRAIT_KEYS) are read-only on
+   * Cast home: the plate shows them, and words that disagree pull stills two ways.
+   */
+  plateTraits?: CharacterTraits;
+  /**
    * Home and workplace looks (cast-places.ts): a design, their own words, or off. Unset = a
    * design picked from the Cast's id, so every Cast has a home without setting one up.
    */
@@ -1620,6 +1626,25 @@ export function castHasPicture(character: CharacterRecord): boolean {
       entry.reference?.originalUrl?.trim()
     );
   return has(character) || looksOf(character).some(has);
+}
+
+/** The first plate was rendered from the traits and is still the face lock (see plateTraits). */
+export function castIdentityTraitsLocked(character: CharacterRecord | null | undefined): boolean {
+  if (!character?.plateTraits) return false;
+  const face = character.ipAdapter;
+  return Boolean(face?.imageFilename?.trim() || face?.imageUrl?.trim());
+}
+
+/** Record (or with undefined, forget) the traits a Cast's first plate was rendered from. */
+export function setCastPlateTraits(
+  characterId: string,
+  traits: CharacterTraits | undefined
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId.trim());
+  if (!character) return undefined;
+  // Spread over the stored record on save, so a cleared marker is said as undefined.
+  upsertCharacter({ ...character, plateTraits: traits ? { ...traits } : undefined });
+  return getCharacter(character.id);
 }
 
 /**

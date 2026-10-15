@@ -111,3 +111,30 @@ describe('clean-shaven prepare step', () => {
     assert.match(buildCastPlatePrepareNegative(options, 'man'), /stubble/);
   });
 });
+
+describe('look trait plate edit', () => {
+  it('says only the changes and stops keeping the hair it changes', async () => {
+    const { buildCastPlatePreparePrompt, buildCastPlatePrepareNegative, hasCastPlatePrepareStep } =
+      await import('./cast-plate-prepare');
+    const options = {
+      stand: false,
+      baseLayer: false,
+      whiteBackground: false,
+      traits: { changes: ['Change her hair to long straight black hair.'], hair: true, body: false },
+    };
+    assert.equal(hasCastPlatePrepareStep(options), true);
+    const prompt = buildCastPlatePreparePrompt({ options, noun: 'woman' });
+    assert.equal(
+      prompt,
+      'Edit Image 1: change only these details. Change her hair to long straight black hair. Keep the exact same person, face, skin tone, body shape, pose, framing, clothing and lighting and background. One person. Photoreal.'
+    );
+    assert.doesNotMatch(buildCastPlatePrepareNegative(options), /changed hairstyle/);
+    const body = buildCastPlatePreparePrompt({
+      options: { ...options, traits: { changes: ['Make his body soft.'], hair: false, body: true } },
+      noun: 'man',
+    });
+    assert.match(body, /face, hair, skin tone, build, pose/);
+    assert.equal(hasCastPlatePrepareStep({ ...options, traits: { changes: [], hair: false, body: false } }), false);
+  });
+});
+

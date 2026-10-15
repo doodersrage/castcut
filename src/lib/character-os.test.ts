@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { applyCharacterRecord, applyCharacterRecordFresh, applyRemovedCharacterIds, bundleFromCharacter, castLoraSessionIds, characterFromBundle, characterFromShared, createBlankCharacter, activeLook, activateLook, getCharacter, renameLook, withNewPlateLook, lookFromAppearance, renameActiveLook, loadCharacters, looksOf, saveCharacters, normalizeCharacterRecord, roleplayLibraryIdFromCharacter, saveCharacterTraits, setLookPlateStance, slugCharacterName, upsertCharacter, castIdForRoleplaySession, type CharacterRecord } from './character-os';
+import { applyCharacterRecord, applyCharacterRecordFresh, applyRemovedCharacterIds, bundleFromCharacter, castLoraSessionIds, characterFromBundle, characterFromShared, createBlankCharacter, activeLook, activateLook, getCharacter, renameLook, withNewPlateLook, lookFromAppearance, renameActiveLook, loadCharacters, looksOf, saveCharacters, normalizeCharacterRecord, roleplayLibraryIdFromCharacter, saveCharacterTraits, setCastPlateTraits, castIdentityTraitsLocked, setLookPlateStance, slugCharacterName, upsertCharacter, castIdForRoleplaySession, type CharacterRecord } from './character-os';
 import { characterFromRoleplaySession, clearCharacterBio, mergeMigratedCharacters, migrateCharactersFromLegacy, saveCharacterBio, upsertCharacterFromRoleplaySession } from './play-cast';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
 import type { RoleplayLibrarySession } from './roleplay-library';
@@ -798,5 +798,32 @@ describe('create form hair', () => {
     assert.equal(bald.traits?.hairColor, 'bald');
     assert.equal(bald.traits?.hairLength, undefined);
     assert.equal(bald.traits?.hairStyle, undefined);
+  });
+});
+
+describe('identity traits lock after the first plate', () => {
+  it('locks while the plate traits and a face lock stand; clearing the marker unlocks', () => {
+    withMockLocalStorage(() => {
+      upsertCharacter({ id: 'char-plain', name: 'Plain', version: 1, updatedAt: 1 });
+      setCastPlateTraits('char-plain', { sex: 'woman' });
+      // Queued but not landed: no face lock yet, still editable.
+      assert.equal(castIdentityTraitsLocked(getCharacter('char-plain')), false);
+      upsertCharacter({
+        id: 'char-lock',
+        name: 'Lock',
+        version: 1,
+        updatedAt: 1,
+        traits: { sex: 'woman' },
+        ipAdapter: { imageFilename: 'first.png' },
+      });
+      // A face lock but no marker (a photo Cast, or one from before the lock): editable.
+      assert.equal(castIdentityTraitsLocked(getCharacter('char-lock')), false);
+      setCastPlateTraits('char-lock', { sex: 'woman', eyeColor: 'green' });
+      assert.equal(castIdentityTraitsLocked(getCharacter('char-lock')), true);
+      assert.deepEqual(getCharacter('char-lock')?.plateTraits, { sex: 'woman', eyeColor: 'green' });
+      setCastPlateTraits('char-lock', undefined);
+      assert.equal(getCharacter('char-lock')?.plateTraits, undefined);
+      assert.equal(castIdentityTraitsLocked(getCharacter('char-lock')), false);
+    });
   });
 });
