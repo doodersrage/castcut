@@ -186,9 +186,10 @@ function PlateCheckLine({ plate }: { plate: FittingPlate | null }) {
         className="type-caption text-[var(--tint-success-text,var(--text-secondary))]"
         data-testid="cast-plate-check"
         data-state="good"
+        // The face size is a detail for when a plate fails, not for a good one.
+        title={check.facePx ? `One person, face about ${check.facePx}px wide` : undefined}
       >
-        Plate check: good — one person
-        {check.facePx ? `, face about ${check.facePx}px wide` : ''}.
+        Plate check: good.
       </p>
     );
   }
@@ -509,9 +510,7 @@ export default function CharacterLookPlateSection({
         <EarlierPlates history={plateHistory} disabled={uploading} onRestore={onRestorePlate} />
       ) : null}
       {plate?.isolated === true ? (
-        <p className="type-caption mt-2 text-[var(--text-muted)]">
-          Isolated on white for Outfit / Day / Story.
-        </p>
+        <p className="type-caption mt-2 text-[var(--text-muted)]">Background cut out.</p>
       ) : null}
       <ImageLightbox
         state={lightbox}

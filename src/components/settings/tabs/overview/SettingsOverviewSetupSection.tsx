@@ -45,11 +45,11 @@ export function SettingsOverviewSetupSection({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-medium text-[var(--accent-text)]">Heal & ready</p>
-            <p className="type-caption text-[var(--text-secondary)]">
-              One click to get a new install working: it turns on the built-in workflows, matches
-              them to the models your ComfyUI has, installs any missing ComfyUI add-ons (ComfyUI
-              restarts once), then checks everything again. Using a cloud engine instead? Add its
-              API key under Settings → Inference engine.
+            <p
+              className="type-caption text-[var(--text-secondary)]"
+              title="Turns on the built-in workflows, matches them to the models your ComfyUI has, installs any missing ComfyUI add-ons (ComfyUI restarts once), then checks everything again. Using a cloud engine instead? Add its API key under Settings → Inference engine."
+            >
+              Gets a new install working in one click. ComfyUI may restart once.
             </p>
           </div>
           <Button

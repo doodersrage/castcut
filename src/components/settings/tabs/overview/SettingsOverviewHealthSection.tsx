@@ -31,10 +31,9 @@ export function SettingsOverviewHealthSection({
   return (
     <>
       <ToolSection title="Service health">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* One row: the save chip and Refresh sat on two rows with a gap between. */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <StorageHealthChip />
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
           <Button
             variant="ghost"
             size="sm"

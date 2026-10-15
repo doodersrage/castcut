@@ -14,6 +14,9 @@ type CastChecklistProps = {
   go: (href: string) => void;
 };
 
+/** Done-step details that only repeat the label. */
+const ECHO_DETAILS = new Set(['ready', 'set', 'written']);
+
 /**
  * "What's next" on the Cast home: each step of making a film with this Cast, done or not, the
  * first one not done marked Next. Folds to one line once everything is done.
@@ -81,9 +84,13 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
                   >
                     {item.label}
                   </span>
-                  <span className="type-caption block truncate text-[var(--text-muted)]">
-                    {item.optional && !item.done ? `optional · ${item.detail}` : item.detail}
-                  </span>
+                  {/* "Plate ready / ready", "Bible written / written": a done step's detail only
+                      shows when it adds something (UI review 2026-10-15). */}
+                  {item.done && ECHO_DETAILS.has(item.detail) ? null : (
+                    <span className="type-caption block truncate text-[var(--text-muted)]">
+                      {item.optional && !item.done ? `optional · ${item.detail}` : item.detail}
+                    </span>
+                  )}
                 </span>
                 {isNext ? (
                   <span

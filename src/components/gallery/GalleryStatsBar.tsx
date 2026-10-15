@@ -20,16 +20,18 @@ function StatChip(props: {
   label: string;
   value: number | string;
   active?: boolean;
-  emphasis?: 'default' | 'muted' | 'warning';
+  emphasis?: 'default' | 'muted' | 'warning' | 'danger';
   onClick?: () => void;
   testId?: string;
 }) {
   const emphasisClass =
-    props.emphasis === 'warning'
-      ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)] rounded-full'
-      : props.emphasis === 'muted'
-        ? 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] rounded-lg'
-        : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg';
+    props.emphasis === 'danger'
+      ? 'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)] rounded-full'
+      : props.emphasis === 'warning'
+        ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)] rounded-full'
+        : props.emphasis === 'muted'
+          ? 'border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] rounded-lg'
+          : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg';
 
   const activeClass = props.active
     ? 'ring-1 ring-[var(--accent-ring)] border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)] hover:bg-[var(--bg-hover)]'
@@ -126,7 +128,8 @@ export default function GalleryStatsBar({
           <StatChip
             label="Failed"
             value={stats.error}
-            emphasis="warning"
+            // Failed is red, as on every status chip (status-tone.ts).
+            emphasis="danger"
             active={filter.status === 'error'}
             onClick={() =>
               onQuickFilter({

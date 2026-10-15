@@ -160,15 +160,13 @@ export default function WardrobeKitPicker({
         emptyLabel={emptyLabel}
         meta={
           activeKit
-            ? [
+            ? // Group only: "29 of 12,006" said nothing and was cut off; the count is under the strip.
+              [
                 activeKit.group,
-                kits.length > 1
-                  ? `${formatWardrobeKitCount(selectedIndex + 1)} of ${formatWardrobeKitCount(kits.length)}`
-                  : null,
+                navigable && size === 'sm' && kits.length > 1 ? 'swipe to browse' : null,
               ]
                 .filter(Boolean)
-                .join(' · ') +
-              (navigable && size === 'sm' && kits.length > 1 ? ' · swipe to browse' : '')
+                .join(' · ') || null
             : null
         }
         start={

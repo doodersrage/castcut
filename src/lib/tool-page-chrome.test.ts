@@ -38,7 +38,7 @@ describe('tool-page-chrome', () => {
     assert.match(HUB_PAGE_DESCRIPTIONS.gallery.full, /experiments/);
     assert.match(HUB_PAGE_DESCRIPTIONS.gallery.simple, /made/);
     assert.match(HUB_PAGE_DESCRIPTIONS.settings.simple, /backups/);
-    assert.match(HUB_PAGE_DESCRIPTIONS.profile.simple, /Appearance/);
+    assert.match(HUB_PAGE_DESCRIPTIONS.profile.simple, /account/);
   });
 
   it('omits section descriptions in simple workspace', () => {

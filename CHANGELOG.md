@@ -9,6 +9,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Polish, round four** (screens not covered before, plus an accessibility and keyboard-focus sweep: no axe violations or focus without a ring on 18 screens, populated and empty, light and dark):
+  - **Image viewer:** one set of Prev / Next (on the image's sides) instead of a second pair at the bottom, and the "Press ? for shortcuts" line is gone (the ? button and first-visit tip say it).
+  - **Cast home:** the checklist drops echoes ("Plate ready / ready", "Bible written / written"); "Plate check: good" without the face size in pixels (on hover); "Background cut out".
+  - **Empty Film:** one **Make a starter film** under the sample reel instead of two cards doing the same thing; no lone "Cast roster" link; From photo explained in one line; file pickers look like secondary buttons, not a second primary beside Create. Story's empty note is one plain sentence.
+  - **Gallery captions:** plate and outfit edits say what they are ("Plate · stood upright", "Outfit · back view", "Shoes · black leather pumps", "New scene") instead of the edit instruction. The Failed quick filter is red.
+  - **Day:** "Clips render on LTX-2.5 (fast)." no longer repeats the picker (it shows only when clips split across engines).
+  - **Outfit:** the kit card shows its type without "29 of 12,006"; the footwear filter no longer hangs off the right edge.
+  - **Settings and Profile:** plain section notes (no ".env.local" / "Power tools"), Heal & ready in one line (details on hover), one-row Service health header; Profile's "Reset chrome" is **Reset layout** in plain words, and the keyboard shortcut editor (action ids, selectors) is folded under "Change key combos".
 - **Queue, Settings and Profile drop their overline**, like the Film pages (all three open from Film's More menu), and the Queue page is titled **Queue** instead of "ComfyUI job queue". Day's "Animate needs files" line is shorter.
 - **Polish, round three.** From a screenshot pass over every screen, light and dark, desktop and phone:
   - **Gallery.** A failed card says why in a few words ("Job not found"; the full message is on hover) with one **Retry** button. Replay exact, Retry on this host and New seed are in its More menu instead of four stacked buttons and a cut-off paragraph. Rows name the tool and engine ("Outfit · Qwen Image Edit 2511", not "fitting · qwen-image-edit-2511-lightning-8"; the ids are on hover). The count shows once ("1–11 of 87 · Page 1 of 9"), and the phone rating bar no longer runs red→orange→blue→green.

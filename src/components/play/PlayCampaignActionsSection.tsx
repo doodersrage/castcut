@@ -166,9 +166,12 @@ export default function PlayCampaignActionsSection({
             ) : null}
           </>
         )}
-        <ButtonLink href={mapHref('/characters')} size="sm" variant="ghost">
-          Cast roster
-        </ButtonLink>
+        {/* Not on an empty Film: alone it floated under the cards (the Cast tab is in the header). */}
+        {characterId || campaignComplete ? (
+          <ButtonLink href={mapHref('/characters')} size="sm" variant="ghost">
+            Cast roster
+          </ButtonLink>
+        ) : null}
       </div>
     </div>
   );

@@ -1646,21 +1646,26 @@ html[data-theme='light'] .page-canvas::before {
   color: var(--text-muted);
 }
 
+/* A secondary button: picking a file is rarely the main action (it sat beside Create as a
+   second primary — UI review 2026-10-15). */
 .ui-file-input::file-selector-button {
   margin-right: 1rem;
   border-radius: var(--radius-md);
-  border: 0;
-  background: var(--accent);
+  border: 1px solid var(--border-default);
+  background: var(--bg-subtle);
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .ui-file-input::file-selector-button:hover {
-  background: var(--accent-hover);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 
 .ui-file-input:focus-visible {

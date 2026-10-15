@@ -138,12 +138,14 @@ export default function ProfileAppearancePanel() {
       </label>
 
       <div className="mt-6 space-y-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4">
-        <p className="type-heading">Reset chrome</p>
-        <p className="type-caption text-[var(--text-muted)]">
-          Clears pinned tools, recent destinations, expanded nav groups, remembered collapsibles,
-          per-tool model/workflow memory, last draft, and last tool route. Density returns to
-          Comfortable. Workspace returns to Simple (the button above resets it to Studio instead).
-          Theme, ambient, Calm UI, and toast preference stay unchanged.
+        <p className="type-heading">Reset layout</p>
+        {/* The full list (pins, recent pages, nav groups, per-tool model memory, last draft and
+            route; density back to Comfortable) is in the hover text. */}
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          title="Clears pinned tools, recent destinations, expanded nav groups, remembered collapsibles, per-tool model/workflow memory, last draft and last tool route. Density returns to Comfortable; workspace to Simple. Theme, ambient, Calm UI and toasts stay."
+        >
+          Forgets pinned tools, recent pages, open sections and remembered drafts. Your theme stays.
         </p>
         <Button
           variant="secondary"
@@ -151,23 +153,23 @@ export default function ProfileAppearancePanel() {
           onClick={() => {
             if (
               !window.confirm(
-                'Reset pins, recent destinations, nav expand state, collapsibles, per-tool model memory, last draft, and last tool route?'
+                'Reset the layout? Pinned tools, recent pages, open sections and remembered drafts are forgotten.'
               )
             ) {
               return;
             }
             resetUiChrome();
             setDensity('comfortable');
-            setResetNote('Chrome reset. Reload if the sidebar still looks stale.');
+            setResetNote('Layout reset. Reload if anything still looks the same.');
             if (toastsEnabled) {
               pushAppToast({
-                text: 'UI chrome reset',
+                text: 'Layout reset',
                 tone: 'info',
               });
             }
           }}
         >
-          Reset chrome
+          Reset layout
         </Button>
         {resetNote ? (
           <p className="type-caption text-[var(--tint-info-text)]">{resetNote}</p>

@@ -21,32 +21,32 @@ export const SETTINGS_TABS: SettingsTabDefinition[] = [
   {
     id: 'overview',
     label: 'Overview',
-    description: 'Service health and server environment (.env.local).',
+    description: 'Is everything running, and the server’s settings.',
   },
   {
     id: 'llm',
     label: 'LLM',
-    description: 'Server snapshot, session model overrides, and vision tags.',
+    description: 'The language model, its models and vision tags.',
   },
   {
     id: 'comfyui',
     label: 'ComfyUI',
-    description: 'Engine, connection, assets, and queue (essentials by default).',
+    description: 'Engine, connection, models and queue.',
   },
   {
     id: 'automation',
     label: 'Automation',
-    description: 'Power tools — webhooks, scheduled batch, avoided tokens.',
+    description: 'Webhooks, scheduled batches and avoided words.',
   },
   {
     id: 'advanced',
     label: 'Advanced',
-    description: 'Power tools — recipes, learner, shootout, usage, storage sync.',
+    description: 'Recipes, model shootout, usage and storage sync.',
   },
   {
     id: 'data',
     label: 'Data',
-    description: 'Backup, settings export, gallery preview, and descriptors.',
+    description: 'Backups, export and the gallery’s storage.',
   },
   {
     id: 'users',

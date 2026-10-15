@@ -61,8 +61,7 @@ export default function RoleplayCastSection(props: RoleplayCastSectionProps) {
     return (
       <ToolSection title="Story needs a Cast" data-testid="story-needs-cast">
         <p className="text-sm text-[var(--text-muted)]">
-          Create or pick a Cast lead on Film — Part, From photo, and look traits live there. Story
-          only continues that character.
+          Story carries on with someone from your Cast. Make or pick them on Film first.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <ButtonLink href={filmHref} variant="primary" size="sm" data-testid="story-open-film">

@@ -190,8 +190,7 @@ export default function PlayCampaignCharacterSection({
           <div className="space-y-2" data-testid="play-campaign-create-from-photo">
             <FieldLabel htmlFor="play-campaign-create-photo">From photo (optional)</FieldLabel>
             <p className="type-caption text-[var(--text-muted)]">
-              Sets the Cast look plate so Outfit, Day, and Story share the same identity. Without
-              one, the first plate renders from the description right after Create.
+              Without one, the first picture is made from the description.
             </p>
             <input
               id="play-campaign-create-photo"

@@ -228,8 +228,8 @@ export default function ImageLightboxBottomChrome({
   currentDownloadUrl,
   onDownloadImage,
   currentMediaKind,
-  canGoPrevious,
-  canGoNext,
+  canGoPrevious: _canGoPrevious,
+  canGoNext: _canGoNext,
 }: ImageLightboxBottomChromeProps) {
   const filmstrip = state ? (
     <ImageLightboxFilmstrip
@@ -275,11 +275,8 @@ export default function ImageLightboxBottomChrome({
     <p className="type-caption text-white/45 [@media(pointer:coarse)]:hidden">
       Press ? for shortcuts
     </p>
-  ) : (
-    <p className="type-caption text-[var(--text-muted)] [@media(pointer:coarse)]:hidden">
-      Press ? for shortcuts
-    </p>
-  );
+  ) : // The ? button and the first-visit tip already say it (UI review 2026-10-15).
+  null;
 
   if (compact) {
     return (
@@ -359,28 +356,13 @@ export default function ImageLightboxBottomChrome({
             {images.length > 1 ? (
               <div className="flex flex-wrap items-center gap-2">
                 {slideshowControls}
-                <Button
-                  variant="secondary"
-                  className="!min-h-9 px-3 type-caption"
-                  disabled={!canGoPrevious}
-                  onClick={() => onGoToIndex(index - 1, true)}
-                >
-                  Previous
-                </Button>
+                {/* Prev / Next live on the image's sides; a second pair here repeated them. */}
                 <p className="type-caption text-[var(--text-tertiary)]">
                   Image {index + 1} of {images.length}
                   {dualMode && dualIndex != null ? ` · pair ${dualIndex + 1}` : ''}
                   {preferFullRes ? ' · full-res' : ''}
                   {fullResLoading ? ' · loading…' : ''}
                 </p>
-                <Button
-                  variant="secondary"
-                  className="!min-h-9 px-3 type-caption"
-                  disabled={!canGoNext}
-                  onClick={() => onGoToIndex(index + 1, true)}
-                >
-                  Next
-                </Button>
               </div>
             ) : (
               <span />

@@ -79,7 +79,7 @@ export const HUB_PAGE_DESCRIPTIONS = {
   },
   profile: {
     full: 'Appearance, alerts, account settings, backup, and workspace preferences.',
-    simple: 'Appearance and alerts — account essentials without admin clutter.',
+    simple: 'Your look, alerts and account.',
   },
 } as const;
 

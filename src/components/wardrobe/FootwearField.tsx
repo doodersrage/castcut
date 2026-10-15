@@ -170,7 +170,8 @@ export default function FootwearField({
             </ChipButton>
             {/* The type filter and Browse wrap together: alone, Browse fell to a line of its own
                 under the chips (UI audit 2026-10-11). */}
-            <div className="ml-auto flex items-center gap-2">
+            {/* No ml-auto: in the narrow Outfit column the group wrapped and hung off the right. */}
+            <div className="flex items-center gap-2">
               <SelectInput
                 aria-label="Footwear type"
                 value={group}

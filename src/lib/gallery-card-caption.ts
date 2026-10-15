@@ -23,6 +23,11 @@ export function galleryCardCaption(prompt: string | null | undefined): string {
       /(?:^|\n)\s*subject:\s*([^\n]+)/i.exec(p)?.[1];
     return outfit ? `Outfit try-on · ${clean(outfit)}` : 'Outfit try-on';
   }
+  // Plate and outfit edits: name the edit, not the instruction (UI review 2026-10-15).
+  if (/\bnow standing upright facing the camera\b/i.test(p)) return 'Plate · stood upright';
+  if (/\bseen from directly behind\b/i.test(p)) return 'Outfit · back view';
+  const shoes = /\bput (.+?) on (?:her|his|their) bare feet/i.exec(p)?.[1];
+  if (shoes) return `Shoes · ${clean(shoes)}`;
   const part = /Edit instruction for a Day still — ([^:\n]+):/i.exec(p)?.[1]?.trim();
   const found =
     /(?:^|\n)\s*beat(?: \(mandatory[^)]*\))?:\s*([^\n]+)/i.exec(p)?.[1] ??
@@ -35,5 +40,12 @@ export function galleryCardCaption(prompt: string | null | undefined): string {
     const beat = clean(found.split(' — ')[0]!);
     return part ? `${part[0]!.toUpperCase()}${part.slice(1)} · ${beat}` : beat;
   }
-  return clean(p.replace(BOILERPLATE_RE, '').split('\n')[0]!).slice(0, 160);
+  // No beat: drop the leading "OUTFIT (mandatory): …." / "FOOTWEAR (mandatory): …." lines and
+  // the "Replace the scene with" lead-in; an old-format scene prompt is just a new scene.
+  const rest = p
+    .replace(BOILERPLATE_RE, '')
+    .replace(/^(?:\s*[A-Z]+ \(mandatory\):[^\n]*?\.(?:\s|$))+/, '')
+    .replace(/^\s*Replace the scene with\s+/i, '');
+  if (/^\s*new environment not from the reference photo\b/i.test(rest)) return 'New scene';
+  return clean(rest.split('\n')[0]!).slice(0, 160);
 }

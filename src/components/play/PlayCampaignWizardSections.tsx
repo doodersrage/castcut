@@ -201,29 +201,9 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
                 shots={welcomeSampleFilmShots()}
                 emptyLabel="Sample reel unavailable."
               />
-              <div className="mt-3">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  data-testid="play-campaign-sample-starter"
-                  onClick={() => runStarter()}
-                >
-                  Make one like this
-                </Button>
-              </div>
-            </div>
-
-            <div
-              className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-4 py-4"
-              data-testid="play-campaign-starter-card"
-            >
-              <p className="type-overline text-[var(--text-muted)]">Fast path</p>
-              <p className="type-heading mt-1">Make a starter film</p>
-              <p className="type-caption mt-1 text-[var(--text-muted)]">
-                Creates a Cast lead named Nova, seeds a day-in-the-life look, and opens Day ready to
-                queue.
-              </p>
-              <div className="mt-3">
+              {/* One starter action: "Make one like this" and a separate Fast path card both ran
+                  the starter film (UI review 2026-10-15). */}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button
                   size="sm"
                   variant="primary"
@@ -232,6 +212,9 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
                 >
                   Make a starter film
                 </Button>
+                <span className="type-caption text-[var(--text-muted)]">
+                  Makes a Cast called Nova and opens Day, ready to render.
+                </span>
               </div>
             </div>
           </>

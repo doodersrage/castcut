@@ -75,9 +75,11 @@ export default function ClipEngineNote({
         </option>
       </select>
       {storyClips === 'h3' ? (
-        <span data-testid="clip-engine-story-h3-note">
-          — about 2½ min a clip; lines are spoken with sound (no kept Cast voice); text-to-video
-          stays on the Video model. {H3_LICENCE_NOTE}
+        <span
+          data-testid="clip-engine-story-h3-note"
+          title="Lines are spoken with sound (no kept Cast voice); text-to-video stays on the Video model."
+        >
+          — about 2½ min a clip. {H3_LICENCE_NOTE}
         </span>
       ) : null}
     </label>
@@ -144,15 +146,18 @@ export default function ClipEngineNote({
     <>
       {dayChoice}
       {storyChoice}
-      <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
-        {keepLtx
-          ? twoPersonAdultPossible && !ltxDuo
-            ? 'Clips: LTX-2.5 (fast); two-person adult stills render on WAN, about 3× slower.'
-            : 'Clips render on LTX-2.5 (fast).'
-          : twoPersonAdultPossible && !ltxDuo
-            ? 'Clips: clothed one-person and two-person adult stills render on WAN (about 3× slower); the rest on LTX-2.5.'
-            : 'Clips: clothed one-person stills render on WAN (about 3× slower); the rest on LTX-2.5.'}
-      </p>
+      {/* Only when clips split across engines — "Clips render on LTX-2.5" repeated the picker. */}
+      {keepLtx && !(twoPersonAdultPossible && !ltxDuo) && dayChoice ? null : (
+        <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="clip-engine-note">
+          {keepLtx
+            ? twoPersonAdultPossible && !ltxDuo
+              ? 'Clips: LTX-2.5 (fast); two-person adult stills render on WAN, about 3× slower.'
+              : 'Clips render on LTX-2.5 (fast).'
+            : twoPersonAdultPossible && !ltxDuo
+              ? 'Clips: clothed one-person and two-person adult stills render on WAN (about 3× slower); the rest on LTX-2.5.'
+              : 'Clips: clothed one-person stills render on WAN (about 3× slower); the rest on LTX-2.5.'}
+        </p>
+      )}
       <label
         className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]"
         title="Uses LTX-2.5 instead of WAN — faster, and it kept her face closer"
