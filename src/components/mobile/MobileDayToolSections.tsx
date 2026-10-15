@@ -1081,8 +1081,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
             data-testid="day-animate-files-missing"
           >
-            Animate needs files ComfyUI doesn’t have yet — the note in Day reel says which. Cut film
-            works from the stills alone.
+            Animate needs a few ComfyUI files (listed in Day reel). Cut film works without them.
           </p>
         ) : null}
         {shownQueueBlockReason ? (

@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button';
 import {
   CollapsibleSection,
   ToolActionRow,
-  ToolBadge,
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
@@ -80,12 +79,7 @@ export default function QueueToolSections({
   );
   const filmCta = useStudioEmptyCta(generateCta);
   return (
-    <ToolLayout
-      accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
-      title="ComfyUI job queue"
-      description={description}
-    >
+    <ToolLayout accent={ACCENT} title="Queue" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
       <ToolActionRow>
         <AppSlot name="queue.top" />

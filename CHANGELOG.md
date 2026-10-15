@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Queue, Settings and Profile drop their overline**, like the Film pages (all three open from Film's More menu), and the Queue page is titled **Queue** instead of "ComfyUI job queue". Day's "Animate needs files" line is shorter.
 - **Polish, round three.** From a screenshot pass over every screen, light and dark, desktop and phone:
   - **Gallery.** A failed card says why in a few words ("Job not found"; the full message is on hover) with one **Retry** button. Replay exact, Retry on this host and New seed are in its More menu instead of four stacked buttons and a cut-off paragraph. Rows name the tool and engine ("Outfit · Qwen Image Edit 2511", not "fitting · qwen-image-edit-2511-lightning-8"; the ids are on hover). The count shows once ("1–11 of 87 · Page 1 of 9"), and the phone rating bar no longer runs red→orange→blue→green.
   - **Queue.** Failed jobs show a short reason and the engine name; finished jobs drop the "completed · model-id" line in favour of the engine name.

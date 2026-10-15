@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import SettingsSubNav from '@/components/settings/SettingsSubNav';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
@@ -137,12 +137,7 @@ export default function SettingsToolSections(vm: SettingsToolViewModel) {
   } = vm;
 
   return (
-    <ToolLayout
-      accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Settings</ToolBadge>}
-      title="Settings & Health"
-      description={description}
-    >
+    <ToolLayout accent={ACCENT} title="Settings & Health" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.settings} />
       {guidedFixHint ? (
         <div role="status" className="ui-setup-banner mb-4 text-sm text-[var(--text-primary)]">

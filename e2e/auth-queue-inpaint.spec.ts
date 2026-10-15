@@ -42,7 +42,7 @@ test.describe('Auth login chrome', () => {
     await ensureAuthenticated(page);
     await gotoStable(page, '/queue');
     await dismissBlockingOverlays(page);
-    await expect(page.getByRole('heading', { name: /ComfyUI job queue/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /^Queue$/i })).toBeVisible({
       timeout: 30_000,
     });
   });
@@ -85,7 +85,7 @@ test.describe('Queue failure recovery', () => {
     });
     await gotoStable(page, '/queue');
     await dismissBlockingOverlays(page);
-    await expect(page.getByRole('heading', { name: /ComfyUI job queue/i })).toBeVisible({
+    await expect(page.getByRole('heading', { name: /^Queue$/i })).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByRole('button', { name: /Retry as Draft/i })).toBeVisible({

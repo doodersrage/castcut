@@ -28,7 +28,7 @@ test('gallery page loads', async ({ page }) => {
 test('queue page loads', async ({ page }) => {
   await seedGalleryFixture(page);
   await gotoStable(page, '/queue');
-  await expect(page.getByRole('heading', { name: /ComfyUI job queue/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Queue$/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /Open in Gallery/i }).first()).toBeVisible({
     timeout: 15_000,
   });
