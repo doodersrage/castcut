@@ -46,6 +46,10 @@ export type CharacterAppearanceFormDraft = {
   height: CharacterAppearancePick<CharacterHeight>;
   bodyBuild: CharacterAppearancePick<CharacterBodyBuild>;
   ageBand: CharacterAppearancePick<CharacterAgeBand>;
+  /** Hair, as the Cast editor picks it (CharacterTraits); unset or Random = rolled. */
+  hairColor?: CharacterAppearancePick<CharacterHairColor>;
+  hairLength?: CharacterAppearancePick<CharacterHairLength>;
+  hairStyle?: CharacterAppearancePick<CharacterHairStyle>;
 };
 
 export type CharacterAppearanceOption<T extends string> = {
@@ -695,13 +699,32 @@ function labelForPick<T extends string>(
 
 /** Summary for the create form while Random picks are still unresolved. */
 export function summarizeCharacterAppearanceForm(form: CharacterAppearanceFormDraft): string {
+  const hair = hairPhrase(createFormHairTraits(form));
   return [
     labelForPick(form.sex, CHARACTER_SEX_OPTIONS),
     labelForPick(form.ethnicity, CHARACTER_ETHNICITY_OPTIONS),
     labelForPick(form.ageBand, CHARACTER_AGE_BAND_OPTIONS),
     labelForPick(form.height, CHARACTER_HEIGHT_OPTIONS),
     labelForPick(form.bodyBuild, CHARACTER_BODY_BUILD_OPTIONS),
-  ].join(' · ');
+    hair ? hair.replace(/^an? /, '') : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** The create form's hair picks as traits (Random left out; Bald has no length or style). */
+export function createFormHairTraits(
+  form: Partial<CharacterAppearanceFormDraft> | undefined
+): CharacterTraits | undefined {
+  const pick = <T extends string>(value: CharacterAppearancePick<T> | undefined) =>
+    value && value !== CHARACTER_APPEARANCE_RANDOM ? value : undefined;
+  const hairColor = pick(form?.hairColor);
+  const bald = hairColor === 'bald';
+  return normalizeCharacterTraits({
+    hairColor,
+    hairLength: bald ? undefined : pick(form?.hairLength),
+    hairStyle: bald ? undefined : pick(form?.hairStyle),
+  });
 }
 
 /** Written by composeCharacterAppearanceDescriptor (every trait rolled or picked). */
@@ -787,6 +810,15 @@ export const CHARACTER_HAIR_STYLE_OPTIONS: CharacterAppearanceOption<CharacterHa
   { value: 'undercut', label: 'Undercut' },
   { value: 'slicked-back', label: 'Slicked back' },
 ];
+export const CHARACTER_HAIR_COLOR_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_HAIR_COLOR_OPTIONS
+);
+export const CHARACTER_HAIR_LENGTH_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_HAIR_LENGTH_OPTIONS
+);
+export const CHARACTER_HAIR_STYLE_SELECT_OPTIONS = withRandomAppearanceOption(
+  CHARACTER_HAIR_STYLE_OPTIONS
+);
 
 const HAIR_COLOR_WORDS: Record<Exclude<CharacterHairColor, 'bald'>, string> = {
   black: 'black',

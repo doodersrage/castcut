@@ -16,6 +16,9 @@ import {
   CHARACTER_AGE_BAND_SELECT_OPTIONS,
   CHARACTER_BODY_BUILD_SELECT_OPTIONS,
   CHARACTER_ETHNICITY_SELECT_OPTIONS,
+  CHARACTER_HAIR_COLOR_SELECT_OPTIONS,
+  CHARACTER_HAIR_LENGTH_SELECT_OPTIONS,
+  CHARACTER_HAIR_STYLE_SELECT_OPTIONS,
   CHARACTER_HEIGHT_SELECT_OPTIONS,
   CHARACTER_SEX_SELECT_OPTIONS,
   defaultCharacterAppearanceForm,
@@ -205,7 +208,7 @@ export default function PlayCampaignCharacterSection({
             data-testid="play-campaign-create-more-traits"
           >
             <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-              More traits · Part, look, body
+              More traits · Part, look, body, hair
             </summary>
             <div className="mt-3 space-y-3">
               <p className="type-caption text-[var(--text-muted)]">
@@ -315,6 +318,45 @@ export default function PlayCampaignCharacterSection({
                     ))}
                   </SelectInput>
                 </label>
+                {(
+                  [
+                    ['hairColor', 'Hair colour', CHARACTER_HAIR_COLOR_SELECT_OPTIONS],
+                    ['hairLength', 'Hair length', CHARACTER_HAIR_LENGTH_SELECT_OPTIONS],
+                    ['hairStyle', 'Hair style', CHARACTER_HAIR_STYLE_SELECT_OPTIONS],
+                  ] as const
+                ).map(([key, label, options]) => {
+                  // Bald (hair colour) means no hair: length and style don't apply (as in the Cast editor).
+                  const noHair = appearance.hairColor === 'bald' && key !== 'hairColor';
+                  const id = `play-campaign-create-${key === 'hairColor' ? 'hair-color' : key === 'hairLength' ? 'hair-length' : 'hair-style'}`;
+                  return (
+                    <label key={key} className="block space-y-1.5">
+                      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                      <SelectInput
+                        id={id}
+                        data-testid={id}
+                        value={noHair ? 'random' : (appearance[key] ?? 'random')}
+                        disabled={noHair}
+                        title={noHair ? 'Bald — no hair length or style' : undefined}
+                        onChange={event => {
+                          const value = event.target.value;
+                          setAppearance(current => ({
+                            ...current,
+                            [key]: value,
+                            ...(key === 'hairColor' && value === 'bald'
+                              ? { hairLength: undefined, hairStyle: undefined }
+                              : {}),
+                          }));
+                        }}
+                      >
+                        {options.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectInput>
+                    </label>
+                  );
+                })}
               </div>
 
               <p

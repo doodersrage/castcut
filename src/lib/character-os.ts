@@ -32,6 +32,7 @@ import {
   type CharacterAppearanceFormDraft,
   characterAppearanceHints,
   composeCharacterAppearanceDescriptor,
+  createFormHairTraits,
   describeChosenAppearance,
   normalizeCharacterTraits,
   physicalDescriptionFromTraits,
@@ -754,6 +755,31 @@ export function createBlankCharacter(
   options?: CreateBlankCharacterOptions
 ): CharacterRecord {
   const trimmed = name.trim() || 'Untitled character';
+  // Hair picked on the create form: the description the Cast editor writes for the same traits.
+  const hair = createFormHairTraits(appearance as Partial<CharacterAppearanceFormDraft>);
+  if (hair) {
+    const picked = options?.fromPhoto
+      ? { ...normalizeCharacterTraits(appearance), ...hair }
+      : { ...resolveCharacterAppearance(appearance ?? {}), ...hair };
+    const physical = physicalDescriptionFromTraits(picked, {
+      hasPicture: Boolean(options?.fromPhoto),
+    });
+    const personaId = options?.personaId?.trim() || undefined;
+    const customPersona = options?.customPersona?.trim() || undefined;
+    return {
+      id: newCharacterId(),
+      name: trimmed,
+      version: 1,
+      updatedAt: Date.now(),
+      characterName: trimmed,
+      ...(physical.traits ? { traits: physical.traits } : {}),
+      ...(physical.descriptor ? { descriptor: physical.descriptor } : {}),
+      ...(physical.hints ? { hints: physical.hints } : {}),
+      ...(personaId ? { personaId } : {}),
+      ...(customPersona ? { customPersona } : {}),
+      ...featureFieldsOf(options),
+    };
+  }
   const fromPhoto = options?.fromPhoto ? describeChosenAppearance(appearance ?? {}) : null;
   const draft = fromPhoto ? null : resolveCharacterAppearance(appearance ?? {});
   // What was picked (from a photo) or rolled (no photo), so the Cast page can show and edit it.

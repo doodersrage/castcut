@@ -763,3 +763,40 @@ describe('a new look made from the active one', () => {
     assert.equal(copy?.keptOutfit?.dressPlateKey, undefined);
   });
 });
+
+describe('create form hair', () => {
+  it('keeps picked hair in the traits and the description, with or without a photo', () => {
+    const rolled = createBlankCharacter('Ivy', {
+      sex: 'woman',
+      ethnicity: 'random',
+      height: 'random',
+      bodyBuild: 'random',
+      ageBand: '30s',
+      hairColor: 'red',
+      hairLength: 'shoulder-length',
+      hairStyle: 'straight',
+    });
+    assert.equal(rolled.traits?.hairColor, 'red');
+    assert.equal(rolled.traits?.hairStyle, 'straight');
+    assert.equal(rolled.traits?.ageBand, '30s');
+    assert.match(rolled.descriptor ?? '', /shoulder-length straight red hair/);
+    // Random traits are still rolled into concrete ones for a Cast without a photo.
+    assert.ok(rolled.traits?.ethnicity);
+
+    const photo = createBlankCharacter(
+      'Ivy',
+      { sex: 'woman', ethnicity: 'random', height: 'random', bodyBuild: 'random', ageBand: 'random', hairColor: 'blonde', hairStyle: 'ponytail' },
+      { fromPhoto: true }
+    );
+    assert.deepEqual(photo.traits, { sex: 'woman', hairColor: 'blonde', hairStyle: 'ponytail' });
+    assert.equal(photo.descriptor, 'a woman with blonde hair tied in a ponytail');
+
+    const bald = createBlankCharacter('Rik', {
+      sex: 'man', ethnicity: 'random', height: 'random', bodyBuild: 'random', ageBand: 'random',
+      hairColor: 'bald', hairLength: 'long', hairStyle: 'braids',
+    });
+    assert.equal(bald.traits?.hairColor, 'bald');
+    assert.equal(bald.traits?.hairLength, undefined);
+    assert.equal(bald.traits?.hairStyle, undefined);
+  });
+});

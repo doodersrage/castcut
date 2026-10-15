@@ -4172,6 +4172,14 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   // Part chips live under collapsed "More traits" — open before asserting.
   await page.getByTestId('play-campaign-create-more-traits').locator('summary').click();
   await expect(page.getByTestId('play-campaign-create-persona')).toBeVisible();
+  // Hair, as the Cast editor has it; Bald turns length and style off.
+  await page.getByTestId('play-campaign-create-hair-color').selectOption('red');
+  await page.getByTestId('play-campaign-create-hair-style').selectOption('straight');
+  await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
+    'straight red hair'
+  );
+  await page.getByTestId('play-campaign-create-hair-color').selectOption('bald');
+  await expect(page.getByTestId('play-campaign-create-hair-style')).toBeDisabled();
 });
 
 test('a Day slot can be made in another of the Cast’s looks, and keeps it', async ({ page }) => {
