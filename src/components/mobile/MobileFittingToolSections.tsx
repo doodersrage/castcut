@@ -311,6 +311,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
       </div>
 
       <FittingCompareSection
+        characterId={shared.activeCharacterId}
         layout="stage"
         frontBack={quality.settings.frontBack}
         compareTryOns={compareTryOns}

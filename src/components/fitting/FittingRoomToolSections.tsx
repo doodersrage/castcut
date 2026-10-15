@@ -251,6 +251,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
 
         <div className="ui-section-stack min-w-0">
           <FittingCompareSection
+            characterId={shared.activeCharacterId}
             layout="stage"
             frontBack={quality.settings.frontBack}
             compareTryOns={compareTryOns}

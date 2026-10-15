@@ -18,6 +18,9 @@ import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
+const OutfitTurnSheet = dynamic(() => import('@/components/character/OutfitTurnSheet'), {
+  ssr: false,
+});
 const OutfitRunwayButton = dynamic(() => import('@/components/character/OutfitRunwayButton'), {
   ssr: false,
 });
@@ -42,6 +45,7 @@ export default function CastWardrobeSection({
 }) {
   const [note, setNote] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
+  const [turn, setTurn] = useState<{ clipUrl: string; title: string } | null>(null);
   const wardrobe = normalizeCastWardrobe(character.wardrobe) ?? [];
   const hasDayStills = entries.some(
     entry => entry.characterId === character.id && entry.tool === 'image-prompt'
@@ -158,6 +162,17 @@ export default function CastWardrobeSection({
                   data-testid={`cast-wardrobe-${item.key}-runway-video`}
                 />
               ) : null}
+              {item.runwayUrl ? (
+                <button
+                  type="button"
+                  className="ui-text-link type-caption"
+                  data-testid={`cast-wardrobe-${item.key}-turn`}
+                  title="Drag to turn her around — every angle is a frame of the runway clip"
+                  onClick={() => setTurn({ clipUrl: item.runwayUrl!, title: item.label })}
+                >
+                  Turn around
+                </button>
+              ) : null}
               <p className="truncate text-sm text-[var(--text-primary)]" title={item.label}>
                 {item.label}
               </p>
@@ -199,6 +214,14 @@ export default function CastWardrobeSection({
           );
         })}
       </ul>
+      {turn ? (
+        <OutfitTurnSheet
+          open
+          onClose={() => setTurn(null)}
+          clipUrl={turn.clipUrl}
+          title={turn.title}
+        />
+      ) : null}
       {lightbox ? (
         <ImageLightbox
           state={lightbox}

@@ -16,12 +16,18 @@ import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 
 export { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 
+const OutfitTurnButton = dynamic(() => import('@/components/fitting/OutfitTurnButton'), {
+  ssr: false,
+  loading: () => null,
+});
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
   ssr: false,
   loading: () => null,
 });
 
 export type FittingCompareSectionProps = {
+  /** The Cast being dressed (Turn around keeps its clip on her Wardrobe outfit). */
+  characterId?: string | null;
   compareTryOns: FittingCompareTryOn[];
   busy: boolean;
   onKeepTryOn: (tryOn: FittingCompareTryOn) => string | null;
@@ -67,6 +73,7 @@ export type FittingCompareSectionProps = {
  * a ⋯ menu for Pass / Requeue) and the lightbox with Keep / Pass / Requeue chrome.
  */
 export default function FittingCompareSection({
+  characterId,
   compareTryOns,
   busy,
   onKeepTryOn,
@@ -338,6 +345,15 @@ export default function FittingCompareSection({
                   >
                     Fix
                   </Button>
+                ) : null}
+                {characterId && picked?.imageUrl ? (
+                  <OutfitTurnButton
+                    characterId={characterId}
+                    promptId={picked.promptId}
+                    imageUrl={picked.imageUrl}
+                    label={picked.wardrobeLabel || picked.wardrobeId || 'Try-on'}
+                    disabled={busy || !done}
+                  />
                 ) : null}
                 <Button
                   size="sm"
