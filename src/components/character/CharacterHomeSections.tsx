@@ -15,7 +15,7 @@ import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
-import { SegmentedControl, ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { SegmentedControl, ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import CastChecklist from '@/components/character/CastChecklist';
 import CastStatusStrip from '@/components/character/CastStatusStrip';
@@ -43,7 +43,6 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
     return (
       <ToolLayout
         accent="sky"
-        badge={<ToolBadge accent="sky">Cast</ToolBadge>}
         title="Character not found"
         description="That record is not in this browser’s Character OS store."
       >
@@ -58,7 +57,6 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
     <ToolLayout
       accent="sky"
       width="wide"
-      badge={<ToolBadge accent="sky">Cast</ToolBadge>}
       title={character.name}
       description={
         character.descriptor?.trim() ||

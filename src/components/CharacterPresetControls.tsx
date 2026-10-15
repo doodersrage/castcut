@@ -307,7 +307,7 @@ export default function CharacterPresetControls({
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-0.5">
             {activeCount > 0 && (
-              <span className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--tint-info-text)]">
+              <span className="ui-badge" data-tone="accent" data-size="xs" data-upper="true">
                 {activeCount} active
               </span>
             )}

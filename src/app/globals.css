@@ -2792,7 +2792,8 @@ html[data-theme='light'] .ui-modal-card {
   gap: 0.3rem;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-default);
-  background: var(--bg-subtle);
+  --badge-bg: var(--bg-subtle);
+  background: var(--badge-bg);
   padding: 0.15rem 0.55rem;
   font-size: 0.6875rem;
   font-weight: 600;
@@ -2800,28 +2801,75 @@ html[data-theme='light'] .ui-modal-card {
   color: var(--text-secondary);
 }
 
+.ui-badge[data-size='xs'] {
+  padding: 0.1rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.ui-badge[data-upper='true'] {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Clickable chips (tags, groups, ratings) keep the badge look and get a hover + focus ring. */
+button.ui-badge,
+a.ui-badge {
+  cursor: pointer;
+  transition:
+    filter var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+button.ui-badge:hover:not(:disabled),
+a.ui-badge:hover {
+  filter: brightness(1.12);
+}
+
+button.ui-badge:focus-visible,
+a.ui-badge:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+button.ui-badge:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .ui-badge[data-tone='accent'] {
   border-color: var(--accent-border);
-  background: var(--accent-muted);
+  --badge-bg: var(--accent-muted);
+  background: var(--badge-bg);
   color: var(--accent-text);
 }
 
 .ui-badge[data-tone='success'] {
   border-color: var(--tint-success-border);
-  background: var(--tint-success-bg);
+  --badge-bg: var(--tint-success-bg);
+  background: var(--badge-bg);
   color: var(--tint-success-text);
 }
 
 .ui-badge[data-tone='danger'] {
   border-color: var(--tint-danger-border);
-  background: var(--tint-danger-bg);
+  --badge-bg: var(--tint-danger-bg);
+  background: var(--badge-bg);
   color: var(--tint-danger-text);
 }
 
 .ui-badge[data-tone='warning'] {
   border-color: var(--tint-warning-border);
-  background: var(--tint-warning-bg);
+  --badge-bg: var(--tint-warning-bg);
+  background: var(--badge-bg);
   color: var(--tint-warning-text);
+}
+
+/* On a photo: the tint over a solid card colour, so the chip doesn't vanish over bright images. */
+.ui-badge[data-on-media='true'] {
+  background: linear-gradient(var(--badge-bg), var(--badge-bg)) var(--bg-elevated);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.2));
 }
 
 .ui-meta {

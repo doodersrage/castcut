@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import CollabPresenceBar from '@/components/CollabPresenceBar';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolLayout } from '@/components/ui/ToolPageShell';
 import type { useCharacterToolOrchestration } from '@/hooks/useCharacterToolOrchestration';
 import { CharacterToolFormSection } from '@/components/character/sections/CharacterToolFormSection';
 import { CharacterToolResultSection } from '@/components/character/sections/CharacterToolResultSection';
@@ -34,7 +34,6 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
   return (
     <ToolLayout
       accent={accent}
-      badge={<ToolBadge accent={accent}>Film</ToolBadge>}
       title="Character"
       description={description}
       sidebarPersistKey="character"

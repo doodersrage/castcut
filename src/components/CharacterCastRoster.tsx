@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { CastImportButton } from '@/components/cast/CastTransferControls';
-import { ToolBadge, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
+import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import {
   applyCharacterRecord,
@@ -166,7 +166,6 @@ export default function CharacterCastRoster() {
     <ToolLayout
       accent="sky"
       width="wide"
-      badge={<ToolBadge accent="sky">Cast</ToolBadge>}
       title="Characters"
       description="Everyone you make films with."
     >

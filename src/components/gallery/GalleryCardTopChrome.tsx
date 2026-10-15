@@ -41,16 +41,18 @@ export function GalleryCardTopChrome({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        {/* Solid backing: the translucent tint vanished over bright photos. */}
-        <span className="rounded-full bg-[var(--bg-elevated)] shadow-sm">
-          <span
-            className={`block rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusTone(entry.status)}`}
-          >
-            {statusLabel(entry.status, entry)}
-          </span>
+        {/* data-on-media: solid backing — the translucent tint vanished over bright photos. */}
+        <span
+          className="ui-badge"
+          data-tone={statusTone(entry.status)}
+          data-size="xs"
+          data-on-media="true"
+          data-upper="true"
+        >
+          {statusLabel(entry.status, entry)}
         </span>
         {entry.reviewRating ? (
-          <span className="rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)]">
+          <span className="ui-badge" data-tone="accent" data-size="xs" data-on-media="true">
             {entry.reviewRating}★
           </span>
         ) : null}
@@ -67,7 +69,9 @@ export function GalleryCardTopChrome({
         <span className="inline-flex flex-wrap items-center gap-1.5 transition-opacity [@media(hover:hover)]:opacity-0 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
           {entry.reviewNote?.trim() ? (
             <span
-              className="max-w-[9rem] truncate rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)]"
+              className="ui-badge !inline-block max-w-[9rem] truncate"
+              data-size="xs"
+              data-on-media="true"
               title={entry.reviewNote.trim()}
               data-testid="gallery-card-review-note"
             >
@@ -76,21 +80,25 @@ export function GalleryCardTopChrome({
           ) : null}
           {entry.hasStoredWorkflow || entry.workflowJson ? (
             <span
-              className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
+              className="ui-badge"
+              data-size="xs"
+              data-on-media="true"
               title="Stored workflow JSON available for exact replay"
             >
               Exact graph
             </span>
           ) : entry.workflowJsonOmitted ? (
             <span
-              className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
+              className="ui-badge"
+              data-size="xs"
+              data-on-media="true"
               title="Graph was pruned (age/size budget) or too large to store"
             >
               Graph pruned
             </span>
           ) : null}
           {primaryMediaKind === 'video' ? (
-            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-muted)]">
+            <span className="ui-badge" data-size="xs" data-on-media="true">
               {entry.sourceImageUrl?.trim() ? 'I2V' : 'Video'}
             </span>
           ) : null}
@@ -99,7 +107,9 @@ export function GalleryCardTopChrome({
               type="button"
               disabled={!previewUrl || aestheticBusy}
               onClick={() => void scoreWithVision()}
-              className="pointer-events-auto rounded-full border border-[var(--border-default)]/60 bg-[var(--bg-base)]/70 px-2 py-0.5 text-[10px] text-[var(--text-muted)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-50"
+              className="ui-badge pointer-events-auto"
+              data-size="xs"
+              data-on-media="true"
               title={
                 aestheticScore.notes.join(' · ') ||
                 'Click to score with vision LLM (falls back to heuristic)'

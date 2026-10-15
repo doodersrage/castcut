@@ -50,7 +50,7 @@ export function GalleryCardPlaceholderStates({
             <button
               type="button"
               onClick={() => onRequeue(false, undefined, { exactGraph: true })}
-              className="rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2.5 py-1 text-[11px] text-[var(--tint-info-text)] transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="ui-btn-secondary ui-btn-sm !text-[11px]"
             >
               Replay exact
             </button>
@@ -58,7 +58,7 @@ export function GalleryCardPlaceholderStates({
           <button
             type="button"
             onClick={() => onRequeue(false)}
-            className="rounded-lg border border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] px-2.5 py-1 text-[11px] text-[var(--tint-danger-text)] transition hover:bg-[var(--tint-danger-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tint-danger-border)]"
+            className="ui-btn-primary ui-btn-sm !text-[11px]"
           >
             Retry
           </button>
@@ -71,7 +71,7 @@ export function GalleryCardPlaceholderStates({
                   stickyHost: true,
                 })
               }
-              className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]/80 px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="ui-btn-secondary ui-btn-sm !text-[11px]"
             >
               Retry on {comfyHostLabel ?? 'this host'}
             </button>
@@ -79,7 +79,7 @@ export function GalleryCardPlaceholderStates({
           <button
             type="button"
             onClick={() => onRequeue(true)}
-            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)]/80 px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="ui-btn-secondary ui-btn-sm !text-[11px]"
           >
             New seed
           </button>

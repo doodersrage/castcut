@@ -2,7 +2,7 @@
 
 import { isPlayStoryLocked } from '@/lib/play-step-machine';
 
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolLayout } from '@/components/ui/ToolPageShell';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import dynamic from 'next/dynamic';
@@ -92,7 +92,6 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
     <div data-testid="play-campaign" data-mobile-studio={props.mobileStudio ? 'true' : 'false'}>
       <ToolLayout
         accent={ACCENT}
-        badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
         title={props.campaignComplete ? 'Film complete' : 'Your film'}
         description={
           props.campaignComplete

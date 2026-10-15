@@ -283,8 +283,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Story</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Optional beats after Day — continues your Cast lead. Change the lead or their photo on
-          Film / Cast.
+          What happens next to your Cast, scene by scene.
         </p>
       </div>
 
@@ -794,7 +793,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
       </div>
 
       <div className="space-y-2">
-        <p className="type-caption text-[var(--text-muted)]">Film loop on phone</p>
         <Link
           href={withCharacterQuery('/m/day', castId)}
           className="ui-btn-secondary w-full justify-center text-center text-sm"

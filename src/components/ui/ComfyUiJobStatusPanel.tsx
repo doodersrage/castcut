@@ -20,6 +20,7 @@ import { cancelComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
 import { cancelComfyUiJob } from '@/lib/comfyui-queue-control';
 import { toastQueueOutcome } from '@/lib/app-toast';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { jobStatusTone, statusToneClasses } from '@/lib/status-tone';
 
 type ComfyUiJobStatusPanelProps = {
   job: ComfyUiJobTrackerState;
@@ -29,16 +30,7 @@ type ComfyUiJobStatusPanelProps = {
 };
 
 function statusTone(job: ComfyUiJobTrackerState): string {
-  if (job.status === 'running') {
-    return 'text-[var(--tint-info-text)] border-[var(--tint-info-border)] bg-[var(--tint-info-bg)]';
-  }
-  if (job.status === 'pending') {
-    return 'text-[var(--accent-text)] border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)]';
-  }
-  if (job.status === 'error') {
-    return 'text-[var(--tint-danger-text)] border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)]';
-  }
-  return 'text-[var(--tint-success-text)] border-[var(--tint-success-border)] bg-[var(--tint-success-bg)]';
+  return statusToneClasses(jobStatusTone(job.status));
 }
 
 function isCancelledJob(job: ComfyUiJobTrackerState): boolean {

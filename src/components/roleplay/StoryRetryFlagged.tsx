@@ -52,7 +52,7 @@ export default function StoryRetryFlagged({
         Retry {flagged.length} flagged
       </Button>
       <p className="type-caption text-[var(--text-muted)]">
-        Failed stills and pose or face misses — each gets a fresh take.
+        Takes again the stills that failed or don’t match the pose or face.
       </p>
     </div>
   );

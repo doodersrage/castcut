@@ -174,7 +174,10 @@ export default function GalleryCardBodyBlock({
       {layout === 'list' ? (
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusTone(entry.status)}`}
+            className="ui-badge"
+            data-tone={statusTone(entry.status)}
+            data-size="xs"
+            data-upper="true"
           >
             {statusLabel(entry.status, entry)}
           </span>
@@ -188,7 +191,8 @@ export default function GalleryCardBodyBlock({
           ) : null}
           {entry.reviewNote?.trim() ? (
             <span
-              className="max-w-[12rem] truncate rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)]"
+              className="ui-badge !inline-block max-w-[12rem] truncate"
+              data-size="xs"
               title={entry.reviewNote.trim()}
               data-testid="gallery-card-review-note"
             >
@@ -196,16 +200,16 @@ export default function GalleryCardBodyBlock({
             </span>
           ) : null}
           {entry.hasStoredWorkflow || entry.workflowJson ? (
-            <span className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] max-md:min-h-7 max-md:px-2.5 text-[var(--tint-info-text)]">
+            <span className="ui-badge" data-size="xs">
               Exact graph
             </span>
           ) : entry.workflowJsonOmitted ? (
-            <span className="rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2 py-0.5 text-[10px] text-[var(--tint-warning-text)]">
+            <span className="ui-badge" data-size="xs">
               Graph pruned
             </span>
           ) : null}
           {reviewFocus ? (
-            <span className="ui-badge" data-tone="accent">
+            <span className="ui-badge" data-tone="accent" data-size="xs">
               Review focus
             </span>
           ) : null}
@@ -270,7 +274,8 @@ export default function GalleryCardBodyBlock({
                   key={tag}
                   type="button"
                   onClick={() => onVisionTagClick?.(tag)}
-                  className="rounded-full border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] max-md:min-h-7 max-md:px-2.5 text-[var(--tint-info-text)] transition hover:border-[var(--tint-info-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="ui-badge max-md:min-h-7 max-md:px-2.5"
+                  data-size="xs"
                 >
                   {tag}
                 </button>
@@ -284,7 +289,9 @@ export default function GalleryCardBodyBlock({
                   key={`user-${tag}`}
                   type="button"
                   onClick={() => onUserTagClick?.(tag)}
-                  className="rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="ui-badge"
+                  data-tone="accent"
+                  data-size="xs"
                 >
                   #{tag}
                 </button>

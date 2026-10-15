@@ -32,11 +32,7 @@ export default function PlayCampaignStepsSection({
   const steps = (journey ?? derivePlayJourney({})).steps;
 
   return (
-    <ToolSection
-      title="Steps"
-      description="Open any film step. The button at the top of the page is the next one."
-      data-testid="play-campaign-steps"
-    >
+    <ToolSection title="Steps" description="Jump to any step." data-testid="play-campaign-steps">
       <ol className="space-y-2">
         {steps.map(step => {
           // The film's next step (the header's Continue points at it too); not the page's own

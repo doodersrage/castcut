@@ -8,7 +8,7 @@ import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { useHubPageDescription } from '@/hooks/useToolPageDescription';
 import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
+import { ToolLayout } from '@/components/ui/ToolPageShell';
 
 const ComfyUiGalleryPanel = dynamic(() => import('@/components/ComfyUiGalleryPanel'), {
   ssr: false,
@@ -24,13 +24,7 @@ export default function GalleryTool() {
   const description = useHubPageDescription('gallery');
 
   return (
-    <ToolLayout
-      accent={ACCENT}
-      width="wide"
-      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
-      title="Gallery"
-      description={description}
-    >
+    <ToolLayout accent={ACCENT} width="wide" title="Gallery" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.gallery} />
       <ComfyUiGalleryPanel showFilters />
       {!isSimple && manage ? <GalleryImportSection /> : null}

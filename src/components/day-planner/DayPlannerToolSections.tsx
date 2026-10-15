@@ -34,7 +34,6 @@ import SideSheet from '@/components/ui/SideSheet';
 import {
   CollapsibleSection,
   ToolActionRow,
-  ToolBadge,
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
@@ -623,7 +622,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       />
       <ToolLayout
         accent={ACCENT}
-        badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
         title="Day"
         description={description}
         headerActions={

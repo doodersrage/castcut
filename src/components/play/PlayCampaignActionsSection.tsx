@@ -71,7 +71,7 @@ export default function PlayCampaignActionsSection({
           >
             Switch back
           </ButtonLink>{' '}
-          or start a new film with this one below.
+          or start a new one below.
         </p>
       ) : null}
 

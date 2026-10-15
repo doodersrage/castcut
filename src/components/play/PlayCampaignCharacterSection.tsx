@@ -160,8 +160,8 @@ export default function PlayCampaignCharacterSection({
       title="Character"
       description={
         character
-          ? 'This film stays tied to one Cast record. Story continues this lead.'
-          : 'Name a Cast lead (+ optional From photo). More traits stay under the fold — Story continues whatever you start here.'
+          ? 'Who the film is about. Story carries on with them.'
+          : 'Name who the film is about, or start from a photo.'
       }
       data-testid="play-campaign-character"
     >

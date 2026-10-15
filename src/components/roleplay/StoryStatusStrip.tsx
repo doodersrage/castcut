@@ -18,7 +18,8 @@ export default function StoryStatusStrip({
 }: StoryStatusStripProps) {
   return (
     <div className={className.trim() || undefined} data-testid="story-status-strip" role="status">
-      <p className="type-caption text-[var(--text-secondary)]" data-testid="story-status-line">
+      {/* The step pills already show the counts; the line stays for screen readers, as on Day. */}
+      <p className="sr-only" data-testid="story-status-line">
         {statusLine}
       </p>
       <DressPlateNotice testIdPrefix="story" className="mt-1" />

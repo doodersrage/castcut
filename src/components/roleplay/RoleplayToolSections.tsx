@@ -29,7 +29,6 @@ import { Button } from '@/components/ui/Button';
 import {
   CollapsibleSection,
   ToolActionRow,
-  ToolBadge,
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
@@ -258,7 +257,6 @@ export default function RoleplayToolSections({
   return (
     <ToolLayout
       accent={ACCENT}
-      badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Story"
       description={description}
       width="full"

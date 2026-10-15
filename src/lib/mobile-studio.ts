@@ -12,10 +12,10 @@ export type MobileStudioTab = {
 };
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
-  { id: 'film', href: '/m/film', label: 'Film', hint: 'Resume or start a film' },
+  { id: 'film', href: '/m/film', label: 'Film', hint: 'Your film' },
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
-  { id: 'story', href: '/m/story', label: 'Story', hint: 'Extend this character’s film' },
+  { id: 'story', href: '/m/story', label: 'Story', hint: 'What happens next' },
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },

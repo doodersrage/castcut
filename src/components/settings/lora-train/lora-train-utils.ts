@@ -26,7 +26,7 @@ export function statusTone(status: TrainJob['status']): string {
     case 'error':
       return 'text-[var(--tint-danger-text)]';
     case 'running':
-      return 'text-[var(--tint-info-text)]';
+      return 'text-[var(--accent-text)]';
     case 'manual':
       return 'text-[var(--tint-warning-text)]';
     default:

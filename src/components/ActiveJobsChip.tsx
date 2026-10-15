@@ -63,10 +63,10 @@ export default function ActiveJobsChip({
       href="/queue"
       data-testid="active-jobs-chip"
       title={`${title} — open Queue`}
-      className={`inline-flex items-center gap-1.5 rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--tint-warning-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
     >
       <span
-        className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--tint-warning-text)]"
+        className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-text)]"
         aria-hidden
       />
       {compact ? count : `${count} active`}

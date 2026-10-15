@@ -15,7 +15,8 @@ import { type ToolAccent } from '@/lib/tool-theme';
 type ToolLayoutProps = {
   accent?: ToolAccent;
   width?: ToolPageWidth;
-  badge: ReactNode;
+  /** Overline above the title — left off on Film pages, where the header tabs name the page. */
+  badge?: ReactNode;
   title: string;
   description?: ReactNode;
   headerActions?: ReactNode;

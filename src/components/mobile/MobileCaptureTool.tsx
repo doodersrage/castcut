@@ -205,8 +205,8 @@ export default function MobileCaptureTool() {
       <div className="space-y-1">
         <h1 className="type-display text-2xl tracking-tight">Capture a plate</h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Shoot or pick a photo. Isolate on white so Look, Outfit, and Day lock onto the subject —
-          not the room. First use downloads a small on-device model.
+          Take or pick a photo of someone. The background is cut away so every shot keeps them, not
+          the room.
         </p>
       </div>
 
@@ -294,8 +294,7 @@ export default function MobileCaptureTool() {
           <div className="min-w-0 space-y-1">
             <p className="truncate text-sm font-medium">{activeCast.name}</p>
             <p className="type-caption text-[var(--text-muted)]">
-              Your active Cast already has a look plate. Take a photo below only to start someone
-              new.
+              Already set up. Take a photo only to add someone new.
             </p>
             <Link
               href={`/characters/${encodeURIComponent(activeCast.id)}`}

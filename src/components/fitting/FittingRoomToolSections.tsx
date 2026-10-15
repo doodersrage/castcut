@@ -23,12 +23,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import { FieldError } from '@/components/ui/Field';
-import {
-  CollapsibleSection,
-  ToolBadge,
-  ToolLayout,
-  ToolSection,
-} from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
@@ -198,7 +193,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     <ToolLayout
       accent={ACCENT}
       width="full"
-      badge={<ToolBadge accent={ACCENT}>Film</ToolBadge>}
       title="Outfit"
       description={description}
       sidebarPersistKey="fitting"

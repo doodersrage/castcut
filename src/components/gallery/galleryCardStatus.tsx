@@ -2,6 +2,7 @@
 
 import { comfyUiJobProgressPercent } from '@/lib/comfyui-job-status';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { jobStatusTone, type StatusTone } from '@/lib/status-tone';
 
 export function statusLabel(
   status: ComfyGalleryEntry['status'],
@@ -16,17 +17,9 @@ export function statusLabel(
   return 'Error';
 }
 
-export function statusTone(status: ComfyGalleryEntry['status']): string {
-  if (status === 'completed') {
-    return 'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] text-[var(--tint-success-text)]';
-  }
-  if (status === 'error') {
-    return 'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)]';
-  }
-  if (status === 'running') {
-    return 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]';
-  }
-  return 'border-[var(--border-default)]/40 bg-[var(--bg-muted)]/60 text-[var(--text-secondary)]';
+/** The job state's chip tone — one colour rule for every status chip (status-tone.ts). */
+export function statusTone(status: ComfyGalleryEntry['status']): StatusTone {
+  return jobStatusTone(status);
 }
 
 export function CustomGroupBadge(props: {
@@ -36,10 +29,17 @@ export function CustomGroupBadge(props: {
 }) {
   const className = `${
     props.pointerEvents ? 'pointer-events-auto ' : ''
-  }max-w-[10rem] truncate rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] backdrop-blur-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`;
+  }ui-badge !inline-block max-w-[10rem] truncate`;
   if (!props.onClick) {
     return (
-      <span className={className} data-testid="gallery-card-custom-group" title={props.name}>
+      <span
+        className={className}
+        data-tone="accent"
+        data-size="xs"
+        data-on-media={props.pointerEvents ? 'true' : undefined}
+        data-testid="gallery-card-custom-group"
+        title={props.name}
+      >
         {props.name}
       </span>
     );
@@ -47,6 +47,9 @@ export function CustomGroupBadge(props: {
   return (
     <button
       type="button"
+      data-tone="accent"
+      data-size="xs"
+      data-on-media={props.pointerEvents ? 'true' : undefined}
       data-testid="gallery-card-custom-group"
       title={`Show group ${props.name}`}
       className={className}

@@ -50,7 +50,7 @@ export function storyFaceMatchLabel(
   }
   const pct = Math.round(match.similarity * 100);
   if (match.similarity < thresholds.miss) {
-    return { text: `Face match ${pct}% — this doesn't look like your Cast; Retry.`, miss: true };
+    return { text: `Face match ${pct}% — doesn't look like your Cast. Retry it.`, miss: true };
   }
   if (match.similarity < thresholds.warn) {
     return { text: `Face match ${pct}% — worth a look.`, miss: false };
