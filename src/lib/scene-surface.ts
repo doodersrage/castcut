@@ -802,6 +802,21 @@ const BEAT_PLACE_RULES: ReadonlyArray<{
     venues: ['balcony', 'rooftop', 'hotel', ...EAT],
   },
   { re: /\brooftop\b|\bon\s+the\s+roof\b/i, venues: ['rooftop', 'balcony'], setting: /\broof/i },
+  // "checking a reflection in a shop window" landed in her kitchen (Day 2026-10-15).
+  {
+    re: /\b(?:shop|store|display)\s+windows?\b|\bwindow[- ]shopping\b/i,
+    venues: [...STREETS, 'shop'],
+    setting:
+      /\b(?:street|sidewalk|shop|store|boutique|mall|arcade|avenue|high\s+street|plaza|market)\b/i,
+  },
+  // "at a food truck window" slipped past the in-place check ("window" reads as furniture) and
+  // put a food truck in her kitchen (Day 2026-10-15).
+  {
+    re: /\bfood\s+(?:trucks?|carts?|stalls?)\b|\b(?:hot\s?dog|taco|street[- ]food)\s+(?:cart|stand|stall)\b/i,
+    venues: [...STREETS, 'park', 'beach'],
+    setting:
+      /\b(?:food\s+trucks?|food\s+carts?|stalls?|market|street|lot|plaza|square|festival|fair)\b/i,
+  },
   {
     re: /\b(?:in|across|through|at|to)\s+the\s+park\b/i,
     venues: ['park', 'trail'],

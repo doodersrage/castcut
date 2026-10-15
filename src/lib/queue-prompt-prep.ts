@@ -211,6 +211,14 @@ export const LIGHTNING_EVERYDAY_DAY_NEGATIVE =
 export const QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE =
   'natural photograph, lifelike skin pores, camera realism, soft natural light';
 
+/**
+ * The photo tail, without "soft natural light" when the prompt sets its own light (a Day
+ * evening / night still's LIGHT line) — the two fought and she came out studio-lit.
+ */
+function photoTailFor(positive: string, tail: string): string {
+  return /^LIGHT:/m.test(positive) ? tail.replace(/,\s*soft natural light/, '') : tail;
+}
+
 function appendUniqueCsv(base: string | undefined, extra: string): string {
   const existing = base?.trim() ?? '';
   if (!existing) {
@@ -376,9 +384,12 @@ function steeringForCfg1DistilledStillImage(input: {
   if (input.realismMode === 'realistic' || input.realismMode === 'hyper-realistic') {
     positive = appendUniqueCsv(
       positive,
-      input.realismMode === 'hyper-realistic'
-        ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
-        : QWEN_LIGHTNING_PHOTO_POSITIVE
+      photoTailFor(
+        positive,
+        input.realismMode === 'hyper-realistic'
+          ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
+          : QWEN_LIGHTNING_PHOTO_POSITIVE
+      )
     );
   }
   if (
@@ -551,9 +562,12 @@ export function applyQueuePromptSteering(rawInput: {
       return finish({
         positive: appendUniqueCsv(
           positive,
-          realismMode === 'hyper-realistic'
-            ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
-            : QWEN_LIGHTNING_PHOTO_POSITIVE
+          photoTailFor(
+            positive,
+            realismMode === 'hyper-realistic'
+              ? QWEN_LIGHTNING_HYPER_PHOTO_POSITIVE
+              : QWEN_LIGHTNING_PHOTO_POSITIVE
+          )
         ),
         negative: appendUniqueCsv(
           negative,

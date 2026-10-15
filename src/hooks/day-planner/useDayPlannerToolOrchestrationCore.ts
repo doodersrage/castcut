@@ -1608,6 +1608,9 @@ export function useDayPlannerToolOrchestrationCore() {
         });
         let nudeFaceAutoCropped = false;
         let vacationFaceBreak = false;
+        // The full plate a face-break still was cropped from (an Everyday Keep plate rides as the
+        // clothing image — see below).
+        let faceBreakBodyPlate: DayPlate | null = null;
         let identityLatentPlate: { filename?: string; imageUrl?: string } | null = null;
         let skipPoseGuideImage = false;
         // Lightning keeps full Keep/Cast as Image 1 (ReferenceLatent) — tuned separately from
@@ -1640,6 +1643,7 @@ export function useDayPlannerToolOrchestrationCore() {
               customGarmentFilename: slotCustomGarmentFilename,
             })
           ),
+          dressedPlate: Boolean(dressedPlate),
         });
         if (identityRoute === 'nude' && lookCharacter) {
           const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
@@ -1683,6 +1687,7 @@ export function useDayPlannerToolOrchestrationCore() {
             });
             if (faceBreak.noFaceFound) warnNoFaceOnPlate(lookCharacter);
             if (faceBreak.facePlate) {
+              faceBreakBodyPlate = bodyPlate ?? null;
               identityPlate = faceBreak.facePlate;
               vacationFaceBreak = true;
               // Opt-in: full plate as a mid-size ReferenceLatent (never VL) — the head crop
@@ -1734,6 +1739,17 @@ export function useDayPlannerToolOrchestrationCore() {
         // Otherwise Rapid's full-plate Vacation stills started from the undressed Cast plate
         // (its underwear won over the clothing image), and plain Edit 2511's face-crop stills
         // carried the dressed plate nowhere.
+        // Everyday on Edit 2511 breaks to the face when the plate is an Outfit Keep plate
+        // (day-still-plan.ts): that plate already wears the outfit, so it is the clothing image —
+        // as a dressed plate would be. Without this the dress came from words alone.
+        if (
+          !dressedPlate &&
+          vacationFaceBreak &&
+          faceBreakBodyPlate?.source === 'keeper' &&
+          normalizeDayMood(toolSettings.dayMood) === 'everyday'
+        ) {
+          dressedPlate = faceBreakBodyPlate;
+        }
         const dressedPlateUse = dayStillDressedPlateUse({
           hasDressedPlate: Boolean(dressedPlate),
           omitGarment,
@@ -1890,6 +1906,7 @@ export function useDayPlannerToolOrchestrationCore() {
           partnerFace: Boolean(partnerFace),
           faceBreak: vacationFaceBreak,
           garment: byoOrPackGarment,
+          dressedPlateClothing: Boolean(dressClothingFilename),
         });
         // Footwear picked beside the clothing (day-still-plan.ts: clothed stills, not Sport, not a
         // beat about the feet, not a scene that dresses her itself).

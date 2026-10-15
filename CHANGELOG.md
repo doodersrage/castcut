@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Evening and night Day stills no longer look pasted onto the place** (Everyday on Edit 2511). With the dressed / Outfit Keep plate as Image 1, upright beats copied the plate's studio-lit standing figure onto the new background. Now those stills start from a face crop with the plate as the clothing image (outfit and shoes shown at the bottom of Image 2), and evening / late evening / night stills say how the time of day lights her ("LIGHT: night — lit only by the place's own lights…") instead of ending on "soft natural light". Same seeds, live: the six beats that already worked kept pose, outfit and shoes 6/6 and face match improved (0.34 → 0.23); evening, late evening and night came out backlit / lamp-lit / street-lit in the scene's light.
+- **Two more beat–place mix-ups caught:** "at a food truck window" and "a shop window" / "window shopping" in a kitchen (both went past the place check). A saved beat that doesn't fit its place is redrawn when the slot is queued.
 - **Polish, round six** (Day slot and clothing sheets, the More menu, command palette, Settings LLM / Automation, Profile and phone Story / Outfit in dark, phone Queue, tablet width — no sideways scroll at 820 px):
   - **Accessibility:** the Film More menu's "Report a bug" is a proper menu item (axe: a plain wrapper inside a menu), and the LLM temperature slider has a label.
   - **Look tiles** show the garment ("nun habit") instead of "boxy…" — catalog names open with the fit, so every look read the same; the full name is on hover.

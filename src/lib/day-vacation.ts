@@ -1069,6 +1069,25 @@ export function daySceneLeadLine(setting: string | null | undefined): string {
   return place ? `SCENE: she is in the ${place} — show that place around her.` : '';
 }
 
+/**
+ * How the slot's time of day lights her, for an evening / late evening / night still on Edit 2511:
+ * with no light named, the figure kept the plate's studio light and looked pasted onto the place
+ * (2026-10-15). Generic on purpose — the place's own lamps / sun do the rest. '' for day slots.
+ */
+export function dayTimeOfDayLightLine(timeOfDay: string | null | undefined): string {
+  const part = (timeOfDay ?? '').trim().toLowerCase();
+  if (/\bnight\b/.test(part)) {
+    return 'LIGHT: night — she is lit only by the place’s own lights (street lamps, lamps, headlights, signs): pools of warm and cool light on her skin and clothes, deep shadows. She is lit like the place around her, not by a studio light.';
+  }
+  if (/\blate\s+evening\b/.test(part)) {
+    return 'LIGHT: late evening — dusk outside, warm lamp light inside; that light falls on her skin and clothes with soft shadows. She is lit like the place around her, not by a studio light.';
+  }
+  if (/\bevening\b/.test(part)) {
+    return 'LIGHT: golden hour — low warm sun from the side or behind her, a warm rim on her hair and shoulders, her shadow long; indoors, warm window and lamp light. She is lit like the place around her, not by a studio light.';
+  }
+  return '';
+}
+
 function clothedFaceBreakLeadsFor(
   poseClass: string | null | undefined,
   platePath: 'keep' | 'cast',

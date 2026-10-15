@@ -105,6 +105,8 @@ export function dayStillIdentityRoute(input: {
   identitySource?: 'keeper' | 'cast' | null;
   /** The still's garment is clothing only (a packshot), not a worn photo. */
   clothingOnlyGarment: boolean;
+  /** A dress-store plate is ready for this still (an Outfit Keep plate shows as `keeper`). */
+  dressedPlate?: boolean;
 }): DayStillIdentityRoute {
   if (input.omitGarment && input.hasCharacter) {
     return 'nude';
@@ -129,6 +131,18 @@ export function dayStillIdentityRoute(input: {
       suggestiveSeat);
   if (heatUnlock || everydayGarment) {
     return lightning ? 'heat-full-plate' : 'face-break';
+  }
+  // Everyday on Edit 2511 with a dressed or Keep plate: as Image 1 the plate's studio-lit standing
+  // figure was copied onto the place on upright beats — "pasted over the background" on
+  // evening / late evening / night (2026-10-15). A face crop as Image 1 with the dressed plate as
+  // the clothing image drew her into the scene's light; same seeds, the six beats that already
+  // worked kept pose, outfit and shoes 6/6 and face match improved 0.34 → 0.23.
+  if (
+    mood === 'everyday' &&
+    lightning &&
+    (input.dressedPlate || input.identitySource === 'keeper')
+  ) {
+    return 'face-break';
   }
   if (!isDayHeatMood(mood) && lightning) {
     return 'everyday-full-plate';
@@ -165,12 +179,17 @@ export function dayStillClothingReinforce<
   partnerFace: boolean;
   faceBreak: boolean;
   garment: T | null;
+  /** The garment is the dressed (or Outfit Keep) plate in the clothing slot — she is meant to
+   *  wear exactly what it shows, so a face-break still takes it although she is in it. */
+  dressedPlateClothing?: boolean;
 }): T | null {
   if (input.omitGarment || input.replaceOutfit || input.partnerFace) {
     return null;
   }
   if (input.faceBreak) {
-    return isClothingOnlyDayGarment(input.garment) ? input.garment : null;
+    return input.dressedPlateClothing || isClothingOnlyDayGarment(input.garment)
+      ? input.garment
+      : null;
   }
   return input.garment;
 }

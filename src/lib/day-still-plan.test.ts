@@ -136,6 +136,23 @@ describe('dayStillIdentityRoute', () => {
     );
   });
 
+  it('Everyday on Edit 2511 with a dressed plate starts from a face crop', () => {
+    assert.equal(
+      dayStillIdentityRoute({ ...base, model: EDIT_2511, dressedPlate: true }),
+      'face-break'
+    );
+    assert.equal(
+      dayStillIdentityRoute({ ...base, model: EDIT_2511, identitySource: 'keeper' }),
+      'face-break',
+      'an Outfit Keep plate already wears the outfit'
+    );
+    assert.equal(
+      dayStillIdentityRoute({ ...base, model: RAPID, dressedPlate: true }),
+      'plate',
+      'Rapid already takes the dressed plate as the clothing image'
+    );
+  });
+
   it('with no plate there is nothing to route', () => {
     assert.equal(
       dayStillIdentityRoute({ ...base, clothingOnlyGarment: true, hasIdentityPlate: false }),
@@ -172,6 +189,11 @@ describe('dayStillClothingReinforce', () => {
   it('a face-break still takes a clothing-only picture, never a worn photo', () => {
     assert.equal(dayStillClothingReinforce({ ...base, garment: packshot, faceBreak: true }), packshot);
     assert.equal(dayStillClothingReinforce({ ...base, garment: worn, faceBreak: true }), null);
+    assert.equal(
+      dayStillClothingReinforce({ ...base, garment: worn, faceBreak: true, dressedPlateClothing: true }),
+      worn,
+      'the dressed / Keep plate as clothing image is what she wears'
+    );
   });
 });
 

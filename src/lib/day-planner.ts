@@ -77,6 +77,7 @@ import {
   dayVacationSettingPresetsForSlot,
   buildDayVacationClothedFaceBreakLeads,
   daySceneLeadLine,
+  dayTimeOfDayLightLine,
   buildDayVacationPromptLocks,
   pickDayVacationScenePair,
   dayVacationSettingForBeat,
@@ -3984,9 +3985,14 @@ export function buildDaySlotPrompt(input: {
         const leadVoice = (line: string | null) =>
           line && coupleForHim ? swapDayPromptGender(line) : line;
         // Scene first, as the brief does (the confirmed 4/4 run had it), then the outfit.
+        // Evening / night on Edit 2511: say how the time of day lights her, or the plate's
+        // studio light comes along (rapidEveryday keeps its own tested wording).
+        const lightLine =
+          compactClothed && dayMood === 'everyday' ? dayTimeOfDayLightLine(timeOfDay) : '';
         return [
           identityLead,
           leadVoice(daySceneLeadLine(setting?.replace(/^(?:an?|the)\s+/i, ''))),
+          leadVoice(lightLine || null),
           leadVoice(outfitLead),
           recipe,
         ]
