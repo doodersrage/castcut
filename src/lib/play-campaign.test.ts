@@ -200,7 +200,7 @@ describe('playEffectiveProgressLabel', () => {
 });
 
 describe('derivePlayJourney', () => {
-  it('counts Cast, Day and Cut film; names Look, Outfit and Story as optional', async () => {
+  it('counts Cast, Day and Cut film; names Outfit and Story as optional', async () => {
     const { derivePlayJourney } = await import('./play-step-machine');
     const campaign = { characterId: 'c1', stepIndex: 3 };
     const journey = derivePlayJourney({ campaign, completedStills: 1, slotCount: 4 });
@@ -208,7 +208,6 @@ describe('derivePlayJourney', () => {
       journey.steps.map(step => [step.id, step.number, step.optional]),
       [
         ['character', 1, false],
-        ['moodboard', null, true],
         ['fitting', null, true],
         ['day', 2, false],
         ['cut', 3, false],

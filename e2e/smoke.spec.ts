@@ -248,7 +248,6 @@ const ADDITIONAL_ROUTES: Array<{
   { path: '/play', heading: /^Your film$/i },
   { path: '/fitting', heading: /^Outfit$/i, level: 1 as const },
   { path: '/day', heading: /^Day$/i, level: 1 as const },
-  { path: '/moodboard', heading: /^Look$/i, level: 1 as const },
   { path: '/plugins', heading: /^Plugins$/i, classic: true },
   { path: '/profile', heading: /^Profile$/i, level: 1 as const },
   { path: '/studio', heading: /^Studio$/i, level: 1 as const, classic: true },
@@ -275,7 +274,7 @@ test('play pages hydrate without mismatches', async ({ page }) => {
       hydrationErrors.push(error.message.slice(0, 160));
     }
   });
-  for (const path of ['/characters', '/play', '/moodboard', '/fitting', '/day', '/story']) {
+  for (const path of ['/characters', '/play', '/fitting', '/day', '/story']) {
     await gotoStable(page, path);
     await page.waitForTimeout(1500);
   }

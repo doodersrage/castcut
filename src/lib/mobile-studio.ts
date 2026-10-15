@@ -1,10 +1,8 @@
-import { newMoodboardTileId } from './moodboard-scene';
-
 export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
 export type MobileStudioTabId =
-  'capture' | 'film' | 'queue' | 'gallery' | 'moodboard' | 'fitting' | 'day' | 'story';
+  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'story';
 
 export type MobileStudioTab = {
   id: MobileStudioTabId;
@@ -18,15 +16,14 @@ export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Queue · Cut film' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Keep a kit' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'Extend this character’s film' },
-  { id: 'moodboard', href: '/m/moodboard', label: 'Look', hint: 'Extract look' },
-  { id: 'capture', href: '/m', label: 'Cast', hint: 'Look → Outfit → Day → Cut' },
+  { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Rate stills' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'Watch jobs' },
 ];
 
 /**
- * Primary dock tabs — the same four as the desktop Film dock (Film, Day, Outfit, Story); Look,
- * Cast, Gallery and Queue live under More on both. The phone had seven tabs to the desk's four
+ * Primary dock tabs — the same four as the desktop Film dock (Film, Day, Outfit, Story); Cast,
+ * Gallery and Queue live under More on both. The phone had seven tabs to the desk's four
  * (UI audit 2026-10-11).
  */
 export const MOBILE_STUDIO_PRIMARY_TAB_IDS: MobileStudioTabId[] = [
@@ -62,9 +59,6 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
   }
   if (path === '/m/gallery' || path.startsWith('/m/gallery/')) {
     return 'gallery';
-  }
-  if (path === '/m/moodboard' || path.startsWith('/m/moodboard/')) {
-    return 'moodboard';
   }
   if (path === '/m/fitting' || path.startsWith('/m/fitting/')) {
     return 'fitting';
@@ -111,7 +105,6 @@ export function toMobileStudioHref(href: string): string {
     '/play': '/m/film',
     '/fitting': '/m/fitting',
     '/day': '/m/day',
-    '/moodboard': '/m/moodboard',
     '/story': '/m/story',
     '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
@@ -259,36 +252,6 @@ export function fittingPatchFromPlate(plate: CharacterPlate): {
   const patch = roleplayPatchFromPlate(plate);
   const { playAs: _playAs, ...fitting } = patch;
   return fitting;
-}
-
-/** Seed Look with a subject tile from a Capture plate. */
-export function moodboardPatchFromPlate(plate: CharacterPlate): {
-  tiles: Array<{
-    id: string;
-    role: 'other';
-    label: string;
-    notes: string;
-    imageUrl: string;
-    imageFilename?: string;
-  }>;
-} {
-  const isolated = plate.isolated === true;
-  const imageUrl = isolated ? plate.isolatedUrl || plate.originalUrl : plate.originalUrl;
-  const imageFilename = isolated
-    ? plate.isolatedFilename || plate.originalFilename
-    : plate.originalFilename;
-  return {
-    tiles: [
-      {
-        id: newMoodboardTileId(),
-        role: 'other',
-        label: plate.name || 'Plate',
-        notes: 'Captured plate',
-        imageUrl,
-        imageFilename,
-      },
-    ],
-  };
 }
 
 export function newCharacterPlateId(): string {

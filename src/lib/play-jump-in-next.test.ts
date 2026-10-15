@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { welcomeSampleFilmShots, buildDemoDayStills } from './welcome-sample-film';
-import { LOOK_PRESETS, lookPackFromPreset, tilesFromLookPreset } from './look-presets';
 import { summarizePlayFunnel, type LocalObservabilityCounters } from './local-observability';
 
-describe('welcome sample + look presets + funnel drop-off', () => {
+describe('welcome sample + funnel drop-off', () => {
   it('builds a mute sample Day reel clip', () => {
     const shots = welcomeSampleFilmShots();
     assert.equal(shots.length, 1);
@@ -17,21 +16,6 @@ describe('welcome sample + look presets + funnel drop-off', () => {
     assert.equal(stills.length, 4);
     assert.ok(stills.every(still => still.status === 'completed' && still.imageUrl));
     assert.ok(stills.every(still => still.promptId?.startsWith('demo-')));
-  });
-
-  it('seeds moodboard tiles from look presets', () => {
-    assert.ok(LOOK_PRESETS.length >= 12);
-    const cozy = LOOK_PRESETS.find(entry => entry.id === 'cozy');
-    assert.ok(cozy);
-    const tiles = tilesFromLookPreset(cozy!);
-    assert.equal(tiles.length, 4);
-    const pack = lookPackFromPreset(cozy!, 'c1');
-    assert.equal(pack.characterId, 'c1');
-    assert.match(pack.moodNotes ?? '', /cozy/i);
-
-    const coastal = LOOK_PRESETS.find(entry => entry.id === 'coastal');
-    assert.ok(coastal);
-    assert.match(lookPackFromPreset(coastal!, undefined).vibePrompt ?? '', /coastal/i);
   });
 
   it('summarizes welcome → starter → cut drop-off', () => {

@@ -5,6 +5,7 @@
  */
 
 import type { LookPack } from './look-pack';
+import { retiredLookHref } from './retired-look';
 import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from './look-pack';
 import {
   cachedDayLength,
@@ -81,14 +82,14 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
     href: ({ characterId }) => `/characters/${encodeURIComponent(characterId)}`,
   },
   {
+    // Retired Look page (retired-look.ts). Kept so saved films' stepIndex values still line up;
+    // never offered as a step — a film that saved here resumes at Day (so it reads as Day).
     id: 'moodboard',
-    label: 'Look',
-    description:
-      'Optional — add reference pictures and extract a look (its clothing carries to Day).',
+    label: 'Day',
+    description: "Retired — the Cast's looks live on Cast home.",
     optional: true,
-    // Straight to Day: Day dresses the Cast itself (its Clothing row, day-dress-plate.ts).
     next: 'day',
-    href: ({ characterId }) => `/moodboard?character=${encodeURIComponent(characterId)}`,
+    href: ({ characterId }) => retiredLookHref(characterId),
   },
   {
     id: 'fitting',
@@ -331,7 +332,7 @@ export function resolvePlayStepHref(
   if (!id) {
     // Bare tool roots when no Cast lead is selected.
     if (campaignId === 'moodboard') {
-      return '/moodboard';
+      return retiredLookHref();
     }
     if (campaignId === 'fitting') {
       return '/fitting';
@@ -479,8 +480,7 @@ export function derivePlayProgress(artifacts: PlayArtifacts = {}): DerivedPlayPr
   let resumeStepId =
     PLAY_CAMPAIGN_STEPS[effectiveStepIndex]?.id ?? (characterId ? 'day' : 'character');
 
-  // Look is optional: a film past Cast resumes at Day unless the player opened Look themselves
-  // (the saved step only reaches Look when they did — and then Day is still the next step).
+  // Look is retired: a film saved at Look resumes at Day.
   if (resumeStepId === 'moodboard' && characterId) {
     resumeStepId = 'day';
     effectiveStepIndex = STEP_INDEX.day;
@@ -624,7 +624,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
     const step = playStepById(progress.resumeStepId);
     const labels: Record<PlayCampaignStepId, string> = {
       character: 'Continue to Cast',
-      moodboard: 'Continue to Look',
+      moodboard: 'Continue to Day',
       fitting: 'Continue to Outfit',
       day: 'Continue to Day',
       roleplay: 'Continue to Story',
@@ -794,8 +794,8 @@ export function resolvePlayStall(artifacts: PlayArtifacts = {}): PlayFunnelStall
 
   const stepId = progress.resumeStepId;
   const reasons: Record<PlayCampaignStepId, string> = {
-    character: 'Pick a Cast character and start Look.',
-    moodboard: 'Extract a look pack on Look, then continue to Outfit.',
+    character: 'Pick a Cast character and start the Day.',
+    moodboard: 'Plan Day slots and queue stills before Cut film.',
     fitting: 'Queue try-ons in Outfit and Keep a plate before Day.',
     day: 'Plan Day slots and queue stills before Cut film.',
     roleplay: 'Optional — cut in Day instead, or run a Story beat then Cut film.',
@@ -831,7 +831,6 @@ export type PlayJourney = {
 
 const PLAY_JOURNEY_ORDER: Array<{ id: PlayJourneyStepId; label: string; optional: boolean }> = [
   { id: 'character', label: 'Cast', optional: false },
-  { id: 'moodboard', label: 'Look', optional: true },
   { id: 'fitting', label: 'Outfit', optional: true },
   { id: 'day', label: 'Day', optional: false },
   { id: 'cut', label: 'Cut film', optional: false },
@@ -844,8 +843,8 @@ export const PLAY_JOURNEY_CORE_COUNT = PLAY_JOURNEY_ORDER.filter(step => !step.o
  * One progress model for the header label, the step strip, the Play Steps list and the next
  * action. UI audit (2026-10-11): the header said "Film · 2 of 2 · Day", the strip numbered five
  * steps with Story but no Cut, and the Steps list counted a third way — the film's end (Cut)
- * was not a step anywhere. Core steps are Cast, Day and Cut film; Look, Outfit and Story are
- * named as optional and never counted.
+ * was not a step anywhere. Core steps are Cast, Day and Cut film; Outfit and Story are named
+ * as optional and never counted (Look is retired, retired-look.ts).
  */
 export function derivePlayJourney(artifacts: PlayArtifacts = {}): PlayJourney {
   const funnel = artifacts.funnel ?? {};

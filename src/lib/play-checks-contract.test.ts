@@ -15,7 +15,6 @@ import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
 import { measureFaceMatchInComfy } from './face-match-server';
 import { decideTryOnReview } from './fitting-tryon-review';
-import { suggestLookTileRole } from './look-tile-role-server';
 import { checkLookPlate } from './plate-check';
 import { detectPoseInComfyStill } from './pose-detect-server';
 import { reviewPlaySlotStill } from './play-slot-review-server';
@@ -286,15 +285,6 @@ describe('Play checks against a fake ComfyUI + vision LLM', () => {
     assert.ok(Math.abs(result.similarity - 0.72) < 1e-9);
     // The try-on review turns that into the Compare card line.
     assert.deepEqual(decideTryOnReview({ imageUrl: 'x', faceMatch: result.similarity }).notes, []);
-  });
-
-  it('suggests a Look tile role from the vision model', async () => {
-    const role = await suggestLookTileRole({ imageDataUrl: IMAGE_DATA_URL });
-    assert.equal(role, 'lighting');
-    const chat = full.recorded.chats.at(-1)!;
-    assert.equal(chat.model, 'fake-vl');
-    // The vision client re-encodes to JPEG before sending — any inline image counts.
-    assert.match(JSON.stringify(chat.messages), /data:image\/(png|jpeg);base64/);
   });
 
   it('parses the slot review the Outfit Auto-review sends', async () => {

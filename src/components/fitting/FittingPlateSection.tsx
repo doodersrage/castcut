@@ -40,8 +40,6 @@ export type FittingPlateSectionProps = {
   onApplyReference: (input: FittingPlateApplyReferenceInput) => Promise<void>;
   onClearReference: () => void;
   onError: (message: string) => void;
-  /** Look link for the empty state (extract a look → new plate). */
-  lookHref?: string;
   /** The Cast whose active look plate this is (its stance note). */
   characterId?: string | null;
 };
@@ -63,7 +61,6 @@ export default function FittingPlateSection({
   onApplyReference,
   onClearReference,
   onError,
-  lookHref,
   characterId,
 }: FittingPlateSectionProps) {
   // Only say "cleared" after the player cleared it here — a fresh session has nothing to clear.
@@ -177,16 +174,6 @@ export default function FittingPlateSection({
             <ButtonLink href={galleryPickPath('fitting')} variant="secondary" size="sm">
               Choose from Gallery
             </ButtonLink>
-            {lookHref ? (
-              <ButtonLink
-                href={lookHref}
-                variant="ghost"
-                size="sm"
-                data-testid="fitting-plate-open-look"
-              >
-                Open Look
-              </ButtonLink>
-            ) : null}
           </div>
         </div>
       )}

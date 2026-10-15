@@ -105,7 +105,7 @@ export default function PlayGalleryEmptyPanel({
           </li>
           <li>
             Use <strong className="font-medium text-[var(--text-secondary)]">Upload images</strong>{' '}
-            to add stills from disk for Look, Outfit, and identity lock.
+            to add stills from disk for Cast looks, Outfit, and identity lock.
           </li>
           <li>
             If Comfy is down, open Day and tap{' '}

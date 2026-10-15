@@ -463,13 +463,6 @@ export default function CharacterLookPlateSection({
             >
               Choose from Gallery
             </ButtonLink>
-            <ButtonLink
-              href={`/moodboard?character=${encodeURIComponent(characterId)}`}
-              variant="ghost"
-              size="sm"
-            >
-              Extract a look in Look
-            </ButtonLink>
             {removeLook ? (
               <Button
                 variant="ghost"

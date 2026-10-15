@@ -72,8 +72,6 @@
   "src/lib/image-similarity-client.ts",
   "src/lib/image-similarity.ts",
   "src/lib/klein-face-reference.ts",
-  "src/lib/look-presets.ts",
-  "src/lib/look-tile-role-client.ts",
   "src/lib/my-pose-packs.ts",
   "src/lib/outfit-quality-preset.ts",
   "src/lib/photo-pose-fit.ts",

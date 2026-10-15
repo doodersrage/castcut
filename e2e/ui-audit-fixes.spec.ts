@@ -153,9 +153,9 @@ test('Film steps: Cast, Day and Cut film are counted; the optional steps are nam
   await expect(page.getByTestId('play-campaign-step-cut')).toContainText('Step 3');
   await expect(page.getByTestId('play-campaign-step-cut')).toContainText('Cut film');
   await expect(page.getByTestId('play-campaign-step-fitting')).toContainText('Optional');
-  // The highlighted step is the film's (Day), not the optional Look.
+  // The highlighted step is the film's (Day); the retired Look is not listed.
   await expect(page.getByTestId('play-campaign-step-day')).toContainText('Continue');
-  await expect(page.getByTestId('play-campaign-step-moodboard')).not.toContainText('Continue');
+  await expect(page.getByTestId('play-campaign-step-moodboard')).toHaveCount(0);
 });
 
 test('Studio keeps the film in view, with a way back to Film', async ({ page }) => {

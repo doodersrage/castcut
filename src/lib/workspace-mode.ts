@@ -117,7 +117,6 @@ export const ROLEPLAY_FOCUS_HREFS = [
 export const ROLEPLAY_FOCUS_NAV_HREFS = [
   '/characters',
   '/play',
-  '/moodboard',
   '/fitting',
   '/day',
   '/story',

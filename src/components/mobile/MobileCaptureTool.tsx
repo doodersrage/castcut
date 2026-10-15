@@ -20,7 +20,6 @@ import { saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
 import {
   fittingPatchFromPlate,
-  moodboardPatchFromPlate,
   newCharacterPlateId,
   roleplayPatchFromPlate,
   toMobileStudioHref,
@@ -34,11 +33,7 @@ import {
   loadToolSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
-import {
-  DEFAULT_FITTING_TOOL_CACHE,
-  DEFAULT_MOODBOARD_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-} from '@/lib/play-settings';
+import { DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
 
 export default function MobileCaptureTool() {
   const { mounted, shared, toolSettings, updateToolSettings } = useCachedSettings(
@@ -74,20 +69,12 @@ export default function MobileCaptureTool() {
       ...fitting,
       ...fittingPatchFromPlate(plate),
     });
-    const moodboard = loadToolSettings('moodboard', DEFAULT_MOODBOARD_TOOL_CACHE);
-    const seeded = moodboardPatchFromPlate(plate);
-    const existingTiles = moodboard.tiles ?? [];
-    const hasPlateTile = existingTiles.some(tile => tile.imageUrl === seeded.tiles[0]?.imageUrl);
-    saveToolSettings('moodboard', {
-      ...moodboard,
-      tiles: hasPlateTile ? existingTiles : [...seeded.tiles, ...existingTiles],
-    });
   }, []);
 
-  const openLook = useCallback(
+  const openDay = useCallback(
     (plate: CharacterPlate) => {
       applyPlateToFilmLoop(plate);
-      router.push('/m/moodboard');
+      router.push('/m/day');
     },
     [applyPlateToFilmLoop, router]
   );
@@ -180,11 +167,11 @@ export default function MobileCaptureTool() {
         softAdvanceHref(
           '/m/fitting',
           'Outfit',
-          'Plate ready — continuing to Outfit (or go to Look)',
+          'Plate ready — continuing to Outfit (or go to Day)',
           [
             {
-              href: '/m/moodboard',
-              label: 'Go to Look instead',
+              href: '/m/day',
+              label: 'Go to Day instead',
             },
           ]
         );
@@ -329,9 +316,9 @@ export default function MobileCaptureTool() {
           <button
             type="button"
             className="ui-btn-primary w-full justify-center text-center"
-            onClick={() => openLook(active)}
+            onClick={() => openDay(active)}
           >
-            Start Look
+            Start Day
           </button>
           <Button
             variant="secondary"

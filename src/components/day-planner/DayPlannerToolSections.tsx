@@ -1385,13 +1385,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     >
                       Open Outfit
                     </ButtonLink>
-                    <ButtonLink
-                      href={`/moodboard?character=${encodeURIComponent(character.id)}`}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      Open Look
-                    </ButtonLink>
                   </>
                 ) : null}
                 <Button size="sm" variant="ghost" disabled={busy} onClick={goRoleplay}>
@@ -1411,13 +1404,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     variant="ghost"
                   >
                     Open Outfit
-                  </ButtonLink>
-                  <ButtonLink
-                    href={`/moodboard?character=${encodeURIComponent(character.id)}`}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    Open Look
                   </ButtonLink>
                 </>
               ) : null}

@@ -1,15 +1,12 @@
-import dynamic from 'next/dynamic';
-import PageCanvas from '@/components/ui/PageCanvas';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import { redirect } from 'next/navigation';
+import { retiredLookHref } from '@/lib/retired-look';
 
-const MoodboardTool = dynamic(() => import('@/components/MoodboardTool'), {
-  loading: () => <ToolPageSkeleton label="Loading moodboard" />,
-});
-
-export default function MoodboardPage() {
-  return (
-    <PageCanvas accent="cyan">
-      <MoodboardTool />
-    </PageCanvas>
-  );
+/** Look is retired — old links open the Cast's looks (retired-look.ts). */
+export default async function MoodboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { character } = await searchParams;
+  redirect(retiredLookHref(typeof character === 'string' ? character : undefined));
 }

@@ -24,16 +24,11 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
   {
     label: 'Film',
     links: [
-      { href: '/play', label: 'Film', description: 'Guided Look → Outfit → Day → Cut film loop' },
+      { href: '/play', label: 'Film', description: 'Guided Cast → Day → Cut film loop' },
       {
         href: '/characters',
         label: 'Cast',
         description: 'Character home — looks, stills, clips, and LoRA',
-      },
-      {
-        href: '/moodboard',
-        label: 'Look',
-        description: 'Reference tiles → extract a look for Outfit / Day',
       },
       { href: '/fitting', label: 'Outfit', description: 'Try a catalog kit on a Cast plate' },
       { href: '/day', label: 'Day', description: 'Morning through night — stills, then Cut film' },

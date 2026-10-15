@@ -199,9 +199,10 @@ export function usePlayCampaignWizardOrchestration({
     return PLAY_CAMPAIGN_STEPS[savedCampaign.stepIndex]?.id ?? 'character';
   }, [mounted, savedCampaign]);
 
-  // With a Cast picked and no film in progress the next step is Look (the page's own button
-  // says "Start at Look"), not Cast again.
-  const activeStep = stepOverride ?? restoredStep ?? (characterId ? 'moodboard' : 'character');
+  // With a Cast picked and no film in progress the next step is Day, not Cast again (a film
+  // saved at the retired Look step reads as Day too).
+  const restoredOrDay = restoredStep === 'moodboard' ? 'day' : restoredStep;
+  const activeStep = stepOverride ?? restoredOrDay ?? (characterId ? 'day' : 'character');
 
   const resumeStep = savedCampaign ? (PLAY_CAMPAIGN_STEPS[savedCampaign.stepIndex] ?? null) : null;
   const campaignComplete = Boolean(savedCampaign?.completedAt);
@@ -408,7 +409,7 @@ export function usePlayCampaignWizardOrchestration({
     }
     clearPlayCampaignState();
     setStepOverride(null);
-    goToStep('moodboard', activeLookPack);
+    goToStep('day', activeLookPack);
   }, [activeLookPack, characterId, goToStep]);
 
   const createCharacter = useCallback(

@@ -1293,12 +1293,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   >
                     Open Outfit
                   </Link>
-                  <Link
-                    href={`/m/moodboard?character=${encodeURIComponent(character.id)}`}
-                    className="ui-btn-ghost w-full justify-center text-center text-sm"
-                  >
-                    Open Look
-                  </Link>
                 </>
               ) : null}
               <Button
@@ -1323,12 +1317,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   className="ui-btn-ghost w-full justify-center text-center text-sm"
                 >
                   Open Outfit
-                </Link>
-                <Link
-                  href={`/m/moodboard?character=${encodeURIComponent(character.id)}`}
-                  className="ui-btn-ghost w-full justify-center text-center text-sm"
-                >
-                  Open Look
                 </Link>
                 {firstFilmDone ? (
                   <Button

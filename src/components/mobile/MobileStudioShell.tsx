@@ -82,8 +82,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   const deskHref = deskBridgeHref();
   const activeCharacterId =
     typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
-  const hint =
-    MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Look → Outfit → Day → Cut';
+  const hint = MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Cast → Day → Cut';
   const moreActive = moreTabs.some(entry => entry.id === tab);
 
   return (

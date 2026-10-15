@@ -20,7 +20,7 @@ import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { fittingSessionStatusLine } from '@/lib/fitting-room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
-import { toMobileStudioHref, withCharacterQuery } from '@/lib/mobile-studio';
+import { toMobileStudioHref } from '@/lib/mobile-studio';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
@@ -256,12 +256,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         className="ui-btn-secondary mt-2 inline-flex w-full justify-center text-sm"
       >
         Choose from Gallery
-      </Link>
-      <Link
-        href={withCharacterQuery('/m/moodboard', shared.activeCharacterId)}
-        className="ui-btn-ghost mt-2 inline-flex w-full justify-center text-sm"
-      >
-        Or open Look
       </Link>
     </div>
   );

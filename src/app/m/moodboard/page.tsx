@@ -1,13 +1,12 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import dynamic from 'next/dynamic';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
-
-const MobileMoodboardTool = dynamic(() => import('@/components/mobile/MobileMoodboardTool'), {
-  ssr: false,
-  loading: () => <ToolPageSkeleton label="Loading moodboard" />,
-});
-
-export default function MobileMoodboardPage() {
-  return <MobileMoodboardTool />;
+/** Look is retired — old phone links open the Cast on the phone (retired-look.ts). */
+export default async function MobileMoodboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { character } = await searchParams;
+  const id = typeof character === 'string' ? character.trim() : '';
+  redirect(id ? `/m?character=${encodeURIComponent(id)}` : '/m');
 }

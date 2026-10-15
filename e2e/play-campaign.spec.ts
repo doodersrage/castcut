@@ -40,10 +40,9 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign')).toBeVisible();
   await expect(page.getByTestId('play-campaign-character')).toBeVisible();
   await expect(page.getByTestId('play-campaign-steps')).toBeVisible();
-  await expect(page.getByTestId('play-campaign-step-moodboard')).toBeVisible();
+  // Look is retired; Outfit is optional (Day plans and dresses the Cast); Day is step 2.
+  await expect(page.getByTestId('play-campaign-step-moodboard')).toHaveCount(0);
   await expect(page.getByTestId('play-campaign-step-fitting')).toBeVisible();
-  // Look and Outfit are optional (Day plans and dresses the Cast); Day is the second step.
-  await expect(page.getByTestId('play-campaign-step-moodboard')).toContainText('Optional');
   await expect(page.getByTestId('play-campaign-step-fitting')).toContainText('Optional');
   await expect(page.getByTestId('play-campaign-step-day')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-day')).toContainText('Step 2');
@@ -1418,47 +1417,6 @@ test('phone story recognises the active Cast before any film is cut', async ({ p
   await expect(page.getByTestId('story-needs-cast')).toHaveCount(0, { timeout: 15_000 });
 });
 
-test('look: one preset row, tile board, paste adds a tile', async ({ page }) => {
-  await gotoStable(page, '/moodboard');
-  await dismissBlockingOverlays(page);
-  const picker = page.getByTestId('look-preset-picker');
-  await expect(picker).toBeVisible({ timeout: 30_000 });
-  // Presets are listed once — the separate "Use X for today" button wall is gone.
-  await expect(page.getByTestId('moodboard-use-for-today')).toHaveCount(0);
-  await expect(page.getByTestId('look-preset-selected')).toHaveCount(0);
-
-  const board = page.getByTestId('look-tile-board');
-  await expect(board).toBeVisible();
-  const before = await board.locator('[data-testid^="look-tile-"]:not([data-testid="look-tile-add"])').count();
-
-  // Paste an image anywhere on the page → a new tile.
-  if (before < 4) {
-    await page.evaluate(async () => {
-      const png = Uint8Array.from(
-        atob(
-          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
-        ),
-        char => char.charCodeAt(0)
-      );
-      const data = new DataTransfer();
-      data.items.add(new File([png], 'pasted.png', { type: 'image/png' }));
-      window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data }));
-    });
-    await expect(
-      board.locator('[data-testid^="look-tile-"]:not([data-testid="look-tile-add"])')
-    ).toHaveCount(before + 1, { timeout: 15_000 });
-  }
-
-  // Pick a preset → one place to load it or use it for today.
-  await page.getByTestId('look-preset-cozy').click();
-  const selected = page.getByTestId('look-preset-selected');
-  await expect(selected).toBeVisible();
-  await expect(selected.getByTestId('look-preset-load')).toBeVisible();
-  await expect(selected.getByTestId('moodboard-preset-day-cozy')).toBeVisible();
-  await selected.getByTestId('look-preset-load').click();
-  await expect(board.getByTestId('look-tile-0')).toBeVisible();
-});
-
 test('day and story show a running job as Rendering, Story Retry flagged, and the prompt check', async ({
   page,
 }) => {
@@ -1588,18 +1546,11 @@ test('day and story show a running job as Rendering, Story Retry flagged, and th
   );
 });
 
-test('moodboard look extract controls load', async ({ page }) => {
-  await gotoStable(page, '/moodboard');
-  await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Look$/i })).toBeVisible({
-    timeout: 30_000,
-  });
-  await expect(page.getByTestId('moodboard-character')).toBeVisible();
-  await expect(page.getByTestId('moodboard-tiles')).toBeVisible();
-  await expect(page.getByTestId('moodboard-extract-look')).toBeVisible();
-  // Look → Day, with Outfit an optional try-on first.
-  await expect(page.getByTestId('moodboard-continue-day')).toBeVisible();
-  await expect(page.getByTestId('moodboard-try-outfit')).toBeVisible();
+test('retired Look links open the Cast looks', async ({ page }) => {
+  await gotoStable(page, '/moodboard?character=e2e-char');
+  await expect(page).toHaveURL(/\/characters\/e2e-char\?tab=overview#looks$/);
+  await gotoStable(page, '/m/moodboard');
+  await expect(page).toHaveURL(/\/m$/);
 });
 
 test('look pack deep link stages Fitting from=look handoff', async ({ page }) => {

@@ -173,13 +173,6 @@ export default function FittingActionRow({
                   </ButtonLink>
                 ) : null}
                 <ButtonLink
-                  href={`/moodboard?character=${encodeURIComponent(character.id)}`}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Back to Look
-                </ButtonLink>
-                <ButtonLink
                   href={`/gallery?character=${encodeURIComponent(character.id)}`}
                   size="sm"
                   variant="ghost"

@@ -164,7 +164,6 @@ describe("workspace-mode", () => {
         assert.deepEqual(hrefs, [
           "/characters",
           "/play",
-          "/moodboard",
           "/fitting",
           "/day",
           "/story",
@@ -187,7 +186,6 @@ describe("workspace-mode", () => {
     assert.deepEqual(hrefs, [
       "/characters",
       "/play",
-      "/moodboard",
       "/fitting",
       "/day",
       "/story",

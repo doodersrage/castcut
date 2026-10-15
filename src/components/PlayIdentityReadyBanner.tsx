@@ -19,7 +19,6 @@ import { toolEffectiveModel } from '@/lib/tool-effective-model';
 const ROUTE_TOOL_KEY: Record<string, string> = {
   '/day': 'day',
   '/fitting': 'fitting',
-  '/moodboard': 'moodboard',
   '/story': 'roleplay',
   '/roleplay': 'roleplay',
   '/character': 'character',

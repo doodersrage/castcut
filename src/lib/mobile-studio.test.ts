@@ -5,7 +5,6 @@ import {
   mobileStudioTabFromPath,
   normalizeCharacterPlates,
   fittingPatchFromPlate,
-  moodboardPatchFromPlate,
   roleplayPatchFromPlate,
   toMobileStudioHref,
   dayToolHref,
@@ -39,7 +38,6 @@ describe('mobile studio paths', () => {
     assert.equal(mobileStudioTabFromPath('/m'), 'capture');
     assert.equal(mobileStudioTabFromPath('/m/queue'), 'queue');
     assert.equal(mobileStudioTabFromPath('/m/gallery'), 'gallery');
-    assert.equal(mobileStudioTabFromPath('/m/moodboard'), 'moodboard');
     assert.equal(mobileStudioTabFromPath('/m/fitting'), 'fitting');
     assert.equal(mobileStudioTabFromPath('/m/day'), 'day');
     assert.equal(mobileStudioTabFromPath('/m/story'), 'story');
@@ -49,7 +47,6 @@ describe('mobile studio paths', () => {
   it('remaps desk film paths onto /m', () => {
     assert.equal(toMobileStudioHref('/fitting?character=c1'), '/m/fitting?character=c1');
     assert.equal(toMobileStudioHref('/day?from=look'), '/m/day?from=look');
-    assert.equal(toMobileStudioHref('/moodboard'), '/m/moodboard');
     assert.equal(toMobileStudioHref('/story?character=c1'), '/m/story?character=c1');
     assert.equal(toMobileStudioHref('/roleplay?character=c1'), '/m/story?character=c1');
     assert.equal(toMobileStudioHref('/play'), '/m/film');
@@ -104,13 +101,9 @@ describe('character plates', () => {
     assert.equal(patch.referenceImageUrl, plate().originalUrl);
   });
 
-  it('seeds Look and Outfit patches from a Capture plate', () => {
+  it('seeds the Outfit patch from a Capture plate', () => {
     const fitting = fittingPatchFromPlate(plate());
     assert.equal(fitting.referenceImageUrl, '/api/gallery/media/identity?id=cut');
     assert.equal(fitting.referenceIsolated, true);
-    const look = moodboardPatchFromPlate(plate());
-    assert.equal(look.tiles.length, 1);
-    assert.equal(look.tiles[0]?.imageUrl, '/api/gallery/media/identity?id=cut');
-    assert.equal(look.tiles[0]?.label, 'Sam');
   });
 });

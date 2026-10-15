@@ -36,7 +36,6 @@ import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { fittingSessionStatusLine } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
 import { dayPartnerNoun } from '@/lib/day-partner';
-import { withCharacterQuery } from '@/lib/mobile-studio';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 const ACCENT = 'rose' as const;
@@ -192,7 +191,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       onApplyReference={applyReference}
       onClearReference={clearReference}
       onError={message => setError(message)}
-      lookHref={withCharacterQuery('/moodboard', shared.activeCharacterId)}
       characterId={shared.activeCharacterId}
     />
   );

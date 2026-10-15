@@ -809,13 +809,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
         >
           Open Outfit
         </Link>
-        <Link
-          href={withCharacterQuery('/m/moodboard', castId)}
-          className="ui-btn-ghost w-full justify-center text-center text-sm"
-          data-testid="mobile-continue-moodboard"
-        >
-          Open Look
-        </Link>
         <details className="rounded-xl border border-[var(--border-subtle)] px-3 py-2">
           <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
             Optional desk handoff

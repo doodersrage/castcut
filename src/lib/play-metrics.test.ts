@@ -245,7 +245,7 @@ describe('play-metrics', () => {
     assert.equal(resolvePlayFunnelStepHref('cut', 'c1'), '/day?character=c1');
     assert.equal(resolvePlayFunnelStepHref('fitting', 'c1'), '/fitting?character=c1');
     assert.equal(resolvePlayFunnelStepHref('character'), '/characters');
-    assert.equal(resolvePlayFunnelStepHref('moodboard', 'c1'), '/moodboard?character=c1');
+    assert.equal(resolvePlayFunnelStepHref('moodboard', 'c1'), '/characters/c1?tab=overview#looks');
     const withPack = resolvePlayFunnelStepHref('fitting', 'c1', {
       version: 1,
       source: 'moodboard',

@@ -56,14 +56,6 @@ export default function CharacterHomeActionRow({
           <Button
             size="sm"
             variant="secondary"
-            data-testid="character-home-look"
-            onClick={() => go(`/moodboard?character=${character.id}`)}
-          >
-            Look
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
             data-testid="character-home-outfit"
             onClick={() => go(`/fitting?character=${character.id}`)}
           >
