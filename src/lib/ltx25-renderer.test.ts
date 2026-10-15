@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import {
+import { storyClipChoice,
   clipEngineForShot,
   dayClipVideoModel,
   convertVideoWorkflowToLtx25,
@@ -339,5 +339,15 @@ describe('Day clips default to LTX-2.5', () => {
     assert.equal(clipEngineForShot(day, { adultDuo: false, clothedSolo: true }), 'ltx-video-2.5');
     // WAN for Day: a talking clip still needs LTX for its sound.
     assert.equal(clipEngineForShot(dayClipVideoModel('wan', 'wan-video'), { adultDuo: false, speaking: true }), 'ltx-video-2.5');
+  });
+});
+
+describe('storyClipChoice', () => {
+  it('reads Story clips like Day: LTX by default, the old Video-model setting as WAN', () => {
+    assert.equal(storyClipChoice(undefined), 'ltx');
+    assert.equal(storyClipChoice('ltx'), 'ltx');
+    assert.equal(storyClipChoice('model'), 'wan');
+    assert.equal(storyClipChoice('wan'), 'wan');
+    assert.equal(storyClipChoice('h3'), 'h3');
   });
 });

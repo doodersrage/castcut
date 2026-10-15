@@ -180,6 +180,11 @@ export function dayClipVideoModel(
   return isLtx25Model(pickedVideoModel) ? 'wan-video' : pickedVideoModel;
 }
 
+/** Story's saved clip engine as Day's choice: the old "Video → Model" setting meant WAN. */
+export function storyClipChoice(saved: string | undefined): 'ltx' | 'wan' | 'h3' {
+  return saved === 'h3' ? 'h3' : saved === 'wan' || saved === 'model' ? 'wan' : 'ltx';
+}
+
 /** LTX lengths are 8k+1 frames; keep the WAN clip's duration at 24 fps. */
 export function ltx25FrameCount(frames: number, fps: number): number {
   const seconds = frames > 0 && fps > 0 ? frames / fps : 4;

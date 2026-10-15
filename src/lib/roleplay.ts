@@ -1701,6 +1701,47 @@ export function extractJsonValue(text: string): unknown {
   }
 }
 
+/**
+ * The complete objects in a JSON array that was cut off — `{"scenes":[{…},{…},{"title":"…` gives
+ * the first two. A local model with a small context (LM Studio loaded at 2,048 tokens) ran out of
+ * room mid-answer once a Story had seven scenes, and nothing parsed (2026-10-15).
+ */
+export function salvageJsonArrayObjects(text: string, key = 'scenes'): unknown[] {
+  const keyAt = text.indexOf(`"${key}"`);
+  const start = text.indexOf('[', keyAt >= 0 ? keyAt : 0);
+  if (start < 0) return [];
+  const found: unknown[] = [];
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let objectStart = -1;
+  for (let i = start + 1; i < text.length; i += 1) {
+    const ch = text[i]!;
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{') {
+      if (depth === 0) objectStart = i;
+      depth += 1;
+    } else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0 && objectStart >= 0) {
+        try {
+          found.push(JSON.parse(text.slice(objectStart, i + 1)));
+        } catch {
+          // a broken object is skipped; the next one may be whole
+        }
+        objectStart = -1;
+      }
+    } else if (ch === ']' && depth === 0) break;
+  }
+  return found;
+}
+
 export const MAX_ROLEPLAY_CHARACTER_NAME = 40;
 
 export function normalizeRoleplayCharacterName(value: string | null | undefined): string {

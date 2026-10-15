@@ -23,6 +23,7 @@ import {
 } from '../intimate-prompt-clarify';
 import {
   extractJsonValue,
+  salvageJsonArrayObjects,
   applyRoleplayCharacterName,
   formatRoleplayAvoidedScenes,
   formatRoleplayBio,
@@ -366,6 +367,12 @@ const SCENE_LINE_TONE: Record<SpokenLineHeat, string> = {
 /** How long Story's writers wait for a busy LLM before using the built-in text. */
 const ROLEPLAY_LLM_SLOT_WAIT_MS = 90_000;
 
+/** Scenes from the writer's JSON — or the complete ones from an answer that was cut off. */
+function parseScenesLoose(raw: string): RoleplayScene[] {
+  const whole = parseRoleplayScenes(extractJsonValue(raw));
+  return whole.length > 0 ? whole : parseRoleplayScenes(salvageJsonArrayObjects(raw));
+}
+
 async function llmJson(options: {
   system: string;
   user: string;
@@ -612,7 +619,7 @@ ${storyPhotographableLine(storySetup(options, bio))}
       provider: 'template',
     };
   }
-  let parsed = parseRoleplayScenes(extractJsonValue(raw));
+  let parsed = parseScenesLoose(raw);
   // Options that repeat a pose (each other, or the last beat) look like four takes of one
   // photo — ask once more naming the clash, and keep whichever set varies more.
   const repeats = roleplayScenePoseRepeats(parsed, recentPoses);
@@ -624,7 +631,7 @@ ${storyPhotographableLine(storySetup(options, bio))}
           ', '
         )}. Every option must use a different pose from the others and from the last beat.`
     );
-    const retry = retryRaw ? parseRoleplayScenes(extractJsonValue(retryRaw)) : [];
+    const retry = retryRaw ? parseScenesLoose(retryRaw) : [];
     if (
       retry.length >= parsed.length &&
       roleplayScenePoseRepeats(retry, recentPoses).length < repeats.length
@@ -648,7 +655,7 @@ ${storyPhotographableLine(storySetup(options, bio))}
     const retryRaw = await writeScenes(
       `- Your last options broke these rules: ${[...new Set(wrong)].join(' ')} Write four that do not.`
     );
-    const retry = retryRaw ? checkScenes(parseRoleplayScenes(extractJsonValue(retryRaw))) : [];
+    const retry = retryRaw ? checkScenes(parseScenesLoose(retryRaw)) : [];
     const stillWrong = (list: typeof checked) =>
       list.filter(entry => entry.remaining.length > 0).length;
     if (retry.length >= checked.length && stillWrong(retry) < stillWrong(checked)) {
@@ -657,7 +664,28 @@ ${storyPhotographableLine(storySetup(options, bio))}
   }
   parsed = checked.filter(entry => entry.remaining.length === 0).map(entry => entry.scene);
   const scenes = mergeRoleplaySceneOptions(parsed, fallback, options.story, 4, rejectedScenes);
-  const next = stampFinaleScenes(scenes.length > 0 ? scenes : fallback, finale);
+  // Never an empty hand while the story goes on: the built-in scenes run out after a few cards
+  // (every one played or turned down), so offer turned-down ones again before giving up.
+  const looseFallback =
+    scenes.length > 0 || fallback.length > 0
+      ? fallback
+      : templateRoleplayScenes(
+          options.personaId,
+          options.customPersona,
+          options.story,
+          bio.name,
+          [],
+          content,
+          options.intimateMix
+        );
+  const next = stampFinaleScenes(scenes.length > 0 ? scenes : looseFallback, finale);
+  if (next.length === 0) {
+    throw new Error(
+      raw
+        ? 'The story writer’s answer came back cut off, and the built-in scenes for this story are used up. If the model runs in LM Studio, reload it with a larger context length (8192 or more), then roll again.'
+        : 'No more built-in scenes for this story — turn the LLM on (Settings → LLM) to keep it going.'
+    );
+  }
   return {
     scenes: clarifyRoleplaySceneBlurbs(next, isRoleplayAdultContent(content)),
     provider: parsed.length > 0 ? 'llm' : 'template',

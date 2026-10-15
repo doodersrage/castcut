@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { RoleplayStoryBeat } from './roleplay';
-import {
+import { salvageJsonArrayObjects,
   appendRoleplayStoryBeat,
   continueRoleplayScenes,
   extractJsonValue,
@@ -1281,5 +1281,17 @@ describe('built-in fallback cards', () => {
       assert.doesNotMatch(scene.blurb, /\byou\b|lighthouse keeper/i);
       assert.match(scene.blurb, /Tomas/);
     }
+  });
+});
+
+describe('salvageJsonArrayObjects', () => {
+  it('keeps the complete objects of a cut-off scenes array', () => {
+    const cut =
+      '{"scenes":[{"title":"A","blurb":"one {braces} in text"},{"title":"B","blurb":"two"},{"title":"C","blu';
+    assert.deepEqual(salvageJsonArrayObjects(cut), [
+      { title: 'A', blurb: 'one {braces} in text' },
+      { title: 'B', blurb: 'two' },
+    ]);
+    assert.deepEqual(salvageJsonArrayObjects('{"scenes":[{"title":"A"'), []);
   });
 });

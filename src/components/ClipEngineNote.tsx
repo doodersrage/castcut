@@ -2,8 +2,8 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
-import { H3_LICENCE_NOTE, H3_MODEL_ID } from '@/lib/h3-renderer';
-import { dayClipVideoModel, isLtx25Model } from '@/lib/ltx25-renderer';
+import { H3_LICENCE_NOTE } from '@/lib/h3-renderer';
+import { dayClipVideoModel, isLtx25Model, storyClipChoice } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
@@ -44,14 +44,14 @@ export default function ClipEngineNote({
     const saved = loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).dayClips;
     return saved === 'wan' || saved === 'h3' ? saved : 'ltx';
   });
-  const [storyClips, setStoryClips] = useState<'model' | 'h3'>(() =>
-    loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips === 'h3' ? 'h3' : 'model'
+  const [storyClips, setStoryClips] = useState<'ltx' | 'wan' | 'h3'>(() =>
+    storyClipChoice(loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips)
   );
   const model =
     day && picked
       ? dayClipVideoModel(dayClips, picked)
-      : story && storyClips === 'h3'
-        ? H3_MODEL_ID
+      : story && picked
+        ? dayClipVideoModel(storyClips, picked)
         : picked;
   const storyChoice = story ? (
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
@@ -61,7 +61,7 @@ export default function ClipEngineNote({
         value={storyClips}
         data-testid="clip-engine-story"
         onChange={event => {
-          const next = event.target.value === 'h3' ? 'h3' : 'model';
+          const next = storyClipChoice(event.target.value);
           setStoryClips(next);
           saveToolSettings('video', {
             ...loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE),
@@ -69,11 +69,15 @@ export default function ClipEngineNote({
           });
         }}
       >
-        <option value="model">Video model (default)</option>
+        <option value="ltx">LTX-2.5 (default)</option>
+        <option value="wan">WAN</option>
         <option value="h3" title="Best motion, with sound — about 5× slower">
           MiniMax-H3 (best motion, slower)
         </option>
       </select>
+      {storyClips === 'wan' ? (
+        <span>— talking clips still use LTX-2.5 (only it makes sound)</span>
+      ) : null}
       {storyClips === 'h3' ? (
         <span
           data-testid="clip-engine-story-h3-note"

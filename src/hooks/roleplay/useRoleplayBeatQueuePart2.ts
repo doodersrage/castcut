@@ -22,6 +22,8 @@ import {
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
   normalizeSpokenLine,
   talkingClipPrompt,
+  dayClipVideoModel,
+  storyClipChoice,
 } from '@/lib/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
@@ -38,7 +40,6 @@ import {
   loadToolSettings,
 } from '@/lib/settings-cache';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
-import { H3_MODEL_ID } from '@/lib/h3-renderer';
 import {
   beginRoleplayClipRetryPatch,
   lastCompletedRoleplayStillUrl,
@@ -290,12 +291,12 @@ export function useRoleplayBeatQueuePart2(
             });
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
-      // Story clips follow Video → Model, unless the player picked MiniMax-H3 for Story (Video
-      // `storyClips`) — image-to-video only (H3 starts from a frame here).
-      const storyClipModel =
-        loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips === 'h3'
-          ? H3_MODEL_ID
-          : videoModel;
+      // Story clips: the same choices as Day — LTX-2.5 (default), WAN or MiniMax-H3 (Video
+      // `storyClips`). Image-to-video only (H3 starts from a frame here).
+      const storyClipModel = dayClipVideoModel(
+        storyClipChoice(loadToolSettings('video', DEFAULT_VIDEO_TOOL_CACHE).storyClips),
+        videoModel
+      );
       const clipModel =
         queueClipMode === 'i2v'
           ? clipEngineForShot(storyClipModel, {
