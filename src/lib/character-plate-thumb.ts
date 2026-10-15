@@ -124,6 +124,22 @@ export function castPlateTiles(
   });
 }
 
+/**
+ * The outfit under a look's narrow tile: catalog names open with the fit ("boxy chocolate nun
+ * habit"), so one clipped line read "boxy…" on every look — show the garment at the end instead.
+ * The full name stays in the tile's title.
+ */
+export function lookTileOutfitCaption(outfit: string | undefined): string | undefined {
+  const words = outfit?.replace(/…$/, '').trim().split(/\s+/).filter(Boolean) ?? [];
+  // A clipped description can end mid-phrase ("…summer dress with…").
+  while (words.length > 1 && /^(?:with|and|in|of|on|a|an|the|or|to|for|at)$/i.test(words.at(-1)!)) {
+    words.pop();
+  }
+  if (words.length === 0) return undefined;
+  const text = words.join(' ');
+  return text.length <= 12 ? text : words.slice(-2).join(' ');
+}
+
 /** A look's tile: its own plate, or an Add plate box — never another look's picture. */
 export function castLookPortraitTile(
   tile: CastPlateTile,
@@ -135,7 +151,7 @@ export function castLookPortraitTile(
     label: tile.label,
     title: tile.hasPlate ? `${tile.label}${outfit}` : `${tile.label}${outfit} — no plate yet`,
     thumb: tile.thumb,
-    caption: tile.outfit,
+    caption: lookTileOutfitCaption(tile.outfit),
     ...(tile.hasPlate ? {} : { placeholder: options?.placeholder ?? 'Add plate' }),
   };
 }

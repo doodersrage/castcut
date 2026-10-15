@@ -114,6 +114,7 @@ export default function LlmModelDefaultsPanel({
         </div>
         <input
           type="range"
+          aria-label="Temperature"
           min={0}
           max={2}
           step={0.05}

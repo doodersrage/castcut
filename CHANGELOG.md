@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Polish, round six** (Day slot and clothing sheets, the More menu, command palette, Settings LLM / Automation, Profile and phone Story / Outfit in dark, phone Queue, tablet width — no sideways scroll at 820 px):
+  - **Accessibility:** the Film More menu's "Report a bug" is a proper menu item (axe: a plain wrapper inside a menu), and the LLM temperature slider has a label.
+  - **Look tiles** show the garment ("nun habit") instead of "boxy…" — catalog names open with the fit, so every look read the same; the full name is on hover.
+  - **Errors:** a picture upload that gets a non-JSON answer (a proxy's error page, a restarting server) says "The server couldn't reach ComfyUI (HTTP 503)…" instead of "Unexpected token … is not valid JSON".
+  - **Command palette:** recent Gallery items say "Day" / "Outfit", not "image-prompt"; page descriptions match the pages ("Everything you've made", "What happens next, scene by scene"); "Dismiss continue" is "Forget where I was".
+  - **Phone Queue:** "ComfyUI ready · 1 running, 4 waiting in all" (the whole ComfyUI queue) and "None of your jobs are rendering" — it said "Nothing in flight" beside "1 running".
 - **Polish, round five** (Day setup sheet, Cast Bible and Packs tabs, Gallery grid, kit browser, Cut options, Settings ComfyUI / Data / all, phone Day / Cast / Gallery in dark; axe + focus sweep on 16 more screens):
   - **Accessibility:** the hidden JSON file pickers (look packs, backups, presets, workflows — 13 places) have a label; axe flagged the Cast one.
   - **Story:** "Undo last scene" on desktop too (it said "Take back the last scene"), and the auto-queue note says what it does ("Makes a short clip from each new scene") instead of "Queues T2V (or I2V…). Extend / Continue / Stitch labels…".

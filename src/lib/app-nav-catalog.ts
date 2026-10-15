@@ -24,18 +24,26 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
   {
     label: 'Film',
     links: [
-      { href: '/play', label: 'Film', description: 'Guided Cast → Day → Cut film loop' },
+      {
+        href: '/play',
+        label: 'Film',
+        description: 'Pick who it’s about, plan their Day, cut the film',
+      },
       {
         href: '/characters',
         label: 'Cast',
-        description: 'Character home — looks, stills, clips, and LoRA',
+        description: 'Everyone you make films with',
       },
-      { href: '/fitting', label: 'Outfit', description: 'Try a catalog kit on a Cast plate' },
-      { href: '/day', label: 'Day', description: 'Morning through night — stills, then Cut film' },
+      { href: '/fitting', label: 'Outfit', description: 'Try clothes on, keep the one you like' },
+      {
+        href: '/day',
+        label: 'Day',
+        description: 'Plan the scenes, render the stills, cut the film',
+      },
       {
         href: '/story',
         label: 'Story',
-        description: 'Be someone. Pick a scene. Get a still or clip.',
+        description: 'What happens next, scene by scene',
       },
       {
         href: '/character',
@@ -67,8 +75,8 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
   {
     label: 'Library',
     links: [
-      { href: '/gallery', label: 'Gallery', description: 'ComfyUI outputs' },
-      { href: '/queue', label: 'Queue', description: 'Central ComfyUI job queue' },
+      { href: '/gallery', label: 'Gallery', description: 'Everything you’ve made' },
+      { href: '/queue', label: 'Queue', description: 'What’s rendering now, and what failed' },
       { href: '/dashboard', label: 'Dashboard', description: 'Jobs, queue & recent outputs' },
       { href: '/studio', label: 'Studio', description: 'History, presets, and compare' },
     ],

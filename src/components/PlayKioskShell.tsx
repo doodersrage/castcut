@@ -256,9 +256,11 @@ export default function PlayKioskShell() {
                 >
                   Phone view
                 </Link>
-                <div className="px-3 py-2 text-sm">
-                  <ReportBugLink className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]" />
-                </div>
+                {/* A menuitem itself: a plain wrapper inside role="menu" failed axe. */}
+                <ReportBugLink
+                  role="menuitem"
+                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                />
                 <Link
                   href={ROLEPLAY_FOCUS_ESCAPE_HREF}
                   role="menuitem"

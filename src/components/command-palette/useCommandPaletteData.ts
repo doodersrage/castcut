@@ -22,6 +22,7 @@ import type { CommandItem } from '@/components/command-palette/types';
 import type { SessionRecipe } from '@/lib/session-recipes';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { appHasRoute } from '@/lib/app-profile';
+import { describeQueueJob } from '@/lib/queue-job-context';
 
 type UseCommandPaletteDataOptions = {
   open: boolean;
@@ -287,7 +288,8 @@ export function filterCommandPaletteItems(options: {
     continueItems.push({
       id: `recent-gallery-${entry.id}`,
       label: `Gallery · ${preview}`,
-      subtitle: entry.tool ?? 'completed',
+      // "Day", "Outfit" — not the raw tool id ("image-prompt").
+      subtitle: describeQueueJob(entry, null).label || 'Gallery',
       href: `/gallery?focus=${encodeURIComponent(entry.id)}`,
       group: 'Gallery',
     });
@@ -295,8 +297,8 @@ export function filterCommandPaletteItems(options: {
   if (lastDraft || lastRoute) {
     continueItems.push({
       id: 'dismiss-continue',
-      label: 'Dismiss continue',
-      subtitle: 'Clear resume draft and last tool',
+      label: 'Forget where I was',
+      subtitle: 'Clears the last page and draft Continue points to',
       group: 'Continue',
       action: onDismissContinue,
     });

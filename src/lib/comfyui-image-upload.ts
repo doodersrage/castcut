@@ -50,7 +50,7 @@ async function uploadJson(
     }),
   });
 
-  const data = (await response.json()) as ComfyUploadedImage & { error?: string };
+  const data = await readUploadJson(response);
   if (!response.ok || !data.name?.trim()) {
     throw new Error(data.error ?? 'ComfyUI image upload failed.');
   }
@@ -60,6 +60,36 @@ async function uploadJson(
     subfolder: data.subfolder?.trim() || undefined,
     type: data.type?.trim() || undefined,
     comfyUrl: typeof data.comfyUrl === 'string' ? data.comfyUrl.trim() || undefined : undefined,
+  };
+}
+
+/**
+ * The upload route's JSON, or a plain error when the reply isn't JSON (a proxy's error page, a
+ * restarting server) — `response.json()` showed "Unexpected token … is not valid JSON".
+ */
+async function readUploadJson(
+  response: Response
+): Promise<ComfyUploadedImage & { error?: string }> {
+  try {
+    // Read as text so a non-JSON body can't throw a parse error at the user (json() as a fallback
+    // for minimal Response stand-ins).
+    const parsed = (
+      typeof response.text === 'function'
+        ? JSON.parse(await response.text())
+        : await response.json()
+    ) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as ComfyUploadedImage & { error?: string };
+    }
+  } catch {
+    // fall through
+  }
+  return {
+    name: '',
+    error:
+      response.status >= 500 || response.status === 0
+        ? `The server couldn’t reach ComfyUI (HTTP ${response.status}). Check that ComfyUI is running, then try again.`
+        : `The upload got an unexpected answer (HTTP ${response.status}). Try again in a moment.`,
   };
 }
 
@@ -95,7 +125,7 @@ async function uploadMultipart(
     body: formData,
   });
 
-  const data = (await response.json()) as ComfyUploadedImage & { error?: string };
+  const data = await readUploadJson(response);
   if (!response.ok || !data.name?.trim()) {
     throw new Error(data.error ?? 'ComfyUI image upload failed.');
   }

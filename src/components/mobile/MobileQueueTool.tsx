@@ -111,10 +111,11 @@ export default function MobileQueueTool() {
         <h1 className="type-display text-2xl tracking-tight">Queue</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           {health?.ok
-            ? `Comfy ready · ${health.queueRunning ?? 0} running · ${health.queuePending ?? 0} waiting`
+            ? // The whole ComfyUI queue (other apps' jobs too), so say so — the card below is yours.
+              `ComfyUI ready · ${health.queueRunning ?? 0} running, ${health.queuePending ?? 0} waiting in all`
             : health?.error
-              ? `Comfy: ${health.error}`
-              : 'Watch jobs while Day stills render.'}
+              ? `ComfyUI: ${health.error}`
+              : 'What’s rendering now.'}
         </p>
       </div>
 
@@ -133,8 +134,7 @@ export default function MobileQueueTool() {
           data-testid="mobile-queue-empty"
         >
           <p className="text-sm text-[var(--text-muted)]">
-            Nothing in flight. Continue your film on Day, or wait here while stills queue. Demo
-            stills work offline if Comfy is down.
+            None of your jobs are rendering. Carry on with your film on Day.
           </p>
           <ButtonLink
             href={toMobileStudioHref(filmCta.href)}
