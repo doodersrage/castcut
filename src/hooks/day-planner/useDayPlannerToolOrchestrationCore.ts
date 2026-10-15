@@ -2223,7 +2223,7 @@ export function useDayPlannerToolOrchestrationCore() {
           slotPrompt,
           poseFirst:
             /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
-            normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
+            !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
             !adultStill &&
             !slotPartner,
           camera: dayStillCamera({

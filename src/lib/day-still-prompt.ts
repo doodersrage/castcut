@@ -101,9 +101,9 @@ export type DayStillPromptFacts = {
   /** The pose guide that was drawn, if any. */
   pose: { layout: string | null; poseKey?: string | null; figures: number } | null;
   /**
-   * Lead with the stance in words ("POSE FIRST: …") — Everyday one-person stills on Edit 2511
-   * with a pose map. Same seeds, 8 beats (2026-10-15): walk, rail lean and a seated toast took
-   * their maps only with it (3 better, 0 worse); the rest already did.
+   * Lead with the stance in words ("POSE FIRST: …") — clothed one-person stills on Edit 2511
+   * with a pose map. Same seeds (2026-10-15): Everyday 3/8 better, Vacation 1/8, Suggestive 3/7,
+   * Sport 2/8, none worse — the rest already followed their maps.
    */
   poseFirst?: boolean;
   /**
