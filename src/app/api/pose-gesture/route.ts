@@ -29,7 +29,8 @@ function readQuestions(raw: unknown): GestureQuestion[] {
 
 /**
  * The pose check's yes/no questions (the beat's actions, the posture), and with `realism: true` the
- * realism rating in the same call: `{ answers: GestureAnswer[] | null, realism: number | null }`.
+ * realism rating in the same call, and with `place` whether the still is there (still-place.ts):
+ * `{ answers: GestureAnswer[] | null, realism: number | null, place: PlaceVerdict | null }`.
  */
 export async function POST(request: Request) {
   try {
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       mimeType?: string;
       questions?: unknown;
       realism?: boolean;
+      place?: string;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -54,13 +56,15 @@ export async function POST(request: Request) {
     }
     const questions = readQuestions(body.questions);
     const realism = body.realism === true;
-    if (questions.length === 0 && !realism) {
+    const place = typeof body.place === 'string' ? body.place.trim().slice(0, 300) : '';
+    if (questions.length === 0 && !realism && !place) {
       return apiError('At least one question is required.', 400);
     }
     const reply = await askGestureVision({
       imageDataUrl: normalizeImageDataUrl(body.image.trim(), body.mimeType),
       questions,
       realism,
+      ...(place ? { place } : {}),
       llm: parseLlmRequestOptions(body),
     });
     return apiJson(reply);

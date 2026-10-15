@@ -290,8 +290,14 @@ export function useDaySlotQualityGate(
         }
         setQualityStatus(`Reviewing ${target.label}…`);
         // How real it looks: its own vision call (in the review prompt it never fired).
-        const { checkStillRealism } = await import('@/lib/pose-gesture-vision-client');
-        const realism = await checkStillRealism({ imageUrl: checkUrl, shared }).catch(() => null);
+        // And where it is: the place check rides the same upload (still-place.ts).
+        const { checkStillRealismAndPlace } = await import('@/lib/pose-gesture-vision-client');
+        const looked = await checkStillRealismAndPlace({
+          imageUrl: checkUrl,
+          place: target.location,
+          shared,
+        }).catch(() => ({ realism: null, place: null }));
+        const realism = looked.realism;
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,
           context: {
@@ -321,6 +327,7 @@ export function useDaySlotQualityGate(
                 : null,
             photoLook: realism?.rating ?? null,
             realismRedone: ledgerRef.current[target.id]?.realismRedone === true,
+            place: looked.place,
           }
         );
         if (faceMatch !== null) {

@@ -363,6 +363,8 @@ export function decideSlotQuality(
     photoLook?: number | null;
     /** This slot was already redone once for looking computer-made (it only warns now). */
     realismRedone?: boolean;
+    /** Where the still was seen, judged against the slot's place (still-place.ts). */
+    place?: { match: boolean; seen: string } | null;
   }
 ): SlotQualityDecision {
   const overall = slotQualityOverall(report);
@@ -393,6 +395,10 @@ export function decideSlotQuality(
           : slotReviewFlagLabel(flag)
       );
     }
+  }
+  // Somewhere else than planned: a re-roll, like a hard flag (0 of 30 right places called wrong).
+  if (extras?.place && !extras.place.match) {
+    reasons.push(`not the planned place — she is in: ${extras.place.seen}`);
   }
   const scores: Array<[string, number]> = [
     ['face', report.faceIntegrity],

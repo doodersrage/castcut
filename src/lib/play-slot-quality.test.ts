@@ -67,6 +67,17 @@ describe('play slot quality', () => {
     assert.match(decision.reasons.join(' '), /ghost or extra hands/);
   });
 
+  it('rerolls a still in the wrong place, saying where she is', () => {
+    const wrong = decideSlotQuality(CLEAN, 0, undefined, {
+      place: { match: false, seen: 'bedroom, on the bed' },
+    });
+    assert.equal(wrong.action, 'reroll');
+    assert.match(wrong.reasons.join(' '), /not the planned place — she is in: bedroom, on the bed/);
+    const right = decideSlotQuality(CLEAN, 0, undefined, { place: { match: true, seen: 'kitchen' } });
+    assert.equal(right.action, 'keep');
+    assert.equal(decideSlotQuality(CLEAN, 0, undefined, { place: null }).action, 'keep');
+  });
+
   it('rerolls on a measured extra person, said once', () => {
     const decision = decideSlotQuality({ ...CLEAN, flags: ['extra-person'] }, 0, undefined, {
       extraPeople: { extra: 1, expected: 2 },

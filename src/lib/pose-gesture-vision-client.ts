@@ -93,15 +93,26 @@ export async function checkStillRealism(input: {
   imageUrl: string;
   shared?: VisionShared;
 }): Promise<RealismVerdict | null> {
-  if (input.shared?.sessionLlmEnabled === false) return null;
+  return (await checkStillRealismAndPlace(input)).realism;
+}
+
+/** The realism rating and, with `place`, whether the still is in that place — one upload. */
+export async function checkStillRealismAndPlace(input: {
+  imageUrl: string;
+  place?: string;
+  shared?: VisionShared;
+}): Promise<{ realism: RealismVerdict | null; place: PlaceVerdict | null }> {
+  if (input.shared?.sessionLlmEnabled === false) return { realism: null, place: null };
   const reply = await askStillGesture({
     imageUrl: input.imageUrl,
     questions: [],
     realism: true,
+    ...(input.place?.trim() ? { place: input.place.trim() } : {}),
     shared: input.shared,
   }).catch(() => null);
-  return decideRealism(reply?.realism);
+  return { realism: decideRealism(reply?.realism), place: reply?.place ?? null };
 }
+import type { PlaceVerdict } from './still-place';
 import {
   parseVisionScanApiResponse,
   prepareVisionScanImagePayload,
@@ -117,8 +128,13 @@ export async function askStillGesture(options: {
   imageUrl: string;
   questions: GestureQuestion[];
   realism?: boolean;
+  place?: string;
   shared?: VisionShared;
-}): Promise<{ answers: GestureAnswer[] | null; realism: number | null } | null> {
+}): Promise<{
+  answers: GestureAnswer[] | null;
+  realism: number | null;
+  place: PlaceVerdict | null;
+} | null> {
   if (options.questions.length === 0 && options.realism !== true) return null;
   const still = await resolveStillFileForVisionScan({
     file: null,
@@ -135,12 +151,14 @@ export async function askStillGesture(options: {
       mimeType,
       questions: options.questions,
       ...(options.realism ? { realism: true } : {}),
+      ...(options.place ? { place: options.place } : {}),
       ...(options.shared ? sharedLlmRequestBody(options.shared) : {}),
     }),
   });
   const data = await parseVisionScanApiResponse<{
     answers?: GestureAnswer[] | null;
     realism?: number | null;
+    place?: PlaceVerdict | null;
     error?: string;
   }>(response);
   if (!response.ok) {
@@ -149,5 +167,9 @@ export async function askStillGesture(options: {
   return {
     answers: data.answers ?? null,
     realism: typeof data.realism === 'number' ? data.realism : null,
+    place:
+      data.place && typeof data.place.match === 'boolean' && typeof data.place.seen === 'string'
+        ? data.place
+        : null,
   };
 }

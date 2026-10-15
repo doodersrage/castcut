@@ -1,5 +1,5 @@
 import { resolveVisionModel } from '@/lib/vision-model-auto';
-import { visionCompletion } from './llm-client';
+import { chatCompletion, visionCompletion } from './llm-client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
@@ -13,6 +13,12 @@ import {
   type GestureQuestion,
 } from './pose-gesture';
 import { parseRealismReply, realismVisionPrompt } from './still-realism';
+import {
+  decidePlace,
+  PLACE_DESCRIBE_PROMPT,
+  placeJudgePrompt,
+  type PlaceVerdict,
+} from './still-place';
 
 /**
  * Server: ask the vision model the pose check's yes/no questions about a still (the beat's
@@ -26,12 +32,19 @@ export async function askGestureVision(options: {
   imageDataUrl: string;
   questions: GestureQuestion[];
   realism?: boolean;
+  /** The slot's planned place: also ask where the still was taken (still-place.ts). */
+  place?: string;
   llm?: LlmRequestOptions;
-}): Promise<{ answers: GestureAnswer[] | null; realism: number | null }> {
+}): Promise<{
+  answers: GestureAnswer[] | null;
+  realism: number | null;
+  place: PlaceVerdict | null;
+}> {
   const questions = options.questions.slice(0, MAX_STILL_VISION_QUESTIONS);
   const realism = options.realism === true;
-  const none = { answers: null, realism: null };
-  if (questions.length === 0 && !realism) return none;
+  const planned = options.place?.trim();
+  const none = { answers: null, realism: null, place: null };
+  if (questions.length === 0 && !realism && !planned) return none;
   if (!resolveRequestLlmEnabled(options.llm)) return none;
   const model = await resolveVisionModel(options.llm);
   if (!model) return none;
@@ -55,5 +68,23 @@ export async function askGestureVision(options: {
         .then(parseRealismReply)
         .catch(() => null)
     : null;
-  return { answers, realism: rating };
+  // Describe, then judge text-only on the same model, as calibrated. A failed call is no verdict.
+  const place = planned
+    ? await ask(PLACE_DESCRIBE_PROMPT, 120)
+        .then(async seen =>
+          decidePlace(
+            seen,
+            await chatCompletion({
+              messages: [{ role: 'user', content: placeJudgePrompt(planned, seen.trim()) }],
+              maxTokens: 5,
+              temperature: 0,
+              model,
+              endpoint: resolveRequestLlmEndpoint(options.llm),
+              usageContext: { route: 'pose-gesture' },
+            })
+          )
+        )
+        .catch(() => null)
+    : null;
+  return { answers, realism: rating, place };
 }
