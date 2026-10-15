@@ -802,6 +802,13 @@ const BEAT_PLACE_RULES: ReadonlyArray<{
     venues: ['balcony', 'rooftop', 'hotel', ...EAT],
   },
   { re: /\brooftop\b|\bon\s+the\s+roof\b/i, venues: ['rooftop', 'balcony'], setting: /\broof/i },
+  // "raising a glass … at an outdoor table" in her kitchen (Day 2026-10-15).
+  {
+    re: /\boutdoor\s+(?:table|tables|seating|terrace|bar|caf[eé]|dining)\b/i,
+    venues: [...STREETS, 'park', 'beach', 'balcony', 'rooftop', ...EAT],
+    setting:
+      /\b(?:outdoor|outside|terrace|patio|garden|courtyard|sidewalk|street|park|deck|yard)\b/i,
+  },
   // "checking a reflection in a shop window" landed in her kitchen (Day 2026-10-15).
   {
     re: /\b(?:shop|store|display)\s+windows?\b|\bwindow[- ]shopping\b/i,

@@ -101,6 +101,12 @@ export type DayStillPromptFacts = {
   /** The pose guide that was drawn, if any. */
   pose: { layout: string | null; poseKey?: string | null; figures: number } | null;
   /**
+   * Lead with the stance in words ("POSE FIRST: …") — Everyday one-person stills on Edit 2511
+   * with a pose map. Same seeds, 8 beats (2026-10-15): walk, rail lean and a seated toast took
+   * their maps only with it (3 better, 0 worse); the rest already did.
+   */
+  poseFirst?: boolean;
+  /**
    * A custom pose (joint editor, a photo, My poses, a pose pack) in words — `describePhotoPose`.
    * Sent as the recipe's Pose: sentence, or the brief's first line.
    */
@@ -177,6 +183,27 @@ export type AssembledDayStillPrompt = {
 };
 
 /** Brief / recipe + opening lines, footwear, partner, pose cue, look, fixes. */
+/**
+ * "POSE FIRST: she walks mid-step, one foot ahead of the other, exactly as the pose map in
+ * Image 3 shows." — from a one-person recipe's own stance sentence ("She walks …"), else its
+ * "Pose:" sentence, else its "Moment:". '' when the recipe has no pose map.
+ */
+export function dayPoseFirstLine(prompt: string): string {
+  const map = /Match her body to the (second|third|fourth) image \(pose map\)/.exec(prompt)?.[1];
+  if (!map) return '';
+  const image = { second: 2, third: 3, fourth: 4 }[map as 'second' | 'third' | 'fourth'];
+  const body = /Day photo:([^\n]*)/.exec(prompt)?.[1] ?? prompt;
+  const sentences = body
+    .split(/(?<=\.)\s+/)
+    .map(sentence => sentence.trim().replace(/\.$/, ''))
+    .filter(Boolean);
+  const stance = sentences.find(sentence => /^She (?!wears\b)[a-z]/.test(sentence));
+  const pose = sentences.find(sentence => sentence.startsWith('Pose: '))?.slice(6);
+  const moment = sentences.find(sentence => sentence.startsWith('Moment: '))?.slice(8);
+  const words = stance ? `she${stance.slice(3)}` : pose ? pose : moment ? `she is ${moment}` : '';
+  return words ? `POSE FIRST: ${words}, exactly as the pose map in Image ${image} shows.` : '';
+}
+
 export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDayStillPrompt {
   const scrubbed = facts.partner
     ? scrubDayPartnerOutfitImageClaims(facts.slotPrompt)
@@ -188,14 +215,20 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     Boolean(facts.pickedShoes) && !footwearIsBarefoot(facts.pickedShoes)
       ? 'the outfit and the shoes'
       : 'the outfit';
-  // Not "standing" on a lying still: the plate's stance pulled lying beats upright.
-  const dressedStance = dayStillLiesDown({
-    beat: facts.beat,
-    layout: facts.pose?.layout,
-    figures: facts.pose?.figures || (facts.partner ? 2 : 1),
-  })
-    ? 'dressed'
-    : 'dressed, standing';
+  // Not "standing" on a lying still: the plate's stance pulled lying beats upright. Nor on a
+  // seated / kneeling / crouching one (a seated toast stood up with it).
+  const dressedStance =
+    dayStillLiesDown({
+      beat: facts.beat,
+      layout: facts.pose?.layout,
+      figures: facts.pose?.figures || (facts.partner ? 2 : 1),
+    }) ||
+    /\b(?:sit|sits|sitting|seated|perch(?:ed|es|ing)?|kneel(?:s|ing)?|knelt|crouch(?:es|ing)?|squat(?:s|ting)?)\b/i.test(
+      facts.beat ?? ''
+    ) ||
+    /\b(?:sit|perch|kneel|crouch|squat)/i.test(facts.pose?.layout ?? '')
+      ? 'dressed'
+      : 'dressed, standing';
   const basePrompt = facts.dressedPlateIsClothingImage
     ? scrubbed
         .replace(
@@ -335,8 +368,12 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   ]
     .filter(Boolean)
     .join('\n');
+  const poseFirstLine =
+    facts.poseFirst && recipe && figures === 1 && !customPose && !facts.adult
+      ? dayPoseFirstLine(prompt)
+      : '';
   return {
-    prompt,
+    prompt: poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt,
     cued: Boolean(poseCueLine || duoWords),
     swapLead,
     recipe: isRapidDuoRecipePrompt(prompt),

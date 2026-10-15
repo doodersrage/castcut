@@ -2221,6 +2221,11 @@ export function useDayPlannerToolOrchestrationCore() {
         // runs), from the decisions made above.
         const assembled = assembleDayStillPrompt({
           slotPrompt,
+          poseFirst:
+            /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
+            normalizeDayMood(toolSettings.dayMood) === 'everyday' &&
+            !adultStill &&
+            !slotPartner,
           camera: dayStillCamera({
             slotId: queueTarget.id,
             model: stillModel,
