@@ -108,7 +108,7 @@ describe('checks coverage', () => {
     assert.deepEqual(coverage, { checked: ['faces 3 of 4', 'auto-review'], notChecked: ['pose'] });
     assert.equal(
       cutChecksCoverageLine(coverage),
-      'Checked: faces 3 of 4, auto-review · Not checked: pose · files, black frames, sound, look-alike shots and garbled writing are checked when you cut'
+      'Checked: faces 3 of 4, auto-review · Not checked: pose · the rest is checked when you cut'
     );
   });
 

@@ -39,7 +39,11 @@ test('settings input folder reports unused uploads and only offers a command', a
 
   await gotoStable(page, '/settings?tab=comfyui&section=workflow-patching');
   await revealFullSettings(page, { requireAdvanced: true });
-  const section = page.locator('details').filter({ hasText: /Input folder/ }).first();
+  // Match on the section's own heading: other folds mention "Input folder" in their text.
+  const section = page
+    .locator('details')
+    .filter({ has: page.locator('summary', { hasText: /Input folder/ }) })
+    .first();
   await expect(section).toBeVisible({ timeout: 45_000 });
   // The section's remembered open state loads late and can fold it (dropping the report), so
   // open → scan → read is retried as one step.

@@ -116,7 +116,7 @@ export default function CharacterLoraFlywheel({
   return (
     <ToolSection
       title="LoRA flywheel"
-      description="Keep → Train → Register → Prove. Keepers on this look become the dataset; after pin, Day and Story auto-apply the LoRA."
+      description="Train a LoRA from this look’s kept stills; once pinned, Day and Story use it."
       data-testid="lora-flywheel"
     >
       <p className="type-caption text-[var(--text-muted)]" data-testid="lora-flywheel-phase">
@@ -221,8 +221,8 @@ export default function CharacterLoraFlywheel({
       {keepers.length > 0 && phase === 'train' ? (
         <div className="space-y-1" data-testid="lora-flywheel-keeper-check">
           <p className="type-caption text-[var(--text-secondary)]">
-            {keeperCheck.count} keepers · {keeperCheck.places} place
-            {keeperCheck.places === 1 ? '' : 's'}
+            {keeperCheck.count} keeper{keeperCheck.count === 1 ? '' : 's'} · {keeperCheck.places}{' '}
+            place{keeperCheck.places === 1 ? '' : 's'}
             {keeperCheck.face !== null
               ? ` · face match ${Math.round(keeperCheck.face * 100)}% (${keeperCheck.measured} measured)`
               : ' · face match not measured (Overview → Likeness → Measure)'}

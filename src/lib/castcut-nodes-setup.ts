@@ -21,7 +21,7 @@ export const CASTCUT_NODES_DOCS_URL =
 /** What the pack speeds up, for the card and the hints. */
 export const CASTCUT_NODES_BENEFITS = [
   'Best of two for hard poses runs as one job: both takes share one model load, the pose check runs inside ComfyUI, the closer take is kept.',
-  'Cut-outs (Isolate on white, plates) repair the matte and composite in the same job — no mask round trip.',
+  'Cut-outs (Cut out background, plates) repair the matte and composite in the same job — no mask round trip.',
   'Face and pose checks answer straight away on the CPU instead of waiting for the render in progress (1.2.0+; pose and the Face finish probe 1.3.0+).',
   'Settings → ComfyUI → Input folder can delete unused uploads after you confirm, instead of handing you a command (1.3.0+).',
 ] as const;

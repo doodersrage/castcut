@@ -41,12 +41,13 @@ export default function CharacterLookPacksSection({
   return (
     <ToolSection
       title="Saved look packs"
-      description="Reuse Look vibes without re-running vision extract. Export JSON to share a look."
+      description="Save a look to reuse it, or share it as a file."
     >
       <input
         ref={lookPackFileRef}
         type="file"
         accept="application/json,.json"
+        aria-label="Choose a JSON file"
         className="sr-only"
         onChange={event => {
           const file = event.target.files?.[0];
@@ -69,7 +70,7 @@ export default function CharacterLookPacksSection({
       ) : null}
       {savedLookPacks.length === 0 ? (
         <p className="type-caption text-[var(--text-muted)]">
-          No saved packs yet — extract a look on Look and Save on Cast, or import JSON.
+          No saved packs yet — import one, or save a look from Film’s look packs.
         </p>
       ) : (
         <ul className="ui-list">

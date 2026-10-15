@@ -1209,7 +1209,7 @@ test('story mid-flow: write your own scene, then take it back', async ({ page })
   });
   // Take it back: the scene leaves the reel.
   page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Take back the last scene');
+    expect(dialog.message()).toContain('Undo the last scene');
     void dialog.accept();
   });
   await picker.getByTestId('story-undo-scene').click();
@@ -1397,7 +1397,7 @@ test('phone story: take back the last scene', async ({ page }) => {
   await expect(picker).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('The station').filter({ visible: true }).first()).toBeVisible();
   page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Take back the last scene');
+    expect(dialog.message()).toContain('Undo the last scene');
     void dialog.accept();
   });
   await picker.getByTestId('story-undo-scene').click();

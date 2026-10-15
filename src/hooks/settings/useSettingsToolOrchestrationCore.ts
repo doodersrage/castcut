@@ -350,7 +350,7 @@ export function useSettingsToolOrchestrationCore() {
         const weekMs = 7 * 24 * 60 * 60 * 1000;
         if (!lastBackup || Date.now() - lastBackup > weekMs) {
           setBackupReminder(
-            'No recent Studio backup detected — export a v3 backup to preserve avoided tokens, webhooks, and projects.'
+            'No backup in the last week — export one so your Cast and settings are safe.'
           );
         }
       } catch {

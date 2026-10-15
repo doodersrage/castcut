@@ -103,9 +103,8 @@ export default function SettingsDataTab({
 
       <ToolSection title="Backup & move">
         <p className="text-sm text-[var(--text-secondary)]">
-          Full studio backup includes history, settings, gallery, workflows, extras (gallery ELO,
-          recipes, views), and ComfyUI prefs. On a new machine: Import backup, then reload. Prefer
-          Settings export above when you only need prefs.
+          Everything but the pictures: your Cast, settings, history, the gallery list and workflows.
+          On a new machine, import it and reload.
         </p>
         {backupReminder ? (
           <p className="mb-3 text-sm text-[var(--tint-warning-text)]">{backupReminder}</p>
@@ -184,14 +183,10 @@ export default function SettingsDataTab({
 
       <ToolSection title="Gallery exact-replay graphs">
         <p className="text-sm text-[var(--text-secondary)]">
-          Stored workflow JSON enables Replay exact graph. Older graphs are pruned by age, then by a
-          total byte budget so IndexedDB stays lean (0 = unlimited). Sidecar/ZIP exports omit graph
-          bodies by default.
+          Each render keeps its exact graph so Replay exact can run it again. Old graphs are dropped
+          after the days or size below (0 = keep all).
         </p>
-        <FieldLabel
-          htmlFor="gallery-workflow-retention"
-          hint="Days to keep stored exact-replay graphs"
-        >
+        <FieldLabel htmlFor="gallery-workflow-retention" hint="How long a graph is kept">
           Retention (days)
         </FieldLabel>
         <TextInput
@@ -212,7 +207,7 @@ export default function SettingsDataTab({
         <div className="mt-4">
           <FieldLabel
             htmlFor="gallery-workflow-max-mb"
-            hint="Drop oldest non-favorite graphs when total stored JSON exceeds this"
+            hint="Past this, the oldest graphs go first (favourites are kept)"
           >
             Max stored graphs (MiB)
           </FieldLabel>

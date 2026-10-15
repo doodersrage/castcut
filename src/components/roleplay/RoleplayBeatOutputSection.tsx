@@ -127,7 +127,7 @@ export default function RoleplayBeatOutputSection({
                   data-testid="story-undo-scene"
                   onClick={onUndoLastScene}
                 >
-                  Take back the last scene
+                  Undo last scene
                 </Button>
               ) : null}
               <Button
@@ -227,8 +227,8 @@ export default function RoleplayBeatOutputSection({
                 scene
                 <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
                   {beatOutput === 'clip'
-                    ? 'Queues T2V (or I2V from photo). Extend / Continue / Stitch labels show which path ran.'
-                    : 'Uses the sidebar model. Turn off to write the prompt first.'}
+                    ? 'Makes a short clip from each new scene.'
+                    : 'Uses the Engine’s model. Turn off to write the prompt yourself first.'}
                 </span>
               </span>
             </label>

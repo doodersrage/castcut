@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Polish, round five** (Day setup sheet, Cast Bible and Packs tabs, Gallery grid, kit browser, Cut options, Settings ComfyUI / Data / all, phone Day / Cast / Gallery in dark; axe + focus sweep on 16 more screens):
+  - **Accessibility:** the hidden JSON file pickers (look packs, backups, presets, workflows — 13 places) have a label; axe flagged the Cast one.
+  - **Story:** "Undo last scene" on desktop too (it said "Take back the last scene"), and the auto-queue note says what it does ("Makes a short clip from each new scene") instead of "Queues T2V (or I2V…). Extend / Continue / Stitch labels…".
+  - **Cut checks line** ends "the rest is checked when you cut", with the list (files, black frames, sound, look-alike shots, garbled writing) on hover.
+  - **Settings:** Data notes in plain words (no "gallery ELO", "v3 backup", "IndexedDB", "Sidecar/ZIP"); the backup reminder says "No backup in the last week"; ComfyUI's env-key list and the Castcut nodes' counters and feature list are folded.
+  - **Cast → Packs & LoRA:** "1 keeper" (was "1 keepers"), plain section notes, and the empty packs note no longer points at the retired Look page.
 - **Polish, round four** (screens not covered before, plus an accessibility and keyboard-focus sweep: no axe violations or focus without a ring on 18 screens, populated and empty, light and dark):
   - **Image viewer:** one set of Prev / Next (on the image's sides) instead of a second pair at the bottom, and the "Press ? for shortcuts" line is gone (the ? button and first-visit tip say it).
   - **Cast home:** the checklist drops echoes ("Plate ready / ready", "Bible written / written"); "Plate check: good" without the face size in pixels (on hover); "Background cut out".

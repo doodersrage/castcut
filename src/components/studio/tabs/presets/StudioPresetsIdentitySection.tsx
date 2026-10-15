@@ -79,6 +79,7 @@ export function StudioPresetsIdentitySection({
           <input
             type="file"
             accept="application/json,.json"
+            aria-label="Choose a JSON file"
             className="hidden"
             onChange={event => {
               const file = event.target.files?.[0];

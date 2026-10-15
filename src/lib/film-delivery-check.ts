@@ -303,6 +303,9 @@ export function cutChecksCoverage(input: {
   return { checked, notChecked };
 }
 
+/** What Cut itself checks — the coverage line says "the rest", the UI shows these on hover. */
+export const CUT_TIME_CHECKS = 'files, black frames, sound, look-alike shots and garbled writing';
+
 export function cutChecksCoverageLine(coverage: {
   checked: string[];
   notChecked: string[];
@@ -310,7 +313,8 @@ export function cutChecksCoverageLine(coverage: {
   const parts = [
     coverage.checked.length ? `Checked: ${coverage.checked.join(', ')}` : '',
     coverage.notChecked.length ? `Not checked: ${coverage.notChecked.join(', ')}` : '',
-    'files, black frames, sound, look-alike shots and garbled writing are checked when you cut',
+    // The full list (files, black frames, sound, look-alike shots, garbled writing) is CUT_TIME_CHECKS.
+    'the rest is checked when you cut',
   ].filter(Boolean);
   return parts.join(' · ');
 }

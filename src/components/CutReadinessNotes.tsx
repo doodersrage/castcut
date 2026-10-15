@@ -6,10 +6,13 @@
  */
 export default function CutReadinessNotes({
   coverage,
+  coverageTitle,
   notes = [],
   testId,
 }: {
   coverage: string;
+  /** Hover text: what Cut itself checks (CUT_TIME_CHECKS, passed in by the Play caller). */
+  coverageTitle?: string;
   notes?: string[];
   testId: string;
 }) {
@@ -27,7 +30,11 @@ export default function CutReadinessNotes({
         </ul>
       ) : null}
       {coverage ? (
-        <p className="type-caption text-[var(--text-muted)]" data-testid={`${testId}-coverage`}>
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          data-testid={`${testId}-coverage`}
+          title={coverageTitle}
+        >
           {coverage}
         </p>
       ) : null}

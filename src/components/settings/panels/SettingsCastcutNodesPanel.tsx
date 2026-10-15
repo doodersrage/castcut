@@ -315,34 +315,41 @@ export default function SettingsCastcutNodesPanel({
             ComfyUI did not answer — check the connection above, then Check again.
           </p>
         ) : null}
-        {status && healthLine ? (
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid="castcut-nodes-health-line"
-          >
-            {healthLine}
-          </p>
-        ) : null}
-        {status && usageLine ? (
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid="castcut-nodes-usage-line"
-          >
-            {usageLine}
-          </p>
-        ) : null}
+        {/* What the pack does and its counters are for whoever set ComfyUI up — folded. */}
+        <details className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-3 py-2">
+          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+            What the nodes do{status && (healthLine || usageLine) ? ' · usage' : ''}
+          </summary>
+          <div className="mt-2 space-y-2">
+            {status && healthLine ? (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="castcut-nodes-health-line"
+              >
+                {healthLine}
+              </p>
+            ) : null}
+            {status && usageLine ? (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="castcut-nodes-usage-line"
+              >
+                {usageLine}
+              </p>
+            ) : null}
+            <ul className="type-caption list-disc space-y-1 pl-5 text-[var(--text-secondary)]">
+              {CASTCUT_NODES_BENEFITS.map(line => (
+                <li key={line}>{line}</li>
+              ))}
+              <li className="text-[var(--text-muted)]">{CASTCUT_NODES_WITHOUT}</li>
+            </ul>
+          </div>
+        </details>
         {error ? (
           <p role="alert" className="text-sm text-[var(--danger)]">
             {error}
           </p>
         ) : null}
-
-        <ul className="type-caption list-disc space-y-1 pl-5 text-[var(--text-secondary)]">
-          {CASTCUT_NODES_BENEFITS.map(line => (
-            <li key={line}>{line}</li>
-          ))}
-          <li className="text-[var(--text-muted)]">{CASTCUT_NODES_WITHOUT}</li>
-        </ul>
 
         {action === 'manager' && phase.kind !== 'installed' ? (
           <div className="space-y-2" data-testid="castcut-nodes-manager">

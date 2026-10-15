@@ -214,41 +214,47 @@ export default function SettingsInferenceEnginePanel({
           />
         ) : null}
       </div>
-      <p className="text-xs text-[var(--text-muted)]">
-        Server env keys (
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          FAL_KEY
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          REPLICATE_API_TOKEN
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          OPENAI_API_KEY
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          GEMINI_API_KEY
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          XAI_API_KEY
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          RUNWAY_API_KEY
-        </code>
-        ,{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          LUMA_API_KEY
-        </code>
-        ) apply when the matching Settings field is empty. Default engine via{' '}
-        <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-          PROMPT_ENGINE
-        </code>
-        .
-      </p>
+      {/* Env var names are for whoever runs the server — folded. */}
+      <details>
+        <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+          Keys set on the server
+        </summary>
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Server env keys (
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            FAL_KEY
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            REPLICATE_API_TOKEN
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            OPENAI_API_KEY
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            GEMINI_API_KEY
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            XAI_API_KEY
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            RUNWAY_API_KEY
+          </code>
+          ,{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            LUMA_API_KEY
+          </code>
+          ) apply when the matching Settings field is empty. Default engine via{' '}
+          <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
+            PROMPT_ENGINE
+          </code>
+          .
+        </p>
+      </details>
     </ToolSection>
   );
 }

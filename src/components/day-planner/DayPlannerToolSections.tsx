@@ -97,6 +97,7 @@ import {
 } from '@/lib/play-metrics';
 import { deriveDayPhase } from '@/lib/play-step-machine';
 import { useRenderBackend } from '@/lib/render-backend-status';
+import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -808,6 +809,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 </p>
                 <CutReadinessNotes
                   coverage={cutReadiness.coverage}
+                  coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}
                   notes={cutReadiness.notes}
                   testId="day-cut-readiness"
                 />

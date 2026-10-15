@@ -22,7 +22,7 @@ export default function SettingsBundlePanel({
     <ToolSection
       id="settings-data-bundle"
       title="Settings export"
-      description="Lightweight JSON of shared prefs, ComfyUI settings, webhooks, scheduled batch, and avoided tokens — not history or gallery."
+      description="Just the settings — no Cast, history or pictures."
     >
       <div className="flex flex-wrap gap-2">
         <Button
@@ -42,6 +42,7 @@ export default function SettingsBundlePanel({
           ref={inputRef}
           type="file"
           accept="application/json,.json"
+          aria-label="Choose a JSON file"
           className="hidden"
           onChange={event => {
             const file = event.target.files?.[0];

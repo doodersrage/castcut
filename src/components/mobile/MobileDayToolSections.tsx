@@ -91,6 +91,7 @@ import {
 } from '@/lib/play-metrics';
 import { deriveDayPhase } from '@/lib/play-step-machine';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -756,6 +757,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           </p>
           <CutReadinessNotes
             coverage={cutReadiness.coverage}
+            coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}
             notes={cutReadiness.notes}
             testId="mobile-day-cut-readiness"
           />
