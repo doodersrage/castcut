@@ -17,8 +17,6 @@ const ALL_KINDS: ComfyAssetKind[] = [
   "controlnet",
   "facerestore",
   "latentupscale",
-  "clipvision",
-  "backgroundremoval",
 ];
 
 describe("comfy-asset-kinds", () => {

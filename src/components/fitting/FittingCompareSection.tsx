@@ -12,8 +12,6 @@ import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/li
 import { suggestTryOnToKeep, type TryOnReview } from '@/lib/fitting-tryon-review';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
-import Outfit3dSheet from '@/components/fitting/Outfit3dSheet';
-import { OUTFIT_3D_ENABLED } from '@/lib/outfit-3d-client';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 
 export { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
@@ -97,8 +95,6 @@ export default function FittingCompareSection({
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   // Fix (stage button): the lightbox opens straight into Fix an area.
   const [fixOnly, setFixOnly] = useState(false);
-  // 3D (stage button): the picked try-on as a model to turn around (Outfit3dSheet).
-  const [model3d, setModel3d] = useState<{ imageUrl: string; title: string } | null>(null);
 
   const openLightbox = useCallback(
     (tryOn: FittingCompareTryOn, options?: { back?: boolean }) => {
@@ -229,14 +225,6 @@ export default function FittingCompareSection({
       }
     />
   );
-  const model3dElement = model3d ? (
-    <Outfit3dSheet
-      open
-      onClose={() => setModel3d(null)}
-      imageUrl={model3d.imageUrl}
-      title={model3d.title}
-    />
-  ) : null;
 
   if (layout === 'stage') {
     // A new render takes the stage; a pick from the strip holds until the next one starts.
@@ -351,29 +339,6 @@ export default function FittingCompareSection({
                     Fix
                   </Button>
                 ) : null}
-                {OUTFIT_3D_ENABLED ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy || !done}
-                    title="See this outfit in 3D — turn her around (a few minutes the first time; TRELLIS.2)"
-                    data-testid="fitting-3d-try-on"
-                    onClick={() => {
-                      if (!picked?.imageUrl) return;
-                      const imageUrl = isComfyViewUrl(picked.imageUrl)
-                        ? picked.imageUrl
-                        : comfyViewUrlForStill({ promptId: picked.promptId }, loadComfyGallery());
-                      if (imageUrl) {
-                        setModel3d({
-                          imageUrl,
-                          title: picked.wardrobeLabel || picked.wardrobeId || 'Try-on',
-                        });
-                      }
-                    }}
-                  >
-                    3D
-                  </Button>
-                ) : null}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -436,7 +401,6 @@ export default function FittingCompareSection({
           ) : null}
         </section>
         {lightboxElement}
-        {model3dElement}
       </>
     );
   }
@@ -474,7 +438,6 @@ export default function FittingCompareSection({
           {cards}
         </div>
         {lightboxElement}
-        {model3dElement}
       </>
     );
   }
@@ -489,7 +452,6 @@ export default function FittingCompareSection({
         {cards}
       </ToolSection>
       {lightboxElement}
-      {model3dElement}
     </>
   );
 }

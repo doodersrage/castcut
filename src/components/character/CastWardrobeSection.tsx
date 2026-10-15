@@ -11,17 +11,13 @@ import {
   normalizeCastWardrobe,
   wearOutfitAgain,
   wornOutfitKey,
-  saveOutfitModel,
 } from '@/lib/cast-wardrobe';
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { dayPartnerNoun } from '@/lib/day-partner';
-import { galleryEntryComfyStillUrl } from '@/lib/fix-area-gallery';
-import { OUTFIT_3D_ENABLED } from '@/lib/outfit-3d-client';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
-const Outfit3dSheet = dynamic(() => import('@/components/fitting/Outfit3dSheet'), { ssr: false });
 const OutfitRunwayButton = dynamic(() => import('@/components/character/OutfitRunwayButton'), {
   ssr: false,
 });
@@ -46,12 +42,6 @@ export default function CastWardrobeSection({
 }) {
   const [note, setNote] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
-  const [model3d, setModel3d] = useState<{
-    key: string;
-    label: string;
-    imageUrl: string;
-    modelUrl?: string;
-  } | null>(null);
   const wardrobe = normalizeCastWardrobe(character.wardrobe) ?? [];
   const hasDayStills = entries.some(
     entry => entry.characterId === character.id && entry.tool === 'image-prompt'
@@ -95,16 +85,6 @@ export default function CastWardrobeSection({
       ),
       title: `${character.name} · wardrobe`,
     });
-  };
-
-  /** The outfit's picture as a ComfyUI view URL (what the 3D model is built from). */
-  const comfyFor = (promptIds: string[]) => {
-    for (const id of promptIds) {
-      const entry = entries.find(item => item.promptId === id);
-      const url = entry ? galleryEntryComfyStillUrl(entry) : null;
-      if (url) return url;
-    }
-    return null;
   };
 
   const thumbFor = (promptIds: string[]) => {
@@ -181,29 +161,6 @@ export default function CastWardrobeSection({
               <p className="truncate text-sm text-[var(--text-primary)]" title={item.label}>
                 {item.label}
               </p>
-              {OUTFIT_3D_ENABLED && comfyFor(item.promptIds) ? (
-                <button
-                  type="button"
-                  className="ui-text-link type-caption"
-                  data-testid={`cast-wardrobe-${item.key}-3d`}
-                  title="This outfit as a 3D model to turn around (a few minutes the first time; TRELLIS.2)"
-                  onClick={() => {
-                    const imageUrl = comfyFor(item.promptIds)!;
-                    setModel3d({
-                      key: item.key,
-                      label: item.label,
-                      imageUrl,
-                      // Only a painted model (outfit-3d-paint.ts); earlier ones kept TRELLIS's colours.
-                      ...(item.modelUrl?.startsWith('/api/outfit-3d/model/') &&
-                      item.modelFor === imageUrl
-                        ? { modelUrl: item.modelUrl }
-                        : {}),
-                    });
-                  }}
-                >
-                  3D view
-                </button>
-              ) : null}
               {fullFor(item.promptIds) ? (
                 <OutfitRunwayButton
                   character={character}
@@ -242,19 +199,6 @@ export default function CastWardrobeSection({
           );
         })}
       </ul>
-      {model3d ? (
-        <Outfit3dSheet
-          open
-          onClose={() => setModel3d(null)}
-          imageUrl={model3d.imageUrl}
-          title={model3d.label}
-          modelUrl={model3d.modelUrl}
-          onModel={url => {
-            const next = saveOutfitModel(character.id, model3d.key, url, model3d.imageUrl);
-            if (next) onUpdated?.(next);
-          }}
-        />
-      ) : null}
       {lightbox ? (
         <ImageLightbox
           state={lightbox}

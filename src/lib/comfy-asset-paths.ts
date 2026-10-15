@@ -24,9 +24,6 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
   facerestore: ['models/facerestore_models'],
   // LTX-2's two-pass upscaler (LatentUpscaleModelLoader).
   latentupscale: ['models/latent_upscale_models'],
-  // TRELLIS.2's image encoder (CLIPVisionLoader) and BiRefNet (LoadBackgroundRemovalModel).
-  clipvision: ['models/clip_vision'],
-  backgroundremoval: ['models/background_removal'],
 };
 
 export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {
