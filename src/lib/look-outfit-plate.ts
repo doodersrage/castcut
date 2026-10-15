@@ -270,6 +270,51 @@ export function styleNotesForLookPlate(input: {
 }
 
 /** Full-body try-on reference photo queued after Look extract for Outfit / Day. */
+/**
+ * The Cast's original plate: the picture her first plate was made from, kept as the Cast's face
+ * lock (CharacterRecord.ipAdapter). A look's plate history drops it after six replacements; the
+ * face lock never changes, so every later plate can start from it.
+ */
+export function castOriginalPlate(
+  character: CharacterRecord | null | undefined
+): { imageUrl?: string; filename?: string } | null {
+  const ip = character?.ipAdapter;
+  const imageUrl = ip?.imageUrl?.trim() || undefined;
+  const filename = ip?.imageFilename?.trim() || undefined;
+  return imageUrl || filename ? { imageUrl, filename } : null;
+}
+
+/**
+ * A new plate for a look, edited from the Cast's original plate on Edit 2511 (Image 1): the same
+ * woman, the plate's plain grey base layer, and only what the look changes. UltraReal renders a
+ * Cast's first plate only — later plates rendered from words drifted to another face and wavy
+ * auburn hair (face distance to the original 0.86, 4 seeds); edited from the original on 2511
+ * 0.05–0.11, and "a high ponytail" still changed the hair (2026-10-14).
+ */
+export function buildLookPlateEditPrompt(input: {
+  /** What this look changes (hair, makeup) — Cast home's Generate plate. */
+  lookNote?: string;
+  marks?: string;
+  man?: boolean;
+}): string {
+  const they = input.man ? 'man' : 'woman';
+  const pronoun = input.man ? 'his' : 'her';
+  const lookNote = input.lookNote?.replace(/\s+/g, ' ').trim().slice(0, 300);
+  return [
+    `Edit Image 1 into a new full-length plate photo of the same ${they}. Keep ${pronoun} face, hair, body, build and skin exactly as in Image 1.`,
+    lookNote ? `Change only this for the new look: ${lookNote}.` : null,
+    input.marks?.trim() ? `Keep ${pronoun} marks exactly: ${input.marks.trim()}` : null,
+    `${input.man ? 'He' : 'She'} stands facing the camera, the whole body from the top of the head to both feet, arms relaxed at the sides, on a plain light-grey studio wall with even soft studio light.`,
+    input.man
+      ? 'He wears plain light-grey boxer briefs.'
+      : 'She wears a plain light-grey sports bra and plain light-grey briefs.',
+    'Photorealistic photograph.',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\.\./g, '.');
+}
+
 export function buildLookCastPlatePrompt(input: {
   characterName?: string;
   descriptor?: string;
@@ -694,6 +739,11 @@ export async function ensureOutfitPlateAfterLook(input: {
   lookNote?: string;
   /** The engine the plate renders on (default: the queue's model). */
   queueModel?: SendComfyUiOptions['queueModel'];
+  /**
+   * Edit the new plate from the Cast's original plate (castOriginalPlate) on an edit model
+   * (`queueModel`, Edit 2511) instead of rendering it from words.
+   */
+  fromOriginal?: { imageUrl?: string; filename?: string } | null;
   sendComfyUi: (
     prompt: string,
     sport?: null,
@@ -712,6 +762,7 @@ export async function ensureOutfitPlateAfterLook(input: {
       | 'queueParamsBase'
       | 'queueModel'
       | 'resolutionOrientation'
+      | 'preserveInputAspect'
     >
   ) => Promise<string | undefined>;
 }): Promise<OutfitPlateEnsureResult> {
@@ -824,6 +875,43 @@ export async function ensureOutfitPlateAfterLook(input: {
     castMarksPlateLine(fresh.marks)
   );
   const strength = shared.ipAdapterStrength ?? 0.75;
+  const original = input.fromOriginal;
+  if (original?.imageUrl || original?.filename) {
+    const man =
+      /\b(?:man|male|boy|guy)\b/i.test(appearance.appearance) &&
+      !/\b(?:woman|female|girl)\b/i.test(appearance.appearance);
+    try {
+      const promptId = await input.sendComfyUi(
+        buildLookPlateEditPrompt({
+          lookNote: input.lookNote,
+          marks: castMarksPlateLine(fresh.marks),
+          man,
+        }),
+        null,
+        undefined,
+        {
+          characterId,
+          lookId,
+          identityLock: false,
+          queueHints: '',
+          ...(original.imageUrl
+            ? { inputImageUrl: original.imageUrl }
+            : { inputImageFilename: original.filename }),
+          ...(input.queueModel ? { queueModel: input.queueModel } : {}),
+          // The plate canvas (3:4 portrait), snapped to an edit-safe size; a square original is
+          // padded into it whole.
+          resolutionOrientation: 'portrait-34',
+          preserveInputAspect: true,
+        }
+      );
+      const id = typeof promptId === 'string' ? promptId.trim() : '';
+      if (!id) return 'failed';
+      setPendingOutfitPlatePromptId(id, characterId, input.lookId?.trim() || undefined);
+      return 'queued';
+    } catch {
+      return 'failed';
+    }
+  }
   try {
     const faceQueueParams = castFaceQueueParamsBase(fresh, strength);
     const promptId = await input.sendComfyUi(prompt, null, undefined, {

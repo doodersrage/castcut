@@ -9,14 +9,15 @@ import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui-object-info-cache';
-import { ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
+import { getCharacter } from '@/lib/character-os';
+import { castOriginalPlate, ensureOutfitPlateAfterLook } from '@/lib/look-outfit-plate';
 import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**
- * "Generate plate" on Cast home's Looks: renders this look's plate from the Cast's description and
- * face (the same plate Day's "Make a plate from the description" makes), with an optional note
- * for what the look changes. The current plate stays until the new one lands. Loaded lazily — it
+ * "Generate plate" on Cast home's Looks: a Cast's first plate is rendered from the description on
+ * UltraReal (the same plate Day's "Make a plate from the description" makes); every later plate is
+ * edited from that original on Edit 2511, with an optional note for what the look changes. The current plate stays until the new one lands. Loaded lazily — it
  * owns a ComfyUI queue hook the rest of Cast home never needs.
  */
 export default function CastLookGenerateControl({
@@ -43,17 +44,23 @@ export default function CastLookGenerateControl({
   const generate = async () => {
     setBusy(true);
     try {
-      // As Look does: UltraReal Fine-Tune v4 when this ComfyUI has it, else Edit 2511.
-      const inventory =
-        readCachedComfyObjectInfoModels() ??
-        (await fetchComfyObjectInfoModelsCached().catch(() => null));
-      const queueModel =
-        resolvePreferredLookModel({ inventory }) ?? resolveCastPlatePrepareModel(undefined);
+      // UltraReal renders a Cast's first plate only. Every later plate is edited on Edit 2511
+      // from that original (the Cast's face lock) — rendered from words again it drifted to
+      // another face (look-outfit-plate.ts buildLookPlateEditPrompt).
+      const original = castOriginalPlate(getCharacter(characterId));
+      const inventory = original
+        ? null
+        : (readCachedComfyObjectInfoModels() ??
+          (await fetchComfyObjectInfoModelsCached().catch(() => null)));
+      const queueModel = original
+        ? resolveCastPlatePrepareModel(undefined)
+        : (resolvePreferredLookModel({ inventory }) ?? resolveCastPlatePrepareModel(undefined));
       const result = await ensureOutfitPlateAfterLook({
         characterId,
         lookId,
         lookNote: note,
         ...(queueModel ? { queueModel } : {}),
+        ...(original ? { fromOriginal: original } : {}),
         replaceWhenReady: true,
         tiles: [],
         sendComfyUi: actions.sendComfyUi,

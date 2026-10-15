@@ -721,3 +721,27 @@ describe('look plate for a man lead', async () => {
     assert.doesNotMatch(prompt, /sports bra/);
   });
 });
+
+describe('new look plates from the original', () => {
+  it('edits the original plate: same person, plain base layer, only the look note changes', async () => {
+    const { buildLookPlateEditPrompt, castOriginalPlate } = await import('./look-outfit-plate');
+    const prompt = buildLookPlateEditPrompt({
+      lookNote: 'hair in a high ponytail',
+      marks: 'A light dusting of freckles across the nose.',
+    });
+    assert.match(prompt, /^Edit Image 1 into a new full-length plate photo of the same woman/);
+    assert.match(prompt, /Change only this for the new look: hair in a high ponytail\./);
+    assert.match(prompt, /freckles/);
+    assert.match(prompt, /plain light-grey sports bra and plain light-grey briefs/);
+    assert.match(buildLookPlateEditPrompt({ man: true }), /same man.*boxer briefs/);
+    assert.deepEqual(
+      castOriginalPlate({
+        id: 'c',
+        name: 'C',
+        ipAdapter: { imageFilename: 'Castcut_00197_.png', imageUrl: '/api/comfyui/view?filename=Castcut_00197_.png' },
+      } as never),
+      { imageUrl: '/api/comfyui/view?filename=Castcut_00197_.png', filename: 'Castcut_00197_.png' }
+    );
+    assert.equal(castOriginalPlate({ id: 'c', name: 'C' } as never), null);
+  });
+});
