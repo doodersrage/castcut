@@ -25,8 +25,8 @@ import {
   CHARACTER_PUBIC_HAIR_OPTIONS,
   CHARACTER_SEX_OPTIONS,
   CHARACTER_SKIN_TONE_OPTIONS,
-  CHARACTER_TAN_OPTIONS,
   CHARACTER_TRAIT_GROUPS,
+  LITTLE_PERSON_PHOTO_HINT,
   traitAppliesToSex,
   isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
@@ -59,7 +59,6 @@ const FIELDS: Array<{
   { key: 'makeup', label: 'Makeup', options: CHARACTER_MAKEUP_OPTIONS },
   { key: 'muscleTone', label: 'Muscle tone', options: CHARACTER_MUSCLE_TONE_OPTIONS },
   { key: 'bodyHair', label: 'Body hair', options: CHARACTER_BODY_HAIR_OPTIONS },
-  { key: 'tan', label: 'Tan', options: CHARACTER_TAN_OPTIONS },
   // Said on nude Intimate / Raunchy Day stills only; shown when Intimate is on.
   { key: 'pubicHair', label: 'Pubic hair', options: CHARACTER_PUBIC_HAIR_OPTIONS },
 ];
@@ -209,6 +208,14 @@ export default function CharacterAppearanceSection({
           );
         })}
       </div>
+      {draft.height === 'little-person' && !hasPicture ? (
+        <p
+          className="mt-2 type-caption text-[var(--tint-warning-text)]"
+          data-testid="cast-appearance-little-person"
+        >
+          {LITTLE_PERSON_PHOTO_HINT}
+        </p>
+      ) : null}
       {!draft.sex ? (
         <p className="mt-2 type-caption text-[var(--text-muted)]">
           Set Sex so Day and Story say “he” or “she” — the picture alone can&apos;t tell the

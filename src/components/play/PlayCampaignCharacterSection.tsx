@@ -29,9 +29,9 @@ import {
   CHARACTER_MAKEUP_SELECT_OPTIONS,
   CHARACTER_MUSCLE_TONE_SELECT_OPTIONS,
   CHARACTER_BODY_HAIR_SELECT_OPTIONS,
-  CHARACTER_TAN_SELECT_OPTIONS,
   CHARACTER_PUBIC_HAIR_SELECT_OPTIONS,
   CHARACTER_TRAIT_GROUPS,
+  LITTLE_PERSON_PHOTO_HINT,
   traitAppliesToSex,
   CHARACTER_HAIR_LENGTH_SELECT_OPTIONS,
   CHARACTER_HAIR_STYLE_SELECT_OPTIONS,
@@ -78,7 +78,6 @@ const CREATE_TRAIT_SELECTS = [
   ['hips', 'Hips', CHARACTER_HIPS_SELECT_OPTIONS],
   ['muscleTone', 'Muscle tone', CHARACTER_MUSCLE_TONE_SELECT_OPTIONS],
   ['bodyHair', 'Body hair', CHARACTER_BODY_HAIR_SELECT_OPTIONS],
-  ['tan', 'Tan', CHARACTER_TAN_SELECT_OPTIONS],
   ['pubicHair', 'Pubic hair', CHARACTER_PUBIC_HAIR_SELECT_OPTIONS],
 ] as const;
 
@@ -416,6 +415,15 @@ export default function PlayCampaignCharacterSection({
                   </fieldset>
                 ))}
               </div>
+
+              {appearance.height === 'little-person' && !referenceFile ? (
+                <p
+                  className="type-caption text-[var(--tint-warning-text)]"
+                  data-testid="play-campaign-create-little-person"
+                >
+                  {LITTLE_PERSON_PHOTO_HINT}
+                </p>
+              ) : null}
 
               <p
                 className="type-caption text-[var(--text-muted)]"

@@ -8,7 +8,10 @@ import {
   withNewPlateLook,
   type CharacterRecord,
 } from '@/lib/character-os';
-import { sanitizeCharacterAppearanceDescriptor } from '@/lib/character-appearance';
+import {
+  plateTraitDetails,
+  sanitizeCharacterAppearanceDescriptor,
+} from '@/lib/character-appearance';
 import { followCastPlateInSessions } from '@/lib/cast-plate-switch';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import {
@@ -328,8 +331,11 @@ export function buildLookCastPlatePrompt(input: {
   lookNote?: string;
   /** Her marks (cast-marks.ts castMarksPlateLine): the plate carries them into every still. */
   marks?: string;
+  /** Picked face / body details as sentences (plateTraitDetails), right after the opening line. */
+  details?: string;
 }): string {
   const name = input.characterName?.trim() || 'the Cast lead';
+  const details = input.details?.replace(/\s+/g, ' ').trim();
   const appearance = reinforceAppearanceForPlate(
     input.descriptor?.trim() ? sanitizeCharacterAppearanceDescriptor(input.descriptor.trim()) : ''
   );
@@ -350,7 +356,7 @@ export function buildLookCastPlatePrompt(input: {
   const man =
     /\b(?:man|male|boy|guy)\b/i.test(appearance) && !/\b(?:woman|female|girl)\b/i.test(appearance);
   return [
-    `Full-length front-view color photograph of ${name}, a real living person, ${man ? 'his' : 'her'} face and the front of ${man ? 'his' : 'her'} body toward the camera, looking into the lens, taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them:`,
+    `Full-length front-view color photograph of ${name}, a real living person, ${man ? 'his' : 'her'} face and the front of ${man ? 'his' : 'her'} body toward the camera, looking into the lens, taken from a few metres away — the whole body in frame from the top of the head to both feet and the floor under them${details ? `. ${details}` : ':'}`,
     appearance
       ? `SUBJECT (mandatory — exact Cast person; race, ethnicity, and skin tone locked; do not swap race): ${appearance}`
       : 'SUBJECT: distinct consistent face and body matching the Cast lead — do not invent a different race or body type',
@@ -868,6 +874,7 @@ export async function ensureOutfitPlateAfterLook(input: {
     loraTriggers: appearance.loraTriggers,
     lookNote: input.lookNote,
     marks: castMarksPlateLine(fresh.marks),
+    details: plateTraitDetails(fresh.traits),
   });
   const lookId = input.lookId?.trim() || fresh.activeLookId || shared.activeLookId;
   const explicitNegative = buildLookCastPlateNegative(

@@ -62,7 +62,6 @@ export type CharacterAppearanceFormDraft = {
   makeup?: CharacterAppearancePick<CharacterMakeup>;
   bodyHair?: CharacterAppearancePick<CharacterBodyHair>;
   muscleTone?: CharacterAppearancePick<CharacterMuscleTone>;
-  tan?: CharacterAppearancePick<CharacterTan>;
   pubicHair?: CharacterAppearancePick<CharacterPubicHair>;
 };
 
@@ -787,7 +786,6 @@ export function createFormPickedTraits(
     makeup: pick(form?.makeup),
     bodyHair: pick(form?.bodyHair),
     muscleTone: pick(form?.muscleTone),
-    tan: pick(form?.tan),
     pubicHair: pick(form?.pubicHair),
   });
 }
@@ -821,7 +819,6 @@ export type CharacterTraits = Partial<CharacterAppearanceDraft> & {
   makeup?: CharacterMakeup;
   bodyHair?: CharacterBodyHair;
   muscleTone?: CharacterMuscleTone;
-  tan?: CharacterTan;
   /** Said only on nude adult stills (adultBodyPhrase), never in the description. */
   pubicHair?: CharacterPubicHair;
 };
@@ -840,7 +837,6 @@ export type CharacterLips = 'thin' | 'average' | 'full' | 'very-full';
 export type CharacterMakeup = 'none' | 'natural' | 'glam' | 'bold';
 export type CharacterBodyHair = 'smooth' | 'light' | 'natural' | 'hairy';
 export type CharacterMuscleTone = 'soft' | 'toned' | 'defined' | 'ripped';
-export type CharacterTan = 'sun-kissed' | 'tan-lines';
 export type CharacterPubicHair = 'shaved' | 'trimmed' | 'natural' | 'full';
 
 export const CHARACTER_FACIAL_HAIR_OPTIONS: CharacterAppearanceOption<CharacterFacialHair>[] = [
@@ -920,10 +916,6 @@ export const CHARACTER_MUSCLE_TONE_OPTIONS: CharacterAppearanceOption<CharacterM
   { value: 'defined', label: 'Defined' },
   { value: 'ripped', label: 'Ripped' },
 ];
-export const CHARACTER_TAN_OPTIONS: CharacterAppearanceOption<CharacterTan>[] = [
-  { value: 'sun-kissed', label: 'Sun-kissed' },
-  { value: 'tan-lines', label: 'Tan lines' },
-];
 export const CHARACTER_PUBIC_HAIR_OPTIONS: CharacterAppearanceOption<CharacterPubicHair>[] = [
   { value: 'shaved', label: 'Shaved' },
   { value: 'trimmed', label: 'Trimmed' },
@@ -955,7 +947,6 @@ export const CHARACTER_BODY_HAIR_SELECT_OPTIONS = withRandomAppearanceOption(
 export const CHARACTER_MUSCLE_TONE_SELECT_OPTIONS = withRandomAppearanceOption(
   CHARACTER_MUSCLE_TONE_OPTIONS
 );
-export const CHARACTER_TAN_SELECT_OPTIONS = withRandomAppearanceOption(CHARACTER_TAN_OPTIONS);
 export const CHARACTER_PUBIC_HAIR_SELECT_OPTIONS = withRandomAppearanceOption(
   CHARACTER_PUBIC_HAIR_OPTIONS
 );
@@ -1023,10 +1014,6 @@ const MUSCLE_TONE_WORDS: Record<CharacterMuscleTone, string> = {
   toned: 'toned muscles',
   defined: 'clearly defined muscles',
   ripped: 'very lean, ripped muscles with visible abs',
-};
-const TAN_WORDS: Record<CharacterTan, string> = {
-  'sun-kissed': 'sun-kissed skin',
-  'tan-lines': 'faint swimsuit tan lines',
 };
 const PUBIC_HAIR_WORDS: Record<CharacterPubicHair, string> = {
   shaved: 'a fully shaved pubic area',
@@ -1109,7 +1096,6 @@ export function finerTraitPhrases(traits: CharacterTraits | undefined): {
     physique: [
       traits?.muscleTone ? MUSCLE_TONE_WORDS[traits.muscleTone] : '',
       bodyHairPhrase(traits?.bodyHair, sex),
-      traits?.tan ? TAN_WORDS[traits.tan] : '',
     ]
       .filter(Boolean)
       .join(', '),
@@ -1132,7 +1118,6 @@ const FINER_TRAIT_LABELS: Array<{
   { key: 'makeup', options: CHARACTER_MAKEUP_OPTIONS, suffix: '' },
   { key: 'muscleTone', options: CHARACTER_MUSCLE_TONE_OPTIONS, suffix: ' muscles' },
   { key: 'bodyHair', options: CHARACTER_BODY_HAIR_OPTIONS, suffix: ' body hair' },
-  { key: 'tan', options: CHARACTER_TAN_OPTIONS, suffix: '' },
 ];
 
 type FinerTraitKey =
@@ -1146,8 +1131,7 @@ type FinerTraitKey =
   | 'lips'
   | 'makeup'
   | 'bodyHair'
-  | 'muscleTone'
-  | 'tan';
+  | 'muscleTone';
 
 /** Short labels of the picked finer traits, for hints and summaries ("Olive skin", "Green eyes"). */
 export function finerTraitLabels(traits: CharacterTraits | undefined): string[] {
@@ -1314,7 +1298,6 @@ const TRAIT_OPTIONS = {
   makeup: CHARACTER_MAKEUP_OPTIONS,
   bodyHair: CHARACTER_BODY_HAIR_OPTIONS,
   muscleTone: CHARACTER_MUSCLE_TONE_OPTIONS,
-  tan: CHARACTER_TAN_OPTIONS,
   pubicHair: CHARACTER_PUBIC_HAIR_OPTIONS,
 } as const;
 
@@ -1334,7 +1317,6 @@ function finerTraitsOf(traits: CharacterTraits | undefined): CharacterTraits {
     'makeup',
     'bodyHair',
     'muscleTone',
-    'tan',
     'pubicHair',
   ] as const) {
     if (traits[key]) (out as Record<string, string>)[key] = traits[key]!;
@@ -1446,6 +1428,87 @@ export const CHARACTER_TRAIT_GROUPS: ReadonlyArray<{
   {
     id: 'body',
     label: 'Body',
-    keys: ['bust', 'hips', 'muscleTone', 'bodyHair', 'tan', 'pubicHair'],
+    keys: ['bust', 'hips', 'muscleTone', 'bodyHair', 'pubicHair'],
   },
 ];
+
+const PLATE_EYEBROWS: Record<CharacterEyebrows, string> = {
+  thin: 'thin, finely plucked, high-arched eyebrows',
+  natural: 'natural, softly shaped eyebrows',
+  thick: 'thick, full, dark eyebrows',
+  bushy: 'bushy, thick, untamed eyebrows',
+};
+const PLATE_LIPS: Record<CharacterLips, string> = {
+  thin: 'thin, narrow lips with a slim upper lip',
+  average: 'medium lips',
+  full: 'full, plump lips',
+  'very-full': 'very full, plump, pouty lips',
+};
+const PLATE_MUSCLE: Record<CharacterMuscleTone, string> = {
+  soft: 'soft and untoned, with no visible muscle definition',
+  toned: 'toned, with light muscle definition in the arms and stomach',
+  defined: 'athletic, with clearly defined muscles in the arms, shoulders and stomach',
+  ripped: 'very lean and ripped, with visible abs and sharply defined muscles',
+};
+
+/**
+ * The picked face and body details as plain sentences, for the first plate's prompt right after
+ * its opening line. Live (UltraReal, 2026-10-15, same seeds): the same details as words late in
+ * the description changed nothing (brows, lips, makeup, a woman's muscle tone), and as
+ * front-loaded sentences makeup came out 6 of 6, bushy brows and full lips 2 of 3, a smooth chest
+ * 2 of 2 and a woman's ripped abs a little stronger. Tan lines failed both ways and were dropped. '' when none.
+ */
+export function plateTraitDetails(traits: CharacterTraits | undefined): string {
+  if (!traits) return '';
+  const man = traits.sex === 'man';
+  const subject = man ? 'He' : traits.sex === 'woman' ? 'She' : 'They';
+  const has = subject === 'They' ? 'have' : 'has';
+  const wears = subject === 'They' ? 'wear' : 'wears';
+  const possessive = man ? 'His' : traits.sex === 'woman' ? 'Her' : 'Their';
+  const sentences: string[] = [];
+  if (traits.height === 'little-person') {
+    // Live (2026-10-15): UltraReal drew average proportions 0 of 4 from the description and 0 of 6
+    // with this sentence; an Edit 2511 edit of the plate made a caricature (big head, missing
+    // arms). The forms point to From photo; this stays so a photo Cast's stills say it.
+    sentences.push(
+      `${subject} ${subject === 'They' ? 'are' : 'is'} an adult little person with achondroplasia dwarfism: about four feet tall, with short arms and legs, a long torso and an adult face.`
+    );
+  }
+  const features = [
+    traits.eyebrows ? PLATE_EYEBROWS[traits.eyebrows] : '',
+    traits.lips ? PLATE_LIPS[traits.lips] : '',
+  ].filter(Boolean);
+  if (features.length) sentences.push(`${subject} ${has} ${features.join(' and ')}.`);
+  switch (traits.makeup) {
+    case 'none':
+      sentences.push(
+        `${possessive} face is bare with no makeup at all: natural uncoloured lips, bare lashes, visible skin texture and pores.`
+      );
+      break;
+    case 'natural':
+      sentences.push(
+        `${subject} ${wears} subtle natural makeup: light foundation, soft mascara and tinted lip balm.`
+      );
+      break;
+    case 'glam':
+      sentences.push(
+        `${subject} ${wears} polished glam makeup: contoured cheekbones, shimmering bronze eyeshadow, long false lashes and glossy rose lipstick.`
+      );
+      break;
+    case 'bold':
+      sentences.push(
+        `${subject} ${wears} bold makeup: sharp black winged eyeliner, smoky dark eyeshadow and deep red matte lipstick with clean edges.`
+      );
+      break;
+  }
+  if (traits.muscleTone) {
+    sentences.push(`${possessive} body is ${PLATE_MUSCLE[traits.muscleTone]}.`);
+  }
+  const bodyHair = bodyHairPhrase(traits.bodyHair, traits.sex);
+  if (bodyHair) sentences.push(`${subject} ${has} ${bodyHair}.`);
+  return sentences.join(' ');
+}
+
+/** Little person can't be drawn from words by the local engines (live 2026-10-15): the forms say so. */
+export const LITTLE_PERSON_PHOTO_HINT =
+  "The picture engines here can't draw a little person from words yet (they come out average height, or as a caricature). Make this Cast From photo — a photo of the person is the plate.";

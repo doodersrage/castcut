@@ -276,7 +276,7 @@ describe('finer traits', () => {
 });
 
 describe('face and body detail traits', () => {
-  it('says brows, lips, makeup, muscle, body hair and tan; never pubic hair', async () => {
+  it('says brows, lips, makeup, muscle and body hair; never pubic hair', async () => {
     const { physicalDescriptionFromTraits } = await import('./character-appearance');
     const woman = physicalDescriptionFromTraits(
       {
@@ -286,14 +286,13 @@ describe('face and body detail traits', () => {
         makeup: 'none',
         muscleTone: 'toned',
         bodyHair: 'smooth',
-        tan: 'tan-lines',
         pubicHair: 'trimmed',
       },
       { hasPicture: true }
     );
     assert.equal(
       woman.descriptor,
-      'a woman with thick, full eyebrows, full lips and a bare, makeup-free face, with toned muscles, smooth, hairless skin, faint swimsuit tan lines'
+      'a woman with thick, full eyebrows, full lips and a bare, makeup-free face, with toned muscles, smooth, hairless skin'
     );
     assert.doesNotMatch(woman.descriptor ?? '', /pubic/);
     assert.equal(woman.traits?.pubicHair, 'trimmed');
@@ -342,5 +341,17 @@ describe('little person (height)', () => {
     for (let i = 0; i < 200; i += 1) {
       assert.notEqual(resolveCharacterAppearance({}).height, 'little-person');
     }
+  });
+});
+
+describe('plate trait details', () => {
+  it('writes picked face and body details as sentences for the first plate', async () => {
+    const { plateTraitDetails } = await import('./character-appearance');
+    assert.equal(
+      plateTraitDetails({ sex: 'woman', eyebrows: 'bushy', lips: 'full', makeup: 'bold', muscleTone: 'toned' }),
+      'She has bushy, thick, untamed eyebrows and full, plump lips. She wears bold makeup: sharp black winged eyeliner, smoky dark eyeshadow and deep red matte lipstick with clean edges. Her body is toned, with light muscle definition in the arms and stomach.'
+    );
+    assert.equal(plateTraitDetails({ sex: 'man', bodyHair: 'hairy' }), 'He has a hairy chest, arms and belly.');
+    assert.equal(plateTraitDetails({ sex: 'woman', pubicHair: 'shaved', eyeColor: 'green' }), '');
   });
 });

@@ -745,3 +745,15 @@ describe('new look plates from the original', () => {
     assert.equal(castOriginalPlate({ id: 'c', name: 'C' } as never), null);
   });
 });
+
+describe('first plate trait details', () => {
+  it('come right after the opening line, before the SUBJECT', () => {
+    const prompt = buildLookCastPlatePrompt({
+      characterName: 'Nora',
+      descriptor: 'a woman',
+      details: 'She wears bold makeup: sharp black winged eyeliner.',
+    });
+    assert.match(prompt, /the floor under them\. She wears bold makeup: sharp black winged eyeliner\.\nSUBJECT/);
+    assert.match(buildLookCastPlatePrompt({ characterName: 'Nora', descriptor: 'a woman' }), /floor under them:\nSUBJECT/);
+  });
+});

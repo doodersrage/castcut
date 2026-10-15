@@ -4233,6 +4233,9 @@ test('film create includes Part and From photo cast identity', async ({ page }) 
   await expect(page.getByTestId('play-campaign-create-appearance-summary')).toContainText(
     'Toned muscles'
   );
+  // Little person: the engines can't draw it from words, so the form points to From photo.
+  await page.getByTestId('play-campaign-create-height').selectOption('little-person');
+  await expect(page.getByTestId('play-campaign-create-little-person')).toContainText('From photo');
   // Marks can be picked before the Cast exists (they go onto the first plate).
   const marks = page.getByTestId('play-campaign-create-marks');
   await marks.getByTestId('cast-mark-add-glasses').click();
