@@ -92,6 +92,7 @@ import {
 import { deriveDayPhase } from '@/lib/play-step-machine';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
+import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -1424,6 +1425,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         <div className="day-character-section space-y-3">
           <div data-testid="day-character">
             <CharacterOsPicker
+              onCastChange={followCastOutfitInSessions}
               shared={shared}
               hints={character?.hints}
               onApply={patch => {

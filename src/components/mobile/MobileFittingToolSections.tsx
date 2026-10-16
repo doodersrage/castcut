@@ -28,6 +28,7 @@ import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSe
 import OutfitQualityControls from '@/components/fitting/OutfitQualityControls';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPreset';
+import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 
@@ -563,6 +564,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         testId="fitting-cast-sheet"
       >
         <CharacterOsPicker
+          onCastChange={followCastOutfitInSessions}
           shared={shared}
           hints={character?.hints}
           onApply={patch => {

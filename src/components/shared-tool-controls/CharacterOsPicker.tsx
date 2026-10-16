@@ -23,6 +23,7 @@ import {
   loraTriggerFromCharacter,
   removeCharacter,
   subscribeCharacters,
+  type CharacterRecord,
   renameActiveLook,
   upsertCharacter,
 } from '@/lib/character-os';
@@ -31,12 +32,22 @@ import type { SharedToolSettings } from '@/lib/settings-cache';
 import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 type CharacterOsPickerProps = {
+  /**
+   * Another Cast member was picked (before it is applied): Play passes followCastOutfitInSessions
+   * so the previous person's look outfit leaves Outfit, Day and Story.
+   */
+  onCastChange?: (previous: CharacterRecord, next: CharacterRecord) => void;
   shared: SharedToolSettings;
   hints?: string;
   onApply: (patch: Partial<SharedToolSettings>) => void;
 };
 
-export default function CharacterOsPicker({ shared, hints, onApply }: CharacterOsPickerProps) {
+export default function CharacterOsPicker({
+  shared,
+  hints,
+  onApply,
+  onCastChange,
+}: CharacterOsPickerProps) {
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,
@@ -78,6 +89,14 @@ export default function CharacterOsPicker({ shared, hints, onApply }: CharacterO
         identityKind: undefined,
       });
       return;
+    }
+    // A different Cast: the clothes the previous one's look put into Outfit, Day and Story go.
+    if (active && character.id !== activeId && onCastChange) {
+      try {
+        onCastChange(active, character);
+      } catch (error) {
+        console.error('CharacterOsPicker: failed to follow the Cast outfit', error);
+      }
     }
     try {
       // A different Cast: its own face and wardrobe, nothing of the previous one's (fresh).

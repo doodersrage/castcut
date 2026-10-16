@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
 import {
   addBlankCastLook,
+  followCastOutfitInSessions,
   followCastPlateInSessions,
   removeCastPlate,
   switchCastPlate,
@@ -490,5 +491,41 @@ describe('a plate still rendering when the look changes', async () => {
     );
     assert.equal(pendingPlateAfterSwitch(job, 'c1').pendingOutfitPlatePromptId, undefined);
     assert.equal(pendingPlateAfterSwitch(job, 'c2', 'look-a').pendingOutfitPlatePromptId, undefined);
+  });
+});
+
+describe('switching to another Cast member', () => {
+  it('drops the clothes the previous person’s look put in, keeps hand-picked ones', () => {
+    installMemoryWindow();
+    const { lookB } = seedTwoPlates('char-lena');
+    setLookKeptOutfit('char-lena', lookB, {
+      outfit: keptLookOutfitFromTryOn(
+        { wardrobeId: 'custom-garment', galleryEntryId: 'g-dress' },
+        {
+          customGarmentImageFilename: 'cream-dress.png',
+          customGarmentDescription: 'a cream satin mini dress',
+          footwear: 'silver stiletto heels',
+        }
+      ),
+    });
+    upsertCharacter({ id: 'char-rob', name: 'Rob', version: 1, updatedAt: 1 });
+    saveToolSettings('day', {
+      ...loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+      customGarmentImageFilename: 'cream-dress.png',
+      customGarmentDescription: 'a cream satin mini dress',
+      footwear: 'silver stiletto heels',
+    });
+    followCastOutfitInSessions(getCharacter('char-lena'), getCharacter('char-rob'));
+    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    assert.equal(day.customGarmentImageFilename, undefined);
+    assert.equal(day.footwear, undefined);
+
+    // Clothes picked by hand on Day (not the look's) stay.
+    saveToolSettings('day', { ...day, customGarmentImageFilename: 'my-own-jacket.png' });
+    followCastOutfitInSessions(getCharacter('char-lena'), getCharacter('char-rob'));
+    assert.equal(
+      loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE).customGarmentImageFilename,
+      'my-own-jacket.png'
+    );
   });
 });

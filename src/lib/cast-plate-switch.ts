@@ -195,6 +195,31 @@ export function followLookOutfitInSessions(
   if ((activeId && activeId !== characterId) || (!previous && !next && !after)) {
     return;
   }
+  applyLookOutfitSwitch(previous, next, after);
+}
+
+/**
+ * Another Cast member takes over Outfit, Day and Story: the outfit the previous person's look
+ * put in goes, the new person's look's kept outfit comes in (hand-picked clothes stay). Without
+ * it a man lead picked on Day wore the previous Cast's dress and heels (overnight sweep
+ * 2026-10-15). Called before the new Cast is applied.
+ */
+export function followCastOutfitInSessions(
+  previous: CharacterRecord | null | undefined,
+  next: CharacterRecord | null | undefined
+): void {
+  if (!previous || !next || previous.id === next.id) return;
+  const before = activeLook(previous).keptOutfit;
+  const after = activeLook(next).keptOutfit;
+  if (!before && !after) return;
+  applyLookOutfitSwitch(before, after);
+}
+
+function applyLookOutfitSwitch(
+  previous: KeptLookOutfit | null | undefined,
+  next: KeptLookOutfit | null | undefined,
+  after?: { record: CharacterRecord; dayNotice?: boolean }
+): void {
   const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
   const fittingPatch = lookOutfitSwitchPatch(fitting, previous, next);
   if (fittingPatch) {

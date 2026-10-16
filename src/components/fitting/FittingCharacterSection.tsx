@@ -3,6 +3,7 @@
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings-cache';
+import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
 
 export type FittingCharacterSectionProps = {
   shared: SharedToolSettings;
@@ -24,6 +25,7 @@ export default function FittingCharacterSection({
       data-testid="fitting-character"
     >
       <CharacterOsPicker
+        onCastChange={followCastOutfitInSessions}
         shared={shared}
         hints={characterHints}
         onApply={patch => {

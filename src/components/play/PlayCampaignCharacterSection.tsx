@@ -50,6 +50,7 @@ import {
 import type { CastMark } from '@/lib/cast-marks';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
+import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
 
 type PlayCampaignCharacterSectionProps = Pick<
   ReturnType<typeof usePlayCampaignWizardOrchestration>,
@@ -491,6 +492,7 @@ export default function PlayCampaignCharacterSection({
                 Or pick an existing Cast character
               </p>
               <CharacterOsPicker
+                onCastChange={followCastOutfitInSessions}
                 shared={shared}
                 onApply={patch => {
                   try {
@@ -515,6 +517,7 @@ export default function PlayCampaignCharacterSection({
       ) : (
         <>
           <CharacterOsPicker
+            onCastChange={followCastOutfitInSessions}
             shared={shared}
             hints={character.hints}
             onApply={patch => {

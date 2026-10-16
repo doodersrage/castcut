@@ -98,6 +98,7 @@ import {
 import { deriveDayPhase } from '@/lib/play-step-machine';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
+import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -1531,6 +1532,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       >
         <div data-testid="day-character" className="day-character-section space-y-4">
           <CharacterOsPicker
+            onCastChange={followCastOutfitInSessions}
             shared={shared}
             hints={character?.hints}
             onApply={patch => {
