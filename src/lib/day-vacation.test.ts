@@ -153,7 +153,7 @@ describe('day-vacation', () => {
     assert.match(vacationStanceDirective('RELAXING'), /LYING DOWN|hips and back ON/i);
     assert.match(vacationStanceDirective('REACHING'), /arm stretched high/i);
     assert.match(vacationStanceDirective('SEATED'), /hips firmly ON|knees bent/i);
-    assert.match(vacationStanceDirective('DANCING'), /BOTH arms raised|knee lifted/i);
+    assert.match(vacationStanceDirective('DANCING'), /arms in motion.*NEVER both arms hanging/i);
 
     const danceLocks = buildDayVacationPromptLocks({
       beat: 'DANCING alone on a terrace — both arms raised overhead, one knee lifted mid-kick',

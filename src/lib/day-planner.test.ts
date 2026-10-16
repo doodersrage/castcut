@@ -1276,7 +1276,7 @@ describe('day-planner', () => {
     });
     assert.match(prompt, /standing try-on plate|discard that standing fashion stance/i);
     assert.match(prompt, /ZIP\/TWIST|zipper behind her back|looking over a shoulder/i);
-    assert.match(prompt, /match Image 3 and the beat stance \(dance with both arms raised and one knee lifted, zip-twist/i);
+    assert.match(prompt, /match Image 3 and the beat stance \(dance, zip-twist/i);
   });
 
   it('buildDaySlotPrompt suggestive ignores leftover duo intimateMix', () => {

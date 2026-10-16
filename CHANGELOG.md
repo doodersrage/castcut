@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Dancing isn't always arms-in-the-air.** Every solo dance still was the same pose: the pose map, the recipe's pose sentence, the Pose cue and most dance beats all said "both arms raised overhead, one knee lifted". A dance now gets one of four moves (arms overhead, one arm up, a spin with arms out, hands in her hair), picked from the beat, and the map and every line of the prompt name the same one. A beat that names its own move keeps it. Live on Edit 2511, same seeds: spin 4/4, one arm up 2/2, hands in hair 2/2 read as dancing; a fifth move (elbows bent at the waist) came out as standing still 0/2 and was dropped.
 - **Export Cast file keeps every look, the wardrobe and reference sheets.** The file carried the looks and outfits as records, but only one picture — the active look's face lock — so an import brought one plate (sometimes an old one), and the outfits and Wardrobe cards came in blank. Now each look's plate, the kept outfits' clothing and shoe photos, a still for each Wardrobe card and the looks' reference sheets travel in the file (larger files: about 22 MB for a two-look Cast with a sheet); import uploads them again and points the Cast at the copies. The active look stays active; older files still import as before.
 
 ## [v2.10.0] - 2026-10-16

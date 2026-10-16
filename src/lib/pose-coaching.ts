@@ -11,6 +11,7 @@
 
 import type { NormalizedBody } from '@/lib/pose-library';
 import { DAY_CLOTHED_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
+import { danceMoveWords } from '@/lib/dance-move';
 
 /** Body-part description per layout — what must be true of the joints, not the scene. */
 const POSE_LAYOUT_CUES: Record<string, string> = {
@@ -179,7 +180,8 @@ const DAY_RECIPE_POSTURE_CUES: Record<string, string> = {
 
 /** One-person wording for layouts whose own cue describes two people. */
 const SOLO_RECIPE_CUES: Record<string, string> = {
-  dance: 'dancing alone: both arms raised, one knee lifted mid-step, nobody else beside her',
+  // The move is the beat's own (dance-move.ts); this entry only marks the layout as cued.
+  dance: 'dancing alone, nobody else beside her',
   toast: 'one hand raises a glass at shoulder height, the other arm relaxed',
   high_five: 'one arm raised high with an open palm',
   selfie_duo: 'one arm extended up and out holding a phone toward the face, looking at it',
@@ -196,7 +198,9 @@ export function withRecipePoseCue(
   // dance floor. Use the solo wording, or no cue.
   const key = layout?.trim() ?? '';
   const layoutCue = ALWAYS_CUED_DUO_LAYOUTS.has(key)
-    ? (SOLO_RECIPE_CUES[key] ?? null)
+    ? key === 'dance'
+      ? `dancing alone: ${danceMoveWords(prompt)}, nobody else beside her`
+      : (SOLO_RECIPE_CUES[key] ?? null)
     : poseLayoutCue(layout);
   const posture = poseKey?.split(':')[0]?.trim() ?? '';
   const cue =

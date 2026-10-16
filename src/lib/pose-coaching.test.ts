@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { danceMoveWords } from './dance-move';
 import {
   normalizePhotoPose,
   normalizePoseCameraChoice,
@@ -317,7 +318,8 @@ describe('two-person layouts on a one-person still', () => {
   it('the recipe cue never says "the two people" — a solo dance got a second copy of her', () => {
     const cued = withRecipePoseCue(recipe, 'dance');
     assert.doesNotMatch(cued, /two people|each other/);
-    assert.match(cued, /Pose: dancing alone: both arms raised/);
+    // The move is the beat's (dance-move.ts), the same one the pose map draws.
+    assert.match(cued, new RegExp(`Pose: dancing alone: ${danceMoveWords(recipe)}, nobody else`));
     // No solo wording for a hug: no cue at all.
     assert.equal(withRecipePoseCue(recipe, 'hug'), recipe);
   });

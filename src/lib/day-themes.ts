@@ -168,7 +168,7 @@ const NIGHT_OUT: DayThemeDefinition = {
     ],
     evening: [
       [
-        'dancing with both arms up under colored club lights, hips mid-sway',
+        'dancing under colored club lights, hips mid-sway',
         'crowded nightclub dance floor with colored lights and haze',
       ],
       [

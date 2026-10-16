@@ -11,6 +11,7 @@
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
 import { beatLiesDown } from './beat-text';
+import { danceMoveWords } from './dance-move';
 import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day-lead-gender';
 import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
 import {
@@ -1063,7 +1064,7 @@ function suggestivePlacement(beat: string): string {
     return 'She stands on the sidewalk at a shop window, body angled three-quarter to the glass, adjusting her neckline.';
   }
   if (/\bdanc/.test(b)) {
-    return `She dances, both arms raised overhead, one knee lifted, hips mid-sway${lookBack}.`;
+    return `She dances, ${danceMoveWords(beat)}${lookBack}.`;
   }
   if (/\b(?:zip|unzip|buttoning|dressing)\w*/.test(b) && !lean) {
     return `She stands with her torso twisted, both hands at her dress behind her back${lookBack || ', looking over her shoulder'}.`;
@@ -1288,7 +1289,7 @@ function vacationPlacement(beat: string): string | null {
     case 'WAVING':
       return 'She stands waving, one arm raised high overhead, weight on one hip.';
     case 'DANCING':
-      return 'She dances, both arms raised, one knee lifted, hips mid-sway.';
+      return `She dances, ${danceMoveWords(beat)}.`;
     case 'STRETCHING':
       return 'She stands stretching both arms overhead, weight on one leg.';
     case 'JUMPING':

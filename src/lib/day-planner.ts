@@ -1,3 +1,4 @@
+import { danceMoveWords } from '@/lib/dance-move';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   normalizeSpokenLine,
@@ -920,7 +921,7 @@ export const DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX =
  * anti-standing lead, CFG-1 freezes every clothed-heat beat as a square-on stand.
  */
 export const DAY_SUGGESTIVE_KEEP_POSE_UNLOCK_PREFIX =
-  'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Image 1 is a standing try-on plate — discard that standing fashion stance entirely. Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose matching Image 3 (dancing with both arms raised and one knee lifted mid-kick, leaning, seated, stretching, hip cocked, looking back, or unzipping as written). Keep facial likeness only for who they are; keep the clothing; replace everything else.';
+  'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. Image 1 is a standing try-on plate — discard that standing fashion stance entirely. Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the beat pose matching Image 3 (dancing, leaning, seated, stretching, hip cocked, looking back, or unzipping as written). Keep facial likeness only for who they are; keep the clothing; replace everything else.';
 
 /** Beat-aware Suggestive Keep unlock — DANCING gets a CRITICAL fail line like Vacation. */
 export function buildDaySuggestiveKeepPoseUnlock(beat: string | null | undefined): string {
@@ -928,7 +929,9 @@ export function buildDaySuggestiveKeepPoseUnlock(beat: string | null | undefined
   if (/\b(danc(?:e|es|ing)|hips?\s+mid-?sway|mid-?sway)\b/i.test(hay)) {
     return (
       'Edit Image 1. Keep facial likeness AND the worn outfit, garments, colors, fabric, and clothing silhouette from Image 1. ' +
-      'CRITICAL: Image 1 is a standing fashion plate — the output MUST show her DANCING instead: both arms raised overhead, one knee lifted mid-kick, hips swaying. If she is standing square-on with arms at her sides or hands on her waist the edit FAILED. ' +
+      'CRITICAL: Image 1 is a standing fashion plate — the output MUST show her DANCING instead: ' +
+      danceMoveWords(hay) +
+      '. If she is standing square-on with arms at her sides or hands on her waist the edit FAILED. ' +
       'Do not preserve body pose, standing stance, arm or hand positions, camera angle, or background — aggressively refactor into the mid-dance pose matching Image 3. ' +
       'Keep facial likeness only for who they are; keep the clothing; replace everything else.'
     );
@@ -949,8 +952,7 @@ export function buildDaySuggestivePoseLock(
   let stance =
     'match Image 3 and the beat — lean, sit, stretch, hip-cocked asymmetry, or charged upright as written';
   if (/\b(danc(?:e|es|ing)|hips?\s+mid-?sway|mid-?sway)\b/i.test(hay)) {
-    stance =
-      'DANCING alone — BOTH arms raised overhead, one knee lifted mid-kick or mid-step, hips mid-sway, three-quarter torso twist — NEVER both arms hanging at her sides or hands parked on her waist like a catalog stand, NEVER both feet planted parallel facing the lens';
+    stance = `DANCING alone — ${danceMoveWords(hay)}, three-quarter torso twist — NEVER both arms hanging at her sides or hands parked on her waist like a catalog stand, NEVER both feet planted parallel facing the lens`;
   } else if (
     /\b(twist(?:ing|s)?|zip(?:ping|s|ped)?|unzip(?:ping|s|ped)?|back\s+arch|over\s+(?:an?\s+|the\s+)?shoulder)\b/i.test(
       hay
@@ -1601,8 +1603,8 @@ export const DAY_LATE_SLOT_BEAT_PRESETS: Record<DayPart, string[]> = {
     'leaning against a brick wall outside a restaurant waiting for a table',
     'walking a lamplit street after dinner mid-stride, coat over one arm',
     'climbing the stairs up to a cinema with a bucket of popcorn',
-    // No prop in the hands: the dance pose draws both arms up, and a spoon "microphone" floated.
-    'dancing alone in the kitchen, both arms up, singing along to the radio',
+    // No prop in the hands: a spoon "microphone" floated.
+    'dancing alone in the kitchen, singing along to the radio',
     'raising a glass for a toast at an outdoor table, other hand on the chair back',
     'checking a reflection in a shop window while fixing a collar',
     'standing at a food truck window counting coins into one palm',
@@ -1966,7 +1968,7 @@ export const DAY_SLOT_SUGGESTIVE_BEAT_PRESETS: Record<DayPart, string[]> = {
   ],
   evening: [
     'holding a glass at a dim bar — seated on a stool, dress strap slipping, body angled, slow eye contact, never standing square-on',
-    'DANCING alone on the patio in evening wear — both arms raised overhead, one knee lifted mid-kick, hips mid-sway, three-quarter turn — never arms-at-sides catalog stand',
+    'DANCING alone on the patio in evening wear — hips mid-sway, three-quarter turn — never arms-at-sides catalog stand',
     'seated on a couch arm in evening wear, legs crossed high, leaning back on one hand, charged pause',
     'leaning in a doorway in lingerie and an open robe — one shoulder against the jamb, looking down the hall, inviting, not a fashion plate',
     'sitting on the hotel bed edge unzipping a dress halfway — lingerie visible, one heel half-off, looking up into the lamp',
@@ -3621,7 +3623,7 @@ export function buildDaySlotPrompt(input: {
             : 'camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; bare sheets in the foreground; eyes closed or half-lidded looking down at her hands — never a soft fashion pin-up staring at the lens; never raised hands or fingers pointing up; nothing held — fingers only; never beach, sand, ocean, shoreline, pier, or night-beach city lights — indoor rumpled sheets only'
           : 'camera: intimate medium / three-quarter on the beat body pose and sex/action — prioritize stance over environment; empty lap and bare sheets in the foreground; eyes half-lidded or looking at her own body/hands — never a soft fashion pin-up staring at the lens with hands flat on the mattress'
         : dayMood === 'suggestive'
-          ? 'camera: charged medium / three-quarter on the beat body pose — match Image 3 (dance with both arms raised and one knee lifted, zip-twist look-back with hands on her own zipper, lean, sit, stretch, or recline as written); lingerie or dress stays on (top and bottom); ' +
+          ? 'camera: charged medium / three-quarter on the beat body pose — match Image 3 (dance as the beat says, zip-twist look-back with hands on her own zipper, lean, sit, stretch, or recline as written); lingerie or dress stays on (top and bottom); ' +
             (suggestiveCouple
               ? 'the woman and her partner both in frame, both fully clothed; '
               : 'one woman alone; never invent a man; ') +
@@ -3631,7 +3633,7 @@ export function buildDaySlotPrompt(input: {
             : dayMood === 'vacation'
               ? allowCompanions && poseHeadcount >= 2
                 ? 'camera: travel medium / full-body shot of the couple — she and her partner both fully in frame, both dressed, doing what the beat says; no third person; never a stiff square-on standing catalog pose or empty postcard establishing shot'
-                : 'camera: travel medium / three-quarter on the beat vacation pose — if RELAXING/RECLINING show her lying ON what the beat names (hips down, knees drawn up), not standing beside it; if SEATED/PERCHED show hips ON the seat with knees bent; if DANCING show both arms raised overhead and one knee lifted mid-kick with hips mid-sway; if MID-STRIDE show FULL BODY walking with both feet visible, one foot clearly ahead, opposite arm swing — never a mid-thigh portrait crop; if WAVING show one arm raised high overhead with weight shift full body; if REACHING show one arm high; one woman alone; never invent a man; never hands-and-knees or rear-presenting on a bed; never a stiff square-on standing catalog pose with both feet planted and arms at her sides or empty postcard establishing shot'
+                : 'camera: travel medium / three-quarter on the beat vacation pose — if RELAXING/RECLINING show her lying ON what the beat names (hips down, knees drawn up), not standing beside it; if SEATED/PERCHED show hips ON the seat with knees bent; if DANCING show arms in motion as the pose map shows with hips mid-sway; if MID-STRIDE show FULL BODY walking with both feet visible, one foot clearly ahead, opposite arm swing — never a mid-thigh portrait crop; if WAVING show one arm raised high overhead with weight shift full body; if REACHING show one arm high; one woman alone; never invent a man; never hands-and-knees or rear-presenting on a bed; never a stiff square-on standing catalog pose with both feet planted and arms at her sides or empty postcard establishing shot'
               : `camera: ${cameraCue}`;
   const framingLine = soloSubject
     ? isDayAdultMood(dayMood)
@@ -3671,7 +3673,7 @@ export function buildDaySlotPrompt(input: {
     ? soloToy
       ? `${buildSinglePersonUserDirective()} SOLO TOY LOCK: exactly one adult woman — never invent a man, male partner, boyfriend, second face, or second body. ${SOLO_DILDO_INSERTION_CUE}. ${SOLO_DILDO_NO_EXTERNAL_HOLD_CUE}`
       : dayMood === 'suggestive' || dayMood === 'vacation'
-        ? `${buildSinglePersonUserDirective()} CLOTHED SOLO LOCK: exactly one woman — never invent a man, boyfriend, or second adult; clothes stay on; match the beat stance (reclining, seated, mid-stride, dancing with arms raised and one knee lifted, reaching, leaning) — never rear-presenting or hands-and-knees; never a square-on standing catalog pose with arms at her sides.`
+        ? `${buildSinglePersonUserDirective()} CLOTHED SOLO LOCK: exactly one woman — never invent a man, boyfriend, or second adult; clothes stay on; match the beat stance (reclining, seated, mid-stride, dancing, reaching, leaning) — never rear-presenting or hands-and-knees; never a square-on standing catalog pose with arms at her sides.`
         : buildSinglePersonUserDirective()
     : null;
   const rapidAio = poseProfileForModel(input.model).rapidGraph;
@@ -3729,7 +3731,7 @@ export function buildDaySlotPrompt(input: {
             ? 'MOOD: intimate solo sex/self-touch still — follow the beat body pose and hand placement exactly; Cast alone mid-act with readable arousal (open thighs, arched back, head tipped, hands on her own vulva/breasts as the beat says); never invent a second adult, partner torso, or thigh under her; never a soft floral-dress pin-up staring politely at the lens; empty rumpled sheets only — SETTING is backdrop only.'
             : 'MOOD: intimate adult still — follow the beat sex/stance exactly; Cast face on the lead only; never a soft fashion pin-up; bare sheets and skin only in the foreground.'
         : dayMood === 'suggestive'
-          ? 'MOOD: suggestive heat — clothed flirt only: wear the Keep/Image 2 outfit exactly (lingerie/robe/dress as shown — never swap it or strip her); cleavage/straps/unfinished unzip when written; underwear or bottoms stay on; follow the beat body stance exactly (dancing with both arms raised and one knee lifted, twisting to zip a dress looking over a shoulder, leaning, seated, stretching, hip cocked — never a stiff standing fashion plate staring at the lens with arms at her sides); never nude, never bottomless, ' +
+          ? 'MOOD: suggestive heat — clothed flirt only: wear the Keep/Image 2 outfit exactly (lingerie/robe/dress as shown — never swap it or strip her); cleavage/straps/unfinished unzip when written; underwear or bottoms stay on; follow the beat body stance exactly (dancing, twisting to zip a dress looking over a shoulder, leaning, seated, stretching, hip cocked — never a stiff standing fashion plate staring at the lens with arms at her sides); never nude, never bottomless, ' +
             (suggestiveCouple
               ? 'her partner stays fully clothed too; '
               : 'never invent a man or second adult; ') +
@@ -4189,7 +4191,7 @@ export function buildDaySlotPrompt(input: {
           (replaceKeepOutfit
             ? 'Image 1 is face/body identity only — discard Image 1 garments; dress the SPORT KIT for the athletic beat on a sport venue.'
             : dayMood === 'suggestive'
-              ? 'Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (dance with both arms raised and one knee lifted, zip-twist, lean, sit) instead of freezing that stand.'
+              ? 'Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (dance, zip-twist, lean, sit) instead of freezing that stand.'
               : dayMood === 'vacation'
                 ? poseGuide
                   ? `Image 1 is the Outfit Keep try-on (face + worn kit) — a standing plate; match Image 3 and the beat stance (${vacationLocks?.poseClass ?? 'travel pose'}) instead of freezing that stand.`

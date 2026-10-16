@@ -6,6 +6,7 @@
  * don’t freeze every still. No kneeling-on-bed / hands-and-knees.
  */
 
+import { danceMoveWords } from '@/lib/dance-move';
 import type { DaySlotId } from '@/lib/day-planner';
 import { dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day-parts';
 
@@ -270,7 +271,7 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
     },
     {
       activity: 'rooftop',
-      beat: 'DANCING alone on a terrace at blue hour — both arms raised overhead, one knee lifted mid-kick, hips mid-sway, evening wear — never arms hanging at her sides',
+      beat: 'DANCING alone on a terrace at blue hour — hips mid-sway, evening wear — never arms hanging at her sides',
       setting: 'hotel terrace at blue hour with distant lights and a low wall railing',
     },
     {
@@ -392,7 +393,7 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
     },
     {
       activity: 'rooftop',
-      beat: 'DANCING under rooftop string lights — both arms raised, one knee lifted mid-kick, hips mid-sway, evening wear, night wind on the terrace — never arms at her sides',
+      beat: 'DANCING under rooftop string lights — hips mid-sway, evening wear, night wind on the terrace — never arms at her sides',
       setting: 'hotel terrace at night with string lights and a low wall railing',
     },
     {
@@ -422,7 +423,7 @@ const VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
     },
     {
       activity: 'pool',
-      beat: 'DANCING barefoot on the pool deck under string lights — cover-up over swimsuit, both arms raised, one knee lifted, hips mid-sway — never a planted fashion stand',
+      beat: 'DANCING barefoot on the pool deck under string lights — cover-up over swimsuit, hips mid-sway — never a planted fashion stand',
       setting: 'resort pool deck at night with string lights and still water reflections',
     },
     {
@@ -515,7 +516,7 @@ const LATE_VACATION_SCENES: Record<DayPart, readonly VacationScene[]> = {
   evening: [
     {
       activity: 'rooftop',
-      beat: 'DANCING on a rooftop bar terrace at dusk — both arms raised overhead, one knee lifted mid-step, dress swinging, city lights coming on behind',
+      beat: 'DANCING on a rooftop bar terrace at dusk — dress swinging, city lights coming on behind',
       setting: 'rooftop bar terrace at dusk with string lights and a glowing skyline',
     },
     {
@@ -959,7 +960,7 @@ export function vacationStanceDirective(poseClass: string | null | undefined): s
     case 'MID-STRIDE':
       return 'MID-STRIDE = FULL BODY captured mid-step walking — one foot clearly ahead of the other with visible gap, opposite arm swing (one arm forward, other trailing with tote/bag if the beat names one), torso leaning into the walk, head following the beat (looking down at sand/shells when written) — NEVER both feet planted parallel, NEVER arms hanging symmetrically at her sides, NEVER a square-on mid-thigh catalog portrait staring at the lens';
     case 'DANCING':
-      return 'DANCING = mid-dance alone — BOTH arms raised overhead or one high and one out, one knee lifted mid-kick or mid-step, hips mid-sway, three-quarter torso twist — NEVER both arms hanging at her sides, NEVER both feet planted parallel facing the lens';
+      return 'DANCING = mid-dance alone — arms in motion as the pose map shows, weight on one leg, hips mid-sway, three-quarter torso twist — NEVER both arms hanging at her sides, NEVER both feet planted parallel facing the lens';
     case 'CLIMBING':
       return 'CLIMBING = ascending with one foot up and hands on rail/steps — never standing flat-footed';
     case 'WAVING':
@@ -990,7 +991,7 @@ export function buildDayVacationKeepPoseUnlock(poseClass?: string | null): strin
   const stance = vacationStanceDirective(poseClass);
   const critical =
     cls === 'DANCING'
-      ? 'CRITICAL: Image 1 is a standing fashion plate — the output MUST show her DANCING instead: both arms raised or one arm high, one knee lifted mid-step, hips swaying. If she is standing square-on with arms at her sides the edit FAILED. '
+      ? 'CRITICAL: Image 1 is a standing fashion plate — the output MUST show her DANCING instead: arms in motion as the pose map shows, weight on one leg, hips mid-sway. If she is standing square-on with arms at her sides the edit FAILED. '
       : cls === 'MID-STRIDE'
         ? 'CRITICAL: Image 1 is a standing fashion plate — the output MUST show her WALKING mid-step FULL BODY with one foot clearly ahead, opposite arm swing, and feet visible in frame. Planted parallel feet, arms hanging at her sides, or a mid-thigh portrait staring at the lens mean the edit FAILED. '
         : cls === 'WAVING'
@@ -1159,10 +1160,10 @@ function clothedFaceBreakLeadsFor(
       preamble:
         'Edit Image 1. Image 1 is a FACE CROP only — keep facial likeness only. ' +
         identityLock +
-        'Invent a FULL BODY mid-dance from Image 3: BOTH arms raised high overhead, one knee lifted mid-step, hips mid-sway, torso twisted — never arms hanging at her sides. CRITICAL: a square-on fashion stand with both feet planted and arms at her sides means the edit FAILED. ' +
+        'Invent a FULL BODY mid-dance from Image 3: arms in motion as the pose map shows, weight on one leg, hips mid-sway, torso twisted — never arms hanging at her sides. CRITICAL: a square-on fashion stand with both feet planted and arms at her sides means the edit FAILED. ' +
         outfitFrom +
         ' Follow the beat action and SETTING (terrace, string lights, evening wear when written).',
-      image1: `Image 1 = face likeness only — invent FULL BODY dancing matching Image 3 (both arms overhead, one knee lifted, hip sway); never a planted fashion stand; ${outfitImage1}.`,
+      image1: `Image 1 = face likeness only — invent FULL BODY dancing matching Image 3 (arms in motion, hip sway); never a planted fashion stand; ${outfitImage1}.`,
     };
   }
   if (cls === 'WAVING') {
@@ -1294,7 +1295,7 @@ export function buildDayVacationPromptLocks(input: {
     poseClass === 'RECLINING' || poseClass === 'RELAXING'
       ? ' BODY: she is LYING DOWN — head, spine, and hips on the lounge/towel surface, knees drawn up — NEVER on her feet, NEVER standing beside the furniture, NEVER an upright chair-sit reading pose.'
       : poseClass === 'DANCING'
-        ? ' BODY: mid-dance — both arms raised overhead, one knee lifted mid-step, hips swaying — NEVER both arms hanging at her sides, NEVER a planted fashion stand.'
+        ? ` BODY: mid-dance — ${danceMoveWords(beat)} — NEVER both arms hanging at her sides, NEVER a planted fashion stand.`
         : poseClass === 'MID-STRIDE'
           ? ' BODY: WALKING mid-step FULL BODY — one foot clearly ahead of the other, opposite arm swing, torso leaning into the walk, follow beat gaze (looking down at sand/shells when written) — NEVER both feet planted parallel, NEVER arms hanging at her sides, NEVER a square-on mid-thigh catalog stand staring at the lens.'
           : poseClass === 'WAVING'

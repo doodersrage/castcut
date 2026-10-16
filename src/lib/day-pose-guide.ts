@@ -9,6 +9,7 @@
  * contact read clearly — still face-free / clothing-free.
  */
 
+import { DANCE_MOVE_LIMBS, danceMoveFor } from '@/lib/dance-move';
 import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
 import type { DaySlotId } from '@/lib/day-planner';
 import {
@@ -5172,9 +5173,9 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
     // Solo suggestive/vacation "dancing alone" must NOT draw a ballroom pair —
     // a second stick figure fights SOLO LOCK and Edit collapses to the Keep stand.
     if (intent.people <= 1) {
-      // Nuclear solo dance — both arms overhead + one knee lifted mid-step.
-      // Gravity-defying kicks (ankle above hip) make Qwen Edit abandon Image 3 and
-      // freeze the Outfit Keep fashion stand; keep the lift readable but human.
+      // One of a few dance moves, the same one the prompt names (dance-move.ts). Gravity-defying
+      // kicks (ankle above hip) make Qwen Edit abandon Image 3 and freeze the Outfit Keep
+      // fashion stand; lifts stay readable but human.
       return [
         {
           head: point(0.5, 0.08),
@@ -5182,18 +5183,15 @@ export function synthesizeSocialStickFigures(intent: PoseGuideIntent): StickSkel
           pelvis: point(0.44, 0.5),
           lShoulder: point(0.34, 0.2),
           rShoulder: point(0.62, 0.18),
-          lElbow: point(0.26, 0.08),
-          rElbow: point(0.72, 0.06),
-          lWrist: point(0.22, 0.02),
-          rWrist: point(0.78, 0.02),
           lHip: point(0.38, 0.5),
           rHip: point(0.52, 0.48),
-          // Planted support leg + opposite knee lifted to mid-thigh (not above hip).
-          lKnee: point(0.3, 0.72),
-          rKnee: point(0.66, 0.4),
-          lAnkle: point(0.26, 0.92),
-          rAnkle: point(0.7, 0.52),
-        },
+          ...Object.fromEntries(
+            Object.entries(DANCE_MOVE_LIMBS[danceMoveFor(intent.sceneText)]).map(([joint, at]) => [
+              joint,
+              point(at.x, at.y),
+            ])
+          ),
+        } as StickSkeleton,
       ];
     }
     const lead = uprightFigure(seed, {

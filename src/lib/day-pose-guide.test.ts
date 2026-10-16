@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { DANCE_MOVE_LIMBS, danceMoveFor } from './dance-move';
 import {
   countPoseGuidePeople,
   dayPoseGuideSize,
@@ -219,16 +220,18 @@ describe('day-pose-guide', () => {
     );
     assert.equal(dancing.intent.social, 'dance');
     assert.equal(dancing.figures.length, 1);
-    const danceSpan = Math.abs(dancing.figures[0]!.lAnkle.x - dancing.figures[0]!.rAnkle.x);
-    assert.ok(danceSpan >= 0.35, `solo dance ankle span should be wide, got ${danceSpan}`);
+    // The beat's own dance move (dance-move.ts) — never the plate's arms-at-sides stand.
     const danceFig = dancing.figures[0]!;
+    const move = DANCE_MOVE_LIMBS[danceMoveFor(dancing.intent.sceneText)];
+    assert.ok(Math.abs(danceFig.lWrist.x - move.lWrist.x) < 0.02);
+    assert.ok(Math.abs(danceFig.rAnkle.y - move.rAnkle.y) < 0.02);
     assert.ok(
-      Math.min(danceFig.lWrist.y, danceFig.rWrist.y) < 0.08,
-      `solo dance needs wrists clearly overhead, got L=${danceFig.lWrist.y} R=${danceFig.rWrist.y}`
+      Math.max(danceFig.lWrist.y, danceFig.rWrist.y) < danceFig.pelvis.y - 0.1,
+      `solo dance hands must be up off her sides, got L=${danceFig.lWrist.y} R=${danceFig.rWrist.y}`
     );
     assert.ok(
-      Math.min(danceFig.lAnkle.y, danceFig.rAnkle.y) <= 0.55,
-      `solo dance needs one knee/ankle lifted mid-step, got L=${danceFig.lAnkle.y} R=${danceFig.rAnkle.y}`
+      Math.abs(danceFig.lAnkle.y - danceFig.rAnkle.y) >= 0.04,
+      `solo dance needs a step or a lifted foot, not both feet planted, got L=${danceFig.lAnkle.y} R=${danceFig.rAnkle.y}`
     );
     assert.ok(
       Math.min(danceFig.lAnkle.y, danceFig.rAnkle.y) >= 0.45,
