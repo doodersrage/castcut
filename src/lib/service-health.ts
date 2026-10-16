@@ -17,6 +17,7 @@ import {
   isLlmEnabled,
 } from './llm-client';
 import { localLlmContextLength } from './llm-vram-free-server';
+import { localLlmEndpoint } from './llm-local';
 
 export type LlmHealth = {
   ok: boolean;
@@ -27,6 +28,8 @@ export type LlmHealth = {
   error?: string;
   /** LLM_MODEL names a model the server does not list (calls will fail). */
   modelMissing?: boolean;
+  /** The built-in LLM, installed and on but stopped: the next call starts it. */
+  idle?: boolean;
   inFlight: number;
   maxInflight: number;
   busy: boolean;
@@ -139,7 +142,8 @@ export async function getExpandedComfyUiHealth(
 export async function checkLlmHealth(): Promise<LlmHealth> {
   const enabled = isLlmEnabled();
   const config = getLlmConfig();
-  const configured = process.env.LLM_MODEL?.trim();
+  const local = localLlmEndpoint();
+  const configured = local ? local.model : process.env.LLM_MODEL?.trim();
   const inFlight = getLlmInflightCount();
   const maxInflight = getLlmMaxInflight();
   const busy = isLlmBusy();
@@ -156,6 +160,28 @@ export async function checkLlmHealth(): Promise<LlmHealth> {
       maxInflight,
       busy,
     };
+  }
+
+  if (local) {
+    // The built-in LLM starts on the first call; health doesn't start it.
+    const running = await fetch(`${new URL(local.baseUrl).origin}/health`, {
+      signal: AbortSignal.timeout(1_500),
+    })
+      .then(response => response.ok)
+      .catch(() => false);
+    if (!running) {
+      return {
+        ok: true,
+        idle: true,
+        enabled: true,
+        model: local.model,
+        visionModel: local.model,
+        baseUrl: local.baseUrl,
+        inFlight,
+        maxInflight,
+        busy,
+      };
+    }
   }
 
   try {

@@ -6,8 +6,10 @@
 #
 # Open http://<this machine>:47832. Everything you make (Cast, Gallery, settings, kept renders)
 # lives in the castcut_data volume and survives rebuilds; see docs/configuration.md#docker for
-# moving an existing install in. Optional extras: `--profile ollama` (local LLM) and
-# `--profile comfyui` (a ComfyUI container) — most setups point at ones already running instead.
+# moving an existing install in. Optional extras: `--profile llm` (the LLM: llama.cpp with the
+# NSFWVision Qwen3-VL model on an NVIDIA GPU; set LLM_API_BASE_URL=http://llm:8080/v1 in .env),
+# `--profile ollama` and `--profile comfyui` (a ComfyUI container) — most setups point at ones
+# already running instead. (Outside Docker, Settings → LLM → Built-in LLM installs the same thing.)
 services:
   castcut:
     build: ..
@@ -32,6 +34,37 @@ services:
       - 'host.docker.internal:host-gateway'
     restart: unless-stopped
 
+  # The LLM Castcut's built-in one runs (Settings → LLM), as a container: the image is Alpine and
+  # can't run llama.cpp itself. First start downloads the model (~6 GB) into llm_models.
+  # (Rolling tag: llama.cpp publishes no per-build server-cuda tag for current builds.)
+  llm:
+    profiles: ['llm']
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    command:
+      - -hf
+      - GitMylo/nsfwvision-qwen3-vl-8b-v3-gguf:Q4_K_M
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - -c
+      - '8192'
+      - -ngl
+      - '99'
+      - --jinja
+      - --alias
+      - castcut-local
+    volumes:
+      - llm_models:/root/.cache/llama.cpp
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
   ollama:
     profiles: ['ollama']
     image: ollama/ollama:latest
@@ -51,4 +84,5 @@ services:
 
 volumes:
   castcut_data:
+  llm_models:
   ollama_data:

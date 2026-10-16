@@ -41,7 +41,7 @@ Failed job recovery banner on Gallery (`?status=error`) groups errors and offers
 
 | Symptom | Fix |
 | --- | --- |
-| Generate returns rules fallback only | Set `LLM_API_BASE_URL` + `LLM_MODEL` in `.env.local`; Settings → LLM session override |
+| Generate returns rules fallback only | Settings → LLM → **Built-in LLM** (installs llama.cpp and a model, no LM Studio), or set `LLM_API_BASE_URL` + `LLM_MODEL` in `.env.local`; Settings → LLM session override |
 | Image → Prompt / Refine vision fails | Set `LLM_VISION_MODEL` (must support vision); not text-only |
 | Scan with vision errors | Same as above; uploads use JSON data URLs by default |
 | Slow or rate-limited | Check LLM provider; enable backpressure settings if configured |

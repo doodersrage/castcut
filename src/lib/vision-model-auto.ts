@@ -8,6 +8,7 @@ import { resolveRequestVisionModel, type LlmRequestOptions } from './llm-request
 import { listRemoteLlmModels } from './llm-models';
 import { normalizeSessionLlmProvider } from './llm-providers';
 import { pickVisionCapableModel } from './vision-model-pick';
+import { localLlmEndpoint } from './llm-local';
 
 const CACHE_MS = 5 * 60_000;
 const LIST_TIMEOUT_MS = 4_000;
@@ -37,8 +38,13 @@ export async function detectVisionModel(llm?: LlmRequestOptions): Promise<string
 
 /** The vision model a request should use, or undefined when none is set or detectable. */
 export async function resolveVisionModel(llm?: LlmRequestOptions): Promise<string | undefined> {
+  // The built-in LLM serves one model for text and images; a hosted provider picked in the
+  // browser still uses its own list.
+  const local =
+    normalizeSessionLlmProvider(llm?.llmProvider) === 'server' ? localLlmEndpoint() : null;
   return (
     resolveRequestVisionModel(llm) ??
+    local?.model ??
     (process.env.LLM_VISION_MODEL?.trim() || undefined) ??
     (await detectVisionModel(llm))
   );

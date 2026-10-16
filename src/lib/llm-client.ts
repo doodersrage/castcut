@@ -8,6 +8,7 @@ import { getLlmTemperature } from './llm-env';
 import { acquireLlmSlot, withLlmSlot } from './llm-backpressure';
 import { prepareVisionImageDataUrl, splitImageDataUrl } from './vision-image-prepare';
 import { PRODUCT_NAME } from './brand';
+import { ensureLocalLlmFor, localLlmEndpoint } from './llm-local';
 
 export { allowTemplateFallback, getLlmTemperature, isLlmEnabled } from './llm-env';
 export {
@@ -72,6 +73,12 @@ async function resolveAutoTextModel(): Promise<string> {
 }
 
 export function getLlmConfig(override?: LlmEndpointOverride): LlmConfig {
+  // The built-in LLM, when installed and on, takes the server's place (a hosted provider picked in
+  // the browser still wins: that request carries its own base URL).
+  const local = override?.baseUrl?.trim() ? null : localLlmEndpoint();
+  if (local) {
+    return { baseUrl: local.baseUrl, apiKey: '', model: local.model, visionModel: local.model };
+  }
   const baseUrl =
     override?.baseUrl?.replace(/\/$/, '') ||
     process.env.LLM_API_BASE_URL?.replace(/\/$/, '') ||
@@ -90,6 +97,8 @@ export function getVisionModel(override?: string): string {
   if (requested) {
     return requested;
   }
+  const local = localLlmEndpoint();
+  if (local) return local.model;
   const visionModel = process.env.LLM_VISION_MODEL?.trim();
   if (!visionModel) {
     throw new Error(
@@ -908,9 +917,12 @@ export async function* chatCompletionStream(options: {
 }): AsyncGenerator<string, void, unknown> {
   const started = Date.now();
   const { baseUrl, apiKey, model } = getLlmConfig(options.endpoint);
+  // The built-in LLM starts on the first call that needs it.
+  await ensureLocalLlmFor(baseUrl);
   // No LLM_MODEL: a model the server actually lists, not the built-in name (llm-text-model-auto).
   const resolvedModel =
-    options.model ?? (process.env.LLM_MODEL?.trim() ? model : await resolveAutoTextModel());
+    options.model ??
+    (process.env.LLM_MODEL?.trim() || localLlmEndpoint() ? model : await resolveAutoTextModel());
   const extraBody = { think: false, ...options.extraBody };
   const release = acquireLlmSlot();
   let ok = false;
@@ -1001,9 +1013,12 @@ async function chatCompletionUnthrottled(options: {
 }): Promise<string> {
   const started = Date.now();
   const { baseUrl, apiKey, model } = getLlmConfig(options.endpoint);
+  // The built-in LLM starts on the first call that needs it.
+  await ensureLocalLlmFor(baseUrl);
   // No LLM_MODEL: a model the server actually lists, not the built-in name (llm-text-model-auto).
   const resolvedModel =
-    options.model ?? (process.env.LLM_MODEL?.trim() ? model : await resolveAutoTextModel());
+    options.model ??
+    (process.env.LLM_MODEL?.trim() || localLlmEndpoint() ? model : await resolveAutoTextModel());
   const extraBody = { think: false, ...options.extraBody };
 
   try {
@@ -1127,6 +1142,7 @@ async function visionCompletionUnsafe(options: {
   endpoint?: LlmEndpointOverride;
 }): Promise<string> {
   const { baseUrl, apiKey } = getLlmConfig(options.endpoint);
+  await ensureLocalLlmFor(baseUrl);
   const visionModel = getVisionModel(options.model);
 
   // Always downscale/recompress before leaving this process — large camera

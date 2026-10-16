@@ -38,6 +38,9 @@ export async function registerNode(
 
   startServerScheduledBatchLoop();
 
+  // The built-in LLM's hooks (llm-local.ts): LLM calls find it, start it on demand.
+  await import('@/lib/llm-local-server');
+
   if (process.env.SERVER_USER_MAINTENANCE === 'true') {
     const maintenanceIntervalMin = Number(process.env.SERVER_USER_MAINTENANCE_INTERVAL_MIN ?? '15');
     const maintenanceMs = Math.max(5, maintenanceIntervalMin) * 60_000;

@@ -4,6 +4,7 @@ import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { SessionLlmProvider } from '@/lib/llm-providers';
 import { useLlmCatalog } from '@/hooks/useLlmCatalog';
 import LlmProviderPanel from '@/components/settings/panels/LlmProviderPanel';
+import LocalLlmPanel from '@/components/settings/panels/LocalLlmPanel';
 import LlmModelDefaultsPanel from '@/components/settings/panels/LlmModelDefaultsPanel';
 import LlmPromptQualityPanel from '@/components/settings/panels/LlmPromptQualityPanel';
 import type { ServerLlmSnapshot } from '@/components/settings/panels/llm-panel-shared';
@@ -47,6 +48,7 @@ export default function SettingsLlmPanel({
 
   return (
     <>
+      <LocalLlmPanel onChanged={onTestConnection} />
       <LlmProviderPanel
         sharedSettings={sharedSettings}
         sharedMounted={sharedMounted}

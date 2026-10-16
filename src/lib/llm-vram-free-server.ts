@@ -9,6 +9,7 @@
  */
 
 import { getLlmConfig } from './llm-client';
+import { LOCAL_LLM_ALIAS, localLlmEndpoint, localLlmHooks } from './llm-local';
 
 export type FreeLlmVramResult = {
   /** Model / instance ids that were unloaded. */
@@ -87,6 +88,14 @@ export async function localLlmContextLength(
   if (!isLoopbackUrl(baseUrl)) return null;
   try {
     const origin = new URL(baseUrl).origin;
+    if (isLocalLlm(baseUrl)) {
+      // llama.cpp's server reports the context it was started with.
+      const response = await fetch(`${origin}/props`, { signal: AbortSignal.timeout(1_500) });
+      const props = response.ok
+        ? ((await response.json()) as { default_generation_settings?: { n_ctx?: number } })
+        : null;
+      return props?.default_generation_settings?.n_ctx ?? null;
+    }
     const response = await fetch(`${origin}/api/v1/models`, { signal: AbortSignal.timeout(1_500) });
     return response.ok ? lmStudioLoadedContextLength(await response.json(), model) : null;
   } catch {
@@ -106,11 +115,21 @@ export function ollamaLoadedModelNames(payload: unknown): string[] {
     .filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
 }
 
+function isLocalLlm(baseUrl: string): boolean {
+  return baseUrl.replace(/\/$/, '') === localLlmEndpoint()?.baseUrl;
+}
+
 export async function freeLocalLlmVram(
   baseUrl = getLlmConfig().baseUrl
 ): Promise<FreeLlmVramResult> {
   if (!isLoopbackUrl(baseUrl)) {
     return { freed: [], skipped: 'LLM server is not on this machine' };
+  }
+  if (isLocalLlm(baseUrl)) {
+    // The built-in LLM: stopping it frees all of its memory; the next call starts it again.
+    return (await localLlmHooks()?.stop())
+      ? { freed: [LOCAL_LLM_ALIAS] }
+      : { freed: [], skipped: 'the built-in LLM was not running' };
   }
   const origin = new URL(baseUrl).origin;
   try {

@@ -5,6 +5,7 @@
  */
 import { listRemoteLlmModels } from './llm-models';
 import { pickTextChatModel } from './vision-model-pick';
+import { localLlmEndpoint } from './llm-local';
 
 const CACHE_MS = 5 * 60_000;
 const LIST_TIMEOUT_MS = 4_000;
@@ -29,7 +30,12 @@ export async function detectTextModel(): Promise<string | undefined> {
 }
 
 export async function resolveServerTextModel(): Promise<string> {
-  return process.env.LLM_MODEL?.trim() || (await detectTextModel()) || BUILT_IN_LLM_MODEL;
+  return (
+    localLlmEndpoint()?.model ||
+    process.env.LLM_MODEL?.trim() ||
+    (await detectTextModel()) ||
+    BUILT_IN_LLM_MODEL
+  );
 }
 
 /** Tests, and after a model download. */

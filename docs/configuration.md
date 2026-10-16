@@ -96,7 +96,7 @@ Open `http://<docker host>:47832`. `.env` is the only file to edit, and changes 
 - **Who can open it:** `CASTCUT_BIND=0.0.0.0` (the default) publishes on your network, and the app refuses to start unless sign-in is on with a real `PROMPT_ADMIN_PASSWORD` and `PROMPT_SESSION_SECRET` (`openssl rand -hex 32`). `CASTCUT_BIND=127.0.0.1` keeps it on the Docker host only, and then sign-in may be off. The compose file passes the same address to the app as `PROMPT_BIND_HOST`, so the startup check sees where the port really is.
 - **Reverse proxy:** set `PROMPT_TRUSTED_HOSTS` to the public name, `TRUST_PROXY_HEADERS=true` and `PROMPT_API_URL`, and allow request bodies of at least 40 MB (a Pictures backup restore uploads 32 MB pieces).
 - **Your data** (Cast, Gallery, settings, kept renders) lives in the `castcut_data` volume at `/data`, and survives rebuilds and image updates.
-- **Extras:** `docker compose --profile ollama up -d` adds a local Ollama (`LLM_API_BASE_URL=http://ollama:11434/v1`); `--profile comfyui` adds a ComfyUI container.
+- **Extras:** `docker compose --profile llm up -d` adds the LLM (llama.cpp with the NSFWVision Qwen3-VL model on an NVIDIA GPU; set `LLM_API_BASE_URL=http://llm:8080/v1`); `--profile ollama` adds a local Ollama (`LLM_API_BASE_URL=http://ollama:11434/v1`); `--profile comfyui` adds a ComfyUI container.
 
 **Moving an existing install in.** Either use the app: on the old server use _Settings → Data → Export backup_ and _Download pictures backup_; on the new server _Import backup_, then _Restore pictures backup_. Or copy the old `PROMPT_DATA_DIR` folder into the volume, with the old app stopped so `studio.sqlite` is complete:
 
@@ -139,6 +139,12 @@ docker run -d --name castcut --restart=always \
 Inside the container the server always listens on `0.0.0.0`, which the startup check counts as network-exposed. `PROMPT_BIND_HOST=127.0.0.1` tells it the port is really only published on loopback; without it, a sign-in-off container refuses to start. Docker Hub (`doodersrage/castcut`) is updated on the same release when Hub secrets are set. Build locally with `docker build -t castcut .`.
 
 ## LLM configuration
+
+### Built-in LLM (no LM Studio)
+
+Settings → LLM → **Built-in LLM** installs llama.cpp's server (a pinned release, Vulkan build on Linux and Windows, Metal on Mac) and one vision-language model into the data folder, and runs it itself: it starts when an LLM call needs it, stops after 15 idle minutes (`LOCAL_LLM_IDLE_MINUTES`) and when ComfyUI runs out of memory, and Settings shows its context (8,192 / 16,384 / 32,768 tokens). The default model, NSFWVision Qwen3-VL 8B, writes Story and reads stills for the checks; when LM Studio already downloaded it, nothing is downloaded. While it is on it takes the place of `LLM_API_BASE_URL` (a hosted provider picked in the browser still wins). Optional: `LOCAL_LLM_PORT` (default 8191), `LOCAL_LLM_GPU_LAYERS` (default all; `0` runs it on the CPU). Not in the Alpine Docker image — use `docker compose --profile llm` there.
+
+### Your own LLM server
 
 The generator calls any **OpenAI-compatible** chat completions API. Configure via `.env.local`:
 
