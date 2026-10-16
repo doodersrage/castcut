@@ -1226,6 +1226,13 @@ export function storyStillPromptSource(input: {
 const EVERYDAY_WARDROBE_CUE =
   /\b(gown|nightgown|dress|sweater|jumper|hoodie|sweatshirt|jacket|blazer|coat|raincoat|trench|parka|cardigan|waistcoat|vest|shirt|t-shirt|tee|blouse|tank\s+top|crop\s+top|camisole|apron|overalls|coveralls|scrubs|uniform|suit|tuxedo|tracksuit|sundress|jumpsuit|romper|robe|kimono|leggings|sweatpants|jeans|trousers|slacks|chinos|shorts|skirt|dressed)\b/i;
 
+/** Clothes for the top half only. */
+const STORY_TOP_ONLY_RE =
+  /\b(?:sweater|jumper|hoodie|sweatshirt|jacket|blazer|cardigan|waistcoat|vest|shirt|t-shirt|tee|blouse|tank\s+top|crop\s+top|camisole|top)\b/i;
+/** Clothes that cover the lower half, or the whole body. */
+const STORY_LOWER_OR_WHOLE_RE =
+  /\b(?:jeans|trousers|pants|slacks|chinos|shorts|skirt|leggings|sweatpants|joggers|dress|gown|nightgown|sundress|jumpsuit|romper|overalls|coveralls|scrubs|uniform|suit|tuxedo|tracksuit|robe|kimono|coat|raincoat|trench|parka|wetsuit|swimsuit|bikini|towel|sheet|pyjamas|pajamas|onesie|costume)\b/i;
+
 /** Whether a still prompt says what the lead wears. */
 export function storyPromptNamesClothes(prompt: string): boolean {
   return EVERYDAY_WARDROBE_CUE.test(prompt) || intimateTextMentionsWardrobe(prompt);
@@ -1257,7 +1264,19 @@ export function storyLastOutfitPhrase(story: RoleplayStoryBeat[] | undefined): s
  */
 export function withStoryEverydayWardrobe(prompt: string, headcount = 1): string {
   const trimmed = prompt.trim();
-  if (!trimmed || intimateTextMentionsWardrobe(trimmed) || EVERYDAY_WARDROBE_CUE.test(trimmed)) {
+  if (!trimmed || intimateTextMentionsWardrobe(trimmed)) {
+    return trimmed;
+  }
+  if (EVERYDAY_WARDROBE_CUE.test(trimmed)) {
+    // A top alone ("her faded tank top stretched taut") left her lower half to Image 1 — the
+    // undressed Cast plate's underwear, on PG-13 laundromat / subway stills (2026-10-15).
+    if (
+      headcount === 1 &&
+      STORY_TOP_ONLY_RE.test(trimmed) &&
+      !STORY_LOWER_OR_WHOLE_RE.test(trimmed)
+    ) {
+      return `${trimmed}\nWardrobe: with it she wears jeans, trousers or a skirt that suit the scene.`;
+    }
     return trimmed;
   }
   const line =

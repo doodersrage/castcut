@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Story stills no longer lose her trousers.** When a PG-13 / clean scene named only a top ("her faded tank top stretched taut"), the everyday-clothes line was skipped and Image 1's undressed plate supplied the rest — bare legs and underwear in a laundromat and a subway car. Now a top-only scene adds "with it she wears jeans, trousers or a skirt". Same seeds, live: bare legs 6/6 → dressed 6/6.
 - **POSE FIRST on every clothed Day mood** (Vacation, Suggestive, Sport, themes — one person, Edit 2511). Same seeds, 23 beats: 6 followed their pose map better (lounger leg raised, doorframe hands, stretch overhead, sprint knee drive, soccer kick), none worse.
 - **Story clips get Day's choices:** "Story clips on" offers LTX-2.5 (default), WAN or MiniMax-H3, with the same LTX options as Day (faster clothed one-person clips, two-person adult, refine detail). The old "Video model" setting reads as WAN.
 - **Roll four scenes never comes back empty without saying why.** A local model loaded with a small context (LM Studio at 2,048 tokens) cut the writer's answer off once a Story reached seven scenes, and the built-in scenes were used up, so the button did nothing. Now the complete scenes of a cut-off answer are kept, turned-down built-in scenes are offered again before giving up, and otherwise Story says the answer was cut off and to reload the model with a context length of 8192 or more.

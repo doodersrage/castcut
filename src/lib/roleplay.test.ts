@@ -1295,3 +1295,24 @@ describe('salvageJsonArrayObjects', () => {
     assert.deepEqual(salvageJsonArrayObjects('{"scenes":[{"title":"A"'), []);
   });
 });
+
+describe('withStoryEverydayWardrobe — top only', () => {
+  it('adds the lower half when the scene names only a top', () => {
+    const out = withStoryEverydayWardrobe(
+      'Lena balances on a pile of laundry baskets, her faded tank top stretched taut over her ribs.'
+    );
+    assert.match(out, /Wardrobe: with it she wears jeans, trousers or a skirt/);
+  });
+
+  it('leaves a full outfit, a dress or a two-person still alone', () => {
+    for (const text of [
+      'She wears ripped jeans and a faded tank top.',
+      'She twirls in a red sundress.',
+      'She zips her parka over a hoodie.',
+    ]) {
+      assert.equal(withStoryEverydayWardrobe(text), text);
+    }
+    const duo = 'She hugs him, her tank top creased.';
+    assert.equal(withStoryEverydayWardrobe(duo, 2), duo);
+  });
+});
