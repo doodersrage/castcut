@@ -216,6 +216,8 @@ export type CastWornOutfit = {
   count: number;
   /** Latest stills made in it (Gallery prompt ids), newest first. */
   promptIds: string[];
+  /** A still of it that came with an imported Cast file (its Gallery stills stayed behind). */
+  pictureUrl?: string;
   /** A turn-around clip of the outfit (Cast home → Wardrobe → Runway), and the picture it came from. */
   runwayUrl?: string;
   runwayFor?: string;

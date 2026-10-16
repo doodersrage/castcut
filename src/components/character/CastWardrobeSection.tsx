@@ -78,7 +78,7 @@ export default function CastWardrobeSection({
   };
   const openOutfit = (key: string) => {
     const shown = wardrobe.flatMap(item => {
-      const url = fullFor(item.promptIds);
+      const url = fullFor(item.promptIds) ?? item.pictureUrl ?? null;
       return url ? [{ key: item.key, url }] : [];
     });
     setLightbox({
@@ -120,7 +120,7 @@ export default function CastWardrobeSection({
       ) : null}
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {wardrobe.map(item => {
-          const thumb = thumbFor(item.promptIds);
+          const thumb = thumbFor(item.promptIds) ?? item.pictureUrl ?? null;
           const current = item.key === currentKey;
           return (
             <li
@@ -176,11 +176,11 @@ export default function CastWardrobeSection({
               <p className="truncate text-sm text-[var(--text-primary)]" title={item.label}>
                 {item.label}
               </p>
-              {fullFor(item.promptIds) ? (
+              {fullFor(item.promptIds) || item.pictureUrl ? (
                 <OutfitRunwayButton
                   character={character}
                   outfitKey={item.key}
-                  imageUrl={fullFor(item.promptIds)!}
+                  imageUrl={fullFor(item.promptIds) || item.pictureUrl!}
                   man={dayPartnerNoun(character) === 'man'}
                   onDone={next => onUpdated?.(next)}
                   onStatus={setNote}

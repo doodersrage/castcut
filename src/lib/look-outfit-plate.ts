@@ -957,6 +957,8 @@ export type ApplyCastLookPlateInput = {
   model?: string;
   /** Add the picture as another plate of the Cast (a new look) rather than replace this one. */
   newPlate?: { name?: string };
+  /** Replace this look's plate (default: the active look's); another look stays inactive. */
+  lookId?: string;
 };
 
 /**
@@ -980,7 +982,12 @@ export async function applyCastLookPlateFromSource(
   // Each plate keeps its own file. A record with no saved looks yet keeps the Cast-wide name
   // (its one look's id is not stable until saved).
   const newLookId = input.newPlate ? createLookId() : undefined;
-  const plateLookId = newLookId ?? (target.looks?.length ? activeLook(target).id : undefined);
+  const otherLookId =
+    !newLookId && input.lookId?.trim() && input.lookId.trim() !== activeLook(target).id
+      ? target.looks?.find(look => look.id === input.lookId?.trim())?.id
+      : undefined;
+  const plateLookId =
+    newLookId ?? otherLookId ?? (target.looks?.length ? activeLook(target).id : undefined);
   const file = input.file ?? null;
   const imageUrl = input.imageUrl?.trim() || '';
   if (!file && !imageUrl && !input.filename?.trim()) {
@@ -1093,6 +1100,7 @@ export async function applyCastLookPlateFromSource(
     isolated,
     syncFace: true,
     ...(newLookId ? { newLook: { id: newLookId, name: input.newPlate?.name } } : {}),
+    ...(otherLookId ? { lookId: otherLookId } : {}),
   });
   if (!character) {
     throw new Error('Could not save the look plate to Cast.');

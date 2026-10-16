@@ -2,12 +2,12 @@
  * One Cast as a file: its record (looks, bible, Part, locks), its picture, its Story and its Day
  * plan — to back a character up, or move it to another install without a full sync.
  *
- * The picture travels as image data: on another install the record's ComfyUI file names and
- * media URLs point at nothing, so import uploads the picture again as the Cast's plate. Stills
+ * The pictures travel as image data (one per look): on another install the record's ComfyUI file
+ * names and media URLs point at nothing, so import uploads each again as its look's plate. Stills
  * (Day and Story) stay where they were rendered; the plan and the story text come along.
  */
 import type { ParkedDay } from './day-cast-park';
-import type { CharacterRecord } from './character-os';
+import type { CharacterLookOutfit, CharacterRecord } from './character-os';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import { restampStoryCast } from './story-session-guard';
 import type { DayToolCache } from './play-settings';
@@ -21,13 +21,26 @@ export type CastFileDay = Pick<
   'slots' | 'dayLength' | 'dayMood' | 'dayWeather' | 'intimateMix' | 'allowCompanions'
 >;
 
+export type CastFileLookPicture = { lookId: string; name: string; dataUrl: string };
+
+/** `key`: the photo's ComfyUI file name on the exporting install, else its URL. */
+export type CastFileOutfitPicture = { key: string; name: string; dataUrl: string };
+
 export type CastFile = {
   kind: typeof CAST_FILE_KIND;
   version: number;
   exportedAt: number;
   character: CharacterRecord;
-  /** The Cast's picture as a data URL (its face lock / plate). */
+  /** The Cast's picture as a data URL (its face lock / plate): the active look's. */
   picture?: { name: string; dataUrl: string };
+  /** The other looks' pictures, each set up as that look's plate on import. */
+  lookPictures?: CastFileLookPicture[];
+  /** Clothing and shoe photos of the looks' kept outfits and the Wardrobe, by their old key. */
+  outfitPictures?: CastFileOutfitPicture[];
+  /** A still per Wardrobe entry (`key`: the entry's key), shown on its card. */
+  wardrobePictures?: CastFileOutfitPicture[];
+  /** The looks' reference sheet renders (`key`: `<lookId>|<view id>`). */
+  sheetPictures?: CastFileOutfitPicture[];
   stories: RoleplayLibrarySession[];
   day?: CastFileDay;
 };
@@ -69,6 +82,10 @@ function withoutLocalFiles(character: CharacterRecord): CharacterRecord {
 export function buildCastFile(input: {
   character: CharacterRecord;
   picture?: { name: string; dataUrl: string } | null;
+  lookPictures?: CastFileLookPicture[];
+  outfitPictures?: CastFileOutfitPicture[];
+  wardrobePictures?: CastFileOutfitPicture[];
+  sheetPictures?: CastFileOutfitPicture[];
   stories: RoleplayLibrarySession[];
   day?: CastFileDay;
   now?: number;
@@ -79,9 +96,136 @@ export function buildCastFile(input: {
     exportedAt: input.now ?? Date.now(),
     character: withoutLocalFiles(input.character),
     ...(input.picture ? { picture: input.picture } : {}),
+    ...(input.lookPictures?.length ? { lookPictures: input.lookPictures } : {}),
+    ...(input.outfitPictures?.length ? { outfitPictures: input.outfitPictures } : {}),
+    ...(input.wardrobePictures?.length ? { wardrobePictures: input.wardrobePictures } : {}),
+    ...(input.sheetPictures?.length ? { sheetPictures: input.sheetPictures } : {}),
     stories: input.stories,
     ...(input.day ? { day: input.day } : {}),
   };
+}
+
+const OUTFIT_PHOTOS = [
+  ['customGarmentImageFilename', 'customGarmentImageUrl'],
+  ['footwearImageFilename', 'footwearImageUrl'],
+] as const;
+
+function outfitsOf(character: CharacterRecord): CharacterLookOutfit[] {
+  return [
+    ...(character.looks ?? []).flatMap(look => (look?.keptOutfit ? [look.keptOutfit] : [])),
+    ...(Array.isArray(character.wardrobe) ? character.wardrobe : []).flatMap(item =>
+      item?.outfit ? [item.outfit] : []
+    ),
+  ];
+}
+
+/**
+ * The clothing and shoe photos the Cast's outfits use (each look's kept outfit, the Wardrobe):
+ * ComfyUI files on this install, so a Cast file carries them as pictures.
+ */
+export function castOutfitPhotoRefs(
+  character: CharacterRecord
+): { key: string; filename?: string; url?: string }[] {
+  const refs = new Map<string, { key: string; filename?: string; url?: string }>();
+  for (const outfit of outfitsOf(character)) {
+    for (const [nameField, urlField] of OUTFIT_PHOTOS) {
+      const filename = outfit[nameField]?.trim() || undefined;
+      const url = outfit[urlField]?.trim() || undefined;
+      const key = filename || url;
+      if (key && !refs.has(key)) refs.set(key, { key, filename, url });
+    }
+  }
+  return [...refs.values()];
+}
+
+/**
+ * The Cast with its outfit photos pointing at their copies on this install (`moved`: old key →
+ * new file). A Wardrobe entry known by its clothing photo's old name takes the new one.
+ */
+export function withOutfitPhotosMoved(
+  character: CharacterRecord,
+  moved: ReadonlyMap<string, { filename: string; url: string }>,
+  /** Wardrobe entry key (as exported) → its still's copy here. */
+  stills: ReadonlyMap<string, string> = new Map()
+): CharacterRecord {
+  if (!moved.size && !stills.size) return character;
+  const move = (outfit: CharacterLookOutfit): CharacterLookOutfit => {
+    let next = outfit;
+    for (const [nameField, urlField] of OUTFIT_PHOTOS) {
+      const key = outfit[nameField]?.trim() || outfit[urlField]?.trim();
+      const to = key ? moved.get(key) : undefined;
+      if (to) next = { ...next, [nameField]: to.filename, [urlField]: to.url };
+    }
+    return next;
+  };
+  return {
+    ...character,
+    looks: character.looks?.map(look =>
+      look?.keptOutfit ? { ...look, keptOutfit: move(look.keptOutfit) } : look
+    ),
+    ...(Array.isArray(character.wardrobe)
+      ? {
+          wardrobe: character.wardrobe.map(item => {
+            if (!item?.outfit) return item;
+            const to = moved.get(item.key);
+            const still = stills.get(item.key);
+            return {
+              ...item,
+              ...(to ? { key: to.filename } : {}),
+              ...(still ? { pictureUrl: still } : {}),
+              outfit: move(item.outfit),
+            };
+          }),
+        }
+      : {}),
+  };
+}
+
+/** A reference sheet render's key in a Cast file. */
+export function sheetPictureKey(lookId: string, viewId: string): string {
+  return `${lookId}|${viewId}`;
+}
+
+/**
+ * The Cast with its looks' reference sheets on this install's copies (`moved`: sheet key → URL).
+ * A render whose picture did not come along is dropped: it would show as a broken picture.
+ */
+export function withReferenceSheetsMoved(
+  character: CharacterRecord,
+  moved: ReadonlyMap<string, string>
+): CharacterRecord {
+  if (!character.looks?.some(look => look?.referenceSheet?.length)) return character;
+  return {
+    ...character,
+    looks: character.looks.map(look => {
+      if (!look?.referenceSheet?.length) return look;
+      const sheet = look.referenceSheet.flatMap(view => {
+        const url = moved.get(sheetPictureKey(look.id, view.id));
+        return url ? [{ ...view, url }] : [];
+      });
+      return { ...look, referenceSheet: sheet.length ? sheet : undefined };
+    }),
+  };
+}
+
+function isImageDataUrl(value: unknown): value is string {
+  return typeof value === 'string' && /^data:image\/[a-z+.-]+;base64,/i.test(value);
+}
+
+function keyedPictures(value: unknown, fallbackName: string): CastFileOutfitPicture[] {
+  return (Array.isArray(value) ? (value as Partial<CastFileOutfitPicture>[]) : [])
+    .filter(
+      (entry): entry is CastFileOutfitPicture =>
+        Boolean(entry) &&
+        typeof entry.key === 'string' &&
+        entry.key.trim() !== '' &&
+        isImageDataUrl(entry.dataUrl)
+    )
+    .map(entry => ({
+      key: entry.key,
+      name: String(entry.name || fallbackName),
+      dataUrl: entry.dataUrl,
+    }));
 }
 
 /** A Cast file read back, or null when it isn't one. */
@@ -96,17 +240,36 @@ export function parseCastFile(value: unknown): CastFile | null {
   }
   if (!character.name.trim()) return null;
   const picture =
-    file.picture &&
-    typeof file.picture.dataUrl === 'string' &&
-    /^data:image\/[a-z+.-]+;base64,/i.test(file.picture.dataUrl)
+    file.picture && isImageDataUrl(file.picture.dataUrl)
       ? { name: String(file.picture.name || 'cast.png'), dataUrl: file.picture.dataUrl }
       : undefined;
+  const lookIds = new Set((character.looks ?? []).map(look => look?.id));
+  const lookPictures = (Array.isArray(file.lookPictures) ? file.lookPictures : [])
+    .filter(
+      (entry): entry is CastFileLookPicture =>
+        Boolean(entry) &&
+        typeof entry.lookId === 'string' &&
+        lookIds.has(entry.lookId) &&
+        isImageDataUrl(entry.dataUrl)
+    )
+    .map(entry => ({
+      lookId: entry.lookId,
+      name: String(entry.name || 'look.png'),
+      dataUrl: entry.dataUrl,
+    }));
+  const outfitPictures = keyedPictures(file.outfitPictures, 'outfit.png');
+  const wardrobePictures = keyedPictures(file.wardrobePictures, 'wardrobe.png');
+  const sheetPictures = keyedPictures(file.sheetPictures, 'sheet.png');
   return {
     kind: CAST_FILE_KIND,
     version: file.version,
     exportedAt: typeof file.exportedAt === 'number' ? file.exportedAt : 0,
     character,
     ...(picture ? { picture } : {}),
+    ...(lookPictures.length ? { lookPictures } : {}),
+    ...(outfitPictures.length ? { outfitPictures } : {}),
+    ...(wardrobePictures.length ? { wardrobePictures } : {}),
+    ...(sheetPictures.length ? { sheetPictures } : {}),
     stories: Array.isArray(file.stories)
       ? file.stories.filter(
           (story): story is RoleplayLibrarySession =>

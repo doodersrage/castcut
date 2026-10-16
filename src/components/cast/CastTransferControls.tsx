@@ -25,7 +25,7 @@ export function CastExportButton({ characterId }: { characterId: string }) {
             .then(({ pictureMissing }) =>
               setNote(
                 pictureMissing
-                  ? 'Exported — without the picture (its file could not be read).'
+                  ? 'Exported — without some pictures (their files could not be read).'
                   : 'Exported.'
               )
             )

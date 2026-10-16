@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Export Cast file keeps every look, the wardrobe and reference sheets.** The file carried the looks and outfits as records, but only one picture — the active look's face lock — so an import brought one plate (sometimes an old one), and the outfits and Wardrobe cards came in blank. Now each look's plate, the kept outfits' clothing and shoe photos, a still for each Wardrobe card and the looks' reference sheets travel in the file (larger files: about 22 MB for a two-look Cast with a sheet); import uploads them again and points the Cast at the copies. The active look stays active; older files still import as before.
+
 ## [v2.10.0] - 2026-10-16
 
 - **Switching Cast member takes their clothes with them.** Picking another person for Day, Outfit or Film kept the previous person's look outfit — a man lead came out in the last Cast's satin dress and stilettos. Now the outfit the previous person's look put in goes, the new person's look's kept outfit comes in, and anything picked by hand stays.
