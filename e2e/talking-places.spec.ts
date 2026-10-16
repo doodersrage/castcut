@@ -51,6 +51,40 @@ test('Cast → Places: pick a home design, own words, or off', async ({ page }) 
   await expect(page.getByTestId('cast-voice-section')).toContainText('No voice kept yet');
 });
 
+test('Cast → Places: a photo of their living room is kept, and removed', async ({ page }) => {
+  await page.route('**/api/comfyui/upload**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ name: 'castcut-room-e2e.png', subfolder: '', type: 'input' }),
+    })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-room' },
+    characters: cast('e2e-room'),
+  });
+  await gotoStable(page, '/characters/e2e-room');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  const living = page.getByTestId('cast-place-photo-home-living-room');
+  await expect(living).toBeVisible({ timeout: 30_000 });
+  await living.locator('input[type=file]').setInputFiles({
+    name: 'room.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  });
+  await expect(living.getByRole('img', { name: 'Living room photo' })).toHaveAttribute(
+    'src',
+    /castcut-room-e2e\.png/,
+    { timeout: 15_000 }
+  );
+  await living.getByRole('button', { name: 'Remove' }).click();
+  await expect(living.locator('input[type=file]')).toBeVisible();
+});
+
 test('Cast → Voice: use my own recording', async ({ page }) => {
   let upload = '';
   await page.route('**/api/cast-voice', async route => {

@@ -8,12 +8,16 @@ import {
   defaultPlaceDesign,
   HOME_DESIGNS,
   normalizeCastPlaces,
+  PLACE_PHOTO_ROOMS,
+  placePhotoKey,
   resolveCastPlace,
   saveCastPlace,
+  saveCastPlacePhoto,
   WORK_DESIGNS,
   type CastPlaceKind,
 } from '@/lib/cast-places';
 import type { CharacterRecord } from '@/lib/character-os';
+import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 
 const KINDS: Array<{ kind: CastPlaceKind; title: string; rooms: string }> = [
   {
@@ -40,6 +44,27 @@ export default function CastPlacesSection({
   const save = (kind: CastPlaceKind, choice: Parameters<typeof saveCastPlace>[2]) => {
     const next = saveCastPlace(character.id, kind, choice);
     if (next) onUpdated?.(next);
+  };
+  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const setPhoto = async (kind: CastPlaceKind, room: string, file: File | null) => {
+    const key = placePhotoKey(kind, room);
+    setPhotoError(null);
+    if (!file) {
+      const next = saveCastPlacePhoto(character.id, kind, room, null);
+      if (next) onUpdated?.(next);
+      return;
+    }
+    setPhotoBusy(key);
+    try {
+      const uploaded = await uploadComfyInputImage({ file });
+      const next = saveCastPlacePhoto(character.id, kind, room, uploaded.name);
+      if (next) onUpdated?.(next);
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : 'The photo could not be added.');
+    } finally {
+      setPhotoBusy(null);
+    }
   };
   return (
     <ToolSection
@@ -118,6 +143,62 @@ export default function CastPlacesSection({
             </div>
           );
         })}
+        <div className="space-y-2" data-testid="cast-place-photos">
+          <p className="text-sm font-medium text-[var(--text-primary)]">Photos of their rooms</p>
+          <p className="type-caption text-[var(--text-muted)]">
+            A photo of a real room (no people in it): Edit 2511 stills set in that room are built
+            around it — its furniture, colours and walls — with the pose from the words.
+          </p>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {PLACE_PHOTO_ROOMS.map(({ kind, room, label }) => {
+              const key = placePhotoKey(kind, room);
+              const photo = character.placePhotos?.[key];
+              return (
+                <li
+                  key={key}
+                  className="space-y-1"
+                  data-testid={`cast-place-photo-${kind}-${room.replace(/\s+/g, '-')}`}
+                >
+                  <span className="type-label block">{label}</span>
+                  {photo ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a ComfyUI input */}
+                      <img
+                        src={`/api/comfyui/view?${new URLSearchParams({ filename: photo, type: 'input' }).toString()}`}
+                        alt={`${label} photo`}
+                        className="aspect-[4/3] w-full rounded-lg object-cover"
+                      />
+                      <button
+                        type="button"
+                        className="ui-chip"
+                        onClick={() => void setPhoto(kind, room, null)}
+                      >
+                        Remove
+                      </button>
+                    </>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={photoBusy !== null}
+                      aria-label={`${label} photo`}
+                      className="block w-full text-xs"
+                      onChange={event => void setPhoto(kind, room, event.target.files?.[0] ?? null)}
+                    />
+                  )}
+                  {photoBusy === key ? (
+                    <span className="type-caption text-[var(--text-muted)]">Adding…</span>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+          {photoError ? (
+            <p className="type-caption ui-status-danger" role="alert">
+              {photoError}
+            </p>
+          ) : null}
+        </div>
       </div>
     </ToolSection>
   );

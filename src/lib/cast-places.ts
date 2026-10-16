@@ -282,3 +282,75 @@ export function saveCastPlace(
   }
   return getCharacter(character.id);
 }
+
+/** "home:living room" — the key a room's photo is kept under on the Cast. */
+export function placePhotoKey(kind: CastPlaceKind, room: string): string {
+  return `${kind}:${room}`;
+}
+
+/** The rooms a photo can be given for, as the Cast's Places section offers them. */
+export const PLACE_PHOTO_ROOMS: ReadonlyArray<{
+  kind: CastPlaceKind;
+  room: string;
+  label: string;
+}> = [
+  { kind: 'home', room: 'living room', label: 'Living room' },
+  { kind: 'home', room: 'kitchen', label: 'Kitchen' },
+  { kind: 'home', room: 'bedroom', label: 'Bedroom' },
+  { kind: 'home', room: 'bathroom', label: 'Bathroom' },
+  { kind: 'work', room: 'desk', label: 'Office' },
+];
+
+/**
+ * The photo of the room a Setting is set in, when the Cast gave one (and the place is not off).
+ */
+export function castPlacePhotoFor(
+  cast:
+    { id?: string; places?: CastPlaces; placePhotos?: Record<string, string> } | null | undefined,
+  setting: string | null | undefined
+): { filename: string; kind: CastPlaceKind; room: string } | null {
+  const where = placeRoomOfSetting(setting);
+  if (!where || !cast?.placePhotos) return null;
+  if (!resolveCastPlace(cast, where.kind)) return null;
+  const filename = cast.placePhotos[placePhotoKey(where.kind, where.room)]?.trim();
+  return filename ? { filename, ...where } : null;
+}
+
+/**
+ * The still's prompt around a room photo in Image `image`: the place words (", in her apartment:
+ * …") become that room, and the pose map it replaces is no longer named — the pose stays in
+ * words. Live (Edit 2511, 2026-10-16, a living-room beat, four seeds): the photo's sofa, rug,
+ * plants and lamps in every still (the place words alone: their own room), the pose 4/4 without
+ * the map.
+ */
+export function withPlacePhotoInPrompt(prompt: string, image = 3): string {
+  const room = `in the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours`;
+  return prompt
+    .replace(/,? exactly as the pose map in Image \d shows/g, '')
+    .replace(
+      /\s*Match (?:her|his|their two) bod(?:y|ies) to the (?:second|third|fourth) image \(pose map\)\./g,
+      ''
+    )
+    .replace(
+      /, (?:in (?:her|his) (?:apartment|home)|at (?:her|his) office): .*?(?= — |\.(?:\s|$)|\n)/g,
+      `, ${room}`
+    );
+}
+
+/** Keep (or with null, drop) the photo of one room on the Cast. */
+export function saveCastPlacePhoto(
+  castId: string,
+  kind: CastPlaceKind,
+  room: string,
+  filename: string | null
+): CharacterRecord | undefined {
+  const character = getCharacter(castId.trim());
+  if (!character) return undefined;
+  const photos = { ...(character.placePhotos ?? {}) };
+  const key = placePhotoKey(kind, room);
+  if (filename?.trim()) photos[key] = filename.trim();
+  else delete photos[key];
+  // An empty map, not a missing key: a save merges into the stored record.
+  upsertCharacter({ ...character, placePhotos: photos });
+  return getCharacter(character.id);
+}

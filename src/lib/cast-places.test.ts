@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  castPlacePhotoFor,
   defaultPlaceDesign,
   HOME_DESIGNS,
   normalizeCastPlaces,
   placeRoomOfSetting,
   resolveCastPlace,
   withCastPlace,
+  withPlacePhotoInPrompt,
 } from './cast-places';
 
 describe('recurring places', () => {
@@ -77,5 +79,40 @@ describe('recurring places', () => {
     );
     assert.equal(normalizeCastPlaces('x'), undefined);
     assert.equal(HOME_DESIGNS.length >= 4, true);
+  });
+});
+
+describe('a photo of their own room', () => {
+  const cast = { id: 'c1', placePhotos: { 'home:living room': 'castcut-room-1.png' } };
+
+  it('is found for a Setting in that room only, and not when the place is off', () => {
+    assert.deepEqual(castPlacePhotoFor(cast, 'living room with a floor lamp'), {
+      filename: 'castcut-room-1.png',
+      kind: 'home',
+      room: 'living room',
+    });
+    assert.equal(castPlacePhotoFor(cast, 'warm kitchen with a pot on the stove'), null);
+    assert.equal(castPlacePhotoFor(cast, 'hotel lobby'), null);
+    assert.equal(
+      castPlacePhotoFor({ ...cast, places: { home: { off: true } } }, 'living room'),
+      null
+    );
+  });
+
+  it('takes the place words and the pose map out of the prompt, keeping the pose in words', () => {
+    const prompt = [
+      'Edit Image 1: POSE FIRST: she kneels on the floor, exactly as the pose map in Image 3 shows.',
+      'SCENE: she is in the living room with a floor lamp, in her apartment: warm cream walls, worn herringbone parquet; a rust-orange sofa — show that place around her.',
+      'Day photo: One woman alone. Place: living room with a floor lamp, in her apartment: warm cream walls, worn herringbone parquet; a rust-orange sofa. Keep her face from the first image. Match her body to the third image (pose map). Photorealistic photograph.',
+    ].join('\n');
+    const out = withPlacePhotoInPrompt(prompt);
+    assert.match(out, /POSE FIRST: she kneels on the floor\./);
+    assert.doesNotMatch(out, /pose map/);
+    assert.doesNotMatch(out, /herringbone|rust-orange/);
+    assert.match(
+      out,
+      /living room with a floor lamp, in the room shown in Image 3 — the same walls, floor, windows, furniture, plants and colours — show that place around her\./
+    );
+    assert.match(out, /Place: living room with a floor lamp, in the room shown in Image 3 — [^.]+\. Keep her face/);
   });
 });

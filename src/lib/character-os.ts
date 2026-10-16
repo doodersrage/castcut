@@ -84,6 +84,11 @@ export type CharacterRecord = CharacterFeatureFields & {
    * design picked from the Cast's id, so every Cast has a home without setting one up.
    */
   places?: CastPlaces;
+  /**
+   * Photos of their own rooms (cast-places.ts placePhotoKey: "home:living room", "work:desk")
+   * as ComfyUI input names: Edit 2511 stills set in that room are built around the photo.
+   */
+  placePhotos?: Record<string, string>;
   /** Tattoos, scars, moles, freckles, glasses… kept in every still where they show (cast-marks.ts). */
   marks?: CastMark[];
   /** Her phone, bag, car, dog… described once, the same whenever a beat mentions it (cast-props.ts). */

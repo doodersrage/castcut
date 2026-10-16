@@ -1,5 +1,6 @@
 'use client';
 
+import { castPlacePhotoFor, withPlacePhotoInPrompt } from '@/lib/cast-places';
 import { applyDayNarration } from '@/lib/day-narration';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import { partnerOutfitWords } from '@/lib/day-partner-outfit';
@@ -2403,6 +2404,22 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[2] = poseGuideUrl;
           extraFilenames[2] = poseGuideFilename || '';
         }
+        // A photo of the Cast's own room (Cast → Places) for a clothed solo Edit 2511 still set
+        // there: it takes Image 3 from the pose map (the pose stays in words), only with Image 2
+        // attached so it stays the third image (cast-places.ts withPlacePhotoInPrompt).
+        const placePhoto =
+          !adultStill &&
+          !partnerFace &&
+          !vacationFaceBreak &&
+          !kleinFaceFilename &&
+          /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
+          Boolean(extraFilenames[1]?.trim() || extraUrls[1])
+            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            : null;
+        if (placePhoto) {
+          extraUrls[2] = undefined;
+          extraFilenames[2] = placePhoto.filename;
+        }
         if (vacationFaceBreak && identityLatentPlate?.filename) {
           extraFilenames[2] = extraFilenames[2] ?? '';
           extraUrls[3] = undefined;
@@ -2519,10 +2536,13 @@ export function useDayPlannerToolOrchestrationCore() {
           updateShared({ model: plateQueueModel });
         }
         // No garment: the queue compacts the guide into the second image — say so.
-        const numbered = queuedDayStillPrompt(finalized, {
-          second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
-          third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),
-        });
+        const numbered = queuedDayStillPrompt(
+          placePhoto ? withPlacePhotoInPrompt(finalized) : finalized,
+          {
+            second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
+            third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),
+          }
+        );
         // Text contradictions that only ever showed up as a bad render (a solo still that talks
         // about "the two people", shoes ordered on a barefoot beat, a third image that is not
         // attached). What can be repaired without guessing is repaired; the rest raises a
