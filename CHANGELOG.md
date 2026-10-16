@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Man leads get swim trunks.** "He wears a swimsuit" drew a man in a women's one-piece or bikini top on Vacation beach and pool stills; swimsuit / one-piece / bathing suit now read as swim trunks for a man lead (live 4/4).
 - **POSE FIRST for two-person Day stills** (clothed, Edit 2511): the recipe's own pose sentence, else its moment, leads the prompt. Same seeds, 12 duo beats: 5 clearer (sharing a drink or dessert leaning in, head on a shoulder seated, earbuds, selfie arm), none worse.
 - **A picked outfit beats old scene text in Story.** A scene written before the outfit was picked named its own clothes ("her faded tank top") and won over the outfit picture — tank top and underwear, the dress gone. With an outfit picture, the scene's clothing words now read "her outfit": she wore the picked dress 2/2 (was 0/2).
 - **Settings → LLM shows the loaded context** (LM Studio on the same machine) and warns below 8,192 tokens — too small for Story once it has a few scenes, the cause of Roll four scenes coming back empty.

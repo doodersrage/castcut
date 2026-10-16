@@ -148,6 +148,12 @@ export function masculineClothes(text: string): string {
       .replace(/\bbras?\b/gi, 'undershirt')
       .replace(/\b(?:a )?(?:mini)?skirts?\b/gi, 'shorts')
       .replace(/\bbikinis?\b/gi, 'swim trunks')
+      // "He wears a swimsuit" drew a man in a women's one-piece / bikini top (Vacation beach and
+      // pool, overnight sweep 2026-10-15).
+      .replace(
+        /\b(?:a |an )?(?:one-piece |two-piece )?(?:swimsuits?|swimming costumes?|bathing suits?|one-pieces?)\b/gi,
+        'swim trunks'
+      )
       .replace(/\b(?:high )?heels\b/gi, 'shoes')
       .replace(/\ba a shirt\b/gi, 'a shirt')
   );

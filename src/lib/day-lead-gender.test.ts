@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { restoreText, swapDayPromptGender } from './day-lead-gender';
+import { masculineClothes, restoreText, swapDayPromptGender } from './day-lead-gender';
 
 describe('Day man lead', () => {
   it('swaps both people in one pass', () => {
@@ -78,5 +78,12 @@ describe('a man lead alone', () => {
       swapDayPromptGender('the other hand rests on her breast.', { solo: true }),
       'the other hand rests on his chest.'
     );
+  });
+});
+
+describe('masculineClothes — swimwear', () => {
+  it('turns a swimsuit into swim trunks', () => {
+    assert.equal(masculineClothes('He wears a swimsuit.'), 'He wears swim trunks.');
+    assert.equal(masculineClothes('in a one-piece swimsuit by the pool'), 'in swim trunks by the pool');
   });
 });
