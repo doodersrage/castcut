@@ -11,6 +11,8 @@ import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
 import { isDayAdultMood } from '@/lib/day-planner';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import NarrationField from '@/components/NarrationField';
+import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
+import type { DayPartnerOption } from '@/components/day-planner/DayPartnerPicker';
 import SpokenLineField from '@/components/SpokenLineField';
 import { useRef, useState, type ReactNode } from 'react';
 import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
@@ -78,6 +80,8 @@ export type DaySlotSheetProps = {
   onAddCloseUps?: () => void;
   /** Phone: the compact pose preview. */
   compact?: boolean;
+  /** Cast members who can be the third person in a group still (not the lead, not the partner). */
+  groupOptions?: DayPartnerOption[];
 };
 
 /**
@@ -117,6 +121,7 @@ export default function DaySlotSheet({
   onAnimateSlot,
   onAddCloseUps,
   compact = false,
+  groupOptions = [],
 }: DaySlotSheetProps) {
   const [clothingOpen, setClothingOpen] = useState(false);
   const outfitRef = useRef<HTMLDivElement>(null);
@@ -365,6 +370,31 @@ export default function DaySlotSheet({
               )
             }
           />
+          {allowCompanions && !isDayAdultMood(dayMood) && groupOptions.length > 0 ? (
+            <div className="space-y-1.5" data-testid="day-slot-group">
+              <FieldLabel>Also in this still</FieldLabel>
+              <PortraitTileStrip
+                label="Also in this still"
+                value={slot.thirdCastId ?? ''}
+                disabled={busy}
+                testIdPrefix="day-slot-third"
+                onChange={next => updateSlot(slot.id, { thirdCastId: next || undefined })}
+                tiles={[
+                  { id: '', label: 'Nobody else', glyph: '—' },
+                  ...groupOptions.map(option => ({
+                    id: option.id,
+                    label: option.name,
+                    title: `${option.name} — the third person on this two-person still`,
+                    thumb: option.thumb,
+                  })),
+                ]}
+              />
+              <span className="type-caption block text-[var(--text-muted)]">
+                A third Cast member with the lead and the partner — on two-person stills, Edit 2511
+                engine (their face takes the pose map&apos;s place; the pose is said in words).
+              </span>
+            </div>
+          ) : null}
         </div>
         <DaySlotPosePreview
           slot={slot}

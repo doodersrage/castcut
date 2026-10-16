@@ -1,5 +1,6 @@
 'use client';
 
+import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day-dub';
 import { holdJobCompletionEmail } from '@/lib/job-completion-email';
 import { pronounceForCast } from '@/lib/cast-speech';
 import { previouslyOnShots } from '@/lib/play-series';
@@ -623,6 +624,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ]
             .filter(Boolean)
             .join(' ');
+          // Dub: the line (and reply) said in the slot's language (day-dub.ts).
+          prompt = inSpokenLanguage(prompt, slot.lineLanguage);
         }
         // 2.0: keep Cast face + pinned LoRAs on Animate — I2V init still is Image 1.
         if (character) {
@@ -756,6 +759,79 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setBusy(false);
     }
   }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
+
+  /**
+   * Dub (day-dub.ts): every spoken line (and reply) translated, then each talking clip made
+   * again with the line said in that language. `null` puts the original lines back. Returns
+   * what happened, for the note.
+   */
+  const dubDay = useCallback(
+    async (language: string | null): Promise<string> => {
+      const target = normalizeDubLanguage(language ?? '');
+      const spoken = slots.filter(slot => normalizeSpokenLine(slot.lineOriginal || slot.line));
+      if (spoken.length === 0) throw new Error('No moment has a spoken line to dub.');
+      const current = spoken.find(slot => slot.lineLanguage)?.lineLanguage;
+      if ((target ?? null) === (current ?? null)) {
+        return target ? `Already in ${target}.` : 'The lines are already as written.';
+      }
+      setBusy(true);
+      setError(null);
+      try {
+        const sources = spoken.map(slot => ({
+          line: normalizeSpokenLine(slot.lineOriginal || slot.line),
+          reply: normalizeSpokenLine(slot.replyOriginal || slot.replyLine),
+        }));
+        let changed: DaySlot[];
+        if (!target) {
+          changed = spoken.map((slot, index) => ({
+            ...slot,
+            line: sources[index]!.line,
+            replyLine: sources[index]!.reply || undefined,
+            lineLanguage: undefined,
+            lineOriginal: undefined,
+            replyOriginal: undefined,
+          }));
+        } else {
+          const translated = await requestDubLines(
+            sources.flatMap(source => (source.reply ? [source.line, source.reply] : [source.line])),
+            target,
+            sharedLlmRequestBody(loadSettingsCache().shared)
+          );
+          let next = 0;
+          changed = spoken.map((slot, index) => {
+            const source = sources[index]!;
+            const line = normalizeSpokenLine(translated[next++]);
+            const reply = source.reply ? normalizeSpokenLine(translated[next++]) : '';
+            return {
+              ...slot,
+              line,
+              replyLine: reply || undefined,
+              lineLanguage: target,
+              lineOriginal: source.line,
+              replyOriginal: source.reply || undefined,
+            };
+          });
+        }
+        const byId = new Map(changed.map(slot => [slot.id, slot]));
+        updateToolSettings({ slots: slots.map(slot => byId.get(slot.id) ?? slot) });
+        let remade = 0;
+        for (const slot of changed) {
+          const still = stillsRef.current.find(entry => entry.slotId === slot.id);
+          if (still?.status !== 'completed') continue;
+          await animateSlot(slot, { manageBusy: false });
+          remade += 1;
+        }
+        const lines = `${changed.length} line${changed.length === 1 ? '' : 's'}`;
+        const clips = remade
+          ? ` — ${remade} talking clip${remade === 1 ? '' : 's'} queued again`
+          : ' — Animate the moments to hear them';
+        return target ? `${lines} in ${target}${clips}.` : `${lines} back as written${clips}.`;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [animateSlot, slots, stillsRef, updateToolSettings]
+  );
 
   /** Close-ups of a slot's still (a face close-up and a detail), cut in right after it. */
   /** A close-up widened to 16:9 for a widescreen cut — made once and kept on the angle. */
@@ -1056,11 +1132,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       });
       const talking = Boolean(spokenLine) && isLtx25Model(engine);
       const prompt = talking
-        ? talkingClipPrompt({
-            setting: slot.location,
-            line: pronounceForCast(spokenLine, shared.activeCharacterId),
-            tone: slot.lineTone,
-          })
+        ? inSpokenLanguage(
+            talkingClipPrompt({
+              setting: slot.location,
+              line: pronounceForCast(spokenLine, shared.activeCharacterId),
+              tone: slot.lineTone,
+            }),
+            slot.lineLanguage
+          )
         : buildDaySlotClipPrompt({
             slot,
             direction,
@@ -1770,6 +1849,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     queueAll,
     animateSlot,
     animateAllClips,
+    dubDay,
     cutDayFilm,
     recordDayNarration,
     addCloseUps,

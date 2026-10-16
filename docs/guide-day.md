@@ -43,6 +43,7 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 | **Clothing** | This slot's outfit and shoes |
 | **Line** | What she says in the clip — *Suggest a line* writes one |
 | **Narration** | Voice-over heard over the shot in the film — *Suggest a narration* writes one |
+| **Also in this still** | A third Cast member with her and the partner (People: Mixed or Duo, clothed moods, Edit 2511) |
 
 ## Quality
 

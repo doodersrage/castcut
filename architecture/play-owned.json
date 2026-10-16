@@ -123,5 +123,10 @@
   "src/lib/sketch-server.ts",
   "src/app/api/still/upscale/route.ts",
   "src/lib/still-upscale.ts",
-  "src/lib/still-upscale-server.ts"
+  "src/lib/still-upscale-server.ts",
+  "src/lib/day-group.ts",
+  "src/lib/day-dub.ts",
+  "src/lib/day-dub-server.ts",
+  "src/app/api/dub-lines/route.ts",
+  "src/components/day-planner/DayDubControl.tsx"
 ]

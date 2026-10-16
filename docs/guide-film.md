@@ -26,6 +26,7 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Music** | Upload, paste a link, or **Score this film** (an original track) |
 | **Levels** | Music and Lines — the music ducks under speech |
 | **Look** | Crossfade · Slow zoom on stills · Title & captions |
+| **Subtitles** *(on)* | What is said in each talking clip — else the shot's narration — burned in at the bottom |
 
 ## Shot list
 
@@ -37,9 +38,21 @@ chest up) · **trim** a clip · pick the **poster**.
 | Sound | Where it comes from |
 | --- | --- |
 | **Lines** | Talking clips — the Cast's voice |
-| **Narration** | Each slot's Narration, recorded when the film is cut |
+| **Narration** | Each slot's (or Story scene's) Narration, recorded when the film is cut |
 | **Room sound** | Under talking clips, and **Add sound** on silent ones |
 | **Music** | Your track or **Score this film** |
+
+## Dub into another language
+
+Day's **Dub** (beside **Animate all**) translates every line and reply with your LLM, then
+makes the talking clips again with the lines said in that language — lip-synced, like English.
+Spanish, French, German, Italian, Portuguese, Japanese, Korean and Chinese.
+
+- The translated lines show in each slot's **Line** — fix any wording there and Animate again.
+- **As written** puts the original lines back.
+
+!!! tip "Use a capable LLM"
+    An 8B model translated well in testing; a 3B one changed the meaning of some lines.
 
 ## After the cut
 

@@ -1,4 +1,5 @@
 import { danceMoveWords } from '@/lib/dance-move';
+import { normalizeDubLanguage } from './day-dub';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   normalizeSpokenLine,
@@ -389,6 +390,16 @@ export type DaySlot = {
   lineTone?: SpokenLineTone;
   /** Two-person slots: what the other person answers (one-shot conversation, LTX-2.5). */
   replyLine?: string;
+  /**
+   * Group stills (day-group.ts): a third person — another Cast member — in this clothed
+   * two-person still. Edit 2511 only (it reads their face as Image 3).
+   */
+  thirdCastId?: string;
+  /** Dub (day-dub.ts): the language the line and reply are said in; unset = as written. */
+  lineLanguage?: string;
+  /** Dub: the line and reply as first written, before translation (undo / dub again). */
+  lineOriginal?: string;
+  replyOriginal?: string;
   /** One event (day-event.ts): what she does in this slot's clip, into the next moment. */
   eventMove?: string;
   /** Voice-over over this slot's shot in the cut (film-narration.ts) — not said on screen. */
@@ -806,6 +817,16 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       ...(slot.lineFullFrame === true ? { lineFullFrame: true } : {}),
       lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
+      ...(readText(slot.thirdCastId, 120) ? { thirdCastId: readText(slot.thirdCastId, 120) } : {}),
+      ...(normalizeDubLanguage(slot.lineLanguage)
+        ? { lineLanguage: normalizeDubLanguage(slot.lineLanguage) }
+        : {}),
+      ...(normalizeSpokenLine(slot.lineOriginal)
+        ? { lineOriginal: normalizeSpokenLine(slot.lineOriginal) }
+        : {}),
+      ...(normalizeSpokenLine(slot.replyOriginal)
+        ? { replyOriginal: normalizeSpokenLine(slot.replyOriginal) }
+        : {}),
       ...(normalizeSpokenLine(slot.narration)
         ? { narration: normalizeSpokenLine(slot.narration) }
         : {}),

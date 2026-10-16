@@ -17,6 +17,9 @@ clip. Open **Story** (`/story`) — it opens once you've cut your first Day.
 | **Start the story over** | Clears the reel — keep the bible or write a new one |
 | **Retry N flagged** | Redoes every failed still and every pose or face miss |
 
+**Edit scene** also has **Narration** — a voice-over line for the film (*Suggest a narration*
+writes one). A written narration is used even with Narrate off.
+
 ## Each scene's ⋯ menu
 
 Edit scene · Pose… · Queue still · Animate · Play another still / clip · Make it 30 s ·

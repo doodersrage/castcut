@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Three people in a Day still.** The slot sheet's **Also in this still** picks a third Cast member by face, for clothed two-person stills on Edit 2511: their face takes the pose map's place and the pose is said in words. Live (a brunch table, six seeds): three different people, each in their own clothes, 6/6.
+- **Dub.** Day's **Dub** translates every line and reply (your LLM) and makes the talking clips again with the lines said in that language — Spanish 2/2 and French 2/2 word-exact by speech recognition on MiniMax-H3, lips matched. **As written** puts the originals back.
 - **Subtitles in the film.** Cut options → **Subtitles** (on by default): what is said in each talking clip (and the reply) — else the shot's narration — is burned in at the bottom of the picture, wrapped to three lines, for viewers watching with the sound off; with Title & captions on, the shot captions move to the top. Server encode only.
 - **Narration on Story scenes.** The scene sheet has a **Narration** field with *Suggest a narration*, like Day. A written narration is said in place of the scene's first sentence, and plays even with Narrate off.
 - **Upscale to 4K** (Day and Story ⋯ menu): SeedVR2 restores and enlarges a still to 3840 on the long side for a poster, a print or a wallpaper — 880×1184 → 2854×3840 in 19 s, face unchanged. The 4K still becomes the shown one; the original stays in the Gallery.

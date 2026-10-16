@@ -1,5 +1,6 @@
 'use client';
 
+import DayDubControl from '@/components/day-planner/DayDubControl';
 import { loadPlaySeriesStore, previouslyOnShots } from '@/lib/play-series';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
@@ -261,6 +262,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     animateSlot,
     previewSlotClip,
     animateAllClips,
+    dubDay,
     endPoseStatus,
     endPoseReposingSlotId,
     endPoseSupportedFor,
@@ -1121,6 +1123,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 Animate all
               </Button>
             ) : null}
+            {slots.some(slot => slot.line?.trim()) ? (
+              <DayDubControl
+                language={slots.find(slot => slot.lineLanguage)?.lineLanguage}
+                disabled={busy || renderOffline}
+                onDub={dubDay}
+              />
+            ) : null}
             {flaggedRetryCount > 0 ? (
               <Button
                 size="sm"
@@ -1508,6 +1517,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         endPose={endPoseControl}
         onQueueSlot={() => void queueSlot(activeSlot, { byPlayer: true })}
         onAnimateSlot={() => setAnimateTarget(activeSlot)}
+        groupOptions={partnerOptions.filter(option => option.id !== partnerCharacterId)}
         onAddCloseUps={() => void addCloseUps(activeSlot.id)}
       />
       <SideSheet

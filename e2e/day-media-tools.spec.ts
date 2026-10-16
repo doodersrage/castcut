@@ -5,6 +5,7 @@ import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
 import { openStoryBeatMenu } from './helpers/story';
+import { openDaySlotSheet } from './helpers/day';
 
 test.beforeEach(async ({ page }) => {
   await isolateServerStorage(page);
@@ -349,4 +350,64 @@ test('Story: a scene’s narration can be suggested', async ({ page }) => {
   await page.getByTestId('story-beat-narration-suggest').first().click();
   await expect(page.getByTestId('story-beat-narration').first()).toHaveValue('I should never have opened that door.', { timeout: 15_000 });
   expect(sent.kind).toBe('narration');
+});
+
+test('Dub: lines are translated, kept with the original, and can go back', async ({ page }) => {
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/dub-lines', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ lines: ['¡Buenos días, cocina!'] }),
+    });
+  });
+  const day = finishedDay();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        ...day,
+        slots: day.slots.map(slot => ({ ...slot, line: 'Good morning, kitchen!' })),
+        // No finished still: the dub stops after the lines (no clip is queued).
+        stills: [],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-dub-language').first().selectOption('Spanish');
+  await page.getByTestId('day-dub-run').first().click();
+  await expect(page.getByTestId('day-dub-note').first()).toContainText('1 line in Spanish', {
+    timeout: 15_000,
+  });
+  expect(posts[0]).toMatchObject({ lines: ['Good morning, kitchen!'], language: 'Spanish' });
+  await page.getByTestId('day-dub-language').first().selectOption('');
+  await page.getByTestId('day-dub-run').first().click();
+  await expect(page.getByTestId('day-dub-note').first()).toContainText('back as written', {
+    timeout: 15_000,
+  });
+  expect(posts).toHaveLength(1);
+});
+
+test('Group still: a third Cast member is picked by face on the slot', async ({ page }) => {
+  const day = finishedDay();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      ...cast,
+      characters: [
+        ...cast.characters,
+        { id: 'e2e-friend', name: 'Friend Fay', version: 1, updatedAt: Date.now(), descriptor: 'a woman with long black hair' },
+      ],
+    },
+    tools: { day: { ...day, allowCompanions: true } },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-slot-group').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('day-slot-third-e2e-friend').first().click();
+  await expect(page.getByTestId('day-slot-third-e2e-friend').first()).toHaveAttribute('aria-checked', 'true');
 });

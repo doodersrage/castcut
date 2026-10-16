@@ -164,6 +164,7 @@ import {
   resolveDayQueueIdentityPlate,
 } from '@/lib/day-plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
+import { withThirdPerson, type DayThirdPerson } from '@/lib/day-group';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import {
   checkReferenceImage,
@@ -2424,6 +2425,45 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[2] = undefined;
           extraFilenames[2] = placePhoto.filename;
         }
+        // Group still: a third Cast member's face as Image 3 (day-group.ts) — clothed Edit 2511
+        // two-person stills only; elsewhere the card says why they were left out.
+        let thirdPerson: DayThirdPerson | null = null;
+        const thirdCharacter = queueTarget.thirdCastId?.trim()
+          ? getCharacter(queueTarget.thirdCastId.trim())
+          : undefined;
+        if (thirdCharacter) {
+          const groupOk =
+            !placePhoto &&
+            !adultStill &&
+            Boolean(partnerFace) &&
+            !vacationFaceBreak &&
+            !kleinFaceFilename &&
+            /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '');
+          if (!groupOk) {
+            referenceNotes.push(
+              `${thirdCharacter.name} was left out: three-person stills need Edit 2511, a clothed mood and a partner in the still.`
+            );
+          } else {
+            const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
+              character: thirdCharacter,
+              model: stillModel,
+              comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+            });
+            const face = resolved.plate?.filename?.trim();
+            if (face) {
+              extraUrls[2] = undefined;
+              extraFilenames[2] = face;
+              thirdPerson = {
+                noun: dayPartnerNoun(thirdCharacter),
+                descriptor: (thirdCharacter.descriptor || thirdCharacter.hints || '').slice(0, 160),
+              };
+            } else {
+              referenceNotes.push(
+                `${thirdCharacter.name} has no face picture yet — left out of this still.`
+              );
+            }
+          }
+        }
         // Adult Rapid solo: the pose map moves to Image 2 (where the recipe already says it is —
         // the queue would compact it there) and the room photo rides as Image 3.
         const adultPlacePhoto =
@@ -2560,11 +2600,13 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // No garment: the queue compacts the guide into the second image — say so.
         const numbered = queuedDayStillPrompt(
-          placePhoto
-            ? withPlacePhotoInPrompt(finalized)
-            : adultPlacePhoto
-              ? withPlacePhotoInAdultPrompt(finalized)
-              : finalized,
+          thirdPerson
+            ? withThirdPerson(finalized, thirdPerson)
+            : placePhoto
+              ? withPlacePhotoInPrompt(finalized)
+              : adultPlacePhoto
+                ? withPlacePhotoInAdultPrompt(finalized)
+                : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),

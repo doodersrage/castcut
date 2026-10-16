@@ -11,6 +11,7 @@ Gallery next to the original (nothing is lost) and replaces what the card shows.
 | [Lip-sync to a recording](#lip-sync) | A still | 7 min for 5 s | Your voice or an audio file |
 | [Relight](#relight) | A still | 1 min | A light |
 | [Sketch over this still](#sketch) | A still | 1 min per render | Strokes and a few words |
+| [Upscale to 4K](#upscale) | A still | 20 s | — |
 
 <small>*On a 24 GB card, once the model is loaded. The models are listed in [Models](models.md).</small>
 
@@ -73,6 +74,17 @@ hand*), and pause — it re-renders as a photo each time you stop drawing. **Use
 
 !!! example "Live"
     A red half-circle and a stick became an open red umbrella in her hand; nothing else changed.
+
+---
+
+## Upscale to 4K { #upscale }
+
+The still restored and enlarged to 3840 pixels on the long side — for a poster, a print or a
+wallpaper. Uses SeedVR2, the same model as Sharpen & smooth. The face stays the same; skin, hair
+and fabric get real detail instead of blur.
+
+!!! example "Live"
+    880×1184 → 2854×3840 in 19 s.
 
 ---
 

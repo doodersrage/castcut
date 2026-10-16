@@ -1,5 +1,6 @@
 'use client';
 
+import DayDubControl from '@/components/day-planner/DayDubControl';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
@@ -246,6 +247,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     animateSlot,
     previewSlotClip,
     animateAllClips,
+    dubDay,
     endPoseStatus,
     endPoseReposingSlotId,
     endPoseSupportedFor,
@@ -1020,6 +1022,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
             >
               Animate all
             </Button>
+          ) : null}
+          {slots.some(slot => slot.line?.trim()) ? (
+            <DayDubControl
+              language={slots.find(slot => slot.lineLanguage)?.lineLanguage}
+              disabled={busy || renderOffline}
+              onDub={dubDay}
+            />
           ) : null}
           {/* How long the batch buttons would take here, behind what is queued (day-batch-plan). */}
           {(batchPlan.queueLine && !queueBlocked) || (batchPlan.animateLine && canAnimateAll) ? (

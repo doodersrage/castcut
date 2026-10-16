@@ -77,6 +77,8 @@ export async function dubClipWithVoice(input: {
   lead?: 'woman' | 'man';
   /** Where the clip happens — its ambience (dubPrompt). */
   place?: string;
+  /** The soundtrack prompt in place of dubPrompt's (Dub: the line in another language). */
+  soundPrompt?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
@@ -129,7 +131,7 @@ export async function dubClipWithVoice(input: {
       timeoutMs: 240_000,
       prompt: buildLtx25DubGraph({
         video: uploaded.name,
-        prompt: dubPrompt(input),
+        prompt: input.soundPrompt?.trim() || dubPrompt(input),
         frames: dubFrames,
         ...dubEncodeSize(Number(size[1]), Number(size[2])),
         seed: input.seed ?? Math.floor(Math.random() * 1_000_000),
