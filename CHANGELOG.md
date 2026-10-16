@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Subtitles in the film.** Cut options → **Subtitles** (on by default): what is said in each talking clip (and the reply) — else the shot's narration — is burned in at the bottom of the picture, wrapped to three lines, for viewers watching with the sound off; with Title & captions on, the shot captions move to the top. Server encode only.
+- **Narration on Story scenes.** The scene sheet has a **Narration** field with *Suggest a narration*, like Day. A written narration is said in place of the scene's first sentence, and plays even with Narrate off.
+- **Upscale to 4K** (Day and Story ⋯ menu): SeedVR2 restores and enlarges a still to 3840 on the long side for a poster, a print or a wallpaper — 880×1184 → 2854×3840 in 19 s, face unchanged. The 4K still becomes the shown one; the original stays in the Gallery.
 - **Built-in LLM in Docker, documented.** The Docker image can't run llama.cpp itself, and Settings → LLM said so without saying what to do. [Configuration → Built-in LLM in Docker](https://doodersrage.github.io/castcut/configuration/#llm-in-docker) now walks through it: our compose file's `llm` profile, or a plain `docker run` of llama.cpp's server container next to your own Castcut container, the `.env` lines (`LLM_API_BASE_URL`, `LLM_MODEL` / `LLM_VISION_MODEL=castcut-local`), image tags for NVIDIA, AMD, Intel and CPU, and how to check it. The Settings message links straight to it.
 ## [v2.11.0] - 2026-10-16
 

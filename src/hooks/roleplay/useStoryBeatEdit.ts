@@ -69,6 +69,8 @@ type UseStoryBeatEditOptions = {
 };
 
 export type StoryBeatEditActions = {
+  /** Set (or clear) the film's voice-over for the scene. */
+  saveBeatNarration: (beat: RoleplayStoryBeat, narration: string) => void;
   /** Sharpen & smooth, Copy moves, Lip-sync, Relight (useStoryBeatMediaTools). */
   media: StoryBeatMediaTools;
   /** Save a scene's edited text. False when it was refused (the editor stays open). */
@@ -232,6 +234,19 @@ export function useStoryBeatEdit({
       updateToolSettings({
         story: patchRoleplayStoryBeat(storyRef.current, latest, {
           lineTone: normalizeSpokenLineTone(tone),
+        }),
+      });
+    },
+    [storyRef, updateToolSettings]
+  );
+
+  const saveBeatNarration = useCallback(
+    (beat: RoleplayStoryBeat, narration: string) => {
+      const latest = storyRef.current.find(entry => entry.id === beat.id && entry.at === beat.at);
+      if (!latest) return;
+      updateToolSettings({
+        story: patchRoleplayStoryBeat(storyRef.current, latest, {
+          narration: narration.replace(/\s+/g, ' ').trim().slice(0, 140) || undefined,
         }),
       });
     },
@@ -440,6 +455,7 @@ export function useStoryBeatEdit({
       saveBeatLineFullFrame,
       saveBeatLineTone,
       saveBeatReply,
+      saveBeatNarration,
       voiceBeatClip,
       voicingKey,
       extendBeatClip,
@@ -461,6 +477,7 @@ export function useStoryBeatEdit({
       saveBeatLineFullFrame,
       saveBeatLineTone,
       saveBeatReply,
+      saveBeatNarration,
       saveBeatText,
       voiceBeatClip,
       voicingKey,

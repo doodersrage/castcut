@@ -17,8 +17,12 @@ const RECAP_SHOT_SEC = 2;
  * word under the narration limit. '' for a scene with its own spoken line (a talking clip) or
  * no text.
  */
-export function storyNarrationLine(beat: Pick<RoleplayStoryBeat, 'blurb' | 'line'>): string {
+export function storyNarrationLine(
+  beat: Pick<RoleplayStoryBeat, 'blurb' | 'line' | 'narration'>
+): string {
   if (beat.line?.trim()) return '';
+  // Written (or suggested) for the scene: said as it is.
+  if (beat.narration?.trim()) return beat.narration.trim();
   const text = (beat.blurb ?? '')
     .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
     .replace(/["“”]/g, '')

@@ -10,9 +10,11 @@ import {
   requestFinishClip,
   requestLipSync,
   requestRelight,
+  requestUpscaleStill,
 } from '@/lib/media-actions-client';
 
-export type DaySlotMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch';
+export type DaySlotMediaTool =
+  'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch' | 'upscale';
 
 /** What each tool says while it works (the board shows it on the card's menu item). */
 export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
@@ -22,6 +24,7 @@ export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
   'lip-sync': 'Lip-syncing…',
   relight: 'Relighting…',
   sketch: 'Keeping the sketch…',
+  upscale: 'Upscaling to 4K…',
 };
 
 /**
@@ -165,6 +168,24 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     [run]
   );
 
+  const upscaleSlot = useCallback(
+    (slot: DaySlot) =>
+      run(slot, 'upscale', async still => {
+        const stillUrl = stillUrlOf(still);
+        if (!stillUrl || !still.promptId) throw new Error('This slot has no still yet.');
+        const url = await requestUpscaleStill(stillUrl, '4k');
+        const kept = await keepStillInGallery({
+          url,
+          kind: 'upscale',
+          prompt: `Upscale · ${slot.label}`,
+          tool: 'day',
+          sourcePromptId: still.promptId,
+        });
+        return { finishedUrl: kept.url, finishedFor: still.promptId };
+      }),
+    [run]
+  );
+
   /** A sketch rendered in the Sketch sheet becomes the shown still (kept in the Gallery). */
   const applySketchToSlot = useCallback(
     async (slot: DaySlot, url: string): Promise<string | null> => {
@@ -197,6 +218,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     danceSlot,
     lipSyncSlot,
     relightSlot,
+    upscaleSlot,
     applySketchToSlot,
     stillUrlOf,
   };

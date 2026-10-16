@@ -59,6 +59,12 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
       record.narrationUrl.startsWith('/api/comfyui/view?')
         ? { narrationUrl: record.narrationUrl }
         : {}),
+      ...(typeof record.spoken === 'string' && record.spoken.trim()
+        ? { spoken: record.spoken.trim().slice(0, 300) }
+        : {}),
+      ...(typeof record.narrationText === 'string' && record.narrationText.trim()
+        ? { narrationText: record.narrationText.trim().slice(0, 300) }
+        : {}),
       ...(kind === 'clip' && trimStartSec != null ? { trimStartSec } : {}),
       ...(kind === 'clip' && trimEndSec != null ? { trimEndSec } : {}),
     });
@@ -134,6 +140,7 @@ export async function POST(request: Request) {
       audioBedUrl: typeof body.audioBedUrl === 'string' ? body.audioBedUrl : undefined,
       stillMotion: body.stillMotion === true,
       captions: body.captions === true,
+      subtitles: body.subtitles === true,
       titleCard: normalizeFilmTitleCard(body.titleCard),
       musicLevel: normalizeMusicLevel(body.musicLevel),
       voiceLevel: normalizeVoiceLevel(body.voiceLevel),

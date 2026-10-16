@@ -27,7 +27,7 @@ export function applyDayNarration<T extends FilmPlaylistShot & { key?: string }>
       missing.push({ slotId: slot.id, label: slot.label, line });
       return shot;
     }
-    return { ...holdForNarration(shot, line), narrationUrl: url };
+    return { ...holdForNarration(shot, line), narrationUrl: url, narrationText: line };
   });
   return { shots: out, missing };
 }

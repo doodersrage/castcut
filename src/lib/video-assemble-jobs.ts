@@ -103,6 +103,7 @@ export type StartFilmAssembleInput = {
   audioBedUrl?: string;
   stillMotion?: boolean;
   captions?: boolean;
+  subtitles?: boolean;
   titleCard?: FilmTitleCard | null;
   musicLevel?: number;
   voiceLevel?: number;
@@ -153,6 +154,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         audioBedUrl: input.audioBedUrl,
         stillMotion: input.stillMotion === true,
         captions: input.captions === true,
+        subtitles: input.subtitles === true,
         titleCard: normalizeFilmTitleCard(input.titleCard),
         musicLevel: input.musicLevel,
         voiceLevel: input.voiceLevel,

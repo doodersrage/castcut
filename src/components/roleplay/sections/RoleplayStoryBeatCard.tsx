@@ -386,6 +386,20 @@ export function RoleplayStoryBeatCard({
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
                   disabled={busy || media.busy !== null}
+                  data-testid="story-beat-upscale"
+                  onClick={() =>
+                    runMedia(
+                      media.upscale(beat),
+                      'Done — the 4K still is the shown take (the original is one take back).'
+                    )
+                  }
+                >
+                  Upscale to 4K
+                </button>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
                   data-testid="story-beat-dance"
                   onClick={() => setMediaSheet('dance')}
                 >

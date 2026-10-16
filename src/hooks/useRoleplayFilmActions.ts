@@ -177,11 +177,19 @@ export function useRoleplayFilmActions(input: {
           }
         }
         // Narrate: each scene's first sentence over its shot (the narrated still holds for it).
-        if (filmCutOptions.narrate === true) {
+        // A narration written on a scene plays even with Narrate off (only those scenes).
+        const narrateAll = filmCutOptions.narrate === true;
+        if (narrateAll || shots.some(shot => byKey.get(shot.key)?.narration?.trim())) {
           const man = getCharacter(character?.id ?? '')?.traits?.sex === 'man';
           for (const [index, shot] of shots.entries()) {
             const beat = byKey.get(shot.key);
-            const line = beat ? storyNarrationLine(beat) : '';
+            const line = !beat
+              ? ''
+              : narrateAll
+                ? storyNarrationLine(beat)
+                : beat.line?.trim()
+                  ? ''
+                  : (beat.narration?.trim() ?? '');
             if (!line) continue;
             let url = narrationCacheRef.current.get(line);
             if (!url) {
@@ -191,7 +199,12 @@ export function useRoleplayFilmActions(input: {
               );
               if (url) narrationCacheRef.current.set(line, url);
             }
-            if (url) shots[index] = { ...holdForNarration(shot, line), narrationUrl: url };
+            if (url)
+              shots[index] = {
+                ...holdForNarration(shot, line),
+                narrationUrl: url,
+                narrationText: line,
+              };
           }
         }
         // "Previously on": three shots of this Cast's last Story open this one.
@@ -216,6 +229,7 @@ export function useRoleplayFilmActions(input: {
           voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
+          subtitles: filmCutOptions.subtitles !== false,
           titleCard: filmCutOptions.titles
             ? {
                 title: name,

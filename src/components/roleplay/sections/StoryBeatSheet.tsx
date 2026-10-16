@@ -9,6 +9,8 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import SideSheet from '@/components/ui/SideSheet';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
+import { storyNarrationLine } from '@/lib/story-film';
+import NarrationField from '@/components/NarrationField';
 import SpokenLineField from '@/components/SpokenLineField';
 import type { StoryBeatEditActions } from '@/hooks/roleplay/useStoryBeatEdit';
 import type { PosePicks } from '@/components/pose/PosePreview';
@@ -129,6 +131,25 @@ export default function StoryBeatSheet({
             testId="story-beat-line"
           />
         ) : null}
+        {edit ? (
+          <NarrationField
+            key={`${beat.id}:${beat.at}:narration`}
+            value={beat.narration ?? ''}
+            onSave={narration => edit.saveBeatNarration(beat, narration)}
+            onSuggest={() =>
+              suggestLineForActiveCast(
+                {
+                  scene: `${beat.title}. ${beat.blurb}`,
+                  heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+                  avoid: storyNarrationSoFar(),
+                  kind: 'narration',
+                },
+                { story: true }
+              )
+            }
+            testId="story-beat-narration"
+          />
+        ) : null}
         {onPoseChange ? (
           <StoryBeatPosePreview beat={beat} index={index} busy={busy} onPoseChange={onPoseChange} />
         ) : null}
@@ -153,6 +174,14 @@ export default function StoryBeatSheet({
 function storyLines(): string[] {
   return (loadSettingsCache().tools.roleplay?.story ?? [])
     .map(entry => entry.line?.trim() ?? '')
+    .filter(Boolean)
+    .slice(-6);
+}
+
+/** The story's narration so far (written, else each scene's first sentence), so a suggestion follows on. */
+function storyNarrationSoFar(): string[] {
+  return (loadSettingsCache().tools.roleplay?.story ?? [])
+    .map(entry => storyNarrationLine(entry))
     .filter(Boolean)
     .slice(-6);
 }

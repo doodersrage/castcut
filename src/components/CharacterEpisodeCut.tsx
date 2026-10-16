@@ -100,6 +100,7 @@ export default function CharacterEpisodeCut({
         voiceLevel: options.voiceLevel,
         stillMotion: options.stillMotion !== false,
         captions: options.titles === true,
+        subtitles: options.subtitles !== false,
         titleCard: options.titles ? episodeTitleCard(characterName) : null,
         length: options.length,
         beatSnap: options.beatSnap,

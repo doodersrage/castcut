@@ -120,5 +120,8 @@
   "src/lib/music-dance.ts",
   "src/lib/music-dance-server.ts",
   "src/lib/sketch.ts",
-  "src/lib/sketch-server.ts"
+  "src/lib/sketch-server.ts",
+  "src/app/api/still/upscale/route.ts",
+  "src/lib/still-upscale.ts",
+  "src/lib/still-upscale-server.ts"
 ]

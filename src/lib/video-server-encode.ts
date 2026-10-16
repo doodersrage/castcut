@@ -12,6 +12,7 @@ import { resolvePromptDataDir } from './prompt-data-paths';
 import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
+  filmShotSubtitle,
   type FilmPlaylistShot,
   type FilmShotKind,
 } from './media-kind';
@@ -20,6 +21,7 @@ import {
   captionAlphaExpr,
   filmShotCaption,
   sanitizeFilmCaption,
+  subtitleLines,
   stillMotionZoomExpr,
   STILL_MOTION_FPS,
   TITLE_CARD_SEC,
@@ -49,6 +51,8 @@ export type FilmServerEncodeOptions = {
   stillMotion?: boolean;
   /** Short lower-third caption per shot from its title (needs drawtext + a font). */
   captions?: boolean;
+  /** What is said (else the narration), bottom centre over the shot (needs drawtext + a font). */
+  subtitles?: boolean;
   /** Opening title card (needs drawtext + a font). */
   titleCard?: FilmTitleCard | null;
   /** Optional audio bed URL (http/https, private allowed for same-origin). */
@@ -227,6 +231,8 @@ export type FilmGraphShotKind = FilmShotKind | 'title';
 /** Text assets for a shot: caption file, or title / subtitle files for the title card. */
 export type FilmGraphText = {
   captionFile?: string | null;
+  /** Subtitle (spoken line / narration), bottom centre; the caption moves to the top. */
+  speechFile?: string | null;
   titleFile?: string | null;
   subtitleFile?: string | null;
 };
@@ -275,6 +281,7 @@ export function buildFilterComplex(input: {
   const scalePad = buildFilmScaleFilter(width, height);
   const font = input.fontFile ? q(input.fontFile) : null;
   const captionSize = Math.round(Math.min(width, height) * 0.045);
+  const subtitleTextSize = Math.round(Math.min(width, height) * 0.05);
   const margin = Math.round(Math.min(width, height) * 0.06);
 
   const parts: string[] = [];
@@ -332,10 +339,19 @@ export function buildFilterComplex(input: {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
     if (kind !== 'title' && font && text?.captionFile) {
+      // With a subtitle at the bottom, the shot's caption goes to the top.
+      const captionY = text.speechFile ? `${margin}` : `h-th-${Math.round(margin * 1.4)}`;
       chain +=
         `,drawtext=fontfile=${font}:textfile=${q(text.captionFile)}:fontcolor=white:fontsize=${captionSize}` +
-        `:x=${margin}:y=h-th-${Math.round(margin * 1.4)}:box=1:boxcolor=black@0.35:boxborderw=${Math.round(captionSize * 0.45)}` +
+        `:x=${margin}:y=${captionY}:box=1:boxcolor=black@0.35:boxborderw=${Math.round(captionSize * 0.45)}` +
         `:alpha=${q(captionAlphaExpr(hold))}`;
+    }
+    if (kind !== 'title' && font && text?.speechFile) {
+      // Subtitles: bottom centre for the whole shot, wrapped by the writer (subtitleLines).
+      chain +=
+        `,drawtext=fontfile=${font}:textfile=${q(text.speechFile)}:fontcolor=white:fontsize=${subtitleTextSize}` +
+        `:line_spacing=${Math.round(subtitleTextSize * 0.25)}:x=(w-tw)/2:y=h-th-${margin}` +
+        `:box=1:boxcolor=black@0.55:boxborderw=${Math.round(subtitleTextSize * 0.4)}`;
     }
     // setpts leaves the frame rate unknown, and ffmpeg 7's xfade rejects that ("inputs needs to
     // be a constant frame rate") — so every shot ends on a fixed rate.
@@ -582,7 +598,11 @@ export async function encodeFilmPlaylistServer(
     }
 
     // Titles and captions need drawtext and a font; without either the cut still encodes.
-    const wantsText = Boolean(options.titleCard?.title?.trim() || options.captions);
+    const wantsText = Boolean(
+      options.titleCard?.title?.trim() ||
+      options.captions ||
+      (options.subtitles && shots.some(shot => filmShotSubtitle(shot)))
+    );
     const fontFile =
       wantsText && (await ffmpegHasDrawtext(ffmpeg)) ? await resolveFilmFontFile() : null;
     const usableFont = fontFile && usableFilterPath(fontFile) ? fontFile : null;
@@ -597,6 +617,14 @@ export async function encodeFilmPlaylistServer(
       return usableFilterPath(file) ? file : null;
     };
 
+    const subtitleWrapSize = Math.round(Math.min(width, height) * 0.05);
+    // Multi-line text as is (sanitizeFilmCaption keeps a caption to one line).
+    const writeRawText = async (name: string, value: string): Promise<string | null> => {
+      if (!value.trim() || !usableFont) return null;
+      const file = path.join(/* turbopackIgnore: true */ workDir, name);
+      await fs.writeFile(/* turbopackIgnore: true */ file, value, 'utf8');
+      return usableFilterPath(file) ? file : null;
+    };
     const graphKinds: FilmGraphShotKind[] = [];
     const graphHolds: number[] = [];
     const graphText: FilmGraphText[] = [];
@@ -641,6 +669,16 @@ export async function encodeFilmPlaylistServer(
         captionFile: options.captions
           ? await writeText(`caption-${i}.txt`, shots[i] ? filmShotCaption(shots[i]) : '')
           : null,
+        speechFile:
+          options.subtitles && shots[i] && filmShotSubtitle(shots[i])
+            ? await writeRawText(
+                `speech-${i}.txt`,
+                subtitleLines(
+                  filmShotSubtitle(shots[i]),
+                  Math.round(width / (subtitleWrapSize * 0.55))
+                )
+              )
+            : null,
       });
       if (kinds[i] === 'still' && options.stillMotion) {
         // zoompan expands one input frame into the whole hold.

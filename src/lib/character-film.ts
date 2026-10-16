@@ -252,6 +252,13 @@ export function roleplayWatchPlaylist(
         url: clipUrl,
         kind: asClip ? 'clip' : 'still',
         holdSec: asClip ? undefined : hold,
+        ...(asClip && beat.line?.trim()
+          ? {
+              spoken: beat.replyLine?.trim()
+                ? `${beat.line.trim()} — ${beat.replyLine.trim()}`
+                : beat.line.trim(),
+            }
+          : {}),
       });
       const shownStill = lastCompletedRoleplayStillUrl(beat) || beat.imageUrl?.trim() || '';
       if (shownStill) pushStoryAngles(shots, beat, shownStill);

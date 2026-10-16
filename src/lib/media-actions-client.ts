@@ -112,3 +112,16 @@ export async function requestSketch(input: {
   });
   return readUrl(response, 'Sketch failed.');
 }
+
+export async function requestUpscaleStill(
+  stillUrl: string,
+  target: '2x' | '4k' = '4k'
+): Promise<string> {
+  const response = await fetch('/api/still/upscale', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ stillUrl, target }),
+  });
+  return readUrl(response, 'Upscale failed.');
+}

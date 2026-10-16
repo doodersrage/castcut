@@ -4896,6 +4896,13 @@ export function dayWatchPlaylist(
         title: slot.label,
         url: clipUrl,
         kind: 'clip',
+        ...(slot.line?.trim()
+          ? {
+              spoken: slot.replyLine?.trim()
+                ? `${slot.line.trim()} — ${slot.replyLine.trim()}`
+                : slot.line.trim(),
+            }
+          : {}),
       });
     } else if (url) {
       shots.push({

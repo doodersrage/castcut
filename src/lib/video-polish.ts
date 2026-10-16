@@ -102,3 +102,34 @@ export function normalizeFilmTitleCard(value: unknown): FilmTitleCard | null {
     ...(afterShots ? { afterShots } : {}),
   };
 }
+
+/**
+ * A subtitle wrapped to lines of about `perLine` characters (at most three; the rest cut with an
+ * ellipsis), ffmpeg-safe: drawtext reads the file as is, so quotes, % and backslashes are taken out.
+ */
+export function subtitleLines(text: string, perLine: number): string {
+  const words = text
+    .replace(/[\\%]/g, ' ')
+    .replace(/["“”]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+  const width = Math.max(12, perLine);
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    if (line && (line + ' ' + word).length > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line ? `${line} ${word}` : word;
+    }
+  }
+  if (line) lines.push(line);
+  if (lines.length > 3) {
+    lines.length = 3;
+    lines[2] = `${lines[2]!.replace(/[.,;:!?]*$/, '')}…`;
+  }
+  return lines.join('\n');
+}

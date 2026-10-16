@@ -47,6 +47,8 @@ export type FilmCutOptionsValue = {
   stillMotion?: boolean;
   /** Opening title card plus a short caption per shot. */
   titles?: boolean;
+  /** What is said in each clip (else its narration) burned in at the bottom — default on. */
+  subtitles?: boolean;
   /** How long the cut runs: as the shots hold, fit to the music, or 15 / 30 / 60 s. */
   length?: FilmCutLength;
   /** Land still cuts on the music's beat (needs an audio bed). */
@@ -218,6 +220,18 @@ export default function FilmCutOptionsControls({
             data-testid={`${testIdPrefix}-titles`}
           />
           <span>Title & captions</span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.subtitles !== false}
+            onChange={event => onChange({ ...value, subtitles: event.target.checked })}
+            data-testid={`${testIdPrefix}-subtitles`}
+          />
+          <span title="What is said in each clip, else its narration, at the bottom of the picture — for viewers watching with the sound off">
+            Subtitles
+          </span>
         </label>
       </ToolActionRow>
 
@@ -502,6 +516,7 @@ export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
     value.crossfadeSec > 0 ? `crossfade ${value.crossfadeSec}s` : '',
     value.stillMotion !== false ? 'slow zoom' : 'no zoom',
     value.titles ? 'titles' : '',
+    value.subtitles === false ? 'no subtitles' : '',
     value.audioBedUrl.trim() ? 'audio bed' : '',
     value.length === 'music'
       ? 'fit to music'

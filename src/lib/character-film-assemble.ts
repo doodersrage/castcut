@@ -23,6 +23,8 @@ export async function assembleAndStampFilm(input: {
   audioBedUrl?: string;
   stillMotion?: boolean;
   captions?: boolean;
+  /** Burn in what is said (else the narration) — server encode. */
+  subtitles?: boolean;
   titleCard?: FilmTitleCard | null;
   preferServer?: boolean;
   /** How long the cut runs (fit stills to the music / a set length). Default: as the shots hold. */
@@ -66,6 +68,7 @@ export async function assembleAndStampFilm(input: {
     audioBedUrl: input.audioBedUrl,
     stillMotion: input.stillMotion,
     captions: input.captions,
+    subtitles: input.subtitles,
     titleCard: input.titleCard,
     musicLevel: input.musicLevel,
     voiceLevel: input.voiceLevel,

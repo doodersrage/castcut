@@ -80,13 +80,15 @@ export async function keepClipInGallery(input: {
   }
 }
 
+const STILL_KEEP_NAME = { relight: 'relit', sketch: 'sketch', upscale: 'upscaled' } as const;
+
 /**
  * A derived still (Relight) kept in the Gallery as a child of the still it came from — the same
  * durable copy as a kept clip, so the result outlives ComfyUI's output folder.
  */
 export async function keepStillInGallery(input: {
   url: string;
-  kind: 'relight' | 'sketch';
+  kind: 'relight' | 'sketch' | 'upscale';
   prompt: string;
   tool: 'day' | 'roleplay';
   sourcePromptId?: string;
@@ -97,7 +99,7 @@ export async function keepStillInGallery(input: {
     if (!response.ok) return { url: input.url };
     const blob = await response.blob();
     const id = crypto.randomUUID();
-    const filename = `castcut-${input.kind === 'sketch' ? 'sketch' : 'relit'}-${id.slice(0, 8)}.png`;
+    const filename = `castcut-${STILL_KEEP_NAME[input.kind]}-${id.slice(0, 8)}.png`;
     const persisted = await persistGalleryOriginal(
       id,
       new File([blob], filename, { type: blob.type || 'image/png' })
@@ -126,7 +128,7 @@ export async function keepStillInGallery(input: {
       durableThumbPath: persisted.thumbPath,
       sourceImageUrl: persisted.originalUrl,
       ...(source?.adultCheck ? { adultCheck: source.adultCheck } : {}),
-      userTags: [input.kind === 'sketch' ? 'sketch' : 'relit'],
+      userTags: [STILL_KEEP_NAME[input.kind]],
     });
     return { url: persisted.originalUrl, entryId: id, promptId: `${input.kind}-${id}` };
   } catch {

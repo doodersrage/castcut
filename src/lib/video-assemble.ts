@@ -59,6 +59,8 @@ export type AssembleFilmOptions = {
   stillMotion?: boolean;
   /** Short caption per shot from its title. */
   captions?: boolean;
+  /** Burn in what is said (and the narration) as subtitles — server encode only. */
+  subtitles?: boolean;
   /** Opening title card. */
   titleCard?: FilmTitleCard | null;
   /** Music bed / lines gain (server encode only; audio-mix-levels.ts). */
@@ -359,6 +361,7 @@ async function assembleFilmBlobOnServer(
         audioBedUrl: options?.audioBedUrl,
         stillMotion: options?.stillMotion === true,
         captions: options?.captions === true,
+        subtitles: options?.subtitles === true,
         titleCard: normalizeFilmTitleCard(options?.titleCard),
         musicLevel: options?.musicLevel,
         voiceLevel: options?.voiceLevel,

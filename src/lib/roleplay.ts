@@ -143,6 +143,8 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * Animate makes a talking clip on LTX-2.5.
    */
   line?: string;
+  /** The film's voice-over over this scene (Narrate); unset = its first sentence. */
+  narration?: string;
   /** The talking clip keeps the whole still instead of starting chest-up. */
   lineFullFrame?: boolean;
   /** How the line is said (Whisper, Excited…); unset = natural. */

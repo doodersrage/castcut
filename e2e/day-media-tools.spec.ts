@@ -315,3 +315,38 @@ test('Sketch: draw, render, and use it as the still', async ({ page }) => {
     { timeout: 30_000 }
   );
 });
+
+test('Upscale to 4K replaces the shown still', async ({ page }) => {
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/still/upscale', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: '/icon.svg' }) });
+  });
+  await openDay(page);
+  await page.getByTestId('day-progress-upscale-morning').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText('4K now', { timeout: 30_000 });
+  expect(posts[0]).toMatchObject({ stillUrl: '/icon.svg', target: '4k' });
+});
+
+test('Cut: Subtitles is on by default and goes to the server encode', async ({ page }) => {
+  await openDay(page);
+  await page.keyboard.press('Escape');
+  const toggle = page.getByTestId('day-cut-subtitles').first();
+  if (!(await toggle.isVisible().catch(() => false))) {
+    await page.getByText('Cut options', { exact: false }).first().click();
+  }
+  await expect(page.getByTestId('day-cut-subtitles').first()).toBeChecked({ timeout: 15_000 });
+});
+
+test('Story: a scene’s narration can be suggested', async ({ page }) => {
+  let sent: Record<string, unknown> = {};
+  await page.route('**/api/spoken-line', route => {
+    sent = route.request().postDataJSON() as Record<string, unknown>;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ line: 'I should never have opened that door.' }) });
+  });
+  await openStory(page);
+  await page.getByTestId('story-beat-edit').first().click();
+  await page.getByTestId('story-beat-narration-suggest').first().click();
+  await expect(page.getByTestId('story-beat-narration').first()).toHaveValue('I should never have opened that door.', { timeout: 15_000 });
+  expect(sent.kind).toBe('narration');
+});

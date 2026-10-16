@@ -23,6 +23,7 @@ import {
   musicDanceSize,
 } from './music-dance';
 import { sketchPrompt } from './sketch';
+import { buildStillUpscaleGraph, stillUpscaleSize } from './still-upscale';
 import {
   buildMotionTransferGraph,
   MOTION_MAX_FRAMES,
@@ -269,5 +270,15 @@ describe('Dance size', () => {
       const size = musicDanceSize(w, h);
       assert.equal(((size.width / 16) * (size.height / 16)) % 8, 0, `${w}×${h}`);
     }
+  });
+});
+
+describe('Upscale a still', () => {
+  it('goes to 4K on the long side (or 2×, capped at 4096); a still that big is left alone', () => {
+    assert.deepEqual(stillUpscaleSize(880, 1184, '4k'), { width: 2854, height: 3840 });
+    assert.deepEqual(stillUpscaleSize(1104, 1472, '2x'), { width: 2208, height: 2944 });
+    assert.equal(stillUpscaleSize(2160, 3840, '4k'), null);
+    const graph = buildStillUpscaleGraph({ image: 'i.png', width: 2854, height: 3840, seed: 1, prefix: 'x' });
+    assert.equal(ofType(graph, 'SeedVR2PostProcessing')[0]?.inputs.color_correction_method, 'lab');
   });
 });

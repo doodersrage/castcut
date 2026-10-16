@@ -79,7 +79,16 @@ export type FilmPlaylistShot = {
   trimEndSec?: number;
   /** Stills: closer framing, cropped around the face before the encode (Cut shot list). */
   framing?: 'medium' | 'close';
+  /** What is said on screen in this clip (its line, and the reply) — burned in as subtitles. */
+  spoken?: string;
+  /** The voice-over heard over this shot — subtitled when there is no spoken line. */
+  narrationText?: string;
 };
+
+/** The subtitle a shot carries: its spoken line, else its narration ('' = none). */
+export function filmShotSubtitle(shot: Pick<FilmPlaylistShot, 'spoken' | 'narrationText'>): string {
+  return (shot.spoken?.trim() || shot.narrationText?.trim() || '').replace(/\s+/g, ' ');
+}
 
 export function isAssembledFilmEntry(
   entry: Pick<ComfyGalleryEntry, 'derivedKind'> | undefined

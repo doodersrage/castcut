@@ -69,3 +69,14 @@ describe('Story film', () => {
     assert.equal(recap[1]!.captionless, true);
   });
 });
+
+describe('a scene’s own narration', () => {
+  it('is said as written; a talking scene still has none', () => {
+    assert.equal(
+      storyNarrationLine({ blurb: 'She opens the door. Rain pours in.', narration: 'I never should have answered.' }),
+      'I never should have answered.'
+    );
+    assert.equal(storyNarrationLine({ blurb: 'She opens the door.', narration: 'x y z', line: 'Hello?' }), '');
+    assert.equal(storyNarrationLine({ blurb: 'She opens the door. Rain pours in.' }), 'She opens the door.');
+  });
+});

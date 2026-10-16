@@ -111,6 +111,7 @@ export type DaySlotBoardProps = {
       options: { style: string; amplitude: string; start?: number }
     ) => Promise<string | null>;
     relight: (slot: DaySlot, look: string) => Promise<string | null>;
+    upscale: (slot: DaySlot) => Promise<string | null>;
     /** Keep a picture drawn in the Sketch sheet as the slot's still. */
     sketch: (slot: DaySlot, url: string) => Promise<string | null>;
   };
@@ -123,6 +124,7 @@ const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
   'lip-sync': 'Done — the clip now says your recording.',
   relight: 'Done — the still has its new light (the original is in the Gallery).',
   sketch: 'Done — the sketched still is shown (the original is in the Gallery).',
+  upscale: 'Done — the still is 4K now (the original is in the Gallery).',
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -411,6 +413,16 @@ export default function DaySlotBoard({
                     onClick={() => setMediaSheet({ slot, kind: 'moves' })}
                   >
                     Copy moves from a video…
+                  </button>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Restore and enlarge the still to 4K — for a poster, a print or a wallpaper."
+                    data-testid={`day-progress-upscale-${slot.id}`}
+                    onClick={() => void runMedia(slot, 'upscale', () => mediaTools.upscale(slot))}
+                  >
+                    Upscale to 4K
                   </button>
                   <button
                     type="button"

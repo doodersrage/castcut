@@ -1063,6 +1063,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               dance: slotMedia.danceSlot,
               lipSync: slotMedia.lipSyncSlot,
               relight: slotMedia.relightSlot,
+              upscale: slotMedia.upscaleSlot,
               sketch: slotMedia.applySketchToSlot,
             }}
           />

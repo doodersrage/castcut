@@ -9,13 +9,14 @@ import {
   requestFinishClip,
   requestLipSync,
   requestRelight,
+  requestUpscaleStill,
 } from '@/lib/media-actions-client';
 import { storyBeatKey } from '@/lib/play-pose-targets';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/roleplay-gallery-takes';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
-export type StoryMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight';
+export type StoryMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';
 
 export type StoryBeatMediaTools = {
   busy: { key: string; tool: StoryMediaTool } | null;
@@ -32,6 +33,7 @@ export type StoryBeatMediaTools = {
   ) => Promise<string | null>;
   lipSync: (beat: RoleplayStoryBeat, audio: Blob, audio2?: Blob | null) => Promise<string | null>;
   relight: (beat: RoleplayStoryBeat, look: string) => Promise<string | null>;
+  upscale: (beat: RoleplayStoryBeat) => Promise<string | null>;
   /** A sketch rendered in the Sketch sheet joins the scene's takes, pinned. */
   applySketch: (beat: RoleplayStoryBeat, url: string) => Promise<string | null>;
 };
@@ -221,5 +223,26 @@ export function useStoryBeatMediaTools({
     [latestOf, storyRef, updateToolSettings]
   );
 
-  return { busy, finish, moves, dance, lipSync, relight, applySketch };
+  const upscale = useCallback(
+    (beat: RoleplayStoryBeat) =>
+      run(beat, 'upscale', async latest => {
+        const stillUrl = stillOf(latest);
+        if (!stillUrl) throw new Error('This scene has no still yet.');
+        const url = await requestUpscaleStill(stillUrl, '4k');
+        const kept = await keepStillInGallery({
+          url,
+          kind: 'upscale',
+          prompt: `Upscale · ${latest.title}`,
+          tool: 'roleplay',
+          sourcePromptId: latest.promptId,
+        });
+        return addRoleplayFixedTakePatch(latest, {
+          promptId: kept.promptId ?? `upscale-${Date.now()}`,
+          imageUrl: kept.url,
+        });
+      }),
+    [run]
+  );
+
+  return { busy, finish, moves, dance, lipSync, relight, upscale, applySketch };
 }

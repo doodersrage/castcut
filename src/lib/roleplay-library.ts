@@ -137,6 +137,9 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
     beat.line = normalizeSpokenLine(record.line);
   }
   if (record.lineFullFrame === true) beat.lineFullFrame = true;
+  if (typeof record.narration === 'string' && record.narration.trim()) {
+    beat.narration = record.narration.replace(/\s+/g, ' ').trim().slice(0, 140);
+  }
   const lineTone = normalizeSpokenLineTone(record.lineTone);
   if (lineTone) beat.lineTone = lineTone;
   if (typeof record.clipRenderPromptId === 'string' && record.clipRenderPromptId.trim()) {

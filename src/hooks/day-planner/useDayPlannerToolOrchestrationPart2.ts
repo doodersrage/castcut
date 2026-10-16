@@ -926,6 +926,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           voiceLevel: filmCutOptions.voiceLevel,
           stillMotion: filmCutOptions.stillMotion !== false,
           captions: filmCutOptions.titles === true,
+          subtitles: filmCutOptions.subtitles !== false,
           // After a "Previously on" recap, the title card follows it.
           titleCard: filmCutOptions.titles
             ? {
