@@ -5,7 +5,7 @@ import { compactPromptForProfile } from './prompt-compact';
 import {
   buildModelClarityAddendum,
   buildModelUserDirective,
-  DEFAULT_QWEN_MODEL,
+  DEFAULT_COMFY_MODEL,
   shouldEnforceMinPadding,
   type ComfyImageModel,
 } from './comfy-models';
@@ -40,28 +40,26 @@ export {
 } from './detail-level';
 export {
   COMFY_IMAGE_MODELS,
-  DEFAULT_QWEN_MODEL,
+  DEFAULT_COMFY_MODEL,
   formatPromptForModel,
   getComfyModelDefinition,
   getModelFewShots,
   getPromptLimits,
-  getQwenModelDefinition,
-  normalizeQwenModel,
-  QWEN_MODELS,
-  qwenModelLabel,
+  normalizeComfyModel,
+  comfyModelLabel,
 } from './comfy-models';
 export type { ComfyImageModel, QwenImageModel } from './comfy-models';
 
 export function buildClaritySystemAddendum(
   detail: DetailLevel,
-  model: ComfyImageModel = DEFAULT_QWEN_MODEL
+  model: ComfyImageModel = DEFAULT_COMFY_MODEL
 ): string {
   return buildModelClarityAddendum(detail, model);
 }
 
 export function buildDetailUserDirective(
   detail: DetailLevel,
-  model: ComfyImageModel = DEFAULT_QWEN_MODEL
+  model: ComfyImageModel = DEFAULT_COMFY_MODEL
 ): string {
   return buildModelUserDirective(detail, model);
 }
@@ -313,7 +311,7 @@ export function sanitizeQwenPrompt(
   raw: string,
   detail: DetailLevel = 'balanced',
   input = '',
-  model: ComfyImageModel = DEFAULT_QWEN_MODEL,
+  model: ComfyImageModel = DEFAULT_COMFY_MODEL,
   options: SanitizeOptions = {}
 ): string {
   const profile = resolveProfile(model);

@@ -15,15 +15,10 @@ export {
   COMFY_MODEL_CATEGORIES,
   COMFY_MODEL_IDS,
   DEFAULT_COMFY_MODEL,
-  DEFAULT_QWEN_MODEL,
-  QWEN_MODELS,
   normalizeComfyModel,
-  normalizeQwenModel,
   getComfyModelDefinition,
-  getQwenModelDefinition,
   getPromptLimits,
   comfyModelLabel,
-  qwenModelLabel,
 } from './client';
 export type {
   ComfyImageModel,

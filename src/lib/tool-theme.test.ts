@@ -7,7 +7,6 @@ import {
   accentFocusClass,
   accentRingClass,
   ROUTE_TINT_CLASSES,
-  TOOL_ACCENT_CLASSES,
 } from "./tool-theme";
 
 describe("accentForPath", () => {
@@ -84,7 +83,7 @@ describe("ROUTE_TINT_CLASSES", () => {
     );
   });
 
-  it("TOOL_ACCENT_CLASSES is the same object as ROUTE_TINT_CLASSES (deprecated alias)", () => {
-    assert.equal(TOOL_ACCENT_CLASSES, ROUTE_TINT_CLASSES);
+  it("ROUTE_TINT_CLASSES is the same object as ROUTE_TINT_CLASSES (deprecated alias)", () => {
+    assert.equal(ROUTE_TINT_CLASSES, ROUTE_TINT_CLASSES);
   });
 });

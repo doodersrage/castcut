@@ -12,11 +12,6 @@ export function markOnboardingSystemWorkflowsEnabled(): void {
   markOnboardingStepDone('system-workflows');
 }
 
-/** @deprecated Prefer markOnboardingSystemWorkflowsEnabled for the MVP path. */
-export function markOnboardingWorkflowImported(): void {
-  markOnboardingSystemWorkflowsEnabled();
-}
-
 export function markOnboardingFirstGenerate(): void {
   markOnboardingStepDone('first-generate');
 }

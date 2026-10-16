@@ -4,7 +4,7 @@ import {
   type VariationSettings,
 } from './variation-settings';
 import { normalizeDetailLevel, type DetailLevel } from './detail-level';
-import { DEFAULT_QWEN_MODEL, normalizeQwenModel, type QwenImageModel } from './qwen-model';
+import { DEFAULT_COMFY_MODEL, normalizeComfyModel, type QwenImageModel } from './qwen-model';
 
 export type { VariationSettings, DetailLevel, QwenImageModel };
 
@@ -26,7 +26,7 @@ export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   variation: DEFAULT_VARIATION_SETTINGS,
   distinctPeople: true,
   detail: 'balanced',
-  model: DEFAULT_QWEN_MODEL,
+  model: DEFAULT_COMFY_MODEL,
   alwaysIncludeClothing: false,
   seedLlmWithIngredients: false,
 };
@@ -52,7 +52,7 @@ export function normalizeGenerationSettings(
         ? value.distinctPeople
         : DEFAULT_GENERATION_SETTINGS.distinctPeople,
     detail: normalizeDetailLevel(value?.detail),
-    model: normalizeQwenModel(value?.model),
+    model: normalizeComfyModel(value?.model),
     alwaysIncludeClothing:
       typeof value?.alwaysIncludeClothing === 'boolean'
         ? value.alwaysIncludeClothing

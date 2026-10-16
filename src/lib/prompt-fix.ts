@@ -4,7 +4,6 @@ import {
   inferCyclingDiscipline,
   stripForeignSportActionsFromPrompt,
   stripIncompatibleCyclingVenuesFromPrompt,
-  stripIncompatibleSportActionsFromPrompt,
 } from './athletic-sport-actions';
 import { inferAthleticSport } from './athletic-sport-profiles';
 import { stripStreetClothingFromAthleticPeoplePrompt, isMultiPersonInput } from './distinct-people';
@@ -33,7 +32,7 @@ export function fixPromptRules(input: { hints?: string; prompt: string }): Promp
 
   if (sport) {
     const beforeSport = prompt;
-    prompt = stripIncompatibleSportActionsFromPrompt(prompt, sport, corpus);
+    prompt = stripForeignSportActionsFromPrompt(prompt, sport, corpus);
     if (prompt !== beforeSport) {
       changes.push({
         code: 'sport.strip_foreign_actions',

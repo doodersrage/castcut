@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyUiModelLists } from './comfyui-object-info';
-import { resolveComfyUiRuntime } from './comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from './comfyui-runtime';
 import type { WebpSaveAdapter } from './workflow-save-format';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -23,7 +23,7 @@ let memoryCache: CacheEntry | null = null;
 function resolveCacheUrl(comfyUrl?: string): string {
   return (
     comfyUrl?.trim().replace(/\/+$/, '') ||
-    resolveComfyUiRuntime()?.apiUrl?.trim().replace(/\/+$/, '') ||
+    resolveSelectedWorkflowRuntime()?.apiUrl?.trim().replace(/\/+$/, '') ||
     ''
   );
 }
@@ -79,7 +79,7 @@ export async function fetchComfyObjectInfoCached(input?: {
   comfyUrl?: string;
   forceRefresh?: boolean;
 }): Promise<ComfyObjectInfoCachePayload | null> {
-  const runtime = resolveComfyUiRuntime();
+  const runtime = resolveSelectedWorkflowRuntime();
   const comfyUrl = input?.comfyUrl?.trim() || runtime?.apiUrl?.trim() || '';
   if (!input?.forceRefresh) {
     const cached = readCachedComfyObjectInfo(comfyUrl);
@@ -153,7 +153,8 @@ export async function fetchComfyObjectInfoModelsCached(input?: {
 export async function fetchComfyObjectInfoNodeTypesCached(input?: {
   comfyUrl?: string;
 }): Promise<Set<string> | null> {
-  const comfyUrl = input?.comfyUrl?.trim() || resolveComfyUiRuntime()?.apiUrl?.trim() || '';
+  const comfyUrl =
+    input?.comfyUrl?.trim() || resolveSelectedWorkflowRuntime()?.apiUrl?.trim() || '';
   const cached = readCachedComfyObjectInfo(comfyUrl);
   if (cached && cached.nodeTypes.size) {
     return cached.nodeTypes;
@@ -198,7 +199,8 @@ export async function fetchComfyLoraInventoryFiles(input?: {
   comfyUrl?: string;
   forceRefresh?: boolean;
 }): Promise<ComfyLoraInventoryFile[] | null> {
-  const comfyUrl = input?.comfyUrl?.trim() || resolveComfyUiRuntime()?.apiUrl?.trim() || '';
+  const comfyUrl =
+    input?.comfyUrl?.trim() || resolveSelectedWorkflowRuntime()?.apiUrl?.trim() || '';
   const params = new URLSearchParams({ folder: 'loras' });
   if (comfyUrl) {
     params.set('comfyUrl', comfyUrl);

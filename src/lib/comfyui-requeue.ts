@@ -19,7 +19,7 @@ import {
   profileSkipsOutputUpscaleForModel,
   type QueueQualityProfile,
 } from './queue-quality-profile';
-import { resolveComfyUiRuntime } from './comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from './comfyui-runtime';
 import { resolveQueueNegativePrompt } from './queue-negative';
 import { resolveQueueParams } from './queue-params-settings';
 import {
@@ -322,7 +322,7 @@ export async function requeueUpscaleFromGalleryEntry(
       : undefined;
 
   const objectInfo = await fetchComfyObjectInfoCached({
-    comfyUrl: entry.comfyUrl ?? resolveComfyUiRuntime()?.apiUrl,
+    comfyUrl: entry.comfyUrl ?? resolveSelectedWorkflowRuntime()?.apiUrl,
   });
   const upscaleModelFilename =
     mappedUpscale && isUpscaleModelInstalled(mappedUpscale, objectInfo?.models.upscaleModels)
@@ -1680,7 +1680,7 @@ export async function fetchWorkflowPreview(input: {
   const runtime =
     input.comfy ??
     (input.model ? resolveRuntimeForQueue(input.model as ComfyImageModel) : undefined) ??
-    resolveComfyUiRuntime();
+    resolveSelectedWorkflowRuntime();
   const params: WorkflowParamValues | undefined = input.newSeed
     ? {
         ...input.params,

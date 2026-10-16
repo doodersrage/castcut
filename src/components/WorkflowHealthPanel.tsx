@@ -14,7 +14,7 @@ import {
 import { auditLoaderMapsAgainstComfyUi } from '@/lib/loader-map-health-audit';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
 import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '@/lib/comfyui-settings';
-import { resolveComfyUiRuntime } from '@/lib/comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
 import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
 import { auditDualClipNodesInWorkflow } from '@/lib/workflow-queue-loader-preflight';
 import { auditLoaderFilenamesInWorkflow } from '@/lib/workflow-loader-filename-audit';
@@ -205,7 +205,7 @@ export default function WorkflowHealthPanel({
 
   useEffect(() => {
     void refreshKey;
-    const runtime = resolveComfyUiRuntime();
+    const runtime = resolveSelectedWorkflowRuntime();
     const comfyUrl = runtime?.apiUrl?.trim();
     const params = comfyUrl ? `?comfyUrl=${encodeURIComponent(comfyUrl)}` : '';
     scheduleAfterCommit(() => {

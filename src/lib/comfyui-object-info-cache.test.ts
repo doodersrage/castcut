@@ -3,8 +3,8 @@ import { describe, it, mock } from "node:test";
 import type { ComfyUiRuntimeConfig } from "./comfyui-config";
 import type { ComfyUiModelLists } from "./comfyui-object-info";
 
-const resolveComfyUiRuntime = mock.fn((): ComfyUiRuntimeConfig | undefined => undefined);
-mock.module("./comfyui-runtime", { namedExports: { resolveComfyUiRuntime } });
+const resolveSelectedWorkflowRuntime = mock.fn((): ComfyUiRuntimeConfig | undefined => undefined);
+mock.module("./comfyui-runtime", { namedExports: { resolveSelectedWorkflowRuntime } });
 
 function fullModels(overrides: Partial<ComfyUiModelLists> = {}): ComfyUiModelLists {
   return {

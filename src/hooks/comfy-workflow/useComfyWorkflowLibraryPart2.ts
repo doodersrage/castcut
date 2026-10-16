@@ -31,7 +31,7 @@ import {
 import { suggestWorkflowNodeMappings } from '@/lib/workflow-node-mapper';
 import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow-apply-bindings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { markOnboardingWorkflowImported } from '@/lib/onboarding-hooks';
+import { markOnboardingSystemWorkflowsEnabled } from '@/lib/onboarding-hooks';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui-settings';

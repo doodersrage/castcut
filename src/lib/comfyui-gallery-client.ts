@@ -11,7 +11,7 @@ import {
 } from './comfyui-gallery';
 import { formatComfyUiJobStatusLine, type ComfyUiJobTrackerState } from './comfyui-job-status';
 import { notifyComfyJobComplete } from './comfyui-notifications';
-import { resolveComfyUiRuntime } from './comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from './comfyui-runtime';
 import { loadComfyUiSettings } from './comfyui-settings';
 import { clearComfyLivePreviewUrl, suppressComfyLivePreview } from './comfyui-live-preview-store';
 import { getEngineAdapter, getEngineAdapterById } from './engine';
@@ -142,7 +142,7 @@ function resolveComfyUrlForJob(promptId: string, comfyUrl?: string): string | un
       .find(entry => entry.promptId === promptId)
       ?.comfyUrl?.trim()
       .replace(/\/+$/, '') ||
-    resolveComfyUiRuntime()?.apiUrl?.trim().replace(/\/+$/, '')
+    resolveSelectedWorkflowRuntime()?.apiUrl?.trim().replace(/\/+$/, '')
   );
 }
 
@@ -431,7 +431,9 @@ export async function claimOrphanComfyJob(input: {
   }
 
   const comfyUrl =
-    input.comfyUrl?.trim() || resolveComfyUiRuntime()?.apiUrl?.trim() || 'http://127.0.0.1:8188';
+    input.comfyUrl?.trim() ||
+    resolveSelectedWorkflowRuntime()?.apiUrl?.trim() ||
+    'http://127.0.0.1:8188';
   const item = await fetchComfyJobImportItem(promptId, comfyUrl);
   if (item?.images?.length) {
     const result = importComfyGalleryFromHistory([item]);

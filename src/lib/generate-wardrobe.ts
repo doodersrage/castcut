@@ -11,7 +11,7 @@ import {
 } from './athletic-sport-profiles';
 import {
   resolveAthleticSportForWardrobe,
-  stripIncompatibleSportActionsFromPrompt,
+  stripForeignSportActionsFromPrompt,
   ensureCyclingHelmetInPrompt,
   ensureAthleticBottomInPrompt,
   appendCyclingHelmetToSummary,
@@ -344,9 +344,7 @@ export function mergeGenerateWardrobeIntoPrompt(
     prompt,
     assignments[0]?.filters.athleticSport ?? null
   );
-  const working = sport
-    ? stripIncompatibleSportActionsFromPrompt(prompt, sport, intentHints)
-    : prompt;
+  const working = sport ? stripForeignSportActionsFromPrompt(prompt, sport, intentHints) : prompt;
   const refreshed = assignments.map(assignment =>
     refreshSportWardrobeAssignmentForPrompt(working, assignment, intentHints)
   );

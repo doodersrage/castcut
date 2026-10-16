@@ -1,4 +1,4 @@
-import { DEFAULT_QWEN_MODEL } from './comfy-models/client';
+import { DEFAULT_COMFY_MODEL } from './comfy-models/client';
 import { normalizeDetailLevel, type DetailLevel } from './detail-level';
 import { normalizeQueueQualityProfile, type QueueQualityProfile } from './queue-quality-profile';
 import { clampScheduledBatchConfig, type ScheduledBatchConfig } from './scheduled-batch';
@@ -21,7 +21,7 @@ export type ScheduledBatchProfile = {
 };
 
 export const DEFAULT_SCHEDULED_BATCH_PROFILE: ScheduledBatchProfile = {
-  model: DEFAULT_QWEN_MODEL,
+  model: DEFAULT_COMFY_MODEL,
   detail: 'balanced',
   qualityProfile: 'followSettings',
   target: 'random-scene',

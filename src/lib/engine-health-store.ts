@@ -7,7 +7,7 @@
  */
 
 import type { EngineHealth } from './engine-health-engines';
-import { resolveComfyUiRuntime } from './comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from './comfyui-runtime';
 
 export const ENGINE_HEALTH_UPDATED_EVENT = 'engine-health-updated';
 
@@ -18,7 +18,7 @@ const cache = new Map<string, Map<string, EngineHealth>>();
 
 /** The ComfyUI URL the browser queues to ('' = the server's default). */
 export function currentEngineHealthUrl(): string {
-  return resolveComfyUiRuntime()?.apiUrl?.trim().replace(/\/+$/, '') || '';
+  return resolveSelectedWorkflowRuntime()?.apiUrl?.trim().replace(/\/+$/, '') || '';
 }
 
 function notify(): void {

@@ -1,4 +1,4 @@
-import { DEFAULT_QWEN_MODEL, getPromptLimits, type ComfyImageModel } from './comfy-models/client';
+import { DEFAULT_COMFY_MODEL, getPromptLimits, type ComfyImageModel } from './comfy-models/client';
 
 export type DetailLevel = 'concise' | 'balanced' | 'rich';
 
@@ -26,7 +26,7 @@ export function normalizeDetailLevel(value?: string | null): DetailLevel {
 
 export function getDetailLimits(
   detail: DetailLevel,
-  model: ComfyImageModel = DEFAULT_QWEN_MODEL
+  model: ComfyImageModel = DEFAULT_COMFY_MODEL
 ): DetailLimits {
   return {
     ...getPromptLimits(detail, model),

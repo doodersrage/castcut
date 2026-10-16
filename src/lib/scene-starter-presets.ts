@@ -600,9 +600,6 @@ export function sceneStartersForCategory(
   );
 }
 
-/** @deprecated Prefer `@/lib/sport-presets` — re-exported for callers/tests. */
-export { isSportStarterPreset } from './sport-presets';
-
 export function getAllSceneStarterPresets(
   userPresets: readonly SceneStarterPreset[] = []
 ): SceneStarterPreset[] {

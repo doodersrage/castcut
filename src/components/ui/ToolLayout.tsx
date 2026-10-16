@@ -27,12 +27,8 @@ type ToolLayoutProps = {
    * tool id for the chip's queue-quality summary.
    */
   sidebarPersistKey?: string;
-  /** @deprecated Popover open state is ephemeral; ignored. */
-  sidebarDefaultOpen?: boolean;
   sidebarTitle?: string | false;
   sidebarDescription?: string;
-  /** @deprecated Every page's Engine opens as a sheet now; ignored. */
-  engineSheetOnly?: boolean;
   children: ReactNode;
 };
 
@@ -50,7 +46,7 @@ function ToolLayoutFrame({
   sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
   engine,
   children,
-}: Omit<ToolLayoutProps, 'accent' | 'sidebarPersistKey' | 'sidebarDefaultOpen'> & {
+}: Omit<ToolLayoutProps, 'accent' | 'sidebarPersistKey'> & {
   engine?: EngineColumn;
 }) {
   // A page with an Engine opens it in the sheet; a plain sidebar stays beside the content.
@@ -96,12 +92,8 @@ function EngineToolLayout({
   sidebarTitle = TOOL_SIDEBAR_TITLE,
   sidebarDescription = TOOL_SIDEBAR_DESCRIPTION,
   sidebarPersistKey,
-  sidebarDefaultOpen: _defaultOpen,
-  engineSheetOnly: _sheetOnly,
   ...rest
 }: ToolLayoutProps & { sidebar: ReactNode; sidebarPersistKey: string }) {
-  void _defaultOpen;
-  void _sheetOnly;
   const panelId = useId();
   // One Engine editor everywhere: the sheet from the header chip (per visit), the page keeps
   // its full width.
@@ -154,17 +146,9 @@ export const ToolLayout = memo(function ToolLayout(props: ToolLayoutProps) {
       />
     );
   }
-  const {
-    accent: _accent,
-    sidebarPersistKey: _key,
-    sidebarDefaultOpen: _def,
-    engineSheetOnly: _sheetOnly,
-    ...frame
-  } = props;
-  void _sheetOnly;
+  const { accent: _accent, sidebarPersistKey: _key, ...frame } = props;
   void _accent;
   void _key;
-  void _def;
   return <ToolLayoutFrame {...frame} />;
 });
 

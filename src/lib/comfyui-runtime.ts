@@ -47,11 +47,6 @@ export function resolveSelectedWorkflowRuntime(
   });
 }
 
-/** @deprecated Use resolveSelectedWorkflowRuntime */
-export function resolveComfyUiRuntime(fileId?: string | null) {
-  return resolveSelectedWorkflowRuntime(fileId);
-}
-
 export function clearSelectedWorkflowFileIfDeleted(deletedId: string): void {
   const cache = loadSettingsCache();
   const selected = cache.shared.selectedWorkflowFileId ?? cache.shared.selectedWorkflowPresetId;

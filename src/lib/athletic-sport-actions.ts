@@ -1259,15 +1259,6 @@ export function resolveAthleticSportForWardrobe(
   return inferAthleticSport(promptCorpus);
 }
 
-/** @deprecated Use stripForeignSportActionsFromPrompt */
-export function stripIncompatibleSportActionsFromPrompt(
-  prompt: string,
-  sport: AthleticSport,
-  hints?: string
-): string {
-  return stripForeignSportActionsFromPrompt(prompt, sport, hints);
-}
-
 export function promptContainsIncompatibleSportAction(
   sport: AthleticSport,
   prompt: string

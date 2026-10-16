@@ -15,7 +15,7 @@ import {
   sidecarRequeueContext,
   type PromptSidecar,
 } from '@/lib/prompt-sidecar';
-import { resolveComfyUiRuntime } from '@/lib/comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
 import { toastHeldMax } from '@/lib/app-toast';
 import { Button } from '@/components/ui/Button';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
@@ -67,7 +67,7 @@ export default function GalleryImportTools() {
           loadingLabel="Importing ComfyUI history"
           onClick={() => {
             setHistoryLoading(true);
-            const stickyUrl = resolveComfyUiRuntime()?.apiUrl?.trim();
+            const stickyUrl = resolveSelectedWorkflowRuntime()?.apiUrl?.trim();
             void importCompletedHostJobs(40, stickyUrl)
               .then(result => {
                 setImportStatus(

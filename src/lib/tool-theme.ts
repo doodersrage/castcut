@@ -67,9 +67,6 @@ export const ROUTE_TINT_CLASSES: Record<
   },
 };
 
-/** @deprecated Use ROUTE_TINT_CLASSES — kept for incremental migration */
-export const TOOL_ACCENT_CLASSES = ROUTE_TINT_CLASSES;
-
 export const ROUTE_ACCENT: Record<string, ToolAccent> = {
   '/': 'brand',
   '/format': 'emerald',

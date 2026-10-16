@@ -46,7 +46,7 @@ import { inferAthleticSport } from '../athletic-sport-profiles';
 import {
   formatSportActionInstructions,
   getSportActionInstructions,
-  stripIncompatibleSportActionsFromPrompt,
+  stripForeignSportActionsFromPrompt,
   ensureCyclingHelmetInPrompt,
   ensureAthleticBottomInPrompt,
   promptMentionsBicycleOrRiding,
@@ -310,7 +310,7 @@ ${soloRules}
       result = mergeCharacterPresetsIntoPrompt(result, presetOptions);
     }
     if (intentSport) {
-      result = stripIncompatibleSportActionsFromPrompt(result, intentSport, intentCorpus);
+      result = stripForeignSportActionsFromPrompt(result, intentSport, intentCorpus);
     }
     if (cyclingHelmetRequired) {
       result = ensureCyclingHelmetInPrompt(result, intentCorpus);
@@ -423,7 +423,7 @@ ${soloRules}
         );
       }
       if (intentSport) {
-        prompt = stripIncompatibleSportActionsFromPrompt(prompt, intentSport, intentCorpus);
+        prompt = stripForeignSportActionsFromPrompt(prompt, intentSport, intentCorpus);
       }
       return prompt;
     },
@@ -431,8 +431,7 @@ ${soloRules}
     enforceMinimum: keywordsOnly ? false : !(hasPresets || hasPoseAnchor(presetOptions)),
     postProcessPrompt: keywordsOnly
       ? intentSport
-        ? (prompt: string) =>
-            stripIncompatibleSportActionsFromPrompt(prompt, intentSport, intentCorpus)
+        ? (prompt: string) => stripForeignSportActionsFromPrompt(prompt, intentSport, intentCorpus)
         : undefined
       : postProcessPrompt,
     temperature: options.llm?.temperature ?? temperature,

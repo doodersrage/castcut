@@ -1,5 +1,5 @@
 import { isSettingsSyncedWithServer, markSettingsPushPending } from './settings-push-flush';
-import { DEFAULT_QWEN_MODEL, type ComfyImageModel } from './comfy-models/client';
+import { DEFAULT_COMFY_MODEL, type ComfyImageModel } from './comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
   normalizeModelSamplerPresetTier,
@@ -1199,7 +1199,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   // ComfyUI owns generate (Lightning bf16 + enrich); Diffusers is optional.
   inferenceEngine: 'comfyui',
   diffusersAutoStart: true,
-  model: DEFAULT_QWEN_MODEL,
+  model: DEFAULT_COMFY_MODEL,
   detail: 'balanced',
   alwaysIncludeClothing: false,
   seedLlmWithIngredients: false,

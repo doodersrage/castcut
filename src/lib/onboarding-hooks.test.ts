@@ -13,7 +13,6 @@ describe('onboarding-hooks', async () => {
     markOnboardingLlmHealthOk,
     markOnboardingComfyHealthOk,
     markOnboardingSystemWorkflowsEnabled,
-    markOnboardingWorkflowImported,
     markOnboardingFirstGenerate,
     markOnboardingFirstQueue,
     markOnboardingFirstQueueSuccess,
@@ -40,11 +39,6 @@ describe('onboarding-hooks', async () => {
     assert.deepEqual(markOnboardingStepDone.mock.calls[0]!.arguments, ['system-workflows']);
   });
 
-  it('markOnboardingWorkflowImported (deprecated) delegates to the system-workflows step', () => {
-    markOnboardingWorkflowImported();
-    assert.equal(markOnboardingStepDone.mock.calls.length, 1);
-    assert.deepEqual(markOnboardingStepDone.mock.calls[0]!.arguments, ['system-workflows']);
-  });
 
   it('markOnboardingFirstGenerate marks the first-generate step', () => {
     markOnboardingFirstGenerate();

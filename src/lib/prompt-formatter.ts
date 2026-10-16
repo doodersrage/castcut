@@ -9,7 +9,7 @@ import {
   formatPromptForModel,
   fluxIgnoresNegative,
   getComfyModelDefinition,
-  normalizeQwenModel,
+  normalizeComfyModel,
   type ComfyImageModel,
 } from './comfy-models';
 import { enforcePromptShapeForProfile } from './prompt-shape';
@@ -58,7 +58,7 @@ export function normalizeFormatSettings(
     | null
 ): FormatSettings {
   return {
-    model: normalizeQwenModel(value?.model),
+    model: normalizeComfyModel(value?.model),
     detail: normalizeDetailLevel(value?.detail),
     mode: value?.mode === 'negative' ? 'negative' : 'positive',
     smartFormat:

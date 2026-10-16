@@ -37,7 +37,6 @@ describe("comfyui-runtime", async () => {
   const {
     getSelectedWorkflowFileId,
     resolveSelectedWorkflowRuntime,
-    resolveComfyUiRuntime,
     clearSelectedWorkflowFileIfDeleted,
     setSelectedWorkflowFileId,
     SERVER_WORKFLOW_PREFIX,
@@ -101,10 +100,6 @@ describe("comfyui-runtime", async () => {
     });
   });
 
-  it("resolveComfyUiRuntime is an alias for resolveSelectedWorkflowRuntime", () => {
-    sharedSettings = {} as never;
-    assert.deepEqual(resolveComfyUiRuntime(), resolveSelectedWorkflowRuntime());
-  });
 
   describe("clearSelectedWorkflowFileIfDeleted", () => {
     it("clears both selection fields when the deleted id matches selectedWorkflowFileId", () => {

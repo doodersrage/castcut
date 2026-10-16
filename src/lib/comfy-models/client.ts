@@ -22,21 +22,12 @@ export type {
   PromptProfileId,
 } from './types';
 
-/** @deprecated Use DEFAULT_COMFY_MODEL */
-export const DEFAULT_QWEN_MODEL = DEFAULT_COMFY_MODEL;
-
-/** @deprecated Use COMFY_IMAGE_MODELS */
-export const QWEN_MODELS = COMFY_IMAGE_MODELS;
-
 export function normalizeComfyModel(value?: string | null): ComfyImageModel {
   if (value && COMFY_MODEL_IDS.has(value)) {
     return value;
   }
   return DEFAULT_COMFY_MODEL;
 }
-
-/** @deprecated Use normalizeComfyModel */
-export const normalizeQwenModel = normalizeComfyModel;
 
 export function getComfyModelDefinition(
   model: ComfyImageModel = DEFAULT_COMFY_MODEL
@@ -46,9 +37,6 @@ export function getComfyModelDefinition(
     COMFY_IMAGE_MODELS.find(entry => entry.id === DEFAULT_COMFY_MODEL)!
   );
 }
-
-/** @deprecated Use getComfyModelDefinition */
-export const getQwenModelDefinition = getComfyModelDefinition;
 
 export function getPromptLimits(
   detail: DetailLevel,
@@ -60,9 +48,6 @@ export function getPromptLimits(
 export function comfyModelLabel(model: ComfyImageModel): string {
   return getComfyModelDefinition(model).label;
 }
-
-/** @deprecated Use comfyModelLabel */
-export const qwenModelLabel = comfyModelLabel;
 
 export type QwenImageModel = ComfyImageModel;
 export type QwenModelDefinition = ComfyImageModelDefinition;

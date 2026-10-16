@@ -5,7 +5,7 @@ import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { initBrowserStorage, readBrowserString, writeBrowserString } from '@/lib/browser-storage';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { resolveComfyUiRuntime } from '@/lib/comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
 import { auditWorkflowLibraryHealth } from '@/lib/workflow-health-audit';
 import {
   COMFY_MODEL_LIST_FINGERPRINT_KEY,
@@ -18,7 +18,7 @@ import {
 const RECHECK_MS = 10 * 60 * 1000;
 
 async function fetchComfyModelLists(): Promise<Record<string, unknown> | null> {
-  const comfyUrl = resolveComfyUiRuntime()?.apiUrl?.trim();
+  const comfyUrl = resolveSelectedWorkflowRuntime()?.apiUrl?.trim();
   const params = comfyUrl ? `?comfyUrl=${encodeURIComponent(comfyUrl)}` : '';
   try {
     const response = await fetch(`/api/comfyui/object-info${params}`);

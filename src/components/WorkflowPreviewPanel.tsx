@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button, Skeleton, Spinner } from '@/components/ui/Button';
 import { collectMissingNodeTypesFromIssues } from '@/lib/workflow-node-type-audit';
 import { requestComfyManagerInstall } from '@/lib/comfyui-manager-install-client';
-import { resolveComfyUiRuntime } from '@/lib/comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
 
 type WorkflowPreviewPanelProps = {
   loading?: boolean;
@@ -150,7 +150,7 @@ export default function WorkflowPreviewPanel({
               setInstallStatus('Installing missing custom nodes…');
               void requestComfyManagerInstall({
                 nodeTypes: missingNodeTypes,
-                comfyUrl: resolveComfyUiRuntime()?.apiUrl,
+                comfyUrl: resolveSelectedWorkflowRuntime()?.apiUrl,
                 restart: true,
               })
                 .then(result => {

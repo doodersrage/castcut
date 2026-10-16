@@ -1,5 +1,5 @@
 import { resolveVisionModel } from '@/lib/vision-model-auto';
-import { comfyModelLabel, DEFAULT_QWEN_MODEL } from './comfy-models';
+import { comfyModelLabel, DEFAULT_COMFY_MODEL } from './comfy-models';
 import { getDetailLimits, type DetailLevel } from './detail-level';
 import { visionCompletion } from './llm-client';
 import {
@@ -170,7 +170,7 @@ export async function scanStillReference(options: {
     );
   }
 
-  const model = options.model ?? DEFAULT_QWEN_MODEL;
+  const model = options.model ?? DEFAULT_COMFY_MODEL;
   const limits = getDetailLimits(options.detail ?? 'balanced', model);
   const spec = PURPOSE_PROMPTS[options.purpose];
   const intent = options.extraHints?.trim() ?? '';

@@ -299,4 +299,4 @@ export { ToolLayout } from '@/components/ui/ToolLayout';
 export { accentButtonClass, accentFocusClass, accentRingClass } from '@/lib/tool-theme';
 
 /** @deprecated Use ROUTE_TINT_CLASSES */
-export { ROUTE_TINT_CLASSES as TOOL_ACCENT_CLASSES } from '@/lib/tool-theme';
+export { ROUTE_TINT_CLASSES as ROUTE_TINT_CLASSES } from '@/lib/tool-theme';
