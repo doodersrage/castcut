@@ -12,7 +12,11 @@ import { useEffect, useState } from 'react';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { refreshSharedHealth, subscribeSharedHealth } from '@/lib/shared-health-poll';
-import { renderBackendFromHealth, type RenderBackendStatus } from '@/lib/render-backend-health';
+import {
+  renderBackendFromHealth,
+  settleRenderBackend,
+  type RenderBackendStatus,
+} from '@/lib/render-backend-health';
 
 export {
   RENDER_BACKEND_OFFLINE_MESSAGE,
@@ -22,6 +26,22 @@ export {
 import { RENDER_BACKEND_OFFLINE_MESSAGE } from '@/lib/render-backend-health';
 
 let last: RenderBackendStatus = { state: 'checking', llmOk: null };
+let failures = 0;
+let confirmTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Apply a health answer: one miss checks again in a few seconds; two in a row are "offline". */
+function applyHealth(next: RenderBackendStatus): RenderBackendStatus {
+  const settled = settleRenderBackend(last, failures, next);
+  failures = settled.failures;
+  last = settled.status;
+  if (next.state === 'offline' && last.state !== 'offline' && !confirmTimer) {
+    confirmTimer = setTimeout(() => {
+      confirmTimer = null;
+      void refreshSharedHealth({ force: true });
+    }, 4_000);
+  }
+  return last;
+}
 
 /**
  * Rendering does not depend on this ComfyUI: a cloud engine is picked — or an e2e build (CI has
@@ -60,8 +80,9 @@ export function useRenderBackend(): RenderBackendStatus {
   const [status, setStatus] = useState<RenderBackendStatus>(last);
   useEffect(() => {
     const unsubscribe = subscribeSharedHealth(data => {
-      last = renderBackendFromHealth(data, { cloudEngine: renderBackendNotNeeded() });
-      setStatus(last);
+      setStatus(
+        applyHealth(renderBackendFromHealth(data, { cloudEngine: renderBackendNotNeeded() }))
+      );
     }, 30_000);
     const onFocus = () => void refreshSharedHealth({ force: true });
     window.addEventListener('focus', onFocus);

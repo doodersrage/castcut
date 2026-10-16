@@ -1,5 +1,7 @@
 'use client';
 
+import { loadComfyUiSettings } from './comfyui-settings';
+
 /**
  * Shared /api/health poller.
  *
@@ -36,9 +38,24 @@ let inFlight: Promise<RawHealthResponse> | null = null;
 let lastFetchAt = 0;
 let intervalId: number | null = null;
 
+/**
+ * The ComfyUI address renders go to when it isn't the server's: Settings → ComfyUI with "Use the
+ * server's ComfyUI URL" off sends its own address with every queue, so health must check that one
+ * — checking the server's showed "ComfyUI is offline" while renders went through.
+ */
+function healthUrl(): string {
+  try {
+    const settings = loadComfyUiSettings();
+    const own = settings.useServerDefaults ? '' : settings.apiUrl?.trim();
+    return own ? `/api/health?comfyUrl=${encodeURIComponent(own)}` : '/api/health';
+  } catch {
+    return '/api/health';
+  }
+}
+
 async function doFetch(): Promise<RawHealthResponse> {
   try {
-    const response = await fetch('/api/health');
+    const response = await fetch(healthUrl());
     return (await response.json()) as RawHealthResponse;
   } catch {
     return null;

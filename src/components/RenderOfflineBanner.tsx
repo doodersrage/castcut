@@ -13,7 +13,7 @@ import {
  * that the work is kept, with a way to fix it. Queue / Animate buttons are disabled meanwhile.
  */
 export default function RenderOfflineBanner() {
-  const { state } = useRenderBackend();
+  const { state, comfyUrl, error } = useRenderBackend();
   if (state !== 'offline') return null;
   return (
     <div
@@ -26,6 +26,12 @@ export default function RenderOfflineBanner() {
         <p className="type-caption text-[var(--text-secondary)]">
           {RENDER_BACKEND_OFFLINE_MESSAGE}
         </p>
+        {comfyUrl ? (
+          <p className="type-caption text-[var(--text-muted)]" data-testid="render-offline-detail">
+            The server tried <code>{comfyUrl}</code>
+            {error ? <> — {error}</> : null}
+          </p>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
