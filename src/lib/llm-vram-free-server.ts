@@ -57,6 +57,43 @@ export function lmStudioLoadedInstanceIds(payload: unknown): string[] {
   });
 }
 
+/**
+ * LM Studio `GET /api/v1/models` → the context length the model is loaded with (its first loaded
+ * instance), or null when it isn't loaded / the server isn't LM Studio. A model loaded at 2,048
+ * tokens cut the Story writer's answer off mid-scene (2026-10-15).
+ */
+export function lmStudioLoadedContextLength(payload: unknown, model: string): number | null {
+  const models = (payload as { models?: unknown } | null)?.models;
+  if (!Array.isArray(models)) return null;
+  const want = model.trim().toLowerCase();
+  for (const entry of models) {
+    const record = entry as { key?: unknown; loaded_instances?: unknown };
+    const instances = Array.isArray(record.loaded_instances) ? record.loaded_instances : [];
+    for (const instance of instances) {
+      const item = instance as { id?: unknown; config?: { context_length?: unknown } };
+      const names = [record.key, item.id].map(value => String(value ?? '').toLowerCase());
+      const length = Number(item.config?.context_length);
+      if ((!want || names.includes(want)) && Number.isFinite(length) && length > 0) return length;
+    }
+  }
+  return null;
+}
+
+/** The loaded context length of a same-machine LM Studio model, or null (quick, never throws). */
+export async function localLlmContextLength(
+  model: string,
+  baseUrl = getLlmConfig().baseUrl
+): Promise<number | null> {
+  if (!isLoopbackUrl(baseUrl)) return null;
+  try {
+    const origin = new URL(baseUrl).origin;
+    const response = await fetch(`${origin}/api/v1/models`, { signal: AbortSignal.timeout(1_500) });
+    return response.ok ? lmStudioLoadedContextLength(await response.json(), model) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Ollama `GET /api/ps` → loaded model names. */
 export function ollamaLoadedModelNames(payload: unknown): string[] {
   const models = (payload as { models?: unknown } | null)?.models;

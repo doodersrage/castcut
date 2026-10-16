@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayClothedGuideContradictsBeat, planDaySlotPose, plannedDaySlotPoseKey } from './day-slot-pose';
+import { storyPoseSceneText, dayClothedGuideContradictsBeat, planDaySlotPose, plannedDaySlotPoseKey } from './day-slot-pose';
 
 describe('plannedDaySlotPoseKey', () => {
   it('names the layout the slot plan draws, without drawing it', () => {
@@ -86,5 +86,22 @@ describe('dayClothedGuideContradictsBeat', () => {
       contradicts('lying face to face on the rumpled bed with her partner, both in sleepwear', 'suggestive', 'hug'),
       false
     );
+  });
+});
+
+describe('storyPoseSceneText', () => {
+  it('uses the still description when it states a posture', () => {
+    assert.equal(
+      storyPoseSceneText(
+        'Light and weather flip. Lena is still living with quiet victory pose.',
+        'Carry out this change on Image 1: Replace the scene with Lena stands frozen mid-victory pose in a pawn shop, arms thrown skyward.\nWardrobe: …'
+      ),
+      'Lena stands frozen mid-victory pose in a pawn shop, arms thrown skyward.'
+    );
+  });
+
+  it('keeps the blurb when the description states no posture or is missing', () => {
+    assert.equal(storyPoseSceneText('Lena sits on the bench.', 'Rain on the window.'), 'Lena sits on the bench.');
+    assert.equal(storyPoseSceneText('Lena sits on the bench.', undefined), 'Lena sits on the bench.');
   });
 });

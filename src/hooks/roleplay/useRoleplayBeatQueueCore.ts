@@ -85,7 +85,7 @@ import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
 } from '@/lib/klein-face-reference';
-import { mergePickedPose } from '@/lib/day-slot-pose';
+import { mergePickedPose, storyPoseSceneText } from '@/lib/day-slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
 import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
 import {
@@ -647,7 +647,15 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
   );
 
   const resolvePoseGuideForBeat = useCallback(
-    async (beat: RoleplayStoryBeat, options?: { variant?: number; afterPoseMiss?: boolean }) => {
+    async (
+      beat: RoleplayStoryBeat,
+      options?: {
+        variant?: number;
+        afterPoseMiss?: boolean;
+        /** The still's own description, when written (storyPoseSceneText). */
+        stillText?: string;
+      }
+    ) => {
       if (playAs !== 'photo') {
         return undefined;
       }
@@ -669,17 +677,19 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           openPose && referenceUrl
             ? await probeImageUrlDimensions(referenceUrl).catch(() => null)
             : null;
-        const writtenPose = mergePickedPose(beat.poseLayout, beat.pose, beat.blurb);
+        // Checked against what the still is drawn from, not just the card (storyPoseSceneText).
+        const poseText = storyPoseSceneText(beat.blurb, options?.stillText ?? beat.stillBrief);
+        const writtenPose = mergePickedPose(beat.poseLayout, beat.pose, poseText);
         // A pose that is none of the named layouts, described limb by limb by the writer and
         // composed into a skeleton — drawn exactly, like a pose from a photo.
         const composedPose = composedPoseForScene({
           pose: writtenPose,
-          sceneText: beat.blurb,
+          sceneText: poseText,
           playerPosed: Boolean(beat.poseLayout || beat.posePhoto),
         });
         const poseBuild = await buildStoryPoseGuide({
           title: beat.title,
-          blurb: beat.blurb,
+          blurb: poseText,
           prompt: beat.prompt,
           // A fork's blurb quotes the beat before it ("…the fallout of milk pitcher duel"):
           // those titles are labels, not this still's pose.
@@ -755,7 +765,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
                 keypoints: poseBuild.keypoints,
                 aspect: poseBuild.canvas.width / poseBuild.canvas.height,
               },
-              sceneText: beat.blurb,
+              sceneText: poseText,
               lead: leadIsMan() ? 'he' : 'she',
             })
           : '';
@@ -836,7 +846,9 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       }
       const queueStill = options?.queueStill ?? autoQueue;
       const poseGuide =
-        queueStill && playAs === 'photo' ? await resolvePoseGuideForBeat(beat) : undefined;
+        queueStill && playAs === 'photo'
+          ? await resolvePoseGuideForBeat(beat, { stillText: data.prompt })
+          : undefined;
       const promptSource = storyStillPromptSource({
         llmPrompt: data.prompt,
         blurb: beat.blurb,

@@ -16,6 +16,7 @@ import {
   isLlmBusy,
   isLlmEnabled,
 } from './llm-client';
+import { localLlmContextLength } from './llm-vram-free-server';
 
 export type LlmHealth = {
   ok: boolean;
@@ -187,11 +188,13 @@ export async function checkLlmHealth(): Promise<LlmHealth> {
       .catch(() => [] as string[]);
     const model = configured || (await resolveServerTextModel());
     const modelMissing = ids.length > 0 && !ids.includes(model);
+    const contextLength = await localLlmContextLength(model, config.baseUrl);
     return {
       ok: true,
       enabled: true,
       model,
       ...(modelMissing ? { modelMissing: true } : {}),
+      ...(contextLength ? { contextLength } : {}),
       visionModel: config.visionModel,
       baseUrl: config.baseUrl,
       inFlight,

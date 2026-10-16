@@ -10,6 +10,7 @@ import { settingsTabHref } from '@/lib/settings-nav';
 import { LLM_PUBLIC_PROVIDERS, type SessionLlmProvider } from '@/lib/llm-providers';
 import {
   formatCatalogSource,
+  STORY_MIN_LLM_CONTEXT,
   type ServerLlmSnapshot,
 } from '@/components/settings/panels/llm-panel-shared';
 
@@ -113,6 +114,17 @@ export default function LlmProviderPanel({
           </Link>
           .
         </p>
+        {server?.contextLength && server.contextLength < STORY_MIN_LLM_CONTEXT ? (
+          <p
+            className="ui-status-warning type-caption rounded-[var(--radius-md)] px-3 py-2"
+            data-testid="llm-context-warning"
+          >
+            The model is loaded with a {server.contextLength.toLocaleString('en-US')}-token context
+            — too small for Story once it has a few scenes (Roll four scenes comes back cut off). In
+            LM Studio, reload it with a context length of{' '}
+            {STORY_MIN_LLM_CONTEXT.toLocaleString('en-US')} or more.
+          </p>
+        ) : null}
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="type-caption text-[var(--text-muted)]">Status</dt>
@@ -122,6 +134,21 @@ export default function LlmProviderPanel({
             <dt className="type-caption text-[var(--text-muted)]">Text model</dt>
             <dd className="truncate text-[var(--text-primary)]">{server?.model ?? '—'}</dd>
           </div>
+          {server?.contextLength ? (
+            <div>
+              <dt className="type-caption text-[var(--text-muted)]">Loaded context</dt>
+              <dd
+                className={
+                  server.contextLength < STORY_MIN_LLM_CONTEXT
+                    ? 'font-medium text-[var(--tint-warning-text)]'
+                    : 'text-[var(--text-primary)]'
+                }
+                data-testid="llm-context-length"
+              >
+                {server.contextLength.toLocaleString('en-US')} tokens
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="type-caption text-[var(--text-muted)]">Vision model</dt>
             <dd className="truncate text-[var(--text-primary)]">

@@ -86,6 +86,8 @@ export type HealthResponse = {
     error?: string;
     /** LLM_MODEL is not on the server's model list. */
     modelMissing?: boolean;
+    /** The context length LM Studio loaded the model with (same machine only). */
+    contextLength?: number;
     inFlight?: number;
     maxInflight?: number;
     busy?: boolean;

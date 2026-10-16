@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Settings → LLM shows the loaded context** (LM Studio on the same machine) and warns below 8,192 tokens — too small for Story once it has a few scenes, the cause of Roll four scenes coming back empty.
+- **Story pose maps follow the still's own description.** The map was picked from the card's short blurb; most continuing cards are built-in text with no pose in it ("Light and weather flip…"), so the map was effectively random — a sit map under "Lena stands center-stage, arms flung wide". Now the pose is checked against, and the map drawn from, the description the still is made from whenever it states a posture.
 - **Story stills no longer lose her trousers.** When a PG-13 / clean scene named only a top ("her faded tank top stretched taut"), the everyday-clothes line was skipped and Image 1's undressed plate supplied the rest — bare legs and underwear in a laundromat and a subway car. Now a top-only scene adds "with it she wears jeans, trousers or a skirt". Same seeds, live: bare legs 6/6 → dressed 6/6.
 - **POSE FIRST on every clothed Day mood** (Vacation, Suggestive, Sport, themes — one person, Edit 2511). Same seeds, 23 beats: 6 followed their pose map better (lounger leg raised, doorframe hands, stretch overhead, sprint knee drive, soccer kick), none worse.
 - **Story clips get Day's choices:** "Story clips on" offers LTX-2.5 (default), WAN or MiniMax-H3, with the same LTX options as Day (faster clothed one-person clips, two-person adult, refine detail). The old "Video model" setting reads as WAN.

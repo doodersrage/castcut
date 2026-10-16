@@ -221,6 +221,7 @@ export default function SettingsToolSections(vm: SettingsToolViewModel) {
                 apiKeyConfigured: health?.config.llmApiKeyConfigured,
                 visionModelConfigured: health?.config.visionModelConfigured,
                 visionModelDetected: health?.config.visionModelDetected,
+                contextLength: health?.llm.contextLength,
               }}
               autoVisionTags={settings.autoVisionTags !== false}
               onAutoVisionTagsChange={value => updateSettings({ autoVisionTags: value })}

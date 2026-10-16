@@ -49,7 +49,12 @@ export type ServerLlmSnapshot = {
   apiKeyConfigured?: boolean;
   visionModelConfigured?: boolean;
   visionModelDetected?: string;
+  /** Loaded context length (LM Studio on this machine). */
+  contextLength?: number;
 };
+
+/** Story's scene writer needs room: below this its answers were cut off mid-scene. */
+export const STORY_MIN_LLM_CONTEXT = 8192;
 
 export function catalogEntriesFromPayload(payload: LlmCatalogResponse): LlmCatalogEntry[] {
   if (Array.isArray(payload.entries)) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
+import { lmStudioLoadedContextLength,
   freeLocalLlmVram,
   isLoopbackUrl,
   lmStudioLoadedInstanceIds,
@@ -31,5 +31,22 @@ describe('free local LLM VRAM', () => {
       'qwen3-vl:latest',
     ]);
     assert.deepEqual(lmStudioLoadedInstanceIds(null), []);
+  });
+});
+
+describe('lmStudioLoadedContextLength', () => {
+  const payload = {
+    models: [
+      { key: 'other', loaded_instances: [] },
+      {
+        key: 'nsfwvision-qwen3-vl-8b-v3',
+        loaded_instances: [{ id: 'nsfwvision-qwen3-vl-8b-v3', config: { context_length: 2048 } }],
+      },
+    ],
+  };
+  it('reads the loaded context of the named model', () => {
+    assert.equal(lmStudioLoadedContextLength(payload, 'nsfwvision-qwen3-vl-8b-v3'), 2048);
+    assert.equal(lmStudioLoadedContextLength(payload, 'not-loaded'), null);
+    assert.equal(lmStudioLoadedContextLength({ data: [] }, 'x'), null);
   });
 });

@@ -82,6 +82,25 @@ export function mergePickedPose(
 }
 
 /**
+ * The words a Story still's pose is checked against: the still's own description when it states
+ * a posture (that is what the picture is drawn from), else the card's blurb. The pose was checked
+ * against the blurb only, and the description written after it often disagreed — a "sit" map
+ * under "Lena stands center-stage … arms flung wide" (2026-10-15); the words win, so the still
+ * matched neither.
+ */
+export function storyPoseSceneText(
+  blurb: string | null | undefined,
+  stillText: string | null | undefined
+): string {
+  const still = (stillText ?? '')
+    .replace(/^[\s\S]*?\bReplace the scene with\s+/i, '')
+    .split('\n')[0]!
+    .slice(0, 600)
+    .trim();
+  return still && textLeadPosture(still) ? still : (blurb ?? '');
+}
+
+/**
  * The stance directive as pose-guide text. A beat with a pose class gets that class's directive;
  * a beat without one gets nothing — the general directive lists every stance ("seated,
  * reclining, dancing, climbing, or waving as written"), and the guide read "dancing" out of it:
