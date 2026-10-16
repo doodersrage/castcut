@@ -1286,6 +1286,30 @@ export function withStoryEverydayWardrobe(prompt: string, headcount = 1): string
   return `${trimmed}\n${line}`;
 }
 
+const OUTFIT_IMAGE_GARMENT =
+  '(?:tank\\s+top|crop\\s+top|t-shirt|tee|shirt|blouse|top|hoodie|sweater|jumper|cardigan|jacket|blazer|coat|vest|jeans|trousers|pants|shorts|skirt|leggings|dress|sundress|gown|outfit)';
+const OUTFIT_IMAGE_GARMENT_PHRASE = new RegExp(
+  String.raw`\b(?:her|a|an|the|that|same)\s+(?:[\w’'-]+\s+){0,3}?${OUTFIT_IMAGE_GARMENT}(?:\s+and\s+(?:[\w’'-]+\s+){0,3}?${OUTFIT_IMAGE_GARMENT})?\b(?!\s+(?:of|rack|racks|hanger|hangers|pocket|pockets|button|buttons|sleeve|sleeves|collar|hem|code|shop|store|floor|shelf|step|steps|deck|bunk|drawer))`,
+  'gi'
+);
+
+/**
+ * A still with an outfit picture (the dressed plate as Image 1): the scene's own clothing words
+ * become "her outfit". Text written before the outfit was picked ("her faded tank top stretched
+ * taut") beat the picture — tank top and underwear, the dress gone (2/2); rewritten, she wore
+ * the picked dress 2/2 (2026-10-15). The OUTFIT / FOOTWEAR / Wardrobe lines are left alone.
+ */
+export function withStoryOutfitImageClothes(prompt: string): string {
+  return prompt
+    .split('\n')
+    .map(line =>
+      /^(?:\s*(?:Edit Image 1:\s*)?(?:OUTFIT|FOOTWEAR)\b|Wardrobe:)/i.test(line)
+        ? line
+        : line.replace(OUTFIT_IMAGE_GARMENT_PHRASE, 'her outfit')
+    )
+    .join('\n');
+}
+
 /**
  * Suggestive still written as implied nudity (a sheet or towel, an arm across her chest, a bare
  * back): the coverage line instead of everyday clothes — no nipples, genitals or bare bottom

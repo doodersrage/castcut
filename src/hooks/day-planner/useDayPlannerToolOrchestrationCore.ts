@@ -2224,8 +2224,7 @@ export function useDayPlannerToolOrchestrationCore() {
           poseFirst:
             /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
             !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
-            !adultStill &&
-            !slotPartner,
+            !adultStill,
           camera: dayStillCamera({
             slotId: queueTarget.id,
             model: stillModel,

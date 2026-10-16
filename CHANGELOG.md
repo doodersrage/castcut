@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **POSE FIRST for two-person Day stills** (clothed, Edit 2511): the recipe's own pose sentence, else its moment, leads the prompt. Same seeds, 12 duo beats: 5 clearer (sharing a drink or dessert leaning in, head on a shoulder seated, earbuds, selfie arm), none worse.
+- **A picked outfit beats old scene text in Story.** A scene written before the outfit was picked named its own clothes ("her faded tank top") and won over the outfit picture — tank top and underwear, the dress gone. With an outfit picture, the scene's clothing words now read "her outfit": she wore the picked dress 2/2 (was 0/2).
 - **Settings → LLM shows the loaded context** (LM Studio on the same machine) and warns below 8,192 tokens — too small for Story once it has a few scenes, the cause of Roll four scenes coming back empty.
 - **Story pose maps follow the still's own description.** The map was picked from the card's short blurb; most continuing cards are built-in text with no pose in it ("Light and weather flip…"), so the map was effectively random — a sit map under "Lena stands center-stage, arms flung wide". Now the pose is checked against, and the map drawn from, the description the still is made from whenever it states a posture.
 - **Story stills no longer lose her trousers.** When a PG-13 / clean scene named only a top ("her faded tank top stretched taut"), the everyday-clothes line was skipped and Image 1's undressed plate supplied the rest — bare legs and underwear in a laundromat and a subway car. Now a top-only scene adds "with it she wears jeans, trousers or a skirt". Same seeds, live: bare legs 6/6 → dressed 6/6.

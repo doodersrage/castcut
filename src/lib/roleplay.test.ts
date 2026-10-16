@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { RoleplayStoryBeat } from './roleplay';
-import { salvageJsonArrayObjects,
+import { withStoryOutfitImageClothes, salvageJsonArrayObjects,
   appendRoleplayStoryBeat,
   continueRoleplayScenes,
   extractJsonValue,
@@ -1314,5 +1314,21 @@ describe('withStoryEverydayWardrobe — top only', () => {
     }
     const duo = 'She hugs him, her tank top creased.';
     assert.equal(withStoryEverydayWardrobe(duo, 2), duo);
+  });
+});
+
+describe('withStoryOutfitImageClothes', () => {
+  it('turns the scene clothing words into her outfit, keeping the OUTFIT line', () => {
+    const out = withStoryOutfitImageClothes(
+      'Edit Image 1: OUTFIT (mandatory): she wears exactly the outfit in Image 1.\nReplace the scene with Lena balancing on newspapers, her faded tank top stretched taut over her ribs.'
+    );
+    assert.match(out, /^Edit Image 1: OUTFIT \(mandatory\): she wears exactly the outfit in Image 1\./);
+    assert.match(out, /Lena balancing on newspapers, her outfit stretched taut/);
+    assert.doesNotMatch(out, /tank top/);
+  });
+
+  it('leaves non-clothing uses alone', () => {
+    const text = 'Replace the scene with Lena at the top of the stairs, by the coat rack.';
+    assert.equal(withStoryOutfitImageClothes(text), text);
   });
 });

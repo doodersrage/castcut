@@ -189,9 +189,24 @@ export type AssembledDayStillPrompt = {
  * "Pose:" sentence, else its "Moment:". '' when the recipe has no pose map.
  */
 export function dayPoseFirstLine(prompt: string): string {
-  const map = /Match her body to the (second|third|fourth) image \(pose map\)/.exec(prompt)?.[1];
+  const duo = /Match their two bodies to the (second|third|fourth) image \(pose map\)/.exec(
+    prompt
+  )?.[1];
+  const map =
+    duo ?? /Match her body to the (second|third|fourth) image \(pose map\)/.exec(prompt)?.[1];
   if (!map) return '';
   const image = { second: 2, third: 3, fourth: 4 }[map as 'second' | 'third' | 'fourth'];
+  if (duo) {
+    // Two people: the recipe's own Pose: sentence (body-by-body placement), else the Moment.
+    // Same seeds, 12 clothed duo beats on Edit 2511 (2026-10-15): 5 clearer (sharing a drink /
+    // dessert leaning in, head on a shoulder seated, earbuds, selfie arm), 0 worse.
+    const pose = /\bPose: ([^.\n]+)\./.exec(prompt)?.[1]?.trim();
+    const moment = /\bMoment: ([^.\n]+)\./.exec(prompt)?.[1]?.trim();
+    const words = pose || moment;
+    return words
+      ? `POSE FIRST: the two people — ${words}, exactly as the pose map in Image ${image} shows.`
+      : '';
+  }
   const body = /Day photo:([^\n]*)/.exec(prompt)?.[1] ?? prompt;
   const sentences = body
     .split(/(?<=\.)\s+/)
@@ -369,7 +384,7 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     .filter(Boolean)
     .join('\n');
   const poseFirstLine =
-    facts.poseFirst && recipe && figures === 1 && !customPose && !facts.adult
+    facts.poseFirst && recipe && (figures === 1 || figures === 2) && !customPose && !facts.adult
       ? dayPoseFirstLine(prompt)
       : '';
   return {

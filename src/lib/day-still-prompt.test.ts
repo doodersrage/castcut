@@ -312,3 +312,20 @@ describe('dayPoseFirstLine', () => {
     assert.equal(dayPoseFirstLine('Day photo: One woman alone. She walks mid-step.'), '');
   });
 });
+
+describe('dayPoseFirstLine — two people', () => {
+  it('leads a duo recipe with its Pose: sentence, else the Moment', () => {
+    assert.equal(
+      dayPoseFirstLine(
+        'Day photo: A woman and a man together, both fully clothed. Moment: sitting on the steps. Pose: side by side, she leans her head onto his shoulder. Match their two bodies to the third image (pose map).'
+      ),
+      'POSE FIRST: the two people — side by side, she leans her head onto his shoulder, exactly as the pose map in Image 3 shows.'
+    );
+    assert.equal(
+      dayPoseFirstLine(
+        'Day photo: A woman and a man together. Moment: hugging a friend hello on the sidewalk, both smiling. Match their two bodies to the third image (pose map).'
+      ),
+      'POSE FIRST: the two people — hugging a friend hello on the sidewalk, both smiling, exactly as the pose map in Image 3 shows.'
+    );
+  });
+});
