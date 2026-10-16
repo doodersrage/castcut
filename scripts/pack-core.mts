@@ -1,8 +1,9 @@
 /**
- * Builds the shared core package (packages/prompt-studio-core) that the classic Prompt Studio
- * repo depends on: every src/ file the classic app reaches from its routes and layout, with `@/`
- * imports rewritten to relative paths (consumers don't have Castcut's alias), and the npm
- * dependencies those files import. Castcut's src/ stays the one source; the package is a build
+ * Builds the shared core package (packages/prompt-studio-core) that the Prompt Studio repo
+ * (github.com/doodersrage/prompt-studio) depends on: every src/ file outside the Play layer — its
+ * own tools import the shared code directly, so the package carries all of it, not only what the
+ * shared routes reach — with `@/` imports rewritten to relative paths (consumers don't have
+ * Castcut's alias), and the npm dependencies those files import. Castcut's src/ stays the one source; the package is a build
  * output (gitignored) — publish it with `npm publish packages/prompt-studio-core`.
  * docs/architecture-boundaries.md.
  *
@@ -20,7 +21,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { isPlayLayer, readImports } from '../src/lib/architecture-boundaries';
-import { classicRouteFiles } from '../src/lib/classic-app';
+import { coreRouteFiles } from '../src/lib/classic-app';
 
 const root = join(dirname(new URL(import.meta.url).pathname), '..');
 const arg = (flag: string) => {
@@ -73,17 +74,24 @@ function packageOf(spec: string): string | null {
   return spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0]!;
 }
 
-// Entry points: the routes the classic app wraps, the proxy and instrumentation, and what its
-// layout uses.
+// Entry points: every shared source file (Prompt Studio's own tools import any of them), the
+// routes it wraps, the proxy and instrumentation, and what its layout uses.
+const srcFiles = walk(join(root, 'src'));
+/** Castcut's own build tooling under src/lib (this script and its tests use them), not app code. */
+const BUILD_TOOLING = new Set(['src/lib/architecture-boundaries.ts', 'src/lib/classic-app.ts']);
 const entries = [
-  ...classicRouteFiles(walk(join(root, 'src')), owned).map(file => file.source),
+  ...srcFiles.filter(
+    file =>
+      /\.(?:ts|tsx|css)$/.test(file) &&
+      !/\.test\.tsx?$/.test(file) &&
+      !file.startsWith('src/app/') &&
+      !BUILD_TOOLING.has(file) &&
+      !isPlayLayer(file, owned)
+  ),
+  ...coreRouteFiles(srcFiles, owned),
   'src/proxy.ts',
   'src/instrumentation.ts',
   'src/app/globals.css',
-  'src/components/RootDocument.tsx',
-  'src/components/PromptStudioFeatures.tsx',
-  'src/lib/root-metadata.ts',
-  'src/lib/brand.ts',
 ];
 
 const files = new Set<string>();
@@ -174,7 +182,7 @@ writeFileSync(
       name: pkgName,
       version,
       description:
-        'Shared core of Castcut and Prompt Studio: ComfyUI pipeline, Gallery, settings, app shell and the classic tools (TypeScript source, for Next transpilePackages).',
+        'Shared core of Castcut and Prompt Studio: ComfyUI pipeline, Gallery, settings, app shell and the shared tools (TypeScript source, for Next transpilePackages).',
       license: castcut.license,
       repository: {
         type: 'git',

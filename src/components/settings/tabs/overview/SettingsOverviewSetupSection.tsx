@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 import Link from 'next/link';
 import { useState } from 'react';
 import AppSlot from '@/components/AppSlot';
@@ -153,15 +154,17 @@ export function SettingsOverviewSetupSection({
         ) : null}
         {/* Film's own checks (pose, face, cut, still review…) — moved here from the ComfyUI tab's
             "First run" panel, which repeated this card's Heal & ready. */}
-        <details className="mt-3" data-testid="setup-film-checks">
-          <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-            Film checks
-          </summary>
-          <AppSlot
-            name="settings.firstRunChecks"
-            refreshKey={`${health?.comfyui?.ok === true}:${healBusy ? 1 : 0}`}
-          />
-        </details>
+        {APP_HAS_PLAY ? (
+          <details className="mt-3" data-testid="setup-film-checks">
+            <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+              Film checks
+            </summary>
+            <AppSlot
+              name="settings.firstRunChecks"
+              refreshKey={`${health?.comfyui?.ok === true}:${healBusy ? 1 : 0}`}
+            />
+          </details>
+        ) : null}
       </div>
 
       <div className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[color-mix(in_oklab,var(--surface)_88%,transparent)] p-4">

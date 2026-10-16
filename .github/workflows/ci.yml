@@ -20,9 +20,9 @@ jobs:
       - run: npm run build
       - run: npm run size
 
-  # The classic Prompt Studio app (apps/prompt-studio): Castcut's shared code without Play. Its
-  # type-check catches shared code leaning on Play's declaration-merged fields.
-  classic:
+  # The core package the Prompt Studio repo installs: packing fails if shared code reaches Play,
+  # and its stand-alone type-check catches shared code leaning on Play's declaration-merged fields.
+  core:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -31,9 +31,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run build:classic
-      # The core package the standalone Prompt Studio repo installs (fails if it reaches Play).
-      - run: npm run pack:core
+      - run: npm run check:core
 
   e2e:
     runs-on: ubuntu-latest
@@ -64,12 +62,6 @@ jobs:
           PROMPT_AUTH_ENABLED: 'false'
           NEXT_PUBLIC_PLAYWRIGHT: '1'
       - run: npm run test:e2e
-        env:
-          CI: true
-          PROMPT_AUTH_ENABLED: 'false'
-          NEXT_PUBLIC_PLAYWRIGHT: '1'
-      # Prompt Studio's own pages (src/studio-app, @classic tests) against the classic app.
-      - run: npm run test:e2e:classic
         env:
           CI: true
           PROMPT_AUTH_ENABLED: 'false'

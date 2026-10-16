@@ -26,8 +26,8 @@ const PLAY_ROUTE_PREFIXES = [
 ];
 
 /**
- * Prompt Studio's pages (src/studio-app): Castcut does not serve them. "/" here is Generate; in
- * Castcut "/" is a redirect to Film. classic-app.test.ts keeps this list in step with the folder.
+ * Prompt Studio's pages (its repo's src/studio-app): Castcut does not serve them. "/" there is
+ * Generate; in Castcut "/" is a redirect to Film. Keep in step when Prompt Studio adds a page.
  */
 export const STUDIO_ONLY_ROUTES = [
   '/',

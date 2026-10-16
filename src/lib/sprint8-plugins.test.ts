@@ -16,10 +16,6 @@ import {
   normalizeHookCfg,
   normalizeHookDenoise,
 } from "./plugin-queue-hooks";
-import {
-  isPluginIframeHostMessage,
-  PLUGIN_IFRAME_HOST_CHANNEL,
-} from "./plugin-iframe-host";
 
 describe("sprint8 plugin runtime", () => {
   it("normalizes a valid manifest", () => {
@@ -148,32 +144,5 @@ describe("sprint8 plugin runtime", () => {
   it("loads manifest hooks by lifecycle event", () => {
     const hooks = loadManifestPluginHooksForEvent("prompt-generated");
     assert.ok(Array.isArray(hooks));
-  });
-
-  it("accepts plugin:queue and plugin:apply-prompt host messages", () => {
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: "plugin:queue",
-        prompt: "a cat",
-      }),
-      true,
-    );
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: "plugin:apply-prompt",
-        prompt: "a dog",
-        negativePrompt: "blurry",
-      }),
-      true,
-    );
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: "plugin:unknown",
-      }),
-      false,
-    );
   });
 });

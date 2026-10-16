@@ -1574,21 +1574,6 @@ test('look pack deep link stages Fitting from=look handoff', async ({ page }) =>
   await expect(page.getByTestId('fitting-kit-strip')).toBeVisible();
 });
 
-test('plugins page separates runtime plugins from bookmarks', { tag: '@classic' }, async ({ page }) => {
-  await gotoStable(page, '/plugins');
-  await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Plugins$/i })).toBeVisible({
-    timeout: 30_000,
-  });
-  await expect(page.getByRole('heading', { name: /^Runtime plugins$/i })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /^Sidebar bookmarks$/i })).toBeVisible();
-  const advanced = page.locator('summary', { hasText: /Advanced: manage bookmarks/i });
-  await expect(advanced).toBeVisible();
-  await advanced.click();
-  await expect(page.getByRole('heading', { name: /Add custom bookmark/i })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /Custom bookmarks \(JSON\)/i })).toBeVisible();
-});
-
 test('play campaign continue CTA appears when campaign state exists', async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem(

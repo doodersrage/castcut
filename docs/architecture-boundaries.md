@@ -46,9 +46,8 @@ Regenerating the baseline is for removals only, never to admit a new crossing. T
    - home, nav, onboarding and mobile shell: they take their Play entries from a registration list instead of importing screens;
    - type-only imports: shared types move to a shared types module.
 3. **Split the shell (done 2026-10-09).** `AppShell` names no feature: the root layout passes Castcut's Film kiosk in (`kiosk={{ workspace, header, contentClassName }}`), and Play's watchers, slots and bundle hoists load from `PlayFeatures`. The classic app's layout renders `AppShell` without a kiosk and without `PlayFeatures`.
-4. **Packages.** npm workspaces: `packages/comfy-core` (no React), `packages/app-kit`, `apps/castcut`, `apps/prompt-studio`.
-   - **4a (done 2026-10-09): the classic app runs.** `apps/prompt-studio` is a second Next app on the same shared code, before any files move (below).
-5. **Classic gets its own repo**, depending on the published packages, or both apps stay in the monorepo on separate release tracks. Repository name and package visibility to be confirmed first.
+4. **Packages (done 2026-10-09).** The shared code is published as `prompt-studio-core`; the classic app ran in this repo (`apps/prompt-studio`) until step 5.
+5. **Prompt Studio owns its tools (done 2026-10-16).** Its own pages and the code only they use moved to its repository (below); this repo keeps Castcut and the shared code.
 
 ### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
 
@@ -76,37 +75,15 @@ Clip assembly is shared: `lib/video-assemble.ts` (encode in the browser or on th
 
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.
 
-## The classic app (apps/prompt-studio)
+## Prompt Studio (github.com/doodersrage/prompt-studio)
 
-Prompt Studio, the classic tools without Play, built from the same `src/`:
+Prompt Studio, the classic tools without Play, is its own repository and app. Since 2026-10-16 it owns the code only it uses; this repo keeps Castcut and the shared code, and publishes the shared code as the npm package `prompt-studio-core`.
 
-- **Routes:** every page and API route outside the Play layer gets a generated wrapper in `apps/prompt-studio/src/app` that re-exports Castcut's, with its segment config (`runtime`, `maxDuration`, …) copied literally, because Next reads it statically. `npm run gen:classic` writes them; `classic-app.test.ts` fails when they are stale or wrap a Play route. Play routes are not there (404).
-- **Own files:** `layout.tsx` (the shared `RootDocument`, without `PlayFeatures` and the Film kiosk), `globals.css` (imports Castcut's and points Tailwind at `src/`), `next.config.ts` (Castcut's base config from `next.config.base.cjs`, the repository as Turbopack root, `NEXT_PUBLIC_APP_PROFILE=classic`), `tsconfig.json`, `public` → `../../public`.
-- **App profile** (`lib/app-profile.ts`): `APP_HAS_PLAY` is false in the classic build. It sets the name (Prompt Studio), drops the Film workspace and nav group, and makes Studio the first-run workspace.
-- **Type-check:** the classic build type-checks shared code without Play's declaration merging, so shared code that reads Play's settings or Cast fields fails there. CI runs `npm run build:classic`.
-- **Run:** `npm run dev:classic` / `npm run build:classic` / `npm run start:classic` (port 47833). The scripts run from `apps/prompt-studio`: Next compiles its config to CommonJS and resolves the base config from the working directory.
-- **Data:** the same server data layout (`PROMPT_DATA_DIR`); point the two apps at separate data folders unless they should share a gallery and Cast.
-
-Not yet: Castcut wording in shared copy (Settings tiles, first-run goal text), and Play-only admin feature toggles listed in the classic app.
-
-## The standalone repo (github.com/doodersrage/prompt-studio)
-
-Live since 2026-10-09: `prompt-studio-core@2.3.5` on npm (public, MIT), repo public with CI green. npm accepts a publish as staged first (202, a `0.0.0-stage` placeholder) and makes the version available a few minutes later.
-
-The classic app gets its own repository, which depends on the shared code as an npm package:
-
-- **Core package** (`npm run pack:core` → `packages/prompt-studio-core`, gitignored): every `src/` file the classic app reaches from its routes and layout (about 1,700), with `@/` imports rewritten to relative paths, plus `next.config.base.cjs`. TypeScript source; the app compiles it with `transpilePackages`. Its dependencies are the packages those files import; `next`, `react`, `react-dom` and `sharp` are peers, installed once by the app. The pack fails if the classic app reaches a Play file. Castcut's `src/` stays the one source; a release is `npm run pack:core -- --version x.y.z` then `npm publish packages/prompt-studio-core`.
-- **The repo** (`npm run export:classic -- <dir>`): route wrappers importing from `prompt-studio-core/src/…`, its own layout, styles (Tailwind scans the package), Next/TS/PostCSS config, `public/` without Outfit's wardrobe thumbnails, README, CI. Re-run after a core release to bring over new or removed routes; hand-written files (README) are kept.
-- **Updates:** the package ships `prompt-studio-sync-routes` (its `bin/`, the same wrapper code as `gen:classic`, from `scripts/classic-wrappers.mjs`) and the Castcut node pack file. Prompt Studio's daily `core-update.yml` installs a newer core, runs `npm run sync-routes`, builds, and opens a `core-<version>` PR; merging it is the whole update. A release is: `npm run pack:core -- --version x.y.z`, then `npm publish` from `packages/prompt-studio-core` (needs your npm 2FA). Run `export:classic` only when the repo's own files change (layout, config, workflows, README); it keeps the repo's core version unless `--core-version` is given.
-- **Not in the package:** the optional Diffusers engine (its own repo, castcut-diffusers) and Play.
+- **What lives there:** `src/studio-app/` (its pages and their API routes: Generate, Prompt Editor, Image → Prompt, Variations, Outpaint, ControlNet, Format, Lint, Negative, Topics, Audio, Mesh, Logo, Fantasy, Pet, Background, Studio, the workflow editor, Plugins, and `/api/experiments`, `/api/generate/stream`, `/api/image-prompt/multi`, `/api/prompt/merge`, `/api/style-transplant`), the components, hooks and lib modules only those use (they import the shared code as `prompt-studio-core/src/…`), `PromptStudioFeatures` (plugin runtime, adult generator plugin) for its layout, their unit tests and its Playwright e2e tests.
+- **The core package** (`npm run pack:core -- --version x.y.z` → `packages/prompt-studio-core`, gitignored): every `src/` file outside the Play layer (Prompt Studio's code may import any shared module), with `@/` imports rewritten to relative paths, plus `next.config.base.cjs`, `prompt-studio-sync-routes` and the Castcut node pack file. Its dependencies are the packages those files import; `next`, `react`, `react-dom` and `sharp` are peers. Packing fails if shared code reaches Play. Publish with `npm publish` from `packages/prompt-studio-core` (needs the npm 2FA code).
+- **CI here:** the `core` job runs `npm run check:core` — pack, then type-check the package on its own (`scripts/check-core.mjs`), so shared code that leans on Play's declaration-merged settings or Cast fields fails here, not first in Prompt Studio.
+- **Routes:** `prompt-studio-sync-routes` (`scripts/core-sync-routes.mjs` with `scripts/classic-wrappers.mjs`) writes Prompt Studio's `src/app` wrappers: the core's routes outside Play (`coreRouteFiles`, `lib/classic-app.ts`), and its own `src/studio-app` pages, which win at the same route (its `/` is Generate; Castcut's redirects to Film).
+- **Updates:** Prompt Studio's daily `core-update.yml` installs a newer core, regenerates the routes, type-checks, runs its unit tests and builds, then opens a `core-<version>` PR. A shared change that breaks Prompt Studio shows up there (or in `check:core` here, for type errors).
+- **Links in the shared code:** `appHasRoute` (app-profile) knows each app's pages; `STUDIO_ONLY_ROUTES` lists Prompt Studio's, so nav, palette, search and Gallery handoffs hide them in Castcut. Keep it in step when Prompt Studio adds or removes a page.
+- **App profile** (`lib/app-profile.ts`): `APP_HAS_PLAY` is false in Prompt Studio's build (`NEXT_PUBLIC_APP_PROFILE=classic`): its name, no Film workspace or nav group, Studio as the first-run workspace, the classic engine list in Settings.
 - **Local install note:** on a machine with a system libvips, `sharp`'s install script builds from source and fails; install with `SHARP_IGNORE_GLOBAL_LIBVIPS=1`.
-
-## Castcut without the classic tools (2026-10-09)
-
-Prompt Studio's own pages — Generate, Prompt Editor, Image → Prompt, Variations, Outpaint, ControlNet, Format, Lint, Negative, Topics, Audio, Mesh, Logo, Fantasy, Pet, Background, Studio, the workflow editor and Plugins — live in `src/studio-app/`, which Next does not route, so Castcut does not serve them. Castcut keeps the classic tools its film loop uses (Video, Compose, Refine, Inpaint) and the Dashboard; its `"/"` redirects to Film.
-
-- **Routes:** `gen:classic` and the package's `prompt-studio-sync-routes` pair `src/app` with `src/studio-app` (`scripts/classic-wrappers.mjs` `pairClassicRouteFiles`); a studio-app file wins at the same route, so Prompt Studio's `"/"` is Generate.
-- **Links:** `appHasRoute` (app-profile) knows each app's pages (`STUDIO_ONLY_ROUTES`, kept in step with the folder by `classic-app.test.ts`). Nav, palette, global search, Gallery handoffs and the remaining links (`AppRouteLink`) hide what the app does not have; a Gallery entry from a Prompt Studio tool opens the Gallery in Castcut.
-- **Tests:** e2e tests of Prompt Studio's pages carry `@classic` and run against the classic app (`npm run test:e2e:classic`, `E2E_APP=classic`); the default run excludes them. CI runs both.
-- **Prompt Studio-only features (step 3):** `PromptStudioFeatures` (plugin runtime, adult generator plugin) is mounted by Prompt Studio's layouts only; the scheduled batch and scheduled campaign are hidden in Castcut; `featureInApp` limits the admin feature picker to the app's pages. Tests of those features carry `@classic`.
-

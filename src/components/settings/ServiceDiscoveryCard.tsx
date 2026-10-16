@@ -1,5 +1,6 @@
 'use client';
 
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
@@ -128,7 +129,7 @@ export default function ServiceDiscoveryCard({
                   <span>
                     Found {item.label} at <code>{item.baseUrl}</code> ({item.models}{' '}
                     {item.models === 1 ? 'model' : 'models'}). Put this in <code>.env.local</code>{' '}
-                    and restart Castcut:
+                    and restart {PRODUCT_NAME}:
                   </span>
                   <span className="flex flex-wrap items-center gap-2">
                     <code className="rounded bg-[var(--bg-base)] px-1.5 py-0.5">{line}</code>

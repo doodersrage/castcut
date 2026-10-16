@@ -1,4 +1,4 @@
-// Castcut's Next config, shared with the classic Prompt Studio app (apps/prompt-studio/next.config.ts).
+// Castcut's Next config, shared with Prompt Studio through prompt-studio-core (its next.config.ts).
 // Plain CommonJS so both apps' next.config.ts can require it: Next compiles a TypeScript config to
 // CommonJS, which cannot require another .ts file.
 

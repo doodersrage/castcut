@@ -3,8 +3,10 @@
 /**
  * `prompt-studio-sync-routes` (shipped in prompt-studio-core as bin/sync-routes.mjs): regenerates
  * the app's route wrappers from the installed core, so a core update brings new or removed pages
- * and API routes with it. Run from the app's root (where package.json is). Also copies the
- * Castcut node pack file Settings → ComfyUI installs. docs/architecture-boundaries.md.
+ * and API routes with it. The app's own pages in its src/studio-app win at the same route (they
+ * are wrapped from there, through its `@/` alias). Run from the app's root (where package.json
+ * is). Also copies the Castcut node pack file Settings → ComfyUI installs.
+ * docs/architecture-boundaries.md.
  */
 import {
   cpSync,
@@ -39,17 +41,18 @@ function walk(dir) {
   });
 }
 
-// Every route file the core ships — src/app, and Prompt Studio's own pages in src/studio-app,
-// which win at the same route — plus the proxy and instrumentation (the app's own layout and
-// styles stay as written).
-/** @param {string} dir */
-const routeFiles = dir =>
-  existsSync(join(pkgDir, dir))
-    ? walk(join(pkgDir, dir))
-        .map(path => relative(pkgDir, path).split(sep).join('/'))
+// Every route file the core ships (src/app), and the app's own pages in its src/studio-app, which
+// win at the same route — plus the proxy and instrumentation (the app's own layout and styles stay
+// as written).
+/** @param {string} base @param {string} dir */
+const routeFiles = (base, dir) =>
+  existsSync(join(base, dir))
+    ? walk(join(base, dir))
+        .map(path => relative(base, path).split(sep).join('/'))
         .filter(path => isRouteSourceFile(path) && path !== 'src/app/layout.tsx')
     : [];
-const files = pairClassicRouteFiles(routeFiles('src/app'), routeFiles('src/studio-app'));
+const own = new Set(routeFiles(appDir, 'src/studio-app'));
+const files = pairClassicRouteFiles(routeFiles(pkgDir, 'src/app'), [...own]);
 for (const extra of ['src/proxy.ts', 'src/instrumentation.ts']) {
   if (existsSync(join(pkgDir, extra))) files.push({ source: extra, target: extra });
 }
@@ -66,9 +69,14 @@ if (existsSync(join(appDir, 'src'))) {
 for (const { source, target } of files) {
   const path = join(appDir, target);
   mkdirSync(dirname(path), { recursive: true });
+  const local = own.has(source);
   writeFileSync(
     path,
-    wrapperSource(source, readFileSync(join(pkgDir, source), 'utf8'), `${pkgName}/src/`)
+    wrapperSource(
+      source,
+      readFileSync(join(local ? appDir : pkgDir, source), 'utf8'),
+      local ? '@/' : `${pkgName}/src/`
+    )
   );
 }
 const nodes = join(pkgDir, 'comfyui-nodes/castcut/castcut_nodes.py');

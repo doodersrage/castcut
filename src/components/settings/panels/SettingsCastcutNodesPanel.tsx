@@ -1,5 +1,6 @@
 'use client';
 
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
@@ -269,7 +270,7 @@ export default function SettingsCastcutNodesPanel({
     <ToolSection
       id="settings-comfyui-castcut-nodes"
       title="Castcut nodes"
-      description="Optional ComfyUI node pack that runs Castcut's checks inside the job."
+      description={`Optional ComfyUI node pack that runs ${PRODUCT_NAME}'s checks inside the job.`}
       data-testid="castcut-nodes-card"
     >
       <div className="space-y-4">

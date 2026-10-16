@@ -1,5 +1,6 @@
 'use client';
 
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { DiffusersEngineAvailability } from '@/lib/diffusers-engine-install';
@@ -74,7 +75,7 @@ export default function DiffusersEngineInstall({
       <p className="text-sm text-[var(--text-primary)]">Diffusers engine (optional)</p>
       <p className="text-xs text-[var(--text-muted)]">
         A second stills engine that runs Hugging Face Diffusers instead of ComfyUI. It isn&rsquo;t
-        part of Castcut — install it here if you want it (Python 3.10+ and a CUDA GPU on this
+        part of {PRODUCT_NAME} — install it here if you want it (Python 3.10+ and a CUDA GPU on this
         server, about 6 GB), or run it on another machine from{' '}
         <a
           className="ui-text-link"

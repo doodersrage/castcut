@@ -5,6 +5,7 @@
  * models below; LM Studio fetches the model and its vision projector (mmproj).
  */
 
+import { PRODUCT_NAME } from '@/lib/brand';
 import { getLlmConfig } from '@/lib/llm-client';
 import { clearVisionModelCache } from '@/lib/vision-model-auto';
 
@@ -26,7 +27,7 @@ export const VISION_MODEL_CHOICES: readonly VisionModelChoice[] = [
     model: 'https://huggingface.co/GitMylo/nsfwvision-qwen3-vl-8b-v3-gguf',
     quantization: 'Q4_K_M',
     sizeGb: 6.2,
-    note: "What Castcut's checks were tuned on; reads adult stills too.",
+    note: `What ${PRODUCT_NAME}'s checks were tuned on; reads adult stills too.`,
   },
   {
     id: 'qwen3-vl-8b-instruct',

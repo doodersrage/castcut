@@ -15,7 +15,6 @@ import {
   verifyPluginInstallSignature,
 } from './server-plugin-registry';
 import { extractPluginZip, normalizeZipPath, pickPluginManifestFromZip } from './plugin-zip';
-import { isPluginIframeHostMessage, PLUGIN_IFRAME_HOST_CHANNEL } from './plugin-iframe-host';
 import { normalizePluginManifest } from './plugin-manifest';
 
 function buildStoreZip(files: Array<{ path: string; data: Buffer }>): Buffer {
@@ -177,41 +176,6 @@ describe('phase6 server plugins', () => {
     );
     assert.equal(allowed.payload.workflow?.['1'] && (allowed.payload.workflow['1'] as { inputs: { text: string } }).inputs.text, 'dog');
     assert.equal(allowed.payload.denoise, 0.8);
-  });
-
-  it('accepts richer iframe host inbound types', () => {
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: 'plugin:apply-lora-stack',
-        loraIds: ['a'],
-      }),
-      true
-    );
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: 'plugin:patch-workflow-tokens',
-        tokens: [{ token: 'X', value: '1' }],
-      }),
-      true
-    );
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: 'plugin:write-gallery-tag',
-        tag: 'demo',
-      }),
-      true
-    );
-    assert.equal(
-      isPluginIframeHostMessage({
-        channel: PLUGIN_IFRAME_HOST_CHANNEL,
-        type: 'plugin:apply-engine',
-        engine: 'comfyui',
-      }),
-      true
-    );
   });
 
   it('normalizes queueHook privileges on manifests', () => {
