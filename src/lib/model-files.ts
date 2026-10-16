@@ -31,6 +31,11 @@ export type ModelFileRow = {
 
 export type ModelFilesSummary = {
   root: string | null;
+  /**
+   * Where the list came from: the models folder on disk (COMFYUI_ROOT), or ComfyUI's own API
+   * when this server can't see that folder (ComfyUI in another container) — read-only then.
+   */
+  source?: 'disk' | 'comfyui';
   files: ModelFileRow[];
   freeBytes: number | null;
   totalBytes: number | null;

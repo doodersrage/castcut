@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
-import { deleteModelFile, listModelFilesOnDisk, ModelFileDeleteError } from './model-files-server';
+import {
+  deleteModelFile,
+  listModelFilesFromComfy,
+  listModelFilesOnDisk,
+  ModelFileDeleteError,
+} from './model-files-server';
 
 /** Minimal PNG carrying a ComfyUI `prompt` tEXt chunk (the parser skips CRCs). */
 function pngWithGraph(graph: unknown): Buffer {
@@ -89,5 +95,51 @@ describe('model files on disk', () => {
     assert.equal(link.freedBytes, 0);
     assert.equal(fs.existsSync(path.join(root, 'models/checkpoints/target.safetensors')), true);
     assert.equal(fs.existsSync(path.join(root, 'models/checkpoints/idle.safetensors')), false);
+  });
+});
+
+describe('model files through the ComfyUI API (no models folder here)', () => {
+  let server: http.Server;
+  let base = '';
+  before(async () => {
+    server = http.createServer((req, res) => {
+      const send = (status: number, body: unknown) => {
+        res.writeHead(status, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(body));
+      };
+      if (req.url === '/models') return send(200, ['loras', 'checkpoints', 'configs', 'lora_gguf']);
+      // A custom node's folder over the same directory: the same file again.
+      if (req.url === '/api/experiment/models/lora_gguf') {
+        return send(200, [{ name: 'sub/look.safetensors', modified: 1700000000.5, size: 295146208 }]);
+      }
+      if (req.url === '/api/experiment/models/loras') {
+        return send(200, [
+          { name: 'sub\\look.safetensors', pathIndex: 0, modified: 1700000000.5, size: 295146208 },
+          { name: 'notes.txt', pathIndex: 0, modified: 1, size: 10 },
+        ]);
+      }
+      // An older ComfyUI: names only.
+      if (req.url === '/api/experiment/models/checkpoints') return send(404, {});
+      if (req.url === '/models/checkpoints') return send(200, ['base.ckpt']);
+      return send(404, {});
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  });
+  after(() => server.close());
+
+  it('lists weight files with sizes when ComfyUI gives them, names alone when not', async () => {
+    const rows = await listModelFilesFromComfy(base);
+    assert.deepEqual(
+      rows?.map(row => [row.path, row.bytes, row.modifiedAt]),
+      [
+        ['loras/sub/look.safetensors', 295146208, 1700000000500],
+        ['checkpoints/base.ckpt', 0, 0],
+      ]
+    );
+  });
+
+  it('is null when ComfyUI is not there', async () => {
+    assert.equal(await listModelFilesFromComfy('http://127.0.0.1:9'), null);
   });
 });

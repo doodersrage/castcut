@@ -250,9 +250,67 @@ export async function buildModelUsageIndex(comfyBaseUrl: string): Promise<{
   return { usage, scannedOutputs: scan.count, scannedSinceAt: scan.oldestAt, historyItems };
 }
 
+type ComfyModelEntry = { name?: unknown; size?: unknown; modified?: unknown };
+
+/** One row per weight file in a ComfyUI model folder listing, sizes when it gives them. */
+export function comfyModelRows(folder: string, entries: unknown[]): ModelFileRow[] {
+  const rows: ModelFileRow[] = [];
+  for (const entry of entries) {
+    const item: ComfyModelEntry =
+      typeof entry === 'string' ? { name: entry } : ((entry ?? {}) as ComfyModelEntry);
+    const name = typeof item.name === 'string' ? item.name.replace(/\\/g, '/').trim() : '';
+    if (!name || !isModelFileName(name)) continue;
+    rows.push({
+      path: `${folder}/${name}`,
+      folder,
+      name,
+      bytes: typeof item.size === 'number' && item.size > 0 ? item.size : 0,
+      modifiedAt: typeof item.modified === 'number' ? Math.round(item.modified * 1000) : 0,
+    });
+  }
+  return rows;
+}
+
+/**
+ * The model files ComfyUI itself lists — for a server that can't see its models folder.
+ * `/api/experiment/models/<folder>` gives sizes; older ComfyUI only names them (`/models/<folder>`).
+ */
+export async function listModelFilesFromComfy(
+  comfyBaseUrl: string
+): Promise<ModelFileRow[] | null> {
+  const folders = await comfyJson<string[]>(comfyBaseUrl, '/models');
+  if (!Array.isArray(folders)) return null;
+  const seen = new Set<string>();
+  const lists = await Promise.all(
+    folders
+      .filter(folder => typeof folder === 'string' && !/^(configs|custom_nodes)$/.test(folder))
+      .map(async folder => {
+        const encoded = encodeURIComponent(folder);
+        const detailed = await comfyJson<unknown[]>(
+          comfyBaseUrl,
+          `/api/experiment/models/${encoded}`
+        );
+        const entries = Array.isArray(detailed)
+          ? detailed
+          : await comfyJson<unknown[]>(comfyBaseUrl, `/models/${encoded}`);
+        return comfyModelRows(folder, Array.isArray(entries) ? entries : []);
+      })
+  );
+  // A folder a custom node adds over another's directory (GGUF's unet_gguf / clip_gguf) lists the
+  // same files again: same name, size and modified time is one file, kept under its first folder.
+  return lists.flat().filter(row => {
+    const key = row.bytes
+      ? `${modelFileKey(row.name)}|${row.bytes}|${row.modifiedAt}`
+      : `path:${row.path}`;
+    return !seen.has(key) && Boolean(seen.add(key));
+  });
+}
+
 export async function listModelFilesWithUsage(comfyBaseUrl: string): Promise<ModelFilesSummary> {
-  const { root, files } = listModelFilesOnDisk();
-  if (!root) {
+  const disk = listModelFilesOnDisk();
+  const root = disk.root;
+  const files = root ? disk.files : await listModelFilesFromComfy(comfyBaseUrl);
+  if (!files) {
     return {
       root: null,
       files: [],
@@ -270,6 +328,17 @@ export async function listModelFilesWithUsage(comfyBaseUrl: string): Promise<Mod
       file.renders = hit.renders;
     }
   }
+  if (!root) {
+    return {
+      root: null,
+      source: 'comfyui',
+      files,
+      freeBytes: null,
+      totalBytes: null,
+      scannedOutputs,
+      scannedSinceAt,
+    };
+  }
   let freeBytes: number | null = null;
   let totalBytes: number | null = null;
   try {
@@ -279,7 +348,7 @@ export async function listModelFilesWithUsage(comfyBaseUrl: string): Promise<Mod
   } catch {
     // unsupported filesystem
   }
-  return { root, files, freeBytes, totalBytes, scannedOutputs, scannedSinceAt };
+  return { root, source: 'disk', files, freeBytes, totalBytes, scannedOutputs, scannedSinceAt };
 }
 
 // ── Delete ─────────────────────────────────────────────────────────────────────────────────

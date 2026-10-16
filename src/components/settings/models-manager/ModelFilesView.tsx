@@ -59,9 +59,11 @@ type RowProps = {
   selected: boolean;
   onSelect: (selected: boolean) => void;
   onDelete: (file: ModelFileRow, confirmName: string) => Promise<void>;
+  /** Listed through ComfyUI's API: nothing here can delete it. */
+  readOnly?: boolean;
 };
 
-function ModelFileRowView({ file, uses, selected, onSelect, onDelete }: RowProps) {
+function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }: RowProps) {
   const [confirming, setConfirming] = useState(false);
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,14 +74,16 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete }: RowProps
   return (
     <li className="py-2" data-testid="model-file-row" data-path={file.path}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <input
-          type="checkbox"
-          aria-label={`Select ${baseName}`}
-          checked={selected}
-          disabled={Boolean(block)}
-          onChange={event => onSelect(event.target.checked)}
-          className="h-4 w-4 accent-[var(--accent)] disabled:opacity-30"
-        />
+        {readOnly ? null : (
+          <input
+            type="checkbox"
+            aria-label={`Select ${baseName}`}
+            checked={selected}
+            disabled={Boolean(block)}
+            onChange={event => onSelect(event.target.checked)}
+            className="h-4 w-4 accent-[var(--accent)] disabled:opacity-30"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate font-mono text-xs text-[var(--text-primary)]" title={file.path}>
             {file.name}
@@ -108,25 +112,29 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete }: RowProps
           ) : null}
         </div>
         <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums text-[var(--text-secondary)]">
-          {file.linkTarget ? 'link' : formatBytes(file.bytes)}
+          {file.linkTarget ? 'link' : file.bytes ? formatBytes(file.bytes) : '—'}
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            setConfirming(value => !value);
-            setTyped('');
-            setError(null);
-          }}
-          disabled={Boolean(block)}
-          title={block ?? `Delete ${baseName} from disk`}
-          data-testid="model-file-delete"
-          className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
-        >
-          Delete
-        </button>
+        {readOnly ? null : (
+          <button
+            type="button"
+            onClick={() => {
+              setConfirming(value => !value);
+              setTyped('');
+              setError(null);
+            }}
+            disabled={Boolean(block)}
+            title={block ?? `Delete ${baseName} from disk`}
+            data-testid="model-file-delete"
+            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
+          >
+            Delete
+          </button>
+        )}
       </div>
-      {block ? <p className="ml-7 text-[10px] text-[var(--text-muted)]">Kept: {block}</p> : null}
-      {confirming ? (
+      {block && !readOnly ? (
+        <p className="ml-7 text-[10px] text-[var(--text-muted)]">Kept: {block}</p>
+      ) : null}
+      {confirming && !readOnly ? (
         <form
           className="ml-7 mt-2 flex flex-wrap items-center gap-2"
           onSubmit={event => {
@@ -290,13 +298,16 @@ export default function ModelFilesView({
   if (error) {
     return <p className="type-caption ui-status-danger">{error}</p>;
   }
-  if (!summary?.root) {
+  const readOnly = !summary?.root;
+  if (!summary?.root && summary?.source !== 'comfyui') {
     return (
       <p className="type-caption text-[var(--text-muted)]">
-        Set COMFYUI_ROOT on the server to see and manage model files.
+        ComfyUI didn&rsquo;t list its model files. Set COMFYUI_ROOT on the server to read the models
+        folder directly.
       </p>
     );
   }
+  if (!summary) return null;
 
   return (
     <div className="space-y-3" data-testid="model-files-view">
@@ -306,29 +317,35 @@ export default function ModelFilesView({
           value={formatBytes(stats.total)}
           detail={`${files.length} files`}
         />
-        <StatCard
-          label="Free on disk"
-          value={formatBytes(summary.freeBytes)}
-          detail={summary.totalBytes ? `of ${formatBytes(summary.totalBytes)}` : undefined}
-        />
+        {readOnly ? null : (
+          <StatCard
+            label="Free on disk"
+            value={formatBytes(summary.freeBytes)}
+            detail={summary.totalBytes ? `of ${formatBytes(summary.totalBytes)}` : undefined}
+          />
+        )}
         <StatCard
           label={`Not used in ${MODEL_FILE_RECENT_USE_DAYS} days`}
           value={formatBytes(stats.idleBytes)}
           detail={`${stats.idleCount} files`}
         />
-        <StatCard
-          label="Unfinished downloads"
-          value={formatBytes(stats.partialBytes)}
-          detail={`${stats.partialCount} file${stats.partialCount === 1 ? '' : 's'}`}
-        />
+        {readOnly ? null : (
+          <StatCard
+            label="Unfinished downloads"
+            value={formatBytes(stats.partialBytes)}
+            detail={`${stats.partialCount} file${stats.partialCount === 1 ? '' : 's'}`}
+          />
+        )}
       </div>
       <p className="type-caption text-[var(--text-muted)]">
         Last use comes from {summary.scannedOutputs.toLocaleString()} ComfyUI renders
         {summary.scannedSinceAt
           ? ` since ${new Date(summary.scannedSinceAt).toLocaleDateString()}`
           : ''}{' '}
-        plus ComfyUI&rsquo;s history. Files used in the last {MODEL_FILE_RECENT_USE_DAYS} days, in
-        the LoRA library, or mapped in Settings can&rsquo;t be deleted here.
+        plus ComfyUI&rsquo;s history.{' '}
+        {readOnly
+          ? 'Listed through ComfyUI’s API — this server can’t see the models folder, so files can’t be deleted here. Set COMFYUI_ROOT (a mount of ComfyUI’s models folder) to delete.'
+          : `Files used in the last ${MODEL_FILE_RECENT_USE_DAYS} days, in the LoRA library, or mapped in Settings can’t be deleted here.`}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -370,19 +387,21 @@ export default function ModelFilesView({
             ['partial', `Unfinished downloads (${stats.partialCount})`],
             ['links', 'Links'],
           ] as [Filter, string][]
-        ).map(([value, label]) => (
-          <ChipButton
-            key={value}
-            active={filter === value}
-            onClick={() => setFilter(value)}
-            className="px-2 text-[11px]"
-          >
-            {label}
-          </ChipButton>
-        ))}
+        )
+          .filter(([value]) => !readOnly || value === 'all' || value === 'unused')
+          .map(([value, label]) => (
+            <ChipButton
+              key={value}
+              active={filter === value}
+              onClick={() => setFilter(value)}
+              className="px-2 text-[11px]"
+            >
+              {label}
+            </ChipButton>
+          ))}
       </div>
 
-      {selectedFiles.length > 0 ? (
+      {selectedFiles.length > 0 && !readOnly ? (
         <form
           className="ui-surface-inset flex flex-wrap items-center gap-2"
           data-testid="model-files-bulk"
@@ -472,6 +491,7 @@ export default function ModelFilesView({
                         })
                       }
                       onDelete={deleteOne}
+                      readOnly={readOnly}
                     />
                   ))}
                 </ul>
