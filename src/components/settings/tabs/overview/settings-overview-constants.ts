@@ -1,6 +1,7 @@
 import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
 import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
 import { settingsTabHref } from '@/lib/settings-nav';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 
 export const ESSENTIAL_TASKS: Array<{
   title: string;
@@ -9,8 +10,10 @@ export const ESSENTIAL_TASKS: Array<{
   href?: string;
 }> = [
   {
-    title: 'Inference engine',
-    description: 'Usually ComfyUI; cloud engines only if you need them.',
+    title: APP_HAS_PLAY ? 'Generate & Video engine' : 'Inference engine',
+    description: APP_HAS_PLAY
+      ? 'Films always use ComfyUI; this is for the tools under More.'
+      : 'Usually ComfyUI; cloud engines only if you need them.',
     section: 'inference-engine',
   },
   {

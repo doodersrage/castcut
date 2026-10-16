@@ -43,7 +43,6 @@ import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import UploadButton from '@/components/ui/UploadButton';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import SharedToolControls from '@/components/SharedToolControls';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
@@ -597,7 +596,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
         </p>
       </div>
 
-      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

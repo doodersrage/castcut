@@ -21,7 +21,6 @@ import StoryStartOverDialog from '@/components/roleplay/StoryStartOverDialog';
 import { storyBeatAwaitsRewrite } from '@/hooks/roleplay/story-beat-edit';
 import { useStoryScenePoses } from '@/hooks/roleplay/useStoryScenePoses';
 import { useStoryStartOver } from '@/hooks/roleplay/useStoryStartOver';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
@@ -266,7 +265,6 @@ export default function RoleplayToolSections({
       // Reel first needs the width: the Engine opens from the header chip as a sheet.
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.roleplay} />
-      <PlayFilmEngineBanner />
       <PlayFilmFunnelChrome />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}

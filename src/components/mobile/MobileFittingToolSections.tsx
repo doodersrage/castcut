@@ -8,7 +8,6 @@ import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import Link from 'next/link';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, TextArea } from '@/components/ui/Field';
 import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
@@ -271,7 +270,6 @@ export default function MobileFittingToolSections(vm: ViewModel) {
         </p>
       </div>
 
-      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

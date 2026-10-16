@@ -88,7 +88,6 @@ import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import {
   hasCompletedFirstFilm,
@@ -638,7 +637,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         sidebarTitle={leanChrome ? false : undefined}
       >
         <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.day} />
-        <PlayFilmEngineBanner />
         <PlayFilmFunnelChrome />
         <PlaySoftAdvanceBanner
           key={softAdvance?.nonce ?? 'idle'}

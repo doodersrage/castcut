@@ -24,7 +24,6 @@ import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSecti
 import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
@@ -283,7 +282,6 @@ export default function MobilePlayToolSections({ description: _description, ...v
         </p>
       </div>
 
-      <PlayFilmEngineBanner />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
         target={softAdvance}

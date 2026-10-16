@@ -4208,14 +4208,17 @@ test('play habit nudge appears after a day-old cut', async ({ page }) => {
   await expect(page.getByTestId('play-habit-nudge-open')).toBeVisible();
 });
 
-test('play film engine banner shows for non-Comfy engines', async ({ page }) => {
+test('a cloud engine for Generate & Video leaves Film alone (no engine banner)', async ({ page }) => {
+  // Film stills always queue on ComfyUI; the engine setting is only Generate / Video / Compose's.
   await seedSettingsCacheOnNextLoad(page, {
     shared: { inferenceEngine: 'fal' },
   });
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('play-film-engine-banner')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('play-film-engine-switch')).toBeVisible();
+  await expect(page.locator('[data-testid^="play-campaign"]').first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('play-film-engine-banner')).toHaveCount(0);
 });
 
 test('story without Cast shows Open Film gate', async ({ page }) => {

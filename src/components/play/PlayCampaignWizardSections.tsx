@@ -13,7 +13,6 @@ import PlayCampaignStepsSection from '@/components/play/PlayCampaignStepsSection
 import PlayCampaignActionsSection from '@/components/play/PlayCampaignActionsSection';
 import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import PlayPersistenceTriad from '@/components/PlayPersistenceTriad';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import PlayIdentityReadyBanner from '@/components/PlayIdentityReadyBanner';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
@@ -101,7 +100,6 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
       >
         {/* Shell already mounts habit on /m/* — avoid stacking on phone Film. */}
         {!props.mobileStudio ? <PlayHabitNudgeBanner /> : null}
-        <PlayFilmEngineBanner />
         <PlayIdentityReadyBanner />
         {showPersistence ? <PlayPersistenceTriad compact /> : null}
 

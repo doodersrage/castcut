@@ -30,6 +30,7 @@ import {
   type CloudEngineId,
 } from '@/lib/engine/capabilities';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 import DiffusersEngineInstall, {
   useDiffusersEngine,
 } from '@/components/settings/panels/DiffusersEngineInstall';
@@ -52,12 +53,20 @@ export default function SettingsInferenceEnginePanel({
   // An add-on: offered once installed or pointed at (or still picked from before).
   const diffusersEngine = useDiffusersEngine();
   const showDiffusers = activeEngine === 'diffusers' || Boolean(diffusersEngine.state?.available);
+  // Castcut's films render on ComfyUI; the cloud engines only drive Generate / Video / Compose,
+  // so they wait behind a toggle there (the classic app lists them as before).
+  const [showCloud, setShowCloud] = useState(!APP_HAS_PLAY || Boolean(activeCloud));
+  const cloudOptions = showCloud || activeCloud ? CLOUD_ENGINE_OPTIONS : [];
 
   return (
     <ToolSection
       id="settings-comfyui-inference-engine"
-      title="Inference engine"
-      description="ComfyUI is the default generate path. Pick another engine below — only that engine’s keys and models appear."
+      title={APP_HAS_PLAY ? 'Engine for Generate & Video' : 'Inference engine'}
+      description={
+        APP_HAS_PLAY
+          ? 'Film, Day, Outfit and Story always render on ComfyUI. This picks the engine for the tools under More — Generate, Video and Compose.'
+          : 'ComfyUI is the default generate path. Pick another engine below — only that engine’s keys and models appear.'
+      }
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
@@ -117,7 +126,7 @@ export default function SettingsInferenceEnginePanel({
           >
             <option value="comfyui">ComfyUI (primary generate)</option>
             {showDiffusers ? <option value="diffusers">Diffusers (stills only)</option> : null}
-            {CLOUD_ENGINE_OPTIONS.map(option => (
+            {cloudOptions.map(option => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>
@@ -125,6 +134,18 @@ export default function SettingsInferenceEnginePanel({
           </select>
           {diffusersEnsureStatus ? (
             <p className="text-xs text-[var(--text-muted)]">{diffusersEnsureStatus}</p>
+          ) : null}
+          {APP_HAS_PLAY && !activeCloud ? (
+            <label className="type-caption flex cursor-pointer items-center gap-2 pt-1 text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={showCloud}
+                onChange={event => setShowCloud(event.target.checked)}
+                data-testid="inference-engine-show-cloud"
+                className="h-4 w-4 accent-[var(--accent)]"
+              />
+              Show cloud engines (Fal, Replicate, OpenAI, Gemini, Grok, Runway, Luma)
+            </label>
           ) : null}
         </div>
 

@@ -1,3 +1,4 @@
+import { APP_HAS_PLAY } from '@/lib/app-profile';
 export type ComfyUiSettingsSectionId =
   | 'workflow-map'
   | 'model-assets'
@@ -23,7 +24,7 @@ export type ComfyUiSettingsSection = {
 export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
   {
     id: 'inference-engine',
-    label: 'Inference engine',
+    label: APP_HAS_PLAY ? 'Generate & Video engine' : 'Inference engine',
     keywords: [
       'diffusers',
       'engine',

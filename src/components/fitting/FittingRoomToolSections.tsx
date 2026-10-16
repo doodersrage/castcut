@@ -26,7 +26,6 @@ import { FieldError } from '@/components/ui/Field';
 import { CollapsibleSection, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
-import PlayFilmEngineBanner from '@/components/PlayFilmEngineBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { fittingSessionStatusLine } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
@@ -202,7 +201,6 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       // open from the header chip as a sheet.
     >
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.fitting} />
-      <PlayFilmEngineBanner />
       <PlayFilmFunnelChrome />
       <PlaySoftAdvanceBanner
         key={softAdvance?.nonce ?? 'idle'}
