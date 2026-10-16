@@ -19,7 +19,7 @@ import { isCloudEngine } from './engine/capabilities';
 import type { EngineProgressSubscription } from './engine';
 import { dispatchWebhook } from './webhook-settings';
 import { noteScheduledBatchJobComplete } from './scheduled-batch-tracker';
-import { noteJobCompletionEmail } from './job-completion-email';
+import { noteJobCompletionEmail, setJobCompletionEmailActiveCounter } from './job-completion-email';
 import { autoTagGalleryEntry } from './gallery-auto-vision-tags';
 import { inheritedAdultCheck, isGalleryEntryHidden } from './gallery-adult-check';
 import { backfillHistoryGalleryLink } from './prompt-lineage';
@@ -38,6 +38,16 @@ import { attemptGalleryHostFailover } from './oom-retry';
 import { resolveGalleryRenderDurationMs } from './comfyui-render-duration';
 import { forgetPendingGalleryPoll } from './gallery-pending-polls';
 import { resolveGalleryCharacterStamp, resolveGalleryLookStamp } from './gallery-character-stamp';
+
+// The "jobs finished" email waits while any job queued in the last few hours is still pending or
+// rendering, so a batch is one email (job-completion-email.ts).
+const EMAIL_ACTIVE_WINDOW_MS = 3 * 60 * 60 * 1000;
+setJobCompletionEmailActiveCounter(() => {
+  const since = Date.now() - EMAIL_ACTIVE_WINDOW_MS;
+  return loadComfyGallery().filter(
+    entry => (entry.status === 'pending' || entry.status === 'running') && entry.queuedAt >= since
+  ).length;
+});
 
 /** Cap stored workflow graphs so gallery IndexedDB stays bounded. */
 export const MAX_GALLERY_WORKFLOW_CHARS = 400_000;

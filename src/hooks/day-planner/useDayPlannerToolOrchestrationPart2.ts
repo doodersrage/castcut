@@ -1,5 +1,6 @@
 'use client';
 
+import { holdJobCompletionEmail } from '@/lib/job-completion-email';
 import { pronounceForCast } from '@/lib/cast-speech';
 import { previouslyOnShots } from '@/lib/play-series';
 import { widenStillForFilm } from '@/lib/film-widen-client';
@@ -298,6 +299,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     async (options?: { qualityProfile?: 'draft' | 'final' | 'max' }) => {
       setBusy(true);
       setError(null);
+      // One "jobs finished" email for the whole Day, when its last still lands — not one per
+      // still (the queue runs dry between slots while the next one is prepared).
+      const releaseEmail = holdJobCompletionEmail('Your Day', '/day');
       // One shared face crop for the whole Day — prevents per-slot identity float.
       clearDayVacationFaceBreakCache();
       try {
@@ -384,6 +388,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           });
         }
       } finally {
+        releaseEmail();
         setBusy(false);
       }
     },
