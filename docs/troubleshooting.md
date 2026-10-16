@@ -27,6 +27,11 @@ Common failures, where to click, and what to check in Settings or `.env.local`. 
 ??? question "Suggest day / Suggest a line does nothing"
     These need an LLM — **Settings → LLM → Built-in LLM** is the quickest fix.
 
+??? question "Built-in LLM: \"This server's system (musl …) can't run llama.cpp's builds\""
+    You're on the Docker image, which can't run llama.cpp itself. Run llama.cpp's server
+    container next to it and point Castcut at it — step by step in
+    [Built-in LLM in Docker](configuration.md#llm-in-docker).
+
 ---
 
 Jump to: [Common questions](#common-questions) · [Heal & ComfyUI](#heal-comfyui) · [Queue & VRAM](#queue-vram) · [LLM & vision](#llm-vision) · [Auth & email](#auth-email) · [Play funnel](#play-funnel) · [Storage](#storage)

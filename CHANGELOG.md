@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Built-in LLM in Docker, documented.** The Docker image can't run llama.cpp itself, and Settings → LLM said so without saying what to do. [Configuration → Built-in LLM in Docker](https://doodersrage.github.io/castcut/configuration/#llm-in-docker) now walks through it: our compose file's `llm` profile, or a plain `docker run` of llama.cpp's server container next to your own Castcut container, the `.env` lines (`LLM_API_BASE_URL`, `LLM_MODEL` / `LLM_VISION_MODEL=castcut-local`), image tags for NVIDIA, AMD, Intel and CPU, and how to check it. The Settings message links straight to it.
 ## [v2.11.0] - 2026-10-16
 
 - **Cut is easier to find.** Day's *Ready to cut* section sits in the page instead of floating over it as you scroll — no more Hide (a hidden banner took Cut options with it; a Day you hid it on shows it again). Under each film on the Cast page (Film & media → Films), **Re-cut**, **Export for an editor** and **Share for review** are buttons in plain sight instead of behind a collapsed line, and a film cut before 2.6 says why they are missing.

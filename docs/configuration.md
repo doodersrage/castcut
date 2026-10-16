@@ -144,6 +144,76 @@ Inside the container the server always listens on `0.0.0.0`, which the startup c
 
 Settings → LLM → **Built-in LLM** installs llama.cpp's server (a pinned release, Vulkan build on Linux and Windows, Metal on Mac) and one vision-language model into the data folder, and runs it itself: it starts when an LLM call needs it, stops after 15 idle minutes (`LOCAL_LLM_IDLE_MINUTES`) and when ComfyUI runs out of memory, and Settings shows its context (8,192 / 16,384 / 32,768 tokens). The default model, NSFWVision Qwen3-VL 8B, writes Story and reads stills for the checks; when LM Studio already downloaded it, nothing is downloaded. While it is on it takes the place of `LLM_API_BASE_URL` (a hosted provider picked in the browser still wins). Optional: `LOCAL_LLM_PORT` (default 8191), `LOCAL_LLM_GPU_LAYERS` (default all; `0` runs it on the CPU). Not in the Alpine Docker image — use `docker compose --profile llm` there.
 
+### Built-in LLM in Docker {#llm-in-docker}
+
+The Castcut image is Alpine (musl), and llama.cpp's builds need glibc — so in Docker,
+Settings → LLM says *"This server's system … can't run llama.cpp's builds"*. Run llama.cpp's
+own server container beside Castcut instead. It is the same server and model the built-in
+LLM uses; it just stays running.
+
+=== "Our compose file"
+
+    In `docker/.env`:
+
+    ```bash
+    LLM_API_BASE_URL=http://llm:8080/v1
+    LLM_MODEL=castcut-local
+    LLM_VISION_MODEL=castcut-local
+    ```
+
+    Then start Castcut with the `llm` profile:
+
+    ```bash
+    cd docker
+    docker compose --profile llm up -d
+    docker compose logs -f llm     # first start downloads the model (~6 GB)
+    ```
+
+    It needs an NVIDIA GPU and the NVIDIA Container Toolkit. The model is kept in the
+    `llm_models` volume, so later starts are quick.
+
+=== "Your own docker run"
+
+    For a Castcut container you started yourself (or on another machine). NVIDIA GPU:
+
+    ```bash
+    docker run -d --name castcut-llm --restart unless-stopped --gpus all \
+      -p 8080:8080 -v castcut_llm_models:/root/.cache/llama.cpp \
+      ghcr.io/ggml-org/llama.cpp:server-cuda \
+      -hf GitMylo/nsfwvision-qwen3-vl-8b-v3-gguf:Q4_K_M \
+      --host 0.0.0.0 --port 8080 -c 8192 -ngl 99 --jinja --alias castcut-local
+    ```
+
+    Then in Castcut's environment:
+
+    ```bash
+    LLM_API_BASE_URL=http://<llm host>:8080/v1   # host.docker.internal on the same host
+    LLM_MODEL=castcut-local
+    LLM_VISION_MODEL=castcut-local
+    ```
+
+    and restart Castcut (`docker restart castcut`). Putting both on one Docker network
+    (`docker network create castcut`, `--network castcut` on both) lets you use
+    `http://castcut-llm:8080/v1` and drop the `-p 8080:8080`.
+
+**Other hardware** — swap the image tag:
+
+| GPU | Image | Extra flags |
+| --- | --- | --- |
+| NVIDIA | `ghcr.io/ggml-org/llama.cpp:server-cuda` | `--gpus all` |
+| AMD (ROCm) | `ghcr.io/ggml-org/llama.cpp:server-rocm` | `--device /dev/kfd --device /dev/dri` |
+| AMD / Intel (Vulkan) | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | `--device /dev/dri` |
+| None (CPU) | `ghcr.io/ggml-org/llama.cpp:server` | drop `-ngl 99` — slow, but it works |
+
+**Check it:** `curl http://<llm host>:8080/v1/models` lists `castcut-local`; in Castcut,
+**Settings → Overview → Play checks** shows the LLM and the vision model as ready.
+
+!!! tip "Sharing the GPU with ComfyUI"
+    The model holds about 6–7 GB of VRAM while the container runs. On a 24 GB card that is
+    fine for stills; the big video tools (Copy moves, Dance, Lip-sync) free a *built-in* LLM
+    automatically, but not a container — stop it (`docker stop castcut-llm`) before a long
+    video session if they run out of memory, or run the LLM on another machine.
+
 ### Your own LLM server
 
 The generator calls any **OpenAI-compatible** chat completions API. Configure via `.env.local`:

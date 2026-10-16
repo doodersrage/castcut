@@ -76,7 +76,27 @@ export default function LocalLlmPanel({ onChanged }: { onChanged?: () => void })
     >
       <div className="space-y-3" data-testid="llm-local">
         {!status.supported ? (
-          <p className="text-xs text-[var(--tint-warning-text)]">{status.unsupportedReason}</p>
+          <p
+            className="text-xs text-[var(--tint-warning-text)]"
+            data-testid="llm-local-unsupported"
+          >
+            {/* The reason may end with a docs address: show it as a link. */}
+            {(status.unsupportedReason ?? '').split(/(https:\/\/\S+)/).map((part, index) =>
+              part.startsWith('https://') ? (
+                <a
+                  key={index}
+                  href={part}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-2"
+                >
+                  {part.includes('#llm-in-docker') ? 'Built-in LLM in Docker' : part}
+                </a>
+              ) : (
+                <span key={index}>{part}</span>
+              )
+            )}
+          </p>
         ) : null}
 
         {status.supported && !status.installed ? (

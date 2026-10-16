@@ -89,7 +89,7 @@ export function localLlmAsset(
     if (!glibc) {
       return {
         unsupported:
-          "This server's system (musl, e.g. the Alpine Docker image) can't run llama.cpp's builds. Run the llama.cpp server container next to it and set LLM_API_BASE_URL.",
+          "This server's system (musl, e.g. the Alpine Docker image) can't run llama.cpp's builds. Run the llama.cpp server container next to it and set LLM_API_BASE_URL — step by step: https://doodersrage.github.io/castcut/configuration/#llm-in-docker",
       };
     }
     if (arch === 'x64') return { name: `llama-${tag}-bin-ubuntu-vulkan-x64.tar.gz` };

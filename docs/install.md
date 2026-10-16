@@ -36,7 +36,8 @@ pictures. You need all three — Castcut can install the LLM for you.
     Open `http://<host>:47832`. ComfyUI on the Docker host is
     `http://host.docker.internal:8188` (start it with `--listen`). Optional extras:
 
-    - `--profile llm` — an LLM in a container (NVIDIA GPU)
+    - `--profile llm` — an LLM in a container (NVIDIA GPU) — the built-in LLM can't run
+      inside the Castcut image; see [Built-in LLM in Docker](configuration.md#llm-in-docker)
     - `--profile comfyui` — ComfyUI in a container
 
     More in [Configuration](configuration.md).
@@ -71,7 +72,7 @@ Pick one:
 
 | Option | When |
 | --- | --- |
-| **Built-in LLM** (Settings → LLM) | Easiest. Installs llama.cpp and one vision model into Castcut's data folder; starts when needed, stops when idle. |
+| **Built-in LLM** (Settings → LLM) | Easiest. Installs llama.cpp and one vision model into Castcut's data folder; starts when needed, stops when idle. In Docker, run it as a container instead: [Built-in LLM in Docker](configuration.md#llm-in-docker). |
 | **LM Studio** or **Ollama** | You already run one. Castcut finds it at the usual address. |
 | **A hosted provider** | Settings → LLM → provider and key, per browser. |
 
