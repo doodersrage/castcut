@@ -926,7 +926,7 @@ describe('scissors fallback', () => {
     const beat = 'scissoring on the bed, legs interlocked — both adults fully visible';
     const couple = buildRapidDuoRecipe({ beat }) ?? '';
     assert.match(couple, /Side view, exactly two people\. The woman and the man sit facing each other/);
-    assert.match(couple, /Her right leg lies over his left thigh and her left leg passes under his right thigh/);
+    assert.match(couple, /Both of her legs rest over his thighs/);
     assert.equal(
       rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit', adultMood: true, beat }),
       true
@@ -949,3 +949,42 @@ describe('scissors fallback', () => {
   });
 });
 
+
+describe('limb-safe wording (extra hands / melded limbs, 2026-10-16)', () => {
+  it('on her back, the free hand holds the raised knee — no breast hand to double', () => {
+    const prompt =
+      buildRapidSoloRecipe({
+        beat: 'solo masturbation lying across the bed, one hand between her thighs — alone',
+        poseGuide: true,
+      }) ?? '';
+    assert.match(prompt, /Her left hand holds her raised knee; her right hand is between her thighs/);
+    assert.doesNotMatch(prompt, /rests on her breast/);
+  });
+
+  it('sitting with her knees up, her free arm holds a knee — no third hand at the vulva', () => {
+    const prompt =
+      buildRapidSoloRecipe({
+        beat: 'alone on the kitchen floor naked with knees pulled to her chest, both hands between her thighs',
+        poseGuide: true,
+      }) ?? '';
+    assert.match(prompt, /She sits on the kitchen floor/);
+    assert.match(prompt, /Her left arm hooks under her left knee, holding that leg up and open; her right hand is between her thighs, two fingers pushed inside her vagina/);
+    assert.doesNotMatch(prompt, /breast\./);
+  });
+
+  it('a lift says the hold Rapid draws: his arms under her knees, two hands each', () => {
+    const prompt =
+      buildRapidDuoRecipe({ beat: 'he lifts her against him, legs wrapped around his waist' }) ?? '';
+    assert.match(prompt, /his two arms hook under her knees and his hands grip her buttocks/);
+    assert.doesNotMatch(prompt, /legs are wrapped around his waist/);
+  });
+
+  it('riding him on a couch: her near leg goes down to the floor, his hands on her waist', () => {
+    const couch =
+      buildRapidDuoRecipe({ beat: 'riding him on the couch, straddling his hips' }) ?? '';
+    assert.match(couch, /her near leg hanging down off the front of the couch/);
+    assert.match(couch, /his hands holding her waist/);
+    const bed = buildRapidDuoRecipe({ beat: 'riding him on the bed, straddling his hips' }) ?? '';
+    assert.match(bed, /her near knee on the bed beside his hip/);
+  });
+});

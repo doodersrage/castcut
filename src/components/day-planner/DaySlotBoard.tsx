@@ -39,6 +39,11 @@ import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
 import { dayLooksWrongMark } from '@/lib/day-looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
+import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
+import {
+  DAY_SLOT_MEDIA_BUSY,
+  type DaySlotMediaTool,
+} from '@/hooks/day-planner/useDaySlotMediaTools';
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -86,6 +91,28 @@ export type DaySlotBoardProps = {
   onLooksWrong?: (slot: DaySlot) => void;
   /** ⋯ → Fix an area…: paint over what's wrong in the finished still (fix-area.ts). */
   onFixArea?: (slot: DaySlot) => void;
+  /**
+   * ⋯ → Sharpen & smooth, Copy moves…, Lip-sync…, Relight… (useDaySlotMediaTools). Each resolves
+   * to an error message, or null when the slot has the result.
+   */
+  mediaTools?: {
+    busy: { slotId: string; tool: DaySlotMediaTool } | null;
+    finish: (slot: DaySlot) => Promise<string | null>;
+    moves: (
+      slot: DaySlot,
+      video: Blob,
+      options: { motion?: string; keepSound?: boolean }
+    ) => Promise<string | null>;
+    lipSync: (slot: DaySlot, audio: Blob) => Promise<string | null>;
+    relight: (slot: DaySlot, look: string) => Promise<string | null>;
+  };
+};
+
+const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
+  finish: 'Done — the clip is sharper and smoother.',
+  moves: 'Done — the clip now has the copied moves.',
+  'lip-sync': 'Done — the clip now says your recording.',
+  relight: 'Done — the still has its new light (the original is in the Gallery).',
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -128,7 +155,21 @@ export default function DaySlotBoard({
   onPickTwoTake,
   onLooksWrong,
   onFixArea,
+  mediaTools,
 }: DaySlotBoardProps) {
+  const [mediaSheet, setMediaSheet] = useState<{ slot: DaySlot; kind: SlotMediaSheetKind } | null>(
+    null
+  );
+  const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
+  const runMedia = async (
+    slot: DaySlot,
+    tool: DaySlotMediaTool,
+    work: () => Promise<string | null>
+  ) => {
+    setMediaNote(null);
+    const error = await work();
+    setMediaNote({ slotId: slot.id, text: error ?? MEDIA_DONE[tool] });
+  };
   const voice = useTakeCastVoice();
   const [tapVoicing, setVoicing] = useState<string | null>(null);
   const voicing = tapVoicing ?? voicingSlotId;
@@ -327,6 +368,52 @@ export default function DaySlotBoard({
                   }}
                 >
                   Fix an area…
+                </button>
+              ) : null}
+              {mediaTools && Boolean(doneThumb) && state === 'done' && !still?.adultHold ? (
+                <>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="The same picture in a different light — golden hour, window daylight, lamp at night…"
+                    data-testid={`day-progress-relight-${slot.id}`}
+                    onClick={() => setMediaSheet({ slot, kind: 'relight' })}
+                  >
+                    Relight…
+                  </button>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Film yourself (or pick a video): this still’s person does the same moves."
+                    data-testid={`day-progress-moves-${slot.id}`}
+                    onClick={() => setMediaSheet({ slot, kind: 'moves' })}
+                  >
+                    Copy moves from a video…
+                  </button>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Record a line or pick an audio file: this still’s person says it."
+                    data-testid={`day-progress-lip-sync-${slot.id}`}
+                    onClick={() => setMediaSheet({ slot, kind: 'lip-sync' })}
+                  >
+                    Lip-sync to a recording…
+                  </button>
+                </>
+              ) : null}
+              {mediaTools && clipState === 'done' && doneClip ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || mediaTools.busy !== null}
+                  title="Upscale the clip (SeedVR2) and give a 16 fps clip twice the frames (RIFE) — a few minutes."
+                  data-testid={`day-progress-finish-${slot.id}`}
+                  onClick={() => void runMedia(slot, 'finish', () => mediaTools.finish(slot))}
+                >
+                  Sharpen &amp; smooth clip
                 </button>
               ) : null}
               {canRequeue && onLooksWrong ? (
@@ -709,6 +796,17 @@ export default function DaySlotBoard({
                       Clip failed
                     </p>
                   ) : null}
+                  {mediaTools?.busy?.slotId === slot.id || mediaNote?.slotId === slot.id ? (
+                    <p
+                      className="type-caption mt-1 text-[var(--text-muted)]"
+                      role="status"
+                      data-testid={`day-progress-media-note-${slot.id}`}
+                    >
+                      {mediaTools?.busy?.slotId === slot.id
+                        ? `${DAY_SLOT_MEDIA_BUSY[mediaTools.busy.tool]} (a few minutes)`
+                        : mediaNote?.text}
+                    </p>
+                  ) : null}
                   {voicing === slot.id || voicedNote?.slotId === slot.id ? (
                     <p
                       className="type-caption mt-1 text-[var(--text-muted)]"
@@ -790,6 +888,24 @@ export default function DaySlotBoard({
           request={sheetRequest}
           onStart={choice => void extendClip(extendSheet, choice)}
           testId="day-extend-sheet"
+        />
+      ) : null}
+      {mediaTools ? (
+        <SlotMediaSheet
+          kind={mediaSheet?.kind ?? null}
+          onClose={() => setMediaSheet(null)}
+          onMoves={(video, options) => {
+            const slot = mediaSheet?.slot;
+            if (slot) void runMedia(slot, 'moves', () => mediaTools.moves(slot, video, options));
+          }}
+          onLipSync={audio => {
+            const slot = mediaSheet?.slot;
+            if (slot) void runMedia(slot, 'lip-sync', () => mediaTools.lipSync(slot, audio));
+          }}
+          onRelight={look => {
+            const slot = mediaSheet?.slot;
+            if (slot) void runMedia(slot, 'relight', () => mediaTools.relight(slot, look));
+          }}
         />
       ) : null}
     </>

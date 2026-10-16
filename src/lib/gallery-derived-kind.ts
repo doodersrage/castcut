@@ -13,6 +13,10 @@ export const GALLERY_DERIVED_KIND_FILTERS = [
   't2v',
   'extend',
   'voice',
+  'finish',
+  'moves',
+  'lip-sync',
+  'relight',
   'film',
 ] as const satisfies ReadonlyArray<NonNullable<ComfyGalleryEntry['derivedKind']>>;
 
@@ -46,6 +50,14 @@ export function galleryDerivedKindLabel(
       return 'extended clip (Make it 30 s, Fal extend or last-frame I2V)';
     case 'voice':
       return 'clip with an added soundtrack';
+    case 'finish':
+      return 'clip made sharper and smoother';
+    case 'moves':
+      return 'moves copied from a video';
+    case 'lip-sync':
+      return 'lip-synced to a recording';
+    case 'relight':
+      return 'relit from prior';
     case 'film':
       return 'assembled film';
     default:
@@ -79,6 +91,14 @@ export function galleryDerivedKindChipLabel(kind: GalleryDerivedKindFilter): str
       return 'Extend';
     case 'voice':
       return 'Voice';
+    case 'finish':
+      return 'Finished';
+    case 'moves':
+      return 'Moves';
+    case 'lip-sync':
+      return 'Lip-sync';
+    case 'relight':
+      return 'Relit';
     case 'film':
       return 'Film';
     default:

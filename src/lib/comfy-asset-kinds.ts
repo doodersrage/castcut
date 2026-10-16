@@ -10,7 +10,11 @@ export type ComfyAssetKind =
   | 'clip'
   | 'controlnet'
   | 'facerestore'
-  | 'latentupscale';
+  | 'latentupscale'
+  | 'clipvision'
+  | 'interpolation'
+  | 'patch'
+  | 'audioencoder';
 
 export const COMFY_ASSET_KIND_LABELS: Record<ComfyAssetKind, string> = {
   checkpoint: 'Checkpoint',
@@ -23,6 +27,10 @@ export const COMFY_ASSET_KIND_LABELS: Record<ComfyAssetKind, string> = {
   controlnet: 'ControlNet',
   facerestore: 'Face restore',
   latentupscale: 'Latent upscale',
+  clipvision: 'CLIP vision',
+  interpolation: 'Frame interpolation',
+  patch: 'Model patch',
+  audioencoder: 'Audio encoder',
 };
 
 export const COMFY_ASSET_KIND_ORDER: ComfyAssetKind[] = [
@@ -36,4 +44,8 @@ export const COMFY_ASSET_KIND_ORDER: ComfyAssetKind[] = [
   'controlnet',
   'facerestore',
   'latentupscale',
+  'clipvision',
+  'interpolation',
+  'patch',
+  'audioencoder',
 ];

@@ -24,6 +24,13 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
   facerestore: ['models/facerestore_models'],
   // LTX-2's two-pass upscaler (LatentUpscaleModelLoader).
   latentupscale: ['models/latent_upscale_models'],
+  clipvision: ['models/clip_vision'],
+  // RIFE / FILM (FrameInterpolationModelLoader).
+  interpolation: ['models/frame_interpolation'],
+  // InfiniteTalk (ModelPatchLoader).
+  patch: ['models/model_patches'],
+  // wav2vec2 for InfiniteTalk (AudioEncoderLoader).
+  audioencoder: ['models/audio_encoders'],
 };
 
 export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {

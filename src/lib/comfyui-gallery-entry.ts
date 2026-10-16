@@ -52,6 +52,14 @@ export type ComfyGalleryEntry = {
     | 'extend'
     /** Add voice: the clip with LTX's soundtrack, picture unchanged. */
     | 'voice'
+    /** Finish clip (clip-finish.ts): SeedVR2-sharpened, RIFE-smoothed. */
+    | 'finish'
+    /** Copy moves (motion-transfer.ts): the still's person doing a driving video's moves. */
+    | 'moves'
+    /** Lip-sync (lip-sync.ts): the still speaking a recording. */
+    | 'lip-sync'
+    /** Relight (relight.ts): the still with new light. */
+    | 'relight'
     | 'film';
   /** Resolved queue params (seed, width, cfg, etc.). */
   queueParams?: WorkflowParamValues;

@@ -3,12 +3,13 @@ import { describe, it } from 'node:test';
 import { buildRapidSoloRecipe } from './rapid-duo-recipe';
 
 describe('Rapid solo: fingers inside, not two hands framing', () => {
-  it('a "both hands" beat gets one hand inside and the other on her breast, Moment to match', () => {
+  it('a "both hands" beat gets one hand inside and the other holding a knee, Moment to match', () => {
     const recipe =
       buildRapidSoloRecipe({
         beat: 'alone on the kitchen floor naked with knees pulled to her chest fingering herself — both hands spreading and fingering her vulva, one adult only',
       }) ?? '';
-    assert.match(recipe, /two fingers pushed inside her vagina, her palm against her vulva; her left hand cups her breast/);
+    // Sitting knees-up: the breast hand doubled into a third hand at the vulva (2026-10-16).
+    assert.match(recipe, /Her left arm hooks under her left knee, holding that leg up and open; her right hand is between her thighs, two fingers pushed inside her vagina, her palm against her vulva/);
     assert.doesNotMatch(recipe, /Both of her hands are between her thighs/);
     assert.match(recipe, /Moment: [^.]*her fingers inside her/);
     assert.doesNotMatch(recipe, /both hands spreading/);

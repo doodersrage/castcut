@@ -8,6 +8,7 @@ import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
 import { clipUrlIsSilent } from '@/lib/clip-sound';
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
+import { useDaySlotMediaTools } from '@/hooks/day-planner/useDaySlotMediaTools';
 import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
 import type { DayLength, DaySlot } from '@/lib/day-planner';
 import { useDayExtendClip } from '@/hooks/day-planner/useDayExtendClip';
@@ -125,6 +126,7 @@ export function useDayPlannerToolOrchestration() {
   const clips = useDayClipQualityCheck(core);
   const endPose = useDayEndPose(core);
   const addVoice = useDayAddVoice(core);
+  const slotMedia = useDaySlotMediaTools(core);
   // Cut: silent clips (WAN renders no sound) are offered sound in one go, via Add voice.
   const silentClipSlotIds = core.slots
     .filter(slot => {
@@ -461,6 +463,7 @@ export function useDayPlannerToolOrchestration() {
     ...clips,
     ...endPose,
     ...addVoice,
+    slotMedia,
     silentClipSlotIds,
     addSoundToSilentClips,
     ...extendClip,

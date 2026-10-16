@@ -110,7 +110,11 @@ function edgeOf(surface: string | null, fallback: string): string {
 
 /** Where a lying head rests: a cushion on a couch, else a pillow. */
 function headRest(surface: string | null): string {
-  return /\b(?:couch|sofa|settee|loveseat)\b/i.test(surface ?? '') ? 'a cushion' : 'the pillow';
+  return isCouchSurface(surface) ? 'a cushion' : 'the pillow';
+}
+
+function isCouchSurface(surface: string | null): boolean {
+  return /\b(?:couch|sofa|settee|loveseat)\b/i.test(surface ?? '');
 }
 
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
@@ -138,7 +142,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // and her squatting over his chest, 4/4 on the user's cowgirl still. "Side view" alone put
       // her kneeling beside him (2/4); each knee placed, one on the far side of his body: 4/4
       // astride (live A/B 2026-10-04). A mocap-composed straddle map changed nothing.
-      return `Side view, wide shot, both faces in frame. The man lies flat on his back along ${on('bed')}, his head on ${headRest(surface)} and his legs stretched out straight; the woman sits upright on top of him, straddling his hips: her near knee on ${on('bed')} beside his hip, her other knee on the far side of his body, her thighs over his hips and her bottom resting on his pelvis, his penis inside her, riding him; her hands on his chest, looking down at his face.`;
+      // On a couch there is no room for her near knee: it hung off the edge and his free hand
+      // grabbed it, arm and leg melding (the user's couch ride, 8/8 replays across four arms).
+      // Near leg down to the floor and his hands given her waist: no melding 4/4 (one seed laid
+      // her forward onto him; 2026-10-16).
+      return `Side view, wide shot, both faces in frame. The man lies flat on his back along ${on('bed')}, his head on ${headRest(surface)} and his legs stretched out straight; the woman sits upright on top of him, straddling his hips: ${isCouchSurface(surface) ? `her near leg hanging down off the front of ${on('couch')}, that foot on the floor` : `her near knee on ${on('bed')} beside his hip`}, her other knee on the far side of his body, her thighs over his hips and her bottom resting on his pelvis, his penis inside her, riding him; her hands on his chest, his hands holding her waist, looking down at his face.`;
     case 'reverse_straddle':
       return `Reverse cowgirl, camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of the man who sits back on ${on('couch')} behind her; her back rests against his chest, legs spread, riding his penis; his face is behind her shoulder and his hands on her hips.`;
     case 'bent':
@@ -164,7 +172,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // Drawn as missionary since 2026-10-05 (the seated wording + the scissors map merged legs
       // and once added a third person). Without the map, each leg placed: real scissoring 5-6/6
       // across a couch and a bed, three seeds each (2026-10-08).
-      return `Side view, exactly two people. The woman and the man sit facing each other on ${on('bed')}, each leaning back on straight arms with hands flat behind them. Her right leg lies over his left thigh and her left leg passes under his right thigh, so their hips meet in the middle; each body has exactly two legs. Both faces in profile.`;
+      // One leg over and one under still knotted four legs together on the user's stills (every
+      // replay, 16 across four arms); both of her legs over his thighs read as two bodies more
+      // often (2026-10-16).
+      return `Side view, exactly two people. The woman and the man sit facing each other on ${on('bed')}, each leaning back on straight arms with hands flat behind them. Both of her legs rest over his thighs, knees bent, her feet on ${on('bed')} behind his hips; his legs stretch out straight under hers, so their hips meet in the middle. Both faces in profile.`;
     case 'wall':
       // Glass: back-to-the-window face-to-face put her perched on the sill, twisted, with a
       // reflection clone 3/3; facing the glass from behind (as the wall map draws it) was clean
@@ -177,7 +188,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
           // facing each other 6/8. Putting his hand on the wall stood him apart (live 2026-09-29).
           `Side view, both bodies in profile, facing each other. The woman leans her back against ${on('wall')}; the man stands chest to chest against her, his hips between her thighs, penetrating her; her left leg is hooked around his hip and his hand holds it under the knee; their faces close, both in profile. No gap between their bodies.`;
     case 'lift':
-      return `Wide shot, both faces in frame. The man stands holding the woman up by her thighs, facing each other chest to chest; her legs are wrapped around his waist and her arms around his neck, her face beside his, his penis inside her.`;
+      // "Holding her up by her thighs … legs wrapped around his waist": Rapid draws her legs
+      // spread over his forearms anyway, and gave him a third hand at her waist (6/8 replays of
+      // the user's still). Saying the hold it draws — arms hooked under her knees, hands on her
+      // buttocks: two hands each 4/4 (2026-10-16).
+      return `Wide shot, both faces in frame. The man stands holding the woman up in front of him, chest to chest: his two arms hook under her knees and his hands grip her buttocks, her legs spread over his forearms; her two arms are around his neck, her face beside his, his penis inside her.`;
     case 'oral':
       // He goes down on her: "Full-body view, both faces in frame" laid him on his back on the
       // floor under her with his face upside down, to show it (the user's stills; replay 3/4
@@ -880,14 +895,33 @@ function soloHands(
   if (kind === 'on_back' && SOLO_LEGS_HIGH_RE.test(beat)) {
     return 'Her left arm hooks under her left knee, holding that leg back toward her chest; her right hand is between her thighs, two fingers pushed inside her vagina, her palm against her vulva.';
   }
-  if (/\bboth\s+hands\b/i.test(beat)) {
-    return SOLO_FINGERS_INSIDE;
-  }
   if (/\bfist\s+in\s+the\s+sheets\b/i.test(beat)) {
     return 'One hand is between her thighs with her fingers on her vulva; the other hand grips the sheets.';
   }
   if (/\breach(?:es|ing)?\s+back\b/i.test(beat)) {
     return 'One hand reaches back between her thighs, her fingers on her vulva; the other is braced on the bed.';
+  }
+  // One knee drawn up: with her other hand "on her breast", Rapid also put a hand on the raised
+  // knee — three hands on most of the user's on-back stills and their replays (about 1 in 6
+  // clean). Giving that hand the knee: two hands 12/12 (three stills × four seeds, 2026-10-16).
+  if (kind === 'on_back') {
+    const touch = SOLO_FINGERS_IN_RE.test(beat)
+      ? 'two fingers pushed inside her vagina, her palm against her vulva'
+      : 'her fingers on her vulva';
+    return `Her left hand holds her raised knee; her right hand is between her thighs, ${touch}.`;
+  }
+  // Sitting with her knees up (the kitchen floor, against the cabinets): with her other hand "on
+  // her breast" Rapid drew a third hand at the vulva (3/3 on the user's still and its replays).
+  // Both hands there: two hands 4/4 but fingers inside 1/4. That arm hooked under her knee, as on
+  // her back: two hands 4/4, fingers inside 4/4 (2026-10-16).
+  if (kind === 'seated') {
+    const touch = SOLO_FINGERS_IN_RE.test(beat)
+      ? 'two fingers pushed inside her vagina, her palm against her vulva'
+      : 'her fingers on her vulva';
+    return `Her left arm hooks under her left knee, holding that leg up and open; her right hand is between her thighs, ${touch}.`;
+  }
+  if (/\bboth\s+hands\b/i.test(beat)) {
+    return SOLO_FINGERS_INSIDE;
   }
   if (kind === 'side_lying') {
     // Side-lying with the top knee up: a loose "hand between her thighs" rendered as a second

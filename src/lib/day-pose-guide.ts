@@ -3695,8 +3695,72 @@ function plantSoloSelfTouchHands(body: StickSkeleton): StickSkeleton {
   return body;
 }
 
+/**
+ * Where the recipe's words put her second hand (rapid-duo-recipe.ts soloHands): on her raised knee
+ * on her back, on her breast kneeling or standing; elsewhere (braced, under her head, on a toy, in
+ * the sheets) the pose's own drawing stands. Kept in step with soloHands.
+ */
+export function soloSecondHand(
+  kind: SoloMasturbationPoseKind,
+  text: string
+): 'breast' | 'knee' | null {
+  if (
+    /\b(?:dildo|vibrator|toy|wand)\b|\bfist\s+in\s+the\s+sheets\b|\breach(?:es|ing)?\s+back\b/i.test(
+      text
+    )
+  ) {
+    return null;
+  }
+  if (kind === 'on_back') return 'knee';
+  if (kind === 'kneeling' || kind === 'standing' || kind === 'lean') return 'breast';
+  return null;
+}
+
+/**
+ * Her second wrist on her breast (upper torso), the elbow bent out beside her ribs. The drawing
+ * used to rest it on her hip while the words said breast, and Rapid drew both: a third hand.
+ */
+function secondHandOnBreast(body: StickSkeleton): StickSkeleton {
+  const tx = body.pelvis.x - body.neck.x;
+  const ty = body.pelvis.y - body.neck.y;
+  const lying = Math.abs(ty) < Math.abs(tx);
+  // Lying (side view): the breast is on top of the torso line; upright: to her left of centre.
+  const off = lying
+    ? { x: 0, y: -0.03 }
+    : { x: body.lShoulder.x < body.neck.x ? -0.04 : 0.04, y: 0 };
+  body.lWrist = point(body.neck.x + tx * 0.3 + off.x, body.neck.y + ty * 0.3 + off.y);
+  body.lElbow = point(
+    body.lShoulder.x + tx * 0.38 + off.x * 1.8,
+    body.lShoulder.y + ty * 0.38 + (lying ? 0.04 : 0)
+  );
+  return body;
+}
+
+/** Her second wrist on her raised (left) knee, the elbow halfway — on her back, as the words say. */
+function secondHandOnKnee(body: StickSkeleton): StickSkeleton {
+  body.lWrist = point(body.lKnee.x + 0.01, body.lKnee.y + 0.02);
+  body.lElbow = point(
+    (body.lShoulder.x + body.lWrist.x) / 2,
+    (body.lShoulder.y + body.lWrist.y) / 2 - 0.03
+  );
+  return body;
+}
+
 /** One-adult self-touch wireframes — expressive stances, not polite pin-ups. */
 function synthesizeSoloMasturbationFigure(
+  seed: number,
+  sceneText: string | null | undefined
+): StickSkeleton {
+  const body = synthesizeSoloMasturbationBody(seed, sceneText);
+  const hand = soloSecondHand(resolveSoloMasturbationPoseKind(sceneText), sceneText?.trim() || '');
+  return hand === 'breast'
+    ? secondHandOnBreast(body)
+    : hand === 'knee'
+      ? secondHandOnKnee(body)
+      : body;
+}
+
+function synthesizeSoloMasturbationBody(
   seed: number,
   sceneText: string | null | undefined
 ): StickSkeleton {

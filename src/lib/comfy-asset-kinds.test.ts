@@ -17,6 +17,10 @@ const ALL_KINDS: ComfyAssetKind[] = [
   "controlnet",
   "facerestore",
   "latentupscale",
+  "clipvision",
+  "interpolation",
+  "patch",
+  "audioencoder",
 ];
 
 describe("comfy-asset-kinds", () => {

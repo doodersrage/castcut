@@ -156,6 +156,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     activeSlot,
     character,
     addVoiceToSlot,
+    slotMedia,
     silentClipSlotIds,
     addSoundToSilentClips,
     voicingSlotId,
@@ -1063,6 +1064,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onPickTwoTake={pickTwoTake}
             onLooksWrong={slot => void looksWrongSlot(slot.id)}
             onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
+            mediaTools={{
+              busy: slotMedia.busy,
+              finish: slotMedia.finishSlotClip,
+              moves: slotMedia.copyMovesToSlot,
+              lipSync: slotMedia.lipSyncSlot,
+              relight: slotMedia.relightSlot,
+            }}
           />
           <DayIdeaRow
             className="mt-3"

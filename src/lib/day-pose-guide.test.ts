@@ -17,6 +17,7 @@ import {
   synthesizeIntimateStickFigures,
   synthesizeSceneStickFigures,
   synthesizeStickSkeleton,
+  soloSecondHand,
 } from './day-pose-guide';
 
 type StickSkeletonLike = ReturnType<typeof synthesizeIntimateStickFigures>[number];
@@ -522,18 +523,17 @@ describe('day-pose-guide', () => {
     assert.equal(soloKneel.intimate, 'solo');
     assert.equal(synthesizeIntimateStickFigures(soloKneel).length, 1);
     const kneelFig = synthesizeIntimateStickFigures(soloKneel)[0]!;
-    // One fingering wrist on the vulva midline; other on the hip (two mid-vulva
-    // wrists often spawn a ghost covering pair on the chest in Rapid Edit).
+    // One fingering wrist on the vulva midline; the other on her breast, where the words put it
+    // (on the hip, Rapid drew a third hand there) — never both at the vulva (a ghost pair).
     assert.ok(
       Math.abs(kneelFig.rWrist.x - kneelFig.pelvis.x) < 0.06,
       'fingering wrist near pelvis midline'
     );
     assert.ok(
-      kneelFig.lWrist.x < kneelFig.pelvis.x - 0.08,
-      'other wrist on hip (clear arm chain)'
+      kneelFig.lWrist.y < kneelFig.pelvis.y - 0.15,
+      'other wrist up on her chest, away from the vulva'
     );
     assert.ok(kneelFig.rWrist.y > kneelFig.pelvis.y, 'fingering wrist below pelvis');
-    assert.ok(kneelFig.lWrist.y > kneelFig.pelvis.y - 0.02, 'hip wrist at/below pelvis');
 
     const missionary = parsePoseGuideIntent('Pinned underneath in missionary.', 0);
     assert.equal(missionary.intimate, 'missionary');
@@ -1585,5 +1585,35 @@ describe('Story pose text and the lead\'s posture (Story pose sweep findings)', 
       reconcileWrittenPose({ layout: 'sport_cycle' }, 'She sits on the bike at the lights.').spec,
       { layout: 'sport_cycle' }
     );
+  });
+});
+
+describe('solo self-touch: the drawing puts her second hand where the words do', () => {
+  it('on her back, the second wrist holds the raised knee (not a third hand there)', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'solo masturbation lying across the bed, one hand between her thighs — alone, nude',
+      0,
+      { forcePeople: 1 }
+    );
+    const body = figures[0]!;
+    assert.ok(Math.hypot(body.lWrist.x - body.lKnee.x, body.lWrist.y - body.lKnee.y) < 0.05);
+  });
+
+  it('kneeling, the second wrist is on her chest, away from the vulva', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'solo kneeling on the sheets masturbating after dark, soft lamp',
+      0,
+      { forcePeople: 1 }
+    );
+    const body = figures[0]!;
+    assert.ok(body.lWrist.y < body.pelvis.y - 0.15);
+  });
+
+  it('keeps a braced, toy or sheet-gripping hand where those poses put it', () => {
+    assert.equal(soloSecondHand('seated', 'sitting on the bed edge masturbating'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back with a purple dildo'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back, fist in the sheets'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back with ankles near her shoulders'), 'knee');
+    assert.equal(soloSecondHand('kneeling', 'kneeling on the bed masturbating'), 'breast');
   });
 });

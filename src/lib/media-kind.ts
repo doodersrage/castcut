@@ -18,6 +18,9 @@ export function isVideoLikeEntry(
     entry.derivedKind === 't2v' ||
     entry.derivedKind === 'extend' ||
     entry.derivedKind === 'voice' ||
+    entry.derivedKind === 'finish' ||
+    entry.derivedKind === 'moves' ||
+    entry.derivedKind === 'lip-sync' ||
     entry.tool === 'video'
   );
 }

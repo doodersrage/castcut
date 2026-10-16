@@ -100,5 +100,19 @@
   "src/lib/wardrobe-garment-thumbs.ts",
   "src/lib/wardrobe-kit-picker.ts",
   "src/lib/wardrobe-pack-client.ts",
-  "src/lib/wardrobe-pack.ts"
+  "src/lib/wardrobe-pack.ts",
+  "src/app/api/clip/finish/route.ts",
+  "src/app/api/clip/moves/route.ts",
+  "src/app/api/clip/lip-sync/route.ts",
+  "src/app/api/still/relight/route.ts",
+  "src/lib/clip-finish.ts",
+  "src/lib/clip-finish-server.ts",
+  "src/lib/motion-transfer.ts",
+  "src/lib/motion-transfer-server.ts",
+  "src/lib/lip-sync.ts",
+  "src/lib/lip-sync-server.ts",
+  "src/lib/relight.ts",
+  "src/lib/relight-server.ts",
+  "src/lib/heavy-graph-server.ts",
+  "src/lib/media-actions-client.ts"
 ]
