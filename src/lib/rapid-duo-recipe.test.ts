@@ -988,3 +988,11 @@ describe('limb-safe wording (extra hands / melded limbs, 2026-10-16)', () => {
     assert.match(bed, /her near knee on the bed beside his hip/);
   });
 });
+
+describe('spooning keeps four legs apart', () => {
+  it('a low camera at the foot of the bed, her legs in front and his behind', () => {
+    const prompt = buildRapidDuoRecipe({ beat: 'spoon position in bed' }) ?? '';
+    assert.match(prompt, /Spooning, seen from the front/);
+    assert.match(prompt, /seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers/);
+  });
+});

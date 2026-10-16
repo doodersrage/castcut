@@ -8,6 +8,7 @@ import {
   placeRoomOfSetting,
   resolveCastPlace,
   withCastPlace,
+  withPlacePhotoInAdultPrompt,
   withPlacePhotoInPrompt,
 } from './cast-places';
 
@@ -114,5 +115,18 @@ describe('a photo of their own room', () => {
       /living room with a floor lamp, in the room shown in Image 3 — the same walls, floor, windows, furniture, plants and colours — show that place around her\./
     );
     assert.match(out, /Place: living room with a floor lamp, in the room shown in Image 3 — [^.]+\. Keep her face/);
+  });
+});
+
+describe('a room photo on an adult solo still', () => {
+  it('replaces the Room sentence, or adds one after the Moment', () => {
+    assert.match(
+      withPlacePhotoInAdultPrompt('Moment: alone on the couch. Room: a grey sofa. She is nude.'),
+      /Moment: alone on the couch\. Room: the room shown in Image 3 — [^.]+\. She is nude\./
+    );
+    assert.match(
+      withPlacePhotoInAdultPrompt('Moment: alone on the couch. She is nude.'),
+      /Moment: alone on the couch\. Room: the room shown in Image 3/
+    );
   });
 });

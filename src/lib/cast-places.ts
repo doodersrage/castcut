@@ -354,3 +354,17 @@ export function saveCastPlacePhoto(
   upsertCharacter({ ...character, placePhotos: photos });
   return getCharacter(character.id);
 }
+
+/**
+ * An adult Rapid solo still's prompt with a room photo in Image `image` (its pose map stays the
+ * second image): the "Room:" sentence becomes that room, or one is added after the Moment.
+ * Live (Rapid AIO NSFW v23, 2026-10-16, a couch still, four seeds): the photo's velvet sofa 4/4,
+ * its rug and plant on some. Clothed Rapid stills ignored the photo (0/4) and are left alone.
+ */
+export function withPlacePhotoInAdultPrompt(prompt: string, image = 3): string {
+  const room = `Room: the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours.`;
+  if (/\bRoom: [^.]*\./.test(prompt)) return prompt.replace(/\bRoom: [^.]*\./, room);
+  return /\bMoment: [^.]*\./.test(prompt)
+    ? prompt.replace(/(\bMoment: [^.]*\.)/, `$1 ${room}`)
+    : `${prompt} ${room}`;
+}

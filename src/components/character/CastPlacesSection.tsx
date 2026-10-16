@@ -146,8 +146,8 @@ export default function CastPlacesSection({
         <div className="space-y-2" data-testid="cast-place-photos">
           <p className="text-sm font-medium text-[var(--text-primary)]">Photos of their rooms</p>
           <p className="type-caption text-[var(--text-muted)]">
-            A photo of a real room (no people in it): Edit 2511 stills set in that room are built
-            around it — its furniture, colours and walls — with the pose from the words.
+            A photo of a real room (no people in it): clothed Edit 2511 stills and adult solo stills
+            set in that room are built around it — its furniture, colours and walls.
           </p>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {PLACE_PHOTO_ROOMS.map(({ kind, room, label }) => {

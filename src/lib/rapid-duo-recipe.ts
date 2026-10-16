@@ -167,7 +167,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // (03082); the knee drawn forward stayed natural 3/3, the act still in view (2026-10-07).
       // "Both lie on their sides" put her on her back with him beside her head (live
       // 2026-09-28, most seeds on v23); placing each body in turn gave 6/6 real spooning.
-      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind; her top knee is drawn forward and up toward her chest, her foot resting on the bed in front of her, his hand on her hip. Both faces in frame.`;
+      // Her knee drawn up with his legs behind hers still merged four legs on most seeds of the
+      // user's spoon still (every arm of the 2026-10-16 replays). A low camera at the foot of the
+      // bed, her legs together in front and his behind: no merging 4/4 (stacking her legs on his
+      // threw them in the air; a sheet over both was ignored).
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind; seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers; his hand on her hip. Both faces in frame.`;
     case 'scissors':
       // Drawn as missionary since 2026-10-05 (the seated wording + the scissors map merged legs
       // and once added a third person). Without the map, each leg placed: real scissoring 5-6/6

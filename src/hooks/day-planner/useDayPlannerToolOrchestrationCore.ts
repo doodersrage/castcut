@@ -1,6 +1,10 @@
 'use client';
 
-import { castPlacePhotoFor, withPlacePhotoInPrompt } from '@/lib/cast-places';
+import {
+  castPlacePhotoFor,
+  withPlacePhotoInAdultPrompt,
+  withPlacePhotoInPrompt,
+} from '@/lib/cast-places';
 import { applyDayNarration } from '@/lib/day-narration';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import { partnerOutfitWords } from '@/lib/day-partner-outfit';
@@ -2420,6 +2424,25 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[2] = undefined;
           extraFilenames[2] = placePhoto.filename;
         }
+        // Adult Rapid solo: the pose map moves to Image 2 (where the recipe already says it is —
+        // the queue would compact it there) and the room photo rides as Image 3.
+        const adultPlacePhoto =
+          !placePhoto &&
+          adultStill &&
+          !partnerFace &&
+          /rapid-aio/i.test(stillModel ?? '') &&
+          !extraFilenames[1]?.trim() &&
+          !extraUrls[1] &&
+          Boolean(extraFilenames[2]?.trim() || extraUrls[2]) &&
+          !extraFilenames[3]?.trim()
+            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            : null;
+        if (adultPlacePhoto) {
+          extraUrls[1] = extraUrls[2];
+          extraFilenames[1] = extraFilenames[2] ?? '';
+          extraUrls[2] = undefined;
+          extraFilenames[2] = adultPlacePhoto.filename;
+        }
         if (vacationFaceBreak && identityLatentPlate?.filename) {
           extraFilenames[2] = extraFilenames[2] ?? '';
           extraUrls[3] = undefined;
@@ -2537,7 +2560,11 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // No garment: the queue compacts the guide into the second image — say so.
         const numbered = queuedDayStillPrompt(
-          placePhoto ? withPlacePhotoInPrompt(finalized) : finalized,
+          placePhoto
+            ? withPlacePhotoInPrompt(finalized)
+            : adultPlacePhoto
+              ? withPlacePhotoInAdultPrompt(finalized)
+              : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),
