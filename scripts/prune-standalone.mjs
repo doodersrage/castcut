@@ -2,26 +2,19 @@
 /**
  * Postbuild: strip runtime data directories out of the standalone output.
  *
- * outputFileTracingExcludes in next.config.ts is supposed to keep
- * services/diffusers-engine/{loras,outputs} out of .next/standalone (they're
- * downloaded LoRAs / generated images — runtime data, not code), but Turbopack's
- * standalone file tracer has known bugs where excludes are silently ignored
- * (see vercel/next.js#84960, #88844). Rather than depend on that working, this
- * script deterministically deletes the bulky data dirs after the trace runs.
- *
- * Safe to delete outright: services/diffusers-engine/app/{main.py,lora_resolve.py}
- * both `mkdir(parents=True, exist_ok=True)` these directories on demand, so the
- * Python engine recreates them at runtime — nothing needs to pre-exist.
+ * outputFileTracingExcludes in next.config.base.cjs is supposed to keep services/ out of
+ * .next/standalone (an old checkout's Diffusers engine leftovers: downloaded LoRAs, generated
+ * images, venvs — the engine is its own repo now), but Turbopack's standalone file tracer has
+ * known bugs where excludes are silently ignored (see vercel/next.js#84960, #88844). Rather than
+ * depend on that working, this script deterministically deletes it after the trace runs.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 
 const STANDALONE_ROOT = path.join(process.cwd(), '.next', 'standalone');
 const PRUNE_TARGETS = [
-  ['services', 'diffusers-engine', 'loras'],
-  ['services', 'diffusers-engine', 'outputs'],
-  ['services', 'diffusers-engine', '.venv'],
-  ['services', '.venv'],
+  // Anything an old checkout left under services/ (the Diffusers engine moved to its own repo).
+  ['services'],
 ];
 
 if (!fs.existsSync(STANDALONE_ROOT)) {

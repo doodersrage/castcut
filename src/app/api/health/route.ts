@@ -16,6 +16,7 @@ import { summarizeApiUsage } from '@/lib/api-usage-log';
 import { isServerStorageEnabled, readServerStorage } from '@/lib/server-storage';
 import { isEmailConfigured } from '@/lib/email/config';
 import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from '@/lib/comfyui-config';
+import { diffusersEngineAvailability } from '@/lib/diffusers-engine-install';
 import { apiJson } from '@/lib/api/response';
 import { getAuthBootstrapInfo } from '@/lib/auth/store';
 import { getServerEnvSummary } from '@/lib/server-env-summary';
@@ -101,7 +102,10 @@ export async function GET(request: Request) {
       }
     })(),
     checkComfyUiPoolHealth(loadPersistedComfyPoolUrls()),
-    checkDiffusersHealth(diffusersUrlHint),
+    // Not installed and no engine URL: nothing to probe (the engine is an optional add-on).
+    diffusersUrlHint || diffusersEngineAvailability().available
+      ? checkDiffusersHealth(diffusersUrlHint)
+      : Promise.resolve(undefined),
     checkCollabHealth(),
   ]);
 

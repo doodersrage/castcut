@@ -88,3 +88,6 @@ comfyui-nodes/**/__pycache__/
 /tmp-adult/
 # Live Play A/B output (scripts/play-ab.mjs)
 /play-ab-out/
+
+# Leftovers from the old in-repo Diffusers engine (now github.com/doodersrage/castcut-diffusers)
+services/

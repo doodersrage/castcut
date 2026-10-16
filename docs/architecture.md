@@ -93,7 +93,7 @@ Thin browser seam for **queue / status / view / upload / progress** so backends 
 | Cloud registry           | `src/lib/engine/capabilities.ts` (`CLOUD_ENGINE_OPTIONS`)                                           |
 | Selection                | `getEngineAdapter()` / `getEngineAdapterById()` in `src/lib/engine/index.ts`                        |
 | Settings                 | `inferenceEngine` + Diffusers URL + cloud key/model (Settings → Inference engine)                   |
-| Python service           | `services/diffusers-engine/` (optional FastAPI txt2img)                                             |
+| Python service           | [castcut-diffusers](https://github.com/doodersrage/castcut-diffusers) — its own repo, installed from Settings (optional FastAPI stills)                                             |
 
 Methods: `postPrompt`, `fetchJobStatus`, `buildViewPath`, `uploadInputImage`, `subscribeProgress`, `openProgressBeforeQueue`.
 

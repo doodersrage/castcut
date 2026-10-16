@@ -175,7 +175,7 @@ Legacy URLs `/duo` and `/random-scene` redirect to Character and Generate.
 - **HTTP API** — [docs/http-api.md](docs/http-api.md) (live catalog: `GET /api`; health, probe, invite, SMTP)
 - **Architecture** — [docs/architecture.md](docs/architecture.md)
 - **Operator guide** — [docs/operator.md](docs/operator.md)
-- **Optional Diffusers engine** — [services/diffusers-engine/README.md](services/diffusers-engine/README.md)
+- **Optional Diffusers engine** — [castcut-diffusers](https://github.com/doodersrage/castcut-diffusers) (its own repo; Settings → Inference engine installs it)
 - **Optional cloud engines** — Settings → Inference engine (Fal, Replicate, ChatGPT, Gemini, Grok, Runway, Luma). Set the matching env key or a browser key, then queue (Image 1 becomes img2img when present). Fal/Replicate/Grok/Gemini/Runway/Luma can queue clips; ChatGPT is stills-only. Model datalists cover current FLUX.2 / Kling / WAN / Seedream / HiDream / Veo / Gen-4.5 / Ray presets — type a custom endpoint id if your account has access to something newer.
 
 ## CLI & data scripts

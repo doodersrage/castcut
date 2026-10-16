@@ -147,7 +147,7 @@ export function getServerEnvSummary(): ServerEnvSummary {
           label: 'Diffusers autostart (server)',
           value: process.env.DIFFUSERS_AUTOSTART?.trim() || '1 (default)',
           configured: flag(process.env.DIFFUSERS_AUTOSTART),
-          hint: 'Set to 0 to block spawning services/diffusers-engine. Browser Settings can also disable.',
+          hint: 'Set to 0 to block starting the installed Diffusers engine. Browser Settings can also disable.',
           uiOverride: 'Settings → ComfyUI → Inference engine → Auto-start',
         },
         {

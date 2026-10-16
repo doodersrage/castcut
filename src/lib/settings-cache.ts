@@ -474,7 +474,7 @@ export type SharedToolSettings = {
   diffusersApiUrl?: string;
   /**
    * When Diffusers is unreachable on localhost, Studio spawns
-   * `services/diffusers-engine` (server kill-switch: DIFFUSERS_AUTOSTART=0).
+   * the installed Diffusers engine (server kill-switch: DIFFUSERS_AUTOSTART=0).
    */
   diffusersAutoStart?: boolean;
   /** Fal txt2img model id (e.g. fal-ai/flux/schnell). */

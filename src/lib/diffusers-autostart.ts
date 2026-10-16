@@ -1,6 +1,7 @@
 /**
  * Same-machine Diffusers engine autostart (localhost only).
- * Spawns services/diffusers-engine via run.sh / venv uvicorn when health fails.
+ * Spawns the installed engine (diffusers-engine-install.ts) via run.sh / venv uvicorn when
+ * health fails.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -8,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { checkDiffusersHealth } from './service-health';
 import { getDiffusersBaseUrl } from './diffusers-client';
+import { resolveDiffusersEngineDir } from './diffusers-engine-install';
 
 export type DiffusersEnsureResult = {
   ok: boolean;
@@ -20,12 +22,6 @@ export type DiffusersEnsureResult = {
   model?: string;
 };
 
-const DEFAULT_ENGINE_DIR = path.join(
-  /* turbopackIgnore: true */ process.cwd(),
-  'services',
-  'diffusers-engine'
-);
-
 let spawnInflight: Promise<DiffusersEnsureResult> | null = null;
 let spawnedChild: ChildProcess | null = null;
 
@@ -35,14 +31,6 @@ function envAutostartEnabled(): boolean {
     return true;
   }
   return raw !== '0' && raw !== 'false' && raw !== 'off' && raw !== 'no';
-}
-
-function resolveEngineDir(): string {
-  const fromEnv = process.env.DIFFUSERS_ENGINE_DIR?.trim();
-  if (fromEnv) {
-    return path.resolve(/* turbopackIgnore: true */ fromEnv);
-  }
-  return DEFAULT_ENGINE_DIR;
 }
 
 /** Autostart only spawns for same-machine engines. */
@@ -158,7 +146,12 @@ async function waitUntilHealthy(url: string, timeoutMs: number): Promise<Diffuse
 }
 
 function spawnEngine(url: string): ChildProcess {
-  const engineDir = resolveEngineDir();
+  const engineDir = resolveDiffusersEngineDir();
+  if (!engineDir) {
+    throw new Error(
+      'The Diffusers engine is not installed — Settings → Inference engine → Install engine, or set DIFFUSERS_API_URL to an engine running elsewhere.'
+    );
+  }
   const port = listenPort(url);
   const resolved = resolveSpawnCommand(engineDir, port);
   if (!resolved) {

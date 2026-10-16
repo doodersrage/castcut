@@ -75,7 +75,7 @@ final commit message descriptive, since it's what shows up in release notes.
 - `docs/` — user-facing docs, published via [GitHub Pages](docs/README.md) (`npm run docs:serve` to preview locally)
 - `e2e/` — Playwright specs
 - `desktop/` — Tauri-based desktop packaging (macOS/Windows/Linux installers)
-- `services/diffusers-engine/` — optional Python sidecar for the Diffusers inference engine
+- The optional Diffusers engine (Python) lives in its own repo, [castcut-diffusers](https://github.com/doodersrage/castcut-diffusers)
 
 [docs/architecture.md](docs/architecture.md) has the fuller map if you're navigating for
 the first time.

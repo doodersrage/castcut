@@ -30,6 +30,9 @@ import {
   type CloudEngineId,
 } from '@/lib/engine/capabilities';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import DiffusersEngineInstall, {
+  useDiffusersEngine,
+} from '@/components/settings/panels/DiffusersEngineInstall';
 
 const FIELD_CLASS =
   'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-muted)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-inner transition focus-visible:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]';
@@ -46,6 +49,9 @@ export default function SettingsInferenceEnginePanel({
   const [diffusersEnsureStatus, setDiffusersEnsureStatus] = useState<string | null>(null);
   const activeEngine = parseEngineId(sharedSettings.inferenceEngine) ?? 'comfyui';
   const activeCloud = CLOUD_ENGINE_OPTIONS.find(option => option.id === activeEngine);
+  // An add-on: offered once installed or pointed at (or still picked from before).
+  const diffusersEngine = useDiffusersEngine();
+  const showDiffusers = activeEngine === 'diffusers' || Boolean(diffusersEngine.state?.available);
 
   return (
     <ToolSection
@@ -110,7 +116,7 @@ export default function SettingsInferenceEnginePanel({
             className={FIELD_CLASS}
           >
             <option value="comfyui">ComfyUI (primary generate)</option>
-            <option value="diffusers">Diffusers (stills only)</option>
+            {showDiffusers ? <option value="diffusers">Diffusers (stills only)</option> : null}
             {CLOUD_ENGINE_OPTIONS.map(option => (
               <option key={option.id} value={option.id}>
                 {option.label}
@@ -121,6 +127,8 @@ export default function SettingsInferenceEnginePanel({
             <p className="text-xs text-[var(--text-muted)]">{diffusersEnsureStatus}</p>
           ) : null}
         </div>
+
+        <DiffusersEngineInstall engine={diffusersEngine} />
 
         {activeEngine === 'comfyui' ? (
           <p className="text-xs text-[var(--text-muted)] sm:col-span-2">
@@ -182,11 +190,7 @@ export default function SettingsInferenceEnginePanel({
                   Auto-start Diffusers when offline
                 </span>
                 <span className="block text-xs text-[var(--text-muted)]">
-                  Spawns{' '}
-                  <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
-                    services/diffusers-engine
-                  </code>{' '}
-                  for localhost URLs. Kill-switch:{' '}
+                  Starts the installed engine for localhost URLs. Kill-switch:{' '}
                   <code className="rounded bg-[var(--bg-elevated)] px-1 text-[var(--text-secondary)]">
                     DIFFUSERS_AUTOSTART=0
                   </code>

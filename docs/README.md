@@ -157,7 +157,7 @@ Quick jumps inside [features.md](features.md):
 | [Releases](releasing.md) | Cut `vX.Y.Z` GitHub Releases and GHCR images |
 | [Plugin iframe host](plugin-iframe-host.md) | postMessage protocol + example HTML |
 | [Performance & scripts](performance/guide.md) | npm scripts, build, Prettier, monitoring |
-| [Diffusers engine (GitHub)](https://github.com/doodersrage/castcut/blob/main/services/diffusers-engine/README.md) | Optional FastAPI stills sidecar |
+| [Diffusers engine (GitHub)](https://github.com/doodersrage/castcut-diffusers) | Optional FastAPI stills sidecar |
 
 ### Local preview
 
