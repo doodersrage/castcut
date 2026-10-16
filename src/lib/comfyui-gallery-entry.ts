@@ -56,10 +56,14 @@ export type ComfyGalleryEntry = {
     | 'finish'
     /** Copy moves (motion-transfer.ts): the still's person doing a driving video's moves. */
     | 'moves'
+    /** Dance to music (music-dance.ts): the still's person dancing to a song. */
+    | 'dance'
     /** Lip-sync (lip-sync.ts): the still speaking a recording. */
     | 'lip-sync'
     /** Relight (relight.ts): the still with new light. */
     | 'relight'
+    /** Sketch (sketch.ts): strokes drawn over the still, rendered as a photo. */
+    | 'sketch'
     | 'film';
   /** Resolved queue params (seed, width, cfg, etc.). */
   queueParams?: WorkflowParamValues;

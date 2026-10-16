@@ -16,7 +16,10 @@ export async function GET() {
 const text = (value: FormDataEntryValue | null, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
-/** POST multipart { audio (file), stillUrl, prompt?, comfyUrl? } → { url }: the still speaking it. */
+/**
+ * POST multipart { audio (file), audio2? (file: the right-hand person, after the left), stillUrl,
+ * prompt?, comfyUrl? } → { url }: the still speaking it.
+ */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
   if (isAuthEnabled() && !user?.enabled) return apiError('Authentication required.', 401);
@@ -30,11 +33,16 @@ export async function POST(request: Request) {
   if (!(audio instanceof Blob) || audio.size === 0) return apiError('audio is required.', 400);
   if (audio.size > MAX_AUDIO_BYTES)
     return apiError('That recording is too large (60 MB at most).', 413);
+  const audio2 = form.get('audio2');
+  const second = audio2 instanceof Blob && audio2.size > 0 ? audio2 : null;
+  if (second && audio.size + second.size > MAX_AUDIO_BYTES)
+    return apiError('Those recordings are too large (60 MB at most).', 413);
   const stillUrl = text(form.get('stillUrl'), 2000);
   if (!stillUrl) return apiError('stillUrl is required.', 400);
   try {
     const url = await lipSyncStill({
       audio: new Uint8Array(await audio.arrayBuffer()),
+      ...(second ? { secondAudio: new Uint8Array(await second.arrayBuffer()) } : {}),
       stillUrl,
       prompt:
         text(form.get('prompt'), 600) ||

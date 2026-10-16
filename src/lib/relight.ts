@@ -68,8 +68,10 @@ export function buildRelightGraph(input: {
   seed: number;
   prefix: string;
   loraStrength?: number;
+  /** No Relight LoRA (a plain edit on the checkpoint: Sketch). */
+  noLora?: boolean;
 }): Record<string, unknown> {
-  return {
+  const graph: Record<string, unknown> = {
     '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: input.checkpoint } },
     '2': {
       class_type: 'LoraLoaderModelOnly',
@@ -122,4 +124,9 @@ export function buildRelightGraph(input: {
       inputs: { images: ['13', 0], filename_prefix: input.prefix },
     },
   };
+  if (input.noLora) {
+    delete graph['2'];
+    (graph['9'] as { inputs: Record<string, unknown> }).inputs.model = ['1', 0];
+  }
+  return graph;
 }

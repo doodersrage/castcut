@@ -40,6 +40,7 @@ import { dayLooksWrongMark } from '@/lib/day-looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
+import SketchSheet from '@/components/day-planner/SketchSheet';
 import {
   DAY_SLOT_MEDIA_BUSY,
   type DaySlotMediaTool,
@@ -103,16 +104,25 @@ export type DaySlotBoardProps = {
       video: Blob,
       options: { motion?: string; keepSound?: boolean }
     ) => Promise<string | null>;
-    lipSync: (slot: DaySlot, audio: Blob) => Promise<string | null>;
+    lipSync: (slot: DaySlot, audio: Blob, audio2?: Blob | null) => Promise<string | null>;
+    dance: (
+      slot: DaySlot,
+      music: Blob,
+      options: { style: string; amplitude: string; start?: number }
+    ) => Promise<string | null>;
     relight: (slot: DaySlot, look: string) => Promise<string | null>;
+    /** Keep a picture drawn in the Sketch sheet as the slot's still. */
+    sketch: (slot: DaySlot, url: string) => Promise<string | null>;
   };
 };
 
 const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
   finish: 'Done — the clip is sharper and smoother.',
   moves: 'Done — the clip now has the copied moves.',
+  dance: 'Done — the clip now dances to your song.',
   'lip-sync': 'Done — the clip now says your recording.',
   relight: 'Done — the still has its new light (the original is in the Gallery).',
+  sketch: 'Done — the sketched still is shown (the original is in the Gallery).',
 };
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
@@ -161,6 +171,7 @@ export default function DaySlotBoard({
     null
   );
   const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
+  const [sketchFor, setSketchFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
   const runMedia = async (
     slot: DaySlot,
     tool: DaySlotMediaTool,
@@ -375,6 +386,15 @@ export default function DaySlotBoard({
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
+                    title="Draw rough shapes over the still and say what they are — it re-renders as you go."
+                    data-testid={`day-progress-sketch-${slot.id}`}
+                    onClick={() => setSketchFor({ slot, stillUrl: doneThumb })}
+                  >
+                    Sketch over this still…
+                  </button>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
                     disabled={mediaTools.busy !== null}
                     title="The same picture in a different light — golden hour, window daylight, lamp at night…"
                     data-testid={`day-progress-relight-${slot.id}`}
@@ -391,6 +411,16 @@ export default function DaySlotBoard({
                     onClick={() => setMediaSheet({ slot, kind: 'moves' })}
                   >
                     Copy moves from a video…
+                  </button>
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Pick a song: this still’s person dances to it, on the beat."
+                    data-testid={`day-progress-dance-${slot.id}`}
+                    onClick={() => setMediaSheet({ slot, kind: 'dance' })}
+                  >
+                    Dance to music…
                   </button>
                   <button
                     type="button"
@@ -891,6 +921,18 @@ export default function DaySlotBoard({
         />
       ) : null}
       {mediaTools ? (
+        <SketchSheet
+          open={sketchFor !== null}
+          stillUrl={sketchFor?.stillUrl ?? null}
+          onClose={() => setSketchFor(null)}
+          onUse={url => {
+            const slot = sketchFor?.slot;
+            if (slot) void runMedia(slot, 'sketch', () => mediaTools.sketch(slot, url));
+          }}
+          testId="day-sketch-sheet"
+        />
+      ) : null}
+      {mediaTools ? (
         <SlotMediaSheet
           kind={mediaSheet?.kind ?? null}
           onClose={() => setMediaSheet(null)}
@@ -898,9 +940,14 @@ export default function DaySlotBoard({
             const slot = mediaSheet?.slot;
             if (slot) void runMedia(slot, 'moves', () => mediaTools.moves(slot, video, options));
           }}
-          onLipSync={audio => {
+          onLipSync={(audio, audio2) => {
             const slot = mediaSheet?.slot;
-            if (slot) void runMedia(slot, 'lip-sync', () => mediaTools.lipSync(slot, audio));
+            if (slot)
+              void runMedia(slot, 'lip-sync', () => mediaTools.lipSync(slot, audio, audio2));
+          }}
+          onDance={(music, options) => {
+            const slot = mediaSheet?.slot;
+            if (slot) void runMedia(slot, 'dance', () => mediaTools.dance(slot, music, options));
           }}
           onRelight={look => {
             const slot = mediaSheet?.slot;

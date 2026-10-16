@@ -250,10 +250,11 @@ export async function runComfyUtilityGraph<T>(input: {
   try {
     while (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 800));
+      // A ComfyUI busy loading a big model can stall a request past 8 s: try again, not fail.
       const response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId)}`, {
         signal: AbortSignal.timeout(8000),
-      });
-      if (!response.ok) continue;
+      }).catch(() => null);
+      if (!response?.ok) continue;
       const payload = (await response.json()) as Record<string, ComfyHistoryEntry>;
       const entry = payload[promptId];
       if (!entry) continue;

@@ -15,8 +15,10 @@ export const GALLERY_DERIVED_KIND_FILTERS = [
   'voice',
   'finish',
   'moves',
+  'dance',
   'lip-sync',
   'relight',
+  'sketch',
   'film',
 ] as const satisfies ReadonlyArray<NonNullable<ComfyGalleryEntry['derivedKind']>>;
 
@@ -54,10 +56,14 @@ export function galleryDerivedKindLabel(
       return 'clip made sharper and smoother';
     case 'moves':
       return 'moves copied from a video';
+    case 'dance':
+      return 'danced to music';
     case 'lip-sync':
       return 'lip-synced to a recording';
     case 'relight':
       return 'relit from prior';
+    case 'sketch':
+      return 'sketched over prior';
     case 'film':
       return 'assembled film';
     default:
@@ -95,10 +101,14 @@ export function galleryDerivedKindChipLabel(kind: GalleryDerivedKindFilter): str
       return 'Finished';
     case 'moves':
       return 'Moves';
+    case 'dance':
+      return 'Dance';
     case 'lip-sync':
       return 'Lip-sync';
     case 'relight':
       return 'Relit';
+    case 'sketch':
+      return 'Sketch';
     case 'film':
       return 'Film';
     default:

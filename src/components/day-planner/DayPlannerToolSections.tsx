@@ -1068,8 +1068,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               busy: slotMedia.busy,
               finish: slotMedia.finishSlotClip,
               moves: slotMedia.copyMovesToSlot,
+              dance: slotMedia.danceSlot,
               lipSync: slotMedia.lipSyncSlot,
               relight: slotMedia.relightSlot,
+              sketch: slotMedia.applySketchToSlot,
             }}
           />
           <DayIdeaRow

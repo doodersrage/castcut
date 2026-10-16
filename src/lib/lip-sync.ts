@@ -18,6 +18,8 @@ export const LIP_SYNC_MAX_SECONDS = 30;
 export const LIP_SYNC_MODELS = {
   unet: 'wan2.1_i2v_480p_14B_fp8_scaled.safetensors',
   patch: 'wan2.1_infiniteTalk_single_fp16.safetensors',
+  /** Two speakers, each with a mask (two_speakers mode). */
+  patchTwo: 'wan2.1_infiniteTalk_multi_fp16.safetensors',
   lora: 'lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors',
   audioEncoder: 'wav2vec2-chinese-base_fp16.safetensors',
   clip: 'umt5_xxl_fp8_e4m3fn_scaled.safetensors',
@@ -53,6 +55,12 @@ export function buildLipSyncGraph(input: {
   seconds: number;
   seed: number;
   prefix: string;
+  /**
+   * A second speaker: their recording (said after the first's — the template's AudioConcat
+   * "after") and a white-on-black mask per speaker over the picture, at width × height.
+   * `seconds` is then both recordings together.
+   */
+  second?: { audio: string; mask1: string; mask2: string };
 }): Record<string, unknown> {
   const graph: Record<string, unknown> = {
     '1': {
@@ -63,7 +71,10 @@ export function buildLipSyncGraph(input: {
       class_type: 'LoraLoaderModelOnly',
       inputs: { model: ['1', 0], lora_name: LIP_SYNC_MODELS.lora, strength_model: 1 },
     },
-    '3': { class_type: 'ModelPatchLoader', inputs: { name: LIP_SYNC_MODELS.patch } },
+    '3': {
+      class_type: 'ModelPatchLoader',
+      inputs: { name: input.second ? LIP_SYNC_MODELS.patchTwo : LIP_SYNC_MODELS.patch },
+    },
     '4': {
       class_type: 'CLIPLoader',
       inputs: { clip_name: LIP_SYNC_MODELS.clip, type: 'wan', device: 'default' },
@@ -94,6 +105,22 @@ export function buildLipSyncGraph(input: {
     },
     '13': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'euler' } },
   };
+  const two = input.second;
+  if (two) {
+    Object.assign(graph, {
+      '20': { class_type: 'LoadAudio', inputs: { audio: two.audio } },
+      '21': {
+        class_type: 'AudioEncoderEncode',
+        inputs: { audio_encoder: ['8', 0], audio: ['20', 0] },
+      },
+      '22': { class_type: 'LoadImageMask', inputs: { image: two.mask1, channel: 'red' } },
+      '23': { class_type: 'LoadImageMask', inputs: { image: two.mask2, channel: 'red' } },
+      '24': {
+        class_type: 'AudioConcat',
+        inputs: { audio1: ['9', 0], audio2: ['20', 0], direction: 'after' },
+      },
+    });
+  }
   const segments = lipSyncSegmentCount(input.seconds);
   const kept: [string, number][] = [];
   let previous: [string, number] | null = null;
@@ -103,7 +130,14 @@ export function buildLipSyncGraph(input: {
     graph[id(0)] = {
       class_type: 'WanInfiniteTalkToVideo',
       inputs: {
-        mode: 'single_speaker',
+        ...(two
+          ? {
+              mode: 'two_speakers',
+              'mode.audio_encoder_output_2': ['21', 0],
+              'mode.mask_1': ['22', 0],
+              'mode.mask_2': ['23', 0],
+            }
+          : { mode: 'single_speaker' }),
         model: ['2', 0],
         model_patch: ['3', 0],
         positive: ['5', 0],
@@ -166,7 +200,7 @@ export function buildLipSyncGraph(input: {
   };
   graph['801'] = {
     class_type: 'CreateVideo',
-    inputs: { images: ['802', 0], fps: LIP_SYNC_FPS, audio: ['9', 0] },
+    inputs: { images: ['802', 0], fps: LIP_SYNC_FPS, audio: two ? ['24', 0] : ['9', 0] },
   };
   graph[LIP_SYNC_SAVE_NODE] = {
     class_type: 'SaveVideo',

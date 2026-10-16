@@ -6,19 +6,22 @@ import { keepClipInGallery, keepStillInGallery } from '@/lib/clip-gallery-keep';
 import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day-planner';
 import {
   requestCopyMoves,
+  requestDanceToMusic,
   requestFinishClip,
   requestLipSync,
   requestRelight,
 } from '@/lib/media-actions-client';
 
-export type DaySlotMediaTool = 'finish' | 'moves' | 'lip-sync' | 'relight';
+export type DaySlotMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch';
 
 /** What each tool says while it works (the board shows it on the card's menu item). */
 export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
   finish: 'Sharpening…',
   moves: 'Copying moves…',
+  dance: 'Dancing…',
   'lip-sync': 'Lip-syncing…',
   relight: 'Relighting…',
+  sketch: 'Keeping the sketch…',
 };
 
 /**
@@ -68,7 +71,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const clipPatch = async (
     still: DaySlotStill,
     url: string,
-    kind: 'finish' | 'moves' | 'lip-sync',
+    kind: 'finish' | 'moves' | 'dance' | 'lip-sync',
     prompt: string
   ): Promise<Partial<DaySlotStill>> => {
     const kept = await keepClipInGallery({
@@ -115,14 +118,26 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     [character, run]
   );
 
+  const danceSlot = useCallback(
+    (slot: DaySlot, music: Blob, options: { style: string; amplitude: string; start?: number }) =>
+      run(slot, 'dance', async still => {
+        const stillUrl = stillUrlOf(still);
+        if (!stillUrl) throw new Error('This slot has no still yet.');
+        const url = await requestDanceToMusic({ music, stillUrl, ...options });
+        return clipPatch(still, url, 'dance', `Dance to music · ${slot.label}`);
+      }),
+    [run]
+  );
+
   const lipSyncSlot = useCallback(
-    (slot: DaySlot, audio: Blob) =>
+    (slot: DaySlot, audio: Blob, audio2?: Blob | null) =>
       run(slot, 'lip-sync', async still => {
         const stillUrl = stillUrlOf(still);
         if (!stillUrl) throw new Error('This slot has no still yet.');
         const scene = (slot.sceneHints?.trim() || slot.label).slice(0, 200);
         const url = await requestLipSync({
           audio,
+          audio2,
           stillUrl,
           prompt: `${scene}. The person talks to the camera, natural expressions and small head movements.`,
         });
@@ -150,5 +165,39 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     [run]
   );
 
-  return { busy, finishSlotClip, copyMovesToSlot, lipSyncSlot, relightSlot };
+  /** A sketch rendered in the Sketch sheet becomes the shown still (kept in the Gallery). */
+  const applySketchToSlot = useCallback(
+    async (slot: DaySlot, url: string): Promise<string | null> => {
+      const still = stillsRef.current.find(entry => entry.slotId === slot.id);
+      if (!still?.promptId) return 'This slot has no still yet.';
+      const kept = await keepStillInGallery({
+        url,
+        kind: 'sketch',
+        prompt: `Sketch · ${slot.label}`,
+        tool: 'day',
+        sourcePromptId: still.promptId,
+      });
+      const now = stillsRef.current.find(entry => entry.slotId === slot.id) ?? still;
+      updateToolSettings({
+        stills: upsertDaySlotStill(stillsRef.current, {
+          ...now,
+          finishedUrl: kept.url,
+          finishedFor: now.promptId,
+        }),
+      });
+      return null;
+    },
+    [stillsRef, updateToolSettings]
+  );
+
+  return {
+    busy,
+    finishSlotClip,
+    copyMovesToSlot,
+    danceSlot,
+    lipSyncSlot,
+    relightSlot,
+    applySketchToSlot,
+    stillUrlOf,
+  };
 }

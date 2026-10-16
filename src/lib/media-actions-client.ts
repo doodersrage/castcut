@@ -57,11 +57,14 @@ export async function requestCopyMoves(input: {
 
 export async function requestLipSync(input: {
   audio: Blob;
+  /** Two people: the right-hand person's recording, said after the left-hand one's. */
+  audio2?: Blob | null;
   stillUrl: string;
   prompt?: string;
 }): Promise<string> {
   const form = new FormData();
   form.set('audio', input.audio, 'voice');
+  if (input.audio2) form.set('audio2', input.audio2, 'voice-2');
   form.set('stillUrl', input.stillUrl);
   if (input.prompt) form.set('prompt', input.prompt);
   const response = await fetch('/api/clip/lip-sync', {
@@ -70,4 +73,42 @@ export async function requestLipSync(input: {
     body: form,
   });
   return readUrl(response, 'Lip-sync failed.');
+}
+
+export async function requestDanceToMusic(input: {
+  music: Blob;
+  stillUrl: string;
+  style: string;
+  amplitude: string;
+  start?: number;
+}): Promise<string> {
+  const form = new FormData();
+  form.set('music', input.music, 'music');
+  form.set('stillUrl', input.stillUrl);
+  form.set('style', input.style);
+  form.set('amplitude', input.amplitude);
+  if (input.start) form.set('start', String(input.start));
+  const response = await fetch('/api/clip/dance', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  });
+  return readUrl(response, 'Dance to music failed.');
+}
+
+export async function requestSketch(input: {
+  image: Blob;
+  words: string;
+  overStill: boolean;
+}): Promise<string> {
+  const form = new FormData();
+  form.set('image', input.image, 'sketch.png');
+  form.set('words', input.words);
+  if (input.overStill) form.set('overStill', 'true');
+  const response = await fetch('/api/still/sketch', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  });
+  return readUrl(response, 'Sketch failed.');
 }

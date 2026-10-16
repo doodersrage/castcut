@@ -5,6 +5,8 @@ import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
+import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
+import SketchSheet from '@/components/day-planner/SketchSheet';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import {
@@ -106,6 +108,15 @@ export function RoleplayStoryBeatCard({
   const [addVoiceNote, setAddVoiceNote] = useState<string | null>(null);
   const [extendNote, setExtendNote] = useState<string | null>(null);
   const [extendSheetOpen, setExtendSheetOpen] = useState(false);
+  const [mediaSheet, setMediaSheet] = useState<SlotMediaSheetKind | null>(null);
+  const [mediaNote, setMediaNote] = useState<string | null>(null);
+  const [sketchOpen, setSketchOpen] = useState(false);
+  const media = edit?.media;
+  const mediaBusyHere = media?.busy?.key === storyBeatKey(beat);
+  const runMedia = (work: Promise<string | null>, done: string) => {
+    setMediaNote(null);
+    void work.then(error => setMediaNote(error ?? done));
+  };
   const extendRequest = extendSheetOpen && edit ? edit.extendRequestFor(beat) : null;
   const voiceKey = storyBeatKey(beat);
   const voiceNote = voice.noteFor(voiceKey);
@@ -343,6 +354,67 @@ export function RoleplayStoryBeatCard({
                 {edit.extending?.key === storyBeatKey(beat) ? 'Making it longer…' : 'Make it 30 s'}
               </button>
             ) : null}
+            {media && beat.stillStatus === 'completed' && beat.imageUrl?.trim() && !withheld ? (
+              <>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  data-testid="story-beat-sketch"
+                  onClick={() => setSketchOpen(true)}
+                >
+                  Sketch over this still…
+                </button>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-relight"
+                  onClick={() => setMediaSheet('relight')}
+                >
+                  Relight…
+                </button>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-moves"
+                  onClick={() => setMediaSheet('moves')}
+                >
+                  Copy moves from a video…
+                </button>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-dance"
+                  onClick={() => setMediaSheet('dance')}
+                >
+                  Dance to music…
+                </button>
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-lip-sync"
+                  onClick={() => setMediaSheet('lip-sync')}
+                >
+                  Lip-sync to a recording…
+                </button>
+              </>
+            ) : null}
+            {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || media.busy !== null}
+                data-testid="story-beat-finish"
+                onClick={() =>
+                  runMedia(media.finish(beat), 'Done — the clip is sharper and smoother.')
+                }
+              >
+                Sharpen &amp; smooth clip
+              </button>
+            ) : null}
             {canTakeVoice ? (
               <button
                 type="button"
@@ -393,6 +465,59 @@ export function RoleplayStoryBeatCard({
               data-testid="story-beat-line-shown"
             >
               “{beat.line.trim()}”
+            </p>
+          ) : null}
+          {media ? (
+            <SketchSheet
+              open={sketchOpen}
+              stillUrl={beat.imageUrl?.trim() || null}
+              onClose={() => setSketchOpen(false)}
+              onUse={url =>
+                runMedia(
+                  media.applySketch(beat, url),
+                  'Done — the sketch is the shown take (the original is one take back).'
+                )
+              }
+              testId="story-sketch-sheet"
+            />
+          ) : null}
+          {media ? (
+            <SlotMediaSheet
+              kind={mediaSheet}
+              onClose={() => setMediaSheet(null)}
+              onMoves={(video, options) =>
+                runMedia(
+                  media.moves(beat, video, options),
+                  'Done — the clip now has the copied moves.'
+                )
+              }
+              onDance={(music, options) =>
+                runMedia(
+                  media.dance(beat, music, options),
+                  'Done — the clip now dances to your song.'
+                )
+              }
+              onLipSync={(audio, audio2) =>
+                runMedia(
+                  media.lipSync(beat, audio, audio2),
+                  'Done — the clip now says your recording.'
+                )
+              }
+              onRelight={look =>
+                runMedia(
+                  media.relight(beat, look),
+                  'Done — the relit still is the shown take (the original is one take back).'
+                )
+              }
+            />
+          ) : null}
+          {mediaBusyHere || mediaNote ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-media-note"
+            >
+              {mediaBusyHere ? 'Working on it… (a few minutes)' : mediaNote}
             </p>
           ) : null}
           {edit && extendRequest ? (

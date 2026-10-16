@@ -114,5 +114,11 @@
   "src/lib/relight.ts",
   "src/lib/relight-server.ts",
   "src/lib/heavy-graph-server.ts",
-  "src/lib/media-actions-client.ts"
+  "src/lib/media-actions-client.ts",
+  "src/app/api/clip/dance/route.ts",
+  "src/app/api/still/sketch/route.ts",
+  "src/lib/music-dance.ts",
+  "src/lib/music-dance-server.ts",
+  "src/lib/sketch.ts",
+  "src/lib/sketch-server.ts"
 ]

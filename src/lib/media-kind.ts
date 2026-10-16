@@ -20,6 +20,7 @@ export function isVideoLikeEntry(
     entry.derivedKind === 'voice' ||
     entry.derivedKind === 'finish' ||
     entry.derivedKind === 'moves' ||
+    entry.derivedKind === 'dance' ||
     entry.derivedKind === 'lip-sync' ||
     entry.tool === 'video'
   );

@@ -4,6 +4,7 @@ import { gotoStable } from './helpers/navigation';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
+import { openStoryBeatMenu } from './helpers/story';
 
 test.beforeEach(async ({ page }) => {
   await isolateServerStorage(page);
@@ -153,4 +154,164 @@ test('Lip-sync: a picked recording makes the slot clip', async ({ page }) => {
   );
   expect(body).toContain('fake audio');
   expect(body).toContain('making coffee');
+});
+
+async function openStory(page: import('@playwright/test').Page) {
+  const now = Date.now();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      roleplay: {
+        activeSessionId: `cast-${CAST}`,
+        characterName: 'Media Cast',
+        bio: { name: 'Media Cast', look: 'a woman', personality: 'warm' },
+        story: [
+          {
+            id: 'b1',
+            at: now - 2000,
+            kind: 'plot',
+            title: 'Morning',
+            blurb: 'Coffee by the window.',
+            castId: CAST,
+            stillStatus: 'completed',
+            promptId: 'p-story',
+            imageUrl: '/icon.svg',
+            clipStatus: 'completed',
+            clipPromptId: 'c-story',
+            clipUrl: '/e2e-story-clip.mp4',
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/story?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openStoryBeatMenu(page, 0);
+}
+
+test('Story: Sharpen & smooth and Relight a scene', async ({ page }) => {
+  const finish: Array<Record<string, unknown>> = [];
+  const relight: Array<Record<string, unknown>> = [];
+  await page.route('**/api/clip/finish', route => {
+    finish.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/e2e-story-finished.mp4' }),
+    });
+  });
+  await page.route('**/api/still/relight', route => {
+    relight.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/icon.svg' }),
+    });
+  });
+  await openStory(page);
+  await page.getByTestId('story-beat-finish').first().click();
+  await expect(page.getByTestId('story-beat-media-note').first()).toContainText(
+    'sharper and smoother',
+    { timeout: 30_000 }
+  );
+  expect(finish[0]?.clipUrl).toBe('/e2e-story-clip.mp4');
+  await openStoryBeatMenu(page, 0);
+  await page.getByTestId('story-beat-relight').first().click();
+  await page.getByTestId('slot-media-sheet-look-window').click();
+  await expect(page.getByTestId('story-beat-media-note').first()).toContainText('relit still', {
+    timeout: 30_000,
+  });
+  expect(relight[0]?.look).toBe('window');
+});
+
+test('Dance to music: a song, a style, and the clip in place', async ({ page }) => {
+  let body = '';
+  await page.route('**/api/clip/dance', route => {
+    body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/e2e-dance.mp4' }),
+    });
+  });
+  await openDay(page);
+  await page.getByTestId('day-progress-dance-morning').click();
+  await page.getByTestId('slot-media-sheet-music').setInputFiles({
+    name: 'song.mp3',
+    mimeType: 'audio/mpeg',
+    buffer: Buffer.from('fake song'),
+  });
+  await page.getByTestId('slot-media-sheet-style-kpop').click();
+  await page.getByTestId('slot-media-sheet-start-at').fill('20');
+  await page.getByTestId('slot-media-sheet-start').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'dances to your song',
+    { timeout: 30_000 }
+  );
+  expect(body).toContain('fake song');
+  expect(body).toContain('kpop');
+  expect(body).toMatch(/name="start"\r\n\r\n20/);
+});
+
+test('Lip-sync with two people sends both recordings', async ({ page }) => {
+  let body = '';
+  await page.route('**/api/clip/lip-sync', route => {
+    body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/e2e-lipsync-2.mp4' }),
+    });
+  });
+  await openDay(page);
+  await page.getByTestId('day-progress-lip-sync-morning').click();
+  await page.getByTestId('slot-media-sheet-audio').setInputFiles({
+    name: 'her.wav',
+    mimeType: 'audio/wav',
+    buffer: Buffer.from('her line'),
+  });
+  await page.getByTestId('slot-media-sheet-audio-2').setInputFiles({
+    name: 'his.wav',
+    mimeType: 'audio/wav',
+    buffer: Buffer.from('his answer'),
+  });
+  await page.getByTestId('slot-media-sheet-start').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'says your recording',
+    { timeout: 30_000 }
+  );
+  expect(body).toContain('her line');
+  expect(body).toMatch(/name="audio2"[^]*his answer/);
+});
+
+test('Sketch: draw, render, and use it as the still', async ({ page }) => {
+  let body = '';
+  await page.route('**/api/still/sketch', route => {
+    body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/icon.svg' }),
+    });
+  });
+  await openDay(page);
+  await page.getByTestId('day-progress-sketch-morning').click();
+  const canvas = page.getByTestId('day-sketch-sheet-canvas');
+  await expect(canvas).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+  await page.getByTestId('day-sketch-sheet-words').fill('a red umbrella');
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4, { steps: 8 });
+  await page.mouse.up();
+  // It renders by itself once drawing pauses.
+  await expect(page.getByTestId('day-sketch-sheet-result')).toBeVisible({ timeout: 15_000 });
+  expect(body).toContain('a red umbrella');
+  expect(body).toMatch(/name="overStill"\r\n\r\ntrue/);
+  await page.getByTestId('day-sketch-sheet-use').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'sketched still is shown',
+    { timeout: 30_000 }
+  );
 });

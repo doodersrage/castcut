@@ -8,6 +8,10 @@ import {
   type ClipExtendRequest,
 } from '@/lib/clip-extend';
 import { keepClipInGallery } from '@/lib/clip-gallery-keep';
+import {
+  useStoryBeatMediaTools,
+  type StoryBeatMediaTools,
+} from '@/hooks/roleplay/useStoryBeatMediaTools';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { clipUrlIsAnimatedImage } from '@/lib/clip-media-kind';
@@ -65,6 +69,8 @@ type UseStoryBeatEditOptions = {
 };
 
 export type StoryBeatEditActions = {
+  /** Sharpen & smooth, Copy moves, Lip-sync, Relight (useStoryBeatMediaTools). */
+  media: StoryBeatMediaTools;
   /** Save a scene's edited text. False when it was refused (the editor stays open). */
   saveBeatText: (beat: RoleplayStoryBeat, text: { title: string; blurb: string }) => boolean;
   /** Set (or clear) what the lead says in the scene's clip. */
@@ -423,9 +429,12 @@ export function useStoryBeatEdit({
     }
   }, [story, voiceBeatClip, voicingKey]);
 
+  const media = useStoryBeatMediaTools({ storyRef, updateToolSettings });
+
   // One object per change: it is a context value, and every card in the reel reads it.
   return useMemo(
     () => ({
+      media,
       saveBeatText,
       saveBeatLine,
       saveBeatLineFullFrame,
@@ -441,6 +450,7 @@ export function useStoryBeatEdit({
       rewritingKey,
     }),
     [
+      media,
       extendBeatClip,
       extendRequestFor,
       extending,

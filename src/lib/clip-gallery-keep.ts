@@ -17,6 +17,7 @@ const CLIP_KEEP_NAME = {
   voice: 'voiced',
   finish: 'finished',
   moves: 'moves',
+  dance: 'dance',
   'lip-sync': 'lipsync',
 } as const;
 
@@ -25,12 +26,13 @@ const CLIP_KEEP_TAG = {
   voice: 'voice',
   finish: 'finished',
   moves: 'moves',
+  dance: 'dance',
   'lip-sync': 'lip-sync',
 } as const;
 
 export async function keepClipInGallery(input: {
   url: string;
-  kind: 'extend' | 'voice' | 'finish' | 'moves' | 'lip-sync';
+  kind: 'extend' | 'voice' | 'finish' | 'moves' | 'dance' | 'lip-sync';
   prompt: string;
   tool: 'day' | 'roleplay';
   /** The clip it came from: its gallery entry is found by job id for the parent link and Cast. */
@@ -84,7 +86,7 @@ export async function keepClipInGallery(input: {
  */
 export async function keepStillInGallery(input: {
   url: string;
-  kind: 'relight';
+  kind: 'relight' | 'sketch';
   prompt: string;
   tool: 'day' | 'roleplay';
   sourcePromptId?: string;
@@ -95,7 +97,7 @@ export async function keepStillInGallery(input: {
     if (!response.ok) return { url: input.url };
     const blob = await response.blob();
     const id = crypto.randomUUID();
-    const filename = `castcut-relit-${id.slice(0, 8)}.png`;
+    const filename = `castcut-${input.kind === 'sketch' ? 'sketch' : 'relit'}-${id.slice(0, 8)}.png`;
     const persisted = await persistGalleryOriginal(
       id,
       new File([blob], filename, { type: blob.type || 'image/png' })
@@ -124,7 +126,7 @@ export async function keepStillInGallery(input: {
       durableThumbPath: persisted.thumbPath,
       sourceImageUrl: persisted.originalUrl,
       ...(source?.adultCheck ? { adultCheck: source.adultCheck } : {}),
-      userTags: ['relit'],
+      userTags: [input.kind === 'sketch' ? 'sketch' : 'relit'],
     });
     return { url: persisted.originalUrl, entryId: id, promptId: `${input.kind}-${id}` };
   } catch {
