@@ -25,7 +25,18 @@ export default function FilmRecutPanel({
   const [quality, setQuality] = useState<'720p' | '1080p'>(start.quality);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  if (!recipe) return null;
+  // Films cut before 2.6 kept no recipe: say so, rather than showing nothing.
+  if (!recipe) {
+    return (
+      <p
+        className="type-caption border-t border-[var(--border-subtle)] px-2 py-1 text-[var(--text-muted)]"
+        data-testid="film-recut-unavailable"
+      >
+        Re-cut, Export for an editor and Share for review need a film cut in 2.6 or later — cut this
+        Day again to get them.
+      </p>
+    );
+  }
 
   const run = async () => {
     setBusy(true);
@@ -84,27 +95,34 @@ export default function FilmRecutPanel({
   };
 
   return (
-    <details className="border-t border-[var(--border-subtle)] px-2 py-1" data-testid="film-recut">
-      <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
-        What&apos;s in it · Re-cut · Export
-      </summary>
-      <p className="type-caption mt-1 text-[var(--text-muted)]" data-testid="film-recut-summary">
-        {cutRecipeSummary(recipe)}
-      </p>
-      <ol className="mt-1 flex flex-wrap gap-1" data-testid="film-recut-shots">
-        {recipe.shots.map((shot, index) => (
-          <li
-            key={`${shot.key ?? shot.url}-${index}`}
-            className="type-caption rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[var(--text-muted)]"
-            title={shot.caption || shot.title}
-          >
-            {index + 1}. {shot.title}
-            {shot.kind === 'clip' ? ' · clip' : ''}
-            {shot.framing ? ` · ${shot.framing === 'close' ? 'chest up' : 'waist up'}` : ''}
-          </li>
-        ))}
-      </ol>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+    // The buttons in plain sight (they sat behind a collapsed line and players never found them);
+    // only the shot breakdown folds away.
+    <div
+      className="space-y-1 border-t border-[var(--border-subtle)] px-2 py-1.5"
+      data-testid="film-recut"
+    >
+      <details>
+        <summary className="type-caption cursor-pointer text-[var(--text-secondary)]">
+          What&apos;s in it
+        </summary>
+        <p className="type-caption mt-1 text-[var(--text-muted)]" data-testid="film-recut-summary">
+          {cutRecipeSummary(recipe)}
+        </p>
+        <ol className="mt-1 flex flex-wrap gap-1" data-testid="film-recut-shots">
+          {recipe.shots.map((shot, index) => (
+            <li
+              key={`${shot.key ?? shot.url}-${index}`}
+              className="type-caption rounded border border-[var(--border-subtle)] px-1.5 py-0.5 text-[var(--text-muted)]"
+              title={shot.caption || shot.title}
+            >
+              {index + 1}. {shot.title}
+              {shot.kind === 'clip' ? ' · clip' : ''}
+              {shot.framing ? ` · ${shot.framing === 'close' ? 'chest up' : 'waist up'}` : ''}
+            </li>
+          ))}
+        </ol>
+      </details>
+      <div className="flex flex-wrap items-center gap-2">
         <select
           aria-label="Re-cut shape"
           disabled={busy}
@@ -161,6 +179,6 @@ export default function FilmRecutPanel({
         </p>
       ) : null}
       <FilmReviewShare entryId={entry.id} title={`${characterName} — a film`} />
-    </details>
+    </div>
   );
 }

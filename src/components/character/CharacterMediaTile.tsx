@@ -106,7 +106,7 @@ export default function CharacterMediaTile({
             </>
           ) : null}
         </p>
-        {isAssembledFilmEntry(entry) && entry.cutRecipe ? (
+        {isAssembledFilmEntry(entry) ? (
           <FilmRecutPanel entry={entry} characterName={characterName?.trim() || 'Cast'} />
         ) : null}
       </div>

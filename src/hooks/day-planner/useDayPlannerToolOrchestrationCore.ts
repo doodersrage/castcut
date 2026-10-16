@@ -3162,8 +3162,6 @@ export function useDayPlannerToolOrchestrationCore() {
     setTwoTakesIntimate: (next: boolean) => updateToolSettings({ twoTakesIntimate: next }),
     bestEnginePerPose: toolSettings.bestEnginePerPose === true,
     setBestEnginePerPose: (next: boolean) => updateToolSettings({ bestEnginePerPose: next }),
-    hideStickyCutCoach: toolSettings.hideStickyCutCoach === true,
-    setHideStickyCutCoach: (next: boolean) => updateToolSettings({ hideStickyCutCoach: next }),
     // A theme (Date night, Cosplay…) stays as its own id; it renders as Everyday.
     dayMood: (dayThemeOf(toolSettings.dayMood)?.id ??
       normalizeDayMood(

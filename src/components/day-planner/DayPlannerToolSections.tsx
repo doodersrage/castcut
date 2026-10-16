@@ -219,8 +219,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     plateUploadError,
     makeCastPlate,
     makePlateStatus,
-    hideStickyCutCoach,
-    setHideStickyCutCoach,
     dayMood,
     setDayMood,
     partnerCharacterId,
@@ -358,7 +356,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     kitLabel: wardrobeLabelFor(activeSlot.wardrobeId),
   });
   const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
-  const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
+  // In the page, not stuck over it: it followed the scroll and players hid it, and with it Cut
+  // options. The old Hide setting is ignored, so the banner is back for them.
+  const showCutCoach = cutCoachEligible;
   const queueBlocked = Boolean(queueBlockReason) || renderOffline;
   const shownQueueBlockReason = renderOffline
     ? 'ComfyUI is offline — Queue and Animate wait until it’s back.'
@@ -792,7 +792,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
 
         {showCutCoach ? (
           <div
-            className="ui-sticky-surface sticky top-20 z-30 rounded-[var(--radius-lg)] border border-[var(--accent-border)] px-4 py-3 shadow-[var(--shadow-card)]"
+            className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--bg-elevated)] px-4 py-3"
             data-testid="day-cut-coach"
             role="status"
           >
@@ -873,14 +873,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     Queue rest
                   </Button>
                 ) : null}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  data-testid="day-cut-coach-hide"
-                  onClick={() => setHideStickyCutCoach(true)}
-                >
-                  Hide
-                </Button>
               </ToolActionRow>
             </div>
           </div>
@@ -1250,16 +1242,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 >
                   Continue as a story
                 </ButtonLink>
-              ) : null}
-              {cutCoachEligible && hideStickyCutCoach ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  data-testid="day-cut-coach-show"
-                  onClick={() => setHideStickyCutCoach(false)}
-                >
-                  Show cut banner
-                </Button>
               ) : null}
               {showSampleEscape ? (
                 <Button

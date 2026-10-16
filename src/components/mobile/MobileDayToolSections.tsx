@@ -205,8 +205,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     fixAreaTargetForSlot,
     plateUploading,
     plateUploadError,
-    hideStickyCutCoach,
-    setHideStickyCutCoach,
     dayMood,
     setDayMood,
     partnerCharacterId,
@@ -340,7 +338,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const renderOffline = useRenderBackend().state === 'offline';
   const [animateFilesMissing, setAnimateFilesMissing] = useState(false);
   const cutCoachEligible = completedShotCount > 0 && !firstCutCelebrate && !assemblingFilm;
-  const showCutCoach = cutCoachEligible && !hideStickyCutCoach;
+  // In the page, never hidden: the old Hide setting is ignored.
+  const showCutCoach = cutCoachEligible;
   const queueBlocked = Boolean(queueBlockReason) || renderOffline;
   const shownQueueBlockReason = renderOffline
     ? 'ComfyUI is offline — Queue and Animate wait until it’s back.'
@@ -808,14 +807,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 Queue rest
               </Button>
             ) : null}
-            <Button
-              variant="ghost"
-              className="w-full justify-center"
-              data-testid="day-cut-coach-hide"
-              onClick={() => setHideStickyCutCoach(true)}
-            >
-              Hide
-            </Button>
           </div>
         </div>
       ) : null}
@@ -1143,16 +1134,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
               >
                 Continue as a story
               </Link>
-            ) : null}
-            {cutCoachEligible && hideStickyCutCoach ? (
-              <Button
-                variant="ghost"
-                className="w-full justify-center"
-                data-testid="day-cut-coach-show"
-                onClick={() => setHideStickyCutCoach(false)}
-              >
-                Show cut banner
-              </Button>
             ) : null}
             {showSampleEscape ? (
               <Button

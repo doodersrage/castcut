@@ -50,7 +50,7 @@ kitchen) uses that place's look, so the rooms match from slot to slot.
 
 ## Films and seasons
 
-Each film you cut is an **episode** of the Cast's current season. On the Cast page:
+Each film you cut is an **episode** of the Cast's current season. On the Cast page's **Film & media** tab:
 
-- **Films** — watch, see what went into it, **Re-cut** at another shape.
+- **Film & media → Films** — watch, see what went into it, and under each film **Re-cut**, **Export for an editor** and **Share for review**.
 - **Seasons** — **Stitch season** joins the episodes; **Open this Day again** brings a Day back.
