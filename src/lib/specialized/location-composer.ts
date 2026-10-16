@@ -424,9 +424,6 @@ export function composeSceneLocation(): string {
   return `${pick(REGION_EPITHETS)} ${pick(TERRAIN_FEATURES)} ${pick(TIME_AND_WEATHER_PHRASES)}`;
 }
 
-/** @deprecated Use composeSceneLocation */
-export const composeCharacterLocation = composeSceneLocation;
-
 export function composeActionLocation(): string {
   const roll = randomInt(100);
 

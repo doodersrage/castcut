@@ -54,15 +54,6 @@ export function clearPreviewMaskCanvas(
   ctx.clearRect(0, 0, width, height);
 }
 
-/** @deprecated Use clearExportMaskCanvas */
-export function clearMaskCanvas(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number
-): void {
-  clearExportMaskCanvas(ctx, width, height);
-}
-
 export function paintMaskStroke(
   ctx: CanvasRenderingContext2D,
   from: MaskPoint | null,

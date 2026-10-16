@@ -1601,13 +1601,6 @@ export function loraTriggerFromCharacter(
   return trigger || undefined;
 }
 
-/** @deprecated Use Character OS records; kept so bundle export stays lossless. */
-export function sharedPatchFromLegacyBundle(
-  bundle: CharacterIdentityBundle
-): Partial<SharedToolSettings> {
-  return applyCharacterIdentityBundle(bundle);
-}
-
 export function buildBundleFromShared(
   name: string,
   shared: SharedToolSettings,

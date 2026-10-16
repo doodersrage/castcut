@@ -374,19 +374,3 @@ export function ensureKleinReferenceLatentWiringInWorkflow(
 
   return { workflow: next, wired: true, insertedNodeIds };
 }
-
-/** @deprecated Use ensureKleinReferenceLatentWiringInWorkflow */
-export function ensureKleinImg2imgLatentWiringInWorkflow(
-  workflow: Record<string, unknown>,
-  input: {
-    model?: string;
-    inputImageFilename?: string | null;
-    inputImageFilenames?: Array<string | undefined | null> | null;
-  }
-): {
-  workflow: Record<string, unknown>;
-  wired: boolean;
-  insertedNodeIds: string[];
-} {
-  return ensureKleinReferenceLatentWiringInWorkflow(workflow, input);
-}

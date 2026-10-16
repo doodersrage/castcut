@@ -194,15 +194,6 @@ export function summarizeWorkflowLibraryHealth(report: WorkflowLibraryHealthRepo
   return `${report.healthy}/${report.scanned} workflow(s) clean · ${errors} error(s) · ${warns} review note(s).`;
 }
 
-/** @deprecated tokens param unused — kept for future model-specific audits */
-export function auditWorkflowLibraryHealthLegacy(input: {
-  workflowFiles: ComfyWorkflowFile[];
-  tokens?: import('./comfyui-config').WorkflowPlaceholderTokens;
-  model?: string;
-}): WorkflowLibraryHealthReport {
-  return auditWorkflowLibraryHealth({ workflowFiles: input.workflowFiles });
-}
-
 export const WORKFLOW_HEALTH_SELECT_EVENT = 'workflow-health-select-file';
 
 export function dispatchWorkflowHealthSelect(

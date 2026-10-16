@@ -112,11 +112,6 @@ export function libraryUpscaleWorkflowEnlarges(
   return false;
 }
 
-/** @deprecated Prefer libraryUpscaleWorkflowEnlarges — kept as the finder predicate. */
-export function workflowLooksLikeUpscalePipeline(workflowJson: string): boolean {
-  return libraryUpscaleWorkflowEnlarges(workflowJson);
-}
-
 export function findLibraryUpscaleWorkflowForModel(model: string): ComfyWorkflowFile | undefined {
   const files = loadComfyWorkflowFiles();
   const shared = loadSettingsCache().shared;

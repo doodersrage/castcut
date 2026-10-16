@@ -401,9 +401,6 @@ export function resolveAdultNudePlateQueueModel(
   return resolveRapidAioEditModel({ nsfw: true, current: resolved });
 }
 
-/** @deprecated Prefer resolveAdultNudePlateQueueModel — same behavior. */
-export const resolveDayAdultPlateQueueModel = resolveAdultNudePlateQueueModel;
-
 /** Edit/img2img counterpart for a T2I preset (e.g. 2512 Lightning → Edit-2511 Lightning). */
 export function resolveEditCounterpartForImg2img(model: ComfyImageModel | string): ComfyImageModel {
   return inferEditCounterpart(normalizeModel(model));

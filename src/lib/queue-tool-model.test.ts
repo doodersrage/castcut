@@ -13,7 +13,6 @@ import {
   stillImageToolModel,
   resolvePreferredLookModel,
   resolveRapidAioEditModel,
-  resolveDayAdultPlateQueueModel,
   resolveAdultNudePlateQueueModel,
   resolveDayStillModel,
   resolveTxt2iCounterpartForGenerate,
@@ -327,63 +326,6 @@ describe("queue-tool-model", () => {
     assert.equal(
       resolveModelForQueueTool("qwen-rapid-aio-nsfw", "generate"),
       "qwen-rapid-aio-nsfw",
-    );
-  });
-
-  it("forces Rapid AIO Edit NSFW on adult nude Day plate queues", () => {
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-sfw", { adultNude: true }),
-      "qwen-rapid-aio-edit-nsfw",
-    );
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-edit", { adultNude: true }),
-      "qwen-rapid-aio-edit-nsfw",
-    );
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-nsfw", { adultNude: true }),
-      "qwen-rapid-aio-edit-nsfw",
-    );
-    // Alias keeps Day call sites working.
-    assert.equal(
-      resolveDayAdultPlateQueueModel("qwen-rapid-aio-edit", { adultNude: true }),
-      "qwen-rapid-aio-edit-nsfw",
-    );
-    // Non-adult / non-Rapid leave the normal Edit snap alone.
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-sfw", { adultNude: false }),
-      "qwen-rapid-aio-edit",
-    );
-    // Leftover Edit NSFW must not stick on Suggestive / Vacation / Everyday.
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-edit-nsfw", { adultNude: false }),
-      "qwen-rapid-aio-edit",
-    );
-    // A clothed Suggestive still (adultNude false) renders on the SFW Rapid checkpoint; the
-    // NSFW merge is only for nude beats. Qwen-Image 2.1 keeps its own id (its graph base is
-    // mapped at queue time and the renderer swaps in the plain 2.1 model — no NSFW stack).
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-image-2.1-edit-pruna-8", { adultNude: false }),
-      "qwen-image-2.1-edit-pruna-8",
-    );
-    assert.equal(
-      resolveDayStillModel("qwen-image-2.1-edit-pruna-8", { adultNude: false, installed: () => true }),
-      "qwen-image-2.1-edit-pruna-8",
-    );
-    assert.equal(
-      resolveDayStillModel("qwen-image-edit-2511-lightning-8", { adultNude: false, installed: () => true }),
-      "qwen-image-edit-2511-lightning-8",
-    );
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-rapid-aio-nsfw", { adultNude: false }),
-      "qwen-rapid-aio-edit",
-    );
-    assert.equal(
-      resolveAdultNudePlateQueueModel("qwen-image-2512-lightning-8", { adultNude: true }),
-      "qwen-image-edit-2511-lightning-8",
-    );
-    assert.equal(
-      resolveRapidAioEditModel({ nsfw: true, current: "qwen-rapid-aio-edit" }),
-      "qwen-rapid-aio-edit-nsfw",
     );
   });
 

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildQwenRapidNudeEditLead,
-  QWEN_RAPID_NUDE_OUTFIT_EDIT_LEAD,
   softenQwenRapidNudeSafetyTriggers,
 } from './qwen-rapid-nude-edit';
 
@@ -61,10 +60,5 @@ describe('buildQwenRapidNudeEditLead', () => {
     assert.match(lead, /tip of the penis|penis-shaped/i);
     assert.match(lead, /never hold the dildo upright against her belly/i);
     assert.doesNotMatch(lead, /fingers on her vulva as the beat describes/i);
-  });
-
-  it('exports a default lead without bikini step-down', () => {
-    assert.match(QWEN_RAPID_NUDE_OUTFIT_EDIT_LEAD, /indoors at|clothes are now gone/i);
-    assert.doesNotMatch(QWEN_RAPID_NUDE_OUTFIT_EDIT_LEAD, /thong bikini|Change her outfit to a skin-tone/i);
   });
 });

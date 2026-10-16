@@ -409,13 +409,6 @@ export function resolveCharacterAppearance(
   };
 }
 
-/** @deprecated Prefer resolveCharacterAppearance — kept for callers that want a concrete draft. */
-export function rollCharacterAppearance(
-  partial: Partial<CharacterAppearanceDraft> = {}
-): CharacterAppearanceDraft {
-  return resolveCharacterAppearance(partial);
-}
-
 function ancestryWord(ethnicity: CharacterEthnicity, sex: CharacterSex): string {
   if (ethnicity === 'latina-latino') {
     if (sex === 'woman') {

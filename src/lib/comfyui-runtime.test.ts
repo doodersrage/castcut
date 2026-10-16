@@ -40,11 +40,6 @@ describe("comfyui-runtime", async () => {
     resolveComfyUiRuntime,
     clearSelectedWorkflowFileIfDeleted,
     setSelectedWorkflowFileId,
-    clearSelectedWorkflowPresetIfDeleted,
-    setSelectedWorkflowPresetId,
-    getSelectedWorkflowPresetId,
-    effectiveComfyUiSettings,
-    mergeWorkflowPreset,
     SERVER_WORKFLOW_PREFIX,
   } = await import("./comfyui-runtime");
 
@@ -131,25 +126,6 @@ describe("comfyui-runtime", async () => {
     setSelectedWorkflowFileId("new-file");
     assert.equal(sharedSettings.selectedWorkflowFileId, "new-file");
     assert.equal(sharedSettings.selectedWorkflowPresetId, undefined);
-  });
-
-  it("deprecated preset aliases delegate to their file-id counterparts", () => {
-    sharedSettings = {} as never;
-    setSelectedWorkflowPresetId("aliased-file");
-    assert.equal(getSelectedWorkflowPresetId(), "aliased-file");
-    clearSelectedWorkflowPresetIfDeleted("aliased-file");
-    assert.equal(getSelectedWorkflowPresetId(), undefined);
-  });
-
-  it("effectiveComfyUiSettings returns loadComfyUiSettings() regardless of the presetId arg", () => {
-    const settings = { apiUrl: "http://x" } as ComfyUiSettings;
-    loadComfyUiSettings.mock.mockImplementationOnce(() => settings);
-    assert.equal(effectiveComfyUiSettings("anything"), settings);
-  });
-
-  it("mergeWorkflowPreset returns the settings object unchanged", () => {
-    const settings = { apiUrl: "http://x" } as ComfyUiSettings;
-    assert.equal(mergeWorkflowPreset(settings, { whatever: true }), settings);
   });
 
   it("exposes the server workflow id prefix constant", () => {

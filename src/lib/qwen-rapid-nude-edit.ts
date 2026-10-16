@@ -100,6 +100,3 @@ export function buildQwenRapidNudeEditLead(
     `Do not raise her hands to chest or shoulder height, and do not point fingers at the camera.`
   );
 }
-
-/** @deprecated Prefer {@link buildQwenRapidNudeEditLead} with the slot setting. */
-export const QWEN_RAPID_NUDE_OUTFIT_EDIT_LEAD = buildQwenRapidNudeEditLead();

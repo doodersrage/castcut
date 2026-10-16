@@ -1,8 +1,4 @@
-import {
-  comfyUiSettingsToRuntime,
-  loadComfyUiSettings,
-  type ComfyUiSettings,
-} from './comfyui-settings';
+import { comfyUiSettingsToRuntime, loadComfyUiSettings } from './comfyui-settings';
 import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from './comfyui-config';
 import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui-workflow-files';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
@@ -75,31 +71,6 @@ export function setSelectedWorkflowFileId(fileId: string | undefined): void {
     selectedWorkflowFileId: fileId,
     selectedWorkflowPresetId: undefined,
   });
-}
-
-/** @deprecated Use clearSelectedWorkflowFileIfDeleted */
-export function clearSelectedWorkflowPresetIfDeleted(deletedId: string): void {
-  clearSelectedWorkflowFileIfDeleted(deletedId);
-}
-
-/** @deprecated Use setSelectedWorkflowFileId */
-export function setSelectedWorkflowPresetId(fileId: string | undefined): void {
-  setSelectedWorkflowFileId(fileId);
-}
-
-/** @deprecated Use getSelectedWorkflowFileId */
-export function getSelectedWorkflowPresetId(): string | undefined {
-  return getSelectedWorkflowFileId();
-}
-
-/** @deprecated Presets are now workflow files; kept for backup import compatibility. */
-export function effectiveComfyUiSettings(_presetId?: string | null): ComfyUiSettings {
-  return loadComfyUiSettings();
-}
-
-/** @deprecated Presets are now workflow files. */
-export function mergeWorkflowPreset(settings: ComfyUiSettings, _preset: unknown): ComfyUiSettings {
-  return settings;
 }
 
 export { SERVER_WORKFLOW_PREFIX };

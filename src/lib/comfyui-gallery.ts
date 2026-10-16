@@ -135,8 +135,6 @@ export type ComfyGallerySort =
 
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 export const GALLERY_PAGE_SIZE_ALL = 'all' as const;
-/** @deprecated All page size now streams via the virtualized grid. */
-export const GALLERY_ALL_RENDER_CHUNK = 48;
 
 export function galleryEntryRenderKey(entry: ComfyGalleryEntry): string {
   // Use a more efficient key generation approach

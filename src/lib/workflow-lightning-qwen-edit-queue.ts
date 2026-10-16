@@ -606,11 +606,6 @@ function appendHeadOnlyFaceReferenceLatent(
   return [refId, 0];
 }
 
-/** @deprecated Prefer {@link isPoseGuideReferenceFilename} — same VL-only skip set. */
-export function shouldSkipQwenEditReferenceLatent(filename: string | null | undefined): boolean {
-  return isPoseGuideReferenceFilename(filename);
-}
-
 /**
  * Qwen Edit Compose: disconnect VAE from TextEncodeQwenImageEditPlus (keep image1–4
  * for VL prompt referencing), attach appearance refs via chained ReferenceLatent

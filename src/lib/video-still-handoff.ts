@@ -77,8 +77,3 @@ export async function preferCloudForVideoStillHandoff(): Promise<VideoStillHando
     });
   }
 }
-
-/** @deprecated Use preferCloudForVideoStillHandoff — kept for call-site compat. */
-export async function preferFalForVideoStillHandoff(): Promise<boolean> {
-  return (await preferCloudForVideoStillHandoff()) === 'fal';
-}

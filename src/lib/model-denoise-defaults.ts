@@ -29,9 +29,6 @@ export const SOFT_IMG2IMG_STRENGTH_DENOISE: Record<ZImageTurboImg2imgStrength, n
 
 export const DEFAULT_Z_IMAGE_TURBO_IMG2IMG_DENOISE = Z_IMAGE_TURBO_IMG2IMG_DENOISE.balanced;
 
-/** @deprecated Use DEFAULT_Z_IMAGE_TURBO_IMG2IMG_DENOISE — compose no longer special-cases 0.42. */
-export const DEFAULT_Z_IMAGE_TURBO_COMPOSE_DENOISE = DEFAULT_Z_IMAGE_TURBO_IMG2IMG_DENOISE;
-
 export const DEFAULT_INPAINT_DENOISE = 0.75;
 
 /**
@@ -362,18 +359,6 @@ export function isQwenReferenceLatentEditContext(
     options?.tool === 'image-prompt' ||
     (Boolean(options?.hasInputImage) && options?.tool != null && EDIT_TOOLS.has(options.tool))
   );
-}
-
-/** @deprecated Soft img2img is not used for Klein — kept for call-site compat. */
-export function isKleinImg2imgEditContext(
-  model: ComfyImageModel | string,
-  options?: {
-    tool?: string;
-    hasInputImage?: boolean;
-    hasMaskImage?: boolean;
-  }
-): boolean {
-  return isKleinReferenceLatentEditContext(model, options);
 }
 
 /** Distilled Klein stays CFG 1 on the ReferenceLatent edit path. */

@@ -757,10 +757,3 @@ export function formatWanVideoSamplerHint(
 
   return null;
 }
-
-/** @deprecated Use formatKleinSamplerPeopleHint */
-export function formatKleinDistilledPeopleHint(
-  tier: ModelSamplerPresetTier = DEFAULT_MODEL_SAMPLER_PRESET_TIER
-): string | null {
-  return formatKleinSamplerPeopleHint('flux-2-klein-9b-distilled', tier);
-}

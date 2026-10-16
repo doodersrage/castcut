@@ -124,11 +124,3 @@ export function galleryEntryCanAutoSkinRefine(
   }
   return galleryEntrySupportsRefine(normalizeComfyModel(refineModel));
 }
-
-/**
- * @deprecated Auto-after-still skin refine removed — no-op.
- * Skin refine is Gallery-only (card menu / compare).
- */
-export function maybeSchedulePlaySkinRefine(_promptId?: string | null): void {
-  return;
-}

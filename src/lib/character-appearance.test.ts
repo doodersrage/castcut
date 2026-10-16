@@ -6,7 +6,6 @@ import {
   composeCharacterAppearanceDescriptor,
   defaultCharacterAppearanceForm,
   resolveCharacterAppearance,
-  rollCharacterAppearance,
   sanitizeCharacterAppearanceDescriptor,
   summarizeCharacterAppearance,
   summarizeCharacterAppearanceForm,
@@ -46,21 +45,6 @@ describe('character-appearance', () => {
     assert.equal(draft.ageBand, '30s');
     assert.notEqual(draft.ethnicity, CHARACTER_APPEARANCE_RANDOM);
     assert.notEqual(draft.bodyBuild, CHARACTER_APPEARANCE_RANDOM);
-  });
-
-  it('rolls a complete appearance draft', () => {
-    const draft = rollCharacterAppearance();
-    assert.ok(draft.sex);
-    assert.ok(draft.ethnicity);
-    assert.ok(draft.height);
-    assert.ok(draft.bodyBuild);
-    assert.ok(draft.ageBand);
-  });
-
-  it('respects partial overrides when rolling', () => {
-    const draft = rollCharacterAppearance({ sex: 'woman', ethnicity: 'east-asian' });
-    assert.equal(draft.sex, 'woman');
-    assert.equal(draft.ethnicity, 'east-asian');
   });
 
   it('composes a descriptor that includes sex, ethnicity, age, height, and body', () => {
