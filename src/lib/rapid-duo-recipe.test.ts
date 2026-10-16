@@ -996,3 +996,13 @@ describe('spooning keeps four legs apart', () => {
     assert.match(prompt, /seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers/);
   });
 });
+
+describe('one job per leg on seated stances', () => {
+  it('the bath keeps its knee over the rim; the free hand takes the rim, not the knee', () => {
+    const prompt =
+      buildRapidSoloRecipe({ beat: 'alone in the bath masturbating by candlelight, one knee out of the water', poseGuide: true }) ?? '';
+    assert.match(prompt, /one knee hooked over the rim/);
+    assert.match(prompt, /Her left hand rests on the rim of the tub/);
+    assert.doesNotMatch(prompt, /hooks under her left knee/);
+  });
+});

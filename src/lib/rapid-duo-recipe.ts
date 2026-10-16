@@ -918,11 +918,21 @@ function soloHands(
   // her breast" Rapid drew a third hand at the vulva (3/3 on the user's still and its replays).
   // Both hands there: two hands 4/4 but fingers inside 1/4. That arm hooked under her knee, as on
   // her back: two hands 4/4, fingers inside 4/4 (2026-10-16).
-  if (kind === 'seated') {
+  // Only where the stance pulls her knees up (the kitchen floor): a stance that already places a
+  // leg (the bathtub's knee hooked over the rim) got a second job for the same leg — leg and arm
+  // tangled on the user's late-night bath still and 3/3 replays (2026-10-16). There her free hand
+  // takes the rim: two clear legs, one hand each 4/4 (the user's seed + three).
+  if (kind === 'seated' && /\bknees pulled up\b/i.test(placement)) {
     const touch = SOLO_FINGERS_IN_RE.test(beat)
       ? 'two fingers pushed inside her vagina, her palm against her vulva'
       : 'her fingers on her vulva';
     return `Her left arm hooks under her left knee, holding that leg up and open; her right hand is between her thighs, ${touch}.`;
+  }
+  if (kind === 'seated' && /\bover the rim\b/i.test(placement)) {
+    const touch = SOLO_FINGERS_IN_RE.test(beat)
+      ? 'two fingers pushed inside her vagina, her palm against her vulva'
+      : 'her fingers on her vulva';
+    return `Her left hand rests on the rim of the tub beside her raised knee; her right hand is between her thighs, ${touch}.`;
   }
   if (/\bboth\s+hands\b/i.test(beat)) {
     return SOLO_FINGERS_INSIDE;

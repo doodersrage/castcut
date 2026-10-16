@@ -719,7 +719,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     bytes: 6735906897,
-    modelIds: ['wan-video', 'copy-moves', 'lip-sync'],
+    modelIds: ['wan-video', 'copy-moves', 'lip-sync', 'music-dance'],
     notes:
       'Required for official WAN split graphs, Copy moves and Lip-sync. Rapid AIO already includes CLIP.',
   },
@@ -963,7 +963,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'clip_vision_h.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/clip_vision/clip_vision_h.safetensors',
     bytes: 1264219396,
-    modelIds: ['copy-moves'],
+    modelIds: ['copy-moves', 'music-dance'],
     notes: 'Reads the still and the driving video for Copy moves.',
   },
   {
@@ -973,7 +973,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2_1_VAE_bf16.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/vae/Wan2_1_VAE_bf16.safetensors',
     bytes: 253806278,
-    modelIds: ['copy-moves', 'lip-sync'],
+    modelIds: ['copy-moves', 'lip-sync', 'music-dance'],
     notes: 'VAE for Copy moves and Lip-sync.',
   },
   {
