@@ -1920,7 +1920,7 @@ export function useDayPlannerToolOrchestrationCore() {
         // Only when the still has a clothing image: other paths use Image 2 for something else
         // (a partner's face, the pose map), and there the shoes go out in words alone.
         let garmentReinforce = clothingReinforce;
-        let footwearImage: 'combined' | null = null;
+        let footwearImage: 'combined' | 'worn' | null = null;
         const footwearRef = {
           imageUrl: outfit.footwearImageUrl,
           imageFilename: outfit.footwearImageFilename,
@@ -1932,22 +1932,38 @@ export function useDayPlannerToolOrchestrationCore() {
           hasFootwearImage(footwearRef) &&
           (clothingReinforce?.imageUrl || clothingReinforce?.imageFilename)
         ) {
-          try {
-            const reference = await buildFootwearReferenceImage({
-              garment: clothingReinforce,
-              footwear: footwearRef,
-              model: stillModel,
-            });
-            if (reference?.combined) {
-              garmentReinforce = {
-                ...clothingReinforce,
-                imageUrl: undefined,
-                imageFilename: reference.filename,
-              };
-              footwearImage = 'combined';
+          const shoeStillPeople = planDaySlotPose({
+            slot: queueTarget,
+            dayMood: toolSettings.dayMood,
+            intimateMix: toolSettings.intimateMix,
+            allowCompanions: toolSettings.allowCompanions === true,
+            model: stillModel,
+          }).headcount;
+          if (dressClothingFilename && shoeStillPeople < 2 && !partnerFace) {
+            // The dressed plate already wears these shoes (its key has them). A shoe photo under
+            // it showed the pair twice, and lounging stills at home put the loose pair on the
+            // rug or the bed: 10/12 extra pairs, plate alone 1/12, right shoes 6/6 either way
+            // (live, Edit 2511, 2026-10-16). Two-person stills keep the photo: a full-figure
+            // plate alone read as a third person 2/2.
+            footwearImage = 'worn';
+          } else {
+            try {
+              const reference = await buildFootwearReferenceImage({
+                garment: clothingReinforce,
+                footwear: footwearRef,
+                model: stillModel,
+              });
+              if (reference?.combined) {
+                garmentReinforce = {
+                  ...clothingReinforce,
+                  imageUrl: undefined,
+                  imageFilename: reference.filename,
+                };
+                footwearImage = 'combined';
+              }
+            } catch (footwearError) {
+              console.warn('Day footwear image could not be attached:', footwearError);
             }
-          } catch (footwearError) {
-            console.warn('Day footwear image could not be attached:', footwearError);
           }
         }
         // FLUX.2 Klein holds a full-body plate's face loosely — the head crop rides along as the

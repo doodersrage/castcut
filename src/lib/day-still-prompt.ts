@@ -97,7 +97,7 @@ export type DayStillPromptFacts = {
   pickedShoes: string;
   /** Shoes this still orders ('' when the beat or mood rules them out). */
   footwear: string;
-  footwearImage: 'combined' | null;
+  footwearImage: 'combined' | 'worn' | null;
   /** The pose guide that was drawn, if any. */
   pose: { layout: string | null; poseKey?: string | null; figures: number } | null;
   /**

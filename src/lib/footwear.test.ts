@@ -88,6 +88,11 @@ describe('footwear', () => {
       'FOOTWEAR (mandatory): on her feet she wears the shoes shown in Image 2 — exactly these, on both feet.'
     );
     assert.ok(!/Image 2/.test(footwearPromptLine('barefoot', 'she', 'combined')));
+    // A dressed plate in Image 2 already wears them: no loose pair to point at.
+    assert.equal(
+      footwearPromptLine('silver stiletto heels', 'she', 'worn'),
+      'FOOTWEAR (mandatory): on her feet she wears the silver stiletto heels she wears in Image 2 — exactly these, on both feet.'
+    );
   });
 
   it('only Edit 2511 is sent the shoe picture; Rapid wears them from words', () => {

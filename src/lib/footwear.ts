@@ -95,11 +95,12 @@ export function footwearPromptLine(
   value: unknown,
   subject: 'she' | 'he' = 'she',
   /**
-   * Where the shoes are pictured, when they are: under the clothing in Image 2 (`combined`) or as
-   * Image 2 on their own (`alone`). The words still name them — image and words together held
-   * the shoes 4/4, the image alone 3/4 (live, Edit 2511).
+   * Where the shoes are pictured, when they are: under the clothing in Image 2 (`combined`), as
+   * Image 2 on their own (`alone`), or on her feet in Image 2 (`worn`: the dressed plate already
+   * wears them). The words still name them — image and words together held the shoes 4/4, the
+   * image alone 3/4 (live, Edit 2511).
    */
-  image?: 'combined' | 'alone' | null,
+  image?: 'combined' | 'alone' | 'worn' | null,
   /**
    * Two people in the still: say whose shoes these are. "On his feet he wears white sneakers"
    * put the sneakers on both men (live, two men on Day).
@@ -117,7 +118,9 @@ export function footwearPromptLine(
       ? ' shown at the bottom of Image 2'
       : image === 'alone'
         ? ' shown in Image 2'
-        : '';
+        : image === 'worn'
+          ? ` ${subject} wears in Image 2`
+          : '';
   const named = shown ? `the ${words || 'shoes'}${shown}` : words;
   return pair
     ? `FOOTWEAR (mandatory): on ${possessive} own feet (the person from the first image) ${subject} wears ${named} — exactly these, on both feet; the other person wears ${partnerShoesUnlike(words)} — never the same pair.`
@@ -142,7 +145,7 @@ export function withFootwearLine(
   prompt: string,
   value: unknown,
   subject: 'she' | 'he' = 'she',
-  image?: 'combined' | 'alone' | null,
+  image?: 'combined' | 'alone' | 'worn' | null,
   pair = false
 ): string {
   const line = footwearPromptLine(value, subject, image, pair);
