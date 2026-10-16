@@ -264,3 +264,37 @@
 .md-search-result__meta {
   font-size: 0.72rem;
 }
+
+/* Numbered steps (home page "How it works"): each step a card with a big number. */
+.md-typeset .steps > ol {
+  counter-reset: step;
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.md-typeset .steps > ol > li {
+  counter-increment: step;
+  position: relative;
+  margin: 0;
+  padding: 0.7rem 0.9rem 0.7rem 3.1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.6rem;
+  background: var(--md-code-bg-color);
+}
+.md-typeset .steps > ol > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0.9rem;
+  top: 0.65rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--md-primary-bg-color);
+  background: var(--md-accent-fg-color);
+}

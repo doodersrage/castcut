@@ -1,5 +1,12 @@
 # Play film guide
 
+!!! info "The short version"
+    This page is the full reference. For quick, task-by-task guides see
+    [Your first film](first-film.md), [Day](guide-day.md), [Story](guide-story.md),
+    [Cut a film](guide-film.md) and [Finishing tools](finishing-tools.md).
+    The **Look** page (step 2 below) has been retired: Film goes Cast → Outfit → Day, and
+    `/moodboard` opens the Cast's looks.
+
 The **Play** workspace is a guided film loop on one Cast character: **Look → Outfit → Day → Cut film** (Story optional after the first cut) → **Save to Cast**. This page is the product walkthrough; ops and env vars live in the [operator guide](operator.md) and [configuration](configuration.md).
 
 Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) · [Dashboard metrics](#dashboard-metrics) · [Share & resume](#share-and-resume) · [Play chrome & habits](#play-chrome-and-habits) · [Mobile vs desk](#mobile-vs-desk)

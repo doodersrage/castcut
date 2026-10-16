@@ -2,7 +2,34 @@
 
 Common failures, where to click, and what to check in Settings or `.env.local`. Queue failure playbooks in the app mirror many of these routes automatically.
 
-Jump to: [Heal & ComfyUI](#heal-comfyui) · [Queue & VRAM](#queue-vram) · [LLM & vision](#llm-vision) · [Auth & email](#auth-email) · [Play funnel](#play-funnel) · [Storage](#storage)
+## Common questions {#common-questions}
+
+??? question "A still has an extra hand, a third leg, or bodies melted together"
+    Usually the pose words gave a limb two jobs (on a knee *and* on her breast), so the model drew
+    both. Castcut's recipes now give every hand and leg one job; if one still slips, **⋯ → Requeue
+    · new seed**, or **Fix an area…** and paint over the stray limb.
+
+??? question "She doesn't look like the Cast"
+    Turn on **Quality → Balanced** (Face finish) or **Best** (Auto-review). Check the plate on the
+    Cast page — a small or turned face on the plate weakens every still.
+
+??? question "\"ComfyUI is offline\" but it's running"
+    The banner shows the address it tried and why. Fix the address in **Settings → ComfyUI →
+    Connection** (ComfyUI must listen beyond localhost if Castcut runs in Docker).
+
+??? question "Out of GPU memory"
+    A video model and a loaded vision LLM don't both fit on 24 GB. The video tools free the LLM
+    and retry once; for other jobs, unload LM Studio's model or use **Retry as Draft**.
+
+??? question "Renders are slow to start"
+    ComfyUI runs one job at a time. **Queue** shows what's ahead; quick checks jump ahead of renders.
+
+??? question "Suggest day / Suggest a line does nothing"
+    These need an LLM — **Settings → LLM → Built-in LLM** is the quickest fix.
+
+---
+
+Jump to: [Common questions](#common-questions) · [Heal & ComfyUI](#heal-comfyui) · [Queue & VRAM](#queue-vram) · [LLM & vision](#llm-vision) · [Auth & email](#auth-email) · [Play funnel](#play-funnel) · [Storage](#storage)
 
 ---
 

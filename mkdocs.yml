@@ -87,21 +87,34 @@ extra_javascript:
 
 nav:
   - Home: README.md
-  - Getting started:
-      - Operator guide: operator.md
-      - Play campaign: play-guide.md
+  - Get started:
+      - Install: install.md
+      - Your first film: first-film.md
+      - Models: models.md
+  - Guides:
+      - Cast: guide-cast.md
+      - Outfit: guide-outfit.md
+      - Day: guide-day.md
+      - Story: guide-story.md
+      - Cut a film: guide-film.md
+      - Finishing tools: finishing-tools.md
+      - On your phone: phone.md
+  - Help:
+      - Troubleshooting: troubleshooting.md
+      - Limitations: limitations.md
       - Quick reference: quick-reference.md
+  - Reference:
+      - Play in depth: play-guide.md
+      - Features in depth: features.md
+      - Operator guide: operator.md
       - Configuration: configuration.md
       - Desktop app: desktop.md
-      - Prompt limits: prompt-limits.md
-      - Prompt examples: prompt-examples.md
-  - Using the app:
-      - Features: features.md
-      - Troubleshooting: troubleshooting.md
-      - Pose report card: pose-report-card.md
       - Castcut nodes: castcut-nodes.md
       - Workflow takeover: workflow-takeover.md
       - HTTP API: http-api.md
+      - Prompt limits: prompt-limits.md
+      - Prompt examples: prompt-examples.md
+      - Pose report card: pose-report-card.md
       - Data catalogs: data-catalogs.md
       - Pose reference credits: pose-reference-credits.md
   - Contributors:
@@ -111,6 +124,7 @@ nav:
       - Performance & scripts: performance/guide.md
   - External:
       - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
+      - Prompt Studio (classic tools): https://github.com/doodersrage/prompt-studio
       - Diffusers engine: https://github.com/doodersrage/castcut-diffusers
 
 extra:

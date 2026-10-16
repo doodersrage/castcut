@@ -1,173 +1,98 @@
 <div class="ps-hero" markdown="0">
-  <p class="ps-hero__eyebrow">Castcut · local AI image &amp; video</p>
-  <h1 class="ps-hero__title">Create characters, stills, and short films</h1>
+  <p class="ps-hero__eyebrow">Castcut · local AI films</p>
+  <h1 class="ps-hero__title">Make a character, give her a day, cut the film</h1>
   <p class="ps-hero__lead">
-    Play film loop — Cast → Look → Outfit → Day → Cut film — with Heal &amp; ready
-    for ComfyUI and Mobile Studio on your phone.
+    One consistent person across every still and clip — on your own GPU, with ComfyUI.
   </p>
   <div class="ps-hero__actions">
-    <a class="ps-btn-primary" href="operator/">Operator guide</a>
-    <a class="ps-btn-secondary" href="play-guide/">Play guide</a>
-    <a class="ps-btn-secondary" href="https://github.com/doodersrage/castcut/releases/latest">Download latest</a>
+    <a class="ps-btn-primary" href="first-film/">Make your first film</a>
+    <a class="ps-btn-secondary" href="install/">Install</a>
+    <a class="ps-btn-secondary" href="https://github.com/doodersrage/castcut/releases/latest">Download</a>
   </div>
-  <ul class="ps-hero__meta">
-    <li><strong>Dev</strong> Node 22+ · <code>npm run dev</code> → :47832</li>
-    <li><strong>Search</strong> Press <kbd>/</kbd> or use the header search</li>
-    <li><strong>Repo</strong> <a href="https://github.com/doodersrage/castcut">GitHub</a></li>
-  </ul>
 </div>
 
-## Start here
+## How it works
+
+<div class="steps" markdown="1">
+
+1. **Cast** — create a character once: a face plate, a body, a voice, a home.
+2. **Outfit** — dress her: a kit, your own photo, or shoes you pick.
+3. **Day** — plan four to eight moments from morning to night; each becomes a still, then a clip.
+4. **Story** *(optional)* — pick what happens next, one scene at a time.
+5. **Cut** — trim, add music and narration, and export the film.
+
+</div>
+
+The same face, clothes and rooms carry through every picture. That is the whole point.
+
+## What you can make
 
 <div class="grid cards" markdown="1">
 
--   :material-rocket-launch-outline:{ .lg .middle } __First launch__
+-   :material-account-star-outline:{ .lg .middle } __Characters that stay themselves__
 
     ---
 
-    Install, **Heal & ready**, and queue your first still in ~10 minutes.
+    A Cast plate, traits, marks, a voice and their own places — used in every still.
 
-    [:octicons-arrow-right-24: Operator guide](operator.md)
+    [:octicons-arrow-right-24: Cast](guide-cast.md)
 
--   :material-movie-open-play-outline:{ .lg .middle } __Play film loop__
-
-    ---
-
-    Look → Outfit → Day → Cut → Cast with stall metrics on the Dashboard.
-
-    [:octicons-arrow-right-24: Play guide](play-guide.md)
-
--   :material-docker:{ .lg .middle } __Deploy__
+-   :material-weather-sunset:{ .lg .middle } __A day in their life__
 
     ---
 
-    `.env.local`, Docker, auth, SMTP, and production checklist.
+    Plan the moments, render stills, animate them — everyday, sport, vacation and more.
 
-    [:octicons-arrow-right-24: Configuration](configuration.md)
+    [:octicons-arrow-right-24: Day](guide-day.md)
 
--   :material-flash-outline:{ .lg .middle } __Quick reference__
-
-    ---
-
-    Routes, workspace modes, shortcuts, npm scripts.
-
-    [:octicons-arrow-right-24: Cheat sheet](quick-reference.md)
-
--   :material-wrench-outline:{ .lg .middle } __Troubleshooting__
+-   :material-book-open-page-variant-outline:{ .lg .middle } __Stories__
 
     ---
 
-    OOM, missing nodes, vision, auth, Play stall — with Settings deep-links.
+    An LLM writes four next scenes; you pick one (or write your own).
 
-    [:octicons-arrow-right-24: Fix it](troubleshooting.md)
+    [:octicons-arrow-right-24: Story](guide-story.md)
 
--   :material-api:{ .lg .middle } __HTTP API__
+-   :material-movie-open-outline:{ .lg .middle } __Short films__
 
     ---
 
-    REST catalog, health, probe, queue hooks for Comfy nodes.
+    Cut, score, narrate, re-cut for vertical, export for an editor.
 
-    [:octicons-arrow-right-24: API docs](http-api.md)
+    [:octicons-arrow-right-24: Cut a film](guide-film.md)
+
+-   :material-auto-fix:{ .lg .middle } __Finishing tools__
+
+    ---
+
+    Sharpen clips, copy your moves, dance to a song, lip-sync your voice, relight, sketch.
+
+    [:octicons-arrow-right-24: Finishing tools](finishing-tools.md)
+
+-   :material-cellphone:{ .lg .middle } __On your phone__
+
+    ---
+
+    The same loop at `/m` — Cast, Day, Outfit, Story and Cut.
+
+    [:octicons-arrow-right-24: Phone](phone.md)
 
 </div>
 
-## Pick your path
+## Get going
 
-<div class="ps-paths" markdown="1">
-
-<div class="ps-path" markdown="1">
-<p class="ps-path-title">Operators</p>
-<p>Run the studio day-to-day.</p>
-
-- [Operator guide](operator.md)
-- [Configuration](configuration.md)
-- [Desktop app](desktop.md)
-
-</div>
-
-<div class="ps-path" markdown="1">
-<p class="ps-path-title">Creators</p>
-<p>Tools, limits, and workflow behavior.</p>
-
-- [Features by area](features.md)
-- [Prompt limits](prompt-limits.md)
-- [Workflow takeover](workflow-takeover.md)
-
-</div>
-
-<div class="ps-path" markdown="1">
-<p class="ps-path-title">Contributors</p>
-<p>Architecture, releases, performance.</p>
-
-- [Architecture](architecture.md)
-- [Releases](releasing.md)
-- [Performance](performance/guide.md)
-
-</div>
-
-</div>
-
----
-
-## Full doc index
-
-### Getting started
-
-| Doc | Contents |
+| You have… | Start here |
 | --- | --- |
-| [Main README (GitHub)](https://github.com/doodersrage/castcut/blob/main/README.md) | What it is, quick start, tools table, supported models |
-| [Operator guide](operator.md) | Heal & ready, [10-minute loop](operator.md#10-minute-loop), second GPU, backup, invite + SMTP |
-| [Play film guide](play-guide.md) | Look → Cut → Cast walkthrough, metrics, share/resume |
-| [Configuration & deployment](configuration.md) | `.env.local`, LLM, auth, security, production checklist, Docker |
-| [Desktop app](desktop.md) | Tauri installers (macOS / Windows / Linux) |
+| Nothing installed yet | [Install](install.md) |
+| Castcut running | [Your first film](first-film.md) — about 10 minutes |
+| A feature that needs a model | [Models](models.md) — what each tool needs and how big it is |
+| Something not working | [Troubleshooting](troubleshooting.md) |
 
-### Using the app
+!!! tip "Stuck on setup?"
+    **Settings → Overview → Heal & ready** checks ComfyUI, installs missing node packs and
+    turns on the workflows. Run it first, then again whenever something looks off.
 
-| Doc | Contents |
-| --- | --- |
-| [Features](features.md) | Full feature list by area (Gallery, Studio, Queue, Auth, …) |
-| [Quick reference](quick-reference.md) | Routes, modes, shortcuts, npm / Docker one-liners |
-| [Troubleshooting](troubleshooting.md) | Common failures and playbook links |
-| [Workflow takeover](workflow-takeover.md) | Placeholders, quality profiles, queue-time patching |
-| [Prompt limits](prompt-limits.md) | Character limits by model × detail level |
-| [Prompt examples](prompt-examples.md) | Sample outputs for SDXL, Qwen Edit, FLUX, SD1.5 |
-| [HTTP API](http-api.md) | REST endpoints, curl examples, health/probe/invite |
-| [Data catalogs](data-catalogs.md) | Location & clothing library generator scripts |
+## For operators and contributors
 
-#### Features by area
-
-Quick jumps inside [features.md](features.md):
-
-- [Prompt generation & models](features.md#prompt-generation)
-- [Scene tools & catalogs](features.md#scene-tools)
-- [Studio](features.md#studio)
-- [Gallery](features.md#gallery)
-- [Queue & ComfyUI](features.md#queue-comfyui)
-- [Workflows & library](features.md#workflows)
-- [Settings, storage & backup](features.md#settings-storage)
-- [Auth, admin & API](features.md#auth-api)
-- [Automation & integrations](features.md#automation)
-- [UI & UX](features.md#ui-ux)
-
-### Contributors & ops
-
-| Doc | Contents |
-| --- | --- |
-| [Architecture](architecture.md) | Storage, queue path, auth, plugins, engine adapter |
-| [Releases](releasing.md) | Cut `vX.Y.Z` GitHub Releases and GHCR images |
-| [Plugin iframe host](plugin-iframe-host.md) | postMessage protocol + example HTML |
-| [Performance & scripts](performance/guide.md) | npm scripts, build, Prettier, monitoring |
-| [Diffusers engine (GitHub)](https://github.com/doodersrage/castcut-diffusers) | Optional FastAPI stills sidecar |
-
-### Local preview
-
-Browse with search locally:
-
-```bash
-pip install -r docs/requirements-docs.txt
-npm run docs:serve
-```
-
-Open `http://127.0.0.1:8000` (the local preview).
-
-**GitHub Pages:** pushes to `main` that touch `docs/` or `mkdocs.yml` publish here. Actions → **Docs** → **Run workflow** republishes without a docs change.
+[Configuration](configuration.md) · [Operator guide](operator.md) · [Desktop app](desktop.md) ·
+[HTTP API](http-api.md) · [Architecture](architecture.md) · [Releases](releasing.md)
