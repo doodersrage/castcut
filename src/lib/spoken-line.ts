@@ -27,7 +27,16 @@ export type SpokenLineRequest = {
   avoid?: string[];
   /** Write the other person's answer to this line (two-person conversations). */
   replyTo?: string;
+  /**
+   * 'narration': the film's voice-over over this shot (DaySlot.narration) — heard, not said on
+   * screen; `avoid` is then the narration so far, to follow on from.
+   */
+  kind?: 'line' | 'narration';
 };
+
+/** Longest suggested narration (the field's own limit is 140 characters). */
+export const NARRATION_MAX_WORDS = 20;
+export const NARRATION_MAX_CHARS = 140;
 
 export type SpokenLineHeat = 'clean' | 'flirty' | 'sensual' | 'explicit';
 
@@ -117,7 +126,40 @@ const CANDIDATE_INTENTS: Record<SpokenLineHeat, string> = {
   explicit: 'a request, a reaction, a demand, praise',
 };
 
+/** Voice-over for a shot of the film: inner, reflective, in the lead's own words. */
+function buildNarrationMessages(input: SpokenLineRequest) {
+  const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
+  const system = [
+    `Write FOUR different voice-over lines for one shot of a short film about ${who}'s day — one per line, numbered 1-4.`,
+    `- ${who} narrates it in the first person: a thought about this moment, heard over the picture, never said to anyone on screen.`,
+    `- 6 to ${NARRATION_MAX_WORDS} words each, one sentence, plain and specific to what happens in the shot.`,
+    '- Quiet and personal, like a diary line — not a caption, not a description of the picture.',
+    input.avoid?.length ? '- It follows on from the narration so far without repeating it.' : '',
+    input.heat && input.heat !== 'clean'
+      ? '- Intimate scenes: keep it suggestive and tender, never graphic.'
+      : '',
+    '- No quotation marks, no stage directions, no emojis, no hashtags, no names of real people or brands.',
+    '- Reply with the four numbered lines only.',
+  ].filter(Boolean);
+  const user = [
+    `Shot: ${input.scene.trim().slice(0, 400)}`,
+    input.setting?.trim() ? `Where: ${input.setting.trim().slice(0, 200)}` : '',
+    input.when?.trim() ? `When: ${input.when.trim()}` : '',
+    input.personality?.trim()
+      ? `Personality (tone only, not the topic): ${input.personality.trim().slice(0, 300)}`
+      : '',
+    input.avoid?.length ? `Narration so far: ${input.avoid.slice(0, 6).join(' | ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return [
+    { role: 'system' as const, content: system.join('\n') },
+    { role: 'user' as const, content: user },
+  ];
+}
+
 export function buildSpokenLineMessages(input: SpokenLineRequest) {
+  if (input.kind === 'narration') return buildNarrationMessages(input);
   const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
   const heat = input.heat ?? 'clean';
   const replyTo = input.replyTo?.trim();
@@ -172,14 +214,15 @@ function contentWords(text: string): Set<string> {
  */
 export function pickSpokenLine(
   reply: string | null | undefined,
-  context: { scene: string; setting?: string; avoid?: string[] },
+  context: { scene: string; setting?: string; avoid?: string[]; kind?: 'line' | 'narration' },
   random: () => number = Math.random
 ): string {
   const avoid = new Set((context.avoid ?? []).map(line => line.toLowerCase()));
+  const parse = context.kind === 'narration' ? parseNarrationLine : parseSpokenLine;
   const candidates = (reply ?? '')
     .replace(/<think>[\s\S]*?<\/think>/gi, '')
     .split('\n')
-    .map(line => parseSpokenLine(line.replace(/^\s*\d+\s*[.):-]\s*/, '')))
+    .map(line => parse(line.replace(/^\s*\d+\s*[.):-]\s*/, '')))
     .filter(line => line && !avoid.has(line.toLowerCase()));
   if (!candidates.length) return '';
   const sceneWords = contentWords(`${context.scene} ${context.setting ?? ''}`);
@@ -193,6 +236,28 @@ export function pickSpokenLine(
   const best = Math.max(...scored.map(entry => entry.score));
   const top = scored.filter(entry => entry.score === best);
   return top[Math.floor(random() * top.length)]!.line;
+}
+
+/** One numbered candidate as usable narration (6–20 words, ≤ 140 characters), or ''. */
+export function parseNarrationLine(reply: string | null | undefined): string {
+  const text = (reply ?? '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .split('\n')
+    .map(line => line.trim())
+    .find(Boolean)
+    ?.replace(/^(narration|voice-?over|line)\s*:\s*/i, '')
+    .replace(/\*[^*]+\*|\([^)]*\)|\[[^\]]*\]/g, ' ')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+    .replace(/#\w+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^["'‘’“”]+|["'‘’“”]+$/g, '')
+    .trim();
+  if (!text) return '';
+  const words = text.split(' ').length;
+  return words >= 4 && words <= NARRATION_MAX_WORDS && text.length <= NARRATION_MAX_CHARS
+    ? text
+    : '';
 }
 
 /** The LLM's reply as a usable line, or '' when it is not one. */

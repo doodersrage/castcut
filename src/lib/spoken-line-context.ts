@@ -16,7 +16,10 @@ export function activeCastHasVoice(): boolean {
 }
 
 export function suggestLineForActiveCast(
-  input: Pick<SpokenLineRequest, 'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo'>,
+  input: Pick<
+    SpokenLineRequest,
+    'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo' | 'kind'
+  >,
   options?: { castId?: string | null; story?: boolean }
 ): Promise<string> {
   const cache = loadSettingsCache();

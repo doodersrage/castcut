@@ -11,7 +11,10 @@ export async function GET() {
 const text = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
-/** POST { scene, setting?, when?, name?, personality?, lead?, heat?, avoid? } → { line }. */
+/**
+ * POST { scene, setting?, when?, name?, personality?, lead?, heat?, avoid?, replyTo?, kind? } →
+ * { line }. kind 'narration': the film's voice-over over the shot.
+ */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -28,10 +31,11 @@ export async function POST(request: Request) {
             ? body.heat
             : 'clean',
         replyTo: text(body.replyTo, 160) || undefined,
+        kind: body.kind === 'narration' ? 'narration' : 'line',
         avoid: Array.isArray(body.avoid)
           ? body.avoid
               .filter((entry): entry is string => typeof entry === 'string')
-              .map(entry => entry.slice(0, 120))
+              .map(entry => entry.slice(0, 160))
               .slice(0, 6)
           : undefined,
       },

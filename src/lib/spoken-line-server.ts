@@ -14,13 +14,15 @@ export async function suggestSpokenLine(
 ): Promise<string> {
   if (!input.scene.trim()) throw new Error('Write the scene first.');
   if (!resolveRequestLlmEnabled(llm)) {
-    throw new Error('Suggesting a line needs the LLM. Turn it on under Settings → LLM.');
+    throw new Error(
+      `Suggesting ${input.kind === 'narration' ? 'narration' : 'a line'} needs the LLM. Turn it on under Settings → LLM.`
+    );
   }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const reply = await chatCompletion({
       messages: buildSpokenLineMessages(input),
       // Four numbered candidates (pickSpokenLine).
-      maxTokens: 200,
+      maxTokens: input.kind === 'narration' ? 260 : 200,
       temperature: 0.9,
       model: resolveRequestLlmModel(llm),
       endpoint: resolveRequestLlmEndpoint(llm),
@@ -29,5 +31,9 @@ export async function suggestSpokenLine(
     const line = pickSpokenLine(reply, input);
     if (line) return line;
   }
-  throw new Error('The LLM did not write a usable line. Try again.');
+  throw new Error(
+    input.kind === 'narration'
+      ? 'The LLM did not write usable narration. Try again.'
+      : 'The LLM did not write a usable line. Try again.'
+  );
 }

@@ -5,6 +5,7 @@ import {
   parseSpokenLine,
   pickSpokenLine,
   spokenLineHeat,
+  parseNarrationLine,
 } from './spoken-line';
 import { parseRoleplayScenes } from './roleplay';
 import { clipUrlIsAnimatedImage, clipUrlIsVideo } from './clip-media-kind';
@@ -127,3 +128,34 @@ describe('pickSpokenLine', () => {
   });
 });
 
+
+describe('narration suggestions', () => {
+  it('asks for voice-over that follows the narration so far', () => {
+    const [system, user] = buildSpokenLineMessages({
+      scene: 'riding her bike across the bridge',
+      name: 'Lena',
+      kind: 'narration',
+      avoid: ['Coffee first, always.'],
+    });
+    assert.match(system!.content, /voice-over lines for one shot of a short film about Lena's day/);
+    assert.match(system!.content, /follows on from the narration so far/);
+    assert.match(user!.content, /Narration so far: Coffee first, always\./);
+  });
+
+  it('keeps 4–20 words within 140 characters, without quotes or stage directions', () => {
+    assert.equal(
+      parseNarrationLine('"My hair sticks to my neck, but I don’t stop pedaling." *smiles*'),
+      'My hair sticks to my neck, but I don’t stop pedaling.'
+    );
+    assert.equal(parseNarrationLine('Too short.'), '');
+    assert.equal(parseNarrationLine('word '.repeat(25)), '');
+    assert.equal(
+      pickSpokenLine(
+        '1. The bridge hums under my wheels.\n2. Morning.',
+        { scene: 'riding her bike across the bridge', kind: 'narration' },
+        () => 0
+      ),
+      'The bridge hums under my wheels.'
+    );
+  });
+});

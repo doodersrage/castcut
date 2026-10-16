@@ -125,6 +125,18 @@ export default function DaySlotSheet({
   const otherLines = slots
     .filter(entry => entry.id !== slot.id && entry.line?.trim())
     .map(entry => entry.line!.trim());
+  // Narration earlier in the Day (in order), so a suggestion follows on from it.
+  const narrationSoFar = slots
+    .slice(
+      0,
+      Math.max(
+        0,
+        slots.findIndex(entry => entry.id === slot.id)
+      )
+    )
+    .map(entry => entry.narration?.trim() ?? '')
+    .filter(Boolean)
+    .slice(-6);
   const done = daySlotProgressState(still) === 'done';
   const index = slots.findIndex(entry => entry.id === slot.id);
   const previous = index > 0 ? slots[index - 1] : null;
@@ -338,6 +350,19 @@ export default function DaySlotSheet({
             key={`${slot.id}:narration`}
             value={slot.narration ?? ''}
             onSave={narration => updateSlot(slot.id, { narration: narration || undefined })}
+            onSuggest={() =>
+              suggestLineForActiveCast(
+                {
+                  scene: slotScene,
+                  setting: slot.location,
+                  when: slot.label,
+                  heat: spokenLineHeat(dayMood),
+                  avoid: narrationSoFar,
+                  kind: 'narration',
+                },
+                { castId: character?.id }
+              )
+            }
           />
         </div>
         <DaySlotPosePreview
@@ -456,11 +481,52 @@ export default function DaySlotSheet({
  * Voice-over for this slot's shot in the film — not said on screen, recorded when the film is
  * cut (film-narration.ts), in the Cast's kept voice when they have one. Saved on blur.
  */
-function NarrationField({ value, onSave }: { value: string; onSave: (next: string) => void }) {
+function NarrationField({
+  value,
+  onSave,
+  onSuggest,
+}: {
+  value: string;
+  onSave: (next: string) => void;
+  /** Ask the LLM for voice-over that fits this shot and follows the Day's narration so far. */
+  onSuggest?: () => Promise<string>;
+}) {
   const [draft, setDraft] = useState(value);
+  const [asking, setAsking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const suggest = async () => {
+    if (!onSuggest) return;
+    setAsking(true);
+    setError(null);
+    try {
+      const next = await onSuggest();
+      setDraft(next);
+      onSave(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not suggest narration.');
+    } finally {
+      setAsking(false);
+    }
+  };
   return (
     <label className="space-y-1.5">
-      <FieldLabel>Narration</FieldLabel>
+      <span className="flex flex-wrap items-center justify-between gap-2">
+        <FieldLabel>Narration</FieldLabel>
+        {onSuggest ? (
+          <button
+            type="button"
+            className="ui-chip"
+            disabled={asking}
+            data-testid="day-slot-narration-suggest"
+            onClick={event => {
+              event.preventDefault();
+              void suggest();
+            }}
+          >
+            {asking ? 'Writing…' : draft.trim() ? 'Another narration' : 'Suggest a narration'}
+          </button>
+        ) : null}
+      </span>
       <TextArea
         rows={2}
         maxLength={140}
@@ -475,6 +541,11 @@ function NarrationField({ value, onSave }: { value: string; onSave: (next: strin
         Heard over this shot when the film is cut, not said on screen — in the Cast&apos;s voice
         when one is kept.
       </span>
+      {error ? (
+        <span className="type-caption block ui-status-danger" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

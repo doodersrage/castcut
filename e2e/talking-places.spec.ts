@@ -158,3 +158,38 @@ test('Day slot: a line in the clip is kept, a suggestion fills it, No line clear
   await expect(page.getByTestId('day-slot-line-full-frame')).toHaveCount(0);
   await expect(page.getByTestId('day-slot-line-input').first()).toHaveValue('');
 });
+
+test('Day slot: Suggest a narration fills the voice-over', async ({ page }) => {
+  let sent: Record<string, unknown> = {};
+  await page.route('**/api/spoken-line', route => {
+    sent = route.request().postDataJSON() as Record<string, unknown>;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ line: 'Some mornings the city feels like it was made for me.' }),
+    });
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-narr' },
+    characters: cast('e2e-narr'),
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-narr',
+        dayMood: 'everyday',
+        activeSlotId: 'morning',
+        slots: [{ id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'making coffee' }],
+        stills: [],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await openDaySlotSheet(page, 'morning');
+  await page.getByTestId('day-slot-narration-suggest').first().click();
+  await expect(page.getByTestId('day-slot-narration').first()).toHaveValue(
+    'Some mornings the city feels like it was made for me.',
+    { timeout: 15_000 }
+  );
+  expect(sent.kind).toBe('narration');
+  expect(sent.scene).toBe('making coffee');
+});
