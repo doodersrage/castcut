@@ -229,6 +229,24 @@ describe("queue-tool-model", () => {
     assert.deepEqual(filtered, []);
   });
 
+  it("opens the edit tools on Qwen-Image 2.1 Turbo when it is installed", () => {
+    assert.equal(
+      resolvePreferredImg2imgModel({
+        current: "qwen-image-2512",
+        allowed: ["qwen-image-edit-2511-lightning-8", "qwen-image-2.1-edit-turbo-8"],
+      }),
+      "qwen-image-2.1-edit-turbo-8",
+    );
+    // An explicit pick stays.
+    assert.equal(
+      resolvePreferredImg2imgModel({
+        current: "qwen-image-edit-2511-lightning-8",
+        allowed: ["qwen-image-edit-2511-lightning-8", "qwen-image-2.1-edit-turbo-8"],
+      }),
+      "qwen-image-edit-2511-lightning-8",
+    );
+  });
+
   it("maps first-run Outfit shared T2I default onto Edit 2511", () => {
     assert.equal(
       resolvePreferredImg2imgModel({

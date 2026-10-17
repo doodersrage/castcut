@@ -37,6 +37,9 @@ const TXT2I_TO_EDIT: Partial<Record<ComfyImageModel, ComfyImageModel>> = {
 
 const DEFAULT_IMG2IMG_MODEL: ComfyImageModel = 'qwen-image-edit-2511-lightning-8';
 
+/** The edit tools' default engine when installed (resolvePreferredImg2imgModel). */
+export const DEFAULT_EDIT_ENGINE: ComfyImageModel = 'qwen-image-2.1-edit-turbo-8';
+
 /** Client-safe basename match — do not import comfy-asset-status (pulls node:fs). */
 function inventoryListHasFilename(list: string[], filename: string): boolean {
   const trimmed = filename.trim();
@@ -324,6 +327,14 @@ export function resolvePreferredImg2imgModel(input: {
   const allowed = (input.allowed ?? []).filter(model => isImg2imgCapableModel(model));
   const pool = allowed.length > 0 ? [...allowed] : undefined;
   const current = input.current?.trim();
+
+  // The out-of-the-box pick (qwen-image-2512) opens the edit tools on Qwen-Image 2.1 Turbo when
+  // it is installed — 2026-10-17 rematch, the same 38 Day beats through the app: beats shown tied
+  // with Edit 2511 (23/24 Everyday each), the Cast's face much closer (median distance 0.24 vs
+  // 0.53, closer on 30/38), ~20 s vs ~28 s. Not installed: Edit 2511 as before.
+  if (current === 'qwen-image-2512' && pool?.includes(DEFAULT_EDIT_ENGINE)) {
+    return DEFAULT_EDIT_ENGINE;
+  }
 
   if (current && pool?.includes(current as ComfyImageModel)) {
     return current as ComfyImageModel;
