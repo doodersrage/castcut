@@ -5,6 +5,8 @@ import {
   readBrowserValue,
   writeBrowserValue,
 } from '@/lib/browser-storage';
+import { recordListSpec } from '@/lib/record-list-sync';
+import { trackRecordListWrite } from '@/lib/record-tombstones';
 
 export const FITTING_SAVED_GARMENTS_STORAGE_KEY = 'fitting-saved-garments';
 export const FITTING_SAVED_GARMENTS_CHANGED_EVENT = 'fitting-saved-garments-changed';
@@ -22,6 +24,8 @@ export type SavedFittingGarment = {
   imageUrl?: string;
   description?: string;
   savedAt: number;
+  /** Last edit (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
 };
 
 function newId(): string {
@@ -69,7 +73,19 @@ function normalizeEntry(raw: unknown): SavedFittingGarment | null {
     typeof entry.savedAt === 'number' && Number.isFinite(entry.savedAt)
       ? entry.savedAt
       : Date.now();
-  return { id, label, imageFilename, imageUrl, description, savedAt };
+  const updatedAt =
+    typeof entry.updatedAt === 'number' && Number.isFinite(entry.updatedAt)
+      ? entry.updatedAt
+      : undefined;
+  return {
+    id,
+    label,
+    imageFilename,
+    imageUrl,
+    description,
+    savedAt,
+    ...(updatedAt ? { updatedAt } : {}),
+  };
 }
 
 function readAll(): SavedFittingGarment[] {
@@ -99,8 +115,16 @@ function readAll(): SavedFittingGarment[] {
   }
 }
 
-function writeAll(entries: SavedFittingGarment[]): SavedFittingGarment[] {
-  const next = entries.slice(0, FITTING_SAVED_GARMENTS_LIMIT);
+function writeAll(
+  entries: SavedFittingGarment[],
+  options: { fromSync?: boolean } = {}
+): SavedFittingGarment[] {
+  const limited = entries.slice(0, FITTING_SAVED_GARMENTS_LIMIT);
+  // The app's own edits and deletions are stamped for the cross-device merge; synced copies
+  // already carry their times.
+  const next = options.fromSync
+    ? limited
+    : trackRecordListWrite(recordListSpec('fittingSavedGarments'), readAll(), limited);
   if (typeof window !== 'undefined') {
     try {
       writeBrowserValue(FITTING_SAVED_GARMENTS_STORAGE_KEY, next);
@@ -221,7 +245,7 @@ export function replaceSavedFittingGarments(entries: unknown): SavedFittingGarme
     seen.add(entry.imageFilename);
     next.push(entry);
   }
-  return writeAll(next);
+  return writeAll(next, { fromSync: true });
 }
 
 export function removeSavedFittingGarment(id: string | null | undefined): SavedFittingGarment[] {

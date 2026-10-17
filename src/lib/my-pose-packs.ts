@@ -11,6 +11,9 @@ import {
 import type { DaySlot } from '@/lib/day-planner';
 import { normalizePosePack, posePackFromSlots, type PosePack } from '@/lib/day-pose-packs';
 
+import { recordListSpec } from './record-list-sync';
+import { trackRecordListWrite } from './record-tombstones';
+
 export const MY_POSE_PACKS_STORAGE_KEY = 'comfy-my-pose-packs-v1';
 export const MY_POSE_PACKS_CHANGED_EVENT = 'comfy-my-pose-packs-changed';
 export const MY_POSE_PACKS_LIMIT = 20;
@@ -42,8 +45,11 @@ export function loadMyPosePacks(): PosePack[] {
   }
 }
 
-function writeAll(packs: PosePack[]): PosePack[] {
-  const next = packs.slice(0, MY_POSE_PACKS_LIMIT);
+function writeAll(packs: PosePack[], options: { fromSync?: boolean } = {}): PosePack[] {
+  const limited = packs.slice(0, MY_POSE_PACKS_LIMIT);
+  const next = options.fromSync
+    ? limited
+    : trackRecordListWrite(recordListSpec('myPosePacks'), loadMyPosePacks(), limited);
   if (typeof window !== 'undefined') {
     try {
       writeBrowserValue(MY_POSE_PACKS_STORAGE_KEY, next);
@@ -74,7 +80,10 @@ export function removeMyPosePack(id: string): void {
 /** Server pull (studio-extras). */
 export function replaceMyPosePacks(packs: unknown): void {
   if (!Array.isArray(packs)) return;
-  writeAll(packs.map(normalizeMine).filter((pack): pack is PosePack => Boolean(pack)));
+  writeAll(
+    packs.map(normalizeMine).filter((pack): pack is PosePack => Boolean(pack)),
+    { fromSync: true }
+  );
 }
 
 export function subscribeMyPosePacks(onChange: () => void): () => void {

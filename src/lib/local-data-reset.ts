@@ -22,7 +22,8 @@ export function clearAllLocalPromptData(): void {
   saveSettingsCache({ shared: DEFAULT_SHARED_SETTINGS, tools: {} });
   resetComfyUiSettings();
   clearComfyGallery();
-  saveComfyWorkflowFiles([]);
+  // Clearing this device is not deleting everywhere: no deletion records.
+  saveComfyWorkflowFiles([], { fromSync: true });
   for (const reset of localDataResets.values()) reset.clear();
 }
 

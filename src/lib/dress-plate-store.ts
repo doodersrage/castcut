@@ -16,6 +16,9 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/dress-plate-cache';
 
+import { recordListSpec } from './record-list-sync';
+import { trackRecordListWrite } from './record-tombstones';
+
 export const DRESS_PLATES_STORAGE_KEY = 'dress-plates';
 export const DRESS_PLATES_CHANGED_EVENT = 'dress-plates-changed';
 
@@ -46,6 +49,9 @@ function normalize(items: unknown): DayDressPlateEntry[] {
         : typeof entry.shoesChecked === 'number' && entry.shoesChecked > 0
           ? { shoesChecked: entry.shoesChecked }
           : {}),
+      ...(typeof entry.updatedAt === 'number' && Number.isFinite(entry.updatedAt)
+        ? { updatedAt: entry.updatedAt }
+        : {}),
     });
   }
   return out;
@@ -60,7 +66,13 @@ export function loadDressPlates(): DayDressPlateEntry[] {
   }
 }
 
-function write(entries: DayDressPlateEntry[]): DayDressPlateEntry[] {
+function write(
+  input: DayDressPlateEntry[],
+  options: { fromSync?: boolean } = {}
+): DayDressPlateEntry[] {
+  const entries = options.fromSync
+    ? input
+    : trackRecordListWrite(recordListSpec('dressPlates'), loadDressPlates(), input);
   if (typeof window !== 'undefined') {
     try {
       writeBrowserValue(DRESS_PLATES_STORAGE_KEY, entries);
@@ -99,5 +111,5 @@ export function clearDressPlates(): DayDressPlateEntry[] {
 
 /** Replace the whole list from a synced copy (studio-extras). */
 export function replaceDressPlates(entries: unknown): DayDressPlateEntry[] {
-  return Array.isArray(entries) ? write(normalize(entries)) : loadDressPlates();
+  return Array.isArray(entries) ? write(normalize(entries), { fromSync: true }) : loadDressPlates();
 }

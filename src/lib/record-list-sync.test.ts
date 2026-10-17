@@ -101,3 +101,121 @@ describe('withMergedRecordLists', () => {
     ]);
   });
 });
+
+describe('record lists (outfits, shoes, poses, packs, dress plates, workflows)', () => {
+  it('saved outfits: union by id, newest edit wins, one per photo', async () => {
+    const { withMergedRecordLists } = await import('./record-list-sync');
+    const out = withMergedRecordLists(
+      {
+        fittingSavedGarments: [
+          { id: 'a', imageFilename: 'dress.png', savedAt: 10, description: 'phone edit', updatedAt: 90 },
+          { id: 'c', imageFilename: 'coat.png', savedAt: 30 },
+        ],
+      } as Record<string, unknown>,
+      {
+        fittingSavedGarments: [
+          { id: 'a', imageFilename: 'dress.png', savedAt: 10, description: 'old' },
+          { id: 'b', imageFilename: 'skirt.png', savedAt: 20 },
+          { id: 'z', imageFilename: 'coat.png', savedAt: 5 },
+        ],
+      } as never
+    ) as { fittingSavedGarments: { id: string; description?: string }[] };
+    assert.deepEqual(
+      out.fittingSavedGarments.map(e => e.id),
+      ['a', 'c', 'b']
+    );
+    assert.equal(out.fittingSavedGarments[0].description, 'phone edit');
+  });
+
+  it('a deletion travels; an entry saved after its deletion stays', async () => {
+    const { withMergedRecordLists } = await import('./record-list-sync');
+    const out = withMergedRecordLists(
+      { myPoses: [{ id: 'p1', savedAt: 10 }], recordTombstones: { myPoses: { p2: 50 } } } as Record<
+        string,
+        unknown
+      >,
+      {
+        myPoses: [
+          { id: 'p1', savedAt: 10 },
+          { id: 'p2', savedAt: 20 },
+          { id: 'p3', savedAt: 60 },
+        ],
+        recordTombstones: { myPoses: { p3: 40 } },
+      } as never
+    ) as { myPoses: { id: string }[]; recordTombstones: Record<string, Record<string, number>> };
+    assert.deepEqual(
+      out.myPoses.map(e => e.id),
+      ['p3', 'p1']
+    );
+    assert.deepEqual(out.recordTombstones.myPoses, { p2: 50, p3: 40 });
+  });
+
+  it('dress plates merge by key; pose packs keep one per name', async () => {
+    const { withMergedRecordLists } = await import('./record-list-sync');
+    const out = withMergedRecordLists(
+      {
+        dressPlates: [{ key: 'k1', filename: 'new.png', at: 90 }],
+        myPosePacks: [{ id: 'm2', name: 'Gym day', savedAt: 80 }],
+      } as Record<string, unknown>,
+      {
+        dressPlates: [
+          { key: 'k1', filename: 'old.png', at: 10 },
+          { key: 'k2', filename: 'b.png', at: 20 },
+        ],
+        myPosePacks: [{ id: 'm1', name: 'gym day', savedAt: 10 }],
+      } as never
+    ) as {
+      dressPlates: { key: string; filename: string }[];
+      myPosePacks: { id: string }[];
+    };
+    assert.deepEqual(
+      out.dressPlates.map(e => `${e.key}:${e.filename}`),
+      ['k1:new.png', 'k2:b.png']
+    );
+    assert.deepEqual(
+      out.myPosePacks.map(e => e.id),
+      ['m2']
+    );
+  });
+
+  it('workflow trash drops a file that is back in the library', async () => {
+    const { withMergedRecordLists } = await import('./record-list-sync');
+    const out = withMergedRecordLists(
+      {
+        comfyWorkflowFiles: [{ id: 'w1', createdAt: 1, updatedAt: 100 }],
+        comfyWorkflowTrash: [],
+      } as Record<string, unknown>,
+      {
+        comfyWorkflowFiles: [],
+        comfyWorkflowTrash: [
+          { file: { id: 'w1' }, deletedAt: 50 },
+          { file: { id: 'w2' }, deletedAt: 60 },
+        ],
+      } as never
+    ) as { comfyWorkflowTrash: { file: { id: string } }[] };
+    assert.deepEqual(
+      out.comfyWorkflowTrash.map(e => e.file.id),
+      ['w2']
+    );
+  });
+
+  it('stampListChanges stamps edits, keeps unchanged times, reports deletions', async () => {
+    const { stampListChanges } = await import('./record-list-sync');
+    const idOf = (e: Record<string, unknown>) => String(e.id);
+    const prev = [
+      { id: 'a', name: 'A', updatedAt: 5 },
+      { id: 'b', name: 'B' },
+      { id: 'c', name: 'C' },
+    ];
+    const next = [
+      { id: 'a', name: 'A' },
+      { id: 'b', name: 'B2' },
+    ];
+    const { entries, removed } = stampListChanges(prev, next, idOf, 1000);
+    assert.deepEqual(entries, [
+      { id: 'a', name: 'A', updatedAt: 5 },
+      { id: 'b', name: 'B2', updatedAt: 1000 },
+    ]);
+    assert.deepEqual(removed, { c: 1000 });
+  });
+});

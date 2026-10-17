@@ -11,6 +11,9 @@ import {
 } from '@/lib/browser-storage';
 import type { PhotoPose } from '@/lib/pose-types';
 
+import { recordListSpec } from './record-list-sync';
+import { trackRecordListWrite } from './record-tombstones';
+
 export const MY_POSES_STORAGE_KEY = 'comfy-my-poses-v1';
 export const MY_POSES_CHANGED_EVENT = 'comfy-my-poses-changed';
 export const MY_POSES_LIMIT = 40;
@@ -20,6 +23,8 @@ export type MyPose = {
   name: string;
   pose: PhotoPose;
   savedAt: number;
+  /** Last edit (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
 };
 
 function newId(): string {
@@ -63,6 +68,9 @@ export function normalizeMyPose(raw: unknown): MyPose | null {
       typeof entry.savedAt === 'number' && Number.isFinite(entry.savedAt)
         ? entry.savedAt
         : Date.now(),
+    ...(typeof entry.updatedAt === 'number' && Number.isFinite(entry.updatedAt)
+      ? { updatedAt: entry.updatedAt }
+      : {}),
   };
 }
 
@@ -80,8 +88,11 @@ export function loadMyPoses(): MyPose[] {
   }
 }
 
-function writeAll(entries: MyPose[]): MyPose[] {
-  const next = entries.slice(0, MY_POSES_LIMIT);
+function writeAll(entries: MyPose[], options: { fromSync?: boolean } = {}): MyPose[] {
+  const limited = entries.slice(0, MY_POSES_LIMIT);
+  const next = options.fromSync
+    ? limited
+    : trackRecordListWrite(recordListSpec('myPoses'), loadMyPoses(), limited);
   if (typeof window !== 'undefined') {
     try {
       writeBrowserValue(MY_POSES_STORAGE_KEY, next);
@@ -108,7 +119,10 @@ export function removeMyPose(id: string): void {
 /** Server pull (studio-extras). */
 export function replaceMyPoses(entries: unknown): void {
   if (!Array.isArray(entries)) return;
-  writeAll(entries.map(normalizeMyPose).filter((entry): entry is MyPose => Boolean(entry)));
+  writeAll(
+    entries.map(normalizeMyPose).filter((entry): entry is MyPose => Boolean(entry)),
+    { fromSync: true }
+  );
 }
 
 export function subscribeMyPoses(onChange: () => void): () => void {

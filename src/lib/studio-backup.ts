@@ -175,7 +175,7 @@ export function importStudioBackup(backup: StudioBackup): void {
       saveComfyWorkflowPresets(payload.comfyWorkflowPresets);
     }
     if (payload.comfyWorkflowFiles) {
-      saveComfyWorkflowFiles(payload.comfyWorkflowFiles);
+      saveComfyWorkflowFiles(payload.comfyWorkflowFiles, { fromSync: true });
     }
   }
 

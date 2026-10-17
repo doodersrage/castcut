@@ -18,6 +18,8 @@ export type DayDressPlateEntry = {
   shoesChecked?: number;
   /** The engine that rendered it (or the Outfit try-on kept as it). Missing before 2026-10-08. */
   engine?: string;
+  /** Last change (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
 };
 
 /**

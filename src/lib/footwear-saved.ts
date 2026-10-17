@@ -6,6 +6,8 @@ import {
   writeBrowserValue,
 } from '@/lib/browser-storage';
 import { normalizeFootwear } from '@/lib/footwear';
+import { recordListSpec } from '@/lib/record-list-sync';
+import { trackRecordListWrite } from '@/lib/record-tombstones';
 
 export const SAVED_FOOTWEAR_STORAGE_KEY = 'footwear-saved';
 export const SAVED_FOOTWEAR_CHANGED_EVENT = 'footwear-saved-changed';
@@ -23,6 +25,8 @@ export type SavedFootwear = {
   /** What the prompt names the shoes. */
   words?: string;
   savedAt: number;
+  /** Last edit (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
 };
 
 function newId(): string {
@@ -63,6 +67,9 @@ function normalizeEntry(raw: unknown): SavedFootwear | null {
       typeof entry.savedAt === 'number' && Number.isFinite(entry.savedAt)
         ? entry.savedAt
         : Date.now(),
+    ...(typeof entry.updatedAt === 'number' && Number.isFinite(entry.updatedAt)
+      ? { updatedAt: entry.updatedAt }
+      : {}),
   };
 }
 
@@ -88,8 +95,11 @@ function readAll(): SavedFootwear[] {
   }
 }
 
-function writeAll(entries: SavedFootwear[]): SavedFootwear[] {
-  const next = entries.slice(0, SAVED_FOOTWEAR_LIMIT);
+function writeAll(entries: SavedFootwear[], options: { fromSync?: boolean } = {}): SavedFootwear[] {
+  const limited = entries.slice(0, SAVED_FOOTWEAR_LIMIT);
+  const next = options.fromSync
+    ? limited
+    : trackRecordListWrite(recordListSpec('savedFootwear'), readAll(), limited);
   if (typeof window !== 'undefined') {
     try {
       writeBrowserValue(SAVED_FOOTWEAR_STORAGE_KEY, next);
@@ -167,7 +177,9 @@ export function updateSavedFootwearWords(
 
 /** Replace the whole list from a synced copy (studio-extras); returns what was kept. */
 export function replaceSavedFootwear(entries: unknown): SavedFootwear[] {
-  return Array.isArray(entries) ? writeAll(normalizeList(entries)) : loadSavedFootwear();
+  return Array.isArray(entries)
+    ? writeAll(normalizeList(entries), { fromSync: true })
+    : loadSavedFootwear();
 }
 
 export function removeSavedFootwear(id: string | null | undefined): SavedFootwear[] {

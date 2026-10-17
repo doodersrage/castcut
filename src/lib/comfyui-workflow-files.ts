@@ -8,6 +8,9 @@ import { LIGHTNING_LORA_TOKEN } from './workflow-lora-patch';
 import { loadComfyWorkflowPresets, type ComfyWorkflowPreset } from './comfyui-workflow-presets';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 
+import { recordListSpec } from './record-list-sync';
+import { trackRecordListWrite } from './record-tombstones';
+
 export const COMFY_WORKFLOW_FILES_KEY = 'comfyui-workflow-files-v1';
 
 /** Common per-workflow token slots shown in the library editor. */
@@ -40,6 +43,8 @@ export type ComfyWorkflowFile = {
   filename?: string;
   workflowJson: string;
   createdAt: number;
+  /** Last change (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
   /** Timestamp of last Optimize all / optimize copy pass. */
   lastOptimizedAt?: number;
   /** Content hash after last optimize — drift detection in health audit. */
@@ -209,12 +214,27 @@ export function loadComfyWorkflowFiles(): ComfyWorkflowFile[] {
   }));
 }
 
-export function saveComfyWorkflowFiles(files: ComfyWorkflowFile[]): void {
+/**
+ * Save the library. The app's own saves stamp changed files and note deleted ones for the
+ * cross-device merge (record-list-sync); `fromSync` (a server pull, a backup restore, a local
+ * reset) stores the list as given and records no deletions.
+ */
+export function saveComfyWorkflowFiles(
+  files: ComfyWorkflowFile[],
+  options: { fromSync?: boolean } = {}
+): void {
+  const normalized = files.map(file => ({
+    ...file,
+    customTokens: normalizeWorkflowCustomTokens(file.customTokens),
+  }));
   saveComfyWorkflowFilesRaw(
-    files.map(file => ({
-      ...file,
-      customTokens: normalizeWorkflowCustomTokens(file.customTokens),
-    }))
+    options.fromSync
+      ? normalized
+      : trackRecordListWrite(
+          recordListSpec('comfyWorkflowFiles'),
+          loadComfyWorkflowFilesRaw(),
+          normalized
+        )
   );
 }
 

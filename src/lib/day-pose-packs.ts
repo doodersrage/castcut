@@ -48,6 +48,8 @@ export type PosePack = {
   /** Saved by the player (My packs) rather than shipped. */
   mine?: boolean;
   savedAt?: number;
+  /** Last edit (record-list-sync: the newest copy wins across devices). */
+  updatedAt?: number;
 };
 
 export const POSE_PACK_NAME_MAX = 40;
@@ -554,6 +556,9 @@ export function normalizePosePack(raw: unknown): PosePack | null {
     ...(record.mine === true ? { mine: true } : {}),
     ...(typeof record.savedAt === 'number' && Number.isFinite(record.savedAt)
       ? { savedAt: record.savedAt }
+      : {}),
+    ...(typeof record.updatedAt === 'number' && Number.isFinite(record.updatedAt)
+      ? { updatedAt: record.updatedAt }
       : {}),
   };
 }

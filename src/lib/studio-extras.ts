@@ -120,7 +120,13 @@ import {
   saveCharacters,
   type CharacterRecord,
 } from './character-os';
-import { mergeStoryLists, withMergedRecordLists } from './record-list-sync';
+import {
+  mergeStoryLists,
+  RECORD_LISTS,
+  withMergedRecordLists,
+  type RecordTombstones,
+} from './record-list-sync';
+import { loadRecordTombstones, saveRecordTombstones } from './record-tombstones';
 import { FIRST_QUEUE_SETUP_DISMISS_KEY } from './first-queue-setup';
 import { loadNotifications, type AppNotification } from './notification-center';
 import {
@@ -202,6 +208,8 @@ export type StudioExtrasPayload = {
   /** Cast deletions and when they happened — merged per id across devices (record-list-sync.ts). */
   characterRemovedIds?: string[];
   characterRemovedAt?: Record<string, number>;
+  /** Deletions from the record lists (record-tombstones.ts), per list, per id. */
+  recordTombstones?: RecordTombstones;
   /**
    * Story's saved stories (roleplay-library). Kept in the browser only, they never reached the
    * server: opening Story on another device, or a fresh browser, lost every story set aside when
@@ -286,6 +294,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     localObservability: loadLocalObservability(),
     studioBackupLastExport: readBrowserValue<string>(STUDIO_BACKUP_LAST_EXPORT_KEY) ?? null,
     ...castSyncSnapshot(),
+    recordTombstones: loadRecordTombstones(),
     roleplayLibrary: readStoredRoleplayLibrary(),
     poseLibrary: loadPoseLibrary(),
     poseOutcomes: poseOutcomeStatsForSync(loadPoseOutcomeStats()),
@@ -337,7 +346,7 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
       saveComfyWorkflowPresets(payload.comfyWorkflowPresets);
     }
     if (payload.comfyWorkflowFiles) {
-      saveComfyWorkflowFiles(payload.comfyWorkflowFiles);
+      saveComfyWorkflowFiles(payload.comfyWorkflowFiles, { fromSync: true });
     }
     if (payload.comfyWorkflowTrash) {
       saveDeletedComfyWorkflowFiles(payload.comfyWorkflowTrash);
@@ -378,6 +387,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.roleplayLibrary) {
       writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, payload.roleplayLibrary);
+    }
+    if (payload.recordTombstones) {
+      saveRecordTombstones(payload.recordTombstones);
     }
     if (payload.poseLibrary) {
       replacePoseLibrary(mergePoseLibraries(loadPoseLibrary(), payload.poseLibrary));
@@ -589,26 +601,27 @@ export function localStudioExtrasLooksEmpty(extras?: StudioExtrasPayload | null)
 }
 
 /**
- * The server's Cast and stories merged into this device's own (record by record, deletions
- * included) — the rest of studio-extras untouched. Startup sync on a device that already has
- * data: it used to keep its own Cast whole and never saw the other device's edits. True when
- * anything here changed.
+ * The server's record lists merged into this device's own — the Cast, stories and the
+ * record-list-sync RECORD_LISTS (outfits, shoes, poses, pose packs, dress plates, the workflow
+ * library), record by record with deletions; the rest of studio-extras untouched. Startup sync on
+ * a device that already has data: it used to keep its own copies whole and never saw the other
+ * device's edits. True when anything here changed.
  */
 export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): boolean {
-  const local = {
-    ...castSyncSnapshot(),
-    roleplayLibrary: readStoredRoleplayLibrary(),
-  };
-  const merged = withMergedRecordLists(local, server);
-  const key = (value: { characters?: { id: string; updatedAt?: number }[] }) =>
-    (value.characters ?? []).map(entry => `${entry.id}:${entry.updatedAt ?? 0}`).join('|');
-  const storyKey = (list: StoredRoleplaySession[] | undefined) =>
-    (list ?? []).map(entry => `${entry.id}:${entry.updatedAt ?? 0}`).join('|');
+  const local = collectStudioExtras();
+  const merged = withMergedRecordLists(local, server) as StudioExtrasPayload;
+  const changed = (field: string) =>
+    JSON.stringify((merged as Record<string, unknown>)[field] ?? null) !==
+    JSON.stringify((local as Record<string, unknown>)[field] ?? null);
   const castChanged =
-    key(merged) !== key(local) ||
-    (merged.characterRemovedIds ?? []).join('|') !== local.characterRemovedIds.join('|');
-  const storiesChanged = storyKey(merged.roleplayLibrary) !== storyKey(local.roleplayLibrary);
-  if (!castChanged && !storiesChanged) return false;
+    changed('characters') || changed('characterRemovedIds') || changed('characterRemovedAt');
+  const fields = [
+    'roleplayLibrary',
+    'recordTombstones',
+    'comfyWorkflowTrash',
+    ...RECORD_LISTS.map(spec => spec.field),
+  ].filter(changed);
+  if (!castChanged && fields.length === 0) return false;
   withSuppressedDurableSyncPush(() => {
     if (castChanged) {
       applySyncedCast({
@@ -617,8 +630,32 @@ export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): bo
         characterRemovedAt: merged.characterRemovedAt,
       });
     }
-    if (storiesChanged && merged.roleplayLibrary) {
-      writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, merged.roleplayLibrary);
+    const sectionFields: Record<string, unknown> = {};
+    for (const field of fields) {
+      const value = (merged as Record<string, unknown>)[field];
+      if (field === 'roleplayLibrary' && Array.isArray(value)) {
+        writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, value);
+      } else if (field === 'recordTombstones') {
+        saveRecordTombstones(value as RecordTombstones);
+      } else if (field === 'savedFootwear') {
+        replaceSavedFootwear(value);
+      } else if (field === 'myPoses') {
+        replaceMyPoses(value);
+      } else if (field === 'comfyWorkflowFiles' && Array.isArray(value)) {
+        saveComfyWorkflowFiles(value as ReturnType<typeof loadComfyWorkflowFiles>, {
+          fromSync: true,
+        });
+      } else if (field === 'comfyWorkflowTrash' && Array.isArray(value)) {
+        saveDeletedComfyWorkflowFiles(value as ReturnType<typeof loadDeletedComfyWorkflowFiles>);
+      } else {
+        // A feature's own list (Play: saved outfits, dress plates, pose packs).
+        sectionFields[field] = value;
+      }
+    }
+    if (Object.keys(sectionFields).length) {
+      for (const section of studioExtrasSections.values()) {
+        section.apply(sectionFields as StudioExtrasPayload);
+      }
     }
   });
   return true;

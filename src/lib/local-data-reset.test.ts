@@ -80,7 +80,8 @@ describe('local-data-reset', async () => {
       ]);
       assert.equal(resetComfyUiSettings.mock.calls.length, 1);
       assert.equal(clearComfyGallery.mock.calls.length, 1);
-      assert.deepEqual(saveComfyWorkflowFiles.mock.calls[0]!.arguments, [[]]);
+      // Clearing this device records no deletions (they would reach the other devices).
+      assert.deepEqual(saveComfyWorkflowFiles.mock.calls[0]!.arguments, [[], { fromSync: true }]);
     });
   });
 

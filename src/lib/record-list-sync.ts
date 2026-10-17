@@ -89,11 +89,155 @@ export function mergeStoryLists<S extends Timed>(
   );
 }
 
-type ListFields = CastSyncFields & { roleplayLibrary?: Timed[] };
+/**
+ * The other user-made lists in studio-extras, merged the same way (2026-10-17): saved outfits,
+ * saved shoes, My poses, My pose packs, dress plates and the workflow library. Each list's own
+ * write stamps `updatedAt` on entries it changed and records a deletion time for entries it
+ * dropped (stampListChanges, record-tombstones.ts); a write that comes from sync does neither.
+ */
+export type RecordListSpec = {
+  field: string;
+  /** The entry's id within its list. */
+  idOf: (entry: Record<string, unknown>) => string;
+  /** Entries that are "the same thing" under different ids (one photo, one pack name). */
+  sameAs?: (entry: Record<string, unknown>) => string;
+};
+
+const str = (value: unknown) => (typeof value === 'string' ? value : '');
+
+export const RECORD_LISTS: readonly RecordListSpec[] = [
+  {
+    field: 'fittingSavedGarments',
+    idOf: e => str(e.id),
+    sameAs: e => str(e.imageFilename),
+  },
+  { field: 'savedFootwear', idOf: e => str(e.id), sameAs: e => str(e.imageFilename) },
+  { field: 'myPoses', idOf: e => str(e.id) },
+  { field: 'myPosePacks', idOf: e => str(e.id), sameAs: e => str(e.name).toLowerCase() },
+  { field: 'dressPlates', idOf: e => str(e.key) },
+  { field: 'comfyWorkflowFiles', idOf: e => str(e.id) },
+];
+
+/** The RECORD_LISTS entry for a studio-extras field. */
+export function recordListSpec(field: string): RecordListSpec {
+  const spec = RECORD_LISTS.find(entry => entry.field === field);
+  if (!spec) throw new Error(`No record list ${field}`);
+  return spec;
+}
+
+/** When an entry last changed: its edit stamp, else when it was saved / made. */
+export function recordTime(entry: Record<string, unknown>): number {
+  for (const key of ['updatedAt', 'savedAt', 'at', 'createdAt']) {
+    const value = entry[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return 0;
+}
+
+/** Deletion times per list field, per id. */
+export type RecordTombstones = Record<string, Record<string, number>>;
+
+export function mergeTombstones(
+  a: RecordTombstones | undefined,
+  b: RecordTombstones | undefined
+): RecordTombstones {
+  const out: RecordTombstones = {};
+  for (const source of [a, b]) {
+    for (const [field, ids] of Object.entries(source ?? {})) {
+      if (!ids || typeof ids !== 'object') continue;
+      const into = (out[field] ??= {});
+      for (const [id, at] of Object.entries(ids)) {
+        if (Number.isFinite(at)) into[id] = Math.max(into[id] ?? 0, at);
+      }
+    }
+  }
+  return out;
+}
 
 /**
- * `incoming` with its Cast and stories merged with `stored` (everything else as `incoming` has
- * it). Used by the server on a studio-extras push and by the browser on its startup pull.
+ * One list from both sides: newest copy per id, deletions applied by time (an entry saved after
+ * its deletion stays), then one entry per `sameAs` key (the newest). Newest first.
+ */
+export function mergeRecordList(
+  spec: RecordListSpec,
+  server: unknown,
+  local: unknown,
+  tombstones: Record<string, number> | undefined
+): Record<string, unknown>[] {
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const list of [server, local]) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      if (!entry || typeof entry !== 'object') continue;
+      const record = entry as Record<string, unknown>;
+      const id = spec.idOf(record);
+      if (!id) continue;
+      const existing = byId.get(id);
+      if (!existing || recordTime(record) >= recordTime(existing)) byId.set(id, record);
+    }
+  }
+  for (const [id, at] of Object.entries(tombstones ?? {})) {
+    const record = byId.get(id);
+    if (record && recordTime(record) <= at) byId.delete(id);
+  }
+  const sorted = [...byId.values()].sort((a, b) => recordTime(b) - recordTime(a));
+  if (!spec.sameAs) return sorted;
+  const seen = new Set<string>();
+  return sorted.filter(entry => {
+    const key = spec.sameAs!(entry);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * A list write from the app (not from sync): entries that changed since `previous` get
+ * `updatedAt: now`, and ids that are gone are returned with `now` as their deletion time.
+ */
+export function stampListChanges<E extends object>(
+  previous: readonly E[],
+  next: readonly E[],
+  idOf: (entry: Record<string, unknown>) => string,
+  now = Date.now()
+): { entries: E[]; removed: Record<string, number> } {
+  const before = new Map<string, { body: string; updatedAt?: unknown }>();
+  for (const entry of previous) {
+    const id = idOf(entry as Record<string, unknown>);
+    if (id) {
+      before.set(id, {
+        body: JSON.stringify({ ...entry, updatedAt: undefined }),
+        updatedAt: (entry as { updatedAt?: unknown }).updatedAt,
+      });
+    }
+  }
+  const kept = new Set<string>();
+  const entries = next.map(entry => {
+    const id = idOf(entry as Record<string, unknown>);
+    if (!id) return entry;
+    kept.add(id);
+    const prior = before.get(id);
+    if (prior?.body !== JSON.stringify({ ...entry, updatedAt: undefined })) {
+      return { ...entry, updatedAt: now };
+    }
+    // Unchanged — keep its last edit time even when the caller rebuilt it without one.
+    return typeof prior.updatedAt === 'number' ? { ...entry, updatedAt: prior.updatedAt } : entry;
+  });
+  const removed: Record<string, number> = {};
+  for (const id of before.keys()) if (!kept.has(id)) removed[id] = now;
+  return { entries, removed };
+}
+
+type ListFields = CastSyncFields & {
+  roleplayLibrary?: Timed[];
+  recordTombstones?: RecordTombstones;
+};
+
+/**
+ * `incoming` with its record lists merged with `stored` — the Cast, stories and RECORD_LISTS
+ * (everything else as `incoming` has it). Used by the server on a studio-extras push and by the
+ * browser on its startup pull.
  */
 export function withMergedRecordLists<T extends ListFields>(incoming: T, stored: ListFields): T {
   if (!stored || typeof stored !== 'object') return incoming;
@@ -103,9 +247,47 @@ export function withMergedRecordLists<T extends ListFields>(incoming: T, stored:
     Boolean(incoming.characterRemovedIds?.length || stored.characterRemovedIds?.length);
   const cast = hasCast ? mergeCastSync(stored, incoming) : null;
   const stories = mergeStoryLists(incoming.roleplayLibrary, stored.roleplayLibrary);
+  const tombstones = mergeTombstones(stored.recordTombstones, incoming.recordTombstones);
+  const lists: Record<string, unknown> = {};
+  const inc = incoming as Record<string, unknown>;
+  const sto = stored as Record<string, unknown>;
+  for (const spec of RECORD_LISTS) {
+    // A push without the list (an older client, a partial payload) leaves the stored one alone.
+    if (!Array.isArray(inc[spec.field]) && !Array.isArray(sto[spec.field])) continue;
+    lists[spec.field] = mergeRecordList(
+      spec,
+      sto[spec.field],
+      inc[spec.field],
+      tombstones[spec.field]
+    );
+  }
+  // Recently deleted workflows: one entry per file (the newest deletion), none for a file that
+  // is back in the merged library.
+  if (Array.isArray(inc.comfyWorkflowTrash) || Array.isArray(sto.comfyWorkflowTrash)) {
+    const library = new Set(
+      ((lists.comfyWorkflowFiles as Record<string, unknown>[] | undefined) ?? []).map(file =>
+        str(file.id)
+      )
+    );
+    const byId = new Map<string, Record<string, unknown>>();
+    for (const list of [sto.comfyWorkflowTrash, inc.comfyWorkflowTrash]) {
+      if (!Array.isArray(list)) continue;
+      for (const item of list as Record<string, unknown>[]) {
+        const id = str((item?.file as Record<string, unknown> | undefined)?.id);
+        if (!id || library.has(id)) continue;
+        const existing = byId.get(id);
+        if (!existing || Number(item.deletedAt) >= Number(existing.deletedAt)) byId.set(id, item);
+      }
+    }
+    lists.comfyWorkflowTrash = [...byId.values()].sort(
+      (a, b) => Number(b.deletedAt) - Number(a.deletedAt)
+    );
+  }
   return {
     ...incoming,
     ...(cast ?? {}),
     ...(stories ? { roleplayLibrary: stories } : {}),
+    ...lists,
+    ...(Object.keys(tombstones).length ? { recordTombstones: tombstones } : {}),
   };
 }
