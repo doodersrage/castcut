@@ -220,6 +220,18 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: ['qwen-image-2.1-edit-pruna-8'],
   },
   {
+    id: 'qwen-image-2.1-turbo-int8',
+    label: 'Qwen-Image 2.1 Turbo (int8 checkpoint, Qwen Research License)',
+    kind: 'unet',
+    filename: 'qwen_image_2.1_turbo_int8_convrot.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors',
+    bytes: 7258392528,
+    sha256: '8144a0182964aa8403ad6dbc011db837304167d235161b9aabaa8532e967314c',
+    modelIds: ['qwen-image-2.1-edit-turbo-8'],
+    notes:
+      'Turbo on its own — replaces the 2.1 base + Turbo LoRA for the Turbo engine (half the download).',
+  },
+  {
     id: 'qwen-image-2.1-turbo-lora',
     label: 'Qwen-Image 2.1 Turbo 8-step LoRA (Qwen Research License)',
     kind: 'lora',
@@ -227,6 +239,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/loras/qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors',
     bytes: 913314512,
     modelIds: ['qwen-image-2.1-edit-turbo-8'],
+    notes: 'Only needed without the Turbo int8 checkpoint (with the 2.1 base).',
   },
   {
     id: 'qwen-image-vae',

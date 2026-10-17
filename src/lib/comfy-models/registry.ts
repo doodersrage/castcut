@@ -385,11 +385,12 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     comfyNode: 'TextEncodeQwenImage21',
     comfyClass: 'QwenImage21',
     description:
-      "Qwen-Image 2.1 + the Qwen team's own Turbo 8-step LoRA (Comfy-Org extract) on its own schedule. Sharper than Pruna and clean on lying poses where Pruna melted or drew a twin, at the same ~20 s. Qwen Research License (not for commercial use by default). Clothed two-person stills render on Rapid AIO, two-person penetration stills on Rapid AIO NSFW.",
+      "Qwen-Image 2.1 Turbo — the Qwen team's own 8-step model (Comfy-Org int8 checkpoint, 7.3 GB; or the 2.1 base + Turbo LoRA) on its own schedule. Sharper than Pruna and clean on lying poses where Pruna melted or drew a twin, ~11 s a still. Qwen Research License (not for commercial use by default). Two-person penetration stills render on Rapid AIO NSFW.",
     profile: 'qwen_edit_instruction',
     referenceTokenLimit: 512,
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
     unetHint: 'qwen_image_2.1_bf16.safetensors',
+    unetAlternates: ['qwen_image_2.1_turbo_int8_convrot.safetensors'],
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
   },
   {

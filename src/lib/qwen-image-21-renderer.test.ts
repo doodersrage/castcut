@@ -24,6 +24,7 @@ import {
   withProfilePromptFixes,
   withTwoPersonFaces,
   isLyingBackNudeSolo,
+  hasQwenImage21TurboCheckpoint,
   withDaylightLine,
   withPhotoRealismTail,
 } from './qwen-image-21-renderer';
@@ -604,5 +605,40 @@ describe('Qwen-Image 2.1 Turbo sampler', () => {
   it('runs Turbo on euler_ancestral and Pruna on euler', () => {
     assert.equal(samplerOf({ eightStep: true, eightStepTurbo: true }), 'euler_ancestral');
     assert.equal(samplerOf({ eightStep: true }), 'euler');
+  });
+});
+
+describe('Qwen-Image 2.1 Turbo checkpoint', () => {
+  const graph = {
+    '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Day photo: she reads.', image1: ['900', 0] } },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  };
+  const nodes = (opts: Record<string, boolean>) =>
+    Object.values(
+      convertQwenEditWorkflowToImage21(structuredClone(graph), opts).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>
+    );
+
+  it('loads the Turbo checkpoint with no base and no LoRA', () => {
+    const w = nodes({ eightStep: true, eightStepTurbo: true, turboCheckpoint: true });
+    assert.equal(w.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_turbo_int8_convrot.safetensors');
+    assert.equal(w.filter(n => n.class_type === 'LoraLoaderModelOnly').length, 0);
+  });
+
+  it('keeps the base + Turbo LoRA without it, and Pruna ignores the flag', () => {
+    const lora = nodes({ eightStep: true, eightStepTurbo: true });
+    assert.equal(lora.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_bf16.safetensors');
+    assert.match(String(lora.find(n => n.class_type === 'LoraLoaderModelOnly')!.inputs.lora_name), /turbo_lora/);
+    const pruna = nodes({ eightStep: true, turboCheckpoint: true });
+    assert.equal(pruna.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_bf16.safetensors');
+  });
+
+  it('finds the checkpoint in the inventory', () => {
+    assert.equal(hasQwenImage21TurboCheckpoint({ unets: ['qwen/qwen_image_2.1_turbo_int8_convrot.safetensors'] }), true);
+    assert.equal(hasQwenImage21TurboCheckpoint({ unets: ['qwen_image_2.1_bf16.safetensors'] }), false);
+    assert.equal(hasQwenImage21TurboCheckpoint(null), false);
   });
 });

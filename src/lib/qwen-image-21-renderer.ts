@@ -61,6 +61,24 @@ export const QWEN_IMAGE_21_EIGHT_STEP_SIGMAS = [
  * close to the full 30-step pass, ~20 s like Pruna. Qwen Research License.
  */
 export const QWEN_IMAGE_21_TURBO_LORA = 'qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors';
+/**
+ * The Turbo checkpoint itself (Comfy-Org int8 ConvRot, 7.3 GB) — loaded on its own, no base and no
+ * LoRA. Same 38 Day beats and seeds as the LoRA route (2026-10-17): mean face distance 0.309 vs
+ * 0.310 (closer on 19/38), every pose kept, ~11 s a still vs ~17 s. A Turbo install is 7.3 GB
+ * instead of the 14.2 GB base + 0.9 GB LoRA; the LoRA route stays for installs that have only those.
+ */
+export const QWEN_IMAGE_21_TURBO_UNET = 'qwen_image_2.1_turbo_int8_convrot.safetensors';
+
+/** ComfyUI lists the Turbo checkpoint (any folder, any casing). */
+export function hasQwenImage21TurboCheckpoint(
+  models:
+    { unets?: readonly string[] | null; checkpoints?: readonly string[] | null } | null | undefined
+): boolean {
+  const want = QWEN_IMAGE_21_TURBO_UNET.toLowerCase();
+  return [...(models?.unets ?? []), ...(models?.checkpoints ?? [])].some(
+    name => name.replace(/\\/g, '/').split('/').pop()?.toLowerCase() === want
+  );
+}
 export const QWEN_IMAGE_21_TURBO_SIGMAS = [
   1, 0.978453, 0.95418, 0.926626, 0.89508, 0.845148, 0.704534, 0.414568, 0,
 ];
@@ -527,6 +545,8 @@ export function convertQwenEditWorkflowToImage21(
     eightStep?: boolean;
     /** With `eightStep`: the Turbo LoRA and sigmas instead of Pruna's (no full-pass fallback). */
     eightStepTurbo?: boolean;
+    /** With `eightStepTurbo`: load the Turbo checkpoint (QWEN_IMAGE_21_TURBO_UNET), no base + LoRA. */
+    turboCheckpoint?: boolean;
     /** Queue quality: Best renders a solo lying still on the full pass (see above). */
     qualityProfile?: string | null;
   } = {}
@@ -559,9 +579,17 @@ export function convertQwenEditWorkflowToImage21(
     workflow[id] = node;
     return id;
   };
+  const turboCheckpoint =
+    options.turboCheckpoint === true &&
+    options.eightStepTurbo === true &&
+    options.eightStep === true &&
+    options.fourStep !== true;
   const unet = add({
     class_type: 'UNETLoader',
-    inputs: { unet_name: QWEN_IMAGE_21_FILES.unet, weight_dtype: 'default' },
+    inputs: {
+      unet_name: turboCheckpoint ? QWEN_IMAGE_21_TURBO_UNET : QWEN_IMAGE_21_FILES.unet,
+      weight_dtype: 'default',
+    },
   });
   const clip = add({
     class_type: 'CLIPLoader',
@@ -584,18 +612,19 @@ export function convertQwenEditWorkflowToImage21(
           name => isMultiPersonPoseGuide(name) || isDayPartnerFaceFilename(name)
         ),
       }));
-  const lora = eightStep
-    ? add({
-        class_type: 'LoraLoaderModelOnly',
-        inputs: {
-          model: [unet, 0],
-          lora_name: options.eightStepTurbo
-            ? QWEN_IMAGE_21_TURBO_LORA
-            : QWEN_IMAGE_21_EIGHT_STEP_LORA,
-          strength_model: 1,
-        },
-      })
-    : unet;
+  const lora =
+    eightStep && !turboCheckpoint
+      ? add({
+          class_type: 'LoraLoaderModelOnly',
+          inputs: {
+            model: [unet, 0],
+            lora_name: options.eightStepTurbo
+              ? QWEN_IMAGE_21_TURBO_LORA
+              : QWEN_IMAGE_21_EIGHT_STEP_LORA,
+            strength_model: 1,
+          },
+        })
+      : unet;
   const cache = add({
     class_type: 'QwenImage21Cache',
     inputs: { model: [lora, 0], device: 'auto', dtype: 'default' },

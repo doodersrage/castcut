@@ -58,6 +58,8 @@ export type ComfyImageModelDefinition = {
   checkpointHint?: string;
   /** Suggested UNET filename when workflows use UNETLoader instead of CheckpointLoaderSimple. */
   unetHint?: string;
+  /** Other UNET files that also make this engine installed (the model picker's check). */
+  unetAlternates?: string[];
   /** Suggested CLIP / text-encoder filename when workflows use CLIPLoader. */
   clipHint?: string;
   /** Suggested VAE filename when workflows use VAELoader. */

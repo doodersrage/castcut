@@ -88,3 +88,36 @@ describe('task requirements: Qwen-Image 2.1 engine', () => {
     assert.equal(req.nodePacks.length, 0);
   });
 });
+
+describe('Turbo requirement: the checkpoint or the base + LoRA', () => {
+  const rows = (installed: string[]) =>
+    ['qwen-image-2.1-turbo-int8', 'qwen-image-2.1-bf16', 'qwen-image-2.1-turbo-lora'].map(id => ({
+      id,
+      status: installed.includes(id) ? ('installed' as const) : ('missing' as const),
+      downloadable: true,
+      bytes: 1,
+    }));
+  const req = { assetIds: ['qwen-image-2.1-turbo-int8'], nodePacks: [] } as never;
+
+  it('asks for the checkpoint on a fresh install', () => {
+    assert.deepEqual(
+      missingTaskRequirements(req, rows([]), null).assets.map(row => row.id),
+      ['qwen-image-2.1-turbo-int8']
+    );
+  });
+
+  it('is satisfied by the 2.1 base + Turbo LoRA', () => {
+    assert.equal(
+      missingTaskRequirements(
+        req,
+        rows(['qwen-image-2.1-bf16', 'qwen-image-2.1-turbo-lora']),
+        null
+      ).assets.length,
+      0
+    );
+    assert.equal(
+      missingTaskRequirements(req, rows(['qwen-image-2.1-bf16']), null).assets.length,
+      1
+    );
+  });
+});

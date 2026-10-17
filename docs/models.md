@@ -13,7 +13,7 @@ What each part of Castcut needs in ComfyUI. Install them from **Settings → Com
 | --- | --- | --- |
 | **Qwen Rapid AIO** (SFW or NSFW v23) | 28 GB | Fastest stills; Intimate / Raunchy need the NSFW one |
 | **Qwen-Image-Edit 2511** + Lightning | 41 GB + 0.8 GB | The liveliest clothed stills; room photos (also on Rapid); shoe pictures |
-| **Qwen-Image 2.1** + Turbo 8-step (or Pruna 8-step) — the default when installed | 14 GB + 0.9 GB | Closest likeness. Turbo is the Qwen team's own fast version (Qwen Research License) — sharper, and clean lying down where Pruna can melt |
+| **Qwen-Image 2.1 Turbo** — the default when installed | 7.3 GB | Closest likeness, ~11 s a still. The Qwen team's own 8-step model (Qwen Research License) as one int8 checkpoint. If you already have the 14 GB 2.1 base + the 0.9 GB Turbo LoRA, that works too; Pruna 8-step and the full 30-step pass need the base |
 
 ## Clips
 

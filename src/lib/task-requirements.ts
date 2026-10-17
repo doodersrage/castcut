@@ -49,11 +49,11 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-pruna-8step',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  // The Turbo checkpoint alone (7.3 GB) — the base + Turbo LoRA route still runs when installed.
   'qwen-image-2.1-edit-turbo-8': [
-    'qwen-image-2.1-bf16',
+    'qwen-image-2.1-turbo-int8',
     'qwen-image-2.1-text-encoder',
     'qwen-image-2.1-vae',
-    'qwen-image-2.1-turbo-lora',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
 };
@@ -161,6 +161,14 @@ export type TaskAssetState = {
   bytes?: number;
 };
 
+/**
+ * A requirement other installed files already cover: the 2.1 base + Turbo LoRA run Turbo as well
+ * as its own int8 checkpoint does, so an install that has both is not missing the checkpoint.
+ */
+const ASSET_COVERED_BY: Record<string, string[][]> = {
+  'qwen-image-2.1-turbo-int8': [['qwen-image-2.1-bf16', 'qwen-image-2.1-turbo-lora']],
+};
+
 /** Missing pieces of a requirement, given the asset rows and ComfyUI's node list. */
 export function missingTaskRequirements(
   requirements: TaskRequirements,
@@ -176,7 +184,13 @@ export function missingTaskRequirements(
   const byId = new Map(rows.map(row => [row.id, row]));
   const missing = requirements.assetIds
     .map(id => byId.get(id))
-    .filter((row): row is TaskAssetState => Boolean(row && row.status !== 'installed'));
+    .filter((row): row is TaskAssetState => Boolean(row && row.status !== 'installed'))
+    .filter(
+      row =>
+        !ASSET_COVERED_BY[row.id]?.some(set =>
+          set.every(id => byId.get(id)?.status === 'installed')
+        )
+    );
   const assets = missing.filter(row => row.downloadable && row.status === 'missing');
   const manual = missing.filter(row => !assets.includes(row));
   const nodePacks = knownNodeTypes

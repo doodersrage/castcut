@@ -28,7 +28,12 @@ export function installedComfyModels(
     const loaders = resolveLoaderFilenamesForModel(entry.id, { checkpointMap });
     const file = loaders.unet ?? loaders.checkpoint;
     if (!file) continue;
-    const match = matchInventoryFilename(file, files) ?? (files.includes(file) ? file : undefined);
+    const match =
+      matchInventoryFilename(file, files) ??
+      (files.includes(file) ? file : undefined) ??
+      entry.unetAlternates
+        ?.map(alt => matchInventoryFilename(alt, files) ?? (files.includes(alt) ? alt : undefined))
+        .find(Boolean);
     if (match) {
       installed.set(entry.id, match);
     }

@@ -254,6 +254,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       qwenRenderer: runtime?.qwenRenderer,
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
+      qwenImage21TurboCheckpoint: runtime?.qwenImage21TurboCheckpoint,
       videoRenderer: runtime?.videoRenderer,
     }
   );

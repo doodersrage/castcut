@@ -56,3 +56,14 @@ describe('engine model picker', () => {
     assert.deepEqual(toggleStarredModel(['a', 'b'], 'a'), ['b']);
   });
 });
+
+describe('installedComfyModels: Turbo from its own checkpoint', () => {
+  it('counts Turbo installed with only the int8 Turbo checkpoint', () => {
+    const installed = installedComfyModels(COMFY_IMAGE_MODELS, {
+      checkpoints: [],
+      unets: ['qwen_image_2.1_turbo_int8_convrot.safetensors'],
+    } as never);
+    assert.ok(installed?.has('qwen-image-2.1-edit-turbo-8'));
+    assert.ok(!installed?.has('qwen-image-2.1-edit-pruna-8'));
+  });
+});

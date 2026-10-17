@@ -3,7 +3,7 @@
 import { isH3Model } from './h3-renderer';
 import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
-import { qwenImage21FastSampler } from './qwen-image-21-renderer';
+import { hasQwenImage21TurboCheckpoint, qwenImage21FastSampler } from './qwen-image-21-renderer';
 import type { ComfyImageModel } from './comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -22,6 +22,7 @@ import { loadSettingsCache, saveSharedSettings } from './settings-cache';
 import type { ComfyUiModelLists } from './comfyui-object-info';
 import {
   fetchComfyObjectInfoCached,
+  readAnyCachedComfyObjectInfoModels,
   readCachedComfyObjectInfoModels,
 } from './comfyui-object-info-cache';
 import { loaderMapsChanged, syncLoaderMapsFromInventory } from './loader-map-inventory-sync';
@@ -77,6 +78,8 @@ export type ResolveRuntimeOptions = {
   ignoreManualWorkflow?: boolean;
   /** Live ComfyUI inventory — when set, system scaffolds/maps adapt to it. */
   inventory?: ComfyUiModelLists | null;
+  /** Inventory for the Qwen-Image 2.1 Turbo checkpoint check only (fetched at queue time). */
+  turboInventory?: ComfyUiModelLists | null;
   /**
    * Override the Shared session LoRA stack (e.g. gallery re-queue restoring the
    * stack recorded on the original entry).
@@ -519,7 +522,20 @@ export function resolveRuntimeForQueue(
             ? { qwenImage21EightStep: true as const }
             : {}),
           ...(qwenImage21FastSampler(model) === 'turbo-8'
-            ? { qwenImage21EightStep: 'turbo' as const }
+            ? {
+                qwenImage21EightStep: 'turbo' as const,
+                // The Turbo checkpoint when ComfyUI has it; else the 2.1 base + Turbo LoRA.
+                // The URL-keyed cache is empty when the browser uses the server's default ComfyUI
+                // (the async resolver then passes null): read whichever inventory was fetched.
+                ...(hasQwenImage21TurboCheckpoint(
+                  options?.turboInventory ??
+                    options?.inventory ??
+                    readCachedComfyObjectInfoModels() ??
+                    readAnyCachedComfyObjectInfoModels()
+                )
+                  ? { qwenImage21TurboCheckpoint: true as const }
+                  : {}),
+              }
             : {}),
         }
       : {}),
@@ -576,8 +592,17 @@ export async function resolveRuntimeForQueueAsync(
       persist: true,
     });
   }
+  inventory = inventory ?? readCachedComfyObjectInfoModels();
+  // Turbo loads its own checkpoint only when ComfyUI has it. This chunk's inventory cache can be
+  // empty (Day queued through the LoRA route on a server that had the checkpoint): ask ComfyUI.
+  const turboInventory =
+    qwenImage21FastSampler(model) === 'turbo-8' && !hasQwenImage21TurboCheckpoint(inventory)
+      ? ((await fetchComfyObjectInfoCached({ comfyUrl: options?.comfyUrl }).catch(() => null))
+          ?.models ?? null)
+      : undefined;
   return resolveRuntimeForQueue(model, tool, {
     ...options,
-    inventory: inventory ?? readCachedComfyObjectInfoModels(),
+    inventory,
+    ...(turboInventory !== undefined ? { turboInventory } : {}),
   });
 }

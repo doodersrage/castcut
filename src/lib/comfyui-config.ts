@@ -327,6 +327,8 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21FourStep?: boolean;
   /** Qwen-Image 2.1 8-step: Pruna's LoRA (true) or the official Turbo LoRA ('turbo'). */
   qwenImage21EightStep?: boolean | 'turbo';
+  /** Turbo from its own int8 checkpoint (installed) instead of the 2.1 base + Turbo LoRA. */
+  qwenImage21TurboCheckpoint?: boolean;
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
   videoRenderer?: 'ltx-2.5' | 'minimax-h3';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
@@ -1422,6 +1424,7 @@ export function injectPromptsWithFallbacks(
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
+    qwenImage21TurboCheckpoint?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
@@ -1891,6 +1894,7 @@ export function injectPromptsWithFallbacks(
       fourStep: options.qwenImage21FourStep === true,
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
+      turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
       qualityProfile: options.qualityProfile ?? null,
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
@@ -2138,6 +2142,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21EightStep === true || runtime.qwenImage21EightStep === 'turbo') {
     result.qwenImage21EightStep = runtime.qwenImage21EightStep;
+  }
+  if (runtime.qwenImage21TurboCheckpoint === true) {
+    result.qwenImage21TurboCheckpoint = true;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;
