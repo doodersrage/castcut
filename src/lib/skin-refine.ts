@@ -16,6 +16,9 @@ export const DEFAULT_PLAY_SKIN_REFINE_MODEL = 'flux-2-klein-9b';
 
 export const PLAY_SKIN_REFINE_MODEL_OPTIONS = [
   { id: 'flux-2-klein-9b', label: 'Klein 9B Base (recommended)' },
+  // Pose-locked like 2511 (two Rapid stills, 2026-10-17: pose, framing and light kept exactly,
+  // the skin matte) with 2.1's closer likeness.
+  { id: 'qwen-image-2.1-edit-turbo-8', label: 'Qwen-Image 2.1 Turbo (pose-locked)' },
   { id: 'qwen-image-edit-2511', label: 'Qwen Image Edit 2511 (pose-locked)' },
   { id: 'qwen-image-edit', label: 'Qwen Image Edit' },
   { id: 'flux-ultrareal-v4', label: 'UltraReal Fine-Tune v4' },

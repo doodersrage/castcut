@@ -7,8 +7,13 @@ export type ModelRecommendation = {
 const RULES: Array<{ pattern: RegExp; model: string; reason: string }> = [
   {
     pattern: /\b(edit|replace|keep the subject|unchanged)\b/i,
-    model: 'qwen-image-edit-2511',
-    reason: 'Edit-style instruction detected',
+    model: 'qwen-image-2.1-edit-turbo-8',
+    reason: 'Edit-style instruction — Qwen-Image 2.1 Turbo keeps the face closest',
+  },
+  {
+    pattern: /\b(qwen[\s-]?(?:image[\s-]?)?2\.1|turbo edit)\b/i,
+    model: 'qwen-image-2.1-edit-turbo-8',
+    reason: 'Qwen-Image 2.1 Turbo (8-step)',
   },
   {
     pattern: /\b(rapid aio|qwen aio|phr00t aio|qwen-rapid)\b/i,

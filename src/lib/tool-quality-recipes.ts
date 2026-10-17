@@ -39,7 +39,8 @@ export const SUGGESTED_TOOL_QUALITY_RECIPES: ToolQualityRecipe[] = [
     id: 'compose-keeper',
     label: 'Compose keeper',
     toolIds: ['compose'],
-    model: 'qwen-image-edit-2511-lightning-8',
+    // No engine pinned: Compose keeps its own (Qwen-Image 2.1 Turbo when installed, else Edit
+    // 2511 — composeDefaultModel); the recipe sets the quality.
     queueQualityProfile: 'final',
     builtin: true,
   },
@@ -47,7 +48,6 @@ export const SUGGESTED_TOOL_QUALITY_RECIPES: ToolQualityRecipe[] = [
     id: 'compose-draft',
     label: 'Compose draft',
     toolIds: ['compose'],
-    model: 'qwen-image-edit-2511-lightning-8',
     queueQualityProfile: 'draft',
     builtin: true,
   },

@@ -68,7 +68,8 @@ describe("tool quality recipes", () => {
       SUGGESTED_TOOL_QUALITY_RECIPES.find((entry) => entry.id === "compose-keeper")!,
       "compose",
     );
-    assert.equal(next.model, "qwen-image-edit-2511-lightning-8");
+    // The built-in Compose recipes set the quality only; Compose picks its engine (Turbo / 2511).
+    assert.equal(next.model, "qwen-image-2512");
     assert.equal(next.queueQualityProfile, "final");
     assert.equal(next.sessionQueueMode, "keeper");
     assert.equal(next.toolQueueQualityProfiles?.compose, "final");
