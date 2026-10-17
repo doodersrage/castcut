@@ -278,9 +278,25 @@ export function useCutPreview(input: {
       context.fillStyle = '#000';
       context.fillRect(0, 0, canvas.width, canvas.height);
       const fit = shape === 'wide' ? drawContain : drawCover;
-      for (const { item, local, alpha } of previewFrameAt(loaded.timeline, t)) {
+      // Fade through black / flash of white: the old shot dips to the colour, then the new one
+      // comes up out of it — drawn as a veil over the frame.
+      let veil: { color: string; alpha: number } | null = null;
+      for (const { item, local, alpha, progress } of previewFrameAt(loaded.timeline, t)) {
+        const dip =
+          progress !== undefined && (item.transition === 'black' || item.transition === 'white');
+        if (dip) {
+          veil = {
+            color: item.transition === 'black' ? '#000' : '#fff',
+            alpha: progress! < 0.5 ? progress! * 2 : (1 - progress!) * 2,
+          };
+          // First half: still the old shot under the veil.
+          if (progress! < 0.5) continue;
+        }
         context.save();
         context.globalAlpha = alpha;
+        if (progress !== undefined && item.transition === 'slide') {
+          context.translate(Math.round((1 - progress) * canvas.width), 0);
+        }
         if (item.kind === 'title') {
           drawTitleCard(
             context,
@@ -321,6 +337,13 @@ export function useCutPreview(input: {
             canvas.height
           );
         }
+        context.restore();
+      }
+      if (veil && veil.alpha > 0) {
+        context.save();
+        context.globalAlpha = Math.min(1, veil.alpha);
+        context.fillStyle = veil.color;
+        context.fillRect(0, 0, canvas.width, canvas.height);
         context.restore();
       }
     },

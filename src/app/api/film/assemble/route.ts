@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeCutTransition } from '@/lib/cut-timeline';
 import { normalizeFilmTitleCard } from '@/lib/video-polish';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
@@ -61,6 +62,9 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
         : {}),
       ...(typeof record.spoken === 'string' && record.spoken.trim()
         ? { spoken: record.spoken.trim().slice(0, 300) }
+        : {}),
+      ...(normalizeCutTransition(record.transitionIn)
+        ? { transitionIn: normalizeCutTransition(record.transitionIn) }
         : {}),
       ...(typeof record.narrationText === 'string' && record.narrationText.trim()
         ? { narrationText: record.narrationText.trim().slice(0, 300) }

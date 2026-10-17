@@ -5,6 +5,12 @@
  */
 
 import {
+  CUT_TRANSITION_SEC,
+  CUT_TRANSITIONS,
+  cutJoins,
+  type CutTransitionKind,
+} from './cut-timeline';
+import {
   DEFAULT_STILL_HOLD_SEC,
   MAX_STILL_HOLD_SEC,
   MIN_STILL_HOLD_SEC,
@@ -29,6 +35,8 @@ export type CutShotEdit = {
   trimEndSec?: number;
   /** Stills: as shot (unset), waist up or chest up — a crop around the face. */
   framing?: StillFraming;
+  /** How this shot comes in from the one before; unset = the cut's crossfade. */
+  transition?: CutTransitionKind;
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
@@ -168,6 +176,14 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           ? { framing: edit.framing }
           : {}),
         ...(trim && trim.end != null ? { trimEndSec: trim.end } : {}),
+        ...(edit?.transition && CUT_TRANSITIONS.some(entry => entry.id === edit.transition)
+          ? {
+              transitionIn: {
+                kind: edit.transition,
+                sec: edit.transition === 'cut' ? 0 : CUT_TRANSITION_SEC,
+              },
+            }
+          : {}),
       },
     ];
   });
@@ -235,6 +251,21 @@ function clampHold(value: number): number {
   return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(value * 10) / 10));
 }
 
+/** Seconds the joins overlap in all (crossfades and picked transitions; the title card counted). */
+export function cutOverlapSec(
+  shots: ReadonlyArray<Pick<FilmPlaylistShot, 'transitionIn'>>,
+  crossfadeSec?: number,
+  titleCard?: boolean
+): number {
+  const transitions = [...(titleCard ? [undefined] : []), ...shots.map(shot => shot.transitionIn)];
+  const { overlaps } = cutJoins({
+    count: transitions.length,
+    crossfadeSec: Math.max(0, crossfadeSec ?? 0),
+    transitions,
+  });
+  return overlaps.reduce((sum, sec) => sum + sec, 0);
+}
+
 /** Seconds a shot occupies (clips: measured length, else their hold, else 4 s; less any trim). */
 export function shotSeconds(shot: FilmPlaylistShot, clipSec?: number | null): number {
   if (shot.kind === 'clip') {
@@ -258,8 +289,7 @@ export function cutRunningSec(input: {
     (sum, shot, index) => sum + shotSeconds(shot, input.clipSecs?.[index]),
     0
   );
-  const pieces = input.shots.length + (input.titleCard ? 1 : 0);
-  const fades = Math.max(0, pieces - 1) * Math.max(0, input.crossfadeSec ?? 0);
+  const fades = cutOverlapSec(input.shots, input.crossfadeSec, input.titleCard);
   return shotsSec + (input.titleCard ? TITLE_CARD_SEC : 0) - fades;
 }
 
@@ -284,8 +314,7 @@ export function fitHoldsToLength(input: {
       stretches(shot) ? sum : sum + shotSeconds(shot, input.clipSecs?.[index]),
     0
   );
-  const pieces = input.shots.length + (input.titleCard ? 1 : 0);
-  const fades = Math.max(0, pieces - 1) * Math.max(0, input.crossfadeSec ?? 0);
+  const fades = cutOverlapSec(input.shots, input.crossfadeSec, input.titleCard);
   const fixed = clipsSec + (input.titleCard ? TITLE_CARD_SEC : 0) - fades;
   const hold = clampHold((input.targetSec - fixed) / stills);
   return input.shots.map(shot => (stretches(shot) ? { ...shot, holdSec: hold } : shot));

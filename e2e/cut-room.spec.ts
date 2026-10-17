@@ -118,6 +118,9 @@ test('the editor: timeline blocks, click to jump, Delete leaves a shot out, undo
   await page.getByTestId('cut-undo').click();
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
   await expect(page.getByTestId('cut-redo')).toBeEnabled();
+  // The monitor rebuilds after the undo: measure once it shows both shots again.
+  await expect(page.getByTestId('cut-preview-notes')).toContainText('2 shots', { timeout: 15_000 });
+  await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
   // Drag the morning still's right edge: it holds longer (2.5 s → about 4 s).
   const edge = page.getByTestId('cut-timeline-hold-day:morning');
   const box = (await edge.boundingBox())!;
@@ -141,4 +144,22 @@ test('the editor: timeline blocks, click to jump, Delete leaves a shot out, undo
     'cut-shot-day:afternoon',
     { timeout: 10_000 }
   );
+});
+
+test('a transition picked on the timeline overlaps the shots (and shows on the card)', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  // Two 2.5 s stills, hard cut: 0:05.
+  await expect(page.getByTestId('cut-preview-notes')).toContainText('2 shots · 0:05', {
+    timeout: 30_000,
+  });
+  await page.getByTestId('cut-timeline-transition-day:afternoon').selectOption('black');
+  // A 0.6 s fade through black overlaps them: 4.4 s.
+  await expect(page.getByTestId('cut-preview-notes')).toContainText('2 shots · 0:04', {
+    timeout: 15_000,
+  });
+  await expect(page.getByTestId('cut-shot-transition-day:afternoon')).toHaveValue('black');
 });

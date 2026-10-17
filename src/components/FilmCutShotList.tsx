@@ -14,6 +14,7 @@ import {
   type KeyedShot,
 } from '@/lib/film-cut-plan';
 import { probeMediaDurationSec } from '@/lib/film-cut-media';
+import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
 import type { IdentityMark } from '@/lib/identity-mark';
 
 /**
@@ -229,6 +230,32 @@ export default function FilmCutShotList({
                         <option value="full">as shot</option>
                         <option value="medium">waist up</option>
                         <option value="close">chest up</option>
+                      </select>
+                    </label>
+                  ) : null}
+                  {index > 0 ? (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      in
+                      <select
+                        disabled={disabled || !included}
+                        aria-label={`How ${shot.title} comes in`}
+                        title="How this shot comes in from the one before"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={edit?.transition ?? ''}
+                        data-testid={`${testIdPrefix}-shot-transition-${shot.key}`}
+                        onChange={event =>
+                          patchShot(shot.key, {
+                            transition: (event.target.value || undefined) as
+                              CutTransitionKind | undefined,
+                          })
+                        }
+                      >
+                        <option value="">default</option>
+                        {CUT_TRANSITIONS.map(entry => (
+                          <option key={entry.id} value={entry.id}>
+                            {entry.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   ) : null}

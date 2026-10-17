@@ -6,7 +6,7 @@
  */
 
 import { clipTrimWindow } from './clip-trim';
-import { filmSpeechStarts, type CutTimelineKind } from './cut-timeline';
+import { cutJoins, cutStarts, filmSpeechStarts, type CutTimelineKind } from './cut-timeline';
 import { probeMediaDurationSec } from './film-cut-media';
 import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from './media-kind';
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
@@ -45,18 +45,21 @@ export function planMix(input: {
       return Math.max(0.5, end - trim.start);
     }),
   ];
+  const transitions = [
+    ...(input.titleCard ? [undefined] : []),
+    ...input.shots.map(shot => shot.transitionIn),
+  ];
   const starts = filmSpeechStarts({
     kinds,
     holdSecs,
     crossfadeSec: input.crossfadeSec,
+    transitions,
     speech: kinds.map(kind => kind === 'clip'),
   });
-  const overlap = kinds.length >= 2 ? Math.max(0, input.crossfadeSec) : 0;
-  const totalSec = holdSecs.reduce(
-    (sum, hold, index) =>
-      sum + (index < holdSecs.length - 1 && overlap ? Math.max(0.1, hold - overlap) : hold),
-    0
-  );
+  const totalSec = cutStarts(
+    holdSecs,
+    cutJoins({ count: kinds.length, crossfadeSec: input.crossfadeSec, transitions }).overlaps
+  ).total;
   return {
     lines: starts.map(start => {
       const shot = input.shots[start.index - offset]!;

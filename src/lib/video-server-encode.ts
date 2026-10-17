@@ -28,7 +28,14 @@ import {
   type FilmTitleCard,
 } from './video-polish';
 import { clipIsTrimmed, clipTrimWindow } from './clip-trim';
-import { filmShotStarts, filmSpeechStarts } from './cut-timeline';
+import {
+  cutJoins,
+  cutStarts,
+  filmShotStarts,
+  filmSpeechStarts,
+  xfadeTransitionName,
+  type CutTransitionIn,
+} from './cut-timeline';
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import {
   buildFilmScaleFilter,
@@ -276,6 +283,8 @@ export function buildFilterComplex(input: {
   voiceLevel?: number;
   /** Narration tracks (film-narration.ts): ffmpeg input index → the shot it starts with. */
   narration?: Array<{ input: number; shot: number }>;
+  /** Per shot: how it comes in (cut-timeline.ts); unset = the crossfade. */
+  transitions?: ReadonlyArray<CutTransitionIn | null | undefined>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -358,28 +367,35 @@ export function buildFilterComplex(input: {
     parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}]`);
   }
 
+  // Joins: a crossfade / dip / slide overlaps the two shots (xfade); a hard cut concatenates.
+  const joins = cutJoins({ count: shotCount, crossfadeSec, transitions: input.transitions });
+  const holdAt = (i: number) =>
+    kinds[i] === 'clip'
+      ? holdSecs[i] && holdSecs[i]! > 0
+        ? holdSecs[i]!
+        : 4
+      : (holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
+  const placed = cutStarts(
+    Array.from({ length: shotCount }, (_, i) => holdAt(i)),
+    joins.overlaps
+  );
   let videoLabel: string;
   if (shotCount === 1) {
     videoLabel = 'v0';
-  } else if (crossfadeSec > 0 && shotCount >= 2) {
-    const holdAt = (i: number) =>
-      kinds[i] === 'clip'
-        ? holdSecs[i] && holdSecs[i]! > 0
-          ? holdSecs[i]!
-          : 4
-        : (holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
+  } else if (joins.overlaps.some(sec => sec > 0)) {
     let prev = 'v0';
-    let offset = Math.max(0.1, holdAt(0) - crossfadeSec);
     for (let i = 1; i < shotCount; i += 1) {
       const out = i === shotCount - 1 ? 'vout' : `xf${i}`;
+      const overlap = joins.overlaps[i] ?? 0;
       parts.push(
-        `[${prev}][v${i}]xfade=transition=fade:duration=${crossfadeSec}:offset=${Math.max(0, offset)}[${out}]`
+        overlap > 0
+          ? `[${prev}][v${i}]xfade=transition=${xfadeTransitionName(joins.kinds[i] ?? 'fade')}:duration=${overlap}:offset=${Math.max(0, placed.starts[i]!)}[${out}]`
+          : `[${prev}][v${i}]concat=n=2:v=1:a=0[${out}]`
       );
-      offset += Math.max(0.1, holdAt(i) - crossfadeSec);
       prev = out;
     }
     videoLabel = 'vout';
-    total = Math.max(total - crossfadeSec * (shotCount - 1), 1);
+    total = Math.max(placed.total, 1);
   } else {
     parts.push(`${labels.join('')}concat=n=${shotCount}:v=1:a=0[vout]`);
     videoLabel = 'vout';
@@ -388,7 +404,13 @@ export function buildFilterComplex(input: {
   let audioLabel: string | null = null;
   const end = Math.max(1, total);
   const fadeOut = `afade=t=out:st=${Math.max(0.1, end - 1)}:d=1`;
-  const voiced = filmSpeechStarts({ kinds, holdSecs, crossfadeSec, speech: input.speech });
+  const voiced = filmSpeechStarts({
+    kinds,
+    holdSecs,
+    crossfadeSec,
+    transitions: input.transitions,
+    speech: input.speech,
+  });
   const stereo = 'aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo';
   const voiceLevel = normalizeVoiceLevel(input.voiceLevel);
   const musicLevel = normalizeMusicLevel(input.musicLevel);
@@ -405,7 +427,12 @@ export function buildFilterComplex(input: {
   const narrationLabels: string[] = [];
   const narrated = input.narration ?? [];
   if (narrated.length > 0) {
-    const starts = filmShotStarts({ kinds, holdSecs, crossfadeSec });
+    const starts = filmShotStarts({
+      kinds,
+      holdSecs,
+      crossfadeSec,
+      transitions: input.transitions,
+    });
     for (const entry of narrated) {
       const start = starts[entry.shot];
       if (start === undefined) continue;
@@ -630,6 +657,7 @@ export async function encodeFilmPlaylistServer(
     const graphText: FilmGraphText[] = [];
     const graphSpeech: boolean[] = [];
     const graphTrims: Array<number | null> = [];
+    const graphTransitions: Array<CutTransitionIn | undefined> = [];
     const inputArgs: string[][] = [];
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
@@ -640,6 +668,7 @@ export async function encodeFilmPlaylistServer(
       : -1;
     const pushTitle = async () => {
       if (!titleText) return;
+      graphTransitions.push(undefined);
       graphSpeech.push(false);
       graphTrims.push(null);
       graphKinds.push('title');
@@ -661,6 +690,7 @@ export async function encodeFilmPlaylistServer(
     };
     for (let i = 0; i < localFiles.length; i += 1) {
       if (i === titleAt) await pushTitle();
+      graphTransitions.push(shots[i]?.transitionIn);
       graphSpeech.push(speech[i] === true);
       graphTrims.push(trimStarts[i] ?? null);
       graphKinds.push(kinds[i]!);
@@ -714,6 +744,7 @@ export async function encodeFilmPlaylistServer(
       fontFile: usableFont,
       speech: graphSpeech,
       trimStarts: graphTrims,
+      transitions: graphTransitions,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow

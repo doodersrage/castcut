@@ -4,6 +4,7 @@
  * (cut-timeline.ts), so the preview plays the cut as it will come out. Pure.
  */
 
+import { cutJoins, cutStarts, type CutTransitionIn, type CutTransitionKind } from './cut-timeline';
 import { clipTrimWindow } from './clip-trim';
 import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from './media-kind';
 import { filmShotCaption, TITLE_CARD_SEC } from './video-polish';
@@ -19,6 +20,9 @@ export type PreviewItem = {
   /** Clips: where in the file this piece starts. */
   fromSec: number;
   caption: string;
+  /** How long it overlaps the piece before, and how it comes in (cut-timeline.ts). */
+  inSec: number;
+  transition: CutTransitionKind;
 };
 
 export type PreviewTimeline = { items: PreviewItem[]; totalSec: number; crossfadeSec: number };
@@ -31,7 +35,8 @@ export function previewTimeline(input: {
   titleCard: boolean;
   captions: boolean;
 }): PreviewTimeline {
-  const pieces: Array<Omit<PreviewItem, 'startSec'>> = [];
+  const pieces: Array<Omit<PreviewItem, 'startSec' | 'inSec' | 'transition'>> = [];
+  const transitions: Array<CutTransitionIn | undefined> = [];
   if (input.titleCard) {
     pieces.push({
       kind: 'title',
@@ -41,6 +46,7 @@ export function previewTimeline(input: {
       fromSec: 0,
       caption: '',
     });
+    transitions.push(undefined);
   }
   input.shots.forEach((shot, index) => {
     const caption = input.captions ? filmShotCaption(shot) : '';
@@ -56,6 +62,7 @@ export function previewTimeline(input: {
         fromSec: trim.start,
         caption,
       });
+      transitions.push(shot.transitionIn);
       return;
     }
     pieces.push({
@@ -68,17 +75,28 @@ export function previewTimeline(input: {
       fromSec: 0,
       caption,
     });
+    transitions.push(shot.transitionIn);
   });
-  const overlap = pieces.length >= 2 ? Math.max(0, input.crossfadeSec) : 0;
-  let start = 0;
-  const items: PreviewItem[] = pieces.map(piece => {
-    const item = { ...piece, startSec: Math.round(start * 1000) / 1000 };
-    start += overlap > 0 ? Math.max(0.1, piece.durSec - overlap) : piece.durSec;
-    return item;
+  const joins = cutJoins({
+    count: pieces.length,
+    crossfadeSec: input.crossfadeSec,
+    transitions,
   });
-  const last = items[items.length - 1];
-  const totalSec = last ? last.startSec + last.durSec : 0;
-  return { items, totalSec: Math.round(totalSec * 1000) / 1000, crossfadeSec: overlap };
+  const { starts, total } = cutStarts(
+    pieces.map(piece => piece.durSec),
+    joins.overlaps
+  );
+  const items: PreviewItem[] = pieces.map((piece, index) => ({
+    ...piece,
+    startSec: starts[index]!,
+    inSec: joins.overlaps[index] ?? 0,
+    transition: joins.kinds[index] ?? 'cut',
+  }));
+  return {
+    items,
+    totalSec: Math.round(total * 1000) / 1000,
+    crossfadeSec: pieces.length >= 2 ? Math.max(0, input.crossfadeSec) : 0,
+  };
 }
 
 /**
@@ -88,18 +106,23 @@ export function previewTimeline(input: {
 export function previewFrameAt(
   timeline: PreviewTimeline,
   t: number
-): Array<{ item: PreviewItem; local: number; alpha: number }> {
+): Array<{ item: PreviewItem; local: number; alpha: number; progress?: number }> {
   const on = timeline.items.filter(item => t >= item.startSec && t < item.startSec + item.durSec);
   if (on.length === 0) {
     const last = timeline.items[timeline.items.length - 1];
     return last && t >= timeline.totalSec ? [{ item: last, local: last.durSec, alpha: 1 }] : [];
   }
-  return on.map((item, index) => ({
-    item,
-    local: t - item.startSec,
-    alpha:
-      index === 0 || timeline.crossfadeSec <= 0
+  return on.map((item, index) => {
+    const progress =
+      index === 0 || item.inSec <= 0
         ? 1
-        : Math.min(1, Math.max(0, (t - item.startSec) / timeline.crossfadeSec)),
-  }));
+        : Math.min(1, Math.max(0, (t - item.startSec) / item.inSec));
+    return {
+      item,
+      local: t - item.startSec,
+      // A crossfade blends; the other transitions are drawn by the player from `progress`.
+      alpha: item.transition === 'fade' || index === 0 ? progress : 1,
+      ...(index > 0 && item.inSec > 0 ? { progress } : {}),
+    };
+  });
 }

@@ -4,6 +4,7 @@
  * docs/architecture-boundaries.md.
  */
 
+import type { CutTransitionIn } from './cut-timeline';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { isHtmlVideoViewUrl, isMotionViewUrl } from './comfyui-outputs';
 
@@ -81,6 +82,8 @@ export type FilmPlaylistShot = {
   framing?: 'medium' | 'close';
   /** What is said on screen in this clip (its line, and the reply) — burned in as subtitles. */
   spoken?: string;
+  /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
+  transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
   thumbUrl?: string;
   /** The voice-over heard over this shot — subtitled when there is no spoken line. */

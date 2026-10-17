@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
+import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
 import {
   MIN_CLIP_TRIM_SEC,
   moveCutShotBefore,
@@ -66,8 +67,17 @@ export default function CutTimeline({
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [zoom, setZoom] = useState(1);
-  const [drag, setDrag] = useState<Drag | null>(null);
+  const [drag, setDragState] = useState<Drag | null>(null);
+  // The live drag, read by the pointer handlers: a move that lands before React re-renders
+  // must not be lost (the state is for drawing).
+  const dragRef = useRef<Drag | null>(null);
+  const setDrag = (next: Drag | null) => {
+    dragRef.current = next;
+    setDragState(next);
+  };
   const [dragging, setDragging] = useState<string | null>(null);
+  // A block is draggable (to move it) once pressed on its body — not on an edge.
+  const [armed, setArmed] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const scrubbing = useRef(false);
 
@@ -110,13 +120,25 @@ export default function CutTimeline({
   const commit = (key: string, patch: CutShotEdit) =>
     onChange(withCutShotEdit(edits, order, key, patch));
 
+  // An edge drag follows the pointer on the window (not the handle: the block may re-render
+  // under it), with the latest handlers.
   const startEdge = (event: ReactPointerEvent<HTMLSpanElement>, next: Drag) => {
     event.stopPropagation();
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
     setDrag(next);
+    const onMove = (move: PointerEvent) => moveRef.current(move);
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      endRef.current();
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
-  const moveEdge = (event: ReactPointerEvent<HTMLSpanElement>) => {
+  const moveEdge = (event: { clientX: number }) => {
+    const drag = dragRef.current;
     if (!drag) return;
     const delta = (event.clientX - drag.startX) / pps;
     if (drag.kind === 'hold') {
@@ -135,6 +157,7 @@ export default function CutTimeline({
     }
   };
   const endEdge = () => {
+    const drag = dragRef.current;
     if (!drag) return;
     if (drag.kind === 'hold') commit(drag.key, { holdSec: drag.value });
     else if (drag.kind === 'trimEnd')
@@ -145,6 +168,12 @@ export default function CutTimeline({
     else commit(drag.key, { trimStartSec: drag.value <= 0.05 ? undefined : drag.value });
     setDrag(null);
   };
+  const moveRef = useRef(moveEdge);
+  const endRef = useRef(endEdge);
+  useEffect(() => {
+    moveRef.current = moveEdge;
+    endRef.current = endEdge;
+  });
 
   const rulerStep = pps >= 60 ? 1 : pps >= 25 ? 2 : 5;
   const ticks: number[] = [];
@@ -239,11 +268,55 @@ export default function CutTimeline({
             const thumb = thumbFor(key);
             const active = activeKey === key;
             const clipFull = loaded?.clipSecs[item.shot] ?? null;
-            return (
+            const own = edits?.shots?.[key]?.transition ?? '';
+            const transitionPicker =
+              index > 0 && !disabled ? (
+                <span
+                  key={`${key}-in`}
+                  className={`absolute top-[0.85rem] z-10 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border text-[12px] leading-none shadow ${
+                    own
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
+                  }`}
+                  style={{ left }}
+                >
+                  {CUT_TRANSITIONS.find(entry => entry.id === item.transition)?.short ?? '|'}
+                  {/* The native picker, invisible over the badge: the full list on click. */}
+                  <select
+                    aria-label={`How ${loaded?.shots[item.shot]?.title ?? 'this shot'} comes in`}
+                    title={`Comes in with: ${CUT_TRANSITIONS.find(entry => entry.id === item.transition)?.label ?? 'Cut'}${own ? '' : " (the cut's default)"}`}
+                    className="absolute inset-0 cursor-pointer appearance-none rounded-full opacity-0"
+                    value={own}
+                    data-testid={`cut-timeline-transition-${key}`}
+                    onChange={event =>
+                      commit(key, {
+                        transition: (event.target.value || undefined) as
+                          CutTransitionKind | undefined,
+                      })
+                    }
+                  >
+                    <option value="">Default (the cut&apos;s crossfade)</option>
+                    {CUT_TRANSITIONS.map(entry => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              ) : null;
+            return [
+              transitionPicker,
               <div
                 key={key}
-                draggable={!disabled && !drag}
+                draggable={!disabled && !drag && armed === key}
+                onPointerDown={() => setArmed(key)}
+                onPointerUp={() => setArmed(null)}
                 onDragStart={event => {
+                  // Pressing an edge holds / trims — not a move of the whole block.
+                  if (dragRef.current) {
+                    event.preventDefault();
+                    return;
+                  }
                   event.dataTransfer.effectAllowed = 'move';
                   event.dataTransfer.setData('text/plain', key);
                   setDragging(key);
@@ -251,6 +324,7 @@ export default function CutTimeline({
                 onDragEnd={() => {
                   setDragging(null);
                   setOver(null);
+                  setArmed(null);
                 }}
                 onDragOver={event => {
                   if (!dragging || dragging === key) return;
@@ -298,6 +372,12 @@ export default function CutTimeline({
                     />
                   )
                 ) : null}
+                {item.inSec > 0 ? (
+                  <span
+                    className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-black/60 to-transparent"
+                    style={{ width: Math.min(blockWidth, item.inSec * pps) }}
+                  />
+                ) : null}
                 <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-[10px] text-white">
                   {item.kind === 'clip' ? '▶ ' : ''}
                   {loaded?.shots[item.shot]?.title}
@@ -309,7 +389,7 @@ export default function CutTimeline({
                     role="separator"
                     aria-label={`Hold of ${loaded?.shots[item.shot]?.title}`}
                     title="Drag to hold this still longer or shorter"
-                    className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-white/0 hover:bg-white/50 group-hover:bg-white/25"
+                    className="absolute bottom-0 right-0 top-5 w-2 cursor-ew-resize bg-white/0 hover:bg-white/50 group-hover:bg-white/25"
                     data-testid={`cut-timeline-hold-${key}`}
                     onClick={event => event.stopPropagation()}
                     onPointerDown={event =>
@@ -321,8 +401,6 @@ export default function CutTimeline({
                         value: item.durSec,
                       })
                     }
-                    onPointerMove={moveEdge}
-                    onPointerUp={endEdge}
                   />
                 ) : null}
                 {!disabled && item.kind === 'clip' ? (
@@ -331,7 +409,7 @@ export default function CutTimeline({
                       role="separator"
                       aria-label={`Start of ${loaded?.shots[item.shot]?.title}`}
                       title="Drag to trim the start"
-                      className="absolute inset-y-0 left-0 w-2 cursor-ew-resize hover:bg-white/50 group-hover:bg-white/25"
+                      className="absolute bottom-0 left-0 top-5 w-2 cursor-ew-resize hover:bg-white/50 group-hover:bg-white/25"
                       data-testid={`cut-timeline-trim-start-${key}`}
                       onClick={event => event.stopPropagation()}
                       onPointerDown={event =>
@@ -344,14 +422,12 @@ export default function CutTimeline({
                           max: item.fromSec + item.durSec - MIN_CLIP_TRIM_SEC,
                         })
                       }
-                      onPointerMove={moveEdge}
-                      onPointerUp={endEdge}
                     />
                     <span
                       role="separator"
                       aria-label={`End of ${loaded?.shots[item.shot]?.title}`}
                       title="Drag to trim the end"
-                      className="absolute inset-y-0 right-0 w-2 cursor-ew-resize hover:bg-white/50 group-hover:bg-white/25"
+                      className="absolute bottom-0 right-0 top-5 w-2 cursor-ew-resize hover:bg-white/50 group-hover:bg-white/25"
                       data-testid={`cut-timeline-trim-end-${key}`}
                       onClick={event => event.stopPropagation()}
                       onPointerDown={event =>
@@ -365,13 +441,11 @@ export default function CutTimeline({
                           max: clipFull,
                         })
                       }
-                      onPointerMove={moveEdge}
-                      onPointerUp={endEdge}
                     />
                   </>
                 ) : null}
-              </div>
-            );
+              </div>,
+            ];
           })}
           {/* Playhead. */}
           <div
