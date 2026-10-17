@@ -405,9 +405,13 @@ function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean 
     return isRef(ref) && isMultiPersonPoseGuide(sourceFilename(workflow, ref));
   });
   const prompt = String(encoder.inputs.prompt ?? '');
+  const profile = POSE_MODEL_PROFILES['qwen-image-2.1'];
+  // Clothed two-person stills stay on 2.1 unless the profile hands them off (it no longer does:
+  // Turbo on the couple recipe kept two people 56/56); their map is dropped below.
   return (
-    Boolean(POSE_MODEL_PROFILES['qwen-image-2.1'].penetrationEngine) &&
-    (isPenetrationDuoPrompt(prompt, duoMap) || isClothedDuoStill(prompt, duoMap))
+    Boolean(profile.penetrationEngine) &&
+    (isPenetrationDuoPrompt(prompt, duoMap) ||
+      (Boolean(profile.clothedDuoEngine) && isClothedDuoStill(prompt, duoMap)))
   );
 }
 

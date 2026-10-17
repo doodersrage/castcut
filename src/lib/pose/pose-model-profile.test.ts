@@ -93,17 +93,18 @@ describe('Day adult hand-off', () => {
     );
   });
 
-  it('Qwen-Image 2.1 sends clothed two-person stills to plain Rapid, for that still only', async () => {
+  it('Qwen-Image 2.1 keeps its clothed two-person stills (Turbo: two people 56/56)', async () => {
     const { resolveDayStillModel } = await import('../queue-tool-model');
     const installed = (id: string) => id === 'qwen-rapid-aio-edit';
     for (const picked of [
       'qwen-image-2.1-edit',
       'qwen-image-2.1-edit-lightning-4',
       'qwen-image-2.1-edit-pruna-8',
+      'qwen-image-2.1-edit-turbo-8',
     ]) {
       assert.equal(
         resolveDayStillModel(picked, { adultNude: false, clothedDuo: true, installed }),
-        'qwen-rapid-aio-edit'
+        picked
       );
       // One-person stills, nude stills and a missing Rapid stay on 2.1.
       assert.equal(resolveDayStillModel(picked, { adultNude: false, installed }), picked);

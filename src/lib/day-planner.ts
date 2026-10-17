@@ -3892,12 +3892,10 @@ export function buildDaySlotPrompt(input: {
     // underwear 6/6 (2511 dresses her); the brief's ATHLETIC KIT ONLY holds the kit.
     const twoOne =
       poseProfileForModel(input.model).family === 'qwen-image-2.1' && dayMood !== 'sport';
-    const compactDay =
-      (!rapidAio || (twoOne && poseHeadcount < 2)) &&
-      poseProfileForModel(input.model).compactDayRecipes;
+    const compactDay = (!rapidAio || twoOne) && poseProfileForModel(input.model).compactDayRecipes;
     const compactClothed = compactDay && !isDayAdultMood(dayMood);
-    /** A two-person clothed still outside the Suggestive couple recipe (2511 only). */
-    const compactDuo = compactClothed && !rapidAio && poseHeadcount >= 2 && !suggestiveCouple;
+    /** A two-person clothed still outside the Suggestive couple recipe (2511 and 2.1). */
+    const compactDuo = compactClothed && poseHeadcount >= 2 && !suggestiveCouple;
     const moodRecipe = dayMood === 'suggestive' || dayMood === 'vacation';
     // Rapid Everyday solo: the brief drops the action (pose-model-profile:
     // compactEverydayRecipe). Two-person Everyday stills stay on the brief, which holds them.

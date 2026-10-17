@@ -2421,9 +2421,13 @@ export function useDayPlannerToolOrchestrationCore() {
         // 6/6, two-person (partner face as Image 2) 4/4 with the latent (live 2026-10-16).
         // Rapid only with the short recipe (its SCENE line): the long Outfit Keep brief ignored
         // the room 0/12 even cleaned of its pose-map lines — there the map stays.
+        // Qwen-Image 2.1 (one person, short recipe): the room as its third reference, led in the
+        // SCENE line — Turbo 8/8 the exact room, pose and outfit kept (live 2026-10-17).
+        const roomLedEngine =
+          /rapid-aio/i.test(stillModel ?? '') || poseModelFamily(stillModel) === 'qwen-image-2.1';
         const clothedRoomEngine =
           /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
-          (/rapid-aio/i.test(stillModel ?? '') && !partnerFace && /\bSCENE: /.test(finalized));
+          (roomLedEngine && !partnerFace && /\bSCENE: /.test(finalized));
         const placePhoto =
           !adultStill &&
           !queueTarget.thirdCastId?.trim() &&
@@ -2663,9 +2667,7 @@ export function useDayPlannerToolOrchestrationCore() {
             : roomAsImage4
               ? withPlacePhotoInLongAdultBrief(finalized, 4)
               : placePhoto
-                ? withPlacePhotoInPrompt(finalized, 3, {
-                    lead: /rapid-aio/i.test(stillModel ?? ''),
-                  })
+                ? withPlacePhotoInPrompt(finalized, 3, { lead: roomLedEngine })
                 : adultPlacePhoto
                   ? withPlacePhotoInAdultPrompt(finalized)
                   : adultDuoPlacePhoto

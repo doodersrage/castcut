@@ -308,6 +308,16 @@ describe('dayPoseFirstLine', () => {
     );
   });
 
+  it('without a map (Qwen-Image 2.1): a couple recipe leads with its Pose:, said once', () => {
+    assert.equal(
+      dayPoseFirstLine(
+        'Day photo: A woman and a man together, both fully clothed. Moment: hugging on the balcony. Pose: the two people face each other, arms wrapped around each other.',
+        { withoutMap: true }
+      ),
+      'POSE FIRST: the two people — face each other, arms wrapped around each other.'
+    );
+  });
+
   it('without a map (Qwen-Image 2.1): stance and action, no map named', () => {
     const recipe =
       'Day photo: One woman alone. She crouches low, knees bent deep. Moment: crouching to lock a bike at the rack, keys in hand. Match her body to the third image (pose map).';

@@ -237,7 +237,7 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
   });
 });
 
-describe('Qwen-Image 2.1: clothed two-person stills stay on the engine model', () => {
+describe('Qwen-Image 2.1: clothed two-person stills', () => {
   const duo = (prompt: string, images: Record<string, string>) => {
     const slots = Object.keys(images);
     return {
@@ -264,13 +264,14 @@ describe('Qwen-Image 2.1: clothed two-person stills stay on the engine model', (
     assert.equal(isClothedDuoStill('Day photo: One woman alone.', false), false);
   });
 
-  it('returns a clothed two-person graph unconverted, with or without a partner face', () => {
-    // Sweep 2026-10-02: on 2.1 the pair fused or the partner ghosted behind the lead (6 of 6).
+  it('converts a clothed two-person graph, the two-person map dropped, the partner face kept', () => {
+    // Sweep 2026-10-02 (Pruna, long brief): the pair fused 6/6, so these went to Rapid. Turbo on
+    // the couple recipe (2026-10-17): two people 56/56 — they stay on 2.1 without the map.
     const plain = duo('TWO PEOPLE in this photo: selfie together. Match Image 2 body positions.', {
       '900': 'cast-plate.png',
       '904': 'day-pose-guide-selfie_duo-82b0de-x2-17.png',
     });
-    assert.equal(convertQwenEditWorkflowToImage21(plain).converted, false);
+    assert.equal(convertQwenEditWorkflowToImage21(plain).converted, true);
     const withPartner = duo(
       'TWO PEOPLE in this photo: she (wearing rust camisole) and her partner — a woman with dark hair — together. SECOND PERSON: Image 2 is the face of the woman with the Cast lead. Match Image 3 body positions.',
       {
@@ -280,8 +281,12 @@ describe('Qwen-Image 2.1: clothed two-person stills stay on the engine model', (
       }
     );
     const result = convertQwenEditWorkflowToImage21(withPartner);
-    assert.equal(result.converted, false);
-    assert.equal(result.workflow, withPartner);
+    assert.equal(result.converted, true);
+    const loads = Object.values(result.workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>)
+      .filter(node => node.class_type === 'LoadImage')
+      .map(node => String(node.inputs.image));
+    assert.ok(loads.includes('day-partner-vl-1.png'));
+    assert.ok(!loads.some(name => /pose-guide/.test(name)));
   });
 });
 

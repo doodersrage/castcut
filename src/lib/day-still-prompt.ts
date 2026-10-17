@@ -53,7 +53,9 @@ import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/foo
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
 import {
+  ALWAYS_CUED_DUO_LAYOUTS,
   dayDuoPoseWords,
+  poseLayoutCue,
   poseLayoutCueLine,
   poseLookLine,
   withDuoRecipePoseSentence,
@@ -215,17 +217,22 @@ export function dayPoseFirstLine(
     map && !options.withoutMap
       ? { second: 2, third: 3, fourth: 4 }[map as 'second' | 'third' | 'fourth']
       : 0;
-  if (duo && options.withoutMap) return '';
-  if (duo) {
+  // Without a map, a couple recipe is known by its opening ("A woman and a man together").
+  const twoPeople =
+    Boolean(duo) ||
+    (options.withoutMap === true && /\bDay photo: [^.\n]*\btogether\b/i.test(prompt));
+  if (twoPeople) {
     // Two people: the recipe's own Pose: sentence (body-by-body placement), else the Moment.
     // Same seeds, 12 clothed duo beats on Edit 2511 (2026-10-15): 5 clearer (sharing a drink /
     // dessert leaning in, head on a shoulder seated, earbuds, selfie arm), 0 worse.
     const pose = /\bPose: ([^.\n]+)\./.exec(prompt)?.[1]?.trim();
     const moment = /\bMoment: ([^.\n]+)\./.exec(prompt)?.[1]?.trim();
-    const words = pose || moment;
-    return words
+    // A layout cue may open with "the two people …" itself — say it once.
+    const words = (pose || moment)?.replace(/^the two people\s+/i, '');
+    if (!words) return '';
+    return image
       ? `POSE FIRST: the two people — ${words}, exactly as the pose map in Image ${image} shows.`
-      : '';
+      : `POSE FIRST: the two people — ${words}.`;
   }
   const body = /Day photo:([^\n]*)/.exec(prompt)?.[1] ?? prompt;
   const sentences = body
@@ -325,9 +332,18 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   // Moment — the map alone, or the generic cue, drew a front carry and two tilted heads
   // (dayDuoPoseWords). Not on the long brief: on Rapid's two-person brief the same words as the
   // cue line changed nothing (piggyback 3/4 both, head on a shoulder 0/4 both; live 2026-10-05).
+  // With no pose map (Qwen-Image 2.1) every cued two-person layout is said in words: Turbo drew
+  // the selfie arm 8/8 with "she holds a phone out at arm length toward both faces", 0/8 from
+  // the beat alone; head on a shoulder 2/2 (live 2026-10-17).
   const duoWords =
     recipe && figures >= 2 && !facts.adult && !facts.customPose?.trim()
-      ? dayDuoPoseWords(drawnLayout, dayDuoNames(facts, basePrompt, swapLead), facts.beat)
+      ? (dayDuoPoseWords(drawnLayout, dayDuoNames(facts, basePrompt, swapLead), facts.beat) ??
+        (facts.poseFirstWithoutMap && drawnLayout && ALWAYS_CUED_DUO_LAYOUTS.has(drawnLayout)
+          ? (poseLayoutCue(drawnLayout)?.replace(
+              /\bthe lead\b/,
+              facts.leadNoun === 'man' ? 'he' : 'she'
+            ) ?? null)
+          : null))
       : null;
   // A layout cue's "on the floor" is the Setting's ground outdoors (sit_floor on a rooftop deck).
   const poseCueLine =
