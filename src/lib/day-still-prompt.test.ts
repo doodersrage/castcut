@@ -308,6 +308,21 @@ describe('dayPoseFirstLine', () => {
     );
   });
 
+  it('without a map (Qwen-Image 2.1): stance and action, no map named', () => {
+    const recipe =
+      'Day photo: One woman alone. She crouches low, knees bent deep. Moment: crouching to lock a bike at the rack, keys in hand. Match her body to the third image (pose map).';
+    assert.equal(
+      dayPoseFirstLine(recipe, { withoutMap: true }),
+      'POSE FIRST: she crouches low, knees bent deep — crouching to lock a bike at the rack, keys in hand.'
+    );
+    assert.equal(
+      dayPoseFirstLine('Day photo: One woman alone. Moment: reading on the bench.', {
+        withoutMap: true,
+      }),
+      'POSE FIRST: she is reading on the bench.'
+    );
+  });
+
   it('says nothing without a pose map', () => {
     assert.equal(dayPoseFirstLine('Day photo: One woman alone. She walks mid-step.'), '');
   });

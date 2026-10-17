@@ -43,7 +43,7 @@ import {
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui-object-info-cache';
 import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
-import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -2245,9 +2245,12 @@ export function useDayPlannerToolOrchestrationCore() {
         const assembled = assembleDayStillPrompt({
           slotPrompt,
           poseFirst:
-            /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
+            (/qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
+              poseModelFamily(stillModel) === 'qwen-image-2.1') &&
             !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
             !adultStill,
+          // Qwen-Image 2.1 takes no pose map: the line stands on the words (Turbo, 2026-10-17).
+          poseFirstWithoutMap: poseModelFamily(stillModel) === 'qwen-image-2.1',
           camera: dayStillCamera({
             slotId: queueTarget.id,
             model: stillModel,

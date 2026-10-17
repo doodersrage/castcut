@@ -191,6 +191,10 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     namePartnerOutfit: true,
     dressWhenNoOutfit: true,
     compactEverydayRecipe: true,
+    // One-person clothed Day stills take Edit 2511's short recipes (POSE FIRST with the beat's
+    // action, SCENE, LIGHT, OUTFIT): Turbo, 24 Everyday beats, same seeds (2026-10-17) — 22/24
+    // beats shown vs 18/24 on Rapid's long Keep brief, the props kept, less stiff.
+    compactDayRecipes: true,
     clothedDuoEngine: 'qwen-rapid-aio-edit',
     dressPlate: 'clothing',
     mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },

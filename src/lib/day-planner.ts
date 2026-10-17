@@ -3886,10 +3886,18 @@ export function buildDaySlotPrompt(input: {
     // Edit 2511 takes the short recipes for every Day still (pose-model-profile:
     // compactDayRecipes): Vacation / Suggestive and the adult moods share Rapid's, the rest use
     // the Day recipes.
-    const compactDay = !rapidAio && poseProfileForModel(input.model).compactDayRecipes;
+    // Qwen-Image 2.1 queues on Rapid's graph but takes 2511's one-person recipes too; its
+    // two-person stills render on Rapid (clothedDuoEngine) and keep Rapid's prompts. Not Sport:
+    // on the recipe's "the underwear in Image 1 is only the fitting base" Turbo kept the plate's
+    // underwear 6/6 (2511 dresses her); the brief's ATHLETIC KIT ONLY holds the kit.
+    const twoOne =
+      poseProfileForModel(input.model).family === 'qwen-image-2.1' && dayMood !== 'sport';
+    const compactDay =
+      (!rapidAio || (twoOne && poseHeadcount < 2)) &&
+      poseProfileForModel(input.model).compactDayRecipes;
     const compactClothed = compactDay && !isDayAdultMood(dayMood);
     /** A two-person clothed still outside the Suggestive couple recipe (2511 only). */
-    const compactDuo = compactClothed && poseHeadcount >= 2 && !suggestiveCouple;
+    const compactDuo = compactClothed && !rapidAio && poseHeadcount >= 2 && !suggestiveCouple;
     const moodRecipe = dayMood === 'suggestive' || dayMood === 'vacation';
     // Rapid Everyday solo: the brief drops the action (pose-model-profile:
     // compactEverydayRecipe). Two-person Everyday stills stay on the brief, which holds them.
@@ -3917,7 +3925,9 @@ export function buildDaySlotPrompt(input: {
       (partnerImage || dayMood === 'vacation' || /\bpartner\b/i.test(hints ?? '')) &&
       !suggestiveCouple;
     if (
-      (rapidAio ? moodRecipe || rapidEveryday || rapidPartnerDuo : compactClothed) &&
+      (rapidAio && !compactClothed
+        ? moodRecipe || rapidEveryday || rapidPartnerDuo
+        : compactClothed) &&
       !omitGarment &&
       (poseHeadcount < 2 || suggestiveCouple || compactDuo || rapidPartnerDuo)
     ) {

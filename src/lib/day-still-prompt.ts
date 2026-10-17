@@ -107,6 +107,11 @@ export type DayStillPromptFacts = {
    */
   poseFirst?: boolean;
   /**
+   * With `poseFirst`, on an engine that takes no pose map (Qwen-Image 2.1): the line from the
+   * recipe's own stance and Moment, without naming a map.
+   */
+  poseFirstWithoutMap?: boolean;
+  /**
    * A custom pose (joint editor, a photo, My poses, a pose pack) in words — `describePhotoPose`.
    * Sent as the recipe's Pose: sentence, or the brief's first line.
    */
@@ -188,14 +193,29 @@ export type AssembledDayStillPrompt = {
  * Image 3 shows." — from a one-person recipe's own stance sentence ("She walks …"), else its
  * "Pose:" sentence, else its "Moment:". '' when the recipe has no pose map.
  */
-export function dayPoseFirstLine(prompt: string): string {
+export function dayPoseFirstLine(
+  prompt: string,
+  options: {
+    /**
+     * One person, no pose map (Qwen-Image 2.1 takes none): the same line without "exactly as the
+     * pose map shows" — the words carry the pose.
+     */
+    withoutMap?: boolean;
+  } = {}
+): string {
   const duo = /Match their two bodies to the (second|third|fourth) image \(pose map\)/.exec(
     prompt
   )?.[1];
   const map =
     duo ?? /Match her body to the (second|third|fourth) image \(pose map\)/.exec(prompt)?.[1];
-  if (!map) return '';
-  const image = { second: 2, third: 3, fourth: 4 }[map as 'second' | 'third' | 'fourth'];
+  if (!map && !options.withoutMap) return '';
+  // Without a map the line never names one: Qwen-Image 2.1's converter drops every line that
+  // points at the (removed) map, and a "POSE FIRST … pose map" line went with it.
+  const image =
+    map && !options.withoutMap
+      ? { second: 2, third: 3, fourth: 4 }[map as 'second' | 'third' | 'fourth']
+      : 0;
+  if (duo && options.withoutMap) return '';
   if (duo) {
     // Two people: the recipe's own Pose: sentence (body-by-body placement), else the Moment.
     // Same seeds, 12 clothed duo beats on Edit 2511 (2026-10-15): 5 clearer (sharing a drink /
@@ -227,7 +247,10 @@ export function dayPoseFirstLine(prompt: string): string {
     : moment
       ? `she is ${moment}`
       : '';
-  return words ? `POSE FIRST: ${words}, exactly as the pose map in Image ${image} shows.` : '';
+  if (!words) return '';
+  return image
+    ? `POSE FIRST: ${words}, exactly as the pose map in Image ${image} shows.`
+    : `POSE FIRST: ${words}.`;
 }
 
 export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDayStillPrompt {
@@ -395,8 +418,12 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     .filter(Boolean)
     .join('\n');
   const poseFirstLine =
-    facts.poseFirst && recipe && (figures === 1 || figures === 2) && !customPose && !facts.adult
-      ? dayPoseFirstLine(prompt)
+    facts.poseFirst &&
+    recipe &&
+    (figures === 1 || figures === 2 || (facts.poseFirstWithoutMap && figures <= 1)) &&
+    !customPose &&
+    !facts.adult
+      ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
       : '';
   return {
     prompt: poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt,
