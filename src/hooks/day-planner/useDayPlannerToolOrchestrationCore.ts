@@ -2487,6 +2487,44 @@ export function useDayPlannerToolOrchestrationCore() {
             }
           }
         }
+        // A fourth person: their face as Image 4 — Qwen-Image 2.1 reads four (Turbo, four group
+        // beats × 2 seeds: four distinct people in their own clothes 8/8, the lead's face as
+        // close as in three-person stills on the portrait canvas, 2026-10-17). The room photo,
+        // which would take Image 4, stays in words.
+        let fourthPerson: DayThirdPerson | null = null;
+        const fourthCharacter =
+          thirdPerson && queueTarget.fourthCastId?.trim()
+            ? getCharacter(queueTarget.fourthCastId.trim())
+            : undefined;
+        if (fourthCharacter) {
+          if (poseModelFamily(stillModel) !== 'qwen-image-2.1') {
+            referenceNotes.push(
+              `${fourthCharacter.name} was left out: four-person stills need Qwen-Image 2.1.`
+            );
+          } else {
+            const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
+              character: fourthCharacter,
+              model: stillModel,
+              comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+            });
+            const face = resolved.plate?.filename?.trim();
+            if (face) {
+              extraUrls[3] = undefined;
+              extraFilenames[3] = face;
+              fourthPerson = {
+                noun: dayPartnerNoun(fourthCharacter),
+                descriptor: (fourthCharacter.descriptor || fourthCharacter.hints || '').slice(
+                  0,
+                  160
+                ),
+              };
+            } else {
+              referenceNotes.push(
+                `${fourthCharacter.name} has no face picture yet — left out of this still.`
+              );
+            }
+          }
+        }
         // Adult Rapid solo: the pose map moves to Image 2 (where the recipe already says it is —
         // the queue would compact it there) and the room photo rides as Image 3.
         const adultPlacePhoto =
@@ -2667,7 +2705,7 @@ export function useDayPlannerToolOrchestrationCore() {
           thirdPerson
             ? roomAsImage4
               ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson), 4, { lead: true })
-              : withThirdPerson(finalized, thirdPerson)
+              : withThirdPerson(finalized, thirdPerson, fourthPerson)
             : roomAsImage4
               ? withPlacePhotoInLongAdultBrief(finalized, 4)
               : placePhoto

@@ -378,7 +378,13 @@ export default function DaySlotSheet({
                 value={slot.thirdCastId ?? ''}
                 disabled={busy}
                 testIdPrefix="day-slot-third"
-                onChange={next => updateSlot(slot.id, { thirdCastId: next || undefined })}
+                onChange={next =>
+                  updateSlot(slot.id, {
+                    thirdCastId: next || undefined,
+                    // The fourth person goes with the third (and never twice the same Cast).
+                    ...(!next || next === slot.fourthCastId ? { fourthCastId: undefined } : {}),
+                  })
+                }
                 tiles={[
                   { id: '', label: 'Nobody else', glyph: '—' },
                   ...groupOptions.map(option => ({
@@ -389,9 +395,30 @@ export default function DaySlotSheet({
                   })),
                 ]}
               />
+              {slot.thirdCastId && groupOptions.some(option => option.id !== slot.thirdCastId) ? (
+                <PortraitTileStrip
+                  label="And a fourth"
+                  value={slot.fourthCastId ?? ''}
+                  disabled={busy}
+                  testIdPrefix="day-slot-fourth"
+                  onChange={next => updateSlot(slot.id, { fourthCastId: next || undefined })}
+                  tiles={[
+                    { id: '', label: 'Nobody else', glyph: '—' },
+                    ...groupOptions
+                      .filter(option => option.id !== slot.thirdCastId)
+                      .map(option => ({
+                        id: option.id,
+                        label: option.name,
+                        title: `${option.name} — the fourth person on this still (Qwen-Image 2.1)`,
+                        thumb: option.thumb,
+                      })),
+                  ]}
+                />
+              ) : null}
               <span className="type-caption block text-[var(--text-muted)]">
                 A third Cast member with the lead and the partner — on two-person stills, Edit 2511
-                engine (their face takes the pose map&apos;s place; the pose is said in words).
+                or Qwen-Image 2.1 (their face takes the pose map&apos;s place; the pose is said in
+                words). A fourth needs Qwen-Image 2.1; the room photo then stays in words.
               </span>
             </div>
           ) : null}

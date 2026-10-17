@@ -395,6 +395,11 @@ export type DaySlot = {
    * two-person still. Edit 2511 only (it reads their face as Image 3).
    */
   thirdCastId?: string;
+  /**
+   * A fourth person (with `thirdCastId`) — Qwen-Image 2.1 only, their face as Image 4 (the room
+   * photo then stays in words).
+   */
+  fourthCastId?: string;
   /** Dub (day-dub.ts): the language the line and reply are said in; unset = as written. */
   lineLanguage?: string;
   /** Dub: the line and reply as first written, before translation (undo / dub again). */
@@ -818,6 +823,9 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
       ...(readText(slot.thirdCastId, 120) ? { thirdCastId: readText(slot.thirdCastId, 120) } : {}),
+      ...(readText(slot.thirdCastId, 120) && readText(slot.fourthCastId, 120)
+        ? { fourthCastId: readText(slot.fourthCastId, 120) }
+        : {}),
       ...(normalizeDubLanguage(slot.lineLanguage)
         ? { lineLanguage: normalizeDubLanguage(slot.lineLanguage) }
         : {}),

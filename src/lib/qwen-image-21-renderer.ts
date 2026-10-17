@@ -374,7 +374,12 @@ export function withTwoPersonFaces(
   const duo = /\bTWO PEOPLE\b/.test(prompt) || partnerImage != null;
   if (!duo) return prompt;
   if (!faces.droppedPoseMap && partnerImage == null) return prompt;
-  // A group still (day-group.ts: "Three people together", the third face as <image3>).
+  // A group still (day-group.ts: "Three people together", the third face as <image3>; "Four
+  // people together", the fourth as <image4> — Turbo, four group beats × 2 seeds, four distinct
+  // people in their own clothes 8/8, 2026-10-17).
+  if (/\bFour people together\b/.test(prompt)) {
+    return `Exactly four people, each with exactly two arms on their own body — no extra, floating, or shared arm. <image1>, <image2>, <image3> and <image4> are only the four people's faces, hair and skin — four different people, never the same face twice, and do not paste those photos into the scene. ${prompt}`;
+  }
   if (/\bThree people together\b/.test(prompt)) {
     return `Exactly three people, each with exactly two arms on their own body — no extra, floating, or shared arm. <image1>, <image2> and <image3> are only the three people's faces, hair and skin — three different people, never the same face twice, and do not paste those photos into the scene. ${prompt}`;
   }
@@ -389,12 +394,6 @@ export function withTwoPersonFaces(
   return `${parts.join(' ')} ${prompt}`;
 }
 
-/**
- * A daytime Day recipe (no LIGHT line of its own — evening / night slots have one) gets a bright
- * one on 2.1: Turbo's daytime stills were dim next to Edit 2511's. Live, 8 daytime Everyday
- * beats, same seeds (2026-10-17): mean brightness 75 → 84, the beats kept, the Cast's face
- * closer (median distance 0.46 → 0.31).
- */
 export const QWEN_IMAGE_21_LIE_BACK_LINE =
   'POSE FIRST: she lies flat on her back — her whole body horizontal across the frame, head and shoulders down on the pillow, back flat on the mattress, not propped up, not sitting, not leaning against the headboard; seen from the side at mattress height.';
 
@@ -415,6 +414,12 @@ export function withLieBackLine(prompt: string): string {
     : `${QWEN_IMAGE_21_LIE_BACK_LINE} ${prompt}`;
 }
 
+/**
+ * A daytime Day recipe (no LIGHT line of its own — evening / night slots have one) gets a bright
+ * one on 2.1: Turbo's daytime stills were dim next to Edit 2511's. Live, 8 daytime Everyday
+ * beats, same seeds (2026-10-17): mean brightness 75 → 84, the beats kept, the Cast's face
+ * closer (median distance 0.46 → 0.31).
+ */
 export const QWEN_IMAGE_21_DAYLIGHT_LINE =
   'LIGHT: bright, well-exposed natural light — her face, body and the place clearly lit, true colours, a real photograph exposed for the scene, not dim or murky.';
 

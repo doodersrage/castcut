@@ -654,3 +654,13 @@ describe('Qwen-Image 2.1 Turbo checkpoint', () => {
     assert.equal(hasQwenImage21TurboCheckpoint(null), false);
   });
 });
+
+describe('Qwen-Image 2.1: four-person group header', () => {
+  it('names four faces for a four-person still', () => {
+    const out = withTwoPersonFaces(
+      'Day photo: Four people together — exactly four, all fully clothed. <image2> is the face of her partner.',
+      { partnerImage: 2, droppedPoseMap: false }
+    );
+    assert.match(out, /^Exactly four people, .* <image1>, <image2>, <image3> and <image4> are only the four people's faces/);
+  });
+});

@@ -91,3 +91,44 @@ describe('withThirdPerson: busy groups (Qwen-Image 2.1)', () => {
     assert.match(groupBusyLine('a board game night', ['woman', 'man', 'man']), /the man from the third image laughs, holding a card/);
   });
 });
+
+describe('withThirdPerson: a fourth person (Qwen-Image 2.1)', () => {
+  const cooking =
+    'Edit Image 1: POSE FIRST: the two people — cooking lunch together, exactly as the pose map in Image 3 shows.\n' +
+    DUO.replace('Edit Image 1: ', '');
+
+  it('names all four by their image, with their own clothes and faces', () => {
+    const out = withThirdPerson(
+      DUO,
+      { noun: 'woman', descriptor: 'long black hair' },
+      { noun: 'man', descriptor: 'a Black man with a trimmed beard.' }
+    );
+    assert.match(
+      out,
+      /Four people together — exactly four, .* the woman from the first image, the man from the second image, the woman from the third image, and the man from the fourth image\./
+    );
+    assert.match(out, /Moment: seated at a brunch table, all four mid-laugh\./);
+    assert.match(
+      out,
+      /the woman from the third image wears a blue linen shirt[^;]*; the man from the fourth image wears a dark green bomber jacket over a white t-shirt and black jeans — each in their own clothes/
+    );
+    assert.match(
+      out,
+      /The woman from the third image has that face \(long black hair\)\. The man from the fourth image has that face \(a Black man with a trimmed beard\)\. Place:/
+    );
+  });
+
+  it('four jobs and "each of the four" on a busy cooking moment', () => {
+    const out = withThirdPerson(cooking, { noun: 'woman', busy: true }, { noun: 'man' });
+    assert.match(
+      out,
+      /POSE FIRST: all four people — cooking lunch together — .*the woman from the third image leans in tasting from a wooden spoon, the man from the fourth image sets plates on the counter, caught mid-moment, each of the four with/
+    );
+  });
+
+  it('two extra people of the same sex never share an outfit', () => {
+    const out = withThirdPerson(DUO, { noun: 'man' }, { noun: 'man' });
+    assert.match(out, /third image wears a grey crew-neck t-shirt/);
+    assert.match(out, /fourth image wears a dark green bomber jacket/);
+  });
+});

@@ -31,16 +31,18 @@ export type DayThirdPerson = {
  * person, named by their image: cooking 2/2, a board game 2/2, baking 2/2. Walking, toasting and
  * the sofa already showed the act; the busy words only turned them toward each other.
  */
-const GROUP_BUSY =
-  'caught mid-moment, each of the three with their hands busy on it, turned toward the task and each other, not lined up facing the camera';
+const groupBusy = (count: string) =>
+  `caught mid-moment, each of the ${count} with their hands busy on it, turned toward the task and each other, not lined up facing the camera`;
 
-const GROUP_TASKS: Array<{ re: RegExp; jobs: [string, string, string] }> = [
+/** One job per person (the fourth job only for four-person stills). */
+const GROUP_TASKS: Array<{ re: RegExp; jobs: [string, string, string, string] }> = [
   {
     re: /\bbak(?:e|es|ing)\b/i,
     jobs: [
       'rolls out dough with a rolling pin',
       'cracks an egg into a mixing bowl',
       'cuts shapes with a cookie cutter',
+      'pipes icing onto a tray of cookies',
     ],
   },
   {
@@ -49,22 +51,35 @@ const GROUP_TASKS: Array<{ re: RegExp; jobs: [string, string, string] }> = [
       'stirs a pan at the stove',
       'chops vegetables on a board',
       'leans in tasting from a wooden spoon',
+      'sets plates on the counter',
     ],
   },
   {
     re: /\b(?:board game|card game|playing cards|cards|chess|dice)\b/i,
-    jobs: ['rolls the dice', 'moves a piece on the board', 'laughs, holding a card'],
+    jobs: [
+      'rolls the dice',
+      'moves a piece on the board',
+      'laughs, holding a card',
+      'shuffles a deck of cards',
+    ],
   },
 ];
 
-/** "— the woman from the first image stirs …, …, caught mid-moment, …" for the moment, or ''. */
-export function groupBusyLine(moment: string, nouns: [string, string, string]): string {
+const ORDINALS = ['first', 'second', 'third', 'fourth'] as const;
+const COUNT_WORDS = { 3: 'three', 4: 'four' } as const;
+
+/**
+ * "— the woman from the first image stirs …, …, caught mid-moment, …" for the moment: a job for
+ * each of the three or four (`nouns`, in image order) when the moment has a task list.
+ */
+export function groupBusyLine(moment: string, nouns: string[]): string {
   const tasks = GROUP_TASKS.find(entry => entry.re.test(moment));
-  const order = ['first', 'second', 'third'];
   const jobs = tasks
-    ? `${tasks.jobs.map((job, i) => `the ${nouns[i]} from the ${order[i]} image ${job}`).join(', ')}, `
+    ? `${nouns
+        .map((noun, i) => `the ${noun} from the ${ORDINALS[i]} image ${tasks.jobs[i]}`)
+        .join(', ')}, `
     : '';
-  return ` — ${jobs}${GROUP_BUSY}`;
+  return ` — ${jobs}${groupBusy(COUNT_WORDS[nouns.length === 4 ? 4 : 3])}`;
 }
 
 function thirdOutfit(noun: DayPartnerNoun): string {
@@ -73,28 +88,51 @@ function thirdOutfit(noun: DayPartnerNoun): string {
     : 'a blue linen shirt, dark jeans and white sneakers';
 }
 
+/** The fourth person's clothes — never the third person's, whatever the two nouns. */
+function fourthOutfit(noun: DayPartnerNoun): string {
+  return noun === 'man'
+    ? 'a dark green bomber jacket over a white t-shirt and black jeans'
+    : 'a mustard knit cardigan over a white top and a black midi skirt';
+}
+
 const TWO_TOGETHER_RE =
   /\b(A (woman|man) and a (woman|man)|Two (women|men)) together, both fully clothed, both fully in frame\./;
 
+const lookOf = (person: DayThirdPerson) =>
+  person.descriptor?.trim() ? ` (${person.descriptor.trim().replace(/[.\s]+$/, '')})` : '';
+
 /**
- * The two-person prompt with the third person in it: all three named by their image, "all three"
- * in the moment, the third person's face and clothes, the pose map (whose slot they take) no
+ * The two-person prompt with the third person in it — and a fourth (Qwen-Image 2.1, their face
+ * as the fourth image) when given: all of them named by their image, "all three" / "all four" in
+ * the moment, each extra person's face and clothes, the pose map (whose slot the third takes) no
  * longer named. Unchanged when the prompt is not a clothed two-person Day still.
  */
-export function withThirdPerson(prompt: string, third: DayThirdPerson): string {
+export function withThirdPerson(
+  prompt: string,
+  third: DayThirdPerson,
+  fourth?: DayThirdPerson | null
+): string {
   const match = TWO_TOGETHER_RE.exec(prompt);
   if (!match) return prompt;
   const pair = match[4] ? (match[4] === 'women' ? 'woman' : 'man') : '';
   const lead = match[2] ?? pair;
   const partner = match[3] ?? pair;
-  const noun = third.noun === 'person' ? 'person' : third.noun;
-  const look = third.descriptor?.trim()
-    ? ` (${third.descriptor.trim().replace(/[.\s]+$/, '')})`
-    : '';
-  const nouns: [string, string, string] = [lead, partner, noun];
+  const noun = third.noun;
+  const noun4 = fourth?.noun;
+  const count = noun4 ? 'four' : 'three';
+  const nouns = noun4 ? [lead, partner, noun, noun4] : [lead, partner, noun];
   const dayStart = prompt.indexOf('Day photo:');
   const head = dayStart >= 0 ? prompt.slice(0, dayStart) : '';
   const body = dayStart >= 0 ? prompt.slice(dayStart) : prompt;
+  const everyone = noun4
+    ? `the ${lead} from the first image, the ${partner} from the second image, the ${noun} from the third image, and the ${noun4} from the fourth image`
+    : `the ${lead} from the first image, the ${partner} from the second image, and the ${noun} from the third image`;
+  const extraClothes = noun4
+    ? `; the ${noun} from the third image wears ${thirdOutfit(noun)}; the ${noun4} from the fourth image wears ${fourthOutfit(noun4)} — each in their own clothes, not the same clothes as the person from the first image.`
+    : `; the ${noun} from the third image wears ${thirdOutfit(noun)}, not the same clothes as the person from the first image.`;
+  const faces = `The ${noun} from the third image has that face${lookOf(third)}. ${
+    fourth && noun4 ? `The ${noun4} from the fourth image has that face${lookOf(fourth)}. ` : ''
+  }`;
   return (
     head
       .replace(
@@ -102,27 +140,26 @@ export function withThirdPerson(prompt: string, third: DayThirdPerson): string {
         'the others wear their own shoes.'
       )
       // The POSE FIRST line: Image 3 is the third face now, not a pose map.
-      .replace(/(\bPOSE FIRST: )the two people — /, '$1all three people — ')
-      .replace(/(\bPOSE FIRST: all three people — )([^\n]*?)\.(?=\n|$)/, (line, lead3, moment) =>
-        third.busy ? `${lead3}${moment}${groupBusyLine(moment, nouns)}.` : line
+      .replace(/(\bPOSE FIRST: )the two people — /, `$1all ${count} people — `)
+      .replace(
+        /(\bPOSE FIRST: all (?:three|four) people — )([^\n]*?)\.(?=\n|$)/,
+        (line, lead3, moment) =>
+          third.busy ? `${lead3}${moment}${groupBusyLine(moment, nouns)}.` : line
       )
       .replace(/,? exactly as the pose map in Image \d shows/g, '') +
     body
       .replace(
         TWO_TOGETHER_RE,
-        `Three people together — exactly three, all fully clothed, all fully in frame, each a different person: the ${lead} from the first image, the ${partner} from the second image, and the ${noun} from the third image.`
+        `${count === 'four' ? 'Four' : 'Three'} people together — exactly ${count}, all fully clothed, all fully in frame, each a different person: ${everyone}.`
       )
-      .replace(/(\bMoment: [^.]*?)\bboth\b/, '$1all three')
-      // The third person's clothes in the same sentence as the other two's.
-      .replace(
-        /(\b(?:She|He) wears [^.]*?; (?:he|she) wears [^.]*?)\./,
-        `$1; the ${noun} from the third image wears ${thirdOutfit(noun)}, not the same clothes as the person from the first image.`
-      )
+      .replace(/(\bMoment: [^.]*?)\bboth\b/, `$1all ${count}`)
+      // The extra people's clothes in the same sentence as the other two's.
+      .replace(/(\b(?:She|He) wears [^.]*?; (?:he|she) wears [^.]*?)\./, `$1${extraClothes}`)
       .replace(/,? exactly as the pose map in Image \d shows/g, '')
       .replace(
         /\s*Match (?:their two bodies|the two bodies) (?:to|in) the third image \(pose map\)\./g,
         ''
       )
-      .replace(/(\bPlace: )/, `The ${noun} from the third image has that face${look}. $1`)
+      .replace(/(\bPlace: )/, `${faces}$1`)
   );
 }
