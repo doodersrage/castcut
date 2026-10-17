@@ -365,6 +365,26 @@ export function withTwoPersonFaces(
  * beats, same seeds (2026-10-17): mean brightness 75 → 84, the beats kept, the Cast's face
  * closer (median distance 0.46 → 0.31).
  */
+export const QWEN_IMAGE_21_LIE_BACK_LINE =
+  'POSE FIRST: she lies flat on her back — her whole body horizontal across the frame, head and shoulders down on the pillow, back flat on the mattress, not propped up, not sitting, not leaning against the headboard; seen from the side at mattress height.';
+
+/** One person, nude, the stance on her back (Day / Story adult recipes). */
+export function isLyingBackNudeSolo(prompt: string): boolean {
+  return (
+    isNudePrompt(prompt) &&
+    /\bShe lies (?:flat )?on her back\b/.test(prompt) &&
+    !/\b(?:TWO PEOPLE|two people|partner|the man from|second image)\b/i.test(prompt)
+  );
+}
+
+export function withLieBackLine(prompt: string): string {
+  if (prompt.includes(QWEN_IMAGE_21_LIE_BACK_LINE)) return prompt;
+  const lead = 'Keep facial likeness only: ';
+  return prompt.includes(lead)
+    ? prompt.replace(lead, `${lead}${QWEN_IMAGE_21_LIE_BACK_LINE} `)
+    : `${QWEN_IMAGE_21_LIE_BACK_LINE} ${prompt}`;
+}
+
 export const QWEN_IMAGE_21_DAYLIGHT_LINE =
   'LIGHT: bright, well-exposed natural light — her face, body and the place clearly lit, true colours, a real photograph exposed for the scene, not dim or murky.';
 
@@ -509,7 +529,14 @@ export function convertQwenEditWorkflowToImage21(
   const requestedWidth = Number(latentNode?.inputs.width) || options.fallbackSize?.width || 1024;
   const requestedHeight = Number(latentNode?.inputs.height) || options.fallbackSize?.height || 1024;
   // Every sampler uses the ~1.6 MP canvas for the requested aspect (see QWEN_IMAGE_21_CANVASES).
-  const canvas = qwenImage21Canvas(requestedWidth, requestedHeight);
+  // A one-person nude still lying on her back: 2.1 propped her up against the pillows (half
+  // sitting) whatever the stance said — Turbo, three on-the-back beats: 0/3 lying in every prompt
+  // and canvas tried; with QWEN_IMAGE_21_LIE_BACK_LINE on a landscape canvas, 6/6 flat on her
+  // back, no twin (2026-10-17).
+  const lyingBackNude = isLyingBackNudeSolo(String(encoder.inputs.prompt ?? ''));
+  const canvas = lyingBackNude
+    ? { width: 1472, height: 1104 }
+    : qwenImage21Canvas(requestedWidth, requestedHeight);
 
   let next = Math.max(0, ...Object.keys(workflow).map(id => Number(id) || 0)) + 1;
   const add = (node: WorkflowNode) => {
@@ -610,20 +637,22 @@ export function convertQwenEditWorkflowToImage21(
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
     vae: [vae, 0],
-    prompt: withPhotoRealismTail(
-      withTwoPersonFaces(
-        withoutDroppedReferences(
-          withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
-            namePartnerOutfit: profile.namePartnerOutfit,
-            dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
-          }),
-          dropped,
-          kept.map(entry => entry.from)
-        ),
-        {
-          partnerImage: partnerKept >= 0 ? partnerKept + 1 : null,
-          droppedPoseMap: dropped.length > 0,
-        }
+    prompt: (lyingBackNude ? withLieBackLine : (text: string) => text)(
+      withPhotoRealismTail(
+        withTwoPersonFaces(
+          withoutDroppedReferences(
+            withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+              namePartnerOutfit: profile.namePartnerOutfit,
+              dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
+            }),
+            dropped,
+            kept.map(entry => entry.from)
+          ),
+          {
+            partnerImage: partnerKept >= 0 ? partnerKept + 1 : null,
+            droppedPoseMap: dropped.length > 0,
+          }
+        )
       )
     ),
     negative_prompt: '',

@@ -23,6 +23,7 @@ import {
   withDistinctPartnerOutfit,
   withProfilePromptFixes,
   withTwoPersonFaces,
+  isLyingBackNudeSolo,
   withDaylightLine,
   withPhotoRealismTail,
 } from './qwen-image-21-renderer';
@@ -548,5 +549,32 @@ describe('Qwen-Image 2.1: look', () => {
     const w = convertQwenEditWorkflowToImage21(graph, { eightStep: true, eightStepTurbo: true }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
     assert.deepEqual(w['10']!.inputs.images, ['9', 0]);
     assert.ok(!Object.values(w).some(node => node.class_type === 'ImageBlur'));
+  });
+});
+
+describe('Qwen-Image 2.1: nude solo lying on her back', () => {
+  const graph = (prompt: string) => ({
+    '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt, image1: ['900', 0] } },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  });
+  const LYING = 'Keep facial likeness only: Explicit solo photo: One woman alone, masturbating. She lies on her back on the bed, head on the pillow. She is completely nude.';
+
+  it('gets the lie-flat line and a landscape canvas', () => {
+    assert.equal(isLyingBackNudeSolo(LYING), true);
+    const w = convertQwenEditWorkflowToImage21(graph(LYING), { eightStep: true, eightStepTurbo: true }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const latent = Object.values(w).find(n => n.class_type === 'EmptyLatentImage')!;
+    assert.deepEqual([latent.inputs.width, latent.inputs.height], [1472, 1104]);
+    const enc = Object.values(w).find(n => n.class_type === 'TextEncodeQwenImage21')!;
+    assert.match(String(enc.inputs.prompt), /POSE FIRST: she lies flat on her back/);
+  });
+
+  it('leaves seated, clothed and two-person stills alone', () => {
+    assert.equal(isLyingBackNudeSolo(LYING.replace('lies on her back', 'sits on the bed edge')), false);
+    assert.equal(isLyingBackNudeSolo('Day photo: One woman alone. She lies on her back on the beach towel.'), false);
+    assert.equal(isLyingBackNudeSolo(`${LYING} Her partner kneels beside her.`), false);
   });
 });
