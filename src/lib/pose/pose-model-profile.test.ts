@@ -65,6 +65,9 @@ describe('Qwen-Image 2.1 runtime', () => {
     assert.equal(eight.qwenRenderer, 'qwen-image-2.1');
     assert.equal(eight.qwenImage21EightStep, true);
     assert.equal(eight.qwenImage21FourStep, undefined);
+    const turbo = resolveRuntimeForQueue('qwen-image-2.1-edit-turbo-8', 'day', { inventory: null });
+    assert.equal(turbo.qwenRenderer, 'qwen-image-2.1');
+    assert.equal(turbo.qwenImage21EightStep, 'turbo');
     const rapid = resolveRuntimeForQueue('qwen-rapid-aio-edit-nsfw', 'fitting', { inventory: null });
     assert.equal(rapid.qwenRenderer, undefined);
   });

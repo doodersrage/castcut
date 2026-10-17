@@ -325,8 +325,8 @@ export type ComfyUiRuntimeConfig = {
   qwenRenderer?: 'rapid' | 'qwen-image-2.1';
   /** Qwen-Image 2.1 Fun-Acc: the T8 4-step sampler instead of the full euler pass. */
   qwenImage21FourStep?: boolean;
-  /** Qwen-Image 2.1 Pruna: the 8-step LoRA on its fixed sigmas. */
-  qwenImage21EightStep?: boolean;
+  /** Qwen-Image 2.1 8-step: Pruna's LoRA (true) or the official Turbo LoRA ('turbo'). */
+  qwenImage21EightStep?: boolean | 'turbo';
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
   videoRenderer?: 'ltx-2.5' | 'minimax-h3';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
@@ -1421,7 +1421,7 @@ export function injectPromptsWithFallbacks(
     /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
     qwenImage21FourStep?: boolean;
-    qwenImage21EightStep?: boolean;
+    qwenImage21EightStep?: boolean | 'turbo';
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
@@ -1889,7 +1889,8 @@ export function injectPromptsWithFallbacks(
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
       fourStep: options.qwenImage21FourStep === true,
-      eightStep: options.qwenImage21EightStep === true,
+      eightStep: Boolean(options.qwenImage21EightStep),
+      eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       qualityProfile: options.qualityProfile ?? null,
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
@@ -2135,8 +2136,8 @@ export function stripEmptyComfyUiRuntime(
   if (runtime.qwenImage21FourStep === true) {
     result.qwenImage21FourStep = true;
   }
-  if (runtime.qwenImage21EightStep === true) {
-    result.qwenImage21EightStep = true;
+  if (runtime.qwenImage21EightStep === true || runtime.qwenImage21EightStep === 'turbo') {
+    result.qwenImage21EightStep = runtime.qwenImage21EightStep;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;

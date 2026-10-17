@@ -40,6 +40,13 @@ export const ENGINE_HEALTH_ENGINES: readonly EngineHealthEngine[] = [
     aliases: ['qwen-image-edit-2511', 'qwen-image-edit-2511-lightning-4'],
   },
   {
+    id: 'qwen-21-turbo',
+    label: '2.1 Turbo',
+    model: 'qwen-image-2.1-edit-turbo-8',
+    kind: 'still',
+    aliases: [],
+  },
+  {
     id: 'qwen-21-pruna',
     label: '2.1 Pruna',
     model: 'qwen-image-2.1-edit-pruna-8',

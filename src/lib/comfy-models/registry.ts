@@ -379,6 +379,20 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
   },
   {
+    id: 'qwen-image-2.1-edit-turbo-8',
+    label: 'Qwen-Image 2.1 Turbo (8-step)',
+    category: 'qwen',
+    comfyNode: 'TextEncodeQwenImage21',
+    comfyClass: 'QwenImage21',
+    description:
+      "Qwen-Image 2.1 + the Qwen team's own Turbo 8-step LoRA (Comfy-Org extract) on its own schedule. Sharper than Pruna and clean on lying poses where Pruna melted or drew a twin, at the same ~20 s. Qwen Research License (not for commercial use by default). Clothed two-person stills render on Rapid AIO, two-person penetration stills on Rapid AIO NSFW.",
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'qwen_image_2.1_bf16.safetensors',
+    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
     id: 'qwen-image-2.1-edit-pruna-8',
     label: 'Qwen-Image 2.1 Pruna (8-step)',
     category: 'qwen',

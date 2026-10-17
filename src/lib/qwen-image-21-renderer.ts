@@ -53,6 +53,18 @@ export const QWEN_IMAGE_21_EIGHT_STEP_SIGMAS = [
   0,
 ];
 
+/**
+ * The Qwen team's own 8-step Turbo (Qwen/Qwen-Image-2.1-Turbo, 2026-10-09), as Comfy-Org's
+ * extracted LoRA on the 2.1 base, on the checkpoint's own sigmas (model_index.json
+ * sample_sigmas, then 0). Live A/B (2026-10-17, the same six Day graphs and seeds as Pruna): a
+ * beach-towel lying still clean 5/5 where Pruna melted or drew a twin 3/5; sharper on every pose,
+ * close to the full 30-step pass, ~20 s like Pruna. Qwen Research License.
+ */
+export const QWEN_IMAGE_21_TURBO_LORA = 'qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors';
+export const QWEN_IMAGE_21_TURBO_SIGMAS = [
+  1, 0.978453, 0.95418, 0.926626, 0.89508, 0.845148, 0.704534, 0.414568, 0,
+];
+
 export function normalizeQwenRenderer(value: unknown): QwenRenderer {
   return value === 'qwen-image-2.1' ? 'qwen-image-2.1' : 'rapid';
 }
@@ -61,6 +73,7 @@ export function normalizeQwenRenderer(value: unknown): QwenRenderer {
 export const QWEN_IMAGE_21_MODEL = 'qwen-image-2.1-edit';
 export const QWEN_IMAGE_21_LIGHTNING_MODEL = 'qwen-image-2.1-edit-lightning-4';
 export const QWEN_IMAGE_21_PRUNA_8_MODEL = 'qwen-image-2.1-edit-pruna-8';
+export const QWEN_IMAGE_21_TURBO_8_MODEL = 'qwen-image-2.1-edit-turbo-8';
 
 export function isQwenImage21Model(model: string | null | undefined): boolean {
   return String(model ?? '')
@@ -77,15 +90,20 @@ export function isQwenImage21LightningModel(model: string | null | undefined): b
   const id = String(model ?? '')
     .trim()
     .toLowerCase();
-  return id.startsWith('qwen-image-2.1') && (id.includes('lightning-') || id.includes('pruna-'));
+  return (
+    id.startsWith('qwen-image-2.1') &&
+    (id.includes('lightning-') || id.includes('pruna-') || id.includes('turbo-'))
+  );
 }
 
 /** Which fast sampler a 2.1 engine renders with; null = the full euler pass. */
 export function qwenImage21FastSampler(
   model: string | null | undefined
-): 'fun-acc-4' | 'pruna-8' | null {
+): 'fun-acc-4' | 'pruna-8' | 'turbo-8' | null {
   if (!isQwenImage21LightningModel(model)) return null;
-  return /pruna-8$/i.test(String(model).trim()) ? 'pruna-8' : 'fun-acc-4';
+  const id = String(model).trim();
+  if (/turbo-8$/i.test(id)) return 'turbo-8';
+  return /pruna-8$/i.test(id) ? 'pruna-8' : 'fun-acc-4';
 }
 
 /**
@@ -435,6 +453,8 @@ export function convertQwenEditWorkflowToImage21(
     fourStep?: boolean;
     /** Pruna 8-step LoRA + its fixed sigmas (core nodes). Ignored when `fourStep` is on. */
     eightStep?: boolean;
+    /** With `eightStep`: the Turbo LoRA and sigmas instead of Pruna's (no full-pass fallback). */
+    eightStepTurbo?: boolean;
     /** Queue quality: Best renders a solo lying still on the full pass (see above). */
     qualityProfile?: string | null;
   } = {}
@@ -476,17 +496,25 @@ export function convertQwenEditWorkflowToImage21(
   const eightStep =
     options.eightStep === true &&
     options.fourStep !== true &&
-    !qwenImage21FullStepsForStill({
-      qualityProfile: options.qualityProfile,
-      prompt: String(encoder.inputs.prompt ?? ''),
-      solo: !referenceFiles.some(
-        name => isMultiPersonPoseGuide(name) || isDayPartnerFaceFilename(name)
-      ),
-    });
+    // Turbo held lying stills at 8 steps (5/5); only Pruna falls back to the full pass.
+    (options.eightStepTurbo === true ||
+      !qwenImage21FullStepsForStill({
+        qualityProfile: options.qualityProfile,
+        prompt: String(encoder.inputs.prompt ?? ''),
+        solo: !referenceFiles.some(
+          name => isMultiPersonPoseGuide(name) || isDayPartnerFaceFilename(name)
+        ),
+      }));
   const lora = eightStep
     ? add({
         class_type: 'LoraLoaderModelOnly',
-        inputs: { model: [unet, 0], lora_name: QWEN_IMAGE_21_EIGHT_STEP_LORA, strength_model: 1 },
+        inputs: {
+          model: [unet, 0],
+          lora_name: options.eightStepTurbo
+            ? QWEN_IMAGE_21_TURBO_LORA
+            : QWEN_IMAGE_21_EIGHT_STEP_LORA,
+          strength_model: 1,
+        },
       })
     : unet;
   const cache = add({
@@ -607,7 +635,12 @@ export function convertQwenEditWorkflowToImage21(
     const sigmas = add({
       class_type: 'ManualSigmas',
       inputs: {
-        sigmas: QWEN_IMAGE_21_EIGHT_STEP_SIGMAS.map(value => value.toFixed(6)).join(', '),
+        sigmas: (options.eightStepTurbo
+          ? QWEN_IMAGE_21_TURBO_SIGMAS
+          : QWEN_IMAGE_21_EIGHT_STEP_SIGMAS
+        )
+          .map(value => value.toFixed(6))
+          .join(', '),
       },
     });
     workflow[samplerId] = {

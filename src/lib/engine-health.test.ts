@@ -47,7 +47,7 @@ const known = new Set([
 describe("engine-health", () => {
   it("lists the pickable engines once each", () => {
     const labels = ENGINE_HEALTH_ENGINES.map(engine => engine.label);
-    assert.deepEqual(labels, ["Rapid", "Edit 2511", "2.1 Pruna", "Klein", "WAN", "LTX-2.5", "MiniMax-H3"]);
+    assert.deepEqual(labels, ["Rapid", "Edit 2511", "2.1 Turbo", "2.1 Pruna", "Klein", "WAN", "LTX-2.5", "MiniMax-H3"]);
     assert.equal(new Set(ENGINE_HEALTH_ENGINES.map(engine => engine.model)).size, labels.length);
     assert.equal(engineForModel("qwen-image-2.1-edit-pruna-8")?.label, "2.1 Pruna");
     assert.equal(engineForModel("qwen-rapid-aio-edit")?.label, "Rapid");

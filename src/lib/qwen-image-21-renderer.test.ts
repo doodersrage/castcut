@@ -12,6 +12,7 @@ import {
   QWEN_IMAGE_21_FILES,
   isQwenImage21LightningModel,
   QWEN_IMAGE_21_EIGHT_STEP_LORA,
+  QWEN_IMAGE_21_TURBO_LORA,
   qwenImage21FastSampler,
   qwenImage21FullStepsForStill,
   qwenImage21Canvas,
@@ -373,6 +374,29 @@ describe('Qwen-Image 2.1: 8-step sampler (Pruna LoRA)', () => {
     assert.equal(byClass('RandomNoise')[1].inputs.noise_seed, 7);
     const latent = byClass('EmptyLatentImage')[1];
     assert.deepEqual([latent.inputs.width, latent.inputs.height], [1104, 1472]);
+  });
+
+  it('Turbo: its own LoRA and the checkpoint sigmas; lying stills stay at 8 steps', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'She is lying on her side on a beach towel.', image1: ['900', 0] } },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const workflow = convertQwenEditWorkflowToImage21(graph, {
+      eightStep: true,
+      eightStepTurbo: true,
+      qualityProfile: 'max',
+    }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const byClass = (type: string) => Object.entries(workflow).find(([, node]) => node.class_type === type)!;
+    assert.equal(workflow['8']!.class_type, 'SamplerCustomAdvanced');
+    assert.equal(byClass('LoraLoaderModelOnly')[1].inputs.lora_name, QWEN_IMAGE_21_TURBO_LORA);
+    const sigmas = String(byClass('ManualSigmas')[1].inputs.sigmas).split(',').map(Number);
+    assert.equal(sigmas.length, 9);
+    assert.equal(sigmas[7], 0.414568);
+    assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit-turbo-8'), 'turbo-8');
   });
 
   it('the 4-step node wins if both are asked for; the full pass has no LoRA', () => {

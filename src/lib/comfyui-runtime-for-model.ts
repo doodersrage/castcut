@@ -518,6 +518,9 @@ export function resolveRuntimeForQueue(
           ...(qwenImage21FastSampler(model) === 'pruna-8'
             ? { qwenImage21EightStep: true as const }
             : {}),
+          ...(qwenImage21FastSampler(model) === 'turbo-8'
+            ? { qwenImage21EightStep: 'turbo' as const }
+            : {}),
         }
       : {}),
     // The picked clip engine renders on LTX-2.5; the graph above is its WAN base.

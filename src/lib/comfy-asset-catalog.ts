@@ -67,6 +67,7 @@ const QWEN_EDIT_MODELS = [
   'qwen-image-2.1-edit',
   'qwen-image-2.1-edit-lightning-4',
   'qwen-image-2.1-edit-pruna-8',
+  'qwen-image-2.1-edit-turbo-8',
   'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',
@@ -217,6 +218,15 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/PrunaAI/Pruna-Qwen-Image-2.1/resolve/main/p_qwen_image_2.1_8step_v0.1.safetensors',
     bytes: 335606104,
     modelIds: ['qwen-image-2.1-edit-pruna-8'],
+  },
+  {
+    id: 'qwen-image-2.1-turbo-lora',
+    label: 'Qwen-Image 2.1 Turbo 8-step LoRA (Qwen Research License)',
+    kind: 'lora',
+    filename: 'qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/loras/qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors',
+    bytes: 913314512,
+    modelIds: ['qwen-image-2.1-edit-turbo-8'],
   },
   {
     id: 'qwen-image-vae',

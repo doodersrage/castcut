@@ -49,6 +49,13 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-pruna-8step',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  'qwen-image-2.1-edit-turbo-8': [
+    'qwen-image-2.1-bf16',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+    'qwen-image-2.1-turbo-lora',
+    'qwen-rapid-aio-nsfw-checkpoint',
+  ],
 };
 
 /** Custom-node packs, named by a node type ComfyUI Manager can resolve to its pack. */

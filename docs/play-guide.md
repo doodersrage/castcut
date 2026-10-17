@@ -102,6 +102,7 @@ Four slots (Morning → Night) by default, with wardrobe, setting, and beat per 
   | --- | --- | --- | --- | --- | --- |
   | **Qwen-Image-Edit-2511 Lightning (8-step)** | about 55 s | 40 of 41 | 9 of 9 | 28 of 30 | The liveliest stills — action, props and angles. On two-person stills the lead's outfit is close, not exact. Adult nude stills are handed to Rapid AIO NSFW. Takes the footwear picture |
   | **Qwen Rapid AIO (Edit)** | about 20 s | 40–41 of 41 | 9 of 9 | 26–27 of 29 | Fastest; keeps the exact outfit on two-person stills. Likeness is looser on action shots — turn on **Face finish** when it matters |
+  | **Qwen-Image 2.1 — Turbo (8-step)** | about 20 s | not swept yet | handed to Rapid AIO | not swept yet | The Qwen team's own 8-step: sharper than Pruna and clean lying down (5 of 5 where Pruna melted or drew a twin on 3 of 5). Qwen Research License — not for commercial use by default |
   | **Qwen-Image 2.1 — Pruna (8-step)** | about 20 s | 40 of 41 | handed to Rapid AIO | 26 of 29 | The closest likeness of the three, and it follows a pose you drew in Outfit exactly. Everyday stills are front-facing and dimly lit; lying on one side can ghost |
 
   Counts are stills that showed their beat, judged by eye.
