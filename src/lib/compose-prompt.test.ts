@@ -5,6 +5,7 @@ import {
   applyInputImageFilenamesToParams,
   buildComposeInstruction,
   COMPOSE_DEFAULT_MODEL,
+  composeDefaultModel,
   Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING,
   multiInputImageCustomTokens,
   normalizeInputImageFilenames,
@@ -462,5 +463,16 @@ describe("compose instruction builder", () => {
     assert.match(built, /isolated on a blank white backdrop/i);
     assert.match(built, /Edit Image 1:/i);
     assert.match(built, /warmer golden-hour light/);
+  });
+});
+
+describe("composeDefaultModel", () => {
+  it("prefers Qwen-Image 2.1 Turbo when installed, else Edit 2511", () => {
+    assert.equal(composeDefaultModel(() => true), "qwen-image-2.1-edit-turbo-8");
+    assert.equal(
+      composeDefaultModel(id => id === "qwen-image-edit-2511-lightning-8"),
+      "qwen-image-edit-2511-lightning-8",
+    );
+    assert.equal(composeDefaultModel(null), "qwen-image-edit-2511-lightning-8");
   });
 });

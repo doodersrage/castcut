@@ -20,6 +20,7 @@ import { getReformatTargetModel } from '@/lib/reformat-target';
 import {
   buildComposeInstruction,
   COMPOSE_DEFAULT_MODEL,
+  composeDefaultModel,
   COMPOSE_MODIFY_TEMPLATE_GROUPS,
   COMPOSE_TRANSFER_TEMPLATE_GROUPS,
   isAggressiveComposeInstruction,
@@ -66,6 +67,18 @@ import {
   normalizeComposeTransferRecipe,
   type ComposeTransferRecipe,
 } from '@/lib/compose-transfer-scan-shared';
+import { installedComfyModels } from '@/lib/model-picker';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
+/** Which engines ComfyUI has (from the cached model list), or null when it isn't known yet. */
+function composeInstalled(
+  checkpointMap: Parameters<typeof installedComfyModels>[2]
+): ((modelId: string) => boolean) | null {
+  const inventory = readCachedComfyObjectInfoModels();
+  if (!inventory) return null;
+  const installed = installedComfyModels(COMFY_IMAGE_MODELS, inventory, checkpointMap);
+  return installed ? (modelId: string) => installed.has(modelId) : null;
+}
 
 export function useComposeToolOrchestrationCore() {
   const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
@@ -203,9 +216,9 @@ export function useComposeToolOrchestrationCore() {
       return;
     }
     if (!isComposeCapableModel(shared.model)) {
-      updateShared({ model: COMPOSE_DEFAULT_MODEL });
+      updateShared({ model: composeDefaultModel(composeInstalled(shared.modelCheckpointMap)) });
     }
-  }, [mounted, shared.model, updateShared]);
+  }, [mounted, shared.model, shared.modelCheckpointMap, updateShared]);
 
   const filledCount = useMemo(
     () => slots.filter(slot => slot.file || slot.previewUrl).length,
@@ -468,7 +481,7 @@ export function useComposeToolOrchestrationCore() {
         });
       } else {
         updateShared({
-          model: COMPOSE_DEFAULT_MODEL,
+          model: composeDefaultModel(composeInstalled(shared.modelCheckpointMap)),
           ...sharedPatch,
         });
       }

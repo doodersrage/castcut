@@ -864,12 +864,17 @@ export function setFittingCompareTryOnBackImage(
 }
 
 /**
- * Outfit's default engine: Edit 2511 Lightning 8. Klein 9B Distilled led this list for a day
+ * Outfit's default engine: Qwen-Image 2.1 Turbo, else Edit 2511 Lightning 8. Klein 9B Distilled led this list for a day
  * (2026-10-08: median 16 s vs 55 s, the picked shoes 12 of 12 vs 2 of 12) but it loses the
  * clothing's detail (user report the same day); it stays a pick in the Engine chip. A player
  * Outfit switched to Klein goes back once (lastApplied was Klein).
  */
-export const FITTING_DEFAULT_ENGINES = ['qwen-image-edit-2511-lightning-8'] as const;
+export const FITTING_DEFAULT_ENGINES = [
+  // Qwen-Image 2.1 Turbo first (2026-10-17, the same try-on graph and four seeds: the dress and
+  // its lacing right 4/4 like Edit 2511, the pose held; Turbo is the Day default too).
+  'qwen-image-2.1-edit-turbo-8',
+  'qwen-image-edit-2511-lightning-8',
+] as const;
 
 /**
  * The engine Outfit should switch to, or null: the best installed of FITTING_DEFAULT_ENGINES,

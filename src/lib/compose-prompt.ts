@@ -78,6 +78,20 @@ export function isAggressiveComposeInstruction(instruction: string): boolean {
 
 export const COMPOSE_DEFAULT_MODEL = 'qwen-image-edit-2511-lightning-8' as const;
 
+/**
+ * Compose's engine when the current pick can't compose: Qwen-Image 2.1 Turbo when installed
+ * (2026-10-17, a four-picture composite — subject, dress packshot, room photo, mood: the face,
+ * the exact dress and the exact room 2/2; its encoder reads every reference, 2511's only three),
+ * else Edit 2511 Lightning 8. Unknown install state: Edit 2511.
+ */
+export const COMPOSE_PREFERRED_MODEL = 'qwen-image-2.1-edit-turbo-8' as const;
+
+export function composeDefaultModel(
+  installed: ((modelId: string) => boolean) | null
+): typeof COMPOSE_PREFERRED_MODEL | typeof COMPOSE_DEFAULT_MODEL {
+  return installed?.(COMPOSE_PREFERRED_MODEL) ? COMPOSE_PREFERRED_MODEL : COMPOSE_DEFAULT_MODEL;
+}
+
 /** Z-Image has no vision-encode for extras — Image 2–4 stay in the prompt. */
 export const Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING =
   'Z-Image sends Image 1 to the sampler. Image 2–4 stay in the prompt.';

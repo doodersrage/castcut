@@ -665,20 +665,24 @@ describe('Outfit on Klein 9B Distilled', () => {
   });
 });
 
-describe('Outfit default engine: Edit 2511', () => {
-  it('switches to 2511 once (Klein users go back), waits when unknown, keeps a later own pick', async () => {
+describe('Outfit default engine: Qwen-Image 2.1 Turbo, else Edit 2511', () => {
+  it('switches to the best installed default once, waits when unknown, keeps a later own pick', async () => {
     const { fittingDefaultEngineSwitch } = await import('./fitting-room');
     const KLEIN = 'flux-2-klein-9b-distilled';
     const E2511 = 'qwen-image-edit-2511-lightning-8';
+    const TURBO = 'qwen-image-2.1-edit-turbo-8';
     const all = () => true;
-    // Klein was the default for a day: an Outfit switched to it goes back to 2511 once.
-    assert.equal(fittingDefaultEngineSwitch({ currentModel: KLEIN, installed: all, lastApplied: KLEIN }), E2511);
-    assert.equal(fittingDefaultEngineSwitch({ currentModel: 'qwen-image-2.1', installed: all }), E2511);
-    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all }), null);
+    const no21 = (id: string) => id !== TURBO;
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: all, lastApplied: E2511 }), TURBO);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: TURBO, installed: all }), null);
+    // Without Turbo: Edit 2511, as before (Klein users go back once).
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: KLEIN, installed: no21, lastApplied: KLEIN }), E2511);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: 'qwen-image-2.1', installed: no21 }), E2511);
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: E2511, installed: no21 }), null);
     assert.equal(fittingDefaultEngineSwitch({ currentModel: 'x', installed: null }), null);
     assert.equal(fittingDefaultEngineSwitch({ currentModel: 'x', installed: id => id === KLEIN }), null);
-    // Switched to 2511, then the player picked Klein: stays.
-    assert.equal(fittingDefaultEngineSwitch({ currentModel: KLEIN, installed: all, lastApplied: E2511 }), null);
+    // Switched to Turbo, then the player picked Klein: stays.
+    assert.equal(fittingDefaultEngineSwitch({ currentModel: KLEIN, installed: all, lastApplied: TURBO }), null);
   });
 });
 
