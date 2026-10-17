@@ -393,12 +393,12 @@ describe('Qwen-Image 2.1: 8-step sampler (Pruna LoRA)', () => {
   });
 });
 
-describe('Qwen-Image 2.1: Best lying solo stills take the full pass', () => {
+describe('Qwen-Image 2.1: Good / Best lying solo stills take the full pass', () => {
   const lying = 'Day photo: One woman alone. She lies on her side on the sofa, whole body horizontal along it — not sitting.';
 
-  it('only Best, only one person, only lying', () => {
+  it('only Good or Best, only one person, only lying', () => {
     assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: lying, solo: true }), true);
-    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'final', prompt: lying, solo: true }), false);
+    assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'final', prompt: lying, solo: true }), true);
     assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'draft', prompt: lying, solo: true }), false);
     assert.equal(qwenImage21FullStepsForStill({ qualityProfile: null, prompt: lying, solo: true }), false);
     assert.equal(qwenImage21FullStepsForStill({ qualityProfile: 'max', prompt: lying, solo: false }), false);
@@ -444,7 +444,12 @@ describe('Qwen-Image 2.1: Best lying solo stills take the full pass', () => {
       eightStep: true,
       qualityProfile: 'final',
     }).workflow;
-    assert.equal(sampler(good).class_type, 'SamplerCustomAdvanced');
+    assert.equal(sampler(good).class_type, 'KSampler');
+    const fast = convertQwenEditWorkflowToImage21(graph(lying, 'day-dress-plate-1.png'), {
+      eightStep: true,
+      qualityProfile: 'draft',
+    }).workflow;
+    assert.equal(sampler(fast).class_type, 'SamplerCustomAdvanced');
   });
 
   it('a partner face keeps the 8-step pass', () => {

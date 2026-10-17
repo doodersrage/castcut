@@ -89,11 +89,12 @@ export function qwenImage21FastSampler(
 }
 
 /**
- * A one-person lying / reclining still on Best quality renders with the full 30-step pass instead
- * of the Pruna 8-step LoRA. Pruna sometimes melted a reclining body or drew a twin of her on
- * the bed / beach / sofa (live, Day Everyday, 2026-10-03); the same graphs at the full 30 steps
- * were clean 4 of 4, at 47–78 s against 17–40 s — worth it when the player asked for Best.
- * Good and Fast keep the 8-step speed. Two-person stills are left alone.
+ * A one-person lying / reclining still on Good or Best quality renders with the full 30-step
+ * pass instead of the Pruna 8-step LoRA. Pruna sometimes melted a reclining body or drew a twin
+ * of her on the bed / beach / sofa (live, Day Everyday, 2026-10-03); the same graphs at the full
+ * 30 steps were clean 4 of 4, at 47–78 s against 17–40 s. On Good too since 2026-10-17: a beach
+ * towel still melted 2/2 seeds at 8 steps, clean at 30 (standing, lunge, sofa and bed poses were
+ * fine at 8). Fast keeps the 8-step speed. Two-person stills are left alone.
  */
 export function qwenImage21FullStepsForStill(input: {
   qualityProfile?: string | null;
@@ -102,7 +103,7 @@ export function qwenImage21FullStepsForStill(input: {
   solo: boolean;
 }): boolean {
   return (
-    input.qualityProfile === 'max' &&
+    (input.qualityProfile === 'max' || input.qualityProfile === 'final') &&
     input.solo &&
     !/\bTWO PEOPLE\b/.test(input.prompt) &&
     beatLiesDown(input.prompt)
