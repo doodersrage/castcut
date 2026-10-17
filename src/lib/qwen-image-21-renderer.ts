@@ -388,7 +388,22 @@ export function withLieBackLine(prompt: string): string {
 export const QWEN_IMAGE_21_DAYLIGHT_LINE =
   'LIGHT: bright, well-exposed natural light — her face, body and the place clearly lit, true colours, a real photograph exposed for the scene, not dim or murky.';
 
+/**
+ * Night: the Day line's "lit only by the place's own lights … deep shadows" came out murky on 2.1
+ * (Turbo, six night beats: mean brightness 32.5 vs Edit 2511's 48); exposure words alone made it
+ * darker (29). Bright, coloured pools of the place's own light: 37, neon in the scene, the face
+ * still close (median distance 0.26; 2511 0.43) — 2026-10-17.
+ */
+export const QWEN_IMAGE_21_NIGHT_LIGHT_LINE =
+  "LIGHT: night — lit by the place's own lights (street lamps, neon signs, shop windows, headlights, lamps): bright pools of warm and coloured light falling on her, vivid neon and lamp colour in the scene, her face, body and outfit clearly lit by them. She is lit like the place around her, not by a studio light.";
+
 export function withDaylightLine(prompt: string): string {
+  if (/\bLIGHT: night\b/.test(prompt)) {
+    return prompt.replace(
+      /LIGHT: night\b[^\n]*?She is lit like the place around her, not by a studio light\./,
+      QWEN_IMAGE_21_NIGHT_LIGHT_LINE
+    );
+  }
   if (/\bLIGHT:/.test(prompt) || !/\bDay photo:/.test(prompt)) return prompt;
   return prompt.replace(/(\bOUTFIT \(mandatory\))/, `${QWEN_IMAGE_21_DAYLIGHT_LINE}\n$1`);
 }

@@ -530,6 +530,14 @@ describe('Qwen-Image 2.1: look', () => {
     assert.equal(withDaylightLine('OUTFIT (mandatory): a dress.'), 'OUTFIT (mandatory): a dress.');
   });
 
+  it('swaps the murky night line for bright pools of the place\'s light', () => {
+    const night =
+      'SCENE: a street.\nLIGHT: night — she is lit only by the place’s own lights (street lamps): pools of warm and cool light on her skin and clothes, deep shadows. She is lit like the place around her, not by a studio light.\nOUTFIT (mandatory): a dress.\nDay photo: x.';
+    const out = withDaylightLine(night);
+    assert.match(out, /bright pools of warm and coloured light falling on her/);
+    assert.doesNotMatch(out, /deep shadows/);
+  });
+
   it('adds the photo-realism tail once', () => {
     const out = withPhotoRealismTail('Day photo: x. Photorealistic photograph, natural skin. More.');
     assert.match(out, /natural skin, natural photograph, lifelike skin pores, camera realism\. More/);
