@@ -7,11 +7,7 @@ import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
 import type { DaySlot } from '@/lib/day-planner';
 import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
-import {
-  useDayCutReadiness,
-  useDayPlannerBatchPlan,
-  useDayShotIdentity,
-} from '@/hooks/useDayPlannerShotIdentity';
+import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { useRenderBackend } from '@/lib/render-backend-status';
@@ -19,7 +15,6 @@ import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
-import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
@@ -133,7 +128,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setActiveSlotId,
     assemblingFilm,
     filmCutOptions,
-    setFilmCutOptions,
     filmStatus,
     season,
     seasonStitching,
@@ -255,10 +249,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     pickEndPoseStill,
     clearEndPose,
     reposeEndPose,
-    cutDayFilm,
     addCloseUps,
     cutProblems,
-    cutChecking,
     setAsideDay,
     canUndoPlan,
     canRedoPlan,
@@ -395,7 +387,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
   });
   // Animate opens a sheet: the engine, and the direction to edit (DayAnimateSheet).
   const [animateTarget, setAnimateTarget] = useState<DaySlot | null>(null);
-  const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? toMobileStudioHref(`/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`)
     : toMobileStudioHref('/gallery');
@@ -777,27 +768,15 @@ export default function MobileDayToolSections(vm: ViewModel) {
             </Button>
           ) : null}
           <div className="mt-3 grid gap-2">
-            {/* Same cut options as desk Day (vertical, crossfade, titles, length, music). */}
-            <FilmCutOptionsDisclosure
-              scoreBrief={{ mood: dayMood }}
-              value={filmCutOptions}
-              onChange={setFilmCutOptions}
-              disabled={assemblingFilm}
-              testIdPrefix="mobile-day-cut"
-              shots={watchPlaylist as KeyedShot[]}
-              identityFor={shotIdentity}
-              previewTitleCard={character?.name ? { title: character.name } : null}
-            />
-            <PrimaryButton
-              disabled={busy || assemblingFilm || cutChecking}
-              loading={assemblingFilm || cutChecking}
-              loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
+            {/* Cut is the film's own step: options, preview and the cut live there. */}
+            <ButtonLink
+              href="/m/cut?from=day"
+              variant="primary"
               className="w-full justify-center"
               data-testid="day-cut-coach-cut"
-              onClick={() => void cutDayFilm()}
             >
-              Cut film
-            </PrimaryButton>
+              Open Cut →
+            </ButtonLink>
             {completedShotCount < slotTotal ? (
               <Button
                 variant="ghost"
@@ -1124,16 +1103,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
         {!firstCutCelebrate ? (
           <div className="grid gap-2">
             {!showCutCoach ? (
-              <PrimaryButton
-                disabled={busy || assemblingFilm || cutChecking || completedShotCount === 0}
-                loading={assemblingFilm || cutChecking}
-                loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
-                onClick={() => void cutDayFilm()}
+              <ButtonLink
+                href="/m/cut?from=day"
+                variant="primary"
                 className="w-full justify-center"
                 data-testid="mobile-day-cut"
               >
-                Cut film
-              </PrimaryButton>
+                Cut film →
+              </ButtonLink>
             ) : null}
             {character && completedShotCount > 0 ? (
               <Link

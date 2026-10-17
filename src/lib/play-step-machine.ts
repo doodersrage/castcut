@@ -312,7 +312,11 @@ export function resolvePlayStepHref(
   const id = characterId?.trim() || pack?.characterId?.trim() || '';
   const staged = stagePack(id, pack);
 
-  if (stepId === 'queue' || stepId === 'animate' || stepId === 'cut' || stepId === 'save') {
+  // Cut is its own page (cut-room.ts); its Cast comes from the Day / Story it cuts.
+  if (stepId === 'cut') {
+    return id ? `/cut?character=${encodeURIComponent(id)}` : '/cut';
+  }
+  if (stepId === 'queue' || stepId === 'animate' || stepId === 'save') {
     if (staged) {
       return lookPackDayHref(staged);
     }

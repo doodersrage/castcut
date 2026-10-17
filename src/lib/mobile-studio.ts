@@ -2,7 +2,7 @@ export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
 export type MobileStudioTabId =
-  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'story';
+  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'story' | 'cut';
 
 export type MobileStudioTab = {
   id: MobileStudioTabId;
@@ -16,6 +16,7 @@ export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Plan the Day' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Try clothes on' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'What happens next' },
+  { id: 'cut', href: '/m/cut', label: 'Cut', hint: 'Put the film together' },
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Everything you’ve made' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'What’s rendering' },
@@ -31,6 +32,7 @@ export const MOBILE_STUDIO_PRIMARY_TAB_IDS: MobileStudioTabId[] = [
   'day',
   'fitting',
   'story',
+  'cut',
 ];
 
 export type CharacterPlate = {
@@ -65,6 +67,9 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
   }
   if (path === '/m/day' || path.startsWith('/m/day/')) {
     return 'day';
+  }
+  if (path === '/m/cut' || path.startsWith('/m/cut/')) {
+    return 'cut';
   }
   if (
     path === '/m/story' ||
@@ -106,6 +111,7 @@ export function toMobileStudioHref(href: string): string {
     '/fitting': '/m/fitting',
     '/day': '/m/day',
     '/story': '/m/story',
+    '/cut': '/m/cut',
     '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
     '/queue': '/m/queue',

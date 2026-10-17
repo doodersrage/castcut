@@ -47,6 +47,8 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/day', label: 'Day', primary: true },
   { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
+  // The film's own step: put the shots together (cut-room.ts).
+  { href: '/cut', label: 'Cut', primary: true },
   // Optional and rarely needed now that Day plans the scenes: in More, not the dock.
   { href: '/characters', label: 'Cast', desk: true },
   { href: '/gallery', label: 'Gallery', desk: true },

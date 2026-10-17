@@ -204,7 +204,7 @@ export default function PlayFunnelStrip({ compact = false }: PlayFunnelStripProp
             data-testid="play-stall-cta"
           >
             {stall.stepId === 'cut'
-              ? 'Cut film in Day'
+              ? 'Open Cut'
               : stall.stepId === 'character'
                 ? 'Open Cast'
                 : `Continue ${stall.stepLabel}`}

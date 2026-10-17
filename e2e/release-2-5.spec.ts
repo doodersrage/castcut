@@ -199,12 +199,11 @@ test('Cut options: Score this film sets an original track as the music', async (
     characters: cast,
     tools: { day: finishedDay() },
   });
-  await gotoStable(page, '/day');
+  // Cut's options sit on its own page, always open.
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const disclosure = page.locator('[data-testid$="-options-disclosure"] summary').first();
-  await expect(disclosure).toBeVisible({ timeout: 30_000 });
-  await disclosure.click();
-  await page.locator('[data-testid$="-score"]').first().click();
+  await expect(page.getByTestId('cut-score')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('cut-score').click();
   await expect(page.locator('[data-testid$="-audio-bed-status"]').first()).toContainText(
     'Score: acoustic indie pop'
   );

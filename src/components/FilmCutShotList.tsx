@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type DragEvent } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
 import {
   clipTrimWindow,
   MIN_CLIP_TRIM_SEC,
   moveCutShot,
+  moveCutShotBefore,
   type CutShotEdit,
   type CutShotEdits,
   type KeyedShot,
@@ -28,6 +29,7 @@ export default function FilmCutShotList({
   testIdPrefix,
   onChange,
   identityFor,
+  tagFor,
 }: {
   shots: KeyedShot[];
   edits?: CutShotEdits;
@@ -38,7 +40,14 @@ export default function FilmCutShotList({
   onChange: (next: CutShotEdits) => void;
   /** Face match mark per shot (identity-mark.ts), when measured. */
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
+  /** A small tag per shot — where it came from (Cut: "Day" / "Story") when the film mixes them. */
+  tagFor?: (shot: KeyedShot) => string | null;
 }) {
+  // Drag to reorder: the grip arms the row (dragging from a text field would grab the row
+  // instead of selecting text), `over` marks where it lands.
+  const [armed, setArmed] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
   const known = new Set(shots.map(shot => shot.key));
   const rank = new Map((edits?.order ?? []).map((key, index) => [key, index]));
   const ordered = [...shots].sort((a, b) => {
@@ -65,7 +74,7 @@ export default function FilmCutShotList({
   return (
     <div className="space-y-1.5" data-testid={`${testIdPrefix}-shot-list`}>
       <p className="type-caption text-[var(--text-muted)]">
-        Shots — order, leave out{captions ? ', caption' : ''}
+        Shots — drag to reorder, leave out{captions ? ', caption' : ''}
         {holdsLocked ? '' : ', hold'}, frame stills
         {shots.some(shot => shot.kind === 'clip') ? ', trim clips' : ''}, pick the poster
       </p>
@@ -78,150 +87,202 @@ export default function FilmCutShotList({
           return (
             <li
               key={shot.key}
-              className={`flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1 text-xs ${
-                included ? '' : 'opacity-60'
-              }`}
+              draggable={!disabled && armed === shot.key}
+              onDragStart={(event: DragEvent<HTMLLIElement>) => {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', shot.key);
+                setDragging(shot.key);
+              }}
+              onDragEnd={() => {
+                setDragging(null);
+                setOver(null);
+                setArmed(null);
+              }}
+              onDragOver={event => {
+                if (!dragging || dragging === shot.key) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                setOver(shot.key);
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                const moved = dragging ?? event.dataTransfer.getData('text/plain');
+                setDragging(null);
+                setOver(null);
+                setArmed(null);
+                if (!moved || moved === shot.key) return;
+                // Dropped on a later row: land after it; on an earlier one: before it.
+                const from = keys.indexOf(moved);
+                const before = from < index ? (keys[index + 1] ?? null) : shot.key;
+                onChange({ ...edits, order: moveCutShotBefore(keys, moved, before) });
+              }}
+              className={`flex items-start gap-2 rounded-[var(--radius-md)] border bg-[var(--bg-elevated)] p-1.5 text-xs ${
+                over === shot.key
+                  ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-border)]'
+                  : 'border-[var(--border-subtle)]'
+              } ${included ? '' : 'opacity-60'} ${dragging === shot.key ? 'opacity-40' : ''}`}
               data-testid={`${testIdPrefix}-shot-${shot.key}`}
             >
-              <input
-                type="checkbox"
-                checked={included}
-                disabled={disabled}
-                aria-label={`Include ${shot.title}`}
-                data-testid={`${testIdPrefix}-shot-include-${shot.key}`}
-                onChange={event => patchShot(shot.key, { include: event.target.checked })}
-              />
-              <span className="w-5 text-[var(--text-muted)]">{index + 1}.</span>
-              <span className="min-w-[5rem] font-medium text-[var(--text-primary)]">
-                {shot.title}
-                <span className="ml-1 text-[var(--text-muted)]">
-                  {shot.kind === 'clip' ? '· clip' : '· still'}
-                </span>
-              </span>
-              {identity ? (
-                <IdentityMarkChip
-                  mark={identity}
-                  compact={identity.tone === 'ok'}
-                  testId={`${testIdPrefix}-shot-identity-${shot.key}`}
-                />
-              ) : null}
-              {captions ? (
-                <input
-                  type="text"
-                  maxLength={60}
-                  disabled={disabled || !included}
-                  aria-label={`Caption for ${shot.title}`}
-                  className="min-w-[10rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
-                  value={edit?.caption ?? shot.caption ?? shot.title}
-                  data-testid={`${testIdPrefix}-shot-caption-${shot.key}`}
-                  onChange={event => patchShot(shot.key, { caption: event.target.value })}
-                />
-              ) : null}
-              {shot.kind === 'still' && !holdsLocked ? (
-                <label className="flex items-center gap-1 text-[var(--text-muted)]">
-                  <input
-                    type="number"
-                    min={MIN_STILL_HOLD_SEC}
-                    max={MAX_STILL_HOLD_SEC}
-                    step={0.5}
-                    disabled={disabled || !included}
-                    aria-label={`Hold for ${shot.title}`}
-                    className="w-14 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
-                    value={edit?.holdSec ?? shot.holdSec ?? 2.5}
-                    onChange={event => patchShot(shot.key, { holdSec: Number(event.target.value) })}
-                  />
-                  s
-                </label>
-              ) : null}
-              {shot.kind === 'still' ? (
-                <label className="flex items-center gap-1 text-[var(--text-muted)]">
-                  frame
-                  <select
-                    disabled={disabled || !included}
-                    aria-label={`Framing for ${shot.title}`}
-                    title="A closer shot is a crop of the still around her face"
-                    className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
-                    value={edit?.framing ?? 'full'}
-                    data-testid={`${testIdPrefix}-shot-framing-${shot.key}`}
-                    onChange={event =>
-                      patchShot(shot.key, {
-                        framing:
-                          event.target.value === 'medium' || event.target.value === 'close'
-                            ? event.target.value
-                            : undefined,
-                      })
-                    }
-                  >
-                    <option value="full">as shot</option>
-                    <option value="medium">waist up</option>
-                    <option value="close">chest up</option>
-                  </select>
-                </label>
-              ) : null}
-              {shot.kind === 'clip' ? (
-                <ClipTrimInputs
-                  url={shot.url}
-                  title={shot.title}
-                  edit={edit}
-                  disabled={disabled || !included}
-                  testId={`${testIdPrefix}-shot-trim-${shot.key}`}
-                  onChange={patch => patchShot(shot.key, patch)}
-                />
-              ) : null}
-              <button
-                type="button"
-                aria-pressed={isPoster}
-                disabled={disabled || !included}
-                title={
-                  shot.kind === 'clip'
-                    ? 'Save poster uses a frame of this clip'
-                    : 'Save poster uses this still'
-                }
-                className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                  isPoster
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                    : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                } disabled:opacity-40`}
-                data-testid={`${testIdPrefix}-shot-poster-${shot.key}`}
-                onClick={() =>
-                  onChange({
-                    ...edits,
-                    order: keys,
-                    poster: isPoster ? undefined : { key: shot.key },
-                  })
-                }
+              <span
+                role="button"
+                tabIndex={-1}
+                aria-label={`Drag ${shot.title} to reorder`}
+                title="Drag to reorder"
+                className={`flex w-6 shrink-0 cursor-grab select-none flex-col items-center self-stretch justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-muted)] hover:bg-[var(--bg-hover)] active:cursor-grabbing ${disabled ? 'pointer-events-none opacity-40' : ''}`}
+                data-testid={`${testIdPrefix}-shot-grip-${shot.key}`}
+                onPointerDown={() => setArmed(shot.key)}
+                onPointerUp={() => setArmed(current => (dragging ? current : null))}
               >
-                Poster
-              </button>
-              {isPoster && shot.kind === 'clip' ? (
-                <label className="flex items-center gap-1 text-[var(--text-muted)]">
-                  frame at
+                ⠿<span className="mt-0.5 text-[10px]">{index + 1}</span>
+              </span>
+              <ShotThumb shot={shot} />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <input
-                    type="number"
-                    min={0}
-                    step={0.1}
+                    type="checkbox"
+                    checked={included}
                     disabled={disabled}
-                    aria-label={`Poster frame of ${shot.title} (seconds)`}
-                    className="w-14 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
-                    value={edits?.poster?.atSec ?? edit?.trimStartSec ?? 1}
-                    data-testid={`${testIdPrefix}-shot-poster-at-${shot.key}`}
-                    onChange={event => {
-                      const value = Number(event.target.value);
+                    aria-label={`Include ${shot.title}`}
+                    data-testid={`${testIdPrefix}-shot-include-${shot.key}`}
+                    onChange={event => patchShot(shot.key, { include: event.target.checked })}
+                  />
+                  <span className="font-medium text-[var(--text-primary)]">{shot.title}</span>
+                  {tagFor?.(shot) ? (
+                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] text-[var(--text-muted)]">
+                      {tagFor(shot)}
+                    </span>
+                  ) : null}
+                  {identity ? (
+                    <IdentityMarkChip
+                      mark={identity}
+                      compact={identity.tone === 'ok'}
+                      testId={`${testIdPrefix}-shot-identity-${shot.key}`}
+                    />
+                  ) : null}
+                </div>
+                <ShotWords shot={shot} />
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {captions ? (
+                    <input
+                      type="text"
+                      maxLength={60}
+                      disabled={disabled || !included}
+                      aria-label={`Caption for ${shot.title}`}
+                      className="min-w-[10rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
+                      value={edit?.caption ?? shot.caption ?? shot.title}
+                      data-testid={`${testIdPrefix}-shot-caption-${shot.key}`}
+                      onChange={event => patchShot(shot.key, { caption: event.target.value })}
+                    />
+                  ) : null}
+                  {shot.kind === 'still' && !holdsLocked ? (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      <input
+                        type="number"
+                        min={MIN_STILL_HOLD_SEC}
+                        max={MAX_STILL_HOLD_SEC}
+                        step={0.5}
+                        disabled={disabled || !included}
+                        aria-label={`Hold for ${shot.title}`}
+                        className="w-14 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={edit?.holdSec ?? shot.holdSec ?? 2.5}
+                        onChange={event =>
+                          patchShot(shot.key, { holdSec: Number(event.target.value) })
+                        }
+                      />
+                      s
+                    </label>
+                  ) : null}
+                  {shot.kind === 'still' ? (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      frame
+                      <select
+                        disabled={disabled || !included}
+                        aria-label={`Framing for ${shot.title}`}
+                        title="A closer shot is a crop of the still around her face"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={edit?.framing ?? 'full'}
+                        data-testid={`${testIdPrefix}-shot-framing-${shot.key}`}
+                        onChange={event =>
+                          patchShot(shot.key, {
+                            framing:
+                              event.target.value === 'medium' || event.target.value === 'close'
+                                ? event.target.value
+                                : undefined,
+                          })
+                        }
+                      >
+                        <option value="full">as shot</option>
+                        <option value="medium">waist up</option>
+                        <option value="close">chest up</option>
+                      </select>
+                    </label>
+                  ) : null}
+                  {shot.kind === 'clip' ? (
+                    <ClipTrimInputs
+                      url={shot.url}
+                      title={shot.title}
+                      edit={edit}
+                      disabled={disabled || !included}
+                      testId={`${testIdPrefix}-shot-trim-${shot.key}`}
+                      onChange={patch => patchShot(shot.key, patch)}
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-pressed={isPoster}
+                    disabled={disabled || !included}
+                    title={
+                      shot.kind === 'clip'
+                        ? 'Save poster uses a frame of this clip'
+                        : 'Save poster uses this still'
+                    }
+                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                      isPoster
+                        ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                        : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    } disabled:opacity-40`}
+                    data-testid={`${testIdPrefix}-shot-poster-${shot.key}`}
+                    onClick={() =>
                       onChange({
                         ...edits,
                         order: keys,
-                        poster: {
-                          key: shot.key,
-                          ...(Number.isFinite(value) && value >= 0 ? { atSec: value } : {}),
-                        },
-                      });
-                    }}
-                  />
-                  s
-                </label>
-              ) : null}
+                        poster: isPoster ? undefined : { key: shot.key },
+                      })
+                    }
+                  >
+                    Poster
+                  </button>
+                  {isPoster && shot.kind === 'clip' ? (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      frame at
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        disabled={disabled}
+                        aria-label={`Poster frame of ${shot.title} (seconds)`}
+                        className="w-14 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={edits?.poster?.atSec ?? edit?.trimStartSec ?? 1}
+                        data-testid={`${testIdPrefix}-shot-poster-at-${shot.key}`}
+                        onChange={event => {
+                          const value = Number(event.target.value);
+                          onChange({
+                            ...edits,
+                            order: keys,
+                            poster: {
+                              key: shot.key,
+                              ...(Number.isFinite(value) && value >= 0 ? { atSec: value } : {}),
+                            },
+                          });
+                        }}
+                      />
+                      s
+                    </label>
+                  ) : null}
+                </div>
+              </div>
               {/* 32 px squares: the bare arrows were 9×16 px, too small to tap on a phone. */}
-              <span className="ml-auto flex gap-0.5">
+              <span className="flex shrink-0 flex-col gap-0.5">
                 <button
                   type="button"
                   className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
@@ -320,5 +381,60 @@ function ClipTrimInputs({
       />
       {full != null ? `of ${full} s` : 's'}
     </span>
+  );
+}
+
+/** The shot's picture: the still, or the clip's opening frame (it plays on hover). */
+function ShotThumb({ shot }: { shot: KeyedShot }) {
+  const box =
+    'relative h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-black';
+  if (shot.kind === 'clip') {
+    return (
+      <span className={box}>
+        <video
+          src={`${shot.url}#t=0.1`}
+          muted
+          playsInline
+          loop
+          preload="metadata"
+          className="h-full w-full object-cover"
+          onMouseEnter={event => void event.currentTarget.play().catch(() => undefined)}
+          onMouseLeave={event => event.currentTarget.pause()}
+        />
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+          ▶ clip
+        </span>
+      </span>
+    );
+  }
+  return (
+    <span className={box}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={shot.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
+/** What happens in the shot, and what is said or narrated over it. */
+function ShotWords({ shot }: { shot: KeyedShot }) {
+  const beat =
+    shot.caption?.trim() && shot.caption.trim() !== shot.title ? shot.caption.trim() : '';
+  const said = shot.spoken?.trim() ?? '';
+  const over = !said ? (shot.narrationText?.trim() ?? '') : '';
+  if (!beat && !said && !over) return null;
+  return (
+    <p className="line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+      {beat}
+      {said ? (
+        <span className="text-[var(--text-primary)]">
+          {beat ? ' · ' : ''}“{said}”
+        </span>
+      ) : null}
+      {over ? (
+        <span className="italic">
+          {beat ? ' · ' : ''}narration: {over}
+        </span>
+      ) : null}
+    </p>
   );
 }

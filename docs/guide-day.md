@@ -8,7 +8,7 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 | --- | --- |
 | **Plan bar** | Stills (2–8) · Mood · People · Weather · Quality · Advanced |
 | **Slot cards** | One per moment — tap a card to open its **slot sheet** |
-| **Action row** | Queue day → Animate all → Cut film |
+| **Action row** | Queue day → Animate all → **Open Cut →** |
 | **Reel** | The finished stills and clips |
 
 ## Moods
@@ -73,4 +73,4 @@ Each card's **⋯** menu also has the [finishing tools](finishing-tools.md).
 
 ## When it's done
 
-**Cut film** — see [Cut a film](guide-film.md). **Same look, new Day** starts tomorrow.
+**Open Cut →** — the film is cut on its own page, see [Cut a film](guide-film.md). **Same look, new Day** starts tomorrow.

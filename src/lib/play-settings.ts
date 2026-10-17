@@ -4,6 +4,8 @@
  * (FeatureToolSettings in settings-cache.ts; docs/architecture-boundaries.md).
  */
 
+import type { CutToolCache } from './cut-room';
+
 export type RoleplayToolCache = {
   personaId?: string;
   customPersona?: string;
@@ -298,5 +300,6 @@ declare module './settings-cache' {
     fitting?: FittingToolCache;
     day?: DayToolCache;
     moodboard?: MoodboardToolCache;
+    cut?: CutToolCache;
   }
 }

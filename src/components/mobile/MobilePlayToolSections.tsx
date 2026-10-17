@@ -1,6 +1,5 @@
 'use client';
 
-import { storyShotIdentity } from '@/lib/identity-mark';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
@@ -12,9 +11,6 @@ import { useStoryStartOver } from '@/hooks/roleplay/useStoryStartOver';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 import { roleplayMoodSummary } from '@/lib/roleplay';
-import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
-import { roleplayWatchPlaylist } from '@/lib/character-film';
-import type { KeyedShot } from '@/lib/film-cut-plan';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
@@ -24,7 +20,7 @@ import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSecti
 import StoryPlayPhaseStrip from '@/components/roleplay/StoryPlayPhaseStrip';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
-import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
@@ -90,17 +86,12 @@ export default function MobilePlayToolSections({ description: _description, ...v
     filmCharacterId,
     firstCutCelebrate,
     clearFirstCutCelebrate,
-    cutRoleplayFilm,
     cutProblems,
-    cutChecking,
     resolveCutProblems,
     saveFilmToCast,
     shareLastCut,
     filmError,
     filmGuideHref,
-    filmCutOptions,
-    storyPreviouslyAvailable,
-    setFilmCutOptions,
     hasReferenceImage,
     playScene,
     rollScenes,
@@ -701,31 +692,16 @@ export default function MobilePlayToolSections({ description: _description, ...v
             </div>
           </div>
         ) : null}
-        {/* Cut options (vertical, crossfade, titles, length, music) — desk Story had them, the
-            phone page cut with defaults only. */}
-        {!firstCutCelebrate && story.length > 0 ? (
-          <FilmCutOptionsDisclosure
-            value={filmCutOptions}
-            onChange={setFilmCutOptions}
-            disabled={assemblingFilm}
-            testIdPrefix="mobile-story-cut"
-            storyExtras
-            previouslyAvailable={storyPreviouslyAvailable}
-            shots={roleplayWatchPlaylist(story) as KeyedShot[]}
-            identityFor={storyShotIdentity(story)}
-          />
-        ) : null}
+        {/* Cut is the film's own step: options, preview, shot list and the cut live there. */}
         {!firstCutCelebrate ? (
-          <PrimaryButton
-            loading={assemblingFilm || cutChecking}
-            loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
-            disabled={story.length === 0 || assemblingFilm || cutChecking || bioLoading}
-            onClick={() => void cutRoleplayFilm()}
+          <ButtonLink
+            href="/m/cut?from=story"
+            variant="primary"
             className="w-full justify-center"
             data-testid="mobile-play-cut"
           >
-            Cut film
-          </PrimaryButton>
+            Cut film →
+          </ButtonLink>
         ) : null}
         {filmStatus && !assemblingFilm && !firstCutCelebrate ? (
           <Button

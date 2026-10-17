@@ -20,7 +20,7 @@ import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 
 /** The film steps in order; a page that is not a step (Gallery, Queue, …) is -1. */
-const FILM_STEP_PATHS = ['/characters', '/fitting', '/day', '/story'] as const;
+const FILM_STEP_PATHS = ['/characters', '/fitting', '/day', '/story', '/cut'] as const;
 
 function filmStepIndex(path: string | null | undefined): number {
   const clean = (path ?? '').replace(/^\/m(?=\/)/, '').replace(/^\/roleplay/, '/story');

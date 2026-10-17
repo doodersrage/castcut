@@ -629,7 +629,7 @@ test('day planner happy path chrome loads', async ({ page }) => {
   await closeDaySheets(page);
   await expect(page.getByTestId('day-reel')).toBeVisible();
   await expect(
-    page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
+    page.getByTestId('day-reel').getByRole('link', { name: /Cut film/i })
   ).toBeVisible();
 });
 
@@ -700,10 +700,9 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   await dismissBlockingOverlays(page);
   const coach = page.getByTestId('day-cut-coach');
   await expect(coach).toBeVisible({ timeout: 30_000 });
-  // Cut options fold behind a summary instead of filling the sticky banner.
-  const options = coach.getByTestId('day-cut-options-disclosure');
-  await expect(options).toContainText(/Cut options/);
-  await expect(options).not.toHaveAttribute('open', '');
+  // Cut is its own step: the banner hands off to it (no options here).
+  await expect(coach.getByTestId('day-cut-coach-cut')).toHaveAttribute('href', /\/cut\?from=day/);
+  await expect(coach.getByTestId('day-cut-options-disclosure')).toHaveCount(0);
   // The banner owns Cut — the Animate card doesn't repeat it.
   await expect(page.getByTestId('day-animate-cut')).toHaveCount(0);
   // A running still says so instead of "Queueing…".
@@ -945,7 +944,8 @@ test('story mid-flow: Roll leads, settings fold, no default Part', async ({ page
   await expect(page.getByText(/Raccoon pirate/i)).toHaveCount(0);
   // One Cut: the reel's, not also the Animate card's.
   await expect(page.getByTestId('story-animate-cut')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Cut film', exact: true })).toBeVisible();
+  // Cut is its own step: Story hands off to it.
+  await expect(page.getByTestId('story-open-cut')).toHaveAttribute('href', '/cut?from=story');
 });
 
 test('story mid-flow: start the story over after changing its settings', async ({ page }) => {
@@ -2063,21 +2063,22 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
   });
   await gotoStable(page, '/day?character=e2e-day-cut');
   await dismissBlockingOverlays(page);
-  const coach = page.getByTestId('day-cut-coach');
-  await expect(coach).toBeVisible({ timeout: 30_000 });
-  // Cut options: the shot list, with captions from the beats once titles are on.
-  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
-  await expect(coach.getByTestId('day-cut-shot-list')).toBeVisible();
-  await coach.getByTestId('day-cut-titles').check();
-  await expect(coach.getByTestId('day-cut-shot-caption-morning')).toHaveValue(
+  await expect(page.getByTestId('day-cut-coach')).toBeVisible({ timeout: 30_000 });
+  // Cut (its own page): the shot list, with captions from the beats once titles are on.
+  await gotoStable(page, '/cut?from=day');
+  await dismissBlockingOverlays(page);
+  const coach = page.locator('body');
+  await expect(coach.getByTestId('cut-shot-list')).toBeVisible();
+  await coach.getByTestId('cut-titles').check();
+  await expect(coach.getByTestId('cut-shot-caption-day:morning')).toHaveValue(
     'pours coffee by the window'
   );
-  await expect(coach.getByTestId('day-cut-length')).toBeVisible();
+  await expect(coach.getByTestId('cut-length')).toBeVisible();
   // Cut: the morning still missed its pose, so the check comes first.
-  await coach.getByRole('button', { name: 'Cut film', exact: true }).click();
+  await page.getByTestId('cut-film').first().click();
   const dialog = page.getByTestId('cut-problems');
   await expect(dialog).toBeVisible({ timeout: 20_000 });
-  await expect(dialog.getByTestId('cut-problem-morning')).toContainText('missed its pose (31%)');
+  await expect(dialog.getByTestId('cut-problem-day:morning')).toContainText('missed its pose (31%)');
   await expect(dialog.getByTestId('cut-problems-leave-out')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
@@ -2141,7 +2142,7 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
         ok: true,
         ffmpeg: true,
         results: checked.map(shot =>
-          shot.key === 'night' ? { key: 'night', missing: 'not found' } : { key: shot.key }
+          shot.key === 'day:night' ? { key: 'day:night', missing: 'not found' } : { key: shot.key }
         ),
       },
     });
@@ -2186,39 +2187,38 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
     'Checked: faces 2 of 3'
   );
   await expect(coach.getByTestId('day-cut-readiness-coverage')).toContainText('Not checked: pose');
-  // Shape and size, a face mark per shot, and a clip trim.
-  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
-  await coach.getByTestId('day-cut-shape').selectOption('square');
-  await coach.getByTestId('day-cut-quality').selectOption('1080p');
-  await expect(coach.getByTestId('day-cut-shot-identity-afternoon')).toHaveAttribute(
+  // Cut (its own page): shape and size, a face mark per shot, and a clip trim.
+  await gotoStable(page, '/cut?from=day');
+  await dismissBlockingOverlays(page);
+  const room = page.locator('body');
+  await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  await room.getByTestId('cut-shape').selectOption('square');
+  await room.getByTestId('cut-quality').selectOption('1080p');
+  await expect(room.getByTestId('cut-shot-identity-day:afternoon')).toHaveAttribute(
     'data-tone',
     'miss'
   );
-  await coach.getByTestId('day-cut-shot-trim-night-start').fill('1');
+  await room.getByTestId('cut-shot-trim-day:night-start').fill('1');
   // A closer frame for a still, the poster from a clip frame, and the lines' level.
-  await coach.getByTestId('day-cut-shot-framing-morning').selectOption('close');
-  await coach.getByTestId('day-cut-shot-poster-night').click();
-  await expect(coach.getByTestId('day-cut-shot-poster-night')).toHaveAttribute('aria-pressed', 'true');
-  await coach.getByTestId('day-cut-shot-poster-at-night').fill('2.5');
-  await coach.getByTestId('day-cut-voice-level').fill('1.5');
-  const summary = coach.getByTestId('day-cut-options-disclosure').locator('summary');
-  await expect(summary).toContainText('square 1:1');
-  await expect(summary).toContainText('1080p');
-  await expect(summary).toContainText('clips trimmed');
-  await expect(summary).toContainText('poster picked');
-  await expect(summary).toContainText('stills framed');
-  await expect(summary).toContainText('lines 150%');
+  await room.getByTestId('cut-shot-framing-day:morning').selectOption('close');
+  await room.getByTestId('cut-shot-poster-day:night').click();
+  await expect(room.getByTestId('cut-shot-poster-day:night')).toHaveAttribute('aria-pressed', 'true');
+  await room.getByTestId('cut-shot-poster-at-day:night').fill('2.5');
+  await room.getByTestId('cut-voice-level').fill('1.5');
+  // The choices stay as set (Cut keeps its options between visits).
+  await expect(room.getByTestId('cut-shape')).toHaveValue('square');
+  await expect(room.getByTestId('cut-quality')).toHaveValue('1080p');
   // Cut: the missing clip and the face miss come up before the encode.
-  await coach.getByRole('button', { name: 'Cut film', exact: true }).click();
+  await page.getByTestId('cut-film').first().click();
   const dialog = page.getByTestId('cut-problems');
   await expect(dialog).toBeVisible({ timeout: 20_000 });
-  await expect(dialog.getByTestId('cut-problem-night')).toContainText(
+  await expect(dialog.getByTestId('cut-problem-day:night')).toContainText(
     'the file is missing (not found)'
   );
-  await expect(dialog.getByTestId('cut-problem-afternoon')).toContainText(
+  await expect(dialog.getByTestId('cut-problem-day:afternoon')).toContainText(
     "doesn't look like the Cast"
   );
-  expect(checked.map(shot => shot.key).sort()).toEqual(['afternoon', 'morning', 'night']);
+  expect(checked.map(shot => shot.key).sort()).toEqual(['day:afternoon', 'day:morning', 'day:night']);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
 });
@@ -2551,7 +2551,7 @@ test('day cut film chrome and save-to-cast testids are wired', async ({ page }) 
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('day-reel')).toBeVisible({ timeout: 30_000 });
   await expect(
-    page.getByTestId('day-reel').getByRole('button', { name: /Cut film/i })
+    page.getByTestId('day-reel').getByRole('link', { name: /Cut film/i })
   ).toBeAttached();
 });
 
@@ -2680,21 +2680,17 @@ test('day cut film with mocked MediaRecorder shows Save to Cast', async ({ page 
     void download.cancel().catch(() => undefined);
   });
 
-  await gotoStable(page, '/day?character=e2e-cut-cast');
+  // Cut is its own step: Day hands off to it, and the film is cut there.
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByTestId('day-cut-coach-cut');
+  const cutBtn = page.getByTestId('cut-film').first();
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  // First cut owns Watch via celebrate banner (hides day-open-cast-film).
-  await expect(page.getByTestId('day-first-cut-celebrate')).toBeVisible({
-    timeout: 45_000,
-  });
-  const watchOrSave = page
-    .getByTestId('day-first-cut-watch')
-    .or(page.getByTestId('day-save-film-cast'));
-  await expect(watchOrSave.first()).toBeVisible();
-  const watch = page.getByTestId('day-first-cut-watch');
+  // After the cut: what comes next — watch it on the Cast (when it was kept there), tomorrow.
+  await expect(page.getByTestId('cut-after')).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId('cut-start-tomorrow')).toBeVisible();
+  const watch = page.getByTestId('cut-watch-cast');
   if ((await watch.count()) > 0) {
     await expect(watch).toHaveAttribute('href', /media=films/);
   }
@@ -3614,24 +3610,18 @@ test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async 
 
   await gotoStable(page, '/story?character=e2e-rp-cut');
   await dismissBlockingOverlays(page);
-  // Exact name — other buttons ("Cut film" in banners, "Open films") can match /Cut film/i.
-  const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
+  // Story hands off to Cut (its own step), with the Story's shots picked.
+  await page.getByTestId('story-open-cut').first().click();
+  await expect(page).toHaveURL(/\/cut\?from=story/, { timeout: 30_000 });
+  await dismissBlockingOverlays(page);
+  const cutBtn = page.getByTestId('cut-film').first();
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  // First cut celebrate owns Watch (hides roleplay-open-cast-film).
-  const celebrateOrWatch = page
-    .getByTestId('story-first-cut-celebrate')
-    .or(page.getByTestId('story-first-cut-watch'))
-    .or(page.getByTestId('story-save-film-cast'));
-  await expect(celebrateOrWatch.first()).toBeVisible({ timeout: 45_000 });
-  const watch = page.getByTestId('story-first-cut-watch');
+  await expect(page.getByTestId('cut-after')).toBeVisible({ timeout: 45_000 });
+  const watch = page.getByTestId('cut-watch-cast');
   if ((await watch.count()) > 0) {
     await expect(watch).toHaveAttribute('href', /media=films/);
-  }
-  const remix = page.getByTestId('story-first-cut-remix');
-  if ((await remix.count()) > 0) {
-    await expect(remix).toHaveAttribute('href', /\/day/);
   }
 });
 
@@ -3684,24 +3674,18 @@ test('mobile play cut film with mocked MediaRecorder shows Cast deep-links', asy
 
   await gotoStable(page, '/m/story');
   await dismissBlockingOverlays(page);
-  // Exact name — other buttons ("Cut film" in banners, "Open films") can match /Cut film/i.
-  const cutBtn = page.getByRole('button', { name: 'Cut film', exact: true });
+  // Story hands off to Cut (its own step), with the Story's shots picked.
+  await page.getByTestId('mobile-play-cut').first().click();
+  await expect(page).toHaveURL(/\/m\/cut\?from=story/, { timeout: 30_000 });
+  await dismissBlockingOverlays(page);
+  const cutBtn = page.getByTestId('cut-film').first();
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
-  const celebrateOrWatch = page
-    .getByTestId('story-first-cut-celebrate')
-    .or(page.getByTestId('story-first-cut-watch'))
-    .or(page.getByTestId('story-save-film-cast'));
-  await expect(celebrateOrWatch.first()).toBeVisible({ timeout: 45_000 });
-  const watch = page.getByTestId('story-first-cut-watch');
+  await expect(page.getByTestId('cut-after')).toBeVisible({ timeout: 45_000 });
+  const watch = page.getByTestId('cut-watch-cast');
   if ((await watch.count()) > 0) {
-    // Phone maps Cast → films to the Gallery film view (toMobileStudioHref).
     await expect(watch).toHaveAttribute('href', /media=films|derivedKind=film/);
-  }
-  const remix = page.getByTestId('story-first-cut-remix');
-  if ((await remix.count()) > 0) {
-    await expect(remix).toHaveAttribute('href', /\/day/);
   }
 });
 
@@ -4105,9 +4089,9 @@ test('day cut film shows playbook when film assemble returns ffmpeg 503', async 
     },
   });
 
-  await gotoStable(page, '/day?character=e2e-film-fail');
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const cutBtn = page.getByTestId('day-cut-coach-cut');
+  const cutBtn = page.getByTestId('cut-film').first();
   await expect(cutBtn).toBeVisible({ timeout: 30_000 });
   await expect(cutBtn).toBeEnabled({ timeout: 15_000 });
   await cutBtn.click();
@@ -4715,12 +4699,13 @@ test('Tomorrow after a cut: next day follows on, stills cleared', async ({ page 
     },
   });
   page.on('download', download => void download.cancel().catch(() => undefined));
-  await gotoStable(page, '/day?character=e2e-tomorrow');
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const cut = page.getByTestId('day-cut-coach-cut');
+  const cut = page.getByTestId('cut-film').first();
   await expect(cut).toBeEnabled({ timeout: 30_000 });
   await cut.click();
-  const tomorrow = page.getByTestId('day-first-cut-tomorrow').first();
+  // Cut's "Start tomorrow on Day" opens Day, which writes the next day.
+  const tomorrow = page.getByTestId('cut-start-tomorrow').first();
   await expect(tomorrow).toBeVisible({ timeout: 45_000 });
   await tomorrow.click();
   // Today's beats went to the writer as yesterday; its beats are on the board.

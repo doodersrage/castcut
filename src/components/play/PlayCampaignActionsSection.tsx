@@ -153,6 +153,16 @@ export default function PlayCampaignActionsSection({
               >
                 {nextAction.label}
               </ButtonLink>
+            ) : characterId && !savedCampaign && journey?.current === 'cut' ? (
+              // Their Day already has its stills: the next step is the cut.
+              <ButtonLink
+                href={mapHref(`/cut?from=day`)}
+                size="sm"
+                variant="primary"
+                data-testid="play-campaign-start-day"
+              >
+                Open Cut
+              </ButtonLink>
             ) : characterId && !savedCampaign ? (
               <Button
                 size="sm"
@@ -160,8 +170,7 @@ export default function PlayCampaignActionsSection({
                 data-testid="play-campaign-start-day"
                 onClick={() => goToStep('day', activeLookPack)}
               >
-                {/* Their Day already has its stills: the next step is the cut, on Day. */}
-                {journey?.current === 'cut' ? 'Cut film on Day' : 'Start at Day'}
+                Start at Day
               </Button>
             ) : null}
           </>

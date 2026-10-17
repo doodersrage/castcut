@@ -222,8 +222,8 @@ subject.
 | Symptom | Fix |
 | --- | --- |
 | Dashboard stall at **Outfit** | Open Outfit from stall CTA; Keep a try-on plate |
-| Stall at **Cut** | Complete Day stills or Story beats; open Day → **Cut film** |
-| **Cut film** disabled | Need at least one completed still in Day reel playlist |
+| Stall at **Cut** | Complete Day stills or Story beats; open the **Cut** tab |
+| **Cut film** disabled | Every shot is left out, or none has finished — tick a source under *What's in it* |
 | Metrics empty | Start Film (`/play`); metrics update on Film start / first cut |
 | Resume wrong character | **Switch to resume character** on Play or re-import look pack |
 | Share link too long | **Export JSON** instead of hash link |

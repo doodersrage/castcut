@@ -183,6 +183,18 @@ export function moveCutShot(keys: string[], key: string, delta: -1 | 1): string[
   return next;
 }
 
+/**
+ * The shot list after dragging `key` to sit before `beforeKey` (null: to the end). Unknown keys
+ * leave the order as it is.
+ */
+export function moveCutShotBefore(keys: string[], key: string, beforeKey: string | null): string[] {
+  if (!keys.includes(key) || key === beforeKey) return keys;
+  if (beforeKey !== null && !keys.includes(beforeKey)) return keys;
+  const rest = keys.filter(entry => entry !== key);
+  const at = beforeKey === null ? rest.length : rest.indexOf(beforeKey);
+  return [...rest.slice(0, at), key, ...rest.slice(at)];
+}
+
 function clampHold(value: number): number {
   return Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, Math.round(value * 10) / 10));
 }

@@ -321,15 +321,14 @@ test('Preview the mix plays the talking clip with the music settings', async ({ 
   await page.route('**/e2e-media/talk-2s.mp4', route =>
     route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
   );
-  await gotoStable(page, `/day?character=${castId}`);
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const coach = page.getByTestId('day-cut-coach');
-  await expect(coach).toBeVisible({ timeout: 30_000 });
-  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
-  const preview = coach.getByTestId('day-cut-mix-preview');
+  const coach = page.locator('body');
+  await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  const preview = coach.getByTestId('cut-mix-preview');
   await expect(preview).toBeVisible();
   await preview.click();
-  await expect(coach.getByTestId('day-cut-mix-preview-note')).toContainText('1 line', {
+  await expect(coach.getByTestId('cut-mix-preview-note')).toContainText('1 line', {
     timeout: 20_000,
   });
   await expect(preview).toContainText('Stop');
@@ -382,26 +381,25 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await page.route('**/e2e-media/talk-2s.mp4', route =>
     route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
   );
-  await gotoStable(page, `/day?character=${castId}`);
+  await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
-  const coach = page.getByTestId('day-cut-coach');
-  await expect(coach).toBeVisible({ timeout: 30_000 });
-  await coach.getByTestId('day-cut-options-disclosure').locator('summary').click();
-  await coach.getByTestId('day-cut-shape').selectOption('square');
-  await coach.getByTestId('day-cut-titles').check();
+  const coach = page.locator('body');
+  await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  await coach.getByTestId('cut-shape').selectOption('square');
+  await coach.getByTestId('cut-titles').check();
   // Night's narration is not recorded yet: the preview offers to record it to hear it.
-  await expect(coach.getByTestId('day-cut-preview-record-narration')).toContainText('1 line');
-  await coach.getByTestId('day-cut-preview-open').click();
-  const preview = coach.getByTestId('day-cut-preview');
+  await expect(coach.getByTestId('cut-preview-record-narration')).toContainText('1 line');
+  await coach.getByTestId('cut-preview-open').click();
+  const preview = coach.getByTestId('cut-preview');
   // Title card + 2.5 s + 2 s clip + 2.5 s: 3 shots, 0:09.
-  await expect(preview.getByTestId('day-cut-preview-notes')).toContainText('3 shots · 0:09', {
+  await expect(preview.getByTestId('cut-preview-notes')).toContainText('3 shots · 0:09', {
     timeout: 20_000,
   });
-  const canvas = preview.getByTestId('day-cut-preview-canvas');
+  const canvas = preview.getByTestId('cut-preview-canvas');
   await expect(canvas).toHaveAttribute('data-shape', 'square');
   await expect(canvas).toHaveAttribute('width', '480');
   // Seek past the title card onto the first still: the canvas shows the picture.
-  await preview.getByTestId('day-cut-preview-scrub').fill('3');
+  await preview.getByTestId('cut-preview-scrub').fill('3');
   await expect
     .poll(
       () =>
@@ -415,10 +413,10 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
       { timeout: 10_000 }
     )
     .toBeGreaterThan(20);
-  await preview.getByTestId('day-cut-preview-play').click();
-  await expect(preview.getByTestId('day-cut-preview-time')).toContainText('0:04', { timeout: 10_000 });
-  await preview.getByTestId('day-cut-preview-play').click();
-  await preview.getByTestId('day-cut-preview-close').click();
+  await preview.getByTestId('cut-preview-play').click();
+  await expect(preview.getByTestId('cut-preview-time')).toContainText('0:04', { timeout: 10_000 });
+  await preview.getByTestId('cut-preview-play').click();
+  await preview.getByTestId('cut-preview-close').click();
   await expect(preview).toHaveCount(0);
 });
 

@@ -44,11 +44,13 @@ const PLAY_LOOP_NAV_PATHS = new Set([
   '/day',
   '/story',
   '/roleplay',
+  '/cut',
   '/m/film',
   '/m/moodboard',
   '/m/fitting',
   '/m/day',
   '/m/story',
+  '/m/cut',
 ]);
 
 /** Append active Cast to Film-loop nav hrefs when the link has no `character=` yet. */

@@ -9,13 +9,13 @@
 export const PLAY_LAYER_RE = new RegExp(
   '^src/(?:' +
     [
-      'lib/(?:day-|day/|fitting-|fitting/|roleplay|story-|play-|film-|character-film|cast-|dress-plate|rapid-duo-recipe\.ts$|rapid-solo|pose-everyday|look-pack|look-outfit|outfit-handoff|welcome-sample-film|klein-duo-recipe|intimate-clip)',
+      'lib/(?:day-|day/|fitting-|fitting/|roleplay|story-|play-|film-|character-film|cast-|dress-plate|rapid-duo-recipe\.ts$|rapid-solo|pose-everyday|look-pack|look-outfit|outfit-handoff|welcome-sample-film|klein-duo-recipe|intimate-clip|cut-room)',
       'hooks/(?:day-planner|fitting-room|roleplay|play|story|mobile-play|character|moodboard)/',
-      'hooks/use(?:DayPlanner|Fitting|Roleplay|Story|Play|Character|Cast|Film|Look|Moodboard)[A-Za-z]*\\.ts$',
-      'components/(?:day-planner|fitting|roleplay|play|story|cast|character|moodboard)/',
+      'hooks/use(?:DayPlanner|Fitting|Roleplay|Story|Play|Character|Cast|Film|Look|Moodboard|Cut)[A-Za-z]*\\.ts$',
+      'components/(?:day-planner|fitting|roleplay|play|story|cast|character|moodboard|cut)/',
       'components/(?:DayPlanner|Fitting|Roleplay|Story|Play|Character|Cast|Film|Moodboard)[A-Za-z]*\\.tsx$',
       'components/mobile/Mobile(?:Day|Fitting|Play|Story|Roleplay|Cast|Character|Film|Look|Moodboard)[A-Za-z]*\\.tsx$',
-      'app/(?:day|fitting|story|play|roleplay|characters|character|moodboard)/',
+      'app/(?:day|fitting|story|play|roleplay|characters|character|moodboard|cut)/',
       // The phone app (/m) is Castcut's: film-first screens. Its route helpers (lib/mobile-*)
       // stay shared — the shell and settings use them.
       'components/mobile/',

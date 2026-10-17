@@ -8,7 +8,7 @@ clip. Open **Story** (`/story`) — it opens once you've cut your first Day.
 1. **Roll four scenes** — four cards, each with a small figure of its pose.
 2. **Pick one**, or write your own under **Or write what happens next**.
 3. The scene's still queues; **Animate** makes the clip.
-4. Repeat. **Cut film** when you're done.
+4. Repeat. **Cut film →** opens [Cut](guide-film.md) with the Story's shots.
 
 | Control | What it does |
 | --- | --- |

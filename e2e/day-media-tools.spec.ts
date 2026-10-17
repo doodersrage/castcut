@@ -330,13 +330,14 @@ test('Upscale to 4K replaces the shown still', async ({ page }) => {
 });
 
 test('Cut: Subtitles is on by default and goes to the server encode', async ({ page }) => {
-  await openDay(page);
-  await page.keyboard.press('Escape');
-  const toggle = page.getByTestId('day-cut-subtitles').first();
-  if (!(await toggle.isVisible().catch(() => false))) {
-    await page.getByText('Cut options', { exact: false }).first().click();
-  }
-  await expect(page.getByTestId('day-cut-subtitles').first()).toBeChecked({ timeout: 15_000 });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay() },
+  });
+  await gotoStable(page, '/cut?from=day');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-subtitles').first()).toBeChecked({ timeout: 15_000 });
 });
 
 test('Story: a scene’s narration can be suggested', async ({ page }) => {

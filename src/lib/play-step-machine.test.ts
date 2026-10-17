@@ -63,7 +63,8 @@ describe('play-step-machine', () => {
   it('resolves step hrefs through the campaign graph', () => {
     assert.equal(resolvePlayStepHref('day'), '/day');
     assert.equal(resolvePlayStepHref('day', 'c1'), '/day?character=c1');
-    assert.equal(resolvePlayStepHref('cut', 'c1'), '/day?character=c1');
+    // Cut is its own page (cut-room.ts).
+    assert.equal(resolvePlayStepHref('cut', 'c1'), '/cut?character=c1');
     assert.equal(resolvePlayStepHref('animate', 'c1'), '/day?character=c1');
     assert.equal(resolvePlayStepHref('character'), '/characters');
     assert.equal(resolvePlayStepHref('fitting', 'c1'), '/fitting?character=c1');

@@ -1,6 +1,6 @@
 # Castcut
 
-**Local character films with ComfyUI.** Cast → Outfit → Day → (Story) → **Cut film**.
+**Local character films with ComfyUI.** Cast → Outfit → Day → (Story) → **Cut**.
 
 Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut). The classic prompt and image tools, without the film loop, live on as [**Prompt Studio**](https://github.com/doodersrage/prompt-studio), built on the shared core package [`prompt-studio-core`](https://www.npmjs.com/package/prompt-studio-core).
 
@@ -16,7 +16,7 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 2. **Outfit** — dress her: a kit, your own photo, or shoes you pick.
 3. **Day** — plan 2–8 moments from morning to night; each becomes a still, then a clip. Give a moment a **line** and she says it, lip-synced, in her voice.
 4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own.
-5. **Cut film** — trim, frame, reorder, add music (or **Score this film**), narration and titles; export vertical, square or widescreen, or for an editor.
+5. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day and Story, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
 
 **Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Copy moves from a video** (Wan Animate 2), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
 

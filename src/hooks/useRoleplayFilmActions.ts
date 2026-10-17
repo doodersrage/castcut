@@ -28,16 +28,11 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble-lazy';
 import { roleplayWatchPlaylist } from '@/lib/character-film';
-import { applyCharacterRecord, getCharacter, loadCharacters } from '@/lib/character-os';
-import { characterFromRoleplaySession, upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
+import { applyCharacterRecord, getCharacter } from '@/lib/character-os';
+import { upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
 import { completePlayCampaign } from '@/lib/play-campaign';
-import {
-  loadRoleplayLibrary,
-  persistRoleplayLibraryFromCache,
-  snapshotRoleplaySession,
-  upsertRoleplayLibrarySession,
-} from '@/lib/roleplay-library';
+import { loadRoleplayLibrary, persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { type RoleplayToolCache } from '@/lib/play-settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
@@ -46,6 +41,7 @@ import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution
 import { widenStillForFilm } from '@/lib/film-widen-client';
 import { renderNarrationLine } from '@/lib/film-narration-client';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story-film';
+import { resolveStoryFilmCast } from '@/lib/story-film-cast';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
 
 /** The page's queue function, as widened stills need it. */
@@ -134,20 +130,7 @@ export function useRoleplayFilmActions(input: {
         return;
       }
       const name = input.toolSettings.characterName?.trim() || input.bioName?.trim() || 'roleplay';
-      const session = snapshotRoleplaySession(input.toolSettings);
-      const fromSession = session ? characterFromRoleplaySession(session) : null;
-      let character =
-        (fromSession ? getCharacter(fromSession.id) : undefined) ||
-        loadCharacters().find(entry => {
-          const labels = [entry.name, entry.characterName].map(value =>
-            value?.trim().toLowerCase()
-          );
-          return labels.includes(name.toLowerCase());
-        });
-      if (!character && session) {
-        character = upsertCharacterFromRoleplaySession(session);
-        upsertRoleplayLibrarySession(session);
-      }
+      const character = resolveStoryFilmCast(input.toolSettings, name);
       setAssemblingFilm(true);
       setError(null);
       setFilmGuideHref(null);

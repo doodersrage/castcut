@@ -2,13 +2,11 @@
 
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import type { IdentityMark } from '@/lib/identity-mark';
-import { loadSettingsCache } from '@/lib/settings-cache';
 import type { KeyedShot } from '@/lib/film-cut-plan';
 import type { ReactNode } from 'react';
-import {
-  FilmCutOptionsDisclosure,
-  type FilmCutOptionsValue,
-} from '@/components/FilmCutOptionsControls';
+import { usePathname } from 'next/navigation';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
@@ -51,7 +49,6 @@ export type RoleplayFilmCutActionsProps = {
 
 export default function RoleplayFilmCutActions({
   assemblingFilm,
-  cutChecking = false,
   busy,
   storyEmpty,
   filmNeedsCast,
@@ -61,57 +58,37 @@ export default function RoleplayFilmCutActions({
   filmGuideHref,
   canShareCut = false,
   hidePostCutLinks = false,
-  filmCutOptions,
-  previouslyAvailable = false,
-  onFilmCutOptionsChange,
-  onCutFilm,
   onSaveToCast,
   onShareCut,
   onSavePoster,
   posterBusy = false,
-  cutShots,
-  shotIdentity,
   checksCoverage,
-  previewTitle,
   children,
 }: RoleplayFilmCutActionsProps) {
+  const pathname = usePathname();
+  const cutHref = isMobileStudioPath(pathname)
+    ? toMobileStudioHref('/cut?from=story')
+    : '/cut?from=story';
   const showPostCut = Boolean(
     filmCharacterId && filmStatus && !assemblingFilm && !hidePostCutLinks
   );
 
   return (
     <>
-      {filmCutOptions && onFilmCutOptionsChange ? (
-        <div className="mb-2">
-          <FilmCutOptionsDisclosure
-            scoreBrief={{ tone: loadSettingsCache().tools.roleplay?.tone }}
-            value={filmCutOptions}
-            onChange={onFilmCutOptionsChange}
-            disabled={assemblingFilm}
-            testIdPrefix="story-cut"
-            storyExtras
-            previouslyAvailable={previouslyAvailable}
-            shots={cutShots}
-            identityFor={shotIdentity}
-            previewTitleCard={
-              previewTitle ? { title: previewTitle, subtitle: 'A Castcut story' } : null
-            }
-          />
-        </div>
-      ) : null}
       {checksCoverage && !storyEmpty ? (
         <CutReadinessNotes coverage={checksCoverage} testId="story-cut-readiness" />
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button
-          variant="primary"
-          loading={assemblingFilm || cutChecking}
-          loadingLabel={cutChecking ? 'Checking the shots' : 'Cutting film'}
-          disabled={storyEmpty || cutChecking || (busy && !assemblingFilm)}
-          onClick={onCutFilm}
-        >
-          Cut film
-        </Button>
+        {/* Cut is the film's own step: options, preview, shot list and the cut live there. */}
+        {storyEmpty ? (
+          <Button variant="primary" disabled data-testid="story-open-cut">
+            Cut film →
+          </Button>
+        ) : (
+          <ButtonLink href={cutHref} variant="primary" data-testid="story-open-cut">
+            Cut film →
+          </ButtonLink>
+        )}
         {/* Download is the export path; Cut is the main one. */}
         {children}
         {canShareCut && onShareCut && filmStatus && !assemblingFilm ? (

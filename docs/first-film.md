@@ -46,11 +46,13 @@ talking clip, lip-synced, in her voice.
 
 ## 5. Cut
 
-**Cut film** puts the clips together. Under **Cut options**:
+Open **Cut** (the tab after Story, or **Open Cut →** on Day). Watch the cut with ▶, then:
 
+- **Shots** — drag to reorder, trim, frame, leave a shot out
 - **Shape** — widescreen, vertical (Reels / Shorts) or square
 - **Music** — upload a track, or **Score this film**
-- **Shot list** — reorder, trim, frame, leave a shot out
+
+**Cut film** encodes it.
 
 The film lands in the Gallery and on the Cast page.
 

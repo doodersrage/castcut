@@ -1,18 +1,13 @@
 'use client';
 
 import DayDubControl from '@/components/day-planner/DayDubControl';
-import { loadPlaySeriesStore, previouslyOnShots } from '@/lib/play-series';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
 import type { DaySlot } from '@/lib/day-planner';
 import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day-continuity-locks';
-import {
-  useDayCutReadiness,
-  useDayPlannerBatchPlan,
-  useDayShotIdentity,
-} from '@/hooks/useDayPlannerShotIdentity';
+import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
@@ -39,7 +34,6 @@ import {
   ToolSection,
 } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
-import { FilmCutOptionsDisclosure } from '@/components/FilmCutOptionsControls';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
@@ -67,7 +61,15 @@ import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGa
 import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
@@ -152,8 +154,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     slots,
     stills,
     watchPlaylist,
-    previewNarration,
-    recordDayNarration,
     activeSlot,
     character,
     addVoiceToSlot,
@@ -270,10 +270,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     pickEndPoseStill,
     clearEndPose,
     reposeEndPose,
-    cutDayFilm,
     addCloseUps,
     cutProblems,
-    cutChecking,
     setAsideDay,
     canUndoPlan,
     canRedoPlan,
@@ -300,7 +298,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     startTomorrow,
     writingTomorrow,
     filmCutOptions,
-    setFilmCutOptions,
     garmentUploading,
     garmentScanStatus,
     applyCustomGarment,
@@ -417,7 +414,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   });
   // Animate opens a sheet: the engine, and the direction to edit (DayAnimateSheet).
   const [animateTarget, setAnimateTarget] = useState<DaySlot | null>(null);
-  const shotIdentity = useDayShotIdentity(stills, character?.name);
   const galleryFilmHref = character
     ? `/gallery?character=${encodeURIComponent(character.id)}&derivedKind=film`
     : '/gallery';
@@ -518,6 +514,20 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       cancelled = true;
     };
   }, []);
+
+  // Cut is the film's own step (/cut): arriving from here, the Day's shots are picked.
+  const cutHref = '/cut?from=day';
+  // Cut's "Start tomorrow on Day" (?tomorrow=1): write the next Day once, then drop the param.
+  const tomorrowAsked = useRef(false);
+  useEffect(() => {
+    if (tomorrowAsked.current || !character?.id) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('tomorrow') !== '1') return;
+    tomorrowAsked.current = true;
+    url.searchParams.delete('tomorrow');
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    void startTomorrow();
+  }, [character?.id, startTomorrow]);
 
   const engineControls = (
     <SharedToolControls
@@ -807,7 +817,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 <p className="type-caption text-[var(--text-muted)]">
                   {completedShotCount < slotTotal
                     ? 'Cut with what you have, or wait for the rest of the day.'
-                    : 'All stills ready — cut the reel.'}
+                    : 'All stills ready — open Cut to put the film together.'}
                 </p>
                 <CutReadinessNotes
                   coverage={cutReadiness.coverage}
@@ -830,40 +840,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                       : `Give the ${silentClipSlotIds.length} silent clip${silentClipSlotIds.length === 1 ? '' : 's'} sound`}
                   </Button>
                 ) : null}
-                <div className="mt-2">
-                  <FilmCutOptionsDisclosure
-                    scoreBrief={{ mood: dayMood }}
-                    value={filmCutOptions}
-                    onChange={setFilmCutOptions}
-                    disabled={assemblingFilm}
-                    testIdPrefix="day-cut"
-                    shots={previewNarration.shots}
-                    narrationToRecord={{
-                      lines: previewNarration.missing.length,
-                      record: () => recordDayNarration(previewNarration.missing),
-                    }}
-                    identityFor={shotIdentity}
-                    previewTitleCard={character?.name ? { title: character.name } : null}
-                    previouslyAvailable={
-                      Boolean(character?.id) &&
-                      previouslyOnShots(loadPlaySeriesStore(), character!.id, character!.name)
-                        .length > 0
-                    }
-                  />
-                </div>
               </div>
               <ToolActionRow>
-                <Button
+                <ButtonLink
+                  href={cutHref}
                   size="sm"
                   variant="primary"
-                  disabled={busy || assemblingFilm || cutChecking}
-                  loading={cutChecking}
-                  loadingLabel="Checking the shots"
                   data-testid="day-cut-coach-cut"
-                  onClick={() => void cutDayFilm()}
                 >
-                  {assemblingFilm ? 'Cutting…' : 'Cut film'}
-                </Button>
+                  Open Cut →
+                </ButtonLink>
                 {completedShotCount < slotTotal ? (
                   <Button
                     size="sm"
@@ -1231,17 +1217,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             <ToolActionRow>
               {/* The sticky banner owns Cut while it shows; this is the way to it otherwise. */}
               {showReelCut ? (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={busy || assemblingFilm || cutChecking || completedShotCount === 0}
-                  loading={cutChecking}
-                  loadingLabel="Checking the shots"
-                  onClick={() => void cutDayFilm()}
-                  data-testid="day-reel-cut"
-                >
-                  {assemblingFilm ? 'Cutting…' : 'Cut film'}
-                </Button>
+                <ButtonLink href={cutHref} size="sm" variant="primary" data-testid="day-reel-cut">
+                  Cut film →
+                </ButtonLink>
               ) : null}
               {character && completedShotCount > 0 ? (
                 <ButtonLink

@@ -242,7 +242,7 @@ describe('play-metrics', () => {
   it('resolves funnel step hrefs with optional character id and look pack', () => {
     assert.equal(resolvePlayFunnelStepHref('day'), '/day');
     assert.equal(resolvePlayFunnelStepHref('day', 'c1'), '/day?character=c1');
-    assert.equal(resolvePlayFunnelStepHref('cut', 'c1'), '/day?character=c1');
+    assert.equal(resolvePlayFunnelStepHref('cut', 'c1'), '/cut?character=c1');
     assert.equal(resolvePlayFunnelStepHref('fitting', 'c1'), '/fitting?character=c1');
     assert.equal(resolvePlayFunnelStepHref('character'), '/characters');
     assert.equal(resolvePlayFunnelStepHref('moodboard', 'c1'), '/characters/c1?tab=overview#looks');
@@ -309,6 +309,6 @@ describe('play-metrics', () => {
       campaign: { characterId: 'c1', stepIndex: 3 },
     });
     assert.equal(cutStall?.stepId, 'cut');
-    assert.equal(resolvePlayFunnelStepHref(cutStall!.stepId, 'c1'), '/day?character=c1');
+    assert.equal(resolvePlayFunnelStepHref(cutStall!.stepId, 'c1'), '/cut?character=c1');
   });
 });

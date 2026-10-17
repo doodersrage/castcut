@@ -38,12 +38,17 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
       {
         href: '/day',
         label: 'Day',
-        description: 'Plan the scenes, render the stills, cut the film',
+        description: 'Plan the scenes and render the stills',
       },
       {
         href: '/story',
         label: 'Story',
         description: 'What happens next, scene by scene',
+      },
+      {
+        href: '/cut',
+        label: 'Cut',
+        description: 'Put the shots together into the film',
       },
       {
         href: '/character',

@@ -231,8 +231,9 @@ test.describe('Play dogfood glue', () => {
     await expect(metrics.getByTestId('play-funnel-stall')).toBeVisible();
     await expect(metrics.getByTestId('play-funnel-stall')).toHaveAttribute('data-stall-step', 'cut');
     await expect(metrics.getByTestId('play-stall-cta')).toBeVisible();
+    // The stalled step is the cut — its own page.
     const stallHref = await metrics.getByTestId('play-stall-cta').getAttribute('href');
-    expect(stallHref).toMatch(/\/day/);
+    expect(stallHref).toMatch(/\/cut/);
   });
 
   test('glued first-film funnel: stall CTA → Day cut → Save to Cast', async ({ page }) => {
@@ -393,28 +394,24 @@ test.describe('Play dogfood glue', () => {
     await expect(metrics.getByTestId('play-funnel-stall')).toHaveAttribute('data-stall-step', 'cut');
     await expect(metrics.getByTestId('play-stall-cta')).toBeVisible();
     await metrics.getByTestId('play-stall-cta').click();
-    await expect(page).toHaveURL(/\/day/, { timeout: 30_000 });
+    // The stalled step is the cut: its own page.
+    await expect(page).toHaveURL(/\/cut/, { timeout: 30_000 });
 
-    const cutBtn = page.getByTestId('day-cut-coach-cut');
+    const cutBtn = page.getByTestId('cut-film').first();
     await expect(cutBtn).toBeVisible({ timeout: 30_000 });
     await expect(cutBtn).toBeEnabled({ timeout: 10_000 });
     await cutBtn.click();
-    // First cut celebrate owns Watch; post-celebrate falls back to day-open-cast-film.
-    const castFilm = page
-      .getByTestId('day-first-cut-watch')
-      .or(page.getByTestId('day-save-film-cast'))
-      .or(page.getByTestId('day-open-cast-film'));
+    // After the cut, Cut says what comes next (Watch on Cast when the film was kept there).
+    const castFilm = page.getByTestId('cut-after');
     const cutSucceeded = await castFilm
       .first()
       .waitFor({ state: 'visible', timeout: 45_000 })
       .then(() => true)
       .catch(() => false);
     if (cutSucceeded) {
-      const watch = page.getByTestId('day-first-cut-watch');
+      const watch = page.getByTestId('cut-watch-cast');
       if ((await watch.count()) > 0) {
         await expect(watch).toHaveAttribute('href', /media=films/);
-      } else if ((await page.getByTestId('day-open-cast-film').count()) > 0) {
-        await expect(page.getByTestId('day-open-cast-film')).toHaveAttribute('href', /media=films/);
       }
       // Cut checks the shots' files first, so the cut lands a moment after the click.
       await expect

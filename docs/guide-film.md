@@ -1,12 +1,19 @@
 # Cut a film
 
-Cut has no page of its own — it lives where the shots are.
+**Cut** is the film's own step — the **Cut** tab, after Day and Story (`/cut`, on a phone
+`/m/cut`). Day's *Ready to cut* section and Story's **Cut film →** open it with their shots
+picked.
 
-| To… | Go to |
+| Part of the page | What it does |
 | --- | --- |
-| **Cut the film**, set **Cut options** | **Day** → the *Ready to cut* section at the top of the board (it appears once a still has finished), or the **Cut film** button by the reel. On **Story**, *Cut film* under the reel. |
-| **Re-cut, export, share** a finished film | **Cast page → Film & media → Films** → the buttons under the film |
-| **Stitch a season** | **Cast page → Film & media → Seasons** |
+| **What's in it** | Tick **Day**, **Story** or both — one film can mix the two |
+| **Watch the cut** | ▶ plays the cut as it will come out, before anything is encoded |
+| **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder |
+| **Options** | Shape, size, length, music, subtitles, titles — kept between visits |
+| **Your films** | Every film of this Cast: re-cut in another shape, export for an editor, share |
+
+After a cut: **Watch on Cast**, **Start tomorrow on Day** or **Continue as a story**.
+**Stitch a season** is on the **Cast page → Film & media → Seasons**.
 
 The film saves to the Gallery and to the Cast as an episode.
 
@@ -28,10 +35,12 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Look** | Crossfade · Slow zoom on stills · Title & captions |
 | **Subtitles** *(on)* | What is said in each talking clip — else the shot's narration — burned in at the bottom |
 
-## Shot list
+## Shots
 
-Reorder · leave out · edit captions · hold a still longer · **frame** a still (waist up,
-chest up) · **trim** a clip · pick the **poster**.
+Each shot is a card with its still (or the clip's first frame — hover to play it), the beat and
+what is said. **Drag** a card by its ⠿ grip to move it (or ↑ ↓), untick to leave it out, edit
+its caption, hold a still longer, **frame** a still (waist up, chest up), **trim** a clip, pick
+the **poster**.
 
 ## Sound
 

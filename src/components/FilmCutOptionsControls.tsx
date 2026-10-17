@@ -97,6 +97,11 @@ type FilmCutOptionsControlsProps = {
    * them, so the preview plays the whole mix. Cut film reuses the recordings.
    */
   narrationToRecord?: { lines: number; record: () => Promise<void> };
+  /**
+   * false: options only — the page shows the preview and the shot list itself (Cut). The shots
+   * still feed Score this film and the mix preview.
+   */
+  withShotPanels?: boolean;
 };
 
 /** Crossfade, shape and size, and audio bed for Day/Story/Cast Cut (upload or URL). */
@@ -112,6 +117,7 @@ export default function FilmCutOptionsControls({
   previouslyAvailable = false,
   storyExtras = false,
   narrationToRecord,
+  withShotPanels = true,
 }: FilmCutOptionsControlsProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -322,7 +328,7 @@ export default function FilmCutOptionsControls({
         </p>
       ) : null}
 
-      {shots && shots.length > 0 ? (
+      {withShotPanels && shots && shots.length > 0 ? (
         previewOpen ? (
           <FilmCutPreviewPlayer
             shots={shots}
@@ -366,7 +372,7 @@ export default function FilmCutOptionsControls({
         )
       ) : null}
 
-      {shots && shots.length > 0 ? (
+      {withShotPanels && shots && shots.length > 0 ? (
         <FilmCutShotList
           shots={shots}
           edits={value.shotEdits}
