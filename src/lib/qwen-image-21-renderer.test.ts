@@ -664,3 +664,36 @@ describe('Qwen-Image 2.1: four-person group header', () => {
     assert.match(out, /^Exactly four people, .* <image1>, <image2>, <image3> and <image4> are only the four people's faces/);
   });
 });
+
+describe('Qwen-Image 2.1: more than four reference pictures', () => {
+  it('carries image5 (the room photo of a four-person still) into the 2.1 encoder', () => {
+    const graph = {
+      '4': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: {
+          prompt: 'Day photo: Four people together — exactly four. Place: the room shown in Image 5.',
+          image1: ['900', 0],
+          image2: ['901', 0],
+          image3: ['902', 0],
+          image4: ['903', 0],
+          image5: ['904', 0],
+        },
+      },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'lead.png' } },
+      '901': { class_type: 'LoadImage', inputs: { image: 'day-partner-vl-1.png' } },
+      '902': { class_type: 'LoadImage', inputs: { image: 'third.png' } },
+      '903': { class_type: 'LoadImage', inputs: { image: 'fourth.png' } },
+      '904': { class_type: 'LoadImage', inputs: { image: 'room.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+    };
+    const w = convertQwenEditWorkflowToImage21(graph, { eightStep: true, eightStepTurbo: true })
+      .workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const enc = Object.values(w).find(n => n.class_type === 'TextEncodeQwenImage21')!;
+    const fifth = enc.inputs['images.image_5'] as [string, number];
+    assert.ok(fifth, 'image_5 wired');
+    assert.equal(w[fifth[0]].inputs.image, 'room.png');
+  });
+});

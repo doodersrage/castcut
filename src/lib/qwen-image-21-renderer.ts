@@ -1,4 +1,5 @@
 import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
+import { MAX_INPUT_IMAGE_FILENAMES } from './workflow-load-image-bindings';
 import { beatLiesDown } from './beat-text';
 
 /**
@@ -613,7 +614,7 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { clip_name: QWEN_IMAGE_21_FILES.clip, type: 'qwen_image', device: 'default' },
   });
   const vae = add({ class_type: 'VAELoader', inputs: { vae_name: QWEN_IMAGE_21_FILES.vae } });
-  const referenceFiles = [1, 2, 3, 4]
+  const referenceFiles = Array.from({ length: MAX_INPUT_IMAGE_FILENAMES }, (_, i) => i + 1)
     .map(slot => encoder.inputs[`image${slot}`])
     .filter(isRef)
     .map(ref => sourceFilename(workflow, ref));
@@ -655,8 +656,8 @@ export function convertQwenEditWorkflowToImage21(
   const duoMapDelivery = nudeStill ? profile.mapDelivery.duoNude : profile.mapDelivery.duoClothed;
   const kept: Array<{ from: number; ref: [string, number] }> = [];
   const dropped: number[] = [];
-  // Slot 4 too: a group still's room photo (the queue wires image4 on the encoder node).
-  for (let slot = 1; slot <= 4; slot += 1) {
+  // Every slot the queue wires (image1 … imageN): a group still's fourth face, its room photo.
+  for (let slot = 1; slot <= MAX_INPUT_IMAGE_FILENAMES; slot += 1) {
     const ref = encoder.inputs[`image${slot}`];
     if (!isRef(ref)) continue;
     const filename = sourceFilename(workflow, ref);

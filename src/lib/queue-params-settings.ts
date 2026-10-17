@@ -1,4 +1,7 @@
-import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
+import {
+  MAX_INPUT_IMAGE_FILENAMES,
+  normalizeInputImageFilenames,
+} from './workflow-load-image-bindings';
 import { isLockLatentSizeParams, type WorkflowParamValues } from './comfyui-config';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
@@ -462,8 +465,8 @@ export function resolveQueueParams(
     // (resolveQueueParams in comfyui-config still closes them up before the graph is built;
     // see the note there.)
     const resolvedFilenames = (() => {
-      const fromArg = (inputImageFilenames ?? []).slice(0, 4);
-      const fromBase = (base?.inputImageFilenames ?? []).slice(0, 4);
+      const fromArg = (inputImageFilenames ?? []).slice(0, MAX_INPUT_IMAGE_FILENAMES);
+      const fromBase = (base?.inputImageFilenames ?? []).slice(0, MAX_INPUT_IMAGE_FILENAMES);
       const list = fromArg.some(entry => entry?.trim()) ? fromArg : fromBase;
       const primary =
         inputImageFilename?.trim() || base?.inputImageFilename?.trim() || list[0]?.trim() || '';
@@ -488,7 +491,7 @@ export function resolveQueueParams(
       const fromBase = (base?.controlImageFilenames ?? [])
         .map(entry => entry?.trim() ?? '')
         .filter(Boolean);
-      const list = (fromArg.length > 0 ? fromArg : fromBase).slice(0, 4);
+      const list = (fromArg.length > 0 ? fromArg : fromBase).slice(0, MAX_INPUT_IMAGE_FILENAMES);
       if (list.length === 0 && resolvedControlImage) {
         return [resolvedControlImage];
       }

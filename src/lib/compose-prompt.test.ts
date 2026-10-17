@@ -476,3 +476,16 @@ describe("composeDefaultModel", () => {
     assert.equal(composeDefaultModel(null), "qwen-image-edit-2511-lightning-8");
   });
 });
+
+describe('reference picture limits', () => {
+  it('the queue carries eight pictures; Compose keeps four figures', async () => {
+    const { MAX_INPUT_IMAGE_FILENAMES, normalizeInputImageFilenames, QWEN_EDIT_ENCODE_IMAGE_KEYS } =
+      await import('./workflow-load-image-bindings');
+    const { MAX_COMPOSE_FIGURES } = await import('./compose-prompt');
+    assert.equal(MAX_INPUT_IMAGE_FILENAMES, 8);
+    assert.equal(MAX_COMPOSE_FIGURES, 4);
+    assert.deepEqual(QWEN_EDIT_ENCODE_IMAGE_KEYS.slice(-1), ['image8']);
+    const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+    assert.deepEqual(normalizeInputImageFilenames('a', names), names.slice(0, 8));
+  });
+});

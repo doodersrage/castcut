@@ -2489,8 +2489,8 @@ export function useDayPlannerToolOrchestrationCore() {
         }
         // A fourth person: their face as Image 4 — Qwen-Image 2.1 reads four (Turbo, four group
         // beats × 2 seeds: four distinct people in their own clothes 8/8, the lead's face as
-        // close as in three-person stills on the portrait canvas, 2026-10-17). The room photo,
-        // which would take Image 4, stays in words.
+        // close as in three-person stills on the portrait canvas, 2026-10-17). The room photo
+        // then rides as Image 5 (below).
         let fourthPerson: DayThirdPerson | null = null;
         const fourthCharacter =
           thirdPerson && queueTarget.fourthCastId?.trim()
@@ -2593,6 +2593,21 @@ export function useDayPlannerToolOrchestrationCore() {
         if (roomAsImage4) {
           extraUrls[3] = undefined;
           extraFilenames[3] = roomAsImage4.filename;
+        }
+        // A four-person still (Image 4 is the fourth face): the room photo as Image 5 — the queue
+        // carries up to eight pictures and Qwen-Image 2.1 reads them all. Turbo, the same sofa
+        // beat and seeds (2026-10-17): the exact room 3/3 (0/3 from words alone), four distinct
+        // people; the lead's face 0.33 → 0.47 (three-person stills 0.52), ~7 s more.
+        const roomAsImage5 =
+          fourthPerson !== null &&
+          !placePhoto &&
+          Boolean(extraFilenames[3]?.trim()) &&
+          !extraFilenames[4]?.trim()
+            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            : null;
+        if (roomAsImage5) {
+          extraUrls[4] = undefined;
+          extraFilenames[4] = roomAsImage5.filename;
         }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
@@ -2705,7 +2720,11 @@ export function useDayPlannerToolOrchestrationCore() {
           thirdPerson
             ? roomAsImage4
               ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson), 4, { lead: true })
-              : withThirdPerson(finalized, thirdPerson, fourthPerson)
+              : roomAsImage5
+                ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson, fourthPerson), 5, {
+                    lead: true,
+                  })
+                : withThirdPerson(finalized, thirdPerson, fourthPerson)
             : roomAsImage4
               ? withPlacePhotoInLongAdultBrief(finalized, 4)
               : placePhoto
@@ -2728,8 +2747,9 @@ export function useDayPlannerToolOrchestrationCore() {
           people: poseExpectation?.keypoints.length || undefined,
           imageCount:
             1 +
-            [1, 2, 3].filter(index => Boolean(extraFilenames[index]?.trim() || extraUrls[index]))
-              .length,
+            extraFilenames
+              .map((name, index) => Boolean(name?.trim() || extraUrls[index]))
+              .filter((attached, index) => index > 0 && attached).length,
           // Clothed stills: the pose's furniture must fit the Setting. Adult beats own their rooms.
           setting: adultStill
             ? null

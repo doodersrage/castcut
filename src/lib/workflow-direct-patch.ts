@@ -34,6 +34,7 @@ import {
   countFigureLoadImageSlots,
   inferLoadImageBinding,
   normalizeInputImageFilenames,
+  QWEN_EDIT_ENCODE_IMAGE_KEYS,
 } from './workflow-load-image-bindings';
 import { ensureKleinReferenceLatentWiringInWorkflow } from './workflow-img2img-patch';
 import {
@@ -62,7 +63,7 @@ const QWEN_EDIT_ENCODE_TYPES = new Set([
   'TextEncodeQwenImageEditPlus',
   'TextEncodeBooguEdit',
 ]);
-const QWEN_EDIT_IMAGE_INPUT_KEYS = ['image', 'image1', 'image2', 'image3', 'image4'] as const;
+const QWEN_EDIT_IMAGE_INPUT_KEYS: readonly string[] = ['image', ...QWEN_EDIT_ENCODE_IMAGE_KEYS];
 
 function workflowNodeLinkId(value: unknown): string | null {
   return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : null;

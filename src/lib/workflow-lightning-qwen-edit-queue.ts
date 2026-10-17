@@ -30,7 +30,10 @@ import {
 } from './workflow-lightning-queue';
 import type { WorkflowParamValues } from './comfyui-config';
 import { isEditCapableModel, isBooguEditModel } from './model-denoise-defaults';
-import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
+import {
+  normalizeInputImageFilenames,
+  QWEN_EDIT_ENCODE_IMAGE_KEYS,
+} from './workflow-load-image-bindings';
 
 export function disconnectQwenEditReferenceImagesForTxt2Img(
   workflow: Record<string, unknown>,
@@ -154,7 +157,8 @@ export function ensureQwenEditReferenceImagesForImg2Img(
   const forceRewire = options.forceRewire !== false;
   const wireEncodeSlots = options.wireEncodeSlots !== false;
   const next = structuredClone(workflow) as Record<string, WorkflowNodeRecord>;
-  const encodeImageKeys = ['image1', 'image2', 'image3', 'image4'] as const;
+  const encodeImageKeys = QWEN_EDIT_ENCODE_IMAGE_KEYS;
+  // Boogu's encoder stays at four pictures.
   const booguEncodeImageKeys = [
     'images.image_1',
     'images.image_2',
@@ -322,10 +326,7 @@ export function scaleQwenEditReferenceImagesToLatentSize(
   const next = structuredClone(workflow) as Record<string, WorkflowNodeRecord>;
   const encodeImageKeys = [
     'image',
-    'image1',
-    'image2',
-    'image3',
-    'image4',
+    ...QWEN_EDIT_ENCODE_IMAGE_KEYS,
     'image_1',
     'image_2',
     'image_3',
@@ -334,7 +335,7 @@ export function scaleQwenEditReferenceImagesToLatentSize(
     'images.image_2',
     'images.image_3',
     'images.image_4',
-  ] as const;
+  ];
   const scaledLoaderIds = new Map<string, string>();
   let scaledSlotCount = 0;
 

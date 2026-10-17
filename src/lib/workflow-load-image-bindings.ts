@@ -134,7 +134,20 @@ export function countFigureLoadImageSlots(
   return figureCount;
 }
 
-export const MAX_INPUT_IMAGE_FILENAMES = 4;
+/**
+ * Reference pictures a queue carries (Image 1 … Image N). Qwen-Image 2.1's encoder takes up to 16;
+ * eight leaves room for a four-person still plus its room photo (Turbo 2026-10-17: the room as
+ * Image 5 — the exact room 3/3, four distinct people, ~7 s more). Engines whose encoder reads
+ * fewer simply ignore the extra inputs (Edit 2511 / Rapid read image1–image3; image4 already rode
+ * along this way).
+ */
+export const MAX_INPUT_IMAGE_FILENAMES = 8;
+
+/** `image1` … `imageN` — the edit encoder's picture inputs, one per reference slot. */
+export const QWEN_EDIT_ENCODE_IMAGE_KEYS: readonly string[] = Array.from(
+  { length: MAX_INPUT_IMAGE_FILENAMES },
+  (_, i) => `image${i + 1}`
+);
 
 /** Normalize figure filenames: prefer array; fall back to single primary. */
 export function normalizeInputImageFilenames(

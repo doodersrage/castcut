@@ -421,7 +421,8 @@ export default function DaySlotSheet({
               <span className="type-caption block text-[var(--text-muted)]">
                 A third Cast member with the lead and the partner — on two-person stills, Edit 2511
                 or Qwen-Image 2.1 (their face takes the pose map&apos;s place; the pose is said in
-                words). A fourth needs Qwen-Image 2.1; the room photo then stays in words.
+                words). A fourth needs Qwen-Image 2.1 (the room photo, if any, rides as a fifth
+                picture).
               </span>
             </div>
           ) : null}

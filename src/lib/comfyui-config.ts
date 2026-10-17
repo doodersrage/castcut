@@ -58,7 +58,10 @@ import {
   patchWorkflowDirectParams,
   replaceUpscaleModelTokenInJson,
 } from './workflow-direct-patch';
-import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
+import {
+  MAX_INPUT_IMAGE_FILENAMES,
+  normalizeInputImageFilenames,
+} from './workflow-load-image-bindings';
 import type { ModelLoaderFilenames } from './model-checkpoint-map';
 import { matchInventoryFilenameNearMiss } from './loader-map-inventory-sync';
 import { isVideoCheckpointMapKey, pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
@@ -506,7 +509,7 @@ export function resolveQueueParams(
     const filenames = merged.inputImageFilenames
       .map(entry => entry?.trim() ?? '')
       .filter(Boolean)
-      .slice(0, 4);
+      .slice(0, MAX_INPUT_IMAGE_FILENAMES);
     if (filenames.length > 0) {
       result.inputImageFilenames = filenames;
       if (!result.inputImageFilename) {

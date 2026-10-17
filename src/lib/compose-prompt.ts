@@ -96,7 +96,8 @@ export function composeDefaultModel(
 export const Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING =
   'Z-Image sends Image 1 to the sampler. Image 2–4 stay in the prompt.';
 
-export const MAX_COMPOSE_FIGURES = MAX_INPUT_IMAGE_FILENAMES;
+/** Compose keeps four figure slots (its UI and engines are built around Image 1–4). */
+export const MAX_COMPOSE_FIGURES = Math.min(4, MAX_INPUT_IMAGE_FILENAMES);
 
 export type ComposeMode = 'transfer' | 'modify';
 

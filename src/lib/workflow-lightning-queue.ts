@@ -1,4 +1,5 @@
 import { isQwenLightningModel } from './model-sampling-patch';
+import { QWEN_EDIT_ENCODE_IMAGE_KEYS } from './workflow-load-image-bindings';
 import { isBooguTurboModel } from './model-denoise-defaults';
 import {
   filenameLooksLikeCheckpointOnly,
@@ -85,13 +86,10 @@ export const QWEN_EDIT_ENCODE_TYPES = new Set([
   'TextEncodeBooguEdit',
 ]);
 
-export const QWEN_EDIT_IMAGE_INPUT_KEYS = [
+export const QWEN_EDIT_IMAGE_INPUT_KEYS: readonly string[] = [
   'image',
-  'image1',
-  'image2',
-  'image3',
-  'image4',
-] as const;
+  ...QWEN_EDIT_ENCODE_IMAGE_KEYS,
+];
 
 const QWEN_REF_LATENT_SCALE_TITLE = 'Castcut — ref → latent size';
 
@@ -191,7 +189,7 @@ export function wireQwenEditEncodeVisionImages(
   workflow: Record<string, WorkflowNodeRecord>,
   loaderIds: string[]
 ): string[] {
-  const encodeImageKeys = ['image1', 'image2', 'image3', 'image4'] as const;
+  const encodeImageKeys = QWEN_EDIT_ENCODE_IMAGE_KEYS;
   const wiredNodeIds: string[] = [];
 
   for (const [nodeId, node] of Object.entries(workflow)) {
