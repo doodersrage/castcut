@@ -225,7 +225,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     kind: 'unet',
     filename: 'qwen_image_2.1_turbo_int8_convrot.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors',
-    bytes: 7258392528,
+    bytes: 7256787829,
     sha256: '8144a0182964aa8403ad6dbc011db837304167d235161b9aabaa8532e967314c',
     modelIds: ['qwen-image-2.1-edit-turbo-8'],
     notes:
