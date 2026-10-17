@@ -70,7 +70,7 @@ export function outfitJudgePrompt(planned: string, seen: string): string {
     'Could the description be that outfit, loosely read? Count it as the same when it is the same ' +
     "general kind of clothing in a similar colour: any athletic wear fits a sport's sportswear " +
     '(a wetsuit fits surfing), a costume fits its pieces (armour, robe, kimono), a suit or tuxedo ' +
-    'fits a blazer with trousers, and close colours count (burgundy/maroon, sand/gold, taupe/silver). ' +
+    'fits a blazer with trousers, and close colours count (burgundy/maroon, sand/gold, taupe/silver, and cream, ivory, champagne, gold and silver satin are one family). ' +
     'Shoes and accessories do not matter. Answer no only when it is clearly a different kind of ' +
     'clothing (a dress instead of a suit, jeans instead of a uniform, a nightie instead of swimwear) ' +
     'or a clearly different colour. Answer only yes or no.'

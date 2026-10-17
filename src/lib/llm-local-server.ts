@@ -39,6 +39,15 @@ export const LOCAL_LLM_MODELS: readonly LocalLlmModelChoice[] = [
     note: 'What the checks were tuned on; writes Story and reads adult stills too.',
   },
   {
+    id: 'qwen3-vl-8b-instruct-abliterated',
+    label: 'Qwen3-VL 8B Instruct (abliterated)',
+    repo: 'mradermacher/Qwen3-VL-8B-Instruct-abliterated-GGUF',
+    file: 'Qwen3-VL-8B-Instruct-abliterated.IQ4_XS.gguf',
+    mmproj: 'Qwen3-VL-8B-Instruct-abliterated.mmproj-Q8_0.gguf',
+    sizeGb: 5.3,
+    note: 'Smaller and a stricter judge (wrong outfits passed 0/40, extra people 7/8); not yet checked on the gesture, posture and shoe checks.',
+  },
+  {
     id: 'qwen3-vl-8b-instruct',
     label: 'Qwen3-VL 8B Instruct',
     repo: 'lmstudio-community/Qwen3-VL-8B-Instruct-GGUF',

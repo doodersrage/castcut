@@ -30,6 +30,14 @@ export const VISION_MODEL_CHOICES: readonly VisionModelChoice[] = [
     note: `What ${PRODUCT_NAME}'s checks were tuned on; reads adult stills too.`,
   },
   {
+    id: 'qwen3-vl-8b-instruct-abliterated',
+    label: 'Qwen3-VL 8B Instruct (abliterated)',
+    model: 'https://huggingface.co/mradermacher/Qwen3-VL-8B-Instruct-abliterated-GGUF',
+    quantization: 'IQ4_XS',
+    sizeGb: 5.3,
+    note: 'Smaller and a stricter judge (wrong outfits passed 0/40, extra people 7/8); not yet checked on the gesture, posture and shoe checks.',
+  },
+  {
     id: 'qwen3-vl-8b-instruct',
     label: 'Qwen3-VL 8B Instruct',
     model: 'https://huggingface.co/lmstudio-community/Qwen3-VL-8B-Instruct-GGUF',
