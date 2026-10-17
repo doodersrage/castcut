@@ -396,6 +396,9 @@ export default function DaySlotSheet({
                 ]}
               />
               {slot.thirdCastId && groupOptions.some(option => option.id !== slot.thirdCastId) ? (
+                <FieldLabel>And a fourth</FieldLabel>
+              ) : null}
+              {slot.thirdCastId && groupOptions.some(option => option.id !== slot.thirdCastId) ? (
                 <PortraitTileStrip
                   label="And a fourth"
                   value={slot.fourthCastId ?? ''}
