@@ -1,13 +1,14 @@
 /**
  * "Dance to this music": a still's person dances to a song on Wan-Dancer (Comfy-Org/Wan-Dancer,
  * Apache-2.0; ComfyUI's WanDancerVideo), the official template's two stages — the global model
- * plans 149 keyframes from the whole song, the local model renders each ~6 s segment between
- * them at 25 fps. The style and how big the moves are go in as the Wan team's own (Chinese)
- * prompt words. Client-safe: graph and choices only.
+ * plans 149 keyframes from the whole song, the local model renders each ~5 s segment between
+ * them at 30 fps (the nodes' own rate). The style and how big the moves are go in as the Wan
+ * team's own (Chinese) prompt words. Client-safe: graph and choices only.
  */
 
 export const MUSIC_DANCE_SAVE_NODE = '900';
-export const MUSIC_DANCE_FPS = 25;
+/** The Wan-Dancer nodes time audio and keyframes at 30 fps; written slower, the dance lags the beat. */
+export const MUSIC_DANCE_FPS = 30;
 /** Frames per segment (the model's window). */
 export const MUSIC_DANCE_SEGMENT = 149;
 /** Longest song taken, in seconds (the template's top choice). */
@@ -185,7 +186,7 @@ export function buildMusicDanceGraph(input: {
       inputs: { samples: ['22', 0], dim: 't', slice_size: 1 },
     },
     '24': { class_type: 'VAEDecode', inputs: { samples: ['23', 0], vae: ['3', 0] } },
-    // Stage 2: the local model renders each segment between the keyframes at 25 fps.
+    // Stage 2: the local model renders each segment between the keyframes at 30 fps.
     '30': {
       class_type: 'UNETLoader',
       inputs: { unet_name: MUSIC_DANCE_MODELS.local, weight_dtype: 'default' },

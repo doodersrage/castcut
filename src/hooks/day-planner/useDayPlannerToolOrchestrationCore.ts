@@ -3,6 +3,7 @@
 import {
   castPlacePhotoFor,
   withPlacePhotoInAdultPrompt,
+  withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
 } from '@/lib/cast-places';
 import { applyDayNarration } from '@/lib/day-narration';
@@ -2523,6 +2524,27 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[3] = undefined;
           extraFilenames[3] = kleinFaceFilename;
         }
+        // The room photo as Image 4 where Image 3 is spoken for — a group still's third face, or
+        // the two-skeleton map of the long adult duo brief. Its ReferenceLatent carries the room
+        // (the text encoder reads only three pictures). Live 2026-10-17: group stills the room
+        // 8/8 (three people, own clothes); two-skeleton duos the room 4/4, both people.
+        const roomAsImage4 =
+          !placePhoto &&
+          !adultPlacePhoto &&
+          !adultDuoPlacePhoto &&
+          !extraFilenames[3]?.trim() &&
+          Boolean(extraFilenames[2]?.trim() || extraUrls[2]) &&
+          (thirdPerson !== null ||
+            (adultStill &&
+              Boolean(partnerFace) &&
+              /rapid-aio/i.test(stillModel ?? '') &&
+              /OpenPose keypoint skeleton|Image 3 has two skeletons/.test(finalized)))
+            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            : null;
+        if (roomAsImage4) {
+          extraUrls[3] = undefined;
+          extraFilenames[3] = roomAsImage4.filename;
+        }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
@@ -2632,14 +2654,20 @@ export function useDayPlannerToolOrchestrationCore() {
         // No garment: the queue compacts the guide into the second image — say so.
         const numbered = queuedDayStillPrompt(
           thirdPerson
-            ? withThirdPerson(finalized, thirdPerson)
-            : placePhoto
-              ? withPlacePhotoInPrompt(finalized, 3, { lead: /rapid-aio/i.test(stillModel ?? '') })
-              : adultPlacePhoto
-                ? withPlacePhotoInAdultPrompt(finalized)
-                : adultDuoPlacePhoto
-                  ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
-                  : finalized,
+            ? roomAsImage4
+              ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson), 4, { lead: true })
+              : withThirdPerson(finalized, thirdPerson)
+            : roomAsImage4
+              ? withPlacePhotoInLongAdultBrief(finalized, 4)
+              : placePhoto
+                ? withPlacePhotoInPrompt(finalized, 3, {
+                    lead: /rapid-aio/i.test(stillModel ?? ''),
+                  })
+                : adultPlacePhoto
+                  ? withPlacePhotoInAdultPrompt(finalized)
+                  : adultDuoPlacePhoto
+                    ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
+                    : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),

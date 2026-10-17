@@ -9,6 +9,7 @@ import {
   resolveCastPlace,
   withCastPlace,
   withPlacePhotoInAdultPrompt,
+  withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
 } from './cast-places';
 
@@ -178,5 +179,25 @@ describe('room photos in the long Outfit Keep brief', () => {
       /^SETTING \(mandatory — replace Image 1 background entirely\): the room shown in Image 3 is where the subject is — exactly that room: living room, in the room shown in Image 3/
     );
     assert.match(out, /single-subject framing\. clean skin/);
+  });
+});
+
+describe('withPlacePhotoInLongAdultBrief', () => {
+  it('names the room in the brief\'s scene sentence; the map lines stay', () => {
+    const brief =
+      'Change the scene so she is indoors at sunlit bedroom with rumpled sheets — opaque walls only, lit only by indoor lamp or window light. Image 3 has two skeletons.';
+    const out = withPlacePhotoInLongAdultBrief(brief, 4);
+    assert.match(
+      out,
+      /^Change the scene so she is indoors in the room shown in Image 4 — exactly that room: the same walls, floor, windows, furniture, plants and colours — opaque walls only/
+    );
+    assert.match(out, /Image 3 has two skeletons\./);
+  });
+
+  it('falls back to a Room sentence', () => {
+    assert.match(
+      withPlacePhotoInLongAdultBrief('Moment: on the sofa.', 4),
+      /Moment: on the sofa\. Room: the room shown in Image 4/
+    );
   });
 });

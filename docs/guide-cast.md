@@ -42,8 +42,9 @@ kitchen) uses that place's look, so the rooms match from slot to slot.
 | Clothed, one person, Edit 2511 | Yes — furniture, colours, walls, windows |
 | Clothed, one person, Rapid | On its short scene recipe, yes; with an Outfit Keep plate's long brief, the place words instead |
 | Clothed, two people (a Cast partner), Edit 2511 | Yes — the photo takes the pose map's place |
-| Intimate / Raunchy, one person or two, Rapid | Yes (one person: the sofa and plants more than the whole room; two people: not with the long brief that draws two skeletons) |
-| Clothed two people on Rapid, three people, Klein, Qwen-Image 2.1 | No — the place words instead |
+| Clothed, three people (a partner and a friend), Edit 2511 | Yes — as a fourth picture, after the three faces |
+| Intimate / Raunchy, one person or two, Rapid | Yes (one person: the sofa and plants more than the whole room; two people with the long two-skeleton brief: as a fourth picture) |
+| Clothed two people on Rapid, Klein, Qwen-Image 2.1 | No — the place words instead |
 
 ## Move a Cast
 

@@ -47,10 +47,14 @@ export function withThirdPerson(prompt: string, third: DayThirdPerson): string {
   const head = dayStart >= 0 ? prompt.slice(0, dayStart) : '';
   const body = dayStart >= 0 ? prompt.slice(dayStart) : prompt;
   return (
-    head.replace(
-      /\bthe other person wears [^;.\n]*?(?: — never the same pair)?\./,
-      'the others wear their own shoes.'
-    ) +
+    head
+      .replace(
+        /\bthe other person wears [^;.\n]*?(?: — never the same pair)?\./,
+        'the others wear their own shoes.'
+      )
+      // The POSE FIRST line: Image 3 is the third face now, not a pose map.
+      .replace(/(\bPOSE FIRST: )the two people — /, '$1all three people — ')
+      .replace(/,? exactly as the pose map in Image \d shows/g, '') +
     body
       .replace(
         TWO_TOGETHER_RE,

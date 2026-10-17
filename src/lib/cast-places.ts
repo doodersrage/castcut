@@ -377,6 +377,22 @@ export function withPlacePhotoInPrompt(
     );
 }
 
+/**
+ * The long adult brief (qwen-rapid-nude-edit.ts, where Image 3 is the two-skeleton map) with a
+ * room photo as Image `image`: its "Change the scene so she is indoors at …" names that room.
+ * Live (Rapid AIO NSFW v23, 2026-10-17, the room as Image 4 with only its ReferenceLatent): see
+ * the hook's roomAsImage4.
+ */
+export function withPlacePhotoInLongAdultBrief(prompt: string, image = 4): string {
+  const scene = /\bChange the scene so (she|he) is indoors at [^.]*?(?= — |, lit )/;
+  return scene.test(prompt)
+    ? prompt.replace(
+        scene,
+        `Change the scene so $1 is indoors in the room shown in Image ${image} — exactly that room: the same walls, floor, windows, furniture, plants and colours`
+      )
+    : withPlacePhotoInAdultPrompt(prompt, image);
+}
+
 /** Keep (or with null, drop) the photo of one room on the Cast. */
 export function saveCastPlacePhoto(
   castId: string,

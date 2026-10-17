@@ -1026,7 +1026,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/Comfy-Org/Wan-Dancer/resolve/main/diffusion_models/wan2.2_dancer_14b_local_fp8_scaled.safetensors',
     bytes: 18342596856,
     modelIds: ['music-dance'],
-    notes: 'Dance to music: renders each segment at 25 fps.',
+    notes: 'Dance to music: renders each segment at 30 fps.',
   },
   {
     id: 'lightx2v-i2v-480p-distill',

@@ -24,6 +24,16 @@ describe('withThirdPerson', () => {
     assert.doesNotMatch(out, /pose map|both fully/);
   });
 
+  it('drops the pose map from the POSE FIRST line too (Image 3 is the third face)', () => {
+    const out = withThirdPerson(
+      'Edit Image 1: POSE FIRST: the two people — walking along the path, all laughing, exactly as the pose map in Image 3 shows.\n' +
+        DUO.replace('Edit Image 1: ', ''),
+      { noun: 'woman' }
+    );
+    assert.match(out, /POSE FIRST: all three people — walking along the path, all laughing\./);
+    assert.doesNotMatch(out, /pose map/);
+  });
+
   it('two women; a man third', () => {
     const out = withThirdPerson(DUO.replace('A woman and a man', 'Two women'), { noun: 'man' });
     assert.match(out, /the woman from the first image, the woman from the second image, and the man from the third image/);
