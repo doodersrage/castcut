@@ -2457,10 +2457,13 @@ export function useDayPlannerToolOrchestrationCore() {
             !adultStill &&
             Boolean(partnerFace) &&
             !kleinFaceFilename &&
-            /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '');
+            // Qwen-Image 2.1 too (the third face as its third reference): Turbo, four group
+            // graphs × 2 seeds, three distinct people in their own clothes 8/8 (2026-10-17).
+            (/qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
+              poseModelFamily(stillModel) === 'qwen-image-2.1');
           if (!groupOk) {
             referenceNotes.push(
-              `${thirdCharacter.name} was left out: three-person stills need Edit 2511, a clothed mood and a partner in the still.`
+              `${thirdCharacter.name} was left out: three-person stills need Edit 2511 or Qwen-Image 2.1, a clothed mood and a partner in the still.`
             );
           } else {
             const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({

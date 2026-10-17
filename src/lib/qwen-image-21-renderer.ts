@@ -344,6 +344,10 @@ export function withTwoPersonFaces(
   const duo = /\bTWO PEOPLE\b/.test(prompt) || partnerImage != null;
   if (!duo) return prompt;
   if (!faces.droppedPoseMap && partnerImage == null) return prompt;
+  // A group still (day-group.ts: "Three people together", the third face as <image3>).
+  if (/\bThree people together\b/.test(prompt)) {
+    return `Exactly three people, each with exactly two arms on their own body — no extra, floating, or shared arm. <image1>, <image2> and <image3> are only the three people's faces, hair and skin — three different people, never the same face twice, and do not paste those photos into the scene. ${prompt}`;
+  }
   const parts = [
     'Exactly two people, each with exactly two arms on their own body — no extra, floating, or shared arm.',
   ];
@@ -493,7 +497,7 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { clip_name: QWEN_IMAGE_21_FILES.clip, type: 'qwen_image', device: 'default' },
   });
   const vae = add({ class_type: 'VAELoader', inputs: { vae_name: QWEN_IMAGE_21_FILES.vae } });
-  const referenceFiles = [1, 2, 3]
+  const referenceFiles = [1, 2, 3, 4]
     .map(slot => encoder.inputs[`image${slot}`])
     .filter(isRef)
     .map(ref => sourceFilename(workflow, ref));
@@ -534,7 +538,8 @@ export function convertQwenEditWorkflowToImage21(
   const duoMapDelivery = nudeStill ? profile.mapDelivery.duoNude : profile.mapDelivery.duoClothed;
   const kept: Array<{ from: number; ref: [string, number] }> = [];
   const dropped: number[] = [];
-  for (let slot = 1; slot <= 3; slot += 1) {
+  // Slot 4 too: a group still's room photo (the queue wires image4 on the encoder node).
+  for (let slot = 1; slot <= 4; slot += 1) {
     const ref = encoder.inputs[`image${slot}`];
     if (!isRef(ref)) continue;
     const filename = sourceFilename(workflow, ref);

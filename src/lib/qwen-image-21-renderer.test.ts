@@ -22,6 +22,7 @@ import {
   withoutDroppedReferences,
   withDistinctPartnerOutfit,
   withProfilePromptFixes,
+  withTwoPersonFaces,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -503,5 +504,16 @@ describe('Qwen-Image 2.1 Lightning model', () => {
     assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit-pruna-8'), true);
     assert.equal(isQwenImage21LightningModel('qwen-image-2.1-edit'), false);
     assert.equal(isQwenImage21LightningModel('qwen-image-2512-lightning-4'), false);
+  });
+});
+
+describe('Qwen-Image 2.1: group stills', () => {
+  it('opens a three-person still with three people, not two', () => {
+    const out = withTwoPersonFaces(
+      'Day photo: Three people together — exactly three, the woman from the first image, the man from the second image, and the woman from the third image.',
+      { partnerImage: 2, droppedPoseMap: false }
+    );
+    assert.match(out, /^Exactly three people/);
+    assert.doesNotMatch(out, /Exactly two people/);
   });
 });
