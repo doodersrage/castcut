@@ -251,6 +251,7 @@ export function migrateCharactersFromLegacy(input: {
       migratedFromBundles: true,
       characters,
       removedIds: store.removedIds,
+      removedAt: store.removedAt,
     })
   );
   return characters;

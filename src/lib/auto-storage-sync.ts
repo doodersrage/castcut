@@ -29,6 +29,7 @@ import {
 } from './gallery-deleted-ids';
 import {
   applyStudioExtras,
+  mergeServerRecordListsIntoLocal,
   collectStudioExtras,
   foldLegacyNamespacesIntoExtras,
   localStudioExtrasLooksEmpty,
@@ -472,6 +473,12 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     !localStudioExtrasLooksEmpty(serverExtras)
   ) {
     withLocalWritesPreserved(pullStartedAt, () => applyStudioExtras(serverExtras));
+  } else if (serverExtras) {
+    // A device with its own data still takes the other device's Cast and stories, record by
+    // record (before: it kept its whole Cast and pushed it back over the server's).
+    withLocalWritesPreserved(pullStartedAt, () => {
+      mergeServerRecordListsIntoLocal(serverExtras);
+    });
   }
 
   const conflicts = await probeStorageConflicts();

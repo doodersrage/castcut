@@ -6,6 +6,7 @@ import {
   type StorageNamespace,
 } from '@/lib/server-storage';
 import { isStorageNamespace } from '@/lib/storage-namespaces';
+import { withMergedRecordLists } from '@/lib/record-list-sync';
 import { storageFingerprint } from '@/lib/storage-sync';
 import {
   readUserServerStorage,
@@ -100,7 +101,16 @@ export async function POST(request: Request) {
 
     const userId = resolveStorageUser(request);
     try {
-      const userScoped = writeScopedStorage(body.namespace, body.data, userId);
+      // studio-extras: the Cast and stories merge record by record with what the server has
+      // (record-list-sync.ts) — one device's whole-list push replaced the other's Cast edits.
+      const data =
+        body.namespace === 'studio-extras' && body.data && typeof body.data === 'object'
+          ? withMergedRecordLists(
+              body.data as Record<string, unknown>,
+              (readScopedStorage(body.namespace, userId) ?? {}) as Record<string, unknown>
+            )
+          : body.data;
+      const userScoped = writeScopedStorage(body.namespace, data, userId);
       return apiJson({
         ok: true,
         namespace: body.namespace,

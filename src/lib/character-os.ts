@@ -416,6 +416,8 @@ type CharacterStore = {
   characters: CharacterRecord[];
   /** Ids dropped from Cast — migrate must not resurrect them from Roleplay archives. */
   removedIds?: string[];
+  /** When each removed id was dropped (ms) — the cross-device merge (record-list-sync.ts). */
+  removedAt?: Record<string, number>;
 };
 
 const EMPTY_CHARACTERS: CharacterRecord[] = [];
@@ -996,6 +998,10 @@ export function readStore(): CharacterStore {
     characters: raw.characters
       .filter(entry => entry && readName(entry.name) && entry.id)
       .map(normalizeCharacterRecord),
+    removedAt:
+      raw.removedAt && typeof raw.removedAt === 'object'
+        ? Object.fromEntries(Object.entries(raw.removedAt).filter(([, at]) => Number.isFinite(at)))
+        : {},
     removedIds: uniqueIds(
       Array.isArray(raw.removedIds)
         ? raw.removedIds.filter((id): id is string => typeof id === 'string')
@@ -1011,8 +1017,43 @@ export function writeStore(store: CharacterStore): void {
     migratedFromBundles: store.migratedFromBundles,
     characters: store.characters.slice(0, MAX_CHARACTERS),
     removedIds: uniqueIds(store.removedIds) ?? [],
+    removedAt: Object.fromEntries(
+      Object.entries(store.removedAt ?? {}).filter(([id]) => (store.removedIds ?? []).includes(id))
+    ),
   });
   notifyCharactersUpdated();
+}
+
+/** The Cast as synced in studio-extras: records plus deletions and their times. */
+export function castSyncSnapshot(): {
+  characters: CharacterRecord[];
+  characterRemovedIds: string[];
+  characterRemovedAt: Record<string, number>;
+} {
+  const store = readStore();
+  return {
+    characters: store.characters,
+    characterRemovedIds: store.removedIds ?? [],
+    characterRemovedAt: store.removedAt ?? {},
+  };
+}
+
+/** Write a merged Cast from sync (record-list-sync.ts) — records and deletions together. */
+export function applySyncedCast(cast: {
+  characters: CharacterRecord[];
+  characterRemovedIds?: string[];
+  characterRemovedAt?: Record<string, number>;
+}): void {
+  const store = readStore();
+  writeStore({
+    ...store,
+    characters: cast.characters
+      .filter(entry => entry && readName(entry.name) && entry.id)
+      .map(normalizeCharacterRecord)
+      .sort((left, right) => right.updatedAt - left.updatedAt),
+    removedIds: cast.characterRemovedIds ?? store.removedIds ?? [],
+    removedAt: cast.characterRemovedAt ?? store.removedAt ?? {},
+  });
 }
 
 export function loadCharacters(): CharacterRecord[] {
@@ -1061,6 +1102,9 @@ export function saveCharacters(characters: CharacterRecord[]): CharacterRecord[]
     ...store,
     characters: next,
     removedIds: (store.removedIds ?? []).filter(id => !kept.has(id)),
+    removedAt: Object.fromEntries(
+      Object.entries(store.removedAt ?? {}).filter(([id]) => !kept.has(id))
+    ),
   });
   return next;
 }
@@ -1554,6 +1598,7 @@ export function removeCharacter(id: string): CharacterRecord[] {
     ...store,
     characters: store.characters.filter(entry => entry.id !== key),
     removedIds: uniqueIds([...(store.removedIds ?? []), key]) ?? [key],
+    removedAt: { ...(store.removedAt ?? {}), [key]: Date.now() },
   });
   return loadCharacters();
 }

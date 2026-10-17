@@ -114,7 +114,13 @@ import {
 } from './last-failed-queue';
 import { listHeldMaxJobs, replaceHeldMaxJobs, type HeldMaxJob } from './held-max-queue';
 import { loadLastToolRoute, saveLastToolRoute } from './last-tool-route';
-import { loadCharacters, saveCharacters, type CharacterRecord } from './character-os';
+import {
+  applySyncedCast,
+  castSyncSnapshot,
+  saveCharacters,
+  type CharacterRecord,
+} from './character-os';
+import { mergeStoryLists, withMergedRecordLists } from './record-list-sync';
 import { FIRST_QUEUE_SETUP_DISMISS_KEY } from './first-queue-setup';
 import { loadNotifications, type AppNotification } from './notification-center';
 import {
@@ -193,6 +199,9 @@ export type StudioExtrasPayload = {
   localObservability?: LocalObservabilityCounters;
   studioBackupLastExport?: string | null;
   characters?: CharacterRecord[];
+  /** Cast deletions and when they happened — merged per id across devices (record-list-sync.ts). */
+  characterRemovedIds?: string[];
+  characterRemovedAt?: Record<string, number>;
   /**
    * Story's saved stories (roleplay-library). Kept in the browser only, they never reached the
    * server: opening Story on another device, or a fresh browser, lost every story set aside when
@@ -276,7 +285,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     notifications: loadNotifications(),
     localObservability: loadLocalObservability(),
     studioBackupLastExport: readBrowserValue<string>(STUDIO_BACKUP_LAST_EXPORT_KEY) ?? null,
-    characters: loadCharacters(),
+    ...castSyncSnapshot(),
     roleplayLibrary: readStoredRoleplayLibrary(),
     poseLibrary: loadPoseLibrary(),
     poseOutcomes: poseOutcomeStatsForSync(loadPoseOutcomeStats()),
@@ -355,7 +364,17 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
       saveSessionRecipes(payload.sessionRecipes);
     }
     if (payload.characters) {
-      saveCharacters(payload.characters);
+      // With deletions (payloads since record-list-sync): the merged Cast as is; older payloads
+      // carry records only.
+      if (Array.isArray(payload.characterRemovedIds)) {
+        applySyncedCast({
+          characters: payload.characters,
+          characterRemovedIds: payload.characterRemovedIds,
+          characterRemovedAt: payload.characterRemovedAt,
+        });
+      } else {
+        saveCharacters(payload.characters);
+      }
     }
     if (payload.roleplayLibrary) {
       writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, payload.roleplayLibrary);
@@ -569,16 +588,51 @@ export function localStudioExtrasLooksEmpty(extras?: StudioExtrasPayload | null)
   return true;
 }
 
+/**
+ * The server's Cast and stories merged into this device's own (record by record, deletions
+ * included) — the rest of studio-extras untouched. Startup sync on a device that already has
+ * data: it used to keep its own Cast whole and never saw the other device's edits. True when
+ * anything here changed.
+ */
+export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): boolean {
+  const local = {
+    ...castSyncSnapshot(),
+    roleplayLibrary: readStoredRoleplayLibrary(),
+  };
+  const merged = withMergedRecordLists(local, server);
+  const key = (value: { characters?: { id: string; updatedAt?: number }[] }) =>
+    (value.characters ?? []).map(entry => `${entry.id}:${entry.updatedAt ?? 0}`).join('|');
+  const storyKey = (list: StoredRoleplaySession[] | undefined) =>
+    (list ?? []).map(entry => `${entry.id}:${entry.updatedAt ?? 0}`).join('|');
+  const castChanged =
+    key(merged) !== key(local) ||
+    (merged.characterRemovedIds ?? []).join('|') !== local.characterRemovedIds.join('|');
+  const storiesChanged = storyKey(merged.roleplayLibrary) !== storyKey(local.roleplayLibrary);
+  if (!castChanged && !storiesChanged) return false;
+  withSuppressedDurableSyncPush(() => {
+    if (castChanged) {
+      applySyncedCast({
+        characters: (merged.characters ?? []) as CharacterRecord[],
+        characterRemovedIds: merged.characterRemovedIds,
+        characterRemovedAt: merged.characterRemovedAt,
+      });
+    }
+    if (storiesChanged && merged.roleplayLibrary) {
+      writeBrowserValue(ROLEPLAY_LIBRARY_STORAGE_KEY, merged.roleplayLibrary);
+    }
+  });
+  return true;
+}
+
 /** Prefer the newer extras snapshot; empty local never overwrites a populated server copy. */
 export function mergeStudioExtras(
   local: StudioExtrasPayload,
   server: StudioExtrasPayload
 ): StudioExtrasPayload {
-  const merged = mergeStudioExtrasWhole(local, server);
-  // Stories merge one by one (the newest copy of each wins): a story set aside on one device
-  // must not be dropped because the other device saved something else later.
-  const stories = mergeRoleplayLibraries(local.roleplayLibrary, server.roleplayLibrary);
-  return stories ? { ...merged, roleplayLibrary: stories } : merged;
+  // The Cast and stories merge record by record (the newest copy of each wins, deletions travel):
+  // a Cast member or story saved on one device must not be dropped because the other device
+  // saved something else later.
+  return withMergedRecordLists(mergeStudioExtrasWhole(local, server), server);
 }
 
 function mergeStudioExtrasWhole(
@@ -617,13 +671,5 @@ export function mergeRoleplayLibraries(
   local: StoredRoleplaySession[] | undefined,
   server: StoredRoleplaySession[] | undefined
 ): StoredRoleplaySession[] | null {
-  if (!local?.length && !server?.length) return null;
-  const byId = new Map<string, StoredRoleplaySession>();
-  for (const entry of [...(server ?? []), ...(local ?? [])]) {
-    const existing = byId.get(entry.id);
-    if (!existing || (entry.updatedAt ?? 0) >= (existing.updatedAt ?? 0)) {
-      byId.set(entry.id, entry);
-    }
-  }
-  return [...byId.values()].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+  return mergeStoryLists(local, server);
 }
