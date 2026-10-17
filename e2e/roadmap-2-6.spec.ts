@@ -389,7 +389,7 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await coach.getByTestId('cut-titles').check();
   // Night's narration is not recorded yet: the preview offers to record it to hear it.
   await expect(coach.getByTestId('cut-preview-record-narration')).toContainText('1 line');
-  await coach.getByTestId('cut-preview-open').click();
+  // The monitor is always there and rebuilds after each change.
   const preview = coach.getByTestId('cut-preview');
   // Title card + 2.5 s + 2 s clip + 2.5 s: 3 shots, 0:09.
   await expect(preview.getByTestId('cut-preview-notes')).toContainText('3 shots · 0:09', {
@@ -416,8 +416,9 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await preview.getByTestId('cut-preview-play').click();
   await expect(preview.getByTestId('cut-preview-time')).toContainText('0:04', { timeout: 10_000 });
   await preview.getByTestId('cut-preview-play').click();
-  await preview.getByTestId('cut-preview-close').click();
-  await expect(preview).toHaveCount(0);
+  // The timeline has a block per shot and the playhead.
+  await expect(page.getByTestId('cut-timeline-playhead')).toBeVisible();
+  await expect(page.locator('[data-testid^="cut-timeline-shot-"]')).toHaveCount(3);
 });
 
 test('Animate opens a sheet with the engine and an editable direction', async ({ page }) => {

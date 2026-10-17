@@ -7,12 +7,17 @@ picked.
 | Part of the page | What it does |
 | --- | --- |
 | **What's in it** | Tick **Day**, **Story** or both — one film can mix the two |
-| **Watch the cut** | ▶ plays the cut as it will come out, before anything is encoded |
+| **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change |
+| **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub |
 | **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder |
 | **Options** | Shape, size, length, music, subtitles, titles — kept between visits |
 | **Your films** | Every film of this Cast: re-cut in another shape, export for an editor, share |
 
 After a cut: **Watch on Cast**, **Start tomorrow on Day** or **Continue as a story**.
+
+!!! tip "Keys"
+    **Space** play / pause · **← →** previous / next shot · **Alt+← →** move the shot ·
+    **Delete** leave it out (again: put it back) · **Ctrl+Z** undo · **Ctrl+Shift+Z** redo
 **Stitch a season** is on the **Cast page → Film & media → Seasons**.
 
 The film saves to the Gallery and to the Cast as an episode.

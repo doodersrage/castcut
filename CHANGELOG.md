@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Cut's editor.** A live monitor (the cut rebuilt a moment after each change, the playhead kept) and a **timeline** of every shot as long as it plays, with its picture: click to jump, drag to reorder, drag a still's edge to hold it, a clip's edges to trim it, drag the ruler to scrub, zoom in / out. Undo / redo, and keys (Space, ← →, Alt+← →, Delete, Ctrl+Z / Ctrl+Shift+Z). Clips show the still they started from.
 - **Cut is its own step.** A **Cut** tab after Day and Story (`/cut`, phone `/m/cut`): pick what goes in (Day, Story, or both in one film), watch the cut, arrange the shots, set the options (kept between visits), cut, and re-cut / export / share the Cast's films on the same page. After a cut: Watch on Cast, Start tomorrow on Day, Continue as a story. Day and Story hand off with **Open Cut →** / **Cut film →**; the Film hub's next step goes there too.
 - **Shot cards you can drag.** Each shot shows its still (or the clip's first frame, playing on hover), the beat and what is said; drag by the grip to reorder (↑ ↓ stay for keyboard and touch).
 - **Three people in a Day still.** The slot sheet's **Also in this still** picks a third Cast member by face, for clothed two-person stills on Edit 2511: their face takes the pose map's place and the pose is said in words. Live (a brunch table, six seeds): three different people, each in their own clothes, 6/6.

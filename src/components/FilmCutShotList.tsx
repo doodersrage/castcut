@@ -8,6 +8,7 @@ import {
   MIN_CLIP_TRIM_SEC,
   moveCutShot,
   moveCutShotBefore,
+  orderedCutShots,
   type CutShotEdit,
   type CutShotEdits,
   type KeyedShot,
@@ -30,6 +31,8 @@ export default function FilmCutShotList({
   onChange,
   identityFor,
   tagFor,
+  activeKey,
+  onPick,
 }: {
   shots: KeyedShot[];
   edits?: CutShotEdits;
@@ -42,6 +45,10 @@ export default function FilmCutShotList({
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
   /** A small tag per shot — where it came from (Cut: "Day" / "Story") when the film mixes them. */
   tagFor?: (shot: KeyedShot) => string | null;
+  /** The shot under the playhead (Cut's monitor) — ringed. */
+  activeKey?: string | null;
+  /** Clicking a shot's picture: jump the monitor to it. */
+  onPick?: (key: string) => void;
 }) {
   // Drag to reorder: the grip arms the row (dragging from a text field would grab the row
   // instead of selecting text), `over` marks where it lands.
@@ -49,15 +56,7 @@ export default function FilmCutShotList({
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const known = new Set(shots.map(shot => shot.key));
-  const rank = new Map((edits?.order ?? []).map((key, index) => [key, index]));
-  const ordered = [...shots].sort((a, b) => {
-    const ra = rank.get(a.key);
-    const rb = rank.get(b.key);
-    if (ra != null && rb != null) return ra - rb;
-    if (ra != null) return -1;
-    if (rb != null) return 1;
-    return 0;
-  });
+  const ordered = orderedCutShots(shots, edits);
   const keys = ordered.map(shot => shot.key);
   const patchShot = (key: string, patch: NonNullable<CutShotEdits['shots']>[string]) =>
     onChange({
@@ -116,10 +115,13 @@ export default function FilmCutShotList({
                 const before = from < index ? (keys[index + 1] ?? null) : shot.key;
                 onChange({ ...edits, order: moveCutShotBefore(keys, moved, before) });
               }}
+              data-active={activeKey === shot.key ? 'true' : undefined}
               className={`flex items-start gap-2 rounded-[var(--radius-md)] border bg-[var(--bg-elevated)] p-1.5 text-xs ${
                 over === shot.key
                   ? 'border-[var(--accent-border)] ring-2 ring-[var(--accent-border)]'
-                  : 'border-[var(--border-subtle)]'
+                  : activeKey === shot.key
+                    ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]'
+                    : 'border-[var(--border-subtle)]'
               } ${included ? '' : 'opacity-60'} ${dragging === shot.key ? 'opacity-40' : ''}`}
               data-testid={`${testIdPrefix}-shot-${shot.key}`}
             >
@@ -135,7 +137,20 @@ export default function FilmCutShotList({
               >
                 ⠿<span className="mt-0.5 text-[10px]">{index + 1}</span>
               </span>
-              <ShotThumb shot={shot} />
+              {onPick ? (
+                <button
+                  type="button"
+                  className="shrink-0 rounded-[var(--radius-sm)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                  title="Show this shot in the monitor"
+                  aria-label={`Show ${shot.title} in the monitor`}
+                  data-testid={`${testIdPrefix}-shot-pick-${shot.key}`}
+                  onClick={() => onPick(shot.key)}
+                >
+                  <ShotThumb shot={shot} />
+                </button>
+              ) : (
+                <ShotThumb shot={shot} />
+              )}
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <input
@@ -387,7 +402,18 @@ function ClipTrimInputs({
 /** The shot's picture: the still, or the clip's opening frame (it plays on hover). */
 function ShotThumb({ shot }: { shot: KeyedShot }) {
   const box =
-    'relative h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-black';
+    'relative block h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-black';
+  if (shot.kind === 'clip' && shot.thumbUrl) {
+    return (
+      <span className={box}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={shot.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+          ▶ clip
+        </span>
+      </span>
+    );
+  }
   if (shot.kind === 'clip') {
     return (
       <span className={box}>

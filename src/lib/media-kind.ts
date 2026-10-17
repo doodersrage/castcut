@@ -81,6 +81,8 @@ export type FilmPlaylistShot = {
   framing?: 'medium' | 'close';
   /** What is said on screen in this clip (its line, and the reply) — burned in as subtitles. */
   spoken?: string;
+  /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
+  thumbUrl?: string;
   /** The voice-over heard over this shot — subtitled when there is no spoken line. */
   narrationText?: string;
 };

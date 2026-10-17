@@ -6,11 +6,13 @@
  * films sit under it to re-cut, export or share.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
-import FilmCutPreviewPlayer from '@/components/FilmCutPreviewPlayer';
+import CutMonitor from '@/components/cut/CutMonitor';
+import CutTimeline from '@/components/cut/CutTimeline';
+import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -20,7 +22,12 @@ import { useCutRoom } from '@/hooks/useCutRoom';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { CUT_SOURCES, splitCutRoomKey } from '@/lib/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
-import { applyCutShotEdits } from '@/lib/film-cut-plan';
+import {
+  applyCutShotEdits,
+  moveCutShot,
+  orderedCutShots,
+  withCutShotEdit,
+} from '@/lib/film-cut-plan';
 import { continueDayAsStoryHref } from '@/lib/day-story-seed';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
@@ -28,8 +35,96 @@ import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 export default function CutRoom() {
   const vm = useCutRoom();
   const router = useRouter();
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const titleCard =
+    vm.options.titles === true
+      ? { title: vm.sources.includes('day') ? vm.dayCast?.name || 'Day' : vm.storyName }
+      : null;
+  // The monitor: the cut rebuilt a moment after each edit, the playhead kept.
+  const preview = useCutPreview({
+    shots: vm.previewShots,
+    value: vm.options,
+    titleCard,
+    live: true,
+  });
+  const activeKey = preview.keyAt(preview.time);
+  const ordered = orderedCutShots(vm.previewShots, vm.options.shotEdits);
+  const order = ordered.map(shot => shot.key);
+  const pick = useCallback(
+    (key: string) => {
+      preview.seekToKey(key);
+      document
+        .querySelector(`[data-testid="cut-shot-${CSS.escape(key)}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    },
+    [preview]
+  );
+  /** The shot before / after the one under the playhead (left-out shots skipped). */
+  const step = useCallback(
+    (delta: -1 | 1) => {
+      const keys = preview.loaded?.keys.filter((key): key is string => Boolean(key)) ?? [];
+      if (keys.length === 0) return;
+      const at = activeKey ? keys.indexOf(activeKey) : -1;
+      const next = keys[Math.max(0, Math.min(keys.length - 1, at + delta))];
+      if (next) preview.seekToKey(next);
+    },
+    [activeKey, preview]
+  );
+  // Keys: Space play / pause, ← → shots, Alt+← → move the shot, Delete leave it out / back in,
+  // Ctrl+Z / Ctrl+Shift+Z undo / redo. Not while typing in a field.
+  const { undo, redo, setOptions, options } = vm;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+      ) {
+        return;
+      }
+      const mod = event.ctrlKey || event.metaKey;
+      if (mod && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (event.key === ' ' && !(target instanceof HTMLButtonElement)) {
+        event.preventDefault();
+        if (preview.playing) preview.pause();
+        else preview.play();
+        return;
+      }
+      if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && !mod) {
+        event.preventDefault();
+        const delta = event.key === 'ArrowLeft' ? -1 : 1;
+        if (event.altKey && activeKey) {
+          setOptions({
+            ...options,
+            shotEdits: { ...options.shotEdits, order: moveCutShot(order, activeKey, delta) },
+          });
+        } else {
+          step(delta);
+        }
+        return;
+      }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && activeKey) {
+        event.preventDefault();
+        const included = options.shotEdits?.shots?.[activeKey]?.include !== false;
+        setOptions({
+          ...options,
+          shotEdits: withCutShotEdit(options.shotEdits, order, activeKey, { include: !included }),
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeKey, options, order, preview, redo, setOptions, step, undo]);
   // Face match marks on Day shots (measured on Day; keys without the "day:" prefix there).
   const dayIdentity = useDayShotIdentity(vm.dayStills, vm.dayCast?.name);
   const { mounted, pickOnly } = vm;
@@ -46,10 +141,6 @@ export default function CutRoom() {
   const href = (path: string) => (phone ? toMobileStudioHref(path) : path);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
   const busy = vm.assembling || vm.checking;
-  const titleCard =
-    vm.options.titles === true
-      ? { title: vm.sources.includes('day') ? vm.dayCast?.name || 'Day' : vm.storyName }
-      : null;
   const cutButton = (
     <Button
       size="sm"
@@ -139,42 +230,43 @@ export default function CutRoom() {
         {vm.shots.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="min-w-0 space-y-4">
-              {vm.shots.length > 0 ? (
-                <ToolSection data-testid="cut-watch" title="Watch the cut">
-                  {previewOpen ? (
-                    <FilmCutPreviewPlayer
-                      shots={vm.previewShots}
-                      value={vm.options}
-                      titleCard={titleCard}
-                      testIdPrefix="cut"
-                      onClose={() => setPreviewOpen(false)}
-                    />
-                  ) : (
-                    <div className="space-y-2">
+              <ToolSection data-testid="cut-watch" title="Watch the cut">
+                <CutMonitor
+                  canvasRef={preview.canvasRef}
+                  size={preview.size}
+                  shape={preview.shape}
+                  loaded={preview.loaded}
+                  building={preview.building}
+                  error={preview.error}
+                  playing={preview.playing}
+                  time={preview.time}
+                  total={preview.total}
+                  onPlay={preview.play}
+                  onPause={preview.pause}
+                  onSeek={preview.seek}
+                  onPrev={() => step(-1)}
+                  onNext={() => step(1)}
+                  extra={
+                    <>
                       <button
                         type="button"
-                        className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-black"
-                        data-testid="cut-preview-open"
-                        title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music, lines and narration"
-                        onClick={() => setPreviewOpen(true)}
+                        className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
+                        disabled={!vm.canUndo}
+                        title="Undo (Ctrl+Z)"
+                        data-testid="cut-undo"
+                        onClick={vm.undo}
                       >
-                        <span className="absolute inset-0 flex">
-                          {kept
-                            .filter(shot => shot.kind === 'still')
-                            .slice(0, 6)
-                            .map(shot => (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                key={shot.key}
-                                src={shot.url}
-                                alt=""
-                                className="h-full min-w-0 flex-1 object-cover opacity-60"
-                              />
-                            ))}
-                        </span>
-                        <span className="relative rounded-full bg-[var(--accent)] px-5 py-2 text-white shadow-lg group-hover:scale-105">
-                          ▶ Preview the cut
-                        </span>
+                        ↶ Undo
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
+                        disabled={!vm.canRedo}
+                        title="Redo (Ctrl+Shift+Z)"
+                        data-testid="cut-redo"
+                        onClick={vm.redo}
+                      >
+                        ↷ Redo
                       </button>
                       {vm.missingDayNarration.length > 0 ? (
                         <Button
@@ -192,38 +284,13 @@ export default function CutRoom() {
                             : `Record narration to hear it (${vm.missingDayNarration.length} line${vm.missingDayNarration.length === 1 ? '' : 's'})`}
                         </Button>
                       ) : null}
-                    </div>
-                  )}
-                </ToolSection>
-              ) : null}
-
-              {vm.shots.length > 0 ? (
-                <ToolSection
-                  data-testid="cut-shots"
-                  title="Shots"
-                  description="Drag the order, leave shots out, trim clips, hold stills longer, frame them, pick the poster."
-                >
-                  <FilmCutShotList
-                    shots={vm.previewShots}
-                    edits={vm.options.shotEdits}
-                    captions={vm.options.titles === true}
-                    holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
-                    disabled={busy}
-                    testIdPrefix="cut"
-                    onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
-                    identityFor={shot => {
-                      const { source, key } = splitCutRoomKey(shot.key);
-                      return source === 'day' ? dayIdentity({ key }) : null;
-                    }}
-                  />
-                </ToolSection>
-              ) : null}
+                    </>
+                  }
+                  timeline={null}
+                />
+              </ToolSection>
             </div>
-            <ToolSection
-              data-testid="cut-options"
-              title="Options"
-              className="lg:sticky lg:top-4 lg:self-start"
-            >
+            <ToolSection data-testid="cut-options" title="Options" className="lg:self-start">
               <div className="space-y-3">
                 <FilmCutOptionsControls
                   value={vm.options}
@@ -242,6 +309,61 @@ export default function CutRoom() {
               </div>
             </ToolSection>
           </div>
+        ) : null}
+
+        {vm.shots.length > 0 ? (
+          <ToolSection data-testid="cut-timeline-section" title="Timeline">
+            <CutTimeline
+              loaded={preview.loaded}
+              order={order}
+              edits={vm.options.shotEdits}
+              time={preview.time}
+              activeKey={activeKey}
+              holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
+              disabled={busy}
+              thumbFor={key => {
+                const shot = vm.previewShots.find(entry => entry.key === key);
+                if (!shot) return null;
+                // A clip shows the still it started from (a video frame may not paint).
+                return shot.kind === 'clip' && shot.thumbUrl
+                  ? { url: shot.thumbUrl, clip: false }
+                  : { url: shot.url, clip: shot.kind === 'clip' };
+              }}
+              playing={preview.playing}
+              onSeek={preview.seek}
+              onPick={pick}
+              onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
+            />
+            <p className="type-caption mt-2 text-[var(--text-muted)]">
+              Keys: Space play · ← → shots · Alt+← → move the shot · Delete leave it out · Ctrl+Z
+              undo
+            </p>
+          </ToolSection>
+        ) : null}
+
+        {vm.shots.length > 0 ? (
+          <ToolSection data-testid="cut-shots" title="Shots">
+            <FilmCutShotList
+              shots={vm.previewShots}
+              edits={vm.options.shotEdits}
+              captions={vm.options.titles === true}
+              holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
+              disabled={busy}
+              testIdPrefix="cut"
+              onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
+              activeKey={activeKey}
+              onPick={pick}
+              tagFor={
+                vm.sources.length > 1
+                  ? shot => (splitCutRoomKey(shot.key).source === 'day' ? 'Day' : 'Story')
+                  : undefined
+              }
+              identityFor={shot => {
+                const { source, key } = splitCutRoomKey(shot.key);
+                return source === 'day' ? dayIdentity({ key }) : null;
+              }}
+            />
+          </ToolSection>
         ) : null}
 
         {vm.status || vm.error || vm.cutDone ? (

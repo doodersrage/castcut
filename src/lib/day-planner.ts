@@ -4917,6 +4917,7 @@ export function dayWatchPlaylist(
         title: slot.label,
         url: clipUrl,
         kind: 'clip',
+        ...(url && !url.startsWith('data:') ? { thumbUrl: url } : {}),
         ...(slot.line?.trim()
           ? {
               spoken: slot.replyLine?.trim()

@@ -245,6 +245,7 @@ export function roleplayWatchPlaylist(
     const clipUrl = beat.clipStatus === 'completed' ? beat.clipUrl?.trim() : '';
     if (clipUrl) {
       const asClip = looksLikeMotionUrl(clipUrl);
+      const thumb = lastCompletedRoleplayStillUrl(beat) || beat.imageUrl?.trim() || '';
       shots.push({
         key: `${beat.id}@${beat.at}`,
         entryId: beat.clipPromptId?.trim() || beat.id,
@@ -252,6 +253,7 @@ export function roleplayWatchPlaylist(
         url: clipUrl,
         kind: asClip ? 'clip' : 'still',
         holdSec: asClip ? undefined : hold,
+        ...(asClip && thumb && !thumb.startsWith('data:') ? { thumbUrl: thumb } : {}),
         ...(asClip && beat.line?.trim()
           ? {
               spoken: beat.replyLine?.trim()

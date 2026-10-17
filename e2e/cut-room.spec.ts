@@ -97,3 +97,48 @@ test('Day and Story hand off to Cut', async ({ page }) => {
   });
   await expect(page.getByTestId('cut-source-story')).toContainText('no shots yet');
 });
+
+test('the editor: timeline blocks, click to jump, Delete leaves a shot out, undo, drag a hold', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const morning = page.getByTestId('cut-timeline-shot-day:morning');
+  const afternoon = page.getByTestId('cut-timeline-shot-day:afternoon');
+  await expect(morning).toBeVisible({ timeout: 30_000 });
+  await expect(afternoon).toBeVisible();
+  // Click a block: the playhead jumps there and its card is the active one.
+  await afternoon.click();
+  await expect(page.getByTestId('cut-shot-day:afternoon')).toHaveAttribute('data-active', 'true');
+  // Delete leaves the shot under the playhead out; undo puts it back.
+  await page.keyboard.press('Delete');
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot', { timeout: 10_000 });
+  await expect(page.getByTestId('cut-undo')).toBeEnabled();
+  await page.getByTestId('cut-undo').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
+  await expect(page.getByTestId('cut-redo')).toBeEnabled();
+  // Drag the morning still's right edge: it holds longer (2.5 s → about 4 s).
+  const edge = page.getByTestId('cut-timeline-hold-day:morning');
+  const box = (await edge.boundingBox())!;
+  const blockBox = (await morning.boundingBox())!;
+  const pxPerSec = blockBox.width / 2.5;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + pxPerSec * 1.5, box.y + box.height / 2, {
+    steps: 6,
+  });
+  await page.mouse.up();
+  const hold = page.getByRole('spinbutton', { name: 'Hold for Morning' });
+  await expect
+    .poll(async () => Number(await hold.inputValue()), { timeout: 10_000 })
+    .toBeGreaterThan(3.4);
+  // Alt+→ moves the shot under the playhead later.
+  await morning.click();
+  await page.keyboard.press('Alt+ArrowRight');
+  await expect(page.locator('[data-testid^="cut-shot-day:"][draggable]').first()).toHaveAttribute(
+    'data-testid',
+    'cut-shot-day:afternoon',
+    { timeout: 10_000 }
+  );
+});

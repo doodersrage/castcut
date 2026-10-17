@@ -146,10 +146,53 @@ export function useCutRoom() {
     [cut.toolSettings.options]
   );
   const { updateToolSettings: updateCut } = cut;
+  // Undo / redo of the edit (options + shot list). Changes within a moment of each other — typing
+  // a caption, a slider — are one step.
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+  const history = useRef<{
+    past: FilmCutOptionsValue[];
+    future: FilmCutOptionsValue[];
+    at: number;
+  }>({ past: [], future: [], at: 0 });
+  const [historySize, setHistorySize] = useState({ past: 0, future: 0 });
+  const noteHistory = () =>
+    setHistorySize({ past: history.current.past.length, future: history.current.future.length });
   const setOptions = useCallback(
-    (next: FilmCutOptionsValue) => updateCut({ options: next }),
+    (next: FilmCutOptionsValue) => {
+      const h = history.current;
+      const now = Date.now();
+      if (now - h.at > 700) {
+        h.past.push(optionsRef.current);
+        if (h.past.length > 80) h.past.shift();
+      }
+      h.at = now;
+      h.future = [];
+      noteHistory();
+      updateCut({ options: next });
+    },
     [updateCut]
   );
+  const undo = useCallback(() => {
+    const h = history.current;
+    const previous = h.past.pop();
+    if (!previous) return;
+    h.future.push(optionsRef.current);
+    h.at = 0;
+    noteHistory();
+    updateCut({ options: previous });
+  }, [updateCut]);
+  const redo = useCallback(() => {
+    const h = history.current;
+    const next = h.future.pop();
+    if (!next) return;
+    h.past.push(optionsRef.current);
+    h.at = 0;
+    noteHistory();
+    updateCut({ options: next });
+  }, [updateCut]);
   /** Arriving from Day / Story (`?from=`): that source alone, when it has shots. */
   const pickOnly = useCallback(
     (source: CutSource) => {
@@ -557,6 +600,10 @@ export function useCutRoom() {
     previewShots,
     options,
     setOptions,
+    undo,
+    redo,
+    canUndo: historySize.past > 0,
+    canRedo: historySize.future > 0,
     missingDayNarration,
     recordDayNarration,
     dayCast,

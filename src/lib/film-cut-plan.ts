@@ -183,6 +183,42 @@ export function moveCutShot(keys: string[], key: string, delta: -1 | 1): string[
   return next;
 }
 
+/** The shot list's order: the player's order first, then any new shots in their natural order. */
+export function orderedCutShots<T extends { key: string }>(shots: T[], edits?: CutShotEdits): T[] {
+  const rank = new Map((edits?.order ?? []).map((key, index) => [key, index]));
+  return [...shots].sort((a, b) => {
+    const ra = rank.get(a.key);
+    const rb = rank.get(b.key);
+    if (ra != null && rb != null) return ra - rb;
+    if (ra != null) return -1;
+    if (rb != null) return 1;
+    return 0;
+  });
+}
+
+/**
+ * The edits with one shot's edit patched, the shown order kept (`order`) and edits of shots no
+ * longer in the list dropped (`known`). An `undefined` in the patch clears that field.
+ */
+export function withCutShotEdit(
+  edits: CutShotEdits | undefined,
+  order: string[],
+  key: string,
+  patch: CutShotEdit
+): CutShotEdits {
+  const known = new Set(order);
+  return {
+    ...edits,
+    order,
+    shots: {
+      ...Object.fromEntries(
+        Object.entries(edits?.shots ?? {}).filter(([shotKey]) => known.has(shotKey))
+      ),
+      [key]: { ...edits?.shots?.[key], ...patch },
+    },
+  };
+}
+
 /**
  * The shot list after dragging `key` to sit before `beforeKey` (null: to the end). Unknown keys
  * leave the order as it is.
