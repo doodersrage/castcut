@@ -359,6 +359,35 @@ export function withTwoPersonFaces(
   return `${parts.join(' ')} ${prompt}`;
 }
 
+/**
+ * A daytime Day recipe (no LIGHT line of its own — evening / night slots have one) gets a bright
+ * one on 2.1: Turbo's daytime stills were dim next to Edit 2511's. Live, 8 daytime Everyday
+ * beats, same seeds (2026-10-17): mean brightness 75 → 84, the beats kept, the Cast's face
+ * closer (median distance 0.46 → 0.31).
+ */
+export const QWEN_IMAGE_21_DAYLIGHT_LINE =
+  'LIGHT: bright, well-exposed natural light — her face, body and the place clearly lit, true colours, a real photograph exposed for the scene, not dim or murky.';
+
+export function withDaylightLine(prompt: string): string {
+  if (/\bLIGHT:/.test(prompt) || !/\bDay photo:/.test(prompt)) return prompt;
+  return prompt.replace(/(\bOUTFIT \(mandatory\))/, `${QWEN_IMAGE_21_DAYLIGHT_LINE}\n$1`);
+}
+
+/**
+ * A Day photo recipe ends "Photorealistic photograph, natural skin."; Edit 2511's queue adds
+ * "natural photograph, lifelike skin pores, camera realism" — 2.1 (on Rapid's graph) didn't get
+ * it. With it and the slot's Camera line, Turbo's stills were sharper and less front-on, likeness
+ * the same (24 Everyday stills, 2026-10-17).
+ */
+export function withPhotoRealismTail(prompt: string): string {
+  const lit = withDaylightLine(prompt);
+  if (/lifelike skin pores/i.test(lit)) return lit;
+  return lit.replace(
+    /\bPhotorealistic photograph, natural skin\./,
+    'Photorealistic photograph, natural skin, natural photograph, lifelike skin pores, camera realism.'
+  );
+}
+
 const UNNAMED_KIT_LINE = "replace clothing with this slot's catalog wardrobe kit";
 const DRESSED_FALLBACK_LINE =
   'she is fully dressed in everyday clothes that suit the beat and the setting (a casual top and trousers or jeans, shoes outdoors) — never the underwear or bare skin from <image1>';
@@ -581,19 +610,21 @@ export function convertQwenEditWorkflowToImage21(
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
     vae: [vae, 0],
-    prompt: withTwoPersonFaces(
-      withoutDroppedReferences(
-        withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
-          namePartnerOutfit: profile.namePartnerOutfit,
-          dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
-        }),
-        dropped,
-        kept.map(entry => entry.from)
-      ),
-      {
-        partnerImage: partnerKept >= 0 ? partnerKept + 1 : null,
-        droppedPoseMap: dropped.length > 0,
-      }
+    prompt: withPhotoRealismTail(
+      withTwoPersonFaces(
+        withoutDroppedReferences(
+          withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+            namePartnerOutfit: profile.namePartnerOutfit,
+            dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
+          }),
+          dropped,
+          kept.map(entry => entry.from)
+        ),
+        {
+          partnerImage: partnerKept >= 0 ? partnerKept + 1 : null,
+          droppedPoseMap: dropped.length > 0,
+        }
+      )
     ),
     negative_prompt: '',
     resolution: qwenImage21Resolution(canvas.width, canvas.height),
@@ -671,6 +702,23 @@ export function convertQwenEditWorkflowToImage21(
     ) {
       node.inputs.vae = [vae, 0];
     }
+  }
+  // Rapid AIO's moiré polish (blur / resample before the save) has no screen-door to clean on
+  // 2.1 and only softened it: the save takes the decoded image again.
+  for (const node of Object.values(workflow)) {
+    if (!OUTPUT_CLASS.test(node.class_type)) continue;
+    let ref = node.inputs.images;
+    while (isRef(ref)) {
+      const upstream = workflow[ref[0]];
+      if (
+        !upstream ||
+        !/^(?:ImageBlur|ImageScaleBy|ImageSharpen)$/.test(upstream.class_type) ||
+        !/moir/i.test(String((upstream as { _meta?: { title?: string } })._meta?.title ?? ''))
+      )
+        break;
+      ref = upstream.inputs.image;
+    }
+    if (isRef(ref)) node.inputs.images = ref;
   }
   return { workflow: pruneUnreachableNodes(workflow), converted: true };
 }

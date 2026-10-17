@@ -172,7 +172,13 @@ export function dayStillCamera(input: {
   people: number;
 }): DayStillCamera | null {
   if (input.adult || input.people !== 1) return null;
-  if (!/qwen-image-edit-2511|qwen_image_edit_2511/i.test(input.model ?? '')) return null;
+  // Edit 2511, and Qwen-Image 2.1 (Turbo, 24 Everyday stills: wider and three-quarter framing
+  // instead of every still front-on at eye level, likeness unchanged — 2026-10-17).
+  if (
+    !/qwen-image-edit-2511|qwen_image_edit_2511/i.test(input.model ?? '') &&
+    !/^qwen-image-2\.1/i.test(input.model ?? '')
+  )
+    return null;
   if ((input.dayMood ?? '').toLowerCase() === 'sport') return null;
   const index = DAY_SLOT_ORDER.indexOf((input.slotId ?? '').trim());
   if (index < 0) return null;

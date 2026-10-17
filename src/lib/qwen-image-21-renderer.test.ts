@@ -23,6 +23,8 @@ import {
   withDistinctPartnerOutfit,
   withProfilePromptFixes,
   withTwoPersonFaces,
+  withDaylightLine,
+  withPhotoRealismTail,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -515,5 +517,36 @@ describe('Qwen-Image 2.1: group stills', () => {
     );
     assert.match(out, /^Exactly three people/);
     assert.doesNotMatch(out, /Exactly two people/);
+  });
+});
+
+describe('Qwen-Image 2.1: look', () => {
+  it('lights a daytime Day recipe, leaves a slot with its own LIGHT line alone', () => {
+    const day = 'SCENE: a park.\nOUTFIT (mandatory): a dress.\nDay photo: One woman alone.';
+    assert.match(withDaylightLine(day), /LIGHT: bright, well-exposed natural light[^\n]*\nOUTFIT/);
+    const night = 'SCENE: a bar.\nLIGHT: night — lamps.\nOUTFIT (mandatory): a dress.\nDay photo: x.';
+    assert.equal(withDaylightLine(night), night);
+    assert.equal(withDaylightLine('OUTFIT (mandatory): a dress.'), 'OUTFIT (mandatory): a dress.');
+  });
+
+  it('adds the photo-realism tail once', () => {
+    const out = withPhotoRealismTail('Day photo: x. Photorealistic photograph, natural skin. More.');
+    assert.match(out, /natural skin, natural photograph, lifelike skin pores, camera realism\. More/);
+    assert.equal(withPhotoRealismTail(out), out);
+  });
+
+  it('drops Rapid AIO moiré polish before the save', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Day photo: One woman alone.', image1: ['900', 0] } },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '902': { class_type: 'ImageBlur', inputs: { image: ['9', 0], blur_radius: 1, sigma: 0.45 }, _meta: { title: 'Castcut — Rapid AIO moiré polish' } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['902', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+    };
+    const w = convertQwenEditWorkflowToImage21(graph, { eightStep: true, eightStepTurbo: true }).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    assert.deepEqual(w['10']!.inputs.images, ['9', 0]);
+    assert.ok(!Object.values(w).some(node => node.class_type === 'ImageBlur'));
   });
 });

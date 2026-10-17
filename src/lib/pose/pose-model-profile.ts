@@ -195,6 +195,9 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     // action, SCENE, LIGHT, OUTFIT): Turbo, 24 Everyday beats, same seeds (2026-10-17) — 22/24
     // beats shown vs 18/24 on Rapid's long Keep brief, the props kept, less stiff.
     compactDayRecipes: true,
+    // Sport stays on the brief (on the recipe Turbo kept the plate's underwear, 10/12 even with a
+    // firm kit line); the layout's body cue after its ACTION, as Rapid gets.
+    sportActionCue: true,
     // Clothed two-person stills stay on 2.1 (they went to Rapid: the Pruna era fused couples
     // 6/6). Turbo on the couple recipe with the layout cue in words, 2026-10-17: two distinct
     // people 32/32 + 24/24, selfie arm 8/8 (0/8 without the cue), head on a shoulder 2/2.

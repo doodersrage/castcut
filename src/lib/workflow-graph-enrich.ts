@@ -1103,6 +1103,11 @@ function enrichRapidAioMoirePolish(input: {
   if (!profileUsesRapidAioMoirePolish(input.qualityProfile, { model: input.model })) {
     return [];
   }
+  // A Rapid graph converted to Qwen-Image 2.1 has no Rapid screen-door to clean: the blur only
+  // softened it (Turbo, 24 Everyday stills without it: sharper, likeness the same, 2026-10-17).
+  if (Object.values(input.workflow).some(node => node?.class_type === 'TextEncodeQwenImage21')) {
+    return [];
+  }
 
   const changes: WorkflowQueueOptimizeChange[] = [];
   const blurRadius = rapidAioMoireBlurRadius(input.qualityProfile);
