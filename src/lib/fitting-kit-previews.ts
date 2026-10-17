@@ -7,6 +7,9 @@ import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { isEditCapableModel } from '@/lib/model-denoise-defaults';
 import { isSystemWorkflowSupportedModel } from '@/lib/system-workflow-runtime';
 import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { installedComfyModels } from '@/lib/model-picker';
+import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 
 export const FITTING_KIT_PREVIEW_CONCURRENCY = 3;
 export const FITTING_KIT_PREVIEW_MAX = 16;
@@ -18,6 +21,8 @@ export const FITTING_KIT_PREVIEW_PROMPT_VERSION = 12;
 
 /** Fast edit stacks for swipe thumbs — never the sidebar keeper model. */
 const FITTING_KIT_PREVIEW_MODEL_CANDIDATES: ComfyImageModel[] = [
+  // Qwen-Image 2.1 Turbo when installed (the Outfit default: try-ons 4/4), then the fast stacks.
+  'qwen-image-2.1-edit-turbo-8',
   'boogu-image-edit-turbo',
   'qwen-image-edit-2511-lightning-4',
   'qwen-image-edit-2511-lightning-8',
@@ -35,14 +40,24 @@ const FITTING_GARMENT_PACKSHOT_MODEL_CANDIDATES: ComfyImageModel[] = [
   'qwen-image-edit-2511',
 ];
 
+function cachedInstalledModels(): ((modelId: string) => boolean) | null {
+  const inventory = readCachedComfyObjectInfoModels();
+  if (!inventory) return null;
+  const installed = installedComfyModels(COMFY_IMAGE_MODELS, inventory, undefined);
+  return installed ? (modelId: string) => installed.has(modelId) : null;
+}
+
 /** Portrait packshot size — larger than swipe thumbs, smaller than final try-on. */
 export const FITTING_GARMENT_PACKSHOT_WIDTH = 576;
 export const FITTING_GARMENT_PACKSHOT_HEIGHT = 768;
 
 export function resolveFittingKitPreviewModel(
-  fallbackModel?: ComfyImageModel | string
+  fallbackModel?: ComfyImageModel | string,
+  installed: ((modelId: string) => boolean) | null = cachedInstalledModels()
 ): ComfyImageModel | undefined {
   for (const id of FITTING_KIT_PREVIEW_MODEL_CANDIDATES) {
+    // Turbo only when ComfyUI has it; the rest as before.
+    if (id === 'qwen-image-2.1-edit-turbo-8' && installed?.(id) !== true) continue;
     if (isSystemWorkflowSupportedModel(id)) {
       return id;
     }

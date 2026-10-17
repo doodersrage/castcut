@@ -31,7 +31,10 @@ export const FOOTWEAR_COMBO_GARMENT_SHARE = 0.7;
  * other engine wears the shoes from their words until it is tested.
  */
 export function footwearImageSuitsModel(model: string | null | undefined): boolean {
-  return poseProfileForModel(model).family === 'qwen-edit-2511';
+  // Qwen-Image 2.1 too: its dress plate with the combined clothing + shoes picture kept the dress
+  // and put the pictured sneakers on 3/3 (Turbo, 2026-10-17).
+  const family = poseProfileForModel(model).family;
+  return family === 'qwen-edit-2511' || family === 'qwen-image-2.1';
 }
 
 export function hasFootwearImage(footwear: FootwearImageRef | null | undefined): boolean {

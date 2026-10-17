@@ -95,11 +95,13 @@ describe('footwear', () => {
     );
   });
 
-  it('only Edit 2511 is sent the shoe picture; Rapid wears them from words', () => {
+  it('Edit 2511 and Qwen-Image 2.1 are sent the shoe picture; Rapid wears them from words', () => {
     assert.ok(footwearImageSuitsModel('qwen-image-edit-2511-lightning-8'));
+    // Turbo, 8 Day stills with the combined dress + sneakers picture: dress 8/8, sneakers 8/8.
+    assert.ok(footwearImageSuitsModel('qwen-image-2.1-edit-turbo-8'));
+    assert.ok(footwearImageSuitsModel('qwen-image-2.1-edit-pruna-8'));
     assert.ok(!footwearImageSuitsModel('qwen-rapid-aio-edit'));
     assert.ok(!footwearImageSuitsModel('qwen-rapid-aio-edit-nsfw'));
-    assert.ok(!footwearImageSuitsModel('qwen-image-2.1-edit-pruna-8'));
   });
 
   it('the worn-photo extract names the shoes', () => {

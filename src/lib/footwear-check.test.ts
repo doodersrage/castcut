@@ -213,3 +213,16 @@ describe('wedges named as wedges pass at any heel reading', () => {
     assert.equal(footwearCheckVerdict({ ...reading, heel: 'flat', kind: 'black flat sandals' }, 'brown woven wedge sandals').ok, false);
   });
 });
+
+describe('feet pass on Qwen-Image 2.1 Turbo', () => {
+  it('runs on Turbo when the try-on is Turbo, else the first installed pass engine', async () => {
+    const { resolveFeetPassModel } = await import('./footwear-check');
+    const TURBO = 'qwen-image-2.1-edit-turbo-8';
+    assert.equal(resolveFeetPassModel(TURBO, null), TURBO);
+    assert.equal(resolveFeetPassModel('qwen-rapid-aio-edit', () => true), TURBO);
+    assert.equal(
+      resolveFeetPassModel('qwen-rapid-aio-edit', id => id !== TURBO),
+      'qwen-image-edit-2511-lightning-8'
+    );
+  });
+});

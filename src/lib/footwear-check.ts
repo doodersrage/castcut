@@ -226,8 +226,13 @@ export function footwearCheckNote(verdict: FootwearCheckVerdict): string {
   }
 }
 
-/** Edit 2511 first: the feet pass was tested there (other engines draw no shoe picture). */
+/**
+ * Qwen-Image 2.1 Turbo first (2026-10-17: a dressed plate's white sneakers swapped for black
+ * strappy stilettos from the shoe picture, 3/3, the rest unchanged — as Edit 2511, 3/3), then
+ * Edit 2511, where the pass was first tested.
+ */
 export const FEET_PASS_MODELS = [
+  'qwen-image-2.1-edit-turbo-8',
   'qwen-image-edit-2511-lightning-8',
   'qwen-image-edit-2511-lightning-4',
   'qwen-image-edit-2511',
@@ -243,7 +248,9 @@ export function resolveFeetPassModel(
   installed?: ((modelId: string) => boolean) | null
 ): string | null {
   const picked = String(model ?? '').trim();
-  if (picked.includes('qwen-image-edit-2511')) return picked;
+  if (picked.includes('qwen-image-edit-2511') || picked === 'qwen-image-2.1-edit-turbo-8') {
+    return picked;
+  }
   if (!installed) return null;
   return FEET_PASS_MODELS.find(id => installed(id)) ?? null;
 }
