@@ -17,7 +17,55 @@ export type DayThirdPerson = {
   noun: DayPartnerNoun;
   /** Their look in words (Cast descriptor), for the face line. */
   descriptor?: string;
+  /**
+   * Give the three something to do (groupBusyLine) — Qwen-Image 2.1, where they otherwise stood
+   * in a row facing the camera.
+   */
+  busy?: boolean;
 };
+
+/**
+ * Qwen-Image 2.1 Turbo group stills, 2026-10-17: "cooking lunch together" drew three people
+ * standing in a row facing the camera, nobody cooking (2/2). "Each with their hands busy … not
+ * lined up" alone turned them a little, still standing (cooking 0/2, baking 0/2). One job per
+ * person, named by their image: cooking 2/2, a board game 2/2, baking 2/2. Walking, toasting and
+ * the sofa already showed the act; the busy words only turned them toward each other.
+ */
+const GROUP_BUSY =
+  'caught mid-moment, each of the three with their hands busy on it, turned toward the task and each other, not lined up facing the camera';
+
+const GROUP_TASKS: Array<{ re: RegExp; jobs: [string, string, string] }> = [
+  {
+    re: /\bbak(?:e|es|ing)\b/i,
+    jobs: [
+      'rolls out dough with a rolling pin',
+      'cracks an egg into a mixing bowl',
+      'cuts shapes with a cookie cutter',
+    ],
+  },
+  {
+    re: /\b(?:cook(?:s|ing)?|making (?:dinner|lunch|breakfast|brunch|pasta|pizza|a meal)|preparing (?:a |the )?(?:meal|dinner|lunch))\b/i,
+    jobs: [
+      'stirs a pan at the stove',
+      'chops vegetables on a board',
+      'leans in tasting from a wooden spoon',
+    ],
+  },
+  {
+    re: /\b(?:board game|card game|playing cards|cards|chess|dice)\b/i,
+    jobs: ['rolls the dice', 'moves a piece on the board', 'laughs, holding a card'],
+  },
+];
+
+/** "— the woman from the first image stirs …, …, caught mid-moment, …" for the moment, or ''. */
+export function groupBusyLine(moment: string, nouns: [string, string, string]): string {
+  const tasks = GROUP_TASKS.find(entry => entry.re.test(moment));
+  const order = ['first', 'second', 'third'];
+  const jobs = tasks
+    ? `${tasks.jobs.map((job, i) => `the ${nouns[i]} from the ${order[i]} image ${job}`).join(', ')}, `
+    : '';
+  return ` — ${jobs}${GROUP_BUSY}`;
+}
 
 function thirdOutfit(noun: DayPartnerNoun): string {
   return noun === 'man'
@@ -43,6 +91,7 @@ export function withThirdPerson(prompt: string, third: DayThirdPerson): string {
   const look = third.descriptor?.trim()
     ? ` (${third.descriptor.trim().replace(/[.\s]+$/, '')})`
     : '';
+  const nouns: [string, string, string] = [lead, partner, noun];
   const dayStart = prompt.indexOf('Day photo:');
   const head = dayStart >= 0 ? prompt.slice(0, dayStart) : '';
   const body = dayStart >= 0 ? prompt.slice(dayStart) : prompt;
@@ -54,6 +103,9 @@ export function withThirdPerson(prompt: string, third: DayThirdPerson): string {
       )
       // The POSE FIRST line: Image 3 is the third face now, not a pose map.
       .replace(/(\bPOSE FIRST: )the two people — /, '$1all three people — ')
+      .replace(/(\bPOSE FIRST: all three people — )([^\n]*?)\.(?=\n|$)/, (line, lead3, moment) =>
+        third.busy ? `${lead3}${moment}${groupBusyLine(moment, nouns)}.` : line
+      )
       .replace(/,? exactly as the pose map in Image \d shows/g, '') +
     body
       .replace(

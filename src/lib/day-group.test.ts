@@ -62,3 +62,32 @@ describe('Dub', () => {
     assert.equal(parseDubReply('1. Un', 2), null);
   });
 });
+
+describe('withThirdPerson: busy groups (Qwen-Image 2.1)', () => {
+  const cooking =
+    'Edit Image 1: POSE FIRST: the two people — cooking lunch together with her partner and a friend, exactly as the pose map in Image 3 shows.\n' +
+    DUO.replace('Edit Image 1: ', '');
+
+  it('gives each of the three a job for a cooking moment', () => {
+    const out = withThirdPerson(cooking, { noun: 'woman', busy: true });
+    assert.match(
+      out,
+      /POSE FIRST: all three people — cooking lunch together with her partner and a friend — the woman from the first image stirs a pan at the stove, the man from the second image chops vegetables on a board, the woman from the third image leans in tasting from a wooden spoon, caught mid-moment, .* not lined up facing the camera\./
+    );
+    assert.doesNotMatch(out, /pose map/);
+  });
+
+  it('only the busy words for a moment with no task list; nothing without busy', () => {
+    const walking = cooking.replace('cooking lunch together', 'walking along the path');
+    const out = withThirdPerson(walking, { noun: 'woman', busy: true });
+    assert.match(out, /walking along the path with her partner and a friend — caught mid-moment/);
+    assert.doesNotMatch(out, /stirs|dice/);
+    assert.doesNotMatch(withThirdPerson(cooking, { noun: 'woman' }), /stirs|mid-moment/);
+  });
+
+  it('baking beats cooking; games get dice and cards', async () => {
+    const { groupBusyLine } = await import('./day-group');
+    assert.match(groupBusyLine('baking and cooking cookies', ['woman', 'man', 'woman']), /rolls out dough/);
+    assert.match(groupBusyLine('a board game night', ['woman', 'man', 'man']), /the man from the third image laughs, holding a card/);
+  });
+});

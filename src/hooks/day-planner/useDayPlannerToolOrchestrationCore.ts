@@ -2478,6 +2478,7 @@ export function useDayPlannerToolOrchestrationCore() {
               thirdPerson = {
                 noun: dayPartnerNoun(thirdCharacter),
                 descriptor: (thirdCharacter.descriptor || thirdCharacter.hints || '').slice(0, 160),
+                busy: poseModelFamily(stillModel) === 'qwen-image-2.1',
               };
             } else {
               referenceNotes.push(
