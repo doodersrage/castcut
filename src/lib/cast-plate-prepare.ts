@@ -21,6 +21,9 @@ import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { plateStanceKey } from '@/lib/plate-stance';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { isSystemWorkflowSupportedModel } from '@/lib/system-workflow-runtime';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { installedComfyModels } from '@/lib/model-picker';
+import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export type CastPlatePrepareOptions = {
@@ -186,22 +189,42 @@ export function buildCastPlatePrepareNegative(
 
 /** Edit 2511 first (tested live); else whatever the Outfit packshot edits use. */
 const PREPARE_MODEL_CANDIDATES: ComfyImageModel[] = [
+  'qwen-image-2.1-edit-turbo-8',
   'qwen-image-edit-2511-lightning-8',
   'qwen-image-edit-2511-lightning-4',
   'qwen-image-edit-2511',
 ];
 
-export function resolveCastPlatePrepareModel(preferredModel?: string): ComfyImageModel | undefined {
+/**
+ * Qwen-Image 2.1 Turbo leads when ComfyUI has it (2026-10-17, the prepare edit on two photos ×
+ * two seeds: standing, base layer and white 4/4 on both engines, the face much closer to the
+ * source — distance 0.11–0.23 vs 0.28–0.54 on Edit 2511; marks 2/2 on both). It is skipped when
+ * it isn't installed or the model list isn't known yet.
+ */
+export function resolveCastPlatePrepareModel(
+  preferredModel?: string,
+  installed: ((modelId: string) => boolean) | null = cachedInstalled()
+): ComfyImageModel | undefined {
   const preferred = String(preferredModel ?? '').trim();
-  if (preferred && PREPARE_MODEL_CANDIDATES.includes(preferred as ComfyImageModel)) {
+  const candidates = PREPARE_MODEL_CANDIDATES.filter(
+    id => id !== 'qwen-image-2.1-edit-turbo-8' || installed?.(id) === true
+  );
+  if (preferred && candidates.includes(preferred as ComfyImageModel)) {
     return preferred as ComfyImageModel;
   }
-  for (const id of PREPARE_MODEL_CANDIDATES) {
+  for (const id of candidates) {
     if (isSystemWorkflowSupportedModel(id)) {
       return id;
     }
   }
   return resolveFittingGarmentPackshotModel(preferredModel);
+}
+
+function cachedInstalled(): ((modelId: string) => boolean) | null {
+  const inventory = readCachedComfyObjectInfoModels();
+  if (!inventory) return null;
+  const installed = installedComfyModels(COMFY_IMAGE_MODELS, inventory, undefined);
+  return installed ? (modelId: string) => installed.has(modelId) : null;
 }
 
 /**

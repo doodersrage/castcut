@@ -138,3 +138,15 @@ describe('look trait plate edit', () => {
   });
 });
 
+describe('resolveCastPlatePrepareModel', () => {
+  it('Qwen-Image 2.1 Turbo when installed, else Edit 2511; a listed pick stays', async () => {
+    const { resolveCastPlatePrepareModel } = await import('./cast-plate-prepare');
+    const TURBO = 'qwen-image-2.1-edit-turbo-8';
+    const E2511 = 'qwen-image-edit-2511-lightning-8';
+    assert.equal(resolveCastPlatePrepareModel(undefined, () => true), TURBO);
+    assert.equal(resolveCastPlatePrepareModel(undefined, id => id !== TURBO), E2511);
+    assert.equal(resolveCastPlatePrepareModel(undefined, null), E2511);
+    assert.equal(resolveCastPlatePrepareModel(E2511, () => true), E2511);
+    assert.equal(resolveCastPlatePrepareModel(TURBO, null), E2511);
+  });
+});
