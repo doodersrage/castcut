@@ -82,9 +82,8 @@ function withRelation(
   );
   const next = kind ? [...rest, { castId: otherId, kind }] : rest;
   if (next.length) return { ...character, relationships: next };
-  const { relationships: _dropped, ...without } = character;
-  void _dropped;
-  return without;
+  // Cleared, not left out: an update without the field keeps the stored value.
+  return { ...character, relationships: undefined };
 }
 
 /** Set (or clear, with null) what `otherId` is to `castId`, and the mirror on the other Cast. */

@@ -88,9 +88,9 @@ export function saveCastMarks(castId: string, marks: CastMark[]): CharacterRecor
   if (next) {
     upsertCharacter({ ...character, marks: next });
   } else {
-    const { marks: _dropped, ...rest } = character;
-    void _dropped;
-    upsertCharacter(rest);
+    // Cleared, not left out: an update without the field keeps the old value (character-os
+    // mergeCharacterUpdate spreads the stored record first), so removing the last one did nothing.
+    upsertCharacter({ ...character, marks: undefined });
   }
   return getCharacter(character.id);
 }

@@ -276,9 +276,9 @@ export function saveCastPlace(
   if (next) {
     upsertCharacter({ ...character, places: next });
   } else {
-    const { places: _dropped, ...rest } = character;
-    void _dropped;
-    upsertCharacter(rest);
+    // Cleared, not left out: an update without the field keeps the old value (character-os
+    // mergeCharacterUpdate spreads the stored record first), so removing the last one did nothing.
+    upsertCharacter({ ...character, places: undefined });
   }
   return getCharacter(character.id);
 }

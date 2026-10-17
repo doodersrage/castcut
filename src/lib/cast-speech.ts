@@ -60,9 +60,9 @@ export function saveCastSpeech(castId: string, speech: CastSpeech): CharacterRec
   if (next) {
     upsertCharacter({ ...character, speech: next });
   } else {
-    const { speech: _dropped, ...rest } = character;
-    void _dropped;
-    upsertCharacter(rest);
+    // Cleared, not left out: an update without the field keeps the old value (character-os
+    // mergeCharacterUpdate spreads the stored record first), so removing the last one did nothing.
+    upsertCharacter({ ...character, speech: undefined });
   }
   return getCharacter(character.id);
 }

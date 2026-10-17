@@ -29,9 +29,9 @@ export function saveCastVoice(castId: string, voice: CastVoice | null): boolean 
   if (voice) {
     upsertCharacter({ ...character, voice });
   } else {
-    const { voice: _dropped, ...rest } = character;
-    void _dropped;
-    upsertCharacter(rest);
+    // Cleared, not left out: an update without the field keeps the old value (character-os
+    // mergeCharacterUpdate spreads the stored record first), so removing the last one did nothing.
+    upsertCharacter({ ...character, voice: undefined });
   }
   return true;
 }
