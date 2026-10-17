@@ -17,8 +17,15 @@ describe('Day dress plate engine', () => {
     const { dressPlateEngine } = await import('./day-dress-plate-client');
     const { findDayDressPlate } = await import('./dress-plate-cache');
     const E2511 = 'qwen-image-edit-2511-lightning-8';
-    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', () => true), E2511);
-    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', id => id !== E2511), 'qwen-rapid-aio-edit');
+    assert.equal(dressPlateEngine('qwen-rapid-aio-edit', () => true), 'qwen-image-2.1-edit-turbo-8');
+    assert.equal(
+      dressPlateEngine('qwen-rapid-aio-edit', id => id !== 'qwen-image-2.1-edit-turbo-8'),
+      E2511
+    );
+    assert.equal(
+      dressPlateEngine('qwen-rapid-aio-edit', id => id === 'qwen-rapid-aio-edit'),
+      'qwen-rapid-aio-edit'
+    );
     assert.equal(dressPlateEngine('qwen-rapid-aio-edit', null), 'qwen-rapid-aio-edit');
     const old = { key: 'k', filename: 'a.png', at: Date.parse('2026-10-01T00:00:00Z') };
     const kleinEra = { key: 'k', filename: 'b.png', at: Date.parse('2026-10-08T20:00:00Z') };

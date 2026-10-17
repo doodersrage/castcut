@@ -214,13 +214,19 @@ async function fixDressPlateFeet(
  * outfit every still copies, so detail wins. Klein-made plates are re-made (dress-plate-cache.ts).
  */
 export const DRESS_PLATE_ENGINE = 'qwen-image-edit-2511-lightning-8';
+/**
+ * Qwen-Image 2.1 Turbo first (2026-10-17, the app's plate graph on three seeds each: the dress
+ * and the picked sneakers right 3/3 on both, Turbo closer to the packshot's criss-cross front
+ * straps). Edit 2511 when Turbo isn't installed.
+ */
+export const DRESS_PLATE_ENGINES = ['qwen-image-2.1-edit-turbo-8', DRESS_PLATE_ENGINE] as const;
 const KLEIN_ENGINE = 'flux-2-klein-9b-distilled';
 
 export function dressPlateEngine(
   stillModel: string,
   installed: ((modelId: string) => boolean) | null | undefined
 ): string {
-  return installed?.(DRESS_PLATE_ENGINE) ? DRESS_PLATE_ENGINE : stillModel;
+  return DRESS_PLATE_ENGINES.find(engine => installed?.(engine)) ?? stillModel;
 }
 
 async function renderDayDressPlate(
