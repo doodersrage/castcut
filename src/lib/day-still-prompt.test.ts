@@ -284,12 +284,12 @@ describe('pubic hair (a Cast trait)', () => {
   });
 
 describe('dayPoseFirstLine', () => {
-  it('leads with the recipe stance and names the pose map image', () => {
+  it('leads with the recipe stance, then the beat\'s action, and names the pose map image', () => {
     const prompt =
       'SCENE: she is on the bridge.\nDay photo: One woman alone. Camera: a low angle. She walks mid-step, one foot ahead of the other, full body in frame. She wears the outfit and the shoes shown in the second image (the same person, dressed, standing). Moment: pausing mid-stride. Match her body to the third image (pose map).';
     assert.equal(
       dayPoseFirstLine(prompt),
-      'POSE FIRST: she walks mid-step, one foot ahead of the other, full body in frame, exactly as the pose map in Image 3 shows.'
+      'POSE FIRST: she walks mid-step, one foot ahead of the other, full body in frame — pausing mid-stride, exactly as the pose map in Image 3 shows.'
     );
   });
 
@@ -298,7 +298,7 @@ describe('dayPoseFirstLine', () => {
       dayPoseFirstLine(
         'Day photo: One woman alone. She wears the outfit from the second image. Moment: checking a phone. Pose: one hand holds a phone up near the face, elbow bent. Match her body to the third image (pose map).'
       ),
-      'POSE FIRST: one hand holds a phone up near the face, elbow bent, exactly as the pose map in Image 3 shows.'
+      'POSE FIRST: one hand holds a phone up near the face, elbow bent — checking a phone, exactly as the pose map in Image 3 shows.'
     );
     assert.equal(
       dayPoseFirstLine(

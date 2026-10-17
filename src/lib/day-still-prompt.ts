@@ -215,7 +215,18 @@ export function dayPoseFirstLine(prompt: string): string {
   const stance = sentences.find(sentence => /^She (?!wears\b)[a-z]/.test(sentence));
   const pose = sentences.find(sentence => sentence.startsWith('Pose: '))?.slice(6);
   const moment = sentences.find(sentence => sentence.startsWith('Moment: '))?.slice(8);
-  const words = stance ? `she${stance.slice(3)}` : pose ? pose : moment ? `she is ${moment}` : '';
+  const lead = stance ? `she${stance.slice(3)}` : pose ? pose : '';
+  // The stance alone ("she crouches low, knees bent deep") left the beat's action and prop to the
+  // Moment far down, and Edit 2511 drew the posture with empty hands: no dog, crate, bike, bag or
+  // lace. With the Moment in the first line: 18/20 vs 5/20 on ten such beats, two seeds each, the
+  // six beats it already drew unchanged (live 2026-10-17).
+  const words = lead
+    ? moment && !lead.toLowerCase().includes(moment.toLowerCase())
+      ? `${lead} — ${moment}`
+      : lead
+    : moment
+      ? `she is ${moment}`
+      : '';
   return words ? `POSE FIRST: ${words}, exactly as the pose map in Image ${image} shows.` : '';
 }
 
