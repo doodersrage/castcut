@@ -35,6 +35,7 @@ import {
   activeCutSources,
   cutCopyKey,
   cutExtraShots,
+  saveCutVersion,
   type CutExtra,
   CUT_SOURCES,
   cutRoomKey,
@@ -181,14 +182,16 @@ export function useCutRoom() {
   const noteHistory = () =>
     setHistorySize({ past: history.current.past.length, future: history.current.future.length });
   const commitEdit = useCallback(
-    (next: Partial<Snapshot>) => {
+    (next: Partial<Snapshot>, step = false) => {
       const h = history.current;
       const now = Date.now();
-      if (now - h.at > 700) {
+      // A discrete action (add, split, open a version…) is always its own step; quick changes
+      // to the same controls (typing, a slider) merge.
+      if (step || now - h.at > 700) {
         h.past.push(stateRef.current);
         if (h.past.length > 80) h.past.shift();
       }
-      h.at = now;
+      h.at = step ? 0 : now;
       h.future = [];
       noteHistory();
       stateRef.current = { ...stateRef.current, ...next };
@@ -242,22 +245,25 @@ export function useCutRoom() {
         mediaKind: galleryEntryPrimaryMediaKind(entry),
       });
       const label = (entry.userTags?.[0] || entry.tool || 'Gallery').toString();
-      commitEdit({
-        extras: [
-          ...stateRef.current.extras,
-          {
-            key: newKey(),
-            kind: 'media',
-            title: `${label} ${clip ? 'clip' : 'still'}`,
-            url,
-            shotKind: clip ? 'clip' : 'still',
-            ...(galleryEntryPrimaryThumbUrl(entry)
-              ? { thumbUrl: galleryEntryPrimaryThumbUrl(entry)! }
-              : {}),
-            entryId: entry.id,
-          },
-        ],
-      });
+      commitEdit(
+        {
+          extras: [
+            ...stateRef.current.extras,
+            {
+              key: newKey(),
+              kind: 'media',
+              title: `${label} ${clip ? 'clip' : 'still'}`,
+              url,
+              shotKind: clip ? 'clip' : 'still',
+              ...(galleryEntryPrimaryThumbUrl(entry)
+                ? { thumbUrl: galleryEntryPrimaryThumbUrl(entry)! }
+                : {}),
+              entryId: entry.id,
+            },
+          ],
+        },
+        true
+      );
     },
     [commitEdit]
   );
@@ -265,16 +271,19 @@ export function useCutRoom() {
   const addText = useCallback(
     (after: string | null, text = 'Your words here') => {
       const key = newKey();
-      commitEdit({
-        extras: [...stateRef.current.extras, { key, kind: 'text', text }],
-        options: {
-          ...stateRef.current.options,
-          shotEdits: {
-            ...stateRef.current.options.shotEdits,
-            order: orderWith(orderNow(), key, after),
+      commitEdit(
+        {
+          extras: [...stateRef.current.extras, { key, kind: 'text', text }],
+          options: {
+            ...stateRef.current.options,
+            shotEdits: {
+              ...stateRef.current.options.shotEdits,
+              order: orderWith(orderNow(), key, after),
+            },
           },
         },
-      });
+        true
+      );
       return key;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -300,17 +309,20 @@ export function useCutRoom() {
       // A copy of a copy copies the original.
       const of = original?.kind === 'copy' ? original.of : key;
       const edits = stateRef.current.options.shotEdits;
-      commitEdit({
-        extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
-        options: {
-          ...stateRef.current.options,
-          shotEdits: {
-            ...edits,
-            order: orderWith(keys, copy, key),
-            shots: { ...edits?.shots, [copy]: { ...edits?.shots?.[key] } },
+      commitEdit(
+        {
+          extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
+          options: {
+            ...stateRef.current.options,
+            shotEdits: {
+              ...edits,
+              order: orderWith(keys, copy, key),
+              shots: { ...edits?.shots, [copy]: { ...edits?.shots?.[key] } },
+            },
           },
         },
-      });
+        true
+      );
       return copy;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -326,26 +338,29 @@ export function useCutRoom() {
       const edits = stateRef.current.options.shotEdits;
       const own = edits?.shots?.[key] ?? {};
       const at = Math.round(atSec * 10) / 10;
-      commitEdit({
-        extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
-        options: {
-          ...stateRef.current.options,
-          shotEdits: {
-            ...edits,
-            order: orderWith(keys, copy, key),
-            shots: {
-              ...edits?.shots,
-              [key]: { ...own, trimEndSec: at },
-              [copy]: {
-                ...own,
-                trimStartSec: at,
-                // The second half comes straight in.
-                transition: 'cut',
+      commitEdit(
+        {
+          extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
+          options: {
+            ...stateRef.current.options,
+            shotEdits: {
+              ...edits,
+              order: orderWith(keys, copy, key),
+              shots: {
+                ...edits?.shots,
+                [key]: { ...own, trimEndSec: at },
+                [copy]: {
+                  ...own,
+                  trimStartSec: at,
+                  // The second half comes straight in.
+                  transition: 'cut',
+                },
               },
             },
           },
         },
-      });
+        true
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [commitEdit, shots]
@@ -356,21 +371,62 @@ export function useCutRoom() {
       const edits = stateRef.current.options.shotEdits;
       const { [key]: _gone, ...rest } = edits?.shots ?? {};
       void _gone;
-      commitEdit({
-        extras: stateRef.current.extras.filter(
-          extra => extra.key !== key && !(extra.kind === 'copy' && extra.of === key)
-        ),
-        options: {
-          ...stateRef.current.options,
-          shotEdits: {
-            ...edits,
-            order: edits?.order?.filter(entry => entry !== key),
-            shots: rest,
+      commitEdit(
+        {
+          extras: stateRef.current.extras.filter(
+            extra => extra.key !== key && !(extra.kind === 'copy' && extra.of === key)
+          ),
+          options: {
+            ...stateRef.current.options,
+            shotEdits: {
+              ...edits,
+              order: edits?.order?.filter(entry => entry !== key),
+              shots: rest,
+            },
           },
         },
-      });
+        true
+      );
     },
     [commitEdit]
+  );
+  // Versions: the whole edit (sources, added shots, options) under a name.
+  const versions = useMemo(() => cut.toolSettings.versions ?? [], [cut.toolSettings.versions]);
+  const saveVersion = useCallback(
+    (name: string) => {
+      updateCut({
+        versions: saveCutVersion(cut.toolSettings.versions, {
+          id: `v${Date.now().toString(36)}`,
+          name: name || `Version ${(cut.toolSettings.versions?.length ?? 0) + 1}`,
+          savedAt: Date.now(),
+          sources: cut.toolSettings.sources,
+          extras: stateRef.current.extras,
+          options: stateRef.current.options,
+        }),
+      });
+    },
+    [cut.toolSettings.sources, cut.toolSettings.versions, updateCut]
+  );
+  /** Open a version: it becomes the edit (undo goes back to what was there). */
+  const openVersion = useCallback(
+    (id: string) => {
+      const version = cut.toolSettings.versions?.find(entry => entry.id === id);
+      if (!version) return;
+      commitEdit(
+        {
+          options: { ...DEFAULT_FILM_CUT_OPTIONS, ...version.options },
+          extras: version.extras ?? [],
+        },
+        true
+      );
+      updateCut({ sources: version.sources });
+    },
+    [commitEdit, cut.toolSettings.versions, updateCut]
+  );
+  const deleteVersion = useCallback(
+    (id: string) =>
+      updateCut({ versions: (cut.toolSettings.versions ?? []).filter(entry => entry.id !== id) }),
+    [cut.toolSettings.versions, updateCut]
   );
   const isAdded = useCallback((key: string) => extras.some(extra => extra.key === key), [extras]);
 
@@ -811,6 +867,10 @@ export function useCutRoom() {
     split,
     removeAdded,
     isAdded,
+    versions,
+    saveVersion,
+    openVersion,
+    deleteVersion,
     undo,
     redo,
     canUndo: historySize.past > 0,

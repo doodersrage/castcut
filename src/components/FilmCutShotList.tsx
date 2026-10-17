@@ -237,6 +237,51 @@ export default function FilmCutShotList({
                       </select>
                     </label>
                   ) : null}
+                  {shot.kind === 'still' ? (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      move
+                      <select
+                        disabled={disabled || !included}
+                        aria-label={`Motion of ${shot.title}`}
+                        title="Slow zoom on this still: push in, pull out, or hold it still"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={edit?.motion ?? ''}
+                        data-testid={`${testIdPrefix}-shot-motion-${shot.key}`}
+                        onChange={event =>
+                          patchShot(shot.key, {
+                            motion: (event.target.value || undefined) as
+                              'in' | 'out' | 'none' | undefined,
+                          })
+                        }
+                      >
+                        <option value="">auto</option>
+                        <option value="in">push in</option>
+                        <option value="out">pull out</option>
+                        <option value="none">hold still</option>
+                      </select>
+                    </label>
+                  ) : (
+                    <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                      sound
+                      <select
+                        disabled={disabled || !included}
+                        aria-label={`Sound of ${shot.title}`}
+                        title="This clip's sound in the cut (the Lines level applies on top)"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                        value={String(edit?.volume ?? 1)}
+                        data-testid={`${testIdPrefix}-shot-volume-${shot.key}`}
+                        onChange={event => {
+                          const next = Number(event.target.value);
+                          patchShot(shot.key, { volume: next === 1 ? undefined : next });
+                        }}
+                      >
+                        <option value="1">as recorded</option>
+                        <option value="1.5">louder</option>
+                        <option value="0.5">quieter</option>
+                        <option value="0">muted</option>
+                      </select>
+                    </label>
+                  )}
                   {index > 0 ? (
                     <label className="flex items-center gap-1 text-[var(--text-muted)]">
                       in

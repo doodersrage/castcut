@@ -53,6 +53,8 @@ export function cutRecipeFrom(input: Omit<CutRecipe, 'version' | 'droppedShots'>
         'framing',
         'transitionIn',
         'spoken',
+        'volume',
+        'motion',
       ] as const) {
         if (shot[field] !== undefined) (keep as Record<string, unknown>)[field] = shot[field];
       }

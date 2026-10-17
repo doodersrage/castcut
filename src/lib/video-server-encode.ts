@@ -285,6 +285,10 @@ export function buildFilterComplex(input: {
   narration?: Array<{ input: number; shot: number }>;
   /** Per shot: how it comes in (cut-timeline.ts); unset = the crossfade. */
   transitions?: ReadonlyArray<CutTransitionIn | null | undefined>;
+  /** Per still: push in, pull out or hold (unset = alternating, with stillMotion). */
+  stillMotions?: ReadonlyArray<'in' | 'out' | 'none' | undefined>;
+  /** Per clip: its sound's level (1 = as recorded). */
+  volumes?: ReadonlyArray<number | undefined>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -331,12 +335,15 @@ export function buildFilterComplex(input: {
         // xfade needs a constant frame rate on every input.
         `fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`,
       ].join(',');
-    } else if (kind === 'still' && input.stillMotion) {
+    } else if (kind === 'still' && input.stillMotion && input.stillMotions?.[i] !== 'none') {
       // zoompan needs headroom: render at 2× and zoom within it, one output frame per tick.
       const frames = Math.max(1, Math.round(hold * STILL_MOTION_FPS));
+      // A picked direction: an even curve pushes in, an odd one pulls out.
+      const curve =
+        input.stillMotions?.[i] === 'in' ? 0 : input.stillMotions?.[i] === 'out' ? 1 : i;
       chain =
         `[${i}:v]${scalePad},scale=${width * 2}:${height * 2},` +
-        `zoompan=z=${q(stillMotionZoomExpr(i, frames))}:x=${q('iw/2-(iw/zoom/2)')}:y=${q('ih/2-(ih/zoom/2)')}:d=${frames}:s=${width}x${height}:fps=${STILL_MOTION_FPS},` +
+        `zoompan=z=${q(stillMotionZoomExpr(curve, frames))}:x=${q('iw/2-(iw/zoom/2)')}:y=${q('ih/2-(ih/zoom/2)')}:d=${frames}:s=${width}x${height}:fps=${STILL_MOTION_FPS},` +
         `setsar=1,format=yuv420p,fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`;
     } else if (kind === 'still') {
       chain = `[${i}:v]${scalePad},trim=duration=${hold},setpts=PTS-STARTPTS`;
@@ -419,8 +426,14 @@ export function buildFilterComplex(input: {
   for (const { index, startSec, holdSec } of voiced) {
     const delayMs = Math.round(startSec * 1000);
     const from = input.trimStarts?.[index] ?? 0;
+    // The clip's own level (Cut's shot list) on top of the Lines level.
+    const own = input.volumes?.[index];
+    const gain =
+      typeof own === 'number' && own !== 1
+        ? `volume=${Number((voiceLevel * own).toFixed(3))},`
+        : voiceGain;
     parts.push(
-      `[${index}:a]${stereo},atrim=${from}:${from + holdSec},asetpts=PTS-STARTPTS,${voiceGain}adelay=${delayMs}:all=1[s${index}]`
+      `[${index}:a]${stereo},atrim=${from}:${from + holdSec},asetpts=PTS-STARTPTS,${gain}adelay=${delayMs}:all=1[s${index}]`
     );
   }
   // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
@@ -578,7 +591,8 @@ export async function encodeFilmPlaylistServer(
         shot.kind === 'clip' && options.clipSound !== false
           ? await clipAudioSec(ffmpeg, filePath)
           : null;
-      speech.push(soundSec !== null);
+      // A muted clip (Cut's shot list) adds no sound to the mix.
+      speech.push(soundSec !== null && shot.volume !== 0);
       // A trimmed clip (Cut shot list) plays from its in point to its out point.
       const fullSec =
         shot.kind === 'clip' && clipIsTrimmed(shot)
@@ -658,6 +672,8 @@ export async function encodeFilmPlaylistServer(
     const graphSpeech: boolean[] = [];
     const graphTrims: Array<number | null> = [];
     const graphTransitions: Array<CutTransitionIn | undefined> = [];
+    const graphMotions: Array<'in' | 'out' | 'none' | undefined> = [];
+    const graphVolumes: Array<number | undefined> = [];
     const inputArgs: string[][] = [];
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
@@ -669,6 +685,8 @@ export async function encodeFilmPlaylistServer(
     const pushTitle = async () => {
       if (!titleText) return;
       graphTransitions.push(undefined);
+      graphMotions.push(undefined);
+      graphVolumes.push(undefined);
       graphSpeech.push(false);
       graphTrims.push(null);
       graphKinds.push('title');
@@ -691,6 +709,8 @@ export async function encodeFilmPlaylistServer(
     for (let i = 0; i < localFiles.length; i += 1) {
       if (i === titleAt) await pushTitle();
       graphTransitions.push(shots[i]?.transitionIn);
+      graphMotions.push(shots[i]?.motion);
+      graphVolumes.push(shots[i]?.volume);
       graphSpeech.push(speech[i] === true);
       graphTrims.push(trimStarts[i] ?? null);
       graphKinds.push(kinds[i]!);
@@ -710,7 +730,7 @@ export async function encodeFilmPlaylistServer(
               )
             : null,
       });
-      if (kinds[i] === 'still' && options.stillMotion) {
+      if (kinds[i] === 'still' && options.stillMotion && shots[i]?.motion !== 'none') {
         // zoompan expands one input frame into the whole hold.
         inputArgs.push(['-i', localFiles[i]!]);
       } else if (kinds[i] === 'still') {
@@ -745,6 +765,8 @@ export async function encodeFilmPlaylistServer(
       speech: graphSpeech,
       trimStarts: graphTrims,
       transitions: graphTransitions,
+      stillMotions: graphMotions,
+      volumes: graphVolumes,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow

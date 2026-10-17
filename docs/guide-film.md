@@ -11,6 +11,7 @@ picked.
 | **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
 | **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim). Added shots have **Remove** |
 | **Options** | Shape, size, length, music, subtitles, titles — kept between visits |
+| **Versions** | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again |
 | **Your films** | Every film of this Cast: re-cut in another shape, export for an editor, share |
 
 After a cut: **Watch on Cast**, **Start tomorrow on Day** or **Continue as a story**.
@@ -45,7 +46,8 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 Each shot is a card with its still (or the clip's first frame — hover to play it), the beat and
 what is said. **Drag** a card by its ⠿ grip to move it (or ↑ ↓), untick to leave it out, edit
 its caption, hold a still longer, **frame** a still (waist up, chest up), **trim** a clip, pick
-the **poster**.
+the **poster**, set a still's **move** (push in, pull out, hold still) and a clip's
+**sound** (as recorded, louder, quieter, muted).
 
 ## Sound
 

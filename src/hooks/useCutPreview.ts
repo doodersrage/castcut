@@ -308,9 +308,13 @@ export function useCutPreview(input: {
         } else if (item.kind === 'still') {
           const image = mediaRef.current.images.get(item.shot);
           if (image) {
+            const motion = loaded.shots[item.shot]?.motion;
             const zoom =
-              value.stillMotion !== false
-                ? stillMotionZoom(item.stillIndex, local / item.durSec)
+              value.stillMotion !== false && motion !== 'none'
+                ? stillMotionZoom(
+                    motion === 'in' ? 0 : motion === 'out' ? 1 : item.stillIndex,
+                    local / item.durSec
+                  )
                 : 1;
             fit(
               context,
@@ -362,7 +366,9 @@ export function useCutPreview(input: {
         if (!video) continue;
         playingClips.add(item.shot);
         const target = item.fromSec + local;
-        video.volume = Math.min(1, normalizeVoiceLevel(value.voiceLevel));
+        // The clip's own level (Cut's shot list) on top of the Lines level; 0 = muted.
+        const own = loaded.shots[item.shot]?.volume ?? 1;
+        video.volume = Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own));
         if (Math.abs(video.currentTime - target) > 0.3) video.currentTime = target;
         if (running && video.paused && t < loaded.timeline.totalSec)
           void video.play().catch(() => undefined);

@@ -13,6 +13,7 @@ import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
+import CutVersions from '@/components/cut/CutVersions';
 import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
@@ -508,6 +509,18 @@ export default function CutRoom() {
               </div>
             ) : null}
           </div>
+        ) : null}
+
+        {vm.shots.length > 0 ? (
+          <ToolSection data-testid="cut-versions-section" title="Versions">
+            <CutVersions
+              versions={vm.versions}
+              disabled={busy}
+              onSave={vm.saveVersion}
+              onOpen={vm.openVersion}
+              onDelete={vm.deleteVersion}
+            />
+          </ToolSection>
         ) : null}
 
         <ToolSection

@@ -232,3 +232,25 @@ test('add shots: a text card, a duplicate, remove, and split a clip at the playh
   await page.getByTestId('cut-undo').click();
   await expect(blocks).toHaveCount(3, { timeout: 15_000 });
 });
+
+test('versions: save the edit, change it, open the saved one back', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+  await page.getByTestId('cut-version-name').fill('Long');
+  await page.getByTestId('cut-version-save').click();
+  await expect(page.getByTestId('cut-version-Long')).toBeVisible();
+  // A shorter edit: leave the afternoon out.
+  await page.getByTestId('cut-shot-include-day:afternoon').uncheck();
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot');
+  // Open "Long": both shots again; undo goes back to the short edit.
+  await page.getByTestId('cut-version-open-Long').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
+  await page.getByTestId('cut-undo').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot');
+  // A still's move is set on its card (kept with the cut like every edit).
+  await page.getByTestId('cut-shot-motion-day:morning').selectOption('none');
+  await expect(page.getByTestId('cut-shot-motion-day:morning')).toHaveValue('none');
+  await expect(page.getByTestId('cut-version-Long')).toBeVisible();
+});

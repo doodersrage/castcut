@@ -42,7 +42,25 @@ export type CutToolCache = {
   extras?: CutExtra[];
   /** Cut options, shot list edits included (keys carry the source). */
   options?: FilmCutOptionsValue;
+  /** Saved versions of the edit — switch between, say, a long cut and a 30 s Reels cut. */
+  versions?: CutVersion[];
 };
+
+export type CutVersion = {
+  id: string;
+  name: string;
+  savedAt: number;
+  sources?: CutSource[];
+  extras?: CutExtra[];
+  options?: FilmCutOptionsValue;
+};
+
+/** The versions with `next` saved (a name already there is replaced); newest first, at most 12. */
+export function saveCutVersion(versions: CutVersion[] | undefined, next: CutVersion): CutVersion[] {
+  const name = next.name.trim().slice(0, 60) || 'Version';
+  const rest = (versions ?? []).filter(entry => entry.name !== name);
+  return [{ ...next, name }, ...rest].slice(0, 12);
+}
 
 export const DEFAULT_CUT_TOOL_CACHE: CutToolCache = {};
 

@@ -62,3 +62,40 @@ describe('cut joins (transitions)', () => {
     assert.equal(shots[0]?.transitionIn, undefined);
   });
 });
+
+describe('per-shot motion and sound', () => {
+  it('a still held still skips zoompan; a picked direction picks the curve; a clip has its level', () => {
+    const graph = buildFilterComplex({
+      shotCount: 3,
+      kinds: ['still', 'still', 'clip'],
+      holdSecs: [2, 2, 3],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      stillMotion: true,
+      stillMotions: ['none', 'in', undefined],
+      speech: [false, false, true],
+      volumes: [undefined, undefined, 0.5],
+    });
+    const chains = graph.filter.split(';');
+    assert.doesNotMatch(chains.find(chain => chain.startsWith('[0:v]'))!, /zoompan/);
+    // Shot 1 (odd: it would pull out) pushes in — the even curve.
+    assert.match(chains.find(chain => chain.startsWith('[1:v]'))!, /zoompan=z='1\+/);
+    assert.match(graph.filter, /\[2:a\][^;]*volume=0\.5,adelay/);
+  });
+
+  it('the shot list passes motion (stills) and level (clips) to the shots', () => {
+    const shots = applyCutShotEdits(
+      [
+        { key: 'a', title: 'A', url: '/a.png', kind: 'still' },
+        { key: 'b', title: 'B', url: '/b.mp4', kind: 'clip' },
+      ],
+      { shots: { a: { motion: 'out', volume: 0 }, b: { volume: 0, motion: 'in' } } }
+    );
+    assert.equal(shots[0]?.motion, 'out');
+    assert.equal(shots[0]?.volume, undefined);
+    assert.equal(shots[1]?.volume, 0);
+    assert.equal(shots[1]?.motion, undefined);
+  });
+});

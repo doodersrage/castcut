@@ -37,6 +37,10 @@ export type CutShotEdit = {
   framing?: StillFraming;
   /** How this shot comes in from the one before; unset = the cut's crossfade. */
   transition?: CutTransitionKind;
+  /** Clips: the sound's level (1 = as recorded, 0 = muted). */
+  volume?: number;
+  /** Stills: push in, pull out or hold still (unset = alternating). */
+  motion?: 'in' | 'out' | 'none';
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
@@ -176,6 +180,13 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           ? { framing: edit.framing }
           : {}),
         ...(trim && trim.end != null ? { trimEndSec: trim.end } : {}),
+        ...(shot.kind === 'clip' && typeof edit?.volume === 'number' && edit.volume !== 1
+          ? { volume: Math.min(2, Math.max(0, edit.volume)) }
+          : {}),
+        ...(shot.kind === 'still' &&
+        (edit?.motion === 'in' || edit?.motion === 'out' || edit?.motion === 'none')
+          ? { motion: edit.motion }
+          : {}),
         ...(edit?.transition && CUT_TRANSITIONS.some(entry => entry.id === edit.transition)
           ? {
               transitionIn: {

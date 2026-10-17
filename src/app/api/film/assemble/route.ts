@@ -63,6 +63,12 @@ function parseShots(raw: unknown): FilmPlaylistShot[] {
       ...(typeof record.spoken === 'string' && record.spoken.trim()
         ? { spoken: record.spoken.trim().slice(0, 300) }
         : {}),
+      ...(typeof record.volume === 'number' && Number.isFinite(record.volume)
+        ? { volume: Math.min(2, Math.max(0, record.volume)) }
+        : {}),
+      ...(record.motion === 'in' || record.motion === 'out' || record.motion === 'none'
+        ? { motion: record.motion }
+        : {}),
       ...(normalizeCutTransition(record.transitionIn)
         ? { transitionIn: normalizeCutTransition(record.transitionIn) }
         : {}),

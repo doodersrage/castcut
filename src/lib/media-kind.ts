@@ -82,6 +82,10 @@ export type FilmPlaylistShot = {
   framing?: 'medium' | 'close';
   /** What is said on screen in this clip (its line, and the reply) — burned in as subtitles. */
   spoken?: string;
+  /** Clips: the sound's level in the cut (1 = as recorded, 0 = muted). */
+  volume?: number;
+  /** Stills: push in, pull out or hold still (unset = the cut's alternating slow zoom). */
+  motion?: 'in' | 'out' | 'none';
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
