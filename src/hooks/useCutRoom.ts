@@ -245,6 +245,7 @@ export function useCutRoom() {
   const [cutDone, setCutDone] = useState<{
     castId?: string;
     withDay: boolean;
+    withStory: boolean;
     persisted: boolean;
   } | null>(null);
   const storyNarrationCache = useRef(new Map<string, string>());
@@ -465,7 +466,12 @@ export function useCutRoom() {
             celebrateSystemTray('job');
           });
         }
-        setCutDone({ castId: cast?.id, withDay, persisted: result.persisted });
+        setCutDone({
+          castId: cast?.id,
+          withDay,
+          withStory: sources.includes('story'),
+          persisted: result.persisted,
+        });
         void import('@/lib/local-observability').then(({ noteFilmCutSourceMetric }) => {
           for (const source of sources)
             noteFilmCutSourceMetric(source === 'day' ? 'day' : 'roleplay');

@@ -404,6 +404,16 @@ export default function CutRoom() {
                     Start tomorrow on Day
                   </ButtonLink>
                 ) : null}
+                {vm.cutDone.withStory ? (
+                  <ButtonLink
+                    href={href('/story')}
+                    size="sm"
+                    variant="secondary"
+                    data-testid="cut-continue-the-story"
+                  >
+                    Continue the story
+                  </ButtonLink>
+                ) : null}
                 {vm.cutDone.withDay && vm.cutDone.castId ? (
                   <ButtonLink
                     href={href(continueDayAsStoryHref(vm.cutDone.castId))}
