@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Sound lane** on Cut's timeline: the music's waveform against the cut (with a note when the track ends early or runs over), the spoken lines and the narration where they play.
 - **Versions of a cut** — save the edit under a name and open it again (undo goes back). **Per-shot move and sound** — a still pushes in, pulls out or holds still; a clip plays as recorded, louder, quieter or muted (live encode: −14.5 dB as recorded, no sound track when muted).
 - **Add shots in Cut.** **+ From Gallery** (any still or clip of the Cast, picked by picture), **+ Text card** (white words on black in the cut's size, editable on its card), **Duplicate** and **Split at playhead** (a clip in two, the second half coming straight in). Added shots are kept with the cut, undo covers them, and they reach both encodes like any shot.
 - **Transitions per cut.** Each join on Cut's timeline (or each shot card's *in*) picks how the next shot comes in: Cut, Crossfade, Fade through black, Flash of white or Slide (0.6 s); unset joins keep the Crossfade option. The server encode joins with ffmpeg xfade per join (concat for a hard cut), and the lines, narration and the monitor use the same timing — live encode: 4 × 2 s stills with a dip and a slide ran 6.8 s, darkest frame mid-dip, both shots side by side mid-slide.

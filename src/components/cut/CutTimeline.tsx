@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
+import CutSoundLane from '@/components/cut/CutSoundLane';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
 import {
@@ -43,6 +44,8 @@ export default function CutTimeline({
   disabled,
   thumbFor,
   playing = false,
+  bedUrl,
+  bedLabel,
   onSeek,
   onPick,
   onChange,
@@ -60,6 +63,9 @@ export default function CutTimeline({
   thumbFor: (key: string) => { url: string; clip: boolean } | null;
   /** Follow the playhead only while the cut plays. */
   playing?: boolean;
+  /** The music bed (the sound lane draws it). */
+  bedUrl?: string;
+  bedLabel?: string;
   onSeek: (t: number) => void;
   onPick: (key: string) => void;
   onChange: (next: CutShotEdits) => void;
@@ -210,7 +216,7 @@ export default function CutTimeline({
         ref={scroller}
         className="relative overflow-x-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/50"
       >
-        <div className="relative" style={{ width: trackWidth, height: 112 }}>
+        <div className="relative" style={{ width: trackWidth, height: 172 }}>
           {/* Ruler: click or drag to scrub. */}
           <div
             className="absolute inset-x-0 top-0 h-5 cursor-pointer select-none border-b border-[var(--border-subtle)]"
@@ -447,6 +453,13 @@ export default function CutTimeline({
               </div>,
             ];
           })}
+          <CutSoundLane
+            loaded={loaded}
+            pps={pps}
+            width={trackWidth}
+            bedUrl={bedUrl}
+            bedLabel={bedLabel}
+          />
           {/* Playhead. */}
           <div
             className="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-[var(--accent)]"

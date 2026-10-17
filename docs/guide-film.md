@@ -8,7 +8,7 @@ picked.
 | --- | --- |
 | **What's in it** | Tick **Day**, **Story** or both — one film can mix the two |
 | **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change |
-| **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
+| **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
 | **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim). Added shots have **Remove** |
 | **Options** | Shape, size, length, music, subtitles, titles — kept between visits |
 | **Versions** | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again |

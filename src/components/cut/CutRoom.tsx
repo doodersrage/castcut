@@ -344,6 +344,8 @@ export default function CutRoom() {
                   : { url: shot.url, clip: shot.kind === 'clip' };
               }}
               playing={preview.playing}
+              bedUrl={vm.options.audioBedUrl.trim() || undefined}
+              bedLabel={vm.options.audioBedName}
               onSeek={preview.seek}
               onPick={pick}
               onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
