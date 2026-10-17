@@ -1,4 +1,5 @@
 import { resolveComfyUiConfig } from './comfyui-client';
+import { qwenImage21TurboCheckpointFor } from './qwen-image-21-renderer';
 import { resolveActiveLoraStack } from './lora-stack';
 import {
   injectPromptsWithFallbacks,
@@ -254,7 +255,10 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       qwenRenderer: runtime?.qwenRenderer,
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
-      qwenImage21TurboCheckpoint: runtime?.qwenImage21TurboCheckpoint,
+      qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
+        inventoryModels?.unets,
+        runtime?.qwenImage21TurboCheckpoint
+      ),
       videoRenderer: runtime?.videoRenderer,
     }
   );

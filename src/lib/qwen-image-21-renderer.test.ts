@@ -25,6 +25,7 @@ import {
   withTwoPersonFaces,
   isLyingBackNudeSolo,
   hasQwenImage21TurboCheckpoint,
+  qwenImage21TurboCheckpointFor,
   withDaylightLine,
   withPhotoRealismTail,
 } from './qwen-image-21-renderer';
@@ -634,6 +635,17 @@ describe('Qwen-Image 2.1 Turbo checkpoint', () => {
     assert.match(String(lora.find(n => n.class_type === 'LoraLoaderModelOnly')!.inputs.lora_name), /turbo_lora/);
     const pruna = nodes({ eightStep: true, turboCheckpoint: true });
     assert.equal(pruna.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_bf16.safetensors');
+  });
+
+  it('lets the queue inventory decide over the runtime guess', () => {
+    const withCkpt = ['qwen_image_2.1_turbo_int8_convrot.safetensors'];
+    // A re-roll whose runtime had no cached inventory still gets the checkpoint…
+    assert.equal(qwenImage21TurboCheckpointFor(withCkpt, undefined), true);
+    // …and a stale guess never asks for a file ComfyUI doesn't list.
+    assert.equal(qwenImage21TurboCheckpointFor(['qwen_image_2.1_bf16.safetensors'], true), false);
+    // No queue inventory: the runtime's guess stands.
+    assert.equal(qwenImage21TurboCheckpointFor(null, true), true);
+    assert.equal(qwenImage21TurboCheckpointFor(undefined, undefined), undefined);
   });
 
   it('finds the checkpoint in the inventory', () => {

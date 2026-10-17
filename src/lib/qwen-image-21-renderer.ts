@@ -69,6 +69,18 @@ export const QWEN_IMAGE_21_TURBO_LORA = 'qwen_image_2.1_turbo_lora_avg_rank_178_
  */
 export const QWEN_IMAGE_21_TURBO_UNET = 'qwen_image_2.1_turbo_int8_convrot.safetensors';
 
+/**
+ * Load Turbo from its checkpoint? The queue's own inventory (fetched for preflight) decides when it
+ * has one — every tool, re-rolls included, and never a checkpoint ComfyUI doesn't list; else the
+ * runtime's guess from the cached inventory.
+ */
+export function qwenImage21TurboCheckpointFor(
+  availableUnets: readonly string[] | null | undefined,
+  runtimeFlag: boolean | undefined
+): boolean | undefined {
+  return availableUnets ? hasQwenImage21TurboCheckpoint({ unets: availableUnets }) : runtimeFlag;
+}
+
 /** ComfyUI lists the Turbo checkpoint (any folder, any casing). */
 export function hasQwenImage21TurboCheckpoint(
   models:

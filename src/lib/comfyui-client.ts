@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { qwenImage21TurboCheckpointFor } from './qwen-image-21-renderer';
 import path from 'node:path';
 import {
   type ComfyUiRuntimeConfig,
@@ -559,7 +560,10 @@ function injectPromptsIntoWorkflow(
       qwenRenderer: runtime?.qwenRenderer,
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
-      qwenImage21TurboCheckpoint: runtime?.qwenImage21TurboCheckpoint,
+      qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
+        enrichInventory?.availableUnets,
+        runtime?.qwenImage21TurboCheckpoint
+      ),
       videoRenderer: runtime?.videoRenderer,
       kleinEnhancerIdentityPreset: runtime?.kleinEnhancerIdentityPreset,
       kleinEnhancerTextEnabled: runtime?.kleinEnhancerTextEnabled,
