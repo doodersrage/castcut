@@ -133,6 +133,23 @@ const SPORT_ACTION_CUE_MOVES: Record<string, RegExp> = {
   sport_box: /\b(?:punch(?:es|ing)?|jab|cross|hook|uppercut|one-two)\b/i,
 };
 
+/**
+ * Qwen-Image 2.1 sport stills (no pose map): "POSE FIRST: mid-action — <layout cue>; <ACTION>."
+ * ahead of the long sport brief. Turbo, six sport beats × two seeds (2026-10-17): the swimmer
+ * stood on the pool deck 2/2 and sprint / hockey / tennis came out upright; with this line she
+ * swam 2/2 and the others leaned into the move. The ACTION words alone did not (swimmer standing
+ * 2/2) — the layout cue is what carries it. A punch cue only for a punch (SPORT_ACTION_CUE_MOVES).
+ */
+export function sportPoseFirstLine(prompt: string, layout: string | null | undefined): string {
+  const key = layout?.trim() ?? '';
+  if (!key.startsWith('sport_')) return '';
+  const action = /\bACTION: ([^\n]*?)\.(?=\s|$)/.exec(prompt)?.[1]?.trim();
+  if (!action) return '';
+  const move = SPORT_ACTION_CUE_MOVES[key];
+  const cue = move && !move.test(action) ? null : poseLayoutCue(key);
+  return cue ? `POSE FIRST: mid-action — ${cue}; ${action}.` : '';
+}
+
 /** "ACTION: driving a reverse punch …. Pose: boxing: fists up …." — once, sport briefs only. */
 export function withSportActionPoseCue(prompt: string, layout: string | null | undefined): string {
   const key = layout?.trim() ?? '';

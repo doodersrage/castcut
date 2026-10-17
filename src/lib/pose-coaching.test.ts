@@ -382,3 +382,21 @@ describe('pose fix and hands in the words', () => {
   });
 });
 
+
+describe('sportPoseFirstLine (Qwen-Image 2.1 sport stills)', () => {
+  it('leads with the layout cue and the ACTION', async () => {
+    const { sportPoseFirstLine } = await import('./pose-coaching');
+    const brief = 'SCENE: she is in the race pool. ACTION: pulling through a butterfly stroke. Edit …';
+    const line = sportPoseFirstLine(brief, 'sport_swim');
+    assert.match(line, /^POSE FIRST: mid-action — swimming: body horizontal/);
+    assert.match(line, /; pulling through a butterfly stroke\.$/);
+  });
+
+  it('skips non-sport layouts, briefs without ACTION and a punch cue for a clinch', async () => {
+    const { sportPoseFirstLine } = await import('./pose-coaching');
+    assert.equal(sportPoseFirstLine('ACTION: walking the dog.', 'walk'), '');
+    assert.equal(sportPoseFirstLine('SCENE: a gym.', 'sport_squat'), '');
+    assert.equal(sportPoseFirstLine('ACTION: tying up in a clinch.', 'sport_box'), '');
+    assert.match(sportPoseFirstLine('ACTION: throwing a jab.', 'sport_box'), /fists up/);
+  });
+});

@@ -62,6 +62,7 @@ import {
   withRecipePoseCue,
   withSportActionPoseCue,
   type DuoPoseNames,
+  sportPoseFirstLine,
 } from '@/lib/pose-coaching';
 import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
 import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
@@ -440,13 +441,15 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     .filter(Boolean)
     .join('\n');
   const poseFirstLine =
-    facts.poseFirst &&
-    recipe &&
-    (figures === 1 || figures === 2 || (facts.poseFirstWithoutMap && figures <= 1)) &&
-    !customPose &&
-    !facts.adult
-      ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
-      : '';
+    facts.sportActionCue && facts.poseFirstWithoutMap && !recipe && figures === 1 && !customPose
+      ? sportPoseFirstLine(prompt, drawnLayout)
+      : facts.poseFirst &&
+          recipe &&
+          (figures === 1 || figures === 2 || (facts.poseFirstWithoutMap && figures <= 1)) &&
+          !customPose &&
+          !facts.adult
+        ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
+        : '';
   return {
     prompt: poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt,
     cued: Boolean(poseCueLine || duoWords),
