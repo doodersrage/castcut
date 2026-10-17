@@ -586,3 +586,23 @@ describe('Qwen-Image 2.1: nude solo lying on her back', () => {
     assert.equal(isLyingBackNudeSolo(`${LYING} Her partner kneels beside her.`), false);
   });
 });
+
+describe('Qwen-Image 2.1 Turbo sampler', () => {
+  const graph = {
+    '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Day photo: she reads.', image1: ['900', 0] } },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  };
+  const samplerOf = (opts: { eightStep: boolean; eightStepTurbo?: boolean }) =>
+    Object.values(
+      convertQwenEditWorkflowToImage21(structuredClone(graph), opts).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>
+    ).find(n => n.class_type === 'KSamplerSelect')!.inputs.sampler_name;
+
+  it('runs Turbo on euler_ancestral and Pruna on euler', () => {
+    assert.equal(samplerOf({ eightStep: true, eightStepTurbo: true }), 'euler_ancestral');
+    assert.equal(samplerOf({ eightStep: true }), 'euler');
+  });
+});
