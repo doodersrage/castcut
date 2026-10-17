@@ -12,6 +12,7 @@ import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
 import CutTimeline from '@/components/cut/CutTimeline';
+import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
@@ -36,6 +37,7 @@ export default function CutRoom() {
   const vm = useCutRoom();
   const router = useRouter();
   const [recording, setRecording] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const titleCard =
     vm.options.titles === true
       ? { title: vm.sources.includes('day') ? vm.dayCast?.name || 'Day' : vm.storyName }
@@ -48,6 +50,17 @@ export default function CutRoom() {
     live: true,
   });
   const activeKey = preview.keyAt(preview.time);
+  // Split at the playhead: the clip under it, where in its file the playhead is.
+  const splitAt = (() => {
+    const loaded = preview.loaded;
+    if (!loaded || !activeKey) return null;
+    const index = loaded.keys.indexOf(activeKey);
+    const item = loaded.timeline.items.find(entry => entry.shot === index);
+    if (!item || item.kind !== 'clip') return null;
+    const local = preview.time - item.startSec;
+    if (local < 0.4 || local > item.durSec - 0.4) return null;
+    return { key: activeKey, fileSec: item.fromSec + local };
+  })();
   const ordered = orderedCutShots(vm.previewShots, vm.options.shotEdits);
   const order = ordered.map(shot => shot.key);
   const pick = useCallback(
@@ -343,6 +356,47 @@ export default function CutRoom() {
 
         {vm.shots.length > 0 ? (
           <ToolSection data-testid="cut-shots" title="Shots">
+            <div className="mb-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                data-testid="cut-add-gallery"
+                onClick={() => setGalleryOpen(true)}
+              >
+                + From Gallery
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                data-testid="cut-add-text"
+                title="A card of white words on black, after the shot under the playhead"
+                onClick={() => vm.addText(activeKey)}
+              >
+                + Text card
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || !activeKey}
+                data-testid="cut-duplicate"
+                title="The shot under the playhead again, right after it"
+                onClick={() => activeKey && vm.duplicate(activeKey)}
+              >
+                Duplicate
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || !splitAt}
+                data-testid="cut-split"
+                title="Cut the clip under the playhead in two, where the playhead is"
+                onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
+              >
+                Split at playhead
+              </Button>
+            </div>
             <FilmCutShotList
               shots={vm.previewShots}
               edits={vm.options.shotEdits}
@@ -361,6 +415,33 @@ export default function CutRoom() {
               identityFor={shot => {
                 const { source, key } = splitCutRoomKey(shot.key);
                 return source === 'day' ? dayIdentity({ key }) : null;
+              }}
+              renderExtra={shot => {
+                const extra = vm.extras.find(entry => entry.key === shot.key);
+                if (!extra) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {extra.kind === 'text' ? (
+                      <input
+                        type="text"
+                        maxLength={160}
+                        aria-label="Words on the card"
+                        className="min-w-[12rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
+                        value={extra.text}
+                        data-testid={`cut-text-${shot.key}`}
+                        onChange={event => vm.setText(shot.key, event.target.value)}
+                      />
+                    ) : null}
+                    <button
+                      type="button"
+                      className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                      data-testid={`cut-remove-${shot.key}`}
+                      onClick={() => vm.removeAdded(shot.key)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                );
               }}
             />
           </ToolSection>
@@ -472,6 +553,15 @@ export default function CutRoom() {
           </ToolActionRow>
         </ToolSection>
       </ToolLayout>
+      <CutGalleryPicker
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        entries={vm.castMedia}
+        onAdd={entry => {
+          vm.addMedia(entry);
+          setGalleryOpen(false);
+        }}
+      />
     </>
   );
 }

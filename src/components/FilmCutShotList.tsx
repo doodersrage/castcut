@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type DragEvent } from 'react';
+import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
 import {
@@ -34,6 +34,7 @@ export default function FilmCutShotList({
   tagFor,
   activeKey,
   onPick,
+  renderExtra,
 }: {
   shots: KeyedShot[];
   edits?: CutShotEdits;
@@ -50,6 +51,8 @@ export default function FilmCutShotList({
   activeKey?: string | null;
   /** Clicking a shot's picture: jump the monitor to it. */
   onPick?: (key: string) => void;
+  /** Extra controls on a shot's card (Cut: a text card's words, Remove for an added shot). */
+  renderExtra?: (shot: KeyedShot) => ReactNode;
 }) {
   // Drag to reorder: the grip arms the row (dragging from a text field would grab the row
   // instead of selecting text), `over` marks where it lands.
@@ -177,6 +180,7 @@ export default function FilmCutShotList({
                   ) : null}
                 </div>
                 <ShotWords shot={shot} />
+                {renderExtra?.(shot)}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {captions ? (
                     <input

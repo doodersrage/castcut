@@ -9,7 +9,7 @@ picked.
 | **What's in it** | Tick **Day**, **Story** or both — one film can mix the two |
 | **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change |
 | **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
-| **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder |
+| **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim). Added shots have **Remove** |
 | **Options** | Shape, size, length, music, subtitles, titles — kept between visits |
 | **Your films** | Every film of this Cast: re-cut in another shape, export for an editor, share |
 

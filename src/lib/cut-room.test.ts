@@ -2,6 +2,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   activeCutSources,
+  cutCopyKey,
+  cutExtraShots,
   cutRoomRecipeSource,
   cutRoomShots,
   cutRoomSourceShots,
@@ -62,5 +64,39 @@ describe('Cut room', () => {
     assert.deepEqual(splitCutRoomKey('night'), { source: 'day', key: 'night' });
     assert.equal(cutRoomRecipeSource(['day', 'story']), 'cast');
     assert.equal(cutRoomRecipeSource(['story']), 'story');
+  });
+});
+
+describe('Cut room: added shots', () => {
+  const originals = [
+    { key: 'day:afternoon', title: 'Afternoon', url: '/a.mp4', kind: 'clip' as const },
+  ];
+  it('turns media, text cards and copies into shots (a copy of a gone shot is dropped)', () => {
+    const shots = cutExtraShots(
+      [
+        { key: 'x:1', kind: 'media', title: 'Gallery still', url: '/g.png', shotKind: 'still' },
+        { key: 'x:2', kind: 'text', text: 'Three weeks later' },
+        { key: 'day:afternoon~2', kind: 'copy', of: 'day:afternoon' },
+        { key: 'day:gone~2', kind: 'copy', of: 'day:gone' },
+      ],
+      originals,
+      extra => `data:text/${extra.text}`
+    );
+    assert.deepEqual(
+      shots.map(shot => [shot.key, shot.kind, shot.title]),
+      [
+        ['x:1', 'still', 'Gallery still'],
+        ['x:2', 'still', 'Three weeks later'],
+        ['day:afternoon~2', 'clip', 'Afternoon (copy)'],
+      ]
+    );
+    assert.equal(shots[1]?.url, 'data:text/Three weeks later');
+  });
+
+  it('copy keys never clash; added keys are their own source', () => {
+    assert.equal(cutCopyKey('day:a', new Set(['day:a', 'day:a~2'])), 'day:a~3');
+    assert.equal(cutCopyKey('day:a~2', new Set(['day:a~2'])), 'day:a~3');
+    assert.deepEqual(splitCutRoomKey('x:abc'), { source: 'added', key: 'x:abc' });
+    assert.deepEqual(splitCutRoomKey('day:morning~2'), { source: 'day', key: 'morning~2' });
   });
 });

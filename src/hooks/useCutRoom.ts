@@ -21,13 +21,21 @@ import { getCharacter, type CharacterRecord } from '@/lib/character-os';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   filterComfyGalleryEntries,
+  galleryEntryPrimaryMediaKind,
+  galleryEntryPrimaryThumbUrl,
+  galleryEntryPrimaryViewUrl,
   getGalleryCache,
   initGalleryStore,
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
+import { renderTextCard } from '@/lib/cut-text-card';
+import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import {
   activeCutSources,
+  cutCopyKey,
+  cutExtraShots,
+  type CutExtra,
   CUT_SOURCES,
   cutRoomKey,
   cutRoomRecipeSource,
@@ -54,6 +62,7 @@ import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
 import { checkCutDelivery } from '@/lib/film-delivery-check-client';
 import {
   applyCutShotEdits,
+  orderedCutShots,
   cutShotProblems,
   type CutShotProblem,
   type KeyedShot,
@@ -139,60 +148,232 @@ export function useCutRoom() {
     () => activeCutSources(cut.toolSettings.sources, bySource),
     [bySource, cut.toolSettings.sources]
   );
-  const shots = useMemo(() => cutRoomShots(bySource, sources), [bySource, sources]);
-
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
     [cut.toolSettings.options]
   );
+  const extras = useMemo(() => cut.toolSettings.extras ?? [], [cut.toolSettings.extras]);
+  // Added shots (Gallery, text cards, copies); text cards drawn in the cut's size.
+  const resolution = filmResolutionForCutOptions(options);
+  const added = useMemo(
+    () =>
+      cutExtraShots(extras, [...bySource.day, ...bySource.story], extra =>
+        renderTextCard({ text: extra.text, sub: extra.sub, resolution })
+      ),
+    [bySource, extras, resolution]
+  );
+  const shots = useMemo(() => cutRoomShots(bySource, sources, added), [added, bySource, sources]);
+
   const { updateToolSettings: updateCut } = cut;
-  // Undo / redo of the edit (options + shot list). Changes within a moment of each other — typing
-  // a caption, a slider — are one step.
-  const optionsRef = useRef(options);
+  // Undo / redo of the edit (options, shot list and added shots). Changes within a moment of each
+  // other — typing a caption, a slider — are one step.
+  type Snapshot = { options: FilmCutOptionsValue; extras: CutExtra[] };
+  const stateRef = useRef<Snapshot>({ options, extras });
   useEffect(() => {
-    optionsRef.current = options;
-  }, [options]);
-  const history = useRef<{
-    past: FilmCutOptionsValue[];
-    future: FilmCutOptionsValue[];
-    at: number;
-  }>({ past: [], future: [], at: 0 });
+    stateRef.current = { options, extras };
+  }, [extras, options]);
+  const history = useRef<{ past: Snapshot[]; future: Snapshot[]; at: number }>({
+    past: [],
+    future: [],
+    at: 0,
+  });
   const [historySize, setHistorySize] = useState({ past: 0, future: 0 });
   const noteHistory = () =>
     setHistorySize({ past: history.current.past.length, future: history.current.future.length });
-  const setOptions = useCallback(
-    (next: FilmCutOptionsValue) => {
+  const commitEdit = useCallback(
+    (next: Partial<Snapshot>) => {
       const h = history.current;
       const now = Date.now();
       if (now - h.at > 700) {
-        h.past.push(optionsRef.current);
+        h.past.push(stateRef.current);
         if (h.past.length > 80) h.past.shift();
       }
       h.at = now;
       h.future = [];
       noteHistory();
-      updateCut({ options: next });
+      stateRef.current = { ...stateRef.current, ...next };
+      updateCut(next);
     },
     [updateCut]
+  );
+  const setOptions = useCallback(
+    (next: FilmCutOptionsValue) => commitEdit({ options: next }),
+    [commitEdit]
   );
   const undo = useCallback(() => {
     const h = history.current;
     const previous = h.past.pop();
     if (!previous) return;
-    h.future.push(optionsRef.current);
+    h.future.push(stateRef.current);
     h.at = 0;
     noteHistory();
-    updateCut({ options: previous });
+    stateRef.current = previous;
+    updateCut(previous);
   }, [updateCut]);
   const redo = useCallback(() => {
     const h = history.current;
     const next = h.future.pop();
     if (!next) return;
-    h.past.push(optionsRef.current);
+    h.past.push(stateRef.current);
     h.at = 0;
     noteHistory();
-    updateCut({ options: next });
+    stateRef.current = next;
+    updateCut(next);
   }, [updateCut]);
+
+  /** The shot list's order as shown (every shot, left-out ones too). */
+  const orderNow = () =>
+    orderedCutShots(shots, stateRef.current.options.shotEdits).map(shot => shot.key);
+  /** Put a new shot right after `after` in the order. */
+  const orderWith = (keys: string[], key: string, after: string | null) => {
+    const rest = keys.filter(entry => entry !== key);
+    const at = after ? rest.indexOf(after) + 1 : rest.length;
+    return [...rest.slice(0, at), key, ...rest.slice(at)];
+  };
+  const newKey = () => `x:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+  /** A still or clip from the Gallery, at the end of the film. */
+  const addMedia = useCallback(
+    (entry: ComfyGalleryEntry) => {
+      const url = galleryEntryPrimaryViewUrl(entry);
+      if (!url) return;
+      const clip = isGalleryClipEntry({
+        ...entry,
+        mediaKind: galleryEntryPrimaryMediaKind(entry),
+      });
+      const label = (entry.userTags?.[0] || entry.tool || 'Gallery').toString();
+      commitEdit({
+        extras: [
+          ...stateRef.current.extras,
+          {
+            key: newKey(),
+            kind: 'media',
+            title: `${label} ${clip ? 'clip' : 'still'}`,
+            url,
+            shotKind: clip ? 'clip' : 'still',
+            ...(galleryEntryPrimaryThumbUrl(entry)
+              ? { thumbUrl: galleryEntryPrimaryThumbUrl(entry)! }
+              : {}),
+            entryId: entry.id,
+          },
+        ],
+      });
+    },
+    [commitEdit]
+  );
+  /** A text card after `after` (else at the end). */
+  const addText = useCallback(
+    (after: string | null, text = 'Your words here') => {
+      const key = newKey();
+      commitEdit({
+        extras: [...stateRef.current.extras, { key, kind: 'text', text }],
+        options: {
+          ...stateRef.current.options,
+          shotEdits: {
+            ...stateRef.current.options.shotEdits,
+            order: orderWith(orderNow(), key, after),
+          },
+        },
+      });
+      return key;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitEdit, shots]
+  );
+  const setText = useCallback(
+    (key: string, text: string) =>
+      commitEdit({
+        extras: stateRef.current.extras.map(extra =>
+          extra.key === key && extra.kind === 'text'
+            ? { ...extra, text: text.slice(0, 160) }
+            : extra
+        ),
+      }),
+    [commitEdit]
+  );
+  /** The same shot again, right after it (its own hold / trim / caption from here on). */
+  const duplicate = useCallback(
+    (key: string) => {
+      const keys = orderNow();
+      const copy = cutCopyKey(key, new Set(keys));
+      const original = stateRef.current.extras.find(extra => extra.key === key);
+      // A copy of a copy copies the original.
+      const of = original?.kind === 'copy' ? original.of : key;
+      const edits = stateRef.current.options.shotEdits;
+      commitEdit({
+        extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
+        options: {
+          ...stateRef.current.options,
+          shotEdits: {
+            ...edits,
+            order: orderWith(keys, copy, key),
+            shots: { ...edits?.shots, [copy]: { ...edits?.shots?.[key] } },
+          },
+        },
+      });
+      return copy;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitEdit, shots]
+  );
+  /** Split a clip at `atSec` (seconds into the file): it ends there, a copy plays from there. */
+  const split = useCallback(
+    (key: string, atSec: number) => {
+      const keys = orderNow();
+      const copy = cutCopyKey(key, new Set(keys));
+      const original = stateRef.current.extras.find(extra => extra.key === key);
+      const of = original?.kind === 'copy' ? original.of : key;
+      const edits = stateRef.current.options.shotEdits;
+      const own = edits?.shots?.[key] ?? {};
+      const at = Math.round(atSec * 10) / 10;
+      commitEdit({
+        extras: [...stateRef.current.extras, { key: copy, kind: 'copy', of }],
+        options: {
+          ...stateRef.current.options,
+          shotEdits: {
+            ...edits,
+            order: orderWith(keys, copy, key),
+            shots: {
+              ...edits?.shots,
+              [key]: { ...own, trimEndSec: at },
+              [copy]: {
+                ...own,
+                trimStartSec: at,
+                // The second half comes straight in.
+                transition: 'cut',
+              },
+            },
+          },
+        },
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitEdit, shots]
+  );
+  /** Take an added shot (or copy) out of the film for good. */
+  const removeAdded = useCallback(
+    (key: string) => {
+      const edits = stateRef.current.options.shotEdits;
+      const { [key]: _gone, ...rest } = edits?.shots ?? {};
+      void _gone;
+      commitEdit({
+        extras: stateRef.current.extras.filter(
+          extra => extra.key !== key && !(extra.kind === 'copy' && extra.of === key)
+        ),
+        options: {
+          ...stateRef.current.options,
+          shotEdits: {
+            ...edits,
+            order: edits?.order?.filter(entry => entry !== key),
+            shots: rest,
+          },
+        },
+      });
+    },
+    [commitEdit]
+  );
+  const isAdded = useCallback((key: string) => extras.some(extra => extra.key === key), [extras]);
+
   /** Arriving from Day / Story (`?from=`): that source alone, when it has shots. */
   const pickOnly = useCallback(
     (source: CutSource) => {
@@ -594,6 +775,22 @@ export function useCutRoom() {
         : [],
     [filmCastId, gallery]
   );
+  /** The Cast's finished stills and clips (not films) — what Add from Gallery offers. */
+  const castMedia = useMemo(
+    () =>
+      filmCastId
+        ? filterComfyGalleryEntries(gallery, { characterId: filmCastId })
+            .filter(
+              entry =>
+                entry.status === 'completed' &&
+                !isAssembledFilmEntry(entry) &&
+                Boolean(galleryEntryPrimaryViewUrl(entry))
+            )
+            .reverse()
+            .slice(0, 160)
+        : [],
+    [filmCastId, gallery]
+  );
 
   return {
     mounted,
@@ -606,6 +803,14 @@ export function useCutRoom() {
     previewShots,
     options,
     setOptions,
+    extras,
+    addMedia,
+    addText,
+    setText,
+    duplicate,
+    split,
+    removeAdded,
+    isAdded,
     undo,
     redo,
     canUndo: historySize.past > 0,
@@ -628,5 +833,6 @@ export function useCutRoom() {
     lastFilmEntryId,
     cutDone,
     films,
+    castMedia,
   };
 }

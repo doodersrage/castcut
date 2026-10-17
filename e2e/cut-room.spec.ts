@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
@@ -162,4 +164,71 @@ test('a transition picked on the timeline overlaps the shots (and shows on the c
     timeout: 15_000,
   });
   await expect(page.getByTestId('cut-shot-transition-day:afternoon')).toHaveValue('black');
+});
+
+test('add shots: a text card, a duplicate, remove, and split a clip at the playhead', async ({
+  page,
+}) => {
+  const clip = readFileSync(join(__dirname, 'fixtures', 'talk-2s.mp4'));
+  await page.route('**/e2e-media/talk-2s.mp4', route =>
+    route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'waves' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'a-m' },
+          {
+            slotId: 'afternoon',
+            status: 'completed',
+            imageUrl: thumb,
+            promptId: 'a-a',
+            clipStatus: 'completed',
+            clipUrl: '/e2e-media/talk-2s.mp4',
+            clipPromptId: 'a-a-clip',
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const blocks = page.locator('[data-testid^="cut-timeline-shot-"]');
+  await expect(blocks).toHaveCount(2, { timeout: 30_000 });
+  // A text card after the shot under the playhead (the first): its words are editable.
+  await page.getByTestId('cut-add-text').click();
+  await expect(blocks).toHaveCount(3, { timeout: 15_000 });
+  const words = page.locator('[data-testid^="cut-text-x:"]').first();
+  await words.fill('Three weeks later');
+  await expect(page.locator('[data-testid^="cut-shot-x:"]').first()).toContainText(
+    'Three weeks later'
+  );
+  // Remove it again.
+  await page.locator('[data-testid^="cut-remove-x:"]').first().click();
+  await expect(blocks).toHaveCount(2, { timeout: 15_000 });
+  // Split the clip 1 s in: two pieces, the first ends at 1 s, the second starts there.
+  await expect(page.getByTestId('cut-preview-notes')).toContainText('2 shots', { timeout: 15_000 });
+  await page.getByTestId('cut-preview-scrub').fill('3.5');
+  await expect(page.getByTestId('cut-split')).toBeEnabled({ timeout: 10_000 });
+  await page.getByTestId('cut-split').click();
+  await expect(blocks).toHaveCount(3, { timeout: 15_000 });
+  await expect(page.getByTestId('cut-shot-trim-day:afternoon-end')).toHaveValue('1');
+  await expect(page.getByTestId('cut-shot-trim-day:afternoon~2-start')).toHaveValue('1');
+  // Duplicate the still: one more shot; undo takes it back.
+  await page.getByTestId('cut-timeline-shot-day:morning').click();
+  await page.getByTestId('cut-duplicate').click();
+  await expect(blocks).toHaveCount(4, { timeout: 15_000 });
+  await page.getByTestId('cut-undo').click();
+  await expect(blocks).toHaveCount(3, { timeout: 15_000 });
 });
