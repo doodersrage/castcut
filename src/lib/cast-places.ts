@@ -323,9 +323,49 @@ export function castPlacePhotoFor(
  * plants and lamps in every still (the place words alone: their own room), the pose 4/4 without
  * the map.
  */
-export function withPlacePhotoInPrompt(prompt: string, image = 3): string {
+export function withPlacePhotoInPrompt(
+  prompt: string,
+  image = 3,
+  options: {
+    /**
+     * Name the room first in the SCENE line (Rapid AIO): with the room only further along, the
+     * photo came through 3/8; led with "the room shown in Image 3 is where she is" 4/4 (live
+     * 2026-10-16, the same seeds).
+     */
+    lead?: boolean;
+  } = {}
+): string {
   const room = `in the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours`;
-  return prompt
+  // The long Outfit Keep brief explains Image 3 as an OpenPose map at length: those lines go
+  // (they told the model the room photo was a skeleton).
+  const unmapped = prompt
+    .split('\n')
+    .filter(
+      line =>
+        !new RegExp(
+          `^(?:Match Image ${image} body positions|Image ${image} is (?:an OpenPose|only a pose map))`
+        ).test(line.trim())
+    )
+    .join('\n')
+    .replace(
+      new RegExp(
+        ` — the Image ${image} keypoint skeleton is pose control, never drawn into the scene`,
+        'g'
+      ),
+      ''
+    );
+  const placed = options.lead
+    ? unmapped
+        .replace(
+          /\bSCENE: (she|he) is in /,
+          `SCENE: the room shown in Image ${image} is where $1 is — exactly that room: `
+        )
+        .replace(
+          /(\bSETTING \(mandatory[^)]*\): )/,
+          `$1the room shown in Image ${image} is where the subject is — exactly that room: `
+        )
+    : unmapped;
+  return placed
     .replace(/,? exactly as the pose map in Image \d shows/g, '')
     .replace(
       /\s*Match (?:her|his|their two) bod(?:y|ies) to the (?:second|third|fourth) image \(pose map\)\./g,
@@ -361,8 +401,21 @@ export function saveCastPlacePhoto(
  * Live (Rapid AIO NSFW v23, 2026-10-16, a couch still, four seeds): the photo's velvet sofa 4/4,
  * its rug and plant on some. Clothed Rapid stills ignored the photo (0/4) and are left alone.
  */
-export function withPlacePhotoInAdultPrompt(prompt: string, image = 3): string {
+export function withPlacePhotoInAdultPrompt(
+  prompt: string,
+  image = 3,
+  options: {
+    /** The room took the pose map's place (duos): the map sentence goes, the pose is in words. */
+    replacesMap?: boolean;
+  } = {}
+): string {
   const room = `Room: the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours.`;
+  if (options.replacesMap) {
+    prompt = prompt.replace(
+      /\s*Match (?:her|his|their two|the two) bod(?:y|ies) (?:to|in) the (?:second|third|fourth) image \(pose map\)\./g,
+      ''
+    );
+  }
   if (/\bRoom: [^.]*\./.test(prompt)) return prompt.replace(/\bRoom: [^.]*\./, room);
   return /\bMoment: [^.]*\./.test(prompt)
     ? prompt.replace(/(\bMoment: [^.]*\.)/, `$1 ${room}`)

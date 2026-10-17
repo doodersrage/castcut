@@ -12,7 +12,7 @@ What each part of Castcut needs in ComfyUI. Install them from **Settings → Com
 | Engine | Size | Good for |
 | --- | --- | --- |
 | **Qwen Rapid AIO** (SFW or NSFW v23) | 28 GB | Fastest stills; Intimate / Raunchy need the NSFW one |
-| **Qwen-Image-Edit 2511** + Lightning | 41 GB + 0.8 GB | The liveliest clothed stills; room photos; shoe pictures |
+| **Qwen-Image-Edit 2511** + Lightning | 41 GB + 0.8 GB | The liveliest clothed stills; room photos (also on Rapid); shoe pictures |
 | **Qwen-Image 2.1** + Pruna 8-step | 14 GB | Closest likeness |
 
 ## Clips

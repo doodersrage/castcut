@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Room photos reach more stills.** A Cast's room photo now goes into clothed **Rapid** stills (short scene recipe; the room named first: 8/8 the exact room), clothed **two-person Edit 2511** stills (the photo takes the pose map's place: 8/8 through the app's own graphs) and **Intimate / Raunchy two-person Rapid** stills (6/6, poses the same as without it). The photo's ReferenceLatent is what carries the room — the text encoder alone gave only its colours. The long Outfit Keep brief (Rapid ignored the room 0/12) and the two-skeleton adult brief keep their pose maps.
+- **Fix: three-person stills never reached the queue** — the check excluded face-break stills, which every Edit 2511 two-person still is. Through the app now: 8/8 three different people in four scenes (park walk, cooking, wine bar, rooftop bench).
 - **Sound lane** on Cut's timeline: the music's waveform against the cut (with a note when the track ends early or runs over), the spoken lines and the narration where they play.
 - **Versions of a cut** — save the edit under a name and open it again (undo goes back). **Per-shot move and sound** — a still pushes in, pulls out or holds still; a clip plays as recorded, louder, quieter or muted (live encode: −14.5 dB as recorded, no sound track when muted).
 - **Add shots in Cut.** **+ From Gallery** (any still or clip of the Cast, picked by picture), **+ Text card** (white words on black in the cut's size, editable on its card), **Duplicate** and **Split at playhead** (a clip in two, the second half coming straight in). Added shots are kept with the cut, undo covers them, and they reach both encodes like any shot.

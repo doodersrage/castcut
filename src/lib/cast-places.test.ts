@@ -130,3 +130,53 @@ describe('a room photo on an adult solo still', () => {
     );
   });
 });
+
+describe('room photos on Rapid and duos', () => {
+  it('Rapid: the SCENE line leads with the room', () => {
+    const out = withPlacePhotoInPrompt(
+      'SCENE: she is in the cozy living room, in her apartment: brick walls — show that place around her.',
+      3,
+      { lead: true }
+    );
+    assert.match(
+      out,
+      /^SCENE: the room shown in Image 3 is where she is — exactly that room: the cozy living room, in the room shown in Image 3 — the same walls/
+    );
+  });
+
+  it('adult duo: the room replaces the pose map, whose sentence goes', () => {
+    const out = withPlacePhotoInAdultPrompt(
+      'Moment: on the sofa. Keep her face from the first image. Match the two bodies in the third image (pose map). Photorealistic.',
+      3,
+      { replacesMap: true }
+    );
+    assert.doesNotMatch(out, /pose map/);
+    assert.match(out, /Room: the room shown in Image 3/);
+  });
+
+  it('adult solo keeps its map sentence (the map moved to Image 2)', () => {
+    const out = withPlacePhotoInAdultPrompt(
+      'Moment: on the sofa. Match her body to the second image (pose map).'
+    );
+    assert.match(out, /Match her body to the second image \(pose map\)/);
+  });
+});
+
+describe('room photos in the long Outfit Keep brief', () => {
+  it('drops the lines that call Image 3 a pose map, and leads the SETTING with the room', () => {
+    const brief = [
+      'SETTING (mandatory — replace Image 1 background entirely): living room, in her apartment: brick walls — put them here',
+      'Match Image 3 body positions and headcount exactly — do not keep Image 1 standing portrait pose.',
+      'Image 3 is an OpenPose keypoint skeleton map (pose control only, not part of the picture). Pose the people.',
+      'Image 3 is only a pose map — never draw its lines.',
+      'single-subject framing — the Image 3 keypoint skeleton is pose control, never drawn into the scene. clean skin',
+    ].join('\n');
+    const out = withPlacePhotoInPrompt(brief, 3, { lead: true });
+    assert.doesNotMatch(out, /OpenPose|only a pose map|Match Image 3 body|keypoint skeleton/);
+    assert.match(
+      out,
+      /^SETTING \(mandatory — replace Image 1 background entirely\): the room shown in Image 3 is where the subject is — exactly that room: living room, in the room shown in Image 3/
+    );
+    assert.match(out, /single-subject framing\. clean skin/);
+  });
+});

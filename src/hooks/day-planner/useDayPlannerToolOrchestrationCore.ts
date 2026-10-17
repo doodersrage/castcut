@@ -2409,15 +2409,24 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[2] = poseGuideUrl;
           extraFilenames[2] = poseGuideFilename || '';
         }
-        // A photo of the Cast's own room (Cast → Places) for a clothed solo Edit 2511 still set
-        // there: it takes Image 3 from the pose map (the pose stays in words), only with Image 2
-        // attached so it stays the third image (cast-places.ts withPlacePhotoInPrompt).
+        // A photo of the Cast's own room (Cast → Places) for a clothed still set there: it takes
+        // Image 3 from the pose map (the pose stays in words), only with Image 2 attached so it
+        // stays the third image (cast-places.ts withPlacePhotoInPrompt). The queue gives it a
+        // ReferenceLatent — what carries the room: the room in the text encoder alone came
+        // through 0/4 on Rapid, with the latent 3/8, led in the SCENE line 4/4; Edit 2511 solo
+        // 6/6, two-person (partner face as Image 2) 4/4 with the latent (live 2026-10-16).
+        // Rapid only with the short recipe (its SCENE line): the long Outfit Keep brief ignored
+        // the room 0/12 even cleaned of its pose-map lines — there the map stays.
+        const clothedRoomEngine =
+          /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
+          (/rapid-aio/i.test(stillModel ?? '') && !partnerFace && /\bSCENE: /.test(finalized));
         const placePhoto =
           !adultStill &&
-          !partnerFace &&
-          !vacationFaceBreak &&
+          !queueTarget.thirdCastId?.trim() &&
+          // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so).
+          (!vacationFaceBreak || Boolean(partnerFace)) &&
           !kleinFaceFilename &&
-          /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
+          clothedRoomEngine &&
           Boolean(extraFilenames[1]?.trim() || extraUrls[1])
             ? castPlacePhotoFor(lookCharacter, queueTarget.location)
             : null;
@@ -2432,11 +2441,13 @@ export function useDayPlannerToolOrchestrationCore() {
           ? getCharacter(queueTarget.thirdCastId.trim())
           : undefined;
         if (thirdCharacter) {
+          // Edit 2511 two-person stills carry a face-break crop as Image 1 — the layout the 6/6
+          // test ran on (an earlier `!vacationFaceBreak` here kept every group still from ever
+          // reaching the queue).
           const groupOk =
             !placePhoto &&
             !adultStill &&
             Boolean(partnerFace) &&
-            !vacationFaceBreak &&
             !kleinFaceFilename &&
             /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '');
           if (!groupOk) {
@@ -2482,6 +2493,26 @@ export function useDayPlannerToolOrchestrationCore() {
           extraFilenames[1] = extraFilenames[2] ?? '';
           extraUrls[2] = undefined;
           extraFilenames[2] = adultPlacePhoto.filename;
+        }
+        // Adult Rapid two-person still: the room takes the pose map's place as Image 3 (the pose
+        // is in the recipe's words), or is Image 3 when the layout has no map. Live 2026-10-16
+        // (a lift, four seeds): the room 4/4 with its ReferenceLatent (the text encoder alone:
+        // the sofa, not the room). Not with the long brief, which explains Image 3 as the two
+        // skeletons throughout — there the map stays.
+        const adultDuoPlacePhoto =
+          !placePhoto &&
+          !adultPlacePhoto &&
+          adultStill &&
+          Boolean(partnerFace) &&
+          /rapid-aio/i.test(stillModel ?? '') &&
+          !/OpenPose keypoint skeleton|Image 3 has two skeletons/.test(finalized) &&
+          Boolean(extraFilenames[1]?.trim() || extraUrls[1]) &&
+          !extraFilenames[3]?.trim()
+            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            : null;
+        if (adultDuoPlacePhoto) {
+          extraUrls[2] = undefined;
+          extraFilenames[2] = adultDuoPlacePhoto.filename;
         }
         if (vacationFaceBreak && identityLatentPlate?.filename) {
           extraFilenames[2] = extraFilenames[2] ?? '';
@@ -2603,10 +2634,12 @@ export function useDayPlannerToolOrchestrationCore() {
           thirdPerson
             ? withThirdPerson(finalized, thirdPerson)
             : placePhoto
-              ? withPlacePhotoInPrompt(finalized)
+              ? withPlacePhotoInPrompt(finalized, 3, { lead: /rapid-aio/i.test(stillModel ?? '') })
               : adultPlacePhoto
                 ? withPlacePhotoInAdultPrompt(finalized)
-                : finalized,
+                : adultDuoPlacePhoto
+                  ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
+                  : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),
