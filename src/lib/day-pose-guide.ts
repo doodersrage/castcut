@@ -1465,7 +1465,10 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   if (
     /\b(laptop|keyboard|(?:typing|types)\s+(?:on|at)\s+(?:a|her|his|the)\s+(?:laptop|computer|keyboard)|working\s+on\s+(?:a|her|his|the)\s+(?:laptop|computer))\b/i.test(
       haystack
-    )
+    ) &&
+    // The laptop drawing is seated: "lying on the couch with her laptop on her stomach" keeps
+    // her lying (a plain lying figure).
+    !/\b(lie|lies|lying|reclin(?:e|es|ed|ing))\b/i.test(haystack)
   ) {
     return 'laptop';
   }
@@ -1609,7 +1612,7 @@ function posturalBaseFromScene(haystack: string): PoseGuideBase | null {
     return 'sit';
   }
   if (
-    /\b(lie|lies|lying|laid|supine|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back)|on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
+    /\b(lie|lies|lying|laid\s+(?:back|out|down|flat)|supine|sprawl(?:ed|ing)?|reclin(?:e|es|ed|ing)|flat\s+on\s+(?:the|her|his)\s+(?:bed|floor|back)|on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
       haystack
     )
   ) {
@@ -2101,9 +2104,16 @@ export function parsePoseGuideIntent(
     stride = 0.4;
     matched = true;
   } else if (
-    /\b(lie|lies|lying|laid|sprawl(?:ed|ing|s)?|prone|on\s+the\s+(?:floor|ground|bed)|(?:flat\s+)?on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
+    /\b(lie|lies|lying|prone)\b/i.test(haystack) ||
+    // Places and props that suggest lying ("on the bed", "pieces laid around her") only when the
+    // beat states no other posture: "sitting on the bed edge" and "kneeling on the floor" were
+    // drawn lying (2026-10-17 beat audit).
+    (/\b(laid|sprawl(?:ed|ing|s)?|on\s+the\s+(?:floor|ground|bed)|(?:flat\s+)?on\s+(?:her|his|their)\s+back\s+(?:on|in|across|atop))\b/i.test(
       haystack
-    )
+    ) &&
+      !/\b(sit(?:s|ting)?|sat|seated|perch(?:ed|es|ing)?|kneel(?:s|ing)?|knelt|crouch(?:es|ed|ing)?|squat(?:s|ting)?)\b/i.test(
+        haystack
+      ))
   ) {
     base = 'lie';
     stride = 0.55;
@@ -2119,7 +2129,13 @@ export function parsePoseGuideIntent(
         /\b(relax(?:es|ed|ing)?|reclin(?:e|es|ed|ing)?)\b[\s\S]{0,80}\b(towel|lounge|daybed|hammock|float|chaise|cabana|sofa|couch)\b/i.test(
           haystack
         ) ||
-        /\b(on\s+a\s+(?:beach\s+)?towel|sunbathing|knees?\s+drawn\s+up)\b/i.test(haystack)))
+        /\b(on\s+a\s+(?:beach\s+)?towel|sunbathing)\b/i.test(haystack) ||
+        // "Knees drawn up" lies only when nothing seats her: "sitting on the curb … knees drawn
+        // up" went out as a lying figure and Edit 2511 followed the drawing.
+        (/\bknees?\s+drawn\s+up\b/i.test(haystack) &&
+          !/\b(sit(?:s|ting)?|sat|seated|perch(?:ed|es|ing)?|window\s*seat|windowsill)\b/i.test(
+            haystack
+          ))))
   ) {
     // Beach-towel / lounge relax must be horizontal — sit silhouettes still read as stand to Edit.
     base = 'lie';
@@ -2176,7 +2192,14 @@ export function parsePoseGuideIntent(
     armLeft = 'out';
     armRight = 'out';
     matched = true;
-  } else if (/\b(pedal(?:s|ing)?|bik(?:e|es|ing)|bicycl(?:e|es|ing)|cycling)\b/i.test(haystack)) {
+  } else if (
+    /\b(pedal(?:s|ing)?|bik(?:e|es|ing)|bicycl(?:e|es|ing)|cycling)\b/i.test(haystack) &&
+    // Walking / pushing / wheeling a bike is on foot ("walking a friend's bike alongside them"
+    // was drawn seated on it).
+    !/\b(walk(?:s|ing)?|push(?:es|ing)?|wheel(?:s|ing)?)\s+(?:a|an|the|her|his|their|[\w'’-]+['’]s)\s+(?:[\w'’-]+\s+)?(?:bike|bicycle)\b/i.test(
+      haystack
+    )
+  ) {
     base = 'sit';
     stride = 0.55;
     armLeft = 'forward';

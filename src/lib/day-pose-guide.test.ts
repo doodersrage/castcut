@@ -1346,6 +1346,42 @@ describe('straddle rider sits on the partner hips', () => {
 });
 
 describe('pose words that are not a pose (Day prompt sweep findings)', () => {
+  it('a stated posture beats place words, props and bikes (2026-10-17 beat audit)', () => {
+    const intent = (scene: string) =>
+      parsePoseGuideIntent(scene, 0, { forcePeople: 1, allowIntimate: false });
+    assert.equal(intent('sitting on the bed edge pulling on an ankle boot').base, 'sit');
+    assert.equal(intent('kneeling on the floor sorting a stack of board games').base, 'kneel');
+    assert.equal(
+      intent('kneeling on the bedroom floor finishing her costume, pieces laid around her').base,
+      'kneel'
+    );
+    assert.equal(intent('lying on the bed with the lights off').base, 'lie');
+    const laptopInBed = intent('lying on the couch with her laptop open on her stomach');
+    assert.equal(laptopInBed.base, 'lie');
+    assert.notEqual(laptopInBed.social, 'laptop');
+    assert.equal(intent('typing on her laptop at the café table').social, 'laptop');
+    assert.equal(intent('walking a friend’s bike alongside them on the promenade').base, 'walk');
+    assert.equal(intent('cycling along the canal path').base, 'sit');
+  });
+
+  it('"knees drawn up" lies only when nothing seats her', () => {
+    const base = (scene: string) => parsePoseGuideIntent(scene, 0, { forcePeople: 1 }).base;
+    // "sitting on the curb … knees drawn up" was drawn lying (lie-hold-hold) and 2511 followed it.
+    for (const seated of [
+      'sitting on the curb under the streetlight, knees drawn up',
+      'sitting on the dark windowsill in an oversized shirt, knees drawn up to her chest',
+      'SEATED on the bow of a small boat — hips on the deck, knees drawn up',
+    ]) {
+      assert.equal(base(seated), 'sit', seated);
+    }
+    for (const lying of [
+      'RELAXING on a beach towel with a sunhat over her face — knees drawn up',
+      'lying on the couch with a bowl of popcorn watching a movie, knees drawn up',
+    ]) {
+      assert.equal(base(lying), 'lie', lying);
+    }
+  });
+
   const clothed = { allowIntimate: false as const, forcePeople: 1 };
 
   it('twirling or hugging a thing is one person doing neither', () => {
