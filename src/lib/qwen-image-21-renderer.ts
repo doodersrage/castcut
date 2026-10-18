@@ -516,6 +516,20 @@ const DUO_TASKS: ReadonlyArray<{ re: RegExp; jobs: string }> = [
     re: /\b(?:sharing breakfast|breakfast in bed|trays on their laps|sharing (?:a |the )?(?:meal|dinner|lunch|brunch))\b/i,
     jobs: 'one of them lifts a forkful of food, the other sips a drink, turned toward each other, mid-conversation',
   },
+  // Night Out (2026-10-17, 2/2 each vs none): "sharing coffee" had no mugs, "dancing with a
+  // friend" was a handshake, "sharing one mic" had one singer.
+  {
+    re: /\b(?:sharing (?:a |the )?coffee|coffee together|having coffee)\b/i,
+    jobs: 'each holds a mug of coffee in both hands, turned toward each other, mid-conversation',
+  },
+  {
+    re: /\bdanc(?:e|es|ing) (?:with (?:a |her |his |their )|together\b)/i,
+    jobs: 'dancing together face to face, swaying to the music, one of them twirls the other by the hand, both laughing',
+  },
+  {
+    re: /\b(?:karaoke|(?:sharing|share) (?:one|a|the) (?:mic|microphone))\b/i,
+    jobs: 'both lean in to the one microphone between them, cheek to cheek, both singing with mouths open',
+  },
   {
     re: /\b(?:board game|card game|playing cards|chess|dice)\b/i,
     jobs: 'one of them rolls the dice, the other moves a piece on the board, both looking down at the game',
@@ -523,11 +537,14 @@ const DUO_TASKS: ReadonlyArray<{ re: RegExp; jobs: string }> = [
 ];
 
 function withDuoJobs(prompt: string): string {
+  // A drawn layout's cue can stand in for the beat in POSE FIRST ("face each other, one hand
+  // joined …" for a dance): read the task from the Moment line too.
+  const moment = prompt.match(/\bMoment: ([^\n]*?)\.(?=\s|$)/)?.[1] ?? '';
   return prompt.replace(
     /(POSE FIRST: the two people — )([^\n]*?)(\.)(?=\s|$)/,
     (match, head: string, beat: string, dot: string) => {
-      if (/\bone of them\b/i.test(beat)) return match;
-      const task = DUO_TASKS.find(entry => entry.re.test(beat));
+      if (/\bone of them\b|\beach holds\b|\bboth lean in\b/i.test(beat)) return match;
+      const task = DUO_TASKS.find(entry => entry.re.test(beat) || entry.re.test(moment));
       return task ? `${head}${beat} — ${task.jobs}${dot}` : match;
     }
   );

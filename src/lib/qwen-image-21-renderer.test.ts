@@ -801,6 +801,13 @@ describe('2.1 duo jobs', () => {
     assert.match(withNaturalPoses(wrap('sitting side by side at one desk, both looking at a laptop screen')), /one of them types on the laptop/);
     assert.match(withNaturalPoses(wrap('seated knee-to-knee with a companion sharing a menu')), /holds it open between them/);
     assert.match(withNaturalPoses(wrap('sitting up in bed sharing breakfast, trays on their laps')), /lifts a forkful/);
+    const dance = withNaturalPoses(
+      'Edit <image1>: POSE FIRST: the two people — face each other, one hand joined and held out. SCENE: club. Moment: dancing with a friend under club lights.'
+    );
+    assert.match(dance, /one hand joined and held out — dancing together face to face/);
+    assert.equal(withNaturalPoses(dance), dance);
+    assert.match(withNaturalPoses(wrap('singing karaoke, sharing one mic')), /both lean in to the one microphone/);
+    assert.match(withNaturalPoses(wrap('on the couch sharing coffee after the party')), /each holds a mug of coffee/);
     const walk = wrap('walking side by side through the market');
     assert.equal(withNaturalPoses(walk), walk);
     const solo = 'Edit <image1>: POSE FIRST: cooking pasta at the stove. SCENE: home.';
