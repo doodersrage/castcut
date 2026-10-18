@@ -1059,7 +1059,9 @@ export function parseSportLayout(text: string | null | undefined): SocialLayout 
   }
   // Gym and skate — checked after yoga so "side plank" stays a yoga pose.
   if (
-    /\b(pull[- ]?ups?|chin[- ]?ups?|dead\s+hang|hanging\s+from\s+(?:a|the)\s+(?:pull[- ]?up\s+)?bar)\b/i.test(
+    // "chin up" with a space is a posture ("hands on hips, chin up"), not the exercise: the
+    // photoshoot beat hung her from a bar (night sweep, 2026-10-17).
+    /\b(pull[- ]?ups?|chin-ups?|chinups?|chin\s+ups\b|(?:doing|does|did)\s+chin\s+ups?|dead\s+hang|hanging\s+from\s+(?:a|the)\s+(?:pull[- ]?up\s+)?bar)\b/i.test(
       haystack
     )
   ) {

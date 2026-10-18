@@ -1662,3 +1662,12 @@ describe('stairs beats with a word before the steps', () => {
     assert.equal(parseSocialLayout('climbing a rock wall at the gym'), 'climb');
   });
 });
+
+describe('"chin up" as a posture', () => {
+  it('hands on hips, chin up is not a pull-up (night sweep, 2026-10-17)', async () => {
+    const { parseSocialLayout } = await import('./day-pose-guide');
+    assert.equal(parseSocialLayout('posing against a studio backdrop, hands on hips, chin up'), 'hands_hips');
+    assert.equal(parseSocialLayout('doing chin ups at the park bars'), 'sport_pullup');
+    assert.equal(parseSocialLayout('strict chin-ups at the gym'), 'sport_pullup');
+  });
+});
