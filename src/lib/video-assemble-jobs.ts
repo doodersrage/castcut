@@ -35,6 +35,8 @@ export type FilmAssembleJob = {
   height?: number;
   /** Relative path under data dir when completed. */
   outputRelativePath?: string;
+  /** The film's subtitles as an .srt (cut-subtitles.ts), when there were any. */
+  subtitlesSrt?: string;
 };
 
 type InternalJob = FilmAssembleJob & {
@@ -114,6 +116,11 @@ export type StartFilmAssembleInput = {
   matchShots?: boolean;
   /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
   followFaces?: boolean;
+  /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
+  smoothMotion?: boolean;
+  sharpen?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   requestOrigin?: string;
@@ -171,6 +178,9 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         lookStrength: input.lookStrength,
         matchShots: input.matchShots,
         followFaces: input.followFaces,
+        smoothMotion: input.smoothMotion,
+        sharpen: input.sharpen,
+        logo: input.logo,
         sound: input.sound,
         userId: input.userId,
         onProgress: (ratio, label) => {
@@ -202,6 +212,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
     current.width = result.width;
     current.height = result.height;
     current.outputRelativePath = relative;
+    if (result.subtitlesSrt) current.subtitlesSrt = result.subtitlesSrt;
     current.buffer = result.buffer;
     current.updatedAt = Date.now();
   } catch (error) {

@@ -1,5 +1,7 @@
 'use client';
 
+import { CUT_FRAMINGS, type CutFraming } from '@/lib/cut-move';
+import { CutShotOverlayEditor } from '@/components/cut/CutOverlayControls';
 import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
@@ -61,6 +63,8 @@ export default function FilmCutShotList({
   const [armed, setArmed] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  /** The shot whose overlay editor is open. */
+  const [overlayOpen, setOverlayOpen] = useState<string | null>(null);
   const known = new Set(shots.map(shot => shot.key));
   const ordered = orderedCutShots(shots, edits);
   const keys = ordered.map(shot => shot.key);
@@ -252,7 +256,7 @@ export default function FilmCutShotList({
                         onChange={event =>
                           patchShot(shot.key, {
                             motion: (event.target.value || undefined) as
-                              'in' | 'out' | 'none' | undefined,
+                              'in' | 'out' | 'none' | 'custom' | undefined,
                           })
                         }
                       >
@@ -260,9 +264,39 @@ export default function FilmCutShotList({
                         <option value="in">push in</option>
                         <option value="out">pull out</option>
                         <option value="none">hold still</option>
+                        <option value="custom">from… to…</option>
                       </select>
                     </label>
-                  ) : (
+                  ) : null}
+                  {shot.kind === 'still' && edit?.motion === 'custom' ? (
+                    <>
+                      {(['moveFrom', 'moveTo'] as const).map(field => (
+                        <label
+                          key={field}
+                          className="flex items-center gap-1 text-[var(--text-muted)]"
+                        >
+                          {field === 'moveFrom' ? 'from' : 'to'}
+                          <select
+                            disabled={disabled || !included}
+                            aria-label={`${field === 'moveFrom' ? 'Start' : 'End'} framing of ${shot.title}`}
+                            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                            value={edit?.[field] ?? (field === 'moveFrom' ? 'whole' : 'centre')}
+                            data-testid={`${testIdPrefix}-shot-${field === 'moveFrom' ? 'move-from' : 'move-to'}-${shot.key}`}
+                            onChange={event =>
+                              patchShot(shot.key, { [field]: event.target.value as CutFraming })
+                            }
+                          >
+                            {CUT_FRAMINGS.map(framing => (
+                              <option key={framing.id} value={framing.id}>
+                                {framing.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ))}
+                    </>
+                  ) : null}
+                  {shot.kind === 'still' ? null : (
                     <label className="flex items-center gap-1 text-[var(--text-muted)]">
                       sound
                       <select
@@ -337,7 +371,7 @@ export default function FilmCutShotList({
                             title={
                               field === 'soundLeadSec'
                                 ? 'J cut: hear this clip before it is seen, over the shot before (needs a trimmed start)'
-                                : 'L cut: keep hearing this clip over the next shot (needs a trimmed end) — in the cut; the monitor plays each clip with its picture'
+                                : 'L cut: keep hearing this clip over the next shot (needs a trimmed end)'
                             }
                             className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
                             value={String(edit?.[field] ?? 0)}
@@ -418,6 +452,31 @@ export default function FilmCutShotList({
                   >
                     Poster
                   </button>
+                  <button
+                    type="button"
+                    aria-expanded={overlayOpen === shot.key}
+                    disabled={disabled || !included}
+                    title="A lower third (a name or place) or a picture in a corner of this shot"
+                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                      edit?.lowerThird || edit?.pipUrl
+                        ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                        : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                    } disabled:opacity-40`}
+                    data-testid={`${testIdPrefix}-shot-overlay-${shot.key}`}
+                    onClick={() => setOverlayOpen(open => (open === shot.key ? null : shot.key))}
+                  >
+                    Overlay…
+                  </button>
+                  {overlayOpen === shot.key ? (
+                    <div className="basis-full">
+                      <CutShotOverlayEditor
+                        edit={edit}
+                        disabled={disabled}
+                        testId={`${testIdPrefix}-shot-overlay-editor-${shot.key}`}
+                        onPatch={patch => patchShot(shot.key, patch)}
+                      />
+                    </div>
+                  ) : null}
                   {isPoster && shot.kind === 'clip' ? (
                     <label className="flex items-center gap-1 text-[var(--text-muted)]">
                       frame at

@@ -78,10 +78,14 @@ export type CutExtra =
       key: string;
       kind: 'extended';
       of: string;
+      /** Seconds added (0 for a new take). */
       bySec: number;
       status: CutGeneratedStatus;
       jobId?: string;
       url?: string;
+      /** A new take: the shot's own render again with a new seed (its ComfyUI prompt id). */
+      take?: boolean;
+      promptId?: string;
     };
 
 export type CutToolCache = {
@@ -178,6 +182,7 @@ export function cutExtraShots(
           url: extra.url,
           kind: extra.shotKind,
           ...(extra.stillUrl && extra.shotKind === 'clip' ? { thumbUrl: extra.stillUrl } : {}),
+          ...(extra.promptId ? { entryId: extra.promptId } : {}),
         });
       }
     } else if (extra.kind === 'extended') {
@@ -186,7 +191,7 @@ export function cutExtraShots(
         out.push({
           ...original,
           key: extra.key,
-          title: `${original.title} (longer)`,
+          title: `${original.title} ${extra.take ? '(new take)' : '(longer)'}`,
           url: extra.url,
         });
       }

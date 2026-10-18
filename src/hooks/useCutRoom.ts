@@ -7,6 +7,8 @@
  * card — and keeps the film on the Cast.
  */
 
+import { planReel, type ReelLength } from '@/lib/cut-reel';
+import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { startClipExtend, waitForClipExtend } from '@/lib/clip-extend';
 import type { CutGeneratedStatus } from '@/lib/cut-generate';
@@ -840,6 +842,10 @@ export function useCutRoom() {
   // Make longer (clip-extend-server.ts): the clip carried on by `bySec`, in the background. The
   // longer copy stands in for the original once it is ready (the original is left out then).
   const [extendBusy, setExtendBusy] = useState<string | null>(null);
+  /** The last cut's subtitles (.srt), for a download beside the film. */
+  const [lastSubtitles, setLastSubtitles] = useState<{ srt: string; filename: string } | null>(
+    null
+  );
   const waitingExtends = useRef(new Set<string>());
   const settleExtend = useCallback(
     (key: string, patch: { status: CutGeneratedStatus; url?: string }) => {
@@ -886,15 +892,98 @@ export function useCutRoom() {
     },
     [settleExtend]
   );
-  // An extension still running when the page was left: pick it up (lost on a server restart).
+  const awaitTake = useCallback(
+    async (key: string, promptId: string) => {
+      if (waitingExtends.current.has(key)) return;
+      waitingExtends.current.add(key);
+      try {
+        const [entry] = await waitForGalleryPromptIds([promptId], {
+          timeoutMs: 15 * 60_000,
+          pollMs: 4_000,
+        });
+        const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+        settleExtend(key, url ? { status: 'ready', url } : { status: 'failed' });
+      } finally {
+        waitingExtends.current.delete(key);
+      }
+    },
+    [settleExtend]
+  );
+  // An extension or new take still running when the page was left: pick it up (an extension is
+  // lost on a server restart).
   useEffect(() => {
     if (!cut.mounted) return;
     for (const extra of extras) {
-      if (extra.kind === 'extended' && extra.status === 'rendering' && extra.jobId) {
-        void awaitExtend(extra.key, extra.jobId);
-      }
+      if (extra.kind !== 'extended' || extra.status !== 'rendering') continue;
+      if (extra.take && extra.promptId) void awaitTake(extra.key, extra.promptId);
+      else if (extra.jobId) void awaitExtend(extra.key, extra.jobId);
     }
-  }, [awaitExtend, cut.mounted, extras]);
+  }, [awaitExtend, awaitTake, cut.mounted, extras]);
+  /** A new take of a shot: its own render again with a new seed; stands in when ready. */
+  const [takeBusy, setTakeBusy] = useState<string | null>(null);
+  const newTake = useCallback(
+    async (key: string) => {
+      const shot = shots.find(entry => entry.key === key);
+      // A take of a take re-renders the original's render.
+      const promptId = shot?.entryId?.trim();
+      if (!shot || !promptId) {
+        setError('Only a shot rendered here (Day, Story or Generate) can take a new take.');
+        return;
+      }
+      setError(null);
+      setTakeBusy(key);
+      try {
+        const [entry] = await waitForGalleryPromptIds([promptId], {
+          timeoutMs: 6_000,
+          pollMs: 1_500,
+        });
+        if (!entry)
+          throw new Error('Could not find how this shot was made (it is not in the Gallery).');
+        const queued = await requeueComfyJobFromEntry(entry, { newSeed: true });
+        if (!queued.ok || !queued.promptId) {
+          throw new Error(
+            ('error' in queued && queued.error) || 'ComfyUI did not take the new take.'
+          );
+        }
+        const takeKey = newKey();
+        const edits = stateRef.current.options.shotEdits;
+        commitEdit(
+          {
+            extras: [
+              ...stateRef.current.extras.filter(
+                extra =>
+                  !(extra.kind === 'extended' && extra.of === key && extra.status !== 'ready')
+              ),
+              {
+                key: takeKey,
+                kind: 'extended',
+                of: key,
+                bySec: 0,
+                take: true,
+                status: 'rendering',
+                promptId: queued.promptId,
+              },
+            ],
+            options: {
+              ...stateRef.current.options,
+              shotEdits: { ...edits, order: orderWith(orderNow(), takeKey, key) },
+            },
+          },
+          true
+        );
+        setStatus(
+          `Rendering a new take of ${shot.title} — it takes the shot’s place when it’s ready.`
+        );
+        void awaitTake(takeKey, queued.promptId);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not start a new take.');
+      } finally {
+        setTakeBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [awaitTake, commitEdit, shots]
+  );
   /** Make a clip `bySec` seconds longer (it carries on in the same shot). */
   const extendClip = useCallback(
     async (key: string, bySec: number) => {
@@ -972,6 +1061,73 @@ export function useCutRoom() {
       });
     },
     [cut.toolSettings.sources, cut.toolSettings.versions, updateCut]
+  );
+  /**
+   * Make a reel (cut-reel.ts): the full edit saved as "Full cut", then the edit turned into a
+   * vertical 15 / 30 / 60 s reel (faces followed, hard cuts, subtitles, on the beat with music),
+   * saved as "Reel · N s". `durations` are the clips' lengths, by key (from the monitor).
+   */
+  const makeReel = useCallback(
+    (seconds: ReelLength, durations: ReadonlyMap<string, number>) => {
+      const before = stateRef.current;
+      const edits = before.options.shotEdits;
+      const ordered = orderedCutShots(shots, edits);
+      const plan = planReel<NonNullable<NonNullable<typeof edits>['shots']>[string]>({
+        targetSec: seconds,
+        shots: ordered.map(shot => ({
+          key: shot.key,
+          kind: shot.kind === 'clip' ? 'clip' : 'still',
+          durationSec: durations.get(shot.key) ?? null,
+          edit: edits?.shots?.[shot.key],
+        })),
+      });
+      if (plan.keys.length === 0) {
+        setError('Every shot is left out — put some back in before making a reel.');
+        return;
+      }
+      const picked = new Set(plan.keys);
+      const options: FilmCutOptionsValue = {
+        ...before.options,
+        shape: 'vertical',
+        vertical: true,
+        followFaces: true,
+        subtitles: true,
+        titles: false,
+        crossfadeSec: 0,
+        length: 'shots',
+        beatSnap: Boolean(before.options.audioBedUrl.trim()),
+        shotEdits: {
+          ...edits,
+          order: [...plan.keys, ...ordered.map(shot => shot.key).filter(key => !picked.has(key))],
+          shots: { ...edits?.shots, ...plan.edits },
+        },
+      };
+      const stamp = Date.now();
+      const full = {
+        id: `v${stamp.toString(36)}f`,
+        name: 'Full cut',
+        savedAt: stamp,
+        sources: cut.toolSettings.sources,
+        extras: before.extras,
+        options: before.options,
+      };
+      const reel = {
+        id: `v${stamp.toString(36)}r`,
+        name: `Reel · ${seconds} s`,
+        savedAt: stamp + 1,
+        sources: cut.toolSettings.sources,
+        extras: before.extras,
+        options,
+      };
+      commitEdit({ options }, true);
+      updateCut({
+        versions: saveCutVersion(saveCutVersion(cut.toolSettings.versions, full), reel),
+      });
+      setStatus(
+        `Made a ${seconds} s reel from ${plan.keys.length} shots — the full cut is saved as a version.`
+      );
+    },
+    [commitEdit, cut.toolSettings.sources, cut.toolSettings.versions, shots, updateCut]
   );
   /** Open a version: it becomes the edit (undo goes back to what was there). */
   const openVersion = useCallback(
@@ -1221,6 +1377,11 @@ export function useCutRoom() {
           lookStrength: options.lookStrength,
           matchShots: options.matchShots !== false,
           followFaces: options.followFaces !== false,
+          smoothMotion: options.smoothMotion === true,
+          sharpen: options.sharpen === true,
+          logo: options.logoUrl?.trim()
+            ? { url: options.logoUrl.trim(), corner: options.logoCorner ?? 'br' }
+            : undefined,
           sound: options.sound ?? undefined,
           stillMotion: options.stillMotion !== false,
           captions: options.titles === true,
@@ -1239,6 +1400,14 @@ export function useCutRoom() {
         });
         downloadFilmBlob(result.blob, result.filename);
         setLastFilmEntryId(result.entryId);
+        setLastSubtitles(
+          result.subtitlesSrt
+            ? {
+                srt: result.subtitlesSrt,
+                filename: result.filename.replace(/\.[a-z0-9]+$/i, '') + '.srt',
+              }
+            : null
+        );
         // A Day in the film is an episode of the Cast's season (the Cast page and recaps).
         if (withDay && cast && result.persisted) {
           recordDayFilmEpisode({
@@ -1446,8 +1615,12 @@ export function useCutRoom() {
     generateBusy,
     extendClip,
     extendBusy,
+    lastSubtitles,
+    newTake,
+    takeBusy,
     versions,
     saveVersion,
+    makeReel,
     openVersion,
     deleteVersion,
     undo,

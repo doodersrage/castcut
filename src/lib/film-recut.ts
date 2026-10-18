@@ -64,6 +64,9 @@ export async function recutFilm(input: {
     lookStrength: recipe.lookStrength,
     matchShots: recipe.matchShots,
     followFaces: recipe.followFaces,
+    smoothMotion: recipe.smoothMotion,
+    sharpen: recipe.sharpen,
+    logo: recipe.logo,
     sound: recipe.sound,
     onProgress: progress => input.onProgress?.(progress.label),
   });

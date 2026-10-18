@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeOverlayCorner } from '@/lib/cut-overlay';
 import { normalizeCutSound } from '@/lib/cut-sound';
 import { normalizeCutTransition } from '@/lib/cut-timeline';
 import { normalizeFilmTitleCard } from '@/lib/video-polish';
@@ -159,6 +160,19 @@ export async function POST(request: Request) {
       lookStrength: typeof body.lookStrength === 'number' ? body.lookStrength : undefined,
       matchShots: body.matchShots === true,
       followFaces: body.followFaces !== false,
+      smoothMotion: body.smoothMotion === true,
+      sharpen: body.sharpen === true,
+      logo:
+        body.logo &&
+        typeof body.logo === 'object' &&
+        typeof (body.logo as { url?: unknown }).url === 'string'
+          ? {
+              url: String((body.logo as { url: string }).url)
+                .trim()
+                .slice(0, 4_000_000),
+              corner: normalizeOverlayCorner((body.logo as { corner?: unknown }).corner, 'br'),
+            }
+          : null,
       sound: normalizeCutSound(body.sound),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,

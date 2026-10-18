@@ -31,6 +31,11 @@ export type CutRecipe = {
   matchShots?: boolean;
   /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
   followFaces?: boolean;
+  /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
+  smoothMotion?: boolean;
+  sharpen?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   /** Shots a re-cut can't bring back (a demo / uploaded still held only in the browser). */

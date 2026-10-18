@@ -73,6 +73,11 @@ export type AssembleFilmOptions = {
   matchShots?: boolean;
   /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
   followFaces?: boolean;
+  /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
+  smoothMotion?: boolean;
+  sharpen?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
 };
@@ -82,6 +87,8 @@ export type AssembledFilmResult = {
   mimeType: string;
   extension: string;
   encodePath: 'server' | 'browser';
+  /** The film's subtitles as an .srt (server encodes with subtitles on). */
+  subtitlesSrt?: string;
 };
 
 function even(value: number): number {
@@ -378,6 +385,9 @@ async function assembleFilmBlobOnServer(
         lookStrength: options?.lookStrength,
         matchShots: options?.matchShots === true,
         followFaces: options?.followFaces !== false,
+        smoothMotion: options?.smoothMotion === true,
+        sharpen: options?.sharpen === true,
+        logo: options?.logo ?? undefined,
         sound: options?.sound ?? undefined,
       }),
     });
@@ -402,7 +412,13 @@ async function assembleFilmBlobOnServer(
         throw new Error(`Server film status failed (HTTP ${statusRes.status}).`);
       }
       const statusJson = (await statusRes.json()) as {
-        job?: { status?: string; ratio?: number; label?: string; error?: string };
+        job?: {
+          status?: string;
+          ratio?: number;
+          label?: string;
+          error?: string;
+          subtitlesSrt?: string;
+        };
       };
       const job = statusJson.job;
       if (!job) {
@@ -433,6 +449,7 @@ async function assembleFilmBlobOnServer(
           mimeType: blob.type || 'video/mp4',
           extension: 'mp4',
           encodePath: 'server',
+          ...(job.subtitlesSrt ? { subtitlesSrt: job.subtitlesSrt } : {}),
         };
       }
     }

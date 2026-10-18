@@ -41,6 +41,11 @@ export async function assembleAndStampFilm(input: {
   matchShots?: boolean;
   /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
   followFaces?: boolean;
+  /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
+  smoothMotion?: boolean;
+  sharpen?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   /** Where the cut came from — kept in its recipe. */
@@ -56,6 +61,8 @@ export async function assembleAndStampFilm(input: {
   encodePath: 'server' | 'browser';
   /** What the cut plan did (length fit, beat snap). */
   cutNotes: string[];
+  /** The film's subtitles as an .srt, when it has any. */
+  subtitlesSrt?: string;
 }> {
   input.onProgress?.({ ratio: 0.01, label: 'Timing the cut…' });
   const prepared = await prepareCutShots(input.shots, {
@@ -85,6 +92,9 @@ export async function assembleAndStampFilm(input: {
     lookStrength: input.lookStrength,
     matchShots: input.matchShots,
     followFaces: input.followFaces,
+    smoothMotion: input.smoothMotion,
+    sharpen: input.sharpen,
+    logo: input.logo,
     sound: input.sound,
   });
   // The browser recorder draws pictures only: say what the server encode would have added.
@@ -127,6 +137,9 @@ export async function assembleAndStampFilm(input: {
       lookStrength: input.lookStrength,
       matchShots: input.matchShots,
       followFaces: input.followFaces,
+      smoothMotion: input.smoothMotion,
+      sharpen: input.sharpen,
+      logo: input.logo,
       sound: input.sound,
     }),
     onProgress: input.onProgress,
@@ -136,6 +149,7 @@ export async function assembleAndStampFilm(input: {
     blob: assembled.blob,
     encodePath: assembled.encodePath,
     cutNotes: prepared.notes,
+    ...(assembled.subtitlesSrt ? { subtitlesSrt: assembled.subtitlesSrt } : {}),
     ...stamped,
   };
 }

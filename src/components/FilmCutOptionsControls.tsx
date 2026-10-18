@@ -1,5 +1,6 @@
 'use client';
 
+import { CutLogoControl } from '@/components/cut/CutOverlayControls';
 import CutSoundControls from '@/components/cut/CutSoundControls';
 import type { CutSoundOptions } from '@/lib/cut-sound';
 import {
@@ -81,6 +82,13 @@ export type FilmCutOptionsValue = {
   matchShots?: boolean;
   /** Vertical / square: the crop follows the face — default on (unset = on). */
   followFaces?: boolean;
+  /** Clips under 25 fps get RIFE in-between frames (slower cut); a light sharpen. */
+  smoothMotion?: boolean;
+  sharpen?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logoUrl?: string;
+  logoName?: string;
+  logoCorner?: 'tl' | 'tr' | 'bl' | 'br';
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions;
 };
@@ -219,7 +227,7 @@ export default function FilmCutOptionsControls({
               onChange={event => onChange({ ...value, followFaces: event.target.checked })}
               data-testid={`${testIdPrefix}-follow-faces`}
             />
-            <span title="Each wide shot is cropped around the face, the crop moving with it through a clip, instead of the centre (in the cut; the monitor shows the centre)">
+            <span title="Each wide shot is cropped around the face, the crop moving with it through a clip, instead of the centre">
               Follow faces
             </span>
           </label>
@@ -318,6 +326,30 @@ export default function FilmCutOptionsControls({
           />
           <span title="Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)">
             Match shots
+          </span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.smoothMotion === true}
+            onChange={event => onChange({ ...value, smoothMotion: event.target.checked })}
+            data-testid={`${testIdPrefix}-smooth-motion`}
+          />
+          <span title="Clips made at 16 or 24 fps get the frames in between drawn (RIFE in ComfyUI, ~10 s a clip), so motion is smooth instead of stepping">
+            Smooth motion
+          </span>
+        </label>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.sharpen === true}
+            onChange={event => onChange({ ...value, sharpen: event.target.checked })}
+            data-testid={`${testIdPrefix}-sharpen`}
+          />
+          <span title="A light sharpen over the finished film — crisper on a phone, nothing invented">
+            Sharpen
           </span>
         </label>
       </ToolActionRow>
@@ -570,6 +602,12 @@ export default function FilmCutOptionsControls({
           hasLines={Boolean(shots?.some(shot => shot.kind === 'clip'))}
           testIdPrefix={testIdPrefix}
           shots={shots}
+        />
+        <CutLogoControl
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          testIdPrefix={testIdPrefix}
         />
         <CutSoundControls
           value={value}

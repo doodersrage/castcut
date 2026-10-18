@@ -4,6 +4,8 @@
  * and which shots have problems worth a look first. Pure — no browser, no ffmpeg.
  */
 
+import { normalizeCutFraming, type CutFraming } from './cut-move';
+import { cleanLowerThird, normalizeOverlayCorner } from './cut-overlay';
 import {
   CUT_TRANSITION_SEC,
   CUT_TRANSITIONS,
@@ -40,7 +42,10 @@ export type CutShotEdit = {
   /** Clips: the sound's level (1 = as recorded, 0 = muted). */
   volume?: number;
   /** Stills: push in, pull out or hold still (unset = alternating). */
-  motion?: 'in' | 'out' | 'none';
+  motion?: 'in' | 'out' | 'none' | 'custom';
+  /** Stills, motion 'custom': the framing the move starts on and ends on (cut-move.ts). */
+  moveFrom?: CutFraming;
+  moveTo?: CutFraming;
   /** Clips: playback speed, 0.25–4 (1 = as shot); under 1 is smooth slow motion. */
   speed?: number;
   /** Clips: play backwards. */
@@ -49,6 +54,12 @@ export type CutShotEdit = {
   soundLeadSec?: number;
   /** Clips: L cut — the sound carries on this many seconds after the picture. */
   soundTailSec?: number;
+  /** A lower third over the shot: a name / line, and a smaller line under it (cut-overlay.ts). */
+  lowerThird?: string;
+  lowerThirdSub?: string;
+  /** Picture-in-picture: a picture in a corner of the shot. */
+  pipUrl?: string;
+  pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
@@ -201,9 +212,30 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
         ...(shot.kind === 'clip' && (edit?.soundTailSec ?? 0) > 0
           ? { soundTailSec: Math.min(3, edit!.soundTailSec!) }
           : {}),
+        ...(cleanLowerThird(edit?.lowerThird)
+          ? {
+              lowerThird: cleanLowerThird(edit?.lowerThird),
+              ...(cleanLowerThird(edit?.lowerThirdSub)
+                ? { lowerThirdSub: cleanLowerThird(edit?.lowerThirdSub) }
+                : {}),
+            }
+          : {}),
+        ...(edit?.pipUrl?.trim()
+          ? {
+              pipUrl: edit.pipUrl.trim(),
+              pipCorner: normalizeOverlayCorner(edit.pipCorner, 'tr'),
+            }
+          : {}),
         ...(shot.kind === 'still' &&
         (edit?.motion === 'in' || edit?.motion === 'out' || edit?.motion === 'none')
           ? { motion: edit.motion }
+          : {}),
+        ...(shot.kind === 'still' && edit?.motion === 'custom'
+          ? {
+              motion: 'custom' as const,
+              moveFrom: normalizeCutFraming(edit.moveFrom) ?? 'whole',
+              moveTo: normalizeCutFraming(edit.moveTo) ?? 'centre',
+            }
           : {}),
         ...(edit?.transition && CUT_TRANSITIONS.some(entry => entry.id === edit.transition)
           ? {

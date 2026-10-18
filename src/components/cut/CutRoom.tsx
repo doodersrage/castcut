@@ -6,6 +6,7 @@
  * films sit under it to re-cut, export or share.
  */
 
+import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video-resolution';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -40,6 +41,8 @@ export default function CutRoom() {
   const router = useRouter();
   const [recording, setRecording] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const titleCard =
     vm.options.titles === true
       ? { title: vm.sources.includes('day') ? vm.dayCast?.name || 'Day' : vm.storyName }
@@ -238,6 +241,64 @@ export default function CutRoom() {
   const href = (path: string) => (phone ? toMobileStudioHref(path) : path);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
   const busy = vm.assembling || vm.checking;
+  // Export for an editor (cut-project-export.ts): the monitor's own timeline, packed server-side.
+  const exportProject = async () => {
+    const loaded = preview.loaded;
+    if (!loaded) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      const size = FILM_PRESET_SIZE[filmResolutionForCutOptions(vm.options)];
+      const shots = loaded.timeline.items.flatMap(item => {
+        if (item.kind !== 'clip' && item.kind !== 'still') return [];
+        const shot = loaded.shots[item.shot];
+        if (!shot?.url) return [];
+        return [
+          {
+            url: shot.url,
+            title: shot.title,
+            kind: item.kind,
+            entryId: shot.entryId,
+            fromSec: item.kind === 'clip' ? item.fromSec : 0,
+            durSec: item.durSec,
+          },
+        ];
+      });
+      const name = vm.dayCast?.name?.trim() || vm.storyName || 'Castcut film';
+      const response = await fetch('/api/cut/export-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          name,
+          width: size.width,
+          height: size.height,
+          shots,
+          music: vm.options.audioBedUrl.trim()
+            ? { url: vm.options.audioBedUrl.trim(), fromSec: vm.options.sound?.musicStartSec ?? 0 }
+            : null,
+          srt: vm.lastSubtitles?.srt ?? null,
+        }),
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || `Export failed (HTTP ${response.status}).`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download =
+        response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+        'castcut-project.zip';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (cause) {
+      setExportError(cause instanceof Error ? cause.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  };
   const cutButton = (
     <Button
       size="sm"
@@ -403,6 +464,44 @@ export default function CutRoom() {
                   }
                 />
                 {cutButton}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy || exporting || !preview.loaded}
+                  loading={exporting}
+                  loadingLabel="Packing"
+                  data-testid="cut-export-project"
+                  title="This cut as a project for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline (and the subtitles) in one .zip"
+                  onClick={() => void exportProject()}
+                >
+                  Export for an editor
+                </Button>
+                {exportError ? (
+                  <p className="type-caption text-[var(--danger)]" data-testid="cut-export-error">
+                    {exportError}
+                  </p>
+                ) : null}
+                {vm.lastSubtitles ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid="cut-subtitles-srt"
+                    title="The film's subtitles, timed to the cut — for YouTube, a video editor or a player"
+                    onClick={() => {
+                      const blob = new Blob([vm.lastSubtitles!.srt], {
+                        type: 'application/x-subrip',
+                      });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = vm.lastSubtitles!.filename;
+                      link.click();
+                      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    }}
+                  >
+                    Subtitles (.srt)
+                  </Button>
+                ) : null}
               </div>
             </ToolSection>
           </div>
@@ -476,6 +575,16 @@ export default function CutRoom() {
               <Button
                 size="sm"
                 variant="ghost"
+                disabled={busy || !activeKey || vm.takeBusy !== null}
+                data-testid="cut-new-take"
+                title="Render the picked shot again with a new seed; the new take takes its place when ready (Ctrl+Z / Remove brings the old one back)"
+                onClick={() => activeKey && void vm.newTake(activeKey)}
+              >
+                {vm.takeBusy ? 'Queueing…' : 'New take'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
                 disabled={busy || !splitAt}
                 data-testid="cut-split"
                 title="Cut the clip under the playhead in two, where the playhead is"
@@ -493,6 +602,29 @@ export default function CutRoom() {
               >
                 {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
               </Button>
+              <select
+                aria-label="Make a reel"
+                title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
+                disabled={busy || kept.length === 0}
+                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                value=""
+                data-testid="cut-reel"
+                onChange={event => {
+                  const seconds = Number(event.target.value);
+                  if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
+                  const durations = new Map<string, number>();
+                  preview.loaded?.keys.forEach((key, index) => {
+                    const sec = preview.loaded?.clipSecs[index];
+                    if (key && sec) durations.set(key, sec);
+                  });
+                  vm.makeReel(seconds, durations);
+                }}
+              >
+                <option value="">Make a reel…</option>
+                <option value="15">15 s reel</option>
+                <option value="30">30 s reel</option>
+                <option value="60">60 s reel</option>
+              </select>
               <select
                 aria-label="Make the picked clip longer"
                 title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
@@ -567,11 +699,11 @@ export default function CutRoom() {
                             : 'text-[var(--text-muted)]'
                         }
                       >
-                        {vm.shots.find(shot => shot.key === extra.of)?.title ?? 'A clip'} +
-                        {extra.bySec} s:{' '}
+                        {vm.shots.find(shot => shot.key === extra.of)?.title ?? 'A shot'}{' '}
+                        {extra.take ? '— new take' : `+${extra.bySec} s`}:{' '}
                         {extra.status === 'failed'
-                          ? 'did not render — the clip stays as it was.'
-                          : 'rendering… it takes the clip’s place when ready.'}
+                          ? 'did not render — the shot stays as it was.'
+                          : 'rendering… it takes the shot’s place when ready.'}
                       </span>
                       <button
                         type="button"

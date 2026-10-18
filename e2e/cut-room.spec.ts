@@ -334,6 +334,16 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await expect(page.getByTestId('cut-ambience-upload')).toBeVisible();
   await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
+  // Overlays: a shot's lower third, set in its overlay editor.
+  await page.getByTestId('cut-shot-overlay-day:morning').click();
+  await page.getByTestId('cut-shot-overlay-editor-day:morning-lower').fill('Nora');
+  await expect(page.getByTestId('cut-shot-overlay-day:morning')).toHaveAttribute('aria-expanded', 'true');
+  // A still's hand-set move: from… to… shows its two framings.
+  await page.getByTestId('cut-shot-motion-day:morning').selectOption('custom');
+  await expect(page.getByTestId('cut-shot-move-to-day:morning')).toHaveValue('centre');
+  await expect(page.getByTestId('cut-new-take')).toBeVisible();
+  await expect(page.getByTestId('cut-export-project')).toBeVisible();
+  await expect(page.getByTestId('cut-smooth-motion')).not.toBeChecked();
   // Follow faces is offered for a vertical cut only (on by default).
   await expect(page.getByTestId('cut-follow-faces')).toHaveCount(0);
   await page.getByTestId('cut-shape').selectOption('vertical');
@@ -355,4 +365,19 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.locator('body').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('s');
   await expect(blocks).toHaveCount(3, { timeout: 15_000 });
+});
+
+test('make a reel: a vertical short cut, the full cut kept as a version', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+  await page.getByTestId('cut-reel').selectOption('15');
+  await expect(page.getByTestId('cut-shape')).toHaveValue('vertical');
+  await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
+  await expect(page.getByTestId('cut-version-Full cut')).toBeVisible();
+  await expect(page.getByTestId('cut-version-Reel · 15 s')).toBeVisible();
+  // The full cut opens back as it was (wide).
+  await page.getByTestId('cut-version-open-Full cut').click();
+  await expect(page.getByTestId('cut-shape')).toHaveValue('wide');
 });

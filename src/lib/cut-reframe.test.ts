@@ -69,3 +69,16 @@ describe('cut reframe', () => {
     assert.equal(reframeSampleTimes(60).length, 8);
   });
 });
+
+describe('cut reframe at a moment', () => {
+  it('reads the path as the crop expression moves', async () => {
+    const { reframeXAt } = await import('./cut-reframe');
+    const path = [
+      { t: 1, x: 0.1 },
+      { t: 3, x: 0.5 },
+    ];
+    assert.equal(reframeXAt(path, 0), 0.1);
+    assert.equal(reframeXAt(path, 2), 0.30000000000000004);
+    assert.equal(reframeXAt(path, 9), 0.5);
+  });
+});

@@ -39,12 +39,24 @@ import {
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import sharp from 'sharp';
 import {
-  cropWidthFraction,
-  reframePath,
-  reframeSampleTimes,
-  reframeScaleFilter,
-  type ReframeSample,
-} from './cut-reframe';
+  FULL_BOX,
+  containBox,
+  framingPoint,
+  moveZoompanExprs,
+  type FramePoint,
+  type PictureBox,
+} from './cut-move';
+import { reframeScaleFilter } from './cut-reframe';
+import {
+  LOGO_WIDTH,
+  OVERLAY_MARGIN,
+  PIP_WIDTH,
+  lowerThirdAlphaExpr,
+  normalizeOverlayCorner,
+  overlayFfmpegXY,
+  type OverlayCorner,
+} from './cut-overlay';
+import { cuesToSrt, speechSpanFromSilence, subtitleCues, type SubtitleCue } from './cut-subtitles';
 import {
   normalizeAmbienceLevel,
   normalizeMusicFadeInSec,
@@ -103,6 +115,12 @@ export type FilmServerEncodeOptions = {
   sound?: CutSoundOptions | null;
   /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
   followFaces?: boolean;
+  /** A logo / watermark over the whole film (cut-overlay.ts). */
+  logo?: { url: string; corner?: OverlayCorner } | null;
+  /** Clips under 25 fps get RIFE in-between frames first (cut-smooth-server.ts). */
+  smoothMotion?: boolean;
+  /** A light sharpen over the finished picture. */
+  sharpen?: boolean;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -113,6 +131,8 @@ export type FilmServerEncodeResult = {
   extension: 'mp4';
   width: number;
   height: number;
+  /** The film's subtitles as an .srt (when subtitles are on and anything is spoken). */
+  subtitlesSrt?: string;
 };
 
 let ffmpegCached: string | null | undefined;
@@ -156,36 +176,16 @@ async function shotReframeFilter(input: {
   output: { width: number; height: number };
 }): Promise<string | null> {
   if (input.kind !== 'clip' && input.kind !== 'still') return null;
-  const bytes = new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ input.file));
-  const { shotFramePng } = await import('./cut-bridge-server');
-  const { locateFaceInComfy } = await import('./face-locate-server');
-  const sharp = (await import('sharp')).default;
-  const times = input.kind === 'still' ? [0] : reframeSampleTimes(input.playSec);
-  const samples: ReframeSample[] = [];
-  let cropWidth = 1;
-  for (const t of times) {
-    const frame = await shotFramePng(
-      bytes,
-      input.kind === 'still' ? 'first' : { atSec: (input.trimStart ?? 0) + t }
-    );
-    const meta = await sharp(frame).metadata();
-    if (!meta.width || !meta.height) continue;
-    cropWidth = cropWidthFraction({ width: meta.width, height: meta.height }, input.output);
-    if (cropWidth >= 0.999) return null;
-    const found = await locateFaceInComfy({ bytes: frame, width: meta.width, height: meta.height });
-    if (!found.available) return null;
-    samples.push({
-      t,
-      cx: found.face ? (found.face.x + found.face.width / 2) / meta.width : null,
-    });
-  }
-  const path = reframePath(samples, cropWidth);
-  if (!path) return null;
-  const held =
-    input.reverse && path.length > 1
-      ? [{ t: 0, x: path.reduce((sum, p) => sum + p.x, 0) / path.length }]
-      : path;
-  return reframeScaleFilter(held, input.output);
+  const { shotReframePath } = await import('./cut-reframe-server');
+  const path = await shotReframePath({
+    bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ input.file)),
+    kind: input.kind,
+    trimStart: input.trimStart,
+    playSec: input.playSec,
+    reverse: input.reverse,
+    output: input.output,
+  });
+  return path ? reframeScaleFilter(path, input.output) : null;
 }
 
 /** A shot's colour (cut-look.ts) from its file: a still as is, a clip at 40% of what plays. */
@@ -302,6 +302,36 @@ async function runCapture(
  * Length of a downloaded clip's sound track in seconds, or null when it has none (talking clips
  * are MP4 with audio; WAN clips are silent WebP).
  */
+/** When someone speaks in `durSec` of a file's sound from `fromSec` (cut-subtitles.ts). */
+async function speechSpan(
+  ffmpeg: string,
+  file: string,
+  fromSec: number,
+  durSec: number
+): Promise<{ from: number; to: number } | null> {
+  try {
+    const { stderr } = await runCapture(ffmpeg, [
+      '-hide_banner',
+      '-ss',
+      fromSec.toFixed(3),
+      '-t',
+      durSec.toFixed(3),
+      '-i',
+      file,
+      '-map',
+      '0:a:0',
+      '-af',
+      'silencedetect=n=-32dB:d=0.3',
+      '-f',
+      'null',
+      '-',
+    ]);
+    return speechSpanFromSilence(stderr, durSec);
+  } catch {
+    return null;
+  }
+}
+
 async function clipAudioSec(ffmpeg: string, file: string): Promise<number | null> {
   if (!/\.(mp4|webm|mov|mkv)$/i.test(file)) return null;
   try {
@@ -356,7 +386,7 @@ async function fetchShotBytes(
   return fetchFilmShotBytes({ url, requestOrigin, entryId, userId });
 }
 
-function extForShot(kind: FilmShotKind, contentTypeHint?: string, url?: string): string {
+export function extForShot(kind: FilmShotKind, contentTypeHint?: string, url?: string): string {
   const fromUrl = url?.match(/\.(mp4|webm|mov|mkv|gif|webp|png|jpe?g|avif)(\?|#|$)/i)?.[1];
   if (fromUrl) {
     return fromUrl.toLowerCase() === 'jpeg' ? 'jpg' : fromUrl.toLowerCase();
@@ -379,6 +409,11 @@ export type FilmGraphText = {
   captionFile?: string | null;
   /** Subtitle (spoken line / narration), bottom centre; the caption moves to the top. */
   speechFile?: string | null;
+  /** A lower third (cut-overlay.ts): its line and the smaller line under it. */
+  lowerThirdFile?: string | null;
+  lowerThirdSubFile?: string | null;
+  /** Timed subtitle phrases (cut-subtitles.ts), shot seconds; drawn instead of speechFile. */
+  speechCues?: Array<{ file: string; from: number; to: number }>;
   titleFile?: string | null;
   subtitleFile?: string | null;
 };
@@ -425,7 +460,11 @@ export function buildFilterComplex(input: {
   /** Per shot: how it comes in (cut-timeline.ts); unset = the crossfade. */
   transitions?: ReadonlyArray<CutTransitionIn | null | undefined>;
   /** Per still: push in, pull out or hold (unset = alternating, with stillMotion). */
-  stillMotions?: ReadonlyArray<'in' | 'out' | 'none' | undefined>;
+  stillMotions?: ReadonlyArray<'in' | 'out' | 'none' | 'custom' | undefined>;
+  /** Per still: a hand-set move (cut-move.ts), drawn whether or not slow zoom is on. */
+  stillMoves?: ReadonlyArray<
+    { from: FramePoint; to: FramePoint; box?: PictureBox } | null | undefined
+  >;
   /** Per clip: its sound's level (1 = as recorded). */
   volumes?: ReadonlyArray<number | undefined>;
   /** Per shot: its colour grade as ffmpeg filters (cut-look.ts colourMatrixFfmpeg), '' = none. */
@@ -446,6 +485,12 @@ export function buildFilterComplex(input: {
   ambienceInput?: number | null;
   /** Per shot: a face-following scale + crop in place of the centre crop (cut-reframe.ts). */
   reframes?: ReadonlyArray<string | null | undefined>;
+  /** Per shot: a picture-in-picture (its looped picture's input index and corner). */
+  pips?: ReadonlyArray<{ input: number; corner: OverlayCorner } | null | undefined>;
+  /** A logo / watermark over the whole film. */
+  logo?: { input: number; corner: OverlayCorner } | null;
+  /** A light unsharp mask over the finished picture (before the logo). */
+  sharpen?: boolean;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const centreFit = buildFilmScaleFilter(width, height);
@@ -493,7 +538,25 @@ export function buildFilterComplex(input: {
         // xfade needs a constant frame rate on every input.
         `fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`,
       ].join(',');
-    } else if (kind === 'still' && input.stillMotion && input.stillMotions?.[i] !== 'none') {
+    } else if (kind === 'still' && input.stillMoves?.[i]) {
+      // A hand-set move: from one framing to another, eased, within a 2× render.
+      const frames = Math.max(1, Math.round(hold * STILL_MOTION_FPS));
+      const move = moveZoompanExprs(
+        input.stillMoves[i]!.from,
+        input.stillMoves[i]!.to,
+        frames,
+        input.stillMoves[i]!.box
+      );
+      chain =
+        `[${i}:v]${scalePad},scale=${width * 2}:${height * 2},` +
+        `zoompan=z=${q(move.z)}:x=${q(move.x)}:y=${q(move.y)}:d=${frames}:s=${width}x${height}:fps=${STILL_MOTION_FPS},` +
+        `setsar=1,format=yuv420p,fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`;
+    } else if (
+      kind === 'still' &&
+      input.stillMotion &&
+      input.stillMotions?.[i] !== 'none' &&
+      input.stillMotions?.[i] !== 'custom'
+    ) {
       // zoompan needs headroom: render at 2× and zoom within it, one output frame per tick.
       const frames = Math.max(1, Math.round(hold * STILL_MOTION_FPS));
       // A picked direction: an even curve pushes in, an odd one pulls out.
@@ -522,6 +585,21 @@ export function buildFilterComplex(input: {
     }
     // The grade before any text, so captions and subtitles keep their own colour.
     if (kind !== 'title' && input.grades?.[i]) chain += `,${input.grades[i]}`;
+    if (kind !== 'title' && font && text?.lowerThirdFile) {
+      // Lower third: a name / line at the lower left, a smaller line under it; fades in and out.
+      const nameSize = Math.round(Math.min(width, height) * 0.05);
+      const subSize = Math.round(nameSize * 0.62);
+      const alpha = q(lowerThirdAlphaExpr(hold));
+      const top = Math.round(height * 0.68);
+      chain +=
+        `,drawtext=fontfile=${font}:textfile=${q(text.lowerThirdFile)}:fontcolor=white:fontsize=${nameSize}` +
+        `:x=${Math.round(margin * 1.2)}:y=${top}:box=1:boxcolor=black@0.6:boxborderw=${Math.round(nameSize * 0.35)}:alpha=${alpha}`;
+      if (text.lowerThirdSubFile) {
+        chain +=
+          `,drawtext=fontfile=${font}:textfile=${q(text.lowerThirdSubFile)}:fontcolor=white@0.9:fontsize=${subSize}` +
+          `:x=${Math.round(margin * 1.2)}:y=${top + Math.round(nameSize * 1.55)}:box=1:boxcolor=black@0.45:boxborderw=${Math.round(subSize * 0.35)}:alpha=${alpha}`;
+      }
+    }
     if (kind !== 'title' && font && text?.captionFile) {
       // With a subtitle at the bottom, the shot's caption goes to the top.
       const captionY = text.speechFile ? `${margin}` : `h-th-${Math.round(margin * 1.4)}`;
@@ -530,16 +608,35 @@ export function buildFilterComplex(input: {
         `:x=${margin}:y=${captionY}:box=1:boxcolor=black@0.35:boxborderw=${Math.round(captionSize * 0.45)}` +
         `:alpha=${q(captionAlphaExpr(hold))}`;
     }
-    if (kind !== 'title' && font && text?.speechFile) {
+    const subtitleDraw = (file: string) =>
+      `,drawtext=fontfile=${font}:textfile=${q(file)}:fontcolor=white:fontsize=${subtitleTextSize}` +
+      `:line_spacing=${Math.round(subtitleTextSize * 0.25)}:x=(w-tw)/2:y=h-th-${margin}` +
+      `:box=1:boxcolor=black@0.55:boxborderw=${Math.round(subtitleTextSize * 0.4)}`;
+    if (kind !== 'title' && font && text?.speechCues?.length) {
+      // Timed subtitles: each phrase while it is spoken.
+      for (const cue of text.speechCues) {
+        chain += `${subtitleDraw(cue.file)}:enable=${q(`between(t,${cue.from.toFixed(3)},${cue.to.toFixed(3)})`)}`;
+      }
+    } else if (kind !== 'title' && font && text?.speechFile) {
       // Subtitles: bottom centre for the whole shot, wrapped by the writer (subtitleLines).
-      chain +=
-        `,drawtext=fontfile=${font}:textfile=${q(text.speechFile)}:fontcolor=white:fontsize=${subtitleTextSize}` +
-        `:line_spacing=${Math.round(subtitleTextSize * 0.25)}:x=(w-tw)/2:y=h-th-${margin}` +
-        `:box=1:boxcolor=black@0.55:boxborderw=${Math.round(subtitleTextSize * 0.4)}`;
+      chain += subtitleDraw(text.speechFile);
     }
     // setpts leaves the frame rate unknown, and ffmpeg 7's xfade rejects that ("inputs needs to
     // be a constant frame rate") — so every shot ends on a fixed rate.
-    parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}]`);
+    const pip = kind !== 'title' ? input.pips?.[i] : null;
+    if (pip) {
+      // Picture-in-picture: a framed picture in a corner, for the whole shot.
+      const pipWidth = Math.round((width * PIP_WIDTH) / 2) * 2;
+      parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}b]`);
+      parts.push(
+        `[${pip.input}:v]scale=${pipWidth - 6}:-2,pad=iw+6:ih+6:3:3:white,setsar=1,format=yuv420p[${label}p]`
+      );
+      parts.push(
+        `[${label}b][${label}p]overlay=${overlayFfmpegXY(pip.corner, Math.round(Math.min(width, height) * OVERLAY_MARGIN))}:shortest=1,fps=${STILL_MOTION_FPS}[${label}]`
+      );
+    } else {
+      parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}]`);
+    }
   }
 
   // Joins: a crossfade / dip / slide overlaps the two shots (xfade); a hard cut concatenates.
@@ -683,6 +780,21 @@ export function buildFilterComplex(input: {
     }
   }
 
+  if (input.sharpen) {
+    parts.push(`[${videoLabel}]unsharp=5:5:0.55:5:5:0[vsharp]`);
+    videoLabel = 'vsharp';
+  }
+  // A logo / watermark over the whole film, slightly see-through.
+  if (input.logo) {
+    const logoWidth = Math.round((width * LOGO_WIDTH) / 2) * 2;
+    parts.push(
+      `[${input.logo.input}:v]scale=${logoWidth}:-2,format=rgba,colorchannelmixer=aa=0.85[logo]`
+    );
+    parts.push(
+      `[${videoLabel}][logo]overlay=${overlayFfmpegXY(input.logo.corner, Math.round(Math.min(width, height) * OVERLAY_MARGIN))}:shortest=1[vlogo]`
+    );
+    videoLabel = 'vlogo';
+  }
   return { filter: parts.join(';'), videoLabel, audioLabel, durationSec: total };
 }
 
@@ -847,6 +959,34 @@ export async function encodeFilmPlaylistServer(
       await fs.writeFile(/* turbopackIgnore: true */ audioPath, audioFetched.buffer);
     }
 
+    // Overlays (cut-overlay.ts): each shot's picture-in-picture and the film's logo.
+    const fetchOverlay = async (url: string, name: string): Promise<string | null> => {
+      try {
+        const fetched = await fetchShotBytes(url, requestOrigin, undefined, options.userId);
+        const file = path.join(/* turbopackIgnore: true */ workDir, name);
+        // One PNG frame, whatever came (a clip's first frame, an animated WebP's first page).
+        const sharp = (await import('sharp')).default;
+        await fs.writeFile(
+          /* turbopackIgnore: true */ file,
+          await sharp(fetched.buffer, { page: 0 }).png().toBuffer()
+        );
+        return file;
+      } catch {
+        return null;
+      }
+    };
+    const pipFiles: Array<{ path: string; corner: OverlayCorner } | null> = [];
+    for (const [index, shot] of shots.entries()) {
+      const url = shot.pipUrl?.trim();
+      const file = url ? await fetchOverlay(url, `pip-${index}.png`) : null;
+      pipFiles.push(
+        file ? { path: file, corner: normalizeOverlayCorner(shot.pipCorner, 'tr') } : null
+      );
+    }
+    const logoFile = options.logo?.url?.trim()
+      ? await fetchOverlay(options.logo.url.trim(), 'logo.png')
+      : null;
+
     // Ambience: a room tone looped under the whole film (cut-sound.ts).
     let ambiencePath: string | null = null;
     const ambience = options.sound?.ambienceUrl?.trim();
@@ -880,7 +1020,8 @@ export async function encodeFilmPlaylistServer(
     const wantsText = Boolean(
       options.titleCard?.title?.trim() ||
       options.captions ||
-      (options.subtitles && shots.some(shot => filmShotSubtitle(shot)))
+      (options.subtitles && shots.some(shot => filmShotSubtitle(shot))) ||
+      shots.some(shot => shot.lowerThird?.trim())
     );
     const fontFile =
       wantsText && (await ffmpegHasDrawtext(ffmpeg)) ? await resolveFilmFontFile() : null;
@@ -907,18 +1048,48 @@ export async function encodeFilmPlaylistServer(
     const graphKinds: FilmGraphShotKind[] = [];
     const graphHolds: number[] = [];
     const graphText: FilmGraphText[] = [];
+    /** Every subtitle phrase with its graph shot, for the .srt. */
+    const filmCues: Array<{ shot: number; cue: SubtitleCue }> = [];
     const graphSpeech: boolean[] = [];
     const graphTrims: Array<number | null> = [];
     const graphTransitions: Array<CutTransitionIn | undefined> = [];
-    const graphMotions: Array<'in' | 'out' | 'none' | undefined> = [];
+    const graphMotions: Array<'in' | 'out' | 'none' | 'custom' | undefined> = [];
+    const graphMoves: Array<{ from: FramePoint; to: FramePoint; box?: PictureBox } | null> = [];
     const graphVolumes: Array<number | undefined> = [];
     const graphGrades: string[] = [];
     const graphSpeeds: number[] = [];
     const graphReverses: boolean[] = [];
     const graphReframes: Array<string | null> = [];
+    /** Per graph shot: its picture-in-picture file and corner. */
+    const graphPipFiles: Array<{ path: string; corner: OverlayCorner } | null> = [];
     const graphLeads: number[] = [];
     const graphTails: number[] = [];
     const inputArgs: string[][] = [];
+    // Smooth motion: each clip under 25 fps gets RIFE's in-between frames (same length).
+    if (options.smoothMotion) {
+      const { smoothClipFile } = await import('./cut-smooth-server');
+      for (const [i, file] of localFiles.entries()) {
+        if (kinds[i] !== 'clip') continue;
+        options.onProgress?.(0.44, `Smoothing motion (${i + 1} of ${localFiles.length})…`);
+        try {
+          let source = file;
+          if (/\.(webp|gif)$/i.test(file)) {
+            const { animatedToMp4 } = await import('./cut-project-export-server');
+            source = `${file}.mp4`;
+            await animatedToMp4(
+              ffmpeg,
+              await fs.readFile(/* turbopackIgnore: true */ file),
+              source
+            );
+          }
+          const out = `${file}.smooth.mp4`;
+          if (await smoothClipFile({ ffmpeg, file: source, out })) localFiles[i] = out;
+          else if (source !== file) localFiles[i] = source;
+        } catch {
+          options.onProgress?.(0.44, 'A clip could not be smoothed — kept as made');
+        }
+      }
+    }
     // Vertical / square: each wider shot's crop follows the face instead of the centre.
     const shotReframes: Array<string | null> =
       height >= width && options.followFaces !== false
@@ -975,10 +1146,12 @@ export async function encodeFilmPlaylistServer(
       graphSpeeds.push(1);
       graphReverses.push(false);
       graphReframes.push(null);
+      graphPipFiles.push(null);
       graphLeads.push(0);
       graphTails.push(0);
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
+      graphMoves.push(null);
       graphVolumes.push(undefined);
       graphSpeech.push(false);
       graphTrims.push(null);
@@ -1005,19 +1178,77 @@ export async function encodeFilmPlaylistServer(
       graphSpeeds.push(speeds[i] ?? 1);
       graphReverses.push(reverses[i] === true);
       graphReframes.push(shotReframes[i] ?? null);
+      graphPipFiles.push(pipFiles[i] ?? null);
       graphLeads.push(soundLeads[i] ?? 0);
       graphTails.push(soundTails[i] ?? 0);
       graphTransitions.push(shots[i]?.transitionIn);
       graphMotions.push(shots[i]?.motion);
+      graphMoves.push(
+        kinds[i] === 'still' && shots[i]?.motion === 'custom'
+          ? {
+              from: framingPoint(shots[i]!.moveFrom),
+              to: framingPoint(shots[i]!.moveTo),
+              // A wide frame letterboxes a different-shaped still: the move stays on the picture.
+              box:
+                height >= width
+                  ? FULL_BOX
+                  : await (async () => {
+                      const sharp = (await import('sharp')).default;
+                      const meta = await sharp(localFiles[i]!)
+                        .metadata()
+                        .catch(() => null);
+                      return meta?.width && meta.height
+                        ? containBox({ width: meta.width, height: meta.height }, { width, height })
+                        : FULL_BOX;
+                    })(),
+            }
+          : null
+      );
       graphVolumes.push(shots[i]?.volume);
       graphSpeech.push(speech[i] === true);
       graphTrims.push(trimStarts[i] ?? null);
       graphKinds.push(kinds[i]!);
       graphHolds.push(holdSecs[i]!);
       graphText.push({
+        lowerThirdFile: shots[i]?.lowerThird
+          ? await writeText(`lower-${i}.txt`, shots[i]!.lowerThird!)
+          : null,
+        lowerThirdSubFile: shots[i]?.lowerThirdSub
+          ? await writeText(`lower-sub-${i}.txt`, shots[i]!.lowerThirdSub!)
+          : null,
         captionFile: options.captions
           ? await writeText(`caption-${i}.txt`, shots[i] ? filmShotCaption(shots[i]) : '')
           : null,
+        speechCues: await (async () => {
+          const line = options.subtitles && shots[i] ? filmShotSubtitle(shots[i]) : '';
+          if (!line || !usableFont) return undefined;
+          // When it is spoken in the shot: the narration's own file, else the clip's sound over
+          // what plays (shot seconds; a sped-up clip's sound is faster too).
+          const hold = holdSecs[i] && holdSecs[i]! > 0 ? holdSecs[i]! : kinds[i] === 'clip' ? 4 : 3;
+          const narration = narrationFiles.find(entry => entry.shot === i);
+          const speed = speeds[i] ?? 1;
+          const span = narration
+            ? await speechSpan(ffmpeg, narration.path, 0, hold)
+            : kinds[i] === 'clip'
+              ? await speechSpan(ffmpeg, localFiles[i]!, trimStarts[i] ?? 0, hold * speed).then(
+                  found => (found ? { from: found.from / speed, to: found.to / speed } : null)
+                )
+              : null;
+          const cues = subtitleCues(line, {
+            from: Math.min(hold, span?.from ?? 0.2),
+            to: Math.min(hold, span?.to ?? hold - 0.2),
+          });
+          const out: Array<{ file: string; from: number; to: number }> = [];
+          for (const [k, cue] of cues.entries()) {
+            const file = await writeRawText(
+              `speech-${i}-${k}.txt`,
+              subtitleLines(cue.text, Math.round(width / (subtitleWrapSize * 0.55)))
+            );
+            if (file) out.push({ file, from: cue.from, to: cue.to });
+            filmCues.push({ shot: graphKinds.length - 1, cue });
+          }
+          return out.length ? out : undefined;
+        })(),
         speechFile:
           options.subtitles && shots[i] && filmShotSubtitle(shots[i])
             ? await writeRawText(
@@ -1029,7 +1260,10 @@ export async function encodeFilmPlaylistServer(
               )
             : null,
       });
-      if (kinds[i] === 'still' && options.stillMotion && shots[i]?.motion !== 'none') {
+      if (
+        kinds[i] === 'still' &&
+        ((options.stillMotion && shots[i]?.motion !== 'none') || shots[i]?.motion === 'custom')
+      ) {
         // zoompan expands one input frame into the whole hold.
         inputArgs.push(['-i', localFiles[i]!]);
       } else if (kinds[i] === 'still') {
@@ -1050,6 +1284,22 @@ export async function encodeFilmPlaylistServer(
     /** Graph position of shot i (the title card takes one slot before shot `titleAt`). */
     const graphIndexOf = (i: number) => (titleAt >= 0 && i >= titleAt ? i + 1 : i);
 
+    // The .srt: each phrase at its shot's place in the film.
+    const shotStarts = filmShotStarts({
+      kinds: graphKinds,
+      holdSecs: graphHolds,
+      crossfadeSec,
+      transitions: graphTransitions,
+    });
+    const subtitlesSrt = filmCues.length
+      ? cuesToSrt(
+          filmCues.map(({ shot, cue }) => ({
+            text: cue.text,
+            from: (shotStarts[shot] ?? 0) + cue.from,
+            to: (shotStarts[shot] ?? 0) + cue.to,
+          }))
+        )
+      : undefined;
     const { filter, videoLabel, audioLabel } = buildFilterComplex({
       shotCount: graphKinds.length,
       kinds: graphKinds,
@@ -1065,17 +1315,36 @@ export async function encodeFilmPlaylistServer(
       trimStarts: graphTrims,
       transitions: graphTransitions,
       stillMotions: graphMotions,
+      stillMoves: graphMoves,
       volumes: graphVolumes,
       grades: graphGrades,
       speeds: graphSpeeds,
       reverses: graphReverses,
       reframes: graphReframes,
+      sharpen: options.sharpen === true,
       soundLeads: graphLeads,
       soundTails: graphTails,
       sound: options.sound,
       // After the shots, the music bed and the narration tracks.
       ambienceInput: ambiencePath
         ? graphKinds.length + (audioPath ? 1 : 0) + narrationFiles.length
+        : null,
+      // Then the overlay pictures, in shot order, and the logo.
+      pips: (() => {
+        let next =
+          graphKinds.length + (audioPath ? 1 : 0) + narrationFiles.length + (ambiencePath ? 1 : 0);
+        return graphPipFiles.map(pip => (pip ? { input: next++, corner: pip.corner } : null));
+      })(),
+      logo: logoFile
+        ? {
+            input:
+              graphKinds.length +
+              (audioPath ? 1 : 0) +
+              narrationFiles.length +
+              (ambiencePath ? 1 : 0) +
+              graphPipFiles.filter(Boolean).length,
+            corner: normalizeOverlayCorner(options.logo?.corner, 'br'),
+          }
         : null,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
@@ -1101,6 +1370,10 @@ export async function encodeFilmPlaylistServer(
     if (ambiencePath) {
       args.push('-stream_loop', '-1', '-i', ambiencePath);
     }
+    for (const pip of graphPipFiles) {
+      if (pip) args.push('-loop', '1', '-i', pip.path);
+    }
+    if (logoFile) args.push('-loop', '1', '-i', logoFile);
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {
       args.push('-map', `[${audioLabel}]`, '-c:a', 'aac', '-b:a', '192k');
@@ -1135,6 +1408,7 @@ export async function encodeFilmPlaylistServer(
       extension: 'mp4',
       width: even(width),
       height: even(height),
+      ...(subtitlesSrt ? { subtitlesSrt } : {}),
     };
   } finally {
     await fs

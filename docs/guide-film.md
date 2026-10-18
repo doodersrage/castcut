@@ -40,6 +40,8 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Levels** | Music and Lines — the music ducks under speech |
 | **Music shape** | Music from (start partway in) · Fade in · Fade out |
 | **Ambience** | A room tone / rain / café track looped under the whole film, with its own level |
+| **Smooth motion** | Clips made at 16 / 24 fps get the frames in between drawn (RIFE), so motion is smooth |
+| **Sharpen** | A light sharpen over the finished film |
 | **Follow faces** | Vertical / square cuts: each wide shot's crop follows the face instead of the centre (on by default) |
 | **Look** | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider |
 | **Match shots** *(on)* | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night) |
@@ -67,6 +69,14 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 | D | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
 
 **Make longer…** carries the clip under the playhead on in the same shot (+4, +8 or +15 s); the longer clip takes its place when it has rendered.
+
+**New take** renders the picked shot again with a new seed; the take replaces it when ready (Remove or Ctrl+Z brings the old one back).
+
+**Make a reel…** turns the edit into a 15 / 30 / 60 s vertical reel (shots spread across the film, clips trimmed to their middle, hard cuts, faces followed, subtitles on); the full edit is saved first as the *Full cut* version.
+
+**Overlay…** on a shot adds a lower third (a name or place, and a smaller line) or a picture in a corner. **Add a logo** (in Options) puts a watermark over the whole film. A still's move can be **from… to…**: pick where the frame starts and ends.
+
+**Export for an editor** downloads a .zip for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline, the music and the subtitles. After a cut, **Subtitles (.srt)** downloads the film's subtitles on their own.
 
 **Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it.
 

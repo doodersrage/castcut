@@ -99,3 +99,15 @@ export function reframeSampleTimes(playSec: number): number[] {
     (_, i) => Math.round(((playSec * i) / (count - 1)) * 1000) / 1000
   ).map((t, i, all) => (i === all.length - 1 ? Math.max(0, t - 0.05) : t));
 }
+
+/** The crop window's left edge at `t` on a path (as the render's crop expression moves it). */
+export function reframeXAt(path: ReadonlyArray<ReframePoint>, t: number): number {
+  if (path.length === 0) return 0.5;
+  if (t <= path[0]!.t) return path[0]!.x;
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const a = path[i]!;
+    const b = path[i + 1]!;
+    if (t < b.t) return a.x + ((b.x - a.x) * (t - a.t)) / Math.max(0.001, b.t - a.t);
+  }
+  return path[path.length - 1]!.x;
+}

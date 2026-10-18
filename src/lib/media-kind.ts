@@ -4,6 +4,7 @@
  * docs/architecture-boundaries.md.
  */
 
+import type { CutFraming } from './cut-move';
 import type { CutTransitionIn } from './cut-timeline';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { isHtmlVideoViewUrl, isMotionViewUrl } from './comfyui-outputs';
@@ -85,7 +86,10 @@ export type FilmPlaylistShot = {
   /** Clips: the sound's level in the cut (1 = as recorded, 0 = muted). */
   volume?: number;
   /** Stills: push in, pull out or hold still (unset = the cut's alternating slow zoom). */
-  motion?: 'in' | 'out' | 'none';
+  motion?: 'in' | 'out' | 'none' | 'custom';
+  /** Stills, motion 'custom': the framing the move starts on and ends on (cut-move.ts). */
+  moveFrom?: CutFraming;
+  moveTo?: CutFraming;
   /** Clips: playback speed (1 = as shot; under 1 = smooth slow motion). */
   speed?: number;
   /** Clips: played backwards. */
@@ -94,6 +98,12 @@ export type FilmPlaylistShot = {
   soundLeadSec?: number;
   /** Clips: L cut — the sound carries on this many seconds after the picture. */
   soundTailSec?: number;
+  /** A lower third over the shot: a name / line, and a smaller line under it (cut-overlay.ts). */
+  lowerThird?: string;
+  lowerThirdSub?: string;
+  /** Picture-in-picture: a picture in a corner of the shot. */
+  pipUrl?: string;
+  pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
