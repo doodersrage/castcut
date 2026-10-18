@@ -10,6 +10,7 @@ import { roleplayWatchPlaylist } from './character-film';
 import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from './day-planner';
 import type { KeyedShot } from './film-cut-plan';
 import type { RoleplayStoryBeat } from './roleplay';
+import type { CutBridgeStatus } from './cut-bridge';
 
 export type CutSource = 'day' | 'story';
 
@@ -33,7 +34,23 @@ export type CutExtra =
       entryId?: string;
     }
   | { key: string; kind: 'text'; text: string; sub?: string }
-  | { key: string; kind: 'copy'; of: string };
+  | { key: string; kind: 'copy'; of: string }
+  /**
+   * A generated clip from one shot into the next (cut-bridge.ts): in the film once it has
+   * rendered; until then (or when it failed) it sits out and the two shots join as before.
+   */
+  | {
+      key: string;
+      kind: 'bridge';
+      from: string;
+      to: string;
+      status: CutBridgeStatus;
+      promptId?: string;
+      url?: string;
+      engine?: string;
+      /** How `to` came in before the bridge (put back if the bridge is removed). */
+      toWas?: string;
+    };
 
 export type CutToolCache = {
   /** The sources this film is cut from; unset = every source that has shots. */
@@ -112,6 +129,15 @@ export function cutExtraShots(
         ...(extra.thumbUrl ? { thumbUrl: extra.thumbUrl } : {}),
         ...(extra.entryId ? { entryId: extra.entryId } : {}),
       });
+    } else if (extra.kind === 'bridge') {
+      if (extra.status === 'ready' && extra.url) {
+        out.push({
+          key: extra.key,
+          title: 'Bridge',
+          url: extra.url,
+          kind: 'clip',
+        });
+      }
     } else if (extra.kind === 'text') {
       out.push({
         key: extra.key,

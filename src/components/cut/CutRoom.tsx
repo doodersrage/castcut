@@ -399,7 +399,51 @@ export default function CutRoom() {
               >
                 Split at playhead
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || !activeKey || vm.bridgeBusy !== null}
+                data-testid="cut-bridge"
+                title="Render a short clip that moves from the end of this shot into the next one, instead of a cut or a fade (a few minutes)"
+                onClick={() => activeKey && void vm.bridge(activeKey)}
+              >
+                {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
+              </Button>
             </div>
+            {vm.extras.some(extra => extra.kind === 'bridge' && extra.status !== 'ready') ? (
+              <ul className="type-caption mb-2 space-y-1" data-testid="cut-bridges">
+                {vm.extras.map(extra => {
+                  if (extra.kind !== 'bridge' || extra.status === 'ready') return null;
+                  const title = (key: string) =>
+                    vm.shots.find(shot => shot.key === key)?.title ?? 'a shot';
+                  return (
+                    <li key={extra.key} className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={
+                          extra.status === 'failed'
+                            ? 'text-[var(--danger)]'
+                            : 'text-[var(--text-muted)]'
+                        }
+                      >
+                        Bridge {title(extra.from)} → {title(extra.to)}:{' '}
+                        {extra.status === 'failed'
+                          ? 'did not render — the two shots join as before.'
+                          : 'rendering… it joins the film when ready.'}
+                      </span>
+                      {extra.status === 'failed' ? (
+                        <button
+                          type="button"
+                          className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                          onClick={() => vm.removeAdded(extra.key)}
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
             <FilmCutShotList
               shots={vm.previewShots}
               edits={vm.options.shotEdits}

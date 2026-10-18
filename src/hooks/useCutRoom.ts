@@ -30,6 +30,19 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
 import { renderTextCard } from '@/lib/cut-text-card';
+import {
+  CUT_BRIDGE_FRAMES,
+  CUT_BRIDGE_PROMPT,
+  cutBridgeEngine,
+  nextIncludedShot,
+  cutBridgeJoinEdits,
+  placeCutBridge,
+  type CutBridgeStatus,
+} from '@/lib/cut-bridge';
+import { H3_REQUIRED_NODE } from '@/lib/h3-renderer';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { isGalleryClipEntry } from '@/lib/roleplay-film';
 import {
   activeCutSources,
@@ -369,8 +382,14 @@ export function useCutRoom() {
   const removeAdded = useCallback(
     (key: string) => {
       const edits = stateRef.current.options.shotEdits;
-      const { [key]: _gone, ...rest } = edits?.shots ?? {};
+      const { [key]: _gone, ...kept } = edits?.shots ?? {};
       void _gone;
+      // A bridge out: the next shot comes in as it did before the bridge.
+      const removed = stateRef.current.extras.find(extra => extra.key === key);
+      const rest =
+        removed?.kind === 'bridge' && removed.status === 'ready'
+          ? cutBridgeJoinEdits(kept, removed.to, { ready: false, toWas: removed.toWas })
+          : kept;
       commitEdit(
         {
           extras: stateRef.current.extras.filter(
@@ -389,6 +408,184 @@ export function useCutRoom() {
       );
     },
     [commitEdit]
+  );
+
+  // Bridges (cut-bridge.ts): a generated clip from one shot's last frame into the next shot's
+  // first. It renders in the background (~2–3 min on H3); the film uses it once it is ready.
+  const [bridgeBusy, setBridgeBusy] = useState<string | null>(null);
+  const waitingBridges = useRef(new Set<string>());
+  /** A bridge's result, written without an undo step (the render is not an edit). */
+  const settleBridge = useCallback(
+    (key: string, patch: { status: CutBridgeStatus; url?: string }) => {
+      const bridgeExtra = stateRef.current.extras.find(
+        extra => extra.key === key && extra.kind === 'bridge'
+      );
+      if (!bridgeExtra || bridgeExtra.kind !== 'bridge') return;
+      const nextExtras = stateRef.current.extras.map(extra =>
+        extra.key === key ? { ...bridgeExtra, ...patch } : extra
+      );
+      // Ready: a hard cut out of it into the next shot (its last frame is that shot's first).
+      const options =
+        patch.status === 'ready'
+          ? {
+              ...stateRef.current.options,
+              shotEdits: {
+                ...stateRef.current.options.shotEdits,
+                shots: cutBridgeJoinEdits(
+                  stateRef.current.options.shotEdits?.shots,
+                  bridgeExtra.to,
+                  { ready: true }
+                ),
+              },
+            }
+          : stateRef.current.options;
+      stateRef.current = { ...stateRef.current, extras: nextExtras, options };
+      updateCut({ extras: nextExtras, options });
+    },
+    [updateCut]
+  );
+  const awaitBridge = useCallback(
+    async (key: string, promptId: string) => {
+      if (waitingBridges.current.has(key)) return;
+      waitingBridges.current.add(key);
+      try {
+        const [entry] = await waitForGalleryPromptIds([promptId], {
+          timeoutMs: 15 * 60_000,
+          pollMs: 4_000,
+        });
+        const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+        settleBridge(key, url ? { status: 'ready', url } : { status: 'failed' });
+      } finally {
+        waitingBridges.current.delete(key);
+      }
+    },
+    [settleBridge]
+  );
+  // A bridge still rendering when the page was left: pick up its result.
+  useEffect(() => {
+    if (!cut.mounted) return;
+    for (const extra of extras) {
+      if (extra.kind === 'bridge' && extra.status === 'rendering' && extra.promptId) {
+        void awaitBridge(extra.key, extra.promptId);
+      }
+    }
+  }, [awaitBridge, cut.mounted, extras]);
+  /** Bridge from `fromKey` into the next shot in the film: queue the clip, place it between. */
+  const bridge = useCallback(
+    async (fromKey: string) => {
+      const edits = stateRef.current.options.shotEdits;
+      const ordered = orderedCutShots(shots, edits).filter(
+        shot =>
+          !(
+            shot.key.startsWith('x:') &&
+            stateRef.current.extras.some(extra => extra.key === shot.key && extra.kind === 'bridge')
+          )
+      );
+      const from = ordered.find(shot => shot.key === fromKey);
+      const to = nextIncludedShot(
+        ordered,
+        fromKey,
+        shot => edits?.shots?.[shot.key]?.include !== false
+      );
+      if (!from?.url || !to?.url) {
+        setError('A bridge needs a shot after this one in the film.');
+        return;
+      }
+      setError(null);
+      setBridgeBusy(fromKey);
+      setStatus(`Preparing a bridge from ${from.title} into ${to.title}…`);
+      try {
+        const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+        const frame = async (url: string, edge: 'first' | 'last') => {
+          const response = await fetch('/api/cut/bridge-frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, edge, comfyUrl }),
+          });
+          const data = (await response.json().catch(() => ({}))) as {
+            filename?: string;
+            error?: string;
+          };
+          if (!response.ok || !data.filename) {
+            throw new Error(data.error || 'Could not read that shot for the bridge.');
+          }
+          return data.filename;
+        };
+        const [start, end] = await Promise.all([frame(from.url, 'last'), frame(to.url, 'first')]);
+        const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
+        const engine = cutBridgeEngine(nodeTypes, H3_REQUIRED_NODE);
+        const promptId = await actions.sendComfyUi(CUT_BRIDGE_PROMPT, undefined, undefined, {
+          queueTool: 'video',
+          queueModel: engine,
+          inputImageFilename: start,
+          derivedKind: 'i2v',
+          clipMode: 'i2v',
+          qualityProfile: 'final',
+          queueParamsBase: {
+            videoFrames: CUT_BRIDGE_FRAMES,
+            videoFps: 16,
+            videoEndImageFilename: end,
+          },
+        });
+        const id = typeof promptId === 'string' ? promptId.trim() : '';
+        if (!id) throw new Error('ComfyUI did not take the bridge.');
+        // One bridge per join: a new one replaces the old.
+        const old = stateRef.current.extras.find(
+          extra => extra.kind === 'bridge' && extra.from === from.key && extra.to === to.key
+        );
+        const key = newKey();
+        const placed = placeCutBridge({
+          order: orderNow().filter(entry => entry !== old?.key),
+          shots: edits?.shots,
+          fromKey: from.key,
+          toKey: to.key,
+          bridgeKey: key,
+        });
+        commitEdit(
+          {
+            extras: [
+              ...stateRef.current.extras.filter(extra => extra.key !== old?.key),
+              {
+                key,
+                kind: 'bridge',
+                from: from.key,
+                to: to.key,
+                status: 'rendering',
+                promptId: id,
+                engine,
+                ...(edits?.shots?.[to.key]?.transition
+                  ? { toWas: edits.shots[to.key]!.transition }
+                  : {}),
+              },
+            ],
+            options: {
+              ...stateRef.current.options,
+              shotEdits: {
+                ...edits,
+                order: placed.order,
+                // Its generated sound would talk over the film: muted (the volume control
+                // brings it back).
+                shots: { ...placed.shots, [key]: { ...placed.shots[key], volume: 0 } },
+              },
+            },
+          },
+          true
+        );
+        setStatus(
+          `Rendering a bridge from ${from.title} into ${to.title} on ${
+            engine === 'minimax-h3' ? 'MiniMax-H3' : 'LTX-2.5'
+          } — it joins the film when it’s ready (a few minutes).`
+        );
+        void awaitBridge(key, id);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not make the bridge.');
+        setStatus(null);
+      } finally {
+        setBridgeBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [actions.sendComfyUi, awaitBridge, commitEdit, shots]
   );
   // Versions: the whole edit (sources, added shots, options) under a name.
   const versions = useMemo(() => cut.toolSettings.versions ?? [], [cut.toolSettings.versions]);
@@ -867,6 +1064,8 @@ export function useCutRoom() {
     split,
     removeAdded,
     isAdded,
+    bridge,
+    bridgeBusy,
     versions,
     saveVersion,
     openVersion,
