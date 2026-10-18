@@ -167,6 +167,18 @@ export function dayStillDressedPlateUse(input: {
 }
 
 /**
+ * Whether this still's scene brings its own clothes (a pool beat's swimsuit, a robe) or none.
+ * The picked outfit's picture must not go with it.
+ */
+export function dayStillSceneDressesItself(input: {
+  dayMood: string | null | undefined;
+  intimateEnabled: boolean;
+  sceneHints?: string;
+}): boolean {
+  return sceneDressesItself(playedMood(input.dayMood, input.intimateEnabled), input.sceneHints);
+}
+
+/**
  * The clothing image this still carries, or null: none on a nude still, a replaced outfit or
  * when a partner's face takes the slot; on a face-break still only a clothing-only picture (a
  * worn photo would bring its own body and studio).
@@ -179,11 +191,15 @@ export function dayStillClothingReinforce<
   partnerFace: boolean;
   faceBreak: boolean;
   garment: T | null;
+  /** The scene brings its own clothes (dayStillSceneDressesItself) and the outfit is not
+   *  swimwear: the words say "a swimsuit" while the dress packshot rode Image 2, and 2/3 Vacation
+   *  pool/paddleboard stills came out in the dress (night sweep, 2026-10-17). */
+  sceneOwnsClothes?: boolean;
   /** The garment is the dressed (or Outfit Keep) plate in the clothing slot — she is meant to
    *  wear exactly what it shows, so a face-break still takes it although she is in it. */
   dressedPlateClothing?: boolean;
 }): T | null {
-  if (input.omitGarment || input.replaceOutfit || input.partnerFace) {
+  if (input.omitGarment || input.replaceOutfit || input.partnerFace || input.sceneOwnsClothes) {
     return null;
   }
   if (input.faceBreak) {

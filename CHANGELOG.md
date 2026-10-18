@@ -17,6 +17,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Lying on her side on a couch / sofa: a side-lying line on the landscape canvas — sitting 3/3 → lying along it 3/3.
   - A sport beat's own sport wins over the place: "clearing a hurdle" on a "trail path with kicked gravel" got a cycling kit and helmet; hurdles and mid-sprint read as running.
   - Shadowboxing / footwork gets a guard stance (fists up, knees bent, bouncing) instead of no stance line — she stood still in the ring.
+  - Vacation stills whose scene brings its own clothes (swimsuit, robe, sleepwear) no longer carry the picked outfit's picture — the words said swimsuit while the dress packshot rode along, and 2/3 pool / paddleboard stills came out in the dress. On 2.1 a plain "swimsuit" also gets a bold colour (it came out skin-toned 4/4).
   - Two people "across from" each other at a table or booth now sit facing each other across it (3/3) instead of side by side on one bench facing the camera (0/3).
   - "Hands on hips, chin up" is a posture, not the chin-up exercise — a studio photoshoot beat hung her from a pull-up bar.
   - "On a park bench" needs a park (it was set in a bookstore); a diner booth needs an eating place.

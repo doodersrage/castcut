@@ -260,6 +260,7 @@ import {
 import {
   DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
+  dayStillSceneDressesItself,
   dayStillDressedPlateUse,
   dayStillFaceCropCanvas,
   dayStillFootwearApplies,
@@ -1914,6 +1915,12 @@ export function useDayPlannerToolOrchestrationCore() {
           faceBreak: vacationFaceBreak,
           garment: byoOrPackGarment,
           dressedPlateClothing: Boolean(dressClothingFilename),
+          sceneOwnsClothes:
+            dayStillSceneDressesItself({
+              dayMood: toolSettings.dayMood,
+              intimateEnabled,
+              sceneHints: queueTarget.sceneHints,
+            }) && !/\b(?:swim\w*|bikini|bathing)\b/i.test(wardrobeLabelFor(wardrobeId) ?? ''),
         });
         // Footwear picked beside the clothing (day-still-plan.ts: clothed stills, not Sport, not a
         // beat about the feet, not a scene that dresses her itself).
@@ -3065,6 +3072,7 @@ export function useDayPlannerToolOrchestrationCore() {
       shared.model,
       updateShared,
       updateToolSettings,
+      wardrobeLabelFor,
       wardrobeOptions,
     ]
   );

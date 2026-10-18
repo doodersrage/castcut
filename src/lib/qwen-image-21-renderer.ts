@@ -485,7 +485,22 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return withAcrossTable(out);
+  return withSwimsuitColour(withAcrossTable(out));
+}
+
+/**
+ * A bare "she wears a swimsuit" (a Vacation scene that brings its own clothes, no outfit picture)
+ * came out skin-toned on 2.1 — 4/4 seeds read as nude. A bold solid colour: 3/3 clearly fabric
+ * (night sweep, 2026-10-17).
+ */
+export const QWEN_IMAGE_21_SWIMSUIT_WORDS =
+  'a solid-colour swimsuit in a bold colour, clearly fabric, never skin-toned or nude-looking';
+
+function withSwimsuitColour(prompt: string): string {
+  return prompt.replace(
+    /\b([Ss]he wears) a swimsuit\b(?![^.;]*\bcolou?r)/g,
+    `$1 ${QWEN_IMAGE_21_SWIMSUIT_WORDS}`
+  );
 }
 
 /**

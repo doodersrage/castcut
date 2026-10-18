@@ -261,3 +261,20 @@ describe('dayStillFaceCropCanvas', () => {
     assert.equal(DAY_OUTFIT_LINE_RE.test('Day photo: She wears the outfit (mandatory).'), false);
   });
 });
+
+describe('dayStillSceneDressesItself', () => {
+  it('a Vacation pool beat brings its own swimsuit — the outfit picture stays off (night sweep, 2026-10-17)', async () => {
+    const { dayStillSceneDressesItself, dayStillClothingReinforce } = await import('./day-still-plan');
+    const pool = 'RELAXING on a paddleboard floating in calm water — one knee up, paddle across her lap, swimsuit, afternoon sun';
+    assert.equal(dayStillSceneDressesItself({ dayMood: 'vacation', intimateEnabled: false, sceneHints: pool }), true);
+    assert.equal(
+      dayStillSceneDressesItself({ dayMood: 'vacation', intimateEnabled: false, sceneHints: 'seated at a café terrace sipping coffee' }),
+      false
+    );
+    assert.equal(dayStillSceneDressesItself({ dayMood: 'everyday', intimateEnabled: false, sceneHints: pool }), false);
+    const garment = { imageUrl: '/dress.png', source: 'packshot' as const };
+    const base = { omitGarment: false, replaceOutfit: false, partnerFace: false, faceBreak: false, garment };
+    assert.equal(dayStillClothingReinforce({ ...base, sceneOwnsClothes: true }), null);
+    assert.equal(dayStillClothingReinforce(base), garment);
+  });
+});

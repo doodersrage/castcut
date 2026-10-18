@@ -779,3 +779,14 @@ describe('2.1 across-the-table duos', () => {
     assert.equal(withNaturalPoses(solo), solo);
   });
 });
+
+describe('2.1 swimsuit colour', () => {
+  it('a bare swimsuit gets a bold colour (skin-toned 4/4 → fabric 3/3, 2026-10-17)', async () => {
+    const { withNaturalPoses, QWEN_IMAGE_21_SWIMSUIT_WORDS } = await import('./qwen-image-21-renderer');
+    const out = withNaturalPoses('OUTFIT (mandatory): she wears a swimsuit; the base. She wears a swimsuit.');
+    assert.equal(out.split(QWEN_IMAGE_21_SWIMSUIT_WORDS).length, 3);
+    assert.equal(withNaturalPoses(out), out);
+    const red = 'She wears a swimsuit in a red colour.';
+    assert.equal(withNaturalPoses(red), red);
+  });
+});
