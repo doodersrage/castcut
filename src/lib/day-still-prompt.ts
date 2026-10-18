@@ -876,3 +876,25 @@ export function withNudeBodyPlateLine(prompt: string, man = false): string {
     ? prompt.replace(face, match => `${match} ${line}`)
     : `${prompt.trim()} ${line}`;
 }
+
+/**
+ * A clothed two-person still on Qwen-Image 2.1 with the lead's dressed plate as the third image
+ * (the two faces are Images 1 and 2; the fourth when the pose map, which 2.1 drops, is the third):
+ * her body and outfit from the picture. Turbo, a curvy Cast
+ * with a sleeve tattoo her traits did not mention (2026-10-18): the faces alone gave a vaguer
+ * figure, the tattoo now and then and a generic dress; with the plate her build, the tattoo 8/8
+ * and the dress's own detail.
+ */
+export function withDuoLeadBodyLine(
+  prompt: string,
+  man = false,
+  image: 'third' | 'fourth' = 'third'
+): string {
+  const her = man ? 'his' : 'her';
+  const line = `${man ? 'His' : 'Her'} body and clothes are the ${image} image: ${her} figure, build, skin with any tattoos or marks, and ${her} outfit exactly as in the ${image} image — never paste that photo or its plain wall into the scene.`;
+  if (prompt.includes(line)) return prompt;
+  const face = new RegExp(`Keep ${her} face from the first image[^.]*\\.`);
+  return face.test(prompt)
+    ? prompt.replace(face, match => `${match} ${line}`)
+    : `${prompt.trim()} ${line}`;
+}

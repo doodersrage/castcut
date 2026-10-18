@@ -27,6 +27,7 @@ import {
   dayStillSceneSlot,
   finishDayStillPrompt,
   queuedDayStillPrompt,
+  withDuoLeadBodyLine,
   withNudeBodyPlateLine,
 } from '@/lib/day-still-prompt';
 import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
@@ -2646,6 +2647,28 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[1] = bodyUrl || undefined;
           extraFilenames[1] = bodyUrl ? '' : (nudeBodyPlate.filename?.trim() ?? '');
         }
+        // A clothed two-person still on Qwen-Image 2.1: the lead's dressed plate (or an Outfit
+        // Keep, already dressed) as Image 3 carries her body and outfit next to the two faces
+        // (day-still-prompt.ts withDuoLeadBodyLine).
+        const duoBodySource =
+          !adultStill &&
+          Boolean(partnerFace) &&
+          !thirdPerson &&
+          poseProfileForModel(stillModel).family === 'qwen-image-2.1' &&
+          !extraFilenames[3]?.trim() &&
+          !extraUrls[3]
+            ? (dressedPlate ?? (lookPlate?.source === 'keeper' ? lookPlate : null))
+            : null;
+        const duoBodyUrl = duoBodySource?.imageUrl?.trim();
+        const duoBodyFile = duoBodySource?.filename?.trim();
+        const duoBodyAttached = Boolean(duoBodyUrl || duoBodyFile);
+        // Image 3 when free; else Image 4 — the clothed duo's pose map (Image 3) is dropped by
+        // the 2.1 converter, which renumbers the plate to Image 3.
+        const duoBodySlot = extraFilenames[2]?.trim() || extraUrls[2] ? 3 : 2;
+        if (duoBodyAttached) {
+          extraUrls[duoBodySlot] = duoBodyUrl || undefined;
+          extraFilenames[duoBodySlot] = duoBodyUrl ? '' : (duoBodyFile ?? '');
+        }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
@@ -2774,7 +2797,13 @@ export function useDayPlannerToolOrchestrationCore() {
                     ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
                     : nudeBodyAttached
                       ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
-                      : finalized,
+                      : duoBodyAttached
+                        ? withDuoLeadBodyLine(
+                            finalized,
+                            leadNoun === 'man',
+                            duoBodySlot === 3 ? 'fourth' : 'third'
+                          )
+                        : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),

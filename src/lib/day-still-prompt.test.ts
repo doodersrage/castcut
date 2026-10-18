@@ -365,3 +365,14 @@ describe('withNudeBodyPlateLine', () => {
     assert.match(withNudeBodyPlateLine('Keep his face from the first image.', true), /His body is the second image \(the same man\)/);
   });
 });
+
+describe('withDuoLeadBodyLine', () => {
+  it('names the third image as her body and clothes, after the faces sentence (2026-10-18)', async () => {
+    const { withDuoLeadBodyLine } = await import('./day-still-prompt');
+    const out = withDuoLeadBodyLine(
+      'Day photo. Keep her face from the first image; the man has the face from the second image (a bald man). Place: a rooftop.'
+    );
+    assert.match(out, /\(a bald man\)\. Her body and clothes are the third image: her figure/);
+    assert.equal(withDuoLeadBodyLine(out), out);
+  });
+});
