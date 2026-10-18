@@ -266,6 +266,8 @@ export type ClipExtendInput = {
   setting?: string;
   heat?: SpokenLineHeat;
   targetSec?: number;
+  /** Make it this many seconds longer instead of up to `targetSec` (Cut's "Make longer"). */
+  extendBySec?: number;
   direction?: string;
   /** The player's beats, used as written (more beats than needed make it longer, up to the cap). */
   beats?: string[];
@@ -310,7 +312,8 @@ function partCount(
   const overlapSec = (wan ? 1 : LTX25_EXTEND_OVERLAP) / 24;
   const needed = extendSegmentCount({
     currentSec: clipSec,
-    targetSec: input.targetSec,
+    targetSec:
+      input.extendBySec && input.extendBySec > 0 ? clipSec + input.extendBySec : input.targetSec,
     segmentSec,
     overlapSec,
   });

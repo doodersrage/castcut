@@ -69,6 +69,19 @@ export type CutExtra =
       stillUrl?: string;
       url?: string;
       engine?: string;
+    }
+  /**
+   * A clip made longer (clip-extend-server.ts, "Make longer"): stands in for `of` once it has
+   * rendered — the original is left out then; until then (or when it failed) the original plays.
+   */
+  | {
+      key: string;
+      kind: 'extended';
+      of: string;
+      bySec: number;
+      status: CutGeneratedStatus;
+      jobId?: string;
+      url?: string;
     };
 
 export type CutToolCache = {
@@ -165,6 +178,16 @@ export function cutExtraShots(
           url: extra.url,
           kind: extra.shotKind,
           ...(extra.stillUrl && extra.shotKind === 'clip' ? { thumbUrl: extra.stillUrl } : {}),
+        });
+      }
+    } else if (extra.kind === 'extended') {
+      const original = byKey.get(extra.of);
+      if (original && extra.status === 'ready' && extra.url) {
+        out.push({
+          ...original,
+          key: extra.key,
+          title: `${original.title} (longer)`,
+          url: extra.url,
         });
       }
     } else if (extra.kind === 'text') {

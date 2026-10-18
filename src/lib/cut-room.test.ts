@@ -126,3 +126,17 @@ describe('Cut room: generated shots', () => {
     ]);
   });
 });
+
+describe('Cut room: longer clips', () => {
+  it('stand in for their clip once ready, keeping its settings', () => {
+    const original = { key: 'day:a', title: 'morning', url: '/a.mp4', kind: 'clip' as const, caption: 'c' };
+    const extras = [
+      { key: 'x:l', kind: 'extended' as const, of: 'day:a', bySec: 4, status: 'ready' as const, url: '/a-long.mp4' },
+      { key: 'x:m', kind: 'extended' as const, of: 'day:a', bySec: 8, status: 'rendering' as const, jobId: 'j' },
+      { key: 'x:n', kind: 'extended' as const, of: 'day:gone', bySec: 4, status: 'ready' as const, url: '/n.mp4' },
+    ];
+    assert.deepEqual(cutExtraShots(extras, [original], () => ''), [
+      { key: 'x:l', title: 'morning (longer)', url: '/a-long.mp4', kind: 'clip', caption: 'c' },
+    ]);
+  });
+});

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST { clipUrl, clipPromptId?, scene, setting?, heat?, targetSec?, direction?, beats?, comfyUrl?,
+ * POST { clipUrl, clipPromptId?, scene, setting?, heat?, targetSec? | extendBySec?, direction?, beats?, comfyUrl?,
  * …llm } → { job }; with `plan: true` → { plan: { total, beats, partSec } } and nothing rendered.
  */
 export async function POST(request: Request) {
@@ -49,6 +49,12 @@ export async function POST(request: Request) {
       ? (body.heat as 'flirty' | 'sensual' | 'explicit')
       : 'clean',
     targetSec: Number.isFinite(target) && target >= 10 && target <= 60 ? target : undefined,
+    extendBySec:
+      Number.isFinite(Number(body.extendBySec)) &&
+      Number(body.extendBySec) >= 2 &&
+      Number(body.extendBySec) <= 30
+        ? Number(body.extendBySec)
+        : undefined,
     comfyUrl: text(body.comfyUrl, 300) || undefined,
     requestOrigin: new URL(request.url).origin,
     userId: user?.id ?? null,

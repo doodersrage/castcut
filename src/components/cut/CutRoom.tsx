@@ -74,6 +74,7 @@ export default function CutRoom() {
     const local = Math.max(0, preview.time - item.startSec);
     return { key: activeKey, fileSec: item.fromSec + local * (item.speed ?? 1) };
   })();
+  const activeIsClip = clipPoint !== null;
   const ordered = orderedCutShots(vm.previewShots, vm.options.shotEdits);
   const order = ordered.map(shot => shot.key);
   const pick = useCallback(
@@ -492,6 +493,23 @@ export default function CutRoom() {
               >
                 {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
               </Button>
+              <select
+                aria-label="Make the picked clip longer"
+                title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
+                disabled={busy || !activeIsClip || vm.extendBusy !== null}
+                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                value=""
+                data-testid="cut-extend"
+                onChange={event => {
+                  const by = Number(event.target.value);
+                  if (activeKey && by > 0) void vm.extendClip(activeKey, by);
+                }}
+              >
+                <option value="">{vm.extendBusy ? 'Starting…' : 'Make longer…'}</option>
+                <option value="4">+4 s</option>
+                <option value="8">+8 s</option>
+                <option value="15">+15 s</option>
+              </select>
               <Button
                 size="sm"
                 variant="ghost"
@@ -535,6 +553,36 @@ export default function CutRoom() {
                     </li>
                   );
                 })}
+              </ul>
+            ) : null}
+            {vm.extras.some(extra => extra.kind === 'extended' && extra.status !== 'ready') ? (
+              <ul className="type-caption mb-2 space-y-1" data-testid="cut-extends">
+                {vm.extras.map(extra =>
+                  extra.kind === 'extended' && extra.status !== 'ready' ? (
+                    <li key={extra.key} className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={
+                          extra.status === 'failed'
+                            ? 'text-[var(--danger)]'
+                            : 'text-[var(--text-muted)]'
+                        }
+                      >
+                        {vm.shots.find(shot => shot.key === extra.of)?.title ?? 'A clip'} +
+                        {extra.bySec} s:{' '}
+                        {extra.status === 'failed'
+                          ? 'did not render — the clip stays as it was.'
+                          : 'rendering… it takes the clip’s place when ready.'}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                        onClick={() => vm.removeAdded(extra.key)}
+                      >
+                        {extra.status === 'failed' ? 'Remove' : 'Forget'}
+                      </button>
+                    </li>
+                  ) : null
+                )}
               </ul>
             ) : null}
             <CutGeneratePanel

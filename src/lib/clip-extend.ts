@@ -214,6 +214,8 @@ export type ClipExtendRequest = {
   setting?: string;
   heat?: SpokenLineHeat;
   targetSec?: number;
+  /** This many seconds longer instead of up to `targetSec`. */
+  extendBySec?: number;
   /** Where the player wants it to go; steers the written beats. */
   direction?: string;
   /** The player's own beats, one per part, used as written. */

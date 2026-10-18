@@ -7,6 +7,11 @@
  * card — and keeps the film on the Cast.
  */
 
+import { loadSettingsCache } from '@/lib/settings-cache';
+import { startClipExtend, waitForClipExtend } from '@/lib/clip-extend';
+import type { CutGeneratedStatus } from '@/lib/cut-generate';
+import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { spokenLineHeat } from '@/lib/spoken-line';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -465,7 +470,10 @@ export function useCutRoom() {
       const rest =
         removed?.kind === 'bridge' && removed.status === 'ready'
           ? cutBridgeJoinEdits(kept, removed.to, { ready: false, toWas: removed.toWas })
-          : kept;
+          : // A longer copy out: the original clip comes back in.
+            removed?.kind === 'extended' && removed.status === 'ready'
+            ? { ...kept, [removed.of]: { ...kept[removed.of], include: true } }
+            : kept;
       commitEdit(
         {
           extras: stateRef.current.extras.filter(
@@ -828,6 +836,125 @@ export function useCutRoom() {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [actions.sendComfyUi, awaitGenerated, commitEdit, shared.model]
+  );
+  // Make longer (clip-extend-server.ts): the clip carried on by `bySec`, in the background. The
+  // longer copy stands in for the original once it is ready (the original is left out then).
+  const [extendBusy, setExtendBusy] = useState<string | null>(null);
+  const waitingExtends = useRef(new Set<string>());
+  const settleExtend = useCallback(
+    (key: string, patch: { status: CutGeneratedStatus; url?: string }) => {
+      const found = stateRef.current.extras.find(
+        extra => extra.key === key && extra.kind === 'extended'
+      );
+      if (!found || found.kind !== 'extended') return;
+      const nextExtras = stateRef.current.extras.map(extra =>
+        extra.key === key ? { ...found, ...patch } : extra
+      );
+      const edits = stateRef.current.options.shotEdits;
+      const options =
+        patch.status === 'ready'
+          ? {
+              ...stateRef.current.options,
+              shotEdits: {
+                ...edits,
+                shots: {
+                  ...edits?.shots,
+                  // The longer copy keeps the original's place and settings; the original sits out.
+                  [key]: { ...edits?.shots?.[found.of], include: true, trimEndSec: undefined },
+                  [found.of]: { ...edits?.shots?.[found.of], include: false },
+                },
+              },
+            }
+          : stateRef.current.options;
+      stateRef.current = { ...stateRef.current, extras: nextExtras, options };
+      updateCut({ extras: nextExtras, options });
+    },
+    [updateCut]
+  );
+  const awaitExtend = useCallback(
+    async (key: string, jobId: string) => {
+      if (waitingExtends.current.has(key)) return;
+      waitingExtends.current.add(key);
+      try {
+        const job = await waitForClipExtend(jobId, { pollMs: 5_000 });
+        settleExtend(key, job.url ? { status: 'ready', url: job.url } : { status: 'failed' });
+      } catch {
+        settleExtend(key, { status: 'failed' });
+      } finally {
+        waitingExtends.current.delete(key);
+      }
+    },
+    [settleExtend]
+  );
+  // An extension still running when the page was left: pick it up (lost on a server restart).
+  useEffect(() => {
+    if (!cut.mounted) return;
+    for (const extra of extras) {
+      if (extra.kind === 'extended' && extra.status === 'rendering' && extra.jobId) {
+        void awaitExtend(extra.key, extra.jobId);
+      }
+    }
+  }, [awaitExtend, cut.mounted, extras]);
+  /** Make a clip `bySec` seconds longer (it carries on in the same shot). */
+  const extendClip = useCallback(
+    async (key: string, bySec: number) => {
+      const shot = shots.find(entry => entry.key === key);
+      if (!shot?.url || shot.kind !== 'clip') return;
+      // A longer copy of a longer copy extends the original's longer copy (its own url).
+      setError(null);
+      setExtendBusy(key);
+      try {
+        // A Day clip: its own scene and render (WAN clips replay their graph); others carry on
+        // on LTX-2.5 from their last frames.
+        const still = dayStillsRef.current.find(entry => entry.clipUrl?.trim() === shot.url);
+        const slot = still ? slots.find(entry => entry.id === still.slotId) : undefined;
+        const job = await startClipExtend(
+          {
+            clipUrl: shot.url,
+            clipPromptId: still ? (still.clipRenderPromptId ?? still.clipPromptId) : undefined,
+            scene: slot?.sceneHints?.trim() || still?.beatKey?.trim() || shot.caption || shot.title,
+            setting: slot?.location,
+            heat: still ? spokenLineHeat(day.toolSettings.dayMood) : 'clean',
+            extendBySec: bySec,
+            lead:
+              getCharacter(
+                day.toolSettings.stillsCharacterId?.trim() || shared.activeCharacterId?.trim() || ''
+              )?.traits?.sex === 'man'
+                ? 'man'
+                : 'woman',
+          },
+          sharedLlmRequestBody(loadSettingsCache().shared)
+        );
+        const extKey = newKey();
+        const edits = stateRef.current.options.shotEdits;
+        commitEdit(
+          {
+            extras: [
+              ...stateRef.current.extras.filter(
+                extra =>
+                  !(extra.kind === 'extended' && extra.of === key && extra.status !== 'ready')
+              ),
+              { key: extKey, kind: 'extended', of: key, bySec, status: 'rendering', jobId: job.id },
+            ],
+            options: {
+              ...stateRef.current.options,
+              shotEdits: { ...edits, order: orderWith(orderNow(), extKey, key) },
+            },
+          },
+          true
+        );
+        setStatus(
+          `Making ${shot.title} ${bySec} s longer — it takes the clip’s place when it’s ready (a few minutes).`
+        );
+        void awaitExtend(extKey, job.id);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not make the clip longer.');
+      } finally {
+        setExtendBusy(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [awaitExtend, commitEdit, day.toolSettings, shared.activeCharacterId, shots, slots]
   );
   // Versions: the whole edit (sources, added shots, options) under a name.
   const versions = useMemo(() => cut.toolSettings.versions ?? [], [cut.toolSettings.versions]);
@@ -1316,6 +1443,8 @@ export function useCutRoom() {
     bridgeBusy,
     generateShot,
     generateBusy,
+    extendClip,
+    extendBusy,
     versions,
     saveVersion,
     openVersion,

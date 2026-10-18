@@ -65,6 +65,8 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 | F | Freeze frame — the clip's frame held 2 s after it |
 | D | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
 
+**Make longer…** carries the clip under the playhead on in the same shot (+4, +8 or +15 s); the longer clip takes its place when it has rendered.
+
 **Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it.
 
 Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, and **J / L cuts** in the shot list — *sound in early* (hear it before it is seen; needs a trimmed start) and *sound runs on* (keep hearing it over the next shot; needs a trimmed end).
