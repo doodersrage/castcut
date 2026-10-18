@@ -868,3 +868,27 @@ describe('2.1 held props', () => {
     assert.equal(withNaturalPoses(already), already);
   });
 });
+
+describe('the player’s own 2.1 LoRAs', () => {
+  it('chains them onto the model before the cache, and nothing when there are none', () => {
+    const plain = convertQwenEditWorkflowToImage21(rapidDayGraph(), { steps: 30 }).workflow as Record<
+      string,
+      { class_type: string; inputs: Record<string, unknown> }
+    >;
+    assert.equal(Object.values(plain).filter(n => n.class_type === 'LoraLoaderModelOnly').length, 0);
+    const { workflow } = convertQwenEditWorkflowToImage21(rapidDayGraph(), {
+      steps: 30,
+      userLoras: [
+        { name: 'qwen21_femaledvaginus_v13b.safetensors', strength: 0.7 },
+        { name: 'qwen21_detail_fix_v2.safetensors', strength: 0 },
+      ],
+    });
+    const nodes = workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const loras = Object.entries(nodes).filter(([, n]) => n.class_type === 'LoraLoaderModelOnly');
+    assert.equal(loras.length, 1);
+    assert.equal(loras[0]![1].inputs.lora_name, 'qwen21_femaledvaginus_v13b.safetensors');
+    assert.equal(loras[0]![1].inputs.strength_model, 0.7);
+    const cache = Object.values(nodes).find(n => n.class_type === 'QwenImage21Cache')!;
+    assert.deepEqual(cache.inputs.model, [loras[0]![0], 0]);
+  });
+});

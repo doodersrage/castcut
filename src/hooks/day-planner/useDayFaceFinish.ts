@@ -14,8 +14,6 @@ import { resolveDayVacationFaceBreakPlate } from '@/lib/day-vacation-face-crop';
 import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
-import { runStillAnatomyFinish } from '@/lib/anatomy-finish-client';
-import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day-finish-order';
 import { waitForModelTurn } from '@/lib/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -28,11 +26,6 @@ import { dayTwoTakesPending } from '@/lib/day-two-takes';
  * (see face-finish.ts) and swap the finished image into the slot. One person in frame only —
  * the pass would give a partner her face. Runs one still at a time while the Day queue is idle,
  * and never overwrites a slot that was requeued or changed while the pass ran.
- *
- * Anatomy finish (anatomy-finish.ts) rides the same pass: a woman's nude solo still on
- * Qwen-Image 2.1 gets its crotch re-rendered with the anatomy LoRA after the face (or alone when
- * Face finish is off) — Turbo draws it malformed; the LoRA on the whole render moved pose and
- * face. On unless `anatomyFinish` is false; skipped quietly when the LoRA is not installed.
  *
  * Cheap work first: with `checksGate` (Balanced) a take waits until its pose check has settled
  * (a take the check redoes is never finished), and every pass starts with a face probe — a face
@@ -57,16 +50,9 @@ export function useDayFaceFinish(
   checksGate?: DayChecksGate | null
 ) {
   const { busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
-  const { poseGuideExpectRef, toolSettings, updateToolSettings, intimateEnabled, leadNoun } = ctx;
+  const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
   const faceOn = toolSettings.faceFinish === true;
-  const anatomyOn =
-    toolSettings.anatomyFinish !== false &&
-    intimateEnabled &&
-    leadNoun !== 'man' &&
-    isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
-    normalizeDayIntimateMix(toolSettings.intimateMix) === 'solo' &&
-    poseProfileForModel(shared.model).family === 'qwen-image-2.1';
-  const enabled = faceOn || anatomyOn;
+  const enabled = faceOn;
 
   const [status, setStatus] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -226,16 +212,6 @@ export function useDayFaceFinish(
             applied = 'Face finish';
           }
         }
-        if (anatomyOn && people === 1) {
-          setStatus(`Anatomy finish: ${target.label}…`);
-          const anatomy = await runStillAnatomyFinish(finishedUrl ?? comfyStillUrl);
-          if (anatomy.available) {
-            finishedUrl = anatomy.imageUrl;
-            applied = applied ? `${applied} + anatomy finish` : 'Anatomy finish';
-          } else if (!applied) {
-            setStatus(`Anatomy finish skipped on ${target.label} — ${anatomy.reason}`);
-          }
-        }
         if (!finishedUrl) return;
         // Only swap if the slot still shows the image we finished (not requeued meanwhile).
         const current = stillsRef.current.find(entry => entry.slotId === target.id);
@@ -267,7 +243,6 @@ export function useDayFaceFinish(
   }, [
     busy,
     character,
-    anatomyOn,
     checksGate,
     enabled,
     faceOn,
@@ -295,8 +270,6 @@ export function useDayFaceFinish(
 
   return {
     faceFinishStatus: enabled ? status : null,
-    /** Anatomy finish runs in this pass (a woman's nude solo still on Qwen-Image 2.1). */
-    anatomyFinishOn: anatomyOn,
     faceFinishTick: tick,
     holdsStillForFaceFinish: holdsStill,
   };

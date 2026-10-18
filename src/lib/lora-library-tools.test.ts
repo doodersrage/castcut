@@ -147,3 +147,15 @@ describe('loraStackMembership', () => {
     assert.deepEqual(membership.get('b'), { models: ['m1'], savedStacks: ['Realism'] });
   });
 });
+
+describe('a Qwen-Image 2.1 LoRA starts off', () => {
+  it('is switched off the first time a scan finds it is 2.1, and left alone after', async () => {
+    const { applyLoraScanResults } = await import('./lora-library-tools');
+    const entry = { id: 'anatomy', label: 'anatomy', triggerPhrase: 'x', tokenValue: 'qwen21_a.safetensors', family: 'unknown' as const, familySource: 'keys' as const };
+    const first = applyLoraScanResults([entry], [{ filename: 'qwen21_a.safetensors', family: 'qwen21', source: 'keys' }]);
+    assert.equal(first.library[0]!.enabled, false);
+    const turnedOn = { ...first.library[0]!, enabled: true };
+    const again = applyLoraScanResults([turnedOn], [{ filename: 'qwen21_a.safetensors', family: 'qwen21', source: 'keys' }]);
+    assert.equal(again.library[0]!.enabled, true);
+  });
+});

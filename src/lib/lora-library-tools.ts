@@ -22,7 +22,11 @@ export function loraEntriesNeedingScan(library: LoraLibraryEntry[]): LoraLibrary
   return library.filter(
     entry =>
       entry.tokenValue?.trim() &&
-      (!entry.family || entry.familySource === 'unreadable' || entry.familySource === 'missing')
+      (!entry.family ||
+        // Unknown under an older detector (Qwen-Image 2.1 LoRAs were, until 2026-10-18): look again.
+        entry.family === 'unknown' ||
+        entry.familySource === 'unreadable' ||
+        entry.familySource === 'missing')
   );
 }
 
@@ -45,7 +49,16 @@ export function applyLoraScanResults(
       return entry;
     }
     changed += 1;
-    return { ...entry, family: row.family, familySource: row.source, triggerPhrase: trigger };
+    // A file first seen as a Qwen-Image 2.1 LoRA starts off: 2.1 renders load the player's 2.1
+    // LoRAs, and library entries are on by default — none should join a render unasked.
+    const firstSeenAs21 = row.family === 'qwen21' && entry.family !== 'qwen21';
+    return {
+      ...entry,
+      family: row.family,
+      familySource: row.source,
+      triggerPhrase: trigger,
+      ...(firstSeenAs21 ? { enabled: false } : {}),
+    };
   });
   return { library: next, changed };
 }

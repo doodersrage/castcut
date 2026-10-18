@@ -38,6 +38,7 @@ import {
 import { buildLightningLoraFilenameMap, loraFilenameImpliesLightning } from './workflow-lora-patch';
 import {
   normalizeLoraLibrary,
+  resolveActiveLoraStack,
   applyLoraStackToWorkflow,
   withActiveLoraTriggers,
   type LoraLibraryEntry,
@@ -1899,6 +1900,7 @@ export function injectPromptsWithFallbacks(
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
       qualityProfile: options.qualityProfile ?? null,
+      userLoras: qwenImage21UserLoras(options.loraLibrary),
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
     });
     if (converted.converted) {
@@ -2310,4 +2312,25 @@ function ltx25FaceRestoreOption(
   const model =
     models.find(name => /codeformer/i.test(name)) ?? models.find(name => /gfpgan/i.test(name));
   return model ? { restoreFace: model } : {};
+}
+
+/**
+ * The player's switched-on LoRAs that were scanned as Qwen-Image 2.1 LoRAs: the only LoRAs a 2.1
+ * render loads besides its own sampler LoRA. A 2.1 file starts off when first scanned
+ * (applyLoraScanResults), so nothing joins unless the player turns it on.
+ */
+export function qwenImage21UserLoras(
+  library: LoraLibraryEntry[] | undefined
+): Array<{ name: string; strength: number }> {
+  const byId = new Map(normalizeLoraLibrary(library).map(entry => [entry.id.trim(), entry]));
+  return resolveActiveLoraStack(library)
+    .filter(item => {
+      const entry = byId.get(item.id);
+      return (
+        entry?.family === 'qwen21' &&
+        entry.familySource !== 'unreadable' &&
+        entry.familySource !== 'missing'
+      );
+    })
+    .map(item => ({ name: item.filename, strength: item.strengthModel }));
 }

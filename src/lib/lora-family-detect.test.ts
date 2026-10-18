@@ -45,3 +45,13 @@ describe('lora-family-detect', () => {
     assert.equal(loraFamilyForModel('not-a-model'), null);
   });
 });
+
+describe('Qwen-Image 2.1 LoRAs', () => {
+  it('reads 32 blocks as Qwen-Image 2.1 and 60 as the 20B Qwen', () => {
+    const blocks = (count: number, name: string) =>
+      Array.from({ length: count }, (_, i) => `diffusion_model.transformer_blocks.${i}.attn.${name}.lora_A.weight`);
+    assert.equal(detectLoraFamily({ keys: blocks(32, 'to_k') }).family, 'qwen21');
+    assert.equal(detectLoraFamily({ keys: blocks(60, 'add_k_proj') }).family, 'qwen');
+    assert.equal(loraFamilyForModel('qwen-image-2.1-edit-turbo-8'), 'qwen21');
+  });
+});

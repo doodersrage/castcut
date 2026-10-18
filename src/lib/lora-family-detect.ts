@@ -10,6 +10,7 @@ import { resolveModelStackFamily } from './workflow-stack-fingerprint';
 
 export type LoraFamily =
   | 'qwen'
+  | 'qwen21'
   | 'flux-klein'
   | 'flux'
   | 'sdxl'
@@ -22,6 +23,7 @@ export type LoraFamily =
 
 export const LORA_FAMILY_LABELS: Record<LoraFamily, string> = {
   qwen: 'Qwen',
+  qwen21: 'Qwen-Image 2.1',
   'flux-klein': 'FLUX.2 Klein',
   flux: 'FLUX.1',
   sdxl: 'SDXL',
@@ -77,9 +79,13 @@ function fromKeys(keys: readonly string[]): LoraFamily {
   }
   if (has(/adaln_modulation_cross_attn/)) return 'other';
   // Qwen: 60 transformer blocks and no single-stream blocks (FLUX diffusers has both kinds).
+  // Qwen-Image 2.1 (7B) has 32 — its LoRAs don't load on the 20B models, nor theirs on it.
   if (!has(/single_transformer_blocks|single_blocks/)) {
     const blocks = maxIndex(keys, /transformer_blocks[._](\d+)[._]/);
     if (blocks >= 40) return 'qwen';
+    if (blocks >= 24 && blocks <= 40 && has(/attn\.(to_[qkv]|add_[qkv]_proj)|img_mlp|img_in/)) {
+      return 'qwen21';
+    }
   }
   if (has(/\bblocks\.\d+\.(cross_attn|self_attn|ffn)\b/)) return 'wan';
   if (has(/lora_te2_|lora_unet_(input|output)_blocks_\d/)) return 'sdxl';
@@ -149,6 +155,8 @@ export function loraFamilyForModel(model?: string | null): LoraFamily | null {
   if (/ltx/i.test(id)) return 'ltx';
   if (def.category === 'video') return /hunyuan/i.test(id) ? 'other' : 'wan';
   if (/^z-image|^boogu-image(?!-edit)/i.test(id)) return 'z-image';
+  // Qwen-Image 2.1 engines take 2.1 LoRAs (the 2.1 converter loads them; qwen-image-21-renderer).
+  if (/^qwen-image-2\.1/i.test(id)) return 'qwen21';
   switch (resolveModelStackFamily(id)) {
     case 'flux-klein':
       return 'flux-klein';

@@ -771,6 +771,11 @@ export function convertQwenEditWorkflowToImage21(
     eightStepTurbo?: boolean;
     /** With `eightStepTurbo`: load the Turbo checkpoint (QWEN_IMAGE_21_TURBO_UNET), no base + LoRA. */
     turboCheckpoint?: boolean;
+    /**
+     * The player's own Qwen-Image 2.1 LoRAs (their LoRA stack, 2.1 family only), chained onto the
+     * model in order. Nothing else adds a LoRA here — the source graph's LoRAs are 20B and drop.
+     */
+    userLoras?: ReadonlyArray<{ name: string; strength: number }>;
     /** Queue quality: Best renders a solo lying still on the full pass (see above). */
     qualityProfile?: string | null;
   } = {}
@@ -864,9 +869,21 @@ export function convertQwenEditWorkflowToImage21(
           },
         })
       : unet;
+  let withUserLoras = lora;
+  for (const user of options.userLoras ?? []) {
+    if (!user.name.trim() || !(user.strength > 0)) continue;
+    withUserLoras = add({
+      class_type: 'LoraLoaderModelOnly',
+      inputs: {
+        model: [withUserLoras, 0],
+        lora_name: user.name.trim(),
+        strength_model: Math.round(user.strength * 100) / 100,
+      },
+    });
+  }
   const cache = add({
     class_type: 'QwenImage21Cache',
-    inputs: { model: [lora, 0], device: 'auto', dtype: 'default' },
+    inputs: { model: [withUserLoras, 0], device: 'auto', dtype: 'default' },
   });
   let samplerModel: [string, number] = [cache, 0];
   // A two-person pose map is a limb diagram. 2.1 paints it: fused bodies, a third person, a
