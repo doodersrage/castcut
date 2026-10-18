@@ -27,7 +27,9 @@ import {
   dayStillSceneSlot,
   finishDayStillPrompt,
   queuedDayStillPrompt,
+  withNudeBodyPlateLine,
 } from '@/lib/day-still-prompt';
+import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import {
@@ -2616,6 +2618,34 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[4] = undefined;
           extraFilenames[4] = roomAsImage5.filename;
         }
+        // A nude one-person still on Qwen-Image 2.1: the Cast's undressed plate as Image 2 carries
+        // her body (day-still-prompt.ts withNudeBodyPlateLine). Not face-down beats — those go to
+        // Rapid, where the plate's latent kept its underwear.
+        const nudeBodyPlate =
+          adultStill &&
+          omitGarment &&
+          !partnerFace &&
+          !thirdPerson &&
+          poseProfileForModel(stillModel).family === 'qwen-image-2.1' &&
+          !extraFilenames[1]?.trim() &&
+          !extraUrls[1] &&
+          !isFaceDownNudeSolo(finalized, true)
+            ? resolveDayQueueIdentityPlate({
+                character: lookCharacter,
+                displayPlate: lookPlate,
+                preferCastPlate: true,
+              })
+            : null;
+        const nudeBodyAttached = Boolean(
+          nudeBodyPlate?.filename?.trim() || nudeBodyPlate?.imageUrl?.trim()
+        );
+        if (nudeBodyPlate && nudeBodyAttached) {
+          // By its picture URL, as the dress plate goes: the bare output filename is not an input
+          // ComfyUI can load (every still of the Day failed to queue with it).
+          const bodyUrl = nudeBodyPlate.imageUrl?.trim();
+          extraUrls[1] = bodyUrl || undefined;
+          extraFilenames[1] = bodyUrl ? '' : (nudeBodyPlate.filename?.trim() ?? '');
+        }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
@@ -2625,7 +2655,9 @@ export function useDayPlannerToolOrchestrationCore() {
         const plainReferenceNote = await checkStillReferences({
           face: faceOnlyIdentity ? queueImagePlate : null,
           clothing:
-            !partnerFace && extraFilenames[1]?.trim() ? { filename: extraFilenames[1] } : null,
+            !partnerFace && !nudeBodyAttached && extraFilenames[1]?.trim()
+              ? { filename: extraFilenames[1] }
+              : null,
           subject: lookCharacter?.name,
           comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
         });
@@ -2740,7 +2772,9 @@ export function useDayPlannerToolOrchestrationCore() {
                   ? withPlacePhotoInAdultPrompt(finalized)
                   : adultDuoPlacePhoto
                     ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
-                    : finalized,
+                    : nudeBodyAttached
+                      ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
+                      : finalized,
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),

@@ -860,3 +860,19 @@ export function buildDaySlotPromptForStill(
       (garmentReinforce && options?.clothingIsDressedPlate === true),
   });
 }
+
+/**
+ * A nude one-person still on Qwen-Image 2.1 with the Cast's undressed plate as the second image:
+ * her body from the picture, not from words. Turbo, a curvy Cast with a sleeve tattoo whose
+ * traits did not say so (2026-10-18): the face crop alone slimmed her and lost or moved the
+ * tattoo 8/8; with the plate her own figure and the tattoo 8/8, no underwear 8/8.
+ */
+export function withNudeBodyPlateLine(prompt: string, man = false): string {
+  const her = man ? 'his' : 'her';
+  const line = `${man ? 'His' : 'Her'} body is the second image (the same ${man ? 'man' : 'woman'}): keep ${her} figure, build, chest, belly, hips, thighs and skin, with any tattoos or marks, exactly as in the second image. The underwear there is only the fitting base — ${man ? 'he' : 'she'} wears nothing here; never the plain studio wall.`;
+  if (prompt.includes(line)) return prompt;
+  const face = new RegExp(`Keep ${her} face from the first image[.;]`);
+  return face.test(prompt)
+    ? prompt.replace(face, match => `${match} ${line}`)
+    : `${prompt.trim()} ${line}`;
+}

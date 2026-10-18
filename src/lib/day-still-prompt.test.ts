@@ -354,3 +354,14 @@ describe('dayPoseFirstLine — two people', () => {
     );
   });
 });
+
+describe('withNudeBodyPlateLine', () => {
+  it('puts the body line after the face line, once (2026-10-18)', async () => {
+    const { withNudeBodyPlateLine } = await import('./day-still-prompt');
+    const out = withNudeBodyPlateLine('Explicit solo photo. Keep her face from the first image. Photorealistic photograph.');
+    assert.match(out, /Keep her face from the first image\. Her body is the second image \(the same woman\): keep her figure/);
+    assert.match(out, /she wears nothing here/);
+    assert.equal(withNudeBodyPlateLine(out), out);
+    assert.match(withNudeBodyPlateLine('Keep his face from the first image.', true), /His body is the second image \(the same man\)/);
+  });
+});
