@@ -125,6 +125,8 @@ test('the editor: timeline blocks, click to jump, Delete leaves a shot out, undo
   await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
   // Drag the morning still's right edge: it holds longer (2.5 s → about 4 s).
   const edge = page.getByTestId('cut-timeline-hold-day:morning');
+  // The mouse only reaches what is in the window (the options panel can push the timeline down).
+  await edge.scrollIntoViewIfNeeded();
   const box = (await edge.boundingBox())!;
   const blockBox = (await morning.boundingBox())!;
   const pxPerSec = blockBox.width / 2.5;
@@ -328,6 +330,10 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
     .toBeLessThan(wide * 0.7);
   await page.getByTestId('cut-shot-speed-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
+  // Sound: the ambience track and a clip's J / L pickers are offered.
+  await expect(page.getByTestId('cut-ambience-upload')).toBeVisible();
+  await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
+  await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
   // S splits the clip under the playhead, as the button does.
   await page.getByTestId('cut-preview-scrub').fill('3.5');
   await expect(page.getByTestId('cut-split')).toBeEnabled({ timeout: 10_000 });

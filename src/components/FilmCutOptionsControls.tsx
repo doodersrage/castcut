@@ -1,5 +1,7 @@
 'use client';
 
+import CutSoundControls from '@/components/cut/CutSoundControls';
+import type { CutSoundOptions } from '@/lib/cut-sound';
 import {
   FILM_LOOKS,
   normalizeFilmLook,
@@ -77,6 +79,8 @@ export type FilmCutOptionsValue = {
   lookStrength?: number;
   /** Match each shot's colour to the film's — default on (unset = on). */
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions;
 };
 
 /** Cut option defaults shared by Day, Story and Cast film. */
@@ -550,6 +554,13 @@ export default function FilmCutOptionsControls({
           hasLines={Boolean(shots?.some(shot => shot.kind === 'clip'))}
           testIdPrefix={testIdPrefix}
           shots={shots}
+        />
+        <CutSoundControls
+          value={value}
+          onChange={onChange}
+          disabled={disabled || uploadBusy}
+          hasBed={hasBed}
+          testIdPrefix={testIdPrefix}
         />
         <label className="flex flex-col gap-1">
           <span className="type-caption text-[var(--text-muted)]">Or paste a URL</span>

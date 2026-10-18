@@ -24,6 +24,7 @@ import {
   shotGradeMatrices,
   type ShotColourStats,
 } from '@/lib/cut-look';
+import { musicFadeGainAt, normalizeAmbienceLevel, normalizeMusicStartSec } from '@/lib/cut-sound';
 import { frameCutStills, prepareCutShots } from '@/lib/film-cut-media';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
 import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film-cut-preview';
@@ -81,6 +82,13 @@ function sampleColourStats(
     // A picture from another origin taints the canvas — that shot is left ungraded by the match.
     return null;
   }
+}
+
+/** A looped track at a volume, playing or paused with the monitor. */
+function syncLoopedAudio(audio: HTMLAudioElement, volume: number, play: boolean) {
+  audio.volume = volume;
+  if (play && audio.paused) void audio.play().catch(() => undefined);
+  if (!play && !audio.paused) audio.pause();
 }
 
 /** The loaded pictures, clips, narration and music (mutable media — kept in a ref, not state). */
@@ -175,6 +183,8 @@ export function useCutPreview(input: {
   const videoCache = useRef(new Map<string, Promise<HTMLVideoElement>>());
   const audioCache = useRef(new Map<string, Promise<HTMLAudioElement | null>>());
   const bedRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
+  /** The ambience track (cut-sound.ts), looped under everything. */
+  const ambienceRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
 
   const signature = useMemo(() => buildSignature(shots, value, titles), [shots, value, titles]);
   const builtOnce = useRef(false);
@@ -303,6 +313,7 @@ export function useCutPreview(input: {
     const videos = videoCache;
     const media = mediaRef;
     const bed = bedRef;
+    const ambience = ambienceRef;
     return () => {
       for (const pending of videos.current.values()) {
         void pending
@@ -315,6 +326,7 @@ export function useCutPreview(input: {
       }
       for (const voice of media.current.voices.values()) voice.pause();
       bed.current?.audio.pause();
+      ambience.current?.audio.pause();
     };
   }, []);
 
@@ -499,20 +511,45 @@ export function useCutPreview(input: {
           voice.pause();
         }
       }
+      const fade = musicFadeGainAt(t, loaded.timeline.totalSec, value.sound);
       const bed = mediaRef.current.bed;
       if (bed) {
-        const music = Math.min(1, normalizeMusicLevel(value.musicLevel));
+        const music = Math.min(1, normalizeMusicLevel(value.musicLevel)) * fade;
         bed.volume = playingClips.size > 0 || speaking ? music * DUCK : music;
-        if (Number.isFinite(bed.duration) && t >= bed.duration) {
+        // From the music's start point (cut-sound.ts), as the encode trims it.
+        const at = t + normalizeMusicStartSec(value.sound?.musicStartSec);
+        if (Number.isFinite(bed.duration) && at >= bed.duration) {
           bed.pause();
         } else {
-          if (Math.abs(bed.currentTime - t) > 0.4) bed.currentTime = t;
+          if (Math.abs(bed.currentTime - at) > 0.4) bed.currentTime = at;
           if (running && bed.paused) void bed.play().catch(() => undefined);
           if (!running && !bed.paused) bed.pause();
         }
       }
+      // The ambience: looped, at its level, faded out with the rest.
+      const ambienceUrl = value.sound?.ambienceUrl?.trim() ?? '';
+      if (ambienceRef.current?.url !== ambienceUrl) {
+        ambienceRef.current?.audio.pause();
+        ambienceRef.current = null;
+        if (ambienceUrl) {
+          const audio = new Audio(ambienceUrl);
+          audio.loop = true;
+          ambienceRef.current = { url: ambienceUrl, audio };
+        }
+      }
+      const ambience = ambienceRef.current?.audio;
+      if (ambience) {
+        const fadeOut = musicFadeGainAt(t, loaded.timeline.totalSec, {
+          musicFadeOutSec: value.sound?.musicFadeOutSec,
+        });
+        syncLoopedAudio(
+          ambience,
+          Math.min(1, normalizeAmbienceLevel(value.sound?.ambienceLevel) * fadeOut),
+          running && t < loaded.timeline.totalSec
+        );
+      }
     },
-    [loaded, value.musicLevel, value.voiceLevel]
+    [loaded, value.musicLevel, value.voiceLevel, value.sound]
   );
 
   // The clock: draw every frame while playing.

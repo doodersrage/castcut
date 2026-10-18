@@ -919,6 +919,7 @@ export function useCutRoom() {
           look: options.look,
           lookStrength: options.lookStrength,
           matchShots: options.matchShots !== false,
+          sound: options.sound ?? undefined,
           stillMotion: options.stillMotion !== false,
           captions: options.titles === true,
           subtitles: options.subtitles !== false,

@@ -4,6 +4,7 @@
  * Shared: Gallery's stitch, Video continue, and Play's film cuts (character-film-assemble.ts).
  */
 
+import type { CutSoundOptions } from '@/lib/cut-sound';
 import { downloadFilmBlob } from './video-blob-download';
 import { addComfyGalleryEntry } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
@@ -70,6 +71,8 @@ export type AssembleFilmOptions = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
 };
 
 export type AssembledFilmResult = {
@@ -372,6 +375,7 @@ async function assembleFilmBlobOnServer(
         look: options?.look,
         lookStrength: options?.lookStrength,
         matchShots: options?.matchShots === true,
+        sound: options?.sound ?? undefined,
       }),
     });
     if (!startRes.ok) {

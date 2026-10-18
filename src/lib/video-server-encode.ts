@@ -39,6 +39,14 @@ import {
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import sharp from 'sharp';
 import {
+  normalizeAmbienceLevel,
+  normalizeMusicFadeInSec,
+  normalizeMusicFadeOutSec,
+  normalizeMusicStartSec,
+  soundOverlap,
+  type CutSoundOptions,
+} from './cut-sound';
+import {
   colourMatrixFfmpeg,
   colourStatsFromPixels,
   normalizeFilmLook,
@@ -84,6 +92,8 @@ export type FilmServerEncodeOptions = {
   lookStrength?: number;
   /** Move each shot's colour toward the film's (cut-look.ts shotMatchMatrix). */
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -372,6 +382,13 @@ export function buildFilterComplex(input: {
   speeds?: ReadonlyArray<number | undefined>;
   /** Per clip: played backwards. */
   reverses?: ReadonlyArray<boolean | undefined>;
+  /** Per clip: J / L cut — its sound starts this long before its picture / runs this long after. */
+  soundLeads?: ReadonlyArray<number | undefined>;
+  soundTails?: ReadonlyArray<number | undefined>;
+  /** Music start / fades (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
+  /** The ambience track's ffmpeg input index (looped), when there is one. */
+  ambienceInput?: number | null;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -503,7 +520,11 @@ export function buildFilterComplex(input: {
 
   let audioLabel: string | null = null;
   const end = Math.max(1, total);
-  const fadeOut = `afade=t=out:st=${Math.max(0.1, end - 1)}:d=1`;
+  const fadeOutSec = Math.min(normalizeMusicFadeOutSec(input.sound?.musicFadeOutSec), end);
+  const fadeOut =
+    fadeOutSec > 0
+      ? `afade=t=out:st=${Math.max(0, end - fadeOutSec).toFixed(3)}:d=${fadeOutSec}`
+      : 'anull';
   const voiced = filmSpeechStarts({
     kinds,
     holdSecs,
@@ -523,6 +544,10 @@ export function buildFilterComplex(input: {
     // The sound plays the same window as the picture: backwards, then at the clip's speed.
     const paced =
       (input.reverses?.[index] ? 'areverse,' : '') + (speed === 1 ? '' : `${atempoChain(speed)},`);
+    // J / L cut: the sound from before the in point / past the out point, under the shot before
+    // / after (cut-sound.ts soundOverlap already clamped it to what the file has).
+    const lead = input.soundLeads?.[index] ?? 0;
+    const tail = input.soundTails?.[index] ?? 0;
     // The clip's own level (Cut's shot list) on top of the Lines level.
     const own = input.volumes?.[index];
     const gain =
@@ -530,7 +555,7 @@ export function buildFilterComplex(input: {
         ? `volume=${Number((voiceLevel * own).toFixed(3))},`
         : voiceGain;
     parts.push(
-      `[${index}:a]${stereo},atrim=${from}:${from + holdSec * speed},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${delayMs}:all=1[s${index}]`
+      `[${index}:a]${stereo},atrim=${Math.max(0, from - lead)}:${from + holdSec * speed + tail},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${Math.max(0, delayMs - Math.round(lead * 1000))}:all=1[s${index}]`
     );
   }
   // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
@@ -562,7 +587,12 @@ export function buildFilterComplex(input: {
   }
   if (hasAudioBed) {
     const audioIndex = shotCount;
-    const bed = `[${audioIndex}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS${musicGain}`;
+    // The music from its start point, faded in when asked (the fade out is on the whole mix).
+    const musicStart = normalizeMusicStartSec(input.sound?.musicStartSec);
+    const fadeIn = normalizeMusicFadeInSec(input.sound?.musicFadeInSec);
+    const bed =
+      `[${audioIndex}:a]${stereo},atrim=${musicStart}:${musicStart + end},asetpts=PTS-STARTPTS${musicGain}` +
+      (fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : '');
     if (speechCount > 0) {
       // Duck the music under the lines, then lay the lines on top.
       parts.push(`[speech]asplit=2[sp1][sp2]`);
@@ -580,6 +610,19 @@ export function buildFilterComplex(input: {
   } else if (speechCount > 0) {
     parts.push(`[speech]atrim=0:${end},${fadeOut}[aout]`);
     audioLabel = 'aout';
+  }
+  // Ambience: looped room tone under everything, at its own level.
+  if (input.ambienceInput != null) {
+    const level = normalizeAmbienceLevel(input.sound?.ambienceLevel);
+    parts.push(
+      `[${input.ambienceInput}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS,volume=${level},${fadeOut}[amb]`
+    );
+    if (audioLabel) {
+      parts.push(`[${audioLabel}][amb]amix=inputs=2:duration=first:normalize=0[amix]`);
+      audioLabel = 'amix';
+    } else {
+      audioLabel = 'amb';
+    }
   }
 
   return { filter: parts.join(';'), videoLabel, audioLabel, durationSec: total };
@@ -677,6 +720,8 @@ export async function encodeFilmPlaylistServer(
     const trimStarts: Array<number | null> = [];
     const speeds: number[] = [];
     const reverses: boolean[] = [];
+    const soundLeads: number[] = [];
+    const soundTails: number[] = [];
 
     for (const [index, shot] of shots.entries()) {
       options.onProgress?.(0.05 + (0.35 * index) / shots.length, `Fetching ${shot.title}`);
@@ -703,6 +748,26 @@ export async function encodeFilmPlaylistServer(
       const trim = windowed ? clipTrimWindow(shot, fullSec) : null;
       const trimmedSec = trim ? (trim.end ?? fullSec ?? 0) - trim.start : 0;
       trimStarts.push(trim && trimmedSec > 0 ? trim.start : null);
+      // J / L cut: what the file has before the in point / after the out point (cut-sound.ts).
+      const wantsOverlap =
+        shot.kind === 'clip' && ((shot.soundLeadSec ?? 0) > 0 || (shot.soundTailSec ?? 0) > 0);
+      const overlapFull = wantsOverlap
+        ? (fullSec ?? (await clipDurationSec(ffmpeg, filePath)) ?? soundSec)
+        : null;
+      const playsSec = trim && trimmedSec > 0 ? trimmedSec / speed : (overlapFull ?? soundSec ?? 0);
+      const overlap = wantsOverlap
+        ? soundOverlap({
+            fromSec: trim?.start ?? 0,
+            holdSec: playsSec,
+            fullSec: overlapFull,
+            speed,
+            reverse: shot.reverse === true,
+            leadSec: shot.soundLeadSec,
+            tailSec: shot.soundTailSec,
+          })
+        : { leadSec: 0, tailSec: 0 };
+      soundLeads.push(overlap.leadSec);
+      soundTails.push(overlap.tailSec);
       holdSecs.push(
         shot.kind === 'still'
           ? clampStillHoldSec(shot.holdSec, DEFAULT_STILL_HOLD_SEC)
@@ -722,6 +787,20 @@ export async function encodeFilmPlaylistServer(
       const audioFetched = await fetchShotBytes(audioBed, requestOrigin, undefined, options.userId);
       audioPath = path.join(/* turbopackIgnore: true */ workDir, 'audio-bed.audio');
       await fs.writeFile(/* turbopackIgnore: true */ audioPath, audioFetched.buffer);
+    }
+
+    // Ambience: a room tone looped under the whole film (cut-sound.ts).
+    let ambiencePath: string | null = null;
+    const ambience = options.sound?.ambienceUrl?.trim();
+    if (ambience) {
+      try {
+        options.onProgress?.(0.43, 'Fetching ambience…');
+        const fetched = await fetchShotBytes(ambience, requestOrigin, undefined, options.userId);
+        ambiencePath = path.join(/* turbopackIgnore: true */ workDir, 'ambience.audio');
+        await fs.writeFile(/* turbopackIgnore: true */ ambiencePath, fetched.buffer);
+      } catch {
+        options.onProgress?.(0.43, 'Ambience could not be fetched — left out');
+      }
     }
 
     // Narration tracks, one per narrated shot (film-narration.ts).
@@ -778,6 +857,8 @@ export async function encodeFilmPlaylistServer(
     const graphGrades: string[] = [];
     const graphSpeeds: number[] = [];
     const graphReverses: boolean[] = [];
+    const graphLeads: number[] = [];
+    const graphTails: number[] = [];
     const inputArgs: string[][] = [];
     // The film look and shot match: each shot's colour read from its picture (a clip's at 40%).
     const look = normalizeFilmLook(options.look);
@@ -812,6 +893,8 @@ export async function encodeFilmPlaylistServer(
       graphGrades.push('');
       graphSpeeds.push(1);
       graphReverses.push(false);
+      graphLeads.push(0);
+      graphTails.push(0);
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
       graphVolumes.push(undefined);
@@ -839,6 +922,8 @@ export async function encodeFilmPlaylistServer(
       graphGrades.push(shotGrades[i] ?? '');
       graphSpeeds.push(speeds[i] ?? 1);
       graphReverses.push(reverses[i] === true);
+      graphLeads.push(soundLeads[i] ?? 0);
+      graphTails.push(soundTails[i] ?? 0);
       graphTransitions.push(shots[i]?.transitionIn);
       graphMotions.push(shots[i]?.motion);
       graphVolumes.push(shots[i]?.volume);
@@ -901,6 +986,13 @@ export async function encodeFilmPlaylistServer(
       grades: graphGrades,
       speeds: graphSpeeds,
       reverses: graphReverses,
+      soundLeads: graphLeads,
+      soundTails: graphTails,
+      sound: options.sound,
+      // After the shots, the music bed and the narration tracks.
+      ambienceInput: ambiencePath
+        ? graphKinds.length + (audioPath ? 1 : 0) + narrationFiles.length
+        : null,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow
@@ -921,6 +1013,9 @@ export async function encodeFilmPlaylistServer(
     }
     for (const entry of narrationFiles) {
       args.push('-i', entry.path);
+    }
+    if (ambiencePath) {
+      args.push('-stream_loop', '-1', '-i', ambiencePath);
     }
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {

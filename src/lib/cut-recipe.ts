@@ -5,6 +5,7 @@
  * a durable home for each film, export presets). Shared: the shared stamp step stores it.
  */
 
+import type { CutSoundOptions } from '@/lib/cut-sound';
 import type { FilmPlaylistShot } from './media-kind';
 import type { FilmTitleCard } from './video-polish';
 import type { FilmResolutionPreset } from './video-resolution';
@@ -28,6 +29,8 @@ export type CutRecipe = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
   /** Shots a re-cut can't bring back (a demo / uploaded still held only in the browser). */
   droppedShots?: number;
 };

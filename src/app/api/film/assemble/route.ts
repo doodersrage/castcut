@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeCutSound } from '@/lib/cut-sound';
 import { normalizeCutTransition } from '@/lib/cut-timeline';
 import { normalizeFilmTitleCard } from '@/lib/video-polish';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
@@ -157,6 +158,7 @@ export async function POST(request: Request) {
       look: typeof body.look === 'string' ? body.look : undefined,
       lookStrength: typeof body.lookStrength === 'number' ? body.lookStrength : undefined,
       matchShots: body.matchShots === true,
+      sound: normalizeCutSound(body.sound),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,
     });

@@ -325,6 +325,36 @@ export default function FilmCutShotList({
                           reverse
                         </span>
                       </label>
+                      {(['soundLeadSec', 'soundTailSec'] as const).map(field => (
+                        <label
+                          key={field}
+                          className="flex items-center gap-1 text-[var(--text-muted)]"
+                        >
+                          {field === 'soundLeadSec' ? 'sound in early' : 'sound runs on'}
+                          <select
+                            disabled={disabled || !included}
+                            aria-label={`${field === 'soundLeadSec' ? 'Sound in early' : 'Sound runs on'} for ${shot.title}`}
+                            title={
+                              field === 'soundLeadSec'
+                                ? 'J cut: hear this clip before it is seen, over the shot before (needs a trimmed start)'
+                                : 'L cut: keep hearing this clip over the next shot (needs a trimmed end) — in the cut; the monitor plays each clip with its picture'
+                            }
+                            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                            value={String(edit?.[field] ?? 0)}
+                            data-testid={`${testIdPrefix}-shot-${field === 'soundLeadSec' ? 'sound-lead' : 'sound-tail'}-${shot.key}`}
+                            onChange={event => {
+                              const next = Number(event.target.value);
+                              patchShot(shot.key, { [field]: next > 0 ? next : undefined });
+                            }}
+                          >
+                            <option value="0">no</option>
+                            <option value="0.5">½ s</option>
+                            <option value="1">1 s</option>
+                            <option value="2">2 s</option>
+                            <option value="3">3 s</option>
+                          </select>
+                        </label>
+                      ))}
                     </>
                   ) : null}
                   {index > 0 ? (

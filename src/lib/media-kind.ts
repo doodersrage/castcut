@@ -90,6 +90,10 @@ export type FilmPlaylistShot = {
   speed?: number;
   /** Clips: played backwards. */
   reverse?: boolean;
+  /** Clips: J cut — the sound starts this many seconds before the picture (cut-sound.ts). */
+  soundLeadSec?: number;
+  /** Clips: L cut — the sound carries on this many seconds after the picture. */
+  soundTailSec?: number;
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */

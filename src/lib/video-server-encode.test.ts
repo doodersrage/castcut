@@ -88,3 +88,31 @@ describe('clip speed, reverse and grade in the graph', () => {
     assert.match(graph.filter, /colorchannelmixer=rr=1\.1/);
   });
 });
+
+describe('music shaping, ambience and J / L cuts in the graph', () => {
+  it('starts the music in, fades it, loops the ambience and widens a J / L clip window', async () => {
+    const { buildFilterComplex } = await import('./video-server-encode');
+    const graph = buildFilterComplex({
+      shotCount: 2,
+      kinds: ['clip', 'clip'],
+      holdSecs: [3, 3],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+      speech: [true, true],
+      trimStarts: [0, 1.5],
+      soundLeads: [0, 1],
+      soundTails: [0.5, 0],
+      sound: { musicStartSec: 2, musicFadeInSec: 2, musicFadeOutSec: 0 },
+      ambienceInput: 3,
+    });
+    // Shot 2's sound starts 1 s early (from 0.5 s of its file), shot 1's runs 0.5 s on.
+    assert.match(graph.filter, /\[1:a\][^;]*atrim=0\.5:4\.5,[^;]*adelay=2000:/);
+    assert.match(graph.filter, /\[0:a\][^;]*atrim=0:3\.5,/);
+    assert.match(graph.filter, /\[2:a\][^;]*atrim=2:8,[^;]*afade=t=in:st=0:d=2/);
+    assert.match(graph.filter, /\[3:a\][^;]*volume=0\.35/);
+    assert.equal(graph.audioLabel, 'amix');
+    assert.doesNotMatch(graph.filter, /afade=t=out/);
+  });
+});

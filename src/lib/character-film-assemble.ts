@@ -3,6 +3,7 @@
  * (video-assemble.ts, shared) and keep the cut on the Cast.
  */
 
+import type { CutSoundOptions } from '@/lib/cut-sound';
 import { frameCutStills, prepareCutShots } from './film-cut-media';
 import type { FilmCutLength } from './film-cut-plan';
 import { filmDownloadFilename, type FilmPlaylistShot } from './media-kind';
@@ -38,6 +39,8 @@ export async function assembleAndStampFilm(input: {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
   /** Where the cut came from — kept in its recipe. */
   source?: CutRecipe['source'];
   /** Film this one re-cuts (its parent in the Gallery). */
@@ -79,6 +82,7 @@ export async function assembleAndStampFilm(input: {
     look: input.look,
     lookStrength: input.lookStrength,
     matchShots: input.matchShots,
+    sound: input.sound,
   });
   // The browser recorder draws pictures only: say what the server encode would have added.
   if (assembled.encodePath === 'browser') {
@@ -119,6 +123,7 @@ export async function assembleAndStampFilm(input: {
       look: input.look,
       lookStrength: input.lookStrength,
       matchShots: input.matchShots,
+      sound: input.sound,
     }),
     onProgress: input.onProgress,
   });

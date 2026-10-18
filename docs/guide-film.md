@@ -38,6 +38,8 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Length** | As the shots hold · Fit to the music · 15 / 30 / 60 s |
 | **Music** | Upload, paste a link, or **Score this film** (an original track) |
 | **Levels** | Music and Lines — the music ducks under speech |
+| **Music shape** | Music from (start partway in) · Fade in · Fade out |
+| **Ambience** | A room tone / rain / café track looped under the whole film, with its own level |
 | **Look** | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider |
 | **Match shots** *(on)* | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night) |
 | **Polish** | Crossfade · Slow zoom on stills · Title & captions |
@@ -63,7 +65,7 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 | F | Freeze frame — the clip's frame held 2 s after it |
 | D | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
 
-Each clip has a **speed** (0.25×–4×, slow motion is smooth) and **reverse** in the shot list.
+Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, and **J / L cuts** in the shot list — *sound in early* (hear it before it is seen; needs a trimmed start) and *sound runs on* (keep hearing it over the next shot; needs a trimmed end).
 
 ## Sound
 

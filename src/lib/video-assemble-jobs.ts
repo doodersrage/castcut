@@ -2,6 +2,7 @@
  * In-memory film assemble jobs with optional disk spill for completed MP4 bytes.
  */
 
+import type { CutSoundOptions } from '@/lib/cut-sound';
 import { normalizeFilmTitleCard, type FilmTitleCard } from './video-polish';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -111,6 +112,8 @@ export type StartFilmAssembleInput = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Music start / fades and the ambience track (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
   requestOrigin?: string;
   userId?: string | null;
 };
@@ -165,6 +168,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         look: input.look,
         lookStrength: input.lookStrength,
         matchShots: input.matchShots,
+        sound: input.sound,
         userId: input.userId,
         onProgress: (ratio, label) => {
           const current = jobs.get(id);

@@ -45,6 +45,10 @@ export type CutShotEdit = {
   speed?: number;
   /** Clips: play backwards. */
   reverse?: boolean;
+  /** Clips: J cut — the sound starts this many seconds before the picture (cut-sound.ts). */
+  soundLeadSec?: number;
+  /** Clips: L cut — the sound carries on this many seconds after the picture. */
+  soundTailSec?: number;
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
@@ -191,6 +195,12 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           ? { speed: clipSpeed(edit?.speed) }
           : {}),
         ...(shot.kind === 'clip' && edit?.reverse === true ? { reverse: true } : {}),
+        ...(shot.kind === 'clip' && (edit?.soundLeadSec ?? 0) > 0
+          ? { soundLeadSec: Math.min(3, edit!.soundLeadSec!) }
+          : {}),
+        ...(shot.kind === 'clip' && (edit?.soundTailSec ?? 0) > 0
+          ? { soundTailSec: Math.min(3, edit!.soundTailSec!) }
+          : {}),
         ...(shot.kind === 'still' &&
         (edit?.motion === 'in' || edit?.motion === 'out' || edit?.motion === 'none')
           ? { motion: edit.motion }
