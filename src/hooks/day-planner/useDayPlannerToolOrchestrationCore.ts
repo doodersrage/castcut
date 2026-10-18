@@ -28,6 +28,7 @@ import {
   finishDayStillPrompt,
   queuedDayStillPrompt,
   withDuoLeadBodyLine,
+  withDuoPartnerBodyLine,
   withNudeBodyPlateLine,
 } from '@/lib/day-still-prompt';
 import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
@@ -2669,6 +2670,85 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[duoBodySlot] = duoBodyUrl || undefined;
           extraFilenames[duoBodySlot] = duoBodyUrl ? '' : (duoBodyFile ?? '');
         }
+        // The partner Cast's body the same way: their Outfit Keep, else their Cast plate dressed
+        // once in their kept outfit (cached like the lead's). An invented partner has no plate.
+        let partnerBodySlot: number | null = null;
+        if (
+          !adultStill &&
+          Boolean(partnerFace) &&
+          !thirdPerson &&
+          poseProfileForModel(stillModel).family === 'qwen-image-2.1' &&
+          partnerCharacter &&
+          slotPartner &&
+          !slotPartner.invented
+        ) {
+          const partnerKeep = resolveDayPlate({
+            character: partnerCharacter,
+            gallery: loadComfyGallery(),
+          });
+          let partnerBody: { filename?: string; imageUrl?: string } | null =
+            partnerKeep?.source === 'keeper' ? partnerKeep : null;
+          if (!partnerBody) {
+            const kept = activeLook(partnerCharacter)?.keptOutfit;
+            const kitId =
+              kept?.wardrobeId?.trim() || partnerCharacter.lockedWardrobeId?.trim() || '';
+            const photoUrl = kept?.customGarmentImageUrl?.trim();
+            const photoFile = kept?.customGarmentImageFilename?.trim();
+            const kitUrl = kitId ? resolveWardrobeGarmentThumbQueueUrl(kitId) : undefined;
+            const partnerCast = resolveDayCastPlate(partnerCharacter);
+            const clothing =
+              photoUrl || photoFile
+                ? { imageUrl: photoUrl || undefined, imageFilename: photoFile || undefined }
+                : kitUrl
+                  ? { imageUrl: kitUrl }
+                  : null;
+            if (clothing && partnerCast && stillModel) {
+              try {
+                const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
+                const { entry } = await ensureDayDressPlate(
+                  {
+                    model: stillModel,
+                    plate: { filename: partnerCast.filename, imageUrl: partnerCast.imageUrl },
+                    clothing,
+                    clothingKey: photoUrl || photoFile ? undefined : `kit:${kitId}`,
+                    clothingLabel:
+                      photoUrl || photoFile
+                        ? dayGarmentPromptName(kept?.customGarmentDescription) || 'the outfit'
+                        : dayOutfitPromptName(wardrobeLabelFor(kitId)) || 'the outfit',
+                    clothingDescription:
+                      photoUrl || photoFile ? kept?.customGarmentDescription : undefined,
+                    footwear: normalizeFootwear(kept?.footwear),
+                    footwearImage: {
+                      imageUrl: kept?.footwearImageUrl,
+                      imageFilename: kept?.footwearImageFilename,
+                    },
+                    subject: slotPartner.noun === 'man' ? 'he' : 'she',
+                    characterName: partnerCharacter.name,
+                    characterId: partnerCharacter.id,
+                    lookId: activeLook(partnerCharacter)?.id,
+                  },
+                  { sendComfyUi: actions.sendComfyUi, visionShared: shared }
+                );
+                partnerBody = { filename: entry.filename, imageUrl: entry.imageUrl };
+              } catch {
+                // No partner plate this time: their body stays in words.
+              }
+            }
+          }
+          const partnerUrl = partnerBody?.imageUrl?.trim();
+          const partnerFile = partnerBody?.filename?.trim();
+          if (partnerUrl || partnerFile) {
+            let slot = 2;
+            while (slot < 5 && (extraFilenames[slot]?.trim() || extraUrls[slot])) slot += 1;
+            if (slot < 5) {
+              for (let fill = extraFilenames.length; fill < slot; fill += 1)
+                extraFilenames[fill] = '';
+              extraUrls[slot] = partnerUrl || undefined;
+              extraFilenames[slot] = partnerUrl ? '' : (partnerFile ?? '');
+              partnerBodySlot = slot;
+            }
+          }
+        }
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
@@ -2777,6 +2857,14 @@ export function useDayPlannerToolOrchestrationCore() {
         if (plateQueueModel && plateQueueModel !== stillModel) {
           updateShared({ model: plateQueueModel });
         }
+        const withDuoPartnerSlotLine = (prompt: string) =>
+          partnerBodySlot !== null && slotPartner
+            ? withDuoPartnerBodyLine(
+                prompt,
+                slotPartner.noun === 'man' ? 'man' : 'woman',
+                partnerBodySlot === 2 ? 'third' : partnerBodySlot === 3 ? 'fourth' : 'fifth'
+              )
+            : prompt;
         // No garment: the queue compacts the guide into the second image — say so.
         const numbered = queuedDayStillPrompt(
           thirdPerson
@@ -2797,11 +2885,15 @@ export function useDayPlannerToolOrchestrationCore() {
                     ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
                     : nudeBodyAttached
                       ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
-                      : duoBodyAttached
-                        ? withDuoLeadBodyLine(
-                            finalized,
-                            leadNoun === 'man',
-                            duoBodySlot === 3 ? 'fourth' : 'third'
+                      : duoBodyAttached || partnerBodySlot !== null
+                        ? withDuoPartnerSlotLine(
+                            duoBodyAttached
+                              ? withDuoLeadBodyLine(
+                                  finalized,
+                                  leadNoun === 'man',
+                                  duoBodySlot === 3 ? 'fourth' : 'third'
+                                )
+                              : finalized
                           )
                         : finalized,
           {

@@ -376,3 +376,18 @@ describe('withDuoLeadBodyLine', () => {
     assert.equal(withDuoLeadBodyLine(out), out);
   });
 });
+
+describe('withDuoPartnerBodyLine', () => {
+  it('names the partner picture and lets the outfit words defer to it (2026-10-18)', async () => {
+    const { withDuoPartnerBodyLine } = await import('./day-still-prompt');
+    const out = withDuoPartnerBodyLine(
+      'She wears a burgundy mini dress; he wears a casual shirt and jeans. Keep her face from the first image; the man has the face from the second image. Place: a bar.',
+      'man',
+      'fourth'
+    );
+    assert.match(out, /; he wears the outfit shown in the fourth image\./);
+    assert.match(out, /The man's body and clothes are the fourth image: his figure/);
+    assert.doesNotMatch(out, /casual shirt and jeans/);
+    assert.equal(withDuoPartnerBodyLine(out, 'man', 'fourth'), out);
+  });
+});

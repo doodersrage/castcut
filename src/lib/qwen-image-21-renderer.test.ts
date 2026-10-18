@@ -855,3 +855,16 @@ describe('Qwen-Image 2.1: face-down nude solos stay on the engine model', () => 
     assert.equal(convertQwenEditWorkflowToImage21(partner).converted, true);
   });
 });
+
+describe('2.1 held props', () => {
+  it('carries a held prop from the moment into POSE FIRST (fruit bags 0/3 → 3/3, 2026-10-18)', async () => {
+    const { withNaturalPoses } = await import('./qwen-image-21-renderer');
+    const p =
+      'Edit <image1>: POSE FIRST: the two people — side by side with heads close, she holds a phone out. SCENE: market. Moment: selfie with a friend at the farmers market, fruit bags in hand.';
+    const out = withNaturalPoses(p);
+    assert.match(out, /she holds a phone out — fruit bags in hand\. SCENE/);
+    assert.equal(withNaturalPoses(out), out);
+    const already = 'Edit <image1>: POSE FIRST: walking with a coffee in one hand. Moment: walking, a coffee in one hand.';
+    assert.equal(withNaturalPoses(already), already);
+  });
+});

@@ -657,7 +657,8 @@ describe('Outfit on Klein 9B Distilled', () => {
       hasGarmentReference: true,
       garmentDescription: 'A cropped pink t-shirt',
     });
-    assert.match(prompt, /if Image 2 shows only a top, she also wears simple bottoms/);
+    assert.match(prompt, /if Image 2 shows only a top, the person also wears simple bottoms/);
+    assert.match(prompt, /keep every garment the length it is in Image 2/);
     assert.doesNotMatch(
       buildFittingOutfitPrompt({ outfitLabel: 'red sundress' }),
       /shows only a top/

@@ -3,6 +3,7 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import { engineDisplayName } from '@/lib/engine/capabilities';
 import type { EngineAdapter } from '@/lib/engine/types';
 import { resolveQueueInputImage, resolveQueueInputImageFilename } from '@/lib/queue-input-image';
+import { MAX_INPUT_IMAGE_FILENAMES } from '@/lib/workflow-load-image-bindings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export type QueueSingleInputsResult = {
@@ -36,7 +37,7 @@ export async function resolveQueueSingleInputs(input: {
   const uploadedFilenames: string[] = [
     ...(options?.inputImageFilenames ?? []).map(name => name?.trim() ?? ''),
   ];
-  while (uploadedFilenames.length < 4) {
+  while (uploadedFilenames.length < MAX_INPUT_IMAGE_FILENAMES) {
     uploadedFilenames.push('');
   }
 
@@ -98,7 +99,9 @@ export async function resolveQueueSingleInputs(input: {
     }
   }
 
-  for (let i = 1; i < 4; i += 1) {
+  // Every picture slot the queue carries (up to eight; it stopped at Image 4, so a URL-only
+  // Image 5 — a duo partner's dressed plate — never uploaded).
+  for (let i = 1; i < MAX_INPUT_IMAGE_FILENAMES; i += 1) {
     const file = options?.inputImages?.[i];
     const imageUrl = options?.inputImageUrls?.[i];
     const existing = uploadedFilenames[i]?.trim();

@@ -898,3 +898,32 @@ export function withDuoLeadBodyLine(
     ? prompt.replace(face, match => `${match} ${line}`)
     : `${prompt.trim()} ${line}`;
 }
+
+/**
+ * A clothed two-person still on Qwen-Image 2.1 with the partner Cast's dressed plate (or their
+ * Outfit Keep) as one more picture: the partner's body and outfit from it, as the lead's
+ * (withDuoLeadBodyLine). After the lead's line, else after the faces sentence.
+ */
+export function withDuoPartnerBodyLine(
+  prompt: string,
+  partner: 'man' | 'woman',
+  image: 'third' | 'fourth' | 'fifth'
+): string {
+  const their = partner === 'man' ? 'his' : 'her';
+  const pronoun = partner === 'man' ? 'he' : 'she';
+  const line = `The ${partner}'s body and clothes are the ${image} image: ${their} figure, build, skin and ${their} outfit exactly as in the ${image} image — never paste that photo or its plain wall into the scene.`;
+  if (prompt.includes(line)) return prompt;
+  // The outfit words defer to the picture: "…; he wears a casual shirt and jeans." fought the
+  // partner's suit (a green shirt and jeans came out, 9/9).
+  prompt = prompt.replace(
+    new RegExp(`;\\s*${pronoun} wears [^.;]+\\.`),
+    `; ${pronoun} wears the outfit shown in the ${image} image.`
+  );
+  const after =
+    /(?:Her|His) body and clothes are the (?:third|fourth) image:[^—]*— never paste that photo or its plain wall into the scene\./;
+  if (after.test(prompt)) return prompt.replace(after, match => `${match} ${line}`);
+  const face = /Keep (?:her|his) face from the first image[^.]*\./;
+  return face.test(prompt)
+    ? prompt.replace(face, match => `${match} ${line}`)
+    : `${prompt.trim()} ${line}`;
+}

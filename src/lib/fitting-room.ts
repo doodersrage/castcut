@@ -634,8 +634,11 @@ export function buildFittingOutfitPrompt(input: {
     input.hasGarmentReference ? `outfit name (confirm match): ${outfit}` : null,
     // A photo of a top alone: Klein 9B Distilled left the plate's underwear as the bottoms (2/2);
     // with this line it added shorts 3/3, one-piece garments unchanged (live A/B, 2026-10-08).
+    // Said for anyone, lengths kept: a man's three-piece suit (full-length trousers in the
+    // packshot) came out with shorts 2/2 on the "she … (shorts, a skirt or trousers)" wording;
+    // trousers 2/2 with this (Turbo, 2026-10-18).
     input.hasGarmentReference
-      ? 'if Image 2 shows only a top, she also wears simple bottoms that go with it (shorts, a skirt or trousers) — never underwear showing; a one-piece garment (dress, romper, bodysuit) needs nothing added'
+      ? 'keep every garment the length it is in Image 2 (full-length trousers stay full length); if Image 2 shows only a top, the person also wears simple bottoms that go with it (trousers, jeans, shorts or a skirt) — never underwear showing; a one-piece garment (dress, romper, bodysuit) needs nothing added'
       : null,
     footwear || null,
     input.marksLine?.trim()

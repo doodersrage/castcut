@@ -1006,3 +1006,16 @@ describe('one job per leg on seated stances', () => {
     assert.doesNotMatch(prompt, /hooks under her left knee/);
   });
 });
+
+describe('vanity stance', () => {
+  it('"sitting at the vanity" sits her on its stool facing the mirror, not on the counter (2026-10-18)', async () => {
+    const { buildCompactDayRecipe } = await import('./rapid-duo-recipe');
+    const recipe = buildCompactDayRecipe({
+      beat: 'sitting at the vanity doing her makeup, leaning toward the mirror',
+      setting: 'her bedroom',
+      faceBreak: false,
+    } as Parameters<typeof buildCompactDayRecipe>[0]);
+    assert.match(recipe ?? '', /She sits on a stool at the vanity table, facing its large lit mirror/);
+    assert.doesNotMatch(recipe ?? '', /She sits on the vanity/);
+  });
+});

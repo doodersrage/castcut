@@ -1658,8 +1658,12 @@ function everydayPlacement(beat: string, setting?: string | null): string | null
     // "sitting at the counter": on a stool at it, not up on top of it.
     const atIt =
       seat &&
-      /\b(?:table|desk|counter)$/.test(seat) &&
+      /\b(?:table|desk|counter|vanity)$/.test(seat) &&
       new RegExp(String.raw`\bat\s+(?:the|a|an)\s+${seat}\b`, 'i').test(beat);
+    // "at the vanity": on its stool, facing the mirror — she sat on top of the counter 3/3
+    // (wide sweep, 2026-10-18); the mirror named, it showed 3/3.
+    if (atIt && /vanity$/.test(seat))
+      return 'She sits on a stool at the vanity table, facing its large lit mirror, her reflection in it, knees bent.';
     if (atIt)
       return `She sits on a ${/counter$/.test(seat) ? 'stool' : 'chair'} at the ${seat}, knees bent.`;
     if (seat && !/\b(?:door|window|wall|floor)$/.test(seat))

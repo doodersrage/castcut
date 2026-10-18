@@ -487,7 +487,26 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out))));
+  return withHeldProps(withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out)))));
+}
+
+/**
+ * A prop the moment puts in her hand ("fruit bags in hand") but the POSE FIRST line left out (a
+ * layout cue stood in for the beat) went missing: market selfie 0/3 with bags. The moment's own
+ * clause carried into POSE FIRST: 3/3 (wide sweep, 2026-10-18).
+ */
+function withHeldProps(prompt: string): string {
+  const moment = prompt.match(/\bMoment: ([^\n]*?)\.(?=\s|$)/)?.[1] ?? '';
+  const held = moment
+    .split(/\s*[,;—]\s*/)
+    .find(clause => /\bin (?:one |both |each |her |his )?hands?\b/i.test(clause))
+    ?.trim();
+  if (!held || held.split(/\s+/).length > 8) return prompt;
+  return prompt.replace(
+    /(POSE FIRST: )([^\n]*?)(\.)(?=\s|$)/,
+    (match, head: string, pose: string, dot: string) =>
+      pose.toLowerCase().includes(held.toLowerCase()) ? match : `${head}${pose} — ${held}${dot}`
+  );
 }
 
 /**
