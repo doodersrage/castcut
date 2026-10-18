@@ -18,6 +18,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - A sport beat's own sport wins over the place: "clearing a hurdle" on a "trail path with kicked gravel" got a cycling kit and helmet; hurdles and mid-sprint read as running.
   - Shadowboxing / footwork gets a guard stance (fists up, knees bent, bouncing) instead of no stance line — she stood still in the ring.
   - Vacation stills whose scene brings its own clothes (swimsuit, robe, sleepwear) no longer carry the picked outfit's picture — the words said swimsuit while the dress packshot rode along, and 2/3 pool / paddleboard stills came out in the dress. On 2.1 a plain "swimsuit" also gets a bold colour (it came out skin-toned 4/4).
+  - Two people sharing a task (cooking, a laptop, a menu, breakfast, baking, a board game) each get a job of their own on Qwen-Image 2.1 — "one of them stirs the pot, the other leans in tasting" — instead of standing side by side facing the camera: 9/10 doing the task vs 1/10.
   - Two people "across from" each other at a table or booth now sit facing each other across it (3/3) instead of side by side on one bench facing the camera (0/3).
   - "Hands on hips, chin up" is a posture, not the chin-up exercise — a studio photoshoot beat hung her from a pull-up bar.
   - "On a park bench" needs a park (it was set in a bookstore); a diner booth needs an eating place.

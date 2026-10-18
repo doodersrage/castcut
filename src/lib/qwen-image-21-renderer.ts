@@ -485,7 +485,52 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return withSwimsuitColour(withAcrossTable(out));
+  return withSwimsuitColour(withDuoJobs(withAcrossTable(out)));
+}
+
+/**
+ * A shared task gives each of the two a job of their own. "Cooking with her partner, both stirring
+ * one pot" left her standing beside him facing the camera; a generic "both doing it together"
+ * line barely helped. One job each, "one of them … the other …" (any pairing), same seeds
+ * (night sweep, 2026-10-17): cooking 2/2 vs 0/2, laptop at a desk 2/2 vs 0/2, a shared menu 2/2
+ * vs 0/2, breakfast trays 2/2 vs 0/2. Baking and board games as for groups (day-group.ts).
+ */
+const DUO_TASKS: ReadonlyArray<{ re: RegExp; jobs: string }> = [
+  {
+    re: /\bbak(?:e|es|ing)\b/i,
+    jobs: 'one of them rolls out dough with a rolling pin, the other cracks an egg into a mixing bowl, both looking down at the work',
+  },
+  {
+    re: /\b(?:cook(?:s|ing)?|stirring (?:one|a|the) pot|making (?:dinner|lunch|breakfast|brunch|pasta|pizza|a meal)|preparing (?:a |the )?(?:meal|dinner|lunch))\b/i,
+    jobs: 'one of them stirs the pot with a wooden spoon, the other leans in tasting from a second spoon',
+  },
+  {
+    re: /\b(?:laptop|computer screen|monitor)\b/i,
+    jobs: 'one of them types on the laptop, the other leans in pointing at the screen, both looking at the screen, not at the camera',
+  },
+  {
+    re: /\b(?:sharing|reading|studying) (?:a |the |one )?(?:menu|map|book|guidebook)\b/i,
+    jobs: 'one of them holds it open between them pointing at the page, the other leans in reading it, both looking down at it',
+  },
+  {
+    re: /\b(?:sharing breakfast|breakfast in bed|trays on their laps|sharing (?:a |the )?(?:meal|dinner|lunch|brunch))\b/i,
+    jobs: 'one of them lifts a forkful of food, the other sips a drink, turned toward each other, mid-conversation',
+  },
+  {
+    re: /\b(?:board game|card game|playing cards|chess|dice)\b/i,
+    jobs: 'one of them rolls the dice, the other moves a piece on the board, both looking down at the game',
+  },
+];
+
+function withDuoJobs(prompt: string): string {
+  return prompt.replace(
+    /(POSE FIRST: the two people — )([^\n]*?)(\.)(?=\s|$)/,
+    (match, head: string, beat: string, dot: string) => {
+      if (/\bone of them\b/i.test(beat)) return match;
+      const task = DUO_TASKS.find(entry => entry.re.test(beat));
+      return task ? `${head}${beat} — ${task.jobs}${dot}` : match;
+    }
+  );
 }
 
 /**

@@ -790,3 +790,20 @@ describe('2.1 swimsuit colour', () => {
     assert.equal(withNaturalPoses(red), red);
   });
 });
+
+describe('2.1 duo jobs', () => {
+  it('a shared task gives each of the two a job (night sweep, 2026-10-17)', async () => {
+    const { withNaturalPoses } = await import('./qwen-image-21-renderer');
+    const wrap = (beat: string) => `Edit <image1>: POSE FIRST: the two people — ${beat}. SCENE: home.`;
+    const cook = withNaturalPoses(wrap('cooking with her partner at the stove, both stirring one pot'));
+    assert.match(cook, /both stirring one pot — one of them stirs the pot with a wooden spoon, the other leans in tasting/);
+    assert.equal(withNaturalPoses(cook), cook);
+    assert.match(withNaturalPoses(wrap('sitting side by side at one desk, both looking at a laptop screen')), /one of them types on the laptop/);
+    assert.match(withNaturalPoses(wrap('seated knee-to-knee with a companion sharing a menu')), /holds it open between them/);
+    assert.match(withNaturalPoses(wrap('sitting up in bed sharing breakfast, trays on their laps')), /lifts a forkful/);
+    const walk = wrap('walking side by side through the market');
+    assert.equal(withNaturalPoses(walk), walk);
+    const solo = 'Edit <image1>: POSE FIRST: cooking pasta at the stove. SCENE: home.';
+    assert.equal(withNaturalPoses(solo), solo);
+  });
+});
