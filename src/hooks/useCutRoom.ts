@@ -40,6 +40,14 @@ import {
   type CutBridgeStatus,
 } from '@/lib/cut-bridge';
 import { H3_REQUIRED_NODE } from '@/lib/h3-renderer';
+import {
+  CUT_GENERATE_CLIP_FRAMES,
+  CUT_GENERATE_NEGATIVE,
+  cutGenerateCanvas,
+  cutGenerateClipPrompt,
+  cutGenerateStillPrompt,
+} from '@/lib/cut-generate';
+import { cutGenerateModel } from '@/lib/queue-tool-model';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -655,6 +663,172 @@ export function useCutRoom() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [actions.sendComfyUi, awaitBridge, commitEdit, shots]
   );
+  // Generated shots (cut-generate.ts): a missing shot or B-roll from words — a picture in the
+  // cut's shape, animated when a clip was asked for. Renders in the background like a bridge.
+  const [generateBusy, setGenerateBusy] = useState(false);
+  const waitingGenerated = useRef(new Set<string>());
+  /** A generated shot's progress, written without an undo step (the render is not an edit). */
+  const patchGenerated = useCallback(
+    (key: string, patch: Partial<Extract<CutExtra, { kind: 'generated' }>>) => {
+      const nextExtras = stateRef.current.extras.map(extra =>
+        extra.key === key && extra.kind === 'generated' ? { ...extra, ...patch } : extra
+      );
+      stateRef.current = { ...stateRef.current, extras: nextExtras };
+      updateCut({ extras: nextExtras });
+    },
+    [updateCut]
+  );
+  /** Animate a generated picture (image to video on the bridge engine); the new prompt id. */
+  const queueGeneratedClip = useCallback(
+    async (prompt: string, stillUrl: string) => {
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const response = await fetch('/api/cut/bridge-frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: stillUrl, edge: 'first', comfyUrl }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { filename?: string };
+      if (!response.ok || !data.filename) return null;
+      const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
+      const engine = cutBridgeEngine(nodeTypes, H3_REQUIRED_NODE);
+      const promptId = await actions.sendComfyUi(
+        cutGenerateClipPrompt(prompt),
+        undefined,
+        undefined,
+        {
+          queueTool: 'video',
+          queueModel: engine,
+          inputImageFilename: data.filename,
+          derivedKind: 'i2v',
+          clipMode: 'i2v',
+          qualityProfile: 'final',
+          queueParamsBase: { videoFrames: CUT_GENERATE_CLIP_FRAMES, videoFps: 16 },
+        }
+      );
+      const id = typeof promptId === 'string' ? promptId.trim() : '';
+      return id ? { id, engine } : null;
+    },
+    [actions]
+  );
+  const awaitGenerated = useCallback(
+    async (key: string, promptId: string) => {
+      if (waitingGenerated.current.has(key)) return;
+      waitingGenerated.current.add(key);
+      try {
+        const [entry] = await waitForGalleryPromptIds([promptId], {
+          timeoutMs: 15 * 60_000,
+          pollMs: 4_000,
+        });
+        const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+        const extra = stateRef.current.extras.find(item => item.key === key);
+        if (!extra || extra.kind !== 'generated') return;
+        if (!url) {
+          patchGenerated(key, { status: 'failed' });
+          return;
+        }
+        if (extra.shotKind === 'clip' && extra.stage !== 'clip') {
+          // The picture is in: now its motion.
+          const queued = await queueGeneratedClip(extra.prompt, url).catch(() => null);
+          if (!queued) {
+            patchGenerated(key, { status: 'failed', stillUrl: url });
+            return;
+          }
+          patchGenerated(key, {
+            stage: 'clip',
+            stillUrl: url,
+            promptId: queued.id,
+            engine: queued.engine,
+          });
+          waitingGenerated.current.delete(key);
+          void awaitGenerated(key, queued.id);
+          return;
+        }
+        patchGenerated(key, { status: 'ready', url });
+      } finally {
+        waitingGenerated.current.delete(key);
+      }
+    },
+    [patchGenerated, queueGeneratedClip]
+  );
+  // A generated shot still rendering when the page was left: pick up its result.
+  useEffect(() => {
+    if (!cut.mounted) return;
+    for (const extra of extras) {
+      if (extra.kind === 'generated' && extra.status === 'rendering' && extra.promptId) {
+        void awaitGenerated(extra.key, extra.promptId);
+      }
+    }
+  }, [awaitGenerated, cut.mounted, extras]);
+  /** Generate a shot from words, placed after `afterKey` (the end of the film when null). */
+  const generateShot = useCallback(
+    async (input: { prompt: string; shotKind: 'still' | 'clip'; afterKey: string | null }) => {
+      const words = input.prompt.trim();
+      if (!words) return;
+      setError(null);
+      setGenerateBusy(true);
+      try {
+        const canvas = cutGenerateCanvas(filmShapeOf(stateRef.current.options));
+        const promptId = await actions.sendComfyUi(cutGenerateStillPrompt(words), null, undefined, {
+          queueTool: 'image',
+          queueModel: cutGenerateModel(shared.model),
+          // From words alone there is no picture to size the latent from: the film's frame.
+          queueParamsBase: {
+            width: String(canvas.width),
+            height: String(canvas.height),
+            lockLatentSize: 'true',
+          },
+          explicitNegative: CUT_GENERATE_NEGATIVE,
+          identityLock: false,
+          queueHints: '',
+          qualityProfile: 'final',
+        });
+        const id = typeof promptId === 'string' ? promptId.trim() : '';
+        if (!id) throw new Error('ComfyUI did not take the shot.');
+        const key = newKey();
+        const edits = stateRef.current.options.shotEdits;
+        commitEdit(
+          {
+            extras: [
+              ...stateRef.current.extras,
+              {
+                key,
+                kind: 'generated',
+                prompt: words,
+                shotKind: input.shotKind,
+                status: 'rendering',
+                stage: 'still',
+                promptId: id,
+              },
+            ],
+            options: {
+              ...stateRef.current.options,
+              shotEdits: {
+                ...edits,
+                order: orderWith(orderNow(), key, input.afterKey),
+                // A generated clip's own sound would be noise in the film: muted.
+                ...(input.shotKind === 'clip'
+                  ? { shots: { ...edits?.shots, [key]: { volume: 0 } } }
+                  : {}),
+              },
+            },
+          },
+          true
+        );
+        setStatus(
+          input.shotKind === 'clip'
+            ? 'Rendering the shot, then its motion — it joins the film when it’s ready (a few minutes).'
+            : 'Rendering the shot — it joins the film when it’s ready.'
+        );
+        void awaitGenerated(key, id);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not generate the shot.');
+      } finally {
+        setGenerateBusy(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [actions.sendComfyUi, awaitGenerated, commitEdit, shared.model]
+  );
   // Versions: the whole edit (sources, added shots, options) under a name.
   const versions = useMemo(() => cut.toolSettings.versions ?? [], [cut.toolSettings.versions]);
   const saveVersion = useCallback(
@@ -1140,6 +1314,8 @@ export function useCutRoom() {
     isAdded,
     bridge,
     bridgeBusy,
+    generateShot,
+    generateBusy,
     versions,
     saveVersion,
     openVersion,

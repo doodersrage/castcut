@@ -5,6 +5,7 @@
  * across sources and visits. Pure.
  */
 
+import { cutGeneratedTitle, type CutGeneratedStage, type CutGeneratedStatus } from './cut-generate';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { roleplayWatchPlaylist } from './character-film';
 import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from './day-planner';
@@ -50,6 +51,24 @@ export type CutExtra =
       engine?: string;
       /** How `to` came in before the bridge (put back if the bridge is removed). */
       toWas?: string;
+    }
+  /**
+   * A shot generated from words (cut-generate.ts): a picture in the cut's shape, animated when a
+   * clip was asked for. In the film once it has rendered.
+   */
+  | {
+      key: string;
+      kind: 'generated';
+      prompt: string;
+      shotKind: 'still' | 'clip';
+      status: CutGeneratedStatus;
+      /** What the render in flight is: the picture, or (clips) its motion. */
+      stage?: CutGeneratedStage;
+      promptId?: string;
+      /** The rendered picture (a clip's first frame). */
+      stillUrl?: string;
+      url?: string;
+      engine?: string;
     };
 
 export type CutToolCache = {
@@ -136,6 +155,16 @@ export function cutExtraShots(
           title: 'Bridge',
           url: extra.url,
           kind: 'clip',
+        });
+      }
+    } else if (extra.kind === 'generated') {
+      if (extra.status === 'ready' && extra.url) {
+        out.push({
+          key: extra.key,
+          title: cutGeneratedTitle(extra.prompt),
+          url: extra.url,
+          kind: extra.shotKind,
+          ...(extra.stillUrl && extra.shotKind === 'clip' ? { thumbUrl: extra.stillUrl } : {}),
         });
       }
     } else if (extra.kind === 'text') {

@@ -248,3 +248,20 @@ test('two-person adult LTX clips keep their pace flag on the way to the queue', 
   const plain = resolveQueueParams({ model: 'ltx-video-2.5', base: { seed: '1' } });
   assert.equal(plain.videoStillHold, undefined);
 });
+
+test('a locked size on Rapid AIO from words keeps the asked-for shape (no native-square snap)', async () => {
+  const { resolveQueueParams } = await import('./queue-params-settings');
+  const locked = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit',
+    tool: 'image',
+    base: { width: '1472', height: '832', lockLatentSize: 'true' },
+  });
+  assert.equal(locked.width, '1472');
+  assert.equal(locked.height, '832');
+  const free = resolveQueueParams({
+    model: 'qwen-rapid-aio-edit',
+    tool: 'image',
+    base: { width: '1472', height: '832' },
+  });
+  assert.equal(free.width, free.height);
+});

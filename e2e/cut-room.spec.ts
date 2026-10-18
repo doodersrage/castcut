@@ -334,6 +334,14 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await expect(page.getByTestId('cut-ambience-upload')).toBeVisible();
   await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
+  // Generate a shot: the form opens with the shot it goes after, and closes again.
+  await page.getByTestId('cut-generate').click();
+  await expect(page.getByTestId('cut-generate-form')).toContainText('it goes');
+  await expect(page.getByTestId('cut-generate-go')).toBeDisabled();
+  await page.getByTestId('cut-generate-prompt').fill('rain on a café window');
+  await expect(page.getByTestId('cut-generate-go')).toBeEnabled();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(page.getByTestId('cut-generate-form')).toHaveCount(0);
   // S splits the clip under the playhead, as the button does.
   await page.getByTestId('cut-preview-scrub').fill('3.5');
   await expect(page.getByTestId('cut-split')).toBeEnabled({ timeout: 10_000 });

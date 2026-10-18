@@ -14,6 +14,7 @@ import CutMonitor from '@/components/cut/CutMonitor';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutVersions from '@/components/cut/CutVersions';
+import CutGeneratePanel from '@/components/cut/CutGeneratePanel';
 import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
@@ -536,6 +537,20 @@ export default function CutRoom() {
                 })}
               </ul>
             ) : null}
+            <CutGeneratePanel
+              extras={vm.extras}
+              busy={vm.generateBusy}
+              disabled={busy}
+              afterTitle={
+                activeKey
+                  ? (vm.previewShots.find(shot => shot.key === activeKey)?.title ?? null)
+                  : null
+              }
+              onGenerate={(prompt, shotKind) =>
+                void vm.generateShot({ prompt, shotKind, afterKey: activeKey ?? null })
+              }
+              onRemove={vm.removeAdded}
+            />
             <FilmCutShotList
               shots={vm.previewShots}
               edits={vm.options.shotEdits}
@@ -548,7 +563,10 @@ export default function CutRoom() {
               onPick={pick}
               tagFor={
                 vm.sources.length > 1
-                  ? shot => (splitCutRoomKey(shot.key).source === 'day' ? 'Day' : 'Story')
+                  ? shot => {
+                      const { source } = splitCutRoomKey(shot.key);
+                      return source === 'day' ? 'Day' : source === 'story' ? 'Story' : 'Added';
+                    }
                   : undefined
               }
               identityFor={shot => {

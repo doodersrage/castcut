@@ -567,8 +567,9 @@ export function resolveQueueParams(
     }
 
     // Rapid AIO T2I stays on native square — extreme ARs worsen screen-door.
-    // Lightning / vanilla 2512 keep the user's aspect chips as-is.
-    if (isQwenRapidAioModel(model) && !hasInputImage) {
+    // Lightning / vanilla 2512 keep the user's aspect chips as-is. A locked size is asked for
+    // exactly (Cut's generated shots in the film's shape; 2.1 queues on the Rapid graph).
+    if (isQwenRapidAioModel(model) && !hasInputImage && !lockExact) {
       const rapidTier = sizeTier === 'max' ? 'medium' : sizeTier;
       const square = resolveModelResolutionParams(model, 'square', rapidTier);
       if (square.width != null) {

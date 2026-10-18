@@ -87,6 +87,24 @@ function inferTxt2iCounterpart(model: ComfyImageModel | string): ComfyImageModel
   return DEFAULT_COMFY_MODEL;
 }
 
+/** A text-to-image model for `current`: itself when it makes pictures from words, else its counterpart. */
+export function resolveTxt2iModel(current?: string | null): ComfyImageModel {
+  const id = current?.trim();
+  if (!id) return 'qwen-image-2512';
+  if (!isImg2imgCapableModel(id) && !isVideoModel(id)) return id as ComfyImageModel;
+  return inferTxt2iCounterpart(id);
+}
+
+/**
+ * The engine for a picture made from words alone (Cut's generated shots): a Qwen-Image 2.1 setup
+ * stays on 2.1 Turbo (its edit engines render without a picture; there is no 2.1 text-only
+ * entry, and its 2512 counterpart is usually not installed), else the text-to-image counterpart.
+ */
+export function cutGenerateModel(current?: string | null): ComfyImageModel {
+  if (current?.trim().toLowerCase().startsWith('qwen-image-2.1')) return DEFAULT_EDIT_ENGINE;
+  return resolveTxt2iModel(current);
+}
+
 /** True for WAN Video / Hunyuan Video (`category: "video"`) models. */
 export function isVideoModel(model: ComfyImageModel | string): boolean {
   return getComfyModelDefinition(model).category === 'video';

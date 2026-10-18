@@ -100,3 +100,29 @@ describe('Cut room: added shots', () => {
     assert.deepEqual(splitCutRoomKey('day:morning~2'), { source: 'day', key: 'morning~2' });
   });
 });
+
+describe('Cut room: generated shots', () => {
+  it('join the film only once rendered, as the kind asked for', () => {
+    const shots = cutExtraShots(
+      [
+        { key: 'x:a', kind: 'generated', prompt: 'harbour at dawn', shotKind: 'still', status: 'rendering', promptId: 'p1' },
+        {
+          key: 'x:b',
+          kind: 'generated',
+          prompt: 'waves on a beach',
+          shotKind: 'clip',
+          status: 'ready',
+          stage: 'clip',
+          stillUrl: '/still.png',
+          url: '/clip.mp4',
+        },
+        { key: 'x:c', kind: 'generated', prompt: 'rain', shotKind: 'still', status: 'failed' },
+      ],
+      [],
+      () => ''
+    );
+    assert.deepEqual(shots, [
+      { key: 'x:b', title: 'waves on a beach', url: '/clip.mp4', kind: 'clip', thumbUrl: '/still.png' },
+    ]);
+  });
+});
