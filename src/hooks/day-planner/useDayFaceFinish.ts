@@ -14,6 +14,8 @@ import { resolveDayVacationFaceBreakPlate } from '@/lib/day-vacation-face-crop';
 import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
+import { runStillAnatomyFinish } from '@/lib/anatomy-finish-client';
+import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day-finish-order';
 import { waitForModelTurn } from '@/lib/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
@@ -26,6 +28,11 @@ import { dayTwoTakesPending } from '@/lib/day-two-takes';
  * (see face-finish.ts) and swap the finished image into the slot. One person in frame only —
  * the pass would give a partner her face. Runs one still at a time while the Day queue is idle,
  * and never overwrites a slot that was requeued or changed while the pass ran.
+ *
+ * Anatomy finish (anatomy-finish.ts) rides the same pass: a woman's nude solo still on
+ * Qwen-Image 2.1 gets its crotch re-rendered with the anatomy LoRA after the face (or alone when
+ * Face finish is off) — Turbo draws it malformed; the LoRA on the whole render moved pose and
+ * face. On unless `anatomyFinish` is false; skipped quietly when the LoRA is not installed.
  *
  * Cheap work first: with `checksGate` (Balanced) a take waits until its pose check has settled
  * (a take the check redoes is never finished), and every pass starts with a face probe — a face
@@ -50,8 +57,16 @@ export function useDayFaceFinish(
   checksGate?: DayChecksGate | null
 ) {
   const { busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
-  const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
-  const enabled = toolSettings.faceFinish === true;
+  const { poseGuideExpectRef, toolSettings, updateToolSettings, intimateEnabled, leadNoun } = ctx;
+  const faceOn = toolSettings.faceFinish === true;
+  const anatomyOn =
+    toolSettings.anatomyFinish !== false &&
+    intimateEnabled &&
+    leadNoun !== 'man' &&
+    isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
+    normalizeDayIntimateMix(toolSettings.intimateMix) === 'solo' &&
+    poseProfileForModel(shared.model).family === 'qwen-image-2.1';
+  const enabled = faceOn || anatomyOn;
 
   const [status, setStatus] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -128,93 +143,118 @@ export function useDayFaceFinish(
     runningRef.current = true;
     void (async () => {
       try {
-        setStatus(`Face finish: ${target.label}…`);
-        const face = await resolveDayVacationFaceBreakPlate({
-          bodyPlate: plate,
-          character,
-          model: shared.model,
-          comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
-        });
-        if (face.noFaceFound) {
-          // The crop is the top of the plate — conditioning the pass on it moved faces away.
-          setStatus(`Face finish skipped on ${target.label} — ${NO_FACE_ON_PLATE_MESSAGE}`);
-          return;
-        }
-        const faceUrl = comfyInputViewUrl(face.facePlate?.filename);
-        if (!faceUrl) {
-          setStatus(
-            `Face finish skipped on ${target.label} — there is no face picture of the Cast to match yet (it is cut from the plate; open the Cast and prepare the plate).`
-          );
-          return;
-        }
         const comfyStillUrl = comfyViewUrlForStill(targetStill, loadComfyGallery());
         if (!comfyStillUrl) {
-          setStatus(
-            `Face finish skipped on ${target.label} — its ComfyUI output isn't in the Gallery.`
-          );
+          setStatus(`Finish skipped on ${target.label} — its ComfyUI output isn't in the Gallery.`);
           return;
         }
-        // Probe the faces first (a few seconds): a face already close to hers is left alone.
-        setStatus(`Face finish: checking ${target.label}'s face…`);
-        const plan = await planStillFaceFinish(comfyStillUrl, {
-          faceUrl,
-          ...(people === 2 ? { people } : {}),
-        });
-        if (plan.decision && !plan.decision.finish) {
-          const distance = plan.decision.distance;
-          setStatus(
-            plan.decision.reason === 'close'
-              ? `Face finish skipped on ${target.label} — her face is already close${
-                  distance !== null ? ` (distance ${distance.toFixed(2)})` : ''
-                }.`
-              : plan.decision.reason === 'no-reference'
-                ? `Face finish skipped on ${target.label} — the Cast face crop shows no face (try a plate where she faces the camera upright).`
-                : `Face finish skipped on ${target.label} — could not tell which face is the lead — the still is unchanged.`
-          );
-          return;
-        }
-        // Model-aware queue: the pass jumps to the front of ComfyUI's queue, so on another model
-        // it would run between this Day's waiting stills — a switch there and one back. Hold it
-        // until the app's stills on the current model have run (capped so it is not held long).
-        const finishModel = plan.modelKey;
-        if (finishModel) {
-          await waitForModelTurn({
-            modelKey: finishModel,
-            maxWaitMs: FACE_FINISH_MODEL_HOLD_MS,
-            onWait: blocking =>
-              setStatus(
-                `Face finish: ${target.label} waits for ${blocking} still${blocking === 1 ? '' : 's'} on the loaded engine…`
-              ),
-            isCancelled: () => !enabledRef.current,
-          });
+        let faceFinisher = '';
+        const faceStep = async (): Promise<string | null> => {
           setStatus(`Face finish: ${target.label}…`);
+          const face = await resolveDayVacationFaceBreakPlate({
+            bodyPlate: plate,
+            character,
+            model: shared.model,
+            comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+          });
+          if (face.noFaceFound) {
+            // The crop is the top of the plate — conditioning the pass on it moved faces away.
+            setStatus(`Face finish skipped on ${target.label} — ${NO_FACE_ON_PLATE_MESSAGE}`);
+            return null;
+          }
+          const faceUrl = comfyInputViewUrl(face.facePlate?.filename);
+          if (!faceUrl) {
+            setStatus(
+              `Face finish skipped on ${target.label} — there is no face picture of the Cast to match yet (it is cut from the plate; open the Cast and prepare the plate).`
+            );
+            return null;
+          }
+          // Probe the faces first (a few seconds): a face already close to hers is left alone.
+          setStatus(`Face finish: checking ${target.label}'s face…`);
+          const plan = await planStillFaceFinish(comfyStillUrl, {
+            faceUrl,
+            ...(people === 2 ? { people } : {}),
+          });
+          if (plan.decision && !plan.decision.finish) {
+            const distance = plan.decision.distance;
+            setStatus(
+              plan.decision.reason === 'close'
+                ? `Face finish skipped on ${target.label} — her face is already close${
+                    distance !== null ? ` (distance ${distance.toFixed(2)})` : ''
+                  }.`
+                : plan.decision.reason === 'no-reference'
+                  ? `Face finish skipped on ${target.label} — the Cast face crop shows no face (try a plate where she faces the camera upright).`
+                  : `Face finish skipped on ${target.label} — could not tell which face is the lead — the still is unchanged.`
+            );
+            return null;
+          }
+          // Model-aware queue: the pass jumps to the front of ComfyUI's queue, so on another model
+          // it would run between this Day's waiting stills — a switch there and one back. Hold it
+          // until the app's stills on the current model have run (capped so it is not held long).
+          const finishModel = plan.modelKey;
+          if (finishModel) {
+            await waitForModelTurn({
+              modelKey: finishModel,
+              maxWaitMs: FACE_FINISH_MODEL_HOLD_MS,
+              onWait: blocking =>
+                setStatus(
+                  `Face finish: ${target.label} waits for ${blocking} still${blocking === 1 ? '' : 's'} on the loaded engine…`
+                ),
+              isCancelled: () => !enabledRef.current,
+            });
+            setStatus(`Face finish: ${target.label}…`);
+          }
+          const result = await runStillFaceFinish({
+            imageUrl: comfyStillUrl,
+            faceUrl,
+            ...(people === 2 ? { people } : {}),
+            ...(plan.decision ? { probe: plan.probe ?? null } : {}),
+          });
+          if (!result.available) {
+            setStatus(`Face finish skipped on ${target.label} — ${result.reason}`);
+            return null;
+          }
+          faceFinisher = FINISHER_LABEL[result.finisher];
+          return result.imageUrl;
+        };
+        let finishedUrl: string | null = null;
+        let applied = '';
+        if (faceOn) {
+          const faced = await faceStep();
+          if (faced) {
+            finishedUrl = faced;
+            applied = 'Face finish';
+          }
         }
-        const result = await runStillFaceFinish({
-          imageUrl: comfyStillUrl,
-          faceUrl,
-          ...(people === 2 ? { people } : {}),
-          ...(plan.decision ? { probe: plan.probe ?? null } : {}),
-        });
-        if (!result.available) {
-          setStatus(`Face finish skipped on ${target.label} — ${result.reason}`);
-          return;
+        if (anatomyOn && people === 1) {
+          setStatus(`Anatomy finish: ${target.label}…`);
+          const anatomy = await runStillAnatomyFinish(finishedUrl ?? comfyStillUrl);
+          if (anatomy.available) {
+            finishedUrl = anatomy.imageUrl;
+            applied = applied ? `${applied} + anatomy finish` : 'Anatomy finish';
+          } else if (!applied) {
+            setStatus(`Anatomy finish skipped on ${target.label} — ${anatomy.reason}`);
+          }
         }
+        if (!finishedUrl) return;
         // Only swap if the slot still shows the image we finished (not requeued meanwhile).
         const current = stillsRef.current.find(entry => entry.slotId === target.id);
         if (current?.status !== 'completed' || stillKey(current) !== sourceKey) {
-          setStatus(`Face finish on ${target.label} discarded — the slot changed meanwhile.`);
+          setStatus(`${applied} on ${target.label} discarded — the slot changed meanwhile.`);
           return;
         }
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: target.id,
-          imageUrl: result.imageUrl,
+          imageUrl: finishedUrl,
           status: 'completed',
-          finishedUrl: result.imageUrl,
+          finishedUrl,
           finishedFor: current.promptId,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
-        setStatus(`Face finish applied to ${target.label} (${FINISHER_LABEL[result.finisher]}).`);
+        setStatus(
+          `${applied} applied to ${target.label}${faceFinisher ? ` (${faceFinisher})` : ''}.`
+        );
       } catch (error) {
         pausedRef.current = true;
         const message = error instanceof Error ? error.message : 'Face finish failed.';
@@ -227,8 +267,10 @@ export function useDayFaceFinish(
   }, [
     busy,
     character,
+    anatomyOn,
     checksGate,
     enabled,
+    faceOn,
     mounted,
     plate,
     poseGuideExpectRef,
@@ -253,6 +295,8 @@ export function useDayFaceFinish(
 
   return {
     faceFinishStatus: enabled ? status : null,
+    /** Anatomy finish runs in this pass (a woman's nude solo still on Qwen-Image 2.1). */
+    anatomyFinishOn: anatomyOn,
     faceFinishTick: tick,
     holdsStillForFaceFinish: holdsStill,
   };

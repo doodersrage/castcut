@@ -191,6 +191,11 @@ export type DayToolCache = {
    */
   faceFinish?: boolean;
   /**
+   * Re-render a woman's crotch on her nude solo Qwen-Image 2.1 stills with the anatomy LoRA
+   * (anatomy-finish.ts). Unset = on; skipped when the LoRA is not installed.
+   */
+  anatomyFinish?: boolean;
+  /**
    * Check each solo still for the Cast's glasses / tattoos and repair a miss (useDayStillAfterChecks).
    * Unset = on; only runs when the Cast has marks that should show.
    */

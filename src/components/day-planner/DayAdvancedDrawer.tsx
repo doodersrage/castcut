@@ -38,6 +38,7 @@ export type DayQualitySwitches = {
 };
 
 export type DayQualityStatusProps = {
+  /** Face finish switch (its status line shows whenever the pass reports — Anatomy finish too). */
   faceFinish: boolean;
   autoReviewStills: boolean;
   redoPoseMisses: boolean;
@@ -63,7 +64,6 @@ export type DayQualityStatusProps = {
  * or not the Advanced drawer is open.
  */
 export function DayQualityStatusLines({
-  faceFinish,
   autoReviewStills,
   redoPoseMisses,
   bestOfTwoHardPoses,
@@ -76,7 +76,8 @@ export function DayQualityStatusLines({
   twoTakesOrderStatus = null,
 }: DayQualityStatusProps) {
   const lines: Array<{ id: string; text: string; live?: boolean }> = [];
-  if (faceFinish && faceFinishStatus) {
+  // The pass reports only while it runs (Face finish, or Anatomy finish on its own).
+  if (faceFinishStatus) {
     lines.push({ id: 'day-face-finish-status', text: faceFinishStatus });
   }
   if (afterChecksStatus) {
