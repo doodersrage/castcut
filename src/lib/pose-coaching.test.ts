@@ -392,11 +392,12 @@ describe('sportPoseFirstLine (Qwen-Image 2.1 sport stills)', () => {
     assert.match(line, /; pulling through a butterfly stroke\.$/);
   });
 
-  it('skips non-sport layouts, briefs without ACTION and a punch cue for a clinch', async () => {
+  it('skips non-sport layouts and briefs without ACTION; a guard stance (no punch) for shadowboxing', async () => {
     const { sportPoseFirstLine } = await import('./pose-coaching');
     assert.equal(sportPoseFirstLine('ACTION: walking the dog.', 'walk'), '');
     assert.equal(sportPoseFirstLine('SCENE: a gym.', 'sport_squat'), '');
-    assert.equal(sportPoseFirstLine('ACTION: tying up in a clinch.', 'sport_box'), '');
+    assert.match(sportPoseFirstLine('ACTION: shadowboxing with bouncing footwork.', 'sport_box'), /boxing stance: fists up guarding the chin/);
+    assert.doesNotMatch(sportPoseFirstLine('ACTION: shadowboxing with bouncing footwork.', 'sport_box'), /punch/);
     assert.match(sportPoseFirstLine('ACTION: throwing a jab.', 'sport_box'), /fists up/);
   });
 });

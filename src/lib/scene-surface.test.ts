@@ -391,3 +391,13 @@ describe('beatPlaceConflicts', () => {
     assert.deepEqual(beatPlaceConflicts('out for a morning run through the park', 'somewhere nice'), []);
   });
 });
+
+describe('beat place rules: park bench, diner', () => {
+  it('a park bench needs a park; a diner booth an eating place', async () => {
+    const { beatFitsSetting } = await import('./scene-surface');
+    assert.equal(beatFitsSetting('selfie with a friend on a park bench', 'independent bookstore aisle'), false);
+    assert.equal(beatFitsSetting('selfie with a friend on a park bench', 'leafy city park at noon'), true);
+    assert.equal(beatFitsSetting('diner booth across from a friend', 'gym with mirrored walls'), false);
+    assert.equal(beatFitsSetting('diner booth across from a friend', 'retro diner with red booths'), true);
+  });
+});

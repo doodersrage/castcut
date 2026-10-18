@@ -399,12 +399,42 @@ export const QWEN_IMAGE_21_LIE_BACK_LINE =
   'POSE FIRST: she lies flat on her back — her whole body horizontal across the frame, head and shoulders down on the pillow, back flat on the mattress, not propped up, not sitting, not leaning against the headboard; seen from the side at mattress height.';
 
 /** One person, nude, the stance on her back (Day / Story adult recipes). */
-export function isLyingBackNudeSolo(prompt: string): boolean {
+export function isLyingBackNudeSolo(
+  prompt: string,
+  options: { ignoreImageWords?: boolean } = {}
+): boolean {
+  const twoPeople = options.ignoreImageWords
+    ? /\b(?:TWO PEOPLE|two people|her partner|the man from)\b/i
+    : /\b(?:TWO PEOPLE|two people|partner|the man from|second image)\b/i;
   return (
     isNudePrompt(prompt) &&
     /\bShe lies (?:flat )?on her back\b/.test(prompt) &&
-    !/\b(?:TWO PEOPLE|two people|partner|the man from|second image)\b/i.test(prompt)
+    !twoPeople.test(prompt)
   );
+}
+
+const LIE_SIDE_RE =
+  /\bShe lies on her side on the (couch|sofa|daybed|chaise|lounger|bench|floor|rug|bed|mattress|beach towel|towel|blanket|sand|grass)\b/;
+
+/** The side-lying line for a nude one-person still lying on her side, or null. */
+export function lieSideLineFor(prompt: string): string | null {
+  if (!isNudePrompt(prompt)) return null;
+  if (/\b(?:TWO PEOPLE|two people|her partner|the man from)\b/i.test(prompt)) return null;
+  const surface = LIE_SIDE_RE.exec(prompt)?.[1];
+  if (!surface) return null;
+  const head = /^(?:bed|mattress)$/.test(surface)
+    ? 'pillow'
+    : /couch|sofa|daybed|chaise|lounger/.test(surface)
+      ? 'cushion at one end'
+      : 'ground';
+  return `POSE FIRST: she lies on her side along the ${surface} — her whole body horizontal, head resting on the ${head}, hips and legs along it, not sitting up; seen from the front at ${surface} height.`;
+}
+
+/** `line` at the head of the edit (after "Keep facial likeness only: "), once. */
+function withLeadLine(prompt: string, line: string): string {
+  if (prompt.includes(line)) return prompt;
+  const lead = 'Keep facial likeness only: ';
+  return prompt.includes(lead) ? prompt.replace(lead, `${lead}${line} `) : `${line} ${prompt}`;
 }
 
 export function withLieBackLine(prompt: string): string {
@@ -629,8 +659,23 @@ export function convertQwenEditWorkflowToImage21(
   // sitting) whatever the stance said — Turbo, three on-the-back beats: 0/3 lying in every prompt
   // and canvas tried; with QWEN_IMAGE_21_LIE_BACK_LINE on a landscape canvas, 6/6 flat on her
   // back, no twin (2026-10-17).
-  const lyingBackNude = isLyingBackNudeSolo(String(encoder.inputs.prompt ?? ''));
-  const canvas = lyingBackNude
+  // One person: no partner's face and no two-person map attached (the words of the source prompt
+  // name its pose map "the second image", which read as a second person — the night sweep's
+  // on-her-back beats all missed the fix, 3/3 half sitting, 2026-10-17).
+  const attached = Array.from({ length: MAX_INPUT_IMAGE_FILENAMES }, (_, i) => i + 1)
+    .map(slot => encoder.inputs[`image${slot}`])
+    .filter(isRef)
+    .map(ref => sourceFilename(workflow, ref));
+  const soloAttached = !attached.some(
+    name => isMultiPersonPoseGuide(name) || isDayPartnerFaceFilename(name)
+  );
+  const sourceText = toQwenImage21Prompt(String(encoder.inputs.prompt ?? ''));
+  const lyingBackNude = soloAttached && isLyingBackNudeSolo(sourceText, { ignoreImageWords: true });
+  // On her side on a couch / sofa: 2.1 sat her up the same way (night sweep: 3/3 sitting); the
+  // side line on the landscape canvas laid her along it 3/3 (2026-10-17).
+  const lyingSideLine = soloAttached && !lyingBackNude ? lieSideLineFor(sourceText) : null;
+  const lyingNude = lyingBackNude || lyingSideLine !== null;
+  const canvas = lyingNude
     ? { width: 1472, height: 1104 }
     : qwenImage21Canvas(requestedWidth, requestedHeight);
 
@@ -742,7 +787,11 @@ export function convertQwenEditWorkflowToImage21(
   const encodeInputs: Record<string, unknown> = {
     clip: [clip, 0],
     vae: [vae, 0],
-    prompt: (lyingBackNude ? withLieBackLine : (text: string) => text)(
+    prompt: (lyingBackNude
+      ? withLieBackLine
+      : lyingSideLine
+        ? (text: string) => withLeadLine(text, lyingSideLine)
+        : (text: string) => text)(
       withPhotoRealismTail(
         withTwoPersonFaces(
           withoutDroppedReferences(

@@ -720,3 +720,47 @@ describe('Qwen-Image 2.1: natural pose wording', () => {
     assert.equal(withNaturalPoses(shelf), shelf);
   });
 });
+
+describe('Qwen-Image 2.1: lying on her back with a pose map attached', () => {
+  const graph = (image2: string) => ({
+    '4': {
+      class_type: 'TextEncodeQwenImageEditPlus',
+      inputs: {
+        prompt:
+          'Edit Image 1: Explicit solo photo: One woman alone, masturbating. She lies on her back on the bed. Match her body to the second image (pose map). She is completely nude — bare breasts.',
+        image1: ['900', 0],
+        image2: ['901', 0],
+      },
+    },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+    '901': { class_type: 'LoadImage', inputs: { image: image2 } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  });
+  const latentOf = (image2: string) =>
+    Object.values(
+      convertQwenEditWorkflowToImage21(graph(image2), { eightStep: true, eightStepTurbo: true })
+        .workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>
+    ).find(n => n.class_type === 'EmptyLatentImage')!.inputs;
+
+  it('"the second image" (its pose map) is not a second person — night sweep 3/3 missed', () => {
+    assert.deepEqual([latentOf('day-pose-guide-on_back-1.png').width, latentOf('day-pose-guide-on_back-1.png').height], [1472, 1104]);
+  });
+
+  it('a partner face attached keeps the duo canvas', () => {
+    assert.notDeepEqual([latentOf('day-partner-vl-1.png').width, latentOf('day-partner-vl-1.png').height], [1472, 1104]);
+  });
+});
+
+describe('Qwen-Image 2.1: lying on her side', () => {
+  it('a nude solo on her side on the couch gets the side line', async () => {
+    const { lieSideLineFor } = await import('./qwen-image-21-renderer');
+    const line = lieSideLineFor(
+      'Explicit solo photo: One woman alone. She lies on her side on the couch facing the camera. She is completely nude — bare breasts.'
+    );
+    assert.match(String(line), /lies on her side along the couch — her whole body horizontal, head resting on the cushion at one end/);
+    assert.equal(lieSideLineFor('Day photo: One woman alone. She lies on her side on the couch reading.'), null);
+  });
+});

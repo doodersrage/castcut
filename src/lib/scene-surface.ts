@@ -885,6 +885,10 @@ const BEAT_PLACE_RULES: ReadonlyArray<{
     venues: STREETS,
   },
   { re: /\b(?:at|in)\s+the\s+gym\b/i, venues: ['gym', 'studio'] },
+  // Night sweep, 2026-10-17 (two-person Day stills): "selfie with a friend on a park bench" was
+  // set in a bookstore, "diner booth across from a friend" in a hotel lobby.
+  { re: /\bpark\s+bench\b/i, venues: ['park', 'trail'] },
+  { re: /\bdiner(?:\s+booth)?\b/i, venues: EAT, setting: /\bdiner\b/i },
 ];
 
 /**

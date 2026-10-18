@@ -129,6 +129,12 @@ export const SPORT_ACTION_CUE_LAYOUTS: ReadonlySet<string> = new Set(['sport_box
  * Only an ACTION that is the cue's own move: the same layout is drawn for a clinch, shadowboxing
  * or a slipped punch, and "one arm extended in a punch" would contradict those.
  */
+/** A layout's stance when the beat is not its cue's own move (no thrown punch). */
+const SPORT_STANCE_CUES: Record<string, string> = {
+  sport_box:
+    'boxing stance: fists up guarding the chin, elbows in, knees bent, bouncing on the balls of the feet',
+};
+
 const SPORT_ACTION_CUE_MOVES: Record<string, RegExp> = {
   sport_box: /\b(?:punch(?:es|ing)?|jab|cross|hook|uppercut|one-two)\b/i,
 };
@@ -146,7 +152,9 @@ export function sportPoseFirstLine(prompt: string, layout: string | null | undef
   const action = /\bACTION: ([^\n]*?)\.(?=\s|$)/.exec(prompt)?.[1]?.trim();
   if (!action) return '';
   const move = SPORT_ACTION_CUE_MOVES[key];
-  const cue = move && !move.test(action) ? null : poseLayoutCue(key);
+  // Not the cue's own move (shadowboxing, footwork): its stance without the punch — with no line
+  // at all she stood still in the ring (night sweep, 2026-10-17).
+  const cue = move && !move.test(action) ? (SPORT_STANCE_CUES[key] ?? null) : poseLayoutCue(key);
   return cue ? `POSE FIRST: mid-action — ${cue}; ${action}.` : '';
 }
 

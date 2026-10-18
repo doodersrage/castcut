@@ -353,6 +353,10 @@ export function inferDaySportFromScene(
   beat?: string | null,
   setting?: string | null
 ): AthleticSport | null {
+  // The beat's own sport first: "clearing a hurdle" on a "trail path with kicked gravel" read as
+  // cycling (gravel) when the two were read together (night sweep, 2026-10-17).
+  const fromBeat = beat?.trim() ? inferAthleticSport(beat) : null;
+  if (fromBeat) return fromBeat;
   const haystack = [beat, setting].filter(Boolean).join(' · ');
   const fromHints = inferAthleticSport(haystack);
   if (fromHints) {

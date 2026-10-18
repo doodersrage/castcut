@@ -297,7 +297,7 @@ export const ATHLETIC_SPORT_PROFILES: readonly AthleticSportProfile[] = [
   },
   {
     id: 'running',
-    hint: /\b(?:sprinter|sprinting|marathon|jogger|jogging|trail runner|runner\b|running (?:shoes|shorts|singlet|on|at|through|along)|track and field|track meet|on (?:the )?track|at (?:the )?track|hurdles|hurdler|100m dash|400m dash|relay race|starting blocks|finish line|5k\b|10k\b|half marathon)\b/i,
+    hint: /\b(?:sprinter|sprinting|marathon|jogger|jogging|trail runner|runner\b|running (?:shoes|shorts|singlet|on|at|through|along)|track and field|track meet|on (?:the )?track|at (?:the )?track|hurdles?|hurdler|clearing a hurdle|mid-sprint|100m dash|400m dash|relay race|starting blocks|finish line|5k\b|10k\b|half marathon)\b/i,
     outfitLabels: [],
     topLabels: [/\b(?:running singlet|singlet|mesh jersey)\b/i],
     bottomLabels: [/\b(?:running shorts|track pants)\b/i],
