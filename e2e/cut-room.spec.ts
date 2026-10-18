@@ -254,3 +254,84 @@ test('versions: save the edit, change it, open the saved one back', async ({ pag
   await expect(page.getByTestId('cut-shot-motion-day:morning')).toHaveValue('none');
   await expect(page.getByTestId('cut-version-Long')).toBeVisible();
 });
+
+test('look and speed: the monitor shows the grade, a 2× clip halves its block, S splits', async ({
+  page,
+}) => {
+  const clip = readFileSync(join(__dirname, 'fixtures', 'talk-2s.mp4'));
+  await page.route('**/e2e-media/talk-2s.mp4', route =>
+    route.fulfill({ status: 200, contentType: 'video/mp4', body: clip })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'waves' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'l-m' },
+          {
+            slotId: 'afternoon',
+            status: 'completed',
+            imageUrl: thumb,
+            promptId: 'l-a',
+            clipStatus: 'completed',
+            clipUrl: '/e2e-media/talk-2s.mp4',
+            clipPromptId: 'l-a-clip',
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const blocks = page.locator('[data-testid^="cut-timeline-shot-"]');
+  await expect(blocks).toHaveCount(2, { timeout: 30_000 });
+  await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
+  // The monitor's colour: how far apart the channels are in the middle of the frame.
+  const spread = () =>
+    page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="cut-preview-canvas"]');
+      const context = canvas?.getContext('2d');
+      if (!canvas || !context) return -1;
+      const { data } = context.getImageData(
+        Math.floor(canvas.width * 0.3),
+        Math.floor(canvas.height * 0.3),
+        Math.floor(canvas.width * 0.4),
+        Math.floor(canvas.height * 0.4)
+      );
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        sum += Math.abs(data[i]! - data[i + 1]!) + Math.abs(data[i + 1]! - data[i + 2]!);
+      }
+      return sum / (data.length / 4);
+    });
+  await page.getByTestId('cut-preview-scrub').fill('1');
+  const before = await spread();
+  expect(before).toBeGreaterThan(4);
+  await page.getByTestId('cut-look').selectOption('mono');
+  await expect.poll(spread, { timeout: 10_000 }).toBeLessThan(1.5);
+  // A 2× clip: its block on the timeline is about half as wide.
+  const clipBlock = page.getByTestId('cut-timeline-shot-day:afternoon');
+  const wide = (await clipBlock.boundingBox())!.width;
+  await page.getByTestId('cut-shot-speed-day:afternoon').selectOption('2');
+  await expect
+    .poll(async () => (await clipBlock.boundingBox())!.width, { timeout: 15_000 })
+    .toBeLessThan(wide * 0.7);
+  await page.getByTestId('cut-shot-speed-day:afternoon').selectOption('1');
+  await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
+  // S splits the clip under the playhead, as the button does.
+  await page.getByTestId('cut-preview-scrub').fill('3.5');
+  await expect(page.getByTestId('cut-split')).toBeEnabled({ timeout: 10_000 });
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('s');
+  await expect(blocks).toHaveCount(3, { timeout: 15_000 });
+});

@@ -313,6 +313,74 @@ export function useCutRoom() {
       }),
     [commitEdit]
   );
+  /**
+   * Freeze frame: the clip's frame at `atSec` (file seconds) as a still right after it, held
+   * 2 s — the moment held before the film moves on.
+   */
+  const [freezeBusy, setFreezeBusy] = useState(false);
+  const freezeFrame = useCallback(
+    async (key: string, atSec: number) => {
+      const shot = shots.find(entry => entry.key === key);
+      if (!shot?.url || shot.kind !== 'clip') return;
+      setFreezeBusy(true);
+      setError(null);
+      try {
+        const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+        const response = await fetch('/api/cut/bridge-frame', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: shot.url, atSec: Math.max(0, atSec), comfyUrl }),
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          filename?: string;
+          error?: string;
+        };
+        if (!response.ok || !data.filename) {
+          throw new Error(data.error || 'Could not read that clip for a freeze frame.');
+        }
+        const url = `/api/comfyui/view?${new URLSearchParams({
+          filename: data.filename,
+          subfolder: '',
+          type: 'input',
+        }).toString()}`;
+        const freezeKey = newKey();
+        const edits = stateRef.current.options.shotEdits;
+        commitEdit(
+          {
+            extras: [
+              ...stateRef.current.extras,
+              {
+                key: freezeKey,
+                kind: 'media',
+                title: `${shot.title} · freeze`,
+                url,
+                shotKind: 'still',
+              },
+            ],
+            options: {
+              ...stateRef.current.options,
+              shotEdits: {
+                ...edits,
+                order: orderWith(orderNow(), freezeKey, key),
+                shots: {
+                  ...edits?.shots,
+                  // A freeze holds, no slow zoom, and cuts in hard (a held moment, not a fade).
+                  [freezeKey]: { holdSec: 2, motion: 'none', transition: 'cut' },
+                },
+              },
+            },
+          },
+          true
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Freeze frame failed.');
+      } finally {
+        setFreezeBusy(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitEdit, shots]
+  );
   /** The same shot again, right after it (its own hold / trim / caption from here on). */
   const duplicate = useCallback(
     (key: string) => {
@@ -1062,6 +1130,8 @@ export function useCutRoom() {
     extras,
     addMedia,
     addText,
+    freezeFrame,
+    freezeBusy,
     setText,
     duplicate,
     split,

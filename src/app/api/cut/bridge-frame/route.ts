@@ -13,8 +13,9 @@ export async function GET() {
 }
 
 /**
- * POST { url, edge: 'first' | 'last', comfyUrl? } → { filename }: a Cut shot's first or last
- * frame (a still as it is) uploaded to ComfyUI's input folder, for a bridge clip (cut-bridge.ts).
+ * POST { url, edge: 'first' | 'last' | atSec, comfyUrl? } → { filename }: a Cut shot's first or
+ * last frame (a still as it is) — or the frame at `atSec`, a freeze frame — uploaded to ComfyUI's
+ * input folder, for a bridge clip (cut-bridge.ts) or a freeze frame.
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -28,8 +29,20 @@ export async function POST(request: Request) {
     return apiError('Invalid JSON body.', 400);
   }
   const url = typeof body.url === 'string' ? body.url.trim() : '';
-  const edge = body.edge === 'last' ? 'last' : body.edge === 'first' ? 'first' : null;
-  if (!url || !edge) return apiError('url and edge are required.', 400);
+  // A freeze frame: the frame at `atSec` of a clip.
+  const atSec =
+    typeof body.atSec === 'number' && Number.isFinite(body.atSec) && body.atSec >= 0
+      ? body.atSec
+      : null;
+  const edge =
+    atSec !== null
+      ? { atSec }
+      : body.edge === 'last'
+        ? 'last'
+        : body.edge === 'first'
+          ? 'first'
+          : null;
+  if (!url || !edge) return apiError('url and edge (or atSec) are required.', 400);
   let baseUrl: string;
   try {
     baseUrl = getComfyUiBaseUrl(

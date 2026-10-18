@@ -57,3 +57,18 @@ describe('cut preview timeline', () => {
     assert.equal(previewFrameAt(timeline, 99)[0]!.item.shot, 2);
   });
 });
+
+describe('preview timeline with clip speed', () => {
+  it('a clip at 2× holds half as long and plays its file at 2×', async () => {
+    const { previewTimeline } = await import('./film-cut-preview');
+    const timeline = previewTimeline({
+      shots: [{ title: 'c', url: '/c.mp4', kind: 'clip', speed: 2 }],
+      clipSecs: [6],
+      crossfadeSec: 0,
+      titleCard: false,
+      captions: false,
+    });
+    assert.equal(timeline.items[0]?.durSec, 3);
+    assert.equal(timeline.items[0]?.speed, 2);
+  });
+});

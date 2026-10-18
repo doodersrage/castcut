@@ -60,7 +60,18 @@ export default function CutRoom() {
     if (!item || item.kind !== 'clip') return null;
     const local = preview.time - item.startSec;
     if (local < 0.4 || local > item.durSec - 0.4) return null;
-    return { key: activeKey, fileSec: item.fromSec + local };
+    // A sped-up / slowed clip moves `speed` file seconds per cut second.
+    return { key: activeKey, fileSec: item.fromSec + local * (item.speed ?? 1) };
+  })();
+  // Where the playhead is in the clip under it (for I / O: trim in / out there).
+  const clipPoint = (() => {
+    const loaded = preview.loaded;
+    if (!loaded || !activeKey) return null;
+    const index = loaded.keys.indexOf(activeKey);
+    const item = loaded.timeline.items.find(entry => entry.shot === index);
+    if (!item || item.kind !== 'clip') return null;
+    const local = Math.max(0, preview.time - item.startSec);
+    return { key: activeKey, fileSec: item.fromSec + local * (item.speed ?? 1) };
   })();
   const ordered = orderedCutShots(vm.previewShots, vm.options.shotEdits);
   const order = ordered.map(shot => shot.key);
@@ -85,8 +96,9 @@ export default function CutRoom() {
     [activeKey, preview]
   );
   // Keys: Space play / pause, ← → shots, Alt+← → move the shot, Delete leave it out / back in,
-  // Ctrl+Z / Ctrl+Shift+Z undo / redo. Not while typing in a field.
-  const { undo, redo, setOptions, options } = vm;
+  // Ctrl+Z / Ctrl+Shift+Z undo / redo, S split, I / O trim in / out at the playhead, J / K / L
+  // back a shot / pause / play, , . one frame, D duplicate. Not while typing in a field.
+  const { undo, redo, setOptions, options, split, duplicate, freezeFrame } = vm;
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -127,6 +139,61 @@ export default function CutRoom() {
         }
         return;
       }
+      if (!mod && !event.altKey) {
+        const key = event.key.toLowerCase();
+        if (key === 's' && splitAt) {
+          event.preventDefault();
+          split(splitAt.key, splitAt.fileSec);
+          return;
+        }
+        if ((key === 'i' || key === 'o') && clipPoint) {
+          event.preventDefault();
+          setOptions({
+            ...options,
+            shotEdits: withCutShotEdit(
+              options.shotEdits,
+              order,
+              clipPoint.key,
+              key === 'i'
+                ? { trimStartSec: clipPoint.fileSec > 0.05 ? clipPoint.fileSec : undefined }
+                : { trimEndSec: clipPoint.fileSec }
+            ),
+          });
+          return;
+        }
+        if (key === 'k') {
+          event.preventDefault();
+          preview.pause();
+          return;
+        }
+        if (key === 'l') {
+          event.preventDefault();
+          preview.play();
+          return;
+        }
+        if (key === 'j') {
+          event.preventDefault();
+          preview.pause();
+          step(-1);
+          return;
+        }
+        if (key === ',' || key === '.') {
+          event.preventDefault();
+          preview.pause();
+          preview.seek(Math.max(0, preview.time + (key === ',' ? -1 : 1) / 30));
+          return;
+        }
+        if (key === 'f' && clipPoint) {
+          event.preventDefault();
+          void freezeFrame(clipPoint.key, clipPoint.fileSec);
+          return;
+        }
+        if (key === 'd' && activeKey) {
+          event.preventDefault();
+          duplicate(activeKey);
+          return;
+        }
+      }
       if ((event.key === 'Delete' || event.key === 'Backspace') && activeKey) {
         event.preventDefault();
         const included = options.shotEdits?.shots?.[activeKey]?.include !== false;
@@ -138,7 +205,21 @@ export default function CutRoom() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [activeKey, options, order, preview, redo, setOptions, step, undo]);
+  }, [
+    activeKey,
+    clipPoint,
+    duplicate,
+    freezeFrame,
+    options,
+    order,
+    preview,
+    redo,
+    setOptions,
+    split,
+    splitAt,
+    step,
+    undo,
+  ]);
   // Face match marks on Day shots (measured on Day; keys without the "day:" prefix there).
   const dayIdentity = useDayShotIdentity(vm.dayStills, vm.dayCast?.name);
   const { mounted, pickOnly } = vm;
@@ -351,8 +432,9 @@ export default function CutRoom() {
               onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
             />
             <p className="type-caption mt-2 text-[var(--text-muted)]">
-              Keys: Space play · ← → shots · Alt+← → move the shot · Delete leave it out · Ctrl+Z
-              undo
+              Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+← →
+              move the shot · S split · I / O trim in / out · F freeze frame · D duplicate · Delete
+              leave it out · Ctrl+Z undo
             </p>
           </ToolSection>
         ) : null}
@@ -398,6 +480,16 @@ export default function CutRoom() {
                 onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
               >
                 Split at playhead
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || !clipPoint || vm.freezeBusy}
+                data-testid="cut-freeze"
+                title="Hold the clip's frame under the playhead as a still for 2 s, right after the clip (F)"
+                onClick={() => clipPoint && void vm.freezeFrame(clipPoint.key, clipPoint.fileSec)}
+              >
+                {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
               </Button>
               <Button
                 size="sm"

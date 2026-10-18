@@ -466,7 +466,10 @@ export function useCutPreview(input: {
         const video = mediaRef.current.videos.get(item.shot);
         if (!video) continue;
         playingClips.add(item.shot);
-        const target = item.fromSec + local;
+        // A sped-up / slowed clip: the file moves `speed` seconds per cut second.
+        const speed = item.speed ?? 1;
+        const target = item.fromSec + local * speed;
+        if (video.playbackRate !== speed) video.playbackRate = speed;
         // The clip's own level (Cut's shot list) on top of the Lines level; 0 = muted.
         const own = loaded.shots[item.shot]?.volume ?? 1;
         video.volume = Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own));

@@ -61,3 +61,30 @@ describe('narration in the cut', async () => {
     assert.match(out.filter, /\[2:a\][^;]*adelay=0:all=1\[n0\]/);
   });
 });
+
+describe('clip speed, reverse and grade in the graph', () => {
+  it('reads hold × speed of the file, slows with interpolated frames and paces the sound', async () => {
+    const { buildFilterComplex } = await import('./video-server-encode');
+    const graph = buildFilterComplex({
+      shotCount: 2,
+      kinds: ['clip', 'clip'],
+      holdSecs: [4, 2],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      speech: [true, true],
+      trimStarts: [0, 1],
+      speeds: [0.5, 2],
+      reverses: [true, false],
+      grades: ['format=rgb24,colorchannelmixer=rr=1.1,format=yuv420p', ''],
+    });
+    assert.match(graph.filter, /\[0:v\]trim=start=0\.000:end=2\.000,setpts=PTS-STARTPTS,reverse,/);
+    assert.match(graph.filter, /setpts=PTS\/0\.5,minterpolate=/);
+    assert.match(graph.filter, /\[1:v\]trim=start=1\.000:end=5\.000,/);
+    assert.match(graph.filter, /setpts=PTS\/2,fps=/);
+    assert.match(graph.filter, /atrim=0:2,asetpts=PTS-STARTPTS,areverse,atempo=0\.5,/);
+    assert.match(graph.filter, /atrim=1:5,asetpts=PTS-STARTPTS,atempo=2,/);
+    assert.match(graph.filter, /colorchannelmixer=rr=1\.1/);
+  });
+});

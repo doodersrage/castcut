@@ -19,6 +19,8 @@ export type PreviewItem = {
   durSec: number;
   /** Clips: where in the file this piece starts. */
   fromSec: number;
+  /** Clips: file seconds per cut second (1 = as shot). */
+  speed?: number;
   caption: string;
   /** How long it overlaps the piece before, and how it comes in (cut-timeline.ts). */
   inSec: number;
@@ -54,12 +56,17 @@ export function previewTimeline(input: {
       const full = input.clipSecs[index] ?? null;
       const trim = clipTrimWindow(shot, full);
       const end = trim.end ?? full ?? (shot.holdSec && shot.holdSec > 0 ? shot.holdSec : 4);
+      const speed =
+        typeof shot.speed === 'number' && shot.speed > 0
+          ? Math.min(4, Math.max(0.25, shot.speed))
+          : 1;
       pieces.push({
         kind: 'clip',
         shot: index,
         stillIndex: -1,
-        durSec: Math.max(0.5, end - trim.start),
+        durSec: Math.max(0.5, (end - trim.start) / speed),
         fromSec: trim.start,
+        ...(speed !== 1 ? { speed } : {}),
         caption,
       });
       transitions.push(shot.transitionIn);

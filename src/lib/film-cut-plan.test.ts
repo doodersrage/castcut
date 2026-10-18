@@ -292,3 +292,23 @@ describe('fixed holds when fitting a length', async () => {
     );
   });
 });
+
+describe('clip speed and reverse edits', () => {
+  it('passes a clip speed (clamped) and reverse; stills ignore them', async () => {
+    const { applyCutShotEdits, clipSpeed } = await import('./film-cut-plan');
+    assert.equal(clipSpeed(undefined), 1);
+    assert.equal(clipSpeed(9), 4);
+    assert.equal(clipSpeed(0.1), 0.25);
+    const out = applyCutShotEdits(
+      [
+        { key: 'a', title: 'a', url: '/a.mp4', kind: 'clip' },
+        { key: 'b', title: 'b', url: '/b.png', kind: 'still' },
+      ],
+      { shots: { a: { speed: 0.5, reverse: true }, b: { speed: 2, reverse: true } } }
+    );
+    assert.equal(out[0]?.speed, 0.5);
+    assert.equal(out[0]?.reverse, true);
+    assert.equal(out[1]?.speed, undefined);
+    assert.equal(out[1]?.reverse, undefined);
+  });
+});

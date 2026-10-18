@@ -51,6 +51,20 @@ its caption, hold a still longer, **frame** a still (waist up, chest up), **trim
 the **poster**, set a still's **move** (push in, pull out, hold still) and a clip's
 **sound** (as recorded, louder, quieter, muted).
 
+## Editing keys
+
+| Key | Does |
+| --- | --- |
+| Space · K / L | Pause / play |
+| J | Back a shot |
+| ← → · , . | Previous / next shot · one frame back / on |
+| S | Split the clip at the playhead |
+| I / O | Trim the clip's in / out point to the playhead |
+| F | Freeze frame — the clip's frame held 2 s after it |
+| D | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
+
+Each clip has a **speed** (0.25×–4×, slow motion is smooth) and **reverse** in the shot list.
+
 ## Sound
 
 | Sound | Where it comes from |

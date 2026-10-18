@@ -4,6 +4,8 @@ import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
 import {
+  CLIP_SPEEDS,
+  clipSpeed,
   clipTrimWindow,
   MIN_CLIP_TRIM_SEC,
   moveCutShot,
@@ -282,6 +284,49 @@ export default function FilmCutShotList({
                       </select>
                     </label>
                   )}
+                  {shot.kind === 'clip' ? (
+                    <>
+                      <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                        speed
+                        <select
+                          disabled={disabled || !included}
+                          aria-label={`Speed of ${shot.title}`}
+                          title="How fast this clip plays — under 1× is smooth slow motion (frames made in between)"
+                          className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                          value={String(clipSpeed(edit?.speed))}
+                          data-testid={`${testIdPrefix}-shot-speed-${shot.key}`}
+                          onChange={event => {
+                            const next = clipSpeed(Number(event.target.value));
+                            patchShot(shot.key, { speed: next === 1 ? undefined : next });
+                          }}
+                        >
+                          {CLIP_SPEEDS.map(speed => (
+                            <option key={speed} value={String(speed)}>
+                              {speed === 1
+                                ? '1× as shot'
+                                : speed < 1
+                                  ? `${speed}× slow`
+                                  : `${speed}× fast`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                        <input
+                          type="checkbox"
+                          disabled={disabled || !included}
+                          checked={edit?.reverse === true}
+                          data-testid={`${testIdPrefix}-shot-reverse-${shot.key}`}
+                          onChange={event =>
+                            patchShot(shot.key, { reverse: event.target.checked || undefined })
+                          }
+                        />
+                        <span title="Play this clip backwards (in the cut; the monitor plays it forwards)">
+                          reverse
+                        </span>
+                      </label>
+                    </>
+                  ) : null}
                   {index > 0 ? (
                     <label className="flex items-center gap-1 text-[var(--text-muted)]">
                       in

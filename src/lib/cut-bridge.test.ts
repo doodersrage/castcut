@@ -57,3 +57,12 @@ describe('cut bridges', () => {
     );
   });
 });
+
+describe('freeze frame page', () => {
+  it('picks the animated page shown at a second', async () => {
+    const { animatedPageAt } = await import('./cut-bridge-server');
+    assert.equal(animatedPageAt([100, 100, 100], 3, 0.05), 0);
+    assert.equal(animatedPageAt([100, 100, 100], 3, 0.15), 1);
+    assert.equal(animatedPageAt([100, 100, 100], 3, 9), 2);
+  });
+});

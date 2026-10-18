@@ -29,8 +29,18 @@ type Drag =
       value: number;
       max: number | null;
       min: number;
+      /** File seconds per cut second (a sped-up / slowed clip). */
+      scale: number;
     }
-  | { kind: 'trimStart'; key: string; startX: number; base: number; value: number; max: number };
+  | {
+      kind: 'trimStart';
+      key: string;
+      startX: number;
+      base: number;
+      value: number;
+      max: number;
+      scale: number;
+    };
 
 const round = (value: number) => Math.round(value * 10) / 10;
 
@@ -153,13 +163,16 @@ export default function CutTimeline({
         value: round(Math.min(MAX_STILL_HOLD_SEC, Math.max(MIN_STILL_HOLD_SEC, drag.base + delta))),
       });
     } else if (drag.kind === 'trimEnd') {
-      const raw = drag.base + delta;
+      const raw = drag.base + delta * drag.scale;
       setDrag({
         ...drag,
         value: round(Math.max(drag.min, drag.max != null ? Math.min(drag.max, raw) : raw)),
       });
     } else {
-      setDrag({ ...drag, value: round(Math.min(drag.max, Math.max(0, drag.base + delta))) });
+      setDrag({
+        ...drag,
+        value: round(Math.min(drag.max, Math.max(0, drag.base + delta * drag.scale))),
+      });
     }
   };
   const endEdge = () => {
@@ -425,7 +438,8 @@ export default function CutTimeline({
                           startX: event.clientX,
                           base: item.fromSec,
                           value: item.fromSec,
-                          max: item.fromSec + item.durSec - MIN_CLIP_TRIM_SEC,
+                          max: item.fromSec + item.durSec * (item.speed ?? 1) - MIN_CLIP_TRIM_SEC,
+                          scale: item.speed ?? 1,
                         })
                       }
                     />
@@ -441,10 +455,11 @@ export default function CutTimeline({
                           kind: 'trimEnd',
                           key,
                           startX: event.clientX,
-                          base: item.fromSec + item.durSec,
-                          value: item.fromSec + item.durSec,
+                          base: item.fromSec + item.durSec * (item.speed ?? 1),
+                          value: item.fromSec + item.durSec * (item.speed ?? 1),
                           min: item.fromSec + MIN_CLIP_TRIM_SEC,
                           max: clipFull,
+                          scale: item.speed ?? 1,
                         })
                       }
                     />

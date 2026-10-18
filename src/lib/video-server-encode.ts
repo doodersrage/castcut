@@ -100,6 +100,29 @@ let ffmpegCached: string | null | undefined;
 
 const STATS_SIZE = 96;
 
+/** A clip's speed, 0.25–4 (1 when unset). */
+function clipSpeedOf(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.min(4, Math.max(0.25, value))
+    : 1;
+}
+
+/** atempo for a speed (each atempo stays within 0.5–2, as older ffmpeg builds require). */
+function atempoChain(speed: number): string {
+  const steps: number[] = [];
+  let left = speed;
+  while (left < 0.5) {
+    steps.push(0.5);
+    left /= 0.5;
+  }
+  while (left > 2) {
+    steps.push(2);
+    left /= 2;
+  }
+  steps.push(Number(left.toFixed(4)));
+  return steps.map(step => `atempo=${step}`).join(',');
+}
+
 /** A shot's colour (cut-look.ts) from its file: a still as is, a clip at 40% of what plays. */
 async function shotColourStatsFromFile(
   ffmpeg: string,
@@ -342,6 +365,13 @@ export function buildFilterComplex(input: {
   volumes?: ReadonlyArray<number | undefined>;
   /** Per shot: its colour grade as ffmpeg filters (cut-look.ts colourMatrixFfmpeg), '' = none. */
   grades?: ReadonlyArray<string | undefined>;
+  /**
+   * Per clip: file seconds per cut second (1 = as shot) — a clip's hold is its cut length, so it
+   * reads `hold × speed` seconds of the file. Under 1 the frames in between are interpolated.
+   */
+  speeds?: ReadonlyArray<number | undefined>;
+  /** Per clip: played backwards. */
+  reverses?: ReadonlyArray<boolean | undefined>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -401,9 +431,17 @@ export function buildFilterComplex(input: {
     } else if (kind === 'still') {
       chain = `[${i}:v]${scalePad},trim=duration=${hold},setpts=PTS-STARTPTS`;
     } else if (input.trimStarts?.[i] != null && hold > 0) {
-      // A trimmed clip (Cut shot list): only its in → out piece.
+      // A trimmed clip (Cut shot list): only its in → out piece — at its speed, maybe backwards.
       const start = input.trimStarts[i]!;
-      chain = `[${i}:v]trim=start=${start.toFixed(3)}:end=${(start + hold).toFixed(3)},setpts=PTS-STARTPTS,${scalePad}`;
+      const speed = clipSpeedOf(input.speeds?.[i]);
+      const reverse = input.reverses?.[i] ? ',reverse' : '';
+      const paced =
+        speed === 1
+          ? ''
+          : `,setpts=PTS/${speed}` +
+            // Slow motion: frames made in between (motion-compensated), not each one held.
+            (speed < 1 ? `,minterpolate=fps=${STILL_MOTION_FPS}:mi_mode=mci:mc_mode=aobmc` : '');
+      chain = `[${i}:v]trim=start=${start.toFixed(3)}:end=${(start + hold * speed).toFixed(3)},setpts=PTS-STARTPTS${reverse},${scalePad}${paced}`;
     } else {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
@@ -481,6 +519,10 @@ export function buildFilterComplex(input: {
   for (const { index, startSec, holdSec } of voiced) {
     const delayMs = Math.round(startSec * 1000);
     const from = input.trimStarts?.[index] ?? 0;
+    const speed = clipSpeedOf(input.speeds?.[index]);
+    // The sound plays the same window as the picture: backwards, then at the clip's speed.
+    const paced =
+      (input.reverses?.[index] ? 'areverse,' : '') + (speed === 1 ? '' : `${atempoChain(speed)},`);
     // The clip's own level (Cut's shot list) on top of the Lines level.
     const own = input.volumes?.[index];
     const gain =
@@ -488,7 +530,7 @@ export function buildFilterComplex(input: {
         ? `volume=${Number((voiceLevel * own).toFixed(3))},`
         : voiceGain;
     parts.push(
-      `[${index}:a]${stereo},atrim=${from}:${from + holdSec},asetpts=PTS-STARTPTS,${gain}adelay=${delayMs}:all=1[s${index}]`
+      `[${index}:a]${stereo},atrim=${from}:${from + holdSec * speed},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${delayMs}:all=1[s${index}]`
     );
   }
   // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
@@ -633,6 +675,8 @@ export async function encodeFilmPlaylistServer(
     const holdSecs: number[] = [];
     const speech: boolean[] = [];
     const trimStarts: Array<number | null> = [];
+    const speeds: number[] = [];
+    const reverses: boolean[] = [];
 
     for (const [index, shot] of shots.entries()) {
       options.onProgress?.(0.05 + (0.35 * index) / shots.length, `Fetching ${shot.title}`);
@@ -648,20 +692,22 @@ export async function encodeFilmPlaylistServer(
           : null;
       // A muted clip (Cut's shot list) adds no sound to the mix.
       speech.push(soundSec !== null && shot.volume !== 0);
-      // A trimmed clip (Cut shot list) plays from its in point to its out point.
-      const fullSec =
-        shot.kind === 'clip' && clipIsTrimmed(shot)
-          ? ((await clipDurationSec(ffmpeg, filePath)) ?? soundSec)
-          : null;
-      const trim =
-        shot.kind === 'clip' && clipIsTrimmed(shot) ? clipTrimWindow(shot, fullSec) : null;
+      // A trimmed clip (Cut shot list) plays from its in point to its out point; a sped-up,
+      // slowed or reversed one goes the same way (its whole file as the window when untrimmed).
+      const speed = shot.kind === 'clip' ? clipSpeedOf(shot.speed) : 1;
+      const paced = shot.kind === 'clip' && (speed !== 1 || shot.reverse === true);
+      speeds.push(speed);
+      reverses.push(shot.kind === 'clip' && shot.reverse === true);
+      const windowed = shot.kind === 'clip' && (clipIsTrimmed(shot) || paced);
+      const fullSec = windowed ? ((await clipDurationSec(ffmpeg, filePath)) ?? soundSec) : null;
+      const trim = windowed ? clipTrimWindow(shot, fullSec) : null;
       const trimmedSec = trim ? (trim.end ?? fullSec ?? 0) - trim.start : 0;
       trimStarts.push(trim && trimmedSec > 0 ? trim.start : null);
       holdSecs.push(
         shot.kind === 'still'
           ? clampStillHoldSec(shot.holdSec, DEFAULT_STILL_HOLD_SEC)
           : trim && trimmedSec > 0
-            ? trimmedSec
+            ? trimmedSec / speed
             : typeof shot.holdSec === 'number' && shot.holdSec > 0
               ? shot.holdSec
               : // A talking clip holds for its whole line (the 4 s default would cut it off).
@@ -730,6 +776,8 @@ export async function encodeFilmPlaylistServer(
     const graphMotions: Array<'in' | 'out' | 'none' | undefined> = [];
     const graphVolumes: Array<number | undefined> = [];
     const graphGrades: string[] = [];
+    const graphSpeeds: number[] = [];
+    const graphReverses: boolean[] = [];
     const inputArgs: string[][] = [];
     // The film look and shot match: each shot's colour read from its picture (a clip's at 40%).
     const look = normalizeFilmLook(options.look);
@@ -762,6 +810,8 @@ export async function encodeFilmPlaylistServer(
     const pushTitle = async () => {
       if (!titleText) return;
       graphGrades.push('');
+      graphSpeeds.push(1);
+      graphReverses.push(false);
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
       graphVolumes.push(undefined);
@@ -787,6 +837,8 @@ export async function encodeFilmPlaylistServer(
     for (let i = 0; i < localFiles.length; i += 1) {
       if (i === titleAt) await pushTitle();
       graphGrades.push(shotGrades[i] ?? '');
+      graphSpeeds.push(speeds[i] ?? 1);
+      graphReverses.push(reverses[i] === true);
       graphTransitions.push(shots[i]?.transitionIn);
       graphMotions.push(shots[i]?.motion);
       graphVolumes.push(shots[i]?.volume);
@@ -847,6 +899,8 @@ export async function encodeFilmPlaylistServer(
       stillMotions: graphMotions,
       volumes: graphVolumes,
       grades: graphGrades,
+      speeds: graphSpeeds,
+      reverses: graphReverses,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow

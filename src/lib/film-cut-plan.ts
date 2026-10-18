@@ -41,6 +41,10 @@ export type CutShotEdit = {
   volume?: number;
   /** Stills: push in, pull out or hold still (unset = alternating). */
   motion?: 'in' | 'out' | 'none';
+  /** Clips: playback speed, 0.25–4 (1 = as shot); under 1 is smooth slow motion. */
+  speed?: number;
+  /** Clips: play backwards. */
+  reverse?: boolean;
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */
@@ -183,6 +187,10 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
         ...(shot.kind === 'clip' && typeof edit?.volume === 'number' && edit.volume !== 1
           ? { volume: Math.min(2, Math.max(0, edit.volume)) }
           : {}),
+        ...(shot.kind === 'clip' && clipSpeed(edit?.speed) !== 1
+          ? { speed: clipSpeed(edit?.speed) }
+          : {}),
+        ...(shot.kind === 'clip' && edit?.reverse === true ? { reverse: true } : {}),
         ...(shot.kind === 'still' &&
         (edit?.motion === 'in' || edit?.motion === 'out' || edit?.motion === 'none')
           ? { motion: edit.motion }
@@ -198,6 +206,16 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
       },
     ];
   });
+}
+
+/** The speeds Cut offers for a clip. */
+export const CLIP_SPEEDS = [0.25, 0.5, 0.75, 1, 1.5, 2, 4] as const;
+
+/** A clip's playback speed, 0.25–4 (1 when unset or not a number). */
+export function clipSpeed(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? Math.min(4, Math.max(0.25, value))
+    : 1;
 }
 
 /** Move a shot one place up (-1) or down (+1) in the list order. */

@@ -86,6 +86,10 @@ export type FilmPlaylistShot = {
   volume?: number;
   /** Stills: push in, pull out or hold still (unset = the cut's alternating slow zoom). */
   motion?: 'in' | 'out' | 'none';
+  /** Clips: playback speed (1 = as shot; under 1 = smooth slow motion). */
+  speed?: number;
+  /** Clips: played backwards. */
+  reverse?: boolean;
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
