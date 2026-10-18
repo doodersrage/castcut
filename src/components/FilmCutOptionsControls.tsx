@@ -79,6 +79,8 @@ export type FilmCutOptionsValue = {
   lookStrength?: number;
   /** Match each shot's colour to the film's — default on (unset = on). */
   matchShots?: boolean;
+  /** Vertical / square: the crop follows the face — default on (unset = on). */
+  followFaces?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions;
 };
@@ -208,6 +210,20 @@ export default function FilmCutOptionsControls({
             ))}
           </select>
         </label>
+        {filmShapeOf(value) !== 'wide' ? (
+          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+            <input
+              type="checkbox"
+              disabled={disabled}
+              checked={value.followFaces !== false}
+              onChange={event => onChange({ ...value, followFaces: event.target.checked })}
+              data-testid={`${testIdPrefix}-follow-faces`}
+            />
+            <span title="Each wide shot is cropped around the face, the crop moving with it through a clip, instead of the centre (in the cut; the monitor shows the centre)">
+              Follow faces
+            </span>
+          </label>
+        ) : null}
         <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
           <span>Size</span>
           <select
@@ -597,6 +613,7 @@ export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
       ? `${FILM_LOOKS.find(look => look.id === normalizeFilmLook(value.look))?.label.toLowerCase()} look`
       : '',
     value.matchShots === false ? 'shots unmatched' : '',
+    filmShapeOf(value) !== 'wide' && value.followFaces === false ? 'centre crop' : '',
     value.titles ? 'titles' : '',
     value.subtitles === false ? 'no subtitles' : '',
     value.audioBedUrl.trim() ? 'audio bed' : '',

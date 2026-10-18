@@ -39,6 +39,13 @@ import {
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
 import sharp from 'sharp';
 import {
+  cropWidthFraction,
+  reframePath,
+  reframeSampleTimes,
+  reframeScaleFilter,
+  type ReframeSample,
+} from './cut-reframe';
+import {
   normalizeAmbienceLevel,
   normalizeMusicFadeInSec,
   normalizeMusicFadeOutSec,
@@ -94,6 +101,8 @@ export type FilmServerEncodeOptions = {
   matchShots?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
+  /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
+  followFaces?: boolean;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -131,6 +140,52 @@ function atempoChain(speed: number): string {
   }
   steps.push(Number(left.toFixed(4)));
   return steps.map(step => `atempo=${step}`).join(',');
+}
+
+/**
+ * A face-following crop for one shot (cut-reframe.ts), or null for the centre crop: no wider
+ * than the frame, no face found, or no face finder in ComfyUI. A clip is looked at every ~1.5 s
+ * through what plays; a reversed one holds still at the faces' mean.
+ */
+async function shotReframeFilter(input: {
+  file: string;
+  kind: FilmShotKind;
+  trimStart: number | null | undefined;
+  playSec: number;
+  reverse: boolean;
+  output: { width: number; height: number };
+}): Promise<string | null> {
+  if (input.kind !== 'clip' && input.kind !== 'still') return null;
+  const bytes = new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ input.file));
+  const { shotFramePng } = await import('./cut-bridge-server');
+  const { locateFaceInComfy } = await import('./face-locate-server');
+  const sharp = (await import('sharp')).default;
+  const times = input.kind === 'still' ? [0] : reframeSampleTimes(input.playSec);
+  const samples: ReframeSample[] = [];
+  let cropWidth = 1;
+  for (const t of times) {
+    const frame = await shotFramePng(
+      bytes,
+      input.kind === 'still' ? 'first' : { atSec: (input.trimStart ?? 0) + t }
+    );
+    const meta = await sharp(frame).metadata();
+    if (!meta.width || !meta.height) continue;
+    cropWidth = cropWidthFraction({ width: meta.width, height: meta.height }, input.output);
+    if (cropWidth >= 0.999) return null;
+    const found = await locateFaceInComfy({ bytes: frame, width: meta.width, height: meta.height });
+    if (!found.available) return null;
+    samples.push({
+      t,
+      cx: found.face ? (found.face.x + found.face.width / 2) / meta.width : null,
+    });
+  }
+  const path = reframePath(samples, cropWidth);
+  if (!path) return null;
+  const held =
+    input.reverse && path.length > 1
+      ? [{ t: 0, x: path.reduce((sum, p) => sum + p.x, 0) / path.length }]
+      : path;
+  return reframeScaleFilter(held, input.output);
 }
 
 /** A shot's colour (cut-look.ts) from its file: a still as is, a clip at 40% of what plays. */
@@ -389,9 +444,11 @@ export function buildFilterComplex(input: {
   sound?: CutSoundOptions | null;
   /** The ambience track's ffmpeg input index (looped), when there is one. */
   ambienceInput?: number | null;
+  /** Per shot: a face-following scale + crop in place of the centre crop (cut-reframe.ts). */
+  reframes?: ReadonlyArray<string | null | undefined>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
-  const scalePad = buildFilmScaleFilter(width, height);
+  const centreFit = buildFilmScaleFilter(width, height);
   const font = input.fontFile ? q(input.fontFile) : null;
   const captionSize = Math.round(Math.min(width, height) * 0.045);
   const subtitleTextSize = Math.round(Math.min(width, height) * 0.05);
@@ -414,6 +471,7 @@ export function buildFilterComplex(input: {
         : (holdSecs[i] ?? DEFAULT_STILL_HOLD_SEC);
     total += hold;
     let chain: string;
+    const scalePad = input.reframes?.[i] || centreFit;
     if (kind === 'title') {
       const titleSize = Math.round(Math.min(width, height) * 0.075);
       const subtitleSize = Math.round(titleSize * 0.5);
@@ -857,9 +915,32 @@ export async function encodeFilmPlaylistServer(
     const graphGrades: string[] = [];
     const graphSpeeds: number[] = [];
     const graphReverses: boolean[] = [];
+    const graphReframes: Array<string | null> = [];
     const graphLeads: number[] = [];
     const graphTails: number[] = [];
     const inputArgs: string[][] = [];
+    // Vertical / square: each wider shot's crop follows the face instead of the centre.
+    const shotReframes: Array<string | null> =
+      height >= width && options.followFaces !== false
+        ? await (async () => {
+            options.onProgress?.(0.44, 'Finding faces to frame…');
+            const out: Array<string | null> = [];
+            for (const [i, file] of localFiles.entries()) {
+              out.push(
+                await shotReframeFilter({
+                  file,
+                  kind: kinds[i]!,
+                  trimStart: trimStarts[i],
+                  // A silent, untrimmed clip has no hold yet: the graph plays 4 s of it.
+                  playSec: (holdSecs[i] && holdSecs[i]! > 0 ? holdSecs[i]! : 4) * (speeds[i] ?? 1),
+                  reverse: reverses[i] === true,
+                  output: { width, height },
+                }).catch(() => null)
+              );
+            }
+            return out;
+          })()
+        : localFiles.map(() => null);
     // The film look and shot match: each shot's colour read from its picture (a clip's at 40%).
     const look = normalizeFilmLook(options.look);
     const shotGrades =
@@ -893,6 +974,7 @@ export async function encodeFilmPlaylistServer(
       graphGrades.push('');
       graphSpeeds.push(1);
       graphReverses.push(false);
+      graphReframes.push(null);
       graphLeads.push(0);
       graphTails.push(0);
       graphTransitions.push(undefined);
@@ -922,6 +1004,7 @@ export async function encodeFilmPlaylistServer(
       graphGrades.push(shotGrades[i] ?? '');
       graphSpeeds.push(speeds[i] ?? 1);
       graphReverses.push(reverses[i] === true);
+      graphReframes.push(shotReframes[i] ?? null);
       graphLeads.push(soundLeads[i] ?? 0);
       graphTails.push(soundTails[i] ?? 0);
       graphTransitions.push(shots[i]?.transitionIn);
@@ -986,6 +1069,7 @@ export async function encodeFilmPlaylistServer(
       grades: graphGrades,
       speeds: graphSpeeds,
       reverses: graphReverses,
+      reframes: graphReframes,
       soundLeads: graphLeads,
       soundTails: graphTails,
       sound: options.sound,

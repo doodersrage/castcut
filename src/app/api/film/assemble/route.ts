@@ -158,6 +158,7 @@ export async function POST(request: Request) {
       look: typeof body.look === 'string' ? body.look : undefined,
       lookStrength: typeof body.lookStrength === 'number' ? body.lookStrength : undefined,
       matchShots: body.matchShots === true,
+      followFaces: body.followFaces !== false,
       sound: normalizeCutSound(body.sound),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,

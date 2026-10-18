@@ -112,6 +112,8 @@ export type StartFilmAssembleInput = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
+  followFaces?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   requestOrigin?: string;
@@ -168,6 +170,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         look: input.look,
         lookStrength: input.lookStrength,
         matchShots: input.matchShots,
+        followFaces: input.followFaces,
         sound: input.sound,
         userId: input.userId,
         onProgress: (ratio, label) => {

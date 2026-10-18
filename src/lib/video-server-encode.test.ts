@@ -116,3 +116,21 @@ describe('music shaping, ambience and J / L cuts in the graph', () => {
     assert.doesNotMatch(graph.filter, /afade=t=out/);
   });
 });
+
+describe('face-following reframe in the graph', () => {
+  it('puts a reframed shot through its own crop instead of the centre crop', async () => {
+    const { buildFilterComplex } = await import('./video-server-encode');
+    const graph = buildFilterComplex({
+      shotCount: 2,
+      kinds: ['clip', 'clip'],
+      holdSecs: [3, 3],
+      width: 720,
+      height: 1280,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      reframes: ["scale=-2:1280,crop=720:1280:'min(iw-ow,max(0,iw*0.3))':0,setsar=1,fps=30,format=yuv420p", null],
+    });
+    assert.match(graph.filter, /\[0:v\]scale=-2:1280,crop=720:1280:'min\(iw-ow,max\(0,iw\*0\.3\)\)'/);
+    assert.match(graph.filter, /\[1:v\]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280/);
+  });
+});

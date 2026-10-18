@@ -334,6 +334,11 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await expect(page.getByTestId('cut-ambience-upload')).toBeVisible();
   await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
+  // Follow faces is offered for a vertical cut only (on by default).
+  await expect(page.getByTestId('cut-follow-faces')).toHaveCount(0);
+  await page.getByTestId('cut-shape').selectOption('vertical');
+  await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
+  await page.getByTestId('cut-shape').selectOption('wide');
   // Make longer is offered (for the clip under the playhead).
   await expect(page.getByTestId('cut-extend')).toBeVisible();
   // Generate a shot: the form opens with the shot it goes after, and closes again.

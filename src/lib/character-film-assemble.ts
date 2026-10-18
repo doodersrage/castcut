@@ -39,6 +39,8 @@ export async function assembleAndStampFilm(input: {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
+  followFaces?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   /** Where the cut came from — kept in its recipe. */
@@ -82,6 +84,7 @@ export async function assembleAndStampFilm(input: {
     look: input.look,
     lookStrength: input.lookStrength,
     matchShots: input.matchShots,
+    followFaces: input.followFaces,
     sound: input.sound,
   });
   // The browser recorder draws pictures only: say what the server encode would have added.
@@ -123,6 +126,7 @@ export async function assembleAndStampFilm(input: {
       look: input.look,
       lookStrength: input.lookStrength,
       matchShots: input.matchShots,
+      followFaces: input.followFaces,
       sound: input.sound,
     }),
     onProgress: input.onProgress,

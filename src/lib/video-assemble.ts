@@ -71,6 +71,8 @@ export type AssembleFilmOptions = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
+  followFaces?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
 };
@@ -375,6 +377,7 @@ async function assembleFilmBlobOnServer(
         look: options?.look,
         lookStrength: options?.lookStrength,
         matchShots: options?.matchShots === true,
+        followFaces: options?.followFaces !== false,
         sound: options?.sound ?? undefined,
       }),
     });

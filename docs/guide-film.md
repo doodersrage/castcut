@@ -40,6 +40,7 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Levels** | Music and Lines — the music ducks under speech |
 | **Music shape** | Music from (start partway in) · Fade in · Fade out |
 | **Ambience** | A room tone / rain / café track looped under the whole film, with its own level |
+| **Follow faces** | Vertical / square cuts: each wide shot's crop follows the face instead of the centre (on by default) |
 | **Look** | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider |
 | **Match shots** *(on)* | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night) |
 | **Polish** | Crossfade · Slow zoom on stills · Title & captions |

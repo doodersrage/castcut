@@ -29,6 +29,8 @@ export type CutRecipe = {
   look?: string;
   lookStrength?: number;
   matchShots?: boolean;
+  /** Vertical / square cuts: the crop follows the face (cut-reframe.ts) — default on. */
+  followFaces?: boolean;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   /** Shots a re-cut can't bring back (a demo / uploaded still held only in the browser). */
