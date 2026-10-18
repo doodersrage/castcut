@@ -410,3 +410,12 @@ describe('kitchen counter needs a kitchen', () => {
     assert.deepEqual(beatPlaceConflicts('leaning on the counter with a coffee', 'corner cafe with a long counter'), []);
   });
 });
+
+describe('bathroom mirror needs a bathroom', () => {
+  it('flags a bathroom mirror on a rooftop (wide sweep, 2026-10-18)', async () => {
+    const { beatPlaceConflicts } = await import('./scene-surface');
+    assert.deepEqual(beatPlaceConflicts('standing at the bathroom mirror taking off earrings', 'rooftop terrace with city lights at night'), ['bathroom mirror']);
+    assert.deepEqual(beatPlaceConflicts('leaning in a doorway in pajamas, brushing teeth', 'late-night diner booth'), ['brushing teeth']);
+    assert.deepEqual(beatPlaceConflicts('standing at the bathroom mirror taking off earrings', 'marble bathroom with vanity lights'), []);
+  });
+});

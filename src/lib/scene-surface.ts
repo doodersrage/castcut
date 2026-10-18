@@ -857,6 +857,12 @@ const BEAT_PLACE_RULES: ReadonlyArray<{
       /\b(?:caf(?:e|é)(?![\w])|(?:diner|restaurant|bistro|brunch|breakfast|dinner|table|terrace)\b)/i,
   },
   {
+    // "at the bathroom mirror taking off earrings" on a night rooftop (wide sweep, 2026-10-18).
+    re: /\b(?:bathroom\s+(?:mirror|sink|counter|vanity)|brushing\s+(?:her\s+)?teeth)\b/i,
+    venues: ['bathroom', 'hotel', 'bedroom'],
+    setting: /\b(?:bathroom|vanity|powder\s+room|en[- ]suite)\b/i,
+  },
+  {
     // "surveying the kitchen counter" on a park lawn (wide sweep, 2026-10-18).
     re: /\b(?:stove|kettle|cupboard|the\s+fridge|pot\s+of\s+\w+|kitchen\s+(?:counter|island|sink|cabinets?))\b/i,
     venues: ['kitchen'],
