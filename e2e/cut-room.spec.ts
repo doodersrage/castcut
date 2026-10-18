@@ -319,6 +319,9 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-preview-scrub').fill('1');
   const before = await spread();
   expect(before).toBeGreaterThan(4);
+  await page.getByTestId('cut-options-picture').evaluate(el => {
+    (el as HTMLDetailsElement).open = true;
+  });
   await page.getByTestId('cut-look').selectOption('mono');
   await expect.poll(spread, { timeout: 10_000 }).toBeLessThan(1.5);
   // A 2× clip: its block on the timeline is about half as wide.
@@ -346,9 +349,9 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await expect(page.getByTestId('cut-smooth-motion')).not.toBeChecked();
   // Follow faces is offered for a vertical cut only (on by default).
   await expect(page.getByTestId('cut-follow-faces')).toHaveCount(0);
-  await page.getByTestId('cut-shape').selectOption('vertical');
+  await page.getByTestId('cut-shape-vertical').click();
   await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
-  await page.getByTestId('cut-shape').selectOption('wide');
+  await page.getByTestId('cut-shape-wide').click();
   // Make longer is offered (for the clip under the playhead).
   await expect(page.getByTestId('cut-extend')).toBeVisible();
   // Generate a shot: the form opens with the shot it goes after, and closes again.
@@ -373,11 +376,11 @@ test('make a reel: a vertical short cut, the full cut kept as a version', async 
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
   await page.getByTestId('cut-reel').selectOption('15');
-  await expect(page.getByTestId('cut-shape')).toHaveValue('vertical');
+  await expect(page.getByTestId('cut-shape-vertical')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
   await expect(page.getByTestId('cut-version-Full cut')).toBeVisible();
   await expect(page.getByTestId('cut-version-Reel · 15 s')).toBeVisible();
   // The full cut opens back as it was (wide).
   await page.getByTestId('cut-version-open-Full cut').click();
-  await expect(page.getByTestId('cut-shape')).toHaveValue('wide');
+  await expect(page.getByTestId('cut-shape-wide')).toHaveAttribute('aria-checked', 'true');
 });

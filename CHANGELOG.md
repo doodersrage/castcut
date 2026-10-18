@@ -9,6 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Cut: a tidier options panel.** The options are five foldable groups — Format, Picture, Timing, Sound, Text & logo (and Story) — each with a one-line summary of what is set. Inside, labels and controls line up in rows; shape, size and crossfade are segmented choices, on/off options are switches with a short note, music start / fades and a music link fold away. Cut film sits at the bottom with Export for an editor and the subtitles under it.
 - **Cut: the monitor matches the export** — Follow faces crops in the monitor too (the render's own face path, /api/cut/reframe), and J / L cuts play there (the clip's sound on its own player before / after its picture).
 - **Cut: New take** — the picked shot rendered again with a new seed (its exact graph, via the Gallery); the take stands in when ready, Remove / Ctrl+Z brings the old one back.
 - **Cut: timed subtitles + .srt** — spoken lines and narration split into short phrases, shown one after another while someone is actually speaking (found with silence detection); after a cut, **Subtitles (.srt)** downloads the same cues timed to the film.

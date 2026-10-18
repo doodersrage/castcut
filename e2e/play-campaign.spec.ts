@@ -2069,6 +2069,9 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
   await dismissBlockingOverlays(page);
   const coach = page.locator('body');
   await expect(coach.getByTestId('cut-shot-list')).toBeVisible();
+  await coach.getByTestId('cut-options-text').evaluate(el => {
+    (el as HTMLDetailsElement).open = true;
+  });
   await coach.getByTestId('cut-titles').check();
   await expect(coach.getByTestId('cut-shot-caption-day:morning')).toHaveValue(
     'pours coffee by the window'
@@ -2192,8 +2195,8 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   await dismissBlockingOverlays(page);
   const room = page.locator('body');
   await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
-  await room.getByTestId('cut-shape').selectOption('square');
-  await room.getByTestId('cut-quality').selectOption('1080p');
+  await room.getByTestId('cut-shape-square').click();
+  await room.getByTestId('cut-quality-1080p').click();
   await expect(room.getByTestId('cut-shot-identity-day:afternoon')).toHaveAttribute(
     'data-tone',
     'miss'
@@ -2206,8 +2209,8 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   await room.getByTestId('cut-shot-poster-at-day:night').fill('2.5');
   await room.getByTestId('cut-voice-level').fill('1.5');
   // The choices stay as set (Cut keeps its options between visits).
-  await expect(room.getByTestId('cut-shape')).toHaveValue('square');
-  await expect(room.getByTestId('cut-quality')).toHaveValue('1080p');
+  await expect(room.getByTestId('cut-shape-square')).toHaveAttribute('aria-checked', 'true');
+  await expect(room.getByTestId('cut-quality-1080p')).toHaveAttribute('aria-checked', 'true');
   // Cut: the missing clip and the face miss come up before the encode.
   await page.getByTestId('cut-film').first().click();
   const dialog = page.getByTestId('cut-problems');
@@ -3867,7 +3870,7 @@ test('cast film tab offers Cut episode: the Day, then the Story, as one film', a
   await expect(cut).toHaveText(/Cut episode · 4 shots/);
   await expect(cut).toBeEnabled();
   // The same shot list as Day / Story: leave a shot out and the count follows.
-  await episode.getByTestId('character-episode-options').locator('summary').click();
+  await episode.getByTestId('character-episode-options').locator(':scope > summary').click();
   await episode.getByTestId('character-episode-shot-include-day:evening').uncheck();
   await expect(cut).toHaveText(/Cut episode · 3 shots/);
   await expect(summary).toContainText('1 from the Day, 2 from the Story');

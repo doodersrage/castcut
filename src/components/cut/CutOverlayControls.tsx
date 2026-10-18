@@ -8,6 +8,7 @@
 import { useRef, useState } from 'react';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button } from '@/components/ui/Button';
+import { OptionRow } from '@/components/cut/CutOptionParts';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { OVERLAY_CORNERS, type OverlayCorner } from '@/lib/cut-overlay';
 import type { CutShotEdit } from '@/lib/film-cut-plan';
@@ -62,12 +63,14 @@ function CornerSelect({
 
 function PictureButton({
   label,
+  variant = 'secondary',
   disabled,
   onPicked,
   onError,
   testId,
 }: {
   label: string;
+  variant?: 'secondary' | 'ghost';
   disabled?: boolean;
   onPicked: (url: string, name: string) => void;
   onError: (message: string) => void;
@@ -79,7 +82,7 @@ function PictureButton({
       <Button
         type="button"
         size="sm"
-        variant="secondary"
+        variant={variant}
         disabled={disabled}
         onClick={() => ref.current?.click()}
         data-testid={testId}
@@ -122,10 +125,14 @@ export function CutLogoControl({
   const [error, setError] = useState<string | null>(null);
   const logo = value.logoUrl?.trim();
   return (
-    <div className="space-y-1">
-      <ToolActionRow>
+    <div className="grid gap-2">
+      <OptionRow label="Logo" hint="A logo or watermark over the whole film">
+        <span className="min-w-0 flex-1 truncate type-caption text-[var(--text-primary)]">
+          {logo ? value.logoName || 'A picture' : 'None'}
+        </span>
         <PictureButton
-          label={logo ? 'Change logo' : 'Add a logo'}
+          label={logo ? 'Change' : 'Add'}
+          variant="ghost"
           disabled={disabled}
           testId={`${testIdPrefix}-logo`}
           onError={setError}
@@ -135,29 +142,28 @@ export function CutLogoControl({
           }}
         />
         {logo ? (
-          <>
-            <span className="type-caption text-[var(--text-muted)]">
-              {value.logoName ? `Logo: ${value.logoName}` : 'Logo'}
-            </span>
-            <CornerSelect
-              label="Logo corner"
-              value={value.logoCorner ?? 'br'}
-              disabled={disabled}
-              onChange={corner => onChange({ ...value, logoCorner: corner })}
-              testId={`${testIdPrefix}-logo-corner`}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled}
-              onClick={() => onChange({ ...value, logoUrl: undefined, logoName: undefined })}
-            >
-              Clear
-            </Button>
-          </>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => onChange({ ...value, logoUrl: undefined, logoName: undefined })}
+          >
+            Remove
+          </Button>
         ) : null}
-      </ToolActionRow>
+      </OptionRow>
+      {logo ? (
+        <OptionRow label="Corner">
+          <CornerSelect
+            label="Logo corner"
+            value={value.logoCorner ?? 'br'}
+            disabled={disabled}
+            onChange={corner => onChange({ ...value, logoCorner: corner })}
+            testId={`${testIdPrefix}-logo-corner`}
+          />
+        </OptionRow>
+      ) : null}
       {error ? <p className="type-caption text-[var(--danger)]">{error}</p> : null}
     </div>
   );

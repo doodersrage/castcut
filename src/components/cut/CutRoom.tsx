@@ -463,45 +463,52 @@ export default function CutRoom() {
                     vm.sources.includes('day') ? { mood: vm.dayMood } : { tone: vm.storyTone }
                   }
                 />
-                {cutButton}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy || exporting || !preview.loaded}
-                  loading={exporting}
-                  loadingLabel="Packing"
-                  data-testid="cut-export-project"
-                  title="This cut as a project for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline (and the subtitles) in one .zip"
-                  onClick={() => void exportProject()}
-                >
-                  Export for an editor
-                </Button>
-                {exportError ? (
-                  <p className="type-caption text-[var(--danger)]" data-testid="cut-export-error">
-                    {exportError}
-                  </p>
-                ) : null}
-                {vm.lastSubtitles ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    data-testid="cut-subtitles-srt"
-                    title="The film's subtitles, timed to the cut — for YouTube, a video editor or a player"
-                    onClick={() => {
-                      const blob = new Blob([vm.lastSubtitles!.srt], {
-                        type: 'application/x-subrip',
-                      });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = vm.lastSubtitles!.filename;
-                      link.click();
-                      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-                    }}
-                  >
-                    Subtitles (.srt)
-                  </Button>
-                ) : null}
+                <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
+                  {cutButton}
+                  <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy || exporting || !preview.loaded}
+                      loading={exporting}
+                      loadingLabel="Packing"
+                      data-testid="cut-export-project"
+                      title="This cut as a project for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline (and the subtitles) in one .zip"
+                      onClick={() => void exportProject()}
+                    >
+                      Export for an editor
+                    </Button>
+                    {exportError ? (
+                      <p
+                        className="type-caption text-[var(--danger)]"
+                        data-testid="cut-export-error"
+                      >
+                        {exportError}
+                      </p>
+                    ) : null}
+                    {vm.lastSubtitles ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        data-testid="cut-subtitles-srt"
+                        title="The film's subtitles, timed to the cut — for YouTube, a video editor or a player"
+                        onClick={() => {
+                          const blob = new Blob([vm.lastSubtitles!.srt], {
+                            type: 'application/x-subrip',
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = vm.lastSubtitles!.filename;
+                          link.click();
+                          window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                        }}
+                      >
+                        Subtitles (.srt)
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </ToolSection>
           </div>

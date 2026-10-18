@@ -385,7 +385,10 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await dismissBlockingOverlays(page);
   const coach = page.locator('body');
   await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
-  await coach.getByTestId('cut-shape').selectOption('square');
+  await coach.getByTestId('cut-shape-square').click();
+  await coach.getByTestId('cut-options-text').evaluate(el => {
+    (el as HTMLDetailsElement).open = true;
+  });
   await coach.getByTestId('cut-titles').check();
   // Night's narration is not recorded yet: the preview offers to record it to hear it.
   await expect(coach.getByTestId('cut-preview-record-narration')).toContainText('1 line');

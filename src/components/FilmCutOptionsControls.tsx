@@ -21,7 +21,14 @@ import {
 } from '@/lib/film-cut-plan';
 import { useEffect, useRef, useState } from 'react';
 import type { MixPreview } from '@/lib/film-mix-preview';
-import { FieldLabel } from '@/components/ui/Field';
+import {
+  OptionGroup,
+  OptionRow,
+  OptionSegments,
+  OptionSlider,
+  OptionSwitch,
+  optionSelectClass,
+} from '@/components/cut/CutOptionParts';
 import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film-audio-bed';
@@ -34,12 +41,7 @@ import {
   normalizeVoiceLevel,
   VOICE_LEVEL_RANGE,
 } from '@/lib/audio-mix-levels';
-import {
-  FILM_SHAPES,
-  filmShapeOf,
-  normalizeFilmShape,
-  type FilmShape,
-} from '@/lib/video-resolution';
+import { FILM_SHAPES, filmShapeOf, type FilmShape } from '@/lib/video-resolution';
 
 export type FilmCutOptionsValue = {
   crossfadeSec: number;
@@ -174,192 +176,84 @@ export default function FilmCutOptionsControls({
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const bedLabel = value.audioBedName?.trim() || '';
+  const [linkOpen, setLinkOpen] = useState(
+    () =>
+      Boolean(value.audioBedUrl.trim()) &&
+      !value.audioBedUrl.startsWith('data:') &&
+      !value.audioBedName
+  );
   const hasBed = Boolean(value.audioBedUrl.trim());
 
+  const shape = filmShapeOf(value);
+  const look = normalizeFilmLook(value.look);
+  const lookLabel = FILM_LOOKS.find(entry => entry.id === look)?.label ?? 'As shot';
+  const lengthLabel =
+    value.length === 'music'
+      ? 'fit to music'
+      : typeof value.length === 'number'
+        ? `${value.length} s`
+        : 'as the shots hold';
+  const groupKey = (name: string) => `cut-options:${testIdPrefix}:${name}`;
+  const join = (...parts: Array<string | false | null | undefined>) =>
+    parts.filter(Boolean).join(' · ');
+  const crossfades = [0, 0.3, 0.6, 1];
+  const crossfadeOptions = [
+    ...crossfades.map(sec => ({
+      id: String(sec),
+      label: sec === 0 ? 'Cut' : `${sec} s`,
+      hint: sec === 0 ? 'Hard cuts between shots' : `Shots fade into each other over ${sec} s`,
+    })),
+    ...(crossfades.includes(value.crossfadeSec)
+      ? []
+      : [{ id: String(value.crossfadeSec), label: `${value.crossfadeSec} s` }]),
+  ];
+  const hasClips = Boolean(shots?.some(shot => shot.kind === 'clip'));
+
   return (
-    <div className="space-y-2" data-testid={`${testIdPrefix}-options`}>
-      <ToolActionRow>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Crossfade</span>
-          <input
-            type="number"
-            min={0}
-            max={2}
-            step={0.1}
+    <div className="cut-opt-panel" data-testid={`${testIdPrefix}-options`}>
+      <OptionGroup
+        title="Format"
+        summary={join(
+          FILM_SHAPE_SHORT[shape],
+          value.quality === '1080p' ? '1080p' : '720p',
+          lengthLabel
+        )}
+        defaultOpen
+        persistKey={groupKey('format')}
+        testId={`${testIdPrefix}-options-format`}
+      >
+        <OptionRow label="Shape">
+          <OptionSegments
+            label="Shape"
+            options={FILM_SHAPES.map(entry => ({
+              id: entry.id,
+              label: FILM_SHAPE_NAME[entry.id],
+              hint: `${entry.label} · ${entry.hint}`,
+            }))}
+            value={shape}
             disabled={disabled}
-            className="w-16 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
-            value={value.crossfadeSec}
-            onChange={event =>
-              onChange({
-                ...value,
-                crossfadeSec: Math.min(2, Math.max(0, Number(event.target.value) || 0)),
-              })
-            }
-            data-testid={`${testIdPrefix}-crossfade`}
+            onChange={next => onChange({ ...value, shape: next, vertical: next === 'vertical' })}
+            testId={`${testIdPrefix}-shape`}
           />
-          <span>s</span>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Shape</span>
-          <select
-            disabled={disabled}
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
-            value={filmShapeOf(value)}
-            onChange={event => {
-              const shape = normalizeFilmShape(event.target.value);
-              onChange({ ...value, shape, vertical: shape === 'vertical' });
-            }}
-            data-testid={`${testIdPrefix}-shape`}
-          >
-            {FILM_SHAPES.map(shape => (
-              <option key={shape.id} value={shape.id}>
-                {shape.label} · {shape.hint}
-              </option>
-            ))}
-          </select>
-        </label>
-        {filmShapeOf(value) !== 'wide' ? (
-          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-            <input
-              type="checkbox"
-              disabled={disabled}
-              checked={value.followFaces !== false}
-              onChange={event => onChange({ ...value, followFaces: event.target.checked })}
-              data-testid={`${testIdPrefix}-follow-faces`}
-            />
-            <span title="Each wide shot is cropped around the face, the crop moving with it through a clip, instead of the centre">
-              Follow faces
-            </span>
-          </label>
-        ) : null}
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Size</span>
-          <select
-            disabled={disabled}
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+        </OptionRow>
+        <OptionRow label="Size">
+          <OptionSegments
+            label="Size"
+            options={[
+              { id: '720p', label: '720p', hint: 'Smaller file' },
+              { id: '1080p', label: '1080p', hint: 'Sharper, larger file' },
+            ]}
             value={value.quality === '1080p' ? '1080p' : '720p'}
-            onChange={event =>
-              onChange({ ...value, quality: event.target.value === '1080p' ? '1080p' : '720p' })
-            }
-            data-testid={`${testIdPrefix}-quality`}
-          >
-            <option value="720p">720p · smaller file</option>
-            <option value="1080p">1080p · sharper</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
             disabled={disabled}
-            checked={value.stillMotion !== false}
-            onChange={event => onChange({ ...value, stillMotion: event.target.checked })}
-            data-testid={`${testIdPrefix}-still-motion`}
+            onChange={next => onChange({ ...value, quality: next })}
+            testId={`${testIdPrefix}-quality`}
           />
-          <span>Slow zoom on stills</span>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={value.titles === true}
-            onChange={event => onChange({ ...value, titles: event.target.checked })}
-            data-testid={`${testIdPrefix}-titles`}
-          />
-          <span>Title & captions</span>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={value.subtitles !== false}
-            onChange={event => onChange({ ...value, subtitles: event.target.checked })}
-            data-testid={`${testIdPrefix}-subtitles`}
-          />
-          <span title="What is said in each clip, else its narration, at the bottom of the picture — for viewers watching with the sound off">
-            Subtitles
-          </span>
-        </label>
-      </ToolActionRow>
-
-      <ToolActionRow>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Look</span>
+        </OptionRow>
+        <OptionRow label="Length" htmlFor={`${testIdPrefix}-length`}>
           <select
+            id={`${testIdPrefix}-length`}
             disabled={disabled}
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
-            value={normalizeFilmLook(value.look)}
-            onChange={event => onChange({ ...value, look: normalizeFilmLook(event.target.value) })}
-            data-testid={`${testIdPrefix}-look`}
-          >
-            {FILM_LOOKS.map(look => (
-              <option key={look.id} value={look.id}>
-                {look.label} · {look.hint}
-              </option>
-            ))}
-          </select>
-        </label>
-        {normalizeFilmLook(value.look) !== 'none' ? (
-          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-            <span>Strength</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              disabled={disabled}
-              value={Math.round(normalizeLookStrength(value.lookStrength) * 100)}
-              onChange={event =>
-                onChange({ ...value, lookStrength: Number(event.target.value) / 100 })
-              }
-              aria-label="Look strength"
-              data-testid={`${testIdPrefix}-look-strength`}
-            />
-          </label>
-        ) : null}
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={value.matchShots !== false}
-            onChange={event => onChange({ ...value, matchShots: event.target.checked })}
-            data-testid={`${testIdPrefix}-match-shots`}
-          />
-          <span title="Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)">
-            Match shots
-          </span>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={value.smoothMotion === true}
-            onChange={event => onChange({ ...value, smoothMotion: event.target.checked })}
-            data-testid={`${testIdPrefix}-smooth-motion`}
-          />
-          <span title="Clips made at 16 or 24 fps get the frames in between drawn (RIFE in ComfyUI, ~10 s a clip), so motion is smooth instead of stepping">
-            Smooth motion
-          </span>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled}
-            checked={value.sharpen === true}
-            onChange={event => onChange({ ...value, sharpen: event.target.checked })}
-            data-testid={`${testIdPrefix}-sharpen`}
-          />
-          <span title="A light sharpen over the finished film — crisper on a phone, nothing invented">
-            Sharpen
-          </span>
-        </label>
-      </ToolActionRow>
-
-      <ToolActionRow>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Length</span>
-          <select
-            disabled={disabled}
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            className={optionSelectClass}
             value={String(value.length ?? 'shots')}
             onChange={event =>
               onChange({
@@ -374,132 +268,182 @@ export default function FilmCutOptionsControls({
             data-testid={`${testIdPrefix}-length`}
           >
             <option value="shots">As the shots hold</option>
-            <option value="music" disabled={!value.audioBedUrl.trim()}>
-              Fit to the music
+            <option value="music" disabled={!hasBed}>
+              Fit to the music{hasBed ? '' : ' (add music)'}
             </option>
             <option value="15">15 s</option>
             <option value="30">30 s</option>
             <option value="60">60 s</option>
           </select>
-        </label>
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <input
-            type="checkbox"
-            disabled={disabled || !value.audioBedUrl.trim()}
-            checked={value.beatSnap === true}
-            onChange={event => onChange({ ...value, beatSnap: event.target.checked })}
-            data-testid={`${testIdPrefix}-beat-snap`}
+        </OptionRow>
+        {shape !== 'wide' ? (
+          <OptionSwitch
+            label="Follow faces"
+            note="Crop around the face, not the centre"
+            checked={value.followFaces !== false}
+            disabled={disabled}
+            onChange={next => onChange({ ...value, followFaces: next })}
+            testId={`${testIdPrefix}-follow-faces`}
           />
-          <span>Cut on the beat</span>
-        </label>
-        {previouslyAvailable ? (
-          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-            <input
-              type="checkbox"
-              disabled={disabled}
-              checked={value.previouslyOn !== false}
-              onChange={event => onChange({ ...value, previouslyOn: event.target.checked })}
-              data-testid={`${testIdPrefix}-previously-on`}
-            />
-            <span title="Three short shots from the last episode open this one">Previously on</span>
-          </label>
         ) : null}
-        {storyExtras ? (
-          <>
-            <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-              <input
-                type="checkbox"
-                disabled={disabled}
-                checked={value.narrate === true}
-                onChange={event => onChange({ ...value, narrate: event.target.checked })}
-                data-testid={`${testIdPrefix}-narrate`}
-              />
-              <span title="Each scene's first sentence is read over its shot (LTX-2.5, about 15 s a scene the first time; scenes with their own spoken line are left as they are)">
-                Narrate the story
-              </span>
-            </label>
-            {filmShapeOf(value) === 'wide' ? (
-              <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-                <input
-                  type="checkbox"
-                  disabled={disabled}
-                  checked={value.widen === true}
-                  onChange={event => onChange({ ...value, widen: event.target.checked })}
-                  data-testid={`${testIdPrefix}-widen`}
-                />
-                <span title="Each portrait still is widened to 16:9 by continuing the scene to the sides (one Edit 2511 pass a still, about 40 s) — no black bars">
-                  Widen stills to 16:9
-                </span>
-              </label>
-            ) : null}
-          </>
-        ) : null}
-      </ToolActionRow>
-      {!value.audioBedUrl.trim() && (value.length === 'music' || value.beatSnap) ? (
-        <p className="type-caption text-[var(--text-muted)]">
-          Add a music track below to fit the cut to it or cut on its beat.
-        </p>
-      ) : null}
+      </OptionGroup>
 
-      {withShotPanels && shots && shots.length > 0 ? (
-        previewOpen ? (
-          <FilmCutPreviewPlayer
-            shots={shots}
-            value={value}
-            titleCard={previewTitleCard}
-            testIdPrefix={testIdPrefix}
-            onClose={() => setPreviewOpen(false)}
+      <OptionGroup
+        title="Picture"
+        summary={join(
+          look === 'none' ? 'as shot' : `${lookLabel.toLowerCase()} look`,
+          value.matchShots !== false && 'matched',
+          value.stillMotion !== false && 'slow zoom',
+          value.smoothMotion && 'smooth',
+          value.sharpen && 'sharpened'
+        )}
+        persistKey={groupKey('picture')}
+        testId={`${testIdPrefix}-options-picture`}
+      >
+        <OptionRow label="Look" htmlFor={`${testIdPrefix}-look`}>
+          <select
+            id={`${testIdPrefix}-look`}
+            disabled={disabled}
+            className={optionSelectClass}
+            value={look}
+            onChange={event => onChange({ ...value, look: normalizeFilmLook(event.target.value) })}
+            data-testid={`${testIdPrefix}-look`}
+          >
+            {FILM_LOOKS.map(entry => (
+              <option key={entry.id} value={entry.id} title={entry.hint}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+        </OptionRow>
+        {look !== 'none' ? (
+          <OptionRow label="Strength">
+            <OptionSlider
+              label="Look strength"
+              value={normalizeLookStrength(value.lookStrength)}
+              min={0}
+              max={1}
+              step={0.05}
+              disabled={disabled}
+              onChange={next => onChange({ ...value, lookStrength: next })}
+              testId={`${testIdPrefix}-look-strength`}
+            />
+          </OptionRow>
+        ) : null}
+        <OptionSwitch
+          label="Match shots"
+          note="Even out colour and light between shots"
+          hint="Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)"
+          checked={value.matchShots !== false}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, matchShots: next })}
+          testId={`${testIdPrefix}-match-shots`}
+        />
+        <OptionSwitch
+          label="Slow zoom on stills"
+          checked={value.stillMotion !== false}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, stillMotion: next })}
+          testId={`${testIdPrefix}-still-motion`}
+        />
+        <OptionSwitch
+          label="Smooth motion"
+          note="Draws in-between frames · ~10 s a clip"
+          hint="Clips made at 16 or 24 fps get the frames in between drawn (RIFE in ComfyUI), so motion is smooth instead of stepping"
+          checked={value.smoothMotion === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, smoothMotion: next })}
+          testId={`${testIdPrefix}-smooth-motion`}
+        />
+        <OptionSwitch
+          label="Sharpen"
+          hint="A light sharpen over the finished film — crisper on a phone, nothing invented"
+          checked={value.sharpen === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, sharpen: next })}
+          testId={`${testIdPrefix}-sharpen`}
+        />
+      </OptionGroup>
+
+      <OptionGroup
+        title="Timing"
+        summary={join(
+          value.crossfadeSec > 0 ? `${value.crossfadeSec} s crossfades` : 'hard cuts',
+          value.beatSnap && hasBed && 'on the beat',
+          previouslyAvailable && value.previouslyOn !== false && 'previously on'
+        )}
+        persistKey={groupKey('timing')}
+        testId={`${testIdPrefix}-options-timing`}
+      >
+        <OptionRow label="Crossfade">
+          <OptionSegments
+            label="Crossfade"
+            options={crossfadeOptions}
+            value={String(value.crossfadeSec)}
+            disabled={disabled}
+            onChange={next =>
+              onChange({ ...value, crossfadeSec: Math.min(2, Math.max(0, Number(next) || 0)) })
+            }
+            testId={`${testIdPrefix}-crossfade`}
           />
-        ) : (
-          <ToolActionRow>
+        </OptionRow>
+        <OptionSwitch
+          label="Cut on the beat"
+          note={hasBed ? undefined : 'Add music under Sound first'}
+          checked={value.beatSnap === true && hasBed}
+          disabled={disabled || !hasBed}
+          onChange={next => onChange({ ...value, beatSnap: next })}
+          testId={`${testIdPrefix}-beat-snap`}
+        />
+        {previouslyAvailable ? (
+          <OptionSwitch
+            label="Previously on"
+            note="Open with three shots of the last episode"
+            checked={value.previouslyOn !== false}
+            disabled={disabled}
+            onChange={next => onChange({ ...value, previouslyOn: next })}
+            testId={`${testIdPrefix}-previously-on`}
+          />
+        ) : null}
+      </OptionGroup>
+
+      <OptionGroup
+        title="Sound"
+        summary={join(
+          hasBed ? `music: ${bedLabel || 'a track'}` : 'no music',
+          value.sound?.ambienceUrl?.trim() && 'ambience'
+        )}
+        defaultOpen
+        persistKey={groupKey('sound')}
+        testId={`${testIdPrefix}-options-sound`}
+      >
+        <OptionRow label="Music">
+          <span
+            className="min-w-0 flex-1 truncate type-caption text-[var(--text-primary)]"
+            data-testid={hasBed ? `${testIdPrefix}-audio-bed-status` : undefined}
+            title={bedLabel || undefined}
+          >
+            {hasBed
+              ? bedLabel ||
+                (value.audioBedUrl.startsWith('data:') ? 'Uploaded audio' : 'From a link')
+              : 'None'}
+          </span>
+          {hasBed ? (
             <Button
               type="button"
               size="sm"
-              variant="secondary"
-              disabled={disabled || recording}
-              title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music, lines and narration"
-              onClick={() => setPreviewOpen(true)}
-              data-testid={`${testIdPrefix}-preview-open`}
+              variant="ghost"
+              disabled={disabled || uploadBusy}
+              onClick={() => {
+                setUploadError(null);
+                onChange({ ...value, audioBedUrl: '', audioBedName: undefined });
+              }}
+              data-testid={`${testIdPrefix}-audio-bed-clear`}
             >
-              ▶ Preview the cut
+              Remove
             </Button>
-            {narrationToRecord && narrationToRecord.lines > 0 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={disabled || recording}
-                title="Record the voice-over lines now, so the preview plays them (Cut film uses the same recordings)"
-                onClick={() => {
-                  setRecording(true);
-                  void narrationToRecord.record().finally(() => setRecording(false));
-                }}
-                data-testid={`${testIdPrefix}-preview-record-narration`}
-              >
-                {recording
-                  ? 'Recording narration…'
-                  : `Record narration to hear it (${narrationToRecord.lines} line${narrationToRecord.lines === 1 ? '' : 's'})`}
-              </Button>
-            ) : null}
-          </ToolActionRow>
-        )
-      ) : null}
-
-      {withShotPanels && shots && shots.length > 0 ? (
-        <FilmCutShotList
-          shots={shots}
-          edits={value.shotEdits}
-          captions={value.titles === true}
-          holdsLocked={(value.length ?? 'shots') !== 'shots'}
-          disabled={disabled}
-          testIdPrefix={testIdPrefix}
-          onChange={shotEdits => onChange({ ...value, shotEdits })}
-          identityFor={identityFor}
-        />
-      ) : null}
-
-      <div className="space-y-1.5">
-        <FieldLabel>Audio bed (optional)</FieldLabel>
+          ) : null}
+        </OptionRow>
         <ToolActionRow>
           <Button
             type="button"
@@ -511,7 +455,7 @@ export default function FilmCutOptionsControls({
             onClick={() => fileRef.current?.click()}
             data-testid={`${testIdPrefix}-audio-bed-upload`}
           >
-            Upload audio
+            {hasBed ? 'Change music' : 'Upload music'}
           </Button>
           {scoreBrief ? (
             <Button
@@ -528,22 +472,29 @@ export default function FilmCutOptionsControls({
               {hasBed ? 'Score it again' : 'Score this film'}
             </Button>
           ) : null}
-          {hasBed ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled || uploadBusy}
-              onClick={() => {
-                setUploadError(null);
-                onChange({ ...value, audioBedUrl: '', audioBedName: undefined });
-              }}
-              data-testid={`${testIdPrefix}-audio-bed-clear`}
-            >
-              Clear
-            </Button>
-          ) : null}
+          <button
+            type="button"
+            className="type-caption text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+            onClick={() => setLinkOpen(open => !open)}
+            data-testid={`${testIdPrefix}-audio-bed-link`}
+          >
+            {linkOpen ? 'Hide link' : 'Use a link'}
+          </button>
         </ToolActionRow>
+        {linkOpen ? (
+          <input
+            type="url"
+            disabled={disabled || uploadBusy}
+            placeholder="https://… or /api/gallery/media/…"
+            aria-label="Music link"
+            className={optionSelectClass}
+            value={value.audioBedUrl.startsWith('data:') ? '' : value.audioBedUrl}
+            onChange={event =>
+              onChange({ ...value, audioBedUrl: event.target.value, audioBedName: undefined })
+            }
+            data-testid={`${testIdPrefix}-audio-bed`}
+          />
+        ) : null}
         <input
           ref={fileRef}
           type="file"
@@ -553,18 +504,12 @@ export default function FilmCutOptionsControls({
           onChange={event => {
             const file = event.target.files?.[0];
             event.target.value = '';
-            if (!file) {
-              return;
-            }
+            if (!file) return;
             setUploadBusy(true);
             setUploadError(null);
             void resolveFilmAudioBedFromFile(file)
               .then(resolved => {
-                onChange({
-                  ...value,
-                  audioBedUrl: resolved.url,
-                  audioBedName: resolved.label,
-                });
+                onChange({ ...value, audioBedUrl: resolved.url, audioBedName: resolved.label });
               })
               .catch(err => {
                 setUploadError(
@@ -574,18 +519,6 @@ export default function FilmCutOptionsControls({
               .finally(() => setUploadBusy(false));
           }}
         />
-        {hasBed ? (
-          <p
-            className="type-caption text-[var(--text-muted)]"
-            data-testid={`${testIdPrefix}-audio-bed-status`}
-          >
-            {bedLabel
-              ? `Using ${bedLabel}`
-              : value.audioBedUrl.startsWith('data:')
-                ? 'Using uploaded audio'
-                : 'Using audio URL'}
-          </p>
-        ) : null}
         {uploadError ? (
           <p
             className="type-caption text-[var(--danger)]"
@@ -599,15 +532,9 @@ export default function FilmCutOptionsControls({
           onChange={onChange}
           disabled={disabled || uploadBusy}
           hasBed={hasBed}
-          hasLines={Boolean(shots?.some(shot => shot.kind === 'clip'))}
+          hasLines={hasClips}
           testIdPrefix={testIdPrefix}
           shots={shots}
-        />
-        <CutLogoControl
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          testIdPrefix={testIdPrefix}
         />
         <CutSoundControls
           value={value}
@@ -616,28 +543,147 @@ export default function FilmCutOptionsControls({
           hasBed={hasBed}
           testIdPrefix={testIdPrefix}
         />
-        <label className="flex flex-col gap-1">
-          <span className="type-caption text-[var(--text-muted)]">Or paste a URL</span>
-          <input
-            type="url"
-            disabled={disabled || uploadBusy}
-            placeholder="https://… or /api/gallery/media/…"
-            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1.5 type-body text-[var(--text-primary)]"
-            value={value.audioBedUrl.startsWith('data:') ? '' : value.audioBedUrl}
-            onChange={event =>
-              onChange({
-                ...value,
-                audioBedUrl: event.target.value,
-                audioBedName: undefined,
-              })
-            }
-            data-testid={`${testIdPrefix}-audio-bed`}
+      </OptionGroup>
+
+      <OptionGroup
+        title="Text & logo"
+        summary={
+          join(
+            value.subtitles !== false && 'subtitles',
+            value.titles && 'title & captions',
+            value.logoUrl?.trim() && 'logo'
+          ) || 'none'
+        }
+        persistKey={groupKey('text')}
+        testId={`${testIdPrefix}-options-text`}
+      >
+        <OptionSwitch
+          label="Subtitles"
+          note="What is said, timed to the speech"
+          hint="What is said in each clip, else its narration, at the bottom of the picture — for viewers watching with the sound off"
+          checked={value.subtitles !== false}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, subtitles: next })}
+          testId={`${testIdPrefix}-subtitles`}
+        />
+        <OptionSwitch
+          label="Title & captions"
+          note="A title card and a caption per shot"
+          checked={value.titles === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, titles: next })}
+          testId={`${testIdPrefix}-titles`}
+        />
+        <CutLogoControl
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          testIdPrefix={testIdPrefix}
+        />
+      </OptionGroup>
+
+      {storyExtras ? (
+        <OptionGroup
+          title="Story"
+          summary={
+            join(value.narrate && 'narrated', value.widen && shape === 'wide' && 'widened') || 'off'
+          }
+          persistKey={groupKey('story')}
+          testId={`${testIdPrefix}-options-story`}
+        >
+          <OptionSwitch
+            label="Narrate the story"
+            note="Each scene's first line, read over it"
+            checked={value.narrate === true}
+            disabled={disabled}
+            onChange={next => onChange({ ...value, narrate: next })}
+            testId={`${testIdPrefix}-narrate`}
           />
-        </label>
-      </div>
+          {shape === 'wide' ? (
+            <OptionSwitch
+              label="Widen stills to 16:9"
+              note="Portrait stills continued to the sides"
+              checked={value.widen === true}
+              disabled={disabled}
+              onChange={next => onChange({ ...value, widen: next })}
+              testId={`${testIdPrefix}-widen`}
+            />
+          ) : null}
+        </OptionGroup>
+      ) : null}
+
+      {withShotPanels && shots && shots.length > 0 ? (
+        <div className="space-y-2 border-t border-[var(--border-subtle)] pt-3">
+          {previewOpen ? (
+            <FilmCutPreviewPlayer
+              shots={shots}
+              value={value}
+              titleCard={previewTitleCard}
+              testIdPrefix={testIdPrefix}
+              onClose={() => setPreviewOpen(false)}
+            />
+          ) : (
+            <ToolActionRow>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={disabled || recording}
+                title="Play the cut as it will come out — holds, trims, framing, crossfades, captions, music, lines and narration"
+                onClick={() => setPreviewOpen(true)}
+                data-testid={`${testIdPrefix}-preview-open`}
+              >
+                ▶ Preview the cut
+              </Button>
+              {narrationToRecord && narrationToRecord.lines > 0 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={disabled || recording}
+                  title="Record the voice-over lines now, so the preview plays them (Cut film uses the same recordings)"
+                  onClick={() => {
+                    setRecording(true);
+                    void narrationToRecord.record().finally(() => setRecording(false));
+                  }}
+                  data-testid={`${testIdPrefix}-preview-record-narration`}
+                >
+                  {recording
+                    ? 'Recording narration…'
+                    : `Record narration to hear it (${narrationToRecord.lines} line${narrationToRecord.lines === 1 ? '' : 's'})`}
+                </Button>
+              ) : null}
+            </ToolActionRow>
+          )}
+          <FilmCutShotList
+            shots={shots}
+            edits={value.shotEdits}
+            captions={value.titles === true}
+            holdsLocked={(value.length ?? 'shots') !== 'shots'}
+            disabled={disabled}
+            testIdPrefix={testIdPrefix}
+            onChange={shotEdits => onChange({ ...value, shotEdits })}
+            identityFor={identityFor}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
+
+/** Shape names for the segmented control (the ratio is in its tooltip and the summary). */
+const FILM_SHAPE_NAME: Record<FilmShape, string> = {
+  wide: 'Wide',
+  vertical: 'Vertical',
+  square: 'Square',
+};
+
+/** Short shape names for the summaries. */
+const FILM_SHAPE_SHORT: Record<FilmShape, string> = {
+  wide: 'Wide 16:9',
+  vertical: 'Vertical 9:16',
+  square: 'Square 1:1',
+};
 
 /** One-line summary of the non-default cut options, e.g. "slow zoom · crossfade 0.5s · titles". */
 export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
@@ -786,81 +832,73 @@ function SoundMixControls({
   };
   const music = normalizeMusicLevel(value.musicLevel);
   const voice = normalizeVoiceLevel(value.voiceLevel);
-  const slider =
-    'h-2 w-32 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50';
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-1"
-      data-testid={`${testIdPrefix}-mix`}
-    >
+    <div className="grid gap-2" data-testid={`${testIdPrefix}-mix`}>
       {hasBed ? (
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Music</span>
-          <input
-            type="range"
+        <OptionRow label="Music level">
+          <OptionSlider
+            label="Music level"
+            value={music}
             min={MUSIC_LEVEL_RANGE.min}
             max={MUSIC_LEVEL_RANGE.max}
             step={0.05}
             disabled={disabled}
-            className={slider}
-            value={music}
-            aria-valuetext={`${Math.round(music * 100)}%`}
-            onChange={event => onChange({ ...value, musicLevel: Number(event.target.value) })}
-            data-testid={`${testIdPrefix}-music-level`}
+            onChange={next => onChange({ ...value, musicLevel: next })}
+            testId={`${testIdPrefix}-music-level`}
           />
-          <span className="w-10 tabular-nums">{Math.round(music * 100)}%</span>
-        </label>
+        </OptionRow>
       ) : null}
       {hasLines ? (
-        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
-          <span>Lines</span>
-          <input
-            type="range"
+        <OptionRow
+          label="Lines level"
+          hint="How loud what is said in the clips sits; the music ducks under it"
+        >
+          <OptionSlider
+            label="Lines level"
+            value={voice}
             min={VOICE_LEVEL_RANGE.min}
             max={VOICE_LEVEL_RANGE.max}
             step={0.05}
             disabled={disabled}
-            className={slider}
-            value={voice}
-            aria-valuetext={`${Math.round(voice * 100)}%`}
-            onChange={event => onChange({ ...value, voiceLevel: Number(event.target.value) })}
-            data-testid={`${testIdPrefix}-voice-level`}
+            onChange={next => onChange({ ...value, voiceLevel: next })}
+            testId={`${testIdPrefix}-voice-level`}
           />
-          <span className="w-10 tabular-nums">{Math.round(voice * 100)}%</span>
-        </label>
+        </OptionRow>
       ) : null}
-      <button
-        type="button"
-        className="type-caption rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
-        disabled={disabled || previewState === 'loading'}
-        onClick={() => void togglePreview()}
-        data-testid={`${testIdPrefix}-mix-preview`}
-      >
-        {previewState === 'playing'
-          ? '■ Stop'
-          : previewState === 'loading'
-            ? 'Loading the mix…'
-            : '▶ Preview the mix'}
-      </button>
-      {previewNote ? (
-        <span
-          className="type-caption text-[var(--text-muted)]"
-          data-testid={`${testIdPrefix}-mix-preview-note`}
-        >
-          {previewNote}
-        </span>
-      ) : null}
-      {music !== 1 || voice !== 1 ? (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <button
           type="button"
-          className="type-caption text-[var(--text-muted)] underline-offset-2 hover:underline"
-          disabled={disabled}
-          onClick={() => onChange({ ...value, musicLevel: undefined, voiceLevel: undefined })}
-          data-testid={`${testIdPrefix}-mix-reset`}
+          className="type-caption rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+          disabled={disabled || previewState === 'loading'}
+          onClick={() => void togglePreview()}
+          data-testid={`${testIdPrefix}-mix-preview`}
         >
-          Reset levels
+          {previewState === 'playing'
+            ? '■ Stop'
+            : previewState === 'loading'
+              ? 'Loading the mix…'
+              : '▶ Preview the mix'}
         </button>
-      ) : null}
+        {previewNote ? (
+          <span
+            className="type-caption text-[var(--text-muted)]"
+            data-testid={`${testIdPrefix}-mix-preview-note`}
+          >
+            {previewNote}
+          </span>
+        ) : null}
+        {music !== 1 || voice !== 1 ? (
+          <button
+            type="button"
+            className="type-caption text-[var(--text-muted)] underline-offset-2 hover:underline"
+            disabled={disabled}
+            onClick={() => onChange({ ...value, musicLevel: undefined, voiceLevel: undefined })}
+            data-testid={`${testIdPrefix}-mix-reset`}
+          >
+            Reset levels
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
