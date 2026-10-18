@@ -54,7 +54,7 @@ Open `http://<host>:47832`, create the admin with that code. The session secret 
 
 With Compose, use the [`docker/`](https://github.com/doodersrage/castcut/tree/main/docker) folder. For a Docker-host-only install (`-p 127.0.0.1:…`, sign-in off), see [Configuration — Docker](configuration.md#docker): it also needs `-e PROMPT_BIND_HOST=127.0.0.1`.
 
-Older images may still live under `ghcr.io/doodersrage/llm-prompt-studio` until the next publish after the repo rename. Pin a version with the `vX.Y.Z` tag instead of `latest`. Env vars and Compose: [Configuration & deployment](configuration.md).
+Images from before the rename (`ghcr.io/doodersrage/llm-prompt-studio`) were removed on 2026-10-18; use `ghcr.io/doodersrage/castcut`. Pin a version with the `vX.Y.Z` tag instead of `latest`. Env vars and Compose: [Configuration & deployment](configuration.md).
 
 ## Docker Hub (optional)
 
