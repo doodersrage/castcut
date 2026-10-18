@@ -990,13 +990,16 @@ export function convertQwenEditWorkflowToImage21(
       class_type: 'BasicGuider',
       inputs: { model: samplerModel, conditioning: [encode, 0] },
     });
-    // Turbo on euler_ancestral (2026-10-17, same seeds): face closer on 26 of 38 Day beats (median
-    // 0.238 → 0.205), a touch brighter (70 → 74; night 37 → 40), poses kept on all but one arms-up
-    // beat, no extra time. CFG 1.75 + a negative made night darker (37 → 29) at twice the time; the
-    // Glamour Realism LoRA (0.6) cost likeness (0.25 → 0.43). Pruna stays on euler (not tested).
+    // Turbo on er_sde (2026-10-18): euler_ancestral's fresh noise each step left an 8 px crosshatch
+    // on fine texture now and then (skin, denim, knit — "moiré"). 13 Day beats × 3 seeds, same
+    // graphs: grid score lower on 32 of 39 (strong-grid renders 5 → 1), face closer on 21 of 36
+    // (median 0.239 → 0.207), brightness and poses unchanged. Plain euler: grid 26 / 39, face
+    // 0.236. A linear_quadratic schedule instead of Turbo's own sigmas flattened the light.
+    // (2026-10-17: euler_ancestral had beaten euler on likeness, 26 of 38; CFG 1.75 + a negative
+    // and the Glamour Realism LoRA both lost.) Pruna stays on euler (not tested).
     const pick = add({
       class_type: 'KSamplerSelect',
-      inputs: { sampler_name: options.eightStepTurbo ? 'euler_ancestral' : 'euler' },
+      inputs: { sampler_name: options.eightStepTurbo ? 'er_sde' : 'euler' },
     });
     const sigmas = add({
       class_type: 'ManualSigmas',

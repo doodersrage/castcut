@@ -604,8 +604,8 @@ describe('Qwen-Image 2.1 Turbo sampler', () => {
       convertQwenEditWorkflowToImage21(structuredClone(graph), opts).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>
     ).find(n => n.class_type === 'KSamplerSelect')!.inputs.sampler_name;
 
-  it('runs Turbo on euler_ancestral and Pruna on euler', () => {
-    assert.equal(samplerOf({ eightStep: true, eightStepTurbo: true }), 'euler_ancestral');
+  it('runs Turbo on er_sde and Pruna on euler', () => {
+    assert.equal(samplerOf({ eightStep: true, eightStepTurbo: true }), 'er_sde');
     assert.equal(samplerOf({ eightStep: true }), 'euler');
   });
 });
