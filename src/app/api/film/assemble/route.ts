@@ -154,6 +154,9 @@ export async function POST(request: Request) {
       titleCard: normalizeFilmTitleCard(body.titleCard),
       musicLevel: normalizeMusicLevel(body.musicLevel),
       voiceLevel: normalizeVoiceLevel(body.voiceLevel),
+      look: typeof body.look === 'string' ? body.look : undefined,
+      lookStrength: typeof body.lookStrength === 'number' ? body.lookStrength : undefined,
+      matchShots: body.matchShots === true,
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,
     });

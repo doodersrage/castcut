@@ -38,7 +38,9 @@ sound, or a still that missed its pose or face. Then choose **Retry them first**
 | **Length** | As the shots hold · Fit to the music · 15 / 30 / 60 s |
 | **Music** | Upload, paste a link, or **Score this film** (an original track) |
 | **Levels** | Music and Lines — the music ducks under speech |
-| **Look** | Crossfade · Slow zoom on stills · Title & captions |
+| **Look** | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider |
+| **Match shots** *(on)* | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night) |
+| **Polish** | Crossfade · Slow zoom on stills · Title & captions |
 | **Subtitles** *(on)* | What is said in each talking clip — else the shot's narration — burned in at the bottom |
 
 ## Shots

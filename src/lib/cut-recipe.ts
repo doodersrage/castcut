@@ -24,6 +24,10 @@ export type CutRecipe = {
   beatSnap?: boolean;
   musicLevel?: number;
   voiceLevel?: number;
+  /** The film's colour look, its strength (0–1) and the automatic shot match (cut-look.ts). */
+  look?: string;
+  lookStrength?: number;
+  matchShots?: boolean;
   /** Shots a re-cut can't bring back (a demo / uploaded still held only in the browser). */
   droppedShots?: number;
 };

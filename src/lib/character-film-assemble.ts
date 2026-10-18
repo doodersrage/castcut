@@ -34,6 +34,10 @@ export async function assembleAndStampFilm(input: {
   /** Music bed / lines gain (server encode). */
   musicLevel?: number;
   voiceLevel?: number;
+  /** The film's colour look, its strength (0–1) and the automatic shot match (cut-look.ts). */
+  look?: string;
+  lookStrength?: number;
+  matchShots?: boolean;
   /** Where the cut came from — kept in its recipe. */
   source?: CutRecipe['source'];
   /** Film this one re-cuts (its parent in the Gallery). */
@@ -72,6 +76,9 @@ export async function assembleAndStampFilm(input: {
     titleCard: input.titleCard,
     musicLevel: input.musicLevel,
     voiceLevel: input.voiceLevel,
+    look: input.look,
+    lookStrength: input.lookStrength,
+    matchShots: input.matchShots,
   });
   // The browser recorder draws pictures only: say what the server encode would have added.
   if (assembled.encodePath === 'browser') {
@@ -109,6 +116,9 @@ export async function assembleAndStampFilm(input: {
       beatSnap: input.beatSnap,
       musicLevel: input.musicLevel,
       voiceLevel: input.voiceLevel,
+      look: input.look,
+      lookStrength: input.lookStrength,
+      matchShots: input.matchShots,
     }),
     onProgress: input.onProgress,
   });

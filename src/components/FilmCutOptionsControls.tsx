@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  FILM_LOOKS,
+  normalizeFilmLook,
+  normalizeLookStrength,
+  type FilmLook,
+} from '@/lib/cut-look';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmCutPreviewPlayer from '@/components/FilmCutPreviewPlayer';
 import type { FilmTitleCard } from '@/lib/video-polish';
@@ -65,6 +71,12 @@ export type FilmCutOptionsValue = {
   musicLevel?: number;
   /** Talking clips' lines gain, 0.5–2 (1 = as recorded). */
   voiceLevel?: number;
+  /** The film's colour look (cut-look.ts); unset = as shot. */
+  look?: FilmLook;
+  /** How strong the look is, 0–1 (default 1). */
+  lookStrength?: number;
+  /** Match each shot's colour to the film's — default on (unset = on). */
+  matchShots?: boolean;
 };
 
 /** Cut option defaults shared by Day, Story and Cast film. */
@@ -237,6 +249,55 @@ export default function FilmCutOptionsControls({
           />
           <span title="What is said in each clip, else its narration, at the bottom of the picture — for viewers watching with the sound off">
             Subtitles
+          </span>
+        </label>
+      </ToolActionRow>
+
+      <ToolActionRow>
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <span>Look</span>
+          <select
+            disabled={disabled}
+            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]"
+            value={normalizeFilmLook(value.look)}
+            onChange={event => onChange({ ...value, look: normalizeFilmLook(event.target.value) })}
+            data-testid={`${testIdPrefix}-look`}
+          >
+            {FILM_LOOKS.map(look => (
+              <option key={look.id} value={look.id}>
+                {look.label} · {look.hint}
+              </option>
+            ))}
+          </select>
+        </label>
+        {normalizeFilmLook(value.look) !== 'none' ? (
+          <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+            <span>Strength</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              disabled={disabled}
+              value={Math.round(normalizeLookStrength(value.lookStrength) * 100)}
+              onChange={event =>
+                onChange({ ...value, lookStrength: Number(event.target.value) / 100 })
+              }
+              aria-label="Look strength"
+              data-testid={`${testIdPrefix}-look-strength`}
+            />
+          </label>
+        ) : null}
+        <label className="flex items-center gap-2 type-caption text-[var(--text-muted)]">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={value.matchShots !== false}
+            onChange={event => onChange({ ...value, matchShots: event.target.checked })}
+            data-testid={`${testIdPrefix}-match-shots`}
+          />
+          <span title="Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)">
+            Match shots
           </span>
         </label>
       </ToolActionRow>
@@ -521,6 +582,10 @@ export function filmCutOptionsSummary(value: FilmCutOptionsValue): string {
     value.quality === '1080p' ? '1080p' : '',
     value.crossfadeSec > 0 ? `crossfade ${value.crossfadeSec}s` : '',
     value.stillMotion !== false ? 'slow zoom' : 'no zoom',
+    normalizeFilmLook(value.look) !== 'none'
+      ? `${FILM_LOOKS.find(look => look.id === normalizeFilmLook(value.look))?.label.toLowerCase()} look`
+      : '',
+    value.matchShots === false ? 'shots unmatched' : '',
     value.titles ? 'titles' : '',
     value.subtitles === false ? 'no subtitles' : '',
     value.audioBedUrl.trim() ? 'audio bed' : '',

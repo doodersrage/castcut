@@ -60,6 +60,9 @@ export async function recutFilm(input: {
     beatSnap: recipe.beatSnap,
     musicLevel: recipe.musicLevel,
     voiceLevel: recipe.voiceLevel,
+    look: recipe.look,
+    lookStrength: recipe.lookStrength,
+    matchShots: recipe.matchShots,
     onProgress: progress => input.onProgress?.(progress.label),
   });
   downloadFilmBlob(result.blob, result.filename);

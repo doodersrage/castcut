@@ -37,6 +37,15 @@ import {
   type CutTransitionIn,
 } from './cut-timeline';
 import { normalizeMusicLevel, normalizeVoiceLevel } from './audio-mix-levels';
+import sharp from 'sharp';
+import {
+  colourMatrixFfmpeg,
+  colourStatsFromPixels,
+  normalizeFilmLook,
+  normalizeLookStrength,
+  shotGradeMatrices,
+  type ShotColourStats,
+} from './cut-look';
 import {
   buildFilmScaleFilter,
   FILM_PRESET_SIZE,
@@ -70,6 +79,11 @@ export type FilmServerEncodeOptions = {
   musicLevel?: number;
   /** Talking clips' lines gain (1 = as recorded). */
   voiceLevel?: number;
+  /** The film's colour look (cut-look.ts) and its strength 0–1. */
+  look?: string;
+  lookStrength?: number;
+  /** Move each shot's colour toward the film's (cut-look.ts shotMatchMatrix). */
+  matchShots?: boolean;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
@@ -83,6 +97,43 @@ export type FilmServerEncodeResult = {
 };
 
 let ffmpegCached: string | null | undefined;
+
+const STATS_SIZE = 96;
+
+/** A shot's colour (cut-look.ts) from its file: a still as is, a clip at 40% of what plays. */
+async function shotColourStatsFromFile(
+  ffmpeg: string,
+  file: string,
+  kind: FilmShotKind,
+  trimStart: number | null | undefined,
+  holdSec: number | undefined
+): Promise<ShotColourStats | null> {
+  let picture: Buffer | string = file;
+  if (kind === 'clip') {
+    const at = (trimStart ?? 0) + Math.max(0, (holdSec ?? 2) * 0.4);
+    const frame = `${file}.stats.png`;
+    await runCapture(ffmpeg, [
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-ss',
+      at.toFixed(2),
+      '-i',
+      file,
+      '-frames:v',
+      '1',
+      frame,
+    ]);
+    picture = frame;
+  }
+  const { data, info } = await sharp(picture)
+    .resize(STATS_SIZE, STATS_SIZE, { fit: 'fill' })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return colourStatsFromPixels(data, info.width, info.height);
+}
 
 export async function resolveFfmpegBinary(): Promise<string | null> {
   if (ffmpegCached !== undefined) {
@@ -289,6 +340,8 @@ export function buildFilterComplex(input: {
   stillMotions?: ReadonlyArray<'in' | 'out' | 'none' | undefined>;
   /** Per clip: its sound's level (1 = as recorded). */
   volumes?: ReadonlyArray<number | undefined>;
+  /** Per shot: its colour grade as ffmpeg filters (cut-look.ts colourMatrixFfmpeg), '' = none. */
+  grades?: ReadonlyArray<string | undefined>;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const scalePad = buildFilmScaleFilter(width, height);
@@ -354,6 +407,8 @@ export function buildFilterComplex(input: {
     } else {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
+    // The grade before any text, so captions and subtitles keep their own colour.
+    if (kind !== 'title' && input.grades?.[i]) chain += `,${input.grades[i]}`;
     if (kind !== 'title' && font && text?.captionFile) {
       // With a subtitle at the bottom, the shot's caption goes to the top.
       const captionY = text.speechFile ? `${margin}` : `h-th-${Math.round(margin * 1.4)}`;
@@ -674,7 +729,29 @@ export async function encodeFilmPlaylistServer(
     const graphTransitions: Array<CutTransitionIn | undefined> = [];
     const graphMotions: Array<'in' | 'out' | 'none' | undefined> = [];
     const graphVolumes: Array<number | undefined> = [];
+    const graphGrades: string[] = [];
     const inputArgs: string[][] = [];
+    // The film look and shot match: each shot's colour read from its picture (a clip's at 40%).
+    const look = normalizeFilmLook(options.look);
+    const shotGrades =
+      look !== 'none' || options.matchShots
+        ? await (async () => {
+            options.onProgress?.(0.44, 'Matching the shots’ colour…');
+            const stats = await Promise.all(
+              localFiles.map((file, i) =>
+                shotColourStatsFromFile(ffmpeg, file, kinds[i]!, trimStarts[i], holdSecs[i]).catch(
+                  () => null
+                )
+              )
+            );
+            return shotGradeMatrices({
+              stats,
+              look,
+              lookStrength: normalizeLookStrength(options.lookStrength),
+              matchShots: options.matchShots === true,
+            }).map(colourMatrixFfmpeg);
+          })()
+        : [];
     const titleText = options.titleCard?.title?.trim()
       ? await writeText('title.txt', options.titleCard.title)
       : null;
@@ -684,6 +761,7 @@ export async function encodeFilmPlaylistServer(
       : -1;
     const pushTitle = async () => {
       if (!titleText) return;
+      graphGrades.push('');
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
       graphVolumes.push(undefined);
@@ -708,6 +786,7 @@ export async function encodeFilmPlaylistServer(
     };
     for (let i = 0; i < localFiles.length; i += 1) {
       if (i === titleAt) await pushTitle();
+      graphGrades.push(shotGrades[i] ?? '');
       graphTransitions.push(shots[i]?.transitionIn);
       graphMotions.push(shots[i]?.motion);
       graphVolumes.push(shots[i]?.volume);
@@ -767,6 +846,7 @@ export async function encodeFilmPlaylistServer(
       transitions: graphTransitions,
       stillMotions: graphMotions,
       volumes: graphVolumes,
+      grades: graphGrades,
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow

@@ -107,6 +107,10 @@ export type StartFilmAssembleInput = {
   titleCard?: FilmTitleCard | null;
   musicLevel?: number;
   voiceLevel?: number;
+  /** The film's colour look, its strength (0–1) and the automatic shot match (cut-look.ts). */
+  look?: string;
+  lookStrength?: number;
+  matchShots?: boolean;
   requestOrigin?: string;
   userId?: string | null;
 };
@@ -158,6 +162,9 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         titleCard: normalizeFilmTitleCard(input.titleCard),
         musicLevel: input.musicLevel,
         voiceLevel: input.voiceLevel,
+        look: input.look,
+        lookStrength: input.lookStrength,
+        matchShots: input.matchShots,
         userId: input.userId,
         onProgress: (ratio, label) => {
           const current = jobs.get(id);

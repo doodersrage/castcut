@@ -66,6 +66,10 @@ export type AssembleFilmOptions = {
   /** Music bed / lines gain (server encode only; audio-mix-levels.ts). */
   musicLevel?: number;
   voiceLevel?: number;
+  /** The film's colour look, its strength (0–1) and the automatic shot match (cut-look.ts). */
+  look?: string;
+  lookStrength?: number;
+  matchShots?: boolean;
 };
 
 export type AssembledFilmResult = {
@@ -365,6 +369,9 @@ async function assembleFilmBlobOnServer(
         titleCard: normalizeFilmTitleCard(options?.titleCard),
         musicLevel: options?.musicLevel,
         voiceLevel: options?.voiceLevel,
+        look: options?.look,
+        lookStrength: options?.lookStrength,
+        matchShots: options?.matchShots === true,
       }),
     });
     if (!startRes.ok) {

@@ -11,10 +11,19 @@
  * playhead; pictures and clips are kept by URL between builds, so a rebuild is quick.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
 import { drawCaption, drawContain, drawCover, drawTitleCard } from '@/lib/cut-canvas-draw';
+import {
+  colourMatrixSvgValues,
+  colourStatsFromPixels,
+  isIdentityMatrix,
+  normalizeFilmLook,
+  normalizeLookStrength,
+  shotGradeMatrices,
+  type ShotColourStats,
+} from '@/lib/cut-look';
 import { frameCutStills, prepareCutShots } from '@/lib/film-cut-media';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
 import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film-cut-preview';
@@ -42,8 +51,37 @@ export type CutPreviewLoaded = {
   keys: Array<string | null>;
   /** Each clip's full length (null for stills / unknown) — the trim handles' limit. */
   clipSecs: Array<number | null>;
+  /** Each prepared shot's colour (cut-look.ts) — the look and the shot match read it. */
+  stats: Array<ShotColourStats | null>;
   notes: string[];
 };
+
+const STATS_SIZE = 48;
+
+/** A drawn picture's colour (cut-look.ts) from a small copy; null when it cannot be read. */
+function sampleColourStats(
+  source: CanvasImageSource,
+  width: number,
+  height: number
+): ShotColourStats | null {
+  if (!width || !height) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = STATS_SIZE;
+    canvas.height = STATS_SIZE;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+    context.drawImage(source, 0, 0, STATS_SIZE, STATS_SIZE);
+    return colourStatsFromPixels(
+      context.getImageData(0, 0, STATS_SIZE, STATS_SIZE).data,
+      STATS_SIZE,
+      STATS_SIZE
+    );
+  } catch {
+    // A picture from another origin taints the canvas — that shot is left ungraded by the match.
+    return null;
+  }
+}
 
 /** The loaded pictures, clips, narration and music (mutable media — kept in a ref, not state). */
 type Media = {
@@ -133,6 +171,7 @@ export function useCutPreview(input: {
   });
   // Kept by URL between builds: a rebuild after an edit reuses what is loaded.
   const imageCache = useRef(new Map<string, Promise<HTMLImageElement>>());
+  const filterPrefix = `cut-grade-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const videoCache = useRef(new Map<string, Promise<HTMLVideoElement>>());
   const audioCache = useRef(new Map<string, Promise<HTMLAudioElement | null>>());
   const bedRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
@@ -217,12 +256,22 @@ export function useCutPreview(input: {
         for (const [, video] of mediaRef.current.videos) video.pause();
         for (const [, voice] of mediaRef.current.voices) voice.pause();
         mediaRef.current = { images, videos, voices, bed: bedRef.current?.audio ?? null };
+        // Each shot's colour, for the look and the shot match (as the encode measures it).
+        const stats = framed.shots.map((_, index) => {
+          const image = images.get(index);
+          if (image) return sampleColourStats(image, image.naturalWidth, image.naturalHeight);
+          const video = videos.get(index);
+          return video && video.readyState >= 2
+            ? sampleColourStats(video, video.videoWidth, video.videoHeight)
+            : null;
+        });
         setError(null);
         setLoaded({
           timeline,
           shots: framed.shots,
           keys: framed.shots.map(shot => (shot as KeyedShot).key ?? null),
           clipSecs,
+          stats,
           notes: [...prepared.notes, ...framed.notes],
         });
         // Keep the playhead where it was (inside the new length).
@@ -268,6 +317,52 @@ export function useCutPreview(input: {
       bed.current?.audio.pause();
     };
   }, []);
+
+  // The look and shot match as one SVG colour matrix per shot — the canvas draws each shot
+  // through its own (the encode applies the same matrices with ffmpeg).
+  const look = normalizeFilmLook(value.look);
+  const lookStrength = normalizeLookStrength(value.lookStrength);
+  const matchShots = value.matchShots !== false;
+  const gradeIds = useMemo(() => {
+    if (!loaded || (look === 'none' && !matchShots)) return [] as Array<string | null>;
+    const matrices = shotGradeMatrices({
+      stats: loaded.stats,
+      look,
+      lookStrength,
+      matchShots,
+    });
+    return matrices.map((matrix, index) =>
+      isIdentityMatrix(matrix) ? null : `${filterPrefix}-${index}`
+    );
+  }, [filterPrefix, loaded, look, lookStrength, matchShots]);
+  useEffect(() => {
+    if (!loaded || gradeIds.every(id => id === null)) return;
+    const matrices = shotGradeMatrices({
+      stats: loaded.stats,
+      look,
+      lookStrength,
+      matchShots,
+    });
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.style.position = 'absolute';
+    for (const [index, id] of gradeIds.entries()) {
+      if (!id) continue;
+      const filter = document.createElementNS(svgNs, 'filter');
+      filter.setAttribute('id', id);
+      filter.setAttribute('color-interpolation-filters', 'sRGB');
+      const matrix = document.createElementNS(svgNs, 'feColorMatrix');
+      matrix.setAttribute('type', 'matrix');
+      matrix.setAttribute('values', colourMatrixSvgValues(matrices[index]!));
+      filter.appendChild(matrix);
+      svg.appendChild(filter);
+    }
+    document.body.appendChild(svg);
+    return () => svg.remove();
+  }, [gradeIds, loaded, look, lookStrength, matchShots]);
 
   const draw = useCallback(
     (t: number) => {
@@ -316,6 +411,8 @@ export function useCutPreview(input: {
                     local / item.durSec
                   )
                 : 1;
+            const grade = gradeIds[item.shot];
+            if (grade) context.filter = `url(#${grade})`;
             fit(
               context,
               image,
@@ -325,11 +422,15 @@ export function useCutPreview(input: {
               canvas.height,
               zoom
             );
+            context.filter = 'none';
           }
         } else {
           const video = mediaRef.current.videos.get(item.shot);
           if (video && video.readyState >= 2) {
+            const grade = gradeIds[item.shot];
+            if (grade) context.filter = `url(#${grade})`;
             fit(context, video, video.videoWidth, video.videoHeight, canvas.width, canvas.height);
+            context.filter = 'none';
           }
         }
         if (item.caption) {
@@ -351,7 +452,7 @@ export function useCutPreview(input: {
         context.restore();
       }
     },
-    [loaded, shape, titleCard, value.stillMotion]
+    [gradeIds, loaded, shape, titleCard, value.stillMotion]
   );
 
   /** Keep the clips and the music where the clock is (play / pause / seek). */
