@@ -485,7 +485,27 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return out;
+  return withAcrossTable(out);
+}
+
+/**
+ * "Across from" a partner / friend at a table or booth sat the two side by side on one bench,
+ * facing the camera (night sweep, diner booth, 0/3). Facing each other across the table, seen
+ * from the side: 3/3, same seeds (2026-10-17).
+ */
+export const QWEN_IMAGE_21_ACROSS_TABLE_LINE =
+  'they sit on opposite sides of the table, facing each other across it, the table between them; seen from the side so both faces show in profile or three-quarter';
+
+const ACROSS_BEAT =
+  /\b(?:(?:sits?|sitting|seated)\s+)?(?:across|opposite)\s+(?:the\s+table\s+)?from\s+(?:her|his|their|a|the)\b|\bfacing each other across\b/i;
+
+function withAcrossTable(prompt: string): string {
+  if (prompt.includes(QWEN_IMAGE_21_ACROSS_TABLE_LINE)) return prompt;
+  return prompt.replace(
+    /(POSE FIRST: the two people — )([^\n]*?)(\.)(?=\s|$)/,
+    (match, head: string, beat: string, dot: string) =>
+      ACROSS_BEAT.test(beat) ? `${head}${beat} — ${QWEN_IMAGE_21_ACROSS_TABLE_LINE}${dot}` : match
+  );
 }
 
 /**

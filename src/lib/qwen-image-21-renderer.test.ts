@@ -764,3 +764,18 @@ describe('Qwen-Image 2.1: lying on her side', () => {
     assert.equal(lieSideLineFor('Day photo: One woman alone. She lies on her side on the couch reading.'), null);
   });
 });
+
+describe('2.1 across-the-table duos', () => {
+  it('seats a duo "across from" each other at the table, not side by side (night sweep, 2026-10-17)', async () => {
+    const { withNaturalPoses, QWEN_IMAGE_21_ACROSS_TABLE_LINE } = await import('./qwen-image-21-renderer');
+    const out = withNaturalPoses(
+      'Edit <image1>: POSE FIRST: the two people — diner booth across from a friend, leaning into conversation. SCENE: a diner.'
+    );
+    assert.ok(out.includes(`leaning into conversation — ${QWEN_IMAGE_21_ACROSS_TABLE_LINE}. SCENE`));
+    assert.equal(withNaturalPoses(out), out);
+    const side = 'Edit <image1>: POSE FIRST: the two people — sitting side by side on the couch. SCENE: home.';
+    assert.equal(withNaturalPoses(side), side);
+    const solo = 'Edit <image1>: POSE FIRST: seated across from the window. SCENE: cafe.';
+    assert.equal(withNaturalPoses(solo), solo);
+  });
+});

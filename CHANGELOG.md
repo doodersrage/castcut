@@ -17,6 +17,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Lying on her side on a couch / sofa: a side-lying line on the landscape canvas — sitting 3/3 → lying along it 3/3.
   - A sport beat's own sport wins over the place: "clearing a hurdle" on a "trail path with kicked gravel" got a cycling kit and helmet; hurdles and mid-sprint read as running.
   - Shadowboxing / footwork gets a guard stance (fists up, knees bent, bouncing) instead of no stance line — she stood still in the ring.
+  - Two people "across from" each other at a table or booth now sit facing each other across it (3/3) instead of side by side on one bench facing the camera (0/3).
   - "Hands on hips, chin up" is a posture, not the chin-up exercise — a studio photoshoot beat hung her from a pull-up bar.
   - "On a park bench" needs a park (it was set in a bookstore); a diner booth needs an eating place.
 - **More natural poses on Qwen-Image 2.1:** the showy pose wording becomes what a person would really do — a dance sways and laughs with one hand up instead of both arms overhead and a knee lifted (5/5 of the user's rooftop / street dances), "reaching for a pier railing" leans on it instead of raising an arm (2/2), a stretch keeps her feet flat. Same graphs and seeds as the user's stills; dropping the pose words altogether lost the actions (coffee, book, camera) and a "candid photo" line changed nothing. 2.1 only — Edit 2511 / Rapid keep the strong wording they need.
