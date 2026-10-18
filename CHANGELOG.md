@@ -9,8 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.1] - 2026-10-18
+
 - **Anatomy finish removed; Qwen-Image 2.1 LoRAs are the player's choice.** Day no longer re-renders a woman's crotch with the anatomy LoRA after a nude solo still — nothing loads that LoRA on its own any more. Instead, Qwen-Image 2.1 renders now load the 2.1 LoRAs you switch on in the LoRA picker (they used to be dropped): 2.1 LoRA files are recognised as their own family (32 blocks; the 20B Qwen ones have 60) and offered for 2.1 engines only, and a file first recognised as 2.1 starts switched off, so none joins a render unless you turn it on.
 - **Qwen-Image 2.1 Turbo: less moiré on fine texture.** Turbo stills now sample with `er_sde` instead of `euler_ancestral`, whose fresh noise each step sometimes left a fine crosshatch on skin, denim and knits. Same 13 Day beats × 3 seeds: the grid pattern was lower on 32 of 39 (strong cases 5 → 1), the Cast's face closer on 21 of 36 (median distance 0.239 → 0.207), brightness and poses unchanged. Canvas sizes were already right for the model (multiples of its 16 px grid); smaller / larger canvases and the full bf16 model did not change the pattern.
+
 ## [v2.12.0] - 2026-10-18
 
 - **Cut: a tidier options panel.** The options are five foldable groups — Format, Picture, Timing, Sound, Text & logo (and Story) — each with a one-line summary of what is set. Inside, labels and controls line up in rows; shape, size and crossfade are segmented choices, on/off options are switches with a short note, music start / fades and a music link fold away. Cut film sits at the bottom with Export for an editor and the subtitles under it.
