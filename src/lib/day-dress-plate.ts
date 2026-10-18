@@ -39,13 +39,20 @@ export function dayDressPlateApplies(input: {
   /** The still drops the garment (nude beat) or replaces the outfit (Sport). */
   omitGarment?: boolean;
   replaceOutfit?: boolean;
+  /** A kit the Day picked for itself, with a packshot to dress her from (dressPlateAutoKit). */
+  autoKit?: boolean;
 }): boolean {
-  if (!poseProfileForModel(input.model).dressPlate) return false;
+  const profile = poseProfileForModel(input.model);
+  if (!profile.dressPlate) return false;
   const mood = normalizeDayMood(input.dayMood);
   if (isDayAdultMood(mood) || mood === 'sport') return false;
   if (input.omitGarment || input.replaceOutfit) return false;
   if (input.plateSource !== 'cast') return false;
-  return input.clothingPicked || input.footwearPicked;
+  return (
+    input.clothingPicked ||
+    input.footwearPicked ||
+    (Boolean(profile.dressPlateAutoKit) && Boolean(input.autoKit))
+  );
 }
 
 const sameText = (a?: string | null, b?: string | null) =>

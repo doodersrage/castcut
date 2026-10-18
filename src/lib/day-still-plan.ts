@@ -71,6 +71,7 @@ export function dayStillWantsDressPlate(input: {
       footwearPicked: shoesPicked,
       omitGarment: input.omitGarment,
       replaceOutfit: input.replaceOutfit,
+      autoKit: !input.customGarmentPicked && !input.kitPicked && Boolean(input.packshotUrl),
     }) &&
     Boolean(input.customGarmentPicked || input.packshotUrl) &&
     !sceneDressesItself(input.dayMood, input.sceneHints) &&

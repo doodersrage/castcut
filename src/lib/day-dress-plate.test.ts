@@ -132,3 +132,21 @@ describe('Day plate upload names', () => {
   });
 });
 
+
+describe('Day dress plate for a kit the Day picked (Qwen-Image 2.1)', () => {
+  it('dresses the plate on 2.1 for an auto kit too, not on the other engines (2026-10-18)', () => {
+    const auto = {
+      dayMood: 'everyday',
+      plateSource: 'cast' as const,
+      clothingPicked: false,
+      footwearPicked: false,
+      autoKit: true,
+    };
+    assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-image-2.1-edit-turbo-8' }), true);
+    assert.equal(dayDressPlateApplies({ ...auto, model: EDIT }), false);
+    assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-rapid-aio-edit' }), false);
+    // Sport and the adult moods still dress per still.
+    assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-image-2.1-edit-turbo-8', dayMood: 'sport' }), false);
+    assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-image-2.1-edit-turbo-8', autoKit: false }), false);
+  });
+});

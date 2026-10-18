@@ -278,3 +278,26 @@ describe('dayStillSceneDressesItself', () => {
     assert.equal(dayStillClothingReinforce(base), garment);
   });
 });
+
+describe('dayStillWantsDressPlate on 2.1 with a kit the Day picked', () => {
+  it('wants the dressed plate when the auto kit has a packshot (2026-10-18)', async () => {
+    const { dayStillWantsDressPlate } = await import('./day-still-plan');
+    const base = {
+      castPlateAvailable: true,
+      model: 'qwen-image-2.1-edit-turbo-8',
+      dayMood: 'everyday',
+      intimateEnabled: false,
+      plateSource: 'cast' as const,
+      customGarmentPicked: false,
+      kitPicked: false,
+      packshotUrl: '/kit.png',
+      pickedShoes: '',
+      omitGarment: false,
+      replaceOutfit: false,
+      sceneHints: 'sitting on a park bench reading a book',
+    };
+    assert.equal(dayStillWantsDressPlate(base), true);
+    assert.equal(dayStillWantsDressPlate({ ...base, packshotUrl: null }), false);
+    assert.equal(dayStillWantsDressPlate({ ...base, model: 'qwen-image-edit-2511-lightning-8' }), false);
+  });
+});

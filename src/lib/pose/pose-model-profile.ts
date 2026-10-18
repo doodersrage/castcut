@@ -119,6 +119,13 @@ export type PoseModelProfile = {
    *   farther on the face (mean 0.30 vs 0.23, closer in 2 of 8); the plate alone 0.43. Kept as is.
    */
   dressPlate?: 'plate' | 'clothing';
+  /**
+   * Dress the Cast plate in a kit the Day picked for itself too, not only a picked one. On a face
+   * crop engine without it the body comes from words alone: a Cast whose traits don't spell out
+   * her figure and marks lost her sleeve tattoo 6/6 and slimmed to "average"; with the dressed
+   * plate in the clothing image's place, tattoo 6/6 and her own build (Turbo, 2026-10-18).
+   */
+  dressPlateAutoKit?: boolean;
   /** Queues on this engine's graph, then converts (Qwen-Image 2.1 → Rapid AIO NSFW edit). */
   graphBaseModel?: string;
   /**
@@ -202,6 +209,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     // 6/6). Turbo on the couple recipe with the layout cue in words, 2026-10-17: two distinct
     // people 32/32 + 24/24, selfie arm 8/8 (0/8 without the cue), head on a shoulder 2/2.
     dressPlate: 'clothing',
+    dressPlateAutoKit: true,
     mapDelivery: { solo: 'none', duoClothed: 'none', duoNude: 'none' },
     penetrationEngine: 'qwen-rapid-aio-edit-nsfw',
     graphBaseModel: 'qwen-rapid-aio-edit-nsfw',
