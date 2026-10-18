@@ -857,7 +857,8 @@ const BEAT_PLACE_RULES: ReadonlyArray<{
       /\b(?:caf(?:e|é)(?![\w])|(?:diner|restaurant|bistro|brunch|breakfast|dinner|table|terrace)\b)/i,
   },
   {
-    re: /\b(?:stove|kettle|cupboard|the\s+fridge|pot\s+of\s+\w+)\b/i,
+    // "surveying the kitchen counter" on a park lawn (wide sweep, 2026-10-18).
+    re: /\b(?:stove|kettle|cupboard|the\s+fridge|pot\s+of\s+\w+|kitchen\s+(?:counter|island|sink|cabinets?))\b/i,
     venues: ['kitchen'],
     setting: /\bkitchen/i,
   },

@@ -814,3 +814,11 @@ describe('2.1 duo jobs', () => {
     assert.equal(withNaturalPoses(solo), solo);
   });
 });
+
+describe('2.1 sport kit label', () => {
+  it('lower-cases the SPORT KIT label so it is not printed on the jersey (2026-10-18)', async () => {
+    const { withNaturalPoses } = await import('./qwen-image-21-renderer');
+    const out = withNaturalPoses('outfit: ATHLETIC KIT ONLY — wear only the SPORT KIT. SPORT KIT (mandatory): a jersey.');
+    assert.equal(out, 'outfit: athletic kit only — wear only the sport kit. sport kit (mandatory): a jersey.');
+  });
+});

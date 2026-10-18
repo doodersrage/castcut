@@ -485,7 +485,19 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return withSwimsuitColour(withDuoJobs(withAcrossTable(out)));
+  return withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out))));
+}
+
+/**
+ * 2.1 draws text well: the Sport brief's capitalised "SPORT KIT" label came out printed on the
+ * jersey ("SPORT KIT", "SPORTKIT", 3/6). In lower case: 0/6, the jerseys still team kit with a
+ * number (wide sweep, 2026-10-18). "Plain kit, no printed words" also cleared it but turned
+ * jerseys into beige vests.
+ */
+function withKitLowercase(prompt: string): string {
+  return prompt
+    .replace(/\bSPORT KIT\b/g, 'sport kit')
+    .replace(/\bATHLETIC KIT ONLY\b/g, 'athletic kit only');
 }
 
 /**

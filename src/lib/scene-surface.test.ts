@@ -401,3 +401,12 @@ describe('beat place rules: park bench, diner', () => {
     assert.equal(beatFitsSetting('diner booth across from a friend', 'retro diner with red booths'), true);
   });
 });
+
+describe('kitchen counter needs a kitchen', () => {
+  it('flags a kitchen counter on a park lawn (wide sweep, 2026-10-18)', async () => {
+    const { beatPlaceConflicts } = await import('./scene-surface');
+    assert.deepEqual(beatPlaceConflicts('hands on hips surveying the kitchen counter', 'leafy city park lawn in late-morning sun'), ['kitchen counter']);
+    assert.deepEqual(beatPlaceConflicts('hands on hips surveying the kitchen counter', 'bright open-plan kitchen with a marble island'), []);
+    assert.deepEqual(beatPlaceConflicts('leaning on the counter with a coffee', 'corner cafe with a long counter'), []);
+  });
+});
