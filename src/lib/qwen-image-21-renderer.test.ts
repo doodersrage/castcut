@@ -822,3 +822,36 @@ describe('2.1 sport kit label', () => {
     assert.equal(out, 'outfit: athletic kit only — wear only the sport kit. sport kit (mandatory): a jersey.');
   });
 });
+
+describe('Qwen-Image 2.1: face-down nude solos stay on the engine model', () => {
+  const solo = (prompt: string, extra: Record<string, string> = {}) => ({
+    '4': {
+      class_type: 'TextEncodeQwenImageEditPlus',
+      inputs: { prompt, image1: ['900', 0], ...(extra['904'] ? { image2: ['904', 0] } : {}) },
+    },
+    '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+    ...(extra['904'] ? { '904': { class_type: 'LoadImage', inputs: { image: extra['904'] } } } : {}),
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+  });
+
+  it('returns a face-down nude solo unconverted (Turbo 0/9 face-down, Rapid 3/3; 2026-10-18)', async () => {
+    const { isFaceDownNudeSolo } = await import('./qwen-image-21-renderer');
+    assert.equal(isFaceDownNudeSolo('Explicit solo photo. She lies stretched out flat on her stomach on the bed.', true), true);
+    assert.equal(isFaceDownNudeSolo('Day photo. Lying on her stomach on the bed scrolling, fully dressed.', true), false);
+    const graph = solo('Explicit solo photo: One woman alone, naked. She lies stretched out flat on her stomach on the bed.');
+    const result = convertQwenEditWorkflowToImage21(graph);
+    assert.equal(result.converted, false);
+    assert.equal(result.workflow, graph);
+  });
+
+  it('still converts a nude solo on her back, and a face-down beat with a partner', () => {
+    assert.equal(convertQwenEditWorkflowToImage21(solo('Explicit solo photo, naked. She lies on her back on the bed.')).converted, true);
+    const partner = solo('Explicit photo, naked. She lies face-down on the bed, kissed by her partner.', {
+      '904': 'day-partner-man-abc.png',
+    });
+    assert.equal(convertQwenEditWorkflowToImage21(partner).converted, true);
+  });
+});

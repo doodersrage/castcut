@@ -21,6 +21,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Two people sharing a task (cooking, a laptop, a menu, breakfast, coffee, dancing, karaoke on one mic, baking, a board game) each get a job of their own on Qwen-Image 2.1 — "one of them stirs the pot, the other leans in tasting" — instead of standing side by side facing the camera: 9/10 doing the task vs 1/10.
   - Sport stills on Qwen-Image 2.1 no longer print "SPORT KIT" across the jersey (the brief's capitalised label; 3/6 → 0/6, jerseys still team kit).
   - "Surveying the kitchen counter" needs a kitchen (it was set on a park lawn); "at the bathroom mirror" / "brushing teeth" needs a bathroom (one was set on a night rooftop).
+  - Nude solo stills lying face-down render on Rapid AIO NSFW when Qwen-Image 2.1 is picked (like penetration duos): Turbo turned her onto her side 0/9 whatever the wording, canvas or camera; Rapid lay her face-down 3/3.
   - Two people "across from" each other at a table or booth now sit facing each other across it (3/3) instead of side by side on one bench facing the camera (0/3).
   - "Hands on hips, chin up" is a posture, not the chin-up exercise — a studio photoshoot beat hung her from a pull-up bar.
   - "On a park bench" needs a park (it was set in a bookstore); a diner booth needs an eating place.

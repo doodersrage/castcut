@@ -685,11 +685,27 @@ export function isClothedDuoStill(prompt: string, hasDuoPoseMap: boolean): boole
   return hasDuoPoseMap && !isNudePrompt(prompt);
 }
 
+/** One person, nude, lying face-down (on her stomach / front). */
+const FACE_DOWN_RE =
+  /\b(?:face[- ]down|prone|on (?:her|his) (?:stomach|belly|front)|lies? (?:stretched out )?(?:flat )?on (?:her|his) (?:stomach|belly|front))\b/i;
+
+/**
+ * Nude solo stills lying face-down stay on the engine's own model too: Turbo turned her onto her
+ * side every time — 0/9 with the brief, a prone POSE FIRST line, a from-behind camera and the
+ * landscape canvas; Rapid AIO NSFW on the same brief lay her face-down 3/3 (wide sweep,
+ * 2026-10-18).
+ */
+export function isFaceDownNudeSolo(prompt: string, solo: boolean): boolean {
+  return solo && isNudePrompt(prompt) && FACE_DOWN_RE.test(prompt);
+}
+
 function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean {
-  const duoMap = [1, 2, 3].some(slot => {
-    const ref = encoder.inputs[`image${slot}`];
-    return isRef(ref) && isMultiPersonPoseGuide(sourceFilename(workflow, ref));
-  });
+  const attached = [1, 2, 3]
+    .map(slot => encoder.inputs[`image${slot}`])
+    .filter(isRef)
+    .map(ref => sourceFilename(workflow, ref));
+  const duoMap = attached.some(name => isMultiPersonPoseGuide(name));
+  const solo = !duoMap && !attached.some(name => isDayPartnerFaceFilename(name));
   const prompt = String(encoder.inputs.prompt ?? '');
   const profile = POSE_MODEL_PROFILES['qwen-image-2.1'];
   // Clothed two-person stills stay on 2.1 unless the profile hands them off (it no longer does:
@@ -697,6 +713,7 @@ function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean 
   return (
     Boolean(profile.penetrationEngine) &&
     (isPenetrationDuoPrompt(prompt, duoMap) ||
+      isFaceDownNudeSolo(prompt, solo) ||
       (Boolean(profile.clothedDuoEngine) && isClothedDuoStill(prompt, duoMap)))
   );
 }
