@@ -1653,3 +1653,12 @@ describe('solo self-touch: the drawing puts her second hand where the words do',
     assert.equal(soloSecondHand('kneeling', 'kneeling on the bed masturbating'), 'breast');
   });
 });
+
+describe('stairs beats with a word before the steps', () => {
+  it('walk up the stairs, not a hand-over-hand climb (user still, 2026-10-17)', async () => {
+    const { parseSocialLayout } = await import('./day-pose-guide');
+    assert.equal(parseSocialLayout('climbing theater steps mid-stride in her outfit'), 'stairs');
+    assert.equal(parseSocialLayout('up the library steps with coffee'), 'stairs');
+    assert.equal(parseSocialLayout('climbing a rock wall at the gym'), 'climb');
+  });
+});

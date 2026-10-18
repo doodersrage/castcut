@@ -24,6 +24,7 @@ import {
   withProfilePromptFixes,
   withTwoPersonFaces,
   isLyingBackNudeSolo,
+  withNaturalPoses,
   hasQwenImage21TurboCheckpoint,
   qwenImage21TurboCheckpointFor,
   withDaylightLine,
@@ -695,5 +696,27 @@ describe('Qwen-Image 2.1: more than four reference pictures', () => {
     const fifth = enc.inputs['images.image_5'] as [string, number];
     assert.ok(fifth, 'image_5 wired');
     assert.equal(w[fifth[0]].inputs.image, 'room.png');
+  });
+});
+
+
+describe('Qwen-Image 2.1: natural pose wording', () => {
+  it('a dance sways instead of a stage pose; a stretch keeps the feet flat', () => {
+    const out = withNaturalPoses(
+      'POSE FIRST: she dances, both arms raised overhead, one knee lifted mid-step, hips mid-sway. Pose: both arms stretched high overhead, back long, up on the balls of the feet.'
+    );
+    assert.match(out, /swaying to the music, one hand raised loosely/);
+    assert.match(out, /both feet flat/);
+    assert.doesNotMatch(out, /balls of the feet|one knee lifted/);
+  });
+
+  it('reaching for a pier railing leans on it; reaching for a high shelf keeps the reach', () => {
+    const pier =
+      'POSE FIRST: she stands reaching up with one arm high, the other arm out — reaching for a pier railing mid-lean. She stands reaching up with one arm high, the other arm out.';
+    const out = withNaturalPoses(pier);
+    assert.match(out, /^POSE FIRST: she leans on the railing with one hand on it/);
+    assert.match(out, /She leans on the railing with one hand on it/);
+    const shelf = 'She stands reaching up with one arm high, the other arm out — reaching for a jar on a high shelf.';
+    assert.equal(withNaturalPoses(shelf), shelf);
   });
 });

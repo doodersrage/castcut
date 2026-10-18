@@ -1382,7 +1382,9 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   }
   // Stairs read as a walking climb, not a hand-over-hand ladder climb.
   if (
-    /\b(climb(?:s|ing)?\s+(?:the\s+)?(?:stairs|steps|staircase)|up\s+the\s+(?:stairs|steps)|taking\s+the\s+(?:stairs|steps)|descend(?:s|ing)?\s+the\s+(?:stairs|steps)|down\s+the\s+(?:stairs|steps))\b/i.test(
+    // A word or two may sit between ("climbing theater steps", "up the library steps"): those
+    // went to the hand-over-hand climb below (user's still, 2026-10-17).
+    /\b(climb(?:s|ing)?\s+(?:the\s+)?(?:[a-z]+\s+){0,2}(?:stairs|steps|staircase|stairway)|up\s+the\s+(?:[a-z]+\s+){0,2}(?:stairs|steps|staircase)|taking\s+the\s+(?:stairs|steps)|descend(?:s|ing)?\s+the\s+(?:[a-z]+\s+){0,2}(?:stairs|steps)|down\s+the\s+(?:[a-z]+\s+){0,2}(?:stairs|steps))\b/i.test(
       haystack
     )
   ) {

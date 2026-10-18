@@ -416,6 +416,49 @@ export function withLieBackLine(prompt: string): string {
 }
 
 /**
+ * Showy pose wording → what a person would really do, on 2.1 only (Edit 2511 / Rapid needed the
+ * strong wording to leave the plate's arms-at-sides stand). The user's own Turbo stills, same
+ * graphs and seeds (2026-10-17): every rooftop / street dance came out as a stage pose — both
+ * arms overhead, a knee lifted; "reaching for a pier railing" stood her with one arm in the air.
+ * With these: she sways and laughs with one hand up (5/5 dances), leans on the railing catching
+ * her breath (2/2), stretches with her feet flat. Dropping the pose wording altogether was worse
+ * (the coffee, the book, the camera went too) and a general "candid photo" line changed nothing.
+ */
+const NATURAL_POSE_REWRITES: ReadonlyArray<[string, string]> = [
+  [
+    'both arms raised overhead, one knee lifted mid-step, hips mid-sway',
+    'swaying to the music, one hand raised loosely above her shoulder, the other at her waist, hips turning, soft knees, mid-laugh',
+  ],
+  [
+    'both arms stretched high overhead, back long, up on the balls of the feet',
+    'a lazy stretch, arms up with soft elbows, back arched a little, both feet flat, eyes half closed',
+  ],
+  [
+    'stands stretching both arms overhead, weight on one leg',
+    'stretches lazily, arms up with soft elbows, both feet flat',
+  ],
+];
+const REACH_UP = /\b([Ss])he stands reaching up with one arm high, the other arm out\b/g;
+
+export function withNaturalPoses(prompt: string): string {
+  let out = prompt;
+  for (const [from, to] of NATURAL_POSE_REWRITES) out = out.split(from).join(to);
+  // Reaching for a railing / rail: leaning on it, not an arm in the air.
+  if (
+    /\breach(?:es|ing)?\s+(?:for|toward|towards)\s+(?:a|the)\s+(?:\w+\s+)?(?:railing|rail|handrail|balustrade)\b/i.test(
+      out
+    )
+  ) {
+    out = out.replace(
+      REACH_UP,
+      (_match, s1: string) =>
+        `${s1}he leans on the railing with one hand on it, catching her breath`
+    );
+  }
+  return out;
+}
+
+/**
  * A daytime Day recipe (no LIGHT line of its own — evening / night slots have one) gets a bright
  * one on 2.1: Turbo's daytime stills were dim next to Edit 2511's. Live, 8 daytime Everyday
  * beats, same seeds (2026-10-17): mean brightness 75 → 84, the beats kept, the Cast's face
@@ -703,10 +746,13 @@ export function convertQwenEditWorkflowToImage21(
       withPhotoRealismTail(
         withTwoPersonFaces(
           withoutDroppedReferences(
-            withProfilePromptFixes(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
-              namePartnerOutfit: profile.namePartnerOutfit,
-              dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
-            }),
+            withProfilePromptFixes(
+              withNaturalPoses(toQwenImage21Prompt(String(encoder.inputs.prompt ?? ''))),
+              {
+                namePartnerOutfit: profile.namePartnerOutfit,
+                dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
+              }
+            ),
             dropped,
             kept.map(entry => entry.from)
           ),
