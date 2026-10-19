@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.3] - 2026-10-19
+
+- LoRA picker: offer ComfyUI files made for the engine that aren't in the library. Qwen-Image 2.1 Turbo showed "No LoRAs look compatible" because the player's 13 downloaded 2.1 files were never added to the library. When the list is empty, the picker scans ComfyUI files missing from the library and offers "Add all N" for the engine's family (added off; Lightning/Turbo/Fun-Acc/N-step speed LoRAs left out). Also: entries tagged Qwen from metadata alone are rescanned (2.1 LoRAs whose trainer said qwen-image), and unscanned qwen21_/qwen-image-2.1 names match 2.1 engines only.
+
 ## [v2.12.2] - 2026-10-19
 
 - **Day: clip Length in the Animate sheet.** Pick the default length or +2 / +4 / +6 s; the choices show the clip's real length on its engine (WAN, LTX-2.5, MiniMax-H3), the prompt names it ("8s clip"), and the last pick is remembered. Animate all keeps the default.
