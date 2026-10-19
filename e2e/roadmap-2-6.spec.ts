@@ -465,6 +465,13 @@ test('Animate opens a sheet with the engine and an editable direction', async ({
   await expect(sheet.getByTestId('day-animate-prompt')).not.toContainText('pours coffee');
   await sheet.getByTestId('day-animate-reset').click();
   await expect(direction).toHaveValue('pours coffee by the window');
+  // Length: the default is picked; a longer pick shows the render-time note.
+  await expect(sheet.getByTestId('day-animate-length-0')).toHaveAttribute('aria-selected', 'true');
+  await expect(sheet.getByTestId('day-animate-length-0')).toContainText('(default)');
+  await sheet.getByTestId('day-animate-length-4').click();
+  await expect(sheet.getByTestId('day-animate-length-4')).toHaveAttribute('aria-selected', 'true');
+  await expect(sheet.getByTestId('day-animate-length')).toContainText('take longer to render');
+  await expect(sheet.getByTestId('day-animate-prompt')).toContainText('8s clip');
   await sheet.getByTestId('day-animate-cancel').click();
   await expect(sheet).toHaveCount(0);
 });

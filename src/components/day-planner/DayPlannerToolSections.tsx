@@ -623,11 +623,15 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         key={animateTarget?.id ?? 'none'}
         slot={animateTarget}
         preview={previewSlotClip}
+        initialExtraSeconds={toolSettings.dayClipExtraSeconds}
         busy={busy}
         onClose={() => setAnimateTarget(null)}
-        onAnimate={(slot, direction) => {
+        onAnimate={(slot, direction, extraSeconds) => {
           setAnimateTarget(null);
-          void animateSlot(slot, { direction });
+          if (extraSeconds !== (toolSettings.dayClipExtraSeconds ?? 0)) {
+            updateToolSettings({ dayClipExtraSeconds: extraSeconds });
+          }
+          void animateSlot(slot, { direction, extraSeconds });
         }}
       />
       <CutProblemsDialog

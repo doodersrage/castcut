@@ -3,6 +3,12 @@
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import ModalPortal from '@/components/ui/ModalPortal';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
+import {
+  DAY_CLIP_EXTRA_SECONDS,
+  normalizeDayClipExtraSeconds,
+  type DayClipExtraSeconds,
+} from '@/lib/day-clip-length';
 import type { DaySlot } from '@/lib/day-planner';
 
 export type DayClipPreview = {
@@ -10,33 +16,45 @@ export type DayClipPreview = {
   talking: boolean;
   prompt: string;
   defaultDirection: string;
+  /** Clip length in seconds for each DAY_CLIP_EXTRA_SECONDS choice, on this engine. */
+  lengthSeconds: number[];
 };
 
 /**
  * Animate, with a say in it: the engine the clip runs on and its direction — what happens in
  * the clip, the slot's beat by default — editable. Whatever is typed is built into the prompt the
  * same way the default is (day-clip-direction.ts), so it is formatted for the engine; "What gets
- * sent" shows the result. Talking slots speak their line instead.
+ * sent" shows the result. Talking slots speak their line instead. Length adds seconds to the
+ * clip's default (remembered for the next Animate).
  */
 export default function DayAnimateSheet({
   slot,
   preview,
+  initialExtraSeconds,
   busy,
   onAnimate,
   onClose,
 }: {
   slot: DaySlot | null;
-  preview: (slot: DaySlot, direction?: string) => DayClipPreview;
+  preview: (slot: DaySlot, direction?: string, extraSeconds?: number) => DayClipPreview;
+  initialExtraSeconds?: number;
   busy?: boolean;
-  onAnimate: (slot: DaySlot, direction?: string) => void;
+  onAnimate: (
+    slot: DaySlot,
+    direction: string | undefined,
+    extraSeconds: DayClipExtraSeconds
+  ) => void;
   onClose: () => void;
 }) {
   const titleId = useId();
   const initial = slot ? preview(slot) : null;
   const [direction, setDirection] = useState(initial?.defaultDirection ?? '');
+  const [extraSeconds, setExtraSeconds] = useState<DayClipExtraSeconds>(() =>
+    normalizeDayClipExtraSeconds(initialExtraSeconds)
+  );
   if (!slot || !initial) return null;
   const edited = direction.trim() && direction.trim() !== initial.defaultDirection.trim();
-  const current = preview(slot, edited ? direction : undefined);
+  const current = preview(slot, edited ? direction : undefined, extraSeconds);
   return (
     <ModalPortal>
       <div
@@ -105,6 +123,24 @@ export default function DayAnimateSheet({
               </span>
             </label>
           )}
+          <div className="space-y-1" data-testid="day-animate-length">
+            <span className="type-caption block text-[var(--text-muted)]">Length</span>
+            <SegmentedControl
+              aria-label="Clip length"
+              value={String(extraSeconds)}
+              onChange={value => setExtraSeconds(normalizeDayClipExtraSeconds(value))}
+              options={DAY_CLIP_EXTRA_SECONDS.map((extra, index) => ({
+                value: String(extra),
+                label: `${formatSeconds(current.lengthSeconds[index] ?? 0)}${extra === 0 ? ' (default)' : ''}`,
+                testId: `day-animate-length-${extra}`,
+              }))}
+            />
+            {extraSeconds > 0 ? (
+              <p className="type-caption text-[var(--text-muted)]">
+                Longer clips take longer to render, and motion past ~6 s can drift or repeat.
+              </p>
+            ) : null}
+          </div>
           <details className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-2 py-1">
             <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
               What gets sent
@@ -122,7 +158,9 @@ export default function DayAnimateSheet({
               variant="primary"
               disabled={busy}
               data-testid="day-animate-submit"
-              onClick={() => onAnimate(slot, edited && !current.talking ? direction : undefined)}
+              onClick={() =>
+                onAnimate(slot, edited && !current.talking ? direction : undefined, extraSeconds)
+              }
             >
               Animate
             </Button>
@@ -134,4 +172,10 @@ export default function DayAnimateSheet({
       </div>
     </ModalPortal>
   );
+}
+
+/** 4 → "4 s", 5.875 → "5.9 s". */
+function formatSeconds(seconds: number): string {
+  const rounded = Math.round(seconds * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)} s`;
 }

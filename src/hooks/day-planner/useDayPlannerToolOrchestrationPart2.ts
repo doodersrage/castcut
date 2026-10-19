@@ -108,6 +108,12 @@ import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day-clip-
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
+import {
+  DAY_CLIP_EXTRA_SECONDS,
+  dayClipFrames,
+  dayClipSeconds,
+  normalizeDayClipExtraSeconds,
+} from '@/lib/day-clip-length';
 import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
@@ -443,7 +449,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   );
 
   const animateSlot = useCallback(
-    async (slot: DaySlot, options?: { manageBusy?: boolean; direction?: string }) => {
+    async (
+      slot: DaySlot,
+      options?: { manageBusy?: boolean; direction?: string; extraSeconds?: number }
+    ) => {
       const manageBusy = options?.manageBusy !== false;
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const imageUrl = still?.status === 'completed' ? still.imageUrl?.trim() : '';
@@ -526,6 +535,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           stillPrompt: parentEntry?.prompt,
           manLead,
           endPoseWords: endImageFilename ? endPose?.poseWords : undefined,
+          durationSec: 4 + normalizeDayClipExtraSeconds(options?.extraSeconds),
         });
         // One event, no line and no direction of the player's: she moves into the next moment
         // (or, on the last, rounds the event off) with the camera held.
@@ -648,9 +658,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           qualityProfile: 'final',
           queueParamsBase: withCastFaceQueueParams(
             {
-              // A talking clip runs ~5 s: room for a line of about 14 words.
-              // Talking ~5 s (a line of ~14 words); a conversation ~6 s for two lines.
-              videoFrames: conversation ? 96 : speaking ? 80 : 64,
+              // Motion ~4 s, talking ~5 s (a line of ~14 words), a conversation ~6 s — plus
+              // the Animate sheet's Length pick (day-clip-length.ts).
+              videoFrames: dayClipFrames({
+                speaking,
+                conversation,
+                extraSeconds: options?.extraSeconds,
+              }),
               ...(holdStill ? { videoStillHold: 'on' as const } : {}),
               // Refine detail (Video ltxRefine): any LTX clip — a talking one keeps its voice
               // and lip timing (4 clips, 2026-10-11).
@@ -1118,7 +1132,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
    * line instead (talkingClipPrompt), so the direction does not apply there.
    */
   const previewSlotClip = useCallback(
-    (slot: DaySlot, direction?: string) => {
+    (slot: DaySlot, direction?: string, extraSeconds?: number) => {
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const parentEntry = still?.promptId
         ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
@@ -1131,6 +1145,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         speaking: Boolean(spokenLine),
       });
       const talking = Boolean(spokenLine) && isLtx25Model(engine);
+      // Same length rule as animateSlot: talking / conversation clips start longer.
+      const speaking = Boolean(spokenLine) && (isLtx25Model(engine) || isH3Model(engine));
+      const conversation =
+        speaking &&
+        Boolean(normalizeSpokenLine(slot.replyLine)) &&
+        stillPromptPeople(parentEntry?.prompt) >= 2;
+      const lengthSeconds = DAY_CLIP_EXTRA_SECONDS.map(extraSeconds =>
+        dayClipSeconds(dayClipFrames({ speaking, conversation, extraSeconds }), engine)
+      );
       const prompt = talking
         ? inSpokenLanguage(
             talkingClipPrompt({
@@ -1147,6 +1170,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             dayMood: toolSettings.dayMood,
             stillPrompt: parentEntry?.prompt,
             manLead: dayPartnerNoun(character ?? {}) === 'man',
+            durationSec: 4 + normalizeDayClipExtraSeconds(extraSeconds),
           });
       return {
         engine,
@@ -1156,6 +1180,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         talking,
         prompt,
         defaultDirection: defaultDayClipDirection(slot, character?.name),
+        lengthSeconds,
       };
     },
     [character, shared.model, stillsRef, toolSettings.dayMood]

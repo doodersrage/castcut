@@ -46,4 +46,16 @@ describe('Day clip direction', () => {
       buildDaySlotClipPrompt({ slot, dayMood: 'everyday' })
     );
   });
+
+  it('names the picked length (Animate sheet Length)', () => {
+    assert.match(buildDaySlotClipPrompt({ slot, dayMood: 'everyday' }), /^4s clip/);
+    assert.match(
+      buildDaySlotClipPrompt({ slot, dayMood: 'everyday', durationSec: 8 }),
+      /^8s clip/
+    );
+    assert.match(
+      buildDaySlotClipPrompt({ slot, dayMood: 'intimate', stillPrompt: '', durationSec: 10 }),
+      /^10s clip/
+    );
+  });
 });

@@ -31,8 +31,11 @@ export function buildDaySlotClipPrompt(input: {
   manLead?: boolean;
   /** End pose words, when the clip lands on an end pose. */
   endPoseWords?: string;
+  /** Clip length the prompt names (default 4; the Animate sheet's Length adds to it). */
+  durationSec?: number;
 }): string {
   const { slot } = input;
+  const durationSec = input.durationSec && input.durationSec > 0 ? input.durationSec : 4;
   const direction = input.direction?.trim() || '';
   const beat = direction || slot.sceneHints?.trim() || '';
   const stillPrompt = input.stillPrompt ?? '';
@@ -42,7 +45,7 @@ export function buildDaySlotClipPrompt(input: {
       : buildDaySlotMotionSubject(slot, input.characterName);
     const twoWomen = /\bher girlfriend has (?:the face from|her own face)/.test(stillPrompt);
     const twoMen = /\bhis boyfriend has (?:the face from|his own face)/.test(stillPrompt);
-    let prompt = buildIntimateClipPrompt(beat || subject, 4, {
+    let prompt = buildIntimateClipPrompt(beat || subject, durationSec, {
       twoWomen,
       twoMen,
       ageLine: adultAgeLineIn(stillPrompt),
@@ -53,7 +56,7 @@ export function buildDaySlotClipPrompt(input: {
     return prompt;
   }
   const clip = buildStillClipPrompt(beat || buildDaySlotMotionSubject(slot, input.characterName), {
-    durationSec: 4,
+    durationSec,
     people: stillPromptPeople(stillPrompt),
     ...(input.endPoseWords ? { endPoseWords: input.endPoseWords } : {}),
   });

@@ -197,6 +197,8 @@ export type DayToolCache = {
   checkMarks?: boolean;
   /** Widescreen film: each still is widened to 16:9 (Edit 2511) before it is animated or cut. */
   widescreenFilm?: boolean;
+  /** Animate sheet Length: seconds added to a clip's default length (0, 2, 4 or 6). */
+  dayClipExtraSeconds?: number;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
   dayMood?: import('./day-planner').DayMoodSetting;
   /** Cast member who plays the second person on duo stills (unset: an invented stranger). */
