@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.2] - 2026-10-19
+
 - **Day: clip Length in the Animate sheet.** Pick the default length or +2 / +4 / +6 s; the choices show the clip's real length on its engine (WAN, LTX-2.5, MiniMax-H3), the prompt names it ("8s clip"), and the last pick is remembered. Animate all keeps the default.
 - **Qwen-Image 2.1: adult poses fixed.** Two-person sex layouts (lap, kneeling, bent over, wall, spooning, missionary…) had slipped back onto 2.1, which seats the pair side by side — the hand-off to Rapid AIO NSFW only fired with a pose map, and 2.1 sends none. Day now hands those stills to Rapid NSFW with its two-person map and recipe (lap 4/4, kneeling / bent / wall / spoon 2/2 each vs 0/8 on 2.1); oral and touching duos stay on 2.1. Solo fixes on 2.1: on her back with a knee or both knees up, the side camera hid a leg (6/6) — now seen from the foot of the bed, both legs 6/6; bent over the bed and on all fours came out kneeling or standing upright (0/6) — a line naming the angle of her body gets both 6/6.
 - **Qwen-Image 2.1: body plate on nude two-person stills.** Like nude solos, an oral / touching duo now takes the lead's undressed Cast plate as one more picture for her figure, build and marks (28 test renders: no pasted photo, wall or extra person).
