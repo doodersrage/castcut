@@ -30,11 +30,15 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
-import { scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
+import { fetchLoraScanRows, scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
+import { fetchComfyLoraInventoryFiles } from '@/lib/comfyui-object-info-cache';
 import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
 import { loraChangesFaceAt } from '@/lib/lora-check';
 import {
+  addScannedLorasToLibrary,
   deleteLoraStackPreset,
+  scannedLorasMissingForModel,
+  type LoraScanRow,
   loraStackPresetsForModel,
   LORA_STACK_WARN_SIZE,
   normalizeLoraStackPresets,
@@ -58,6 +62,69 @@ type PickerSnapshot = {
 };
 
 type StrengthEditMode = 'session' | 'library';
+
+/**
+ * Empty-list helper: ComfyUI LoRA files trained for this model that aren't in the library yet
+ * (new downloads only show up after they're added). Adds them switched off.
+ */
+function AddMatchingComfyLoras({
+  model,
+  library,
+  onAdded,
+}: {
+  model: string;
+  library: LoraLibraryEntry[];
+  onAdded: (count: number) => void;
+}) {
+  const [rows, setRows] = useState<LoraScanRow[] | null>(null);
+  const libraryKey = library.map(entry => entry.tokenValue).join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const files = (await fetchComfyLoraInventoryFiles({ comfyUrl, forceRefresh: true })) ?? [];
+      const inLibrary = new Set(libraryKey.split('|'));
+      const fresh = files
+        .map(file => file.name.trim())
+        .filter(name => name && !inLibrary.has(name));
+      const scanned = fresh.length > 0 ? await fetchLoraScanRows(fresh, comfyUrl) : [];
+      if (!cancelled) setRows(scanned);
+    })().catch(() => {
+      if (!cancelled) setRows([]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [libraryKey]);
+
+  const matches = rows ? scannedLorasMissingForModel(library, rows, model) : [];
+  if (matches.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <p className="type-caption text-[var(--text-muted)]">
+        {matches.length} LoRA file{matches.length === 1 ? '' : 's'} in ComfyUI made for{' '}
+        {loraModelFilterLabel(model)} {matches.length === 1 ? "isn't" : "aren't"} in your library
+        yet.
+      </p>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        onClick={() => {
+          const settings = loadComfyUiSettings();
+          saveComfyUiSettings({
+            ...settings,
+            loraLibrary: addScannedLorasToLibrary(settings.loraLibrary ?? [], matches),
+          });
+          onAdded(matches.length);
+        }}
+      >
+        Add {matches.length === 1 ? 'it' : `all ${matches.length}`}
+      </Button>
+    </div>
+  );
+}
 
 function StrengthSlider({
   label,
@@ -360,10 +427,17 @@ export default function LoraStackSessionPicker({
       ) : null}
 
       {visible.length === 0 ? (
-        <p className="type-caption text-[var(--text-muted)]">
-          No LoRAs look compatible with {loraModelFilterLabel(snapshot.model)}. Show all to pick
-          from the rest of your library.
-        </p>
+        <>
+          <p className="type-caption text-[var(--text-muted)]">
+            No LoRAs look compatible with {loraModelFilterLabel(snapshot.model)}. Show all to pick
+            from the rest of your library.
+          </p>
+          <AddMatchingComfyLoras
+            model={snapshot.model}
+            library={snapshot.library}
+            onAdded={() => setLibraryVersion(value => value + 1)}
+          />
+        </>
       ) : (
         <ul className="ui-scroll-region sidebar-scroll max-h-64 divide-y divide-[var(--border-subtle)]/80 overflow-y-auto rounded-xl border border-[var(--border-subtle)]/80">
           {visible.map(entry => {

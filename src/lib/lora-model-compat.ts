@@ -58,6 +58,12 @@ function isAmbiguousFamily(family: LoraCompatFamily): boolean {
   return family === 'unknown' || family === 'other';
 }
 
+/** File or label names a Qwen-Image 2.1 LoRA (qwen21_…, qwen-image-2.1-…, qwen_image_2.1_…). */
+export function looksLikeQwen21LoraName(entry: LoraLibraryEntry): boolean {
+  const haystack = [entry.tokenValue, entry.label, entry.id].filter(Boolean).join(' ');
+  return /qwen[-_ ]?(image[-_ ]?)?2[._]1(?!\d)|qwen21/i.test(haystack);
+}
+
 export function isLoraCompatibleWithModel(entry: LoraLibraryEntry, model?: string): boolean {
   const id = entry.id.trim();
   const companions = companionRealismLoraIdsForModel(model);
@@ -75,6 +81,11 @@ export function isLoraCompatibleWithModel(entry: LoraLibraryEntry, model?: strin
     if (!wanted) return true;
     return entry.family === wanted;
   }
+  // Not scanned yet: 2.1 and 20B Qwen LoRAs don't load on each other, so go by the name.
+  const wanted = loraFamilyForModel(model);
+  const named21 = looksLikeQwen21LoraName(entry);
+  if (wanted === 'qwen21') return named21;
+  if (named21 && wanted) return false;
   const modelFamily = resolveLoraFilterFamily(model);
   const loraFamily = classifyLoraEntryFamily(entry);
   if (isAmbiguousFamily(modelFamily) || isAmbiguousFamily(loraFamily)) {

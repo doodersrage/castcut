@@ -96,4 +96,19 @@ describe("lora model compatibility", () => {
       ["character"],
     );
   });
+
+  it("offers unscanned 2.1-named LoRAs on 2.1 engines only", () => {
+    const turbo = "qwen-image-2.1-edit-turbo-8";
+    const named21 = [
+      entry({ id: "glamour", tokenValue: "qwen21_glamour_realism_v1.safetensors" }),
+      entry({ id: "consistency", tokenValue: "qwen-image-2.1-consistency.safetensors" }),
+      entry({ id: "p8", tokenValue: "p_qwen_image_2.1_8step_v0.1.safetensors" }),
+    ];
+    for (const lora of named21) {
+      assert.equal(isLoraCompatibleWithModel(lora, turbo), true, lora.id);
+      assert.equal(isLoraCompatibleWithModel(lora, "qwen-image-edit-2511"), false, lora.id);
+    }
+    const lightning2512 = entry({ id: "l", tokenValue: "Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors" });
+    assert.equal(isLoraCompatibleWithModel(lightning2512, turbo), false);
+  });
 });

@@ -5,7 +5,11 @@
 
 import { isLoraCompatibleWithModel } from './lora-model-compat';
 import { loraFamilyForModel, type LoraFamily } from './lora-family-detect';
-import type { LoraLibraryEntry, SessionLoraStrengthOverrides } from './lora-stack';
+import {
+  createLoraLibraryEntryFromFilename,
+  type LoraLibraryEntry,
+  type SessionLoraStrengthOverrides,
+} from './lora-stack';
 
 export type LoraScanRow = {
   filename: string;
@@ -25,6 +29,9 @@ export function loraEntriesNeedingScan(library: LoraLibraryEntry[]): LoraLibrary
       (!entry.family ||
         // Unknown under an older detector (Qwen-Image 2.1 LoRAs were, until 2026-10-18): look again.
         entry.family === 'unknown' ||
+        // Qwen from metadata alone: before 2026-10-18 a 2.1 LoRA whose tensors weren't read as
+        // 2.1 took its trainer's "qwen-image" tag. The tensors decide now.
+        (entry.family === 'qwen' && entry.familySource === 'metadata') ||
         entry.familySource === 'unreadable' ||
         entry.familySource === 'missing')
   );
@@ -61,6 +68,49 @@ export function applyLoraScanResults(
     };
   });
   return { library: next, changed };
+}
+
+/** Few-step / distill LoRAs (Lightning, Turbo, Fun-Acc, Pruna 8-step): the engine loads these. */
+const SPEED_LORA_FILENAME = /lightning|lightx2v|turbo|fun[-_]?acc|\d+[-_ ]?steps?(?![a-z])/i;
+
+/**
+ * Scanned ComfyUI files, not yet in the library, that were trained for `model`'s family
+ * (speed LoRAs left out).
+ */
+export function scannedLorasMissingForModel(
+  library: LoraLibraryEntry[],
+  rows: LoraScanRow[],
+  model?: string
+): LoraScanRow[] {
+  const wanted = loraFamilyForModel(model);
+  if (!wanted) return [];
+  const inLibrary = new Set(library.map(entry => entry.tokenValue?.trim()).filter(Boolean));
+  return rows.filter(
+    row =>
+      row.family === wanted &&
+      row.source !== 'missing' &&
+      !SPEED_LORA_FILENAME.test(row.filename) &&
+      !inLibrary.has(row.filename.trim())
+  );
+}
+
+/** Add scanned files to the library, switched off, with their family and trigger filled in. */
+export function addScannedLorasToLibrary(
+  library: LoraLibraryEntry[],
+  rows: LoraScanRow[]
+): LoraLibraryEntry[] {
+  const next = [...library];
+  for (const row of rows) {
+    const filename = row.filename.trim();
+    if (!filename || next.some(entry => entry.tokenValue?.trim() === filename)) continue;
+    next.push({
+      ...createLoraLibraryEntryFromFilename(filename, next),
+      family: row.family,
+      familySource: row.source,
+      ...(row.trigger ? { triggerPhrase: row.trigger } : {}),
+    });
+  }
+  return next;
 }
 
 /** Picked LoRA ids that can't apply to `model` (wrong family, or no longer in the library). */

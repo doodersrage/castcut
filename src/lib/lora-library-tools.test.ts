@@ -6,6 +6,8 @@ import {
   deleteLoraStackPreset,
   duplicateLoraEntries,
   loraEntriesNeedingScan,
+  addScannedLorasToLibrary,
+  scannedLorasMissingForModel,
   loraStackMembership,
   loraUsageStats,
   missingLoraEntries,
@@ -29,13 +31,53 @@ describe('lora-library-tools', () => {
     const library = [entry('skin', 'qwen-edit-skin.safetensors'), entry('pose', 'pose.safetensors', { triggerPhrase: 'mine' })];
     assert.equal(loraEntriesNeedingScan(library).length, 2);
     const { library: next, changed } = applyLoraScanResults(library, [
-      { filename: 'qwen-edit-skin.safetensors', family: 'qwen', source: 'metadata', trigger: 'skin' },
+      { filename: 'qwen-edit-skin.safetensors', family: 'qwen', source: 'keys', trigger: 'skin' },
       { filename: 'pose.safetensors', family: 'flux-klein', source: 'metadata', trigger: 'matchingpose9b' },
     ]);
     assert.equal(changed, 2);
     assert.equal(next[0]!.family, 'qwen');
     assert.equal(next[0]!.triggerPhrase, 'skin');
     assert.equal(next[1]!.triggerPhrase, 'mine');
+    assert.equal(loraEntriesNeedingScan(next).length, 0);
+  });
+
+  it('rescans Qwen entries that only metadata identified (2.1 LoRAs tagged qwen-image)', () => {
+    const library = [
+      entry('glamour', 'qwen21_glamour_realism_v1.safetensors', { family: 'qwen', familySource: 'metadata', enabled: true }),
+      entry('skin', 'qwen-edit-skin.safetensors', { family: 'qwen', familySource: 'keys' }),
+    ];
+    assert.deepEqual(loraEntriesNeedingScan(library).map(e => e.id), ['glamour']);
+    const { library: next } = applyLoraScanResults(library, [
+      { filename: 'qwen21_glamour_realism_v1.safetensors', family: 'qwen21', source: 'keys' },
+    ]);
+    assert.equal(next[0]!.family, 'qwen21');
+    assert.equal(next[0]!.enabled, false);
+    assert.equal(loraEntriesNeedingScan(next).length, 0);
+  });
+
+  it('offers ComfyUI files of the model family that are not in the library, added off', () => {
+    const library = [entry('skin', 'qwen-edit-skin.safetensors', { family: 'qwen', familySource: 'keys' })];
+    const rows = [
+      { filename: 'qwen21_glamour_realism_v1.safetensors', family: 'qwen21' as const, source: 'keys' as const },
+      { filename: 'qwen21-nsfw-f23gg.safetensors', family: 'qwen21' as const, source: 'keys' as const, trigger: 'nsfw_qwen_lora' },
+      { filename: 'qwen-edit-skin.safetensors', family: 'qwen' as const, source: 'keys' as const },
+      { filename: 'gone.safetensors', family: 'qwen21' as const, source: 'missing' as const },
+      { filename: 'p_qwen_image_2.1_8step_v0.1.safetensors', family: 'qwen21' as const, source: 'keys' as const },
+      { filename: 'Qwen-Image-2.1-Fun-Acc-4Step-PDD-T8.safetensors', family: 'qwen21' as const, source: 'keys' as const },
+      { filename: 'qwen_image_2.1_turbo_lora_avg_rank_178_bf16.safetensors', family: 'qwen21' as const, source: 'keys' as const },
+    ];
+    const matches = scannedLorasMissingForModel(library, rows, 'qwen-image-2.1-edit-turbo-8');
+    assert.deepEqual(matches.map(row => row.filename), [
+      'qwen21_glamour_realism_v1.safetensors',
+      'qwen21-nsfw-f23gg.safetensors',
+    ]);
+    assert.deepEqual(scannedLorasMissingForModel(library, rows, 'qwen-image-edit-2511'), []);
+    const next = addScannedLorasToLibrary(library, matches);
+    assert.equal(next.length, 3);
+    assert.equal(next[1]!.family, 'qwen21');
+    assert.equal(next[1]!.enabled, false);
+    assert.equal(next[2]!.triggerPhrase, 'nsfw_qwen_lora');
+    assert.equal(addScannedLorasToLibrary(next, matches).length, 3);
     assert.equal(loraEntriesNeedingScan(next).length, 0);
   });
 
