@@ -878,6 +878,26 @@ export function withNudeBodyPlateLine(prompt: string, man = false): string {
 }
 
 /**
+ * A nude two-person still on Qwen-Image 2.1 (oral, touching — sex layouts go to Rapid) with the
+ * lead's undressed Cast plate as one more picture after the two faces: her body from it, as a
+ * nude solo's (withNudeBodyPlateLine). Turbo, the user's oral duos, same seeds (2026-10-19):
+ * build closer to a slim plate than the words alone, 0/28 pasted photo, wall or extra person.
+ */
+export function withNudeDuoLeadBodyLine(
+  prompt: string,
+  man = false,
+  image: 'third' | 'fourth' | 'fifth' = 'third'
+): string {
+  const her = man ? 'his' : 'her';
+  const line = `${man ? 'His' : 'Her'} body is the ${image} image (the same ${man ? 'man' : 'woman'}): keep ${her} figure, build, chest, belly, hips, thighs and skin, with any tattoos or marks, exactly as in the ${image} image. The underwear there is only the fitting base — ${man ? 'he' : 'she'} wears nothing here; never paste that photo or its plain wall into the scene.`;
+  if (prompt.includes(line)) return prompt;
+  const face = new RegExp(`Keep ${her} face from the first image[^.]*\\.`);
+  return face.test(prompt)
+    ? prompt.replace(face, match => `${match} ${line}`)
+    : `${prompt.trim()} ${line}`;
+}
+
+/**
  * A clothed two-person still on Qwen-Image 2.1 with the lead's dressed plate as the third image
  * (the two faces are Images 1 and 2; the fourth when the pose map, which 2.1 drops, is the third):
  * her body and outfit from the picture. Turbo, a curvy Cast

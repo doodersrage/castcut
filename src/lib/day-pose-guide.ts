@@ -110,6 +110,27 @@ export type IntimateLayout =
 
 const INTIMATE_SOLO_LAYOUTS: ReadonlySet<IntimateLayout> = new Set(['solo']);
 
+/** Two-person sex layouts where the bodies are joined (not oral, kissing or afterglow). */
+const PENETRATION_LAYOUTS: ReadonlySet<string> = new Set<IntimateLayout>([
+  'missionary',
+  'mating_press',
+  'straddle',
+  'reverse_straddle',
+  'bent',
+  'prone',
+  'spoon',
+  'scissors',
+  'standing',
+  'wall',
+  'lift',
+  'kneeling',
+  'lap',
+]);
+
+export function isPenetrationLayout(layout: string | null | undefined): boolean {
+  return PENETRATION_LAYOUTS.has(String(layout ?? ''));
+}
+
 /** Sex layouts that are one person unless the text names someone else. */
 const INTIMATE_ONE_PERSON_LAYOUTS: ReadonlySet<IntimateLayout> = new Set([
   'afterglow',

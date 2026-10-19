@@ -391,3 +391,19 @@ describe('withDuoPartnerBodyLine', () => {
     assert.equal(withDuoPartnerBodyLine(out, 'man', 'fourth'), out);
   });
 });
+
+describe('withNudeDuoLeadBodyLine', () => {
+  it('puts the lead body sentence after the faces sentence, once', async () => {
+    const { withNudeDuoLeadBodyLine } = await import('./day-still-prompt');
+    const prompt =
+      'Explicit sex photo: Side view, exactly two people. The woman sits on the edge of the bed. Keep her face from the first image; the man has the face from the second image (a man in his forties, with a bald head). Photorealistic photograph.';
+    const out = withNudeDuoLeadBodyLine(prompt);
+    assert.match(
+      out,
+      /second image \(a man in his forties, with a bald head\)\. Her body is the third image \(the same woman\)/
+    );
+    assert.match(out, /she wears nothing here; never paste that photo/);
+    assert.equal(withNudeDuoLeadBodyLine(out), out);
+    assert.match(withNudeDuoLeadBodyLine(prompt, false, 'fourth'), /Her body is the fourth image/);
+  });
+});

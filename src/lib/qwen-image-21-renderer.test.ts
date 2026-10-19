@@ -228,6 +228,21 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
     assert.equal(isPenetrationDuoPrompt('his penis inside her', false), false);
   });
 
+  it('reads two people from the prompt when no map is attached (2.1 sends none)', () => {
+    const lap =
+      'Explicit sex photo: Side view of the armchair. The man sits in it; the woman sits on his lap facing him, straddling him, riding his penis.';
+    const kneel =
+      'Explicit sex photo: Both kneel upright on the bed facing each other, bodies pressed together mid-sex.';
+    const oral =
+      'Explicit sex photo: Side view, exactly two people. The woman sits on the edge of the bed; the man kneels between her knees, licking her.';
+    const solo =
+      'Explicit solo photo: One woman alone, masturbating. Two fingers pushed inside her vagina.';
+    assert.equal(isPenetrationDuoPrompt(lap, false), true);
+    assert.equal(isPenetrationDuoPrompt(kneel, false), true);
+    assert.equal(isPenetrationDuoPrompt(oral, false), false);
+    assert.equal(isPenetrationDuoPrompt(solo, false), false);
+  });
+
   it('returns the graph unconverted for a penetration duo', () => {
     const graph = {
       '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Side view. The man lies on top of her, his penis inside her.', image1: ['900', 0], image2: ['904', 0] } },

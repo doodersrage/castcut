@@ -447,10 +447,24 @@ export function resolveDayStillModel(
     adultNude: boolean;
     /** A clothed still with two people in it (see pose-model-profile: clothedDuoEngine). */
     clothedDuo?: boolean;
+    /** A nude two-person still whose bodies are joined (see pose-model-profile: penetrationEngine). */
+    penetrationDuo?: boolean;
     installed?: (modelId: string) => boolean;
   }
 ): ComfyImageModel {
   const picked = normalizeModel(model);
+  // Qwen-Image 2.1 hands penetration duos to Rapid AIO NSFW — the whole still, so it gets Rapid's
+  // two-person pose map and recipe (2.1 sat her beside him on lap / kneeling beats, 0/8).
+  const sexEngine = poseProfileForModel(picked).penetrationEngine;
+  if (
+    options.penetrationDuo &&
+    options.adultNude &&
+    sexEngine &&
+    COMFY_MODEL_IDS.has(sexEngine) &&
+    options.installed?.(sexEngine)
+  ) {
+    return sexEngine as ComfyImageModel;
+  }
   const duoEngine = poseProfileForModel(picked).clothedDuoEngine;
   if (
     options.clothedDuo &&

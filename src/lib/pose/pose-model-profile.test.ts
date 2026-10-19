@@ -93,6 +93,31 @@ describe('Day adult hand-off', () => {
     );
   });
 
+  it('Qwen-Image 2.1 hands nude penetration duos to Rapid AIO NSFW when it is installed', async () => {
+    const { resolveDayStillModel } = await import('../queue-tool-model');
+    const installed = (id: string) => id === 'qwen-rapid-aio-edit-nsfw';
+    const picked = 'qwen-image-2.1-edit-turbo-8';
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: true, penetrationDuo: true, installed }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    // Oral / solo, a clothed still, or Rapid NSFW missing: stays on 2.1.
+    assert.equal(resolveDayStillModel(picked, { adultNude: true, installed }), picked);
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: false, penetrationDuo: true, installed }),
+      picked
+    );
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: true, penetrationDuo: true, installed: () => false }),
+      picked
+    );
+    // Engines without the hand-off keep the still.
+    assert.equal(
+      resolveDayStillModel('qwen-rapid-aio-edit-nsfw', { adultNude: true, penetrationDuo: true, installed }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+  });
+
   it('Qwen-Image 2.1 keeps its clothed two-person stills (Turbo: two people 56/56)', async () => {
     const { resolveDayStillModel } = await import('../queue-tool-model');
     const installed = (id: string) => id === 'qwen-rapid-aio-edit';

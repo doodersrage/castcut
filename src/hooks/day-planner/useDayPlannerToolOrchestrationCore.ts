@@ -29,6 +29,7 @@ import {
   queuedDayStillPrompt,
   withDuoLeadBodyLine,
   withDuoPartnerBodyLine,
+  withNudeDuoLeadBodyLine,
   withNudeBodyPlateLine,
 } from '@/lib/day-still-prompt';
 import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
@@ -188,7 +189,7 @@ import {
   uploadDayIdentityLatentPlate,
 } from '@/lib/day-vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
-import { buildDayPoseGuide } from '@/lib/day-pose-guide';
+import { buildDayPoseGuide, isPenetrationLayout } from '@/lib/day-pose-guide';
 import { customPoseWords } from '@/lib/pose-describe';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day-best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day-two-takes';
@@ -965,6 +966,7 @@ export function useDayPlannerToolOrchestrationCore() {
       const handOffInventory =
         handOffProfile.adultEngine ||
         handOffProfile.clothedDuoEngine ||
+        handOffProfile.penetrationEngine ||
         bestEnginePerPose ||
         queueTarget.engine
           ? (readCachedComfyObjectInfoModels() ??
@@ -977,8 +979,24 @@ export function useDayPlannerToolOrchestrationCore() {
       const playedMood = normalizeDayMood(
         isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
       );
+      // Qwen-Image 2.1 hands nude two-person sex layouts to Rapid NSFW (pose-model-profile:
+      // penetrationEngine) — only when the picked engine has that hand-off.
+      const penetrationDuo =
+        adultNudeStill &&
+        Boolean(handOffProfile.penetrationEngine) &&
+        (() => {
+          const { layout, headcount } = daySlotPoseLayout({
+            slot: queueTarget,
+            dayMood: playedMood,
+            intimateMix: toolSettings.intimateMix,
+            allowCompanions: toolSettings.allowCompanions === true,
+            model: shared.model,
+          });
+          return headcount >= 2 && isPenetrationLayout(layout);
+        })();
       const routedStillModel = resolveDayStillModel(shared.model, {
         adultNude: adultNudeStill,
+        penetrationDuo,
         // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
         clothedDuo:
           !adultNudeStill &&
@@ -2648,6 +2666,32 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[1] = bodyUrl || undefined;
           extraFilenames[1] = bodyUrl ? '' : (nudeBodyPlate.filename?.trim() ?? '');
         }
+        // A nude two-person still on Qwen-Image 2.1 (sex layouts already went to Rapid): the lead's
+        // undressed Cast plate in the next free picture carries her body, as on a nude solo.
+        let nudeDuoBodySlot: number | null = null;
+        if (
+          adultStill &&
+          omitGarment &&
+          Boolean(partnerFace) &&
+          !thirdPerson &&
+          poseProfileForModel(stillModel).family === 'qwen-image-2.1'
+        ) {
+          const plate = resolveDayQueueIdentityPlate({
+            character: lookCharacter,
+            displayPlate: lookPlate,
+            preferCastPlate: true,
+          });
+          const plateUrl = plate?.imageUrl?.trim();
+          const plateFile = plate?.filename?.trim();
+          let slot = 2;
+          while (slot < 5 && (extraFilenames[slot]?.trim() || extraUrls[slot])) slot += 1;
+          if ((plateUrl || plateFile) && slot < 5) {
+            // By URL, as the solo body plate: a bare output filename is not a loadable input.
+            extraUrls[slot] = plateUrl || undefined;
+            extraFilenames[slot] = plateUrl ? '' : (plateFile ?? '');
+            nudeDuoBodySlot = slot;
+          }
+        }
         // A clothed two-person still on Qwen-Image 2.1: the lead's dressed plate (or an Outfit
         // Keep, already dressed) as Image 3 carries her body and outfit next to the two faces
         // (day-still-prompt.ts withDuoLeadBodyLine).
@@ -2865,37 +2909,51 @@ export function useDayPlannerToolOrchestrationCore() {
                 partnerBodySlot === 2 ? 'third' : partnerBodySlot === 3 ? 'fourth' : 'fifth'
               )
             : prompt;
+        const withNudeDuoBody = (prompt: string) =>
+          nudeDuoBodySlot === null
+            ? prompt
+            : withNudeDuoLeadBodyLine(
+                prompt,
+                leadNoun === 'man',
+                nudeDuoBodySlot === 2 ? 'third' : nudeDuoBodySlot === 3 ? 'fourth' : 'fifth'
+              );
         // No garment: the queue compacts the guide into the second image — say so.
         const numbered = queuedDayStillPrompt(
-          thirdPerson
-            ? roomAsImage4
-              ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson), 4, { lead: true })
-              : roomAsImage5
-                ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson, fourthPerson), 5, {
-                    lead: true,
-                  })
-                : withThirdPerson(finalized, thirdPerson, fourthPerson)
-            : roomAsImage4
-              ? withPlacePhotoInLongAdultBrief(finalized, 4)
-              : placePhoto
-                ? withPlacePhotoInPrompt(finalized, 3, { lead: roomLedEngine })
-                : adultPlacePhoto
-                  ? withPlacePhotoInAdultPrompt(finalized)
-                  : adultDuoPlacePhoto
-                    ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
-                    : nudeBodyAttached
-                      ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
-                      : duoBodyAttached || partnerBodySlot !== null
-                        ? withDuoPartnerSlotLine(
-                            duoBodyAttached
-                              ? withDuoLeadBodyLine(
-                                  finalized,
-                                  leadNoun === 'man',
-                                  duoBodySlot === 3 ? 'fourth' : 'third'
-                                )
-                              : finalized
-                          )
-                        : finalized,
+          withNudeDuoBody(
+            thirdPerson
+              ? roomAsImage4
+                ? withPlacePhotoInPrompt(withThirdPerson(finalized, thirdPerson), 4, { lead: true })
+                : roomAsImage5
+                  ? withPlacePhotoInPrompt(
+                      withThirdPerson(finalized, thirdPerson, fourthPerson),
+                      5,
+                      {
+                        lead: true,
+                      }
+                    )
+                  : withThirdPerson(finalized, thirdPerson, fourthPerson)
+              : roomAsImage4
+                ? withPlacePhotoInLongAdultBrief(finalized, 4)
+                : placePhoto
+                  ? withPlacePhotoInPrompt(finalized, 3, { lead: roomLedEngine })
+                  : adultPlacePhoto
+                    ? withPlacePhotoInAdultPrompt(finalized)
+                    : adultDuoPlacePhoto
+                      ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
+                      : nudeBodyAttached
+                        ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
+                        : duoBodyAttached || partnerBodySlot !== null
+                          ? withDuoPartnerSlotLine(
+                              duoBodyAttached
+                                ? withDuoLeadBodyLine(
+                                    finalized,
+                                    leadNoun === 'man',
+                                    duoBodySlot === 3 ? 'fourth' : 'third'
+                                  )
+                                : finalized
+                            )
+                          : finalized
+          ),
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
             third: Boolean(extraFilenames[2]?.trim() || extraUrls[2]),

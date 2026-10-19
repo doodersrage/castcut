@@ -440,11 +440,49 @@ function withLeadLine(prompt: string, line: string): string {
 }
 
 export function withLieBackLine(prompt: string): string {
-  if (prompt.includes(QWEN_IMAGE_21_LIE_BACK_LINE)) return prompt;
-  const lead = 'Keep facial likeness only: ';
-  return prompt.includes(lead)
-    ? prompt.replace(lead, `${lead}${QWEN_IMAGE_21_LIE_BACK_LINE} `)
-    : `${QWEN_IMAGE_21_LIE_BACK_LINE} ${prompt}`;
+  return withLeadLine(prompt, lieBackLineFor(prompt));
+}
+
+/**
+ * Knees up on her back: seen from the side, the two raised legs overlap and 2.1 drew one leg
+ * (3/3 on the user's renders, 2026-10-19). From the foot of the bed both legs show 3/3, still
+ * lying (same seeds).
+ */
+export const QWEN_IMAGE_21_LIE_BACK_KNEES_UP_LINE =
+  'POSE FIRST: she lies flat on her back — head and shoulders down on the pillow, back flat on the mattress, not sitting, not leaning against the headboard; seen from the foot of the bed, looking along her body toward her face, both knees up and apart — her left leg and her right leg both in frame, two feet.';
+
+const KNEES_UP_RE = /\bknees? (?:pulled|drawn) up\b/i;
+
+/** The lying-on-her-back line for this stance (knees up gets the foot-of-the-bed camera). */
+export function lieBackLineFor(prompt: string): string {
+  return KNEES_UP_RE.test(prompt)
+    ? QWEN_IMAGE_21_LIE_BACK_KNEES_UP_LINE
+    : QWEN_IMAGE_21_LIE_BACK_LINE;
+}
+
+const SOLO_TWO_PEOPLE_RE = /\b(?:TWO PEOPLE|two people|her partner|the man from)\b/i;
+
+/**
+ * Bent over and on all fours (one person, nude): 2.1 knelt her upright, or stood her straight,
+ * on the recipe's words alone — 0/6 on the user's renders, 2026-10-19. Saying the angle of the
+ * body first: bent over 6/6, all fours 6/6 (same seeds, portrait and landscape).
+ */
+export function bentSoloLineFor(prompt: string): string | null {
+  if (!isNudePrompt(prompt) || SOLO_TWO_PEOPLE_RE.test(prompt)) return null;
+  const bent = /\bShe stands bent forward over (the [^,]+?), chest down on it\b/.exec(prompt);
+  if (bent) {
+    const surface = bent[1];
+    const bed = /\bbed\b/.test(surface);
+    return `POSE FIRST: she is bent over at the hips — feet on the floor, legs straight, her upper body lying flat across ${surface} with her cheek on ${bed ? 'the sheets' : 'it'}; seen from the side at ${bed ? 'bed' : 'its'} height.`;
+  }
+  const fours = /\bShe is on all fours on (the [^,]+?),/.exec(prompt);
+  if (fours) {
+    const reach = /\breaches back\b/i.test(prompt)
+      ? ' her right arm reaches back under her body between her thighs.'
+      : '';
+    return `POSE FIRST: seen from the side — her knees on ${fours[1]} under her raised hips, her chest low near it, propped on her left forearm; her back slopes down from her hips to her shoulders;${reach || ' her right hand braced beside her.'}`;
+  }
+  return null;
 }
 
 /**
@@ -683,16 +721,23 @@ export function isNudePrompt(prompt: string): boolean {
 
 /** Penetration between two people (not oral, kissing, touching). */
 const PENETRATION_RE =
-  /\b(?:penetrat\w*|(?:penis|cock|strap-on)\s+(?:is\s+)?inside|inside her|thrust\w*|fuck(?:s|ing)?\s+(?:her|him)|rides?\s+(?:him|her)|riding\s+(?:him|her)|cowgirl|doggy|missionary)\b/i;
+  /\b(?:penetrat\w*|(?:penis|cock|strap-on)\s+(?:is\s+)?inside|inside her|thrust\w*|fuck(?:s|ing)?\s+(?:her|him)|rides?\s+(?:him|her|his)|riding\s+(?:him|her|his)|mid-?sex|having sex|cowgirl|doggy|missionary)\b/i;
+
+/** The prompt itself says two people are in the still (Day / Story adult duo recipes). */
+const TWO_PEOPLE_PROMPT_RE =
+  /\b(?:explicit sex photo|exactly two people|exactly one man and one woman|the (?:man|woman) has the face from)\b/i;
 
 /**
  * Two-person penetration stills stay on the engine's own model (Rapid AIO NSFW is trained for
  * them). On 2.1 they came out fused or role-swapped, or posed "near" the act — with the pose map,
  * without it, with the Fun ControlNet Union (0.6–1.0) and with 2.1 NSFW LoRAs (live A/B on the
- * user's own duos, 2026-10-01).
+ * user's own duos, 2026-10-01). Two people are read from the map or from the prompt: 2.1 sends
+ * no duo map, and the partner's face upload is named like the lead's — so lap and kneeling sex
+ * slipped through to 2.1 and came out side by side (0/8, 2026-10-19). Day routes these to Rapid
+ * before the graph is built (resolveDayStillModel); this is the fallback for other tools.
  */
 export function isPenetrationDuoPrompt(prompt: string, hasDuoPoseMap: boolean): boolean {
-  return hasDuoPoseMap && PENETRATION_RE.test(prompt);
+  return (hasDuoPoseMap || TWO_PEOPLE_PROMPT_RE.test(prompt)) && PENETRATION_RE.test(prompt);
 }
 
 /**
@@ -813,6 +858,7 @@ export function convertQwenEditWorkflowToImage21(
   // side line on the landscape canvas laid her along it 3/3 (2026-10-17).
   const lyingSideLine = soloAttached && !lyingBackNude ? lieSideLineFor(sourceText) : null;
   const lyingNude = lyingBackNude || lyingSideLine !== null;
+  const bentLine = soloAttached && !lyingNude ? bentSoloLineFor(sourceText) : null;
   const canvas = lyingNude
     ? { width: 1472, height: 1104 }
     : qwenImage21Canvas(requestedWidth, requestedHeight);
@@ -939,8 +985,8 @@ export function convertQwenEditWorkflowToImage21(
     vae: [vae, 0],
     prompt: (lyingBackNude
       ? withLieBackLine
-      : lyingSideLine
-        ? (text: string) => withLeadLine(text, lyingSideLine)
+      : lyingSideLine || bentLine
+        ? (text: string) => withLeadLine(text, (lyingSideLine || bentLine) as string)
         : (text: string) => text)(
       withPhotoRealismTail(
         withTwoPersonFaces(

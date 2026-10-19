@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- **Day: clip Length in the Animate sheet.** Pick the default length or +2 / +4 / +6 s; the choices show the clip's real length on its engine (WAN, LTX-2.5, MiniMax-H3), the prompt names it ("8s clip"), and the last pick is remembered. Animate all keeps the default.
+- **Qwen-Image 2.1: adult poses fixed.** Two-person sex layouts (lap, kneeling, bent over, wall, spooning, missionary…) had slipped back onto 2.1, which seats the pair side by side — the hand-off to Rapid AIO NSFW only fired with a pose map, and 2.1 sends none. Day now hands those stills to Rapid NSFW with its two-person map and recipe (lap 4/4, kneeling / bent / wall / spoon 2/2 each vs 0/8 on 2.1); oral and touching duos stay on 2.1. Solo fixes on 2.1: on her back with a knee or both knees up, the side camera hid a leg (6/6) — now seen from the foot of the bed, both legs 6/6; bent over the bed and on all fours came out kneeling or standing upright (0/6) — a line naming the angle of her body gets both 6/6.
+- **Qwen-Image 2.1: body plate on nude two-person stills.** Like nude solos, an oral / touching duo now takes the lead's undressed Cast plate as one more picture for her figure, build and marks (28 test renders: no pasted photo, wall or extra person).
+
 ## [v2.12.1] - 2026-10-18
 
 - **Anatomy finish removed; Qwen-Image 2.1 LoRAs are the player's choice.** Day no longer re-renders a woman's crotch with the anatomy LoRA after a nude solo still — nothing loads that LoRA on its own any more. Instead, Qwen-Image 2.1 renders now load the 2.1 LoRAs you switch on in the LoRA picker (they used to be dropped): 2.1 LoRA files are recognised as their own family (32 blocks; the 20B Qwen ones have 60) and offered for 2.1 engines only, and a file first recognised as 2.1 starts switched off, so none joins a render unless you turn it on.
