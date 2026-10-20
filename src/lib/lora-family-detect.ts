@@ -49,6 +49,9 @@ function fromBaseModel(base: string): LoraFamily | null {
   if (!b) return null;
   if (/klein|flux[-_. ]?2/.test(b)) return 'flux-klein';
   if (/flux/.test(b)) return 'flux';
+  // Qwen-Image 2.x trainers tag "qwen_image_2" / "qwen_image_21" / "Qwen-Image-2.1/lora"; the
+  // 20B models say "qwen_image", "Qwen-Image/lora", "qwen_image_edit" (2509/2511/2512 aren't 2.x).
+  if (/qwen[-_ ]?image[-_ ]?2(?:[._]?1)?(?![0-9])/.test(b)) return 'qwen21';
   if (/qwen/.test(b)) return 'qwen';
   if (/wan/.test(b)) return 'wan';
   if (/ltx/.test(b)) return 'ltx';
@@ -114,6 +117,11 @@ function firstTrainingTag(metadata: Record<string, unknown>): string | undefined
   } catch {
     return undefined;
   }
+}
+
+/** File or label names a Qwen-Image 2.1 LoRA (qwen21_…, qwen-image-2.1-…, qwen_image_2.1_…). */
+export function nameLooksQwen21(name: string): boolean {
+  return /qwen[-_ ]?(image[-_ ]?)?2[._]1(?!\d)|qwen21/i.test(name);
 }
 
 /** Family of a LoRA from its safetensors `__metadata__` and (when readable) tensor names. */

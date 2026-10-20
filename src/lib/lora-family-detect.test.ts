@@ -13,6 +13,18 @@ describe('lora-family-detect', () => {
     assert.equal(detectLoraFamily({ metadata: { ss_base_model_version: 'Z-image turbo' } }).family, 'z-image');
   });
 
+  it('tells Qwen-Image 2.1 metadata from the 20B Qwen models', () => {
+    const fam = (metadata: Record<string, string>) => detectLoraFamily({ metadata }).family;
+    assert.equal(fam({ ss_base_model_version: 'qwen_image_2' }), 'qwen21');
+    assert.equal(fam({ ss_base_model_version: 'qwen_image_21' }), 'qwen21');
+    assert.equal(fam({ 'modelspec.architecture': 'Qwen-Image-2.1/lora' }), 'qwen21');
+    assert.equal(fam({ ss_base_model_version: 'qwen_image' }), 'qwen');
+    assert.equal(fam({ 'modelspec.architecture': 'Qwen-Image/lora' }), 'qwen');
+    assert.equal(fam({ ss_base_model_version: 'qwen_image_edit' }), 'qwen');
+    assert.equal(fam({ ss_base_model_version: 'qwen_image_2512' }), 'qwen');
+    assert.equal(fam({ 'modelspec.architecture': 'Qwen-Image-Edit-2511/lora' }), 'qwen');
+  });
+
   it('tells architectures apart from tensor names', () => {
     assert.equal(detectLoraFamily({ keys: blocks('diffusion_model.double_blocks.', 8, '.img_attn.qkv.lora_A.weight') }).family, 'flux-klein');
     assert.equal(detectLoraFamily({ keys: blocks('lora_unet_double_blocks_', 19, '_img_attn_proj.alpha') }).family, 'flux');

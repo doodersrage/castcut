@@ -7,7 +7,11 @@
 import { closeSync, existsSync, openSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { getComfyUiRoot } from '@/lib/comfy-asset-paths';
-import { detectLoraFamily, type LoraFamilyDetection } from '@/lib/lora-family-detect';
+import {
+  detectLoraFamily,
+  nameLooksQwen21,
+  type LoraFamilyDetection,
+} from '@/lib/lora-family-detect';
 
 export type LoraScanResult = { filename: string } & (
   LoraFamilyDetection | { family: 'unknown'; source: 'unreadable' | 'missing' }
@@ -83,9 +87,25 @@ export async function scanLoraFiles(input: {
       results.push({ filename, ...detectLoraFamily({ metadata, keys: Object.keys(tensors) }) });
       continue;
     }
+    // Metadata only (e.g. Docker without the models folder): a label-less file named for
+    // Qwen-Image 2.1 is taken as 2.1 — its tensors can't be read from here.
     const metadata = await fetchComfyMetadata(input.comfyBaseUrl, filename);
-    if (metadata) {
-      results.push({ filename, ...detectLoraFamily({ metadata }) });
+    const fromMetadata = metadata ? detectLoraFamily({ metadata }) : null;
+    if (fromMetadata && fromMetadata.family !== 'unknown') {
+      results.push({ filename, ...fromMetadata });
+      continue;
+    }
+    if (nameLooksQwen21(filename)) {
+      results.push({
+        filename,
+        family: 'qwen21',
+        source: 'metadata',
+        ...(fromMetadata?.trigger ? { trigger: fromMetadata.trigger } : {}),
+      });
+      continue;
+    }
+    if (fromMetadata) {
+      results.push({ filename, ...fromMetadata });
       continue;
     }
     // Not on disk under COMFYUI_ROOT and ComfyUI has no metadata for it: the file is gone.
