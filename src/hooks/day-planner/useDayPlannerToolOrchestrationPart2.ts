@@ -1178,6 +1178,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ? 'LTX-2.5'
           : (getComfyModelDefinition(engine)?.label ?? engine),
         talking,
+        // MiniMax-H3 renders a longer clip with no spoken line silent (h3RendersSound).
+        silentWhenLong: isH3Model(engine) && !talking,
         prompt,
         defaultDirection: defaultDayClipDirection(slot, character?.name),
         lengthSeconds,

@@ -1976,7 +1976,11 @@ export function injectPromptsWithFallbacks(
     const nodeTypes = options.availableNodeTypes ? new Set(options.availableNodeTypes) : null;
     if (!nodeTypes || nodeTypes.has(H3_REQUIRED_NODE)) {
       const endImage = input.params?.videoEndImageFilename?.trim();
-      const converted = convertVideoWorkflowToH3(injected.workflow, endImage ? { endImage } : {});
+      // Past H3's default length a clip with no spoken line is silent (h3RendersSound).
+      const converted = convertVideoWorkflowToH3(injected.workflow, {
+        ...(endImage ? { endImage } : {}),
+        speech: input.params?.videoSpeech === 'on',
+      });
       if (converted.converted) {
         injected = { ...injected, workflow: converted.workflow };
         onLtx25 = true;

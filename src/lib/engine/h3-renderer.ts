@@ -92,13 +92,37 @@ export function h3CameraWords(prompt: string): string {
 export type H3ConvertResult = { workflow: Workflow; converted: boolean; reason?: string };
 
 /**
+ * A talking clip longer than H3's default: the line is ~5 s of speech (about 14 words), and with
+ * nothing said about the rest H3 filled the extra seconds with made-up, speech-like babble. Said
+ * positively (H3 has no negative prompt, see h3CameraWords).
+ */
+export const H3_LONG_TALK_TAIL =
+  'The line is said once. After it the person stays quiet with the mouth closed, and only soft ' +
+  'room sound is heard until the end of the clip.';
+
+/**
+ * Whether H3 renders sound for this clip. Its sound is made in the same pass as the picture and
+ * nothing in a motion prompt steers it: at the default length it stayed room sound, but a longer
+ * clip without a spoken line drifted into music. Past the default a clip with no line is silent,
+ * as LTX's are (Add sound gives it the place's sound). `speech` unknown: sound, as before.
+ */
+export function h3RendersSound(frames: number, speech: boolean | undefined): boolean {
+  return speech !== false || frames <= H3_MIN_FRAMES;
+}
+
+/**
  * WAN (or any KSampler + LoadImage + video save) clip graph → MiniMax-H3 first(+last)-frame graph
  * with sound, saved as an MP4. The canvas follows the still's aspect (GetImageSize + math) at a
  * long side of 1024. A quoted line in the prompt is spoken. Unchanged when it isn't a clip graph.
  */
 export function convertVideoWorkflowToH3(
   input: Record<string, unknown>,
-  options: { seed?: number; endImage?: string } = {}
+  options: {
+    seed?: number;
+    endImage?: string;
+    /** The clip has a spoken line (videoSpeech); undefined keeps the old always-sound graph. */
+    speech?: boolean;
+  } = {}
 ): H3ConvertResult {
   const workflow = input as Workflow;
   const entries = Object.entries(workflow);
@@ -127,6 +151,14 @@ export function convertVideoWorkflowToH3(
   const seed = Number(options.seed ?? sampler.inputs.seed ?? sampler.inputs.noise_seed) || 0;
   const prefix = String(save.inputs.filename_prefix ?? PRODUCT_OUTPUT_PREFIX);
   // The still's own side scaled so its long side is H3_LONG_SIDE, on the 32-px grid.
+  const frames = h3FrameCount(length, fps);
+  const sound = h3RendersSound(frames, options.speech);
+  const prompt = [
+    h3CameraWords(positive.trim()),
+    options.speech === true && frames > H3_MIN_FRAMES ? H3_LONG_TALK_TAIL : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   const side = (own: 'a' | 'b') =>
     `max(256, round(${own} * ${H3_LONG_SIDE} / max(a, b) / 32) * 32)`;
 
@@ -160,10 +192,10 @@ export function convertVideoWorkflowToH3(
       inputs: {
         clip: ['3', 0],
         vae: ['4', 0],
-        prompt: h3CameraWords(positive.trim()),
+        prompt,
         width: ['8', 1],
         height: ['9', 1],
-        length: h3FrameCount(length, fps),
+        length: frames,
         first_frame: ['6', 0],
         ...(endImage ? { last_frame: ['11', 0] } : {}),
       },
@@ -186,10 +218,9 @@ export function convertVideoWorkflowToH3(
       },
     },
     '17': { class_type: 'VAEDecode', inputs: { samples: ['16', 0], vae: ['4', 0] } },
-    '18': { class_type: 'VAEDecodeAudio', inputs: { samples: ['16', 0], vae: ['5', 0] } },
     '19': {
       class_type: 'CreateVideo',
-      inputs: { images: ['17', 0], audio: ['18', 0], fps: H3_FPS },
+      inputs: { images: ['17', 0], ...(sound ? { audio: ['18', 0] } : {}), fps: H3_FPS },
     },
     '20': {
       class_type: 'SaveVideo',
@@ -197,5 +228,10 @@ export function convertVideoWorkflowToH3(
     },
   };
   if (endImage) next['11'] = { class_type: 'LoadImage', inputs: { image: endImage } };
+  if (sound) {
+    next['18'] = { class_type: 'VAEDecodeAudio', inputs: { samples: ['16', 0], vae: ['5', 0] } };
+  } else {
+    delete next['5'];
+  }
   return { workflow: next, converted: true };
 }

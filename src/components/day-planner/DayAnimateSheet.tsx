@@ -14,6 +14,8 @@ import type { DaySlot } from '@/lib/day/planner';
 export type DayClipPreview = {
   engineLabel: string;
   talking: boolean;
+  /** A longer clip comes out silent on this engine (MiniMax-H3 with no spoken line). */
+  silentWhenLong?: boolean;
   prompt: string;
   defaultDirection: string;
   /** Clip length in seconds for each DAY_CLIP_EXTRA_SECONDS choice, on this engine. */
@@ -138,6 +140,9 @@ export default function DayAnimateSheet({
             {extraSeconds > 0 ? (
               <p className="type-caption text-[var(--text-muted)]">
                 Longer clips take longer to render, and motion past ~6 s can drift or repeat.
+                {current.silentWhenLong
+                  ? ' On MiniMax-H3 a longer clip with no line comes out silent — Add sound gives it the place’s sound.'
+                  : ''}
               </p>
             ) : null}
           </div>

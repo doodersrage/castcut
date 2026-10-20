@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { convertVideoWorkflowToH3, H3_FILES, h3FrameCount, H3_STEPS } from './h3-renderer';
+import {
+  convertVideoWorkflowToH3,
+  H3_FILES,
+  h3FrameCount,
+  H3_LONG_TALK_TAIL,
+  H3_STEPS,
+} from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
 /** The WAN I2V graph the queue builds (scaffold + WanImageToVideo splice), tokens filled. */
@@ -45,6 +51,47 @@ function wanClipGraph(): Record<string, { class_type: string; inputs: Record<str
 }
 
 describe('MiniMax-H3 clip renderer', () => {
+  // 4 s + 6 s extra at 16 fps: Day's longest Length on a motion clip (243 frames on H3).
+  const longClip = () => {
+    const graph = wanClipGraph();
+    graph['901']!.inputs.length = 160;
+    return graph;
+  };
+  const nodesOf = (out: ReturnType<typeof convertVideoWorkflowToH3>) =>
+    Object.values(out.workflow) as Array<{ class_type: string; inputs: Record<string, unknown> }>;
+
+  it('renders a long clip with no spoken line silent (it drifted into music)', () => {
+    const nodes = nodesOf(convertVideoWorkflowToH3(longClip(), { speech: false }));
+    assert.equal(nodes.find(node => node.class_type === 'MiniMaxH3ImageToVideo')!.inputs.length, 243);
+    assert.ok(!nodes.some(node => node.class_type === 'VAEDecodeAudio'));
+    assert.ok(!nodes.some(node => node.inputs.vae_name === H3_FILES.audioVae));
+    assert.equal(nodes.find(node => node.class_type === 'CreateVideo')!.inputs.audio, undefined);
+  });
+
+  it('keeps sound on a default-length clip and on any clip with a line', () => {
+    for (const [graph, speech] of [
+      [wanClipGraph(), false],
+      [longClip(), true],
+      [longClip(), undefined],
+    ] as const) {
+      const nodes = nodesOf(convertVideoWorkflowToH3(graph, { speech }));
+      assert.ok(nodes.some(node => node.class_type === 'VAEDecodeAudio'));
+      assert.deepEqual(nodes.find(node => node.class_type === 'CreateVideo')!.inputs.audio, ['18', 0]);
+    }
+  });
+
+  it('tells a long talking clip to stay quiet after its line (it babbled)', () => {
+    const prompt = (graph: ReturnType<typeof wanClipGraph>, speech: boolean) =>
+      String(
+        nodesOf(convertVideoWorkflowToH3(graph, { speech })).find(
+          node => node.class_type === 'MiniMaxH3ImageToVideo'
+        )!.inputs.prompt
+      );
+    assert.ok(prompt(longClip(), true).endsWith(H3_LONG_TALK_TAIL));
+    assert.ok(!prompt(wanClipGraph(), true).includes(H3_LONG_TALK_TAIL));
+    assert.ok(!prompt(longClip(), false).includes(H3_LONG_TALK_TAIL));
+  });
+
   it('turns the WAN clip into an H3 graph with sound, sized from the still', () => {
     const out = convertVideoWorkflowToH3(wanClipGraph());
     assert.equal(out.converted, true);
