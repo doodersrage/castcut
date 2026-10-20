@@ -5,8 +5,8 @@ import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDay
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day/planner';
 import { decideClipQuality, type ClipCheck } from '@/lib/clip-quality';
 import { sampleClipFrames } from '@/lib/clip-frame-sample';
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
 import { recordFaceMatchScore } from '@/lib/play/metrics';

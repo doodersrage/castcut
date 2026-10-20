@@ -1,4 +1,4 @@
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 
 export type AestheticScoreMethod = 'heuristic' | 'vision' | 'embedding';
 

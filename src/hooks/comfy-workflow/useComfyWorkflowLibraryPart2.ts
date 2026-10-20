@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { prepareWorkflowJsonImport } from '@/lib/workflow-import';
-import type { CustomWorkflowToken } from '@/lib/comfyui-config';
-import { validateWorkflowJson, type WorkflowPlaceholderTokens } from '@/lib/comfyui-config';
+import { prepareWorkflowJsonImport } from '@/lib/workflow/import';
+import type { CustomWorkflowToken } from '@/lib/comfyui/config';
+import { validateWorkflowJson, type WorkflowPlaceholderTokens } from '@/lib/comfyui/config';
 import {
   deleteComfyWorkflowFile,
   getWorkflowTokenValue,
@@ -12,12 +12,12 @@ import {
   upsertComfyWorkflowFile,
   workflowFileNameFromPath,
   type ComfyWorkflowFile,
-} from '@/lib/comfyui-workflow-files';
+} from '@/lib/comfyui/workflow-files';
 import {
   clearSelectedWorkflowFileIfDeleted,
   getSelectedWorkflowFileId,
   setSelectedWorkflowFileId,
-} from '@/lib/comfyui-runtime';
+} from '@/lib/comfyui/runtime';
 import {
   addPresetsToPack,
   applyWorkflowPresetPackToLibrary,
@@ -27,35 +27,35 @@ import {
   upsertWorkflowPresetPack,
   workflowFileToPreset,
   type WorkflowPresetPack,
-} from '@/lib/workflow-preset-packs';
-import { suggestWorkflowNodeMappings } from '@/lib/workflow-node-mapper';
-import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow-apply-bindings';
+} from '@/lib/workflow/preset-packs';
+import { suggestWorkflowNodeMappings } from '@/lib/workflow/node-mapper';
+import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow/apply-bindings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { markOnboardingSystemWorkflowsEnabled } from '@/lib/onboarding-hooks';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
-import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui/settings';
 import {
   buildControlNetWorkflowScaffold,
   buildIdentityWorkflowScaffold,
   scaffoldWorkflowForModel,
   suggestedScaffoldName,
-} from '@/lib/workflow-scaffold';
+} from '@/lib/workflow/scaffold';
 import { ensureFaceDetailerLibraryPin } from '@/lib/face-detailer-setup';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
-import { inspectWorkflowGraphJson } from '@/lib/workflow-graph-inspect';
-import { inferModelsFromWorkflowLabel } from '@/lib/workflow-category-defaults';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
+import { inspectWorkflowGraphJson } from '@/lib/workflow/graph-inspect';
+import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
 import { assignWorkflowToInferredModels } from '@/lib/model-workflow-map';
 import {
   optimizeWorkflowForQueue,
   suggestedOptimizedWorkflowName,
-} from '@/lib/workflow-queue-optimizer';
+} from '@/lib/workflow/queue-optimizer';
 import {
   optimizeAllWorkflowsInLibrary,
   optimizeWorkflowFileInLibrary,
-} from '@/lib/workflow-library-batch';
-import { diffWorkflowNodes } from '@/lib/workflow-diff';
-import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow-health-audit';
+} from '@/lib/workflow/library-batch';
+import { diffWorkflowNodes } from '@/lib/workflow/diff';
+import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow/health-audit';
 import { downloadText } from '@/lib/download-text';
 import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
 

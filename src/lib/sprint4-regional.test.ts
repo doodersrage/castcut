@@ -9,7 +9,7 @@ import {
   applyRegionalEditToWorkflow,
   patchRegionalNodesInWorkflow,
   resolveRegionalEditHealth,
-} from "./workflow-regional-patch";
+} from "./workflow/regional-patch";
 
 describe("regional prompt slots", () => {
   it("creates four default slots", () => {

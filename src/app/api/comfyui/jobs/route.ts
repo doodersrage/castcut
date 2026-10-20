@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { parseComfyJobList } from '@/lib/comfyui-jobs';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { parseComfyJobList } from '@/lib/comfyui/jobs';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const promptId = searchParams.get('promptId')?.trim() || searchParams.get('id')?.trim();
   if (promptId) {
     const { fetchComfyJobImportItem, getComfyUiPromptStatus } =
-      await import('@/lib/comfyui-status');
+      await import('@/lib/comfyui/status');
     const [item, status] = await Promise.all([
       fetchComfyJobImportItem(promptId, baseUrl),
       getComfyUiPromptStatus(promptId, runtime),

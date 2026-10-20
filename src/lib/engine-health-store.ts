@@ -7,7 +7,7 @@
  */
 
 import type { EngineHealth } from './engine-health-engines';
-import { resolveSelectedWorkflowRuntime } from './comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from './comfyui/runtime';
 
 export const ENGINE_HEALTH_UPDATED_EVENT = 'engine-health-updated';
 

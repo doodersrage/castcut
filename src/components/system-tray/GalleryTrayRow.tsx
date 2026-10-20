@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+} from '@/lib/comfyui/live-preview-store';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';

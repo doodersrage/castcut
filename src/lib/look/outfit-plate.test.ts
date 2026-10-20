@@ -23,7 +23,7 @@ import {
   styleNotesForLookPlate,
 } from './outfit-plate';
 import { createBlankCharacter, getCharacter, upsertCharacter, activeLook } from '../character-os';
-import { saveComfyGallery, type ComfyGalleryEntry } from '../comfyui-gallery';
+import { saveComfyGallery, type ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveToolSettings } from '../settings-cache';
 import { DEFAULT_FITTING_TOOL_CACHE } from '../play/settings';
 

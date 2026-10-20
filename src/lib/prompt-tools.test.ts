@@ -31,10 +31,10 @@ import {
   sidecarQueueParams,
   sidecarRequeueContext,
 } from "./prompt-sidecar";
-import { previewWorkflowInjection } from "./comfyui-workflow-preview";
-import { comfyUiJobStatusLabel, formatComfyUiJobStatusLine } from "./comfyui-job-status";
-import { validateWorkflowJson, stripEmptyComfyUiRuntime, injectWorkflowPlaceholders } from "./comfyui-config";
-import { extractImagesFromOutputs } from "./comfyui-outputs";
+import { previewWorkflowInjection } from "./comfyui/workflow-preview";
+import { comfyUiJobStatusLabel, formatComfyUiJobStatusLine } from "./comfyui/job-status";
+import { validateWorkflowJson, stripEmptyComfyUiRuntime, injectWorkflowPlaceholders } from "./comfyui/config";
+import { extractImagesFromOutputs } from "./comfyui/outputs";
 import {
   buildGalleryLightboxPlaylist,
   filterComfyGalleryEntries,
@@ -49,7 +49,7 @@ import {
   resolveGallerySlideshowTransition,
   resolveGallerySlideshowTransitionMs,
   sortGalleryEntries,
-} from "./comfyui-gallery";
+} from "./gallery/comfyui-gallery";
 import { parsePetHints } from "./pet-hints";
 import {
   buildPetPresetBlock,
@@ -57,12 +57,12 @@ import {
   normalizePetPresetOptions,
 } from "./pet-options";
 import { buildRandomPetSeed } from "./pet-scene-pools";
-import { listServerWorkflowPaths } from "./comfyui-server-workflows";
+import { listServerWorkflowPaths } from "./comfyui/server-workflows";
 import {
   DEFAULT_COMFYUI_SETTINGS,
   comfyUiSettingsToRuntime,
-} from "./comfyui-settings";
-import type { ComfyWorkflowFile } from "./comfyui-workflow-files";
+} from "./comfyui/settings";
+import type { ComfyWorkflowFile } from "./comfyui/workflow-files";
 import { createScenePreset } from "./scene-presets";
 import { createUserTemplate } from "./user-templates";
 import { diffPromptWords } from "./prompt-diff";
@@ -1609,7 +1609,7 @@ describe("buildTemplateTopicList", () => {
 
 describe("workflow category defaults", () => {
   it("scores workflow filenames by model category", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       { id: "flux-default", name: "Flux Klein default", filename: "flux-klein.json", workflowJson: "{}", createdAt: 1753843200000 },
       { id: "qwen-default", name: "Qwen image", filename: "qwen-image.json", workflowJson: "{}", createdAt: 1753843200000 },
@@ -1619,7 +1619,7 @@ describe("workflow category defaults", () => {
   });
 
   it("prefers lightning workflows for lightning model ids", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       {
         id: "qwen-standard",
@@ -1641,7 +1641,7 @@ describe("workflow category defaults", () => {
   });
 
   it("prefers distilled klein workflows for distilled model ids", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       {
         id: "klein-base",
@@ -1663,7 +1663,7 @@ describe("workflow category defaults", () => {
   });
 
   it("prefers 9b distilled klein workflows for 9b distilled model ids", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       {
         id: "klein-base-9b",
@@ -1685,7 +1685,7 @@ describe("workflow category defaults", () => {
   });
 
   it("prefers rapid aio workflows for aio checkpoint model ids", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       {
         id: "qwen-standard",
@@ -1708,7 +1708,7 @@ describe("workflow category defaults", () => {
   });
 
   it("maps 2511 lightning 8 workflows to the edit lightning target model", async () => {
-    const { suggestWorkflowDefaultsByCategory } = await import("./workflow-category-defaults");
+    const { suggestWorkflowDefaultsByCategory } = await import("./workflow/category-defaults");
     const map = suggestWorkflowDefaultsByCategory([
       {
         id: "qwen-2511-l8",
@@ -1723,7 +1723,7 @@ describe("workflow category defaults", () => {
   });
 
   it("infers models from workflow labels", async () => {
-    const { inferModelsFromWorkflowLabel } = await import("./workflow-category-defaults");
+    const { inferModelsFromWorkflowLabel } = await import("./workflow/category-defaults");
     const fluxModels = inferModelsFromWorkflowLabel({
       name: "Flux Klein default",
       filename: "flux-klein.json",
@@ -1736,7 +1736,7 @@ describe("workflow category defaults", () => {
   });
 
   it("treats lightening typo as Lightning and prefers 2512-lightning-8", async () => {
-    const { inferModelsFromWorkflowLabel } = await import("./workflow-category-defaults");
+    const { inferModelsFromWorkflowLabel } = await import("./workflow/category-defaults");
     const models = inferModelsFromWorkflowLabel({
       name: "qwen-image-2512-lightening-8",
       filename: "qwen-image-2512-lightening-8.json",
@@ -1926,7 +1926,7 @@ describe("character identity bundle", () => {
 
 describe("gallery handoff", () => {
   it("builds refine and image prompt paths", async () => {
-    const { galleryHandoffPath, galleryImprovePath } = await import("./gallery-handoff");
+    const { galleryHandoffPath, galleryImprovePath } = await import("./gallery/handoff");
     assert.equal(galleryHandoffPath("refine"), "/refine?from=gallery");
     assert.equal(galleryHandoffPath("inpaint"), "/inpaint?from=gallery");
     assert.equal(galleryHandoffPath("outpaint"), "/outpaint?from=gallery");
@@ -1942,7 +1942,7 @@ describe("gallery handoff", () => {
       parseGalleryPickTarget,
       galleryHandoffHomePath,
       galleryPickActionLabel,
-    } = await import("./gallery-handoff");
+    } = await import("./gallery/handoff");
     assert.equal(galleryPickPath("roleplay"), "/gallery?pickFor=roleplay");
     assert.equal(
       galleryPickPath("cast", { characterId: "char-1" }),
@@ -2048,7 +2048,7 @@ describe("context negative profile", () => {
 
 describe("gallery mutations", () => {
   it("builds location and wardrobe mutation prompts", async () => {
-    const { buildMutatedPrompt } = await import("./gallery-mutations");
+    const { buildMutatedPrompt } = await import("./gallery/mutations");
     assert.match(
       await buildMutatedPrompt("cyclist in forest", "location", "neon alley"),
       /Relocate scene to neon alley/,
@@ -2097,7 +2097,7 @@ describe("queue params settings", () => {
 
 describe("comfyui runtime queue params", () => {
   it("preserves model sampling params from client overrides", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(undefined, {
       seed: "42",
       samplingShift: 1.73,
@@ -2110,7 +2110,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("preserves loader filenames from client params on the server merge path", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(undefined, {
       unetFilename: "flux-2-klein-9b.safetensors",
       vaeFilename: "flux2-vae.safetensors",
@@ -2120,14 +2120,14 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("fills missing loader filenames from model registry on the server", async () => {
-    const { ensureQueueLoaderParams } = await import("./comfyui-config");
+    const { ensureQueueLoaderParams } = await import("./comfyui/config");
     const params = ensureQueueLoaderParams({ seed: "1" }, "flux-2-klein-9b");
     assert.equal(params.unetFilename, "flux-2-klein-base-9b.safetensors");
     assert.equal(params.vaeFilename, "flux2-vae.safetensors");
   });
 
   it("uses lightning-native resolution on the server when overrides omit size", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(undefined, { seed: "42" }, {
       model: "qwen-image-2512-lightning-8",
     });
@@ -2138,7 +2138,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("preserves Compose portrait size on inject merge when a figure is present", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(
       undefined,
       {
@@ -2154,7 +2154,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("forces Lightning Max Compose denoise to 1 even when params carry soft edit denoise", async () => {
-    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config"
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui/config"
     );
     const tokens = resolvePlaceholderTokens();
     const workflow = {
@@ -2222,7 +2222,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("honors sidebar denoise override on Lightning inject (does not force to 1)", async () => {
-    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config"
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui/config"
     );
     const tokens = resolvePlaceholderTokens();
     const workflow = {
@@ -2291,7 +2291,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("forces full denoise for client queue params on a Lightning empty-latent edit", async () => {
-    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config"
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui/config"
     );
     const tokens = resolvePlaceholderTokens();
     const workflow = {
@@ -2358,7 +2358,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("applies selected style LoRAs on Edit-2511 Lightning after the Lightning LoRA", async () => {
-    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config"
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui/config"
     );
     const tokens = resolvePlaceholderTokens();
     const workflow = {
@@ -2444,7 +2444,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("bumps sub-native lightning overrides to 1328 on the server merge path", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(
       { queueParams: { width: "1024", height: "1024", steps: "20", cfg: "4" } },
       {},
@@ -2459,7 +2459,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("comfyui-config resolveQueueParams keeps lockLatentSize thumbs on injection path", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(
       { queueQualityProfile: "draft", queueParams: { steps: "8", cfg: "1" } },
       {
@@ -2477,7 +2477,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("comfyui-config resolveQueueParams honors preserveInputAspect false without lock", async () => {
-    const { resolveQueueParams } = await import("./comfyui-config");
+    const { resolveQueueParams } = await import("./comfyui/config");
     const params = resolveQueueParams(
       { queueQualityProfile: "draft", queueParams: { steps: "4", cfg: "1" } },
       {
@@ -2498,7 +2498,7 @@ describe("comfyui runtime queue params", () => {
       injectPromptsWithFallbacks,
       resolvePlaceholderTokens,
       resolveQueueParams,
-    } = await import("./comfyui-config");
+    } = await import("./comfyui/config");
     const tokens = resolvePlaceholderTokens();
     const result = injectPromptsWithFallbacks(
       {
@@ -2534,7 +2534,7 @@ describe("comfyui runtime queue params", () => {
 
   it("replaces UNET and VAE placeholders during injection", async () => {
     const { injectPromptsWithFallbacks, DEFAULT_UNET_TOKEN, DEFAULT_VAE_TOKEN } =
-      await import("./comfyui-config");
+      await import("./comfyui/config");
     const result = injectPromptsWithFallbacks(
       {
         "228": {
@@ -2589,7 +2589,7 @@ describe("comfyui runtime queue params", () => {
       stripEmptyComfyUiRuntime,
       DEFAULT_UNET_TOKEN,
       DEFAULT_VAE_TOKEN,
-    } = await import("./comfyui-config");
+    } = await import("./comfyui/config");
 
     const runtime = stripEmptyComfyUiRuntime({
       workflowFileId: "abc123",
@@ -2651,7 +2651,7 @@ describe("comfyui runtime queue params", () => {
   });
 
   it("resolves loaders using checkpoint map forwarded in runtime", async () => {
-    const { resolveQueueInjectionContext } = await import("./comfyui-config");
+    const { resolveQueueInjectionContext } = await import("./comfyui/config");
 
     const { params, loaders } = resolveQueueInjectionContext({
       runtime: {
@@ -2674,7 +2674,7 @@ describe("comfyui runtime queue params", () => {
 
   it("replaces missing wan-video T2V map entries with installed Rapid AIO at queue time", async () => {
     const { resolveQueueInjectionContext, DEFAULT_CHECKPOINT_TOKEN } =
-      await import("./comfyui-config");
+      await import("./comfyui/config");
 
     const inventory = [
       "DreamShaper_8_pruned.safetensors",
@@ -2756,7 +2756,7 @@ describe("rating token analytics", () => {
         model: "qwen-image-2512",
         comfyUrl: "http://127.0.0.1:8188",
       },
-    ] as import("./comfyui-gallery").ComfyGalleryEntry[]);
+    ] as import("./gallery/comfyui-gallery").ComfyGalleryEntry[]);
     const gravel = stats.find((entry) => entry.token === "gravel");
     assert.ok(gravel);
     assert.equal(gravel?.highCount, 1);
@@ -2816,7 +2816,7 @@ describe("avoided tokens management", () => {
 
 describe("gallery compare export", () => {
   it("exports compare json manifest", async () => {
-    const { exportCompareJson } = await import("./gallery-compare-export");
+    const { exportCompareJson } = await import("./gallery/compare-export");
     const json = exportCompareJson([
       {
         id: "a",
@@ -2830,7 +2830,7 @@ describe("gallery compare export", () => {
         comfyUrl: "http://127.0.0.1:8188",
         reviewRating: 5,
       },
-    ] as import("./comfyui-gallery").ComfyGalleryEntry[]);
+    ] as import("./gallery/comfyui-gallery").ComfyGalleryEntry[]);
     assert.match(json, /test prompt/);
     assert.match(json, /"count": 1/);
   });
@@ -2838,7 +2838,7 @@ describe("gallery compare export", () => {
 
 describe("gallery similarity", () => {
   it("ranks entries by prompt and param overlap", async () => {
-    const { rankGallerySimilarity, orderGalleryBySimilarity } = await import("./gallery-similarity"
+    const { rankGallerySimilarity, orderGalleryBySimilarity } = await import("./gallery/similarity"
     );
     const reference = {
       id: "ref",
@@ -2978,7 +2978,7 @@ describe("api smoke routes", () => {
 
 describe("LoRA triggers at queue", () => {
   it("prefixes the trigger of an opted-in active LoRA into the positive prompt", async () => {
-    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui-config");
+    const { injectPromptsWithFallbacks, resolvePlaceholderTokens } = await import("./comfyui/config");
     const injected = injectPromptsWithFallbacks(
       { "1": { class_type: "CLIPTextEncode", inputs: { text: "{{POSITIVE}}" } } },
       { positive: "A portrait." },

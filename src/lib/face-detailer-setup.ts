@@ -3,21 +3,21 @@
  * install ComfyUI Impact Pack via Manager so Gallery → Face detail works.
  */
 
-import { upsertComfyWorkflowFile } from './comfyui-workflow-files';
+import { upsertComfyWorkflowFile } from './comfyui/workflow-files';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
-import { buildFaceDetailerWorkflowScaffold } from './workflow-scaffold';
+import { buildFaceDetailerWorkflowScaffold } from './workflow/scaffold';
 import {
   buildAutoFaceDetailerWorkflow,
   canAutoInsertFaceDetailer,
-} from './facedetailer-workflow-patch';
-import { findLibraryFaceDetailerWorkflow } from './workflow-library-face-detailer';
+} from './workflow/facedetailer-workflow-patch';
+import { findLibraryFaceDetailerWorkflow } from './workflow/library-face-detailer';
 import { getFaceDetailerHealth, type FaceDetailerHealth } from './face-detailer-health';
-import { fetchComfyObjectInfoCached } from './comfyui-object-info-cache';
+import { fetchComfyObjectInfoCached } from './comfyui/object-info-cache';
 import {
   FACE_DETAILER_HEAL_NODE_TYPES,
   requestComfyManagerInstall,
-} from './comfyui-manager-install-client';
-import { loadComfyUiSettings } from './comfyui-settings';
+} from './comfyui/manager-install-client';
+import { loadComfyUiSettings } from './comfyui/settings';
 
 export { FACE_DETAILER_HEAL_NODE_TYPES };
 

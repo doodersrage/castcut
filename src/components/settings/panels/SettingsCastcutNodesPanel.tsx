@@ -202,8 +202,8 @@ export default function SettingsCastcutNodesPanel({
     restartAbort.current = false;
     setPhase({ kind: 'restarting', note: 'Asking ComfyUI-Manager to restart ComfyUI…' });
     const [{ restartComfyUi }, { clearComfyObjectInfoCache }] = await Promise.all([
-      import('@/lib/comfyui-queue-control'),
-      import('@/lib/comfyui-object-info-cache'),
+      import('@/lib/comfyui/queue-control'),
+      import('@/lib/comfyui/object-info-cache'),
     ]);
     const result = await restartComfyUi(comfyUrl?.trim() || undefined);
     if (!result.ok) {

@@ -13,7 +13,7 @@ import {
 } from 'react';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import { buildLightboxStateFromPlaylist } from '@/lib/gallery-lightbox-state';
+import { buildLightboxStateFromPlaylist } from '@/lib/gallery/lightbox-state';
 import {
   buildGalleryLightboxPlaylist,
   galleryEntryLightboxUrls,
@@ -28,10 +28,10 @@ import {
   type GalleryPageSize,
   type GallerySlideshowIntervalMs,
   type GallerySlideshowTransition,
-} from '@/lib/comfyui-gallery';
-import { pageForGalleryEntryWithGroups } from '@/lib/gallery-display-rows';
+} from '@/lib/gallery/comfyui-gallery';
+import { pageForGalleryEntryWithGroups } from '@/lib/gallery/display-rows';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
-import { prefetchGalleryImageUrl } from '@/lib/gallery-image-prefetch';
+import { prefetchGalleryImageUrl } from '@/lib/gallery/image-prefetch';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 export type UseGalleryPanelLightboxOptions = {

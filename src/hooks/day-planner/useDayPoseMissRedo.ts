@@ -3,7 +3,7 @@
 import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { isDayHardPose } from '@/lib/day/best-of-two';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
@@ -31,7 +31,7 @@ import {
   scorePoseMatch,
   guidePostureContradictsWords,
 } from '@/lib/pose-score';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
  * Day "Redo pose misses once" (opt-in, Auto-review off): when a still lands, read its pose back

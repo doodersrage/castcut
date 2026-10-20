@@ -5,7 +5,7 @@ import {
   isMotionViewUrl,
   stripGalleryViewWidthParam,
   type ComfyOutputMediaKind,
-} from '@/lib/comfyui-outputs';
+} from '@/lib/comfyui/outputs';
 
 type GalleryKindPreviewProps = {
   kind: ComfyOutputMediaKind;

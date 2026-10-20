@@ -1,5 +1,5 @@
 import { isComfyClientUrlAllowed } from './url-safety';
-import { getComfyUiBaseUrl } from './comfyui-client';
+import { getComfyUiBaseUrl } from './comfyui/client';
 import { allowTemplateFallback, getLlmConfig, getLlmTemperature, isLlmEnabled } from './llm-client';
 import { isQueueArtifactExportEnabled } from './queue-artifacts';
 import { isServerStorageEnabled } from './server-storage';

@@ -45,7 +45,7 @@ import type {
   StoryPoseMatch,
   StoryRealismCheck,
 } from '@/lib/story/roleplay-pose-check';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,

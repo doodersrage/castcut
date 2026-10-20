@@ -5,21 +5,21 @@ import {
   useGalleryBrowsePageClamp,
   type GalleryBrowsePageClampContext,
 } from '@/hooks/useGalleryBrowseState';
-import { previewGalleryCapEviction } from '@/lib/gallery-cap';
+import { previewGalleryCapEviction } from '@/lib/gallery/cap';
 import { loadCharacters } from '@/lib/character-os';
-import { collectGalleryProtectedEntryIds } from '@/lib/gallery-protected-ids';
-import { clusterGalleryDuplicates } from '@/lib/gallery-duplicate-clusters';
+import { collectGalleryProtectedEntryIds } from '@/lib/gallery/protected-ids';
+import { clusterGalleryDuplicates } from '@/lib/gallery/duplicate-clusters';
 import {
   buildGalleryLineageGroups,
   galleryLineageGroupingEnabled,
-} from '@/lib/gallery-lineage-groups';
+} from '@/lib/gallery/lineage-groups';
 import { groupGalleryExperiments } from '@/lib/experiment-groups';
-import { groupGalleryFilmRuns, groupGalleryQueueRuns } from '@/lib/gallery-queue-runs';
+import { groupGalleryFilmRuns, groupGalleryQueueRuns } from '@/lib/gallery/queue-runs';
 import {
   normalizeExperimentGroupAnchors,
   paginateGalleryEntriesWithGroups,
-} from '@/lib/gallery-display-rows';
-import { MAX_GALLERY_ENTRIES } from '@/lib/comfyui-gallery-storage-meta';
+} from '@/lib/gallery/display-rows';
+import { MAX_GALLERY_ENTRIES } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import {
   GALLERY_PAGE_SIZE_ALL,
   resolveGalleryPageSize,
@@ -29,8 +29,8 @@ import {
   type ComfyGallerySort,
   type GalleryLayoutMode,
   type GalleryPageSize,
-} from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+} from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
 
 /**

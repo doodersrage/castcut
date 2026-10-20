@@ -7,8 +7,8 @@ import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
 import { learnFromLowRatedPrompt } from '@/lib/negative-learner';
 import { markOnboardingGalleryReview } from '@/lib/onboarding-hooks';
 import { pushNotification } from '@/lib/notification-center';
-import { scrollGalleryEntryIntoView } from '@/lib/gallery-scroll';
-import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import { scrollGalleryEntryIntoView } from '@/lib/gallery/scroll';
+import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
 type UseGalleryReviewOptions = {
   filter: ComfyGalleryFilter;

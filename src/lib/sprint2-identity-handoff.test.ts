@@ -11,8 +11,8 @@ import {
   buildGalleryHandoff,
   buildReeditGalleryHandoff,
   sharedPatchFromGalleryHandoff,
-} from "./gallery-handoff";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+} from "./gallery/handoff";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 
 describe("compose identity lock", () => {
   it("builds IP-Adapter queue patch from Figure 1 filename", () => {

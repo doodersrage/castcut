@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/Button';
 import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import { chromeBtn } from '@/components/ui/image-lightbox/chromeBtn';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
-import { isStillLightboxKind, type ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import type { GalleryLightboxFit } from '@/lib/gallery-lightbox-prefs';
+import { isStillLightboxKind, type ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import type { GalleryLightboxFit } from '@/lib/gallery/lightbox-prefs';
 
 export type ImageLightboxSlideChromeBarProps = {
   compact?: boolean;

@@ -22,7 +22,7 @@ import {
   type ComfyManagerInfo,
   type ManagerInstallErrorCode,
   type ManagerInstallTarget,
-} from './comfyui-manager-api';
+} from './comfyui/manager-api';
 
 type FetchLike = typeof fetch;
 

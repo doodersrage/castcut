@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 import * as improveOutput from "./improve-output";
 
 function fakeEntry(patch: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry {

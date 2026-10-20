@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import type { GalleryDuplicateCluster } from '@/lib/gallery-duplicate-clusters';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDuplicateCluster } from '@/lib/gallery/duplicate-clusters';
 
 type GalleryDuplicateClustersPanelProps = {
   clusters: GalleryDuplicateCluster[];

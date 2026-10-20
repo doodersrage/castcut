@@ -8,15 +8,15 @@ import PicturesBackupPanel from '@/components/settings/PicturesBackupPanel';
 import GalleryMediaCleanupPanel from '@/components/settings/GalleryMediaCleanupPanel';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import { clearAllLocalPromptData, localDataKeys } from '@/lib/local-data-reset';
-import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui-settings';
+import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui/settings';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { ComfyUiSettings } from '@/lib/comfyui-settings';
+import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { TextArea, FieldLabel, TextInput } from '@/components/ui/Field';
 import {
   normalizeGalleryWorkflowMaxBytes,
   normalizeGalleryWorkflowRetentionDays,
-} from '@/lib/gallery-workflow-hygiene';
+} from '@/lib/gallery/workflow-hygiene';
 import {
   clearLocalObservability,
   downloadLocalObservabilityExport,

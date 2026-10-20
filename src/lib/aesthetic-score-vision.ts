@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { aestheticScoreFromVisionRating, type AestheticScoreResult } from './aesthetic-score';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { reviewGalleryImage } from './gallery-vision-review';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { reviewGalleryImage } from './gallery/vision-review';
 
 /** Server-only: scores via vision LLM. Keep out of client bundles. */
 export async function scoreGalleryEntryVision(input: {

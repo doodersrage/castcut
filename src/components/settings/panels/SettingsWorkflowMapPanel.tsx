@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ComfyUiSettings } from '@/lib/comfyui-settings';
+import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import { formatModelCheckpointMap, formatModelVaeMap } from '@/lib/model-checkpoint-map';
 import { formatModelUpscaleMap } from '@/lib/model-upscale-map';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
+import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import {
   countMappedModels,
   mergeModelWorkflowMap,
   suggestWorkflowDefaultsByCategory,
-} from '@/lib/workflow-category-defaults';
+} from '@/lib/workflow/category-defaults';
 import {
   loadSettingsCache,
   setUseSystemWorkflowsPref,
@@ -131,7 +131,7 @@ export default function SettingsWorkflowMapPanel({
                 markOnboardingSystemWorkflowsEnabled();
                 setSystemWorkflowsSaveHint('Saved — scanning ComfyUI inventory…');
                 const { scanAndAdaptSystemWorkflowInventory } =
-                  await import('@/lib/comfyui-runtime-for-model');
+                  await import('@/lib/comfyui/runtime-for-model');
                 const models = await scanAndAdaptSystemWorkflowInventory({
                   comfyUrl: settings.apiUrl || undefined,
                   persist: true,

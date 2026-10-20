@@ -51,7 +51,7 @@ describe('Qwen-Image 2.1 engine queueing', () => {
 
 describe('Qwen-Image 2.1 runtime', () => {
   it('Lightning is the 4-step model; the base model stays on the full sampler', async () => {
-    const { resolveRuntimeForQueue } = await import('../comfyui-runtime-for-model');
+    const { resolveRuntimeForQueue } = await import('../comfyui/runtime-for-model');
     const base = resolveRuntimeForQueue('qwen-image-2.1-edit', 'image-prompt', { inventory: null });
     assert.equal(base.qwenRenderer, 'qwen-image-2.1');
     assert.equal(base.qwenImage21FourStep, undefined);

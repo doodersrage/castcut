@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery-mutations';
+import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery/mutations';
 import { queueNegativeAbTest } from '@/lib/negative-ab-queue';
 import { queueSeedExperiment } from '@/lib/seed-experiment-queue';
 import { queueParamExperiment } from '@/lib/param-experiment-queue';
@@ -11,9 +11,9 @@ import {
   galleryVariationsPath,
   prepareGalleryTopicsFromEntry,
   prepareGalleryVariationsFromEntry,
-} from '@/lib/gallery-variations-handoff';
+} from '@/lib/gallery/variations-handoff';
 import { resolveExperimentWinnerEntry } from '@/lib/experiment-winners';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/gallery/gallery-panel-actions-types';
 

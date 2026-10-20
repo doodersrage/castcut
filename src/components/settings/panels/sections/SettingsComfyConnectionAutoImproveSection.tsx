@@ -6,7 +6,7 @@ import type { SettingsComfyConnectionPanelProps } from '@/components/settings/pa
 import { useEffect, useState } from 'react';
 import { loadAutoImproveLog, summarizeAutoImproveLog } from '@/lib/auto-improve-log';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { ComfyUiSettings } from '@/lib/comfyui-settings';
+import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   AUTO_IMPROVE_MODES,
   SETTINGS_BROWSER_PRESETS,

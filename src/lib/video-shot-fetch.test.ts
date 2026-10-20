@@ -4,16 +4,16 @@ import { describe, it, mock } from "node:test";
 mock.module("server-only", { defaultExport: {}, namedExports: {} });
 
 const getComfyUiBaseUrl = mock.fn((_runtime?: unknown) => "http://mock-comfy:8188");
-mock.module("./comfyui-client", { namedExports: { getComfyUiBaseUrl } });
+mock.module("./comfyui/client", { namedExports: { getComfyUiBaseUrl } });
 
 const stripEmptyComfyUiRuntime = mock.fn((runtime?: { apiUrl?: string }) => runtime);
-mock.module("./comfyui-config", { namedExports: { stripEmptyComfyUiRuntime } });
+mock.module("./comfyui/config", { namedExports: { stripEmptyComfyUiRuntime } });
 
 type GalleryFile = { buffer: Buffer; contentType: string; filename?: string } | null;
 const readGalleryOriginalFileImpl = mock.fn(
   (_input: { userId?: string | null; entryId: string; index?: number }): GalleryFile => null
 );
-mock.module("./gallery-media-store", {
+mock.module("./gallery/media-store", {
   namedExports: { readGalleryOriginalFile: readGalleryOriginalFileImpl },
 });
 

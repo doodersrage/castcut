@@ -7,8 +7,8 @@ import {
   startReeditRefineFromGalleryEntry,
 } from '@/lib/improve-output';
 import { toastBulkQueueSummary } from '@/lib/app-toast';
-import { firstUnreviewedInRun } from '@/lib/gallery-queue-runs';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { firstUnreviewedInRun } from '@/lib/gallery/queue-runs';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
   clearExperimentWinner,
   loadExperimentWinners,
@@ -74,7 +74,7 @@ export function useGalleryExperimentGridHandlers({
   const onRequeueExperiment = useCallback(
     (entriesForRequeue: ComfyGalleryEntry[]) => {
       setRequeueStatus(`Re-queueing ${entriesForRequeue.length} still(s) with new seeds…`);
-      void import('@/lib/comfyui-requeue')
+      void import('@/lib/comfyui/requeue')
         .then(({ requeueComfyJobs }) =>
           requeueComfyJobs(
             entriesForRequeue.map(entry => ({

@@ -1,5 +1,5 @@
 import { POSE_MODEL_PROFILES } from './pose/pose-model-profile';
-import { MAX_INPUT_IMAGE_FILENAMES } from './workflow-load-image-bindings';
+import { MAX_INPUT_IMAGE_FILENAMES } from './workflow/load-image-bindings';
 import { beatLiesDown } from './beat-text';
 import { isFaceDownNudeSolo } from './face-down-solo';
 export { isFaceDownNudeSolo } from './face-down-solo';

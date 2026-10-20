@@ -2,17 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { startImproveFromGalleryEntry, startInpaintFromGalleryEntry } from '@/lib/improve-output';
-import { downloadGalleryImage } from '@/lib/comfyui-gallery-export';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import { downloadGalleryImage } from '@/lib/gallery/comfyui-gallery-export';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import {
   applyGalleryPromptAndStackToSession,
   applyGalleryStackToSession,
   galleryEntryCanSaveLook,
   galleryEntryHasRestorableStack,
   saveGalleryLookFromEntry,
-} from '@/lib/gallery-stack-restore';
-import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHrefForEntry } from '@/lib/gallery-tool-href';
+} from '@/lib/gallery/stack-restore';
+import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
+import { galleryToolHrefForEntry } from '@/lib/gallery/tool-href';
 
 type Props = {
   entry: ComfyGalleryEntry;

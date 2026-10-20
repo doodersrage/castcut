@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   parseLeadFaceProbe,
   type FaceFinishProbeDecision,

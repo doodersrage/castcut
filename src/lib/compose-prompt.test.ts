@@ -15,16 +15,16 @@ import {
   DEFAULT_INPUT_IMAGE_2_TOKEN,
   DEFAULT_INPUT_IMAGE_3_TOKEN,
   DEFAULT_INPUT_IMAGE_4_TOKEN,
-} from "./comfyui-config";
+} from "./comfyui/config";
 import { filterModelsForQueueTool } from "./queue-tool-model";
 import {
   inferLoadImageBinding,
   inputImageBindingForFigureIndex,
-} from "./workflow-load-image-bindings";
-import { applyWorkflowNodeBindings } from "./workflow-apply-bindings";
-import { patchLoadImageNodesInWorkflow } from "./workflow-direct-patch";
-import { ensureQwenEditReferenceImagesForImg2Img } from "./workflow-lightning-queue";
-import { suggestWorkflowNodeMappings } from "./workflow-node-mapper";
+} from "./workflow/load-image-bindings";
+import { applyWorkflowNodeBindings } from "./workflow/apply-bindings";
+import { patchLoadImageNodesInWorkflow } from "./workflow/direct-patch";
+import { ensureQwenEditReferenceImagesForImg2Img } from "./workflow/lightning-queue";
+import { suggestWorkflowNodeMappings } from "./workflow/node-mapper";
 
 describe("compose tool defaults", () => {
   it("registers compose as an edit queue tool", () => {
@@ -480,7 +480,7 @@ describe("composeDefaultModel", () => {
 describe('reference picture limits', () => {
   it('the queue carries eight pictures; Compose keeps four figures', async () => {
     const { MAX_INPUT_IMAGE_FILENAMES, normalizeInputImageFilenames, QWEN_EDIT_ENCODE_IMAGE_KEYS } =
-      await import('./workflow-load-image-bindings');
+      await import('./workflow/load-image-bindings');
     const { MAX_COMPOSE_FIGURES } = await import('./compose-prompt');
     assert.equal(MAX_INPUT_IMAGE_FILENAMES, 8);
     assert.equal(MAX_COMPOSE_FIGURES, 4);

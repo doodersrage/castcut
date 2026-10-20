@@ -11,15 +11,15 @@ import type {
   ComfyGallerySort,
   GalleryLayoutMode,
   GalleryPageSize,
-} from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+} from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import { useGalleryFilterQueryDraft } from '@/components/gallery/useGalleryFilterQueryDraft';
 import { GalleryFiltersSearchGroup } from '@/components/gallery/filters/GalleryFiltersSearchGroup';
 import { GalleryFiltersLayoutGroup } from '@/components/gallery/filters/GalleryFiltersLayoutGroup';
 import { GalleryFiltersGroupsRail } from '@/components/gallery/filters/GalleryFiltersGroupsRail';
 import { GalleryFiltersRatingModelRow } from '@/components/gallery/filters/GalleryFiltersRatingModelRow';
 import { GalleryFiltersLeanRow } from '@/components/gallery/filters/GalleryFiltersLeanRow';
-import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
+import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
 export type GalleryFiltersPrimaryRowProps = {
   filter: ComfyGalleryFilter;

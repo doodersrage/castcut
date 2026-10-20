@@ -27,7 +27,7 @@ export default function CastcutNodesHint({
     void (async () => {
       try {
         const { fetchComfyObjectInfoNodeTypesCached } =
-          await import('@/lib/comfyui-object-info-cache');
+          await import('@/lib/comfyui/object-info-cache');
         const nodeTypes = await fetchComfyObjectInfoNodeTypesCached();
         if (!cancelled && nodeTypes && nodeTypes.size > 0) {
           setMissing(!CASTCUT_NODE_TYPES.every(type => nodeTypes.has(type)));

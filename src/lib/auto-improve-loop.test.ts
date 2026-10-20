@@ -10,6 +10,6 @@ describe("auto improve loop", () => {
 
   it("returns null for missing rating", async () => {
     const { runAutoImproveOnRating } = await import("./auto-improve-loop");
-    assert.equal(await runAutoImproveOnRating({} as import("./comfyui-gallery.ts").ComfyGalleryEntry, undefined), null);
+    assert.equal(await runAutoImproveOnRating({} as import("./gallery/comfyui-gallery.ts").ComfyGalleryEntry, undefined), null);
   });
 });

@@ -4,12 +4,12 @@ import { useCallback, useMemo } from 'react';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import { buildGalleryLightboxSlideChrome } from '@/components/gallery/buildGalleryLightboxSlideChrome';
-import { downloadGalleryImage } from '@/lib/comfyui-gallery-export';
+import { downloadGalleryImage } from '@/lib/gallery/comfyui-gallery-export';
 import {
   resolveGalleryLightboxEntry,
   type ComfyGalleryEntry,
   type ComfyGalleryFilter,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { ImageLightboxState } from '@/components/ui/image-lightbox/types';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 

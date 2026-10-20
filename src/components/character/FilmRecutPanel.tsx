@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import FilmReviewShare from '@/components/character/FilmReviewShare';
 import { cutRecipeSummary, isCutRecipe } from '@/lib/cut-recipe';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { recipeShapeAndSize, recutFilm } from '@/lib/film/recut';
 import { FILM_SHAPES, normalizeFilmShape, type FilmShape } from '@/lib/video-resolution';
 

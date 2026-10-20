@@ -1,8 +1,8 @@
 import { checkComfyUiHealth } from '@/lib/service-health';
-import { normalizeComfyPoolUrlList } from '@/lib/comfyui-pool';
+import { normalizeComfyPoolUrlList } from '@/lib/comfyui/pool';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { normalizeSafeHttpUrl } from '@/lib/url-safety';
-import { parseComfyGpuUrl } from '@/lib/comfyui-gpu-env-snippet';
+import { parseComfyGpuUrl } from '@/lib/comfyui/gpu-env-snippet';
 
 export const runtime = 'nodejs';
 

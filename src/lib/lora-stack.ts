@@ -1,9 +1,9 @@
-import type { WorkflowDirectPatchCounts } from './workflow-direct-patch';
+import type { WorkflowDirectPatchCounts } from './workflow/direct-patch';
 import {
   isLoraLoaderClassType,
   loraFilenameImpliesLightning,
   loraNameIsLightningSlot,
-} from './workflow-lora-patch';
+} from './workflow/lora-patch';
 
 export type LoraLibraryEntry = {
   id: string;

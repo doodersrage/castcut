@@ -3,7 +3,7 @@ import type { AthleticSport } from '@/lib/athletic-sport-profiles';
 type PromptResultActionsLike = {
   previewWorkflow: (prompt: string, sport?: AthleticSport | null) => Promise<void>;
   workflowPreview: Awaited<
-    ReturnType<typeof import('@/lib/comfyui-requeue').fetchWorkflowPreview>
+    ReturnType<typeof import('@/lib/comfyui/requeue').fetchWorkflowPreview>
   > | null;
   previewStatus: string | null;
 };

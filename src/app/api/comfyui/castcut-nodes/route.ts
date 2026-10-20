@@ -5,8 +5,8 @@ import {
   installCastcutNodesWithManager,
   readCastcutNodesReport,
 } from '@/lib/castcut-nodes-setup-server';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;

@@ -8,8 +8,8 @@ import {
 } from './character-lora-flywheel';
 import { createBlankCharacter, normalizeCharacterRecord } from './character-os';
 import { createTrainJob } from './lora-train-job';
-import { isLoraDatasetStill, selectCharacterKeepers } from './gallery-lora-dataset-export';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { isLoraDatasetStill, selectCharacterKeepers } from './gallery/lora-dataset-export';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 
 function still(id: string, extra: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry {
   return {

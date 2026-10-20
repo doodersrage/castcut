@@ -44,7 +44,7 @@ export async function runUserCampaignWithBestOfN(campaign: UserScheduledCampaign
   let comfyUrl: string | undefined;
 
   if (campaign.autoQueueComfyUi && prompts.length > 0) {
-    const { queueBatchToComfyUi, getComfyUiBaseUrl } = await import('./comfyui-client');
+    const { queueBatchToComfyUi, getComfyUiBaseUrl } = await import('./comfyui/client');
     const queuePrompts = useVisionRank ? prompts : prompts.slice(0, campaign.count);
     const result = await queueBatchToComfyUi(
       queuePrompts.map(prompt => ({ prompt })),

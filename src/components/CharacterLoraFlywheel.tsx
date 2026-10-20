@@ -22,13 +22,13 @@ import {
   exportKeepersAndTrain,
   trainJobsForCharacter,
 } from '@/lib/character-lora-flywheel';
-import { downloadLoraDatasetZip } from '@/lib/gallery-lora-dataset-export';
+import { downloadLoraDatasetZip } from '@/lib/gallery/lora-dataset-export';
 import { checkLoraKeepers } from '@/lib/lora-keeper-check';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { normalizeTrainJobs, type TrainJob } from '@/lib/lora-train-job';
 import { loadSettingsCache } from '@/lib/settings-cache';
-import { galleryEntryThumbUrls, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { galleryEntryThumbUrls, type ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 
 export default function CharacterLoraFlywheel({
   character,

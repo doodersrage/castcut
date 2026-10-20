@@ -1,8 +1,8 @@
 import type { StorageNamespace } from './storage-namespaces';
 import { SYNC_STORAGE_NAMESPACES } from './storage-namespaces';
 import { noteSyncPull, noteSyncPush } from './sync-status';
-import { galleryEntriesForSync } from './gallery-adult-check';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { galleryEntriesForSync } from './gallery/adult-check';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 
 /**
  * What this tab last pulled from or pushed to the server, per namespace. Every save schedules a

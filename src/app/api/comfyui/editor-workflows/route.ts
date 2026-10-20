@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import {
   apiPromptClassTypes,
   apiPromptToUiWorkflow,
@@ -9,7 +9,7 @@ import {
   isUiWorkflow,
   readAppEditorMeta,
   uiWorkflowToApiPrompt,
-} from '@/lib/comfy-editor-graph';
+} from '@/lib/comfyui/comfy-editor-graph';
 import {
   APP_EDITOR_DIR,
   editorWorkflowFileName,
@@ -18,7 +18,7 @@ import {
   readComfyEditorWorkflow,
   saveComfyEditorWorkflow,
   stageCastcutEditorTemplate,
-} from '@/lib/comfy-editor-workflows-server';
+} from '@/lib/comfyui/comfy-editor-workflows-server';
 
 export const runtime = 'nodejs';
 

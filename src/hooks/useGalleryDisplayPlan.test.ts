@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { resolveGalleryDisplaySource } from './useGalleryDisplayPlan';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 
 function entry(id: string, patch: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry {
   return {

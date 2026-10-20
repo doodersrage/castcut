@@ -6,8 +6,8 @@
 
 import type { CutFraming } from './cut-move';
 import type { CutTransitionIn } from './cut-timeline';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { isHtmlVideoViewUrl, isMotionViewUrl } from './comfyui-outputs';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
+import { isHtmlVideoViewUrl, isMotionViewUrl } from './comfyui/outputs';
 
 export function isVideoLikeEntry(
   entry: Pick<ComfyGalleryEntry, 'derivedKind' | 'tool'> | undefined

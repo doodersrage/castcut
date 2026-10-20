@@ -1,6 +1,6 @@
-import { galleryCardCaption } from './gallery-card-caption';
+import { galleryCardCaption } from './gallery/card-caption';
 import type { PromptHistoryEntry } from '@/hooks/usePromptHistory';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 import { extractHintsFromHistoryEntry, resolveHistoryEntryNavigation } from './tool-navigation';
 
 export function buildUseAsHintsUrl(entry: PromptHistoryEntry): string {

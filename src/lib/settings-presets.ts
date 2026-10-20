@@ -1,5 +1,5 @@
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
-import { loadComfyUiSettings, saveComfyUiSettings, type ComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings, type ComfyUiSettings } from './comfyui/settings';
 import { qualityForEveryToolPatch } from './tool-quality-profiles';
 
 export type SettingsBrowserPresetId = 'everyday' | 'best';

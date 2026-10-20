@@ -7,14 +7,14 @@ import 'server-only';
 
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
-import { uploadComfyInputContent } from './comfy-input-upload-server';
+import { uploadComfyInputContent } from './comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
   resolveComfyNode,
   runComfyUtilityGraph,
   type ComfyHistoryEntry,
   type ComfyImageRef,
-} from './comfy-utility-graph-server';
+} from './comfyui/comfy-utility-graph-server';
 
 export const RIFE_MODEL = 'rife_v4.26.safetensors';
 const SAVE_NODE = '6';

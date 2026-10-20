@@ -1,6 +1,6 @@
 'use client';
 
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import GalleryGlanceCard from '@/components/GalleryGlanceCard';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -11,7 +11,7 @@ import {
   initGalleryStore,
   loadComfyGallery,
   loadVisibleComfyGallery,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { loadScheduledBatchConfig } from '@/lib/scheduled-batch';
 import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt-projects';
 import {
@@ -27,7 +27,7 @@ import {
   startRefineFromGalleryEntry,
   startRoleplayFromGalleryEntry,
 } from '@/lib/improve-output';
-import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
+import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { useHubPageDescription, useToolSectionDescription } from '@/hooks/useToolPageDescription';

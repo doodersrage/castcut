@@ -1,5 +1,5 @@
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
@@ -80,7 +80,7 @@ export async function buildQueueSingleParams(input: {
     const { isQwenRapidAioModel, isWanRapidAioModel } =
       await import('@/lib/model-denoise-defaults');
     const { isQwenLightningModel, isWanLightningModel } =
-      await import('@/lib/model-sampling-patch');
+      await import('@/lib/workflow/model-sampling-patch');
     const isDistilled =
       isQwenLightningModel(queueModel) ||
       isWanLightningModel(queueModel) ||

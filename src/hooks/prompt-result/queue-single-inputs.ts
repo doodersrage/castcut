@@ -3,7 +3,7 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import { engineDisplayName } from '@/lib/engine/capabilities';
 import type { EngineAdapter } from '@/lib/engine/types';
 import { resolveQueueInputImage, resolveQueueInputImageFilename } from '@/lib/queue-input-image';
-import { MAX_INPUT_IMAGE_FILENAMES } from '@/lib/workflow-load-image-bindings';
+import { MAX_INPUT_IMAGE_FILENAMES } from '@/lib/workflow/load-image-bindings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export type QueueSingleInputsResult = {

@@ -1,5 +1,5 @@
 import { loadPromptHistoryStore } from './prompt-history';
-import { loadComfyGallery } from './comfyui-gallery';
+import { loadComfyGallery } from './gallery/comfyui-gallery';
 import { loadScenePresets } from './scene-presets';
 import { mergeNsfwPresetCatalog } from './nsfw-generator-presets';
 import { loadUserNsfwGeneratorPresets } from './user-nsfw-generator-presets';

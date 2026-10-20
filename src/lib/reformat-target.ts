@@ -1,5 +1,5 @@
 import { getComfyModelDefinition, type ComfyImageModel } from './comfy-models/client';
-import { readAnyCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
+import { readAnyCachedComfyObjectInfoModels } from './comfyui/object-info-cache';
 import { loadSettingsCache } from './settings-cache';
 import { installedComfyModels } from './model-picker';
 

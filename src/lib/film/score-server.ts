@@ -5,7 +5,7 @@ import {
   resolveComfyNode,
   runComfyUtilityGraph,
   type ComfyImageRef,
-} from '../comfy-utility-graph-server';
+} from '../comfyui/comfy-utility-graph-server';
 import {
   ACE_STEP_CHECKPOINT,
   ACE_STEP_REQUIRED_NODES,

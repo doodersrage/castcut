@@ -2,10 +2,10 @@ import {
   upsertComfyWorkflowFile,
   loadComfyWorkflowFiles,
   type ComfyWorkflowFile,
-} from './comfyui-workflow-files';
+} from './comfyui/workflow-files';
 import { assignWorkflowToInferredModels, resolveWorkflowForModel } from './model-workflow-map';
-import { pickWorkflowForModelKind } from './workflow-kind';
-import { buildWorkflowScaffoldForModel, suggestedScaffoldName } from './workflow-scaffold';
+import { pickWorkflowForModelKind } from './workflow/kind';
+import { buildWorkflowScaffoldForModel, suggestedScaffoldName } from './workflow/scaffold';
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from './settings-cache';
 import {
   DEFAULT_VIDEO_MODEL,
@@ -13,9 +13,9 @@ import {
   type ComfyImageModel,
 } from './comfy-models/client';
 import { DEFAULT_CHECKPOINT_TOKEN, SUGGESTED_MODEL_CHECKPOINT_MAP } from './model-checkpoint-map';
-import { matchInventoryFilename } from './loader-map-inventory-sync';
+import { matchInventoryFilename } from './workflow/loader-map-inventory-sync';
 import { pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
-import type { ComfyUiModelLists } from './comfyui-object-info';
+import type { ComfyUiModelLists } from './comfyui/object-info';
 
 export { pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
 

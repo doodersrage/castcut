@@ -1,5 +1,5 @@
 import type { PromptHistoryEntry } from './prompt-history';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 import {
   analyzeGalleryRatingTokens,
   negativeScoringTokens,

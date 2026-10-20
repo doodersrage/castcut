@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/registry';
-import type { ComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
-import { modelWorkflowKind, workflowFileKind, type WorkflowKind } from '@/lib/workflow-kind';
+import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
+import { modelWorkflowKind, workflowFileKind, type WorkflowKind } from '@/lib/workflow/kind';
 
 const FACE_DETAILER_KEY = 'faceDetailer';
 

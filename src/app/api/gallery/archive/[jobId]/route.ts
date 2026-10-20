@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { isValidGalleryArchiveJobId, readGalleryArchiveJob } from '@/lib/gallery-archive-job';
+import { isValidGalleryArchiveJobId, readGalleryArchiveJob } from '@/lib/gallery/archive-job';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

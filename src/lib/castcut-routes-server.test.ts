@@ -19,9 +19,9 @@ import {
   parseCastcutRoutesInfo,
   resetCastcutFallbackCounts,
 } from './castcut-routes-server';
-import { namesAllowedToDelete } from './comfy-input-cleanup';
+import { namesAllowedToDelete } from './comfyui/comfy-input-cleanup';
 import { describeCastcutHealth, describeCastcutUsage } from './castcut-nodes-setup';
-import { queueContextFromJobList } from './comfyui-status';
+import { queueContextFromJobList } from './comfyui/status';
 import { measureFaceMatchInComfy } from './face-match-server';
 
 const BASE = 'http://comfy.test:8188';

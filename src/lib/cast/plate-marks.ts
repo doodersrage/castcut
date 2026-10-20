@@ -5,7 +5,7 @@
 import { checkableMarks, marksCheckVerdict } from './marks-check';
 import { checkStillMarks } from './marks-check-client';
 import { getCharacter, looksOf } from '../character-os';
-import { loadComfyUiSettings } from '../comfyui-settings';
+import { loadComfyUiSettings } from '../comfyui/settings';
 import { lookPlateFaceUrl } from '../likeness-measure-client';
 import { loadSettingsCache } from '../settings-cache';
 

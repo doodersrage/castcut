@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { readIdentityFile } from '@/lib/gallery-media-store';
+import { readIdentityFile } from '@/lib/gallery/media-store';
 import { isServerStorageEnabled } from '@/lib/server-storage';
 
 export const runtime = 'nodejs';

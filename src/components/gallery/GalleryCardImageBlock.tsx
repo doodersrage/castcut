@@ -1,7 +1,7 @@
 'use client';
 
 import type { AestheticScoreResult } from '@/lib/aesthetic-score';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { GalleryCardHeroMedia } from '@/components/gallery/GalleryCardHeroMedia';
 import { GalleryCardHoverActions } from '@/components/gallery/GalleryCardHoverActions';
 import { GalleryCardPlaceholderStates } from '@/components/gallery/GalleryCardPlaceholderStates';
@@ -34,7 +34,9 @@ export type GalleryCardImageBlockProps = {
   leanHoverActions?: boolean;
   isRendering: boolean;
   playbackIndex: number;
-  primaryMediaKind: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryPrimaryMediaKind>;
+  primaryMediaKind: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
+  >;
   lqipUrl: string | null;
   showHtmlVideo: boolean;
   isVideoHero: boolean;

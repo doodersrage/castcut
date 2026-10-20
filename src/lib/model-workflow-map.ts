@@ -1,16 +1,16 @@
 import type { ComfyImageModel } from './comfy-models/client';
 import { COMFY_IMAGE_MODELS } from './comfy-models/client';
-import type { ComfyWorkflowFile } from './comfyui-workflow-files';
+import type { ComfyWorkflowFile } from './comfyui/workflow-files';
 import {
   suggestWorkflowDefaultsByCategory,
   workflowRequiresInputImage,
   rankWorkflowFilesForModel,
   workflowLabelImpliesLightning,
-} from './workflow-category-defaults';
+} from './workflow/category-defaults';
 import type { SharedToolSettings } from './settings-cache';
 import { isEditQueueTool } from './model-denoise-defaults';
-import { isQwenLightningModel } from './model-sampling-patch';
-import { workflowGraphIsVideo } from './workflow-graph-kind';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
+import { workflowGraphIsVideo } from './workflow/graph-kind';
 
 export type ModelWorkflowMap = Record<string, string>;
 

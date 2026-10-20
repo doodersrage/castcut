@@ -1,4 +1,4 @@
-import { listServerWorkflowFiles } from '@/lib/comfyui-server-workflows';
+import { listServerWorkflowFiles } from '@/lib/comfyui/server-workflows';
 import { apiJson } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

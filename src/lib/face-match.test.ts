@@ -10,7 +10,7 @@ import {
 } from './face-match';
 import { comfyInputViewUrl } from './face-match-client';
 import { comfyOutputIndex } from './face-match-server';
-import { fillComfyNodeInputs } from './comfy-utility-graph-server';
+import { fillComfyNodeInputs } from './comfyui/comfy-utility-graph-server';
 import { decideSlotQuality, type SlotQualityReport } from './play/slot-quality';
 import { storyFaceMatchLabel } from './story/roleplay-pose-check';
 import { faceMatchSummary } from './play/metrics';

@@ -25,7 +25,7 @@ import {
   galleryEntryPrimaryThumbUrl,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import {
   buildFittingBackViewPrompt,
   buildFittingFeetPassPrompt,
@@ -72,7 +72,7 @@ import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import { withCastIdentityQueueFields } from '@/lib/look/outfit-plate';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { FittingToolCache } from '@/lib/play/settings';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import type { CharacterRecord } from '@/lib/character-os';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 

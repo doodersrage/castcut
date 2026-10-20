@@ -10,7 +10,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import { applyGalleryUrlState, parseGalleryUrlState } from '@/lib/gallery-url-state';
+import { applyGalleryUrlState, parseGalleryUrlState } from '@/lib/gallery/url-state';
 import {
   galleryBrowseScope,
   galleryUrlHasBrowseState,
@@ -18,9 +18,9 @@ import {
   patchGallerySessionPage,
   readInitialGalleryPage,
   saveGallerySessionState,
-} from '@/lib/gallery-session-state';
+} from '@/lib/gallery/session-state';
 import { EXPERIMENT_WINNERS_UPDATED_EVENT, loadExperimentWinners } from '@/lib/experiment-winners';
-import { loadGalleryDensity, saveGalleryDensity, type GalleryDensity } from '@/lib/gallery-density';
+import { loadGalleryDensity, saveGalleryDensity, type GalleryDensity } from '@/lib/gallery/density';
 import { loadActiveProjectId } from '@/lib/prompt-projects';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
@@ -30,7 +30,7 @@ import {
   type ComfyGallerySort,
   type GalleryLayoutMode,
   type GalleryPageSize,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { GalleryBrowsePageClampContext } from '@/hooks/gallery-browse/useGalleryBrowsePageClamp';
 
 export type UseGalleryBrowseStateOptions = {

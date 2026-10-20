@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import {
   dayTwoTakesNeedsOrder,
@@ -11,7 +11,7 @@ import {
 } from '@/lib/day/two-takes';
 import { countDuoStill } from '@/lib/duo-still-check-client';
 import { likelierTwoTake, type DuoStillCounts } from '@/lib/duo-still-check';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
  * Two takes (intimate stills, "Two takes, you pick"): when both takes of a slot land, count

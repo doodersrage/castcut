@@ -9,7 +9,7 @@ import {
   readComfyImageGraph,
   runComfyUtilityGraph,
   type ComfyImageRef,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import { FaceMatchNoFaceError, measureFaceMatchInComfy } from '@/lib/face-match-server';
 import { graphWithLoraAt } from '@/lib/lora-check';
 

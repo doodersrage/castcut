@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { resolveAppNavLinkHref } from '@/lib/gallery-session-state';
-import { prefetchGalleryPage } from '@/lib/gallery-warmup';
+import { resolveAppNavLinkHref } from '@/lib/gallery/session-state';
+import { prefetchGalleryPage } from '@/lib/gallery/warmup';
 import { followNavClick, resolveNavHref } from '@/lib/nav-links';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import type { AppNavLink } from '@/lib/app-nav-catalog';

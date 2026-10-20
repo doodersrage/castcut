@@ -5,8 +5,8 @@
  */
 
 import type { ComfyImageModelDefinition } from './comfy-models/client';
-import type { ComfyUiModelLists } from './comfyui-object-info';
-import { matchInventoryFilename } from './loader-map-inventory-sync';
+import type { ComfyUiModelLists } from './comfyui/object-info';
+import { matchInventoryFilename } from './workflow/loader-map-inventory-sync';
 import { resolveLoaderFilenamesForModel, type ModelCheckpointMap } from './model-checkpoint-map';
 import { precisionHintFromFilename } from './model-loader-precision';
 

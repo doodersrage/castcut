@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { galleryEntryHeroPreviewUrl, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { galleryEntryHeroPreviewUrl, type ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import { Button } from '@/components/ui/Button';
 import {
@@ -9,8 +9,8 @@ import {
   initEloEntries,
   updateEloRatings,
   type EloEntry,
-} from '@/lib/gallery-elo';
-import { galleryEloWinnerId, loadGalleryElo, saveGalleryElo } from '@/lib/gallery-elo-store';
+} from '@/lib/gallery/elo';
+import { galleryEloWinnerId, loadGalleryElo, saveGalleryElo } from '@/lib/gallery/elo-store';
 import { experimentGroupIdForPrompt } from '@/lib/experiment-groups';
 import { markExperimentWinner } from '@/lib/experiment-winners';
 import {
@@ -21,9 +21,9 @@ import {
   galleryEntrySupportsSoftSecondPass,
   canSkinRefineGalleryEntry,
   galleryEntrySupportsUpscale,
-} from '@/lib/gallery-entry-actions';
-import { buildGalleryParamDiff } from '@/lib/gallery-param-diff';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+} from '@/lib/gallery/entry-actions';
+import { buildGalleryParamDiff } from '@/lib/gallery/param-diff';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolvePlaySkinRefineModel } from '@/lib/skin-refine';
 
 export type GalleryComparePanelProps = {

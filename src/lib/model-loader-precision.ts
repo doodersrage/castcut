@@ -1,4 +1,4 @@
-import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 
 export type LoaderPrecisionTier = 'fp8' | 'bf16';
 

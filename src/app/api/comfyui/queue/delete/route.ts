@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { buildComfyQueueDeletePayload } from '@/lib/comfyui-queue-control';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { buildComfyQueueDeletePayload } from '@/lib/comfyui/queue-control';
 
 export const runtime = 'nodejs';
 

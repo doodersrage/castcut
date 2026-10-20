@@ -1,6 +1,6 @@
 'use client';
 
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { useEffect, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
@@ -19,12 +19,12 @@ import {
   saveComfyGalleryAsync,
   MAX_GALLERY_ENTRIES,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import {
   fetchServerGalleryCount,
   pullAndMergeGalleryFromServer,
   pushGalleryToServer,
-} from '@/lib/gallery-server-sync';
+} from '@/lib/gallery/server-sync';
 
 type UsageSummary = {
   total: number;
@@ -117,7 +117,7 @@ export default function SettingsAdvancedPanel() {
     }
     // Always push gallery (including []) so server deletes stick.
     tasks.push(syncNamespaceToServer('comfy-gallery', gallery));
-    const { loadGalleryDeletedIds } = await import('@/lib/gallery-deleted-ids');
+    const { loadGalleryDeletedIds } = await import('@/lib/gallery/deleted-ids');
     tasks.push(syncNamespaceToServer('gallery-deleted-ids', loadGalleryDeletedIds()));
     const { collectStudioExtras } = await import('@/lib/studio-extras');
     tasks.push(syncNamespaceToServer('studio-extras', collectStudioExtras()));
@@ -200,7 +200,7 @@ export default function SettingsAdvancedPanel() {
       loadGalleryDeletedIds,
       mergeGalleryDeletedIds,
       saveGalleryDeletedIds,
-    } = await import('@/lib/gallery-deleted-ids');
+    } = await import('@/lib/gallery/deleted-ids');
     const { applyStudioExtras } = await import('@/lib/studio-extras');
     const serverDeleted = Array.isArray(deletedPayload)
       ? deletedPayload

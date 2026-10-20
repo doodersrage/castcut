@@ -4,13 +4,16 @@ import { useLayoutEffect, useRef } from 'react';
 import type { GalleryCardActions } from '@/components/gallery/GalleryCardItem';
 import { startAnatomyRepairFromGalleryEntry } from '@/lib/improve-output';
 import { toastHeldMax, toastQueueOutcome } from '@/lib/app-toast';
-import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
-import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
-import { galleryEntryPrimaryMediaKind, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery/handoff';
+import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
+import {
+  galleryEntryPrimaryMediaKind,
+  type ComfyGalleryEntry,
+} from '@/lib/gallery/comfyui-gallery';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import type { UseGalleryPanelActionsInput } from '@/hooks/gallery/gallery-panel-actions-types';
 
-const loadGalleryRequeue = () => import('@/lib/comfyui-requeue');
+const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
 
 export const EMPTY_GALLERY_CARD_ACTIONS: GalleryCardActions = {
   toggleSelected: () => undefined,
@@ -281,7 +284,7 @@ export function useGalleryCardActions({
         setRequeueStatus('Queueing skin refine…');
         void Promise.all([
           loadGalleryRequeue(),
-          import('@/lib/comfyui-settings'),
+          import('@/lib/comfyui/settings'),
           import('@/lib/skin-refine'),
         ])
           .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {

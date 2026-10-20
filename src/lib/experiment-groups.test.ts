@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { experimentGroupIdForPrompt, groupGalleryExperiments } from "./experiment-groups";
-import type { ComfyGalleryEntry } from "./comfyui-gallery";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery";
 
 function entry(id: string, prompt: string): ComfyGalleryEntry {
   return {

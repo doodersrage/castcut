@@ -4,7 +4,7 @@ import {
   auditLoraStackAtQueueTime,
   collectActiveLoraNodesInWorkflow,
 } from "./lora-stack-preflight";
-import { buildWorkflowScaffoldForModel } from "./workflow-scaffold";
+import { buildWorkflowScaffoldForModel } from "./workflow/scaffold";
 import { applyLoraStackToWorkflow } from "./lora-stack";
 
 describe("lora stack preflight", () => {

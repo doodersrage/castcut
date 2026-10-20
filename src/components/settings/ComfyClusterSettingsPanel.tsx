@@ -7,7 +7,7 @@ import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 import { serverEnvFieldValue } from '@/components/settings/tabs/settings-tool-shared';
 import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
-import { buildNewGpuEnvSnippet, parseAllowedHostsField } from '@/lib/comfyui-gpu-env-snippet';
+import { buildNewGpuEnvSnippet, parseAllowedHostsField } from '@/lib/comfyui/gpu-env-snippet';
 
 type ComfyClusterSettingsPanelProps = {
   sharedSettings: SharedToolSettings;

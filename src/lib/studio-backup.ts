@@ -18,22 +18,26 @@ import {
   saveUserTemplates,
   type UserPromptTemplate,
 } from '@/lib/user-templates';
-import { loadComfyGallery, saveComfyGallery, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import {
+  loadComfyGallery,
+  saveComfyGallery,
+  type ComfyGalleryEntry,
+} from '@/lib/gallery/comfyui-gallery';
 import {
   loadComfyUiSettings,
   saveComfyUiSettings,
   type ComfyUiSettings,
-} from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/settings';
 import {
   loadComfyWorkflowFiles,
   saveComfyWorkflowFiles,
   type ComfyWorkflowFile,
-} from '@/lib/comfyui-workflow-files';
+} from '@/lib/comfyui/workflow-files';
 import {
   loadComfyWorkflowPresets,
   saveComfyWorkflowPresets,
   type ComfyWorkflowPreset,
-} from '@/lib/comfyui-workflow-presets';
+} from '@/lib/comfyui/workflow-presets';
 import { exportAvoidedTokenList, saveAvoidedTokens } from '@/lib/avoided-tokens';
 import { WEBHOOK_LOG_KEY, loadWebhookLog, type WebhookLogEntry } from '@/lib/webhook-log';
 import { writeBrowserValue } from '@/lib/browser-storage';

@@ -22,7 +22,7 @@ import {
   stageComfyImageAsInput,
   type ComfyImageRef,
   type ComfyNodeInfo,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   faceSimilarityFromDistance,
   isNoFaceDistance,

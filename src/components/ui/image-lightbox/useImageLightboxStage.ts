@@ -8,8 +8,8 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import { isStillLightboxKind } from '@/lib/comfyui-outputs';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import { isStillLightboxKind } from '@/lib/comfyui/outputs';
 import type { ImageLightboxSlideshowOptions } from '@/components/ui/image-lightbox/types';
 
 export type UseImageLightboxStageOptions = {

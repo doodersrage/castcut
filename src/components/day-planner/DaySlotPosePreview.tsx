@@ -6,7 +6,7 @@ import PosePreview from '@/components/pose/PosePreview';
 import { usePoseOutcomeStats } from '@/hooks/usePoseOutcomeStats';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { isDayAdultMood, type DaySlot, type DaySlotId } from '@/lib/day/planner';
 import { dayPoseGuideFallbackIndex } from '@/lib/day/pose-guide';
 import { planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day/slot-pose';

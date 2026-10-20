@@ -2,7 +2,7 @@
 
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
-import { createComfyUiClientId } from '@/lib/comfyui-websocket';
+import { createComfyUiClientId } from '@/lib/comfyui/websocket';
 import { REPLICATE_API_HOST, cloudSettingsHref } from './capabilities';
 import {
   createNoopProgressSubscription,

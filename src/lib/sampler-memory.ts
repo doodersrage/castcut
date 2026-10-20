@@ -1,8 +1,8 @@
 'use client';
 
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import type { WorkflowParamValues } from './comfyui-config';
-import { isQwenLightningModel } from './model-sampling-patch';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import type { WorkflowParamValues } from './comfyui/config';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
 

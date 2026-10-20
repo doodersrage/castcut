@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { shotReframePath } from '@/lib/cut-reframe-server';
 
 export const runtime = 'nodejs';

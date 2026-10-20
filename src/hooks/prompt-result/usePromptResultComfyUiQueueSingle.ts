@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { AthleticSport } from '@/lib/athletic-sport-profiles';
 import { resolveModelForQueueTool } from '@/lib/queue-tool-model';
 import { guardQueueQualityForVram } from '@/lib/vram-queue-guard';
-import { parseWorkflowJson } from '@/lib/comfyui-config';
+import { parseWorkflowJson } from '@/lib/comfyui/config';
 import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
 import { injectLoraTriggers } from '@/lib/lora-prompt-injection';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { getEngineAdapter } from '@/lib/engine';
 import { isCloudEngine } from '@/lib/engine/capabilities';
@@ -80,7 +80,7 @@ export function usePromptResultComfyUiQueueSingle(
         negativePrompt?: string;
         model?: string;
         tool?: string;
-        queueParams?: import('@/lib/comfyui-config').WorkflowParamValues;
+        queueParams?: import('@/lib/comfyui/config').WorkflowParamValues;
         workflowJson?: string;
       } | null = null;
       try {
@@ -114,7 +114,7 @@ export function usePromptResultComfyUiQueueSingle(
         let runtime:
           | Awaited<
               ReturnType<
-                typeof import('@/lib/comfyui-runtime-for-model').resolveRuntimeForQueueAsync
+                typeof import('@/lib/comfyui/runtime-for-model').resolveRuntimeForQueueAsync
               >
             >
           | undefined;
@@ -127,7 +127,7 @@ export function usePromptResultComfyUiQueueSingle(
         } = { downgraded: false, profile: effectiveQualityProfile };
 
         if (!cloudEngine) {
-          const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui-runtime-for-model');
+          const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui/runtime-for-model');
           const baseRuntime = await resolveRuntimeForQueueAsync(requestedModel, effectiveTool, {
             ...(options?.sessionActiveLoraIds
               ? { sessionActiveLoraIds: options.sessionActiveLoraIds }
@@ -197,7 +197,7 @@ export function usePromptResultComfyUiQueueSingle(
         };
 
         if (engineAdapter.id === 'comfyui') {
-          const { runWorkflowPreflightWithNodeInstall } = await import('@/lib/workflow-preflight');
+          const { runWorkflowPreflightWithNodeInstall } = await import('@/lib/workflow/preflight');
           const preflight = await runWorkflowPreflightWithNodeInstall({
             model: queueModel,
             prompts: [preparedPrompt],

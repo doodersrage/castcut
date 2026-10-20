@@ -1,4 +1,4 @@
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { STORAGE_NAMESPACES, type StorageNamespace } from '@/lib/storage-namespaces';
 import {
   countGalleryEntries,
@@ -34,7 +34,7 @@ function mergeOwnedAndGlobalGallery(
  */
 function removeDeletedEntryMediaSoon(userId: string | null | undefined, ids: string[]): void {
   setImmediate(() => {
-    void import('../gallery-media-cleanup-server')
+    void import('../gallery/media-cleanup-server')
       .then(({ removeDeletedGalleryEntryMedia }) => removeDeletedGalleryEntryMedia({ userId, ids }))
       .catch(() => {
         // Left for Settings → Data → Clean up old copies.

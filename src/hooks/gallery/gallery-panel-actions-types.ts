@@ -1,8 +1,8 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { GalleryExperimentPanelProps } from '@/components/gallery/GalleryExperimentPanel';
-import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
-import type { GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import type { GalleryHandoffPayload } from '@/lib/gallery/handoff';
 
 export type GalleryBulkExperimentHandlers = Omit<
   GalleryExperimentPanelProps,

@@ -3,8 +3,8 @@
 import VisionScanButton from '@/components/VisionScanButton';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
-import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
-import { galleryPickPath } from '@/lib/gallery-handoff';
+import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
+import { galleryPickPath } from '@/lib/gallery/handoff';
 import { ROLEPLAY_PLAY_AS } from '@/lib/story/roleplay';
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
 

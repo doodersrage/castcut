@@ -2,7 +2,7 @@
 
 import { useComfyWorkflowLibrary } from '@/hooks/useComfyWorkflowLibrary';
 import ComfyWorkflowLibrarySections from '@/components/comfy-workflow/ComfyWorkflowLibrarySections';
-import type { WorkflowPlaceholderTokens } from '@/lib/comfyui-config';
+import type { WorkflowPlaceholderTokens } from '@/lib/comfyui/config';
 
 type ComfyWorkflowLibraryPanelProps = {
   placeholderTokens: WorkflowPlaceholderTokens;

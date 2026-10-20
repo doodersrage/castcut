@@ -1,4 +1,4 @@
-import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import { snapLatentSize } from './browser-image-dimensions';
 

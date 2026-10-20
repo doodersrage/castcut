@@ -21,7 +21,7 @@ import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
 import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
 import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/workspace-mode';
-import { galleryNavHref } from '@/lib/gallery-session-state';
+import { galleryNavHref } from '@/lib/gallery/session-state';
 import { accentForPath } from '@/lib/tool-theme';
 import {
   loadActivePlayCampaign,

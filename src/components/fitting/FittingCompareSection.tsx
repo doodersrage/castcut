@@ -10,9 +10,9 @@ import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/lib/fitting/room';
 import { suggestTryOnToKeep, type TryOnReview } from '@/lib/fitting/tryon-review';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
-import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/comfyui/still-comfy-url';
 
 export { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 

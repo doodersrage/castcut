@@ -6,9 +6,9 @@
  * option for pose-locked passes; UltraReal soft-pass remaps to Edit (Comfy unpack bugs).
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import type { ComfyUiSettings } from './comfyui-settings';
-import { galleryEntrySupportsRefine } from './gallery-entry-actions';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import type { ComfyUiSettings } from './comfyui/settings';
+import { galleryEntrySupportsRefine } from './gallery/entry-actions';
 import { normalizeComfyModel } from './comfy-models';
 
 /** Klein Base img2img — stronger skin rematerialization than Edit keep-everything. */

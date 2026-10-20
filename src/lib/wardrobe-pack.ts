@@ -3,7 +3,7 @@
  * words) as one .zip, to move them to another install or share them. Pure parts here; the
  * download / upload side is wardrobe-pack-client.ts.
  */
-import { buildZipBlob, type ZipFileEntry } from './gallery-zip-core';
+import { buildZipBlob, type ZipFileEntry } from './gallery/zip-core';
 import { readZipBinaryEntries } from './zip-read';
 
 export const WARDROBE_PACK_FORMAT = 'castcut-wardrobe-pack';

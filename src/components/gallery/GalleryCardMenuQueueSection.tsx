@@ -4,9 +4,9 @@ import {
   galleryEntryCanSaveLook,
   galleryEntryHasRestorableStack,
   saveGalleryLookFromEntry,
-} from '@/lib/gallery-stack-restore';
-import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
+} from '@/lib/gallery/stack-restore';
+import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';

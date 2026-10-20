@@ -27,7 +27,7 @@ import {
   withOutfitPhotosMoved,
   withReferenceSheetsMoved,
 } from './transfer';
-import { loadComfyUiSettings } from '../comfyui-settings';
+import { loadComfyUiSettings } from '../comfyui/settings';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '../isolate-subject';
 import {
   getRoleplayLibrarySession,
@@ -122,7 +122,7 @@ async function wardrobeStills(
   const items = Array.isArray(character.wardrobe) ? character.wardrobe : [];
   if (!items.length) return { pictures: [], missing: 0 };
   const { loadComfyGallery, galleryEntryPrimaryViewUrl, galleryEntryPrimaryThumbUrl } =
-    await import('../comfyui-gallery');
+    await import('../gallery/comfyui-gallery');
   const gallery = loadComfyGallery();
   const pictures: CastFileOutfitPicture[] = [];
   let missing = 0;

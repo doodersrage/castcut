@@ -2,15 +2,15 @@
 
 import ActionMenu from '@/components/ui/ActionMenu';
 import GalleryModeSwitch from '@/components/gallery/GalleryModeSwitch';
-import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
+import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
 import { ButtonLink } from '@/components/ui/Button';
 import {
   galleryHandoffHomePath,
   galleryPickPurposeLabel,
   type GalleryHandoffPayload,
-} from '@/lib/gallery-handoff';
-import type { GalleryCapWarningLevel } from '@/lib/gallery-cap';
+} from '@/lib/gallery/handoff';
+import type { GalleryCapWarningLevel } from '@/lib/gallery/cap';
 
 export function GalleryPanelHeader({
   activeJobs,

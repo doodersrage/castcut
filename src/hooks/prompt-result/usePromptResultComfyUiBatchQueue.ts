@@ -9,7 +9,7 @@ import {
   loadComfyUiSettings,
   resolveSharedEffectiveSessionLoraIds,
   resolveSharedEffectiveSessionLoraStrengthOverrides,
-} from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { getEngineAdapter } from '@/lib/engine';
 import { isCloudEngine } from '@/lib/engine/capabilities';
@@ -41,7 +41,7 @@ export function usePromptResultComfyUiBatchQueue(
 
       setComfyUiStatus(`Queueing ${filtered.length}…`);
       try {
-        const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui-runtime-for-model');
+        const { resolveRuntimeForQueueAsync } = await import('@/lib/comfyui/runtime-for-model');
         const baseRuntime = await resolveRuntimeForQueueAsync(config.model, config.tool);
         const queueModel = resolveModelForQueueTool(config.model, config.tool);
         const vramGuard = await guardQueueQualityForVram({ runtime: baseRuntime });
@@ -115,7 +115,7 @@ export function usePromptResultComfyUiBatchQueue(
           }
         }
 
-        const { runWorkflowPreflightWithNodeInstall } = await import('@/lib/workflow-preflight');
+        const { runWorkflowPreflightWithNodeInstall } = await import('@/lib/workflow/preflight');
         const preflight = await runWorkflowPreflightWithNodeInstall({
           model: queueModel,
           prompts: prepared,

@@ -2,8 +2,8 @@ import {
   comfyUiJobProgressPercent,
   comfyUiJobStatusLabel,
   formatComfyUiJobProgressLabel,
-} from '@/lib/comfyui-job-status';
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+} from '@/lib/comfyui/job-status';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import type { SystemTrayAssetJob, SystemTrayPrimary } from '@/hooks/useSystemTrayState';
 
 export function assetStatusLabel(job: SystemTrayAssetJob): string {

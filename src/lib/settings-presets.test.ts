@@ -78,7 +78,7 @@ describe("settings-presets", () => {
   it("applies Everyday: Good on every tool, no hold, Calm auto-improve", async () => {
     const { applySettingsBrowserPreset } = await import("./settings-presets");
     const { loadSettingsCache } = await import("./settings-cache");
-    const { loadComfyUiSettings } = await import("./comfyui-settings");
+    const { loadComfyUiSettings } = await import("./comfyui/settings");
 
     assert.equal(applySettingsBrowserPreset("everyday"), true);
 
@@ -98,7 +98,7 @@ describe("settings-presets", () => {
   it("applies Best quality: Best on every tool, hold until idle, Aggressive", async () => {
     const { applySettingsBrowserPreset } = await import("./settings-presets");
     const { loadSettingsCache } = await import("./settings-cache");
-    const { loadComfyUiSettings } = await import("./comfyui-settings");
+    const { loadComfyUiSettings } = await import("./comfyui/settings");
 
     applySettingsBrowserPreset("best");
 

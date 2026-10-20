@@ -6,7 +6,7 @@ import {
   galleryEntryRenderKey,
   type ComfyGalleryEntry,
   type GalleryLayoutMode,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import {
   canAnatomyRepairGalleryEntry,
   canFaceDetailGalleryEntry,
@@ -17,8 +17,8 @@ import {
   galleryEntrySupportsRefine,
   galleryEntrySupportsSoftSecondPass,
   galleryEntrySupportsUpscale,
-} from '@/lib/gallery-entry-actions';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+} from '@/lib/gallery/entry-actions';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolvePlaySkinRefineModel } from '@/lib/skin-refine';
 
 export type GalleryCardActions = {

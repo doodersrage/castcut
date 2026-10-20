@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   cacheBustIdentityMediaUrl,
   IDENTITY_MEDIA_URL,
   isIdentityMediaUrl,
   persistOwnedPlateImage,
   sessionPlateMediaId,
-} from '@/lib/gallery-media-client';
+} from '@/lib/gallery/media-client';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,

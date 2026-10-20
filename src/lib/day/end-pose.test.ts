@@ -6,7 +6,7 @@ import {
   injectPromptsWithFallbacks,
   resolvePlaceholderTokens,
   resolveQueueParams,
-} from '../comfyui-config';
+} from '../comfyui/config';
 import {
   activeDayEndPose,
   buildDayEndPoseEditPrompt,
@@ -18,7 +18,7 @@ import {
   withDayEndPoseMotion,
 } from './end-pose';
 import { normalizeDaySlotStills, upsertDaySlotStill } from './planner';
-import { buildWorkflowScaffoldForModel } from '../workflow-scaffold';
+import { buildWorkflowScaffoldForModel } from '../workflow/scaffold';
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
 

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
-import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
+import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 
 type Props = {
   health: HealthResponse | null;

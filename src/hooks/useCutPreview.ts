@@ -46,7 +46,7 @@ import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/fil
 import type { FilmPlaylistShot } from '@/lib/media-kind';
 import { captionOpacity, stillMotionZoom, type FilmTitleCard } from '@/lib/video-polish';
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 
 /** Canvas size per shape — small, the preview is for judging the edit, not the pixels. */
 export const CUT_PREVIEW_CANVAS = {

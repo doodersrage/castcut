@@ -8,7 +8,7 @@
  */
 
 import { planReel, type ReelLength } from '@/lib/cut-reel';
-import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
+import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { startClipExtend, waitForClipExtend } from '@/lib/clip-extend';
 import type { CutGeneratedStatus } from '@/lib/cut-generate';
@@ -35,7 +35,7 @@ import {
   initGalleryStore,
   loadComfyGallery,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { renderTextCard } from '@/lib/cut-text-card';
 import {
   CUT_BRIDGE_FRAMES,
@@ -56,8 +56,8 @@ import {
 } from '@/lib/cut-generate';
 import { cutGenerateModel } from '@/lib/queue-tool-model';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import {
   activeCutSources,

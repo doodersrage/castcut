@@ -11,7 +11,7 @@ import {
   buildCastBibleGenderSwapPrompt,
 } from '@/lib/character-bible-picture';
 import { saveCharacterBiblePictureSwap, type CharacterRecord } from '@/lib/character-os';
-import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**

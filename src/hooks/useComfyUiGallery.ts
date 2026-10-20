@@ -30,15 +30,15 @@ import {
   uniqueGalleryTools,
   uniqueGalleryUserTags,
   uniqueGalleryCustomGroups,
-} from '@/lib/comfyui-gallery';
-import { primeGalleryCacheSync } from '@/lib/gallery-db-store';
-import { pullAndMergeGalleryFromServer } from '@/lib/gallery-server-sync';
-import { scheduleComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
+} from '@/lib/gallery/comfyui-gallery';
+import { primeGalleryCacheSync } from '@/lib/gallery/db-store';
+import { pullAndMergeGalleryFromServer } from '@/lib/gallery/server-sync';
+import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { fetchEmbeddingRankIds, galleryEntryCorpus, sortByRankIds } from '@/lib/embedding-rank';
-import { galleryVisualCorpus } from '@/lib/gallery-similarity';
+import { galleryVisualCorpus } from '@/lib/gallery/similarity';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { notePoseTakeOutcomes, type PoseOutcome } from '@/lib/pose-outcome-stats';
-import { runGalleryKeeperHooks } from '@/lib/gallery-judgment-hooks';
+import { runGalleryKeeperHooks } from '@/lib/gallery/judgment-hooks';
 
 /**
  * A Gallery judgment on Day / Story takes, for the pose × engine stats: a keeper (favorite or

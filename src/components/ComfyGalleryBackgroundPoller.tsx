@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery';
 import { initBrowserStorage } from '@/lib/browser-storage';
-import { hasPendingGalleryPollMeta } from '@/lib/gallery-pending-polls';
+import { hasPendingGalleryPollMeta } from '@/lib/gallery/pending-polls';
 
 function scheduleIdle(callback: () => void, timeoutMs: number): () => void {
   if (typeof window.requestIdleCallback === 'function') {
@@ -38,16 +38,18 @@ export default function ComfyGalleryBackgroundPoller() {
       if (cancelled) {
         return;
       }
-      void import('@/lib/gallery-db-store').then(({ warmGalleryStore }) =>
+      void import('@/lib/gallery/db-store').then(({ warmGalleryStore }) =>
         warmGalleryStore().then(() => {
           if (cancelled) {
             return;
           }
-          void import('@/lib/comfyui-gallery-poller').then(({ resumePendingGalleryPolls }) => {
-            if (!cancelled) {
-              resumePendingGalleryPolls();
+          void import('@/lib/gallery/comfyui-gallery-poller').then(
+            ({ resumePendingGalleryPolls }) => {
+              if (!cancelled) {
+                resumePendingGalleryPolls();
+              }
             }
-          });
+          );
         })
       );
     };
@@ -63,7 +65,7 @@ export default function ComfyGalleryBackgroundPoller() {
         resumeIfNeeded();
         return;
       }
-      void import('@/lib/comfyui-gallery-poller').then(({ galleryHasUnpolledJobs }) => {
+      void import('@/lib/gallery/comfyui-gallery-poller').then(({ galleryHasUnpolledJobs }) => {
         if (!cancelled && galleryHasUnpolledJobs()) resumeIfNeeded();
       });
     };

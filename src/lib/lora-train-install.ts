@@ -8,7 +8,7 @@ import {
   canWriteComfyModelsRoot,
   getComfyUiRoot,
   resolveAssetDestinationPath,
-} from './comfy-asset-paths';
+} from './comfyui/comfy-asset-paths';
 
 export type InstallTrainLoraResult = {
   installed: boolean;

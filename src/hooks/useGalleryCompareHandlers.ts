@@ -7,21 +7,21 @@ import {
   buildToolQualityRecipeFromGalleryEntry,
 } from '@/lib/tool-quality-recipes';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { resolveSharedEffectiveSessionLoraStrengthOverrides } from '@/lib/comfyui-settings';
+import { resolveSharedEffectiveSessionLoraStrengthOverrides } from '@/lib/comfyui/settings';
 import { recordAvoidedTokensFromGalleryEntry } from '@/lib/avoided-tokens';
 import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
 import { setLineageParent } from '@/lib/prompt-lineage-session';
-import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery-mutations';
+import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery/mutations';
 import { toastHeldMax } from '@/lib/app-toast';
 import { startImproveFromGalleryEntry } from '@/lib/improve-output';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
 import { experimentGroupIdForPrompt } from '@/lib/experiment-groups';
 import { markExperimentWinner } from '@/lib/experiment-winners';
-import { applyGalleryStackToSession } from '@/lib/gallery-stack-restore';
-import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
+import { applyGalleryStackToSession } from '@/lib/gallery/stack-restore';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
 
-const loadGalleryRequeue = () => import('@/lib/comfyui-requeue');
+const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
 
 type UseGalleryCompareHandlersInput = {
   selectedEntries: ComfyGalleryEntry[];
@@ -275,7 +275,7 @@ export function useGalleryCompareHandlers({
     setCompareStatus('Queueing skin refine…');
     void Promise.all([
       loadGalleryRequeue(),
-      import('@/lib/comfyui-settings'),
+      import('@/lib/comfyui/settings'),
       import('@/lib/skin-refine'),
     ])
       .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {

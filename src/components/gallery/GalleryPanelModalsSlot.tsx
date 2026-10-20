@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import LoraDatasetExportDialog from '@/components/LoraDatasetExportDialog';
 import GalleryPoseDialogHost from '@/components/gallery/GalleryPoseDialog';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { LoraDatasetExportUiOptions } from '@/lib/lora-dataset-export-ui';
 
 const GalleryCompareModal = dynamic(() => import('@/components/gallery/GalleryCompareModal'), {

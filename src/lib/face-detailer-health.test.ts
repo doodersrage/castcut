@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 import type { SettingsCache } from "./settings-cache";
-import type { ComfyWorkflowFile } from "./comfyui-workflow-files";
+import type { ComfyWorkflowFile } from "./comfyui/workflow-files";
 
 let sharedSettings: SettingsCache["shared"] = {} as SettingsCache["shared"];
 const loadSettingsCache = mock.fn(
@@ -11,11 +11,11 @@ mock.module("./settings-cache", { namedExports: { loadSettingsCache } });
 
 let files: ComfyWorkflowFile[] = [];
 const loadComfyWorkflowFiles = mock.fn((): ComfyWorkflowFile[] => files);
-mock.module("./comfyui-workflow-files", { namedExports: { loadComfyWorkflowFiles } });
+mock.module("./comfyui/workflow-files", { namedExports: { loadComfyWorkflowFiles } });
 
 let resolvedFile: ComfyWorkflowFile | undefined;
 const findLibraryFaceDetailerWorkflow = mock.fn((): ComfyWorkflowFile | undefined => resolvedFile);
-mock.module("./workflow-library-face-detailer", { namedExports: { findLibraryFaceDetailerWorkflow } });
+mock.module("./workflow/library-face-detailer", { namedExports: { findLibraryFaceDetailerWorkflow } });
 
 function workflowFile(overrides: Partial<ComfyWorkflowFile>): ComfyWorkflowFile {
   return {

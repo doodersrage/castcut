@@ -7,10 +7,10 @@
  * health panel's queue test uses, and caches the result per ComfyUI URL.
  */
 
-import type { ComfyUiModelLists } from './comfyui-object-info';
-import { lookupKnownComfyNodePack } from './comfyui-custom-node-registry';
-import { isFilenameInUnetLoaderList } from './loader-map-inventory-sync';
-import { isComfyUiOnlyNodeType } from './workflow-node-type-audit';
+import type { ComfyUiModelLists } from './comfyui/object-info';
+import { lookupKnownComfyNodePack } from './comfyui/custom-node-registry';
+import { isFilenameInUnetLoaderList } from './workflow/loader-map-inventory-sync';
+import { isComfyUiOnlyNodeType } from './workflow/node-type-audit';
 import type {
   EngineHealthStatus,
   EngineModelFolder,

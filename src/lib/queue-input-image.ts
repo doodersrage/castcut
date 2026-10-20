@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyImageModel } from './comfy-models/client';
-import { uploadComfyInputImage } from './comfyui-image-upload';
+import { uploadComfyInputImage } from './comfyui/image-upload';
 
 export type ResolveQueueInputImageOptions = {
   file?: File | null;

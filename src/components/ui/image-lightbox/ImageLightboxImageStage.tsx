@@ -8,8 +8,8 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 import ImageLightboxSlide from '@/components/ui/image-lightbox/ImageLightboxSlide';
-import type { GalleryLightboxFit } from '@/lib/gallery-lightbox-prefs';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
+import type { GalleryLightboxFit } from '@/lib/gallery/lightbox-prefs';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 
 type ImageLightboxImageStageProps = {

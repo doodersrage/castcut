@@ -6,7 +6,7 @@
  * Identity stays on the first Lightning pass: VL face crop + Cast LoRA + prompt.
  */
 
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 
 /** @deprecated Auto face-restore is disabled — kept for queue-param filename checks. */
 export const DAY_VACATION_FACE_RESTORE_MODEL = 'qwen-image-edit-2511-lightning-8' as const;

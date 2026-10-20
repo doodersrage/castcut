@@ -14,7 +14,7 @@ import type {
   EnhancedPromptResultProps,
 } from '@/components/prompt-result/enhanced-prompt-result-types';
 import type { useEnhancedPromptResultState } from '@/hooks/useEnhancedPromptResultState';
-import { isComfyUiJobProcessing } from '@/lib/comfyui-job-status';
+import { isComfyUiJobProcessing } from '@/lib/comfyui/job-status';
 
 const WorkflowPreviewPanel = dynamic(() => import('@/components/WorkflowPreviewPanel'), {
   ssr: false,

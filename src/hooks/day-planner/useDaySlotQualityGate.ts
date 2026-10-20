@@ -40,9 +40,9 @@ import {
   type SlotQualityLedger,
 } from '@/lib/play/slot-quality';
 import { buildFaceComparePair } from '@/lib/play/face-compare';
-import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
   buildPoseMissView,

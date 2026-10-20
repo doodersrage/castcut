@@ -5,7 +5,7 @@ import 'server-only';
  * (`outputs[nodeId].castcut`, written by CastcutReport — castcut-nodes.ts).
  */
 
-import { comfyBaseUrl } from '@/lib/comfy-utility-graph-server';
+import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
 import { parseCastcutBestOfTwoReport, type CastcutBestOfTwoReport } from '@/lib/castcut-nodes';
 
 export async function readCastcutBestOfTwoReport(input: {

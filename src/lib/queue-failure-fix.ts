@@ -1,4 +1,4 @@
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 import {
   downgradeQueueQualityProfile,
   fetchComfyUiPoolUrlsForRetry,
@@ -6,10 +6,10 @@ import {
   isOomOrExecutionErrorMessage,
   pickAlternateComfyUrl,
 } from './oom-retry';
-import type { RequeueComfyJobResult } from './comfyui-requeue';
+import type { RequeueComfyJobResult } from './comfyui/requeue';
 import { resolveQueueFailureHref } from './queue-failure-playbook';
 import { normalizeQueueQualityProfile } from './queue-quality-profile';
-import { isMissingCustomNodeFailure } from './workflow-node-type-audit';
+import { isMissingCustomNodeFailure } from './workflow/node-type-audit';
 
 export type QueueFailureFixKind =
   | 'install-missing-nodes'
@@ -121,12 +121,12 @@ export async function applyQueueFailureFix(
   kind: QueueFailureFixKind,
   options?: { onStatus?: (message: string) => void }
 ): Promise<RequeueComfyJobResult> {
-  const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+  const { requeueComfyJobFromEntry } = await import('./comfyui/requeue');
   const onStatus = options?.onStatus;
 
   if (kind === 'install-missing-nodes') {
     const { requestComfyManagerInstall, resolveMissingNodeTypesForJob } =
-      await import('./comfyui-manager-install-client');
+      await import('./comfyui/manager-install-client');
     onStatus?.('Resolving missing custom nodes…');
     const nodeTypes = await resolveMissingNodeTypesForJob(entry);
     if (nodeTypes.length === 0) {
@@ -206,10 +206,10 @@ export async function applyQueueFailureFix(
 }
 
 async function applyClosestLoaderMapRepairs(onStatus?: (message: string) => void): Promise<number> {
-  const { fetchComfyObjectInfoCached } = await import('./comfyui-object-info-cache');
+  const { fetchComfyObjectInfoCached } = await import('./comfyui/object-info-cache');
   const { loadSettingsCache, saveSharedSettings } = await import('./settings-cache');
   const { suggestLoaderMapRepairs, applyLoaderMapRepairs } =
-    await import('./workflow-loader-map-repair');
+    await import('./workflow/loader-map-repair');
   const objectInfo = await fetchComfyObjectInfoCached({ forceRefresh: true });
   if (!objectInfo?.models) {
     onStatus?.('Could not read ComfyUI inventory for loader remap.');

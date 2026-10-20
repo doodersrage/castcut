@@ -2,8 +2,8 @@ import 'server-only';
 
 import { resolveRequestUser } from './auth/access';
 import { isAuthEnabled } from './auth/store';
-import { getComfyUiBaseUrl } from './comfyui-client';
-import { stripEmptyComfyUiRuntime } from './comfyui-config';
+import { getComfyUiBaseUrl } from './comfyui/client';
+import { stripEmptyComfyUiRuntime } from './comfyui/config';
 import { mediaBackupOwner } from './media-backup-server';
 
 /** Whose gallery-media / identity folder a Pictures backup reads or fills; null = not signed in. */

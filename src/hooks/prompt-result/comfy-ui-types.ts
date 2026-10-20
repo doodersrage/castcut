@@ -1,8 +1,8 @@
 import type { MutableRefObject } from 'react';
 import type { AthleticSport } from '@/lib/athletic-sport-profiles';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
-import type { ComfyUiJobTrackerState } from '@/lib/comfyui-job-status';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
+import type { ComfyUiJobTrackerState } from '@/lib/comfyui/job-status';
 import type { PromptResultActionsConfig, WorkflowPreviewResult } from '@/hooks/prompt-result/types';
 
 export type ComfyUiDeps = {
@@ -66,7 +66,7 @@ export type SendComfyUiOptions = {
   parentGalleryEntryId?: string;
   characterId?: string;
   lookId?: string;
-  derivedKind?: import('@/lib/comfyui-gallery-entry').ComfyGalleryEntry['derivedKind'];
+  derivedKind?: import('@/lib/gallery/comfyui-gallery-entry').ComfyGalleryEntry['derivedKind'];
   sourceImageUrl?: string;
   /** Override the hook tool for this queue (Roleplay → video I2V). */
   queueTool?: string;
@@ -109,7 +109,7 @@ export type TrackComfyUiJobInput = {
   parentGalleryEntryId?: string;
   characterId?: string;
   lookId?: string;
-  derivedKind?: import('@/lib/comfyui-gallery-entry').ComfyGalleryEntry['derivedKind'];
+  derivedKind?: import('@/lib/gallery/comfyui-gallery-entry').ComfyGalleryEntry['derivedKind'];
   sourceImageUrl?: string;
   maskImageUrl?: string;
   queueQualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile;
@@ -120,7 +120,7 @@ export type TrackComfyUiJobInput = {
   sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
   engineId?: import('@/lib/engine/types').EngineId;
   /** Registered held by the adult-appearance gate (SendComfyUiOptions.adultGate). */
-  adultCheck?: import('@/lib/gallery-adult-check').GalleryAdultCheck;
+  adultCheck?: import('@/lib/gallery/adult-check').GalleryAdultCheck;
 };
 
 export type ComfyUiTrackerApi = {

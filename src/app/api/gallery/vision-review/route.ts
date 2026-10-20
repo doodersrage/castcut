@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { reviewGalleryImage, VisionModelUnavailableError } from '@/lib/gallery-vision-review';
+import { reviewGalleryImage, VisionModelUnavailableError } from '@/lib/gallery/vision-review';
 import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 
 export const runtime = 'nodejs';

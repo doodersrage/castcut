@@ -21,17 +21,17 @@ mock.module('./settings-cache', {
 });
 
 const resetComfyUiSettings = mock.fn(() => {});
-mock.module('./comfyui-settings', {
+mock.module('./comfyui/settings', {
   namedExports: { resetComfyUiSettings, COMFYUI_SETTINGS_KEY: 'comfyui-settings-v4' },
 });
 
 const clearComfyGallery = mock.fn(() => {});
-mock.module('./comfyui-gallery', {
+mock.module('./gallery/comfyui-gallery', {
   namedExports: { clearComfyGallery, COMFYUI_GALLERY_KEY: 'comfyui-gallery-v1' },
 });
 
 const saveComfyWorkflowFiles = mock.fn((_: unknown[]) => {});
-mock.module('./comfyui-workflow-files', {
+mock.module('./comfyui/workflow-files', {
   namedExports: { saveComfyWorkflowFiles, COMFY_WORKFLOW_FILES_KEY: 'comfyui-workflow-files-v1' },
 });
 

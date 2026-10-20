@@ -7,9 +7,9 @@ import {
   VOICE_UPLOAD_MAX_BYTES,
   voiceSampleFromUpload,
 } from '@/lib/cast/voice-server';
-import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

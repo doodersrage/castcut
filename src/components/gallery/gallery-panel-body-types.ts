@@ -1,7 +1,7 @@
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/useGalleryPanelActions';
-import type { GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import type { GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import type {
   ComfyGalleryEntry,
   ComfyGalleryFilter,
@@ -10,20 +10,20 @@ import type {
   GalleryPageSize,
   GallerySlideshowIntervalMs,
   GallerySlideshowTransition,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
 import type { PromptProject } from '@/lib/prompt-projects';
-import type { GalleryStats } from '@/lib/gallery-stats';
-import type { GalleryDuplicateCluster } from '@/lib/gallery-duplicate-clusters';
+import type { GalleryStats } from '@/lib/gallery/stats';
+import type { GalleryDuplicateCluster } from '@/lib/gallery/duplicate-clusters';
 import type { ExperimentWinnerRecord } from '@/lib/experiment-winners';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
-import { buildGalleryLineageGroups } from '@/lib/gallery-lineage-groups';
+import { buildGalleryLineageGroups } from '@/lib/gallery/lineage-groups';
 import type {
   ImageLightboxSlideChrome,
   ImageLightboxState,
 } from '@/components/ui/image-lightbox/types';
-import type { GalleryCapWarningLevel } from '@/lib/gallery-cap';
-import type { GalleryDensity } from '@/lib/gallery-density';
+import type { GalleryCapWarningLevel } from '@/lib/gallery/cap';
+import type { GalleryDensity } from '@/lib/gallery/density';
 
 export type GalleryFilterSetter = (
   patch: Partial<ComfyGalleryFilter> | ((previous: ComfyGalleryFilter) => ComfyGalleryFilter)

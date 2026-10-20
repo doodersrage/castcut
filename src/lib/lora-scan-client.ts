@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   applyLoraScanResults,
   loraEntriesNeedingScan,

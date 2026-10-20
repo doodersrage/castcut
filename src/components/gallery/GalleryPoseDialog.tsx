@@ -6,12 +6,12 @@ import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import ModalPortal from '@/components/ui/ModalPortal';
-import { galleryEntryPrimaryViewUrl, getGalleryEntryById } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl, getGalleryEntryById } from '@/lib/gallery/comfyui-gallery';
 import type { PhotoPose } from '@/lib/pose-types';
 import { poseTargetGroups, type PoseTargetOption } from '@/lib/pose-targets';
 import { POSE_IMPORT_GROUPS } from '@/lib/pose-import-layouts';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
-import { GALLERY_USE_POSE_EVENT } from '@/lib/gallery-pose-event';
+import { GALLERY_USE_POSE_EVENT } from '@/lib/gallery/pose-event';
 
 type Read =
   { status: 'reading' } | { status: 'error'; message: string } | { status: 'ok'; pose: PhotoPose };

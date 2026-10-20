@@ -6,17 +6,17 @@ import {
   workflowFileDisplayName,
   workflowFileSourceFilename,
   WORKFLOW_TOKEN_FIELDS,
-} from '@/lib/comfyui-workflow-files';
-import { inferModelsFromWorkflowLabel } from '@/lib/workflow-category-defaults';
+} from '@/lib/comfyui/workflow-files';
+import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
-import type { ComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
-import type { WorkflowNodeMapping } from '@/lib/workflow-node-mapper';
+import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
+import type { WorkflowNodeMapping } from '@/lib/workflow/node-mapper';
 import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibrary';
 import { Button } from '@/components/ui/Button';
 import { SelectInput, TextInput, MonoTextArea } from '@/components/ui/Field';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
-import { workflowFileKind, type WorkflowKind } from '@/lib/workflow-kind';
-import { isWorkflowFileUnused, type WorkflowFileUsage } from '@/lib/workflow-library-usage';
+import { workflowFileKind, type WorkflowKind } from '@/lib/workflow/kind';
+import { isWorkflowFileUnused, type WorkflowFileUsage } from '@/lib/workflow/library-usage';
 
 const WORKFLOW_KIND_LABEL: Record<WorkflowKind, string> = {
   image: 'Image',

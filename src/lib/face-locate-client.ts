@@ -5,7 +5,7 @@
  * Fix area and the Cast face crop use it (cast-face-crop re-exports); docs/architecture-boundaries.md.
  */
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import type { FaceLocateResult } from '@/lib/face-locate';
 
 /** One detection per plate (by its bytes) for the page's life. */

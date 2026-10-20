@@ -7,7 +7,7 @@ import {
   engineHealthChipLabel,
   engineHealthFromRequirements,
 } from "./engine-health";
-import type { ComfyUiModelLists } from "./comfyui-object-info";
+import type { ComfyUiModelLists } from "./comfyui/object-info";
 
 const models = (patch: Partial<ComfyUiModelLists> = {}): ComfyUiModelLists => ({
   checkpoints: [],

@@ -1,12 +1,12 @@
-import { resolveSharedEffectiveSessionLoraIds } from './comfyui-settings';
+import { resolveSharedEffectiveSessionLoraIds } from './comfyui/settings';
 import { resolveActiveLoraStack, type LoraLibraryEntry } from './lora-stack';
 import { isKleinBaseModel, shouldNeutralizeStyleLorasAtQueue } from './model-sampler-defaults';
-import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 import { isFluxFineTuneCheckpointModel } from './model-checkpoint-map';
 import { hasSessionLoraIdsForModel, resolveModelDefaultLoraIds } from './model-lora-map';
 import { loadSettingsCache } from './settings-cache';
-import type { WorkflowPreflightIssue } from './workflow-preflight';
-import { loraNameIsLightningSlot } from './workflow-lora-patch';
+import type { WorkflowPreflightIssue } from './workflow/preflight';
+import { loraNameIsLightningSlot } from './workflow/lora-patch';
 import { loraFilenameLooksLikeUltraRealAmplifier } from './ultrareal-amplifier-lora';
 import { loraFilenameLooksLikeKleinRealisticDetail } from './klein-realistic-detail-lora';
 

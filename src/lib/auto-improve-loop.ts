@@ -3,19 +3,19 @@
 import {
   galleryEntryAlreadyEnrichedForUpscale,
   galleryEntryIsFinalToMaxBump,
-} from './gallery-entry-actions';
+} from './gallery/entry-actions';
 import {
   requeueComfyJobFromEntry,
   requeueMoireCleanFromGalleryEntry,
   requeueUpscaleFromGalleryEntry,
-} from './comfyui-requeue';
-import { queueMutatedGalleryJobs } from './gallery-mutations';
+} from './comfyui/requeue';
+import { queueMutatedGalleryJobs } from './gallery/mutations';
 import { queueSeedExperiment } from './seed-experiment-queue';
-import { loadComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings } from './comfyui/settings';
 import { recordAutoImproveJobs } from './auto-improve-log';
 import { runLowRatingMutation } from './rating-prompt-mutations';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { isQwenLightningModel } from './model-sampling-patch';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 
 function formatRequeueFailure(label: string, result: { ok: boolean; error?: string }): string {

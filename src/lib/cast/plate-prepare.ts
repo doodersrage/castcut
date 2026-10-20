@@ -6,8 +6,8 @@
  */
 
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { getCharacter, setLookPlateStance, type CharacterRecord } from '@/lib/character-os';
 import { castMarkEditPhrases } from '@/lib/cast/marks';
 import type { DayPartnerNoun } from '@/lib/day/partner';
@@ -20,8 +20,8 @@ import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-s
 import { applyCastLookPlateFromSource } from '@/lib/look/outfit-plate';
 import { plateStanceKey } from '@/lib/plate-stance';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { isSystemWorkflowSupportedModel } from '@/lib/system-workflow-runtime';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { isSystemWorkflowSupportedModel } from '@/lib/workflow/system-workflow-runtime';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { installedComfyModels } from '@/lib/model-picker';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';

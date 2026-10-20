@@ -1,9 +1,9 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
-import { getGalleryCache } from '@/lib/gallery-db-store';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
+import { getGalleryCache } from '@/lib/gallery/db-store';
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
 

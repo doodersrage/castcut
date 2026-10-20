@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
-import type { ComfyPromptStatus } from "./comfyui-status";
+import type { ComfyPromptStatus } from "./comfyui/status";
 import type { ServerVisionCandidate } from "./best-of-n-vision-server";
 
 mock.module("server-only", { defaultExport: {}, namedExports: {} });
 
 const getComfyUiBaseUrl = mock.fn(() => "http://mock-comfy:8188");
-mock.module("./comfyui-client", { namedExports: { getComfyUiBaseUrl } });
+mock.module("./comfyui/client", { namedExports: { getComfyUiBaseUrl } });
 
 const buildComfyViewPath = mock.fn(
   (comfyUrl: string, image: { filename: string }) => `${comfyUrl}/view?filename=${image.filename}`
 );
-mock.module("./comfyui-outputs", { namedExports: { buildComfyViewPath } });
+mock.module("./comfyui/outputs", { namedExports: { buildComfyViewPath } });
 
 const getComfyUiPromptStatus = mock.fn(
   async (_promptId: string, _runtime?: unknown): Promise<ComfyPromptStatus> => ({
@@ -20,7 +20,7 @@ const getComfyUiPromptStatus = mock.fn(
     comfyUrl: "http://mock-comfy:8188",
   })
 );
-mock.module("./comfyui-status", { namedExports: { getComfyUiPromptStatus } });
+mock.module("./comfyui/status", { namedExports: { getComfyUiPromptStatus } });
 
 const rankImagesWithVision = mock.fn(
   async (candidates: ServerVisionCandidate[], keep: number) => candidates.slice(0, keep)

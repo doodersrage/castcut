@@ -1,14 +1,14 @@
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { isAllowedComfyModelFolder } from '@/lib/comfyui-models';
-import { sanitizeComfyModelPreviewFilename } from '@/lib/comfyui-experiment-models';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { isAllowedComfyModelFolder } from '@/lib/comfyui/models';
+import { sanitizeComfyModelPreviewFilename } from '@/lib/comfyui/experiment-models';
 import {
   clearModelPreviewMiss,
   hasCachedModelPreviewMiss,
   modelPreviewCacheKey,
   rememberModelPreviewMiss,
-} from '@/lib/comfyui-model-preview-cache';
+} from '@/lib/comfyui/model-preview-cache';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

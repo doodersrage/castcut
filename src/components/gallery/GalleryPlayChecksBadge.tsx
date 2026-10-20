@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { galleryNeedsLookReasons } from '@/lib/gallery-needs-look';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { galleryNeedsLookReasons } from '@/lib/gallery/needs-look';
 
 /**
  * "pose 82% · face 64%" from Day / Story checks, and what a clip or marks check found — warning

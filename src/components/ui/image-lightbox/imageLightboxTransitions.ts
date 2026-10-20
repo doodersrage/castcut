@@ -1,4 +1,4 @@
-import type { GallerySlideshowTransition } from '@/lib/comfyui-gallery';
+import type { GallerySlideshowTransition } from '@/lib/gallery/comfyui-gallery';
 
 export function resolveSlideDirection(
   fromIndex: number,

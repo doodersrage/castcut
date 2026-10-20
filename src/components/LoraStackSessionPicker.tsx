@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   clampLoraStrength,
   clearSessionLoraStrengthOverride,
@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
 import { fetchLoraScanRows, scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
-import { fetchComfyLoraInventoryFiles } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyLoraInventoryFiles } from '@/lib/comfyui/object-info-cache';
 import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
 import { loraChangesFaceAt } from '@/lib/lora-check';
 import {

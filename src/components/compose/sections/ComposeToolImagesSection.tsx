@@ -1,7 +1,7 @@
 'use client';
 
 import VisionScanButton from '@/components/VisionScanButton';
-import { galleryPickPath } from '@/lib/gallery-handoff';
+import { galleryPickPath } from '@/lib/gallery/handoff';
 import { FieldLabel } from '@/components/ui/Field';
 import { ChipButton } from '@/components/ui/Field';
 import { Button, ButtonLink } from '@/components/ui/Button';

@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
-import type { ComfyGalleryEntry } from '../comfyui-gallery';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import type { RoleplayStoryBeat } from './roleplay';
 
 const buildZipBlob = mock.fn((files: Array<{ filename: string; data: Uint8Array }>) => {
   const total = files.reduce((sum, f) => sum + f.data.length, 0);
   return new Blob([`zip:${files.length}:${total}`], { type: 'application/zip' });
 });
-mock.module('../gallery-zip-export', { namedExports: { buildZipBlob } });
+mock.module('../gallery/zip-export', { namedExports: { buildZipBlob } });
 
 let galleryEntries: ComfyGalleryEntry[] = [];
 const loadComfyGallery = mock.fn(() => galleryEntries);
 const galleryEntryLightboxUrls = mock.fn((_entry: ComfyGalleryEntry) => [] as string[]);
 const galleryEntryPrimaryViewUrl = mock.fn((_entry: ComfyGalleryEntry) => null as string | null);
-mock.module('../comfyui-gallery', {
+mock.module('../gallery/comfyui-gallery', {
   namedExports: { loadComfyGallery, galleryEntryLightboxUrls, galleryEntryPrimaryViewUrl },
 });
 

@@ -1,4 +1,4 @@
-import { stripGalleryViewWidthParam } from '@/lib/comfyui-outputs';
+import { stripGalleryViewWidthParam } from '@/lib/comfyui/outputs';
 import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
 import type { RoleplayStillStatus, RoleplayStoryBeat } from '@/lib/story/roleplay';
 

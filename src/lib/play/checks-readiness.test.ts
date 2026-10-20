@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import { buildPlayChecksReadiness, summarizePlayChecks } from './checks-readiness';
-import { resolveComfyNode } from '../comfy-utility-graph-server';
+import { resolveComfyNode } from '../comfyui/comfy-utility-graph-server';
 
 const allFace = { models: true, distance: true, previewAny: true };
 const goodFfmpeg = { available: true, drawtext: true, font: true };

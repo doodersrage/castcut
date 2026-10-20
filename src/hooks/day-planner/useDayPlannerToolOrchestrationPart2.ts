@@ -48,7 +48,7 @@ import {
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day/end-pose';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film/cut-plan';
@@ -86,7 +86,7 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import {
   buildDaySlotPrompt,
   dayStillShownImage,
@@ -134,8 +134,8 @@ import { dayThemeById, type DayRemixKind } from '@/lib/play/remix';
 import { recordDayFilmEpisode } from '@/lib/play/series';
 import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film/poster';
 import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/mobile-studio';
-import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
-import { planAppBurst } from '@/lib/comfy-model-turn';
+import { markComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
+import { planAppBurst } from '@/lib/comfyui/comfy-model-turn';
 import { buildDemoDayStills } from '@/lib/film/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
@@ -152,7 +152,7 @@ import {
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
 } from '@/lib/fitting/saved-garments';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';

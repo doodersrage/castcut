@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { comfyBaseUrl } from '@/lib/comfy-utility-graph-server';
-import { fetchComfyEngineState } from '@/lib/comfy-warm-up-server';
+import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
+import { fetchComfyEngineState } from '@/lib/comfyui/comfy-warm-up-server';
 
 export const runtime = 'nodejs';
 

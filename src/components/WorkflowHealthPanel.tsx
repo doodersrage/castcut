@@ -5,25 +5,25 @@ import {
   COMFY_WORKFLOW_FILES_UPDATED_EVENT,
   loadComfyWorkflowFiles,
   upsertComfyWorkflowFile,
-} from '@/lib/comfyui-workflow-files';
+} from '@/lib/comfyui/workflow-files';
 import {
   auditWorkflowLibraryHealth,
   dispatchWorkflowHealthSelect,
   summarizeWorkflowLibraryHealth,
-} from '@/lib/workflow-health-audit';
-import { auditLoaderMapsAgainstComfyUi } from '@/lib/loader-map-health-audit';
+} from '@/lib/workflow/health-audit';
+import { auditLoaderMapsAgainstComfyUi } from '@/lib/workflow/loader-map-health-audit';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '@/lib/comfyui-settings';
-import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
-import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
-import { auditDualClipNodesInWorkflow } from '@/lib/workflow-queue-loader-preflight';
-import { auditLoaderFilenamesInWorkflow } from '@/lib/workflow-loader-filename-audit';
-import { applyLoaderMapRepairs, suggestLoaderMapRepairs } from '@/lib/workflow-loader-map-repair';
+import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '@/lib/comfyui/settings';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
+import type { ComfyUiModelLists } from '@/lib/comfyui/object-info';
+import { auditDualClipNodesInWorkflow } from '@/lib/workflow/queue-loader-preflight';
+import { auditLoaderFilenamesInWorkflow } from '@/lib/workflow/loader-filename-audit';
+import { applyLoaderMapRepairs, suggestLoaderMapRepairs } from '@/lib/workflow/loader-map-repair';
 import { saveSharedSettings } from '@/lib/settings-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { queueTestWorkflowFile, workflowNeedsQueueTest } from '@/lib/workflow-health-queue-test';
-import { resolveOptimizeModelForWorkflowFile } from '@/lib/workflow-optimize-model';
-import type { WorkflowHealthIssue } from '@/lib/workflow-health-audit';
+import { queueTestWorkflowFile, workflowNeedsQueueTest } from '@/lib/workflow/health-queue-test';
+import { resolveOptimizeModelForWorkflowFile } from '@/lib/workflow/optimize-model';
+import type { WorkflowHealthIssue } from '@/lib/workflow/health-audit';
 import ReferenceHealthSection from '@/components/ReferenceHealthSection';
 
 type WorkflowHealthPanelProps = {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
-import type { ComfyInputFolderReport } from '@/lib/comfy-input-cleanup';
+import type { ComfyInputFolderReport } from '@/lib/comfyui/comfy-input-cleanup';
 import { formatBytes } from '@/lib/model-files';
 
 export type SettingsComfyInputFolderPanelProps = {
@@ -29,7 +29,8 @@ export default function SettingsComfyInputFolderPanel({
     setBusy(true);
     setError(null);
     try {
-      const { collectBrowserInputReferences } = await import('@/lib/comfy-input-references-client');
+      const { collectBrowserInputReferences } =
+        await import('@/lib/comfyui/comfy-input-references-client');
       const references = await collectBrowserInputReferences();
       const response = await fetch('/api/comfyui/input-folder', {
         method: 'POST',
@@ -64,7 +65,8 @@ export default function SettingsComfyInputFolderPanel({
     setDeleting(true);
     setError(null);
     try {
-      const { collectBrowserInputReferences } = await import('@/lib/comfy-input-references-client');
+      const { collectBrowserInputReferences } =
+        await import('@/lib/comfyui/comfy-input-references-client');
       const references = await collectBrowserInputReferences();
       const response = await fetch('/api/comfyui/input-folder/delete', {
         method: 'POST',

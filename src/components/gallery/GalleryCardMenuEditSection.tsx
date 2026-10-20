@@ -3,7 +3,7 @@ import {
   buildReeditGalleryHandoff,
   galleryHandoffPath,
   saveGalleryHandoff,
-} from '@/lib/gallery-handoff';
+} from '@/lib/gallery/handoff';
 import {
   startAnatomyRepairFromGalleryEntry,
   startBackgroundFromGalleryEntry,
@@ -15,7 +15,7 @@ import {
 import {
   galleryVariationsPath,
   prepareGalleryVariationsFromEntry,
-} from '@/lib/gallery-variations-handoff';
+} from '@/lib/gallery/variations-handoff';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';

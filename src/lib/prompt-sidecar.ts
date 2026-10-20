@@ -1,8 +1,8 @@
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 import type { ComfyImageModel } from './comfy-models/client';
 import type { DetailLevel } from './detail-level';
 import type { GenerationDiagnostics } from './generation-diagnostics';
-import { buildComfyViewPath, type ComfyOutputImage } from './comfyui-outputs';
+import { buildComfyViewPath, type ComfyOutputImage } from './comfyui/outputs';
 import { buildGalleryImageUrlsFromQueueParams } from './queue-requeue-images';
 import { normalizeQueueQualityProfile, type QueueQualityProfile } from './queue-quality-profile';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, ButtonLink } from '@/components/ui/Button';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
   applyQueueFailureFix,
   resolveQueueFailureFixes,

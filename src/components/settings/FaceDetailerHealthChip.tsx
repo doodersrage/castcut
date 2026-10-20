@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { getFaceDetailerHealth, type FaceDetailerHealth } from '@/lib/face-detailer-health';
 import { ensureFaceDetailerLibraryPin, ensureFaceDetailerSetup } from '@/lib/face-detailer-setup';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
-import { canAutoInsertFaceDetailer } from '@/lib/facedetailer-workflow-patch';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
+import { canAutoInsertFaceDetailer } from '@/lib/workflow/facedetailer-workflow-patch';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { Button } from '@/components/ui/Button';

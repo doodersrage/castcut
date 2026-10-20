@@ -5,7 +5,7 @@ import {
   isValidGalleryArchiveJobId,
   markGalleryArchivePurgeComplete,
   readGalleryArchiveJob,
-} from '@/lib/gallery-archive-job';
+} from '@/lib/gallery/archive-job';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

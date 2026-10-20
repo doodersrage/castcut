@@ -9,8 +9,8 @@ import { canFalExtendFromParentUrl, type VideoClipMode } from '@/lib/video-clip-
 import { loadEngineSettings, saveEngineSettings } from '@/lib/engine-settings';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { isVideoModel } from '@/lib/queue-tool-model';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
-import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
+import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import {

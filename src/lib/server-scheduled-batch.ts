@@ -233,7 +233,7 @@ export async function runServerScheduledBatch(
   let batchComfyUrl: string | undefined;
 
   if (config.autoQueueComfyUi && finalPrompts.length > 0) {
-    const { queueBatchToComfyUi } = await import('./comfyui-client');
+    const { queueBatchToComfyUi } = await import('./comfyui/client');
     const { resolveQueueParams } = await import('./queue-params-settings');
     const paramsPerPrompt = finalPrompts.map((_, index) =>
       resolveQueueParams({
@@ -253,7 +253,7 @@ export async function runServerScheduledBatch(
     queued = batch.queued;
     batchComfyUrl = batch.comfyUrl;
 
-    const { appendServerGalleryEntries } = await import('./server-gallery-storage');
+    const { appendServerGalleryEntries } = await import('./gallery/server-gallery-storage');
     const queuedAt = Date.now();
     const entries = batch.results.flatMap((result, index) => {
       if (!result.ok || !result.promptId) {
@@ -282,7 +282,8 @@ export async function runServerScheduledBatch(
 
     if (useVisionRank && queuedPromptIds.length > config.count) {
       const { runServerPostQueueVisionCull } = await import('./best-of-n-vision-server');
-      const { removeServerGalleryEntriesByPromptIds } = await import('./server-gallery-storage');
+      const { removeServerGalleryEntriesByPromptIds } =
+        await import('./gallery/server-gallery-storage');
       const cull = await runServerPostQueueVisionCull({
         promptIds: queuedPromptIds,
         prompts: queuedPromptTexts,

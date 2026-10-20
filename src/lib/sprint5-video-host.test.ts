@@ -16,7 +16,7 @@ import {
   resetComfyUiPoolStatsCacheForTests,
   resolveComfyUiUrlWithPool,
   setComfyUiPoolStatsCache,
-} from "./comfyui-pool";
+} from "./comfyui/pool";
 
 describe("sprint5 video recipes", () => {
   it("includes video in tool quality options and suggested profile final", () => {

@@ -1,4 +1,4 @@
-import { subscribeComfyLiveBridge } from '@/lib/comfyui-live-bridge';
+import { subscribeComfyLiveBridge } from '@/lib/comfyui/live-bridge';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

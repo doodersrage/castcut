@@ -6,7 +6,7 @@ import {
   formatGallerySlideshowInterval,
   GALLERY_SLIDESHOW_TRANSITION_LABELS,
   type GallerySlideshowTransition,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { ImageLightboxSlideshowOptions } from '@/components/ui/image-lightbox/types';
 
 type ImageLightboxSlideshowControlsProps = {

@@ -5,8 +5,8 @@ import { ChipButton } from '@/components/ui/Field';
 import {
   fetchComfyObjectInfoCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   embeddingStem,

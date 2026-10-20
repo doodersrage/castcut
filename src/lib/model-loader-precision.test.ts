@@ -7,7 +7,7 @@ import {
   resolveLoaderPrecisionTier,
 } from "./model-loader-precision";
 import { resolveLoaderFilenamesForModel } from "./model-checkpoint-map";
-import { resolveQueueInjectionContext } from "./comfyui-config";
+import { resolveQueueInjectionContext } from "./comfyui/config";
 
 describe("model loader precision", () => {
   it("detects bf16 tier from DualCLIPLoader filenames", () => {

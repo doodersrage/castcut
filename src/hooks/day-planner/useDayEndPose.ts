@@ -5,8 +5,8 @@ import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDay
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
-import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/comfyui-gallery';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
+import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import {
   activeDayEndPose,
   buildDayEndPoseEditPrompt,

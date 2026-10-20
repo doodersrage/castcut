@@ -82,7 +82,7 @@ export type EnhancedPromptResultProps = {
   pipelineStatus?: string | null;
   preDiagnostics?: import('@/lib/generation-diagnostics').GenerationDiagnostics | null;
   comfyUiStatus?: string | null;
-  comfyUiJob?: import('@/lib/comfyui-job-status').ComfyUiJobTrackerState | null;
+  comfyUiJob?: import('@/lib/comfyui/job-status').ComfyUiJobTrackerState | null;
   comfyUiPreviewUrl?: string | null;
   historySaved?: boolean;
   pairCopied?: boolean;

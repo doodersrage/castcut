@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { gpuAutoMatchPlan, gpuSettingsSuggestion } from '@/lib/gpu-settings-match';
 import {
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
@@ -81,7 +81,7 @@ export default function InventorySyncNotice() {
       const now = Date.now();
       if (now - lastRunRef.current < RECHECK_MS) return;
       lastRunRef.current = now;
-      void import('@/lib/comfy-inventory-auto-sync')
+      void import('@/lib/comfyui/comfy-inventory-auto-sync')
         .then(({ autoSyncLoaderMapsIfInventoryChanged }) =>
           autoSyncLoaderMapsIfInventoryChanged({ comfyUrl: loadComfyUiSettings().apiUrl })
         )

@@ -4,7 +4,7 @@
  */
 
 import sharp from 'sharp';
-import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
   comfyRunErrorMessage,
@@ -13,7 +13,7 @@ import {
   stageComfyImageAsInput,
   type ComfyHistoryEntry,
   type ComfyImageRef,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   buildFixAreaGraph,
   FIX_AREA_CANDIDATES,

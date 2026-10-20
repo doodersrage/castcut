@@ -3,19 +3,19 @@
 import { useState } from 'react';
 import PngMetadataImportButton from '@/components/PngMetadataImportButton';
 import SidecarImportButton from '@/components/SidecarImportButton';
-import { importCompletedHostJobs } from '@/lib/comfyui-gallery-client';
+import { importCompletedHostJobs } from '@/lib/gallery/comfyui-gallery-client';
 import {
   requeueComfyJob,
   requeueRefineFromGalleryEntry,
   requeueUpscaleFromGalleryEntry,
-} from '@/lib/comfyui-requeue';
-import { galleryEntryFromSidecar } from '@/lib/gallery-sidecar-entry';
+} from '@/lib/comfyui/requeue';
+import { galleryEntryFromSidecar } from '@/lib/gallery/sidecar-entry';
 import {
   sidecarNegativePrompt,
   sidecarRequeueContext,
   type PromptSidecar,
 } from '@/lib/prompt-sidecar';
-import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
 import { toastHeldMax } from '@/lib/app-toast';
 import { Button } from '@/components/ui/Button';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';

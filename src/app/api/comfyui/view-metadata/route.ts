@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { isComfyModelFolder } from '@/lib/comfyui-models';
-import { extractSafetensorsTriggerPhrase } from '@/lib/comfyui-view-metadata';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { isComfyModelFolder } from '@/lib/comfyui/models';
+import { extractSafetensorsTriggerPhrase } from '@/lib/comfyui/view-metadata';
 
 export const runtime = 'nodejs';
 

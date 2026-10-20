@@ -1,6 +1,6 @@
 'use client';
 
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import Link from 'next/link';
 import type { QueueJobLabel } from '@/lib/queue-job-context';
 

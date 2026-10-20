@@ -5,7 +5,7 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import {
   mergeRoleplayStoryStills,
   patchRoleplayStoryBeat,

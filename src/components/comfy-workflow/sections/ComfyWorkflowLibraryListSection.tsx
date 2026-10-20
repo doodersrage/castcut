@@ -1,8 +1,8 @@
 'use client';
 
-import { workflowFileDisplayName } from '@/lib/comfyui-workflow-files';
-import { inferModelsFromWorkflowLabel } from '@/lib/workflow-category-defaults';
-import type { ComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
+import { workflowFileDisplayName } from '@/lib/comfyui/workflow-files';
+import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
+import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
 import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibrary';
 import { EmptyState } from '@/components/ui/ViewState';
 import { useEffect, useMemo, useState } from 'react';
@@ -10,10 +10,10 @@ import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-
 import {
   fetchComfyObjectInfoCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
-import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
+} from '@/lib/comfyui/object-info-cache';
+import type { ComfyUiModelLists } from '@/lib/comfyui/object-info';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { isWorkflowFileUnused, workflowLibraryUsage } from '@/lib/workflow-library-usage';
+import { isWorkflowFileUnused, workflowLibraryUsage } from '@/lib/workflow/library-usage';
 import { ComfyWorkflowRecentlyDeleted } from '@/components/comfy-workflow/sections/ComfyWorkflowRecentlyDeleted';
 import { ComfyWorkflowServerListSection } from '@/components/comfy-workflow/sections/ComfyWorkflowServerListSection';
 import {

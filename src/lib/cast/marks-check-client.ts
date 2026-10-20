@@ -1,7 +1,7 @@
 'use client';
 
 import type { MarksCheckReading } from './marks-check';
-import { freeComfyUiMemory } from '../comfyui-queue-control';
+import { freeComfyUiMemory } from '../comfyui/queue-control';
 import { sharedLlmRequestBody } from '../llm-request-options';
 import type { SharedToolSettings } from '../settings-cache';
 import {

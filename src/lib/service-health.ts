@@ -1,13 +1,13 @@
 import { resolveServerTextModel } from './llm-text-model-auto';
-import { getComfyUiBaseUrl } from './comfyui-client';
-import type { ComfyUiRuntimeConfig } from './comfyui-config';
-import { parseComfyUiPool, setComfyUiPoolStatsCache } from './comfyui-pool';
-import { parseComfyUiSystemStats } from './comfyui-system-stats';
+import { getComfyUiBaseUrl } from './comfyui/client';
+import type { ComfyUiRuntimeConfig } from './comfyui/config';
+import { parseComfyUiPool, setComfyUiPoolStatsCache } from './comfyui/pool';
+import { parseComfyUiSystemStats } from './comfyui/system-stats';
 import {
   countComfyExtensionPacks,
   parseComfyUiFeatures,
   readStringNameList,
-} from './comfyui-features';
+} from './comfyui/features';
 import { getDiffusersBaseUrl } from './diffusers-client';
 import {
   getLlmConfig,

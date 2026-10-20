@@ -1,7 +1,7 @@
 'use client';
 
 import type { GalleryPanelBodyProps } from '@/components/gallery/gallery-panel-body-types';
-import { assembleGalleryPanelBodyProps } from '@/lib/build-gallery-panel-body-props';
+import { assembleGalleryPanelBodyProps } from '@/lib/gallery/build-gallery-panel-body-props';
 import type { GalleryPanelOrchestrationCore } from '@/hooks/gallery-panel/useGalleryPanelOrchestrationCore';
 
 export type UseGalleryPanelOrchestrationResult = {

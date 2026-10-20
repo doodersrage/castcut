@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
-import type { ComfyUploadedImage } from './comfyui-image-upload';
+import type { ComfyUploadedImage } from './comfyui/image-upload';
 
 let uploadImpl: (input: unknown) => Promise<ComfyUploadedImage> = async () => ({
   name: 'uploaded.png',
@@ -11,7 +11,7 @@ let uploadImpl: (input: unknown) => Promise<ComfyUploadedImage> = async () => ({
   comfyUrl: 'http://127.0.0.1:8188',
 });
 const uploadComfyInputImage = mock.fn((input: unknown) => uploadImpl(input));
-mock.module('./comfyui-image-upload', { namedExports: { uploadComfyInputImage } });
+mock.module('./comfyui/image-upload', { namedExports: { uploadComfyInputImage } });
 
 type FetchImpl = (url: string, init?: RequestInit) => Response | Promise<Response>;
 function installFetchStub(impl: FetchImpl) {

@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { comfyUiJobProgressPercent } from '@/lib/comfyui-job-status';
+import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
 import { formatComfyHostLabel } from '@/lib/queue-status-notes';
 import {
   formatRenderDuration,
   resolveGalleryRenderDurationMs,
-} from '@/lib/comfyui-render-duration';
+} from '@/lib/comfyui/render-duration';
 import { scoreGalleryEntryHeuristic, type AestheticScoreResult } from '@/lib/aesthetic-score';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
@@ -18,9 +18,9 @@ import {
   updateComfyGalleryEntryById,
   type ComfyGalleryEntry,
   type GalleryLayoutMode,
-} from '@/lib/comfyui-gallery';
-import { galleryDerivedKindLabel } from '@/lib/gallery-derived-kind';
-import { shouldUseHtmlVideoElement } from '@/lib/comfyui-outputs';
+} from '@/lib/gallery/comfyui-gallery';
+import { galleryDerivedKindLabel } from '@/lib/gallery/derived-kind';
+import { shouldUseHtmlVideoElement } from '@/lib/comfyui/outputs';
 import GalleryCardBodyBlock from '@/components/gallery/GalleryCardBodyBlock';
 import GalleryCardImageBlock from '@/components/gallery/GalleryCardImageBlock';
 import { describeQueueJob } from '@/lib/queue-job-context';

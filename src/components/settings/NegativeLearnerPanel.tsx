@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { addAvoidedToken } from '@/lib/avoided-tokens';
-import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
 import { DEFAULT_NEGATIVE_PROFILES } from '@/lib/negative-profiles';
 import {
   activeNegativeSuggestions,

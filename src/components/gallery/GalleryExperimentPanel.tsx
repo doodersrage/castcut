@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, type ReactNode } from 'react';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
 import GallerySelectionBar from '@/components/gallery/GallerySelectionBar';
 import type { PromptProject } from '@/lib/prompt-projects';

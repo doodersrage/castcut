@@ -8,7 +8,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { getComfyUiRoot } from '@/lib/comfy-asset-paths';
+import { getComfyUiRoot } from '@/lib/comfyui/comfy-asset-paths';
 import { parseTextChunks } from '@/lib/png-metadata';
 import {
   collectGraphModelNames,

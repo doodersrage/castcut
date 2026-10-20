@@ -12,8 +12,8 @@ import { scorePoseMatch } from '@/lib/pose-score';
 import { reviewOutfitLabel, type SlotQualityReport } from '@/lib/play/slot-quality';
 import { reviewDaySlotStill } from '@/lib/play/slot-review-client';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { picturesLookTheSame } from '@/lib/image-similarity-client';
 
 /**

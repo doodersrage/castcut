@@ -1,15 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
-import { GALLERY_CAP_KEEPER_MIN_RATING } from '@/lib/gallery-cap';
+import { GALLERY_CAP_KEEPER_MIN_RATING } from '@/lib/gallery/cap';
 import {
   downloadGalleryImagesSequential,
   downloadGallerySidecarBundle,
-} from '@/lib/comfyui-gallery-export';
+} from '@/lib/gallery/comfyui-gallery-export';
 import { toastBulkQueueSummary } from '@/lib/app-toast';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { loadCharacters } from '@/lib/character-os';
-import { partitionGalleryForArchivePurge } from '@/lib/gallery-protected-ids';
+import { partitionGalleryForArchivePurge } from '@/lib/gallery/protected-ids';
 
 export type UseGalleryPanelRecoveryOptions = {
   entries: ComfyGalleryEntry[];
@@ -74,7 +74,7 @@ export function useGalleryPanelRecovery({
     if (archiveBusyRef.current) {
       return;
     }
-    void import('@/lib/gallery-archive-purge').then(
+    void import('@/lib/gallery/archive-purge').then(
       ({ readPendingArchivePurge, resumePendingArchivePurge }) => {
         const pending = readPendingArchivePurge();
         if (!pending || entries.length === 0 || resumeAttemptedRef.current) {
@@ -107,7 +107,7 @@ export function useGalleryPanelRecovery({
         return;
       }
       setRequeueStatus(`Retrying ${failed.length} failed job(s)…`);
-      void import('@/lib/comfyui-requeue')
+      void import('@/lib/comfyui/requeue')
         .then(({ requeueComfyJobs }) =>
           requeueComfyJobs(
             failed.map(entry => {
@@ -179,7 +179,7 @@ export function useGalleryPanelRecovery({
     }
     setRequeueStatus(`Starting archive of ${purgeable.length}…`);
     runArchiveFlow(() =>
-      import('@/lib/gallery-archive-purge').then(({ archiveThenPurgeGalleryEntries }) =>
+      import('@/lib/gallery/archive-purge').then(({ archiveThenPurgeGalleryEntries }) =>
         archiveThenPurgeGalleryEntries(entries, {
           removeEntries,
           characters,
@@ -213,7 +213,7 @@ export function useGalleryPanelRecovery({
     ) {
       return;
     }
-    void import('@/lib/gallery-archive-purge').then(({ purgeGalleryRestOnly }) => {
+    void import('@/lib/gallery/archive-purge').then(({ purgeGalleryRestOnly }) => {
       const result = purgeGalleryRestOnly(entries, { removeEntries, characters });
       setRequeueStatus(result.message);
     });
@@ -240,7 +240,7 @@ export function useGalleryPanelRecovery({
         : 'Finishing purge — downloading ZIP…'
     );
     runArchiveFlow(() =>
-      import('@/lib/gallery-archive-purge').then(({ resumePendingArchivePurge }) =>
+      import('@/lib/gallery/archive-purge').then(({ resumePendingArchivePurge }) =>
         resumePendingArchivePurge({
           removeEntries,
           remainingEntryIds: entries.map(entry => entry.id),

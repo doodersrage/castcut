@@ -14,7 +14,7 @@ import {
   settingsComfyUiSectionHref,
   settingsTabHref,
 } from '@/components/settings/tabs/overview/settings-overview-constants';
-import { summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
+import { summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 
 type Props = {
   health: HealthResponse | null;

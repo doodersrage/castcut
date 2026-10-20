@@ -1,7 +1,7 @@
 import { after } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { comfyBaseUrl } from '@/lib/comfy-utility-graph-server';
-import { cleanUpWarmUp, runEngineWarmUp } from '@/lib/comfy-warm-up-server';
+import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
+import { cleanUpWarmUp, runEngineWarmUp } from '@/lib/comfyui/comfy-warm-up-server';
 
 export const runtime = 'nodejs';
 /** The history clean-up waits for the warm-up to finish. */

@@ -13,7 +13,7 @@ import {
 import {
   buildMutatedPrompt,
   formatMutatedJobsStatus,
-} from "./gallery-mutations";
+} from "./gallery/mutations";
 import {
   pickRandomCharacterOutfit,
   trimWardrobeSummaryToMaxChars,

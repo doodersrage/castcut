@@ -3,10 +3,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import GalleryDuplicateClustersPanel from '@/components/gallery/GalleryDuplicateClustersPanel';
 import GalleryVisionInbox from '@/components/gallery/GalleryVisionInbox';
-import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/comfyui-gallery';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
-import type { GalleryDuplicateCluster } from '@/lib/gallery-duplicate-clusters';
-import { duplicateDropIds } from '@/lib/gallery-duplicate-clusters';
+import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDuplicateCluster } from '@/lib/gallery/duplicate-clusters';
+import { duplicateDropIds } from '@/lib/gallery/duplicate-clusters';
 
 type GalleryPanelAuxiliarySectionProps = {
   showFilters: boolean;

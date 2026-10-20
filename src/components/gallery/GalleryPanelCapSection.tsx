@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import GalleryCapCleanupWizard from '@/components/gallery/GalleryCapCleanupWizard';
 import { GalleryCapWarningBanner } from '@/components/gallery/GalleryPanelChrome';
-import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/comfyui-gallery';
-import type { GalleryCapWarningLevel } from '@/lib/gallery-cap';
-import { MAX_GALLERY_ENTRIES } from '@/lib/comfyui-gallery-storage-meta';
+import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
+import type { GalleryCapWarningLevel } from '@/lib/gallery/cap';
+import { MAX_GALLERY_ENTRIES } from '@/lib/gallery/comfyui-gallery-storage-meta';
 
 type GalleryPanelCapSectionProps = {
   showFilters: boolean;

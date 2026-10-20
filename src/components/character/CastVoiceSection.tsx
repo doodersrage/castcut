@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { fetchComfyLoraInventory } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyLoraInventory } from '@/lib/comfyui/object-info-cache';
 import { LTX25_ID_LORA } from '@/lib/ltx25-renderer';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';

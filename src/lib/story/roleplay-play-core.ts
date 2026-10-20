@@ -72,7 +72,7 @@ export type RoleplayQueueStillOptions = {
   /** Same mannequin as Image 3 when Settings has a ControlNet model mapped. */
   controlImageFilename?: string;
   controlImageUrl?: string;
-  queueParamsBase?: import('../comfyui-config').WorkflowParamValues;
+  queueParamsBase?: import('../comfyui/config').WorkflowParamValues;
   identityLock: true;
   identityLockStrength?: number;
   identityKind?: SharedToolSettings['identityKind'];

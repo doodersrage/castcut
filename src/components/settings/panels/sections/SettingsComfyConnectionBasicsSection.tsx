@@ -1,8 +1,8 @@
 'use client';
 
 import ComfyClusterSettingsPanel from '@/components/settings/ComfyClusterSettingsPanel';
-import { WORKFLOW_PARAM_TOKEN_HELP } from '@/lib/comfyui-config';
-import { globalQueueParamOverrides } from '@/lib/comfyui-settings';
+import { WORKFLOW_PARAM_TOKEN_HELP } from '@/lib/comfyui/config';
+import { globalQueueParamOverrides } from '@/lib/comfyui/settings';
 import { SettingsComfyPlaceholderTokens } from '@/components/settings/panels/sections/SettingsComfyPlaceholderTokens';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 

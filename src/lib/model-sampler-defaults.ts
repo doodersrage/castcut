@@ -5,9 +5,9 @@ import {
   type ComfyImageModel,
   type ComfyModelCategory,
 } from './comfy-models/client';
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 import { isQwenRapidAioModel, isWanRapidAioModel } from './model-denoise-defaults';
-import { isWanLightningModel } from './model-sampling-patch';
+import { isWanLightningModel } from './workflow/model-sampling-patch';
 
 export function isLightningModelId(model: string): boolean {
   const id = model.trim();

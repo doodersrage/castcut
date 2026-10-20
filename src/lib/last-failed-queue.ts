@@ -1,5 +1,5 @@
 import { readBrowserValue, removeBrowserKey, writeBrowserValue } from './browser-storage';
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 
 export const LAST_FAILED_QUEUE_KEY = 'comfy-last-failed-queue-v1';
 export const RETRY_LAST_FAILED_QUEUE_EVENT = 'comfy-retry-last-failed-queue';
@@ -67,10 +67,10 @@ export async function retryLastFailedQueue(options?: {
   }
 
   if (payload.galleryEntryId?.trim()) {
-    const { getGalleryEntryById } = await import('./gallery-db-store');
+    const { getGalleryEntryById } = await import('./gallery/db-store');
     const entry = getGalleryEntryById(payload.galleryEntryId.trim());
     if (entry) {
-      const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+      const { requeueComfyJobFromEntry } = await import('./comfyui/requeue');
       const result = await requeueComfyJobFromEntry(entry, {
         newSeed: false,
         exactGraph: true,
@@ -89,7 +89,7 @@ export async function retryLastFailedQueue(options?: {
     }
   }
 
-  const { requeueComfyJob } = await import('./comfyui-requeue');
+  const { requeueComfyJob } = await import('./comfyui/requeue');
   const result = await requeueComfyJob({
     prompt: payload.prompt,
     negativePrompt: payload.negativePrompt,

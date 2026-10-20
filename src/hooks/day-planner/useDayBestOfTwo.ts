@@ -3,7 +3,7 @@
 import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { notePoseTakePair } from '@/lib/pose-outcome-stats';
 import {
@@ -24,7 +24,7 @@ import { realismRankedScore } from '@/lib/still-realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import { detectStillPose } from '@/lib/pose-detect-client';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
  * Day "Best of two for hard poses" (opt-in, Auto-review off): when a still whose guide draws a

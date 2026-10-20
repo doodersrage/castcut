@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildWorkflowScaffoldForModel } from "./workflow-scaffold";
-import { ensureKleinReferenceLatentWiringInWorkflow } from "./workflow-img2img-patch";
+import { buildWorkflowScaffoldForModel } from "./workflow/scaffold";
+import { ensureKleinReferenceLatentWiringInWorkflow } from "./workflow/img2img-patch";
 import {
   ensureKleinEnhancerPackWiringInWorkflow,
   FEW_STEP_KLEIN_COLOR_ANCHOR_RAMP,

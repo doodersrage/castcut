@@ -1,9 +1,9 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
-import type { GalleryLineageGroup } from '@/lib/gallery-lineage-groups';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
-import { buildGalleryLineageTimeline } from '@/lib/gallery-lineage-timeline';
+import type { GalleryLineageGroup } from '@/lib/gallery/lineage-groups';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
+import { buildGalleryLineageTimeline } from '@/lib/gallery/lineage-timeline';
 
 type GalleryLineageBlockProps = {
   group: GalleryLineageGroup;

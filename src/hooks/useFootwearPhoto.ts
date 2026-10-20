@@ -5,7 +5,7 @@ import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { normalizeFootwear } from '@/lib/footwear';
 import { updateSavedFootwearWords } from '@/lib/footwear-saved';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';

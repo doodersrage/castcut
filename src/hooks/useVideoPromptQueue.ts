@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { nextRoleplayMotionKind } from '@/lib/media-kind';
 import {
   canFalExtendFromParentUrl,

@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolveAdultNudePlateQueueModel, resolveModelForQueueTool } from '@/lib/queue-tool-model';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { warmUpSkipLine, type WarmUpSkipReason } from '@/lib/comfy-warm-up';
+import { warmUpSkipLine, type WarmUpSkipReason } from '@/lib/comfyui/comfy-warm-up';
 
 /** One warm-up per engine per this long — reopening a tool does not send another. */
 const WARM_UP_REPEAT_MS = 10 * 60 * 1000;

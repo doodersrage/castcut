@@ -8,11 +8,11 @@ import {
   type ComfyImageModel,
   type ComfyImageModelDefinition,
 } from '@/lib/comfy-models/client';
-import type { ComfyUiModelLists } from '@/lib/comfyui-object-info';
+import type { ComfyUiModelLists } from '@/lib/comfyui/object-info';
 import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
+} from '@/lib/comfyui/object-info-cache';
 import {
   installedComfyModels,
   MODEL_PICKER_GROUPS,

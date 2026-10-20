@@ -1,7 +1,7 @@
 import { getFaceDetailerHealth } from './face-detailer-health';
 import { isFluxKleinModel, isZImageModel } from './model-denoise-defaults';
 import { resolveKleinEnhancerIdentityPreset } from './klein-enhancer-workflow-patch';
-import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
+import { normalizeInputImageFilenames } from './workflow/load-image-bindings';
 
 /** Default IP-Adapter weight for Compose identity lock (Edit + IP can overfit if higher). */
 export const DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH = 0.5;

@@ -3,7 +3,7 @@ import { describe, it, mock } from "node:test";
 
 mock.module("server-only", { defaultExport: {}, namedExports: {} });
 const reviewGalleryImage = mock.fn(async () => ({ suggestedRating: 0, critique: "", tags: [] as string[] }));
-mock.module("./gallery-vision-review", { namedExports: { reviewGalleryImage } });
+mock.module("./gallery/vision-review", { namedExports: { reviewGalleryImage } });
 
 describe("scoreGalleryEntryVision", async () => {
   const { scoreGalleryEntryVision } = await import("./aesthetic-score-vision");

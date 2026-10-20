@@ -1,9 +1,9 @@
-import { buildZipBlob } from '../gallery-zip-export';
+import { buildZipBlob } from '../gallery/zip-export';
 import {
   galleryEntryLightboxUrls,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '../comfyui-gallery';
+} from '../gallery/comfyui-gallery';
 import {
   formatRoleplayStoryMarkdown,
   lastCompletedRoleplayStillUrl,

@@ -1,5 +1,5 @@
 import { getComfyModelDefinition } from './comfy-models/client';
-import { resolveModelStackFamily } from './workflow-stack-fingerprint';
+import { resolveModelStackFamily } from './workflow/stack-fingerprint';
 
 /** SD / SDXL CLIP textual inversion — not Qwen/FLUX. */
 export function modelSupportsTextualInversion(model?: string): boolean {

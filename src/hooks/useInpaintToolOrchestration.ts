@@ -11,7 +11,7 @@ import {
   isAnatomyRepairHandoff,
 } from '@/lib/anatomy-repair-handoff';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { buildInpaintInstruction } from '@/lib/regional-prompt-builder';
@@ -20,7 +20,7 @@ import { DEFAULT_INPAINT_TOOL_CACHE } from '@/lib/settings-cache';
 import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { sharedPatchFromGalleryHandoff } from '@/lib/gallery-handoff';
+import { sharedPatchFromGalleryHandoff } from '@/lib/gallery/handoff';
 import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
 
 const DEFAULT_INPAINT_MODEL: ComfyImageModel = 'flux-inpaint';
@@ -159,7 +159,7 @@ export function useInpaintToolOrchestration() {
       queueParams?: WorkflowParamValues;
       file: File | null;
       previewUrl: string | null;
-      payload: import('@/lib/gallery-handoff').GalleryHandoffPayload;
+      payload: import('@/lib/gallery/handoff').GalleryHandoffPayload;
     }) => {
       const anatomy = isAnatomyRepairHandoff(handoff.payload);
       setAnatomyRepairMode(anatomy);

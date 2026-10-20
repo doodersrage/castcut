@@ -1,4 +1,4 @@
-import { matchInventoryFilenameNearMiss } from './loader-map-inventory-sync';
+import { matchInventoryFilenameNearMiss } from './workflow/loader-map-inventory-sync';
 import { filenameLooksLikeCheckpointOnly } from './model-checkpoint-map';
 import { pickVideoCheckpointFromInventory } from './video-checkpoint-pick';
 

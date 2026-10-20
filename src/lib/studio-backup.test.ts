@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
-import { loadGalleryEloStore } from './gallery-elo-store';
+import { loadGalleryEloStore } from './gallery/elo-store';
 import {
   importStudioBackup,
   isSupportedStudioBackupVersion,

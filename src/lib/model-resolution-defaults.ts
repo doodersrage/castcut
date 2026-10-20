@@ -5,9 +5,9 @@ import {
   type ComfyImageModel,
   type ComfyModelCategory,
 } from './comfy-models/client';
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 import { snapLatentSize } from './browser-image-dimensions';
-import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 
 export type ResolutionOrientation =
   | 'portrait'

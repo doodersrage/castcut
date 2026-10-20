@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 
 type Props = {

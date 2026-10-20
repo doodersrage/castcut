@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import type { ImageLightboxSlideChromeBarProps } from '@/components/ui/image-lightbox/ImageLightboxSlideChrome';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import type { GalleryLightboxFit } from '@/lib/gallery-lightbox-prefs';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import type { GalleryLightboxFit } from '@/lib/gallery/lightbox-prefs';
 
 type UseImageLightboxSlideChromeBarBindingsArgs = {
   chromeCompact: boolean;

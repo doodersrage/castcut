@@ -3,16 +3,16 @@
 import { useEffect } from 'react';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { initBrowserStorage, readBrowserString, writeBrowserString } from '@/lib/browser-storage';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
+import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
-import { auditWorkflowLibraryHealth } from '@/lib/workflow-health-audit';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
+import { auditWorkflowLibraryHealth } from '@/lib/workflow/health-audit';
 import {
   COMFY_MODEL_LIST_FINGERPRINT_KEY,
   WORKFLOW_LIBRARY_WATCH_SEEN_KEY,
   comfyModelListFingerprint,
   workflowLibraryWatchToast,
-} from '@/lib/workflow-library-watch';
+} from '@/lib/workflow/library-watch';
 
 /** How often to look for a changed ComfyUI model list while the app is open. */
 const RECHECK_MS = 10 * 60 * 1000;
@@ -30,7 +30,7 @@ async function fetchComfyModelLists(): Promise<Record<string, unknown> | null> {
   }
 }
 
-/** Audits the workflow library in the background and toasts new errors (see lib/workflow-library-watch). */
+/** Audits the workflow library in the background and toasts new errors (see lib/workflow/library-watch). */
 export default function WorkflowLibraryWatcher() {
   useEffect(() => {
     let cancelled = false;

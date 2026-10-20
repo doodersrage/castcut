@@ -5,8 +5,8 @@ import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
 import LoraLibraryEntryRow from '@/components/settings/LoraLibraryEntryRow';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
-import type { ComfyLoraInventoryFile } from '@/lib/comfyui-object-info-cache';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import type { ComfyLoraInventoryFile } from '@/lib/comfyui/object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { loraChangesFaceAt } from '@/lib/lora-check';
 import { LORA_FAMILY_LABELS, type LoraFamily } from '@/lib/lora-family-detect';
 import {

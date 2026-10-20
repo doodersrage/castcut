@@ -26,13 +26,13 @@ import {
   getGalleryCache,
   initGalleryStore,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
-import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery-character-stamp';
-import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
+} from '@/lib/gallery/comfyui-gallery';
+import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery/character-stamp';
+import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery/handoff';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { selectCharacterKeepers } from '@/lib/gallery-lora-dataset-export';
+import { selectCharacterKeepers } from '@/lib/gallery/lora-dataset-export';
 import {
   deleteRoleplayLibrarySession,
   getRoleplayLibrarySession,
@@ -75,7 +75,7 @@ import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
 import { playCampaignHref } from '@/lib/play/campaign';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { buildCastHomeStatus } from '@/lib/cast/home-status';
 import { castChecklist, countCastDayStills } from '@/lib/cast/checklist';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';

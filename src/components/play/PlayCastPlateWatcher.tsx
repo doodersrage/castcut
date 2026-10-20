@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 
 /**
  * A Cast plate rendered from the description (Day's "Make a plate", Look's extract) used to be

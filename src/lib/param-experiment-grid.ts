@@ -1,13 +1,13 @@
 'use client';
 
 import type { ComfyImageModel } from './comfy-models/client';
-import type { WorkflowParamValues } from './comfyui-config';
-import { resolveRuntimeForQueue } from './comfyui-runtime-for-model';
-import { registerComfyGalleryJob } from './comfyui-gallery-client';
-import { scheduleComfyGalleryPoll } from './comfyui-gallery-poller';
-import { postComfyUiPrompt } from './comfyui-queue-request';
+import type { WorkflowParamValues } from './comfyui/config';
+import { resolveRuntimeForQueue } from './comfyui/runtime-for-model';
+import { registerComfyGalleryJob } from './gallery/comfyui-gallery-client';
+import { scheduleComfyGalleryPoll } from './gallery/comfyui-gallery-poller';
+import { postComfyUiPrompt } from './comfyui/queue-request';
 import { injectLoraTriggers } from './lora-prompt-injection';
-import { isQwenLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel } from './workflow/model-sampling-patch';
 import { loadActiveProjectId } from './prompt-projects';
 import { resolveQueueParams } from './queue-params-settings';
 import { guardQueueQualityForVram } from './vram-queue-guard';

@@ -10,7 +10,7 @@ import {
   resolveActiveLoraStack,
   type LoraLibraryEntry,
 } from '@/lib/lora-stack';
-import { fetchLoraTriggerPhrase } from '@/lib/comfyui-object-info-cache';
+import { fetchLoraTriggerPhrase } from '@/lib/comfyui/object-info-cache';
 import { useLoraLibraryInventory } from '@/hooks/useLoraLibraryInventory';
 import LoraSearchDownloadPanel from '@/components/settings/LoraSearchDownloadPanel';
 import LoraLibraryManager from '@/components/settings/LoraLibraryManager';
@@ -28,7 +28,7 @@ import {
   pruneIncompatibleLoraPicks,
   removeLoraEntries,
 } from '@/lib/lora-library-tools';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { loraModelFilterLabel } from '@/lib/lora-model-compat';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 

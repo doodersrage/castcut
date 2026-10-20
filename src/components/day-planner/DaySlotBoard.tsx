@@ -28,13 +28,13 @@ import {
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
+} from '@/lib/comfyui/live-preview-store';
 import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play/slot-quality';
 import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day/slot-progress';
-import { getGalleryCache } from '@/lib/gallery-db-store';
+import { getGalleryCache } from '@/lib/gallery/db-store';
 import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day/two-takes';
 import { dayLooksWrongMark } from '@/lib/day/looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';

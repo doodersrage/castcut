@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { diffWorkflowJson, formatWorkflowForDiff } from '@/lib/workflow-diff';
+import { diffWorkflowJson, formatWorkflowForDiff } from '@/lib/workflow/diff';
 import { MonoTextArea } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 

@@ -10,12 +10,12 @@ import {
   getExpandedComfyUiHealth,
 } from '@/lib/service-health';
 import { getLlmConfig, isLlmEnabled, allowTemplateFallback } from '@/lib/llm-client';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { getComfyUiWorkflowSummary } from '@/lib/comfyui-status';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { getComfyUiWorkflowSummary } from '@/lib/comfyui/status';
 import { summarizeApiUsage } from '@/lib/api-usage-log';
 import { isServerStorageEnabled, readServerStorage } from '@/lib/server-storage';
 import { isEmailConfigured } from '@/lib/email/config';
-import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from '@/lib/comfyui-config';
+import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from '@/lib/comfyui/config';
 import { diffusersEngineAvailability } from '@/lib/diffusers-engine-install';
 import { apiJson } from '@/lib/api/response';
 import { getAuthBootstrapInfo } from '@/lib/auth/store';

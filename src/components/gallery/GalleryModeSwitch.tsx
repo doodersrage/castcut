@@ -1,7 +1,7 @@
 'use client';
 
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
-import { setGalleryManageMode, useGalleryManageMode } from '@/lib/gallery-manage-mode';
+import { setGalleryManageMode, useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
 export default function GalleryModeSwitch() {
   const manage = useGalleryManageMode();

@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
-import { comfyUiJobProgressPercent } from '@/lib/comfyui-job-status';
+} from '@/lib/comfyui/live-preview-store';
+import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { formatEta } from '@/lib/queue-eta';
 import type { QueueJobLabel } from '@/lib/queue-job-context';
 

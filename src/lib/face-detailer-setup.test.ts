@@ -17,7 +17,7 @@ mock.module('./settings-cache', {
   },
 });
 
-mock.module('./comfyui-workflow-files', {
+mock.module('./comfyui/workflow-files', {
   namedExports: {
     upsertComfyWorkflowFile: (input: { name: string; workflowJson: string }) => {
       const saved = {
@@ -32,7 +32,7 @@ mock.module('./comfyui-workflow-files', {
   },
 });
 
-mock.module('./workflow-library-face-detailer', {
+mock.module('./workflow/library-face-detailer', {
   namedExports: {
     findLibraryFaceDetailerWorkflow: () => {
       const pinned = sharedState.modelWorkflowMap?.faceDetailer?.trim();

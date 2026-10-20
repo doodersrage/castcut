@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { isGalleryCapKeeper } from '@/lib/gallery-cap';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { isGalleryCapKeeper } from '@/lib/gallery/cap';
 
 type GalleryCapCleanupWizardProps = {
   evicted: ComfyGalleryEntry[];

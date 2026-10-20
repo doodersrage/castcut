@@ -2,10 +2,10 @@
 
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import type { ComfyImageModel } from './comfy-models/client';
-import { registerComfyGalleryJob } from './comfyui-gallery-client';
-import { scheduleComfyGalleryPoll } from './comfyui-gallery-poller';
-import { postComfyUiPrompt } from './comfyui-queue-request';
-import { resolveRuntimeForQueue } from './comfyui-runtime-for-model';
+import { registerComfyGalleryJob } from './gallery/comfyui-gallery-client';
+import { scheduleComfyGalleryPoll } from './gallery/comfyui-gallery-poller';
+import { postComfyUiPrompt } from './comfyui/queue-request';
+import { resolveRuntimeForQueue } from './comfyui/runtime-for-model';
 import { resolveQueueParams } from './queue-params-settings';
 import { guardQueueQualityForVram } from './vram-queue-guard';
 import { maybeHoldMaxGenerateJobs } from './held-max-queue';

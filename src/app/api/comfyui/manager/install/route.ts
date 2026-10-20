@@ -1,9 +1,9 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { installComfyUiMissingNodePacks } from '@/lib/comfyui-manager-install';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { installComfyUiMissingNodePacks } from '@/lib/comfyui/manager-install';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

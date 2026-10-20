@@ -2,8 +2,8 @@
 
 import GalleryVisionReviewButton from '@/components/gallery/GalleryVisionReviewButton';
 import GalleryReviewTouchBar from '@/components/gallery/GalleryReviewTouchBar';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { galleryEntryViewUrls } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { galleryEntryViewUrls } from '@/lib/gallery/comfyui-gallery';
 
 type GalleryPanelReviewSlotProps = {
   reviewFocusEntry: ComfyGalleryEntry;

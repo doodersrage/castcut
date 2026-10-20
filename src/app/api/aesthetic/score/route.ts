@@ -1,6 +1,6 @@
 import { scoreGalleryEntryHeuristic } from '@/lib/aesthetic-score';
 import { scoreGalleryEntryVision } from '@/lib/aesthetic-score-vision';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

@@ -13,7 +13,7 @@ import { isKleinDistilledModel } from '@/lib/model-sampler-defaults';
 import { normalizeTurboEditStrength } from '@/lib/turbo-edit-strength';
 import TurboEditStrengthControls from '@/components/TurboEditStrengthControls';
 import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene-hint-source';
-import { galleryPickPath } from '@/lib/gallery-handoff';
+import { galleryPickPath } from '@/lib/gallery/handoff';
 import { ToolSection, accentButtonClass, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldError, FieldLabel, TextArea } from '@/components/ui/Field';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';

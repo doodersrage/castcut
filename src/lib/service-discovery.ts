@@ -5,7 +5,7 @@
  * COMFYUI_ALLOWED_HOSTS rules as a queue). Nothing is saved here.
  */
 
-import { normalizeComfyPoolUrlList } from './comfyui-pool';
+import { normalizeComfyPoolUrlList } from './comfyui/pool';
 import { checkComfyUiHealth } from './service-health';
 import { normalizeSafeHttpUrl } from './url-safety';
 

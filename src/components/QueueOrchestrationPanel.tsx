@@ -1,6 +1,6 @@
 'use client';
 
-import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
+import { isCancelledJob } from '@/lib/comfyui/queue-cancel';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
@@ -9,9 +9,9 @@ import {
   loadComfyGallery,
   COMFYUI_GALLERY_UPDATED_EVENT,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
-import { scheduleComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
-import { postComfyUiPrompt } from '@/lib/comfyui-queue-request';
+} from '@/lib/gallery/comfyui-gallery';
+import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
+import { postComfyUiPrompt } from '@/lib/comfyui/queue-request';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   clearHeldMaxJobs,
@@ -24,9 +24,9 @@ import {
   requeueMoireCleanFromGalleryEntry,
   requeueRefineFromGalleryEntry,
   requeueUpscaleFromGalleryEntry,
-} from '@/lib/comfyui-requeue';
+} from '@/lib/comfyui/requeue';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
+import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 import {
   refreshSharedHealth,
   subscribeSharedHealth,
@@ -157,7 +157,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
             setStatus(queued.error ?? 'Held generate flush failed.');
             continue;
           }
-          const { registerComfyGalleryJob } = await import('@/lib/comfyui-gallery-client');
+          const { registerComfyGalleryJob } = await import('@/lib/gallery/comfyui-gallery-client');
           registerComfyGalleryJob({
             promptId: queued.promptId,
             prompt: job.prompt,

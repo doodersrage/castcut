@@ -9,15 +9,15 @@ import {
   formatComfyUiJobProgressLabel,
   isComfyUiJobProcessing,
   type ComfyUiJobTrackerState,
-} from '@/lib/comfyui-job-status';
+} from '@/lib/comfyui/job-status';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
-import { loadComfyGallery, COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery';
-import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
-import { cancelComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
-import { cancelComfyUiJob } from '@/lib/comfyui-queue-control';
+} from '@/lib/comfyui/live-preview-store';
+import { loadComfyGallery, COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery';
+import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
+import { cancelComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
+import { cancelComfyUiJob } from '@/lib/comfyui/queue-control';
 import { toastQueueOutcome } from '@/lib/app-toast';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { jobStatusTone, statusToneClasses } from '@/lib/status-tone';

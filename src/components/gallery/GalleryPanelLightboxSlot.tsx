@@ -7,7 +7,7 @@ import {
   GALLERY_SLIDESHOW_INTERVAL_OPTIONS,
   GALLERY_SLIDESHOW_TRANSITION_OPTIONS,
   type GallerySlideshowIntervalMs,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { GalleryPanelLightboxSlotProps } from '@/components/gallery/gallery-panel-body-types';
 
 type GalleryPanelLightboxSlotComponentProps = {

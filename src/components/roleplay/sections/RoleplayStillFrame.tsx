@@ -5,7 +5,7 @@ import { type MouseEvent } from 'react';
 import { Spinner } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
-import { isHtmlVideoViewUrl } from '@/lib/comfyui-outputs';
+import { isHtmlVideoViewUrl } from '@/lib/comfyui/outputs';
 import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
 import {
   canRetryRoleplayClip,

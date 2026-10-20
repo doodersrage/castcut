@@ -5,12 +5,12 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   loadComfyGallery,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
-import { comfyUiJobProgressPercent } from '@/lib/comfyui-job-status';
+} from '@/lib/gallery/comfyui-gallery';
+import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
 import { HELD_MAX_UPDATED_EVENT, listHeldMaxJobs, type HeldMaxJob } from '@/lib/held-max-queue';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
-import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
+import { summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
+import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
 import {
   getSystemTrayMessagesServerSnapshot,
   getSystemTrayMessagesSnapshot,

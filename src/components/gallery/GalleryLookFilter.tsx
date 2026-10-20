@@ -13,9 +13,9 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   getGalleryCache,
   type ComfyGalleryFilter,
-} from '@/lib/comfyui-gallery';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { galleryLookChips } from '@/lib/gallery-look-filter';
+} from '@/lib/gallery/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
+import { galleryLookChips } from '@/lib/gallery/look-filter';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];
 

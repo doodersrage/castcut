@@ -22,10 +22,10 @@ import {
   resolveSystemWorkflowFallbackModel,
   shouldLimitSystemWorkflowPicker,
   usesSystemWorkflowPath,
-} from '@/lib/system-workflow-runtime';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
-import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui-runtime-for-model';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
+} from '@/lib/workflow/system-workflow-runtime';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
+import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui/runtime-for-model';
+import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { isBrowserStorageReady } from '@/lib/browser-storage';
 import {

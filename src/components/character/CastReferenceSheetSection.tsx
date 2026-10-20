@@ -17,7 +17,7 @@ import {
   saveReferenceSheetView,
 } from '@/lib/cast/reference-sheet';
 import { activeLook, type CharacterRecord } from '@/lib/character-os';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day/partner';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
 import { loadSettingsCache } from '@/lib/settings-cache';

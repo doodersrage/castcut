@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyWorkflowLibraryViewModel } from '@/hooks/useComfyWorkflowLibrary';
-import type { WorkflowPresetPack } from '@/lib/workflow-preset-packs';
+import type { WorkflowPresetPack } from '@/lib/workflow/preset-packs';
 import { Button } from '@/components/ui/Button';
 import { SelectInput, TextInput } from '@/components/ui/Field';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';

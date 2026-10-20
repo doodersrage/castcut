@@ -7,7 +7,7 @@ import {
   loadDeletedComfyWorkflowFiles,
   restoreDeletedComfyWorkflowFile,
   type DeletedComfyWorkflowFile,
-} from '@/lib/comfyui-workflow-files';
+} from '@/lib/comfyui/workflow-files';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
 

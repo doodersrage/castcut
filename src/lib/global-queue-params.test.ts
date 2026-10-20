@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dropLegacyDefaultQueueParams, globalQueueParamOverrides } from './comfyui-settings';
+import { dropLegacyDefaultQueueParams, globalQueueParamOverrides } from './comfyui/settings';
 
 describe('global queue params', () => {
   it('drop the old saved placeholders and the old 1328 default, keep real choices', () => {

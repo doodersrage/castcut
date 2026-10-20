@@ -12,7 +12,7 @@ import { clipUrlIsAnimatedImage, clipUrlIsVideo } from './clip-media-kind';
 import { castVoiceAuditionPrompt } from './cast/voice';
 import { voiceShiftArgs } from './cast/voice-server';
 import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from './ltx25-renderer';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 
 describe('suggested spoken lines', () => {
   it('keeps one short spoken line out of whatever the LLM replies', () => {

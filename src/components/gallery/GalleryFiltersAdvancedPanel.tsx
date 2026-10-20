@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import type { VisionBackfillProgress } from '@/lib/gallery-vision-backfill';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery';
+import type { VisionBackfillProgress } from '@/lib/gallery/vision-backfill';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery';
 import type { PromptProject } from '@/lib/prompt-projects';
-import type { GalleryPageSize } from '@/lib/comfyui-gallery';
-import { GALLERY_PAGE_SIZE_ALL, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/comfyui-gallery';
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { GalleryPageSize } from '@/lib/gallery/comfyui-gallery';
+import { GALLERY_PAGE_SIZE_ALL, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/gallery/comfyui-gallery';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 
@@ -70,7 +70,7 @@ export function GalleryFiltersAdvancedPanel({
 
   async function runVisionBackfill() {
     const { backfillVisionTags, listUntaggedCompletedEntries } =
-      await import('@/lib/gallery-vision-backfill');
+      await import('@/lib/gallery/vision-backfill');
     const entries = listUntaggedCompletedEntries(100);
     if (entries.length === 0) {
       return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import type { DuoStillCheckResult } from '@/lib/duo-still-check';
 
 /**

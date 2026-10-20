@@ -1,7 +1,7 @@
 'use client';
 
 import { loadEngineSettings } from '@/lib/engine-settings';
-import { createComfyUiClientId } from '@/lib/comfyui-websocket';
+import { createComfyUiClientId } from '@/lib/comfyui/websocket';
 import { parseEngineId } from './capabilities';
 import { buildDiffusersViewPath } from './view-paths';
 import type {

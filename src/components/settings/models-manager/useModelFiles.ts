@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import type { ModelFilesSummary } from '@/lib/model-files';
 

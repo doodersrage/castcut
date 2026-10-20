@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 import { startImproveFromGalleryEntry } from './improve-output';
 
 export type RatingMutationSuggestion = {

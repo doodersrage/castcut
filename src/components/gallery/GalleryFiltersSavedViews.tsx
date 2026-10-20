@@ -6,14 +6,14 @@ import type {
   ComfyGallerySort,
   GalleryLayoutMode,
   GalleryPageSize,
-} from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+} from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import {
   deleteGallerySavedView,
   loadGallerySavedViews,
   upsertGallerySavedView,
   type GallerySavedView,
-} from '@/lib/gallery-saved-views';
+} from '@/lib/gallery/saved-views';
 
 export type GalleryFiltersSavedViewsProps = {
   savedViews: GallerySavedView[];

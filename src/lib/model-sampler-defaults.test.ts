@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { patchSamplerParamsInWorkflow } from "./comfyui-config";
+import { patchSamplerParamsInWorkflow } from "./comfyui/config";
 import {
   ensureDistilledSamplerParams,
   ensureLightningSamplerParams,

@@ -11,7 +11,7 @@ import {
 } from 'react';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 import { runGalleryImageImport } from '@/components/gallery/GalleryUploadButton';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { type ParamExperimentAxis } from '@/lib/param-experiment-queue';
 
 export type GalleryPanelUiState = {

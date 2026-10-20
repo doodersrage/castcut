@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import {
   openGalleryEntryInComfy,
   openPromptInComfy,
   type OpenInComfyResult,
-} from '@/lib/open-in-comfy';
+} from '@/lib/comfyui/open-in-comfy';
 import { PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';
 
 type OpenTarget =
@@ -28,7 +28,7 @@ async function report(result: OpenInComfyResult): Promise<void> {
   });
 }
 
-/** Send a still's exact graph to ComfyUI's editor (see lib/open-in-comfy) and say where it went. */
+/** Send a still's exact graph to ComfyUI's editor (see lib/comfyui/open-in-comfy) and say where it went. */
 export function useOpenInComfy() {
   const [busy, setBusy] = useState(false);
   const open = useCallback((target: OpenTarget) => {

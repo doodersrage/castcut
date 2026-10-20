@@ -3,9 +3,9 @@ import { describe, it } from "node:test";
 import { inspectPromptWeights } from "./prompt-weight-inspector";
 import { suggestRatingMutations } from "./rating-prompt-mutations";
 import { buildVideoPrompt } from "./video-prompt";
-import { suggestWorkflowNodeMappings } from "./workflow-node-mapper";
+import { suggestWorkflowNodeMappings } from "./workflow/node-mapper";
 import { scoreGalleryEntryHeuristic } from "./aesthetic-score";
-import type { ComfyGalleryEntry } from "./comfyui-gallery";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery";
 
 describe("prompt weight inspector", () => {
   it("detects weighted tokens and limit warnings", () => {

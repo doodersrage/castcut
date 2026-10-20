@@ -3,7 +3,7 @@ import {
   fetchComfyObjectInfoModelsCached,
   readAnyCachedComfyObjectInfoModels,
   readCachedComfyObjectInfoModels,
-} from './comfyui-object-info-cache';
+} from './comfyui/object-info-cache';
 import type { FootwearCheckVerdict } from './footwear-check';
 import { sharedLlmRequestBody } from './llm-request-options';
 import { installedComfyModels } from './model-picker';

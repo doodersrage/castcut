@@ -1,10 +1,10 @@
 'use client';
 
 import type { ComfyImageModel } from './comfy-models/client';
-import { resolveRuntimeForQueue } from './comfyui-runtime-for-model';
-import { registerComfyGalleryJob } from './comfyui-gallery-client';
-import { scheduleComfyGalleryPoll } from './comfyui-gallery-poller';
-import { postComfyUiPrompt } from './comfyui-queue-request';
+import { resolveRuntimeForQueue } from './comfyui/runtime-for-model';
+import { registerComfyGalleryJob } from './gallery/comfyui-gallery-client';
+import { scheduleComfyGalleryPoll } from './gallery/comfyui-gallery-poller';
+import { postComfyUiPrompt } from './comfyui/queue-request';
 import { loadActiveProjectId } from './prompt-projects';
 import { injectLoraTriggers } from './lora-prompt-injection';
 import { resolveQueueParams } from './queue-params-settings';

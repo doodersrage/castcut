@@ -12,8 +12,8 @@ import {
 } from '@/lib/cast/marks-check';
 import { checkStillMarks } from '@/lib/cast/marks-check-client';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
-import { galleryEntryPrimaryViewUrl, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { galleryEntryPrimaryViewUrl, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import type { FittingCompareTryOn } from '@/lib/fitting/room';
 

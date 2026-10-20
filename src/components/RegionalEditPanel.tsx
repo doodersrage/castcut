@@ -16,7 +16,7 @@ import {
   formatRegionalEditHealthChip,
   resolveRegionalEditHealth,
   type RegionalEditHealth,
-} from '@/lib/workflow-regional-patch';
+} from '@/lib/workflow/regional-patch';
 import { regionalPromptCustomTokens } from '@/lib/regional-prompt-builder';
 
 type RegionalEditPanelProps = {

@@ -8,7 +8,7 @@ import SharedIdentitySurface from '@/components/shared-tool-controls/SharedIdent
 import SharedQueueQualityBlock from '@/components/shared-tool-controls/SharedQueueQualityBlock';
 import SharedWorkflowBlock from '@/components/shared-tool-controls/SharedWorkflowBlock';
 import type { UseComfyWorkflowSelectionResult } from '@/hooks/useComfyWorkflowSelection';
-import type { SystemWorkflowChoiceDescription } from '@/lib/system-workflow-runtime';
+import type { SystemWorkflowChoiceDescription } from '@/lib/workflow/system-workflow-runtime';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import type { QueueQualityProfile } from '@/lib/queue-quality-profile';
 import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';

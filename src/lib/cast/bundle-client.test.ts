@@ -8,7 +8,7 @@ import {
   withoutOldComfyHost,
 } from './bundle-client';
 import type { CharacterRecord } from '../character-os';
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 
 const entry = (id: string, extra: Partial<ComfyGalleryEntry>): ComfyGalleryEntry => ({
   id,

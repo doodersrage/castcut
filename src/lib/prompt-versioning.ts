@@ -1,4 +1,4 @@
-import { workflowContentHash } from './workflow-content-hash';
+import { workflowContentHash } from './workflow/content-hash';
 
 export type PromptVersionParent = {
   id: string;

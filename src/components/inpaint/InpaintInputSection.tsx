@@ -9,7 +9,7 @@ import VisionScanButton from '@/components/VisionScanButton';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene-hint-source';
 import { normalizeTurboEditStrength } from '@/lib/turbo-edit-strength';
-import { galleryPickPath } from '@/lib/gallery-handoff';
+import { galleryPickPath } from '@/lib/gallery/handoff';
 import { ToolSection, accentButtonClass, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldError, FieldLabel, TextArea } from '@/components/ui/Field';
 import { ButtonLink, PrimaryButton } from '@/components/ui/Button';

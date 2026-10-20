@@ -1,6 +1,6 @@
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { decodeJson, encodeJson, getStudioDb, withStudioTransaction } from './studio-db';
-import { isGalleryEntryHidden } from '@/lib/gallery-adult-check';
+import { isGalleryEntryHidden } from '@/lib/gallery/adult-check';
 
 /** Soft cap on gallery rows returned through the blob `/api/storage` API. */
 export const MAX_SERVER_GALLERY_READ = 20_000;

@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import type { ComfyGalleryFilter, ComfyGallerySort, GalleryPageSize } from '@/lib/comfyui-gallery';
+import type {
+  ComfyGalleryFilter,
+  ComfyGallerySort,
+  GalleryPageSize,
+} from '@/lib/gallery/comfyui-gallery';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 export type GalleryBrowsePageClampContext = {

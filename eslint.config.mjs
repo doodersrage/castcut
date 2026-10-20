@@ -51,15 +51,15 @@ const eslintConfig = defineConfig([
               message: 'Do not import node:fs from client UI code.',
             },
             {
-              name: '@/lib/comfyui-client',
+              name: '@/lib/comfyui/client',
               message: 'Server-only. Use /api/comfyui* routes from client code.',
             },
             {
-              name: '@/lib/comfyui-server-workflows',
+              name: '@/lib/comfyui/server-workflows',
               message: 'Server-only. Use API routes for server workflow files.',
             },
             {
-              name: '@/lib/comfyui-history-workflow',
+              name: '@/lib/comfyui/history-workflow',
               message:
                 'Server-only value import. Use /api/comfyui/history/workflow (type-only imports OK).',
             },

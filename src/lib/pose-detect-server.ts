@@ -22,7 +22,7 @@ import {
   runComfyUtilityGraph,
   stageComfyImageAsInput,
   type ComfyNodeInfo,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   buildPersonReadGraph,
   mergePersonReadReplies,

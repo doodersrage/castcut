@@ -6,7 +6,7 @@
  * stays in the Gallery as the alternate and nothing is lost.
  */
 
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import type { FixAreaUseResult } from '@/lib/fix-area-client';
 import { comfyImageViewUrl } from '@/lib/fix-area-client';
 
@@ -63,8 +63,8 @@ export async function recordFixAreaInGallery(
 ): Promise<ComfyGalleryEntry | null> {
   if (!parent) return null;
   const [{ addComfyGalleryEntry }, { persistCompletedGalleryMedia }] = await Promise.all([
-    import('@/lib/comfyui-gallery'),
-    import('@/lib/comfyui-gallery-client'),
+    import('@/lib/gallery/comfyui-gallery'),
+    import('@/lib/gallery/comfyui-gallery-client'),
   ]);
   const entry = addComfyGalleryEntry(fixAreaGalleryEntryInput(parent, result));
   void persistCompletedGalleryMedia(entry);

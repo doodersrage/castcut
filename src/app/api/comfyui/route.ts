@@ -2,14 +2,14 @@ import {
   COMFYUI_MAX_BATCH_PROMPTS,
   queueBatchToComfyUi,
   queuePromptToComfyUi,
-} from '@/lib/comfyui-client';
+} from '@/lib/comfyui/client';
 import {
   stripEmptyComfyUiRuntime,
   resolveQueueInjectionContext,
   parseWorkflowJson,
   type ComfyUiRuntimeConfig,
   type WorkflowParamValues,
-} from '@/lib/comfyui-config';
+} from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveQueueFailureHref } from '@/lib/queue-failure-playbook';
 import { NextResponse } from 'next/server';

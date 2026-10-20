@@ -13,7 +13,7 @@ import {
 import type { AppFeatureId } from '@/lib/auth/features';
 import type { AuthSessionResponse, AuthUserPublic } from '@/lib/auth/types';
 import { setActiveUserScope } from '@/lib/user-scope';
-import { setUserComfyUiUrlOverride } from '@/lib/user-comfy-url';
+import { setUserComfyUiUrlOverride } from '@/lib/comfyui/user-comfy-url';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 type AuthState = {

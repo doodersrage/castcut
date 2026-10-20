@@ -5,7 +5,7 @@ import type { AthleticSport } from '@/lib/athletic-sport-profiles';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { formatPromptPair, modelUsesNegativePrompt } from '@/lib/prompt-pair';
 import { buildPromptSidecar, downloadPromptSidecar } from '@/lib/prompt-sidecar';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { resolveQueueNegativePrompt } from '@/lib/queue-negative';
 import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
 import { loadSettingsCache } from '@/lib/settings-cache';

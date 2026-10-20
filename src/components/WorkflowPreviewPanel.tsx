@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Button, Skeleton, Spinner } from '@/components/ui/Button';
-import { collectMissingNodeTypesFromIssues } from '@/lib/workflow-node-type-audit';
-import { requestComfyManagerInstall } from '@/lib/comfyui-manager-install-client';
-import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui-runtime';
+import { collectMissingNodeTypesFromIssues } from '@/lib/workflow/node-type-audit';
+import { requestComfyManagerInstall } from '@/lib/comfyui/manager-install-client';
+import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
 
 type WorkflowPreviewPanelProps = {
   loading?: boolean;

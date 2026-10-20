@@ -1,12 +1,14 @@
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import type { RefObject } from 'react';
 
 export type GalleryCardMenuProps = {
   entry: ComfyGalleryEntry;
   layout: GalleryLayoutMode;
   previewUrl: string | null;
-  primaryMediaKind: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryPrimaryMediaKind>;
+  primaryMediaKind: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
+  >;
   isVideoHero: boolean;
   comfyHostLabel: string | null;
   menuOpen: boolean;

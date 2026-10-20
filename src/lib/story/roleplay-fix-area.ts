@@ -8,12 +8,12 @@
 
 import type { MutableRefObject } from 'react';
 import { storyRatingNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
-import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/comfyui/still-comfy-url';
 
 export function buildStoryFixAreaTarget(input: {
   beat: RoleplayStoryBeat;

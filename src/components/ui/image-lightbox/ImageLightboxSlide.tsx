@@ -2,9 +2,9 @@
 
 import { type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction } from 'react';
 import GalleryKindPreview from '@/components/ui/GalleryKindPreview';
-import type { GalleryLightboxFit } from '@/lib/gallery-lightbox-prefs';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import { shouldUseHtmlVideoElement, stripGalleryViewWidthParam } from '@/lib/comfyui-outputs';
+import type { GalleryLightboxFit } from '@/lib/gallery/lightbox-prefs';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import { shouldUseHtmlVideoElement, stripGalleryViewWidthParam } from '@/lib/comfyui/outputs';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 
 export type ImageLightboxSlideOptions = {

@@ -1,5 +1,5 @@
-import { getComfyUiPromptStatus } from '@/lib/comfyui-status';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiPromptStatus } from '@/lib/comfyui/status';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

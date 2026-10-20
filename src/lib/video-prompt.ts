@@ -6,7 +6,7 @@ import {
   visionCompletion,
 } from './llm-client';
 import { getComfyModelDefinition } from './comfy-models/client';
-import { isWanLightningModel } from './model-sampling-patch';
+import { isWanLightningModel } from './workflow/model-sampling-patch';
 import { isWanRapidAioModel } from './model-denoise-defaults';
 import {
   resolveRequestLlmEnabled,

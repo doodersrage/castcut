@@ -37,11 +37,11 @@ export default function ScheduledBatchRunner() {
         try {
           const { loadSettingsCache } = await import('@/lib/settings-cache');
           const { resolveQueueNegativePrompt } = await import('@/lib/queue-negative');
-          const { resolveRuntimeForQueue } = await import('@/lib/comfyui-runtime-for-model');
+          const { resolveRuntimeForQueue } = await import('@/lib/comfyui/runtime-for-model');
           const { resolveQueueParams } = await import('@/lib/queue-params-settings');
-          const { registerComfyGalleryJob } = await import('@/lib/comfyui-gallery-client');
-          const { scheduleComfyGalleryPoll } = await import('@/lib/comfyui-gallery-poller');
-          const { postComfyUiPrompt } = await import('@/lib/comfyui-queue-request');
+          const { registerComfyGalleryJob } = await import('@/lib/gallery/comfyui-gallery-client');
+          const { scheduleComfyGalleryPoll } = await import('@/lib/gallery/comfyui-gallery-poller');
+          const { postComfyUiPrompt } = await import('@/lib/comfyui/queue-request');
           const { registerScheduledBatchQueue } = await import('@/lib/scheduled-batch-tracker');
           const { dispatchWebhook } = await import('@/lib/webhook-settings');
 

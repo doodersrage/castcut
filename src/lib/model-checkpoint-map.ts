@@ -3,7 +3,7 @@ import {
   type ComfyImageModel,
   type ComfyModelCategory,
 } from './comfy-models';
-import type { CustomWorkflowToken, WorkflowParamValues } from './comfyui-config';
+import type { CustomWorkflowToken, WorkflowParamValues } from './comfyui/config';
 import {
   isBooguFamilyModel,
   isFlux1FamilyModel,

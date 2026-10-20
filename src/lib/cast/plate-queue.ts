@@ -5,7 +5,7 @@ import { getCharacter, setCastPlateTraits } from '@/lib/character-os';
 import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
+} from '@/lib/comfyui/object-info-cache';
 import {
   castOriginalPlate,
   ensureOutfitPlateAfterLook,

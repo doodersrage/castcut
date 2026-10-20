@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
-import type { AppEditorMeta, ComfyApiPrompt } from '@/lib/comfy-editor-graph';
+import type { AppEditorMeta, ComfyApiPrompt } from '@/lib/comfyui/comfy-editor-graph';
 import {
   diffEditorGraphs,
   editorChangeLabel,
@@ -12,7 +12,7 @@ import {
   samplerOverridesFromEditorChanges,
   sortEditorChanges,
   type EditorChange,
-} from '@/lib/comfy-editor-diff';
+} from '@/lib/comfyui/comfy-editor-diff';
 import { pickModelSamplerOverrideFields } from '@/lib/model-sampler-defaults';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { PRODUCT_NAME, PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';

@@ -5,12 +5,12 @@
  */
 
 import sharp from 'sharp';
-import { uploadComfyInputContent } from './comfy-input-upload-server';
+import { uploadComfyInputContent } from './comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
   runComfyUtilityGraph,
   type ComfyImageRef,
-} from './comfy-utility-graph-server';
+} from './comfyui/comfy-utility-graph-server';
 import { buildRelightGraph, RELIGHT_SAVE_NODE, relightSize } from './relight';
 import { pickRelightCheckpoint, RelightUnavailableError } from './relight-server';
 import { sketchPrompt } from './sketch';

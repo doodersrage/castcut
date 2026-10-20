@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
-import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
+import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery/custom-groups';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 
 type Props = {

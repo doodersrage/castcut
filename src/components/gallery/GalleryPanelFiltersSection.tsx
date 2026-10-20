@@ -6,17 +6,17 @@ import GalleryFailedRecoveryBanner from '@/components/gallery/GalleryFailedRecov
 import GalleryReviewBanner from '@/components/gallery/GalleryReviewBanner';
 import GalleryStatsBar from '@/components/gallery/GalleryStatsBar';
 import GalleryPaginator from '@/components/gallery/GalleryPaginator';
-import type { GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import type { GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import type {
   ComfyGalleryEntry,
   ComfyGalleryFilter,
   ComfyGallerySort,
   GalleryLayoutMode,
   GalleryPageSize,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import type { PromptProject } from '@/lib/prompt-projects';
-import type { GalleryStats } from '@/lib/gallery-stats';
-import type { GalleryDensity } from '@/lib/gallery-density';
+import type { GalleryStats } from '@/lib/gallery/stats';
+import type { GalleryDensity } from '@/lib/gallery/density';
 
 type GalleryPanelFiltersSectionProps = {
   showFilters: boolean;

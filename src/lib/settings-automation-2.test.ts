@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import { lookupKnownComfyNodePack } from './comfyui-custom-node-registry';
+import { lookupKnownComfyNodePack } from './comfyui/custom-node-registry';
 import {
   PLAY_CHECK_HEAL_NODE_TYPES,
   PLAY_CHECK_INSTALL_NODE_TYPES,
-} from './comfyui-manager-install-client';
+} from './comfyui/manager-install-client';
 import { sameServiceAddress } from './service-address';
 import { allowedComfyCandidates, discoverComfyUi, discoverLlm } from './service-discovery';
 import { autoVramThresholdGb, isVramTightForMax } from './vram-queue-guard';

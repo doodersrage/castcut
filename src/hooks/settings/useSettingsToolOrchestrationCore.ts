@@ -10,7 +10,7 @@ import {
   writeBrowserString,
 } from '@/lib/browser-storage';
 import { useComfyUiSettings } from '@/hooks/useComfyUiSettings';
-import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui-config';
+import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
 import {
   DEFAULT_COMFYUI_SETTINGS,
   loadComfyUiSettings,
@@ -18,7 +18,7 @@ import {
   placeholderTokensFromSettings,
   resetComfyUiSettings,
   saveComfyUiSettings,
-} from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/settings';
 import {
   formatModelCheckpointMap,
   formatModelVaeMap,
@@ -32,8 +32,8 @@ import { formatModelLoraMap } from '@/lib/model-lora-map';
 import {
   formatInventorySyncMessage,
   syncLoaderMapsFromInventory,
-} from '@/lib/loader-map-inventory-sync';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
+} from '@/lib/workflow/loader-map-inventory-sync';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
@@ -61,7 +61,7 @@ import { WEBHOOK_LOG_UPDATED_EVENT, loadWebhookLog, type WebhookLogEntry } from 
 import {
   isComfyNotificationSupported,
   requestComfyNotificationPermission,
-} from '@/lib/comfyui-notifications';
+} from '@/lib/comfyui/notifications';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   normalizeSettingsTab,
@@ -87,7 +87,7 @@ import {
   type HealthResponse,
 } from '@/components/settings/tabs/settings-tool-shared';
 import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/onboarding-hooks';
-import { fetchWorkflowPreview } from '@/lib/comfyui-requeue';
+import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
 import { resolveQueueParams } from '@/lib/queue-params-settings';
 import { runHealAndReady, readAdaptedLoaderMapTexts } from '@/lib/first-run-setup';
 

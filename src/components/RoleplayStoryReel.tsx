@@ -11,7 +11,7 @@ import { downloadRoleplayUrl } from '@/lib/story/roleplay-export';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
+} from '@/lib/comfyui/live-preview-store';
 import {
   buildStoryProgressLightboxState,
   roleplayStillBasename,

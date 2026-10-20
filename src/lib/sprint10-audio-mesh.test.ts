@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildAudioPrompt, buildMeshPrompt } from "./audio-mesh-prompt";
-import { resolveComfyOutputMediaKind } from "./comfyui-outputs";
+import { resolveComfyOutputMediaKind } from "./comfyui/outputs";
 import { COMFY_MODEL_IDS } from "./comfy-models/registry";
 
 describe("audio + mesh tools", () => {

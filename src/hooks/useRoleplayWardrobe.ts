@@ -14,7 +14,7 @@ import {
   updateSavedFittingGarmentDescription,
 } from '@/lib/fitting/saved-garments';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import {

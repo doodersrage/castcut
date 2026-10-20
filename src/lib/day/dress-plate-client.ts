@@ -4,7 +4,7 @@
  */
 
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import {
   buildDayDressPlatePrompt,
   dayDressPlateChange,

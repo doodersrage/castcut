@@ -2,9 +2,9 @@ import path from 'node:path';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
-import { comfyBaseUrl } from '@/lib/comfy-utility-graph-server';
-import { listComfyAssetJobs } from '@/lib/comfy-asset-download';
-import { getComfyUiRoot } from '@/lib/comfy-asset-paths';
+import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
+import { listComfyAssetJobs } from '@/lib/comfyui/comfy-asset-download';
+import { getComfyUiRoot } from '@/lib/comfyui/comfy-asset-paths';
 import {
   deleteModelFile,
   listModelFilesWithUsage,

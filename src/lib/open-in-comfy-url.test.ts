@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { browserComfyUrl } from './open-in-comfy';
+import { browserComfyUrl } from './comfyui/open-in-comfy';
 
 describe('Open in ComfyUI link as the browser can reach it', () => {
   it('keeps loopback on this machine', () => {

@@ -6,7 +6,7 @@ import {
   COMFY_ASSET_KIND_LABELS,
   COMFY_ASSET_KIND_ORDER,
   type ComfyAssetKind,
-} from '@/lib/comfy-asset-kinds';
+} from '@/lib/comfyui/comfy-asset-kinds';
 import type { ComfyModelAssetsViewModel } from '@/components/settings/comfy-model-assets/useComfyModelAssets';
 
 type Props = Pick<

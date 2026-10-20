@@ -8,8 +8,8 @@ import { promises as fs } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { uploadComfyInputContent } from './comfy-input-upload-server';
-import { comfyBaseUrl, type ComfyImageRef } from './comfy-utility-graph-server';
+import { uploadComfyInputContent } from './comfyui/comfy-input-upload-server';
+import { comfyBaseUrl, type ComfyImageRef } from './comfyui/comfy-utility-graph-server';
 import { requireComfyModels, runHeavyComfyGraph } from './heavy-graph-server';
 import { readDurationSeconds, readPictureSize } from './lip-sync-server';
 import {

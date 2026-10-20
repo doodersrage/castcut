@@ -1,11 +1,11 @@
 'use client';
 
-import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
+import { isCancelledJob } from '@/lib/comfyui/queue-cancel';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { loadComfyGallery, type ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, type ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { toastBulkQueueSummary, toastQueueOutcome } from '@/lib/app-toast';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { requeueComfyJobFromEntry, requeueComfyJobs } from '@/lib/comfyui-requeue';
+import { requeueComfyJobFromEntry, requeueComfyJobs } from '@/lib/comfyui/requeue';
 import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue-requeue-images';
 import { markOnboardingFirstQueue } from '@/lib/onboarding-hooks';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
@@ -14,16 +14,16 @@ import {
   freeComfyUiMemory,
   interruptComfyUiQueue,
   restartComfyUi,
-} from '@/lib/comfyui-queue-control';
-import { claimOrphanComfyJob, claimOrphanComfyJobs } from '@/lib/comfyui-gallery-client';
-import { mergeHostJobLists, type ComfyJobListItem, type HostOrphanJob } from '@/lib/comfyui-jobs';
-import { listHealComfyUrls } from '@/lib/comfyui-manager-install-client';
-import { summarizePoolQueueDepth } from '@/lib/comfyui-host-ready';
-import { cancelComfyGalleryJob } from '@/lib/comfyui-queue-cancel';
+} from '@/lib/comfyui/queue-control';
+import { claimOrphanComfyJob, claimOrphanComfyJobs } from '@/lib/gallery/comfyui-gallery-client';
+import { mergeHostJobLists, type ComfyJobListItem, type HostOrphanJob } from '@/lib/comfyui/jobs';
+import { listHealComfyUrls } from '@/lib/comfyui/manager-install-client';
+import { summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
+import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import { refreshSharedHealth } from '@/lib/shared-health-poll';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { removeComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { cancelComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
+import { removeComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { cancelComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { loadCharacters } from '@/lib/character-os';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
 import { estimateQueueEta } from '@/lib/queue-eta';
@@ -169,11 +169,11 @@ export function useQueueToolOrchestration() {
       return;
     }
     setStatus('Waiting for ComfyUI to come back…');
-    const { waitForComfyUiHostAfterRestart } = await import('@/lib/comfyui-host-ready');
+    const { waitForComfyUiHostAfterRestart } = await import('@/lib/comfyui/host-ready');
     const ready = await waitForComfyUiHostAfterRestart(queueHealth?.url);
     if (ready.ok) {
       setStatus(`ComfyUI ready after ${Math.round(ready.waitedMs / 1000)}s.`);
-      void import('@/lib/comfyui-gallery-poller').then(({ resumePendingGalleryPolls }) => {
+      void import('@/lib/gallery/comfyui-gallery-poller').then(({ resumePendingGalleryPolls }) => {
         resumePendingGalleryPolls();
       });
     } else {

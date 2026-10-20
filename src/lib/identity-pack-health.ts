@@ -1,5 +1,5 @@
-import { loadComfyWorkflowFiles } from './comfyui-workflow-files';
-import { readCachedComfyObjectInfo } from './comfyui-object-info-cache';
+import { loadComfyWorkflowFiles } from './comfyui/workflow-files';
+import { readCachedComfyObjectInfo } from './comfyui/object-info-cache';
 
 export type IdentityPackKind = 'ipadapter' | 'instantid' | 'pulid';
 

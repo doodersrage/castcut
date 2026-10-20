@@ -6,7 +6,7 @@
  */
 
 import { getComfyModelDefinition } from './comfy-models/client';
-import { resolveModelStackFamily } from './workflow-stack-fingerprint';
+import { resolveModelStackFamily } from './workflow/stack-fingerprint';
 
 export type LoraFamily =
   | 'qwen'

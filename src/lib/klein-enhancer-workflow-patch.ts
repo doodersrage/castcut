@@ -7,8 +7,8 @@
  */
 
 import { isFluxKleinModel } from './model-denoise-defaults';
-import { FLUX_GUIDANCE_NODE_TYPE } from './flux-guidance-patch';
-import { normalizeInputImageFilenames } from './workflow-load-image-bindings';
+import { FLUX_GUIDANCE_NODE_TYPE } from './workflow/flux-guidance-patch';
+import { normalizeInputImageFilenames } from './workflow/load-image-bindings';
 
 export const KLEIN_MULTI_REF_NODE = 'Flux2KleinMultiReferenceLatent';
 export const KLEIN_IDENTITY_FINAL_NODE = 'IdentityFeatureTransferFinal';

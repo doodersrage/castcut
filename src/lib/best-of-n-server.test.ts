@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 import type { UserScheduledCampaign } from "./auth/types";
 
-// best-of-n-server.ts imports './comfyui-client' and './best-of-n-vision-server' via a
+// best-of-n-server.ts imports './comfyui/client' and './best-of-n-vision-server' via a
 // call-time `await import(...)` inside the function body (not a static top-level import).
 // Under this project's `--import tsx` test runner, node:test's mock.module() only reliably
 // intercepts statically-imported specifiers -- it does not intercept those deferred,

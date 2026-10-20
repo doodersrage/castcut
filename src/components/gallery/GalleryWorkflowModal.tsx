@@ -5,14 +5,14 @@ import ModalPortal from '@/components/ui/ModalPortal';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import WorkflowPreviewPanel from '@/components/WorkflowPreviewPanel';
 import { Spinner } from '@/components/ui/Button';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import {
   formatWorkflowParamValue,
   loadGalleryWorkflowView,
   workflowParamDisplayRows,
   type GalleryWorkflowView,
-} from '@/lib/gallery-workflow-view';
+} from '@/lib/gallery/workflow-view';
 import {
   formatQueueQualityProfileLabel,
   formatQueueQualityProfileHint,
@@ -23,7 +23,7 @@ import { normalizeResolutionSizeTier } from '@/lib/model-resolution-defaults';
 import {
   formatRenderDuration,
   resolveGalleryRenderDurationMs,
-} from '@/lib/comfyui-render-duration';
+} from '@/lib/comfyui/render-duration';
 
 type GalleryWorkflowModalProps = {
   entry: ComfyGalleryEntry;

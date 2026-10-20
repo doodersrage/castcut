@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
 import { ActionMenu, MenuItem } from '@/components/gallery/GallerySelectionBarMenus';
 

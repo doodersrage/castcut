@@ -5,7 +5,7 @@ import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
+} from '@/lib/comfyui/object-info-cache';
 import { DAY_SLOT_ENGINES, type DaySlot, type DaySlotId } from '@/lib/day/planner';
 import { installedComfyModels } from '@/lib/model-picker';
 import { pinnedEngineModel, POSE_REPORT_ENGINE_LABELS } from '@/lib/pose/pose-engine-report';

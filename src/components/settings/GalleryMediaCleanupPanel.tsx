@@ -8,7 +8,7 @@ import {
   removeGalleryMediaCleanup,
   scanGalleryMediaCleanup,
   type GalleryMediaCleanupScan,
-} from '@/lib/gallery-media-cleanup-client';
+} from '@/lib/gallery/media-cleanup-client';
 
 /**
  * The server's kept copies of renders that are no longer in the Gallery (deleting entries did not

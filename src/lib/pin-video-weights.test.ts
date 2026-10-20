@@ -6,7 +6,7 @@ let objectInfoImpl: (opts: unknown) => Promise<{ models: unknown[] } | null> = a
   models: [],
 });
 const fetchComfyObjectInfoCached = mock.fn((opts: unknown) => objectInfoImpl(opts));
-mock.module('./comfyui-object-info-cache', { namedExports: { fetchComfyObjectInfoCached } });
+mock.module('./comfyui/object-info-cache', { namedExports: { fetchComfyObjectInfoCached } });
 
 let videoModelImpl = (_model: string) => true;
 const isVideoModel = mock.fn((model: string) => videoModelImpl(model));

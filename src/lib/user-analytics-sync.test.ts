@@ -5,7 +5,7 @@ const buildUserAnalyticsSnapshot = mock.fn((input: unknown) => ({ snapshot: true
 mock.module('./user-analytics', { namedExports: { buildUserAnalyticsSnapshot } });
 
 const loadComfyGallery = mock.fn(() => ['gallery-entry']);
-mock.module('./comfyui-gallery', { namedExports: { loadComfyGallery } });
+mock.module('./gallery/comfyui-gallery', { namedExports: { loadComfyGallery } });
 
 const loadPromptHistoryStore = mock.fn(() => ['history-entry']);
 mock.module('./prompt-history', { namedExports: { loadPromptHistoryStore } });

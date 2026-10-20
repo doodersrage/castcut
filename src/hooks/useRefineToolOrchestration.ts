@@ -6,7 +6,7 @@ import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { isInpaintModel } from '@/lib/model-denoise-defaults';
 import { getReformatTargetModel } from '@/lib/reformat-target';
@@ -15,7 +15,7 @@ import { DEFAULT_REFINE_TOOL_CACHE } from '@/lib/settings-cache';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
-import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
 import {
   parseVisionScanApiResponse,

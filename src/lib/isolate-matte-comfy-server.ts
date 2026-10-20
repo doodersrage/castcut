@@ -15,9 +15,9 @@ import {
   resolveComfyNode,
   runComfyUtilityGraph,
   type ComfyImageRef,
-} from '@/lib/comfy-utility-graph-server';
-import { readComboOptionList } from '@/lib/comfyui-combo';
-import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
+import { readComboOptionList } from '@/lib/comfyui/combo';
+import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import {
   buildCastcutCutoutGraph,
   parseCastcutMaskRepairReport,

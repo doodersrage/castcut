@@ -8,9 +8,9 @@ import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '@/lib/comfyui-gallery';
-import { scheduleComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
-import { registerComfyGalleryJob } from '@/lib/comfyui-gallery-client';
+} from '@/lib/gallery/comfyui-gallery';
+import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
+import { registerComfyGalleryJob } from '@/lib/gallery/comfyui-gallery-client';
 import { attachGalleryPromptIdToHistory, linkGalleryToHistory } from '@/lib/prompt-lineage';
 import { loadActiveProjectId } from '@/lib/prompt-projects';
 import { loadSettingsCache } from '@/lib/settings-cache';
@@ -22,7 +22,7 @@ import {
   formatComfyUiJobStatusLine,
   isComfyUiJobProcessing,
   type ComfyUiJobTrackerState,
-} from '@/lib/comfyui-job-status';
+} from '@/lib/comfyui/job-status';
 import type { PromptResultActionsConfig, WorkflowPreviewResult } from '@/hooks/prompt-result/types';
 import type { TrackComfyUiJobInput } from '@/hooks/prompt-result/comfy-ui-types';
 
@@ -181,8 +181,8 @@ export function usePromptResultComfyUiPreviewTracker(config: PromptResultActions
         });
 
         const [{ fetchWorkflowPreview }, { resolveRuntimeForQueueAsync }] = await Promise.all([
-          import('@/lib/comfyui-requeue'),
-          import('@/lib/comfyui-runtime-for-model'),
+          import('@/lib/comfyui/requeue'),
+          import('@/lib/comfyui/runtime-for-model'),
         ]);
         const preview = await fetchWorkflowPreview({
           prompt: preparedPrompt,

@@ -7,7 +7,7 @@ import {
   fetchHandoffImageFile,
   loadGalleryHandoff,
   type GalleryHandoffPayload,
-} from '@/lib/gallery-handoff';
+} from '@/lib/gallery/handoff';
 
 export type GalleryHandoffReadyPayload = {
   prompt: string;

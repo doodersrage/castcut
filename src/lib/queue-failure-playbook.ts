@@ -1,6 +1,6 @@
 import { settingsComfyUiSectionHref } from './settings-comfyui-nav';
 import { settingsTabHref } from './settings-nav';
-import type { WorkflowPreflightIssue } from './workflow-preflight-core';
+import type { WorkflowPreflightIssue } from './workflow/preflight-core';
 
 export type QueueFailurePlaybook = {
   message: string;

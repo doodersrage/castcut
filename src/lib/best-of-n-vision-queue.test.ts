@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 import type { BestOfNImageCandidate } from "./best-of-n-rank";
 
 const loadComfyGallery = mock.fn((): ComfyGalleryEntry[] => []);
 const removeComfyGalleryEntries = mock.fn((_ids: string[]) => {});
 const galleryEntryThumbUrls = mock.fn((_entry: ComfyGalleryEntry): string[] => []);
-mock.module("./comfyui-gallery", {
+mock.module("./gallery/comfyui-gallery", {
   namedExports: { loadComfyGallery, removeComfyGalleryEntries, galleryEntryThumbUrls },
 });
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { assessGalleryCapWarning } from './gallery-cap';
+import { assessGalleryCapWarning } from './gallery/cap';
 import { clampScheduledBatchConfig, DEFAULT_SCHEDULED_BATCH } from './scheduled-batch';
 import { formatDiffusersClassifyHint, formatDiffusersQueueRouting } from './diffusers-workflow-support';
 

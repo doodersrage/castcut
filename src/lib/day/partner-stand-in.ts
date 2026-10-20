@@ -9,7 +9,7 @@
 
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day/partner';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';

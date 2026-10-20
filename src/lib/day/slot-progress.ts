@@ -4,7 +4,7 @@
  * carries ComfyUI's queue position and sampler progress; this turns those into a label.
  */
 
-import type { ComfyGalleryJobStatus } from '@/lib/comfyui-gallery-types';
+import type { ComfyGalleryJobStatus } from '@/lib/gallery/comfyui-gallery-types';
 import type { DaySlotStillStatus } from '@/lib/day/planner';
 import type { RoleplayStillStatus } from '@/lib/story/roleplay';
 

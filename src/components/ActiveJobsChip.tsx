@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { useSystemTrayState } from '@/hooks/useSystemTrayState';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { estimateQueueEta, formatEta } from '@/lib/queue-eta';
 import { openSystemTrayPanel } from '@/lib/system-tray-panel';
 

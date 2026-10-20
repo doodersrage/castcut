@@ -6,7 +6,7 @@
 
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
 import { registerCastChangeScrubber, loadSettingsCache } from '../settings-cache';
-import { registerJobCompletedHook } from '../comfyui-gallery';
+import { registerJobCompletedHook } from '../gallery/comfyui-gallery';
 import { registerAppFlag } from '../app-flags';
 import { registerStudioExtrasSection } from '../studio-extras';
 import { PLAY_STUDIO_EXTRAS_SECTION } from './studio-extras';
@@ -29,7 +29,7 @@ import { roleplaySessionsForCharacterSync } from '../story/roleplay-library';
 import { listSavedIdentityBundles } from '../settings-cache';
 import { registerNavClickFollower, registerNavHrefResolver } from '../nav-links';
 import { followCurrentPlayLoopHref } from './loop-nav-click';
-import { registerGalleryKeeperHook } from '../gallery-judgment-hooks';
+import { registerGalleryKeeperHook } from '../gallery/judgment-hooks';
 import { registerQueueJobDescriber } from '../queue-job-context';
 import { registerCharacterNormalizer, registerStickyCharacterFields } from '../character-os';
 import { normalizeCharacterLookPacks } from './cast';

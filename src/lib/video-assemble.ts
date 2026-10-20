@@ -6,17 +6,17 @@
 
 import type { CutSoundOptions } from '@/lib/cut-sound';
 import { downloadFilmBlob } from './video-blob-download';
-import { addComfyGalleryEntry } from './comfyui-gallery';
-import { loadComfyUiSettings } from './comfyui-settings';
+import { addComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { loadComfyUiSettings } from './comfyui/settings';
 import {
   canStampAssembledFilm,
   DEFAULT_STILL_HOLD_SEC,
   filmDownloadFilename,
   type FilmPlaylistShot,
 } from './media-kind';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { persistGalleryOriginal } from './gallery-media-client';
-import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from './gallery-video-stitch';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
+import { persistGalleryOriginal } from './gallery/media-client';
+import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from './gallery/video-stitch';
 import { clipTrimWindow } from './clip-trim';
 import { drawCaption, drawCover, drawTitleCard } from './cut-canvas-draw';
 import type { CutRecipe } from './cut-recipe';

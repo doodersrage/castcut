@@ -11,21 +11,21 @@ import {
   startReeditRefineFromGalleryEntry,
   startVideoFromGalleryEntry,
 } from '@/lib/improve-output';
-import { comfyUiJobProgressPercent, comfyUiJobStatusLabel } from '@/lib/comfyui-job-status';
+import { comfyUiJobProgressPercent, comfyUiJobStatusLabel } from '@/lib/comfyui/job-status';
 import { formatComfyHostLabel } from '@/lib/queue-status-notes';
-import { filmsUsingEntry } from '@/lib/gallery-used-in';
-import { galleryEntryViewUrls } from '@/lib/comfyui-gallery';
-import { galleryNeedsLookReasons } from '@/lib/gallery-needs-look';
-import { galleryDerivedKindLabel } from '@/lib/gallery-derived-kind';
+import { filmsUsingEntry } from '@/lib/gallery/used-in';
+import { galleryEntryViewUrls } from '@/lib/gallery/comfyui-gallery';
+import { galleryNeedsLookReasons } from '@/lib/gallery/needs-look';
+import { galleryDerivedKindLabel } from '@/lib/gallery/derived-kind';
 import {
   applyGalleryPromptAndStackToSession,
   applyGalleryStackToSession,
   galleryEntryCanSaveLook,
   galleryEntryHasRestorableStack,
   saveGalleryLookFromEntry,
-} from '@/lib/gallery-stack-restore';
-import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery-identity-lock';
-import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery-tool-href';
+} from '@/lib/gallery/stack-restore';
+import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
+import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
 import { galleryEntryComfyStillUrl, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import {
   galleryEntryLightboxUrls,
@@ -36,7 +36,7 @@ import {
   setGalleryReviewNote,
   type ComfyGalleryEntry,
   type ComfyGalleryFilter,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 
 export type BuildGalleryLightboxSlideChromeArgs = {
   resolvedLightbox: ImageLightboxState | null;
@@ -153,7 +153,7 @@ export function buildGalleryLightboxSlideChrome({
     onInpaint: () => startInpaintFromGalleryEntry(entry),
     onExactRequeue: () => {
       setRequeueStatus('Replaying exact graph…');
-      void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+      void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
         requeueComfyJobFromEntry(entry, {
           newSeed: false,
           exactGraph: true,
@@ -196,7 +196,7 @@ export function buildGalleryLightboxSlideChrome({
       : undefined,
     onRequeue: () => {
       setRequeueStatus('Re-queueing…');
-      void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+      void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
         requeueComfyJobFromEntry(entry, {
           newSeed: false,
           onStatus: setRequeueStatus,
@@ -206,7 +206,7 @@ export function buildGalleryLightboxSlideChrome({
     onRetryStickyHost: entry.comfyUrl?.trim()
       ? () => {
           setRequeueStatus(`Re-queueing on ${entry.comfyUrl}…`);
-          void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+          void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
             requeueComfyJobFromEntry(entry, {
               newSeed: false,
               exactGraph: Boolean(entry.hasStoredWorkflow || entry.workflowJson),
@@ -220,7 +220,7 @@ export function buildGalleryLightboxSlideChrome({
     onRequeueNewSeed: completed
       ? () => {
           setRequeueStatus('Re-queueing with new seed…');
-          void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+          void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
             requeueComfyJobFromEntry(entry, {
               newSeed: true,
               exactGraph: false,
@@ -234,7 +234,7 @@ export function buildGalleryLightboxSlideChrome({
           const currentSeed = Number(entry.queueParams?.seed);
           if (!Number.isFinite(currentSeed)) {
             setRequeueStatus('Re-queueing with new seed…');
-            void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+            void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
               requeueComfyJobFromEntry(entry, {
                 newSeed: true,
                 exactGraph: false,
@@ -245,7 +245,7 @@ export function buildGalleryLightboxSlideChrome({
           }
           const nextSeed = Math.trunc(currentSeed) + 1;
           setRequeueStatus(`Re-queueing with seed ${nextSeed}…`);
-          void import('@/lib/comfyui-requeue').then(({ requeueComfyJobFromEntry }) =>
+          void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
             requeueComfyJobFromEntry(entry, {
               seedOverride: nextSeed,
               exactGraph: false,

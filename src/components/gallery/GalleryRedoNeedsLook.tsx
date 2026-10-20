@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { galleryNeedsLookReasons } from '@/lib/gallery-needs-look';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { galleryNeedsLookReasons } from '@/lib/gallery/needs-look';
 
 /** At most this many re-queued in one go (each is a render). */
 const REDO_MAX = 24;
@@ -32,7 +32,7 @@ export default function GalleryRedoNeedsLook({ castId }: { castId?: string }) {
       return;
     }
     setBusy(true);
-    const { requeueComfyJobFromEntry } = await import('@/lib/comfyui-requeue');
+    const { requeueComfyJobFromEntry } = await import('@/lib/comfyui/requeue');
     let queued = 0;
     for (const [index, entry] of entries.entries()) {
       setStatus(`Re-queueing ${index + 1} of ${entries.length}…`);

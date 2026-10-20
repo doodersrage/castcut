@@ -15,8 +15,8 @@ import {
   normalizeComposeIdentityLockStrength,
   type ComposeIdentityKind,
 } from '@/lib/compose-identity-lock';
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
-import { persistIdentityImage } from '@/lib/gallery-media-client';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
+import { persistIdentityImage } from '@/lib/gallery/media-client';
 import {
   identityLockLookStatus,
   lockOnLookFace,

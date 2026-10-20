@@ -4,7 +4,7 @@ import {
   contentTypeForViewBytes,
   isAnimatedImageBytes,
   isHtmlVideoContentType,
-} from '@/lib/comfyui-outputs';
+} from '@/lib/comfyui/outputs';
 import { ensureLumaOutput } from '@/lib/luma-client';
 import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/url-safety';
 

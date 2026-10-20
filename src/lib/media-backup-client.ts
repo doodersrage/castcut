@@ -1,7 +1,7 @@
 'use client';
 
 /** Pictures backup from the browser: ask for a download link; restore a .tar in chunks. */
-import { loadComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings } from './comfyui/settings';
 import { collectComfyFileRefs } from './media-backup-refs';
 import { exportStudioBackup } from './studio-backup';
 

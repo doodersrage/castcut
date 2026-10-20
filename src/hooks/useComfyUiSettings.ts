@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { whenBrowserStorageReady } from '@/lib/browser-storage';
-import type { ComfyUiRuntimeConfig } from '@/lib/comfyui-config';
+import type { ComfyUiRuntimeConfig } from '@/lib/comfyui/config';
 import {
   comfyUiSettingsToRuntime,
   loadComfyUiSettings,
   saveComfyUiSettings,
   type ComfyUiSettings,
-} from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/settings';
 
 export function useComfyUiSettings() {
   const [mounted, setMounted] = useState(false);

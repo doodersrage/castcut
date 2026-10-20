@@ -1,7 +1,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
-import { isStillLightboxKind } from '@/lib/comfyui-outputs';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import type { GalleryLightboxFit } from '@/lib/gallery-lightbox-prefs';
+import { isStillLightboxKind } from '@/lib/comfyui/outputs';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import type { GalleryLightboxFit } from '@/lib/gallery/lightbox-prefs';
 import type {
   ImageLightboxSlideChrome,
   ImageLightboxSlideshowOptions,

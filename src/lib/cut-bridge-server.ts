@@ -8,7 +8,7 @@ import { promises as fs } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { uploadComfyInputContent } from './comfy-input-upload-server';
+import { uploadComfyInputContent } from './comfyui/comfy-input-upload-server';
 import { filmTempOsDir, resolveFfmpegBinary } from './video-server-encode';
 
 /** A clip's first or last frame, or the frame at a second (a freeze frame). */

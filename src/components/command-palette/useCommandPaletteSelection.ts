@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { AppFeatureId } from '@/lib/auth/features';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import type { CommandItem } from '@/components/command-palette/types';
 import { allowPaletteItemOnPath, isCommandItemAllowed } from '@/components/command-palette/catalog';
 import {
@@ -24,7 +24,7 @@ function createApplyLastLookHandler(router: AppRouterInstance) {
       saveSharedSettings(m.applySessionRecipeShared(loadSettingsCache().shared, recipe), {
         notify: true,
       });
-      const { galleryToolHref } = await import('@/lib/gallery-tool-href');
+      const { galleryToolHref } = await import('@/lib/gallery/tool-href');
       router.push(galleryToolHref(recipe.toolId));
     });
   };
@@ -32,9 +32,9 @@ function createApplyLastLookHandler(router: AppRouterInstance) {
 
 function createRestoreKeeperStackHandler(router: AppRouterInstance) {
   return (entry: ComfyGalleryEntry) => {
-    void import('@/lib/gallery-stack-restore').then(async ({ applyGalleryStackToSession }) => {
+    void import('@/lib/gallery/stack-restore').then(async ({ applyGalleryStackToSession }) => {
       applyGalleryStackToSession(entry);
-      const { galleryToolHref } = await import('@/lib/gallery-tool-href');
+      const { galleryToolHref } = await import('@/lib/gallery/tool-href');
       router.push(galleryToolHref(entry.tool));
     });
   };

@@ -13,7 +13,7 @@ import {
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
 } from '@/lib/model-sampler-defaults';
-import { formatModelSamplingHint } from '@/lib/model-sampling-patch';
+import { formatModelSamplingHint } from '@/lib/workflow/model-sampling-patch';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 
 type OverrideFieldKey = keyof ModelSamplerOverrideFields;

@@ -7,7 +7,7 @@ import {
   getPulidHealth,
   type IdentityPackHealth,
 } from '@/lib/identity-pack-health';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 
 type IdentityPackHealthChipsProps = {
   refreshKey?: number;

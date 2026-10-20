@@ -7,7 +7,7 @@ import {
   resetDayVacationFaceRestoreScheduleForTests,
   resolveDayVacationFaceRestoreRefFilename,
 } from './vacation-face-restore';
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 
 function entry(
   overrides: Partial<ComfyGalleryEntry> & Pick<ComfyGalleryEntry, 'id' | 'promptId'>

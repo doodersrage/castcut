@@ -1,4 +1,4 @@
-import type { CustomWorkflowToken } from './comfyui-config';
+import type { CustomWorkflowToken } from './comfyui/config';
 
 export const DEFAULT_UPSCALE_MODEL_TOKEN = '{{UPSCALE_MODEL}}';
 

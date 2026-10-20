@@ -4,7 +4,7 @@
  * previous. Rough on purpose — "~6 min", not a promise. Pure.
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 
 /** Used until a job has finished on this machine. */
 export const DEFAULT_RENDER_MS = 60_000;

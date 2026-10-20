@@ -1,4 +1,4 @@
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 import { appendWebhookLogEntry } from './webhook-log';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 

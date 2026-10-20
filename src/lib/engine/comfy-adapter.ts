@@ -1,13 +1,13 @@
 'use client';
 
-import { postComfyUiPrompt } from '@/lib/comfyui-queue-request';
-import { fetchComfyJobStatus } from '@/lib/comfyui-gallery-client';
-import { buildComfyViewPath } from '@/lib/comfyui-outputs';
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
+import { postComfyUiPrompt } from '@/lib/comfyui/queue-request';
+import { fetchComfyJobStatus } from '@/lib/gallery/comfyui-gallery-client';
+import { buildComfyViewPath } from '@/lib/comfyui/outputs';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
 import {
   openComfyPreviewSocketBeforeQueue,
   subscribeComfyUiWebSocket,
-} from '@/lib/comfyui-websocket';
+} from '@/lib/comfyui/websocket';
 import type {
   EngineAdapter,
   EngineJobStatus,

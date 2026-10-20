@@ -5,7 +5,7 @@
  * through the Settings download list file by file.
  */
 
-import { getCatalogAsset } from '@/lib/comfy-asset-catalog';
+import { getCatalogAsset } from '@/lib/comfyui/comfy-asset-catalog';
 
 /** The smallest file set that runs each model (all-in-one checkpoints are one file). */
 const MODEL_ASSETS: Record<string, string[]> = {

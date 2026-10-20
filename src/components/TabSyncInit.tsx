@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { subscribeTabSync } from '@/lib/tab-sync';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import {
   SETTINGS_CACHE_KEY,
   SETTINGS_TOOLS_SIDECAR_KEY,
@@ -25,7 +25,7 @@ export default function TabSyncInit() {
     return subscribeTabSync(message => {
       if (message.type === 'gallery-updated') {
         // Other tabs mutate IndexedDB; reload before refreshing UI so deletes stick.
-        void import('@/lib/gallery-db-store').then(({ reloadGalleryFromDb }) =>
+        void import('@/lib/gallery/db-store').then(({ reloadGalleryFromDb }) =>
           reloadGalleryFromDb().finally(() => {
             window.dispatchEvent(new Event(COMFYUI_GALLERY_UPDATED_EVENT));
           })

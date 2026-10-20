@@ -6,8 +6,8 @@
  * with DWPose, and saves it under the chosen layout.
  */
 
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
 import type { PhotoPose } from '@/lib/pose-types';

@@ -12,19 +12,19 @@ import {
 import {
   GALLERY_SLIDESHOW_TRANSITION_OPTIONS,
   resolveGallerySlideshowTransitionMs,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   isStillLightboxKind,
   shouldUseHtmlVideoElement,
   stripGalleryViewWidthParam,
-} from '@/lib/comfyui-outputs';
-import { prefetchGalleryImageUrl } from '@/lib/gallery-image-prefetch';
+} from '@/lib/comfyui/outputs';
+import { prefetchGalleryImageUrl } from '@/lib/gallery/image-prefetch';
 import {
   loadGalleryLightboxUiPreferences,
   saveGalleryLightboxUiPreferences,
   type GalleryLightboxFit,
-} from '@/lib/gallery-lightbox-prefs';
+} from '@/lib/gallery/lightbox-prefs';
 import { computeLightboxHistogram, type LightboxHistogram } from '@/lib/lightbox-histogram';
 import { resolveSlideDirection } from '@/components/ui/image-lightbox/imageLightboxTransitions';
 import type {
@@ -91,7 +91,7 @@ export type ImageLightboxPresentation = {
   currentThumbUrl: string | undefined;
   currentOriginalUrl: string | undefined;
   hasDistinctFullRes: boolean;
-  currentKind: import('@/lib/comfyui-outputs').ComfyOutputMediaKind;
+  currentKind: import('@/lib/comfyui/outputs').ComfyOutputMediaKind;
   playInlineVideo: boolean;
   currentUrl: string;
   currentDownloadUrl: string | undefined;

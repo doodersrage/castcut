@@ -5,7 +5,7 @@ import {
   loadComfyGallery,
   removeComfyGalleryEntries,
   type ComfyGalleryEntry,
-} from './comfyui-gallery';
+} from './gallery/comfyui-gallery';
 import { rankImagesWithVision, type BestOfNImageCandidate } from './best-of-n-rank';
 import { markExperimentWinner } from './experiment-winners';
 import { mapWithConcurrency } from './concurrency';

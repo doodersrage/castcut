@@ -7,10 +7,10 @@
  * points at the durable copy. Falls back to the original URL when storage is unavailable.
  */
 
-import { addComfyGalleryEntry, loadComfyGallery } from './comfyui-gallery';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { loadComfyUiSettings } from './comfyui-settings';
-import { persistGalleryOriginal } from './gallery-media-client';
+import { addComfyGalleryEntry, loadComfyGallery } from './gallery/comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
+import { loadComfyUiSettings } from './comfyui/settings';
+import { persistGalleryOriginal } from './gallery/media-client';
 
 const CLIP_KEEP_NAME = {
   extend: 'extended',

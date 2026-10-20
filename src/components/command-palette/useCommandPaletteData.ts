@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import type { AppFeatureId } from '@/lib/auth/features';
 import { NSFW_GENERATOR_NAV_LINK } from '@/lib/nsfw-generator-nav';
 import { loadNavFavorites } from '@/lib/nav-favorites';
@@ -20,7 +20,7 @@ import {
 } from '@/components/command-palette/catalog';
 import type { CommandItem } from '@/components/command-palette/types';
 import type { SessionRecipe } from '@/lib/session-recipes';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { appHasRoute } from '@/lib/app-profile';
 import { describeQueueJob } from '@/lib/queue-job-context';
 
@@ -99,8 +99,8 @@ export function useCommandPaletteOpenState(open: boolean) {
     void import('@/lib/session-recipes').then(({ latestGenerateLookRecipe }) => {
       setLastLook(latestGenerateLookRecipe());
     });
-    void import('@/lib/gallery-stack-restore').then(async ({ pickKeeperStackEntry }) => {
-      const { loadVisibleComfyGallery } = await import('@/lib/comfyui-gallery');
+    void import('@/lib/gallery/stack-restore').then(async ({ pickKeeperStackEntry }) => {
+      const { loadVisibleComfyGallery } = await import('@/lib/gallery/comfyui-gallery');
       const gallery = loadVisibleComfyGallery();
       setKeeperStack(pickKeeperStackEntry(gallery));
       setRecentGallery(

@@ -1,4 +1,4 @@
-import { IDENTITY_MEDIA_URL } from './gallery-media-client';
+import { IDENTITY_MEDIA_URL } from './gallery/media-client';
 import { stampedUploadName } from './upload-name';
 
 export const ISOLATE_FILL_WHITE = { r: 255, g: 255, b: 255 } as const;
@@ -179,7 +179,7 @@ export async function isolateSubjectOnFill(
   body.append('image', source, uploadName);
   body.append('fill', `${fill.r},${fill.g},${fill.b}`);
   // The server mattes in ComfyUI (BiRefNet) when it can — on the ComfyUI the player set up.
-  const { loadComfyUiSettings } = await import('./comfyui-settings');
+  const { loadComfyUiSettings } = await import('./comfyui/settings');
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim();
   if (comfyUrl) {
     body.append('comfyUrl', comfyUrl);

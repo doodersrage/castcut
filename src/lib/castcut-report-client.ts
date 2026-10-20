@@ -1,7 +1,7 @@
 'use client';
 
 import type { CastcutBestOfTwoReport } from '@/lib/castcut-nodes';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 
 /** Browser: a finished job's Castcut Best-of-two report via `/api/castcut-report` (null = none). */
 export async function fetchCastcutBestOfTwoReport(

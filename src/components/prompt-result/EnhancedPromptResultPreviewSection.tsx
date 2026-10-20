@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/Button';
 import GalleryKindPreview from '@/components/ui/GalleryKindPreview';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import { isHtmlVideoViewUrl, isMotionViewUrl, mediaKindFromViewUrl } from '@/lib/comfyui-outputs';
+import { isHtmlVideoViewUrl, isMotionViewUrl, mediaKindFromViewUrl } from '@/lib/comfyui/outputs';
 
 export type EnhancedPromptResultPreviewSectionProps = {
   comfyUiPreviewUrl: string;

@@ -1,5 +1,5 @@
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { galleryCardCaption } from './gallery-card-caption';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { galleryCardCaption } from './gallery/card-caption';
 
 export type ExperimentGroup = {
   id: string;

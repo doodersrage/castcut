@@ -1,7 +1,7 @@
 import { getDiffusersBaseUrl, queueDiffusersTxt2Img } from '@/lib/diffusers-client';
 import { resolveDiffusersModelHint } from '@/lib/diffusers-defaults';
 import { resolveDiffusersOutputPost } from '@/lib/diffusers-output-post';
-import { freeComfyUiMemoryServer } from '@/lib/comfyui-free-server';
+import { freeComfyUiMemoryServer } from '@/lib/comfyui/free-server';
 import { normalizeQueueQualityProfile } from '@/lib/queue-quality-profile';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';

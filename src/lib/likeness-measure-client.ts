@@ -8,8 +8,8 @@
  */
 
 import { looksOf, type CharacterLook, type CharacterRecord } from '@/lib/character-os';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
+import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { galleryEntryComfyStillUrl } from '@/lib/fix-area-gallery';

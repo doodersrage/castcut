@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
 type GalleryReviewBannerProps = {
   filter: ComfyGalleryFilter;

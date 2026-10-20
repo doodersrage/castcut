@@ -35,12 +35,12 @@ import {
 import { applyCastLookPlateFromSource } from '@/lib/look/outfit-plate';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play/slot-quality';
-import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/comfyui-gallery';
+import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/gallery/comfyui-gallery';
 import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
-import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/comfyui/still-comfy-url';
 import { notePoseTakeOutcomes, notePoseTakePair } from '@/lib/pose-outcome-stats';
 import { dayLooksWrongAvailable, dayLooksWrongTakeIds } from '@/lib/day/looks-wrong';
 import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day/two-takes';

@@ -9,8 +9,8 @@
  * distances matched FaceEmbedDistance to 7e-8 and face boxes FaceBoundingBox exactly.
  */
 
-import type { ComfyImageRef } from '@/lib/comfy-utility-graph-server';
-import { inputNamePrefix } from '@/lib/comfy-input-name';
+import type { ComfyImageRef } from '@/lib/comfyui/comfy-utility-graph-server';
+import { inputNamePrefix } from '@/lib/comfyui/comfy-input-name';
 
 export type CastcutRoutesInfo = {
   version: string;

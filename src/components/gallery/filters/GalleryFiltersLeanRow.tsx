@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryFilter, GalleryPageSize } from '@/lib/comfyui-gallery';
-import { GALLERY_PAGE_SIZE_ALL, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryFilter, GalleryPageSize } from '@/lib/gallery/comfyui-gallery';
+import { GALLERY_PAGE_SIZE_ALL, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/gallery/comfyui-gallery';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 
 type Props = {

@@ -1,13 +1,13 @@
 'use client';
 
-import { galleryCardCaption } from '@/lib/gallery-card-caption';
+import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import GalleryUsedInBadge from '@/components/gallery/GalleryUsedInBadge';
 import type { RefObject } from 'react';
 import GalleryCardMenu from '@/components/gallery/GalleryCardMenu';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
-import { isHtmlVideoViewUrl } from '@/lib/comfyui-outputs';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
+import { isHtmlVideoViewUrl } from '@/lib/comfyui/outputs';
 
 export type GalleryCardBodyBlockProps = {
   entry: ComfyGalleryEntry;
@@ -69,8 +69,12 @@ export type GalleryCardBodyBlockProps = {
   setPromptExpanded: (value: boolean | ((previous: boolean) => boolean)) => void;
   metaLine: string;
   derivedLabel: string | null | undefined;
-  primaryMediaKind: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryPrimaryMediaKind>;
-  stripMediaKinds: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryMediaKinds>;
+  primaryMediaKind: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
+  >;
+  stripMediaKinds: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryMediaKinds
+  >;
   isVideoHero: boolean;
   comfyHostLabel: string | null;
   menuOpen: boolean;

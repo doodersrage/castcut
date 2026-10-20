@@ -17,9 +17,9 @@ import {
   type CharacterRecord,
 } from '../character-os';
 import { castFileDay, castFileName, placeImportedCast, type CastFileDay } from './transfer';
-import { loadComfyGallery, saveComfyGallery } from '../comfyui-gallery';
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
-import { loadComfyUiSettings } from '../comfyui-settings';
+import { loadComfyGallery, saveComfyGallery } from '../gallery/comfyui-gallery';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
+import { loadComfyUiSettings } from '../comfyui/settings';
 import type { DayDressPlateEntry } from '../day/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '../day/dress-plate-store';
 import { collectComfyFileRefs } from '../media-backup-refs';

@@ -6,7 +6,7 @@
  */
 
 import { isCutRecipe } from '../cut-recipe';
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { assembleAndStampFilm, downloadFilmBlob } from './character-film-assemble-lazy';
 import {
   filmResolutionForCutOptions,

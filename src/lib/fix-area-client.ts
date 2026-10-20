@@ -1,7 +1,7 @@
 'use client';
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import type { ComfyOutputImage } from '@/lib/comfyui-outputs';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
+import type { ComfyOutputImage } from '@/lib/comfyui/outputs';
 import type { FixAreaBox, FixAreaMode } from '@/lib/fix-area';
 
 /** What a caller (Gallery, Day, Story, Outfit) hands the Fix an area dialog. */
@@ -83,7 +83,7 @@ export async function queueFixArea(input: {
   let workflow: unknown;
   let workflowJson = input.target.workflowJson ?? null;
   if (!workflowJson && input.target.galleryEntryId) {
-    const { getGalleryEntryById } = await import('@/lib/gallery-db-store');
+    const { getGalleryEntryById } = await import('@/lib/gallery/db-store');
     workflowJson = getGalleryEntryById(input.target.galleryEntryId)?.workflowJson ?? null;
   }
   if (workflowJson) {

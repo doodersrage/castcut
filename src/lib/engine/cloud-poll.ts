@@ -1,4 +1,4 @@
-import { createComfyUiClientId } from '@/lib/comfyui-websocket';
+import { createComfyUiClientId } from '@/lib/comfyui/websocket';
 import type {
   EngineJobStatus,
   EngineOutputImage,

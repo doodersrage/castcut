@@ -58,8 +58,8 @@ import {
   normalizeWardrobeCategoryFilter,
 } from '@/lib/wardrobe-catalog-ui';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { cacheBustIdentityMediaUrl, isIdentityMediaUrl } from '@/lib/gallery-media-client';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
+import { cacheBustIdentityMediaUrl, isIdentityMediaUrl } from '@/lib/gallery/media-client';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,

@@ -5,8 +5,8 @@ import 'server-only';
  * Shared by gallery media persist and archive jobs.
  */
 
-import { getComfyUiBaseUrl } from './comfyui-client';
-import { stripEmptyComfyUiRuntime } from './comfyui-config';
+import { getComfyUiBaseUrl } from './comfyui/client';
+import { stripEmptyComfyUiRuntime } from './comfyui/config';
 
 export type FetchedEngineBuffer = { buffer: Buffer; contentType: string };
 

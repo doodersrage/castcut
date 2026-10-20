@@ -6,7 +6,7 @@
 
 import { closeSync, existsSync, openSync, readSync } from 'node:fs';
 import path from 'node:path';
-import { getComfyUiRoot } from '@/lib/comfy-asset-paths';
+import { getComfyUiRoot } from '@/lib/comfyui/comfy-asset-paths';
 import {
   detectLoraFamily,
   nameLooksQwen21,

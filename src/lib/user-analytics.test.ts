@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { PromptHistoryEntry } from "./prompt-history";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 import {
   analyzePromptHistoryEntries,
   buildUserAnalyticsSnapshot,

@@ -16,8 +16,8 @@ import type {
   ImageLightboxSlideshowOptions,
   ImageLightboxState,
 } from '@/components/ui/image-lightbox/types';
-import { isStillLightboxKind, type ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
-import type { GallerySlideshowTransition } from '@/lib/comfyui-gallery';
+import { isStillLightboxKind, type ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
+import type { GallerySlideshowTransition } from '@/lib/gallery/comfyui-gallery';
 import type { LightboxHistogram } from '@/lib/lightbox-histogram';
 
 type SlideChromeBarBindings = Omit<ImageLightboxSlideChromeBarProps, 'compact' | 'slideChrome'>;

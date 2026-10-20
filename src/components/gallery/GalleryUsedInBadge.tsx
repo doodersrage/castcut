@@ -6,8 +6,8 @@ import {
   galleryEntryViewUrls,
   loadComfyGallery,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
-import { filmsUsingEntry } from '@/lib/gallery-used-in';
+} from '@/lib/gallery/comfyui-gallery';
+import { filmsUsingEntry } from '@/lib/gallery/used-in';
 
 /** "In 2 films" on a still or clip that cut films use (gallery-used-in.ts); opens the film. */
 export default function GalleryUsedInBadge({ entry }: { entry: ComfyGalleryEntry }) {

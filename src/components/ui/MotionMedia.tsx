@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { isHtmlVideoViewUrl, stripGalleryViewWidthParam } from '@/lib/comfyui-outputs';
+import { isHtmlVideoViewUrl, stripGalleryViewWidthParam } from '@/lib/comfyui/outputs';
 
 type MotionMediaProps = {
   src: string;

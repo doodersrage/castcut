@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   buildLoraTrainValidationPrompt,
   createTrainJob,
@@ -46,12 +46,12 @@ export function useLoraTrainPanel(onStatus?: (message: string) => void) {
 
   const queueValidationByPrompt = useCallback(
     async (prompt: string) => {
-      const { postComfyUiPrompt } = await import('@/lib/comfyui-queue-request');
+      const { postComfyUiPrompt } = await import('@/lib/comfyui/queue-request');
       const { resolveQueueNegativePrompt } = await import('@/lib/queue-negative');
       const { resolveQueueParams } = await import('@/lib/queue-params-settings');
-      const { resolveRuntimeForQueue } = await import('@/lib/comfyui-runtime-for-model');
-      const { registerComfyGalleryJob } = await import('@/lib/comfyui-gallery-client');
-      const { scheduleComfyGalleryPoll } = await import('@/lib/comfyui-gallery-poller');
+      const { resolveRuntimeForQueue } = await import('@/lib/comfyui/runtime-for-model');
+      const { registerComfyGalleryJob } = await import('@/lib/gallery/comfyui-gallery-client');
+      const { scheduleComfyGalleryPoll } = await import('@/lib/gallery/comfyui-gallery-poller');
       const { shared } = loadSettingsCache();
       const negativePrompt = await resolveQueueNegativePrompt({
         model: shared.model,

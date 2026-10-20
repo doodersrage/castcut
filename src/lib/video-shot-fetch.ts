@@ -10,9 +10,9 @@ import {
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
 } from './url-safety';
-import { getComfyUiBaseUrl } from './comfyui-client';
-import { stripEmptyComfyUiRuntime } from './comfyui-config';
-import { readGalleryOriginalFile } from './gallery-media-store';
+import { getComfyUiBaseUrl } from './comfyui/client';
+import { stripEmptyComfyUiRuntime } from './comfyui/config';
+import { readGalleryOriginalFile } from './gallery/media-store';
 import { assertPublicFetchUrl } from './url-safety-server';
 import { isServerStorageEnabled } from './server-storage';
 

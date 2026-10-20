@@ -6,7 +6,7 @@ import { probeFilmScore } from '../film/score-server';
 import { isLlmEnabled } from '@/lib/llm-client';
 import { detectVisionModel } from '@/lib/vision-model-auto';
 import { detectLmStudio } from '@/lib/vision-model-download-server';
-import { comfyBaseUrl, resolveComfyNode } from '@/lib/comfy-utility-graph-server';
+import { comfyBaseUrl, resolveComfyNode } from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   ffmpegHasDrawtext,
   resolveFfmpegBinary,

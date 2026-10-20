@@ -21,14 +21,14 @@ import {
 import { loadLocationBlocklist, saveLocationBlocklist } from './prompt-history';
 import { loadScenePresets, saveScenePresets } from './scene-presets';
 import { loadUserTemplates, saveUserTemplates } from './user-templates';
-import { loadComfyUiSettings, saveComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from './comfyui/settings';
 import {
   loadComfyWorkflowFiles,
   loadDeletedComfyWorkflowFiles,
   saveComfyWorkflowFiles,
   saveDeletedComfyWorkflowFiles,
-} from './comfyui-workflow-files';
-import { loadComfyWorkflowPresets, saveComfyWorkflowPresets } from './comfyui-workflow-presets';
+} from './comfyui/workflow-files';
+import { loadComfyWorkflowPresets, saveComfyWorkflowPresets } from './comfyui/workflow-presets';
 import { exportAvoidedTokenList, saveAvoidedTokens } from './avoided-tokens';
 import { loadWebhookLog, WEBHOOK_LOG_KEY, type WebhookLogEntry } from './webhook-log';
 import {
@@ -56,20 +56,20 @@ import {
 } from './user-scene-starter-presets';
 import { loadPromptRecipes, savePromptRecipes } from './prompt-recipes';
 import { loadCampaignTemplates, saveCampaignTemplates } from './campaign-templates';
-import { loadGallerySavedViews, saveGallerySavedViews } from './gallery-saved-views';
+import { loadGallerySavedViews, saveGallerySavedViews } from './gallery/saved-views';
 import { loadHistorySavedViews, saveHistorySavedViews } from './history-saved-views';
-import { loadGalleryViewPreferences, saveGalleryViewPreferences } from './comfyui-gallery';
+import { loadGalleryViewPreferences, saveGalleryViewPreferences } from './gallery/comfyui-gallery';
 import {
   loadGalleryLightboxUiPreferences,
   saveGalleryLightboxUiPreferences,
-} from './gallery-lightbox-prefs';
-import { loadGalleryDensity, saveGalleryDensity } from './gallery-density';
+} from './gallery/lightbox-prefs';
+import { loadGalleryDensity, saveGalleryDensity } from './gallery/density';
 import { loadHistoryDensity, saveHistoryDensity } from './history-density';
 import { loadPluginOriginAllowlist, savePluginOriginAllowlist } from './plugin-origin-allowlist';
 import { loadKeyboardShortcuts, saveKeyboardShortcuts } from './keyboard-shortcuts-store';
 import { loadNavFavorites, saveNavFavorites } from './nav-favorites';
 import { loadQueueParamsSettings, saveQueueParamsSettings } from './queue-params-settings';
-import { loadWorkflowPresetPacks, saveWorkflowPresetPacks } from './workflow-preset-packs';
+import { loadWorkflowPresetPacks, saveWorkflowPresetPacks } from './workflow/preset-packs';
 import {
   EXPERIMENT_WINNERS_KEY,
   loadExperimentWinners,
@@ -79,7 +79,7 @@ import {
   loadGalleryEloStore,
   replaceGalleryEloStore,
   type GalleryEloRecord,
-} from './gallery-elo-store';
+} from './gallery/elo-store';
 import { CATALOG_RATING_BIAS_KEY } from './catalog-rating-bias';
 import { loadNegativeSuggestions, saveNegativeSuggestions } from './negative-learner';
 import {

@@ -5,13 +5,13 @@ const resolveRuntimeForQueue = mock.fn((_model: string, _tool?: string) => ({
   apiUrl: 'http://127.0.0.1:8188',
   queueQualityProfile: 'final',
 }));
-mock.module('./comfyui-runtime-for-model', { namedExports: { resolveRuntimeForQueue } });
+mock.module('./comfyui/runtime-for-model', { namedExports: { resolveRuntimeForQueue } });
 
 const registerComfyGalleryJob = mock.fn((_input: unknown) => ({}) as unknown);
-mock.module('./comfyui-gallery-client', { namedExports: { registerComfyGalleryJob } });
+mock.module('./gallery/comfyui-gallery-client', { namedExports: { registerComfyGalleryJob } });
 
 const scheduleComfyGalleryPoll = mock.fn((_promptId: string, _opts?: unknown) => Promise.resolve(null));
-mock.module('./comfyui-gallery-poller', { namedExports: { scheduleComfyGalleryPoll } });
+mock.module('./gallery/comfyui-gallery-poller', { namedExports: { scheduleComfyGalleryPoll } });
 
 type QueueResult = {
   ok: boolean;
@@ -28,7 +28,7 @@ let postComfyUiPromptImpl: (body: unknown) => Promise<QueueResult> = async () =>
   releaseLiveSocket: () => {},
 });
 const postComfyUiPrompt = mock.fn((body: unknown) => postComfyUiPromptImpl(body));
-mock.module('./comfyui-queue-request', { namedExports: { postComfyUiPrompt } });
+mock.module('./comfyui/queue-request', { namedExports: { postComfyUiPrompt } });
 
 const loadActiveProjectId = mock.fn(() => 'project-1');
 mock.module('./prompt-projects', { namedExports: { loadActiveProjectId } });

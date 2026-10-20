@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import { aestheticScoreFromVisionRating } from '@/lib/aesthetic-score';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { updateComfyGalleryEntryById } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { updateComfyGalleryEntryById } from '@/lib/gallery/comfyui-gallery';
 
 type InboxResult = {
   suggestedRating: number;

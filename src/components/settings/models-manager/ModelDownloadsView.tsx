@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { ComfyModelAssetsDownloadQueue } from '@/components/settings/comfy-model-assets/ComfyModelAssetsDownloadQueue';
 import type { ComfyModelAssetsViewModel } from '@/components/settings/comfy-model-assets/useComfyModelAssets';
 import type { AssetRow } from '@/components/settings/comfy-model-assets/comfy-model-assets-types';
-import { COMFY_ASSET_KIND_LABELS, type ComfyAssetKind } from '@/lib/comfy-asset-kinds';
+import { COMFY_ASSET_KIND_LABELS, type ComfyAssetKind } from '@/lib/comfyui/comfy-asset-kinds';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { engineFamilyLabel, formatBytes } from '@/lib/model-files';
 

@@ -6,7 +6,7 @@ import { Button, PrimaryButton } from '@/components/ui/Button';
 import BrandBars from '@/components/BrandBars';
 import BrandMark from '@/components/BrandMark';
 import { runHealAndReady } from '@/lib/first-run-setup';
-import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfy-setup-intent';
+import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
 import { isCloudEngine, normalizeEngineId } from '@/lib/engine/capabilities';
 import {

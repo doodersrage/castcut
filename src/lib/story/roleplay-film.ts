@@ -3,7 +3,7 @@
  * `derivedKind: 'extend'` means continue from the last frame, not a V2V/extend API.
  */
 
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { isVideoLikeEntry } from '../media-kind';
 import type { RoleplayStoryBeat } from './roleplay';
 import { lastCompletedRoleplayStillUrl, roleplayClipTakes } from './roleplay';

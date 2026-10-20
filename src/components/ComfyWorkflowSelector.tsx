@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
-import { workflowFileDisplayName } from '@/lib/comfyui-workflow-files';
+import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
+import { workflowFileDisplayName } from '@/lib/comfyui/workflow-files';
 import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
 
 type ComfyWorkflowSelectorProps = {

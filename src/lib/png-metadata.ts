@@ -1,7 +1,7 @@
 import type { PromptSidecar } from './prompt-sidecar';
 import { buildPromptSidecar } from './prompt-sidecar';
-import { extractParamsFromWorkflow } from './workflow-param-extract';
-import type { WorkflowParamValues } from './comfyui-config';
+import { extractParamsFromWorkflow } from './workflow/param-extract';
+import type { WorkflowParamValues } from './comfyui/config';
 
 export type PngMetadataResult = {
   positive?: string;

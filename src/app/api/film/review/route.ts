@@ -7,7 +7,7 @@ import {
   REVIEW_DEFAULT_DAYS,
   revokeFilmReview,
 } from '@/lib/film/review-store';
-import { readGalleryOriginalFile } from '@/lib/gallery-media-store';
+import { readGalleryOriginalFile } from '@/lib/gallery/media-store';
 
 export const runtime = 'nodejs';
 

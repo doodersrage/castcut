@@ -1,8 +1,8 @@
 'use client';
 
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
-import type { GalleryStats } from '@/lib/gallery-stats';
-import { GALLERY_ENTRY_LIMIT } from '@/lib/gallery-stats';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
+import type { GalleryStats } from '@/lib/gallery/stats';
+import { GALLERY_ENTRY_LIMIT } from '@/lib/gallery/stats';
 
 type GalleryStatsBarProps = {
   stats: GalleryStats;

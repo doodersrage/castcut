@@ -3,7 +3,7 @@
 import type { RefObject } from 'react';
 import { GalleryPanelHeader, GalleryPickDock } from '@/components/gallery/GalleryPanelChrome';
 import StatusToastStrip from '@/components/ui/StatusToastStrip';
-import type { GalleryHandoffPayload } from '@/lib/gallery-handoff';
+import type { GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import { toneForStatusText } from '@/lib/status-progress';
 
 type GalleryPanelStatusSectionProps = {

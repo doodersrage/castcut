@@ -7,13 +7,13 @@ import {
   contentTypeForViewBytes,
   isAnimatedImageBytes,
   resolveComfyOutputMediaKind,
-} from '@/lib/comfyui-outputs';
-import { durableGalleryOriginalUrl, durableGalleryThumbUrl } from '@/lib/gallery-media-client';
+} from '@/lib/comfyui/outputs';
+import { durableGalleryOriginalUrl, durableGalleryThumbUrl } from '@/lib/gallery/media-client';
 import {
   persistGalleryThumbFile,
   persistIdentityFile,
   persistGalleryOriginalFile,
-} from '@/lib/gallery-media-store';
+} from '@/lib/gallery/media-store';
 import { isServerStorageEnabled } from '@/lib/server-storage';
 import { fetchEngineOutputBuffer } from '@/lib/engine-output-fetch';
 import {

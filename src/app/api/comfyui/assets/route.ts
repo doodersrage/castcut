@@ -1,8 +1,8 @@
 import { after } from 'next/server';
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
-import { fetchComfyObjectInfoPayload } from '@/lib/comfyui-object-info';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
+import { fetchComfyObjectInfoPayload } from '@/lib/comfyui/object-info';
 import {
   cancelComfyAssetDownload,
   getComfyAssetJob,
@@ -11,9 +11,9 @@ import {
   retryComfyAssetDownload,
   runComfyAssetDownloadJob,
   startComfyAssetDownload,
-} from '@/lib/comfy-asset-download';
-import { getComfyUiRoot, isComfyUiRootConfigured } from '@/lib/comfy-asset-paths';
-import { buildComfyAssetStatusRows } from '@/lib/comfy-asset-status';
+} from '@/lib/comfyui/comfy-asset-download';
+import { getComfyUiRoot, isComfyUiRootConfigured } from '@/lib/comfyui/comfy-asset-paths';
+import { buildComfyAssetStatusRows } from '@/lib/comfyui/comfy-asset-status';
 
 export const runtime = 'nodejs';
 /** Large HF weights; keep the route from being treated as a short serverless call. */

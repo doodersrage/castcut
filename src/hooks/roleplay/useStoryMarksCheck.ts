@@ -20,14 +20,14 @@ import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
   recordGalleryPlayChecks,
-} from '@/lib/comfyui-gallery';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+} from '@/lib/gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   isRoleplayAdultContent,
   patchRoleplayStoryBeat,
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /** The first solo scene whose shown still has had its pose check but not its marks check. */
 export function nextStoryMarksCheck(

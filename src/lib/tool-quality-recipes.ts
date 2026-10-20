@@ -1,5 +1,5 @@
 import { COMFY_MODEL_IDS, type ComfyImageModel } from './comfy-models/client';
-import type { WorkflowParamValues } from './comfyui-config';
+import type { WorkflowParamValues } from './comfyui/config';
 import type { SessionLoraStrengthOverrides } from './lora-stack';
 import { normalizeSessionLoraStrengthOverrides } from './lora-stack';
 import { normalizeQueueQualityProfile, type QueueQualityProfile } from './queue-quality-profile';

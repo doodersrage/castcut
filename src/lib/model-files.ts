@@ -3,7 +3,7 @@
  * manager. The fs side lives in model-files-server.ts behind /api/comfyui/model-files.
  */
 
-import type { ComfyAssetStatusRow } from './comfy-asset-status';
+import type { ComfyAssetStatusRow } from './comfyui/comfy-asset-status';
 
 /** Files a render used this recently can't be deleted. */
 export const MODEL_FILE_RECENT_USE_DAYS = 30;

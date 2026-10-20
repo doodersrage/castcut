@@ -39,8 +39,8 @@ import {
   galleryEntryPrimaryViewUrl,
   resolveGalleryLightboxOpenIndex,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
-import { buildLightboxStateFromPlaylist } from '@/lib/gallery-lightbox-state';
+} from '@/lib/gallery/comfyui-gallery';
+import { buildLightboxStateFromPlaylist } from '@/lib/gallery/lightbox-state';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {

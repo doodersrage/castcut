@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import {
   judgeReference,
@@ -9,7 +9,7 @@ import {
   type ReferenceRole,
   type ReferenceVerdict,
 } from '@/lib/reference-check';
-import { isComfyViewUrl } from '@/lib/still-comfy-url';
+import { isComfyViewUrl } from '@/lib/comfyui/still-comfy-url';
 
 /**
  * Browser: check a reference picture against its role through `/api/reference-check`

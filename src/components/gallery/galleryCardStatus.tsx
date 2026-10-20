@@ -1,7 +1,7 @@
 'use client';
 
-import { comfyUiJobProgressPercent } from '@/lib/comfyui-job-status';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { jobStatusTone, type StatusTone } from '@/lib/status-tone';
 
 export function statusLabel(

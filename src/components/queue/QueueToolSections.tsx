@@ -1,8 +1,8 @@
 'use client';
 
-import { isCancelledJob } from '@/lib/comfyui-queue-cancel';
+import { isCancelledJob } from '@/lib/comfyui/queue-cancel';
 import { useState } from 'react';
-import { requeueComfyJobFromEntry } from '@/lib/comfyui-requeue';
+import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import FailedJobFixButtons from '@/components/FailedJobFixButtons';
 import { EmptyState, ErrorState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +12,7 @@ import {
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
-import { formatPoolQueueStrip } from '@/lib/comfyui-host-ready';
+import { formatPoolQueueStrip } from '@/lib/comfyui/host-ready';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import AppSlot from '@/components/AppSlot';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
@@ -23,7 +23,7 @@ import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
 import { APP_HAS_PLAY } from '@/lib/app-profile';
-import { galleryFailureSummary } from '@/lib/gallery-failure-summary';
+import { galleryFailureSummary } from '@/lib/gallery/failure-summary';
 import { engineFamilyLabel } from '@/lib/model-files';
 
 const ACCENT = 'brand' as const;

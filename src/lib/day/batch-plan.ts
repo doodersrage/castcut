@@ -5,7 +5,7 @@
  * would be done behind what is already queued. Rough on purpose. Pure.
  */
 
-import type { ComfyGalleryEntry } from '../comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { filmMediaLooksVideo } from '../media-kind';
 import { DEFAULT_RENDER_MS, estimateQueueEta, formatEta, typicalRenderMs } from '../queue-eta';
 

@@ -9,7 +9,7 @@
  * the lifecycle — open, close while rendering, land, reopen — is unit-tested without React.
  */
 
-import type { ComfyOutputImage } from '@/lib/comfyui-outputs';
+import type { ComfyOutputImage } from '@/lib/comfyui/outputs';
 import type { FixAreaJob, FixAreaPoll, FixAreaTarget } from '@/lib/fix-area-client';
 import type { FixAreaBox, FixAreaMode } from '@/lib/fix-area';
 

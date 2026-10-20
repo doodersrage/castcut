@@ -1,4 +1,4 @@
-import { reviewGalleryImage } from './gallery-vision-review';
+import { reviewGalleryImage } from './gallery/vision-review';
 import { mapWithConcurrency } from './concurrency';
 import { getLlmMaxInflight } from './llm-backpressure';
 

@@ -5,9 +5,9 @@ import {
   injectPromptsWithFallbacks,
   resolvePlaceholderTokens,
   resolveQueueParams,
-} from './comfyui-config';
+} from './comfyui/config';
 import { sizeWanClipFromStill, wanClipCanvas } from './wan-clip-canvas';
-import { buildWorkflowScaffoldForModel } from './workflow-scaffold';
+import { buildWorkflowScaffoldForModel } from './workflow/scaffold';
 
 type Graph = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
 

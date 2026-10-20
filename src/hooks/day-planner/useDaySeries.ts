@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { stitchSelectedGalleryVideos } from '@/lib/film/character-film-assemble-lazy';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import {
   activeSeriesForCast,
   closeActiveSeries,

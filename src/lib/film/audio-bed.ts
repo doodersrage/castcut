@@ -1,4 +1,4 @@
-import { persistGalleryOriginal } from '../gallery-media-client';
+import { persistGalleryOriginal } from '../gallery/media-client';
 
 /** Browser file picker accept list for Cut audio beds. */
 export const FILM_AUDIO_BED_ACCEPT =

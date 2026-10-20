@@ -1,4 +1,4 @@
-import type { ComfyUiRuntimeConfig } from './comfyui-config';
+import type { ComfyUiRuntimeConfig } from './comfyui/config';
 import type { QueueQualityProfile } from './queue-quality-profile';
 import { normalizeQueueQualityProfile } from './queue-quality-profile';
 import { loadSettingsCache } from './settings-cache';
@@ -110,7 +110,7 @@ export async function fetchComfyVramSnapshot(comfyUrl?: string): Promise<VramSna
       return data.comfyui.vram;
     }
     if (data.comfyuiPool?.enabled && data.comfyuiPool.endpoints?.length) {
-      const { pickHighestScoringComfyUiEndpoint } = await import('./comfyui-pool');
+      const { pickHighestScoringComfyUiEndpoint } = await import('./comfyui/pool');
       const stats = data.comfyuiPool.endpoints
         .map(endpoint => {
           const url = endpoint.url?.trim();

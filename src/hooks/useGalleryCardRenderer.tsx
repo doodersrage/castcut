@@ -10,8 +10,8 @@ import {
   type ComfyGalleryEntry,
   type ComfyGalleryFilter,
   type GalleryLayoutMode,
-} from '@/lib/comfyui-gallery';
-import { galleryPickActionLabel, type GalleryHandoffPayload } from '@/lib/gallery-handoff';
+} from '@/lib/gallery/comfyui-gallery';
+import { galleryPickActionLabel, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
 import { suggestRatingMutations } from '@/lib/rating-prompt-mutations';
 import type { MutableRefObject } from 'react';
 

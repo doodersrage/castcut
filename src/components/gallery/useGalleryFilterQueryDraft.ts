@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
 export function useGalleryFilterQueryDraft(
   filter: ComfyGalleryFilter,

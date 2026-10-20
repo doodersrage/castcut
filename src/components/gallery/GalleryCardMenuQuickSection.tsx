@@ -1,5 +1,5 @@
-import { requestGalleryUsePose } from '@/lib/gallery-pose-event';
-import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
+import { requestGalleryUsePose } from '@/lib/gallery/pose-event';
+import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery/handoff';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
 

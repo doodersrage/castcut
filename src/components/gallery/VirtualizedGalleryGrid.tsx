@@ -2,7 +2,7 @@
 
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 
 const VIRTUALIZE_MIN_ITEMS = 18;
 

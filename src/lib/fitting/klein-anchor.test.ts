@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { kleinColorAnchorStrengthForTool } from '../comfyui-runtime-for-model';
+import { kleinColorAnchorStrengthForTool } from '../comfyui/runtime-for-model';
 
 describe('Klein color anchor on Outfit try-ons', () => {
   it('caps the anchor at 0.1 for fitting and leaves every other tool alone', () => {
@@ -40,7 +40,7 @@ describe('Day dress plate engine', () => {
 
 describe('Klein Enhancer settings reach the server', () => {
   it('stripEmptyComfyUiRuntime keeps the Klein Enhancer fields', async () => {
-    const { stripEmptyComfyUiRuntime } = await import('../comfyui-config');
+    const { stripEmptyComfyUiRuntime } = await import('../comfyui/config');
     const out = stripEmptyComfyUiRuntime({
       kleinEnhancerEnabled: false,
       kleinEnhancerTextEnabled: false,

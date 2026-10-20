@@ -9,8 +9,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
-import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
-import { comfyBaseUrl } from '@/lib/comfy-utility-graph-server';
+import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
+import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
 import { locateFaceInComfy } from '@/lib/face-locate-server';
 import { detectPoseInComfyStill } from '@/lib/pose-detect-server';
 

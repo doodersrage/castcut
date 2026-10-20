@@ -5,9 +5,9 @@
 
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { isEditCapableModel } from '@/lib/model-denoise-defaults';
-import { isSystemWorkflowSupportedModel } from '@/lib/system-workflow-runtime';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { isSystemWorkflowSupportedModel } from '@/lib/workflow/system-workflow-runtime';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { installedComfyModels } from '@/lib/model-picker';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 

@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
 import {
   DEFAULT_IPADAPTER_IMAGE_TOKEN,
   DEFAULT_IPADAPTER_MODEL_TOKEN,
   DEFAULT_IPADAPTER_STRENGTH_TOKEN,
-} from '@/lib/ipadapter-workflow-patch';
+} from '@/lib/workflow/ipadapter-workflow-patch';
 import { getCharacter } from '@/lib/character-os';
 import type { SharedToolSettings } from '@/lib/settings-cache';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';

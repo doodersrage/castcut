@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { chromeBtn } from '@/components/ui/image-lightbox/chromeBtn';
-import { markGalleryLightboxTutorialSeen } from '@/lib/gallery-lightbox-prefs';
+import { markGalleryLightboxTutorialSeen } from '@/lib/gallery/lightbox-prefs';
 
 export type ImageLightboxTutorialTipProps = {
   compact?: boolean;

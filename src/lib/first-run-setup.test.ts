@@ -25,13 +25,13 @@ mock.module("./browser-storage", {
 
 let comfySettingsApiUrl = "";
 const loadComfyUiSettings = mock.fn(() => ({ apiUrl: comfySettingsApiUrl }));
-mock.module("./comfyui-settings", { namedExports: { loadComfyUiSettings } });
+mock.module("./comfyui/settings", { namedExports: { loadComfyUiSettings } });
 
 const fetchComfyObjectInfoCached = mock.fn(async () => null);
-mock.module("./comfyui-object-info-cache", { namedExports: { fetchComfyObjectInfoCached } });
+mock.module("./comfyui/object-info-cache", { namedExports: { fetchComfyObjectInfoCached } });
 
 const syncLoaderMapsFromInventory = mock.fn(() => ({}));
-mock.module("./loader-map-inventory-sync", { namedExports: { syncLoaderMapsFromInventory } });
+mock.module("./workflow/loader-map-inventory-sync", { namedExports: { syncLoaderMapsFromInventory } });
 
 const markOnboardingComfyHealthOk = mock.fn(() => {});
 const markOnboardingLlmHealthOk = mock.fn(() => {});

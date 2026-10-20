@@ -1,14 +1,16 @@
 'use client';
 
 import GalleryKindPreview from '@/components/ui/GalleryKindPreview';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 
 type Props = {
   entry: ComfyGalleryEntry;
   layout: GalleryLayoutMode;
   previewUrl: string;
   playbackIndex: number;
-  primaryMediaKind: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryPrimaryMediaKind>;
+  primaryMediaKind: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
+  >;
   lqipUrl: string | null;
   showHtmlVideo: boolean;
   isVideoHero: boolean;

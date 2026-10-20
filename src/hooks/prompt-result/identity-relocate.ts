@@ -26,7 +26,7 @@ export async function tryRelocateIdentityAndRetry(input: {
 
   identityRelocateAttemptRef.current = true;
   onRelocating();
-  const { relocateIdentityLockToLiveHost } = await import('@/lib/gallery-identity-lock');
+  const { relocateIdentityLockToLiveHost } = await import('@/lib/gallery/identity-lock');
   const relocated = await relocateIdentityLockToLiveHost({
     deadComfyUrl: sharedIdentity.ipAdapterComfyUrl,
     model,
@@ -47,7 +47,7 @@ export function handleQueueFailure(input: {
     negativePrompt?: string;
     model?: string;
     tool?: string;
-    queueParams?: import('@/lib/comfyui-config').WorkflowParamValues;
+    queueParams?: import('@/lib/comfyui/config').WorkflowParamValues;
     workflowJson?: string;
   } | null;
   setComfyUiStatus: (status: string) => void;

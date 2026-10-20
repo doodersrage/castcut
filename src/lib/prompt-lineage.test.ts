@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { findGalleryEntryForHistory } from "./prompt-lineage";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 
 const sampleGallery: ComfyGalleryEntry[] = [
   {

@@ -1,6 +1,6 @@
 import type { EngineId, EngineOutputImage, EngineViewPathOptions } from './types';
 import { isCloudEngine, type CloudEngineId } from './capabilities';
-import { shouldSkipGalleryThumbProxy } from '../comfyui-outputs';
+import { shouldSkipGalleryThumbProxy } from '../comfyui/outputs';
 
 /** Bounded per-URL cache to avoid re-allocating URLSearchParams across render passes. */
 const _viewPathCacheMaxSize = 4096;

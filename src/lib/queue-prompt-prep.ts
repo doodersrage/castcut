@@ -30,7 +30,7 @@ import { intimateBeatIsOffBed, intimatePoseSample } from './intimate-prompt-clar
 import { isRapidDuoRecipePrompt } from './prompt-recipe-mark';
 import { inferAthleticSport, type AthleticSport } from './athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './queue-negative';
-import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel, isWanLightningModel } from './workflow/model-sampling-patch';
 import { isQwenRapidAioModel, isWanRapidAioModel } from './model-denoise-defaults';
 import {
   applyTurboEditStrengthToPrompt,

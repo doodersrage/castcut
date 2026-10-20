@@ -4,8 +4,8 @@ import type {
   ComfyGalleryFilter,
   ComfyGallerySort,
   GalleryLayoutMode,
-} from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+} from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { GALLERY_SORT_OPTIONS } from '@/components/gallery/gallery-filters-shared';
 

@@ -11,7 +11,7 @@ import {
 import {
   downloadGalleryImagesSequential,
   downloadGallerySidecarBundle,
-} from '@/lib/comfyui-gallery-export';
+} from '@/lib/gallery/comfyui-gallery-export';
 import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue-requeue-images';
 import type {
   GalleryBulkExperimentHandlers,
@@ -19,7 +19,7 @@ import type {
 } from '@/hooks/gallery/gallery-panel-actions-types';
 import { useGalleryExperimentActions } from '@/hooks/gallery/useGalleryExperimentActions';
 
-const loadGalleryRequeue = () => import('@/lib/comfyui-requeue');
+const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
 
 export type UseGalleryBulkActionsInput = Pick<
   UseGalleryPanelActionsInput,
@@ -118,7 +118,7 @@ export function useGalleryBulkActions({
       },
       onExportZip: () => {
         setRequeueStatus('Building ZIP export…');
-        void import('@/lib/gallery-zip-export')
+        void import('@/lib/gallery/zip-export')
           .then(({ downloadGalleryZipBundle }) => downloadGalleryZipBundle(selectedEntries))
           .then(zip => {
             setRequeueStatus(
@@ -160,12 +160,12 @@ export function useGalleryBulkActions({
         setLoraExportOpen(true);
       },
       onExportCompareJson: () => {
-        void import('@/lib/gallery-compare-export').then(({ downloadCompareExport }) =>
+        void import('@/lib/gallery/compare-export').then(({ downloadCompareExport }) =>
           downloadCompareExport(selectedEntries.slice(0, 4), 'json')
         );
       },
       onExportCompareHtml: () => {
-        void import('@/lib/gallery-compare-export').then(({ downloadCompareExport }) =>
+        void import('@/lib/gallery/compare-export').then(({ downloadCompareExport }) =>
           downloadCompareExport(selectedEntries.slice(0, 4), 'html')
         );
       },

@@ -9,9 +9,9 @@
 
 import type { ComfyImageModel } from './comfy-models/client';
 import { getComfyModelDefinition } from './comfy-models/client';
-import { fetchComfyObjectInfoCached } from './comfyui-object-info-cache';
-import { resolveRuntimeForQueueAsync } from './comfyui-runtime-for-model';
-import { fetchWorkflowPreview } from './comfyui-requeue';
+import { fetchComfyObjectInfoCached } from './comfyui/object-info-cache';
+import { resolveRuntimeForQueueAsync } from './comfyui/runtime-for-model';
+import { fetchWorkflowPreview } from './comfyui/requeue';
 import { isEditCapableModel } from './model-denoise-defaults';
 import { resolveQueueParams } from './queue-params-settings';
 import {

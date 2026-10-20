@@ -126,7 +126,7 @@ export default function PlayChecksReadinessRows({
       'Running the checks once on a sample picture — the first time can download several hundred MB…'
     );
     try {
-      const { loadComfyUiSettings } = await import('@/lib/comfyui-settings');
+      const { loadComfyUiSettings } = await import('@/lib/comfyui/settings');
       const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
       const response = await fetch('/api/play-checks/prepare', {
         method: 'POST',
@@ -155,8 +155,8 @@ export default function PlayChecksReadinessRows({
         { requestComfyManagerInstall, PLAY_CHECK_INSTALL_NODE_TYPES },
         { loadComfyUiSettings },
       ] = await Promise.all([
-        import('@/lib/comfyui-manager-install-client'),
-        import('@/lib/comfyui-settings'),
+        import('@/lib/comfyui/manager-install-client'),
+        import('@/lib/comfyui/settings'),
       ]);
       const result = await requestComfyManagerInstall({
         nodeTypes: PLAY_CHECK_INSTALL_NODE_TYPES[key],

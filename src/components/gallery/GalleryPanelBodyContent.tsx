@@ -12,7 +12,7 @@ import GalleryPanelAuxiliarySection from '@/components/gallery/GalleryPanelAuxil
 import GalleryDerivedKindChips from '@/components/gallery/GalleryDerivedKindChips';
 import { useGalleryLoraExportConfirm } from '@/hooks/useGalleryLoraExportConfirm';
 import type { GalleryPanelBodyProps } from '@/components/gallery/gallery-panel-body-types';
-import { useGalleryManageMode } from '@/lib/gallery-manage-mode';
+import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
 export default function GalleryPanelBodyContent({
   chrome,

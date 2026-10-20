@@ -7,9 +7,9 @@
  * Browser only (canvas + upload).
  */
 
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
+import { IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 

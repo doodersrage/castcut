@@ -5,8 +5,8 @@
  */
 
 import { normalizeFilmTitleCard, type FilmTitleCard } from '../video-polish';
-import { addComfyGalleryEntry } from '../comfyui-gallery';
-import { loadComfyUiSettings } from '../comfyui-settings';
+import { addComfyGalleryEntry } from '../gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '../comfyui/settings';
 import type { DaySlot, DaySlotId, DaySlotStill } from '../day/planner';
 import {
   FILM_PRESET_SIZE,
@@ -14,7 +14,7 @@ import {
   type FilmResolutionPreset,
 } from '../video-resolution';
 import { coverRect } from '../cover-rect';
-import { persistGalleryOriginal } from '../gallery-media-client';
+import { persistGalleryOriginal } from '../gallery/media-client';
 
 export const POSTER_TAG = 'poster';
 

@@ -6,7 +6,7 @@ import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import {
   isComposeCapableModel,
@@ -37,7 +37,7 @@ import {
 } from '@/lib/compose-identity-lock';
 import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
-import { sharedPatchFromGalleryHandoff } from '@/lib/gallery-handoff';
+import { sharedPatchFromGalleryHandoff } from '@/lib/gallery/handoff';
 import {
   isolateSubjectOnWhite,
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
@@ -68,7 +68,7 @@ import {
   type ComposeTransferRecipe,
 } from '@/lib/compose-transfer-scan-shared';
 import { installedComfyModels } from '@/lib/model-picker';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 /** Which engines ComfyUI has (from the cached model list), or null when it isn't known yet. */
 function composeInstalled(
@@ -452,10 +452,10 @@ export function useComposeToolOrchestrationCore() {
       queueParams?: WorkflowParamValues;
       sessionActiveLoraIds?: string[];
       queueQualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile;
-      handoffMode?: import('@/lib/gallery-handoff').GalleryHandoffMode;
+      handoffMode?: import('@/lib/gallery/handoff').GalleryHandoffMode;
       file: File | null;
       previewUrl: string | null;
-      payload?: import('@/lib/gallery-handoff').GalleryHandoffPayload;
+      payload?: import('@/lib/gallery/handoff').GalleryHandoffPayload;
     }) => {
       if (handoff.handoffMode === 'reedit' && handoff.prompt.trim()) {
         setInstruction(handoff.prompt.trim());

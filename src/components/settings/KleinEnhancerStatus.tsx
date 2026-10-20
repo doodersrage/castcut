@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import {
   kleinColorAnchorAvailable,
   kleinEnhancerPackAvailable,

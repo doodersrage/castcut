@@ -14,7 +14,7 @@ import {
   comfyBaseUrl,
   parseComfyViewRef,
   type ComfyImageRef,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import { locateFaceInComfy } from '@/lib/face-locate-server';
 import { FaceMatchNoFaceError, measureFaceMatchInComfy } from '@/lib/face-match-server';
 import { IMAGE_SIZE_HEADER_BYTES, readImageSize, type ImageSize } from '@/lib/image-size';

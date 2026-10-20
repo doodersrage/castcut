@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   cacheBustIdentityMediaUrl,
   persistOwnedPlateImage,
   sessionPlateMediaId,
-} from '@/lib/gallery-media-client';
+} from '@/lib/gallery/media-client';
 import {
   dayPlateIsolatePending,
   dayPlateSourceKey,

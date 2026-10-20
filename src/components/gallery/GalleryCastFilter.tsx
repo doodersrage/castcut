@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useHydrated } from '@/hooks/useHydrated';
 import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import { loadCharacters } from '@/lib/character-os';
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
 /**
  * Cast filter: one chip per Cast that has stills here (look-plate thumb + name), plus All.

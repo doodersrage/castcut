@@ -17,7 +17,7 @@ import {
   type CastPlaceKind,
 } from '@/lib/cast/places';
 import type { CharacterRecord } from '@/lib/character-os';
-import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
 
 const KINDS: Array<{ kind: CastPlaceKind; title: string; rooms: string }> = [
   {

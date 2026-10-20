@@ -1,7 +1,7 @@
 'use client';
 
 import { buildUserAnalyticsSnapshot } from './user-analytics';
-import { loadComfyGallery } from './comfyui-gallery';
+import { loadComfyGallery } from './gallery/comfyui-gallery';
 import { loadPromptHistoryStore } from './prompt-history';
 import { getActiveUserId, getActiveUsername } from './user-scope';
 

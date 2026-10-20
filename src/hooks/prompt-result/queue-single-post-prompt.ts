@@ -1,11 +1,11 @@
 import type { MutableRefObject } from 'react';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { WorkflowParamValues } from '@/lib/comfyui-config';
+import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { rememberedSamplerOverrides } from '@/lib/sampler-memory';
 import {
   resolveSharedEffectiveSessionLoraIds,
   resolveSharedEffectiveSessionLoraStrengthOverrides,
-} from '@/lib/comfyui-settings';
+} from '@/lib/comfyui/settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { engineDisplayName, isCloudEngine, parseEngineId } from '@/lib/engine/capabilities';
 import {
@@ -28,7 +28,7 @@ import type {
 import type { EngineId } from '@/lib/engine/types';
 
 type QueueRuntime = Awaited<
-  ReturnType<typeof import('@/lib/comfyui-runtime-for-model').resolveRuntimeForQueueAsync>
+  ReturnType<typeof import('@/lib/comfyui/runtime-for-model').resolveRuntimeForQueueAsync>
 >;
 
 export async function postQueueSinglePrompt(input: {

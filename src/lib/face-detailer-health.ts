@@ -1,6 +1,6 @@
-import { findLibraryFaceDetailerWorkflow } from './workflow-library-face-detailer';
+import { findLibraryFaceDetailerWorkflow } from './workflow/library-face-detailer';
 import { loadSettingsCache } from './settings-cache';
-import { loadComfyWorkflowFiles } from './comfyui-workflow-files';
+import { loadComfyWorkflowFiles } from './comfyui/workflow-files';
 
 export type FaceDetailerHealthStatus = 'ready' | 'partial' | 'detected' | 'missing';
 

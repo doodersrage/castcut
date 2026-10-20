@@ -5,7 +5,7 @@
  * entry's own output file says what it is.
  */
 
-import { loadComfyGallery, type ComfyGalleryEntry } from './comfyui-gallery';
+import { loadComfyGallery, type ComfyGalleryEntry } from './gallery/comfyui-gallery';
 
 const VIDEO_EXT = /\.(mp4|webm|mov|mkv)(?:[?&#]|$)|format=video/i;
 const ANIMATED_IMAGE_EXT = /\.(webp|gif)(?:[?&#]|$)/i;

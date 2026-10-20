@@ -10,7 +10,7 @@ import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPick
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, TextArea } from '@/components/ui/Field';
-import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
+import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 import { fittingNotesCachePatch } from '@/lib/look/pack';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
@@ -18,7 +18,7 @@ import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { fittingSessionStatusLine } from '@/lib/fitting/room';
-import { galleryPickPath } from '@/lib/gallery-handoff';
+import { galleryPickPath } from '@/lib/gallery/handoff';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';

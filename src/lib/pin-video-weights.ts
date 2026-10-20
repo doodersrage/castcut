@@ -1,4 +1,4 @@
-import { fetchComfyObjectInfoCached } from './comfyui-object-info-cache';
+import { fetchComfyObjectInfoCached } from './comfyui/object-info-cache';
 import { isVideoModel } from './queue-tool-model';
 import { ensureVideoWorkflowScaffold } from './ensure-video-workflow';
 import type { ComfyImageModel } from './comfy-models/client';

@@ -1,7 +1,7 @@
 'use client';
 
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import {
   galleryStillViewUrl,

@@ -1,7 +1,7 @@
 'use client';
 
-import { loadComfyGallery } from './comfyui-gallery';
-import { getGalleryEntryById } from './gallery-db-store';
+import { loadComfyGallery } from './gallery/comfyui-gallery';
+import { getGalleryEntryById } from './gallery/db-store';
 import { stillReferencesFromGraph, type StillReference } from './still-references';
 
 /**

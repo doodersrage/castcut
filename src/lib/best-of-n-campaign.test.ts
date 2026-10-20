@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
 const reviewGalleryImage = mock.fn(async (_input?: { imageDataUrl: string }) => ({ suggestedRating: 0, critique: "", tags: [] as string[] }));
-mock.module("./gallery-vision-review", { namedExports: { reviewGalleryImage } });
+mock.module("./gallery/vision-review", { namedExports: { reviewGalleryImage } });
 
 describe("rankBestOfN / pickTopCandidates", async () => {
   const { rankBestOfN, pickTopCandidates } = await import("./best-of-n-campaign");

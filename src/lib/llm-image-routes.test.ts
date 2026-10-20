@@ -60,7 +60,7 @@ mock.module('@/lib/cloud-video-client', {
 const contentTypeForViewBytes = mock.fn((_filename: string, mimeType: string, _bytes: Buffer) => mimeType);
 const isHtmlVideoContentType = mock.fn((contentType: string) => contentType.startsWith('video/'));
 const isAnimatedImageBytes = mock.fn((_filename: string, _bytes: Buffer) => false);
-mock.module('@/lib/comfyui-outputs', {
+mock.module('@/lib/comfyui/outputs', {
   namedExports: { contentTypeForViewBytes, isHtmlVideoContentType, isAnimatedImageBytes },
 });
 

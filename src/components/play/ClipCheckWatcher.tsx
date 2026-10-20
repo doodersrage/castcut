@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 
 /**
  * Checks each clip as it lands (2026-10-14): a hard cut inside it (MiniMax-H3 cut a talking clip
@@ -19,7 +19,7 @@ export default function ClipCheckWatcher() {
       if (cancelled || running) return;
       running = true;
       try {
-        const gallery = await import('@/lib/comfyui-gallery');
+        const gallery = await import('@/lib/gallery/comfyui-gallery');
         const entries = gallery.loadComfyGallery();
         const videos = entries.filter(
           entry =>

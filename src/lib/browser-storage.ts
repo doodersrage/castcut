@@ -1,5 +1,5 @@
 import { appDb } from './app-db';
-import { COMFYUI_GALLERY_KEY } from './comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_KEY } from './gallery/comfyui-gallery-storage-meta';
 import { mergeSessionLoraIdsByModel } from './model-lora-map';
 import { DURABLE_BROWSER_SYNC_KEYS } from './durable-sync-keys';
 

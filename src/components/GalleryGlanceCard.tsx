@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loadVisibleComfyGallery } from '@/lib/comfyui-gallery';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { loadVisibleComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { computeGalleryStats, type GalleryStats } from '@/lib/gallery-stats';
+import { computeGalleryStats, type GalleryStats } from '@/lib/gallery/stats';
 import { ButtonLink } from '@/components/ui/Button';
 import { StatCard, ToolSection } from '@/components/ui/ToolPageShell';
 

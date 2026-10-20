@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings } from './comfyui/settings';
 
 /**
  * Shared /api/health poller.

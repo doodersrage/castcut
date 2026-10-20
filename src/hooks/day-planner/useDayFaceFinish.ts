@@ -15,10 +15,10 @@ import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
 import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day/finish-order';
-import { waitForModelTurn } from '@/lib/comfy-model-turn';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { waitForModelTurn } from '@/lib/comfyui/comfy-model-turn';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { dayTwoTakesPending } from '@/lib/day/two-takes';
 
 /**

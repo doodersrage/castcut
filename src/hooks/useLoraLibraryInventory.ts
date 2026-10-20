@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   fetchComfyLoraInventoryFiles,
   type ComfyLoraInventoryFile,
-} from '@/lib/comfyui-object-info-cache';
+} from '@/lib/comfyui/object-info-cache';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 export function useLoraLibraryInventory(comfyUrl?: string) {

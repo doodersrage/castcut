@@ -1,7 +1,7 @@
 'use client';
 
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import type { ComfyUiRuntimeConfig, WorkflowParamValues } from './comfyui-config';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import type { ComfyUiRuntimeConfig, WorkflowParamValues } from './comfyui/config';
 import type { QueueQualityProfile } from './queue-quality-profile';
 import { normalizeQueueQualityProfile } from './queue-quality-profile';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';

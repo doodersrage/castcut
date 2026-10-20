@@ -13,9 +13,9 @@ import { formatModelUpscaleMap } from './model-upscale-map';
 import { formatModelControlNetMap } from './model-controlnet-map';
 import { loadSettingsCache, saveSettingsCache, setUseSystemWorkflowsPref } from './settings-cache';
 import { whenBrowserStorageReady, flushBrowserStorageNow } from './browser-storage';
-import { loadComfyUiSettings } from './comfyui-settings';
-import { fetchComfyObjectInfoCached } from './comfyui-object-info-cache';
-import { syncLoaderMapsFromInventory } from './loader-map-inventory-sync';
+import { loadComfyUiSettings } from './comfyui/settings';
+import { fetchComfyObjectInfoCached } from './comfyui/object-info-cache';
+import { syncLoaderMapsFromInventory } from './workflow/loader-map-inventory-sync';
 import {
   markOnboardingComfyHealthOk,
   markOnboardingLlmHealthOk,
@@ -95,7 +95,7 @@ export async function enableSystemWorkflowsAndHeal(options?: {
   const comfyUrl = options?.comfyUrl?.trim() || settings.apiUrl?.trim() || undefined;
 
   try {
-    const { scanAndAdaptSystemWorkflowInventory } = await import('./comfyui-runtime-for-model');
+    const { scanAndAdaptSystemWorkflowInventory } = await import('./comfyui/runtime-for-model');
     const models = await scanAndAdaptSystemWorkflowInventory({
       comfyUrl,
       persist: true,
@@ -253,7 +253,7 @@ async function healMissingNodesOnPool(
   hostsHealed: number;
 }> {
   const { installMissingWorkflowNodePacks, listHealComfyUrls } =
-    await import('./comfyui-manager-install-client');
+    await import('./comfyui/manager-install-client');
   const urls = await listHealComfyUrls(primaryUrl);
   const installed: string[] = [];
   const unresolved: string[] = [];

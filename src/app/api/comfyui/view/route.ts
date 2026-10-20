@@ -1,5 +1,5 @@
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
 import {
   galleryProxyEncodeTier,
@@ -9,7 +9,7 @@ import {
   isHtmlVideoContentType,
   resolveComfyOutputMediaKind,
   shouldSkipGalleryThumbProxy,
-} from '@/lib/comfyui-outputs';
+} from '@/lib/comfyui/outputs';
 // turbopackIgnore: true
 import {
   buildViewCacheKey,
@@ -18,7 +18,7 @@ import {
   readViewCache,
   writeViewCache,
   type ViewCacheFormat,
-} from '@/lib/comfyui-view-cache';
+} from '@/lib/comfyui/view-cache';
 import {
   normalizeComfyViewType,
   sanitizeComfyViewFilename,

@@ -2,7 +2,7 @@
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 
 /** Virtualize when an expanded experiment mounts this many cards (grid or list). */
 export const EXPERIMENT_CARD_VIRTUALIZE_MIN = 16;

@@ -5,7 +5,7 @@ const hydrateGalleryStore = mock.fn(async () => {});
 const isGalleryStoreReady = mock.fn(() => true);
 const initBrowserStorage = mock.fn(async () => {});
 const isBrowserStorageReady = mock.fn(() => false);
-mock.module("./gallery-db-store", { namedExports: { hydrateGalleryStore, isGalleryStoreReady } });
+mock.module("./gallery/db-store", { namedExports: { hydrateGalleryStore, isGalleryStoreReady } });
 mock.module("./browser-storage", { namedExports: { initBrowserStorage, isBrowserStorageReady } });
 
 describe("app-db-init", async () => {

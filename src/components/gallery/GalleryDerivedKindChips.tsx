@@ -3,8 +3,8 @@
 import {
   galleryDerivedKindChipLabel,
   GALLERY_DERIVED_KIND_FILTERS,
-} from '@/lib/gallery-derived-kind';
-import type { ComfyGalleryFilter } from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/derived-kind';
+import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import type { Dispatch, SetStateAction } from 'react';
 
 type GalleryDerivedKindChipsProps = {

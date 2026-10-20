@@ -18,9 +18,9 @@ import {
   injectPromptsWithFallbacks,
   resolvePlaceholderTokens,
   resolveQueueParams,
-} from './comfyui-config';
-import { lookupKnownComfyNodePack } from './comfyui-custom-node-registry';
-import { buildWorkflowScaffoldForModel } from './workflow-scaffold';
+} from './comfyui/config';
+import { lookupKnownComfyNodePack } from './comfyui/custom-node-registry';
+import { buildWorkflowScaffoldForModel } from './workflow/scaffold';
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
 

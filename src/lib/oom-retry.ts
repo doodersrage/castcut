@@ -10,12 +10,12 @@
  * comfyui-gallery-client.ts).
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 import {
   pickHighestScoringComfyUiEndpoint,
   pickLoadBalancedComfyUiEndpoint,
   type ComfyUiPoolEndpointStat,
-} from './comfyui-pool';
+} from './comfyui/pool';
 import { normalizeQueueQualityProfile, type QueueQualityProfile } from './queue-quality-profile';
 
 const OOM_OR_EXECUTION_ERROR_PATTERN =
@@ -346,7 +346,7 @@ export async function attemptOomAutoRetry(
 
   const [{ loadSettingsCache }, { updateComfyGalleryByPromptId }] = await Promise.all([
     import('./settings-cache'),
-    import('./comfyui-gallery'),
+    import('./gallery/comfyui-gallery'),
   ]);
   const shared = loadSettingsCache().shared;
 
@@ -362,7 +362,7 @@ export async function attemptOomAutoRetry(
       };
       onStatus?.(`Auto-retry: ${decision.reason}…`);
       try {
-        const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+        const { requeueComfyJobFromEntry } = await import('./comfyui/requeue');
         const result = await requeueComfyJobFromEntry(entry, {
           qualityProfile: normalizeQueueQualityProfile(entry.queueQualityProfile),
           onStatus,
@@ -406,7 +406,7 @@ export async function attemptOomAutoRetry(
       : undefined;
 
   try {
-    const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+    const { requeueComfyJobFromEntry } = await import('./comfyui/requeue');
     const result = await requeueComfyJobFromEntry(entry, {
       qualityProfile: nextProfile,
       comfyUrlOverride,
@@ -448,7 +448,7 @@ export async function attemptDeadHostAutoRetry(
 
   const [{ loadSettingsCache }, { updateComfyGalleryByPromptId }] = await Promise.all([
     import('./settings-cache'),
-    import('./comfyui-gallery'),
+    import('./gallery/comfyui-gallery'),
   ]);
   const shared = loadSettingsCache().shared;
   const poolStats = await fetchComfyUiPoolStatsForRetry();
@@ -469,7 +469,7 @@ export async function attemptDeadHostAutoRetry(
   onStatus?.(`Auto-retry: ${decision.reason}…`);
 
   try {
-    const { markComfyUiPoolEndpointUnhealthy } = await import('./comfyui-pool');
+    const { markComfyUiPoolEndpointUnhealthy } = await import('./comfyui/pool');
     if (entry.comfyUrl) {
       markComfyUiPoolEndpointUnhealthy(entry.comfyUrl);
     }
@@ -477,14 +477,14 @@ export async function attemptDeadHostAutoRetry(
       entry.queueParams?.ipAdapterImageFilename?.trim() ||
       shared.ipAdapterImageFilename?.trim()
     ) {
-      const { relocateIdentityLockToLiveHost } = await import('./gallery-identity-lock');
+      const { relocateIdentityLockToLiveHost } = await import('./gallery/identity-lock');
       await relocateIdentityLockToLiveHost({
         deadComfyUrl: entry.comfyUrl,
         targetComfyUrl: decision.nextComfyUrl,
         model: entry.model,
       });
     }
-    const { requeueComfyJobFromEntry } = await import('./comfyui-requeue');
+    const { requeueComfyJobFromEntry } = await import('./comfyui/requeue');
     const result = await requeueComfyJobFromEntry(entry, {
       comfyUrlOverride: decision.nextComfyUrl,
       onStatus,

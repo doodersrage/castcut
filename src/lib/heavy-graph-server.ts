@@ -6,8 +6,8 @@
  * 324 MB more with LM Studio holding 6.7 GB).
  */
 
-import { runComfyUtilityGraph } from './comfy-utility-graph-server';
-import { freeComfyUiMemoryServer } from './comfyui-free-server';
+import { runComfyUtilityGraph } from './comfyui/comfy-utility-graph-server';
+import { freeComfyUiMemoryServer } from './comfyui/free-server';
 import { freeLocalLlmVram } from './llm-vram-free-server';
 import { isOomOrExecutionErrorMessage } from './oom-retry';
 

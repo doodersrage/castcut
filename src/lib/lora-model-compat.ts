@@ -9,7 +9,7 @@ import {
   classifyLoaderFilenameFamily,
   resolveModelStackFamily,
   type WorkflowStackFamily,
-} from './workflow-stack-fingerprint';
+} from './workflow/stack-fingerprint';
 
 export type LoraCompatFamily = WorkflowStackFamily | 'wan';
 

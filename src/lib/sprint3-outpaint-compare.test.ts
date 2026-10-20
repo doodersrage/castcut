@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { galleryHandoffPath } from "./gallery-handoff";
+import { galleryHandoffPath } from "./gallery/handoff";
 import { resolveDenoiseForModel } from "./model-denoise-defaults";
 import {
   appendUserToolQualityRecipe,

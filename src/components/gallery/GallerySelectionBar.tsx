@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { PromptProject } from '@/lib/prompt-projects';
 import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
 import {
@@ -9,10 +9,10 @@ import {
   galleryEntryAlreadyEnrichedForUpscale,
   galleryEntrySupportsMoireClean,
   galleryEntrySupportsRefine,
-} from '@/lib/gallery-entry-actions';
+} from '@/lib/gallery/entry-actions';
 import { isQwenRapidAioModel } from '@/lib/model-denoise-defaults';
-import { isQwenLightningModel } from '@/lib/model-sampling-patch';
-import { countGalleryStitchableVideos } from '@/lib/gallery-video-stitch';
+import { isQwenLightningModel } from '@/lib/workflow/model-sampling-patch';
+import { countGalleryStitchableVideos } from '@/lib/gallery/video-stitch';
 import GallerySelectionBarBulkMenus from '@/components/gallery/GallerySelectionBarBulkMenus';
 
 export type GallerySelectionBarProps = {

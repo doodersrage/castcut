@@ -4,7 +4,7 @@ import { modelUsesNegativePrompt } from './prompt-pair';
 import type { ComfyImageModel } from './comfy-models/client';
 import { DEFAULT_NEGATIVE_PROFILES, fetchNegativeWithProfile } from './negative-profiles';
 import { resolveContextNegativeProfile } from './context-negative-profile';
-import { loadComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings } from './comfyui/settings';
 import { applyRenderRealismToNegative, type RenderRealismMode } from './render-realism';
 import { loadRenderRealismMode } from './render-realism-settings';
 import type { AthleticSport } from './athletic-sport-profiles';

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { ensureVideoWorkflowScaffold } from '@/lib/ensure-video-workflow';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { loadSettingsCache } from '@/lib/settings-cache';
 

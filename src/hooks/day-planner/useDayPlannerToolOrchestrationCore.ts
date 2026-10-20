@@ -46,7 +46,7 @@ import {
   fetchComfyObjectInfoModelsCached,
   fetchComfyObjectInfoNodeTypesCached,
   readCachedComfyObjectInfoModels,
-} from '@/lib/comfyui-object-info-cache';
+} from '@/lib/comfyui/object-info-cache';
 import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -114,7 +114,7 @@ import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import {
@@ -252,7 +252,7 @@ import {
 } from '@/lib/pose-guide-status';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
 import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
-import { IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
+import { IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import {
   DRESS_PLATE_SHOE_PASS_STATUS,
@@ -301,7 +301,7 @@ import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
 } from '@/lib/wardrobe-garment-thumbs';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,

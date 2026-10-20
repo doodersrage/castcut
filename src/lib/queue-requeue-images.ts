@@ -1,9 +1,9 @@
 'use client';
 
-import type { WorkflowParamValues } from './comfyui-config';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { buildComfyViewPath } from './comfyui-outputs';
-import { resolveDurableGalleryStillUrl } from './gallery-media-client';
+import type { WorkflowParamValues } from './comfyui/config';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { buildComfyViewPath } from './comfyui/outputs';
+import { resolveDurableGalleryStillUrl } from './gallery/media-client';
 import { isEditCapableModel, isInpaintModel } from './model-denoise-defaults';
 import {
   DEFAULT_RESOLUTION_ORIENTATION,

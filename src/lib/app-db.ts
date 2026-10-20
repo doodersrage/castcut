@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 
 export type AppDbKvRecord = {
   key: string;

@@ -4,7 +4,7 @@ import {
   contentTypeForViewBytes,
   isAnimatedImageBytes,
   isHtmlVideoContentType,
-} from '@/lib/comfyui-outputs';
+} from '@/lib/comfyui/outputs';
 import { ensureFalOutput } from '@/lib/fal-client';
 import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/url-safety';
 

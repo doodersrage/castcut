@@ -5,7 +5,7 @@ import {
   COMFY_WORKFLOW_FILES_UPDATED_EVENT,
   loadComfyWorkflowFiles,
   type ComfyWorkflowFile,
-} from '@/lib/comfyui-workflow-files';
+} from '@/lib/comfyui/workflow-files';
 
 /** The workflow library, re-read whenever it is saved in this tab. */
 export function useComfyWorkflowFilesSnapshot(): ComfyWorkflowFile[] {

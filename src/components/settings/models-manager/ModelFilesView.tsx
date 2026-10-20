@@ -6,7 +6,7 @@ import { ChipButton } from '@/components/ui/Field';
 import { SegmentedControl, StatCard } from '@/components/ui/ToolPageShell';
 import type { AssetRow } from '@/components/settings/comfy-model-assets/comfy-model-assets-types';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   engineFamilyLabel,
   formatBytes,

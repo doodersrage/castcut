@@ -64,7 +64,7 @@ const baseConfig = {
   outputFileTracingExcludes: {
     '/*': [
       './services/**/*',
-      './src/lib/comfyui-view-cache.ts',
+      './src/lib/comfyui/view-cache.ts',
       // Scratch/cleanup dir from prior sessions — never belongs in a build output.
       './_to_delete/**/*',
     ],

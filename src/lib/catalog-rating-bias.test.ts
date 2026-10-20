@@ -11,7 +11,7 @@ import {
   rebuildCatalogBiasFromGallery,
   CATALOG_RATING_BIAS_KEY,
 } from "./catalog-rating-bias";
-import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery-entry";
 
 // CATALOG_RATING_BIAS_KEY is one of the DURABLE_BROWSER_SYNC_KEYS, so an
 // unguarded save schedules a real 5s setTimeout + dynamic import. Wrap every

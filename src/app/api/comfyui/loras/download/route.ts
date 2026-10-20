@@ -10,8 +10,8 @@ import {
   listComfyAssetJobs,
   runComfyAssetDownloadJob,
   startAdhocAssetDownload,
-} from '@/lib/comfy-asset-download';
-import { getComfyUiRoot } from '@/lib/comfy-asset-paths';
+} from '@/lib/comfyui/comfy-asset-download';
+import { getComfyUiRoot } from '@/lib/comfyui/comfy-asset-paths';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

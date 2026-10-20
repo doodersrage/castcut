@@ -16,13 +16,13 @@ import {
   buildGalleryDisplayRows,
   countGalleryDisplayEntries,
   type GalleryDisplayRow,
-} from '@/lib/gallery-display-rows';
-import { displayRowContainsEntry, scrollGalleryEntryIntoView } from '@/lib/gallery-scroll';
-import { filmRunMisses } from '@/lib/gallery-queue-runs';
+} from '@/lib/gallery/display-rows';
+import { displayRowContainsEntry, scrollGalleryEntryIntoView } from '@/lib/gallery/scroll';
+import { filmRunMisses } from '@/lib/gallery/queue-runs';
 import type { ExperimentGroup } from '@/lib/experiment-groups';
-import type { GalleryLineageGroup } from '@/lib/gallery-lineage-groups';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+import type { GalleryLineageGroup } from '@/lib/gallery/lineage-groups';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import {
   galleryGridColumnCount,
   shouldVirtualizeGalleryGrid,

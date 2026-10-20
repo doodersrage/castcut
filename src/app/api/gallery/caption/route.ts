@@ -1,4 +1,4 @@
-import { captionGalleryImage, VisionModelUnavailableError } from '@/lib/gallery-vision-review';
+import { captionGalleryImage, VisionModelUnavailableError } from '@/lib/gallery/vision-review';
 import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 

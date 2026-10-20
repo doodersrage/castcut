@@ -2,7 +2,7 @@
 
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import type { AestheticScoreResult } from '@/lib/aesthetic-score';
-import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
 
 type Props = {
@@ -14,7 +14,9 @@ type Props = {
   previewUrl: string | null;
   onToggleFavorite: () => void;
   onCustomGroupClick?: (group: string) => void;
-  primaryMediaKind: ReturnType<typeof import('@/lib/comfyui-gallery').galleryEntryPrimaryMediaKind>;
+  primaryMediaKind: ReturnType<
+    typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
+  >;
   aestheticScore: AestheticScoreResult;
   aestheticBusy: boolean;
   scoreWithVision: () => void;

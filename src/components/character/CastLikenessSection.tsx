@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
 import { DAY_IDENTITY_BARS } from '@/lib/identity-mark';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import {
   compareLookPlates,
   measureLookLikeness,

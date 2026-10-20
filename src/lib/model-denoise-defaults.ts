@@ -1,5 +1,5 @@
 import { getComfyModelDefinition, type ComfyImageModel } from './comfy-models/client';
-import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
+import { isQwenLightningModel, isWanLightningModel } from './workflow/model-sampling-patch';
 
 export const DEFAULT_EDIT_DENOISE = 0.65;
 

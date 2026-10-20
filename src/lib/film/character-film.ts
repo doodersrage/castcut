@@ -12,7 +12,7 @@ import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
 } from '../media-kind';
-import { isGalleryEntryHidden } from '../gallery-adult-check';
+import { isGalleryEntryHidden } from '../gallery/adult-check';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from '../story/roleplay';
 import { looksLikeMotionUrl } from '../story/roleplay-film';
 

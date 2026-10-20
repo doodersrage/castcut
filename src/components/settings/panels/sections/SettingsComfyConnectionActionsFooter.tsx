@@ -1,6 +1,6 @@
 'use client';
 
-import { restartComfyUi } from '@/lib/comfyui-queue-control';
+import { restartComfyUi } from '@/lib/comfyui/queue-control';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
 import { accentButtonClass } from '@/components/ui/ToolPageShell';
 import { PrimaryButton } from '@/components/ui/Button';

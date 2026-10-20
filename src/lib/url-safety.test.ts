@@ -7,8 +7,8 @@ import {
   sanitizeComfyViewSubfolder,
 } from "./url-safety";
 import { clampScheduledBatchConfig } from "./scheduled-batch";
-import { exportCompareHtml } from "./gallery-compare-export";
-import type { ComfyGalleryEntry } from "./comfyui-gallery";
+import { exportCompareHtml } from "./gallery/compare-export";
+import type { ComfyGalleryEntry } from "./gallery/comfyui-gallery";
 
 describe("url-safety", () => {
   it("allows public https webhooks and blocks private hosts by default", () => {

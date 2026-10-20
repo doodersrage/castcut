@@ -18,7 +18,7 @@ import {
   stageComfyImageAsInput,
   type ComfyHistoryEntry,
   type ComfyImageRef,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   buildFaceFinishGraph,
   buildLeadFaceProbeGraph,
@@ -35,7 +35,7 @@ import {
   type LeadFaceProbe,
   type LeadFaceSide,
 } from '@/lib/face-finish';
-import { normalizeModelKey } from '@/lib/comfy-model-batch';
+import { normalizeModelKey } from '@/lib/comfyui/comfy-model-batch';
 
 export type FaceFinishResult =
   | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }

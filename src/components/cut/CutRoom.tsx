@@ -23,7 +23,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useCutRoom } from '@/hooks/useCutRoom';
-import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { CUT_SOURCES, splitCutRoomKey } from '@/lib/film/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
 import {

@@ -119,7 +119,7 @@ const stripExt = (path: string) => path.replace(/\.tsx?$/, '');
 const libName = (path: string) => stripExt(path.slice('src/lib/'.length));
 const byOldName = new Map([...moves].map(([from, to]) => [libName(from), libName(to)]));
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// `src/lib/gallery-cap.ts`, `lib/gallery-cap` in path text (not part of a longer name).
+// `src/lib/gallery/cap.ts`, `lib/gallery/cap` in path text (not part of a longer name).
 const PATH_TEXT_RE = new RegExp(
   `((?:src/)?lib/)(${[...byOldName.keys()]
     .sort((a, b) => b.length - a.length)

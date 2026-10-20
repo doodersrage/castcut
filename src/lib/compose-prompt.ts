@@ -1,10 +1,10 @@
-import type { CustomWorkflowToken, WorkflowParamValues } from './comfyui-config';
+import type { CustomWorkflowToken, WorkflowParamValues } from './comfyui/config';
 import {
   DEFAULT_INPUT_IMAGE_TOKEN,
   DEFAULT_INPUT_IMAGE_2_TOKEN,
   DEFAULT_INPUT_IMAGE_3_TOKEN,
   DEFAULT_INPUT_IMAGE_4_TOKEN,
-} from './comfyui-config';
+} from './comfyui/config';
 import {
   isBooguEditModel,
   isFluxKleinModel,
@@ -21,7 +21,7 @@ import {
 import {
   MAX_INPUT_IMAGE_FILENAMES,
   normalizeInputImageFilenames,
-} from './workflow-load-image-bindings';
+} from './workflow/load-image-bindings';
 
 const KLEIN_MODIFY_PRESERVE_PREFIX =
   'Keep the subject’s pose and framing unchanged unless asked otherwise.';

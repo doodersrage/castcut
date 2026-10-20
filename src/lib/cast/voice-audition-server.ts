@@ -5,14 +5,14 @@
  */
 
 import { castVoiceAuditionPrompt } from './voice';
-import { uploadComfyInputContent } from '../comfy-input-upload-server';
+import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
   parseComfyViewRef,
   runComfyUtilityGraph,
   stageComfyImageAsInput,
   type ComfyImageRef,
-} from '../comfy-utility-graph-server';
+} from '../comfyui/comfy-utility-graph-server';
 import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from '../ltx25-renderer';
 
 async function stagePlate(input: {

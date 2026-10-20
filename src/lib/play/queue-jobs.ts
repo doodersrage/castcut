@@ -5,7 +5,7 @@
 
 import type { DaySlot, DaySlotStill } from '../day/planner';
 import type { RoleplayStoryBeat } from '../story/roleplay';
-import { galleryToolHrefForEntry } from '../gallery-tool-href';
+import { galleryToolHrefForEntry } from '../gallery/tool-href';
 import type { QueueJobDescriber, QueueJobLabeller } from '../queue-job-context';
 import { loadSettingsCache, saveToolSettings } from '../settings-cache';
 

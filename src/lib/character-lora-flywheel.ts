@@ -10,7 +10,7 @@ import {
   setCharacterTrigger,
   type CharacterRecord,
 } from './character-os';
-import { loadComfyUiSettings, saveComfyUiSettings } from './comfyui-settings';
+import { loadComfyUiSettings, saveComfyUiSettings } from './comfyui/settings';
 import {
   buildLoraTrainValidationPrompt,
   createTrainJob,
@@ -160,7 +160,7 @@ export async function exportKeepersAndTrain(input: {
   lookId?: string;
   lookName?: string;
   trigger: string;
-  keepers: import('./comfyui-gallery-entry').ComfyGalleryEntry[];
+  keepers: import('./gallery/comfyui-gallery-entry').ComfyGalleryEntry[];
 }): Promise<{
   job: TrainJob;
   jobs: TrainJob[];
@@ -168,7 +168,7 @@ export async function exportKeepersAndTrain(input: {
   exportCount: number;
   message: string;
 }> {
-  const { persistLoraDatasetOnServer } = await import('./gallery-lora-dataset-export');
+  const { persistLoraDatasetOnServer } = await import('./gallery/lora-dataset-export');
   const exported = await persistLoraDatasetOnServer(input.keepers, {
     triggerWord: input.trigger.trim(),
     characterId: input.character.id,
@@ -348,13 +348,13 @@ export async function queueCharacterLookValidation(input: {
     ...applyCharacterRecord(input.character),
   });
 
-  const { postComfyUiPrompt } = await import('./comfyui-queue-request');
+  const { postComfyUiPrompt } = await import('./comfyui/queue-request');
   const { resolveQueueNegativePrompt } = await import('./queue-negative');
   const { resolveQueueParams } = await import('./queue-params-settings');
-  const { resolveRuntimeForQueue } = await import('./comfyui-runtime-for-model');
-  const { registerComfyGalleryJob } = await import('./comfyui-gallery-client');
-  const { scheduleComfyGalleryPoll } = await import('./comfyui-gallery-poller');
-  const { resolveSharedEffectiveSessionLoraIds } = await import('./comfyui-settings');
+  const { resolveRuntimeForQueue } = await import('./comfyui/runtime-for-model');
+  const { registerComfyGalleryJob } = await import('./gallery/comfyui-gallery-client');
+  const { scheduleComfyGalleryPoll } = await import('./gallery/comfyui-gallery-poller');
+  const { resolveSharedEffectiveSessionLoraIds } = await import('./comfyui/settings');
 
   const shared = loadSettingsCache().shared;
   const { faceBase, sessionActiveLoraIds: castLoras } = characterLookValidationQueuePins(

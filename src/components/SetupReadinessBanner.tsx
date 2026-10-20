@@ -24,7 +24,7 @@ import {
   normalizeEngineId,
 } from '@/lib/engine/capabilities';
 import { Button } from '@/components/ui/Button';
-import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfy-setup-intent';
+import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import {
   readBrowserValue,
   whenBrowserStorageReady,

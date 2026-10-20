@@ -1,4 +1,4 @@
-import { hydrateGalleryStore, isGalleryStoreReady } from './gallery-db-store';
+import { hydrateGalleryStore, isGalleryStoreReady } from './gallery/db-store';
 import { initBrowserStorage, isBrowserStorageReady } from './browser-storage';
 
 export async function initAppDb(): Promise<void> {
@@ -14,4 +14,4 @@ export function isAppDbReady(): boolean {
   return isBrowserStorageReady() && isGalleryStoreReady();
 }
 
-export { isGalleryStoreReady } from './gallery-db-store';
+export { isGalleryStoreReady } from './gallery/db-store';

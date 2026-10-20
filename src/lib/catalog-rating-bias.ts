@@ -1,6 +1,6 @@
 'use client';
 
-import { loadComfyGallery } from './comfyui-gallery';
+import { loadComfyGallery } from './gallery/comfyui-gallery';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 
 export const CATALOG_RATING_BIAS_KEY = 'comfy-catalog-rating-bias-v1';

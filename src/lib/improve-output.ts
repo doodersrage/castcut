@@ -9,14 +9,14 @@ import {
   IMPROVE_INTENT_DEFAULT,
   saveGalleryHandoff,
   type GalleryHandoffPayload,
-} from './gallery-handoff';
+} from './gallery/handoff';
 import { setLineageParent } from './prompt-lineage-session';
 import {
   buildAnatomyRepairGalleryHandoff,
   galleryAnatomyRepairPath,
 } from './anatomy-repair-handoff';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { applyGalleryStackToSession } from './gallery-stack-restore';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { applyGalleryStackToSession } from './gallery/stack-restore';
 
 export function startImproveFromResult(input: {
   prompt: string;

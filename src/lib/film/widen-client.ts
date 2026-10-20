@@ -10,7 +10,7 @@
 
 import { waitForGalleryPromptIds } from '../best-of-n-vision-queue';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '../cast/plate-prepare';
-import { galleryEntryPrimaryViewUrl } from '../comfyui-gallery';
+import { galleryEntryPrimaryViewUrl } from '../gallery/comfyui-gallery';
 import type { FittingPlate } from '../fitting/room';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 

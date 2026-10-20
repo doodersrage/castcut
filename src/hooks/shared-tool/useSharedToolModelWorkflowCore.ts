@@ -45,15 +45,15 @@ import {
   resolveSystemWorkflowFallbackModel,
   shouldLimitSystemWorkflowPicker,
   usesSystemWorkflowPath,
-} from '@/lib/system-workflow-runtime';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui-object-info-cache';
-import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui-runtime-for-model';
-import type { ComfyWorkflowFile } from '@/lib/comfyui-workflow-files';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui-workflow-files';
+} from '@/lib/workflow/system-workflow-runtime';
+import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
+import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui/runtime-for-model';
+import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
+import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { isBrowserStorageReady, whenBrowserStorageReady } from '@/lib/browser-storage';
-import { resolveModelStackFamily } from '@/lib/workflow-stack-fingerprint';
-import { isQwenLightningModel } from '@/lib/model-sampling-patch';
+import { resolveModelStackFamily } from '@/lib/workflow/stack-fingerprint';
+import { isQwenLightningModel } from '@/lib/workflow/model-sampling-patch';
 import {
   resolveEffectiveSessionLoraStrengthOverrides,
   resolveLoraIdsForModelSelection,

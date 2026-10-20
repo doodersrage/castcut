@@ -43,7 +43,7 @@ import type { ModelUpscaleMap } from './model-upscale-map';
 import {
   normalizeGalleryWorkflowMaxBytes,
   normalizeGalleryWorkflowRetentionDays,
-} from './gallery-workflow-hygiene';
+} from './gallery/workflow-hygiene';
 import {
   DEFAULT_QUEUE_QUALITY_PROFILE,
   normalizeQueueQualityProfile,

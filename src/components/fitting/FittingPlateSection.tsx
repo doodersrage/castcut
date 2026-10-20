@@ -6,8 +6,8 @@ import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { galleryPickPath } from '@/lib/gallery-handoff';
-import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
+import { galleryPickPath } from '@/lib/gallery/handoff';
+import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 
 export type FittingPlateApplyReferenceInput = {
   file?: File | null;

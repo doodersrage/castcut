@@ -14,8 +14,11 @@ import {
 } from '@/lib/cast/wardrobe';
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
+import {
+  galleryEntryPrimaryThumbUrl,
+  galleryEntryPrimaryViewUrl,
+} from '@/lib/gallery/comfyui-gallery';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 const OutfitTurnSheet = dynamic(() => import('@/components/character/OutfitTurnSheet'), {

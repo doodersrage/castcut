@@ -10,13 +10,13 @@ import {
   initGalleryStore,
   loadComfyGallery,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
-import { scheduleComfyGalleryPoll } from '@/lib/comfyui-gallery-poller';
+import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
-} from '@/lib/comfyui-live-preview-store';
+} from '@/lib/comfyui/live-preview-store';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';

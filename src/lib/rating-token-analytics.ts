@@ -1,4 +1,4 @@
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 import { tokenizeForAvoidance } from './avoidance-options';
 
 export type RatedTokenStat = {

@@ -7,7 +7,7 @@ import {
   galleryEntryPrimaryMediaKind,
   galleryEntryPrimaryThumbUrl,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 
 export default function CutGalleryPicker({

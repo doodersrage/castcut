@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import type { PlayChecksReadiness } from '@/lib/play/checks-readiness';
 

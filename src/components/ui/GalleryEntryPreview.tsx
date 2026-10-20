@@ -6,7 +6,7 @@ import {
   galleryEntryPrimaryMediaKind,
   galleryEntryPrimaryPlaybackIndex,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 
 /**
  * Grid/list preview for a gallery entry: looping clip, audio player, 3D

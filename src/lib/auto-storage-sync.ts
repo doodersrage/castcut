@@ -20,13 +20,17 @@ import {
   savePromptHistoryStore,
   type PromptHistoryEntry,
 } from './prompt-history';
-import { loadComfyGallery, saveComfyGalleryAsync, type ComfyGalleryEntry } from './comfyui-gallery';
+import {
+  loadComfyGallery,
+  saveComfyGalleryAsync,
+  type ComfyGalleryEntry,
+} from './gallery/comfyui-gallery';
 import {
   filterOutDeletedGalleryEntries,
   loadGalleryDeletedIds,
   mergeGalleryDeletedIds,
   saveGalleryDeletedIds,
-} from './gallery-deleted-ids';
+} from './gallery/deleted-ids';
 import {
   applyStudioExtras,
   mergeServerRecordListsIntoLocal,
@@ -448,7 +452,7 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     return { synced, conflicts: [], skipped: false, pulledIntoEmpty: synced.length > 0 };
   }
 
-  const { pullAndMergeGalleryFromServer } = await import('./gallery-server-sync');
+  const { pullAndMergeGalleryFromServer } = await import('./gallery/server-sync');
   const galleryPull = await pullAndMergeGalleryFromServer();
 
   const settingsPull = await pullNamespaceFromServerResult<SettingsCache>('settings-cache');

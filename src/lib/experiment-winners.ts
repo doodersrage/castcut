@@ -1,6 +1,6 @@
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { experimentGroupIdForPrompt } from './experiment-groups';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 
 export const EXPERIMENT_WINNERS_KEY = 'comfy-experiment-winners-v1';
 export const EXPERIMENT_WINNERS_UPDATED_EVENT = 'comfy-experiment-winners-updated';

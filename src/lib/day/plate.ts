@@ -3,7 +3,7 @@ import {
   galleryEntryDownloadUrls,
   galleryEntryPrimaryViewUrl,
   type ComfyGalleryEntry,
-} from '@/lib/comfyui-gallery';
+} from '@/lib/gallery/comfyui-gallery';
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting/room';
 import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
 import { isCastPlateReferenceName } from '@/lib/reference-check';

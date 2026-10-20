@@ -6,7 +6,7 @@
  * best-effort — a missing node pack, a failed read or a merged couple just skips the still.
  */
 
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { keptIntimateLayout, keptIntimateLibraryEntry } from '@/lib/pose-kept-intimate';
 import { loadPoseLibrary, savePoseLibraryEntry } from '@/lib/pose-library';

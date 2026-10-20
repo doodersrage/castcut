@@ -21,9 +21,9 @@ import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
 import { buildPoseMissView } from '@/lib/pose-coaching';
-import { recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
-import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**

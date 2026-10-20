@@ -4,8 +4,8 @@
  * a Day slot / Story beat pointing at a job that was resubmitted ("Run next"). Pure.
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { galleryToolHrefForEntry, galleryToolLabel } from './gallery-tool-href';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
+import { galleryToolHrefForEntry, galleryToolLabel } from './gallery/tool-href';
 
 export type QueueJobLabel = {
   /** "Day · Evening · Robin", "Story · beat 3 “The letter” · retry", "Refine · Robin". */

@@ -6,7 +6,7 @@
  * lora-check-server.ts behind /api/comfyui/lora-check.
  */
 
-import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery-entry';
 import { loraFamilyForModel, type LoraFamily } from './lora-family-detect';
 import { chainLoraStackInWorkflow, readLoraStackFromWorkflow } from './lora-stack';
 

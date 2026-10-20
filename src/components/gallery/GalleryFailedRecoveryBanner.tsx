@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { applyQueueFailureFix, resolveQueueFailureFixes } from '@/lib/queue-failure-fix';
 import {
   resolveQueueFailureGuideLabel,

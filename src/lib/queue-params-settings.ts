@@ -1,8 +1,8 @@
 import {
   MAX_INPUT_IMAGE_FILENAMES,
   normalizeInputImageFilenames,
-} from './workflow-load-image-bindings';
-import { isLockLatentSizeParams, type WorkflowParamValues } from './comfyui-config';
+} from './workflow/load-image-bindings';
+import { isLockLatentSizeParams, type WorkflowParamValues } from './comfyui/config';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -14,7 +14,7 @@ import {
   type ModelSamplerPresetTier,
   type ModelSamplerOverrideFields,
 } from './model-sampler-defaults';
-import { resolveModelSamplingParams } from './model-sampling-patch';
+import { resolveModelSamplingParams } from './workflow/model-sampling-patch';
 import { resolveKleinEditCfg, resolveQueueDenoise } from './model-denoise-defaults';
 import { normalizeTurboEditStrength } from './turbo-edit-strength';
 import {
@@ -30,7 +30,7 @@ import {
   type ResolutionSizeTier,
 } from './model-resolution-defaults';
 import type { ComfyImageModel } from './comfy-models/client';
-import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from './comfyui-settings';
+import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from './comfyui/settings';
 import {
   realignLoaderFilenamesToWorkflowPrecision,
   resolveLoaderFilenamesForModel,
@@ -40,8 +40,8 @@ import { resolveLoaderPrecisionTier } from './model-loader-precision';
 import { resolveUpscaleModelFilename, SUGGESTED_MODEL_UPSCALE_MAP } from './model-upscale-map';
 import { resolveControlNetModelFilename } from './model-controlnet-map';
 import { loadSettingsCache } from './settings-cache';
-import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui-workflow-files';
-import { getSelectedWorkflowFileId } from './comfyui-runtime';
+import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './comfyui/workflow-files';
+import { getSelectedWorkflowFileId } from './comfyui/runtime';
 import { isQwenRapidAioModel } from './model-denoise-defaults';
 import { enlargePlayCastPlateLatent, fitPlayCastPlateLatent } from './plate-render-size';
 import { normalizeComposeIdentityKind } from './compose-identity-lock';
@@ -52,7 +52,7 @@ import {
   type QueueQualityProfile,
 } from './queue-quality-profile';
 import { rememberedSamplerOverrides } from './sampler-memory';
-import { readCachedComfyObjectInfoModels } from './comfyui-object-info-cache';
+import { readCachedComfyObjectInfoModels } from './comfyui/object-info-cache';
 
 export const QUEUE_PARAMS_KEY = 'comfy-queue-params-v1';
 

@@ -15,8 +15,8 @@ import { FieldError, TextInput } from '@/components/ui/Field';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { persistOwnedPlateImage } from '@/lib/gallery-media-client';
-import { saveGalleryHandoff } from '@/lib/gallery-handoff';
+import { persistOwnedPlateImage } from '@/lib/gallery/media-client';
+import { saveGalleryHandoff } from '@/lib/gallery/handoff';
 import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
 import {
   fittingPatchFromPlate,

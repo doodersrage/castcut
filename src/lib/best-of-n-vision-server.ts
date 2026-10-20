@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { rankImagesWithVision } from './best-of-n-rank-server';
-import { getComfyUiBaseUrl } from './comfyui-client';
-import { buildComfyViewPath, type ComfyOutputImage } from './comfyui-outputs';
-import { getComfyUiPromptStatus } from './comfyui-status';
+import { getComfyUiBaseUrl } from './comfyui/client';
+import { buildComfyViewPath, type ComfyOutputImage } from './comfyui/outputs';
+import { getComfyUiPromptStatus } from './comfyui/status';
 import { mapWithConcurrency } from './concurrency';
 
 export type ServerVisionCandidate = {

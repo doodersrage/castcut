@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import ModalPortal from '@/components/ui/ModalPortal';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
-import type { LoraCaptionMode } from '@/lib/gallery-lora-dataset-export';
+import type { LoraCaptionMode } from '@/lib/gallery/lora-dataset-export';
 import type { LoraDatasetExportUiOptions } from '@/lib/lora-dataset-export-ui';
 import { normalizeLoraDatasetExportPrefs } from '@/lib/lora-train-job';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';

@@ -49,7 +49,7 @@ describe("settings-export", () => {
 
   it("exports a versioned bundle with shared, comfyUi, webhook, scheduled batch, and avoided tokens", async () => {
     const { saveSharedSettings, loadSettingsCache } = await import("./settings-cache");
-    const { saveComfyUiSettings, loadComfyUiSettings } = await import("./comfyui-settings");
+    const { saveComfyUiSettings, loadComfyUiSettings } = await import("./comfyui/settings");
     const { saveWebhookSettings } = await import("./webhook-settings");
     const { saveScheduledBatchConfig } = await import("./scheduled-batch");
     const { saveAvoidedTokens } = await import("./avoided-tokens");

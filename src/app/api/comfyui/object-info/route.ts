@@ -1,5 +1,5 @@
-import { fetchComfyObjectInfoPayload } from '@/lib/comfyui-object-info';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { fetchComfyObjectInfoPayload } from '@/lib/comfyui/object-info';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

@@ -21,14 +21,14 @@ import {
 } from '@/lib/isolate-subject';
 import type { MoodboardTile } from '@/lib/moodboard-scene';
 import type { LookPack } from '@/lib/look/pack';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryDownloadUrls,
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
-} from '@/lib/comfyui-gallery';
-import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery-media-client';
+} from '@/lib/gallery/comfyui-gallery';
+import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery/media-client';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { stampedUploadName } from '@/lib/upload-name';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';

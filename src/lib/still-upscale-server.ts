@@ -4,8 +4,8 @@
  */
 
 import sharp from 'sharp';
-import { uploadComfyInputContent } from './comfy-input-upload-server';
-import { comfyBaseUrl, type ComfyImageRef } from './comfy-utility-graph-server';
+import { uploadComfyInputContent } from './comfyui/comfy-input-upload-server';
+import { comfyBaseUrl, type ComfyImageRef } from './comfyui/comfy-utility-graph-server';
 import { CLIP_FINISH_MODELS } from './clip-finish';
 import { requireComfyModels, runHeavyComfyGraph } from './heavy-graph-server';
 import {

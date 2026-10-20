@@ -6,8 +6,8 @@ import type {
   ComfyGallerySort,
   GalleryLayoutMode,
   GalleryPageSize,
-} from '@/lib/comfyui-gallery';
-import type { GalleryDensity } from '@/lib/gallery-density';
+} from '@/lib/gallery/comfyui-gallery';
+import type { GalleryDensity } from '@/lib/gallery/density';
 import { GalleryFiltersAdvancedPanel } from '@/components/gallery/GalleryFiltersAdvancedPanel';
 import GalleryFiltersPrimaryRow from '@/components/gallery/GalleryFiltersPrimaryRow';
 import GalleryFiltersSavedViews, {

@@ -1,4 +1,4 @@
-import type { ComfyAssetKind } from '@/lib/comfy-asset-kinds';
+import type { ComfyAssetKind } from '@/lib/comfyui/comfy-asset-kinds';
 
 export type AssetRow = {
   id: string;

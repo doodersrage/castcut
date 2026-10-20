@@ -1,5 +1,5 @@
-import type { GallerySlideshowTransition } from '@/lib/comfyui-gallery';
-import type { ComfyOutputMediaKind } from '@/lib/comfyui-outputs';
+import type { GallerySlideshowTransition } from '@/lib/gallery/comfyui-gallery';
+import type { ComfyOutputMediaKind } from '@/lib/comfyui/outputs';
 
 export type ImageLightboxState = {
   images: string[];

@@ -104,7 +104,7 @@ export function EngineHealthNote({
     setBusy(true);
     setMessage(null);
     try {
-      const { requestComfyManagerInstall } = await import('@/lib/comfyui-manager-install-client');
+      const { requestComfyManagerInstall } = await import('@/lib/comfyui/manager-install-client');
       const result = await requestComfyManagerInstall({
         nodeTypes: health.missingNodes,
         comfyUrl: health.comfyUrl || undefined,

@@ -1,5 +1,5 @@
-import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { buildGalleryHandoff, type GalleryHandoffPayload } from './gallery-handoff';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
+import { buildGalleryHandoff, type GalleryHandoffPayload } from './gallery/handoff';
 
 /** Masked inpaint denoise — lower than default inpaint to preserve surrounding context. */
 export const DEFAULT_ANATOMY_REPAIR_DENOISE = 0.45;

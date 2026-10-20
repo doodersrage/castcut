@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildWorkflowScaffoldForModel, suggestedScaffoldName } from "./workflow-scaffold";
+import { buildWorkflowScaffoldForModel, suggestedScaffoldName } from "./workflow/scaffold";
 import { assignWorkflowToInferredModels } from "./model-workflow-map";
 import {
   pickVideoCheckpointFromInventory,
   resolveVideoCheckpointFilename,
 } from "./ensure-video-workflow";
-import type { ComfyUiModelLists } from "./comfyui-object-info";
+import type { ComfyUiModelLists } from "./comfyui/object-info";
 
 const rapidAio = "wan2.2-i2v-rapid-aio-v10-nsfw.safetensors";
 const staleT2v = "wan2.2_t2v_high_noise_14B_fp16.safetensors";

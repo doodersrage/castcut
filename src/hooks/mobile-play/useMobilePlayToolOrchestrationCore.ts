@@ -18,12 +18,12 @@ import { useRoleplayBioFlow } from '@/hooks/useRoleplayBioFlow';
 import { useRoleplayLookPackDeepLink } from '@/hooks/useRoleplayLookPackDeepLink';
 import { useRoleplayStorySync } from '@/hooks/useRoleplayStorySync';
 import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   IDENTITY_MEDIA_URL,
   persistOwnedPlateImage,
   sessionPlateMediaId,
-} from '@/lib/gallery-media-client';
+} from '@/lib/gallery/media-client';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,

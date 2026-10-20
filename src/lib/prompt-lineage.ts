@@ -4,7 +4,7 @@ import {
   updateComfyGalleryByPromptId,
   updateComfyGalleryEntryById,
   type ComfyGalleryEntry,
-} from './comfyui-gallery';
+} from './gallery/comfyui-gallery';
 
 export function linkGalleryToHistory(
   promptId: string,

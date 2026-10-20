@@ -6,10 +6,10 @@ import type {
   AssetJob,
   AssetsResponse,
 } from '@/components/settings/comfy-model-assets/comfy-model-assets-types';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui-object-info-cache';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
+import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import { loadSettingsCache } from '@/lib/settings-cache';
-import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfy-asset-events';
+import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
   formatTaskBytes,

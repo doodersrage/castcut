@@ -1,8 +1,8 @@
 'use client';
 
 import { ComfyUiGalleryJobPlaceholder } from '@/components/ui/ComfyUiJobStatusPanel';
-import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery';
-import { galleryFailureSummary } from '@/lib/gallery-failure-summary';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
+import { galleryFailureSummary } from '@/lib/gallery/failure-summary';
 
 type Props = {
   entry: ComfyGalleryEntry;

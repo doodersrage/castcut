@@ -7,7 +7,7 @@ import type { AutoSyncResult } from '@/lib/auto-storage-sync';
 import type { StorageNamespace } from '@/lib/storage-namespaces';
 import type { MergeChoice } from '@/lib/storage-merge';
 import { suggestMergeChoice } from '@/lib/storage-merge';
-import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 
 const StorageSyncConflictModal = dynamic(() => import('@/components/StorageSyncConflictModal'), {
   ssr: false,

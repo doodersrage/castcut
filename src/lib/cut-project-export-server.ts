@@ -9,7 +9,7 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createZipFileFromDiskPaths, type ZipDiskEntry } from './gallery-zip-stream';
+import { createZipFileFromDiskPaths, type ZipDiskEntry } from './gallery/zip-stream';
 import { buildEdl, buildFcpxml, projectMediaName, type ProjectClip } from './cut-project-export';
 import { fetchFilmShotBytes } from './video-shot-fetch';
 import { extForShot, filmTempOsDir, resolveFfmpegBinary } from './video-server-encode';

@@ -12,7 +12,7 @@ import path from 'node:path';
 import { clipTrimWindow } from '../clip-trim';
 import type { CutRecipe } from '../cut-recipe';
 import { buildEdl, buildFcpxml, buildSrt, NLE_FPS, nleReadme, type NleShot } from './nle-export';
-import { createZipFileFromDiskPaths, type ZipDiskEntry } from '../gallery-zip-stream';
+import { createZipFileFromDiskPaths, type ZipDiskEntry } from '../gallery/zip-stream';
 import { DEFAULT_STILL_HOLD_SEC } from '../media-kind';
 import { fetchFilmShotBytes } from '../video-shot-fetch';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video-server-encode';

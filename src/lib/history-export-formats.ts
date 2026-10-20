@@ -1,5 +1,5 @@
 import type { PromptHistoryEntry } from '@/hooks/usePromptHistory';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 
 export function exportHistoryJsonl(entries: PromptHistoryEntry[]): string {
   return entries.map(entry => JSON.stringify(entry)).join('\n');

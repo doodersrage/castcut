@@ -16,8 +16,8 @@ import {
   loadComfyGallery,
   galleryEntryPrimaryViewUrl,
   recordGalleryPlayChecks,
-} from '@/lib/comfyui-gallery';
-import { loadComfyUiSettings } from '@/lib/comfyui-settings';
+} from '@/lib/gallery/comfyui-gallery';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   dayStillsCachePatch,
   isDayAdultMood,
@@ -28,7 +28,7 @@ import {
 import { dayTwoTakesPending } from '@/lib/day/two-takes';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
+import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
  * Checks every Day still gets as it lands, whether or not Auto-review is on (2026-10-14):

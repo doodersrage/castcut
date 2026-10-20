@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
 import type { PromptHistoryEntry } from '@/hooks/usePromptHistory';
-import type { ComfyGalleryEntry } from './comfyui-gallery';
+import type { ComfyGalleryEntry } from './gallery/comfyui-gallery';
 import type { ScenePreset } from './scene-presets';
 import type { NsfwGeneratorPreset } from './nsfw-generator-presets';
 import type { GlobalSearchResult } from './global-search';
@@ -12,7 +12,7 @@ mock.module('./prompt-history', { namedExports: { loadPromptHistoryStore } });
 
 let galleryEntries: ComfyGalleryEntry[] = [];
 const loadComfyGallery = mock.fn(() => galleryEntries);
-mock.module('./comfyui-gallery', { namedExports: { loadComfyGallery } });
+mock.module('./gallery/comfyui-gallery', { namedExports: { loadComfyGallery } });
 
 let scenePresets: ScenePreset[] = [];
 const loadScenePresets = mock.fn(() => scenePresets);

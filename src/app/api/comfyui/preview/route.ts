@@ -2,9 +2,9 @@ import {
   stripEmptyComfyUiRuntime,
   type ComfyUiRuntimeConfig,
   type WorkflowParamValues,
-} from '@/lib/comfyui-config';
-import { previewWorkflowInjection } from '@/lib/comfyui-workflow-preview';
-import { fetchComfyObjectInfoPayload } from '@/lib/comfyui-object-info';
+} from '@/lib/comfyui/config';
+import { previewWorkflowInjection } from '@/lib/comfyui/workflow-preview';
+import { fetchComfyObjectInfoPayload } from '@/lib/comfyui/object-info';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

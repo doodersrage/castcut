@@ -1,11 +1,11 @@
 import { apiError, apiJson } from '@/lib/api/response';
-import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
-import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
+import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import {
   buildComfyHistoryDeletePayload,
   deleteComfyUiHistoryItems,
   listComfyUiHistoryImports,
-} from '@/lib/comfyui-status';
+} from '@/lib/comfyui/status';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

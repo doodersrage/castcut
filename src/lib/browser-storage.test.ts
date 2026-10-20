@@ -41,7 +41,7 @@ mock.module('./app-db', {
   },
 });
 
-mock.module('./comfyui-gallery-storage-meta', {
+mock.module('./gallery/comfyui-gallery-storage-meta', {
   namedExports: {
     COMFYUI_GALLERY_KEY: 'comfyui-gallery-v1',
   },

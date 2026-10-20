@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { COMFY_ASSET_KIND_LABELS, type ComfyAssetKind } from '@/lib/comfy-asset-kinds';
+import { COMFY_ASSET_KIND_LABELS, type ComfyAssetKind } from '@/lib/comfyui/comfy-asset-kinds';
 import {
   formatBytes,
   statusLabel,

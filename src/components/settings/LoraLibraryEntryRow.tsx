@@ -1,8 +1,8 @@
 'use client';
 
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
-import { fetchLoraTriggerPhrase } from '@/lib/comfyui-object-info-cache';
-import type { ComfyLoraInventoryFile } from '@/lib/comfyui-object-info-cache';
+import { fetchLoraTriggerPhrase } from '@/lib/comfyui/object-info-cache';
+import type { ComfyLoraInventoryFile } from '@/lib/comfyui/object-info-cache';
 import type { LoraLibraryEntry } from '@/lib/lora-stack';
 import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
 import { loraChangesFaceAt } from '@/lib/lora-check';

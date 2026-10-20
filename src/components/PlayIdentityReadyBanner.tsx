@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ButtonLink } from '@/components/ui/Button';
-import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
+import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import {
   getIpAdapterHealth,
   getInstantIdHealth,

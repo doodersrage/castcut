@@ -13,8 +13,8 @@ import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
   setGalleryAdultCheck,
-} from '@/lib/comfyui-gallery';
-import { persistCompletedGalleryMedia } from '@/lib/comfyui-gallery-client';
+} from '@/lib/gallery/comfyui-gallery';
+import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-client';
 import { roleplayStillTakes } from '@/lib/story/roleplay-gallery-takes';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 

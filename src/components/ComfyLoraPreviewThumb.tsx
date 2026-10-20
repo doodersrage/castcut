@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { comfyLoraPreviewSrc } from '@/lib/comfyui-object-info-cache';
+import { comfyLoraPreviewSrc } from '@/lib/comfyui/object-info-cache';
 
 const missingPreviewSrcs = new Set<string>();
 

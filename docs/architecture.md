@@ -23,7 +23,7 @@ IndexedDB via Dexie — database `comfy-prompt-studio-v1` (`src/lib/app-db.ts`):
 - `galleryEntries` — Comfy jobs and outputs
 - `kv` — settings, prompt history, workflow library, plugins, projects, etc.
 
-Access: `src/lib/browser-storage.ts`, `src/lib/gallery-db-store.ts`, init `src/lib/app-db-init.ts`. Legacy `localStorage` keys migrate into Dexie on first hydrate. Theme/density stay mirrored in `localStorage` for the FOUC script and are also included in `studio-extras` sync.
+Access: `src/lib/browser-storage.ts`, `src/lib/gallery/db-store.ts`, init `src/lib/app-db-init.ts`. Legacy `localStorage` keys migrate into Dexie on first hydrate. Theme/density stay mirrored in `localStorage` for the FOUC script and are also included in `studio-extras` sync.
 
 Durable browser writes listed in `src/lib/durable-sync-keys.ts` schedule a debounced server push.
 
@@ -61,16 +61,16 @@ flowchart LR
 
 | Step                                     | Module                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------- |
-| Client POST + early WebSocket `clientId` | `src/lib/comfyui-queue-request.ts`                                        |
+| Client POST + early WebSocket `clientId` | `src/lib/comfyui/queue-request.ts`                                        |
 | Result-panel queue actions               | `src/hooks/usePromptResultActions.ts`                                     |
 | API entry                                | `src/app/api/comfyui/route.ts`                                            |
-| URL/workflow resolve + queue             | `src/lib/comfyui-client.ts`                                               |
-| Tokens, inject, loaders, images          | `src/lib/comfyui-config.ts`                                               |
-| Graph optimize / direct patch            | `src/lib/workflow-queue-optimizer.ts`, `src/lib/workflow-direct-patch.ts` |
-| Workflow library (Dexie KV)              | `src/lib/comfyui-workflow-files.ts`                                       |
+| URL/workflow resolve + queue             | `src/lib/comfyui/client.ts`                                               |
+| Tokens, inject, loaders, images          | `src/lib/comfyui/config.ts`                                               |
+| Graph optimize / direct patch            | `src/lib/workflow/queue-optimizer.ts`, `src/lib/workflow/direct-patch.ts` |
+| Workflow library (Dexie KV)              | `src/lib/comfyui/workflow-files.ts`                                       |
 | Draft / Final / Max (+ per-tool)         | `src/lib/queue-quality-profile.ts`, `src/lib/tool-quality-profiles.ts`    |
 | Plugin mutators                          | `src/lib/plugin-queue-hooks.ts`                                           |
-| Gallery + progress                       | `src/lib/comfyui-gallery-client.ts`, `src/lib/comfyui-websocket.ts`       |
+| Gallery + progress                       | `src/lib/gallery/comfyui-gallery-client.ts`, `src/lib/comfyui/websocket.ts`       |
 | Engine seam (queue / progress)           | `src/lib/engine` → `getEngineAdapter()`                                   |
 
 Related routes: `src/app/api/comfyui/{status,history,view,upload,interrupt,live,probe,…}/`, `src/app/api/diffusers/{,status,view,upload}/`, `src/app/api/fal/{,status,view,upload}/`, `src/app/api/replicate/{,status,view,upload}/`, and `src/app/api/{openai,gemini,grok}/{,status,view,upload}/`.
@@ -116,7 +116,7 @@ Diffusers progress is **poll-backed** (no live latent WebSocket). Gallery entrie
 
 **Out of scope (stay studio-owned):** prompt drafting, quality profiles, LoRA stacking, workflow injection/optimize, gallery IndexedDB, interrupt / free / object-info.
 
-Consumers: gallery re-queue (`src/lib/comfyui-requeue.ts`), result-panel send/batch (`src/hooks/usePromptResultActions.ts`), gallery poll (`src/lib/comfyui-gallery-client.ts`).
+Consumers: gallery re-queue (`src/lib/comfyui/requeue.ts`), result-panel send/batch (`src/hooks/usePromptResultActions.ts`), gallery poll (`src/lib/gallery/comfyui-gallery-client.ts`).
 
 ## Auth and ACL
 

@@ -2,8 +2,8 @@
 
 import type React from 'react';
 
-import type { ComfyGalleryFilter, ComfyGalleryJobStatus } from '@/lib/comfyui-gallery';
-import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery-custom-groups';
+import type { ComfyGalleryFilter, ComfyGalleryJobStatus } from '@/lib/gallery/comfyui-gallery';
+import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery/custom-groups';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 
 type Props = {

@@ -7,7 +7,7 @@ import {
   findResumableGalleryArchiveJob,
   runGalleryArchiveJob,
   type GalleryArchiveEntryDescriptor,
-} from '@/lib/gallery-archive-job';
+} from '@/lib/gallery/archive-job';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

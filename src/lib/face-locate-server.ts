@@ -15,7 +15,7 @@ import {
   type CastcutFaceBoxTurn,
   recordCastcutFallback,
 } from '@/lib/castcut-routes-server';
-import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
+import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
   parseComfyViewRef,
@@ -23,7 +23,7 @@ import {
   runComfyUtilityGraph,
   stageComfyImageAsInput,
   type ComfyHistoryEntry,
-} from '@/lib/comfy-utility-graph-server';
+} from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   FACE_LOCATE_ROTATIONS,
   largestFaceBox,

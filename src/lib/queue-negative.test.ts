@@ -28,7 +28,7 @@ type ComfySettingsShape = {
 };
 let comfySettings: ComfySettingsShape = {};
 const loadComfyUiSettings = mock.fn(() => comfySettings);
-mock.module('./comfyui-settings', { namedExports: { loadComfyUiSettings } });
+mock.module('./comfyui/settings', { namedExports: { loadComfyUiSettings } });
 
 let applyRealismImpl: (negative: string | undefined, mode?: unknown) => string | undefined = negative =>
   negative;
