@@ -8,7 +8,7 @@ import {
   MAX_ROLEPLAY_SCENE_TITLE,
   normalizeRoleplaySceneText,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 
 /**
  * Inline editor for a scene already in the reel: its title and what happens. A scene could only

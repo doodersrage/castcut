@@ -6,7 +6,7 @@ import {
   dayDressPlateStatus,
   type DayDressPlateKeyInput,
 } from './dress-plate';
-import { findDayDressPlate, rememberDayDressPlate } from '../dress-plate-cache';
+import { findDayDressPlate, rememberDayDressPlate } from './dress-plate-cache';
 import { stampedUploadName } from '../upload-name';
 
 const MODEL = 'qwen-image-edit-2511-lightning-8';

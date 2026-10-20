@@ -1,6 +1,6 @@
 'use client';
 
-import { PLAY_STORY_PHASES, type PlayStoryPhaseId } from '@/lib/play-step-machine';
+import { PLAY_STORY_PHASES, type PlayStoryPhaseId } from '@/lib/play/step-machine';
 
 type StoryPlayPhaseStripProps = {
   activePhase: PlayStoryPhaseId;

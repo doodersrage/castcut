@@ -398,7 +398,7 @@ describe("queue-prompt-prep Rapid AIO / Lightning", () => {
 
 describe('product shots with nobody in them', () => {
   it('the shoe extract gets no skin wording on any engine', async () => {
-    const { buildFootwearPackshotExtractPrompt } = await import('./fitting-room');
+    const { buildFootwearPackshotExtractPrompt } = await import('./fitting/room');
     const positive = buildFootwearPackshotExtractPrompt({ description: 'silver strappy heels' });
     for (const model of ['qwen-rapid-aio-edit', 'qwen-image-edit-2511-lightning-8']) {
       const prepared = applyQueuePromptSteering({

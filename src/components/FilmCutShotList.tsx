@@ -4,7 +4,7 @@ import { CUT_FRAMINGS, type CutFraming } from '@/lib/cut-move';
 import { CutShotOverlayEditor } from '@/components/cut/CutOverlayControls';
 import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
-import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
+import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/film/character-film';
 import {
   CLIP_SPEEDS,
   clipSpeed,
@@ -16,8 +16,8 @@ import {
   type CutShotEdit,
   type CutShotEdits,
   type KeyedShot,
-} from '@/lib/film-cut-plan';
-import { probeMediaDurationSec } from '@/lib/film-cut-media';
+} from '@/lib/film/cut-plan';
+import { probeMediaDurationSec } from '@/lib/film/cut-media';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
 import type { IdentityMark } from '@/lib/identity-mark';
 

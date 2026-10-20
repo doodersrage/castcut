@@ -20,7 +20,7 @@ export function CastExportButton({ characterId }: { characterId: string }) {
         onClick={() => {
           setBusy(true);
           setNote(null);
-          void import('@/lib/cast-transfer-client')
+          void import('@/lib/cast/transfer-client')
             .then(({ downloadCastFile }) => downloadCastFile(characterId))
             .then(({ pictureMissing }) =>
               setNote(
@@ -69,7 +69,7 @@ function CastBundleExport({
         title="The Cast with all its pictures and films, to move it to another install"
         onClick={() => {
           setOpen(true);
-          void import('@/lib/cast-bundle-client').then(({ castBundleCounts }) =>
+          void import('@/lib/cast/bundle-client').then(({ castBundleCounts }) =>
             setCounts(castBundleCounts(characterId))
           );
         }}
@@ -98,7 +98,7 @@ function CastBundleExport({
         onClick={() => {
           setBusy(true);
           onNote(null);
-          void import('@/lib/cast-bundle-client')
+          void import('@/lib/cast/bundle-client')
             .then(({ downloadCastBundle }) => downloadCastBundle(characterId, { includeStills }))
             .then(({ entries, pictures }) => {
               onNote(
@@ -140,7 +140,7 @@ export function CastImportButton() {
           setNote(null);
           setError(null);
           if (/\.tar$/i.test(file.name) || file.type === 'application/x-tar') {
-            void import('@/lib/cast-bundle-client')
+            void import('@/lib/cast/bundle-client')
               .then(({ importCastBundle }) =>
                 importCastBundle(file, progress =>
                   setNote(
@@ -163,7 +163,7 @@ export function CastImportButton() {
               .finally(() => setBusy(false));
             return;
           }
-          void import('@/lib/cast-transfer-client')
+          void import('@/lib/cast/transfer-client')
             .then(({ importCastFile }) => importCastFile(file))
             .then(result => {
               const parts = [

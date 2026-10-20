@@ -3,8 +3,8 @@
 import { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 import { Button } from '@/components/ui/Button';
 import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
-import type { FittingCompareTryOn } from '@/lib/fitting-room';
-import type { TryOnReview } from '@/lib/fitting-tryon-review';
+import type { FittingCompareTryOn } from '@/lib/fitting/room';
+import type { TryOnReview } from '@/lib/fitting/tryon-review';
 
 export type FittingCompareCardProps = {
   tryOn: FittingCompareTryOn;

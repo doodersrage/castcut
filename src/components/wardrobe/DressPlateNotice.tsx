@@ -3,13 +3,17 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import type { DayDressPlateEntry } from '@/lib/dress-plate-cache';
-import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
+import type { DayDressPlateEntry } from '@/lib/day/dress-plate-cache';
+import {
+  loadDressPlates,
+  removeDressPlate,
+  subscribeDressPlates,
+} from '@/lib/day/dress-plate-store';
 import {
   getDressPlateActivity,
   setDressPlateActivity,
   subscribeDressPlateActivity,
-} from '@/lib/dress-plate-status';
+} from '@/lib/day/dress-plate-status';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 

@@ -9,7 +9,8 @@
 export const PLAY_LAYER_RE = new RegExp(
   '^src/(?:' +
     [
-      'lib/(?:day-|day/|fitting-|fitting/|roleplay|story-|play-|film-|character-film|cast-|dress-plate|rapid-duo-recipe\.ts$|rapid-solo|pose-everyday|look-pack|look-outfit|outfit-handoff|welcome-sample-film|klein-duo-recipe|intimate-clip|cut-room)',
+      'lib/(?:day|play|story|film|cast|fitting|look)/',
+      'lib/(?:day-|fitting-|roleplay|story-|play-|film-|character-film|cast-|dress-plate|rapid-duo-recipe\.ts$|rapid-solo|pose-everyday|look-pack|look-outfit|outfit-handoff|welcome-sample-film|klein-duo-recipe|intimate-clip|cut-room)',
       'hooks/(?:day-planner|fitting-room|roleplay|play|story|mobile-play|character|moodboard)/',
       'hooks/use(?:DayPlanner|Fitting|Roleplay|Story|Play|Character|Cast|Film|Look|Moodboard|Cut)[A-Za-z]*\\.ts$',
       'components/(?:day-planner|fitting|roleplay|play|story|cast|character|moodboard|cut)/',

@@ -2,7 +2,7 @@
 
 import { SwitchButton } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
-import { summarizePlayChecks } from '@/lib/play-checks-readiness';
+import { summarizePlayChecks } from '@/lib/play/checks-readiness';
 
 /**
  * Outfit's Auto-review switch: score each try-on (face match vs the plate + a vision read of the

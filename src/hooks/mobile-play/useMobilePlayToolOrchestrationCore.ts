@@ -7,7 +7,7 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character-os';
-import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRoleplayFilmActions, type FilmSendComfyUi } from '@/hooks/useRoleplayFilmActions';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -41,16 +41,19 @@ import {
   resolveRoleplayToneAndContent,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
-import { normalizeRoleplayBeatOutput } from '@/lib/roleplay-film';
-import { persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
+} from '@/lib/story/roleplay';
+import { normalizeRoleplayBeatOutput } from '@/lib/story/roleplay-film';
+import { persistRoleplayLibraryFromCache } from '@/lib/story/roleplay-library';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
-import { buildRoleplayRequestBody, resolveRoleplayWardrobeFields } from '@/lib/roleplay-play-core';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import {
+  buildRoleplayRequestBody,
+  resolveRoleplayWardrobeFields,
+} from '@/lib/story/roleplay-play-core';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 
 const TOOL_ID = 'roleplay';

@@ -16,8 +16,8 @@ import {
   pinRoleplayStillTakePatch,
   withRoleplayTakeChecks,
   type RoleplayStoryBeat,
-} from './roleplay';
-import { normalizeRoleplayLibrarySnapshot } from './roleplay-library';
+} from './story/roleplay';
+import { normalizeRoleplayLibrarySnapshot } from './story/roleplay-library';
 import { betterTakeIndex, isClearlyBetterTake } from './take-scoring';
 
 const T = { minPose: 0.6, minFace: 0.5 };

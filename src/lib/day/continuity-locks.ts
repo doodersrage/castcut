@@ -6,7 +6,7 @@
  * each card (identity-mark.ts) checks the face lock; clothes and places are not measured.
  */
 
-import { placeRoomOfSetting, resolveCastPlace, type CastPlaces } from '../cast-places';
+import { placeRoomOfSetting, resolveCastPlace, type CastPlaces } from '../cast/places';
 
 export type ContinuityLock = {
   id: 'face' | 'clothes' | 'place' | 'style';

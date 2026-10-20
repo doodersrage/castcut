@@ -73,7 +73,7 @@
   "src/lib/image-similarity.ts",
   "src/lib/klein-face-reference.ts",
   "src/lib/my-pose-packs.ts",
-  "src/lib/outfit-quality-preset.ts",
+  "src/lib/fitting/outfit-quality-preset.ts",
   "src/lib/photo-pose-fit.ts",
   "src/lib/plate-check.ts",
   "src/lib/pose-compose.ts",

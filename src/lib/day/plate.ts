@@ -4,8 +4,8 @@ import {
   galleryEntryPrimaryViewUrl,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
-import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting-room';
-import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
+import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting/room';
+import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
 import { isCastPlateReferenceName } from '@/lib/reference-check';
 
 export type DayPlateSource = 'keeper' | 'cast';

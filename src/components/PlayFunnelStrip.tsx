@@ -7,16 +7,16 @@ import { usePathname } from 'next/navigation';
 import { ButtonLink } from '@/components/ui/Button';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadLocalObservability, type LocalObservabilityCounters } from '@/lib/local-observability';
-import { loadActivePlayCampaign } from '@/lib/play-campaign';
-import { loadLookPack, type LookPack } from '@/lib/look-pack';
+import { loadActivePlayCampaign } from '@/lib/play/campaign';
+import { loadLookPack, type LookPack } from '@/lib/look/pack';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolvePlayFunnelStall,
   resolvePlayFunnelStepHref,
   type PlayMetrics,
-} from '@/lib/play-metrics';
-import { derivePlayJourney, playStepById } from '@/lib/play-step-machine';
+} from '@/lib/play/metrics';
+import { derivePlayJourney, playStepById } from '@/lib/play/step-machine';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 function formatDays(days: number): string {

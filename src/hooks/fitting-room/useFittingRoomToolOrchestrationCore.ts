@@ -41,7 +41,7 @@ import {
   fittingSwipeIndex,
   fittingSwipeNeighbor,
   resolveFittingPlateFromCharacter,
-} from '@/lib/fitting-room';
+} from '@/lib/fitting/room';
 import {
   countInFlightFittingKitPreviews,
   fittingKitPreviewQueueParams,
@@ -49,7 +49,7 @@ import {
   getFittingKitPreview,
   normalizeFittingKitPreviews,
   resolveFittingKitPreviewModel,
-} from '@/lib/fitting-kit-previews';
+} from '@/lib/fitting/kit-previews';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -75,14 +75,14 @@ import {
   lookPackDayHref,
   lookPackRoleplayHref,
   saveLookPack,
-} from '@/lib/look-pack';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+} from '@/lib/look/pack';
+import { bumpPlayCampaignStep } from '@/lib/play/campaign';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play-settings';
-import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
+import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
+import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting/clothing-options';
 
 const ACCENT = 'rose' as const;
 const TOOL_ID = 'fitting' as const;

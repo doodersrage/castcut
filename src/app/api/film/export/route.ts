@@ -5,7 +5,7 @@ import { apiError, apiJson, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { isCutRecipe } from '@/lib/cut-recipe';
-import { buildFilmNleExport } from '@/lib/film-nle-export-server';
+import { buildFilmNleExport } from '@/lib/film/nle-export-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 600;

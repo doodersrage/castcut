@@ -7,7 +7,7 @@ import { dayPoseFirstLine,
   type DayStillPromptFacts,
 } from './still-prompt';
 import { auditStillPrompt } from '../still-prompt-audit';
-import { buildCompactDayDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../rapid-duo-recipe';
+import { buildCompactDayDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../play/rapid-duo-recipe';
 import { dayDuoPoseWords } from '../pose-coaching';
 
 const RECIPE =

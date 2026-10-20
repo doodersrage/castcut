@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { describePrepareResult, preparePlayChecks } from '@/lib/play-checks-prepare-server';
+import { describePrepareResult, preparePlayChecks } from '@/lib/play/checks-prepare-server';
 
 export const runtime = 'nodejs';
 // First use can download several hundred MB of check models.

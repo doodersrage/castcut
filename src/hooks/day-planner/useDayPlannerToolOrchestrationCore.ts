@@ -5,16 +5,16 @@ import {
   withPlacePhotoInAdultPrompt,
   withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
-} from '@/lib/cast-places';
+} from '@/lib/cast/places';
 import { applyDayNarration } from '@/lib/day/narration';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import { partnerOutfitWords } from '@/lib/day/partner-outfit';
-import { castMarksLine } from '@/lib/cast-marks';
-import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
-import { castRelationOf, relationAllowsRomance } from '@/lib/cast-relationships';
-import { castPropsLine } from '@/lib/cast-props';
+import { castMarksLine } from '@/lib/cast/marks';
+import { recordCastOutfitWorn } from '@/lib/cast/wardrobe';
+import { castRelationOf, relationAllowsRomance } from '@/lib/cast/relationships';
+import { castPropsLine } from '@/lib/cast/props';
 import { useRenderBackend } from '@/lib/render-backend-status';
-import { realKitId } from '@/lib/outfit-handoff';
+import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import {
   type DayStillSlotOptions,
@@ -71,8 +71,8 @@ import {
 import { SAME_SHOT_MAX_DIFF } from '@/lib/image-similarity';
 import { pictureGreyDifference } from '@/lib/image-similarity-client';
 import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day/end-pose';
-import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
-import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
+import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
+import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/play/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day/thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
@@ -83,8 +83,8 @@ import {
   assembleAndStampFilm,
   downloadFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble-lazy';
-import { filmDownloadFilename } from '@/lib/character-film';
+} from '@/lib/film/character-film-assemble-lazy';
+import { filmDownloadFilename } from '@/lib/film/character-film';
 import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import {
   activeLook,
@@ -100,7 +100,7 @@ import {
   subscribeCharacters,
   upsertCharacter,
 } from '@/lib/character-os';
-import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
 import {
   fetchClothingLabels,
@@ -117,7 +117,10 @@ import {
 } from '@/lib/comfyui-gallery';
 import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import { STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP, resolveRoleplaySetting } from '@/lib/roleplay';
+import {
+  STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP,
+  resolveRoleplaySetting,
+} from '@/lib/story/roleplay';
 import {
   buildDaySlotMotionSubject,
   dayBeatOmitsGarmentPackshot,
@@ -238,7 +241,7 @@ import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
 import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
-import { kleinSpoonRecipeApplies } from '@/lib/klein-duo-recipe';
+import { kleinSpoonRecipeApplies } from '@/lib/play/klein-duo-recipe';
 import { shouldAppendKleinFaceReference } from '@/lib/klein-face-reference';
 import {
   poseGuideFailureReason,
@@ -256,7 +259,11 @@ import {
   dayDressPlateStatus,
   type DayDressPlateEntry,
 } from '@/lib/day/dress-plate';
-import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
+import {
+  loadDressPlates,
+  removeDressPlate,
+  subscribeDressPlates,
+} from '@/lib/day/dress-plate-store';
 import {
   dayDressPlateRequestKey,
   dayIdentityPrefersCastPlate,
@@ -306,13 +313,13 @@ import {
   lookPackNotes,
   lookPackRoleplayHref,
   saveLookPack,
-} from '@/lib/look-pack';
+} from '@/lib/look/pack';
 import {
   bumpPlayCampaignStep,
   completePlayCampaign,
   resolvePlayLoopEntryCharacterId,
-} from '@/lib/play-campaign';
-import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
+} from '@/lib/play/campaign';
+import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look/outfit-plate';
 import { resolveDaySlotLook } from '@/lib/day/slot-look';
 import {
   chronicRerollBeats,
@@ -324,10 +331,10 @@ import {
   rerollBeatKey,
   rerollProneLayouts,
   weakPoseLayouts,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import {
@@ -336,7 +343,7 @@ import {
   loadToolSettings,
   saveSharedSettings,
 } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };

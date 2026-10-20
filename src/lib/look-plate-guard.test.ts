@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { lookPlateFaceUrl } from './likeness-measure-client';
 import { lookPlateDrifted, referenceLook } from './look-plate-guard';
-import { storyHintsWithLook } from './story-cast-lines';
+import { storyHintsWithLook } from './story/cast-lines';
 
 describe('look plate guard', () => {
   it('judges against the Default look, else the oldest', () => {

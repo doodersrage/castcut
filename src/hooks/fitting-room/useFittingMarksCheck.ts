@@ -9,13 +9,13 @@ import {
   marksCheckNote,
   marksCheckVerdict,
   type MarksCheckIssue,
-} from '@/lib/cast-marks-check';
-import { checkStillMarks } from '@/lib/cast-marks-check-client';
-import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast-plate-prepare';
+} from '@/lib/cast/marks-check';
+import { checkStillMarks } from '@/lib/cast/marks-check-client';
+import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
 import { galleryEntryPrimaryViewUrl, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import type { FittingCompareTryOn } from '@/lib/fitting-room';
+import type { FittingCompareTryOn } from '@/lib/fitting/room';
 
 /**
  * Outfit's marks check (as Day's): once a try-on's front is final, the vision model says what it

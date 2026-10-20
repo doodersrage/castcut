@@ -25,9 +25,9 @@ import {
   scorePoseMatch,
   type DetectedPose,
 } from './pose-score';
-import { decideSlotQuality, type SlotQualityReport } from './play-slot-quality';
+import { decideSlotQuality, type SlotQualityReport } from './play/slot-quality';
 import { buildDetectorInputs, parseComfyViewRef } from './pose-detect-server';
-import { parseRoleplayScenes } from './roleplay';
+import { parseRoleplayScenes } from './story/roleplay';
 import { poseGuidePromptBlock } from './pose-guide-prompt';
 
 function figure(base: 'stand' | 'sit' | 'lie' | 'crouch' | 'walk', cx = 0.5): StickSkeleton {

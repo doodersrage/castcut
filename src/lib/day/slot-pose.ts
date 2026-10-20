@@ -19,7 +19,7 @@ import {
   type SocialLayout,
   textLeadPosture,
 } from '@/lib/day/pose-guide';
-import { RAPID_ORAL_FALLBACK_RE } from '@/lib/rapid-duo-recipe';
+import { RAPID_ORAL_FALLBACK_RE } from '@/lib/play/rapid-duo-recipe';
 import { SEATED_ORAL_GUIDE_TEXT } from '@/lib/rapid-oral-pose';
 import {
   dayPoseSpecForBeat,

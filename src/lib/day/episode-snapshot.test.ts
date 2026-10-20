@@ -7,7 +7,7 @@ import {
   normalizeEpisodeDay,
   reopenEpisodeDayPatch,
 } from './episode-snapshot';
-import type { DayToolCache } from '../play-settings';
+import type { DayToolCache } from '../play/settings';
 
 const slots = [
   { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },

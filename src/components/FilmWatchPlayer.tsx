@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import MotionMedia from '@/components/ui/MotionMedia';
-import type { FilmPlaylistShot } from '@/lib/character-film';
-import { looksLikeVideoUrl } from '@/lib/roleplay-film';
+import type { FilmPlaylistShot } from '@/lib/film/character-film';
+import { looksLikeVideoUrl } from '@/lib/story/roleplay-film';
 
 export default function FilmWatchPlayer({
   shots,

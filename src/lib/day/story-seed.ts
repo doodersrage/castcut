@@ -5,10 +5,10 @@
  * Pure (types only from the Day / Story modules) so the Story bundle stays light.
  */
 
-import { realKitId } from '../outfit-handoff';
+import { realKitId } from '../fitting/outfit-handoff';
 import type { DaySlot, DaySlotStill } from './planner';
-import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from '../roleplay';
-import type { DayToolCache, RoleplayToolCache } from '../play-settings';
+import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from '../story/roleplay';
+import type { DayToolCache, RoleplayToolCache } from '../play/settings';
 
 /** One Cast's Day: the live Day when it owns it, else the Day parked under it. */
 export type CastDayPlan = Pick<

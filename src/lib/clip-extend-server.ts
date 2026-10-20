@@ -50,7 +50,7 @@ import {
   resolveRequestLlmModel,
   type LlmRequestOptions,
 } from './llm-request-options';
-import { restoreModelOptions } from './play-checks-readiness-server';
+import { restoreModelOptions } from './play/checks-readiness-server';
 import type { SpokenLineHeat } from './spoken-line';
 import { filmTempOsDir, resolveFfmpegBinary } from './video-server-encode';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { PLAY_CAMPAIGN_STEPS } from '@/lib/play-campaign';
-import { canEnterPlayStep, derivePlayJourney, type PlayJourney } from '@/lib/play-step-machine';
+import { PLAY_CAMPAIGN_STEPS } from '@/lib/play/campaign';
+import { canEnterPlayStep, derivePlayJourney, type PlayJourney } from '@/lib/play/step-machine';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { queueCastLookPlate } from '@/lib/cast-plate-queue';
+import { queueCastLookPlate } from '@/lib/cast/plate-queue';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /**

@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/play-settings';
-import { guardStoryForSession } from '@/lib/story-session-guard';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
+import type { RoleplayToolCache } from '@/lib/play/settings';
+import { guardStoryForSession } from '@/lib/story/session-guard';
 
 /**
  * Story's `updateToolSettings`, guarded per session (story-session-guard.ts):

@@ -1,6 +1,6 @@
 'use client';
 
-import { downloadLookPackFile } from '@/lib/look-pack';
+import { downloadLookPackFile } from '@/lib/look/pack';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';

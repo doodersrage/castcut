@@ -4,17 +4,17 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
 import { loadLocalObservability } from '@/lib/local-observability';
-import { loadLookPack } from '@/lib/look-pack';
+import { loadLookPack } from '@/lib/look/pack';
 import {
   loadActivePlayCampaign,
   PLAY_CAMPAIGN_UPDATED_EVENT,
   playEffectiveProgressLabel,
-} from '@/lib/play-campaign';
+} from '@/lib/play/campaign';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
 import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';

@@ -9,13 +9,13 @@ import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
-import { applyCutShotEdits } from '@/lib/film-cut-plan';
+import { applyCutShotEdits } from '@/lib/film/cut-plan';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -62,13 +62,13 @@ import {
   isDayAdultMood,
 } from '@/lib/day/planner';
 import { dayQualityPresetLabel } from '@/lib/day/quality-preset';
-import { fittingSwipeNeighbor } from '@/lib/fitting-room';
+import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   resolveFilmFailurePlaybook,
   resolveQueueFailureGuideLabel,
 } from '@/lib/queue-failure-playbook';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
-import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
+import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,
@@ -83,11 +83,11 @@ import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
-} from '@/lib/play-metrics';
-import { deriveDayPhase } from '@/lib/play-step-machine';
+} from '@/lib/play/metrics';
+import { deriveDayPhase } from '@/lib/play/step-machine';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
-import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
+import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
+import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,

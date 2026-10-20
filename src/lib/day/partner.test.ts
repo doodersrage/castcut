@@ -8,7 +8,7 @@ import {
   scrubDayPartnerOutfitImageClaims,
   toDayPartner,
 } from './partner';
-import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../rapid-duo-recipe';
+import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../play/rapid-duo-recipe';
 
 const lana = toDayPartner({ name: 'Loose Lana', descriptor: 'white woman in her 30s athletic build' })!;
 const theo = toDayPartner({ name: 'Theo', descriptor: 'a tall man in his 30s with a short beard' })!;
@@ -127,7 +127,7 @@ describe('Day partner', () => {
 
 describe('Day partner clips', () => {
   it('two-women clips never name a man', async () => {
-    const { buildIntimateClipPrompt } = await import('../intimate-clip-prompt');
+    const { buildIntimateClipPrompt } = await import('../play/intimate-clip-prompt');
     const clip = buildIntimateClipPrompt('riding him cowgirl on the bed', 4, { twoWomen: true });
     assert.match(clip, /her girlfriend/);
     assert.doesNotMatch(clip, /\b(?:him|he|his)\b/);
@@ -189,7 +189,7 @@ describe('Day partner: two men and a man lead', () => {
   });
 
   it('two-men clips never name a woman', async () => {
-    const { buildIntimateClipPrompt } = await import('../intimate-clip-prompt');
+    const { buildIntimateClipPrompt } = await import('../play/intimate-clip-prompt');
     const clip = buildIntimateClipPrompt('riding him cowgirl, her hands on his chest', 4, {
       twoMen: true,
     });
@@ -238,7 +238,7 @@ describe('Suggestive couple recipe for any pair', () => {
 
 describe('Suggestive duo with an outfit given', () => {
   it("drops the beat's own clothes from the Moment, so the spare robe is not put on him", async () => {
-    const { buildRapidSuggestiveDuoRecipe, withoutBeatClothes } = await import('../rapid-duo-recipe');
+    const { buildRapidSuggestiveDuoRecipe, withoutBeatClothes } = await import('../play/rapid-duo-recipe');
     const beat =
       "sitting sideways on her partner's lap on the couch in a silk robe over a slip — his arm around her waist, her legs draped over his, about to kiss";
     assert.equal(

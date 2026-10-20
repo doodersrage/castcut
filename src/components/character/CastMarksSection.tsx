@@ -15,7 +15,7 @@ import {
   saveCastMarks,
   type CastMark,
   type CastMarkSpot,
-} from '@/lib/cast-marks';
+} from '@/lib/cast/marks';
 import type { CharacterRecord } from '@/lib/character-os';
 
 /**

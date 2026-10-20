@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
-import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
+import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
 import {
   buildCastBibleGenderSwapNegative,
   buildCastBibleGenderSwapPrompt,

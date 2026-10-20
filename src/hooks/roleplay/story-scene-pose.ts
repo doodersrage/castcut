@@ -7,7 +7,7 @@
  * Not carried over from the queue: the reference photo's aspect (probed from the image when the
  * still is queued). The stance is the same; only the canvas it sits on can differ.
  */
-import { storyPoseForcePeople } from '@/lib/story-scene-people';
+import { storyPoseForcePeople } from '@/lib/story/scene-people';
 import {
   resolveSceneGuidePlan,
   sceneTextFromStoryPoseInput,

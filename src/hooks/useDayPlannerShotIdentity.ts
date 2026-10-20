@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { getGalleryCache, warmGalleryStore } from '@/lib/gallery-db-store';
-import { cutChecksCoverage, cutChecksCoverageLine, dayCutNotes } from '@/lib/film-delivery-check';
+import { cutChecksCoverage, cutChecksCoverageLine, dayCutNotes } from '@/lib/film/delivery-check';
 import { batchTimeLine, dayBatchCounts } from '@/lib/day/batch-plan';
 import {
   DAY_IDENTITY_BARS,

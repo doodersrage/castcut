@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { clearCharacterBio } from '@/lib/play-cast';
+import { clearCharacterBio } from '@/lib/play/cast';
 import { useState } from 'react';
 import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
@@ -15,14 +15,14 @@ import {
   upsertCharacter,
   type CharacterRecord,
 } from '@/lib/character-os';
-import { saveCharacterBio } from '@/lib/play-cast';
+import { saveCharacterBio } from '@/lib/play/cast';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
-import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
+import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/story/roleplay-play-core';
 import {
   clearRoleplayLibraryBioFromCharacter,
   syncRoleplayLibraryBioFromCharacter,
-} from '@/lib/roleplay-library';
+} from '@/lib/story/roleplay-library';
 import {
   formatRoleplayBio,
   isRoleplayAdultContent,
@@ -30,9 +30,9 @@ import {
   ROLEPLAY_CONTENT,
   normalizeRoleplayTone,
   type RoleplayBio,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
-import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const ACCENT = 'sky' as const;
 

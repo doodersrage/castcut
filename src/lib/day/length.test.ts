@@ -11,7 +11,7 @@ import {
   normalizeDaySlots,
   DEFAULT_DAY_SLOTS,
 } from './planner';
-import { applyDayTheme } from '../play-remix';
+import { applyDayTheme } from '../play/remix';
 import { buildDayPoseGuide } from './pose-guide';
 
 describe('variable Day length', () => {

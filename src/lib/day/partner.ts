@@ -7,7 +7,7 @@
  * lead need Rapid AIO (its duo recipe has those layouts); clothed duo beats take anyone.
  */
 
-import { relationAllowsRomance, type CastRelationKind } from '../cast-relationships';
+import { relationAllowsRomance, type CastRelationKind } from '../cast/relationships';
 import { inferSubjectGenderFromHints } from '@/lib/distinct-people';
 import type { CharacterAgeBand } from '@/lib/character-appearance';
 

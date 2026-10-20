@@ -2,13 +2,13 @@
 
 import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day/dub';
 import { holdJobCompletionEmail } from '@/lib/job-completion-email';
-import { pronounceForCast } from '@/lib/cast-speech';
-import { previouslyOnShots } from '@/lib/play-series';
-import { widenStillForFilm } from '@/lib/film-widen-client';
+import { pronounceForCast } from '@/lib/cast/speech';
+import { previouslyOnShots } from '@/lib/play/series';
+import { widenStillForFilm } from '@/lib/film/widen-client';
 import { isH3Model } from '@/lib/h3-renderer';
-import { makeFilmAngles } from '@/lib/film-angles-client';
-import { castVoiceOf } from '@/lib/cast-voice';
-import { renderNarrationLine } from '@/lib/film-narration-client';
+import { makeFilmAngles } from '@/lib/film/angles-client';
+import { castVoiceOf } from '@/lib/cast/voice';
+import { renderNarrationLine } from '@/lib/film/narration-client';
 import { applyDayNarration, type DayNarrationLine } from '@/lib/day/narration';
 import { filmShapeOf } from '@/lib/video-resolution';
 import {
@@ -29,7 +29,7 @@ import {
   normalizeSpokenLine,
   talkingClipPrompt,
 } from '@/lib/ltx25-renderer';
-import { castVoiceSampleFor } from '@/lib/cast-voice';
+import { castVoiceSampleFor } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { nextDayThread, planTomorrowSlots } from '@/lib/day/thread';
@@ -51,9 +51,9 @@ import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day/end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film-cut-plan';
+import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film/cut-plan';
 import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
-import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
+import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play/series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -67,15 +67,15 @@ import {
   downloadFilmBlob,
   shareFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble-lazy';
-import { filmDownloadFilename } from '@/lib/character-film';
+} from '@/lib/film/character-film-assemble-lazy';
+import { filmDownloadFilename } from '@/lib/film/character-film';
 import {
   applyCharacterRecord,
   castLoraSessionIds,
   getCharacter,
   upsertCharacter,
 } from '@/lib/character-os';
-import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
 import {
   fetchClothingLabels,
@@ -125,33 +125,33 @@ import {
   loadLookPack,
   lookPackNotes,
   saveLookPack,
-} from '@/lib/look-pack';
-import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play-campaign';
-import { loadPlayMetrics } from '@/lib/play-metrics';
-import { canEnterPlayStep, resolvePlayStepHref } from '@/lib/play-step-machine';
-import { applyRemixDayFilmState, remixNewOutfitHref } from '@/lib/play-starter';
-import { dayThemeById, type DayRemixKind } from '@/lib/play-remix';
-import { recordDayFilmEpisode } from '@/lib/play-series';
-import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film-poster';
+} from '@/lib/look/pack';
+import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play/campaign';
+import { loadPlayMetrics } from '@/lib/play/metrics';
+import { canEnterPlayStep, resolvePlayStepHref } from '@/lib/play/step-machine';
+import { applyRemixDayFilmState, remixNewOutfitHref } from '@/lib/play/starter';
+import { dayThemeById, type DayRemixKind } from '@/lib/play/remix';
+import { recordDayFilmEpisode } from '@/lib/play/series';
+import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film/poster';
 import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfy-setup-intent';
 import { planAppBurst } from '@/lib/comfy-model-turn';
-import { buildDemoDayStills } from '@/lib/welcome-sample-film';
+import { buildDemoDayStills } from '@/lib/film/welcome-sample-film';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
-import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
-import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look/outfit-plate';
+import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { clearDayVacationFaceBreakCache } from '@/lib/day/vacation-face-crop';
 import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
-} from '@/lib/fitting-saved-garments';
+} from '@/lib/fitting/saved-garments';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
@@ -162,7 +162,7 @@ import {
   loadToolSettings,
   saveSharedSettings,
 } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };

@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import CutSoundLane from '@/components/cut/CutSoundLane';
-import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/character-film';
+import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/film/character-film';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
 import {
   MIN_CLIP_TRIM_SEC,
@@ -17,7 +17,7 @@ import {
   withCutShotEdit,
   type CutShotEdit,
   type CutShotEdits,
-} from '@/lib/film-cut-plan';
+} from '@/lib/film/cut-plan';
 
 type Drag =
   | { kind: 'hold'; key: string; startX: number; base: number; value: number }

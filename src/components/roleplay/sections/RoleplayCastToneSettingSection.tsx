@@ -9,7 +9,7 @@ import {
   ROLEPLAY_SETTING_PRESETS,
   ROLEPLAY_TONES,
   rollRoleplaySetting,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
 
 const ACCENT = 'amber' as const;

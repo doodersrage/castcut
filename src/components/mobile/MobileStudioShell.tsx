@@ -1,7 +1,7 @@
 'use client';
 
 import RenderOfflineBanner from '@/components/RenderOfflineBanner';
-import { isPlayStoryLocked } from '@/lib/play-step-machine';
+import { isPlayStoryLocked } from '@/lib/play/step-machine';
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -21,9 +21,9 @@ import {
   mobileStudioTabFromPath,
   type MobileStudioTabId,
 } from '@/lib/mobile-studio';
-import { resolvePlayLoopNavHref } from '@/lib/play-campaign';
-import { followCurrentPlayLoopHref } from '@/lib/play-loop-nav-click';
-import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
+import { resolvePlayLoopNavHref } from '@/lib/play/campaign';
+import { followCurrentPlayLoopHref } from '@/lib/play/loop-nav-click';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { chooseDeskView } from '@/lib/phone-view';

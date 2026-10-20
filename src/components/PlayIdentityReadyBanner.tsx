@@ -11,7 +11,7 @@ import {
 } from '@/lib/identity-pack-health';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { getCharacter } from '@/lib/character-os';
-import { resolveCastFaceForPlate } from '@/lib/look-outfit-plate';
+import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { toolEffectiveModel } from '@/lib/tool-effective-model';
 

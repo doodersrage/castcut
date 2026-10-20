@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadActivePlayCampaign, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play-campaign';
+import { loadActivePlayCampaign, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play/campaign';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { loadLocalObservability } from '@/lib/local-observability';
 import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-store';
-import { loadLookPack } from '@/lib/look-pack';
-import { resolvePlayHabitNudge } from '@/lib/play-habit-nudge';
+import { loadLookPack } from '@/lib/look/pack';
+import { resolvePlayHabitNudge } from '@/lib/play/habit-nudge';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 

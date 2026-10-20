@@ -1,6 +1,6 @@
 'use client';
 
-import { castCatchphrases } from '@/lib/cast-speech';
+import { castCatchphrases } from '@/lib/cast/speech';
 import { getCharacter } from '@/lib/character-os';
 import StillReferenceTray from '@/components/StillReferenceTray';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
@@ -9,12 +9,12 @@ import { loadSettingsCache } from '@/lib/settings-cache';
 import SideSheet from '@/components/ui/SideSheet';
 import StoryBeatPosePreview from '@/components/roleplay/sections/StoryBeatPosePreview';
 import StoryBeatTextEditor from '@/components/roleplay/StoryBeatTextEditor';
-import { storyNarrationLine } from '@/lib/story-film';
+import { storyNarrationLine } from '@/lib/story/film';
 import NarrationField from '@/components/NarrationField';
 import SpokenLineField from '@/components/SpokenLineField';
 import type { StoryBeatEditActions } from '@/hooks/roleplay/useStoryBeatEdit';
 import type { PosePicks } from '@/components/pose/PosePreview';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 
 export type StoryBeatSheetProps = {
   open: boolean;

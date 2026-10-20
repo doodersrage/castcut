@@ -13,8 +13,8 @@ import {
   findGalleryEntryForStill,
   galleryEntryComfyStillUrl,
 } from './fix-area-gallery';
-import { addRoleplayFixedTakePatch, roleplayStillTakes } from './roleplay-gallery-takes';
-import type { RoleplayStoryBeat } from './roleplay';
+import { addRoleplayFixedTakePatch, roleplayStillTakes } from './story/roleplay-gallery-takes';
+import type { RoleplayStoryBeat } from './story/roleplay';
 
 const result = {
   imageUrl: '/api/comfyui/view?filename=Castcut-fix_00001_.png&subfolder=&type=output',

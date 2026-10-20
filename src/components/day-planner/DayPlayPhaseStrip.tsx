@@ -1,6 +1,6 @@
 'use client';
 
-import { PLAY_DAY_PHASES, type PlayDayPhaseId } from '@/lib/play-step-machine';
+import { PLAY_DAY_PHASES, type PlayDayPhaseId } from '@/lib/play/step-machine';
 
 type DayPlayPhaseStripProps = {
   activePhase: PlayDayPhaseId;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { clipCutAtSec, CUT_SAMPLE_H, CUT_SAMPLE_W } from './film-delivery-check';
+import { clipCutAtSec, CUT_SAMPLE_H, CUT_SAMPLE_W } from './film/delivery-check';
 import { galleryNeedsLookReasons } from './gallery-needs-look';
 import { filmsUsingEntry } from './gallery-used-in';
 

@@ -17,12 +17,12 @@ import {
   type GalleryAdultCheckState,
 } from './gallery-adult-check';
 import { filterComfyGalleryEntries } from './comfyui-gallery';
-import { isFilmSourceStill, resolveFilmPlaylist } from './character-film';
+import { isFilmSourceStill, resolveFilmPlaylist } from './film/character-film';
 import { isGalleryStitchableVideo } from './gallery-video-stitch';
 import { selectLoraDatasetEntries } from './gallery-lora-dataset-export';
 import { mergeGalleryWithServer } from './gallery-server-sync';
 import { mergeDaySlotStills } from './day/planner';
-import { mergeRoleplayStoryStills } from './roleplay-gallery-takes';
+import { mergeRoleplayStoryStills } from './story/roleplay-gallery-takes';
 import { resetServerStorageFingerprints, syncNamespaceToServer } from './storage-sync';
 import { closeStudioDb } from './sqlite/studio-db';
 import { readGalleryEntries, upsertGalleryEntries } from './sqlite/gallery';

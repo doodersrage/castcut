@@ -1,14 +1,14 @@
 'use client';
 
 import { characterFromShared, getCharacter, upsertCharacter } from '@/lib/character-os';
-import { addCharacterLookPack, lookPacksOf } from '@/lib/play-cast';
-import { getCharacterLookPack } from '@/lib/play-cast';
+import { addCharacterLookPack, lookPacksOf } from '@/lib/play/cast';
+import { getCharacterLookPack } from '@/lib/play/cast';
 import {
   copyPortableLookPackShareLink,
   downloadLookPackFile,
   parseLookPackFile,
   saveLookPack,
-} from '@/lib/look-pack';
+} from '@/lib/look/pack';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';

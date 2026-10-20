@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { probeDeliveryShots, type DeliveryCheckShot } from '@/lib/film-delivery-check-server';
+import { probeDeliveryShots, type DeliveryCheckShot } from '@/lib/film/delivery-check-server';
 import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 
 export const runtime = 'nodejs';

@@ -7,7 +7,7 @@ import { RoleplayCastActionsSection } from '@/components/roleplay/sections/Rolep
 import { RoleplayCastPhotoSection } from '@/components/roleplay/sections/RoleplayCastPhotoSection';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import type { RoleplayCastSectionProps } from '@/components/roleplay/roleplay-cast-section-types';
-import { ROLEPLAY_ARCHETYPES, roleplayMoodSummary } from '@/lib/roleplay';
+import { ROLEPLAY_ARCHETYPES, roleplayMoodSummary } from '@/lib/story/roleplay';
 
 export type {
   RoleplayCastApplyReferenceInput,

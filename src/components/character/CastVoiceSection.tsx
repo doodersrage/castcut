@@ -15,7 +15,7 @@ import {
   shiftCastVoice,
   takeCastVoiceFromClip,
   takeCastVoiceFromFile,
-} from '@/lib/cast-voice';
+} from '@/lib/cast/voice';
 import { getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
 

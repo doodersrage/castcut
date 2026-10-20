@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { prepareCastPlate, type CastPlatePrepareOptions } from '@/lib/cast-plate-prepare';
+import { prepareCastPlate, type CastPlatePrepareOptions } from '@/lib/cast/plate-prepare';
 import { activeLook, getCharacter } from '@/lib/character-os';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';

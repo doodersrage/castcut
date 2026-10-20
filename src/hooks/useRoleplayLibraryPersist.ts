@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 import { applyCharacterRecord } from '@/lib/character-os';
-import { upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
+import { upsertCharacterFromRoleplaySession } from '@/lib/play/cast';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { type RoleplayToolCache } from '@/lib/play-settings';
-import { persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
+import { type RoleplayToolCache } from '@/lib/play/settings';
+import { persistRoleplayLibraryFromCache } from '@/lib/story/roleplay-library';
 
 type UseRoleplayLibraryPersistOptions = {
   mounted: boolean;

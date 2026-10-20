@@ -8,7 +8,7 @@ import {
 } from './day/planner';
 import { parseIntimateLayout, resolveSceneGuidePlan } from './day/pose-guide';
 import { planDaySlotPose } from './day/slot-pose';
-import { buildRapidDuoRecipe } from './rapid-duo-recipe';
+import { buildRapidDuoRecipe } from './play/rapid-duo-recipe';
 import { oralReceiverSeated } from './rapid-oral-pose';
 
 const RAPID = 'qwen-rapid-aio-edit-nsfw';

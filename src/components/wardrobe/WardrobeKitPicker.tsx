@@ -8,7 +8,7 @@ import WearingCard from '@/components/wardrobe/WearingCard';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import UiIcon from '@/components/ui/UiIcon';
-import type { FittingSwipeKit } from '@/lib/fitting-room';
+import type { FittingSwipeKit } from '@/lib/fitting/room';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 import {

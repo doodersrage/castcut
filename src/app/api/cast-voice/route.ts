@@ -6,7 +6,7 @@ import {
   shiftVoiceSample,
   VOICE_UPLOAD_MAX_BYTES,
   voiceSampleFromUpload,
-} from '@/lib/cast-voice-server';
+} from '@/lib/cast/voice-server';
 import { uploadComfyInputContent } from '@/lib/comfy-input-upload-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui-client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui-config';

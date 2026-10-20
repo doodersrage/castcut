@@ -1,4 +1,4 @@
-import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
+import type { RoleplayBeatOutput } from '@/lib/story/roleplay-film';
 import type {
   RoleplayBio,
   RoleplayContentId,
@@ -6,8 +6,8 @@ import type {
   RoleplayStoryBeat,
   RoleplayStoryPhase,
   RoleplayTone,
-} from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+} from '@/lib/story/roleplay';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 export type RoleplayCastApplyReferenceInput = {
   file?: File | null;

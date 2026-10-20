@@ -51,19 +51,19 @@ Regenerating the baseline is for removals only, never to admit a new crossing. T
 
 ### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
 
-Shared code exposes a registration point (`registerCastChangeScrubber` in `settings-cache.ts`). The Play logic moves into the Play layer (`play-cast-change.ts`) and is registered by `lib/play-features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
+Shared code exposes a registration point (`registerCastChangeScrubber` in `settings-cache.ts`). The Play logic moves into the Play layer (`play-cast-change.ts`) and is registered by `lib/play/features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
 
 ### Feature settings
 
-Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play-settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`settings-cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
+Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play/settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`settings-cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
 
 ### Cast records
 
-The Cast store (`character-os.ts`) is shared: Gallery filters, identity lock, LoRA training and IP-Adapter use it. Play's parts of a record (Story bio/tone/content/playAs, film cut, Look packs) are declared in `lib/play-cast.ts` through `CharacterFeatureFields`, together with the functions that use them. Their normaliser is registered with `registerCharacterNormalizer`. The record normaliser keeps any field it does not name, so feature data survives where the feature isn't loaded; `character-feature-fields.test.ts` guards this.
+The Cast store (`character-os.ts`) is shared: Gallery filters, identity lock, LoRA training and IP-Adapter use it. Play's parts of a record (Story bio/tone/content/playAs, film cut, Look packs) are declared in `lib/play/cast.ts` through `CharacterFeatureFields`, together with the functions that use them. Their normaliser is registered with `registerCharacterNormalizer`. The record normaliser keeps any field it does not name, so feature data survives where the feature isn't loaded; `character-feature-fields.test.ts` guards this.
 
 ### UI slots and flags
 
-Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app-flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play-features.ts`.
+Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app-flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play/features.ts`.
 
 ### Data hooks
 

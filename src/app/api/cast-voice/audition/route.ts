@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { CAST_VOICE_AUDITION_COUNT } from '@/lib/cast-voice';
-import { renderVoiceAudition } from '@/lib/cast-voice-audition-server';
+import { CAST_VOICE_AUDITION_COUNT } from '@/lib/cast/voice';
+import { renderVoiceAudition } from '@/lib/cast/voice-audition-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 280;

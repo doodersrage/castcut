@@ -9,8 +9,8 @@ import {
   dismissPlayHabitNudge,
   resolvePlayHabitNudge,
   type PlayHabitNudge,
-} from '@/lib/play-habit-nudge';
-import { PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
+} from '@/lib/play/habit-nudge';
+import { PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 
 /** Soft 24h habit prompt after the latest film cut. */

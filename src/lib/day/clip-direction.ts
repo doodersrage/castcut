@@ -10,7 +10,7 @@
 import { adultAgeLineIn } from '../adult-age-safeguard';
 import { swapDayPromptGender } from './lead-gender';
 import { buildDaySlotMotionSubject, isDayAdultMood, type DaySlot } from './planner';
-import { buildIntimateClipPrompt } from '../intimate-clip-prompt';
+import { buildIntimateClipPrompt } from '../play/intimate-clip-prompt';
 import { RAPID_DUO_RECIPE_MARK } from '../prompt-recipe-mark';
 import { buildStillClipPrompt, stillPromptPeople } from '../still-clip-prompt';
 

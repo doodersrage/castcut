@@ -1,4 +1,4 @@
-import type { FittingSwipeKit } from '@/lib/fitting-room';
+import type { FittingSwipeKit } from '@/lib/fitting/room';
 
 export const WARDROBE_KIT_STRIP_NEIGHBOR_RADIUS = 5;
 export const WARDROBE_KIT_STRIP_RECENT_LIMIT = 6;

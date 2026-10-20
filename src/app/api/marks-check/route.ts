@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { readMarksInStill } from '@/lib/cast-marks-check-server';
+import { readMarksInStill } from '@/lib/cast/marks-check-server';
 import { parseLlmRequestOptions, type LlmRequestBody } from '@/lib/llm-request-options';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 

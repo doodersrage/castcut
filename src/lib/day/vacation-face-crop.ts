@@ -10,7 +10,7 @@ import {
   ISOLATE_FILL_NEUTRAL,
   loadImageBlobFromUrls,
 } from '@/lib/isolate-subject';
-import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
+import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 
 type FaceBreakResult = {

@@ -4,7 +4,7 @@ import { useEffect, useId } from 'react';
 import { Button } from '@/components/ui/Button';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { StoryStartOverChoice } from '@/hooks/roleplay/useStoryStartOver';
-import { roleplayRestartNotice } from '@/lib/roleplay';
+import { roleplayRestartNotice } from '@/lib/story/roleplay';
 
 /**
  * "Start the story over", asked in the page: keep the character's bible, or have a new one

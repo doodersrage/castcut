@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextArea, TextInput } from '@/components/ui/Field';
-import { isRoleplayBioComplete, parseRoleplayBioFromText, type RoleplayBio } from '@/lib/roleplay';
+import {
+  isRoleplayBioComplete,
+  parseRoleplayBioFromText,
+  type RoleplayBio,
+} from '@/lib/story/roleplay';
 
 export default function RoleplayBibleEditor({
   initial,

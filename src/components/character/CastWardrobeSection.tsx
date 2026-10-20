@@ -5,13 +5,13 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { followLookOutfitInSessions } from '@/lib/cast-plate-switch';
+import { followLookOutfitInSessions } from '@/lib/cast/plate-switch';
 import {
   backfillCastWardrobe,
   normalizeCastWardrobe,
   wearOutfitAgain,
   wornOutfitKey,
-} from '@/lib/cast-wardrobe';
+} from '@/lib/cast/wardrobe';
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';

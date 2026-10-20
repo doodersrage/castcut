@@ -1,0 +1,759 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { resetBrowserStorageCache } from '../browser-storage';
+import {
+  assignOutfitPlateToCastAndFitting,
+  buildLookCastPlateNegative,
+  buildLookCastPlatePrompt,
+  clearCharacterBodyPlate,
+  clearCharacterLookPlate,
+  ensureOutfitPlateAfterLook,
+  fittingHasSessionPlate,
+  inferPlateEthnicityKey,
+  pickMoodboardPlateSource,
+  reinforceAppearanceForPlate,
+  resolveCastFaceForPlate,
+  castFaceQueueParamsBase,
+  withCastFaceQueueParams,
+  withCastIdentityQueueFields,
+  syncSharedIdentityToCast,
+  tryAttachPendingOutfitPlate,
+  resolveCharacterAppearanceForPlate,
+  stripDemographicCuesFromStyle,
+  styleNotesForLookPlate,
+} from './outfit-plate';
+import { createBlankCharacter, getCharacter, upsertCharacter, activeLook } from '../character-os';
+import { saveComfyGallery, type ComfyGalleryEntry } from '../comfyui-gallery';
+import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveToolSettings } from '../settings-cache';
+import { DEFAULT_FITTING_TOOL_CACHE } from '../play/settings';
+
+function installMemoryWindow() {
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+      sessionStorage: {
+        getItem: (key: string) => storage.get(`s:${key}`) ?? null,
+        setItem: (key: string, value: string) => storage.set(`s:${key}`, value),
+        removeItem: (key: string) => storage.delete(`s:${key}`),
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  resetBrowserStorageCache();
+}
+
+describe('look-outfit-plate', () => {
+  it('castFaceQueueParamsBase pins Cast look face for Day/Outfit queueParamsBase', () => {
+    assert.equal(castFaceQueueParamsBase(null), undefined);
+    const blank = createBlankCharacter('Face Pin');
+    assert.equal(castFaceQueueParamsBase(blank), undefined);
+
+    const withFace = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+    };
+    assert.deepEqual(castFaceQueueParamsBase(withFace, 0.8), {
+      ipAdapterImageFilename: 'lead-face.png',
+      ipAdapterImageFilenames: ['lead-face.png'],
+      ipAdapterStrength: 0.8,
+    });
+    assert.equal(resolveCastFaceForPlate(withFace)?.filename, 'lead-face.png');
+  });
+
+  it('withCastFaceQueueParams merges face pin into Animate video params', () => {
+    const blank = createBlankCharacter('Animate Face');
+    assert.deepEqual(withCastFaceQueueParams({ videoFrames: 64, videoFps: 16 }, blank), {
+      videoFrames: 64,
+      videoFps: 16,
+    });
+    assert.equal(withCastFaceQueueParams(undefined, blank), undefined);
+
+    const withFace = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+    };
+    assert.deepEqual(withCastFaceQueueParams({ videoFrames: 64, videoFps: 16 }, withFace, 0.7), {
+      videoFrames: 64,
+      videoFps: 16,
+      ipAdapterImageFilename: 'lead-face.png',
+      ipAdapterImageFilenames: ['lead-face.png'],
+      ipAdapterStrength: 0.7,
+    });
+  });
+
+  it('withCastIdentityQueueFields pins face and LoRAs together', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Loop Pin');
+    assert.deepEqual(withCastIdentityQueueFields(blank), {});
+    const locked = {
+      ...blank,
+      ipAdapter: { imageFilename: 'lead-face.png', imageUrl: 'https://example.com/face.png' },
+      loraLibraryIds: ['lora-rin'],
+    };
+    assert.deepEqual(withCastIdentityQueueFields(locked, 0.6, { videoFrames: 32 }), {
+      queueParamsBase: {
+        videoFrames: 32,
+        ipAdapterImageFilename: 'lead-face.png',
+        ipAdapterImageFilenames: ['lead-face.png'],
+        ipAdapterStrength: 0.6,
+      },
+      sessionActiveLoraIds: ['lora-rin'],
+    });
+  });
+
+  it('syncSharedIdentityToCast keeps session LoRAs when Cast has no pins', () => {
+    installMemoryWindow();
+    resetBrowserStorageCache();
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: {
+        ...loadSettingsCache().shared,
+        model: 'qwen-image-2512',
+        sessionActiveLoraIds: ['detail-lora', 'skin-lora'],
+        sessionActiveLoraIdsByModel: {
+          'qwen-image-2512': ['detail-lora', 'skin-lora'],
+        },
+      },
+    });
+    const blank = createBlankCharacter('No Pins');
+    syncSharedIdentityToCast(blank);
+    const shared = loadSettingsCache().shared;
+    assert.deepEqual(shared.sessionActiveLoraIds, ['detail-lora', 'skin-lora']);
+    assert.deepEqual(shared.sessionActiveLoraIdsByModel?.['qwen-image-2512'], [
+      'detail-lora',
+      'skin-lora',
+    ]);
+    assert.equal(shared.activeCharacterId, blank.id);
+  });
+
+  it('pickMoodboardPlateSource prefers subject/other tiles with images', () => {
+    assert.equal(pickMoodboardPlateSource([]), null);
+    assert.equal(pickMoodboardPlateSource([{ id: 'a', role: 'mood', notes: 'no image' }]), null);
+
+    const picked = pickMoodboardPlateSource([
+      { id: 'mood', role: 'mood', imageUrl: 'https://example.com/mood.jpg' },
+      { id: 'subject', role: 'other', imageUrl: 'https://example.com/subject.jpg', label: 'Plate' },
+      { id: 'style', role: 'style', imageFilename: 'style.png' },
+    ]);
+    assert.equal(picked?.imageUrl, 'https://example.com/subject.jpg');
+    assert.equal(picked?.label, 'Plate');
+  });
+
+  it('pickMoodboardPlateSource falls back to style then any imaged tile', () => {
+    const styleFirst = pickMoodboardPlateSource([
+      { id: 'mood', role: 'mood', imageUrl: 'https://example.com/mood.jpg' },
+      { id: 'style', role: 'style', imageFilename: 'style.png' },
+    ]);
+    assert.equal(styleFirst?.filename, 'style.png');
+
+    const any = pickMoodboardPlateSource([
+      { id: 'mood', role: 'mood', imageUrl: 'https://example.com/mood.jpg' },
+    ]);
+    assert.equal(any?.imageUrl, 'https://example.com/mood.jpg');
+  });
+
+  it('buildLookCastPlatePrompt locks Cast subject and treats vibe as style-only', () => {
+    const prompt = buildLookCastPlatePrompt({
+      characterName: 'Ava',
+      descriptor: 'skinny East Asian woman, long black hair',
+      vibePrompt: 'a large Black woman in neon rain alley',
+    });
+    assert.match(prompt, /Ava/);
+    assert.match(prompt, /skinny East Asian woman/);
+    assert.match(prompt, /SUBJECT \(mandatory/);
+    assert.match(prompt, /^Full-length front-view color photograph .*her face and the front of her body toward the camera.*top of the head to both feet/);
+    assert.match(prompt, /DSLR|natural skin/i);
+    assert.match(prompt, /not a 3D model|not clay/i);
+    assert.match(prompt, /STYLE ONLY/);
+    assert.match(prompt, /neon rain/);
+    assert.match(prompt, /full-body|head-to-toe/);
+    assert.match(prompt, /facing the camera[\s\S]*both clearly on/);
+    // Subject block must keep Cast appearance; vibe people must not become the subject line.
+    const subjectLine = prompt.split('\n').find(line => line.startsWith('SUBJECT'));
+    assert.ok(subjectLine?.includes('skinny East Asian'));
+    assert.ok(!subjectLine?.toLowerCase().includes('black woman'));
+    // Demographic cues stripped from style.
+    const styleLine = prompt.split('\n').find(line => line.startsWith('STYLE ONLY'));
+    assert.ok(styleLine);
+    assert.ok(!styleLine!.toLowerCase().includes('black woman'));
+  });
+
+  it('reinforceAppearanceForPlate and negatives lock white vs black skin', () => {
+    const reinforced = reinforceAppearanceForPlate('White woman, slender, woman, White, 30s');
+    assert.match(reinforced, /fair to light skin/i);
+    assert.match(reinforced, /White Caucasian/i);
+    const negative = buildLookCastPlateNegative(reinforced);
+    assert.match(negative, /dark brown skin|deep Black skin/i);
+    assert.equal(inferPlateEthnicityKey('woman, White, slender'), 'white');
+    assert.equal(inferPlateEthnicityKey('skinny East Asian woman'), 'east-asian');
+  });
+
+  it('stripDemographicCuesFromStyle removes people and race from vibe text', () => {
+    const cleaned = stripDemographicCuesFromStyle(
+      'a slim Black woman walking under neon rain alley lighting'
+    );
+    assert.match(cleaned, /neon rain/i);
+    assert.doesNotMatch(cleaned, /black woman/i);
+  });
+
+  it('resolveCharacterAppearanceForPlate prefers active look descriptor over shared', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Mei');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      descriptor: 'fallback root descriptor',
+      looks: [
+        {
+          ...look,
+          descriptor: 'skinny East Asian woman, sharp jaw',
+          hints: 'short bob',
+        },
+      ],
+      activeLookId: look.id,
+    });
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: {
+        ...loadSettingsCache().shared,
+        activeCharacterDescriptor: 'should not win over look',
+      },
+    });
+    const resolved = resolveCharacterAppearanceForPlate(getCharacter(blank.id));
+    assert.match(resolved.appearance, /skinny East Asian/);
+    assert.match(resolved.appearance, /short bob/);
+    assert.ok(!resolved.appearance.includes('should not win'));
+  });
+
+  it('styleNotesForLookPlate prefers look-pack lighting/palette over raw vibe people', () => {
+    const notes = styleNotesForLookPlate({
+      lookPack: {
+        version: 1,
+        source: 'moodboard',
+        lightingNotes: 'soft window light',
+        paletteNotes: 'warm amber',
+        savedAt: Date.now(),
+        vibePrompt: 'a large Black woman walking downtown',
+      },
+      vibePrompt: 'a large Black woman walking downtown',
+    });
+    assert.match(notes, /soft window light/);
+    assert.match(notes, /warm amber/);
+    assert.ok(!notes.toLowerCase().includes('black woman'));
+  });
+
+  it('fittingHasSessionPlate requires url or filename', () => {
+    assert.equal(fittingHasSessionPlate(undefined), false);
+    assert.equal(fittingHasSessionPlate({}), false);
+    assert.equal(fittingHasSessionPlate({ referenceImageUrl: ' https://x ' }), true);
+    assert.equal(fittingHasSessionPlate({ referenceImageFilename: 'plate.png' }), true);
+  });
+
+  it('clearCharacterBodyPlate removes body plate but keeps Cast face lock', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Clear Plate');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'cast-face.png', imageUrl: 'https://example.com/face.png' },
+      looks: [
+        {
+          ...look,
+          ipAdapter: { imageFilename: 'cast-face.png', imageUrl: 'https://example.com/face.png' },
+        },
+      ],
+      activeLookId: look.id,
+    });
+    assignOutfitPlateToCastAndFitting({
+      characterId: blank.id,
+      imageUrl: 'https://example.com/plate.jpg',
+      filename: 'plate.jpg',
+    });
+    assert.ok(getCharacter(blank.id)?.reference?.originalUrl);
+    assert.equal(getCharacter(blank.id)?.ipAdapter?.imageFilename, 'cast-face.png');
+    assert.equal(
+      fittingHasSessionPlate(loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE)),
+      true
+    );
+
+    assert.equal(clearCharacterBodyPlate(blank.id), true);
+    const next = getCharacter(blank.id);
+    assert.equal(next?.reference, undefined);
+    assert.equal(next?.ipAdapter?.imageFilename, 'cast-face.png');
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fittingHasSessionPlate(fitting), false);
+    assert.equal(fitting.suppressAutoPlateSeed, true);
+  });
+
+  it('clearCharacterLookPlate removes body plate and face so Cast home preview clears', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Clear All');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'cast-face.png', imageUrl: 'https://example.com/face.png' },
+      looks: [
+        {
+          ...look,
+          ipAdapter: { imageFilename: 'cast-face.png', imageUrl: 'https://example.com/face.png' },
+          reference: {
+            originalUrl: 'https://example.com/plate.jpg',
+            originalFilename: 'plate.jpg',
+            isolated: false,
+            isolateSubject: true,
+          },
+        },
+      ],
+      activeLookId: look.id,
+      reference: {
+        originalUrl: 'https://example.com/plate.jpg',
+        originalFilename: 'plate.jpg',
+        isolated: false,
+        isolateSubject: true,
+      },
+    });
+
+    assert.equal(clearCharacterLookPlate(blank.id), true);
+    const next = getCharacter(blank.id);
+    assert.equal(next?.reference, undefined);
+    assert.equal(next?.ipAdapter, undefined);
+    assert.equal(activeLook(next!).ipAdapter, undefined);
+  });
+
+  it('clearCharacterLookPlate clears face/reference on every look, not only active', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Multi Look');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const lookA = activeLook(stored);
+    const lookB = {
+      ...lookA,
+      id: 'look-b',
+      name: 'Alt',
+      ipAdapter: { imageFilename: 'alt-face.png', imageUrl: 'https://example.com/alt-face.png' },
+      reference: {
+        originalUrl: 'https://example.com/alt-plate.jpg',
+        originalFilename: 'alt-plate.jpg',
+        isolated: false,
+        isolateSubject: true,
+      },
+    };
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'main-face.png', imageUrl: 'https://example.com/main-face.png' },
+      looks: [
+        {
+          ...lookA,
+          ipAdapter: { imageFilename: 'main-face.png', imageUrl: 'https://example.com/main-face.png' },
+        },
+        lookB,
+      ],
+      activeLookId: lookA.id,
+    });
+
+    assert.equal(clearCharacterLookPlate(blank.id), true);
+    const next = getCharacter(blank.id)!;
+    assert.equal(next.ipAdapter, undefined);
+    assert.equal(next.looks?.every(entry => !entry.ipAdapter && !entry.reference), true);
+  });
+
+  it('assignOutfitPlateToCastAndFitting syncFace replaces a stale Cast face lock', () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Sync Face');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'old-face.png', imageUrl: 'https://example.com/old-face.png' },
+      looks: [
+        {
+          ...look,
+          ipAdapter: { imageFilename: 'old-face.png', imageUrl: 'https://example.com/old-face.png' },
+        },
+      ],
+      activeLookId: look.id,
+    });
+
+    assignOutfitPlateToCastAndFitting({
+      characterId: blank.id,
+      imageUrl: 'https://example.com/gallery-plate.jpg',
+      filename: 'gallery-plate.jpg',
+      syncFace: true,
+    });
+    const next = getCharacter(blank.id)!;
+    assert.equal(next.reference?.originalUrl, 'https://example.com/gallery-plate.jpg');
+    assert.equal(next.ipAdapter?.imageFilename, 'gallery-plate.jpg');
+    assert.equal(activeLook(next).ipAdapter?.imageFilename, 'gallery-plate.jpg');
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, undefined);
+    assert.equal(fitting.suppressAutoPlateSeed, false);
+  });
+
+  it('ensureOutfitPlateAfterLook skips an existing session plate unless forceReplace', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Ava');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'ava-face.png' },
+      looks: [{ ...look, ipAdapter: { imageFilename: 'ava-face.png' } }],
+      activeLookId: look.id,
+    });
+    assignOutfitPlateToCastAndFitting({
+      characterId: blank.id,
+      imageUrl: 'https://example.com/old-plate.jpg',
+      filename: 'old-plate.jpg',
+    });
+    assert.equal(
+      fittingHasSessionPlate(loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE)),
+      true
+    );
+
+    let queued = 0;
+    const skipped = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      tiles: [],
+      vibePrompt: 'soft light',
+      sendComfyUi: async () => {
+        queued += 1;
+        return 'prompt-skip';
+      },
+    });
+    assert.equal(skipped, 'skipped');
+    assert.equal(queued, 0);
+
+    const replaced = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      tiles: [{ id: 't1', role: 'other', imageUrl: 'https://example.com/new-subject.jpg' }],
+      vibePrompt: 'soft light',
+      forceReplace: true,
+      sendComfyUi: async () => {
+        queued += 1;
+        return 'prompt-replace';
+      },
+    });
+    // Extract queues a full-body plate when Cast has a face lock.
+    assert.equal(replaced, 'queued');
+    assert.equal(queued, 1);
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, 'prompt-replace');
+    assert.equal(fitting.referenceImageUrl, undefined);
+  });
+
+  it('ensureOutfitPlateAfterLook handoff can stamp a subject tile without forceReplace', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Kai');
+    upsertCharacter(blank);
+    clearCharacterLookPlate(blank.id);
+    saveToolSettings('fitting', {
+      ...DEFAULT_FITTING_TOOL_CACHE,
+      suppressAutoPlateSeed: true,
+    });
+
+    let queued = 0;
+    const stamped = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      tiles: [{ id: 't1', role: 'other', imageUrl: 'https://example.com/capture-plate.jpg' }],
+      vibePrompt: 'soft light',
+      sendComfyUi: async () => {
+        queued += 1;
+        return 'should-not-queue';
+      },
+    });
+    assert.equal(stamped, 'ready');
+    assert.equal(queued, 0);
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.referenceImageUrl, 'https://example.com/capture-plate.jpg');
+  });
+
+  it('ensureOutfitPlateAfterLook forceReplace queues plate without Cast face', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('NoFace');
+    upsertCharacter({
+      ...blank,
+      descriptor: 'White woman, slender',
+      hints: 'woman, White, slender',
+    });
+    let queuedPrompt = '';
+    let queuedOptions: { queueParamsBase?: { ipAdapterImageFilename?: string } } | undefined;
+    const result = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      tiles: [],
+      vibePrompt: 'a large Black woman',
+      forceReplace: true,
+      sendComfyUi: async (prompt, _s, _h, options) => {
+        queuedPrompt = prompt;
+        queuedOptions = options;
+        return 'prompt-noface';
+      },
+    });
+    assert.equal(result, 'queued');
+    assert.match(queuedPrompt, /White/);
+    assert.ok(!queuedPrompt.toLowerCase().includes('black woman'));
+    assert.equal(queuedOptions?.queueParamsBase?.ipAdapterImageFilename, undefined);
+  });
+
+  it('ensureOutfitPlateAfterLook forceReplace pins Cast face IP and ignores vibe people', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Nova');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const look = activeLook(stored);
+    upsertCharacter({
+      ...stored,
+      looks: [
+        {
+          ...look,
+          descriptor: 'White woman, slender, fair skin',
+          hints: 'woman, White, slender',
+          ipAdapter: { imageFilename: 'nova-face.png', imageUrl: 'https://example.com/nova.png' },
+        },
+      ],
+      activeLookId: look.id,
+      descriptor: 'White woman, slender, fair skin',
+      hints: 'woman, White, slender',
+      ipAdapter: { imageFilename: 'nova-face.png', imageUrl: 'https://example.com/nova.png' },
+    });
+    // Stale shared face from a different character — Fresh sync + queueParamsBase must win.
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: {
+        ...loadSettingsCache().shared,
+        activeCharacterId: 'other-character',
+        ipAdapterImageFilename: 'stale-black-face.png',
+        ipAdapterStrength: 0.72,
+      },
+    });
+    saveToolSettings('fitting', {
+      ...DEFAULT_FITTING_TOOL_CACHE,
+      referenceImageUrl: 'https://example.com/stale.jpg',
+      referenceImageFilename: 'stale.jpg',
+    });
+
+    let queuedPrompt = '';
+    let queuedOptions:
+      | {
+          identityLock?: boolean;
+          explicitNegative?: string;
+          queueParamsBase?: { ipAdapterImageFilename?: string };
+        }
+      | undefined;
+    const result = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      tiles: [{ id: 'mood', role: 'mood', notes: 'no image' }],
+      vibePrompt: 'a large Black woman at golden hour commute',
+      lookPack: {
+        version: 1,
+        source: 'moodboard',
+        lightingNotes: 'golden hour',
+        moodNotes: 'commute calm',
+        vibePrompt: 'a large Black woman at golden hour commute',
+        savedAt: Date.now(),
+      },
+      forceReplace: true,
+      sendComfyUi: async (prompt, _sport, _historyId, options) => {
+        queuedPrompt = prompt;
+        queuedOptions = options;
+        return 'prompt-queued';
+      },
+    });
+    assert.equal(result, 'queued');
+    assert.match(queuedPrompt, /Nova/);
+    assert.match(queuedPrompt, /White/);
+    assert.match(queuedPrompt, /SUBJECT \(mandatory/);
+    assert.ok(!queuedPrompt.includes('STYLE ONLY'));
+    assert.ok(!queuedPrompt.toLowerCase().includes('black woman'));
+    assert.match(queuedPrompt, /full-body|head-to-toe/);
+    assert.match(queuedPrompt, /facing the camera[\s\S]*both clearly on/);
+    assert.match(queuedPrompt, /Color photograph|DSLR/i);
+    assert.match(queuedPrompt, /not a 3D model|not clay/i);    assert.equal(queuedOptions?.identityLock, false);
+    assert.equal(queuedOptions?.queueParamsBase?.ipAdapterImageFilename, 'nova-face.png');
+    assert.match(queuedOptions?.explicitNegative ?? '', /dark brown skin|deep Black skin/i);
+    assert.equal(getCharacter(blank.id)?.ipAdapter?.imageFilename, 'nova-face.png');
+    assert.equal(getCharacter(blank.id)?.reference, undefined);
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, 'prompt-queued');
+    assert.equal(fitting.pendingOutfitPlateCharacterId, blank.id);
+    assert.equal(fitting.referenceImageUrl, undefined);
+  });
+
+  it('a finished Look plate stamps the Cast that queued it, not the one active now', () => {
+    installMemoryWindow();
+    const recent = createBlankCharacter('Recent');
+    const next = createBlankCharacter('Next');
+    upsertCharacter(recent);
+    upsertCharacter(next);
+    assignOutfitPlateToCastAndFitting({
+      characterId: recent.id,
+      imageUrl: 'https://example.com/recent.jpg',
+      filename: 'recent.jpg',
+    });
+    const entry: ComfyGalleryEntry = {
+      id: 'plate-entry',
+      promptId: 'plate-job',
+      prompt: 'look plate',
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      queuedAt: Date.now(),
+      images: [{ filename: 'new-plate.png', subfolder: '', type: 'output' }],
+    };
+    saveComfyGallery([entry], { syncRemote: false });
+    saveToolSettings('fitting', {
+      ...loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE),
+      pendingOutfitPlatePromptId: 'plate-job',
+      pendingOutfitPlateCharacterId: next.id,
+      referenceImageUrl: 'https://example.com/recent.jpg',
+      referenceImageFilename: 'recent.jpg',
+    });
+    saveSettingsCache({
+      ...loadSettingsCache(),
+      shared: { ...loadSettingsCache().shared, activeCharacterId: recent.id },
+    });
+
+    assert.equal(tryAttachPendingOutfitPlate(recent.id), false);
+    assert.equal(getCharacter(recent.id)?.reference?.originalUrl, 'https://example.com/recent.jpg');
+    assert.match(getCharacter(next.id)?.reference?.originalUrl ?? '', /new-plate\.png/);
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.referenceImageUrl, 'https://example.com/recent.jpg');
+    assert.equal(fitting.pendingOutfitPlatePromptId, undefined);
+    assert.equal(fitting.pendingOutfitPlateCharacterId, undefined);
+  });
+
+  it('Cast home Generate plate: renders for a chosen look with its note, swaps the plate only when it lands', async () => {
+    installMemoryWindow();
+    const blank = createBlankCharacter('Mira');
+    upsertCharacter(blank);
+    const stored = getCharacter(blank.id)!;
+    const first = activeLook(stored);
+    const plate = (name: string) => ({
+      originalUrl: `https://example.com/${name}`,
+      originalFilename: name,
+      isolatedUrl: `https://example.com/${name}`,
+      isolatedFilename: name,
+    });
+    upsertCharacter({
+      ...stored,
+      ipAdapter: { imageFilename: 'mira-face.png' },
+      reference: plate('a.jpg'),
+      looks: [
+        { ...first, reference: plate('a.jpg'), ipAdapter: { imageFilename: 'mira-face.png' } },
+        {
+          ...first,
+          id: 'look-b',
+          name: 'Copper',
+          reference: plate('b-copy.jpg'),
+          ipAdapter: { imageFilename: 'mira-face.png' },
+        },
+      ],
+      activeLookId: first.id,
+    });
+
+    let queuedPrompt = '';
+    const result = await ensureOutfitPlateAfterLook({
+      characterId: blank.id,
+      lookId: 'look-b',
+      lookNote: 'short copper bob,\n winged eyeliner',
+      replaceWhenReady: true,
+      tiles: [],
+      sendComfyUi: async prompt => {
+        queuedPrompt = prompt;
+        return 'gen-b';
+      },
+    });
+    assert.equal(result, 'queued');
+    assert.match(queuedPrompt, /THIS LOOK .*: short copper bob, winged eyeliner/);
+    // Nothing cleared while it renders.
+    const waiting = getCharacter(blank.id)!;
+    assert.equal(waiting.looks?.[1]?.reference?.originalFilename, 'b-copy.jpg');
+    assert.equal(waiting.reference?.originalFilename, 'a.jpg');
+    const fitting = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(fitting.pendingOutfitPlatePromptId, 'gen-b');
+    assert.equal(fitting.pendingOutfitPlateLookId, 'look-b');
+
+    saveComfyGallery(
+      [
+        {
+          id: 'gen-b-entry',
+          promptId: 'gen-b',
+          prompt: 'look plate',
+          comfyUrl: 'http://127.0.0.1:8188',
+          status: 'completed',
+          queuedAt: Date.now(),
+          images: [{ filename: 'copper-plate.png', subfolder: '', type: 'output' }],
+        },
+      ],
+      { syncRemote: false }
+    );
+    tryAttachPendingOutfitPlate(blank.id);
+    const landed = getCharacter(blank.id)!;
+    assert.match(landed.looks?.[1]?.reference?.originalUrl ?? '', /copper-plate\.png/);
+    assert.equal(landed.looks?.[1]?.ipAdapter?.imageFilename, 'mira-face.png');
+    // The active look and the Cast's own plate are untouched.
+    assert.equal(landed.activeLookId, first.id);
+    assert.equal(landed.looks?.[0]?.reference?.originalFilename, 'a.jpg');
+    assert.equal(landed.reference?.originalFilename, 'a.jpg');
+    const after = loadToolSettings('fitting', DEFAULT_FITTING_TOOL_CACHE);
+    assert.equal(after.pendingOutfitPlatePromptId, undefined);
+    assert.equal(after.pendingOutfitPlateLookId, undefined);
+  });
+});
+
+describe('look plate for a man lead', async () => {
+  const { buildLookCastPlatePrompt } = await import('./outfit-plate');
+  it('wears boxer briefs, not a sports bra', () => {
+    const prompt = buildLookCastPlatePrompt({ characterName: 'Tomas', descriptor: 'a man in his thirties, short dark hair' });
+    assert.match(prompt, /boxer briefs, clearly on/);
+    assert.doesNotMatch(prompt, /sports bra/);
+  });
+});
+
+describe('new look plates from the original', () => {
+  it('edits the original plate: same person, plain base layer, only the look note changes', async () => {
+    const { buildLookPlateEditPrompt, castOriginalPlate } = await import('./outfit-plate');
+    const prompt = buildLookPlateEditPrompt({
+      lookNote: 'hair in a high ponytail',
+      marks: 'A light dusting of freckles across the nose.',
+    });
+    assert.match(prompt, /^Edit Image 1 into a new full-length plate photo of the same woman/);
+    assert.match(prompt, /Change only this for the new look: hair in a high ponytail\./);
+    assert.match(prompt, /freckles/);
+    assert.match(prompt, /plain light-grey sports bra and plain light-grey briefs/);
+    assert.match(buildLookPlateEditPrompt({ man: true }), /same man.*boxer briefs/);
+    assert.deepEqual(
+      castOriginalPlate({
+        id: 'c',
+        name: 'C',
+        ipAdapter: { imageFilename: 'Castcut_00197_.png', imageUrl: '/api/comfyui/view?filename=Castcut_00197_.png' },
+      } as never),
+      { imageUrl: '/api/comfyui/view?filename=Castcut_00197_.png', filename: 'Castcut_00197_.png' }
+    );
+    assert.equal(castOriginalPlate({ id: 'c', name: 'C' } as never), null);
+  });
+});
+
+describe('first plate trait details', () => {
+  it('come right after the opening line, before the SUBJECT', () => {
+    const prompt = buildLookCastPlatePrompt({
+      characterName: 'Nora',
+      descriptor: 'a woman',
+      details: 'She wears bold makeup: sharp black winged eyeliner.',
+    });
+    assert.match(prompt, /the floor under them\. She wears bold makeup: sharp black winged eyeliner\.\nSUBJECT/);
+    assert.match(buildLookCastPlatePrompt({ characterName: 'Nora', descriptor: 'a woman' }), /floor under them:\nSUBJECT/);
+  });
+});

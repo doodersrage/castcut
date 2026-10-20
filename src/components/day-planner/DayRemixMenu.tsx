@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
-import { DAY_THEMES } from '@/lib/play-remix';
+import { DAY_THEMES } from '@/lib/play/remix';
 
 export type DayRemixMenuProps = {
   /** The next episode, written to follow on from this Day (day-thread.ts). */

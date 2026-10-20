@@ -22,10 +22,10 @@ import {
   normalizeRoleplayIsolateSubject,
   normalizeRoleplayPlayAs,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 export type RoleplayReferenceApplyInput = {
   file?: File | null;

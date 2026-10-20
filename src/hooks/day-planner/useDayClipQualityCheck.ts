@@ -9,7 +9,7 @@ import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { DEFAULT_MIN_FACE_MATCH } from '@/lib/face-match';
-import { recordFaceMatchScore } from '@/lib/play-metrics';
+import { recordFaceMatchScore } from '@/lib/play/metrics';
 
 /**
  * Animate clip checks (with Auto-review on): once a slot's clip lands, sample frames in the

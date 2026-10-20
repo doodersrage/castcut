@@ -7,7 +7,7 @@ import {
   daySlotMatchesAdultMix,
 } from './planner';
 import { stripNegatedClauses } from '../negated-clauses';
-import { suggestiveBeatClothes } from '../rapid-duo-recipe';
+import { suggestiveBeatClothes } from '../play/rapid-duo-recipe';
 import { suggestiveBeatIsImpliedNudity } from '../clothed-coverage';
 
 /**

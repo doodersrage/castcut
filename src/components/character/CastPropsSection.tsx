@@ -14,7 +14,7 @@ import {
   normalizeCastProps,
   saveCastProps,
   type CastProp,
-} from '@/lib/cast-props';
+} from '@/lib/cast/props';
 import type { CharacterRecord } from '@/lib/character-os';
 
 /**

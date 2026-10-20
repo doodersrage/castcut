@@ -19,7 +19,7 @@ import {
   saveSharedSettings,
   type SharedToolSettings,
 } from '@/lib/settings-cache';
-import { type DayToolCache } from '@/lib/play-settings';
+import { type DayToolCache } from '@/lib/play/settings';
 
 /**
  * Day's Quality preset, read from the check switches plus Day's queue quality profile (the

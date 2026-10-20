@@ -9,12 +9,12 @@ import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
 import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
-import { applyCutShotEdits } from '@/lib/film-cut-plan';
+import { applyCutShotEdits } from '@/lib/film/cut-plan';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
@@ -45,7 +45,7 @@ import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
 } from '@/lib/wardrobe-garment-thumbs';
-import { fittingSwipeNeighbor } from '@/lib/fitting-room';
+import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
@@ -58,7 +58,7 @@ import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOr
 import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
-import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
+import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import dynamic from 'next/dynamic';
 import {
@@ -96,11 +96,11 @@ import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
-} from '@/lib/play-metrics';
-import { deriveDayPhase } from '@/lib/play-step-machine';
+} from '@/lib/play/metrics';
+import { deriveDayPhase } from '@/lib/play/step-machine';
 import { useRenderBackend } from '@/lib/render-backend-status';
-import { CUT_TIME_CHECKS } from '@/lib/film-delivery-check';
-import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
+import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
+import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,

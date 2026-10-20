@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import CastcutNodesHint from '@/components/CastcutNodesHint';
 import VisionModelDownload from '@/components/settings/VisionModelDownload';
-import type { PlayCheckReadiness, PlayChecksReadiness } from '@/lib/play-checks-readiness';
+import type { PlayCheckReadiness, PlayChecksReadiness } from '@/lib/play/checks-readiness';
 
 const ROWS: Array<{ key: keyof Omit<PlayChecksReadiness, 'comfyReachable'>; label: string }> = [
   { key: 'pose', label: 'Pose check (Auto-review)' },

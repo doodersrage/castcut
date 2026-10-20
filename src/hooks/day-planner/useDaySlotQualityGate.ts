@@ -13,7 +13,7 @@ import {
   poseLayoutFromKey,
   recordPoseMatchScore,
   recordSlotReviewOutcome,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
@@ -38,8 +38,8 @@ import {
   slotRerollsUsed,
   type SlotQualityDecision,
   type SlotQualityLedger,
-} from '@/lib/play-slot-quality';
-import { buildFaceComparePair } from '@/lib/play-face-compare';
+} from '@/lib/play/slot-quality';
+import { buildFaceComparePair } from '@/lib/play/face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
@@ -63,7 +63,7 @@ type DaySlotAttempt = {
   decision: SlotQualityDecision;
   missView?: PoseMissView;
 };
-import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
+import { reviewDaySlotStill } from '@/lib/play/slot-review-client';
 import { activeDayEvent } from '@/lib/day/event';
 
 /**

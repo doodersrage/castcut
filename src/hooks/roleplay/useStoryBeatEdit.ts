@@ -36,15 +36,15 @@ import {
   requestRoleplayStillPrompt,
   type buildRoleplayRequestBody,
   type RoleplayApiPayload,
-} from '@/lib/roleplay-play-core';
+} from '@/lib/story/roleplay-play-core';
 import {
   editRoleplayStoryBeatPatch,
   patchRoleplayStoryBeat,
   type RoleplayBio,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+} from '@/lib/story/roleplay';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 type UseStoryBeatEditOptions = {
   storyRef: MutableRefObject<RoleplayStoryBeat[]>;

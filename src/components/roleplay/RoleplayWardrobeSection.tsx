@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
-import { fittingSwipeNeighbor } from '@/lib/fitting-room';
+import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
@@ -13,7 +13,7 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
 } from '@/lib/wardrobe-catalog-ui';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 import type { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 
 const ACCENT = 'amber' as const;

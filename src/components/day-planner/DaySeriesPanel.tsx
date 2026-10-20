@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { canStitchSeries, type PlaySeries } from '@/lib/play-series';
+import { canStitchSeries, type PlaySeries } from '@/lib/play/series';
 
 export type DaySeriesPanelProps = {
   season: PlaySeries | null;

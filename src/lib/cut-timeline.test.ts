@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { cutJoins, cutStarts, filmShotStarts, normalizeCutTransition } from './cut-timeline';
 import { buildFilterComplex } from './video-server-encode';
-import { applyCutShotEdits } from './film-cut-plan';
+import { applyCutShotEdits } from './film/cut-plan';
 
 describe('cut joins (transitions)', () => {
   it('a shot with its own transition overrides the crossfade; a hard cut overlaps nothing', () => {

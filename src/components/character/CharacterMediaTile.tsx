@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
-import { isAssembledFilmEntry } from '@/lib/character-film';
+import { isAssembledFilmEntry } from '@/lib/film/character-film';
 import {
   galleryEntryHeroPreviewUrl,
   galleryEntryPrimaryMediaKind,
   type ComfyGalleryEntry,
 } from '@/lib/comfyui-gallery';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 
 export default function CharacterMediaTile({
   entry,

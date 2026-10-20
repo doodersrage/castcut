@@ -9,8 +9,8 @@
  * (day-prompt-sweep.test.ts), so a contradiction in the finished prompt fails a test.
  */
 
-import { withCastPlace } from '../cast-places';
-import { castRelationSentence } from '../cast-relationships';
+import { withCastPlace } from '../cast/places';
+import { castRelationSentence } from '../cast/relationships';
 import { withEatingUtensil } from '../eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day/clothed-lead';
 import {
@@ -44,7 +44,7 @@ import {
   type DayPlate,
 } from '@/lib/day/plate';
 import { dayStillLiesDown } from '@/lib/day/still-plan';
-import { resolveRoleplaySetting } from '@/lib/roleplay';
+import { resolveRoleplaySetting } from '@/lib/story/roleplay';
 import { beatFitsSetting, fitBeatToSetting, withSceneGround } from '@/lib/scene-surface';
 import { withDayWeather } from '@/lib/day/weather';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';

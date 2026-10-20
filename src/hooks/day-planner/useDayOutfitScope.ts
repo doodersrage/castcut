@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { switchCastPlate } from '@/lib/cast-plate-switch';
+import { switchCastPlate } from '@/lib/cast/plate-switch';
 import {
   activeLook,
   applyCharacterRecord,
@@ -18,9 +18,9 @@ import {
   type DayWideOutfit,
 } from '@/lib/day/outfit-scope';
 import type { DaySlot, DaySlotId } from '@/lib/day/planner';
-import { outfitPicks } from '@/lib/outfit-handoff';
+import { outfitPicks } from '@/lib/fitting/outfit-handoff';
 import { loadToolSettings, type SharedToolSettings } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE, type DayToolCache } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE, type DayToolCache } from '@/lib/play/settings';
 
 /**
  * One look and one clothing for the whole Day (day-outfit-scope.ts): what it is, which slots

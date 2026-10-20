@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { FilmReview } from '@/lib/film-review-store';
+import type { FilmReview } from '@/lib/film/review-store';
 
 function clock(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;

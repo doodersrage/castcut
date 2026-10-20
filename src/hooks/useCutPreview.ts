@@ -40,9 +40,9 @@ import {
   normalizeMusicStartSec,
   soundOverlap,
 } from '@/lib/cut-sound';
-import { frameCutStills, prepareCutShots } from '@/lib/film-cut-media';
-import { applyCutShotEdits, type KeyedShot } from '@/lib/film-cut-plan';
-import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film-cut-preview';
+import { frameCutStills, prepareCutShots } from '@/lib/film/cut-media';
+import { applyCutShotEdits, type KeyedShot } from '@/lib/film/cut-plan';
+import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film/cut-preview';
 import type { FilmPlaylistShot } from '@/lib/media-kind';
 import { captionOpacity, stillMotionZoom, type FilmTitleCard } from '@/lib/video-polish';
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';

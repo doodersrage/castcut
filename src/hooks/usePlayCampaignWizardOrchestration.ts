@@ -1,16 +1,16 @@
 'use client';
 
-import { saveCastMarks, type CastMark } from '@/lib/cast-marks';
+import { saveCastMarks, type CastMark } from '@/lib/cast/marks';
 
 import { loadLocalObservability } from '@/lib/local-observability';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
 import { loadOnboardingState } from '@/lib/onboarding-store';
-import { derivePlayJourney, derivePlayProgress } from '@/lib/play-step-machine';
+import { derivePlayJourney, derivePlayProgress } from '@/lib/play/step-machine';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -22,7 +22,7 @@ import {
   getCharacter,
   upsertCharacter,
 } from '@/lib/character-os';
-import { addCharacterLookPack, getCharacterLookPack, lookPacksOf } from '@/lib/play-cast';
+import { addCharacterLookPack, getCharacterLookPack, lookPacksOf } from '@/lib/play/cast';
 import type {
   CharacterAppearanceDraft,
   CharacterAppearanceFormDraft,
@@ -35,8 +35,8 @@ import {
   readPortableLookPackFromHash,
   saveLookPack,
   type LookPack,
-} from '@/lib/look-pack';
-import { markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
+} from '@/lib/look/pack';
+import { markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import {
   clearPlayCampaignState,
   loadActivePlayCampaign,
@@ -48,11 +48,11 @@ import {
   savePlayCampaignState,
   stagePlayCampaignHandoff,
   type PlayCampaignStepId,
-} from '@/lib/play-campaign';
+} from '@/lib/play/campaign';
 import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '@/lib/settings-cache';
-import { DEFAULT_MOODBOARD_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_MOODBOARD_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 export type PlayCampaignWizardProps = {
@@ -438,7 +438,7 @@ export function usePlayCampaignWizardOrchestration({
       let saved = getCharacter(record.id) ?? record;
       if (input.referenceFile) {
         try {
-          const { applyCastLookPlateFromSource } = await import('@/lib/look-outfit-plate');
+          const { applyCastLookPlateFromSource } = await import('@/lib/look/outfit-plate');
           const plate = await applyCastLookPlateFromSource({
             characterId: saved.id,
             file: input.referenceFile,

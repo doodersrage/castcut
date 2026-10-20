@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { loadSettingsCache } from '@/lib/settings-cache';
-import type { PlayChecksReadiness } from '@/lib/play-checks-readiness';
+import type { PlayChecksReadiness } from '@/lib/play/checks-readiness';
 
 /**
  * Which Play checks (DWPose pose match, FaceAnalysis face match) and Cut extras (server titles)

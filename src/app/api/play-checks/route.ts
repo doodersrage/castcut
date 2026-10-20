@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api/response';
-import { probePlayChecksReadiness } from '@/lib/play-checks-readiness-server';
+import { probePlayChecksReadiness } from '@/lib/play/checks-readiness-server';
 
 export const runtime = 'nodejs';
 

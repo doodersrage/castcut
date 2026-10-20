@@ -2,7 +2,7 @@
 
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import type { IdentityMark } from '@/lib/identity-mark';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
@@ -10,7 +10,7 @@ import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
-import { remixDayFilmHref } from '@/lib/play-starter';
+import { remixDayFilmHref } from '@/lib/play/starter';
 
 export type RoleplayFilmCutActionsProps = {
   assemblingFilm: boolean;

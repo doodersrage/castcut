@@ -11,7 +11,7 @@ import {
   pronounceLine,
   saveCastSpeech,
   type CastSpeech,
-} from '@/lib/cast-speech';
+} from '@/lib/cast/speech';
 import type { CharacterRecord } from '@/lib/character-os';
 
 /**

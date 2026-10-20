@@ -1,0 +1,324 @@
+import { getCharacter, type CharacterRecord } from '../character-os';
+import { storyPeople, storyPeopleLine } from './cast-lines';
+import { avoidedTokensRequestBody } from '../avoided-tokens';
+import { getCachedClothingLabel } from '../clothing-catalog-client';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '../isolate-subject';
+import { sharedLlmRequestBody } from '../llm-request-options';
+import { resolveAdultNudePlateQueueModel } from '../queue-tool-model';
+import {
+  normalizeAvoidedRoleplayNames,
+  resolveRoleplayLockedCharacterName,
+  type RoleplayBio,
+  type RoleplayContentId,
+  type RoleplayScene,
+  type RoleplayStoryBeat,
+  type RoleplayTone,
+} from './roleplay';
+import type { SharedToolSettings } from '../settings-cache';
+import type { EnrichedToolGenerateResult } from '../specialized/types';
+import { buildFittingGarmentReferenceExtras } from '../wardrobe-garment-thumbs';
+
+export type RoleplayApiPayload = EnrichedToolGenerateResult & {
+  error?: string;
+  bio?: RoleplayBio;
+  scenes?: RoleplayScene[];
+  provider?: 'llm' | 'template';
+};
+
+/**
+ * A bible request for the same Cast lead: the lead keeps their name (as Rewrite bible on Cast
+ * does), everything else is written anew. A name already locked on the request stays.
+ */
+export function roleplayBioRequestForLead(
+  body: Record<string, unknown>,
+  leadName: string | null | undefined
+): Record<string, unknown> {
+  const name = resolveRoleplayLockedCharacterName(leadName);
+  if (!name || body.characterName) {
+    return body;
+  }
+  return { ...body, characterName: name, avoidCharacterNames: [] };
+}
+
+/**
+ * Ask the scene writer for a still prompt. One call for every place a scene's still is written —
+ * picking a card, typing your own scene, and writing an edited scene again — so they cannot
+ * drift apart on what counts as a failed write.
+ */
+export async function requestRoleplayStillPrompt(
+  body: Record<string, unknown>
+): Promise<RoleplayApiPayload> {
+  const response = await fetch('/api/roleplay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = (await response.json()) as RoleplayApiPayload;
+  if (!response.ok || !data.prompt?.trim()) {
+    throw new Error(data.error ?? 'Could not write a still.');
+  }
+  return data;
+}
+
+export type RoleplayQueueStillOptions = {
+  inputImageFilename?: string;
+  inputImageUrl?: string;
+  /**
+   * Sparse extras: slot 0 empty so plate stays Image 1;
+   * slot 1 = garment packshot; slot 2 = crude pose stick figure.
+   */
+  inputImageUrls?: Array<string | undefined>;
+  inputImageFilenames?: string[];
+  /** Same mannequin as Image 3 when Settings has a ControlNet model mapped. */
+  controlImageFilename?: string;
+  controlImageUrl?: string;
+  queueParamsBase?: import('../comfyui-config').WorkflowParamValues;
+  identityLock: true;
+  identityLockStrength?: number;
+  identityKind?: SharedToolSettings['identityKind'];
+  /** Match Day stills: strong Qwen edit so Image 3 pose can beat the standing Cast plate. */
+  queueTool?: 'image-prompt';
+  turboEditStrength?: 'strong';
+  /** Adult nude + Rapid AIO → Edit NSFW (required for bare-skin NSFW stills). */
+  queueModel?: string;
+};
+
+/** What the writer reads from the Cast lead to decide he / she. */
+export type RoleplayLeadCast = {
+  descriptor?: string;
+  traits?: { sex?: string };
+  /** Their people (cast-relationships.ts) — the writer is told who they are. */
+  relationships?: CharacterRecord['relationships'];
+};
+
+/** The lead's Sex trait (when picked) and descriptor for a /api/roleplay body. */
+export function roleplayLeadFields(lead: RoleplayLeadCast | null | undefined): {
+  leadSex?: 'woman' | 'man' | 'nonbinary';
+  leadDescriptor?: string;
+  leadPeople?: string;
+} {
+  const sex = lead?.traits?.sex;
+  const descriptor = lead?.descriptor?.trim();
+  const people = storyPeopleLine(
+    storyPeople(lead, castId => getCharacter(castId)),
+    sex === 'man'
+  );
+  return {
+    ...(sex === 'woman' || sex === 'man' || sex === 'nonbinary' ? { leadSex: sex } : {}),
+    ...(descriptor ? { leadDescriptor: descriptor } : {}),
+    ...(people ? { leadPeople: people } : {}),
+  };
+}
+
+export function buildRoleplayRequestBody(input: {
+  action: 'bio' | 'scenes' | 'prompt';
+  situation?: RoleplayScene;
+  shared: SharedToolSettings;
+  personaId: string;
+  customPersona?: string;
+  characterName?: string;
+  extraHints?: string;
+  setting?: string;
+  tone: RoleplayTone;
+  content: RoleplayContentId;
+  allowGore?: boolean;
+  hasReferenceImage: boolean;
+  isolatedSubject: boolean;
+  bio?: RoleplayBio;
+  story?: RoleplayStoryBeat[];
+  rejectedScenes?: RoleplayScene[];
+  /** Catalog kit label or id for wardrobe cues. */
+  wardrobeLabel?: string;
+  /** Vision / manual description of a BYO clothing packshot. */
+  garmentDescription?: string;
+  /** True when Image 2 will carry a packshot / BYO garment. */
+  hasGarmentReference?: boolean;
+  /** Adult Solo/Duo/Mixed mix for rolled scenes. */
+  intimateMix?: import('../day/planner').DayIntimateMix | string | null;
+  /** The active Cast lead (its Sex trait and descriptor decide he / she over the bible's look). */
+  lead?: RoleplayLeadCast | null;
+}): Record<string, unknown> {
+  const nameLock = resolveRoleplayLockedCharacterName(input.characterName);
+  const writingBio = input.action === 'bio';
+  return {
+    action: input.action,
+    model: input.shared.model,
+    detail: input.shared.detail,
+    personaId: input.personaId,
+    customPersona: input.customPersona,
+    characterName: nameLock,
+    avoidCharacterNames:
+      writingBio && !nameLock ? normalizeAvoidedRoleplayNames([input.bio?.name]) : [],
+    extraHints: input.extraHints,
+    setting: input.setting,
+    lockedLocation: input.shared.lockedLocation,
+    isolatedSubject: input.isolatedSubject,
+    tone: input.tone,
+    content: input.content,
+    allowGore: input.allowGore === true,
+    hasReferenceImage: input.hasReferenceImage,
+    wardrobeLabel: input.wardrobeLabel?.trim() || undefined,
+    garmentDescription: input.garmentDescription?.trim() || undefined,
+    hasGarmentReference: input.hasGarmentReference === true,
+    intimateMix: input.intimateMix ?? undefined,
+    ...roleplayLeadFields(input.lead),
+    bio: writingBio ? undefined : input.bio,
+    story: writingBio ? [] : input.story,
+    rejectedScenes: input.action === 'scenes' ? input.rejectedScenes : undefined,
+    situation: input.situation,
+    ...avoidedTokensRequestBody(),
+    ...sharedLlmRequestBody(input.shared),
+  };
+}
+
+/** Resolve kit / BYO fields for Story LLM cues and queue Image 2. */
+export function resolveRoleplayWardrobeFields(input: {
+  wardrobeId?: string | null;
+  lockedWardrobeId?: string | null;
+  wardrobeLabel?: string | null;
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+  customGarmentDescription?: string | null;
+}): {
+  wardrobeId?: string;
+  wardrobeLabel?: string;
+  garmentDescription?: string;
+  hasGarmentReference: boolean;
+  garmentFilename?: string;
+  garmentUrl?: string;
+} {
+  const wardrobeId = input.wardrobeId?.trim() || input.lockedWardrobeId?.trim() || undefined;
+  const extras = buildFittingGarmentReferenceExtras({
+    wardrobeId,
+    customGarmentUrl: input.customGarmentUrl,
+    customGarmentFilename: input.customGarmentFilename,
+  });
+  const label =
+    input.wardrobeLabel?.trim() ||
+    (wardrobeId ? getCachedClothingLabel(wardrobeId) || wardrobeId : undefined);
+  return {
+    ...(wardrobeId ? { wardrobeId } : {}),
+    ...(label ? { wardrobeLabel: label } : {}),
+    ...(input.customGarmentDescription?.trim()
+      ? { garmentDescription: input.customGarmentDescription.trim() }
+      : {}),
+    hasGarmentReference: Boolean(extras),
+    ...(extras?.inputImageFilenames?.[1] ? { garmentFilename: extras.inputImageFilenames[1] } : {}),
+    ...(extras?.inputImageUrls?.[1] ? { garmentUrl: extras.inputImageUrls[1] } : {}),
+  };
+}
+
+export function buildRoleplayQueueStillOptions(input: {
+  photoMode: boolean;
+  isolateSubject: boolean;
+  referenceIsolated: boolean;
+  filename?: string;
+  imageUrl?: string;
+  identityLockStrength?: SharedToolSettings['ipAdapterStrength'];
+  identityKind?: SharedToolSettings['identityKind'];
+  /** Clothing packshot / BYO as Image 2. */
+  garmentFilename?: string | null;
+  garmentUrl?: string | null;
+  wardrobeId?: string | null;
+  customGarmentUrl?: string | null;
+  customGarmentFilename?: string | null;
+  /** Crude stick-figure pose guide as Image 3. */
+  poseGuideFilename?: string | null;
+  poseGuideUrl?: string | null;
+  /** Style the guide was drawn in — only OpenPose guides may go through ControlNet. */
+  poseGuideStyle?: import('../pose-guide-prompt').PoseGuideStylePreference | null;
+  /** Drop Image 2 clothing packshot (intimate nude/sex beats). */
+  omitGarment?: boolean;
+  /** Active Comfy model — gates ControlNet attach when a CN weight is mapped. */
+  model?: string | null;
+  /** FLUX.2 Klein: head crop of the Cast as the last reference (see klein-face-reference.ts). */
+  faceReferenceFilename?: string | null;
+}): RoleplayQueueStillOptions | undefined {
+  if (!input.photoMode) {
+    return undefined;
+  }
+  if (input.isolateSubject && input.referenceIsolated !== true) {
+    throw new Error(ISOLATE_QUEUE_BLOCKED_MESSAGE);
+  }
+  const filename = input.filename?.trim() || '';
+  const imageUrl = input.imageUrl?.trim() || '';
+  if (!filename && !imageUrl) {
+    return undefined;
+  }
+  const wardrobe = input.omitGarment
+    ? {
+        garmentFilename: undefined as string | undefined,
+        garmentUrl: undefined as string | undefined,
+      }
+    : resolveRoleplayWardrobeFields({
+        wardrobeId: input.wardrobeId,
+        customGarmentUrl: input.customGarmentUrl,
+        customGarmentFilename: input.customGarmentFilename,
+      });
+  // Explicit garmentFilename/Url win when callers already resolved extras (unless omitted).
+  const garmentFilename = input.omitGarment
+    ? ''
+    : input.garmentFilename?.trim() || wardrobe.garmentFilename || '';
+  const garmentUrl = input.omitGarment ? '' : input.garmentUrl?.trim() || wardrobe.garmentUrl || '';
+  const poseGuideFilename = input.poseGuideFilename?.trim() || '';
+  const poseGuideUrl = input.poseGuideUrl?.trim() || '';
+  const hasGarment = Boolean(garmentFilename || garmentUrl);
+  const hasPoseGuide = Boolean(poseGuideFilename || poseGuideUrl);
+  const extraUrls: Array<string | undefined> = [undefined];
+  const extraFilenames: string[] = [''];
+  if (hasGarment || hasPoseGuide) {
+    extraUrls[1] = hasGarment ? garmentUrl || undefined : undefined;
+    extraFilenames[1] = hasGarment ? garmentFilename : '';
+  }
+  if (hasPoseGuide) {
+    extraUrls[2] = poseGuideUrl || undefined;
+    extraFilenames[2] = poseGuideFilename;
+  }
+  const faceReferenceFilename = input.faceReferenceFilename?.trim() || '';
+  if (faceReferenceFilename) {
+    extraUrls[1] = extraUrls[1] ?? undefined;
+    extraFilenames[1] = extraFilenames[1] ?? '';
+    extraUrls[2] = extraUrls[2] ?? undefined;
+    extraFilenames[2] = extraFilenames[2] ?? '';
+    extraUrls[3] = undefined;
+    extraFilenames[3] = faceReferenceFilename;
+  }
+  const hasExtras =
+    extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
+    extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
+  const adultNudeQueueModel = input.omitGarment
+    ? resolveAdultNudePlateQueueModel(input.model ?? '', { adultNude: true })
+    : undefined;
+  return {
+    inputImageFilename: filename || undefined,
+    inputImageUrl: imageUrl || undefined,
+    ...(hasExtras
+      ? {
+          ...(extraUrls.some(url => Boolean(url)) ? { inputImageUrls: extraUrls } : {}),
+          ...(extraFilenames.some(name => Boolean(name.trim()))
+            ? { inputImageFilenames: extraFilenames }
+            : {}),
+        }
+      : {}),
+    identityLock: true,
+    identityLockStrength: input.identityLockStrength,
+    identityKind: input.identityKind,
+    // Soft roleplay denoise (~0.65) keeps Image 1 standing pose; Day uses image-prompt + strong.
+    queueTool: 'image-prompt',
+    turboEditStrength: 'strong',
+    ...(adultNudeQueueModel ? { queueModel: adultNudeQueueModel } : {}),
+  };
+}
+
+export async function postRoleplayJson(body: unknown): Promise<{
+  ok: boolean;
+  data: RoleplayApiPayload;
+}> {
+  const response = await fetch('/api/roleplay', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = (await response.json()) as RoleplayApiPayload;
+  return { ok: response.ok, data };
+}

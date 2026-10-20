@@ -11,7 +11,7 @@ import {
   looksOf,
   subscribeCharacters,
 } from '@/lib/character-os';
-import { resolveLookPlate } from '@/lib/fitting-room';
+import { resolveLookPlate } from '@/lib/fitting/room';
 import {
   parseDismissedPlateKeys,
   plateStanceKey,

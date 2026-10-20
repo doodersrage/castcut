@@ -5,9 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
-import { roleplayWatchPlaylist } from '@/lib/character-film';
-import { looksLikeMotionUrl } from '@/lib/roleplay-film';
-import { downloadRoleplayUrl } from '@/lib/roleplay-export';
+import { roleplayWatchPlaylist } from '@/lib/film/character-film';
+import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
+import { downloadRoleplayUrl } from '@/lib/story/roleplay-export';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
@@ -17,7 +17,7 @@ import {
   roleplayStillBasename,
   roleplayStoryPromptIds,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
 import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';

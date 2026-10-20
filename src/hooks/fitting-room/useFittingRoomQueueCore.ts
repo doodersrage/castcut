@@ -1,6 +1,6 @@
 'use client';
 
-import { tryOnMarksLine } from '@/lib/cast-marks';
+import { tryOnMarksLine } from '@/lib/cast/marks';
 import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
@@ -43,7 +43,7 @@ import {
   type FittingCompareTryOn,
   type FittingPendingTryOn,
   type FittingSwipeKit,
-} from '@/lib/fitting-room';
+} from '@/lib/fitting/room';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearCheckNote, footwearNeedsFeetPass } from '@/lib/footwear-check';
 import { cachedInstalledModelCheck, checkStillFootwear } from '@/lib/footwear-check-client';
@@ -66,12 +66,12 @@ import {
   normalizeFittingKitPreviews,
   upsertFittingKitPreview,
   type FittingKitPreview,
-} from '@/lib/fitting-kit-previews';
+} from '@/lib/fitting/kit-previews';
 import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
-import { withCastIdentityQueueFields } from '@/lib/look-outfit-plate';
+import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
+import { withCastIdentityQueueFields } from '@/lib/look/outfit-plate';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { FittingToolCache } from '@/lib/play-settings';
+import type { FittingToolCache } from '@/lib/play/settings';
 import type { WorkflowParamValues } from '@/lib/comfyui-config';
 import type { CharacterRecord } from '@/lib/character-os';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';

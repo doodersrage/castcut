@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { formatCutTime, useCutPreview } from '@/hooks/useCutPreview';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import type { FilmTitleCard } from '@/lib/video-polish';
 
 /**

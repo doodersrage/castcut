@@ -34,7 +34,7 @@ import {
   normalizeCharacterTraits,
   type CharacterTraits,
 } from '@/lib/character-appearance';
-import { requestCastPlateTraitEdit } from '@/lib/cast-plate-trait-edit';
+import { requestCastPlateTraitEdit } from '@/lib/cast/plate-trait-edit';
 import {
   activeLook,
   castHasPicture,
@@ -154,7 +154,7 @@ export default function CharacterAppearanceSection({
     setStartingOver(true);
     setError(null);
     try {
-      const { clearCharacterLookPlate } = await import('@/lib/look-outfit-plate');
+      const { clearCharacterLookPlate } = await import('@/lib/look/outfit-plate');
       clearCharacterLookPlate(character.id);
       const next = setCastPlateTraits(character.id, undefined) ?? getCharacter(character.id);
       if (next) onUpdated?.(next);

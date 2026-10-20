@@ -7,10 +7,10 @@ import {
   spokenLineHeat,
   parseNarrationLine,
 } from './spoken-line';
-import { parseRoleplayScenes } from './roleplay';
+import { parseRoleplayScenes } from './story/roleplay';
 import { clipUrlIsAnimatedImage, clipUrlIsVideo } from './clip-media-kind';
-import { castVoiceAuditionPrompt } from './cast-voice';
-import { voiceShiftArgs } from './cast-voice-server';
+import { castVoiceAuditionPrompt } from './cast/voice';
+import { voiceShiftArgs } from './cast/voice-server';
 import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from './ltx25-renderer';
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 

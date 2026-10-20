@@ -2,11 +2,11 @@
 
 import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
 import { loadSettingsCache } from '@/lib/settings-cache';
-import { isPlayStoryLocked } from '@/lib/play-step-machine';
+import { isPlayStoryLocked } from '@/lib/play/step-machine';
 
 import { loadLocalObservability } from '@/lib/local-observability';
-import { loadLookPack } from '@/lib/look-pack';
-import { playEffectiveProgressLabel } from '@/lib/play-campaign';
+import { loadLookPack } from '@/lib/look/pack';
+import { playEffectiveProgressLabel } from '@/lib/play/campaign';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -14,7 +14,7 @@ import BrandMark from '@/components/BrandMark';
 import ActiveJobsChip from '@/components/ActiveJobsChip';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ReportBugLink from '@/components/ReportBugLink';
-import { dockGridColsClass } from '@/lib/play-dock-cols';
+import { dockGridColsClass } from '@/lib/play/dock-cols';
 import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
@@ -27,8 +27,8 @@ import {
   loadActivePlayCampaign,
   playCampaignProgressLabel,
   PLAY_CAMPAIGN_UPDATED_EVENT,
-} from '@/lib/play-campaign';
-import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
+} from '@/lib/play/campaign';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { choosePhoneView } from '@/lib/phone-view';
 

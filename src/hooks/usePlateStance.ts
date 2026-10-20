@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { setLookPlateStance, type CharacterLook } from '@/lib/character-os';
-import type { FittingPlate } from '@/lib/fitting-room';
+import type { FittingPlate } from '@/lib/fitting/room';
 import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose-detect-client';
 import {
   currentPlateStance,

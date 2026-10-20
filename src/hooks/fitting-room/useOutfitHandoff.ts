@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { handOffOutfitPicks, outfitPicksSignature, type OutfitPicks } from '@/lib/outfit-handoff';
+import {
+  handOffOutfitPicks,
+  outfitPicksSignature,
+  type OutfitPicks,
+} from '@/lib/fitting/outfit-handoff';
 
 /**
  * Hand Outfit's clothing photo and shoes to Day and Story whenever they change here, and Day's

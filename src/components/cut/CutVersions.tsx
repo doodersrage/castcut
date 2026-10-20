@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { CutVersion } from '@/lib/cut-room';
+import type { CutVersion } from '@/lib/film/cut-room';
 
 export default function CutVersions({
   versions,

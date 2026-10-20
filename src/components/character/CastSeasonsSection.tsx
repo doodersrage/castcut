@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { episodeDayRows, reopenEpisodeDayPatch, type EpisodeDay } from '@/lib/day/episode-snapshot';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 import {
   loadPlaySeriesStore,
@@ -13,7 +13,7 @@ import {
   seasonPlaces,
   seriesForCast,
   type PlaySeries,
-} from '@/lib/play-series';
+} from '@/lib/play/series';
 
 function readSeasons(characterId: string): PlaySeries[] {
   // Oldest season first, as a run reads.

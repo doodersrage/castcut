@@ -18,9 +18,9 @@ import {
   type CutShotEdits,
   type FilmCutLength,
   type KeyedShot,
-} from '@/lib/film-cut-plan';
+} from '@/lib/film/cut-plan';
 import { useEffect, useRef, useState } from 'react';
-import type { MixPreview } from '@/lib/film-mix-preview';
+import type { MixPreview } from '@/lib/film/mix-preview';
 import {
   OptionGroup,
   OptionRow,
@@ -31,8 +31,8 @@ import {
 } from '@/components/cut/CutOptionParts';
 import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
-import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film-audio-bed';
-import { estimateCutSeconds, requestFilmScore, type FilmScoreBrief } from '@/lib/film-score';
+import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film/audio-bed';
+import { estimateCutSeconds, requestFilmScore, type FilmScoreBrief } from '@/lib/film/score';
 import type { IdentityMark } from '@/lib/identity-mark';
 import {
   mixLevelsSummary,
@@ -807,7 +807,7 @@ function SoundMixControls({
     setPreviewState('loading');
     setPreviewNote(null);
     try {
-      const { playMixPreview } = await import('@/lib/film-mix-preview');
+      const { playMixPreview } = await import('@/lib/film/mix-preview');
       const preview = await playMixPreview({
         shots: applyCutShotEdits(shots ?? [], value.shotEdits),
         audioBedUrl: value.audioBedUrl,

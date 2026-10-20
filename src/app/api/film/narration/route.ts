@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { renderNarration } from '@/lib/film-narration-server';
+import { renderNarration } from '@/lib/film/narration-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 200;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { cutBridgeEngine, cutBridgeJoinEdits, nextIncludedShot, placeCutBridge } from './cut-bridge';
-import { cutExtraShots } from './cut-room';
+import { cutExtraShots } from './film/cut-room';
 
 describe('cut bridges', () => {
   it('sits right after its first shot, with hard cuts into and out of it', () => {

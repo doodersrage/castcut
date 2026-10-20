@@ -1,10 +1,10 @@
 'use client';
 
-import { applyCutShotEdits } from '@/lib/film-cut-plan';
-import { storyCutCoverageLine } from '@/lib/film-delivery-check';
+import { applyCutShotEdits } from '@/lib/film/cut-plan';
+import { storyCutCoverageLine } from '@/lib/film/delivery-check';
 import { storyShotIdentity } from '@/lib/identity-mark';
-import { roleplayWatchPlaylist } from '@/lib/character-film';
-import type { KeyedShot } from '@/lib/film-cut-plan';
+import { roleplayWatchPlaylist } from '@/lib/film/character-film';
+import type { KeyedShot } from '@/lib/film/cut-plan';
 import type { ReactNode } from 'react';
 import RoleplayFilmCutActions from '@/components/RoleplayFilmCutActions';
 import RoleplayStoryReel from '@/components/RoleplayStoryReel';
@@ -12,9 +12,9 @@ import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContex
 import type { StoryBeatEditActions } from '@/hooks/roleplay/useStoryBeatEdit';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow, ToolSection } from '@/components/ui/ToolPageShell';
-import { remixDayFilmHref } from '@/lib/play-starter';
-import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import { remixDayFilmHref } from '@/lib/play/starter';
+import type { RoleplayBeatOutput } from '@/lib/story/roleplay-film';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 
 export type RoleplayStorySectionProps = {
   beatOutput: RoleplayBeatOutput;

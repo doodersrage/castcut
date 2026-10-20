@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useOutfitRunwayClip } from '@/hooks/character/useOutfitRunwayClip';
-import { saveOutfitRunway } from '@/lib/cast-wardrobe';
+import { saveOutfitRunway } from '@/lib/cast/wardrobe';
 import type { CharacterRecord } from '@/lib/character-os';
 
 /**

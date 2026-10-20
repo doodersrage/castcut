@@ -34,7 +34,7 @@ import {
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { getCharacter } from '@/lib/character-os';
 import { normalizeDayIntimateMix } from '@/lib/day/planner';
-import { playCampaignHref } from '@/lib/play-campaign';
+import { playCampaignHref } from '@/lib/play/campaign';
 import {
   countRoleplayCompletedClips,
   countRoleplayCompletedStills,
@@ -43,7 +43,7 @@ import {
   storySessionStatusLine,
   roleplayMoodSummary,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { useCallback, useMemo } from 'react';
 

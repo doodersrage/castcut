@@ -12,9 +12,9 @@ import {
   marksCheckNote,
   marksCheckVerdict,
   type MarksCheckIssue,
-} from '@/lib/cast-marks-check';
-import { checkStillMarks } from '@/lib/cast-marks-check-client';
-import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast-plate-prepare';
+} from '@/lib/cast/marks-check';
+import { checkStillMarks } from '@/lib/cast/marks-check-client';
+import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
 import { getCharacter } from '@/lib/character-os';
 import {
   galleryEntryPrimaryViewUrl,
@@ -26,7 +26,7 @@ import {
   isRoleplayAdultContent,
   patchRoleplayStoryBeat,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 
 /** The first solo scene whose shown still has had its pose check but not its marks check. */

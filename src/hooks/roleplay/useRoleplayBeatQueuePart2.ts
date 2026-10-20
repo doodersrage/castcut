@@ -1,6 +1,6 @@
 'use client';
 
-import { pronounceForCast } from '@/lib/cast-speech';
+import { pronounceForCast } from '@/lib/cast/speech';
 import { useRenderBackend } from '@/lib/render-backend-status';
 import {
   framedTalkingStill,
@@ -26,7 +26,7 @@ import {
   storyClipChoice,
 } from '@/lib/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { castVoiceSampleFor } from '@/lib/cast-voice';
+import { castVoiceSampleFor } from '@/lib/cast/voice';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
@@ -47,13 +47,13 @@ import {
   roleplayClipQueueResultPatch,
   roleplayClipTakes,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
 import {
   looksLikeVideoUrl,
   nextRoleplayMotionKind,
   shouldAutoQueueRoleplayClip,
-} from '@/lib/roleplay-film';
+} from '@/lib/story/roleplay-film';
 import { extractVideoLastFrame } from '@/lib/video-last-frame';
 import {
   canFalExtendFromParentUrl,

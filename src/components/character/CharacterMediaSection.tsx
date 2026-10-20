@@ -16,8 +16,8 @@ import {
 import { buildLightboxStateFromPlaylist } from '@/lib/gallery-lightbox-state';
 import { castPlateTiles } from '@/lib/character-plate-thumb';
 import { filterGalleryEntriesByLook, galleryLookChips } from '@/lib/gallery-look-filter';
-import { remixDayFilmHref } from '@/lib/play-starter';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { remixDayFilmHref } from '@/lib/play/starter';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import CharacterMediaTile from '@/components/character/CharacterMediaTile';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
 

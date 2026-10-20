@@ -18,7 +18,7 @@ import {
   type RoleplayBio,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { isNsfwGeneratorEnabledServer } from '@/lib/nsfw-generator-env';
 

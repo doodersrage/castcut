@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { masculineClothes, sameSexPartnerBeat } from './day/lead-gender';
 import { parseIntimateLayout } from './day/pose-guide';
-import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from './rapid-duo-recipe';
+import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from './play/rapid-duo-recipe';
 import { sheGivesOral } from './rapid-oral-pose';
 import type { DayPartner } from './day/partner';
 import { buildDaySlotPromptForStill } from './day/still-prompt';

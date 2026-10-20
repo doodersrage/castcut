@@ -11,9 +11,9 @@ import {
 import { comfyInputViewUrl } from './face-match-client';
 import { comfyOutputIndex } from './face-match-server';
 import { fillComfyNodeInputs } from './comfy-utility-graph-server';
-import { decideSlotQuality, type SlotQualityReport } from './play-slot-quality';
-import { storyFaceMatchLabel } from './roleplay-pose-check';
-import { faceMatchSummary } from './play-metrics';
+import { decideSlotQuality, type SlotQualityReport } from './play/slot-quality';
+import { storyFaceMatchLabel } from './story/roleplay-pose-check';
+import { faceMatchSummary } from './play/metrics';
 
 describe('face match parsing', () => {
   it('reads the distance PreviewAny shows in any of its shapes', () => {

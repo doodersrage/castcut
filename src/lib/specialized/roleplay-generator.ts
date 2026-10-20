@@ -8,15 +8,15 @@ import {
   resolveRequestTemplateFallback,
 } from '../llm-request-options';
 import { stripPromptArtifacts } from '../prompt-cleanup';
-import { storyLeadIsMan, storyScenesForManLead } from '../story-lead-gender';
-import { repairStoryScene } from '../story-scene-check';
+import { storyLeadIsMan, storyScenesForManLead } from '../story/lead-gender';
+import { repairStoryScene } from '../story/scene-check';
 import {
   photographableStoryPrompt,
   STORY_PHOTOGRAPHABLE_RULE,
   storyPhotographableLine,
   storySetupIsFantastical,
   type StorySetup,
-} from '../story-photographable';
+} from '../story/photographable';
 import {
   clarifyIntimateImageLanguage,
   reinforceIntimateStillPrompt,
@@ -60,7 +60,7 @@ import {
   type RoleplayScene,
   type RoleplayStoryBeat,
   type RoleplayTone,
-} from '../roleplay';
+} from '../story/roleplay';
 import { runSpecializedPrompt } from './runner';
 import { getDetailLimits } from '../detail-level';
 import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day/pose-guide';

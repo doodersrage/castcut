@@ -161,7 +161,7 @@ describe('Story writer reads the Cast lead Sex trait', () => {
 
   it('maps the built-in scenes for a man lead from the Sex trait', async () => {
     const { generateRoleplayScenes } = await import('./roleplay-generator');
-    const { storySceneForManLead } = await import('../story-lead-gender');
+    const { storySceneForManLead } = await import('../story/lead-gender');
     const builtIn = (leadSex: string) =>
       generateRoleplayScenes({
         // A continued adult story: one built-in card says "behind her".

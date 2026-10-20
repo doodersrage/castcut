@@ -11,9 +11,9 @@ import {
   requestRelight,
   requestUpscaleStill,
 } from '@/lib/media-actions-client';
-import { storyBeatKey } from '@/lib/play-pose-targets';
-import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/roleplay';
-import { addRoleplayFixedTakePatch } from '@/lib/roleplay-gallery-takes';
+import { storyBeatKey } from '@/lib/play/pose-targets';
+import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
+import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 export type StoryMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';

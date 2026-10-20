@@ -18,8 +18,8 @@ import {
   type RoleplayContentId,
   type RoleplayScene,
   type RoleplayStoryPhase,
-} from '@/lib/roleplay';
-import type { RoleplayBeatOutput } from '@/lib/roleplay-film';
+} from '@/lib/story/roleplay';
+import type { RoleplayBeatOutput } from '@/lib/story/roleplay-film';
 
 const ACCENT = 'amber' as const;
 

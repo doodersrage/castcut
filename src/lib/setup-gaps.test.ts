@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildPlayChecksReadiness, insightFaceInstallCommand } from './play-checks-readiness';
-import { installedCheckPacks } from './play-checks-readiness-server';
-import { describePrepareResult } from './play-checks-prepare-server';
+import { buildPlayChecksReadiness, insightFaceInstallCommand } from './play/checks-readiness';
+import { installedCheckPacks } from './play/checks-readiness-server';
+import { describePrepareResult } from './play/checks-prepare-server';
 import {
   parseVisionDownloadState,
   startVisionModelDownload,

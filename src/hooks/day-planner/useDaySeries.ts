@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { stitchSelectedGalleryVideos } from '@/lib/character-film-assemble-lazy';
+import { stitchSelectedGalleryVideos } from '@/lib/film/character-film-assemble-lazy';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
 import {
   activeSeriesForCast,
@@ -13,7 +13,7 @@ import {
   seriesStitchEntryIds,
   type PlaySeries,
   type PlaySeriesStore,
-} from '@/lib/play-series';
+} from '@/lib/play/series';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 
 /** Season (series) state for the active Cast on Day: current season, stitch, and close. */

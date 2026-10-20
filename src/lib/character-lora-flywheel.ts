@@ -20,7 +20,7 @@ import {
   upsertTrainJob,
   type TrainJob,
 } from './lora-train-job';
-import { castFaceQueueParamsBase, syncSharedIdentityToCast } from './look-outfit-plate';
+import { castFaceQueueParamsBase, syncSharedIdentityToCast } from './look/outfit-plate';
 import { loadSettingsCache, saveSharedSettings } from './settings-cache';
 
 export function mergeTrainJobs(local: TrainJob[], remote: TrainJob[]): TrainJob[] {

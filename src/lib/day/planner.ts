@@ -6,7 +6,7 @@ import {
   normalizeSpokenLineTone,
   type SpokenLineTone,
 } from '../ltx25-renderer';
-import { storySceneNamesSecondPerson } from '../story-scene-people';
+import { storySceneNamesSecondPerson } from '../story/scene-people';
 import { beatOwnsFootwear } from '../footwear';
 import { intimateBeatIsOffBed } from '../intimate-prompt-clarify';
 import {
@@ -17,7 +17,7 @@ import {
   buildCompactDayDuoRecipe,
   buildCompactDayRecipe,
   buildRapidVacationRecipe,
-} from '../rapid-duo-recipe';
+} from '../play/rapid-duo-recipe';
 import { stripNegatedClauses } from '../negated-clauses';
 import { normalizeDayEndPose, type DayEndPose } from './end-pose';
 import { normalizeStillPromptCheck, type StillPromptCheck } from '../still-prompt-audit';
@@ -25,8 +25,8 @@ import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
   type FilmPlaylistShot,
-} from '@/lib/character-film';
-import { captionFromBeat } from '@/lib/film-cut-plan';
+} from '@/lib/film/character-film';
+import { captionFromBeat } from '@/lib/film/cut-plan';
 import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
 import {
   countPoseGuidePeople,
@@ -50,9 +50,9 @@ import {
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
 } from '@/lib/pose-guide-prompt';
-import { buildKleinSpoonRecipe, kleinSpoonRecipeApplies } from '@/lib/klein-duo-recipe';
+import { buildKleinSpoonRecipe, kleinSpoonRecipeApplies } from '@/lib/play/klein-duo-recipe';
 import { describePoseLeadPosition, type PoseLeadPosition } from '@/lib/pose-guide-openpose';
-import { resolveRoleplaySetting, storyBeatOmitsGarmentPackshot } from '@/lib/roleplay';
+import { resolveRoleplaySetting, storyBeatOmitsGarmentPackshot } from '@/lib/story/roleplay';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,

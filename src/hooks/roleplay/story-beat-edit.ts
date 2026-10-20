@@ -7,7 +7,7 @@ import {
   roleplayStillHasInFlightTake,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 
 /** One key per scene in the reel (ids repeat when the same card is played twice). */
 export function storyBeatKey(beat: Pick<RoleplayStoryBeat, 'id' | 'at'>): string {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ButtonLink } from '@/components/ui/Button';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { queueCastLookPlate } from '@/lib/cast-plate-queue';
+import { queueCastLookPlate } from '@/lib/cast/plate-queue';
 import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
 import {
   characterHomeHref,

@@ -9,7 +9,7 @@ import FilmCutOptionsControls, {
   type FilmCutOptionsValue,
   DEFAULT_FILM_CUT_OPTIONS,
 } from '@/components/FilmCutOptionsControls';
-import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
+import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import { filmResolutionForCutOptions } from '@/lib/video-resolution';
 import {
   castEpisodeSources,
@@ -18,18 +18,18 @@ import {
   episodePlaylist,
   episodeTitleCard,
   type CastEpisodeSources,
-} from '@/lib/play-episode';
+} from '@/lib/play/episode';
 import {
   loadRoleplayLibrary,
   roleplayLibraryIdForCharacter,
   ROLEPLAY_LIBRARY_UPDATED_EVENT,
-} from '@/lib/roleplay-library';
+} from '@/lib/story/roleplay-library';
 import {
   loadSettingsCache,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 function readSources(characterId: string): CastEpisodeSources {
   return castEpisodeSources({

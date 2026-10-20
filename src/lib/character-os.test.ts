@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { applyCharacterRecord, applyCharacterRecordFresh, applyRemovedCharacterIds, bundleFromCharacter, castLoraSessionIds, characterFromBundle, characterFromShared, createBlankCharacter, activeLook, activateLook, getCharacter, renameLook, withNewPlateLook, lookFromAppearance, renameActiveLook, loadCharacters, looksOf, saveCharacters, normalizeCharacterRecord, roleplayLibraryIdFromCharacter, saveCharacterTraits, setCastPlateTraits, castIdentityTraitsLocked, setLookPlateStance, slugCharacterName, upsertCharacter, castIdForRoleplaySession, type CharacterRecord } from './character-os';
-import { characterFromRoleplaySession, clearCharacterBio, mergeMigratedCharacters, migrateCharactersFromLegacy, saveCharacterBio, upsertCharacterFromRoleplaySession } from './play-cast';
+import { characterFromRoleplaySession, clearCharacterBio, mergeMigratedCharacters, migrateCharactersFromLegacy, saveCharacterBio, upsertCharacterFromRoleplaySession } from './play/cast';
 import type { CharacterIdentityBundle } from './character-identity-bundle';
-import type { RoleplayLibrarySession } from './roleplay-library';
+import type { RoleplayLibrarySession } from './story/roleplay-library';
 import { loadSettingsCache, saveSettingsCache, type SharedToolSettings } from './settings-cache';
 import {
   resetBrowserStorageCache,
@@ -580,7 +580,7 @@ describe('saving an unchanged Cast', () => {
 
 describe('the Story bible look follows the Cast description', () => {
   it('a rolled bible look gives way to the Cast description', async () => {
-    const { castBibleLook } = await import('./play-cast');
+    const { castBibleLook } = await import('./play/cast');
     const rolled =
       'a White man in his 40s with fair skin, a square jaw, short ginger hair and a ginger beard, and a body that is average height, stocky';
     assert.equal(

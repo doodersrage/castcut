@@ -6,7 +6,7 @@
 
 import type { ComfyGalleryJobStatus } from '@/lib/comfyui-gallery-types';
 import type { DaySlotStillStatus } from '@/lib/day/planner';
-import type { RoleplayStillStatus } from '@/lib/roleplay';
+import type { RoleplayStillStatus } from '@/lib/story/roleplay';
 
 export type DaySlotJobEntry = {
   status?: ComfyGalleryJobStatus;

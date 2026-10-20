@@ -14,7 +14,7 @@ import {
   normalizeDaySlotStills,
   type DaySlotStill,
 } from './planner';
-import type { DayToolCache } from '../play-settings';
+import type { DayToolCache } from '../play/settings';
 
 export type EpisodeDay = Omit<ParkedDay, 'at'>;
 

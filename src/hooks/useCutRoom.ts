@@ -22,8 +22,8 @@ import {
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
-import { castVoiceOf } from '@/lib/cast-voice';
-import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/character-film-assemble-lazy';
+import { castVoiceOf } from '@/lib/cast/voice';
+import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import { getCharacter, type CharacterRecord } from '@/lib/character-os';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -58,7 +58,7 @@ import { cutGenerateModel } from '@/lib/queue-tool-model';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import {
   activeCutSources,
   cutCopyKey,
@@ -73,7 +73,7 @@ import {
   DEFAULT_CUT_TOOL_CACHE,
   splitCutRoomKey,
   type CutSource,
-} from '@/lib/cut-room';
+} from '@/lib/film/cut-room';
 import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { applyDayNarration } from '@/lib/day/narration';
 import { dayThemeOf } from '@/lib/day/themes';
@@ -87,39 +87,39 @@ import {
   type DaySlotId,
   type DaySlotStill,
 } from '@/lib/day/planner';
-import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
-import { checkCutDelivery } from '@/lib/film-delivery-check-client';
+import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
+import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
   orderedCutShots,
   cutShotProblems,
   type CutShotProblem,
   type KeyedShot,
-} from '@/lib/film-cut-plan';
-import { renderNarrationLine } from '@/lib/film-narration-client';
-import { widenStillForFilm } from '@/lib/film-widen-client';
+} from '@/lib/film/cut-plan';
+import { renderNarrationLine } from '@/lib/film/narration-client';
+import { widenStillForFilm } from '@/lib/film/widen-client';
 import { isAssembledFilmEntry } from '@/lib/media-kind';
-import { completePlayCampaign } from '@/lib/play-campaign';
-import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
+import { completePlayCampaign } from '@/lib/play/campaign';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import {
   loadPlaySeriesStore,
   nextDayFilmTitleCard,
   previouslyOnShots,
   recordDayFilmEpisode,
-} from '@/lib/play-series';
-import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
+} from '@/lib/play/series';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import { loadRoleplayLibrary } from '@/lib/roleplay-library';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
+import { loadRoleplayLibrary } from '@/lib/story/roleplay-library';
 import {
   STORY_CHECK_THRESHOLDS,
   storyFaceMatchLabel,
   storyPoseMatchLabel,
   storyRealismLabel,
-} from '@/lib/roleplay-pose-check';
+} from '@/lib/story/roleplay-pose-check';
 import { REALISM_MISS_REASON } from '@/lib/still-realism';
-import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story-film';
-import { resolveStoryFilmCast, storyFilmName } from '@/lib/story-film-cast';
+import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
+import { resolveStoryFilmCast, storyFilmName } from '@/lib/story/film-cast';
 import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];

@@ -3,7 +3,7 @@
 import { useEffect, useId } from 'react';
 import { Button } from '@/components/ui/Button';
 import ModalPortal from '@/components/ui/ModalPortal';
-import type { CutShotProblem } from '@/lib/film-cut-plan';
+import type { CutShotProblem } from '@/lib/film/cut-plan';
 
 export type CutProblemsAction = 'retry' | 'leave-out' | 'cut-anyway' | 'cancel';
 

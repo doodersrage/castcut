@@ -88,7 +88,7 @@ import {
   dayVacationSettingPresetsForSlot,
 } from './vacation';
 import { normalizeFootwear } from '../footwear';
-import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '../play-metrics';
+import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '../play/metrics';
 import { DEFAULT_POSE_GUIDE_STYLE } from '../pose-guide-prompt';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
 import { resolveDayStillModel } from '../queue-tool-model';

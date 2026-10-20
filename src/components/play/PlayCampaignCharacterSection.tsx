@@ -47,10 +47,10 @@ import {
   type CharacterHeight,
   type CharacterSex,
 } from '@/lib/character-appearance';
-import type { CastMark } from '@/lib/cast-marks';
+import type { CastMark } from '@/lib/cast/marks';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
-import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
+import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 
 type PlayCampaignCharacterSectionProps = Pick<
   ReturnType<typeof usePlayCampaignWizardOrchestration>,

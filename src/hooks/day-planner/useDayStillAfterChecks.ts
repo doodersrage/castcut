@@ -9,9 +9,9 @@ import {
   marksCheckNote,
   marksCheckVerdict,
   type MarksCheckIssue,
-} from '@/lib/cast-marks-check';
-import { checkStillMarks } from '@/lib/cast-marks-check-client';
-import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast-plate-prepare';
+} from '@/lib/cast/marks-check';
+import { checkStillMarks } from '@/lib/cast/marks-check-client';
+import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
 import {
   loadComfyGallery,
   galleryEntryPrimaryViewUrl,

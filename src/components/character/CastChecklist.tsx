@@ -4,7 +4,7 @@ import UiIcon from '@/components/ui/UiIcon';
 import type {
   CastChecklist as CastChecklistModel,
   CastChecklistTarget,
-} from '@/lib/cast-checklist';
+} from '@/lib/cast/checklist';
 
 type CastChecklistProps = {
   checklist: CastChecklistModel;

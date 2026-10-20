@@ -17,8 +17,8 @@ import {
   roleplayStillTakeIndex,
   roleplayStillTakes,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
-import { looksLikeMotionUrl } from '@/lib/roleplay-film';
+} from '@/lib/story/roleplay';
+import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
@@ -37,7 +37,7 @@ import {
   storyFaceMatchLabel,
   storyPoseMatchLabel,
   storyRealismLabel,
-} from '@/lib/roleplay-pose-check';
+} from '@/lib/story/roleplay-pose-check';
 import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
 import {

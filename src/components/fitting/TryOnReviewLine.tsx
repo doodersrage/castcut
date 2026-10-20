@@ -1,6 +1,6 @@
 'use client';
 
-import { tryOnReviewScoreLine, type TryOnReview } from '@/lib/fitting-tryon-review';
+import { tryOnReviewScoreLine, type TryOnReview } from '@/lib/fitting/tryon-review';
 
 /** Scores / warnings under a Compare thumb (Auto-review on). */
 export function TryOnReviewLine({

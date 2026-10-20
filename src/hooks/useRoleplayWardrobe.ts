@@ -6,13 +6,13 @@ import { parseCharacterHints } from '@/lib/character-hints';
 import { getCharacter } from '@/lib/character-os';
 import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
 import { fetchClothingSelectOptions } from '@/lib/clothing-catalog-client';
-import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import {
   removeSavedFittingGarment,
   saveFittingGarment,
   loadSavedFittingGarments,
   updateSavedFittingGarmentDescription,
-} from '@/lib/fitting-saved-garments';
+} from '@/lib/fitting/saved-garments';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
@@ -23,7 +23,7 @@ import {
   normalizeWardrobeCategoryFilter,
 } from '@/lib/wardrobe-catalog-ui';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;

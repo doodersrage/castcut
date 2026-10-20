@@ -1,6 +1,6 @@
 'use client';
 
-import { castCatchphrases } from '@/lib/cast-speech';
+import { castCatchphrases } from '@/lib/cast/speech';
 import { getCharacter } from '@/lib/character-os';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import StillReferenceTray from '@/components/StillReferenceTray';
@@ -35,7 +35,7 @@ import {
   type DaySlotStill,
 } from '@/lib/day/planner';
 import type { PoseMissView } from '@/lib/pose-coaching';
-import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
+import { ROLEPLAY_SETTING_PRESETS } from '@/lib/story/roleplay';
 
 export type DaySlotSheetProps = {
   open: boolean;

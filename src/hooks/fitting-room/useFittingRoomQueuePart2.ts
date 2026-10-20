@@ -1,12 +1,16 @@
 'use client';
 
-import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/outfit-handoff';
-import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
+import {
+  handOffOutfitPicks,
+  keptLookOutfitFromTryOn,
+  realKitId,
+} from '@/lib/fitting/outfit-handoff';
+import { recordCastOutfitWorn } from '@/lib/cast/wardrobe';
 import { useCallback, useEffect } from 'react';
 import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
 import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
-import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting-room';
+import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting/room';
 import {
   buildFittingGarmentReferenceExtras,
   loadWardrobeGarmentThumbManifest,
@@ -21,19 +25,19 @@ import {
   fittingKitsNeedingPreview,
   getFittingKitPreview,
   upsertFittingKitPreview,
-} from '@/lib/fitting-kit-previews';
+} from '@/lib/fitting/kit-previews';
 import {
   applyLookPackToDaySlots,
   lookPackDayHref,
   lookPackNotes,
   loadLookPack,
   saveLookPack,
-} from '@/lib/look-pack';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
+} from '@/lib/look/pack';
+import { bumpPlayCampaignStep } from '@/lib/play/campaign';
 import { ensureDaySlotsMatchMood } from '@/lib/day/planner';
-import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
+import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import { loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 import type {
   FittingRoomQueueCore,
   FittingRoomQueueInput,

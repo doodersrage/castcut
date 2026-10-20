@@ -10,7 +10,7 @@ import {
   partnerShoesUnlike,
   withFootwearLine,
 } from './footwear';
-import { buildFittingOutfitPrompt, buildFootwearPackshotExtractPrompt } from './fitting-room';
+import { buildFittingOutfitPrompt, buildFootwearPackshotExtractPrompt } from './fitting/room';
 import {
   FOOTWEAR_COMBO_CANVAS,
   footwearComboLayout,

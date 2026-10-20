@@ -14,12 +14,12 @@ import {
   type RoleplayContentId,
   type RoleplayStoryBeat,
   type RoleplayTone,
-} from '@/lib/roleplay';
-import { downloadRoleplayStoryBundle } from '@/lib/roleplay-export';
+} from '@/lib/story/roleplay';
+import { downloadRoleplayStoryBundle } from '@/lib/story/roleplay-export';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
-import { buildStoryFixAreaTarget } from '@/lib/roleplay-fix-area';
-import type { RoleplayScene } from '@/lib/roleplay';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+import { buildStoryFixAreaTarget } from '@/lib/story/roleplay-fix-area';
+import type { RoleplayScene } from '@/lib/story/roleplay';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 type AssembledFilmRef = MutableRefObject<{ filename: string; data: Uint8Array } | null>;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { storyPoseForcePeople } from '@/lib/story-scene-people';
+import { storyPoseForcePeople } from '@/lib/story/scene-people';
 import { composedPoseForScene } from '@/lib/pose-compose';
 import { useMemo } from 'react';
 import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
@@ -16,7 +16,7 @@ import {
   isRoleplayAdultContent,
   resolveRoleplayToneAndContent,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 /** Whether a beat has any pose choice set (keeps its Pose section open). */

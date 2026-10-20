@@ -5,8 +5,8 @@
  */
 
 import type { ClothingCategory } from './clothing-catalog-fields';
-import type { FittingSwipeKit } from './fitting-room';
-import { buildFittingSwipeDeck } from './fitting-room';
+import type { FittingSwipeKit } from './fitting/room';
+import { buildFittingSwipeDeck } from './fitting/room';
 
 export const WARDROBE_GARMENT_THUMB_PUBLIC_DIR = '/wardrobe-thumbs';
 export const WARDROBE_GARMENT_THUMB_MANIFEST_PATH = `${WARDROBE_GARMENT_THUMB_PUBLIC_DIR}/manifest.json`;

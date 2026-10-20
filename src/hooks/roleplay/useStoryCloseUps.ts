@@ -5,12 +5,12 @@ import {
   leadIsMan,
   type UseRoleplayBeatQueueOptions,
 } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { makeFilmAngles } from '@/lib/film-angles-client';
+import { makeFilmAngles } from '@/lib/film/angles-client';
 import {
   lastCompletedRoleplayStillUrl,
   patchRoleplayStoryBeat,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 
 /**
  * Story's "Add close-ups" (as Day's): a face close-up and a detail shot of the scene's still,

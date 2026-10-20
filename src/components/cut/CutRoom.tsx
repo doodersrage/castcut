@@ -24,14 +24,14 @@ import { FieldError } from '@/components/ui/Field';
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useCutRoom } from '@/hooks/useCutRoom';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
-import { CUT_SOURCES, splitCutRoomKey } from '@/lib/cut-room';
+import { CUT_SOURCES, splitCutRoomKey } from '@/lib/film/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
 import {
   applyCutShotEdits,
   moveCutShot,
   orderedCutShots,
   withCutShotEdit,
-} from '@/lib/film-cut-plan';
+} from '@/lib/film/cut-plan';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';

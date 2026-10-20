@@ -14,10 +14,10 @@ import {
   poseMatchByLayoutSummary,
   weakPoseLayouts,
   type PlayMetrics,
-} from './play-metrics';
+} from './play/metrics';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from './pose-layout-labels';
-import { normalizeRoleplayLibrarySnapshot } from './roleplay-library';
-import { roleplayScenePoseKey } from './roleplay';
+import { normalizeRoleplayLibrarySnapshot } from './story/roleplay-library';
+import { roleplayScenePoseKey } from './story/roleplay';
 
 const slot = (patch: Partial<DaySlot> = {}): DaySlot => ({
   id: 'morning',

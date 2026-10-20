@@ -5,7 +5,7 @@ import ModalPortal from '@/components/ui/ModalPortal';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import UiIcon from '@/components/ui/UiIcon';
-import type { FittingSwipeKit } from '@/lib/fitting-room';
+import type { FittingSwipeKit } from '@/lib/fitting/room';
 import {
   filterWardrobeKitsByQuery,
   formatWardrobeKitCount,

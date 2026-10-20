@@ -6,8 +6,8 @@ import {
   mergeStudioExtras,
   type StudioExtrasPayload,
 } from './studio-extras';
-import type { PlayCampaignState } from './play-campaign';
-import type { PlayMetrics } from './play-metrics';
+import type { PlayCampaignState } from './play/campaign';
+import type { PlayMetrics } from './play/metrics';
 
 describe('studio-extras merge', () => {
   it('prefers the newer updatedAt snapshot', () => {

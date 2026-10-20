@@ -22,7 +22,7 @@ import {
   outfitHandoffPatch,
   type OutfitHandoffPatch,
   type OutfitPicks,
-} from '../outfit-handoff';
+} from '../fitting/outfit-handoff';
 
 /** What the whole Day wears. */
 export type DayWideOutfit = {

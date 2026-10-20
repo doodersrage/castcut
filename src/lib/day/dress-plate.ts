@@ -10,7 +10,7 @@
  * One extra render (about a minute) per outfit-and-shoes combination, then reused.
  */
 
-import { buildFittingOutfitPrompt } from '@/lib/fitting-room';
+import { buildFittingOutfitPrompt } from '@/lib/fitting/room';
 import { isDayAdultMood, normalizeDayMood } from '@/lib/day/planner';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import type { CharacterLookOutfit } from '@/lib/character-os';
@@ -21,7 +21,7 @@ export {
   forgetDayDressPlate,
   rememberDayDressPlate,
   type DayDressPlateEntry,
-} from '@/lib/dress-plate-cache';
+} from '@/lib/day/dress-plate-cache';
 
 /**
  * Whether this still starts from a dress plate. Not for the adult moods (Intimate / Raunchy),

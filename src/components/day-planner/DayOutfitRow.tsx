@@ -11,7 +11,7 @@ import {
   type ClothingSummaryThumb,
 } from '@/lib/clothing-summary';
 import type { DaySlot, DaySlotId } from '@/lib/day/planner';
-import { realKitId } from '@/lib/outfit-handoff';
+import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 
 /**

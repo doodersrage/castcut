@@ -1,6 +1,6 @@
 'use client';
 
-import { fittingNeedsFeetPass } from '@/lib/fitting-room';
+import { fittingNeedsFeetPass } from '@/lib/fitting/room';
 
 /**
  * Edit 2511 paints a custom pose's figure as bare feet (0 of 12 picked shoes with the pose map), so

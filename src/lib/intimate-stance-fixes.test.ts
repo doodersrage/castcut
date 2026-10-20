@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildRapidDuoRecipe, buildRapidSoloRecipe } from './rapid-duo-recipe';
+import { buildRapidDuoRecipe, buildRapidSoloRecipe } from './play/rapid-duo-recipe';
 
 // Live replays 2026-10-07: each fix 3/3 where the old line failed 3/3.
 const solo = (beat: string) => buildRapidSoloRecipe({ beat } as never) ?? '';
@@ -48,13 +48,13 @@ describe('intimate stance fixes', () => {
 describe('walking hand in hand (Edit 2511)', () => {
   const beat = 'walking hand in hand with her partner to the restaurant, both dressed up';
   it('skips the standing hold-hands map on 2511 only', async () => {
-    const { dayWalkingDuoSkipsPoseGuide } = await import('./rapid-duo-recipe');
+    const { dayWalkingDuoSkipsPoseGuide } = await import('./play/rapid-duo-recipe');
     assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-image-edit-2511-lightning-8', beat), true);
     assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-rapid-aio-edit-nsfw', beat), false);
     assert.equal(dayWalkingDuoSkipsPoseGuide('qwen-image-edit-2511-lightning-8', 'standing hand in hand at the altar'), false);
   });
   it('adds the stride line only when no map is attached', async () => {
-    const { buildCompactDayDuoRecipe } = await import('./rapid-duo-recipe');
+    const { buildCompactDayDuoRecipe } = await import('./play/rapid-duo-recipe');
     assert.match(buildCompactDayDuoRecipe({ beat }) ?? '', /both mid-stride — one foot lifted/);
     assert.doesNotMatch(buildCompactDayDuoRecipe({ beat, poseGuide: 'third' }) ?? '', /mid-stride/);
   });
@@ -62,7 +62,7 @@ describe('walking hand in hand (Edit 2511)', () => {
 
 describe('adult spooning on Rapid', () => {
   it('skips the flat spoon drawing on Rapid adult stills only', async () => {
-    const { rapidAdultSkipsPoseGuide } = await import('./rapid-duo-recipe');
+    const { rapidAdultSkipsPoseGuide } = await import('./play/rapid-duo-recipe');
     const beat = 'spooning sex in bed as the light fades';
     assert.equal(rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: true, beat }), true);
     assert.equal(rapidAdultSkipsPoseGuide({ model: 'qwen-rapid-aio-edit-nsfw', adultMood: false, beat }), false);
@@ -79,7 +79,7 @@ describe('adult spooning on Rapid', () => {
     assert.equal(rapidAdultSkipsPoseGuide({ ...rapid, beat: 'against the bedroom wall mid-sex with a partner', pairing: 'two-men' }), true);
   });
   it('the recipe names no pose map when none is attached', async () => {
-    const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const { buildRapidDuoRecipe } = await import('./play/rapid-duo-recipe');
     const recipe = buildRapidDuoRecipe({ beat: 'spooning sex in bed as the light fades' }) ?? '';
     assert.match(recipe, /Spooning, seen from the front/);
     assert.doesNotMatch(recipe, /pose map/);

@@ -22,7 +22,7 @@ import {
   subscribeSavedFittingGarments,
   updateSavedFittingGarmentDescription,
   type SavedFittingGarment,
-} from '@/lib/fitting-saved-garments';
+} from '@/lib/fitting/saved-garments';
 
 type ClothingMode = 'kit' | 'photo';
 

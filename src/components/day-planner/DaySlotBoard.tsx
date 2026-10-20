@@ -29,7 +29,7 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui-live-preview-store';
-import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-quality';
+import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play/slot-quality';
 import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';

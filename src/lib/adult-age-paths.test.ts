@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { ADULT_YOUTH_NEGATIVE, hasAdultAgeLine } from './adult-age-safeguard';
 import { dayStillAgeFacts, finishDayStillPrompt } from './day/still-prompt';
-import { buildIntimateClipPrompt } from './intimate-clip-prompt';
+import { buildIntimateClipPrompt } from './play/intimate-clip-prompt';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import { toQwenImage21Prompt } from './qwen-image-21-renderer';
 import {
@@ -17,8 +17,8 @@ import {
   buildRapidSoloRecipe,
   buildRapidSuggestiveRecipe,
   buildStoryRapidDuoRecipe,
-} from './rapid-duo-recipe';
-import { withStoryAdultAges } from './story-adult-ages';
+} from './play/rapid-duo-recipe';
+import { withStoryAdultAges } from './story/adult-ages';
 import type { DayPartner } from './day/partner';
 
 const THEO: DayPartner = {

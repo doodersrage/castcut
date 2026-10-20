@@ -8,10 +8,10 @@ import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
-import type { FittingKitPreview } from '@/lib/fitting-kit-previews';
-import { getFittingKitPreview } from '@/lib/fitting-kit-previews';
-import type { FittingSwipeKit } from '@/lib/fitting-room';
-import type { FittingClothingOption } from '@/lib/fitting-clothing-options';
+import type { FittingKitPreview } from '@/lib/fitting/kit-previews';
+import { getFittingKitPreview } from '@/lib/fitting/kit-previews';
+import type { FittingSwipeKit } from '@/lib/fitting/room';
+import type { FittingClothingOption } from '@/lib/fitting/clothing-options';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,

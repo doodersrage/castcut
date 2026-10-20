@@ -4,7 +4,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { DayPlate } from '@/lib/day/plate';
-import { lookPackFittingHref } from '@/lib/look-pack';
+import { lookPackFittingHref } from '@/lib/look/pack';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import UploadButton from '@/components/ui/UploadButton';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';

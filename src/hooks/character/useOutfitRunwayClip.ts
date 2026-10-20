@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { runwayClipPrompt } from '@/lib/cast-wardrobe';
+import { runwayClipPrompt } from '@/lib/cast/wardrobe';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import type { EngineHealthState } from '@/lib/engine-health-engines';
 import {

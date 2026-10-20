@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { storyScenesFromDay, storySeedFromDay } from '@/lib/day/story-seed';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { loadSettingsCache, loadToolSettings } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE, type RoleplayToolCache } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE, type RoleplayToolCache } from '@/lib/play/settings';
 
 export type DayStoryOpening = { count: number; use: () => void };
 

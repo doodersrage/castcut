@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useSyncExternalStore } from 'react';
-import { PLAY_METRICS_UPDATED_EVENT, weakPoseLayouts } from '@/lib/play-metrics';
+import { PLAY_METRICS_UPDATED_EVENT, weakPoseLayouts } from '@/lib/play/metrics';
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener(PLAY_METRICS_UPDATED_EVENT, onStoreChange);

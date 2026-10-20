@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/Field';
-import type { RoleplayScene } from '@/lib/roleplay';
+import type { RoleplayScene } from '@/lib/story/roleplay';
 
 /** A typed scene as a scene card: the first words are its title. */
 export function ownSceneFromText(text: string): RoleplayScene | null {

@@ -11,13 +11,13 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { Button } from '@/components/ui/Button';
 import { FieldError, TextArea } from '@/components/ui/Field';
 import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-media-client';
-import { fittingNotesCachePatch } from '@/lib/look-pack';
+import { fittingNotesCachePatch } from '@/lib/look/pack';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
-import { fittingSessionStatusLine } from '@/lib/fitting-room';
+import { fittingSessionStatusLine } from '@/lib/fitting/room';
 import { galleryPickPath } from '@/lib/gallery-handoff';
 import { toMobileStudioHref } from '@/lib/mobile-studio';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
@@ -27,7 +27,7 @@ import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSe
 import OutfitQualityControls from '@/components/fitting/OutfitQualityControls';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPreset';
-import { followCastOutfitInSessions } from '@/lib/cast-plate-switch';
+import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 
 type ViewModel = ReturnType<typeof useFittingRoomToolOrchestration>;
 

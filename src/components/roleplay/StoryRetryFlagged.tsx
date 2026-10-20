@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
-import { STORY_CHECK_THRESHOLDS, storyFlaggedBeats } from '@/lib/roleplay-pose-check';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
+import { STORY_CHECK_THRESHOLDS, storyFlaggedBeats } from '@/lib/story/roleplay-pose-check';
 
 /**
  * "Retry N flagged": redo every beat whose still failed or missed its pose / face check, in reel

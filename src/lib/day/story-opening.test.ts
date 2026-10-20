@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { storyScenesFromDay } from './story-seed';
-import type { DayToolCache } from '../play-settings';
+import type { DayToolCache } from '../play/settings';
 
 const day: DayToolCache = {
   stillsCharacterId: 'cast-a',

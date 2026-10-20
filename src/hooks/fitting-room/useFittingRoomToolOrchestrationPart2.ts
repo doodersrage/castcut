@@ -1,6 +1,6 @@
 'use client';
 
-import { realKitId } from '@/lib/outfit-handoff';
+import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -45,8 +45,8 @@ import {
   getFittingKitPreview,
   normalizeFittingKitPreviews,
   resolveFittingKitPreviewModel,
-} from '@/lib/fitting-kit-previews';
-import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+} from '@/lib/fitting/kit-previews';
+import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { fetchInstalledModelCheck } from '@/lib/footwear-check-client';
 import {
   isSettingsSyncedWithServer,
@@ -60,7 +60,7 @@ import {
   fittingSwipeNeighbor,
   resolveFittingDeckWardrobeId,
   resolveFittingPlateFromCharacter,
-} from '@/lib/fitting-room';
+} from '@/lib/fitting/room';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
@@ -80,24 +80,24 @@ import {
   shouldRetainFittingNotesForLookPack,
   lookPackRoleplayHref,
   saveLookPack,
-} from '@/lib/look-pack';
+} from '@/lib/look/pack';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   clearCharacterLookPlate,
   tryAttachPendingOutfitPlate,
-} from '@/lib/look-outfit-plate';
+} from '@/lib/look/outfit-plate';
 import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
-} from '@/lib/fitting-saved-garments';
-import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
+} from '@/lib/fitting/saved-garments';
+import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 import { getReformatTargetModel } from '@/lib/reformat-target';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play-settings';
-import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting-clothing-options';
+import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
+import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting/clothing-options';
 import { scanStillWithVision } from '@/lib/vision-still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
 

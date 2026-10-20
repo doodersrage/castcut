@@ -1,6 +1,6 @@
 import { stripGalleryViewWidthParam } from '@/lib/comfyui-outputs';
-import { looksLikeMotionUrl } from '@/lib/roleplay-film';
-import type { RoleplayStillStatus, RoleplayStoryBeat } from '@/lib/roleplay';
+import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
+import type { RoleplayStillStatus, RoleplayStoryBeat } from '@/lib/story/roleplay';
 
 export function clipLabel(beat: RoleplayStoryBeat): string | null {
   if (beat.clipStatus === 'completed' && beat.clipUrl?.trim()) {

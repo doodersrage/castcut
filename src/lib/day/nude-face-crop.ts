@@ -8,7 +8,7 @@ import {
   type DayPlate,
 } from '@/lib/day/plate';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
+import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';
 import { checkReferenceImage } from '@/lib/reference-check-client';
 

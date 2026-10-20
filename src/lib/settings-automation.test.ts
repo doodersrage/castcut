@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { ComfyUiModelLists } from './comfyui-object-info';
 import { comfyInventoryFingerprint, fillLoaderMapsFromInventory } from './comfy-inventory-auto-sync';
-import { buildPlayChecksReadiness } from './play-checks-readiness';
+import { buildPlayChecksReadiness } from './play/checks-readiness';
 import { DEFAULT_SHARED_SETTINGS } from './settings-cache';
 import { COMFYUI_SETTINGS_SECTIONS } from './settings-comfyui-nav';
 import {

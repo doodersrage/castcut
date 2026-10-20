@@ -10,7 +10,7 @@ import {
   OUTFIT_QUALITY_PRESET_OPTIONS,
   type OutfitQualityPreset,
   type OutfitQualityPresetChoice,
-} from '@/lib/outfit-quality-preset';
+} from '@/lib/fitting/outfit-quality-preset';
 import type { RenderQuality } from '@/lib/render-quality';
 
 const ACCENT = 'rose' as const;

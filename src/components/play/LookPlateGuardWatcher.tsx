@@ -2,11 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CastPlatePrepareOptions } from '@/lib/cast-plate-prepare';
+import type { CastPlatePrepareOptions } from '@/lib/cast/plate-prepare';
 import {
   CAST_PLATE_TRAIT_EDIT_EVENT,
   type CastPlateTraitEditRequest,
-} from '@/lib/cast-plate-trait-edit';
+} from '@/lib/cast/plate-trait-edit';
 import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
 
 const LookPlateMarksRepair = dynamic(() => import('@/components/play/LookPlateMarksRepair'), {
@@ -177,7 +177,7 @@ export default function LookPlateGuardWatcher() {
               // The same person: are her marks on it?
               const repairKey = `${character.id}:${look.id}`;
               if (repaintedRef.current.has(repairKey)) return;
-              const marks = await import('@/lib/cast-plate-marks');
+              const marks = await import('@/lib/cast/plate-marks');
               const missing = await marks.lookPlateMissesMarks(character.id, look.id);
               if (missing && !cancelled) {
                 repaintedRef.current.add(repairKey);

@@ -135,6 +135,26 @@ for (const file of [...files].sort()) {
   );
   writeFileSync(target, source);
 }
+// Files that moved into src/lib's domain folders (architecture/lib-moves.json) keep their old
+// path as a re-export, so `prompt-studio-core/src/lib/<old>` imports keep working.
+const libMoves: Record<string, string> = JSON.parse(
+  readFileSync(join(root, 'architecture/lib-moves.json'), 'utf8')
+);
+let compat = 0;
+for (const [from, to] of Object.entries(libMoves)) {
+  if (!files.has(to) || files.has(from)) continue;
+  let spec = relative(dirname(from), to.replace(/\.tsx?$/, ''))
+    .split(sep)
+    .join('/');
+  if (!spec.startsWith('.')) spec = './' + spec;
+  const hasDefault = /^export default\b/m.test(readFileSync(join(root, to), 'utf8'));
+  writeFileSync(
+    join(out, from),
+    `// Moved to ${to}; this path is kept for older imports.\nexport * from '${spec}';\n` +
+      (hasDefault ? `export { default } from '${spec}';\n` : '')
+  );
+  compat++;
+}
 cpSync(join(root, 'next.config.base.cjs'), join(out, 'next.config.base.cjs'));
 // prompt-studio-sync-routes: the app regenerates its route wrappers from this package.
 mkdirSync(join(out, 'bin'), { recursive: true });
@@ -206,6 +226,6 @@ writeFileSync(
   ) + '\n'
 );
 console.log(
-  `${pkgName}@${version}: ${files.size} files, ${Object.keys(dependencies).length} deps, peers ${Object.keys(peerDependencies).join(' ')}`
+  `${pkgName}@${version}: ${files.size} files (+${compat} moved-path re-exports), ${Object.keys(dependencies).length} deps, peers ${Object.keys(peerDependencies).join(' ')}`
 );
 if (missing.length) console.log('Imported but not in package.json (check):', missing.join(' '));

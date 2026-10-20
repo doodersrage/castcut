@@ -10,7 +10,7 @@ import {
 import { dayPoseSpecForBeat } from './day/planner';
 import { resolvePoseCameraAngle } from './pose-guide-openpose';
 import { poseGuidePromptBlock, POSE_GUIDE_CAMERA_LINES } from './pose-guide-prompt';
-import { nextStoryPoseCheck, storyPoseMatchLabel } from './roleplay-pose-check';
+import { nextStoryPoseCheck, storyPoseMatchLabel } from './story/roleplay-pose-check';
 import { orderImportedBodies, POSE_IMPORT_LAYOUTS } from './pose-library-import';
 
 function posture(base: PoseGuideBase, sceneText = '') {

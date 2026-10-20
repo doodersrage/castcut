@@ -12,7 +12,7 @@ import {
   buildRoleplayRequestBody,
   roleplayBioRequestForLead,
   type RoleplayApiPayload,
-} from '@/lib/roleplay-play-core';
+} from '@/lib/story/roleplay-play-core';
 import {
   appendRoleplayStoryBeat,
   lastRoleplayPlotBeat,
@@ -21,10 +21,10 @@ import {
   type RoleplayBio,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
-import type { RoleplayPlayAs } from '@/lib/roleplay';
-import { storyHasBeat } from '@/lib/roleplay-story-write';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+} from '@/lib/story/roleplay';
+import type { RoleplayPlayAs } from '@/lib/story/roleplay';
+import { storyHasBeat } from '@/lib/story/roleplay-story-write';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 const TOOL_ID = 'roleplay';
 

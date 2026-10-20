@@ -5,7 +5,7 @@
  * settings, and the lines already used in this Day / Story (so it says something new).
  */
 
-import { castVoiceOf } from './cast-voice';
+import { castVoiceOf } from './cast/voice';
 import { getCharacter } from './character-os';
 import { sharedLlmRequestBody } from './llm-request-options';
 import { loadSettingsCache } from './settings-cache';

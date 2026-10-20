@@ -15,7 +15,7 @@ import {
   saveCastPlacePhoto,
   WORK_DESIGNS,
   type CastPlaceKind,
-} from '@/lib/cast-places';
+} from '@/lib/cast/places';
 import type { CharacterRecord } from '@/lib/character-os';
 import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';
 

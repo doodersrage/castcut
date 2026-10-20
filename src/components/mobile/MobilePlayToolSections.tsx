@@ -10,7 +10,7 @@ import { useStoryScenePoses } from '@/hooks/roleplay/useStoryScenePoses';
 import { useStoryStartOver } from '@/hooks/roleplay/useStoryStartOver';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
 import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
-import { roleplayMoodSummary } from '@/lib/roleplay';
+import { roleplayMoodSummary } from '@/lib/story/roleplay';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOr
 import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
 import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day/planner';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import { deriveStoryPhase } from '@/lib/play-step-machine';
+import { deriveStoryPhase } from '@/lib/play/step-machine';
 import {
   applyRoleplayCharacterName,
   countRoleplayCompletedClips,
@@ -36,7 +36,7 @@ import {
   MAX_ROLEPLAY_CHARACTER_NAME,
   roleplayQueueBlockReason,
   storySessionStatusLine,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
 import {
@@ -45,8 +45,8 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character-os';
-import { confirmRoleplayUndoScene, type RoleplayStoryBeat } from '@/lib/roleplay';
-import { remixDayFilmHref } from '@/lib/play-starter';
+import { confirmRoleplayUndoScene, type RoleplayStoryBeat } from '@/lib/story/roleplay';
+import { remixDayFilmHref } from '@/lib/play/starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,

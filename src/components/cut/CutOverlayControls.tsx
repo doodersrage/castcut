@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { OptionRow } from '@/components/cut/CutOptionParts';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { OVERLAY_CORNERS, type OverlayCorner } from '@/lib/cut-overlay';
-import type { CutShotEdit } from '@/lib/film-cut-plan';
+import type { CutShotEdit } from '@/lib/film/cut-plan';
 
 const field =
   'rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-[var(--text-primary)]';

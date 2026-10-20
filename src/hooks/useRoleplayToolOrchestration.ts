@@ -20,17 +20,17 @@ import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 import { useStorySessionGuard } from '@/hooks/roleplay/useStorySessionGuard';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { getCharacter } from '@/lib/character-os';
-import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
 import { getReformatTargetModel } from '@/lib/reformat-target';
-import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
   ROLEPLAY_ARCHETYPES,
   formatRoleplayStoryProgress,
   resolveRoleplayToneAndContent,
   type RoleplayScene,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
-import { lastRoleplayMotionSource, normalizeRoleplayBeatOutput } from '@/lib/roleplay-film';
+} from '@/lib/story/roleplay';
+import { lastRoleplayMotionSource, normalizeRoleplayBeatOutput } from '@/lib/story/roleplay-film';
 import { useNsfwGeneratorStatus } from '@/hooks/useNsfwGeneratorEnabled';
 
 const TOOL_ID = 'roleplay';

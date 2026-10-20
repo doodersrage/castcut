@@ -50,7 +50,7 @@ import {
   everydayFigures,
   isEverydayDuoLayout,
   sportFigure,
-} from '@/lib/pose-everyday-figures';
+} from '@/lib/play/pose-everyday-figures';
 import {
   pickPoseLibraryEntry,
   placeLibraryPeople,

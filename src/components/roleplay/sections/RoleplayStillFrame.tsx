@@ -6,7 +6,7 @@ import { Spinner } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
 import { isHtmlVideoViewUrl } from '@/lib/comfyui-outputs';
-import { looksLikeMotionUrl } from '@/lib/roleplay-film';
+import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
 import {
   canRetryRoleplayClip,
   canRetryRoleplayStill,
@@ -16,7 +16,7 @@ import {
   roleplayStillTakes,
   roleplayStillTakeIndex,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import {
   beatMotionUrl,
   beatPreviewUrl,

@@ -11,7 +11,7 @@ import {
   type DayMoodSetting,
   type DaySlot,
 } from '@/lib/day/planner';
-import { summarizePlayChecks } from '@/lib/play-checks-readiness';
+import { summarizePlayChecks } from '@/lib/play/checks-readiness';
 
 export type DayQualitySwitches = {
   /** Default on — loosen the plate's grip on stance when the beat needs a different body. */

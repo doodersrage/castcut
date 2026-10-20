@@ -1,12 +1,15 @@
 'use client';
 
-import { storyHintsWithLook } from '@/lib/story-cast-lines';
-import { withCastPlace } from '@/lib/cast-places';
+import { storyHintsWithLook } from '@/lib/story/cast-lines';
+import { withCastPlace } from '@/lib/cast/places';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { useCallback, type MutableRefObject } from 'react';
 import { getCharacter } from '@/lib/character-os';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
-import { buildRoleplayRequestBody, resolveRoleplayWardrobeFields } from '@/lib/roleplay-play-core';
+import {
+  buildRoleplayRequestBody,
+  resolveRoleplayWardrobeFields,
+} from '@/lib/story/roleplay-play-core';
 import {
   mergeRoleplayRejectedScenes,
   type RoleplayBio,
@@ -14,9 +17,9 @@ import {
   type RoleplayPlayAs,
   type RoleplayScene,
   type RoleplayTone,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { RoleplayToolCache } from '@/lib/play-settings';
+import type { RoleplayToolCache } from '@/lib/play/settings';
 
 type UseRoleplayRequestBodyOptions = {
   shared: SharedToolSettings;

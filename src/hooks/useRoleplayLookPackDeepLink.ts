@@ -1,8 +1,8 @@
 'use client';
 
-import { realKitId } from '@/lib/outfit-handoff';
+import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
-import { roleplayWatchPlaylist } from '@/lib/character-film';
+import { roleplayWatchPlaylist } from '@/lib/film/character-film';
 import {
   applyCharacterRecord,
   getCharacter,
@@ -10,10 +10,10 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character-os';
-import { getCharacterLookPack } from '@/lib/play-cast';
+import { getCharacterLookPack } from '@/lib/play/cast';
 import { storySeedFromDay } from '@/lib/day/story-seed';
-import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting-room';
-import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look-pack';
+import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
+import { applyLookPackToRoleplaySettings, loadLookPack, saveLookPack } from '@/lib/look/pack';
 import {
   persistRoleplayLibraryFromCache,
   resolveRoleplayContinueFromCharacter,
@@ -21,15 +21,15 @@ import {
   roleplayLibraryIdForCharacter,
   shouldSyncRoleplaySessionToCharacter,
   withRoleplayCacheFromCastCharacter,
-} from '@/lib/roleplay-library';
-import { resolvePlayLoopEntryCharacterId } from '@/lib/play-campaign';
-import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story-session-guard';
+} from '@/lib/story/roleplay-library';
+import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
+import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story/session-guard';
 import { loadSettingsCache, loadToolSettings, type SharedToolSettings } from '@/lib/settings-cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   type RoleplayToolCache,
-} from '@/lib/play-settings';
+} from '@/lib/play/settings';
 
 type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;

@@ -12,7 +12,7 @@ import FittingActionRow from '@/components/fitting/FittingActionRow';
 import OutfitQualityControls from '@/components/fitting/OutfitQualityControls';
 import { useFittingTryOnReview } from '@/hooks/fitting-room/useFittingTryOnReview';
 import { useOutfitQualityPreset } from '@/hooks/fitting-room/useOutfitQualityPreset';
-import { outfitQualityPresetLabel } from '@/lib/outfit-quality-preset';
+import { outfitQualityPresetLabel } from '@/lib/fitting/outfit-quality-preset';
 import FittingPlateSection from '@/components/fitting/FittingPlateSection';
 import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
@@ -27,8 +27,8 @@ import { CollapsibleSection, ToolLayout, ToolSection } from '@/components/ui/Too
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
-import { fittingSessionStatusLine } from '@/lib/fitting-room';
-import { fittingNotesCachePatch } from '@/lib/look-pack';
+import { fittingSessionStatusLine } from '@/lib/fitting/room';
+import { fittingNotesCachePatch } from '@/lib/look/pack';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 

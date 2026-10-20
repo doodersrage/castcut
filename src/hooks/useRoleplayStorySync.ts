@@ -12,7 +12,7 @@ import {
   roleplayClipTakes,
   roleplayStoryPromptIds,
   type RoleplayStoryBeat,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 import {
   peekContinueStitch,
   stitchContinueClips,

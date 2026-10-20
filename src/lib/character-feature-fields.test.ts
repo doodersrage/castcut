@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { normalizeCharacterRecord, type CharacterRecord } from './character-os';
-import './play-cast';
+import './play/cast';
 
 describe('Cast record feature fields', () => {
   it('survive normalising without any feature normaliser registered (no data loss)', () => {

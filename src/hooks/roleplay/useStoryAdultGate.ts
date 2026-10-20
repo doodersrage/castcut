@@ -15,7 +15,7 @@ import {
   setGalleryAdultCheck,
 } from '@/lib/comfyui-gallery';
 import { persistCompletedGalleryMedia } from '@/lib/comfyui-gallery-client';
-import { roleplayStillTakes } from '@/lib/roleplay-gallery-takes';
+import { roleplayStillTakes } from '@/lib/story/roleplay-gallery-takes';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 
 /**

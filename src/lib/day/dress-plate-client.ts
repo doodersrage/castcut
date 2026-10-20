@@ -13,7 +13,7 @@ import {
   type DayDressPlateEntry,
   type DayDressPlateKeyInput,
 } from '@/lib/day/dress-plate';
-import { findDressPlate, loadDressPlates, saveDressPlate } from '@/lib/dress-plate-store';
+import { findDressPlate, loadDressPlates, saveDressPlate } from '@/lib/day/dress-plate-store';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import { footwearIsBarefoot, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
 import {

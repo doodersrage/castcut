@@ -23,9 +23,9 @@ import {
   subscribeCharacters,
   type CharacterRecord,
 } from '@/lib/character-os';
-import { migrateCharactersFromLegacy } from '@/lib/play-cast';
-import { castRosterReadinessLine } from '@/lib/cast-home-status';
-import { playCampaignHref, rosterFilmLead } from '@/lib/play-campaign';
+import { migrateCharactersFromLegacy } from '@/lib/play/cast';
+import { castRosterReadinessLine } from '@/lib/cast/home-status';
+import { playCampaignHref, rosterFilmLead } from '@/lib/play/campaign';
 import {
   listSavedIdentityBundles,
   loadSettingsCache,
@@ -35,7 +35,7 @@ import {
 import {
   deleteRoleplayLibrarySession,
   roleplaySessionsForCharacterSync,
-} from '@/lib/roleplay-library';
+} from '@/lib/story/roleplay-library';
 
 function applyCharacter(character: CharacterRecord) {
   saveSharedSettings({

@@ -6,7 +6,7 @@ import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
   ROLEPLAY_ARCHETYPE_FEATURED_IDS,
   ROLEPLAY_ARCHETYPES,
-} from '@/lib/roleplay';
+} from '@/lib/story/roleplay';
 
 type CastPersonaPartChipsProps = {
   personaId: string;

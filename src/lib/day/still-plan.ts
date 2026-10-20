@@ -15,7 +15,7 @@ import { dayClothedHeatPoseNeedsBodyUnlock, daySuggestiveBeatIsSeated } from './
 import { beatOwnsFootwear, footwearIsBarefoot } from '../footwear';
 import { PLAY_FACE_CROP_CANVAS } from '../plate-render-size';
 import { poseProfileForModel } from '../pose/pose-model-profile';
-import { beatLiesDown, vacationBeatDressesItself } from '../rapid-duo-recipe';
+import { beatLiesDown, vacationBeatDressesItself } from '../play/rapid-duo-recipe';
 import { suggestiveBeatIsImpliedNudity } from '../clothed-coverage';
 
 /** The mood a still plays as: an adult mood with Intimate off is Everyday. */

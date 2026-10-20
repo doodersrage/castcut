@@ -10,8 +10,8 @@ import {
   summarizePlayFunnel,
   type LocalObservabilityCounters,
 } from '@/lib/local-observability';
-import { loadPlayCampaignState } from '@/lib/play-campaign';
-import { loadLookPack } from '@/lib/look-pack';
+import { loadPlayCampaignState } from '@/lib/play/campaign';
+import { loadLookPack } from '@/lib/look/pack';
 import { loadOnboardingState } from '@/lib/onboarding-store';
 import {
   countFilmCutsWithinDays,
@@ -30,9 +30,9 @@ import {
   slotKeepRate,
   slowestPlayPhase,
   type PlayMetrics,
-} from '@/lib/play-metrics';
+} from '@/lib/play/metrics';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
-import type { LookPack } from '@/lib/look-pack';
+import type { LookPack } from '@/lib/look/pack';
 
 const POSE_STYLE_LABELS = {
   openpose: 'OpenPose',

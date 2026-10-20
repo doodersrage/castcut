@@ -1,6 +1,6 @@
 'use client';
 
-import { queueCastLookPlate } from '@/lib/cast-plate-queue';
+import { queueCastLookPlate } from '@/lib/cast/plate-queue';
 
 import { getCharacter } from '@/lib/character-os';
 import { partnerOutfitWords } from '@/lib/day/partner-outfit';
@@ -32,12 +32,12 @@ import {
   type DayChecksGate,
   type DaySettledTakes,
 } from '@/lib/day/finish-order';
-import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
+import { applyCastLookPlateFromSource } from '@/lib/look/outfit-plate';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { flaggedRetryPlan } from '@/lib/play-slot-quality';
+import { flaggedRetryPlan } from '@/lib/play/slot-quality';
 import { loadComfyGallery, recordGalleryPlayerVerdict } from '@/lib/comfyui-gallery';
-import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
-import { checkCutDelivery } from '@/lib/film-delivery-check-client';
+import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
+import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
@@ -59,7 +59,7 @@ import {
   cutShotProblems,
   type CutShotProblem,
   type KeyedShot,
-} from '@/lib/film-cut-plan';
+} from '@/lib/film/cut-plan';
 
 export function useDayPlannerToolOrchestration() {
   const core = useDayPlannerToolOrchestrationCore();

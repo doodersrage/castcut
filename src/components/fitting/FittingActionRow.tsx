@@ -4,9 +4,9 @@ import { useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import type { CharacterRecord } from '@/lib/character-os';
-import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { isPlayStoryLocked } from '@/lib/play-step-machine';
-import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play-metrics';
+import { bumpPlayCampaignStep } from '@/lib/play/campaign';
+import { isPlayStoryLocked } from '@/lib/play/step-machine';
+import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 
 export type FittingActionRowProps = {
   continueDayHref: string | null;

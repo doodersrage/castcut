@@ -10,8 +10,8 @@ import {
   filmShotCaption,
 } from './video-polish';
 import { buildFilterComplex, filmSpeechStarts } from './video-server-encode';
-import { posterTitleLayout } from './film-poster';
-import { nextDayFilmTitleCard, currentSeasonLabel, type PlaySeriesStore } from './play-series';
+import { posterTitleLayout } from './film/poster';
+import { nextDayFilmTitleCard, currentSeasonLabel, type PlaySeriesStore } from './play/series';
 
 describe('film polish helpers', () => {
   it('alternates push-in and pull-out on stills', () => {

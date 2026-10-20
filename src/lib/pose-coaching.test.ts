@@ -28,7 +28,7 @@ import {
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from './pose-import-layouts';
 import { poseLayoutLabel } from './pose-layout-labels';
 import { poseGuidePromptBlock, POSE_GUIDE_CAMERA_LINES } from './pose-guide-prompt';
-import { normalizeRoleplayLibrarySnapshot } from './roleplay-library';
+import { normalizeRoleplayLibrarySnapshot } from './story/roleplay-library';
 import type { NormalizedBody } from './pose-library';
 
 /** Lead keypoints (0–1 of the guide) for a scene, as the queue would draw them. */

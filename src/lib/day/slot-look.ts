@@ -8,7 +8,7 @@ import { activeLook, characterWithLook, looksOf, type CharacterRecord } from '..
 import type { ComfyGalleryEntry } from '../comfyui-gallery';
 import { resolveDayPlate, resolveDayPlateForIsolate, type DayPlate } from './plate';
 import type { DaySlot } from './planner';
-import { keptOutfitHasPhoto, outfitPicks, type OutfitPicks } from '../outfit-handoff';
+import { keptOutfitHasPhoto, outfitPicks, type OutfitPicks } from '../fitting/outfit-handoff';
 
 /** What dresses a Day still: the outfit lock (a kit) and the clothing photo / shoes picks. */
 export type DaySlotOutfit = OutfitPicks & { lockedWardrobeId?: string };

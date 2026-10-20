@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api/response';
-import { addFilmReviewComment, liveFilmReview } from '@/lib/film-review-store';
+import { addFilmReviewComment, liveFilmReview } from '@/lib/film/review-store';
 
 export const runtime = 'nodejs';
 

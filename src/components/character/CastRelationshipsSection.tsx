@@ -8,7 +8,7 @@ import {
   castRelationOf,
   saveCastRelationship,
   type CastRelationKind,
-} from '@/lib/cast-relationships';
+} from '@/lib/cast/relationships';
 import { loadCharacters, subscribeCharacters, type CharacterRecord } from '@/lib/character-os';
 
 const EMPTY: CharacterRecord[] = [];

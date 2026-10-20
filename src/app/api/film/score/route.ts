@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { renderFilmScore } from '@/lib/film-score-server';
+import { renderFilmScore } from '@/lib/film/score-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 280;

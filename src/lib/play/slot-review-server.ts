@@ -1,0 +1,131 @@
+import { resolveVisionModel } from '@/lib/vision-model-auto';
+import { chatCompletion, visionCompletion } from '../llm-client';
+import {
+  resolveRequestLlmEnabled,
+  resolveRequestLlmEndpoint,
+  type LlmRequestOptions,
+} from '../llm-request-options';
+import {
+  buildSlotReviewPrompt,
+  DUO_ANATOMY_PROBE_PROMPT,
+  parseDuoAnatomyProbe,
+  withDuoAnatomyProbe,
+  OUTFIT_DESCRIBE_PROMPT,
+  outfitJudgePrompt,
+  reportFlagsOutfit,
+  withOutfitSecondLook,
+  parseSlotQualityReport,
+  type SlotQualityReport,
+  type SlotReviewContext,
+} from './slot-quality';
+
+/** Server-side single-image quality review for one Day still. Throws on config or parse errors. */
+export async function reviewPlaySlotStill(options: {
+  imageDataUrl: string;
+  context?: SlotReviewContext;
+  llm?: LlmRequestOptions;
+}): Promise<SlotQualityReport> {
+  const hosted = Boolean(options.llm?.llmProvider && options.llm.llmProvider !== 'server');
+  if (!resolveRequestLlmEnabled(options.llm)) {
+    throw new Error(
+      hosted
+        ? 'Slot review needs a hosted vision model. Pick one under Settings → LLM and paste your API key.'
+        : 'Slot review needs a vision-capable LLM. Set LLM_ENABLED=true and configure LLM_VISION_MODEL.'
+    );
+  }
+  const visionModel = await resolveVisionModel(options.llm);
+  if (!visionModel) {
+    throw new Error(
+      hosted
+        ? 'Pick a session vision model under Settings → LLM to review this still.'
+        : 'No vision model found on the LLM server. Pull one (e.g. qwen2.5vl or gemma3) or set LLM_VISION_MODEL in .env.local and restart.'
+    );
+  }
+
+  const prompt = buildSlotReviewPrompt(options.context);
+  const text = await visionCompletion({
+    systemPrompt: prompt.system,
+    textPrompt: prompt.user,
+    imageDataUrl: options.imageDataUrl,
+    // Vision models often spend tokens on reasoning first; keep headroom for the JSON answer.
+    maxTokens: 800,
+    temperature: 0.1,
+    model: visionModel,
+    endpoint: resolveRequestLlmEndpoint(options.llm),
+    usageContext: { route: 'play-slot-review' },
+  });
+  const report = parseSlotQualityReport(text);
+  if (!report) {
+    throw new Error(
+      'Slot review returned an unreadable reply. Try again or use a larger vision model.'
+    );
+  }
+  const checked = await outfitSecondLook(report, options, visionModel);
+  // Two-person stills: a second, counting question catches fused bodies, phantom limbs and
+  // misplaced genitals the general review scores as clean.
+  if (options.context?.expectedPeople === 2 && options.context.referencePair !== true) {
+    try {
+      const probe = await visionCompletion({
+        // No system prompt: with one, the model stopped flagging a phantom-limb duo it caught without.
+        systemPrompt: '',
+        textPrompt: DUO_ANATOMY_PROBE_PROMPT,
+        imageDataUrl: options.imageDataUrl,
+        maxTokens: 400,
+        temperature: 0,
+        model: visionModel,
+        endpoint: resolveRequestLlmEndpoint(options.llm),
+        usageContext: { route: 'play-slot-review' },
+      });
+      return withDuoAnatomyProbe(checked, parseDuoAnatomyProbe(probe, 2));
+    } catch {
+      return checked;
+    }
+  }
+  return checked;
+}
+
+/**
+ * The review called the outfit wrong on a one-person still: describe the clothes plainly and
+ * judge that loosely against the plan before it costs a re-roll (OUTFIT_DESCRIBE_PROMPT).
+ * Any failure keeps the review as it was.
+ */
+async function outfitSecondLook(
+  report: SlotQualityReport,
+  options: { imageDataUrl: string; context?: SlotReviewContext; llm?: LlmRequestOptions },
+  visionModel: string
+): Promise<SlotQualityReport> {
+  const outfit = options.context?.outfit?.trim();
+  if (
+    !outfit ||
+    !reportFlagsOutfit(report) ||
+    options.context?.expectedPeople === 2 ||
+    options.context?.referencePair === true
+  ) {
+    return report;
+  }
+  try {
+    const endpoint = resolveRequestLlmEndpoint(options.llm);
+    const seen = await visionCompletion({
+      systemPrompt: '',
+      textPrompt: OUTFIT_DESCRIBE_PROMPT,
+      imageDataUrl: options.imageDataUrl,
+      maxTokens: 120,
+      temperature: 0,
+      model: visionModel,
+      endpoint,
+      usageContext: { route: 'play-slot-review' },
+    });
+    // Text only, on the same model, as calibrated.
+    const answer = await chatCompletion({
+      messages: [{ role: 'user', content: outfitJudgePrompt(outfit, seen.trim()) }],
+      maxTokens: 5,
+      temperature: 0,
+      model: visionModel,
+      endpoint,
+      usageContext: { route: 'play-slot-review' },
+    });
+    return withOutfitSecondLook(report, { seen, answer });
+  } catch {
+    return report;
+  }
+}

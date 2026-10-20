@@ -4,8 +4,8 @@ import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import type { DaySlot, DaySlotStill } from './day/planner';
 import { estimateQueueEta, formatEta, typicalRenderMs } from './queue-eta';
 import { describeQueueJob, groupQueueJobs } from './queue-job-context';
-import { buildPlayJobIndex, playJobLabeller, repointPlayJobIds } from './play-queue-jobs';
-import type { RoleplayStoryBeat } from './roleplay';
+import { buildPlayJobIndex, playJobLabeller, repointPlayJobIds } from './play/queue-jobs';
+import type { RoleplayStoryBeat } from './story/roleplay';
 
 const slots: DaySlot[] = [
   { id: 'morning', label: 'Morning' },

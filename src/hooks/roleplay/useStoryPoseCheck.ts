@@ -6,8 +6,8 @@ import {
   autoPickRoleplayStillTakePatch,
   patchRoleplayStoryBeat,
   withRoleplayTakeChecks,
-} from '@/lib/roleplay';
-import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/roleplay-pose-check';
+} from '@/lib/story/roleplay';
+import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/story/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
@@ -17,7 +17,7 @@ import {
   posturePairWords,
   scorePoseMatch,
 } from '@/lib/pose-score';
-import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play-metrics';
+import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play/metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
 import { buildPoseMissView } from '@/lib/pose-coaching';

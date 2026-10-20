@@ -1,7 +1,7 @@
 'use client';
 
 import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { loadSavedFittingGarments, saveFittingGarment } from '@/lib/fitting-saved-garments';
+import { loadSavedFittingGarments, saveFittingGarment } from '@/lib/fitting/saved-garments';
 import { loadSavedFootwear, saveFootwear } from '@/lib/footwear-saved';
 import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';

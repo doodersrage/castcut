@@ -1,20 +1,20 @@
 'use client';
 
-import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
-import { checkCutDelivery } from '@/lib/film-delivery-check-client';
+import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
+import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
   cutPosterPick,
   cutShotProblems,
   type CutShotProblem,
   type KeyedShot,
-} from '@/lib/film-cut-plan';
+} from '@/lib/film/cut-plan';
 import {
   STORY_CHECK_THRESHOLDS,
   storyFaceMatchLabel,
   storyPoseMatchLabel,
   storyRealismLabel,
-} from '@/lib/roleplay-pose-check';
+} from '@/lib/story/roleplay-pose-check';
 import { REALISM_MISS_REASON } from '@/lib/still-realism';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -26,23 +26,23 @@ import {
   downloadFilmBlob,
   shareFilmBlob,
   stampAssembledFilm,
-} from '@/lib/character-film-assemble-lazy';
-import { roleplayWatchPlaylist } from '@/lib/character-film';
+} from '@/lib/film/character-film-assemble-lazy';
+import { roleplayWatchPlaylist } from '@/lib/film/character-film';
 import { applyCharacterRecord, getCharacter } from '@/lib/character-os';
-import { upsertCharacterFromRoleplaySession } from '@/lib/play-cast';
-import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play-onboarding';
-import { completePlayCampaign } from '@/lib/play-campaign';
-import { loadRoleplayLibrary, persistRoleplayLibraryFromCache } from '@/lib/roleplay-library';
+import { upsertCharacterFromRoleplaySession } from '@/lib/play/cast';
+import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
+import { completePlayCampaign } from '@/lib/play/campaign';
+import { loadRoleplayLibrary, persistRoleplayLibraryFromCache } from '@/lib/story/roleplay-library';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { type RoleplayToolCache } from '@/lib/play-settings';
+import { type RoleplayToolCache } from '@/lib/play/settings';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
-import type { RoleplayStoryBeat } from '@/lib/roleplay';
+import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
-import { widenStillForFilm } from '@/lib/film-widen-client';
-import { renderNarrationLine } from '@/lib/film-narration-client';
-import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story-film';
-import { resolveStoryFilmCast } from '@/lib/story-film-cast';
-import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film-poster';
+import { widenStillForFilm } from '@/lib/film/widen-client';
+import { renderNarrationLine } from '@/lib/film/narration-client';
+import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
+import { resolveStoryFilmCast } from '@/lib/story/film-cast';
+import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film/poster';
 
 /** The page's queue function, as widened stills need it. */
 export type FilmSendComfyUi = Parameters<typeof widenStillForFilm>[0]['sendComfyUi'];

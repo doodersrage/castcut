@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
+import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { normalizeFootwear } from '@/lib/footwear';
 import { updateSavedFootwearWords } from '@/lib/footwear-saved';
 import { collectIsolateSourceUrls } from '@/lib/isolate-subject';

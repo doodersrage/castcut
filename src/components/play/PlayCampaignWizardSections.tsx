@@ -1,6 +1,6 @@
 'use client';
 
-import { isPlayStoryLocked } from '@/lib/play-step-machine';
+import { isPlayStoryLocked } from '@/lib/play/step-machine';
 
 import { ToolLayout } from '@/components/ui/ToolPageShell';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -17,9 +17,9 @@ import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import PlayIdentityReadyBanner from '@/components/PlayIdentityReadyBanner';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';
 
-import { startStarterPlayFilm } from '@/lib/play-starter';
-import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play-metrics';
-import { welcomeSampleFilmShots } from '@/lib/welcome-sample-film';
+import { startStarterPlayFilm } from '@/lib/play/starter';
+import { hasCompletedFirstFilm, loadPlayMetrics } from '@/lib/play/metrics';
+import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
 import { useSyncExternalStore } from 'react';
 
 // Owns a ComfyUI queue hook — loaded only once a Cast was just created.

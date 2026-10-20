@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BROWSER_STORAGE_HEALTH_EVENT, whenBrowserStorageReady } from '@/lib/browser-storage';
-import { isAssembledFilmEntry } from '@/lib/character-film';
+import { isAssembledFilmEntry } from '@/lib/film/character-film';
 import {
   activeLook,
   applyCharacterRecord,
@@ -17,7 +17,7 @@ import {
   subscribeCharacters,
   toggleLookKeeper,
 } from '@/lib/character-os';
-import { addCharacterLookPack, lookPacksOf, removeCharacterLookPack } from '@/lib/play-cast';
+import { addCharacterLookPack, lookPacksOf, removeCharacterLookPack } from '@/lib/play/cast';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   clearGalleryCharacterStamp,
@@ -30,7 +30,7 @@ import {
 import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery-character-stamp';
 import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery-handoff';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { isGalleryClipEntry } from '@/lib/roleplay-film';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { selectCharacterKeepers } from '@/lib/gallery-lora-dataset-export';
 import {
@@ -38,7 +38,7 @@ import {
   getRoleplayLibrarySession,
   resolveRoleplayContinueFromCharacter,
   roleplayLibraryIdForCharacter,
-} from '@/lib/roleplay-library';
+} from '@/lib/story/roleplay-library';
 import {
   SETTINGS_CACHE_UPDATED_EVENT,
   loadSettingsCache,
@@ -46,21 +46,21 @@ import {
   saveSharedSettings,
   saveToolSettings,
 } from '@/lib/settings-cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
+import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
   downloadLookPackFile,
   lookPackDayHref,
   lookPackFittingHref,
   parseLookPackFile,
   saveLookPack,
-} from '@/lib/look-pack';
-import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look-outfit-plate';
+} from '@/lib/look/pack';
+import { applyCastLookPlateFromSource, clearCharacterLookPlate } from '@/lib/look/outfit-plate';
 import {
   addBlankCastLook,
   removeCastPlate,
   restoreCastPlate,
   switchCastPlate,
-} from '@/lib/cast-plate-switch';
+} from '@/lib/cast/plate-switch';
 import { castPlateTiles, nextCastLookName } from '@/lib/character-plate-thumb';
 import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
 import {
@@ -68,16 +68,16 @@ import {
   restoreCastPlateSnapshot,
   type CastPlatePrepareOptions,
   type CastPlateSnapshot,
-} from '@/lib/cast-plate-prepare';
+} from '@/lib/cast/plate-prepare';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlateStance } from '@/hooks/usePlateStance';
-import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
-import { playCampaignHref } from '@/lib/play-campaign';
+import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
+import { playCampaignHref } from '@/lib/play/campaign';
 import { continueClipActionLabel } from '@/lib/video-clip-mode';
 import { loadEngineSettings } from '@/lib/engine-settings';
 import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
-import { buildCastHomeStatus } from '@/lib/cast-home-status';
-import { castChecklist, countCastDayStills } from '@/lib/cast-checklist';
+import { buildCastHomeStatus } from '@/lib/cast/home-status';
+import { castChecklist, countCastDayStills } from '@/lib/cast/checklist';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useHydrated } from '@/hooks/useHydrated';
 import {
