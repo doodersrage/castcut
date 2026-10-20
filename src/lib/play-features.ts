@@ -127,6 +127,12 @@ registerCharacterStorePreparer(() =>
 );
 registerCharacterLookSwitcher((characterId, lookId) => switchCastPlate(characterId, lookId));
 
+// "Pick the best engine per pose" off: every still stays on the picked engine (no Rapid hand-off).
+registerAppFlag(
+  'render.keepPickedEngine',
+  () => loadSettingsCache().tools.day?.bestEnginePerPose !== true
+);
+
 // Workflow health checks Day's partner pictures too.
 registerReferenceHealthItems(dayPartnerReferenceHealth);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { appFlag } from './app-flags';
 import { isH3Model } from './h3-renderer';
 import { isLtx25Model } from './ltx25-renderer';
 import { poseModelFamily } from './pose/pose-model-profile';
@@ -516,9 +517,7 @@ export function resolveRuntimeForQueue(
       ? {
           qwenRenderer: 'qwen-image-2.1' as const,
           // "Pick the best engine per pose" off: no still leaves the picked engine.
-          ...(loadSettingsCache().tools.day?.bestEnginePerPose === true
-            ? {}
-            : { qwenImage21KeepEngine: true as const }),
+          ...(appFlag('render.keepPickedEngine') ? { qwenImage21KeepEngine: true as const } : {}),
           ...(qwenImage21FastSampler(model) === 'fun-acc-4'
             ? { qwenImage21FourStep: true as const }
             : {}),

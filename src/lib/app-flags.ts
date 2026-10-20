@@ -3,7 +3,11 @@
  * answers "has this person started a film?" for the home dashboard's goal chooser, without the
  * dashboard importing Play. An unanswered flag is false.
  */
-export type AppFlagName = 'home.showGoalChooser' | 'onboarding.firstFilmDone';
+export type AppFlagName =
+  | 'home.showGoalChooser'
+  | 'onboarding.firstFilmDone'
+  /** Every still renders on the picked engine — no hand-off (Play: "Pick the best engine per pose" off). */
+  | 'render.keepPickedEngine';
 
 const answers = new Map<AppFlagName, () => boolean>();
 
