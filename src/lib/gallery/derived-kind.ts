@@ -14,6 +14,7 @@ export const GALLERY_DERIVED_KIND_FILTERS = [
   'extend',
   'voice',
   'finish',
+  'realism',
   'moves',
   'dance',
   'lip-sync',
@@ -54,6 +55,8 @@ export function galleryDerivedKindLabel(
       return 'clip with an added soundtrack';
     case 'finish':
       return 'clip made sharper and smoother';
+    case 'realism':
+      return 'clip re-rendered to look more real';
     case 'moves':
       return 'moves copied from a video';
     case 'dance':
@@ -99,6 +102,8 @@ export function galleryDerivedKindChipLabel(kind: GalleryDerivedKindFilter): str
       return 'Voice';
     case 'finish':
       return 'Finished';
+    case 'realism':
+      return 'Realistic';
     case 'moves':
       return 'Moves';
     case 'dance':

@@ -1,7 +1,10 @@
 'use client';
 
+import type { ClipRealismStrength } from '../clip/realism';
+
 /**
- * Client calls for the finishing tools on a still or clip: Finish clip (/api/clip/finish),
+ * Client calls for the finishing tools on a still or clip: Finish clip (/api/clip/finish), Make
+ * more realistic (/api/clip/realism),
  * Copy moves (/api/clip/moves), Lip-sync (/api/clip/lip-sync) and Relight (/api/still/relight).
  * Each resolves to the new media's URL and rejects with the server's message.
  */
@@ -12,14 +15,29 @@ async function readUrl(response: Response, fallback: string): Promise<string> {
   return data.url;
 }
 
-export async function requestFinishClip(clipUrl: string): Promise<string> {
+/** `entryId`: the clip's Gallery entry, so the server can read its stored original. */
+export async function requestFinishClip(clipUrl: string, entryId?: string): Promise<string> {
   const response = await fetch('/api/clip/finish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ clipUrl }),
+    body: JSON.stringify({ clipUrl, entryId }),
   });
   return readUrl(response, 'Finish clip failed.');
+}
+
+/** Make more realistic (/api/clip/realism): a low-strength WAN 2.2 re-render of the clip. */
+export async function requestRealismClip(
+  clipUrl: string,
+  options: { strength?: ClipRealismStrength; entryId?: string } = {}
+): Promise<string> {
+  const response = await fetch('/api/clip/realism', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ clipUrl, ...options }),
+  });
+  return readUrl(response, 'Make more realistic failed.');
 }
 
 export async function requestRelight(stillUrl: string, look: string): Promise<string> {

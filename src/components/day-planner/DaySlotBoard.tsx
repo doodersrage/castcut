@@ -93,12 +93,13 @@ export type DaySlotBoardProps = {
   /** ⋯ → Fix an area…: paint over what's wrong in the finished still (fix-area.ts). */
   onFixArea?: (slot: DaySlot) => void;
   /**
-   * ⋯ → Sharpen & smooth, Copy moves…, Lip-sync…, Relight… (useDaySlotMediaTools). Each resolves
+   * ⋯ → Sharpen & smooth, Make more realistic, Copy moves…, Lip-sync…, Relight… (useDaySlotMediaTools). Each resolves
    * to an error message, or null when the slot has the result.
    */
   mediaTools?: {
     busy: { slotId: string; tool: DaySlotMediaTool } | null;
     finish: (slot: DaySlot) => Promise<string | null>;
+    realism: (slot: DaySlot) => Promise<string | null>;
     moves: (
       slot: DaySlot,
       video: Blob,
@@ -119,6 +120,7 @@ export type DaySlotBoardProps = {
 
 const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
   finish: 'Done — the clip is sharper and smoother.',
+  realism: 'Done — the clip looks more real (the original is in the Gallery).',
   moves: 'Done — the clip now has the copied moves.',
   dance: 'Done — the clip now dances to your song.',
   'lip-sync': 'Done — the clip now says your recording.',
@@ -456,6 +458,18 @@ export default function DaySlotBoard({
                   onClick={() => void runMedia(slot, 'finish', () => mediaTools.finish(slot))}
                 >
                   Sharpen &amp; smooth clip
+                </button>
+              ) : null}
+              {mediaTools && clipState === 'done' && doneClip ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || mediaTools.busy !== null}
+                  title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes. Sharpen & smooth it after."
+                  data-testid={`day-progress-realism-${slot.id}`}
+                  onClick={() => void runMedia(slot, 'realism', () => mediaTools.realism(slot))}
+                >
+                  Make more realistic
                 </button>
               ) : null}
               {canRequeue && onLooksWrong ? (

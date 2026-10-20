@@ -10,7 +10,7 @@ export async function GET() {
   return apiMethodNotAllowed(['POST'], '/api/clip/finish');
 }
 
-/** POST { clipUrl, comfyUrl? } → { url }: the clip sharpened (SeedVR2) and smoothed (RIFE). */
+/** POST { clipUrl, entryId?, comfyUrl? } → { url }: the clip sharpened (SeedVR2) and smoothed (RIFE). */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
   if (isAuthEnabled() && !user?.enabled) return apiError('Authentication required.', 401);
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
   try {
     const url = await finishClip({
       clipUrl,
+      entryId: typeof body.entryId === 'string' ? body.entryId.trim().slice(0, 200) : undefined,
       comfyUrl: typeof body.comfyUrl === 'string' ? body.comfyUrl.trim().slice(0, 300) : undefined,
       requestOrigin: new URL(request.url).origin,
       userId: user?.id ?? null,

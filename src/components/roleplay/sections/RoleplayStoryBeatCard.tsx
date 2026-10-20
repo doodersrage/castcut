@@ -429,6 +429,23 @@ export function RoleplayStoryBeatCard({
                 Sharpen &amp; smooth clip
               </button>
             ) : null}
+            {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+              <button
+                type="button"
+                className={SHOT_CARD_MENU_ITEM_CLASS}
+                disabled={busy || media.busy !== null}
+                title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes."
+                data-testid="story-beat-realism"
+                onClick={() =>
+                  runMedia(
+                    media.realism(beat),
+                    'Done — the clip looks more real (the original is in the Gallery).'
+                  )
+                }
+              >
+                Make more realistic
+              </button>
+            ) : null}
             {canTakeVoice ? (
               <button
                 type="button"

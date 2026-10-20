@@ -8,17 +8,19 @@ import {
   requestCopyMoves,
   requestDanceToMusic,
   requestFinishClip,
+  requestRealismClip,
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
 } from '@/lib/media/actions-client';
 
 export type DaySlotMediaTool =
-  'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch' | 'upscale';
+  'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch' | 'upscale';
 
 /** What each tool says while it works (the board shows it on the card's menu item). */
 export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
   finish: 'Sharpening…',
+  realism: 'Making it more realistic…',
   moves: 'Copying moves…',
   dance: 'Dancing…',
   'lip-sync': 'Lip-syncing…',
@@ -28,7 +30,8 @@ export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
 };
 
 /**
- * Day's finishing tools on a slot: Sharpen & smooth its clip (SeedVR2 + RIFE), Copy moves from a
+ * Day's finishing tools on a slot: Sharpen & smooth its clip (SeedVR2 + RIFE), Make it more
+ * realistic (a low-strength WAN 2.2 re-render), Copy moves from a
  * video onto its still (Wan Animate 2), Lip-sync its still to a recording (InfiniteTalk), and
  * Relight its still. The result is kept in the Gallery (a child of the original, which stays)
  * and replaces the slot's clip — or, for Relight, the picture the slot shows (finishedUrl).
@@ -74,7 +77,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const clipPatch = async (
     still: DaySlotStill,
     url: string,
-    kind: 'finish' | 'moves' | 'dance' | 'lip-sync',
+    kind: 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync',
     prompt: string
   ): Promise<Partial<DaySlotStill>> => {
     const kept = await keepClipInGallery({
@@ -99,6 +102,17 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
         if (!clipUrl) throw new Error('This slot has no finished clip.');
         const url = await requestFinishClip(clipUrl);
         return clipPatch(still, url, 'finish', `Sharpen & smooth · ${slot.label}`);
+      }),
+    [run]
+  );
+
+  const realismSlotClip = useCallback(
+    (slot: DaySlot) =>
+      run(slot, 'realism', async still => {
+        const clipUrl = still.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
+        if (!clipUrl) throw new Error('This slot has no finished clip.');
+        const url = await requestRealismClip(clipUrl);
+        return clipPatch(still, url, 'realism', `Make more realistic · ${slot.label}`);
       }),
     [run]
   );
@@ -214,6 +228,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   return {
     busy,
     finishSlotClip,
+    realismSlotClip,
     copyMovesToSlot,
     danceSlot,
     lipSyncSlot,

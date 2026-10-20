@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import ModalPortal from '@/components/ui/ModalPortal';
 import {
   GalleryEditSection,
+  GalleryClipSection,
   GalleryEnhanceSection,
   GalleryExportSection,
   GalleryLineageSection,
@@ -132,6 +133,7 @@ export default function GalleryCardMenu({
           >
             <GalleryQuickSection {...sectionProps} />
             <GalleryEnhanceSection {...sectionProps} />
+            <GalleryClipSection {...sectionProps} />
             <GalleryEditSection {...sectionProps} />
             <GalleryQueueSection {...sectionProps} />
             <GalleryExportSection {...sectionProps} />

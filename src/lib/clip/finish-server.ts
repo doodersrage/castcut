@@ -47,6 +47,7 @@ export class ClipAlreadyFinishedError extends Error {}
 
 export async function finishClip(input: {
   clipUrl: string;
+  entryId?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
@@ -57,6 +58,7 @@ export async function finishClip(input: {
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
   const fetched = await fetchFilmShotBytes({
     url: input.clipUrl,
+    entryId: input.entryId,
     requestOrigin: input.requestOrigin,
     userId: input.userId,
   });

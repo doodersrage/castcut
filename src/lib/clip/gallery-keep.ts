@@ -16,6 +16,7 @@ const CLIP_KEEP_NAME = {
   extend: 'extended',
   voice: 'voiced',
   finish: 'finished',
+  realism: 'realistic',
   moves: 'moves',
   dance: 'dance',
   'lip-sync': 'lipsync',
@@ -25,6 +26,7 @@ const CLIP_KEEP_TAG = {
   extend: '30s',
   voice: 'voice',
   finish: 'finished',
+  realism: 'realistic',
   moves: 'moves',
   dance: 'dance',
   'lip-sync': 'lip-sync',
@@ -32,11 +34,14 @@ const CLIP_KEEP_TAG = {
 
 export async function keepClipInGallery(input: {
   url: string;
-  kind: 'extend' | 'voice' | 'finish' | 'moves' | 'dance' | 'lip-sync';
+  kind: keyof typeof CLIP_KEEP_NAME;
   prompt: string;
-  tool: 'day' | 'roleplay';
+  /** The tool the new entry is filed under (Day, Story, or the source entry's own tool). */
+  tool: string;
   /** The clip it came from: its gallery entry is found by job id for the parent link and Cast. */
   sourcePromptId?: string;
+  /** …or by its gallery entry id (a clip finished from the Gallery itself). */
+  sourceEntryId?: string;
   fetchImpl?: typeof fetch;
 }): Promise<{ url: string; entryId?: string; promptId?: string }> {
   try {
@@ -52,9 +57,14 @@ export async function keepClipInGallery(input: {
     if (!persisted || persisted.skipped || !persisted.originalPath || !persisted.originalUrl) {
       return { url: input.url };
     }
-    const source: ComfyGalleryEntry | undefined = input.sourcePromptId
-      ? loadComfyGallery().find(entry => entry.promptId === input.sourcePromptId)
-      : undefined;
+    const source: ComfyGalleryEntry | undefined =
+      input.sourceEntryId || input.sourcePromptId
+        ? loadComfyGallery().find(entry =>
+            input.sourceEntryId
+              ? entry.id === input.sourceEntryId
+              : entry.promptId === input.sourcePromptId
+          )
+        : undefined;
     addComfyGalleryEntry({
       id,
       promptId: `${input.kind}-${id}`,

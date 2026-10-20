@@ -54,6 +54,8 @@ export type ComfyGalleryEntry = {
     | 'voice'
     /** Finish clip (clip-finish.ts): SeedVR2-sharpened, RIFE-smoothed. */
     | 'finish'
+    /** Make more realistic (clip/realism.ts): re-rendered at low strength on WAN 2.2 low-noise. */
+    | 'realism'
     /** Copy moves (motion-transfer.ts): the still's person doing a driving video's moves. */
     | 'moves'
     /** Dance to music (music-dance.ts): the still's person dancing to a song. */

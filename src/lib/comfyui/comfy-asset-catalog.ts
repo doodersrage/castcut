@@ -650,7 +650,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2.2-Lightning-low_noise_model.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors',
     bytes: 1226977424,
-    modelIds: ['wan-video-lightning-4', 'wan-video'],
+    modelIds: ['wan-video-lightning-4', 'wan-video', 'clip-realism'],
     notes:
       'Comfy-Org LightX2V 4-step low-noise LoRA, saved as the filename WAN Lightning scaffolds look up.',
   },
@@ -742,7 +742,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     bytes: 6735906897,
-    modelIds: ['wan-video', 'copy-moves', 'lip-sync', 'music-dance'],
+    modelIds: ['wan-video', 'copy-moves', 'lip-sync', 'music-dance', 'clip-realism'],
     notes:
       'Required for official WAN split graphs, Copy moves and Lip-sync. Rapid AIO already includes CLIP.',
   },
@@ -939,6 +939,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
   },
   // ── Finishing tools (Day ⋯ menu): Sharpen & smooth, Copy moves, Lip-sync, Relight ──
   {
+    id: 'wan-video-14b-low-fp8',
+    label: 'WAN 2.2 T2V 14B low-noise (fp8)',
+    kind: 'unet',
+    filename: 'wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors',
+    bytes: 14293923632,
+    modelIds: ['clip-realism'],
+    notes:
+      'Make more realistic: a low-strength re-render of a finished clip. Also needs the WAN 2.2 Lightning 4-step T2V low-noise LoRA, the UMT5 text encoder and the WAN 2.1 VAE.',
+  },
+  {
     id: 'seedvr2-3b-int8',
     label: 'SeedVR2 3B video restore / upscale (int8)',
     kind: 'unet',
@@ -996,7 +1007,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2_1_VAE_bf16.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/vae/Wan2_1_VAE_bf16.safetensors',
     bytes: 253806278,
-    modelIds: ['copy-moves', 'lip-sync', 'music-dance'],
+    modelIds: ['copy-moves', 'lip-sync', 'music-dance', 'clip-realism'],
     notes: 'VAE for Copy moves and Lip-sync.',
   },
   {

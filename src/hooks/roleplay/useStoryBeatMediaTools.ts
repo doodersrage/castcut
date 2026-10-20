@@ -7,6 +7,7 @@ import {
   requestCopyMoves,
   requestDanceToMusic,
   requestFinishClip,
+  requestRealismClip,
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
@@ -16,11 +17,13 @@ import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/role
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
 import { loadSettingsCache } from '@/lib/settings/cache';
 
-export type StoryMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';
+export type StoryMediaTool =
+  'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';
 
 export type StoryBeatMediaTools = {
   busy: { key: string; tool: StoryMediaTool } | null;
   finish: (beat: RoleplayStoryBeat) => Promise<string | null>;
+  realism: (beat: RoleplayStoryBeat) => Promise<string | null>;
   moves: (
     beat: RoleplayStoryBeat,
     video: Blob,
@@ -90,7 +93,7 @@ export function useStoryBeatMediaTools({
     async (
       latest: RoleplayStoryBeat,
       url: string,
-      kind: 'finish' | 'moves' | 'dance' | 'lip-sync',
+      kind: 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync',
       label: string
     ): Promise<Partial<RoleplayStoryBeat>> => {
       const kept = await keepClipInGallery({
@@ -119,6 +122,21 @@ export function useStoryBeatMediaTools({
         const clipUrl = latest.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
         if (!clipUrl) throw new Error('This scene has no finished clip.');
         return keptClip(latest, await requestFinishClip(clipUrl), 'finish', 'Sharpen & smooth');
+      }),
+    [keptClip, run]
+  );
+
+  const realism = useCallback(
+    (beat: RoleplayStoryBeat) =>
+      run(beat, 'realism', async latest => {
+        const clipUrl = latest.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
+        if (!clipUrl) throw new Error('This scene has no finished clip.');
+        return keptClip(
+          latest,
+          await requestRealismClip(clipUrl),
+          'realism',
+          'Make more realistic'
+        );
       }),
     [keptClip, run]
   );
@@ -244,5 +262,5 @@ export function useStoryBeatMediaTools({
     [run]
   );
 
-  return { busy, finish, moves, dance, lipSync, relight, upscale, applySketch };
+  return { busy, finish, realism, moves, dance, lipSync, relight, upscale, applySketch };
 }

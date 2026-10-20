@@ -1051,6 +1051,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             mediaTools={{
               busy: slotMedia.busy,
               finish: slotMedia.finishSlotClip,
+              realism: slotMedia.realismSlotClip,
               moves: slotMedia.copyMovesToSlot,
               dance: slotMedia.danceSlot,
               lipSync: slotMedia.lipSyncSlot,
