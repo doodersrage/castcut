@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.4] - 2026-10-20
+
+- Fix check:core: the shared runtime read Day's settings (tools.day), which the core package doesn't have. Play now answers a 'render.keepPickedEngine' app flag ("Pick the best engine per pose" off); unanswered (the classic app) keeps the old hand-offs.
+- "Pick the best engine per pose" now governs every engine hand-off. Off (the player's setting), Qwen-Image 2.1 still sent nude sex-pose duos to Rapid AIO NSFW twice over: Day's routing (penetrationEngine) and the 2.1 converter keeping penetration duos / face-down nude solos on Rapid's model. Off now: resolveDayStillModel handOffs:false keeps the picked engine (2.1 sex poses, 2511 adult nude), and the runtime sets qwenImage21KeepEngine so the converter renders every still on 2.1 (Story too, which shares the converter). On: the hand-offs run as before. Switch tooltip says so.
+- Qwen-Image 2.1 LoRAs in Docker. Without COMFYUI_ROOT the scan only has ComfyUI's /view_metadata, and every 2.1 trainer tag (qwen_image_2, qwen_image_21, Qwen-Image-2.1/lora) read as the 20B Qwen family, so the picker still said "No LoRAs look compatible" and offered nothing. Metadata now splits 2.x from 20B (qwen_image / Qwen-Image/lora / qwen_image_edit / 2509-2512 stay qwen); label-less files named qwen21_ / qwen-image-2.1 count as 2.1. Checked on the player's 87 LoRAs with no models folder: all 13 2.1 files read as 2.1, no 20B file does, same 10 offered.
+
 ## [v2.12.3] - 2026-10-19
 
 - LoRA picker: offer ComfyUI files made for the engine that aren't in the library. Qwen-Image 2.1 Turbo showed "No LoRAs look compatible" because the player's 13 downloaded 2.1 files were never added to the library. When the list is empty, the picker scans ComfyUI files missing from the library and offers "Add all N" for the engine's family (added off; Lightning/Turbo/Fun-Acc/N-step speed LoRAs left out). Also: entries tagged Qwen from metadata alone are rescanned (2.1 LoRAs whose trainer said qwen-image), and unscanned qwen21_/qwen-image-2.1 names match 2.1 engines only.
