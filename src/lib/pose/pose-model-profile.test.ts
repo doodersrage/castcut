@@ -101,6 +101,15 @@ describe('Day adult hand-off', () => {
       resolveDayStillModel(picked, { adultNude: true, penetrationDuo: true, installed }),
       'qwen-rapid-aio-edit-nsfw'
     );
+    // "Pick the best engine per pose" off: no hand-off, on 2.1 or Edit 2511.
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: true, penetrationDuo: true, installed, handOffs: false }),
+      picked
+    );
+    assert.equal(
+      resolveDayStillModel('qwen-image-edit-2511', { adultNude: true, installed, handOffs: false }),
+      'qwen-image-edit-2511'
+    );
     // Oral / solo, a clothed still, or Rapid NSFW missing: stays on 2.1.
     assert.equal(resolveDayStillModel(picked, { adultNude: true, installed }), picked);
     assert.equal(

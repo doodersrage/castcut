@@ -994,9 +994,13 @@ export function useDayPlannerToolOrchestrationCore() {
           });
           return headcount >= 2 && isPenetrationLayout(layout);
         })();
+      // The hand-offs below (2511 adult nude, 2.1 sex-pose duos and clothed duos → Rapid) only run
+      // with "Pick the best engine per pose" on; off, every still renders on the picked engine.
+      const handOffs = toolSettings.bestEnginePerPose === true;
       const routedStillModel = resolveDayStillModel(shared.model, {
         adultNude: adultNudeStill,
         penetrationDuo,
+        handOffs,
         // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
         clothedDuo:
           !adultNudeStill &&

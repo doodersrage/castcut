@@ -823,6 +823,8 @@ export function convertQwenEditWorkflowToImage21(
     userLoras?: ReadonlyArray<{ name: string; strength: number }>;
     /** Queue quality: Best renders a solo lying still on the full pass (see above). */
     qualityProfile?: string | null;
+    /** Convert every still, none kept on Rapid's model ("Pick the best engine per pose" off). */
+    keepEngine?: boolean;
   } = {}
 ): { workflow: Record<string, unknown>; converted: boolean } {
   const workflow = structuredClone(input) as Workflow;
@@ -831,7 +833,9 @@ export function convertQwenEditWorkflowToImage21(
   const sampler = workflow[samplerId];
   const encoderId = findEncoder(workflow, sampler.inputs.positive)!;
   const encoder = workflow[encoderId];
-  if (keepsOnEngineModel(workflow, encoder)) return { workflow: input, converted: false };
+  if (!options.keepEngine && keepsOnEngineModel(workflow, encoder)) {
+    return { workflow: input, converted: false };
+  }
 
   const latentRef = sampler.inputs.latent_image;
   const latentNode = isRef(latentRef) ? workflow[latentRef[0]] : undefined;

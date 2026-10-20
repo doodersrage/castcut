@@ -515,6 +515,10 @@ export function resolveRuntimeForQueue(
     ...(poseModelFamily(model) === 'qwen-image-2.1'
       ? {
           qwenRenderer: 'qwen-image-2.1' as const,
+          // "Pick the best engine per pose" off: no still leaves the picked engine.
+          ...(loadSettingsCache().tools.day?.bestEnginePerPose === true
+            ? {}
+            : { qwenImage21KeepEngine: true as const }),
           ...(qwenImage21FastSampler(model) === 'fun-acc-4'
             ? { qwenImage21FourStep: true as const }
             : {}),

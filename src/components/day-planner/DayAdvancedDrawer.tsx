@@ -314,7 +314,7 @@ export default function DayAdvancedDrawer({
             checked={bestEnginePerPose}
             disabled={busy}
             data-testid="day-best-engine-per-pose"
-            title="One-person stills whose pose your engine keeps missing on the pose report card (right at most half the time) render on another installed engine that got it right every time — that still only. The card says when it happens."
+            title="One-person stills whose pose your engine keeps missing on the pose report card (right at most half the time) render on another installed engine that got it right every time — that still only. The card says when it happens. Also sends the stills your engine draws badly to Rapid AIO NSFW: sex-pose duos on Qwen-Image 2.1, nude stills on Edit 2511. Off: every still renders on your engine."
             onChange={onBestEnginePerPoseChange}
           >
             Pick the best engine per pose

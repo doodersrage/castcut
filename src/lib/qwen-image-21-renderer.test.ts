@@ -256,6 +256,8 @@ describe('Qwen-Image 2.1: penetration duos stay on the engine model', () => {
     const result = convertQwenEditWorkflowToImage21(graph);
     assert.equal(result.converted, false);
     assert.equal(result.workflow, graph);
+    // "Pick the best engine per pose" off: the picked engine (2.1) renders it.
+    assert.equal(convertQwenEditWorkflowToImage21(graph, { keepEngine: true }).converted, true);
   });
 });
 

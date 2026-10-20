@@ -333,6 +333,11 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21EightStep?: boolean | 'turbo';
   /** Turbo from its own int8 checkpoint (installed) instead of the 2.1 base + Turbo LoRA. */
   qwenImage21TurboCheckpoint?: boolean;
+  /**
+   * Render on 2.1 even where the converter would keep the still on Rapid's model (sex-pose duos,
+   * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
+   */
+  qwenImage21KeepEngine?: boolean;
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
   videoRenderer?: 'ltx-2.5' | 'minimax-h3';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
@@ -1429,6 +1434,7 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
     qwenImage21TurboCheckpoint?: boolean;
+    qwenImage21KeepEngine?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
     kleinEnhancerIdentityPreset?: import('./klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
@@ -1899,6 +1905,7 @@ export function injectPromptsWithFallbacks(
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
+      keepEngine: options.qwenImage21KeepEngine === true,
       qualityProfile: options.qualityProfile ?? null,
       userLoras: qwenImage21UserLoras(options.loraLibrary),
       ...(width > 0 && height > 0 ? { fallbackSize: { width, height } } : {}),
@@ -2150,6 +2157,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21TurboCheckpoint === true) {
     result.qwenImage21TurboCheckpoint = true;
+  }
+  if (runtime.qwenImage21KeepEngine === true) {
+    result.qwenImage21KeepEngine = true;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;
