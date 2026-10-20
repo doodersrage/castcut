@@ -4,7 +4,7 @@ import { releaseInterruptedStoryWrites } from '@/hooks/roleplay/story-beat-edit'
 import { storyPoseForcePeople } from '@/lib/story-scene-people';
 
 import { composedPoseForScene } from '@/lib/pose-compose';
-import { queuedDayStillPrompt } from '@/lib/day-still-prompt';
+import { queuedDayStillPrompt } from '@/lib/day/still-prompt';
 import {
   repairStillPrompt,
   stillPromptCheckRecord,
@@ -26,7 +26,7 @@ import {
   storyDressPlateApplies,
   storyDressPlatePrompt,
   stripOutfitLeadLines,
-} from '@/lib/day-dress-plate';
+} from '@/lib/day/dress-plate';
 import { setDressPlateActivity } from '@/lib/dress-plate-status';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { checkStillReferences } from '@/lib/reference-check-client';
@@ -79,14 +79,14 @@ import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
 } from '@/lib/wardrobe-garment-thumbs';
-import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day-pose-guide';
+import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day/pose-guide';
 import { customPoseFirstLine, customPoseWords } from '@/lib/pose-describe';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
 } from '@/lib/klein-face-reference';
-import { mergePickedPose, storyPoseSceneText } from '@/lib/day-slot-pose';
+import { mergePickedPose, storyPoseSceneText } from '@/lib/day/slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play-metrics';
 import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
 import {
@@ -566,7 +566,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         return null;
       }
       try {
-        const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
+        const { ensureDayDressPlate } = await import('@/lib/day/dress-plate-client');
         const { entry } = await ensureDayDressPlate(
           {
             model: shared.model,

@@ -19,7 +19,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
-import { synthesizeStickSkeleton } from '../src/lib/day-pose-guide';
+import { synthesizeStickSkeleton } from '../src/lib/day/pose-guide';
 import { compositeThroughMask, repairSubjectMask, type MaskRgb } from '../src/lib/isolate-mask';
 import { stickToOpenPoseKeypoints } from '../src/lib/pose-guide-openpose';
 import type { NormalizedBody } from '../src/lib/pose-library';

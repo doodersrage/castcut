@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayPoseAsPhotoPose, soloDayPoseGroups } from './day-pose-presets';
+import { dayPoseAsPhotoPose, soloDayPoseGroups } from './day/pose-presets';
 import { bendBody, liftBodyDepth, rotateBody } from './pose-joint-edit';
 import {
   addPerson,

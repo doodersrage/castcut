@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { DANCE_MOVE_LIMBS, DANCE_MOVE_WORDS, danceMoveFor, type DanceMove } from './dance-move';
-import { DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS, DAY_LATE_SLOT_BEAT_PRESETS } from './day-planner';
+import { DAY_LATE_SLOT_SUGGESTIVE_BEAT_PRESETS, DAY_LATE_SLOT_BEAT_PRESETS } from './day/planner';
 
 describe('dance moves', () => {
   it('keep a move the beat names', () => {

@@ -1,8 +1,8 @@
 'use client';
 
 import type { CharacterRecord } from '@/lib/character-os';
-import { resolveDayCastPlate } from '@/lib/day-plate';
-import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
+import { resolveDayCastPlate } from '@/lib/day/plate';
+import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day/nude-face-crop';
 import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
 import { cropCastFaceFromBlob } from '@/lib/cast-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';

@@ -18,7 +18,7 @@ describe('a pose map that contradicts the scene words cannot judge the still', (
 
 describe('Day camera variety', () => {
   it('rotates eye level, low, high, wide by slot for clothed solo stills on Edit 2511 only', async () => {
-    const { dayStillCamera } = await import('./day-still-prompt');
+    const { dayStillCamera } = await import('./day/still-prompt');
     const base = { model: 'qwen-image-edit-2511-lightning-8', dayMood: 'everyday', adult: false, people: 1 };
     assert.deepEqual(
       ['morning', 'morning-2', 'afternoon', 'afternoon-2'].map(slotId => dayStillCamera({ ...base, slotId })),

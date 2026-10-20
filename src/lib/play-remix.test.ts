@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayPartOf, DEFAULT_DAY_SLOTS, type DaySlot } from './day-planner';
+import { dayPartOf, DEFAULT_DAY_SLOTS, type DaySlot } from './day/planner';
 import {
   applyDayTheme,
   clearDaySlotOutfits,

@@ -5,9 +5,9 @@ import {
   normalizePhotoPose,
   resolveSceneGuidePlan,
   synthesizeSceneStickFigures,
-} from './day-pose-guide';
-import { normalizeDaySlots } from './day-planner';
-import { planDaySlotPose } from './day-slot-pose';
+} from './day/pose-guide';
+import { normalizeDaySlots } from './day/planner';
+import { planDaySlotPose } from './day/slot-pose';
 import { poseLookLine } from './pose-coaching';
 import { moveJoint } from './pose-joint-edit';
 import {

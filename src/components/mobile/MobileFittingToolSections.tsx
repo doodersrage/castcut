@@ -14,7 +14,7 @@ import { cacheBustIdentityMediaUrl, IDENTITY_MEDIA_URL } from '@/lib/gallery-med
 import { fittingNotesCachePatch } from '@/lib/look-pack';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 import { fittingSessionStatusLine } from '@/lib/fitting-room';

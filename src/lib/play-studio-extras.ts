@@ -19,7 +19,7 @@ import {
 } from './play-campaign';
 import { loadPlayMetrics, savePlayMetrics, type PlayMetrics } from './play-metrics';
 import { loadMyPosePacks, replaceMyPosePacks } from './my-pose-packs';
-import type { PosePack } from './day-pose-packs';
+import type { PosePack } from './day/pose-packs';
 
 export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
   collect: () => ({

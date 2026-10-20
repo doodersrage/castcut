@@ -26,7 +26,7 @@ import {
   canReuseStagedLookPack,
   readPortableLookPackFromHash,
 } from './look-pack';
-import { DEFAULT_DAY_SLOTS } from './day-planner';
+import { DEFAULT_DAY_SLOTS } from './day/planner';
 
 describe('look-pack', () => {
   it('canReuseStagedLookPack requires matching Cast ids', () => {

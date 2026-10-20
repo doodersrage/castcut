@@ -24,8 +24,8 @@ import {
   normalizeDayIntimateMix,
   normalizeDayMood,
   upsertDaySlotStill,
-} from '@/lib/day-planner';
-import { dayTwoTakesPending } from '@/lib/day-two-takes';
+} from '@/lib/day/planner';
+import { dayTwoTakesPending } from '@/lib/day/two-takes';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';

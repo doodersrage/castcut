@@ -7,8 +7,8 @@ import { SelectInput, SwitchButton, TextInput } from '@/components/ui/Field';
 import { usePoseOutcomeStats } from '@/hooks/usePoseOutcomeStats';
 import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
-import { isDayAdultMood, type DaySlot } from '@/lib/day-planner';
-import { dayPoseAsPhotoPose } from '@/lib/day-pose-presets';
+import { isDayAdultMood, type DaySlot } from '@/lib/day/planner';
+import { dayPoseAsPhotoPose } from '@/lib/day/pose-presets';
 import {
   activePosePack,
   applyPosePackToSlots,
@@ -17,8 +17,8 @@ import {
   POSE_PACK_NAME_MAX,
   slotHasPosePick,
   type PosePack,
-} from '@/lib/day-pose-packs';
-import { planDaySlotPose } from '@/lib/day-slot-pose';
+} from '@/lib/day/pose-packs';
+import { planDaySlotPose } from '@/lib/day/slot-pose';
 import {
   loadMyPosePacks,
   removeMyPosePack,

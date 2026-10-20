@@ -1,19 +1,19 @@
 'use client';
 
-import { activeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
-import { isDayHardPose } from '@/lib/day-best-of-two';
-import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
+import { isDayHardPose } from '@/lib/day/best-of-two';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
   notePoseRedoTake,
   poseRedoDecision,
   poseRedoMark,
   poseRedoTakeId,
   type PoseRedoLedger,
-} from '@/lib/day-pose-redo';
+} from '@/lib/day/pose-redo';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import {
   buildPoseMissView,

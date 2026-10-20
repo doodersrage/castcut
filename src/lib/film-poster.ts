@@ -7,7 +7,7 @@
 import { normalizeFilmTitleCard, type FilmTitleCard } from './video-polish';
 import { addComfyGalleryEntry } from './comfyui-gallery';
 import { loadComfyUiSettings } from './comfyui-settings';
-import type { DaySlot, DaySlotId, DaySlotStill } from './day-planner';
+import type { DaySlot, DaySlotId, DaySlotStill } from './day/planner';
 import {
   FILM_PRESET_SIZE,
   normalizeFilmResolution,

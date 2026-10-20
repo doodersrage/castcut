@@ -24,7 +24,7 @@
  * floor" is dropped when the scene names something else to sit or lie on.
  */
 
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
 import {
   headTurnSide,

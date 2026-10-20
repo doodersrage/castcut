@@ -5,8 +5,8 @@ import {
   photoPoseGuideLabel,
   resolveSceneGuidePlan,
   type PhotoPose,
-} from './day-pose-guide';
-import { planDaySlotPose } from './day-slot-pose';
+} from './day/pose-guide';
+import { planDaySlotPose } from './day/slot-pose';
 import { normalizeMyPose } from './my-poses';
 import { isMultiPersonPoseGuide, isPlayerPoseGuide } from './qwen-image-21-renderer';
 import {

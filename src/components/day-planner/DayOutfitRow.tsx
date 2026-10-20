@@ -10,7 +10,7 @@ import {
   clothingSummaryThumbs,
   type ClothingSummaryThumb,
 } from '@/lib/clothing-summary';
-import type { DaySlot, DaySlotId } from '@/lib/day-planner';
+import type { DaySlot, DaySlotId } from '@/lib/day/planner';
 import { realKitId } from '@/lib/outfit-handoff';
 import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
 

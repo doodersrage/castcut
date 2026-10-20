@@ -9,7 +9,7 @@ import {
   type CastPlatePrepareOptions,
   type prepareCastPlate,
 } from '@/lib/cast-plate-prepare';
-import type { DayPartnerNoun } from '@/lib/day-partner';
+import type { DayPartnerNoun } from '@/lib/day/partner';
 import { loadSettingsCache } from '@/lib/settings-cache';
 
 type SendComfyUi = Parameters<typeof prepareCastPlate>[0]['sendComfyUi'];

@@ -5,7 +5,7 @@
  * in a Solo story, sexual words on a clean one. Here a card is fixed where the fix is certain
  * (the lead's pronoun) and flagged where it is not, so the writer can be asked again.
  */
-import { countPoseGuidePeople } from './day-pose-guide';
+import { countPoseGuidePeople } from './day/pose-guide';
 
 export type StorySceneIssueCode = 'lead-they' | 'solo-names-partner' | 'sexual-on-clean';
 

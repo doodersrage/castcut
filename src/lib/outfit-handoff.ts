@@ -5,7 +5,7 @@
  * crossed, through shared.lockedWardrobeId). Outfit now writes its picks into both whenever they
  * change; a later choice made in Day or Story stands until Outfit changes again.
  */
-import type { DaySlot } from './day-planner';
+import type { DaySlot } from './day/planner';
 
 /** Not a kit: what a try-on from a clothing photo records as its wardrobe id. */
 export const CUSTOM_GARMENT_WARDROBE_ID = 'custom-garment';
@@ -202,7 +202,7 @@ export async function handOffOutfitPicks(
     import('./settings-cache'),
     import('./play-settings'),
     import('./character-os'),
-    import('./day-outfit-scope'),
+    import('./day/outfit-scope'),
   ]);
   if (options.day !== false) {
     const shared = loadSettingsCache().shared;

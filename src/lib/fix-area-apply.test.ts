@@ -7,7 +7,7 @@ import {
   normalizeDaySlotStills,
   restorePreviousDayTake,
   type DaySlotStill,
-} from './day-planner';
+} from './day/planner';
 import {
   fixAreaGalleryEntryInput,
   findGalleryEntryForStill,

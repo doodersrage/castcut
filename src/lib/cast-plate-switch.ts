@@ -4,7 +4,7 @@
  * because the Cast picker in the app shell uses it.
  */
 
-import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
+import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import {
   activateLook,
   activeLook,

@@ -1,0 +1,3419 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { parsePoseGuideIntent } from './pose-guide';
+import { DAY_SLOT_SPORT_BEAT_PRESETS } from './sport';
+import {
+  DAY_SLOT_VACATION_BEAT_PRESETS,
+  dayVacationDuoBeatPresetsForSlot,
+  dayVacationSettingForBeat,
+} from './vacation';
+import { resolveSoloMasturbationPoseKind } from '@/lib/day/pose-guide';
+import {
+  dayEverydayPoseClass,
+  buildDayProgressLightboxState,
+  buildDayAdultBeatPoseLock,
+  buildDaySlotMotionSubject,
+  buildDaySlotPrompt,
+  dayEverydayFaceBreakStanceLead,
+  renumberDayPoseGuideAsImage2,
+  buildDaySuggestiveKeepPoseUnlock,
+  buildDaySuggestivePoseLock,
+  dayBeatOmitsGarmentPackshot,
+  dayBeatUsesSoloSexToy,
+  daySlotMatchesAdultMix,
+  DAY_SLOT_BEAT_PRESETS,
+  DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
+  DAY_PLATE_IDENTITY_LOCK_CAP,
+  DAY_VACATION_POSE_IDENTITY_LOCK_CAP,
+  dayEverydayPoseNeedsBodyUnlock,
+  DAY_SLOT_COMPANION_BEAT_PRESETS,
+  DAY_SLOT_POSE_PRESETS,
+  DAY_SLOT_HEAT_SETTING_PRESETS,
+  DAY_SLOT_INTIMATE_BEAT_PRESETS,
+  DAY_SLOT_RAUNCHY_BEAT_PRESETS,
+  DAY_SLOT_SUGGESTIVE_BEAT_PRESETS,
+  DAY_SLOT_SETTING_PRESETS,
+  dayQueueBlockReason,
+  daySessionStatusLine,
+  daySlotBoardCaption,
+  daySlotClipProgressState,
+  daySlotPlanLabel,
+  daySlotProgressState,
+  dayStillsBelongToCharacter,
+  dayStillsCachePatch,
+  dayWatchPlaylist,
+  DAY_ANGLE_HOLD_SEC,
+  diversifyDaySlotScenes,
+  DEFAULT_DAY_SLOTS,
+  dayMoodReplacesKeepOutfit,
+  ensureDaySlotsMatchMood,
+  intimateBeatsForMix,
+  isDayAdultMood,
+  isDayHeatMood,
+  isDayIntimateSoloBeat,
+  resolveDayAdultIndoorSetting,
+  sanitizeDayAdultIndoorSetting,
+  isDayRaunchySoloBeat,
+  mergeDaySlotStills,
+  nextDaySlotToEdit,
+  normalizeDayIntimateMix,
+  normalizeDayMood,
+  normalizeDaySlots,
+  promoteDayStillsToSoftPassChildren,
+  resolveDayPoseHeadcount,
+  raunchyBeatsForMix,
+  rerollDaySlotScene,
+  resolveDaySlotPoseBaseline,
+  seedDaySlotsFromKeeperWardrobes,
+  seedDaySlotsWardrobe,
+  upsertDaySlotStill,
+  dayPartOf,
+} from './planner';
+
+describe('day-planner', () => {
+  it('nextDaySlotToEdit advances past completed slots', () => {
+    const stills = [
+      { slotId: 'morning' as const, status: 'completed' as const, imageUrl: '/a.webp' },
+      { slotId: 'afternoon' as const, status: 'queued' as const },
+    ];
+    assert.equal(nextDaySlotToEdit(DEFAULT_DAY_SLOTS, stills, 'morning'), 'afternoon');
+    assert.equal(
+      nextDaySlotToEdit(
+        DEFAULT_DAY_SLOTS,
+        [
+          { slotId: 'morning', status: 'completed', imageUrl: '/a.webp' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: '/b.webp' },
+          { slotId: 'evening', status: 'completed', imageUrl: '/c.webp' },
+          { slotId: 'night', status: 'completed', imageUrl: '/d.webp' },
+        ],
+        'evening'
+      ),
+      null
+    );
+    assert.equal(daySlotProgressState({ slotId: 'morning', status: 'running' }), 'queued');
+  });
+
+  it('buildDayProgressLightboxState opens completed stills in slot order', () => {
+    const state = buildDayProgressLightboxState(
+      DEFAULT_DAY_SLOTS,
+      [
+        { slotId: 'morning', status: 'completed', imageUrl: '/morning.webp' },
+        { slotId: 'evening', status: 'completed', imageUrl: ' /evening.webp ' },
+        { slotId: 'afternoon', status: 'queued', imageUrl: '/skip.webp' },
+      ],
+      'evening'
+    );
+    assert.ok(state);
+    assert.deepEqual(state!.images, ['/morning.webp', '/evening.webp']);
+    assert.deepEqual(state!.titles, ['Morning', 'Evening']);
+    assert.deepEqual(state!.slotIds, ['morning', 'evening']);
+    assert.equal(state!.index, 1);
+    assert.equal(state!.title, 'Evening');
+    assert.equal(buildDayProgressLightboxState(DEFAULT_DAY_SLOTS, [], 'morning'), null);
+  });
+
+  it('dayStillsBelongToCharacter matches Cast ownership', () => {
+    assert.equal(dayStillsBelongToCharacter('char-a', 'char-a'), true);
+    assert.equal(dayStillsBelongToCharacter('char-a', 'char-b'), false);
+    assert.equal(dayStillsBelongToCharacter(undefined, 'char-a'), false);
+    assert.equal(dayStillsBelongToCharacter('', ''), true);
+  });
+
+  it('dayStillsCachePatch stamps ownership and clears it when empty', () => {
+    assert.deepEqual(dayStillsCachePatch([], 'char-a'), {
+      stills: [],
+      stillsCharacterId: undefined,
+    });
+    const stills = [{ slotId: 'morning' as const, status: 'queued' as const }];
+    assert.deepEqual(dayStillsCachePatch(stills, ' char-a '), {
+      stills,
+      stillsCharacterId: 'char-a',
+    });
+  });
+
+  it('normalizeDaySlots always returns four slots', () => {
+    const slots = normalizeDaySlots([{ id: 'morning', label: 'Morning', sceneHints: 'coffee run' }]);
+    assert.equal(slots.length, 4);
+    assert.equal(slots[0]?.sceneHints, 'coffee run');
+    assert.equal(slots[1]?.id, 'afternoon');
+  });
+
+  it('diversifyDaySlotScenes fills blank settings with distinct daypart presets', () => {
+    let cursor = 0;
+    const sequence = [0.1, 0.3, 0.5, 0.7, 0.2, 0.4, 0.6, 0.8];
+    const { slots, changed } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      random: () => sequence[cursor++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    const locations = slots.map(slot => slot.location?.trim() || '');
+    assert.ok(locations.every(Boolean));
+    assert.equal(new Set(locations).size, 4);
+    for (const slot of slots) {
+      assert.ok(DAY_SLOT_SETTING_PRESETS[dayPartOf(slot.id)].includes(slot.location!));
+      assert.ok(DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints!));
+    }
+  });
+
+  it('diversifyDaySlotScenes keeps filled settings unless forced', () => {
+    const seeded = DEFAULT_DAY_SLOTS.map((slot, index) => ({
+      ...slot,
+      location: `custom ${index}`,
+      sceneHints: `beat ${index}`,
+    }));
+    const kept = diversifyDaySlotScenes(seeded);
+    assert.equal(kept.changed, false);
+    assert.equal(kept.slots[0]?.location, 'custom 0');
+
+    const forced = diversifyDaySlotScenes(seeded, {
+      forceLocations: true,
+      forceBeats: true,
+      random: () => 0,
+    });
+    assert.equal(forced.changed, true);
+    assert.notEqual(forced.slots[0]?.location, 'custom 0');
+    assert.ok(DAY_SLOT_SETTING_PRESETS.morning.includes(forced.slots[0]!.location!));
+  });
+
+  it('daySlotBoardCaption surfaces clip progress on completed stills', () => {
+    assert.equal(daySlotClipProgressState({ slotId: 'morning', status: 'completed' }), 'idle');
+    assert.equal(
+      daySlotBoardCaption({
+        slotId: 'morning',
+        status: 'completed',
+        clipStatus: 'queued',
+      }),
+      'Animating…'
+    );
+    assert.equal(
+      daySlotBoardCaption({
+        slotId: 'morning',
+        status: 'completed',
+        clipStatus: 'completed',
+        clipUrl: '/clip.mp4',
+      }),
+      'Clip ready'
+    );
+  });
+
+  it('normalizeDaySlots keeps spaces in Setting and Beat while typing', () => {
+    const slots = normalizeDaySlots([
+      {
+        id: 'morning',
+        label: 'Morning',
+        location: 'sunny kitchen ',
+        sceneHints: 'quiet breakfast ',
+      },
+    ]);
+    assert.equal(slots[0]?.location, 'sunny kitchen ');
+    assert.equal(slots[0]?.sceneHints, 'quiet breakfast ');
+  });
+
+  it('upsertDaySlotStill clears imageUrl when re-queued', () => {
+    const queued = upsertDaySlotStill(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'old',
+          status: 'completed',
+          imageUrl: 'https://example.com/old.jpg',
+        },
+      ],
+      {
+        slotId: 'morning',
+        promptId: 'new',
+        status: 'queued',
+        imageUrl: undefined,
+      }
+    );
+    assert.equal(queued[0]?.promptId, 'new');
+    assert.equal(queued[0]?.imageUrl, undefined);
+    assert.equal(queued[0]?.status, 'queued');
+  });
+
+  it('upsertDaySlotStill clears prior clips when still is re-queued', () => {
+    const queued = upsertDaySlotStill(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'old',
+          status: 'completed',
+          imageUrl: 'https://example.com/old.jpg',
+          clipPromptId: 'clip-old',
+          clipStatus: 'completed',
+          clipUrl: 'https://example.com/old.mp4',
+        },
+      ],
+      {
+        slotId: 'morning',
+        promptId: 'new',
+        status: 'queued',
+        imageUrl: undefined,
+        clipPromptId: undefined,
+        clipUrl: undefined,
+        clipStatus: undefined,
+      }
+    );
+    assert.equal(queued[0]?.promptId, 'new');
+    assert.equal(queued[0]?.clipPromptId, undefined);
+    assert.equal(queued[0]?.clipUrl, undefined);
+    assert.equal(queued[0]?.clipStatus, undefined);
+  });
+
+  it('buildDaySlotPrompt includes slot label and beat', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, sceneHints: 'quiet breakfast', location: 'sunny kitchen' },
+      wardrobeLabel: 'linen set',
+      characterName: 'Rin',
+      notes: 'cozy autumn',
+    });
+    assert.match(prompt, /morning/i);
+    // The Cast's name is never in an image brief (an unusual one was painted as text).
+    assert.doesNotMatch(prompt, /Rin/);
+    assert.match(prompt, /linen set/);
+    assert.match(prompt, /quiet breakfast/);
+    assert.match(prompt, /cozy autumn/);
+    assert.doesNotMatch(prompt, /Edit instruction/i);
+  });
+
+  it('buildDaySlotPrompt with keeper plate keeps outfit and restages the scene', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, sceneHints: 'coffee on the porch', location: 'front porch' },
+      wardrobeLabel: 'navy trench',
+      characterName: 'Rin',
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    assert.match(prompt, /worn outfit/i);
+    assert.match(prompt, /Outfit Keep try-on/i);
+    assert.match(prompt, /aggressively refactor/i);
+    assert.match(prompt, /navy trench/);
+    // The beat leads; the generic baseline is only the fallback for a vague beat.
+    assert.match(prompt, /POSE FIRST:.*Beat \(SETTING is backdrop\/lighting only/i);
+    assert.match(prompt, /Body-stance baseline only if the beat is vague/i);
+    assert.match(prompt, /SETTING \(mandatory/i);
+    assert.match(prompt, /front porch/i);
+    assert.match(prompt, /coffee on the porch/i);
+    assert.match(prompt, /camera:/i);
+    assert.match(prompt, /same face, (?:same kept outfit, )?different pose/i);
+  });
+
+  it('buildDaySlotPrompt with keeper plate invents a default pose when beat is empty', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      wardrobeLabel: 'navy trench',
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    assert.match(prompt, /mandatory new body pose:/i);
+    assert.match(prompt, /camera:/i);
+    assert.match(prompt, /keep the clothing/i);
+  });
+
+  it('buildDaySlotPrompt with cast plate swaps wardrobe into a new scene', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, location: 'city park' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'cast',
+    });
+    assert.match(prompt, /facial identity and likeness only/i);
+    assert.match(prompt, /linen set/);
+    assert.match(prompt, /aggressively refactor/i);
+    assert.match(prompt, /mandatory new body pose/i);
+    assert.match(prompt, /SETTING \(mandatory/i);
+    assert.match(prompt, /city park/i);
+  });
+
+  it('buildDaySlotPrompt with isolated plate forces white backdrop replacement', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, location: 'city park', sceneHints: 'mid-stride on the path' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'keeper',
+      plateIsolated: true,
+      garmentReinforce: true,
+      poseGuide: true,
+    });
+    assert.match(prompt, /isolated on a blank white backdrop/i);
+    assert.match(prompt, /never leave a white background|never a blank white backdrop/i);
+    assert.match(prompt, /Image 2 white is packshot only|Image 3 white is pose-guide only/i);
+    assert.match(prompt, /city park/i);
+  });
+
+  it('dayWatchPlaylist builds Morning→Night still shots', () => {
+    const stills = upsertDaySlotStill(
+      upsertDaySlotStill(undefined, {
+        slotId: 'morning',
+        promptId: 'p1',
+        status: 'completed',
+        imageUrl: 'https://example.com/m.jpg',
+      }),
+      {
+        slotId: 'night',
+        promptId: 'p2',
+        status: 'completed',
+        imageUrl: 'https://example.com/n.jpg',
+      }
+    );
+    const playlist = dayWatchPlaylist(stills);
+    assert.equal(playlist.length, 2);
+    assert.equal(playlist[0]?.title, 'Morning');
+    assert.equal(playlist[1]?.title, 'Night');
+    assert.equal(playlist[0]?.kind, 'still');
+  });
+
+  it('mergeDaySlotStills updates from gallery poll', () => {
+    const queued = upsertDaySlotStill(undefined, {
+      slotId: 'afternoon',
+      promptId: 'job-9',
+      status: 'queued',
+    });
+    const merged = mergeDaySlotStills(queued, [
+      { promptId: 'job-9', status: 'completed', imageUrl: 'https://example.com/a.jpg' },
+    ]);
+    assert.equal(merged.changed, true);
+    assert.equal(merged.stills.find(s => s.slotId === 'afternoon')?.status, 'completed');
+  });
+
+  it('mergeDaySlotStills keeps prior preview while soft-pass is still running', () => {
+    const prior = upsertDaySlotStill(undefined, {
+      slotId: 'morning',
+      promptId: 'refine-1',
+      status: 'completed',
+      imageUrl: 'https://example.com/prior.jpg',
+    });
+    const merged = mergeDaySlotStills(prior, [
+      { promptId: 'refine-1', status: 'queued' },
+    ]);
+    assert.equal(merged.changed, false);
+    assert.equal(merged.stills.find(s => s.slotId === 'morning')?.imageUrl, 'https://example.com/prior.jpg');
+    assert.equal(merged.stills.find(s => s.slotId === 'morning')?.status, 'completed');
+  });
+
+  it('promoteDayStillsToSoftPassChildren rebinds parent stills to soft-pass kids', () => {
+    const stills = upsertDaySlotStill(undefined, {
+      slotId: 'evening',
+      promptId: 'parent-job',
+      status: 'completed',
+      imageUrl: 'https://example.com/parent.jpg',
+    });
+    const { stills: next, changed } = promoteDayStillsToSoftPassChildren(stills, [
+      {
+        id: 'parent-entry',
+        promptId: 'parent-job',
+        status: 'completed',
+        imageUrl: 'https://example.com/parent.jpg',
+        queuedAt: 1,
+      },
+      {
+        id: 'child-entry',
+        promptId: 'soft-job',
+        parentGalleryEntryId: 'parent-entry',
+        derivedKind: 'soft-pass',
+        status: 'completed',
+        imageUrl: 'https://example.com/soft.jpg',
+        queuedAt: 2,
+      },
+    ]);
+    assert.equal(changed, true);
+    const evening = next.find(s => s.slotId === 'evening');
+    assert.equal(evening?.promptId, 'soft-job');
+    assert.equal(evening?.imageUrl, 'https://example.com/soft.jpg');
+    assert.equal(evening?.status, 'completed');
+  });
+
+  it('promoteDayStillsToSoftPassChildren skips auto face-restore children', () => {
+    const stills = upsertDaySlotStill(undefined, {
+      slotId: 'evening',
+      promptId: 'parent-job',
+      status: 'completed',
+      imageUrl: 'https://example.com/parent.jpg',
+    });
+    const { stills: next, changed } = promoteDayStillsToSoftPassChildren(stills, [
+      {
+        id: 'parent-entry',
+        promptId: 'parent-job',
+        status: 'completed',
+        imageUrl: 'https://example.com/parent.jpg',
+        queuedAt: 1,
+      },
+      {
+        id: 'child-entry',
+        promptId: 'restore-job',
+        parentGalleryEntryId: 'parent-entry',
+        derivedKind: 'soft-pass',
+        status: 'completed',
+        imageUrl: 'https://example.com/wrecked.jpg',
+        queuedAt: 2,
+        prompt: 'Change only the face of the person in Image 1 to match the person in Image 2.',
+      },
+    ]);
+    assert.equal(changed, false);
+    const evening = next.find(s => s.slotId === 'evening');
+    assert.equal(evening?.promptId, 'parent-job');
+    assert.equal(evening?.imageUrl, 'https://example.com/parent.jpg');
+  });
+
+  it('dayWatchPlaylist prefers clips over stills', () => {
+    const stills = upsertDaySlotStill(undefined, {
+      slotId: 'morning',
+      promptId: 'p1',
+      status: 'completed',
+      imageUrl: 'https://example.com/m.jpg',
+      clipPromptId: 'c1',
+      clipStatus: 'completed',
+      clipUrl: 'https://example.com/m.mp4',
+    });
+    const playlist = dayWatchPlaylist(stills);
+    assert.equal(playlist.length, 1);
+    assert.equal(playlist[0]?.kind, 'clip');
+    assert.equal(playlist[0]?.url, 'https://example.com/m.mp4');
+  });
+
+  it('buildDaySlotMotionSubject includes slot label', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    assert.match(buildDaySlotMotionSubject({ ...slot, sceneHints: 'coffee' }, 'Rin'), /morning/i);
+    assert.match(buildDaySlotMotionSubject({ ...slot, sceneHints: 'coffee' }, 'Rin'), /Rin/);
+    assert.match(
+      buildDaySlotMotionSubject({ ...slot, sceneHints: 'coffee' }, 'Rin'),
+      /stretch|pour|steam|morning light/i
+    );
+  });
+
+  it('seedDaySlotsWardrobe fills empty kits only', () => {
+    const seeded = seedDaySlotsWardrobe(
+      [{ id: 'morning', label: 'Morning', wardrobeId: 'keep-me' }],
+      'new-kit'
+    );
+    assert.equal(seeded[0]?.wardrobeId, 'keep-me');
+    assert.equal(seeded[1]?.wardrobeId, 'new-kit');
+  });
+
+  it('seedDaySlotsWardrobe force overwrites existing kits', () => {
+    const seeded = seedDaySlotsWardrobe(
+      [{ id: 'morning', label: 'Morning', wardrobeId: 'keep-me' }],
+      'new-kit',
+      { force: true }
+    );
+    assert.equal(seeded[0]?.wardrobeId, 'new-kit');
+    assert.equal(seeded[1]?.wardrobeId, 'new-kit');
+  });
+
+  it('seedDaySlotsFromKeeperWardrobes maps kits onto morning→night', () => {
+    const seeded = seedDaySlotsFromKeeperWardrobes(DEFAULT_DAY_SLOTS, [
+      'kit-a',
+      'kit-b',
+      'kit-c',
+    ]);
+    assert.equal(seeded[0]?.wardrobeId, 'kit-a');
+    assert.equal(seeded[1]?.wardrobeId, 'kit-b');
+    assert.equal(seeded[2]?.wardrobeId, 'kit-c');
+    assert.equal(seeded[3]?.wardrobeId, 'kit-c');
+  });
+
+  it('seedDaySlotsFromKeeperWardrobes overwrites prior Day kits on Keep', () => {
+    const prior = DEFAULT_DAY_SLOTS.map(slot => ({ ...slot, wardrobeId: 'old-kit' }));
+    const seeded = seedDaySlotsFromKeeperWardrobes(prior, ['kept-kit']);
+    assert.equal(seeded[0]?.wardrobeId, 'kept-kit');
+    assert.equal(seeded[3]?.wardrobeId, 'kept-kit');
+  });
+
+  it('buildDaySlotPrompt with garment reinforce keeps Keep as Image 1', () => {
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, wardrobeId: 'kit-linen' },
+      wardrobeLabel: 'linen set',
+      hasPlate: true,
+      plateSource: 'keeper',
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /Image 1 is the Outfit Keep try-on/i);
+    assert.match(prompt, /Image 2 is a wardrobe packshot/i);
+    assert.match(prompt, /linen set/);
+    assert.match(prompt, /mandatory new body pose/i);
+  });
+
+  it('buildDaySlotPrompt with poseGuide names Image 3 wireframe', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      poseGuideStyle: 'legacy',
+    });
+    assert.match(prompt, /Image 3 is a flat SCHEMATIC|Image 3 is a flat mannequin|Image 3 is a crude stick-figure/i);
+    assert.match(prompt, /never draw (?:stick figures|mannequins)/i);
+    assert.match(prompt, /photorealistic live-action photograph/i);
+    assert.match(prompt, /exactly one person|Exactly one adult|SOLO SUBJECT/i);
+    assert.match(prompt, /Match Image 3 body positions/i);
+  });
+
+  it('buildDaySlotPrompt allowCompanions skips solo lock', () => {
+    const slot = {
+      ...DEFAULT_DAY_SLOTS[0]!,
+      sceneHints: 'selfie with a friend leaning into frame',
+    };
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      poseGuideStyle: 'legacy',
+      allowCompanions: true,
+    });
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+    assert.match(prompt, /COMPANIONS:/i);
+    assert.match(prompt, /camera:/i);
+    assert.match(prompt, /Never paint Image 3 into the photo/i);
+  });
+
+  it('buildDaySlotPrompt OpenPose guide names the lead by position, not color', () => {
+    const solo = buildDaySlotPrompt({
+      slot: DEFAULT_DAY_SLOTS[1]!,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+    });
+    assert.match(solo, /Image 3 is an OpenPose keypoint/i);
+    assert.match(solo, /one skeleton/i);
+    assert.doesNotMatch(solo, /magenta|cyan|flat SCHEMATIC|gray OUTLINE/i);
+
+    const companions = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[0]!, sceneHints: 'selfie with a friend leaning into frame' },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      poseGuideStyle: 'openpose',
+      poseLeadPosition: 'left',
+      allowCompanions: true,
+    });
+    assert.match(companions, /COMPANIONS: Cast face from Image 1 on the leftmost Image 3 skeleton/i);
+    assert.match(companions, /the leftmost skeleton is the Image 1 person/i);
+    assert.doesNotMatch(companions, /Magenta|cyan\/orange|thick Image 3 outline/i);
+  });
+
+  it('Rapid couple beat with no partner face: the short couple recipe; friend beats keep the brief', () => {
+    const build = (dayMood: string, sceneHints: string) =>
+      buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[2]!, location: 'rooftop bar at golden hour', sceneHints },
+        hasPlate: true,
+        plateSource: 'cast',
+        garmentReinforce: true,
+        garmentDescription: 'a red satin slip dress',
+        poseGuide: true,
+        poseGuideStyle: 'openpose',
+        poseLeadPosition: 'left',
+        allowCompanions: true,
+        model: 'qwen-rapid-aio-edit',
+        dayMood,
+      });
+    const couple = [
+      build(
+        'vacation',
+        'standing with her partner at a rooftop bar rail, clinking cocktail glasses with her partner at sunset'
+      ),
+      build('everyday', 'seated across a candlelit table from her partner, clinking wine glasses'),
+    ];
+    for (const prompt of couple) {
+      assert.match(prompt, /^Day photo: A woman and a man together/);
+      assert.match(prompt, /the man has his own face/);
+      assert.ok(prompt.length < 1500, `${prompt.length} chars`);
+    }
+    // A friend is not a date: with no partner the recipe would make them "a man … affectionate".
+    assert.ok(build('everyday', 'clinking glasses with a friend at the wine bar').length > 3000);
+  });
+
+  it('resolveDaySlotPoseBaseline rotates with setting/beat', () => {
+    const a = resolveDaySlotPoseBaseline({
+      id: 'morning',
+      location: 'kitchen',
+      sceneHints: 'stretching',
+    });
+    const b = resolveDaySlotPoseBaseline({
+      id: 'morning',
+      location: 'balcony',
+      sceneHints: 'waving',
+    });
+    assert.ok(a.length > 10);
+    assert.ok(b.length > 10);
+    // Different scene salt should usually pick different baselines from the pool.
+    assert.notEqual(a, b);
+  });
+
+  it('diversifyDaySlotScenes intimate mix uses indoor heat settings only', () => {
+    let i = 0;
+    const sequence = Array.from({ length: 40 }, (_, n) => (n % 10) / 10);
+    const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      forceLocations: true,
+      forceBeats: true,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    for (const slot of slots) {
+      const location = slot.location ?? '';
+      assert.ok(
+        DAY_SLOT_HEAT_SETTING_PRESETS[dayPartOf(slot.id)].includes(location),
+        `expected heat setting, got: ${location}`
+      );
+      assert.doesNotMatch(location, /pier|park|street|café|cafe|boardwalk/i);
+    }
+  });
+
+  it('diversifyDaySlotScenes mixes suggestive beats when dayMood is suggestive', () => {
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    for (let trial = 0; trial < 12; trial++) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceLocations: true,
+        forceBeats: true,
+        dayMood: 'suggestive',
+        random: () => sequence[i++ % sequence.length]!,
+      });
+      for (const slot of slots) {
+        const beat = slot.sceneHints ?? '';
+        assert.ok(
+          DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
+          `expected suggestive beat, got: ${beat}`
+        );
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
+      }
+    }
+  });
+
+  it('buildDaySlotPrompt suggestive beat owns pose without everyday baseline', () => {
+    const sceneHints =
+      'leaning in a doorway in lingerie and an open robe, inviting look down the hall';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'dim hotel suite with city glow through sheer curtains',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+    });
+    assert.match(prompt, /MOOD: suggestive heat/i);
+    assert.match(prompt, /POSE FIRST: mandatory body pose and suggestive clothed heat from the beat only/i);
+    assert.match(prompt, /CLOTHING LOCK:|POSE LOCK:|bottoms stay on|never nude|never mid-sex|hip cocked|looking back|standing try-on|ZIP\/TWIST|DANCING|LEANING|SEATED|never invent a bikini/i);
+    assert.match(prompt, /SOLO SUBJECT \(mandatory\)/i);
+    assert.match(prompt, /SETTING \(backdrop only/i);
+    assert.match(prompt, /lingerie and an open robe/i);
+    assert.match(prompt, /standing try-on plate|discard that standing fashion stance/i);
+    assert.doesNotMatch(prompt, /mandatory new body pose:.*Also follow the beat/i);
+    assert.doesNotMatch(prompt, /walking outdoors mid-stride|arms stretching overhead mid-yawn/i);
+    assert.doesNotMatch(prompt, /PARTNERS:|DUO ACT:/i);
+    // Pose must appear before Setting so Edit doesn't let the room rewrite stance.
+    const poseIdx = prompt.indexOf('POSE FIRST:');
+    const settingIdx = prompt.indexOf('SETTING (backdrop only');
+    assert.ok(poseIdx >= 0 && settingIdx > poseIdx, 'pose should precede setting');
+  });
+
+  it('buildDaySuggestivePoseLock names dance and zip-twist so Keep cannot freeze stand', () => {
+    const dance = buildDaySuggestivePoseLock(
+      'DANCING alone on the patio — both arms raised overhead, one knee lifted mid-kick'
+    );
+    assert.match(dance, /DANCING alone/i);
+    assert.match(dance, /BOTH arms raised|knee lifted/i);
+    assert.match(dance, /NEVER.*arms hanging|NEVER both arms hanging|catalog stand/i);
+
+    const danceUnlock = buildDaySuggestiveKeepPoseUnlock(
+      'DANCING alone on the patio — both arms raised overhead'
+    );
+    assert.match(danceUnlock, /CRITICAL:.*DANCING|edit FAILED/i);
+
+    const zip = buildDaySuggestivePoseLock(
+      'twisting to zip a dress in a mirror — back arched, looking over a shoulder'
+    );
+    assert.match(zip, /ZIP\/TWIST|hands on her own dress zipper/i);
+    assert.match(zip, /standing try-on/i);
+  });
+
+  it('buildDaySlotPrompt suggestive dance face-break keeps CRITICAL pose before white-void ban', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'soft-lit bedroom with rumpled sheets',
+        sceneHints:
+          'dancing with both arms raised high overhead and one knee lifted mid-step, hips mid-sway',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /BOTH arms raised high overhead|both arms overhead/i);
+    assert.match(prompt, /one knee lifted/i);
+    assert.match(prompt, /fashion stand.*FAILED|FAILED.*fashion stand|planted fashion stand/i);
+    assert.match(prompt, /POSE FIRST/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
+    const danceIdx = prompt.search(/Invent a FULL BODY mid-dance|BOTH arms raised/i);
+    const poseFirstIdx = prompt.search(/POSE FIRST/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
+    assert.ok(danceIdx >= 0 && poseFirstIdx > danceIdx && voidIdx > poseFirstIdx);
+  });
+
+  it('buildDaySlotPrompt suggestive setting bans blank white backdrop even without isolate', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'soft-lit bedroom with rumpled sheets',
+        sceneHints: 'leaning in a doorway with one shoulder on the frame, hip cocked',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      garmentReinforce: true,
+      dayMood: 'suggestive',
+      plateIsolated: false,
+    });
+    assert.match(prompt, /never a blank white backdrop/i);
+    assert.match(prompt, /Never leave Image 2 or Image 3 white|Image 2 white is packshot|Image 3 white is pose-guide/i);
+    const poseIdx = prompt.search(/POSE FIRST|Invent a FULL BODY|standing try-on plate/i);
+    const voidIdx = prompt.search(/Never leave Image 2 or Image 3 white|BACKGROUND LOCK|fill the entire frame/i);
+    assert.ok(poseIdx >= 0, 'pose unlock present');
+    assert.ok(voidIdx < 0 || poseIdx < voidIdx, 'pose unlock must precede white-void ban');
+    assert.doesNotMatch(prompt, /fill the entire frame with the SETTING/i);
+  });
+
+  it('buildDaySlotPrompt suggestive zip face-break locks exact Keep garment not bikini', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds half-drawn',
+        sceneHints:
+          'twisting to zip a dress in a mirror — torso twisted, back arched, both hands on the zipper behind her back, looking over a shoulder',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+      garmentDescription: 'navy floral mini dress with spaghetti straps',
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.match(prompt, /EXACT Outfit Keep garment|exact Image 2 garment|never invent a bikini/i);
+    assert.match(prompt, /zip-twist|LOOK_BACK|hands on zipper/i);
+    assert.match(prompt, /navy floral mini dress/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
+    assert.match(prompt, /fashion stand means the edit FAILED|planted fashion stand/i);
+    const poseIdx = prompt.search(/Invent a FULL BODY look-back|zip-twist/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
+    assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'face-break pose before white-void ban');
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED|missing background means the edit FAILED/i);
+  });
+
+  it('Vacation with People → Duo fills every slot with a couple scene; Solo stays solo', () => {
+    const duo = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      dayMood: 'vacation',
+      allowCompanions: true,
+      intimateMix: 'duo',
+      forceBeats: true,
+      forceLocations: true,
+    });
+    for (const slot of duo.slots) {
+      assert.match(slot.sceneHints ?? '', /with her partner/, slot.id);
+      assert.ok(slot.location, slot.id);
+      assert.equal(
+        resolveDayPoseHeadcount({
+          haystack: slot.sceneHints ?? '',
+          beat: slot.sceneHints,
+          dayMood: 'vacation',
+          allowCompanions: true,
+        }),
+        2,
+        slot.sceneHints
+      );
+    }
+    const solo = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      dayMood: 'vacation',
+      forceBeats: true,
+      forceLocations: true,
+    });
+    for (const slot of solo.slots) assert.doesNotMatch(slot.sceneHints ?? '', /partner/);
+  });
+
+  it('Edit 2511: every clothed solo mood sends a short recipe with the outfit stated first', () => {
+    const base = {
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit cobblestone street with café awnings',
+        sceneHints: 'SEATED on a scooter saddle parked in the old town — weight shifted, checking a phone map',
+      },
+      hasPlate: true,
+      plateSource: 'keeper' as const,
+      poseGuide: true,
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+      garmentDescription: 'A black strapless mini dress made of sheer floral lace. The bodice is structured.',
+      model: 'qwen-image-edit-2511-lightning-8',
+    };
+    const vacation = buildDaySlotPrompt({ ...base, dayMood: 'vacation' });
+    assert.match(vacation, /^SCENE: she is in the sunlit cobblestone street with café awnings/);
+    assert.match(
+      vacation,
+      /\nOUTFIT \(mandatory\): she wears a black strapless mini dress made of sheer floral lace — fully dressed;/
+    );
+    assert.match(vacation, /Vacation photo: One woman alone on vacation\. She sits, knees bent\./);
+    assert.ok(vacation.length < 1200, String(vacation.length));
+    const everyday = buildDaySlotPrompt({ ...base, dayMood: 'everyday' });
+    assert.match(everyday, /\nOUTFIT \(mandatory\): she wears a black strapless mini dress[^\n]*\nDay photo: One woman alone\. She sits/);
+    assert.ok(everyday.length < 1200, String(everyday.length));
+    // Sport wears the sport's own kit, never the Day outfit, and drops the preset's boilerplate.
+    const sport = buildDaySlotPrompt({
+      ...base,
+      garmentReinforce: false,
+      dayMood: 'sport',
+      slot: {
+        ...base.slot,
+        location: 'an outdoor sand court with net poles and clear sky',
+        sceneHints:
+          'jump-setting with soft hands high above the forehead — volleyball athletic action in proper volleyball kit and court shoes, mid-play on a volleyball venue, Cast alone',
+      },
+    });
+    assert.match(sport, /^SCENE: she is in the outdoor sand court/);
+    assert.match(sport, /OUTFIT \(mandatory\): she wears volleyball sportswear and court shoes;/);
+    assert.match(sport, /Day photo: One woman alone, mid-action, playing sport\. She wears volleyball sportswear and court shoes\. Moment: jump-setting with soft hands high above the forehead\./);
+    assert.doesNotMatch(sport, /\blace\b|athletic action in proper/);
+    // A beat that names its own clothes is not overruled by the Day kit.
+    const pool = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'vacation',
+      slot: { ...base.slot, sceneHints: 'RELAXING on a pool lounge with an iced drink — one-piece swimsuit' },
+    });
+    assert.match(pool, /OUTFIT \(mandatory\): she wears a one-piece swimsuit;/);
+    assert.doesNotMatch(pool, /\blace\b/);
+    // Two-person clothed stills get the couple recipe under the Day mark.
+    const couple = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'everyday',
+      allowCompanions: true,
+      slot: { ...base.slot, sceneHints: 'clinking mugs with her partner over breakfast at the counter' },
+    });
+    assert.match(couple, /\nOUTFIT \(mandatory\): she wears a black strapless mini dress/);
+    assert.match(couple, /Day photo: A woman and a man together, both fully clothed, both fully in frame\./);
+    assert.match(couple, /She wears the outfit from the second image; he wears a casual shirt and jeans\./);
+    assert.match(couple, /the man has his own face\./);
+    // Adult moods share Rapid's explicit recipes.
+    const adult = buildDaySlotPrompt({
+      ...base,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+      garmentReinforce: false,
+      slot: { ...base.slot, sceneHints: 'missionary sex on the bed with her partner on top' },
+    });
+    assert.match(adult, /^Explicit sex photo: Side view, missionary position/);
+    // A model with no profile keeps the long Vacation brief.
+    const generic = buildDaySlotPrompt({ ...base, dayMood: 'vacation', model: 'qwen-image-edit' });
+    assert.doesNotMatch(generic, /Vacation photo:/);
+  });
+
+  it('buildDaySlotPrompt vacation couple beat: both in frame, no "one woman alone" lock', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'rooftop bar at golden hour with string lights and the city skyline behind',
+        sceneHints:
+          'standing with her partner at a rooftop bar rail, clinking cocktail glasses with her partner at sunset',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      allowCompanions: true,
+      intimateMix: 'duo',
+    });
+    assert.match(prompt, /her partner both fully in frame/);
+    assert.doesNotMatch(prompt, /one woman alone|never invent a man/);
+  });
+
+  it('buildDaySlotPrompt vacation mid-stride face-break invents body from Image 3', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'quiet morning shoreline',
+        sceneHints:
+          'MID-STRIDE barefoot on wet sand swinging a tote — one foot clearly ahead, opposite arm swing',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.match(prompt, /Image 2 is a clothing-only packshot|outfit colors from Image 2|Dress the Outfit Keep kit from Image 2/i);
+    assert.match(prompt, /Image 3/i);
+    assert.doesNotMatch(prompt, /Image 1 is the Outfit Keep try-on \(face \+ worn kit\)/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|fill the entire frame behind her with the SETTING|Never leave Image 2 or Image 3 white/i);
+    const poseIdx = prompt.search(/Invent a FULL BODY mid-stride|MID-STRIDE/i);
+    const voidIdx = prompt.search(/BACKGROUND CRITICAL|Never leave Image 2 or Image 3 white/i);
+    assert.ok(poseIdx >= 0 && voidIdx > poseIdx, 'vacation pose before white-void ban');
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED|missing background means the edit FAILED/i);
+  });
+
+  it('buildDaySlotPrompt vacation face-break without Image 2 dresses from garment text', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'quiet morning shoreline',
+        sceneHints:
+          'MID-STRIDE barefoot on wet sand swinging a tote — one foot clearly ahead, opposite arm swing',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+      garmentReinforce: false,
+      garmentDescription: 'navy floral mini dress with spaghetti straps',
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.match(prompt, /navy floral mini dress|Dress her in this outfit only/i);
+    assert.doesNotMatch(prompt, /Image 2 is the Outfit Keep|Image 2 is a clothing-only packshot/i);
+    assert.match(prompt, /BACKGROUND CRITICAL|blank white.*edit FAILED/i);
+  });
+
+  it('buildDaySlotPrompt vacation mid-stride face-break works on Cast plate source', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'sunny fishing pier',
+        sceneHints:
+          'MID-STRIDE along a wooden pier with an ice-cream cone — walking mid-step one foot ahead',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+      garmentDescription: 'navy floral swimsuit',
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.doesNotMatch(prompt, /Image 1 is the Cast identity plate/i);
+    assert.match(prompt, /mid-stride|one foot/i);
+  });
+
+  it('buildDaySlotPrompt everyday garment face-break leads with the beat stance', () => {
+    // Live 2026-09-29: Rapid everyday + Fitting swimsuit on the undressed Cast plate rendered
+    // every beat as a seated pin-up; face-break fixed it, but crouch/kneel stood until the
+    // stance led the brief.
+    const build = (sceneHints: string, faceOnlyIdentity: boolean) =>
+      buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'grocery store produce aisle', sceneHints },
+        hasPlate: true,
+        plateSource: 'cast',
+        poseGuide: true,
+        dayMood: 'everyday',
+        faceOnlyIdentity,
+        garmentReinforce: true,
+        garmentDescription: 'pink ribbed one-piece swimsuit',
+        model: 'qwen-rapid-aio-sfw-v23',
+      });
+    // Pose sweep 2026-10-01: the brief still dropped the action on Rapid (a standing portrait
+    // in the right place, about 1 beat in 14); the short recipe got 30 of 32. On this path —
+    // face crop + clothing image — Rapid Everyday solo now sends the recipe, led by what Image 1
+    // is, then the scene and the outfit.
+    const crouch = build('crouching at a low cupboard reaching for a pan, one knee bent', true);
+    const lines = crouch.split('\n');
+    assert.match(lines[0]!, /^Image 1 is a FACE CROP only .* IDENTITY CRITICAL: /);
+    assert.equal(
+      lines[1],
+      'SCENE: she is in the grocery store produce aisle — show that place around her.'
+    );
+    assert.equal(
+      lines[2],
+      'OUTFIT (mandatory): she wears a pink ribbed one-piece swimsuit — fully dressed.'
+    );
+    assert.match(lines[3]!, /^Day photo: One woman alone\./);
+    assert.match(lines[3]!, /Moment: crouching at a low cupboard reaching for a pan, one knee bent\./);
+    assert.doesNotMatch(crouch, /Image 1 is the Cast identity plate|underwear/);
+    assert.ok(crouch.length < 1100, `recipe is short (${crouch.length})`);
+    assert.match(
+      build('mid-stride on the sidewalk, coffee in one hand', true),
+      /\nDay photo: [\s\S]*Moment: mid-stride on the sidewalk, coffee in one hand\./
+    );
+    // Without the face crop, everyday keeps the plate brief.
+    assert.match(build('crouching at a low cupboard', false), /Image 1 is the Cast identity plate/);
+  });
+
+  it('buildDaySlotPrompt names a dressed plate with no kit name as the outfit, in words', () => {
+    // Live 2026-10-03, Qwen-Image 2.1 Day Everyday lying beats: with the dressed plate as the
+    // clothing image and no kit name or description, no line said she is clothed — nude 9/9.
+    const build = (outfitIsDressedPlate: boolean, model = 'qwen-image-2.1-edit') =>
+      buildDaySlotPrompt({
+        slot: {
+          ...DEFAULT_DAY_SLOTS[1]!,
+          location: 'park lawn',
+          sceneHints: 'lying on her back on a picnic blanket',
+        },
+        hasPlate: true,
+        plateSource: 'cast',
+        poseGuide: true,
+        dayMood: 'everyday',
+        faceOnlyIdentity: true,
+        garmentReinforce: true,
+        model,
+        outfitIsDressedPlate,
+      });
+    const line =
+      'OUTFIT (mandatory): she is fully clothed in exactly the outfit shown in Image 2, covering her body as it does there; no bare body.';
+    assert.equal(build(true).split('\n')[2], line);
+    assert.match(build(true, 'qwen-rapid-aio-sfw-v23'), /^OUTFIT \(mandatory\): she is fully clothed/m);
+    // A packshot is not a picture of her: unchanged.
+    assert.doesNotMatch(build(false), /OUTFIT \(mandatory\)/);
+    // Edit 2511: the dressed plate is Image 1.
+    const plate = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'park lawn', sceneHints: 'reading on a bench' },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'everyday',
+      model: 'qwen-image-edit-2511-lightning-8',
+      outfitIsDressedPlate: true,
+    });
+    assert.match(plate, /^OUTFIT \(mandatory\): .* the outfit shown in Image 1,/m);
+  });
+
+  it('buildDaySlotPrompt leads with the catalog kit on the undressed Cast plate', () => {
+    // Live 2026-09-29: the kit named only at the end of the brief left Rapid in the plate's
+    // underwear 13/16; stated first, the exact kit 16/16.
+    const prompt = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'bright bedroom', sceneHints: 'lying across the bed scrolling a phone' },
+      wardrobeLabel: 'relaxed-fit lavender slip dress',
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'everyday',
+      model: 'qwen-rapid-aio-sfw-v23',
+    });
+    assert.match(prompt, /^OUTFIT \(mandatory\): she wears a relaxed-fit lavender slip dress/);
+  });
+
+  it('renumberDayPoseGuideAsImage2 fixes the guide number only when no Image 2 exists', () => {
+    assert.equal(
+      renumberDayPoseGuideAsImage2('Image 3 is a pose map. Match Image 3.'),
+      'Image 2 is a pose map. Match Image 2.'
+    );
+    const withGarment = 'Image 2 is a packshot. Image 3 is a pose map.';
+    assert.equal(renumberDayPoseGuideAsImage2(withGarment), withGarment);
+    // Stock outfit phrases name Image 2 even when no clothing image is attached.
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'CLOTHING LOCK: wear the exact Keep/Image 2 outfit. keep the outfit Image 2 or the beat names; Match Image 3. Wear the Keep outfit from Image 2 exactly.'
+      ),
+      'CLOTHING LOCK: wear the exact Keep outfit. keep the outfit worn in Image 1; Match Image 2. Wear the Keep outfit from Image 1 exactly.'
+    );
+    // The general "Image 2 or Image 3" line is not a second image.
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'Match Image 3. Never leave Image 2 or Image 3 white as the scene background.'
+      ),
+      'Match Image 2. Never leave Image 2 white as the scene background.'
+    );
+    // The adult nude line names a clothing image too (it blocked 20 of 101 Story renumberings).
+    assert.equal(
+      renumberDayPoseGuideAsImage2(
+        'zero fabric on either body; Image 1 and Image 2 fabric is invisible and must not be copied. Pose to Image 3.'
+      ),
+      'zero fabric on either body; Image 1 fabric is invisible and must not be copied. Pose to Image 2.'
+    );
+  });
+
+  it('buildDaySlotPrompt leads sport stills with the venue and the action', () => {
+    // Live 2026-09-29: venue deep in the brief → football stadium for every sport, and cycling
+    // beats without "riding" lost the bike; scene + action first fixed both.
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'forest mountain bike trail',
+        sceneHints:
+          'launching off a small trail drop with knees bent — mountain biking athletic action in proper kit',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'sport',
+      replaceKeepOutfit: true,
+      model: 'qwen-rapid-aio-sfw-v23',
+    });
+    assert.match(
+      prompt,
+      /^SCENE: she is in the forest mountain bike trail — show that place around her\. ACTION: launching off a small trail drop with knees bent\./
+    );
+  });
+
+  it('keeps typed sport venues for every sport in the pools', () => {
+    // These failed the venue check and the slot was silently rerolled, beat and all.
+    for (const location of [
+      'snowy ski slope',
+      'ocean surf break',
+      'concrete skatepark',
+      'bright yoga studio',
+      'open country road',
+      'beach volleyball court',
+    ]) {
+      assert.equal(
+        daySlotMatchesAdultMix({
+          slot: {
+            id: 'morning',
+            label: 'Morning',
+            location,
+            sceneHints: 'carving a turn mid-run — athletic action in proper kit',
+          } as never,
+          dayMood: 'sport',
+        }),
+        true,
+        location
+      );
+    }
+    // A beach pin-up setting is still stale.
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: { id: 'morning', label: 'Morning', location: 'sunny beach', sceneHints: 'sprinting mid-stride — athletic action' } as never,
+        dayMood: 'sport',
+      }),
+      false
+    );
+  });
+
+  it('dayEverydayFaceBreakStanceLead names only stances Rapid loses', () => {
+    assert.match(dayEverydayFaceBreakStanceLead('kneeling to unlace boots') ?? '', /^KNEELING/);
+    assert.match(dayEverydayFaceBreakStanceLead('seated reading a menu') ?? '', /^SEATED/);
+    assert.equal(dayEverydayFaceBreakStanceLead('mid-stride with a coffee'), null);
+  });
+
+  it('buildDaySlotPrompt vacation dancing face-break demands arms overhead', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'hotel terrace at blue hour',
+        sceneHints:
+          'DANCING alone on a terrace at blue hour — both arms raised overhead, one knee lifted mid-kick, hips mid-sway',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+      garmentReinforce: true,
+    });
+    assert.match(prompt, /FACE CROP only|face likeness only/i);
+    assert.match(prompt, /BOTH arms raised|arms overhead|mid-dance/i);
+    assert.match(prompt, /fashion stand.*FAILED|edit FAILED/i);
+    assert.doesNotMatch(prompt, /Image 1 is the Cast identity plate/i);
+  });
+
+  it('buildDaySlotPrompt vacation upright face-break covers reach/kick/jump/climb/toss/stretch', () => {
+    const cases: Array<{ beat: string; expect: RegExp }> = [
+      {
+        beat: 'REACHING for a pier railing mid-lean after a jog — evening wear',
+        expect: /FULL BODY reach|one arm stretched HIGH/i,
+      },
+      {
+        beat: 'STRETCHING both arms overhead at the pool ladder — swimsuit on',
+        expect: /FULL BODY stretch|BOTH arms raised overhead/i,
+      },
+      {
+        beat: 'CLIMBING museum steps mid-stride — hand on the railing',
+        expect: /FULL BODY climb|one foot up/i,
+      },
+      {
+        beat: 'JUMPING mid-air off the pool ledge — swimsuit, knees tucked',
+        expect: /FULL BODY jump|both feet off the ground/i,
+      },
+      {
+        beat: 'KICKING through the morning surf — sundress hem wet, arms out',
+        expect: /FULL BODY kick|one leg extended mid-kick/i,
+      },
+      {
+        beat: 'TOSSING a beach ball on the sand — arms raised mid-catch',
+        expect: /FULL BODY toss|arm cocked|follow-through/i,
+      },
+    ];
+    for (const { beat, expect } of cases) {
+      const prompt = buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[1]!, location: 'vacation venue', sceneHints: beat },
+        hasPlate: true,
+        plateSource: 'cast',
+        poseGuide: true,
+        dayMood: 'vacation',
+        faceOnlyIdentity: true,
+        garmentReinforce: true,
+      });
+      assert.match(prompt, /FACE CROP only|face likeness only/i, beat);
+      assert.match(prompt, expect, beat);
+      assert.doesNotMatch(prompt, /Image 1 is the Cast identity plate/i, beat);
+    }
+  });
+
+  it('buildDaySlotPrompt suggestive zip-twist unlocks Keep standing plate', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'bright apartment living room with a full-length mirror',
+        sceneHints:
+          'twisting to zip a dress in a mirror — torso twisted, back arched, both hands on the zipper behind her back, looking over a shoulder',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+    });
+    assert.match(prompt, /standing try-on plate|discard that standing fashion stance/i);
+    assert.match(prompt, /ZIP\/TWIST|zipper behind her back|looking over a shoulder/i);
+    assert.match(prompt, /match Image 3 and the beat stance \(dance, zip-twist/i);
+  });
+
+  it('buildDaySlotPrompt suggestive ignores leftover duo intimateMix', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[3]!,
+        location: 'hotel room after dark with a single lamp',
+        sceneHints:
+          'sitting on the edge of a hotel bed, unzipping a dress halfway, lingerie visible underneath',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'suggestive',
+      intimateMix: 'duo',
+    });
+    assert.match(prompt, /SOLO SUBJECT \(mandatory\)|CLOTHING LOCK/i);
+    assert.doesNotMatch(prompt, /PARTNERS: Exactly TWO|DUO ACT:/i);
+  });
+
+  it('resolveDayPoseHeadcount keeps suggestive and vacation solo without companions', () => {
+    assert.equal(
+      resolveDayPoseHeadcount({
+        haystack: 'straddling a café chair backwards after dinner looking over a shoulder',
+        beat: 'straddling a café chair backwards after dinner',
+        dayMood: 'suggestive',
+        allowCompanions: false,
+      }),
+      1
+    );
+    assert.equal(
+      resolveDayPoseHeadcount({
+        haystack: 'straddling a café chair backwards after dinner looking over a shoulder',
+        beat: 'straddling a café chair backwards after dinner',
+        dayMood: 'vacation',
+        allowCompanions: false,
+      }),
+      1
+    );
+  });
+
+  it('buildDaySlotPrompt vacation bans invented partners', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunny beach near the waterline',
+        sceneHints:
+          'RELAXING on a beach towel with a sunhat over her face — body lying on the towel, knees drawn up, morning breeze',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+      intimateMix: 'duo',
+    });
+    assert.match(prompt, /MOOD: vacation travel day/i);
+    assert.match(prompt, /CLOTHED SOLO LOCK|never invent a man/i);
+    assert.doesNotMatch(prompt, /PARTNERS: Exactly TWO|DUO ACT:/i);
+    assert.doesNotMatch(prompt, /\b(doggy|mid-sex|missionary)\b/i);
+    // Regression: never force upright-only — that froze RELAXING as standing plates.
+    assert.doesNotMatch(prompt, /upright lean\/sit\/walk only|upright travel pose/i);
+    assert.match(prompt, /relaxing\/reclining on a towel|match the beat stance/i);
+    assert.match(prompt, /RELAXING =|lying or deeply reclined|hips and back on/i);
+  });
+
+  it('ensureDaySlotsMatchMood rerolls mid-sex boards under suggestive and vacation', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'dark bedroom with a single warm lamp — bare nightstand only',
+      sceneHints:
+        'bent over the foot of the bed from behind when a partner slips — partner still in frame mid-doggy',
+    }));
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const suggestive = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'suggestive',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(suggestive.changed, true);
+    for (const slot of suggestive.slots) {
+      assert.doesNotMatch(slot.sceneHints ?? '', /mid-doggy|partner|mid-sex/i);
+    }
+    i = 0;
+    const vacation = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'vacation',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(vacation.changed, true);
+    for (const slot of vacation.slots) {
+      assert.doesNotMatch(slot.sceneHints ?? '', /mid-doggy|partner|mid-sex/i);
+    }
+  });
+
+  it('ensureDaySlotsMatchMood rerolls everyday boards under suggestive', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'bookstore cafe with notebooks on the table',
+      sceneHints: 'reading a book at the counter with a tote bag',
+    }));
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'suggestive',
+      random: () => 0.2,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      assert.ok(
+        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints ?? ''),
+        `expected suggestive beat, got: ${slot.sceneHints}`
+      );
+      assert.doesNotMatch(slot.sceneHints ?? '', /reading a book|tote bag/i);
+    }
+  });
+
+  it('ensureDaySlotsMatchMood rerolls vacation pier/scooter boards under suggestive', () => {
+    const stale = DEFAULT_DAY_SLOTS.map((slot, index) => ({
+      ...slot,
+      location:
+        index % 2 === 0
+          ? 'sunny fishing pier with bait shops and bright afternoon water'
+          : 'sunlit cobblestone street with café awnings and morning delivery bikes',
+      sceneHints:
+        index % 2 === 0
+          ? 'MID-STRIDE along a wooden pier with an ice-cream cone — walking mid-step one foot ahead, sundress, ocean breeze, gulls overhead'
+          : 'SEATED on a scooter saddle — one foot on the peg, looking back over a shoulder at the street',
+    }));
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'suggestive',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      assert.doesNotMatch(slot.location ?? '', /fishing pier|cobblestone street|delivery bikes/i);
+      assert.doesNotMatch(slot.sceneHints ?? '', /MID-STRIDE along a wooden pier|SEATED on a scooter/i);
+      assert.ok(
+        DAY_SLOT_SUGGESTIVE_BEAT_PRESETS[dayPartOf(slot.id)].includes(slot.sceneHints ?? '') ||
+          /lingerie|unzip|dress|robe|charged|hip cocked|looking back/i.test(slot.sceneHints ?? ''),
+        `expected suggestive heat beat, got: ${slot.sceneHints}`
+      );
+    }
+  });
+
+  it('diversifyDaySlotScenes mixes intimate beats when dayMood is intimate', () => {
+    let i = 0;
+    const sequence = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
+    const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      forceLocations: true,
+      forceBeats: true,
+      dayMood: 'intimate',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    const beats = slots.map(s => s.sceneHints ?? '').join(' ');
+    assert.match(beats, /sex|missionary|bent over|wall|oral|spoon|masturbat/i);
+  });
+
+  it('diversifyDaySlotScenes mixes raunchy beats when dayMood is raunchy', () => {
+    let i = 0;
+    const sequence = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45];
+    const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      forceLocations: true,
+      forceBeats: true,
+      dayMood: 'raunchy',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    const beats = slots.map(s => s.sceneHints ?? '').join(' ');
+    assert.match(beats, /wardrobe|flash|slapstick|nip\s*slip|malfunction|comedy|caught naked|masturbat|naked|laughing|gag/i);
+  });
+
+  it('buildDaySlotPrompt intimate mood adds MOOD and partner lock', () => {
+    const slot = {
+      ...DEFAULT_DAY_SLOTS[1]!,
+      sceneHints: 'bent over a desk from behind with a partner',
+    };
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: intimate/i);
+    assert.match(prompt, /PARTNERS:/i);
+    assert.match(prompt, /clothes are now gone|bare skin only/i);
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+  });
+
+  it('buildDaySlotPrompt raunchy mood adds comedy MOOD and partner lock', () => {
+    const slot = {
+      ...DEFAULT_DAY_SLOTS[1]!,
+      sceneHints: 'bent over a desk mid-sex when the chair rolls away and both scramble laughing',
+    };
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: raunchy/i);
+    assert.match(prompt, /PARTNERS:/i);
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+  });
+
+  it('buildDaySlotPrompt intimate solo masturbation keeps one-adult lock', () => {
+    const slot = {
+      ...DEFAULT_DAY_SLOTS[3]!,
+      sceneHints: 'solo masturbation on the bed edge under a lamp',
+    };
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'intimate',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: intimate/i);
+    assert.match(prompt, /SOLO SUBJECT \(mandatory\)/i);
+    assert.doesNotMatch(prompt, /PARTNERS:/i);
+  });
+
+  it('normalizeDayMood accepts raunchy', () => {
+    assert.equal(normalizeDayMood('raunchy'), 'raunchy');
+    assert.equal(normalizeDayMood('intimate'), 'intimate');
+    assert.equal(isDayAdultMood('raunchy'), true);
+    assert.equal(isDayAdultMood('intimate'), true);
+    assert.equal(isDayAdultMood('suggestive'), false);
+    assert.equal(isDayHeatMood('suggestive'), true);
+    assert.equal(isDayHeatMood('intimate'), true);
+    assert.equal(isDayHeatMood('everyday'), false);
+  });
+
+  it('normalizeDayMood accepts sport as heat (not adult)', () => {
+    assert.equal(normalizeDayMood('sport'), 'sport');
+    assert.equal(isDayAdultMood('sport'), false);
+    assert.equal(isDayHeatMood('sport'), true);
+  });
+
+  it('normalizeDayMood accepts vacation as heat (not adult)', () => {
+    assert.equal(normalizeDayMood('vacation'), 'vacation');
+    assert.equal(isDayAdultMood('vacation'), false);
+    assert.equal(isDayHeatMood('vacation'), true);
+    assert.equal(dayMoodReplacesKeepOutfit('vacation'), false);
+  });
+
+  it('diversifyDaySlotScenes picks vacation beats/settings by daypart', async () => {
+    const { DAY_SLOT_VACATION_BEAT_PRESETS, DAY_SLOT_VACATION_SETTING_PRESETS } = await import(
+      './vacation'
+    );
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    for (let trial = 0; trial < 8; trial++) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceLocations: true,
+        forceBeats: true,
+        dayMood: 'vacation',
+        random: () => sequence[i++ % sequence.length]!,
+      });
+      for (const slot of slots) {
+        const beat = slot.sceneHints ?? '';
+        const setting = slot.location ?? '';
+        assert.ok(
+          DAY_SLOT_VACATION_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
+          `expected vacation beat for ${slot.id}, got: ${beat}`
+        );
+        assert.ok(
+          DAY_SLOT_VACATION_SETTING_PRESETS[dayPartOf(slot.id)].includes(setting),
+          `expected vacation setting for ${slot.id}, got: ${setting}`
+        );
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
+      }
+    }
+  });
+
+  it('buildDaySlotPrompt vacation beat owns travel pose and keeps outfit', () => {
+    const sceneHints =
+      'RELAXING on a beach towel with a sunhat over her face — body lying on the towel, knees drawn up, sunscreen bottle beside her, morning breeze';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunny beach near the waterline with morning light',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'vacation',
+    });
+    assert.match(prompt, /MOOD: vacation travel day/i);
+    assert.match(prompt, /POSE FIRST:.*RELAXING|POSE FIRST:.*LYING DOWN|POSE FIRST: mandatory vacation/i);
+    assert.match(prompt, /camera: travel medium/i);
+    assert.match(prompt, /SETTING \(venue\/lighting only/i);
+    assert.match(prompt, /POSE LOCK:|standing try-on|discard that standing/i);
+    assert.match(
+      prompt,
+      /standing try-on plate|aggressively refactor into the beat pose|standing plate/i
+    );
+    assert.doesNotMatch(prompt, /upright lean\/sit\/walk only|upright travel pose/i);
+    assert.match(prompt, /RELAXING =|lying or deeply reclined|body ON the towel/i);
+    assert.doesNotMatch(prompt, /SPORT KIT|ATHLETIC KIT ONLY/i);
+    assert.doesNotMatch(prompt, /\b(doggy|mid-sex|missionary)\b/i);
+    assert.match(prompt, /keep the clothing from Image 1|outfit continuity|DAY_KEEP|keep facial likeness only for identity; keep the clothing|keep this exact woman from Image 1/i);
+    assert.doesNotMatch(prompt, /mandatory new body pose:.*Also follow the beat/i);
+    const poseIdx = prompt.indexOf('POSE FIRST:');
+    const settingIdx = prompt.indexOf('SETTING (venue/lighting only');
+    assert.ok(poseIdx >= 0 && settingIdx > poseIdx, 'pose should precede setting');
+  });
+
+  it('buildDaySlotPrompt Lightning vacation without pose guide sends the short recipe too', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'night balcony over the sea with string lights',
+        sceneHints:
+          'WAVING from a water-taxi rail — one arm high overhead mid-wave, sundress hem lifting',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: false,
+      dayMood: 'vacation',
+      model: 'qwen-image-edit-2511-lightning-8',
+    });
+    // Edit 2511 uses the short recipes for every Day still, pose map or not (live 2026-10-01:
+    // no-map Everyday sat on the bench / lay on the blanket as written; the brief used a chair).
+    assert.match(prompt, /^SCENE: she is in the night balcony over the sea with string lights/);
+    assert.match(prompt, /Vacation photo: One woman alone on vacation\. She stands waving, one arm raised high overhead/);
+    assert.match(prompt, /Keep her face from the first image\./);
+    assert.doesNotMatch(prompt, /pose map|Image 3|IDENTITY CRITICAL/);
+    assert.ok(prompt.length < 900, String(prompt.length));
+  });
+
+  it('ensureDaySlotsMatchMood rerolls office boards under vacation', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'an office desk with a day planner and spreadsheet printouts',
+      sceneHints: 'standing at the cubicle with a clipboard',
+    }));
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'vacation',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      assert.doesNotMatch(slot.location ?? '', /office|grocery|bookstore|cubicle/i);
+      assert.match(
+        slot.sceneHints ?? '',
+        /hotel|pool|beach|market|rooftop|café|cafe|scooter|balcony|suitcase|boat|harbor|sundress|lounge|sand|ferry|resort|terrace|museum|gelato|boardwalk|plaza|espresso|SEATED|MID-STRIDE|RECLINING|RELAXING|DANCING|CLIMBING|WAVING|PERCHED|KICKING|SWIMMING|PEDALING|TOSSING|JUMPING|REACHING|PADDLING|STRETCHING|bike|surf|volleyball|kayak/i
+      );
+    }
+  });
+
+  it('diversifyDaySlotScenes picks sport beats/settings by daypart', async () => {
+    const { DAY_SLOT_SPORT_BEAT_PRESETS, DAY_SLOT_SPORT_SETTING_PRESETS } = await import(
+      './sport'
+    );
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    for (let trial = 0; trial < 8; trial++) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceLocations: true,
+        forceBeats: true,
+        dayMood: 'sport',
+        random: () => sequence[i++ % sequence.length]!,
+      });
+      for (const slot of slots) {
+        const beat = slot.sceneHints ?? '';
+        const setting = slot.location ?? '';
+        assert.ok(
+          DAY_SLOT_SPORT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
+          `expected sport beat for ${slot.id}, got: ${beat}`
+        );
+        assert.ok(
+          DAY_SLOT_SPORT_SETTING_PRESETS[dayPartOf(slot.id)].includes(setting),
+          `expected sport setting for ${slot.id}, got: ${setting}`
+        );
+        assert.ok(!DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), `everyday beat leaked: ${beat}`);
+      }
+    }
+  });
+
+  it('buildDaySlotPrompt sport beat owns athletic pose and kit lock', () => {
+    const sceneHints =
+      'mid-stride sprint drive on the track — running athletic action in proper running kit and sport footwear, mid-play on a running venue, Cast alone, never a sundress or soft fashion pin-up, never invent a second sport';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'an outdoor running path at sunrise',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'sport',
+    });
+    assert.match(prompt, /MOOD: sport still/i);
+    assert.match(prompt, /POSE FIRST: mandatory athletic body pose and sport action from the beat only/i);
+    assert.match(prompt, /SPORT KIT/i);
+    assert.match(prompt, /ATHLETIC KIT ONLY|discard every Image 1 garment|use FACE only|face\/body identity only/i);
+    assert.match(prompt, /discard Image 1.*dress|sundress|floral|ATHLETIC KIT ONLY/i);
+    assert.doesNotMatch(prompt, /outfit continuity: stay in/i);
+    assert.doesNotMatch(prompt, /keep the clothing from Image 1/i);
+    assert.match(prompt, /SETTING \(venue\/lighting only/i);
+    assert.doesNotMatch(prompt, /mandatory new body pose:.*Also follow the beat/i);
+    const poseIdx = prompt.indexOf('POSE FIRST:');
+    const settingIdx = prompt.indexOf('SETTING (venue/lighting only');
+    assert.ok(poseIdx >= 0 && settingIdx > poseIdx, 'pose should precede setting');
+  });
+
+  it('ensureDaySlotsMatchMood rerolls beach boards under sport', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'a rocky beach shoreline at night with city lights across the water',
+      sceneHints: 'standing barefoot by the rocks in a floral sundress',
+    }));
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'sport',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      assert.doesNotMatch(slot.location ?? '', /beach|shoreline|parking/i);
+      assert.match(slot.sceneHints ?? '', /athletic action|mid-play|kit/i);
+    }
+  });
+
+  it('ensureDaySlotsMatchMood rerolls pier/beach boards under raunchy solo', () => {
+    const stale = DEFAULT_DAY_SLOTS.map((slot, index) =>
+      index === 0
+        ? {
+            ...slot,
+            location: 'sunset pier railing with long shadows and cool wind',
+            sceneHints:
+              'solo fingering naked against the kitchen sink — back arched hard, both hands between her thighs, Cast alone fully nude',
+          }
+        : { ...slot }
+    );
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: stale[0]!,
+        dayMood: 'raunchy',
+        intimateMix: 'solo',
+      }),
+      false
+    );
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    assert.doesNotMatch(slots[0]!.location ?? '', /pier|beach|boardwalk|ocean|\bsand\b/i);
+    assert.match(slots[0]!.location ?? '', /bedroom|hotel|bathroom|apartment|sheets|lamp/i);
+  });
+
+  it('resolveDayAdultIndoorSetting replaces outdoor nouns with heat bedroom presets', () => {
+    assert.match(
+      resolveDayAdultIndoorSetting({
+        setting: 'riverside boardwalk with bikes and midday glare on the water',
+        slotId: 'afternoon',
+      }),
+      /bedroom|hotel|sheets|lamp|blinds/i
+    );
+    assert.doesNotMatch(
+      resolveDayAdultIndoorSetting({
+        setting: 'moonlit bedroom with soft city lights through the window',
+        slotId: 'night',
+      }),
+      /city lights/i
+    );
+    assert.doesNotMatch(
+      resolveDayAdultIndoorSetting({
+        setting: 'sunlit bedroom with rumpled sheets and an open window',
+        slotId: 'morning',
+      }),
+      /open window/i
+    );
+    assert.match(
+      resolveDayAdultIndoorSetting({
+        setting: 'hotel room with white sheets and drawn curtains — lamp only, opaque walls',
+        slotId: 'afternoon',
+      }),
+      /hotel room with white sheets/i
+    );
+    assert.match(sanitizeDayAdultIndoorSetting('bedroom with an open window'), /closed blinds/i);
+  });
+
+  it('buildDayAdultBeatPoseLock locks all-fours doggy and wall vs softcore kneel', () => {
+    const allFours = buildDayAdultBeatPoseLock(
+      'alone on all fours naked on the bed looking back over a shoulder — hips high',
+      'solo'
+    );
+    assert.match(allFours ?? '', /POSE LOCK: ALL FOURS/i);
+    assert.match(allFours ?? '', /never kneeling upright facing the lens/i);
+
+    const doggy = buildDayAdultBeatPoseLock(
+      'bent over the foot of the bed from behind — partner still in frame mid-doggy',
+      'duo'
+    );
+    assert.match(doggy ?? '', /POSE LOCK: DOGGY/i);
+    assert.match(doggy ?? '', /never cowgirl astride facing the lens/i);
+
+    const wall = buildDayAdultBeatPoseLock(
+      'against the bedroom wall mid-sex with a partner when the smoke alarm goes off',
+      'duo'
+    );
+    assert.match(wall ?? '', /POSE LOCK: STANDING WALL PRESS/i);
+    assert.match(wall ?? '', /never cowgirl on the bed|feet on the floor/i);
+
+    assert.equal(buildDayAdultBeatPoseLock('missionary under neon', 'duo'), null);
+  });
+
+  it('buildDaySlotPrompt raunchy all-fours embeds POSE LOCK and bans ocean window', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds fully drawn and warm lamp light — opaque walls only',
+        sceneHints:
+          'alone on all fours naked on the bed looking back over a shoulder — hips high, both hands reaching under between her thighs fingering her vulva hard, afternoon light, one adult only, fully nude',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /POSE LOCK: ALL FOURS/i);
+    assert.match(prompt, /ocean through a window|coastal vista|never invent beach|glass balcony/i);
+    assert.doesNotMatch(prompt, /open window/i);
+  });
+
+  it('resolveDayAdultIndoorSetting rejects afternoon-sun hotel that summons ocean vista', () => {
+    assert.doesNotMatch(
+      resolveDayAdultIndoorSetting({
+        setting: 'hotel room with white sheets and afternoon sun',
+        slotId: 'afternoon',
+      }),
+      /afternoon sun/i
+    );
+  });
+
+  it('daySlotSceneSummary joins setting and beat', async () => {
+    const { daySlotSceneSummary } = await import('./planner');
+    assert.equal(
+      daySlotSceneSummary({
+        location: 'cozy living-room couch',
+        sceneHints: 'reading a book',
+      }),
+      'cozy living-room couch · reading a book'
+    );
+    assert.match(
+      daySlotSceneSummary(
+        {
+          location: 'a'.repeat(80),
+          sceneHints: 'b'.repeat(40),
+        },
+        40
+      ),
+      /…$/
+    );
+  });
+
+  it('buildDaySlotPrompt poseGuide respects anime realism mode', () => {
+    const slot = DEFAULT_DAY_SLOTS[1]!;
+    const prompt = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      realismMode: 'anime',
+    });
+    assert.match(prompt, /finished anime\/illustration scene/i);
+    assert.doesNotMatch(prompt, /photorealistic live-action photograph/i);
+  });
+
+  it('normalizeDayIntimateMix defaults to mixed', () => {
+    assert.equal(normalizeDayIntimateMix('solo'), 'solo');
+    assert.equal(normalizeDayIntimateMix('duo'), 'duo');
+    assert.equal(normalizeDayIntimateMix('mixed'), 'mixed');
+    assert.equal(normalizeDayIntimateMix(''), 'mixed');
+    assert.equal(normalizeDayIntimateMix(null), 'mixed');
+    assert.equal(normalizeDayIntimateMix('invalid'), 'mixed');
+  });
+
+  it('isDayIntimateSoloBeat classifies solo intimate lines', () => {
+    assert.equal(isDayIntimateSoloBeat('solo masturbation on the bed edge'), true);
+    assert.equal(isDayIntimateSoloBeat('alone on the bed touching herself'), true);
+    assert.equal(
+      isDayIntimateSoloBeat('solo kneeling on the sheets after dark, self-pleasure, soft lamp'),
+      true
+    );
+    assert.equal(isDayIntimateSoloBeat('hands on her own body at dusk'), true);
+    assert.equal(isDayIntimateSoloBeat('missionary on a rumpled bed with afternoon light'), false);
+    assert.equal(isDayIntimateSoloBeat('bent over a desk from behind with a partner'), false);
+  });
+
+  it('intimateBeatsForMix solo covers every masturbation stance kind', () => {
+    const kinds = new Set<string>();
+    for (const slotId of ['morning', 'afternoon', 'evening', 'night'] as const) {
+      for (const beat of intimateBeatsForMix(slotId, 'solo')) {
+        kinds.add(resolveSoloMasturbationPoseKind(beat));
+      }
+    }
+    for (const kind of [
+      'on_back',
+      'side_lying',
+      'prone',
+      'kneeling',
+      'all_fours',
+      'standing',
+      'lean',
+      'seated',
+    ]) {
+      assert.ok(kinds.has(kind), `missing solo masturbation Image 3 kind: ${kind}`);
+    }
+  });
+
+  it('intimateBeatsForMix filters solo duo and mixed pools', () => {
+    const morning = DAY_SLOT_INTIMATE_BEAT_PRESETS.morning;
+    const solo = intimateBeatsForMix('morning', 'solo');
+    const duo = intimateBeatsForMix('morning', 'duo');
+    assert.equal(intimateBeatsForMix('morning', 'mixed').length, morning.length);
+    assert.ok(solo.length > 0);
+    assert.ok(duo.length > 0);
+    assert.equal(solo.length + duo.length, morning.length);
+    assert.ok(solo.every(isDayIntimateSoloBeat));
+    assert.ok(duo.every(beat => !isDayIntimateSoloBeat(beat)));
+  });
+
+  it('diversifyDaySlotScenes intimateMix solo only produces solo-ish beats', () => {
+    let i = 0;
+    const sequence = Array.from({ length: 32 }, (_, n) => (n % 10) / 10);
+    const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      forceLocations: true,
+      forceBeats: true,
+      dayMood: 'intimate',
+      intimateMix: 'solo',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    for (const slot of slots) {
+      const beat = slot.sceneHints ?? '';
+      const fromIntimatePool = DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat);
+      if (fromIntimatePool) {
+        assert.equal(isDayIntimateSoloBeat(beat), true, `expected solo beat, got: ${beat}`);
+      }
+    }
+  });
+
+  it('diversifyDaySlotScenes intimateMix duo never picks everyday solo beats', () => {
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    for (let trial = 0; trial < 20; trial++) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceLocations: true,
+        forceBeats: true,
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+        random: () => sequence[i++ % sequence.length]!,
+      });
+      for (const slot of slots) {
+        const beat = slot.sceneHints ?? '';
+        assert.equal(
+          DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
+          false,
+          `everyday beat leaked into duo: ${beat}`
+        );
+        assert.equal(
+          isDayIntimateSoloBeat(beat),
+          false,
+          `solo intimate beat leaked into duo: ${beat}`
+        );
+        assert.ok(
+          DAY_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat),
+          `expected intimate duo beat, got: ${beat}`
+        );
+      }
+    }
+  });
+
+  it('buildDaySlotPrompt intimate duo never emits SOLO SUBJECT on partner beats', () => {
+    for (const sceneHints of [
+      'straddling a partner on a kitchen chair, morning light',
+      'undressing in the bedroom doorway before pulling a partner close',
+      'bent over a desk from behind with a partner gripping her hips',
+    ]) {
+      const prompt = buildDaySlotPrompt({
+        slot: { ...DEFAULT_DAY_SLOTS[0]!, sceneHints },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+        omitGarment: true,
+      });
+      assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i, sceneHints);
+      assert.match(prompt, /PARTNERS:/i, sceneHints);
+    }
+  });
+
+  it('buildDaySlotPrompt intimate beat does not inject everyday grocery/book baselines', () => {
+    const sceneHints =
+      'oral sex: partner kneeling between her thighs, mouth on her vulva, both hands on her thighs';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds half-drawn',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /mandatory body pose and sex\/action from the beat only/i);
+    assert.match(prompt, /oral sex/i);
+    assert.doesNotMatch(prompt, /mandatory new body pose:/i);
+    assert.doesNotMatch(prompt, /carrying two grocery bags|park bench with a book|menu held open/i);
+    assert.match(prompt, /exactly TWO adults|two-adult framing/i);
+    assert.match(prompt, /Discard Image 1|Discard every garment|ZERO fabric|use FACE only|face identity only|clothes are now gone|bare skin only|Image 1 fabric is invisible/i);
+    assert.doesNotMatch(prompt, /\b(beige lingerie|nude-tone bra|tan bikini|bra cups|panties-only)\b/i);
+    assert.doesNotMatch(prompt, /no second person in frame/i);
+  });
+
+  it('raunchyBeatsForMix splits solo vs duo comedy lines', () => {
+    const morning = DAY_SLOT_RAUNCHY_BEAT_PRESETS.morning;
+    const solo = raunchyBeatsForMix('morning', 'solo');
+    const duo = raunchyBeatsForMix('morning', 'duo');
+    assert.ok(solo.length > 0);
+    assert.ok(duo.length > 0);
+    assert.equal(solo.length + duo.length, morning.length);
+    assert.ok(solo.every(isDayRaunchySoloBeat));
+    assert.ok(duo.every(beat => !isDayRaunchySoloBeat(beat)));
+  });
+
+  it('diversifyDaySlotScenes raunchy + solo mix only produces solo-ish gags', () => {
+    let i = 0;
+    const sequence = Array.from({ length: 32 }, (_, n) => (n % 10) / 10);
+    const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+      forceLocations: true,
+      forceBeats: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    for (const slot of slots) {
+      const beat = slot.sceneHints ?? '';
+      const fromRaunchyPool = DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat);
+      if (fromRaunchyPool) {
+        assert.equal(isDayRaunchySoloBeat(beat), true, `expected solo raunchy beat, got: ${beat}`);
+      }
+    }
+  });
+
+  it('dayQueueBlockReason returns user-facing block strings', () => {
+    assert.equal(
+      dayQueueBlockReason({ hasCharacter: false, hasPlate: true }),
+      'Pick a Cast character in Setup first.'
+    );
+    assert.equal(
+      dayQueueBlockReason({ hasCharacter: true, hasPlate: false }),
+      'Add a look plate on Cast (or Keep a try-on in Outfit) before Queue day.'
+    );
+    assert.equal(
+      dayQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: true,
+        isolateSubject: true,
+        isolatePending: true,
+      }),
+      'Wait for plate isolate on white to finish.'
+    );
+    assert.equal(
+      dayQueueBlockReason({
+        hasCharacter: true,
+        hasPlate: true,
+        isolatePending: true,
+      }),
+      null
+    );
+    assert.equal(dayQueueBlockReason({ hasCharacter: true, hasPlate: true }), null);
+  });
+
+  it('daySessionStatusLine names plate · mood · progress', () => {
+    assert.match(
+      daySessionStatusLine({
+        hasPlate: false,
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+        completedStills: 1,
+        completedClips: 0,
+        slotTotal: 4,
+      }),
+      /No plate · intimate · duo · 1\/4 stills/
+    );
+    assert.match(
+      daySessionStatusLine({
+        hasPlate: true,
+        dayMood: 'everyday',
+        completedStills: 4,
+        completedClips: 2,
+        slotTotal: 4,
+        kitLabel: 'Linen set',
+      }),
+      /Plate ready · everyday · Linen set · 4\/4 stills · 2 clips/
+    );
+  });
+
+  it('rerollDaySlotScene changes only the named slot', () => {
+    const seeded = DEFAULT_DAY_SLOTS.map((slot, index) => ({
+      ...slot,
+      location: `custom-loc-${index}`,
+      sceneHints: `custom-beat-${index}`,
+    }));
+    let cursor = 0;
+    const random = () => [0.05, 0.15, 0.25, 0.35, 0.45, 0.55][cursor++ % 6]!;
+    const { slots, changed } = rerollDaySlotScene(seeded, 'afternoon', {
+      dayMood: 'everyday',
+      random,
+    });
+    assert.equal(changed, true);
+    assert.equal(slots[0]?.location, 'custom-loc-0');
+    assert.equal(slots[0]?.sceneHints, 'custom-beat-0');
+    assert.equal(slots[2]?.location, 'custom-loc-2');
+    assert.equal(slots[3]?.location, 'custom-loc-3');
+    assert.notEqual(slots[1]?.location, 'custom-loc-1');
+    assert.notEqual(slots[1]?.sceneHints, 'custom-beat-1');
+  });
+
+  it('daySlotPlanLabel shows empty-state hints', () => {
+    assert.equal(daySlotPlanLabel(null), 'Tap to set setting & beat');
+    assert.equal(daySlotPlanLabel({}), 'Tap to set setting & beat');
+    assert.equal(
+      daySlotPlanLabel({ location: 'sunlit kitchen', sceneHints: '' }),
+      'sunlit kitchen · Add a beat'
+    );
+    assert.equal(
+      daySlotPlanLabel({ location: '', sceneHints: 'pouring coffee' }),
+      'Add a setting · pouring coffee'
+    );
+    assert.equal(
+      daySlotPlanLabel({ location: 'kitchen', sceneHints: 'coffee run' }),
+      'kitchen · coffee run'
+    );
+  });
+
+  it('isDayRaunchySoloBeat treats roommate/partner flash as duo', () => {
+    assert.equal(
+      isDayRaunchySoloBeat(
+        'accidental flash bending to pick up laundry when a roommate opens the door — then slapstick hallway sex against the wall'
+      ),
+      false
+    );
+    assert.equal(
+      isDayRaunchySoloBeat('solo nip slip while stretching on the couch, blinds half-open'),
+      false
+    );
+    assert.equal(
+      isDayRaunchySoloBeat(
+        'solo masturbation naked on the couch — hand on her vulva, Cast alone fully nude'
+      ),
+      true
+    );
+  });
+
+  it('ensureDaySlotsMatchMood rerolls everyday notebook boards under raunchy duo', () => {
+    const stale = DEFAULT_DAY_SLOTS.map((slot, index) => ({
+      ...slot,
+      location: index === 0 ? 'bookstore aisle with warm lamps' : slot.location,
+      sceneHints:
+        index === 0
+          ? 'sitting on a park bench reading a book with a notebook open'
+          : 'solo nip slip while stretching on the couch, blinds half-open',
+    }));
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: stale[0]!,
+        dayMood: 'raunchy',
+        intimateMix: 'duo',
+      }),
+      false
+    );
+    let i = 0;
+    const sequence = Array.from({ length: 64 }, (_, n) => (n % 10) / 10);
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'raunchy',
+      intimateMix: 'duo',
+      random: () => sequence[i++ % sequence.length]!,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      const beat = slot.sceneHints ?? '';
+      assert.equal(DAY_SLOT_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), false, beat);
+      assert.equal(isDayRaunchySoloBeat(beat), false, beat);
+      assert.ok(DAY_SLOT_RAUNCHY_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), beat);
+      assert.doesNotMatch(beat, /notebook|clipboard|reading a book/i);
+    }
+  });
+
+  it('dayBeatOmitsGarmentPackshot drops Keep kit on raunchy mid-sex even with pants words', () => {
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'partner yanking her pants down mid-argument that turns into slapstick doggy-style',
+        dayMood: 'raunchy',
+        intimateMix: 'duo',
+      }),
+      true
+    );
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'solo nip slip while stretching on the couch, blinds half-open',
+        dayMood: 'raunchy',
+        intimateMix: 'solo',
+      }),
+      false
+    );
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb:
+          'solo nip slip while stretching on the couch — then she keeps going, hand between her thighs masturbating',
+        dayMood: 'raunchy',
+        intimateMix: 'solo',
+      }),
+      true
+    );
+  });
+
+  it('raunchy solo beats keep comedy props but punch with self-touch', () => {
+    for (const slotId of ['morning', 'afternoon', 'evening', 'night'] as const) {
+      const solo = raunchyBeatsForMix(slotId, 'solo');
+      assert.ok(solo.length >= 3, `${slotId} needs enough solo heat`);
+      const toyBeats = solo.filter(beat => dayBeatUsesSoloSexToy(beat));
+      assert.ok(toyBeats.length >= 1, `${slotId} needs at least one dildo beat`);
+      for (const beat of solo) {
+        assert.match(
+          beat,
+          /finger(?:ing)?|fingers?|hand between her thighs|rid(?:e|es|ing) her own hand|grinding|clit|vulva|masturbat|dildo/i,
+          `expected fingering or dildo punchline, got: ${beat}`
+        );
+        assert.match(beat, /naked|nude|fully nude/i, `expected nude lead, got: ${beat}`);
+        assert.equal(isDayRaunchySoloBeat(beat), true);
+      }
+    }
+  });
+
+  it('buildDaySlotPrompt raunchy solo dildo beat forces vaginal opening penetration', () => {
+    const sceneHints =
+      'alone on her back naked with a realistic penis-shaped silicone dildo — the tip of the penis pushed deep into her vaginal opening, shaft entering her vagina, both hands on the base thrusting deeper, Cast alone fully nude, never invent a man or second adult';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit bedroom with rumpled sheets',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /vaginal opening/i);
+    assert.match(prompt, /tip of the penis|penis-shaped/i);
+    assert.match(prompt, /SOLO TOY LOCK|never invent a man/i);
+    assert.match(prompt, /never hold the dildo upright against her belly|tip pointing at her chest/i);
+    assert.doesNotMatch(prompt, /nothing held — fingers only|nothing held between the thighs — fingers only/i);
+  });
+
+  it('buildDaySlotPrompt raunchy solo demands crude self-touch not tame flash', () => {
+    const sceneHints =
+      'solo fingering naked against the kitchen sink — back arched hard, one knee hooked on the counter, two fingers buried in her vulva, Cast alone fully nude';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: raunchy solo/i);
+    assert.match(prompt, /wild fingering|wild mid-fingering|fingers/i);
+    assert.match(prompt, /SOLO ACT:/i);
+    assert.match(prompt, /fingers on her vulva|knuckle-deep|inside her vulva|rubbing her clit|mid-self-touch/i);
+    assert.match(prompt, /inner thighs framing|claw|thigh-frame|rock-on|jazz/i);
+    assert.match(prompt, /bare skin only|clothes are now gone|ZERO fabric/i);
+    // Naming lingerie in the positive summons it on Rapid — bans stay in negatives.
+    assert.doesNotMatch(prompt, /\b(beige|lingerie|bra|panties|bikini|thong)\b/i);
+    assert.match(prompt, /fingers? (?:only|on|inside|actively|knuckle)|ANATOMY:/i);
+    assert.match(prompt, /nothing held|clothes are now gone|zero fabric/i);
+    assert.match(prompt, /never beach|No beach|indoor rumpled sheets only|strictly no beach/i);
+    assert.match(prompt, /pointing up|raised middle|raised hands|exactly two hands|continuous forearm|continues from her own forearm/i);
+    // Naming toys in the positive summons them on Rapid AIO — bans stay in negatives.
+    assert.doesNotMatch(prompt, /\b(vibrator|dildo|wand|egg vibrator|sex toy)\b/i);
+    assert.doesNotMatch(prompt, /other hand on a breast|hand on a breast/i);
+  });
+
+  it('buildDaySlotPrompt face-only nude identity invents body without stripping Image 1 clothes', () => {
+    const sceneHints =
+      'solo fingering naked on the bed — knees spread, two fingers knuckle-deep in her vulva, Cast alone fully nude';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit bedroom with rumpled sheets',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+      faceOnlyIdentity: true,
+    });
+    assert.match(prompt, /indoors at|No beach|strictly no beach|BACKGROUND MANDATORY/i);
+    assert.match(
+      prompt,
+      /Put her body into this exact pose|clothes are now gone|bare skin only|Invent the body|invent bare-skin body/i
+    );
+    assert.doesNotMatch(prompt, /IGNORE and strip every garment visible on Image 1/i);
+    assert.doesNotMatch(prompt, /skin-tone thong bikini|Change her outfit to a skin-tone/i);
+  });
+
+  it('buildDaySlotPrompt raunchy solo on Cast plate still demands bare-skin mid-act', () => {
+    const sceneHints =
+      'solo naked on the windowsill at dusk — heels planted, knees out, two fingers deep in her vulva, Cast alone fully nude';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'hotel window at dusk with city lights',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /IGNORE|ignore Image 1|body (?:proportions|shape)|ZERO fabric|Image 1 fabric is invisible|do not copy fabric/i);
+    assert.match(prompt, /ZERO fabric|bare breasts.*vulva|nipples visible|clothes are now gone|bare skin only/i);
+    assert.match(prompt, /fingers|fingering|wild mid-fingering|mid-self-touch/i);
+    assert.match(prompt, /fingers (?:deep )?in her vulva|fingers on her vulva|knuckle-deep|Put her body into this exact pose/i);
+    assert.doesNotMatch(prompt, /\b(beige|lingerie|bra|panties|bikini|thong)\b/i);
+    assert.match(prompt, /bare skin only|clothes are now gone|wild fingering|nothing held/i);
+    assert.match(prompt, /claw|thigh-frame|inner thighs framing|rock-on/i);
+    assert.doesNotMatch(prompt, /\b(vibrator|dildo|wand|sex toy)\b/i);
+  });
+
+  it('dayBeatOmitsGarmentPackshot keeps clothes on clothed moods even for a sex-layout word', () => {
+    for (const dayMood of ['everyday', 'suggestive', 'vacation', 'sport']) {
+      assert.equal(
+        dayBeatOmitsGarmentPackshot({
+          blurb: 'spooning with her boyfriend in bed under white sheets, him behind her',
+          dayMood,
+          intimateMix: 'mixed',
+        }),
+        false,
+        dayMood
+      );
+    }
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'spooning with her boyfriend in bed under white sheets, him behind her',
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+      }),
+      true
+    );
+  });
+
+  it('dayBeatOmitsGarmentPackshot always drops Keep kit on intimate duo', () => {
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'undressing in the bedroom doorway before pulling a partner close',
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+      }),
+      true
+    );
+  });
+
+  it('dayBeatOmitsGarmentPackshot always drops Keep kit on intimate solo masturbation', () => {
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'solo masturbation on the bed edge under a lamp',
+        dayMood: 'intimate',
+        intimateMix: 'solo',
+      }),
+      true
+    );
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'alone on her back touching herself, soft lamp on bare skin',
+        dayMood: 'intimate',
+        intimateMix: 'mixed',
+      }),
+      true
+    );
+  });
+
+  it('buildDaySlotPrompt intimate solo beat owns pose without soft pin-up collapse', () => {
+    const sceneHints = 'solo masturbation on the bed edge under a lamp';
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[3]!,
+        location: 'hotel bedroom with warm lamp and rumpled sheets',
+        sceneHints,
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'solo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: intimate solo/i);
+    assert.match(prompt, /FOREGROUND: empty rumpled sheets/i);
+    assert.match(prompt, /POSE FIRST: mandatory body pose and sex\/action from the beat only/i);
+    assert.match(prompt, /SETTING \(backdrop only/i);
+    assert.match(prompt, /nothing on the bed except sheets|behind the beat pose/i);
+    assert.match(prompt, /PROPS \+ FRAME:/i);
+    assert.match(prompt, /SOLO ACT:|HANDS: both hands on her own body/i);
+    assert.match(prompt, /Day still —/i);
+    assert.doesNotMatch(prompt, /Day planner still/i);
+    // Avoid summoning lined notebooks by naming them in the positive.
+    assert.doesNotMatch(prompt, /\bnever invent a (?:book|notebook|planner)\b/i);
+    assert.match(prompt, /never a soft floral-dress pin-up|never a soft fashion pin-up|use FACE only|face identity only|Discard every garment/i);
+    assert.match(prompt, /SOLO SUBJECT \(mandatory\)/i);
+    assert.doesNotMatch(prompt, /PARTNERS:/i);
+  });
+
+  it('buildDaySlotPrompt raunchy duo bans invented notebooks and demands slapstick sex', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
+        sceneHints: 'straddling a partner on a kitchen chair mid-slapstick sex, coffee cup tipping',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: raunchy duo/i);
+    assert.match(prompt, /never a tame softcore/i);
+    assert.match(prompt, /FOREGROUND:|never invent walking, grocery, reading|empty sheets/i);
+    assert.match(prompt, /PROPS \+ FRAME:/i);
+    assert.match(prompt, /PARTNERS:/i);
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+  });
+
+  it('buildDaySlotPrompt intimate duo bans books and camera-stare portraits', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds half-drawn and warm dust light',
+        sceneHints: 'missionary on a rumpled bed with afternoon light through blinds',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /MOOD: intimate duo/i);
+    assert.match(prompt, /looking at each other not the lens/i);
+    assert.match(prompt, /FOREGROUND:|bare sheets|empty bed/i);
+    assert.match(prompt, /PROPS \+ FRAME:/i);
+    assert.match(prompt, /BODIES: exactly two fully separate/i);
+    assert.match(prompt, /two pelvises|never double genitals/i);
+    assert.match(prompt, /HANDS: exactly four hands|never a floating\/ghost hand/i);
+    assert.match(prompt, /SKIN TEXTURE:|natural matte pores/i);
+    assert.match(prompt, /looking at partner not the lens/i);
+    assert.doesNotMatch(prompt, /reading a book/i);
+  });
+
+  it('buildDaySlotPrompt adult duo omit garment uses bare-skin outfit (no lingerie nouns)', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds half-drawn and warm dust light',
+        sceneHints: 'missionary on a rumpled bed with afternoon light through blinds',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /ZERO fabric|clothes are now gone|bare skin only|Image 1 fabric is invisible/i);
+    assert.match(prompt, /outfit: her clothes are now gone|outfit: bare skin only/i);
+    assert.doesNotMatch(prompt, /\b(beige lingerie|nude-tone bra|tan bikini|bra cups)\b/i);
+  });
+
+  it('ensureDaySlotsMatchMood rerolls kitchen boards under intimate duo', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'kitchen with morning light — clear counter, no office clutter',
+      sceneHints: 'straddling a partner on a kitchen chair, morning light',
+    }));
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: stale[0]!,
+        dayMood: 'intimate',
+        intimateMix: 'duo',
+      }),
+      false
+    );
+  });
+
+  it('ensureDaySlotsMatchMood rerolls book boards under intimate mixed', () => {
+    const stale = DEFAULT_DAY_SLOTS.map(slot => ({
+      ...slot,
+      location: 'independent bookstore aisle with warm lamps and crowded shelves',
+      sceneHints: 'sitting on a park bench reading a book, one leg crossed',
+    }));
+    assert.equal(
+      daySlotMatchesAdultMix({
+        slot: stale[0]!,
+        dayMood: 'intimate',
+        intimateMix: 'mixed',
+      }),
+      false
+    );
+    const { slots, changed } = ensureDaySlotsMatchMood(stale, {
+      dayMood: 'intimate',
+      intimateMix: 'mixed',
+      random: () => 0.1,
+    });
+    assert.equal(changed, true);
+    for (const slot of slots) {
+      const beat = slot.sceneHints ?? '';
+      assert.doesNotMatch(beat, /notebook|clipboard|reading a book|bookstore/i);
+    }
+  });
+
+  it('resolveDayPoseHeadcount duo is exactly two even when copy mentions a crowd', () => {
+    assert.equal(
+      resolveDayPoseHeadcount({
+        haystack: 'bent over mid-sex among the crowd at the market',
+        beat: 'bent over mid-sex when the chair rolls away',
+        dayMood: 'raunchy',
+        intimateMix: 'duo',
+      }),
+      2
+    );
+    assert.equal(
+      resolveDayPoseHeadcount({
+        haystack: 'solo nip slip on the couch',
+        beat: 'solo nip slip while stretching on the couch',
+        dayMood: 'raunchy',
+        intimateMix: 'solo',
+      }),
+      1
+    );
+  });
+
+  it('buildDaySlotPrompt intimate duo never emits SOLO SUBJECT', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[1]!,
+        location: 'apartment bedroom with blinds half-drawn and warm dust light',
+        sceneHints: 'missionary on a rumpled bed with afternoon light through blinds',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+    assert.match(prompt, /HEADCOUNT LOCK: exactly TWO adults/i);
+    assert.match(prompt, /DUO VISIBLE: partner head and torso share/i);
+    assert.match(prompt, /PARTNERS:/i);
+    assert.match(prompt, /FOREGROUND:|bare sheets|nothing open on the bed/i);
+  });
+
+  it('buildDaySlotPrompt raunchy duo locks exactly two adults and bans third faces', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[0]!,
+        location: 'sunlit bedroom with rumpled sheets and closed blinds',
+        sceneHints:
+          'bent over the foot of the bed from behind when a partner slips and face-plants laughing',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'raunchy',
+      intimateMix: 'duo',
+      omitGarment: true,
+    });
+    assert.match(prompt, /exactly TWO adults/i);
+    assert.match(prompt, /HEADCOUNT LOCK/i);
+    assert.match(prompt, /never a third face/i);
+    assert.match(prompt, /exactly four hands/i);
+    assert.match(prompt, /DUO ACT:|never Cast alone masturbating|never solo nude posing/i);
+    assert.doesNotMatch(prompt, /SOLO SUBJECT \(mandatory\)/i);
+  });
+});
+
+describe('buildDaySlotPrompt everyday posing and background', () => {
+  const slot = { id: 'morning' as const, label: 'Morning' };
+
+  it('puts the beat before the baseline pose on everyday', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: { ...slot, sceneHints: 'a quiet moment on the balcony', location: 'apartment balcony' },
+      hasPlate: true,
+      plateSource: 'keeper',
+    });
+    const poseFirst = prompt.indexOf('POSE FIRST');
+    const baseline = prompt.indexOf('Body-stance baseline only if the beat is vague');
+    assert.ok(poseFirst >= 0, 'everyday beat should lead with POSE FIRST');
+    assert.ok(baseline > poseFirst, 'baseline should trail the beat');
+    assert.match(prompt, /a quiet moment on the balcony/);
+  });
+
+  it('drops the slot baseline when the beat names its own stance', () => {
+    // Rapid AIO rendered "pausing mid-stride" as the night baseline's diner-booth sit.
+    for (const sceneHints of [
+      'pausing mid-stride to look up at a lit sign',
+      'leaning on a railing overlooking the park',
+      'waving from the balcony',
+    ]) {
+      const prompt = buildDaySlotPrompt({
+        slot: { id: 'night', label: 'Night', sceneHints, location: 'corner store' },
+        hasPlate: true,
+        plateSource: 'cast',
+      });
+      assert.match(prompt, /POSE FIRST/);
+      assert.doesNotMatch(prompt, /Body-stance baseline/, sceneHints);
+    }
+  });
+
+  it('keeps the plain baseline when the slot has no beat', () => {
+    const prompt = buildDaySlotPrompt({ slot, hasPlate: true, plateSource: 'keeper' });
+    assert.match(prompt, /mandatory new body pose/i);
+    assert.doesNotMatch(prompt, /POSE FIRST/);
+  });
+
+  it('discards the standing plate stance on Edit-2511 models only', () => {
+    const base = {
+      slot: { ...slot, sceneHints: 'stretching by the window', location: 'sunlit bedroom' },
+      hasPlate: true,
+      plateSource: 'keeper' as const,
+      poseGuide: true,
+    };
+    // Edit 2511 sends the short Day recipe (poses held 6/6 vs 0/6, live 2026-10-01), with or
+    // without a pose map — the stance locks belonged to the long brief.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({ ...base, poseGuide: false, model: 'qwen-image-edit-2511-lightning-8' }),
+      /IDENTITY CRITICAL|pose map/
+    );
+    const compact = buildDaySlotPrompt({ ...base, model: 'qwen-image-edit-2511-lightning-8' });
+    assert.match(compact, /^SCENE: she is in the sunlit bedroom/);
+    assert.match(compact, /Day photo: One woman alone\..*She wears the outfit from the first image\./);
+    assert.doesNotMatch(compact, /IDENTITY CRITICAL/);
+    assert.ok(compact.length < 900, String(compact.length));
+    // Non-sticky edit models already take the stance from Image 3.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({ ...base, model: 'qwen-rapid-aio-edit' }),
+      /IDENTITY CRITICAL: keep the SAME woman as Image 1/i
+    );
+    // No plate means there is no standing plate to discard.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({ ...base, hasPlate: false, model: 'qwen-image-edit-2511-lightning-8' }),
+      /IDENTITY CRITICAL: keep the SAME woman as Image 1/i
+    );
+  });
+
+  it('bans white reference voids as the background on everyday too', () => {
+    assert.match(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        model: 'qwen-image-edit-2509',
+      }),
+      /Never leave Image 2 or Image 3 white as the scene background/i
+    );
+    // Edit 2511 sends the short recipe: the scene leads it instead.
+    assert.match(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        model: 'qwen-image-edit-2511-lightning-8',
+      }),
+      /^SCENE: she is in the sunlit kitchen — show that place around her\./
+    );
+    // Nothing white is attached, so the ban would only add noise.
+    assert.doesNotMatch(
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints: 'pouring coffee', location: 'sunlit kitchen' },
+        hasPlate: true,
+        plateSource: 'keeper',
+      }),
+      /Never leave Image 2 or Image 3 white as the scene background/i
+    );
+  });
+
+  it('still bans white voids on the heat moods that already had it', () => {
+    for (const dayMood of ['suggestive', 'vacation', 'sport'] as const) {
+      assert.match(
+        buildDaySlotPrompt({
+          slot: { ...slot, sceneHints: 'leaning in the doorway', location: 'hotel hallway' },
+          hasPlate: true,
+          plateSource: 'keeper',
+          poseGuide: true,
+          dayMood,
+        }),
+        /Never leave Image 2 or Image 3 white as the scene background/i,
+        `${dayMood} lost its white-void ban`
+      );
+    }
+  });
+});
+
+describe('everyday pose-class spreading', () => {
+  it('classifies everyday beats by posture', () => {
+    assert.equal(dayEverydayPoseClass('sitting on the edge of the bed lacing boots'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('curled cross-legged on the couch with a mug'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('sitting in a diner booth after dark'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('crouching at a low cupboard, one knee bent'), 'CROUCH');
+    assert.equal(dayEverydayPoseClass('bending to pick up the mail inside the door'), 'CROUCH');
+    assert.equal(dayEverydayPoseClass('kneeling on the path to pet a dog'), 'KNEEL');
+    assert.equal(dayEverydayPoseClass('lying across the bed scrolling a phone'), 'LYING');
+    assert.equal(dayEverydayPoseClass('checking the phone while leaning on the sill'), 'LEANING');
+    assert.equal(dayEverydayPoseClass('walking home mid-stride under neon'), 'WALKING');
+    // Climbing, foot-up and standing-with-a-phone are their own classes (live 2026-09-29: as a
+    // walk / lean / still they came back facing the lens, standing, or seated in a booth).
+    assert.equal(dayEverydayPoseClass('climbing the stairs with a mug'), 'CLIMB');
+    assert.equal(dayEverydayPoseClass('climbing the stairs to the rooftop, one hand on the rail'), 'CLIMB');
+    assert.equal(dayEverydayPoseClass('foot up on a chair rung retying a boot'), 'FOOT_UP');
+    assert.equal(dayEverydayPoseClass('checking a phone under neon, weight on one hip'), 'STANDING');
+    assert.equal(dayEverydayPoseClass('sprawled sideways in an armchair still in the coat'), 'SEATED');
+    assert.equal(dayEverydayPoseClass('dancing alone for a beat on the patio'), 'DANCING');
+    // Standing-with-busy-arms is its own class, so it cannot be picked twice as "upright".
+    assert.equal(dayEverydayPoseClass('waving hello from the balcony'), 'GESTURE');
+    assert.equal(dayEverydayPoseClass('hands on hips surveying the kitchen'), 'GESTURE');
+    // A genuinely still stance.
+    assert.equal(dayEverydayPoseClass('hands in pockets looking down the block'), 'STILL');
+    assert.equal(dayEverydayPoseClass('arms crossed on a rooftop'), 'STILL');
+    assert.equal(dayEverydayPoseClass(''), 'STILL');
+    assert.equal(dayEverydayPoseClass(undefined), 'STILL');
+    // Lying wins over the couch's seated cue.
+    assert.equal(dayEverydayPoseClass('reclining on the couch with feet up'), 'LYING');
+  });
+
+  it('gives every daypart a broad, non-dominated spread of postures', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      const counts = new Map<string, number>();
+      for (const beat of pool) {
+        const cls = dayEverydayPoseClass(beat);
+        counts.set(cls, (counts.get(cls) ?? 0) + 1);
+      }
+      assert.ok(
+        counts.size >= 6,
+        `${slotId} only offers ${counts.size} postures: ${[...counts.keys()].join(', ')}`
+      );
+      // No single posture may dominate, or spreading has nothing to spread into.
+      for (const [cls, n] of counts) {
+        assert.ok(
+          n <= Math.ceil(pool.length * 0.4),
+          `${slotId} is ${n}/${pool.length} ${cls}`
+        );
+      }
+    }
+  });
+
+  it('draws a deliberate mannequin for every everyday beat', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      for (const beat of pool) {
+        const intent = parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 });
+        // Unmatched text falls back to a stance picked by slot index, which is how a whole Day
+        // ends up on one pose. Every beat must name something the guide recognises.
+        assert.ok(
+          intent.social !== null || intent.base !== 'stand',
+          `${slotId}: "${beat}" draws no deliberate pose`
+        );
+      }
+    }
+  });
+
+  it('never draws a sex layout for an everyday beat', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      for (const beat of pool) {
+        const intent = parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 });
+        assert.equal(intent.intimate ?? null, null, `${slotId}: "${beat}" drew an intimate layout`);
+        assert.ok(intent.people <= 1, `${slotId}: "${beat}" drew ${intent.people} figures`);
+        // hug/fight are inherently two-person layouts and have no place in a solo everyday day.
+        assert.ok(
+          intent.social !== 'hug' && intent.social !== 'fight',
+          `${slotId}: "${beat}" drew a two-person ${intent.social} layout`
+        );
+      }
+    }
+  });
+
+  it('gives each daypart several non-standing mannequins to draw', () => {
+    for (const [slotId, pool] of Object.entries(DAY_SLOT_BEAT_PRESETS)) {
+      const bases = new Set(
+        pool.map(beat => parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 }).base)
+      );
+      assert.ok(bases.size >= 5, `${slotId} only draws ${[...bases].join(', ')}`);
+      const standing = pool.filter(
+        beat => parsePoseGuideIntent(beat, 0, { allowIntimate: false, forcePeople: 1 }).base === 'stand'
+      ).length;
+      assert.ok(standing <= pool.length / 2, `${slotId} draws ${standing}/${pool.length} standing`);
+    }
+  });
+
+  it('does not hand three of four slots the same posture', () => {
+    // Deterministic LCG so a failure is reproducible.
+    let seed = 1;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    for (let run = 0; run < 200; run += 1) {
+      const { slots } = diversifyDaySlotScenes(DEFAULT_DAY_SLOTS, {
+        forceBeats: true,
+        forceLocations: true,
+        fillBeats: true,
+        random,
+      });
+      const counts = new Map<string, number>();
+      for (const slot of slots) {
+        const cls = dayEverydayPoseClass(slot.sceneHints);
+        counts.set(cls, (counts.get(cls) ?? 0) + 1);
+      }
+      const worst = Math.max(...counts.values());
+      assert.ok(
+        worst <= 2,
+        `run ${run}: ${worst} of 4 slots share one posture (${JSON.stringify([...counts])})`
+      );
+      assert.ok(counts.size >= 3, `run ${run}: only ${counts.size} distinct postures`);
+    }
+  });
+
+  it('keeps a posture the user already wrote and varies the rest', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const { slots } = diversifyDaySlotScenes(
+      DEFAULT_DAY_SLOTS.map(slot =>
+        slot.id === 'morning'
+          ? { ...slot, sceneHints: 'sitting on the edge of the bed lacing boots' }
+          : slot
+      ),
+      { fillBeats: true, random }
+    );
+    assert.equal(slots[0]?.sceneHints, 'sitting on the edge of the bed lacing boots');
+    const others = slots.slice(1).map(slot => dayEverydayPoseClass(slot.sceneHints));
+    assert.ok(!others.includes('SEATED'), `seated repeated: ${others.join(', ')}`);
+  });
+});
+
+describe('every Day beat pool draws a deliberate pose', () => {
+  // Options each pool is parsed with in the live queue path.
+  const SOLO = { allowIntimate: false as const, forcePeople: 1 };
+  const DUO = { allowIntimate: false as const, forcePeople: 2 };
+  const CLOTHED = { clothedUprightOnly: true as const, forcePeople: 1 };
+
+  const pools: Array<[string, Record<string, string[]>, Record<string, unknown>]> = [
+    ['everyday', DAY_SLOT_BEAT_PRESETS, SOLO],
+    ['companion', DAY_SLOT_COMPANION_BEAT_PRESETS, DUO],
+    ['baseline pose', DAY_SLOT_POSE_PRESETS, SOLO],
+    ['suggestive', DAY_SLOT_SUGGESTIVE_BEAT_PRESETS, CLOTHED],
+    ['vacation', DAY_SLOT_VACATION_BEAT_PRESETS, CLOTHED],
+    ['sport', DAY_SLOT_SPORT_BEAT_PRESETS, SOLO],
+  ];
+
+  it('never falls back to a stance picked by slot index', () => {
+    for (const [name, pool, opts] of pools) {
+      for (const [slot, beats] of Object.entries(pool)) {
+        for (const beat of beats) {
+          // An unmatched beat takes its base from the fallback index, so the drawn stance
+          // changes with the slot rather than with the words.
+          const atZero = parsePoseGuideIntent(beat, 0, opts).base;
+          const atOne = parsePoseGuideIntent(beat, 1, opts).base;
+          assert.equal(
+            atZero,
+            atOne,
+            `${name}/${slot}: "${beat}" matches no layout (${atZero} vs ${atOne})`
+          );
+        }
+      }
+    }
+  });
+
+  it('keeps sex layouts out of the non-adult pools, even with a companion forced', () => {
+    for (const [name, pool, opts] of pools) {
+      for (const [slot, beats] of Object.entries(pool)) {
+        for (const beat of beats) {
+          const intent = parsePoseGuideIntent(beat, 0, opts);
+          assert.equal(
+            intent.intimate ?? null,
+            null,
+            `${name}/${slot}: "${beat}" drew an intimate layout`
+          );
+        }
+      }
+    }
+  });
+
+  it('draws a companion beat from its own words rather than inventing a pair stance', () => {
+    const walking = parsePoseGuideIntent(
+      'walking home arm-in-arm under streetlights with a companion',
+      0,
+      DUO
+    );
+    assert.equal(walking.base, 'walk');
+    assert.equal(walking.people, 2);
+    const seated = parsePoseGuideIntent(
+      'seated knee-to-knee with a companion sharing a menu',
+      0,
+      DUO
+    );
+    assert.equal(seated.base, 'sit');
+    // Adult moods still get their pair layout when nothing else matches.
+    assert.equal(
+      parsePoseGuideIntent('two adults together in the dark', 0, { forcePeople: 2 }).intimate,
+      'missionary'
+    );
+  });
+
+  it('keeps a swimming beat horizontal instead of standing on the deck', () => {
+    const swim = parsePoseGuideIntent(
+      'SWIMMING freestyle mid-stroke in the resort pool — swimsuit, head turned for a breath',
+      0,
+      CLOTHED
+    );
+    assert.equal(swim.base, 'lie');
+  });
+});
+
+describe('everyday pose unlock', () => {
+  it('only unlocks when the beat needs a body the standing plate cannot give', () => {
+    // Postures the plate cannot supply.
+    for (const beat of [
+      'sitting on the edge of the bed lacing boots',
+      'lying across the bed scrolling a phone',
+      'crouching at a low cupboard',
+      'kneeling on the rug to zip a bag',
+      'leaning against a brick wall waiting',
+      'walking home mid-stride under neon',
+      'dancing alone for a beat on the patio',
+    ]) {
+      assert.equal(dayEverydayPoseNeedsBodyUnlock(beat), true, beat);
+    }
+    // Standing already — unlocking would spend identity for nothing.
+    for (const beat of [
+      'waving hello from the balcony',
+      'hands in pockets looking down the block',
+      'arms crossed on a rooftop',
+      'pouring coffee by the window',
+      '',
+    ]) {
+      assert.equal(dayEverydayPoseNeedsBodyUnlock(beat), false, beat);
+    }
+  });
+
+  it('sits between the vacation face-break cap and the standing default', () => {
+    // Vacation pairs its low cap with a face-cropped Image 1; everyday keeps the whole plate,
+    // so it must not go as loose, but must go looser than the stance-freezing default.
+    assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP > DAY_VACATION_POSE_IDENTITY_LOCK_CAP);
+    assert.ok(DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP < DAY_PLATE_IDENTITY_LOCK_CAP);
+  });
+
+  it('buildDaySlotPrompt everyday Lightning without a pose map: the short recipe names the stance', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        ...DEFAULT_DAY_SLOTS[2]!,
+        location: 'city sidewalk at night with streetlamps',
+        sceneHints: 'sitting in a diner booth, elbows on the table, looking out the window',
+      },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: false,
+      dayMood: 'everyday',
+      model: 'qwen-image-edit-2511-lightning-8',
+    });
+    assert.match(prompt, /Day photo: One woman alone\. She sits/);
+    assert.match(prompt, /Moment: sitting in a diner booth, elbows on the table, looking out the window\./);
+    assert.match(prompt, /Keep her face from the first image\./);
+    assert.doesNotMatch(prompt, /Image 3 is a|pose map|POSE FIRST/i);
+  });
+});
+
+describe('buildDaySlotPrompt names the SETTING in the first paragraph', () => {
+  const slot = {
+    id: 'evening',
+    label: 'Evening',
+    location: 'old-town plaza at golden hour with a fountain',
+    sceneHints: 'MID-STRIDE crossing a plaza with a clutch — glancing at a fountain',
+  } as const;
+  const firstLine = (prompt: string) => prompt.split('\n')[0] ?? '';
+
+  it('Cast plate path: clothed Vacation / Suggestive lead with the scene', () => {
+    for (const dayMood of ['vacation', 'suggestive'] as const) {
+      const model = 'qwen-image-edit-2511';
+      const prompt = buildDaySlotPrompt({
+        slot,
+        hasPlate: true,
+        plateSource: 'cast',
+        plateIsolated: true,
+        garmentReinforce: true,
+        poseGuide: true,
+        model,
+        dayMood,
+      });
+      assert.match(
+        firstLine(prompt),
+        /SCENE: she is in the old-town plaza at golden hour with a fountain — show that place around her\./
+      );
+    }
+    // Rapid sends the compact recipes; the scene rides in their Room / Place line.
+    const rapid = (dayMood: 'suggestive' | 'vacation') =>
+      buildDaySlotPrompt({
+        slot,
+        hasPlate: true,
+        plateSource: 'cast',
+        plateIsolated: true,
+        garmentReinforce: true,
+        poseGuide: true,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        dayMood,
+      });
+    assert.match(
+      rapid('suggestive'),
+      /^Suggestive photo:.*Room: old-town plaza at golden hour with a fountain\./
+    );
+    assert.match(rapid('vacation'), /^Vacation photo:.*Place: old-town plaza at golden hour with a fountain\./);
+  });
+
+  it('Keep plate path and face-break carry it too; everyday does not', () => {
+    const keep = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'suggestive',
+    });
+    assert.match(keep, /Room: old-town plaza.*outfit from the first image|outfit from the first image.*Room: old-town plaza/);
+    const faceBreak = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      garmentReinforce: true,
+      poseGuide: true,
+      model: 'qwen-image-edit-2511',
+      dayMood: 'vacation',
+      faceOnlyIdentity: true,
+    });
+    assert.equal(faceBreak.match(/SCENE: she is in/g)?.length, 1);
+    const everyday = buildDaySlotPrompt({
+      slot,
+      hasPlate: true,
+      plateSource: 'cast',
+      model: 'qwen-rapid-aio-edit-nsfw',
+      dayMood: 'everyday',
+    });
+    assert.doesNotMatch(everyday, /SCENE: she is in/);
+  });
+
+  it('Klein clothed duos drop the extra-person locks and dress the partner', () => {
+    const input = {
+      slot: {
+        id: 'evening' as const,
+        label: 'Evening',
+        sceneHints: 'walking arm-in-arm with her boyfriend on a city sidewalk at dusk',
+        location: 'bookstore reading nook',
+      },
+      hasPlate: true,
+      plateSource: 'cast' as const,
+      poseGuide: true,
+      poseGuideStyle: 'openpose' as const,
+      poseLeadPosition: 'left' as const,
+      allowCompanions: true,
+      dayMood: 'everyday',
+      intimateMix: 'mixed',
+    };
+    const klein = buildDaySlotPrompt({ ...input, model: 'flux-2-klein-9b-distilled' });
+    assert.match(klein, /POSE: the two people match the two OpenPose skeletons/);
+    assert.match(klein, /he has his own male face\. He wears his own plain grey sweater/);
+    assert.doesNotMatch(klein, /COMPANIONS:|Match Image 3 body positions|Image 3 is only a pose map/);
+    const rapid = buildDaySlotPrompt({ ...input, model: 'qwen-rapid-aio-edit' });
+    assert.match(rapid, /COMPANIONS:/);
+    assert.match(rapid, /Match Image 3 body positions/);
+  });
+
+  it('Klein clothed spoon beats get the compact spoon recipe', () => {
+    const prompt = buildDaySlotPrompt({
+      slot: {
+        id: 'night',
+        label: 'Night',
+        sceneHints: 'spooning with her boyfriend in bed under white sheets, him behind her',
+        location: 'bedroom after dark',
+      },
+      hasPlate: true,
+      plateSource: 'cast',
+      wardrobeLabel: 'outfit-tailored-cobalt-slip-dress',
+      allowCompanions: true,
+      dayMood: 'everyday',
+      intimateMix: 'mixed',
+      model: 'flux-2-klein-9b-distilled',
+    });
+    assert.match(prompt, /^Photo of exactly two adults lying on their sides on a bed, spooning\./);
+    assert.match(prompt, /tailored cobalt slip dress/);
+    assert.ok(prompt.length < 700);
+  });
+
+  it('mergeDaySlotStills keeps a Face finish image for its own take only', () => {
+    const gallery = [
+      { promptId: 'p1', status: 'completed', imageUrl: '/api/gallery/media/raw' },
+    ] as Parameters<typeof mergeDaySlotStills>[1];
+    const finished = mergeDaySlotStills(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'p1',
+          status: 'completed',
+          imageUrl: '/finished.png',
+          finishedUrl: '/finished.png',
+          finishedFor: 'p1',
+        },
+      ],
+      gallery
+    );
+    assert.equal(finished.stills[0]!.imageUrl, '/finished.png');
+    assert.equal(finished.changed, false);
+    // A requeued take (new prompt id) shows the gallery image, not the old finish.
+    const requeued = mergeDaySlotStills(
+      [
+        {
+          slotId: 'morning',
+          promptId: 'p1',
+          status: 'completed',
+          imageUrl: '/finished.png',
+          finishedUrl: '/finished.png',
+          finishedFor: 'p0',
+        },
+      ],
+      gallery
+    );
+    assert.equal(requeued.stills[0]!.imageUrl, '/api/gallery/media/raw');
+  });
+});
+
+describe('heat mood boards accept their own rolls', () => {
+  const ids = ['morning', 'morning-2', 'afternoon', 'afternoon-2', 'evening', 'evening-2', 'night', 'night-2'];
+  let seed = 3;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  it('never flags a freshly rolled slot as stale', () => {
+    for (const dayMood of ['suggestive', 'vacation', 'sport', 'intimate', 'raunchy'] as const) {
+      for (const allowCompanions of [false, true]) {
+        for (let round = 0; round < 20; round += 1) {
+          const { slots } = diversifyDaySlotScenes(
+            ids.map(id => ({ id, label: id })) as never,
+            { dayMood, allowCompanions, forceBeats: true, forceLocations: true, random }
+          );
+          for (const slot of slots) {
+            assert.ok(
+              daySlotMatchesAdultMix({ slot, dayMood, allowCompanions }),
+              `${dayMood}: ${slot.location} | ${slot.sceneHints}`
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it('rerolls only the stale slot, keeping what the player typed elsewhere', () => {
+    const { slots } = diversifyDaySlotScenes(ids.slice(0, 4).map(id => ({ id, label: id })) as never, {
+      dayMood: 'suggestive',
+      forceBeats: true,
+      forceLocations: true,
+      random,
+    });
+    const typed = slots.map((slot, index) =>
+      index === 1 ? { ...slot, sceneHints: 'buying groceries with a notebook list' } : slot
+    );
+    const aligned = ensureDaySlotsMatchMood(typed, { dayMood: 'suggestive', random });
+    assert.equal(aligned.changed, true);
+    for (const index of [0, 2, 3]) {
+      assert.equal(aligned.slots[index]!.sceneHints, typed[index]!.sceneHints);
+      assert.equal(aligned.slots[index]!.location, typed[index]!.location);
+    }
+    assert.notEqual(aligned.slots[1]!.sceneHints, typed[1]!.sceneHints);
+  });
+});
+
+describe('Suggestive keeps typed rooms, rerolls Vacation leftovers', () => {
+  const beat = DAY_SLOT_SUGGESTIVE_BEAT_PRESETS.evening[0]!;
+  const check = (id: string, location: string) =>
+    daySlotMatchesAdultMix({ slot: { id, label: id, sceneHints: beat, location } as never, dayMood: 'suggestive' });
+
+  it('keeps a typed hotel suite or hallway', () => {
+    assert.equal(check('evening', 'a hotel suite with a big window over the city at dusk'), true);
+    assert.equal(check('evening', 'a quiet hotel hallway with brass lamps'), true);
+  });
+
+  it('rerolls a Vacation setting even from another slot', () => {
+    assert.equal(check('morning', 'resort pool after dark with underwater lights and empty deck chairs'), false);
+    assert.equal(check('morning', 'sunny boardwalk with gelato carts and soft dune grass'), false);
+  });
+});
+
+describe('adult Mixed stays adult', () => {
+  const ids = ['morning', 'morning-2', 'afternoon', 'afternoon-2', 'evening', 'evening-2', 'night', 'night-2'];
+  let seed = 11;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  it('rolls only solo and duo adult beats on Mixed', () => {
+    for (const dayMood of ['intimate', 'raunchy'] as const) {
+      const adult = new Set(
+        ids.flatMap(id => (dayMood === 'intimate' ? intimateBeatsForMix : raunchyBeatsForMix)(id as never, 'mixed'))
+      );
+      for (let round = 0; round < 15; round += 1) {
+        const { slots } = diversifyDaySlotScenes(ids.map(id => ({ id, label: id })) as never, {
+          dayMood,
+          intimateMix: 'mixed',
+          forceBeats: true,
+          forceLocations: true,
+          random,
+        });
+        for (const slot of slots) assert.ok(adult.has(slot.sceneHints ?? ''), `${dayMood}: ${slot.sceneHints}`);
+      }
+    }
+  });
+
+  it('rerolls a leftover everyday beat but keeps a typed one', () => {
+    const everyday = { id: 'night', label: 'night', sceneHints: 'sitting cross-legged on the bed eating noodles from the carton', location: 'bedroom' };
+    const typed = { ...everyday, sceneHints: 'slow kiss on the balcony after dinner' };
+    assert.equal(daySlotMatchesAdultMix({ slot: everyday as never, dayMood: 'intimate', intimateMix: 'mixed' }), false);
+    assert.equal(daySlotMatchesAdultMix({ slot: typed as never, dayMood: 'intimate', intimateMix: 'mixed' }), true);
+  });
+});
+
+describe('buildDayProgressLightboxState with clips', () => {
+  it('shows a finished clip in place of its still', () => {
+    const state = buildDayProgressLightboxState(
+      DEFAULT_DAY_SLOTS,
+      [
+        { slotId: 'morning', status: 'completed', imageUrl: '/m.png', clipStatus: 'completed', clipUrl: '/m.webp' },
+        { slotId: 'afternoon', status: 'completed', imageUrl: '/a.png', clipStatus: 'completed', clipUrl: '/a.mp4' },
+        { slotId: 'evening', status: 'completed', imageUrl: '/e.png', clipStatus: 'running' },
+      ] as never,
+      'afternoon'
+    );
+    assert.deepEqual(state?.images, ['/m.webp', '/a.mp4', '/e.png']);
+    assert.deepEqual(state?.mediaKinds, ['image', 'video', 'image']);
+    assert.equal(state?.index, 1);
+  });
+});
+
+describe('a beat the player types', () => {
+  it('keeps Day\'s beat from before the first edit and can go back to it', async () => {
+    const { dayBeatIsTyped, typedDayBeatPatch, restoreDayBeatPatch } = await import('./planner');
+    let slot = { sceneHints: 'reading on a bench' } as {
+      sceneHints?: string;
+      sceneHintsTyped?: string;
+      sceneHintsDay?: string;
+    };
+    slot = { ...slot, ...typedDayBeatPatch(slot, 'he') };
+    slot = { ...slot, ...typedDayBeatPatch(slot, 'he fixes his bike') };
+    assert.equal(dayBeatIsTyped(slot), true);
+    assert.equal(slot.sceneHintsDay, 'reading on a bench');
+    slot = { ...slot, ...restoreDayBeatPatch(slot) };
+    assert.equal(slot.sceneHints, 'reading on a bench');
+    assert.equal(dayBeatIsTyped(slot), false);
+  });
+});
+
+describe('a same-seed redo', () => {
+  it('keeps the replaced take and can put it back', async () => {
+    const { normalizeDaySlotStills, restorePreviousDayTake } = await import('./planner');
+    const stills = normalizeDaySlotStills([
+      {
+        slotId: 'morning',
+        status: 'completed',
+        promptId: 'new',
+        imageUrl: '/new.png',
+        previousTake: { imageUrl: '/old.png', promptId: 'old' },
+      },
+    ]);
+    assert.equal(stills[0]?.previousTake?.imageUrl, '/old.png');
+    const restored = restorePreviousDayTake(stills, 'morning');
+    assert.equal(restored[0]?.imageUrl, '/old.png');
+    assert.equal(restored[0]?.promptId, 'old');
+    assert.equal(restored[0]?.previousTake, undefined);
+  });
+});
+
+describe('intimate solo beats with partners allowed (People: Mixed)', () => {
+  it('a beat that says it is solo gets no invented partner; a sex beat keeps one', async () => {
+    const { buildDaySlotPrompt, DEFAULT_DAY_SLOTS } = await import('./planner');
+    const slot = DEFAULT_DAY_SLOTS[0]!;
+    const build = (sceneHints: string) =>
+      buildDaySlotPrompt({
+        slot: { ...slot, sceneHints, location: 'bedroom with warm lamp light' },
+        characterName: 'Nora',
+        hasPlate: true,
+        dayMood: 'intimate',
+        intimateEnabled: true,
+        intimateMix: 'mixed',
+        allowCompanions: true,
+        faceOnlyIdentity: true,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        plateSource: 'cast',
+        poseGuide: true,
+      } as never);
+    const solo = build('alone kneeling at the foot of the bed masturbating, back arched — Cast alone');
+    // Live (user's renders 2026-10-03): this line put a man into solo beats 3/3.
+    assert.doesNotMatch(solo, /invent two bare-skin|one distinct partner/i);
+    assert.match(solo, /One woman alone, masturbating/);
+    const duo = build('against the bedroom wall mid-sex, night city glow');
+    assert.doesNotMatch(duo, /One woman alone, masturbating/);
+  });
+});
+
+describe('a new still clears the slot line', () => {
+  it('drops the line, tone and reply but keeps the full-frame choice', async () => {
+    const { clearDaySlotLine } = await import('./planner');
+    const slot = {
+      id: 'morning',
+      label: 'Morning',
+      line: 'Hi there.',
+      lineTone: 'excited',
+      replyLine: 'Hey!',
+      lineFullFrame: true,
+    } as unknown as Parameters<typeof clearDaySlotLine>[0];
+    const cleared = clearDaySlotLine(slot);
+    assert.equal(cleared.line, undefined);
+    assert.equal(cleared.lineTone, undefined);
+    assert.equal(cleared.replyLine, undefined);
+    assert.equal(cleared.lineFullFrame, true);
+    const plain = { id: 'noon', label: 'Noon' } as unknown as Parameters<typeof clearDaySlotLine>[0];
+    assert.equal(clearDaySlotLine(plain), plain);
+  });
+});
+
+describe('diversifyDaySlotScenes keeps a typed beat in its own place (sweep 2026-10-13)', () => {
+  const seeded = () => {
+    let seed = 11;
+    return () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  };
+  const four = (sceneHints: string) =>
+    (['morning', 'afternoon', 'evening', 'night'] as const).map(id => ({
+      id,
+      label: id,
+      location: '',
+      sceneHints: id === 'night' ? sceneHints : 'walking with purpose, natural arm swing, looking ahead',
+    }));
+
+  it('Everyday: a beat whose hour has no fitting place takes one from another hour', () => {
+    const out = diversifyDaySlotScenes(four('cooking a midnight omelette at the stove'), {
+      dayMood: 'everyday',
+      random: seeded(),
+    });
+    const night = out.slots.find(slot => slot.id === 'night')!;
+    assert.equal(night.sceneHints, 'cooking a midnight omelette at the stove');
+    assert.match(night.location ?? '', /kitchen/i);
+  });
+
+  it('Sport: a kept beat gets a venue of its own sport', () => {
+    for (let run = 0; run < 5; run += 1) {
+      const out = diversifyDaySlotScenes(
+        four('rolling a putt with quiet shoulders and steady head'),
+        { dayMood: 'sport', random: seeded() }
+      );
+      const night = out.slots.find(slot => slot.id === 'night')!;
+      assert.equal(night.sceneHints, 'rolling a putt with quiet shoulders and steady head');
+      assert.match(night.location ?? '', /green|fairway|range|golf|bunker|tee|course/i);
+    }
+  });
+
+  it('Vacation: a kept couple beat goes back to the venue it was written with', () => {
+    const beat = dayVacationDuoBeatPresetsForSlot('morning')[0]!;
+    const out = diversifyDaySlotScenes(
+      [{ id: 'morning', label: 'Morning', location: '', sceneHints: beat }],
+      { dayMood: 'vacation', allowCompanions: true, intimateMix: 'duo', random: seeded() }
+    );
+    const morning = out.slots.find(slot => slot.id === 'morning')!;
+    assert.equal(morning.sceneHints, beat);
+    assert.equal(morning.location, dayVacationSettingForBeat(beat));
+  });
+});
+
+describe('close-up angles in the Day film', () => {
+  it('cuts a still\'s close-ups in right after it, captionless and short, only while they match', () => {
+    const slots = normalizeDaySlots(DEFAULT_DAY_SLOTS).slice(0, 2);
+    const stills = [
+      {
+        slotId: slots[0]!.id,
+        status: 'completed' as const,
+        imageUrl: '/a.png',
+        angles: [
+          { kind: 'face' as const, imageUrl: '/a-face.png', for: '/a.png' },
+          { kind: 'detail' as const, imageUrl: '/old-detail.png', for: '/older.png' },
+        ],
+      },
+      { slotId: slots[1]!.id, status: 'completed' as const, imageUrl: '/b.png' },
+    ];
+    const shots = dayWatchPlaylist(stills, slots);
+    assert.deepEqual(
+      shots.map(shot => shot.url),
+      ['/a.png', '/a-face.png', '/b.png']
+    );
+    assert.equal(shots[1]!.captionless, true);
+    assert.equal(shots[1]!.holdSec, DAY_ANGLE_HOLD_SEC);
+  });
+});

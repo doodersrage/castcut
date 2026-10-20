@@ -69,7 +69,7 @@ import {
   type CastPlatePrepareOptions,
   type CastPlateSnapshot,
 } from '@/lib/cast-plate-prepare';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlateStance } from '@/hooks/usePlateStance';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting-room';
 import { playCampaignHref } from '@/lib/play-campaign';

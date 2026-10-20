@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { roleplayWatchPlaylist } from './character-film';
-import { dayWatchPlaylist } from './day-planner';
+import { dayWatchPlaylist } from './day/planner';
 import {
   applyCutShotEdits,
   captionFromBeat,

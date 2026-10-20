@@ -49,7 +49,7 @@ describe('computeMinPixelUpscaleSize', () => {
 
 describe('nude face crop framing', () => {
   it('keeps the top edge and cuts 20% off the bottom (no tank-top straps)', async () => {
-    const { DAY_NUDE_FACE_BOX } = await import('./day-nude-face-crop');
+    const { DAY_NUDE_FACE_BOX } = await import('./day/nude-face-crop');
     const face = { x: 400, y: 200, width: 200, height: 260 };
     const base = computeFaceBoxCropRect(1048, 1500, face);
     const nude = computeFaceBoxCropRect(1048, 1500, face, DAY_NUDE_FACE_BOX);

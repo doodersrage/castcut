@@ -6,10 +6,10 @@ import {
   DAY_QUALITY_PRESET_OPTIONS,
   type DayQualityPreset,
   type DayQualityPresetChoice,
-} from '@/lib/day-quality-preset';
-import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day-themes';
-import { DAY_WEATHER_OPTIONS } from '@/lib/day-weather';
-import type { DayPartnerNoun } from '@/lib/day-partner';
+} from '@/lib/day/quality-preset';
+import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day/themes';
+import { DAY_WEATHER_OPTIONS } from '@/lib/day/weather';
+import type { DayPartnerNoun } from '@/lib/day/partner';
 import {
   DAY_LENGTHS,
   DAY_MOOD_OPTIONS,
@@ -19,7 +19,7 @@ import {
   type DayIntimateMix,
   type DayLength,
   type DayMoodSetting,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 
 export type DayPlanBarProps = {
   busy?: boolean;

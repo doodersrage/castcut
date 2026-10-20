@@ -1,0 +1,1673 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { DANCE_MOVE_LIMBS, danceMoveFor } from '../dance-move';
+import {
+  countPoseGuidePeople,
+  dayPoseGuideSize,
+  drawDayPoseGuide,
+  intimateLeadPrefersSecondRole,
+  parseIntimateLayout,
+  parsePoseGuideIntent,
+  parseSocialLayout,
+  resolvePoseGuideKeyFromScene,
+  resolvePoseGuideVisualStyle,
+  resolveStoryPoseGuideKey,
+  resolveStoryPoseGuideKeyFromBeat,
+  sceneTextStatesPose,
+  synthesizeIntimateStickFigures,
+  synthesizeSceneStickFigures,
+  synthesizeStickSkeleton,
+  soloSecondHand,
+} from './pose-guide';
+
+type StickSkeletonLike = ReturnType<typeof synthesizeIntimateStickFigures>[number];
+
+describe('day-pose-guide', () => {
+  it('dayPoseGuideSize is portrait for Edit encode', () => {
+    const size = dayPoseGuideSize();
+    assert.equal(size.width, 512);
+    assert.equal(size.height, 768);
+  });
+
+  it('resolvePoseGuideVisualStyle defaults to OpenPose on every model', () => {
+    assert.equal(resolvePoseGuideVisualStyle('qwen-rapid-aio-edit'), 'openpose');
+    assert.equal(resolvePoseGuideVisualStyle('qwen-image-edit-2511-lightning-8', 'openpose'), 'openpose');
+    assert.equal(resolvePoseGuideVisualStyle(null), 'openpose');
+  });
+
+  it('legacy resolvePoseGuideVisualStyle uses gray outlines for Rapid and Edit-2511', () => {
+    const legacy = (model: string) => resolvePoseGuideVisualStyle(model, 'legacy');
+    assert.equal(legacy('qwen-rapid-aio-edit'), 'outline-gray');
+    assert.equal(legacy('qwen-rapid-aio-nsfw'), 'outline-gray');
+    assert.equal(legacy('qwen-image-edit-2511-lightning-8'), 'outline-gray');
+    assert.equal(legacy('qwen-image-edit-2511'), 'outline-gray');
+    assert.equal(legacy('qwen-image-2512-lightning-8'), 'filled');
+    assert.equal(legacy('boogu-image-edit-turbo'), 'filled');
+  });
+
+  it('resolveStoryPoseGuideKey cycles four stances', () => {
+    assert.equal(resolveStoryPoseGuideKey(0), 'morning');
+    assert.equal(resolveStoryPoseGuideKey(1), 'afternoon');
+    assert.equal(resolveStoryPoseGuideKey(2), 'evening');
+    assert.equal(resolveStoryPoseGuideKey(3), 'night');
+    assert.equal(resolveStoryPoseGuideKey(4), 'morning');
+  });
+
+  it('resolvePoseGuideKeyFromScene maps stance words from the beat', () => {
+    assert.equal(resolvePoseGuideKeyFromScene('She sits on the couch and waits.'), 'evening');
+    assert.equal(resolvePoseGuideKeyFromScene('Mid-stride down the alley'), 'afternoon');
+    assert.equal(resolvePoseGuideKeyFromScene('Reaching for the mug on the shelf'), 'morning');
+    assert.equal(resolvePoseGuideKeyFromScene('Standing in the doorway at night'), 'night');
+    assert.equal(resolvePoseGuideKeyFromScene('sit while waiting by the window'), 'evening');
+    assert.equal(resolvePoseGuideKeyFromScene('a quiet tableau', 2), 'evening');
+  });
+
+  it('resolveStoryPoseGuideKeyFromBeat prefers title/blurb over index', () => {
+    assert.equal(
+      resolveStoryPoseGuideKeyFromBeat({
+        title: 'Couch talk',
+        blurb: 'They sit knee-to-knee and whisper.',
+        storyIndex: 1,
+      }),
+      'evening'
+    );
+    assert.equal(
+      resolveStoryPoseGuideKeyFromBeat({
+        title: 'Fog',
+        blurb: 'Nothing moves.',
+        storyIndex: 1,
+      }),
+      'afternoon'
+    );
+  });
+
+  it('parsePoseGuideIntent clothedUprightOnly kills look-back / kneel / intimate duo', () => {
+    const lookBack = parsePoseGuideIntent(
+      'kneeling on the hotel bed looking back over a shoulder',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(lookBack.intimate, null);
+    assert.equal(lookBack.people, 1);
+    // Kneel flattens to sit; look-back social may remain if not kneel-primary.
+    assert.ok(lookBack.base === 'sit' || lookBack.base === 'lean' || lookBack.base === 'stand');
+
+    const seated = parsePoseGuideIntent('SEATED at a café terrace sipping morning coffee', 0, {
+      forcePeople: 1,
+      clothedUprightOnly: true,
+    });
+    assert.equal(seated.intimate, null);
+    assert.equal(seated.people, 1);
+    assert.ok(
+      seated.base === 'sit' || seated.social === 'drink',
+      `expected sit/drink, got base=${seated.base} social=${seated.social}`
+    );
+
+    const midStride = parsePoseGuideIntent(
+      'MID-STRIDE barefoot on wet sand swinging a tote',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(midStride.people, 1);
+    assert.ok(
+      midStride.base === 'walk' || midStride.social === 'carry',
+      `expected walk/carry, got base=${midStride.base} social=${midStride.social}`
+    );
+    assert.ok(midStride.stride >= 0.7, `mid-stride stride should be wide, got ${midStride.stride}`);
+    assert.equal(midStride.social, null, 'MID-STRIDE must not keep look_back/carry social');
+    assert.equal(midStride.base, 'walk');
+    // Hard mid-stride must stay wide for EVERY seedSalt — dir=-1 used to collapse to stand.
+    for (const salt of [0, 1, 2, 3, 4]) {
+      const fig = synthesizeStickSkeleton(midStride, { seedSalt: salt });
+      const span = Math.abs(fig.lAnkle.x - fig.rAnkle.x);
+      assert.ok(span >= 0.55, `MID-STRIDE ankle span must stay wide (salt ${salt}), got ${span}`);
+      assert.ok(
+        Math.abs(fig.lAnkle.y - fig.rAnkle.y) >= 0.1,
+        `MID-STRIDE needs one foot lifted (salt ${salt}), yDiff=${Math.abs(fig.lAnkle.y - fig.rAnkle.y)}`
+      );
+    }
+
+    const lookDownWalk = synthesizeSceneStickFigures(
+      'MID-STRIDE collecting shells in a straw hat — tote on one arm, looking down at wet sand sparkle',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(lookDownWalk.intent.base, 'walk');
+    const lookFig = lookDownWalk.figures[0]!;
+    assert.ok(
+      lookFig.head.y >= 0.16,
+      `looking-down mid-stride head should tip forward, got y=${lookFig.head.y}`
+    );
+    assert.ok(
+      Math.abs(lookFig.lAnkle.x - lookFig.rAnkle.x) >= 0.55,
+      `looking-down mid-stride still needs wide ankles, got ${Math.abs(lookFig.lAnkle.x - lookFig.rAnkle.x)}`
+    );
+
+    const waving = synthesizeSceneStickFigures(
+      'WAVING from a water-taxi rail at dusk — one arm high overhead mid-wave',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(waving.intent.social, 'wave');
+    assert.equal(waving.figures.length, 1);
+    const waveFig = waving.figures[0]!;
+    assert.ok(
+      Math.min(waveFig.lWrist.y, waveFig.rWrist.y) < 0.08,
+      `solo wave needs one wrist overhead, got L=${waveFig.lWrist.y} R=${waveFig.rWrist.y}`
+    );
+    assert.ok(
+      Math.abs(waveFig.lAnkle.x - waveFig.rAnkle.x) >= 0.3,
+      `solo wave needs stepped weight, ankle span=${Math.abs(waveFig.lAnkle.x - waveFig.rAnkle.x)}`
+    );
+
+    const perched = parsePoseGuideIntent(
+      'PERCHED on a pier piling with fishing line idle — sundress, toes above the water',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(perched.base, 'sit');
+
+    const sipping = parsePoseGuideIntent(
+      'SEATED at a café terrace sipping morning coffee',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(sipping.base, 'sit', 'SEATED must beat drink→stand social');
+    assert.equal(sipping.social, null);
+
+    const halfTurnWalk = parsePoseGuideIntent(
+      'MID-STRIDE barefoot on wet sand swinging a tote — sundress hem lifting, half-turned glance toward the boardwalk',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(halfTurnWalk.base, 'walk', 'MID-STRIDE must beat look_back→stand');
+    assert.equal(halfTurnWalk.social, null);
+
+    const reaching = parsePoseGuideIntent(
+      'REACHING for a volleyball at the net — one arm high',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(reaching.base, 'reach');
+
+    const relaxing = parsePoseGuideIntent(
+      'RELAXING on a beach towel with a sunhat over her face — knees drawn up, sunscreen bottle beside her',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(relaxing.base, 'lie', 'RELAXING towel must stay horizontal, not flatten to sit/stand');
+    assert.equal(relaxing.social, null);
+
+    const reclining = parsePoseGuideIntent(
+      'RECLINING under a striped beach umbrella on a towel — propped on elbows, knees drawn up',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(reclining.base, 'lie', 'RECLINING towel must stay horizontal');
+
+    const caféDeepSit = parsePoseGuideIntent(
+      'SEATED at a café terrace sipping morning coffee — hips on the chair, knees bent',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(caféDeepSit.base, 'sit');
+    const seatedFig = synthesizeStickSkeleton(caféDeepSit);
+    assert.ok(seatedFig.pelvis.y >= 0.68, `SEATED pelvis must be deep sit, got ${seatedFig.pelvis.y}`);
+
+    const dancing = synthesizeSceneStickFigures(
+      'DANCING alone on a terrace at blue hour — hips mid-sway, hands trailing her waist',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(dancing.intent.social, 'dance');
+    assert.equal(dancing.figures.length, 1);
+    // The beat's own dance move (dance-move.ts) — never the plate's arms-at-sides stand.
+    const danceFig = dancing.figures[0]!;
+    const move = DANCE_MOVE_LIMBS[danceMoveFor(dancing.intent.sceneText)];
+    assert.ok(Math.abs(danceFig.lWrist.x - move.lWrist.x) < 0.02);
+    assert.ok(Math.abs(danceFig.rAnkle.y - move.rAnkle.y) < 0.02);
+    assert.ok(
+      Math.max(danceFig.lWrist.y, danceFig.rWrist.y) < danceFig.pelvis.y - 0.1,
+      `solo dance hands must be up off her sides, got L=${danceFig.lWrist.y} R=${danceFig.rWrist.y}`
+    );
+    assert.ok(
+      Math.abs(danceFig.lAnkle.y - danceFig.rAnkle.y) >= 0.04,
+      `solo dance needs a step or a lifted foot, not both feet planted, got L=${danceFig.lAnkle.y} R=${danceFig.rAnkle.y}`
+    );
+    assert.ok(
+      Math.min(danceFig.lAnkle.y, danceFig.rAnkle.y) >= 0.45,
+      `solo dance lift must stay human (not gravity-defying), got L=${danceFig.lAnkle.y} R=${danceFig.rAnkle.y}`
+    );
+
+    const reachJog = synthesizeSceneStickFigures(
+      'REACHING for a pier railing mid-lean after a jog — evening wear light layers',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(reachJog.intent.base, 'reach', 'REACHING must not become walk from jog');
+    assert.ok(
+      Math.min(reachJog.figures[0]!.lWrist.y, reachJog.figures[0]!.rWrist.y) < 0.12,
+      'REACHING needs one wrist overhead'
+    );
+
+    const kickSurf = synthesizeSceneStickFigures(
+      'KICKING through the morning surf — sundress hem wet, arms out for balance',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(kickSurf.intent.social, 'sport_kick');
+    const kickFig = kickSurf.figures[0]!;
+    assert.ok(
+      Math.min(kickFig.lAnkle.y, kickFig.rAnkle.y) <= 0.4,
+      `KICKING needs one ankle lifted mid-kick, got L=${kickFig.lAnkle.y} R=${kickFig.rAnkle.y}`
+    );
+
+    const jumpPool = synthesizeSceneStickFigures(
+      'JUMPING mid-air off the pool ledge — swimsuit, knees tucked',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(jumpPool.intent.base, 'jump');
+    assert.ok(
+      Math.max(jumpPool.figures[0]!.lAnkle.y, jumpPool.figures[0]!.rAnkle.y) < 0.42,
+      'JUMPING ankles must stay clearly mid-air'
+    );
+    const tossBall = synthesizeSceneStickFigures(
+      'TOSSING a beach ball on the sand — sundress or swimsuit, arms raised mid-catch',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(tossBall.intent.social, 'sport_throw');
+    const tossFig = tossBall.figures[0]!;
+    assert.ok(
+      Math.min(tossFig.lWrist.y, tossFig.rWrist.y) < 0.25,
+      `TOSSING needs a cocked/high throw wrist, got L=${tossFig.lWrist.y} R=${tossFig.rWrist.y}`
+    );
+
+    const stretchPool = synthesizeSceneStickFigures(
+      'STRETCHING both arms overhead at the pool ladder — swimsuit on',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(stretchPool.intent.social, 'stretch');
+    assert.ok(
+      Math.abs(stretchPool.figures[0]!.lAnkle.x - stretchPool.figures[0]!.rAnkle.x) >= 0.35,
+      'STRETCHING needs weight-shift ankle span'
+    );
+  });
+
+  it('parsePoseGuideIntent forcePeople upgrades solo layouts to a duo wireframe', () => {
+    const soloBeat = 'solo masturbation on the bed edge under a lamp, erotic climax';
+    const solo = parsePoseGuideIntent(soloBeat, 0);
+    assert.equal(solo.people, 1);
+    assert.equal(solo.intimate, 'solo');
+
+    const forced = parsePoseGuideIntent(soloBeat, 0, {
+      forcePeople: 2,
+    });
+    assert.equal(forced.people, 2);
+    assert.equal(forced.intimate, 'missionary');
+    assert.equal(synthesizeSceneStickFigures('alone on the bed', 0, { forcePeople: 2 }).figures.length, 2);
+  });
+
+  it('countPoseGuidePeople detects duo and crowd cues', () => {
+    assert.equal(countPoseGuidePeople('Alone on the pier.'), 1);
+    assert.equal(countPoseGuidePeople('They sit knee-to-knee and whisper.'), 2);
+    assert.equal(countPoseGuidePeople('A hug with a stranger in the rain.'), 2);
+    assert.equal(countPoseGuidePeople('Argue with each other under neon.'), 2);
+    assert.equal(countPoseGuidePeople('Lost among the crowd at the market.'), 3);
+    assert.equal(countPoseGuidePeople('A messy threesome in the loft.'), 3);
+    assert.equal(countPoseGuidePeople('They fuck against the wall.'), 2);
+    assert.equal(countPoseGuidePeople('straddling a partner on a kitchen chair'), 2);
+    assert.equal(
+      countPoseGuidePeople('undressing in the bedroom doorway before pulling a partner close'),
+      2
+    );
+  });
+
+  it('parseIntimateLayout maps sex-scene stances', async () => {
+    const { parseIntimateLayout, synthesizeIntimateStickFigures, parsePoseGuideIntent } =
+      await import('./pose-guide');
+    assert.equal(parseIntimateLayout('Missionary under the sheets.'), 'missionary');
+    assert.equal(parseIntimateLayout('Mating press, legs over shoulders.'), 'mating_press');
+    assert.equal(parseIntimateLayout('Cowgirl, riding him hard.'), 'straddle');
+    assert.equal(parseIntimateLayout('Reverse cowgirl facing away.'), 'reverse_straddle');
+    // The stems take endings: these all fell through to the straddle layout.
+    assert.equal(
+      parseIntimateLayout('pulls you forward into a slow, grinding reverse straddle'),
+      'reverse_straddle'
+    );
+    assert.equal(parseIntimateLayout('reverse straddling him on the couch'), 'reverse_straddle');
+    assert.equal(parseIntimateLayout('facing away riding him'), 'reverse_straddle');
+    assert.equal(parseIntimateLayout('Bent over the desk from behind.'), 'bent');
+    assert.equal(
+      parseIntimateLayout(
+        "She's curled over a stack of ledgers in the dim archive room as he fucks her from behind."
+      ),
+      'bent'
+    );
+    const cabinetBlurb =
+      "She's slumped sideways in the steel cabinet's open drawer, thighs parted as he thrusts from behind—his hand grips her waist while the other sinks deep into her vagina.";
+    assert.equal(parseIntimateLayout(cabinetBlurb), 'bent');
+    const cabinetIntent = parsePoseGuideIntent(cabinetBlurb, 0);
+    assert.equal(cabinetIntent.intimate, 'bent');
+    assert.equal(cabinetIntent.people, 2);
+    const cabinetFigs = synthesizeIntimateStickFigures(cabinetIntent);
+    assert.equal(cabinetFigs.length, 2);
+    // Lead slumped lower than a standing desk lean; partner head stays clearly separated.
+    assert.ok(cabinetFigs[0]!.pelvis.y > 0.5, 'cabinet lead pelvis stays at drawer height');
+    assert.ok(
+      Math.hypot(
+        cabinetFigs[0]!.head.x - cabinetFigs[1]!.head.x,
+        cabinetFigs[0]!.head.y - cabinetFigs[1]!.head.y
+      ) >= 0.16,
+      'cabinet heads stay separated'
+    );
+    // Standing partner — ankles near the floor (not kneeling carpet doggy).
+    assert.ok(cabinetFigs[1]!.lAnkle.y > 0.85);
+    assert.equal(parseIntimateLayout('Prone bone, face-down sex.'), 'prone');
+    assert.equal(parseIntimateLayout('Spooning in the dark.'), 'spoon');
+    assert.equal(parseIntimateLayout('Scissoring on the floor.'), 'scissors');
+    assert.equal(parseIntimateLayout('Fucking against the wall.'), 'wall');
+    assert.equal(
+      parseIntimateLayout(
+        'She leans against the mirrored elevator wall as he presses her back, tongue on her collarbone, hand cups her throat.'
+      ),
+      'wall'
+    );
+    assert.equal(parseIntimateLayout('Rear wall press in a glass elevator with city neon.'), 'wall');
+    assert.equal(
+      parseIntimateLayout(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit."
+      ),
+      'lift'
+    );
+    const chaiseFigs = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit.",
+        0
+      )
+    );
+    assert.equal(chaiseFigs.length, 2);
+    // Dangling legs (ankles below pelvis) — not wrapped cowgirl knees above the hips.
+    assert.ok(chaiseFigs[0]!.lAnkle.y > chaiseFigs[0]!.pelvis.y + 0.2);
+    assert.equal(parseIntimateLayout('Standing sex in the shower.'), 'standing');
+    assert.equal(parseIntimateLayout('Lifted up while fucking.'), 'lift');
+    assert.equal(parseIntimateLayout('On their knees for oral.'), 'oral');
+    assert.equal(
+      parseIntimateLayout(
+        "She's kneeling on a lacquered piano bench, barefoot and back bent as he kneels beside her—his tongue laps at her inner thigh while his fingers curl around her clit."
+      ),
+      'oral'
+    );
+    const pianoOral = parsePoseGuideIntent(
+      "She's kneeling on a lacquered piano bench as he kneels beside her, tongue on her thigh, fingers on her clit.",
+      0
+    );
+    assert.equal(pianoOral.intimate, 'oral');
+    const pianoFigures = synthesizeIntimateStickFigures(pianoOral);
+    assert.equal(pianoFigures.length, 2);
+    // Receiver (first) sits higher on the bench; giver's head is lower toward the pelvis.
+    assert.ok(
+      pianoFigures[0]!.pelvis.y < pianoFigures[1]!.pelvis.y,
+      'piano-bench receiver pelvis stays above giver'
+    );
+    assert.ok(
+      pianoFigures[1]!.head.y > pianoFigures[0]!.pelvis.y - 0.12,
+      'giver head stays near receiver pelvis for oral'
+    );
+    assert.equal(
+      countPoseGuidePeople(
+        "She's kneeling on a lacquered piano bench as he kneels beside her, tongue on her thigh, fingers on her clit."
+      ),
+      2
+    );
+    assert.equal(parseIntimateLayout('Sixty-nine on the bed.'), 'sixty_nine');
+    assert.equal(parseIntimateLayout('Facesitting in the loft.'), 'facesit');
+    assert.equal(parseIntimateLayout('Sitting on his lap, lotus position.'), 'lap');
+    assert.equal(parseIntimateLayout('Kneeling naked and intimate.'), 'kneeling');
+    assert.equal(parseIntimateLayout('Afterglow in tangled sheets.'), 'afterglow');
+    assert.equal(
+      parseIntimateLayout(
+        "She lies still in the drawer's dim glow, eyes closed as he withdraws slowly—his thumb smears her clit."
+      ),
+      'afterglow'
+    );
+    assert.equal(parseIntimateLayout('Half-undressed, skin and erotic heat.'), 'undress');
+    assert.equal(parseIntimateLayout('Solo masturbation, naked pleasure.'), 'solo');
+    assert.equal(
+      parseIntimateLayout('alone on her back touching herself, soft lamp on bare skin'),
+      'solo'
+    );
+    assert.equal(
+      parseIntimateLayout('solo kneeling on the sheets after dark, self-pleasure, soft lamp'),
+      'solo'
+    );
+    assert.equal(parseIntimateLayout('They make love in the loft.'), 'generic');
+
+    const { resolveSoloMasturbationPoseKind } = await import('./pose-guide');
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone on her back masturbating'),
+      'on_back'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('solo masturbation on her side under a lamp'),
+      'side_lying'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone face-down on the bed masturbating'),
+      'prone'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('solo kneeling on the sheets masturbating'),
+      'kneeling'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone on all fours on the bed masturbating'),
+      'all_fours'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone bent over the foot of the bed masturbating'),
+      'all_fours'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('solo masturbation leaning on the bathroom sink'),
+      'lean'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone standing in the shower masturbating'),
+      'standing'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('solo masturbation standing against the hotel wall'),
+      'standing'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('solo masturbation on the couch'),
+      'seated'
+    );
+    assert.equal(
+      resolveSoloMasturbationPoseKind('alone on the bed edge masturbating'),
+      'seated'
+    );
+
+    const soloKinds = [
+      'alone on her back masturbating',
+      'solo masturbation on her side',
+      'alone face-down masturbating',
+      'solo kneeling masturbating',
+      'alone on all fours masturbating',
+      'solo masturbation leaning on the sink',
+      'alone standing in the shower masturbating',
+      'solo masturbation on the bed edge',
+    ] as const;
+    for (const beat of soloKinds) {
+      const intent = parsePoseGuideIntent(beat, 0);
+      assert.equal(intent.intimate, 'solo', beat);
+      assert.equal(intent.people, 1, beat);
+      assert.equal(synthesizeIntimateStickFigures(intent).length, 1, beat);
+    }
+
+    const soloBack = parsePoseGuideIntent(
+      'alone on her back masturbating, soft lamp on bare skin',
+      0
+    );
+    assert.equal(soloBack.intimate, 'solo');
+    assert.equal(soloBack.people, 1);
+    assert.equal(synthesizeIntimateStickFigures(soloBack).length, 1);
+
+    const soloKneel = parsePoseGuideIntent(
+      'solo kneeling on the sheets masturbating after dark, soft lamp',
+      0
+    );
+    assert.equal(soloKneel.intimate, 'solo');
+    assert.equal(synthesizeIntimateStickFigures(soloKneel).length, 1);
+    const kneelFig = synthesizeIntimateStickFigures(soloKneel)[0]!;
+    // One fingering wrist on the vulva midline; the other on her breast, where the words put it
+    // (on the hip, Rapid drew a third hand there) — never both at the vulva (a ghost pair).
+    assert.ok(
+      Math.abs(kneelFig.rWrist.x - kneelFig.pelvis.x) < 0.06,
+      'fingering wrist near pelvis midline'
+    );
+    assert.ok(
+      kneelFig.lWrist.y < kneelFig.pelvis.y - 0.15,
+      'other wrist up on her chest, away from the vulva'
+    );
+    assert.ok(kneelFig.rWrist.y > kneelFig.pelvis.y, 'fingering wrist below pelvis');
+
+    const missionary = parsePoseGuideIntent('Pinned underneath in missionary.', 0);
+    assert.equal(missionary.intimate, 'missionary');
+    assert.equal(missionary.people, 2);
+    const figures = synthesizeIntimateStickFigures(missionary);
+    assert.equal(figures.length, 2);
+    assert.ok(figures[0]!.pelvis.y > figures[1]!.pelvis.y);
+    assert.ok(
+      Math.hypot(
+        figures[0]!.head.x - figures[1]!.head.x,
+        figures[0]!.head.y - figures[1]!.head.y
+      ) >= 0.12,
+      'intimate heads stay separated enough to resist merges'
+    );
+
+    assert.equal(
+      intimateLeadPrefersSecondRole('She goes down on him, licking his cock.', 'oral'),
+      true
+    );
+    assert.equal(
+      intimateLeadPrefersSecondRole('He goes down on her, tongue on her clit.', 'oral'),
+      false
+    );
+    assert.equal(
+      intimateLeadPrefersSecondRole('She takes him from behind, doggy style.', 'bent'),
+      true
+    );
+    const sheGives = parsePoseGuideIntent(
+      'She goes down on him, kneeling and licking his cock.',
+      0
+    );
+    assert.equal(sheGives.intimate, 'oral');
+    const sheGivesFigs = synthesizeIntimateStickFigures(sheGives);
+    const defaultOral = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent('He goes down on her, tongue on her clit.', 0)
+    );
+    // Lead (index 0) should sit on the giver side when she gives oral.
+    assert.notEqual(
+      sheGivesFigs[0]!.pelvis.x.toFixed(3),
+      defaultOral[0]!.pelvis.x.toFixed(3)
+    );
+
+    const wall = parsePoseGuideIntent('Pinned against the wall mid-fuck.', 0);
+    assert.equal(wall.intimate, 'wall');
+    const wallFigs = synthesizeIntimateStickFigures(wall);
+    assert.equal(wallFigs.length, 2);
+    // Face to face, as the recipe: her back to the wall, one foot planted, the other knee raised
+    // to his hip; he stands chest to chest. Both at full standing height.
+    const [lead, partner] = wallFigs as [StickSkeletonLike, StickSkeletonLike];
+    assert.ok(lead.rAnkle.y > 0.85 && partner.lAnkle.y > 0.85 && partner.rAnkle.y > 0.85);
+    assert.ok(lead.lKnee.y < lead.pelvis.y + 0.02, 'one knee raised to hip height');
+    assert.ok(Math.abs(lead.pelvis.x - partner.pelvis.x) < 0.16, 'chest to chest');
+    // From behind (or glass): she faces the wall with her hands braced ahead of her head line.
+    const behind = synthesizeIntimateStickFigures(
+      parsePoseGuideIntent('Pinned against the wall from behind mid-fuck.', 0)
+    );
+    assert.ok(behind[0]!.lWrist.x < behind[0]!.head.x, 'hands braced on the wall ahead');
+    assert.ok(behind[1]!.pelvis.x > behind[0]!.pelvis.x, 'partner behind her');
+
+    const solo = parsePoseGuideIntent('Alone masturbating, erotic climax.', 0);
+    assert.equal(solo.intimate, 'solo');
+    assert.equal(solo.people, 1);
+    assert.equal(synthesizeIntimateStickFigures(solo).length, 1);
+
+    const trio = parsePoseGuideIntent('A messy threesome on the bed.', 0);
+    assert.equal(trio.people, 3);
+    assert.equal(synthesizeIntimateStickFigures(trio).length, 3);
+
+    // Every named layout synthesizes without throwing.
+    const layouts = [
+      'missionary',
+      'mating_press',
+      'straddle',
+      'reverse_straddle',
+      'bent',
+      'prone',
+      'spoon',
+      'scissors',
+      'standing',
+      'wall',
+      'lift',
+      'oral',
+      'sixty_nine',
+      'facesit',
+      'kneeling',
+      'lap',
+      'afterglow',
+      'undress',
+      'solo',
+      'generic',
+    ] as const;
+    for (const intimate of layouts) {
+      const drawn = synthesizeIntimateStickFigures({
+        base: 'stand',
+        armLeft: 'hold',
+        armRight: 'hold',
+        lean: 0,
+        stride: 0.3,
+        seed: 42,
+        people: intimate === 'solo' ? 1 : 2,
+        intimate,
+        label: intimate,
+      });
+      assert.ok(drawn.length >= 1, intimate);
+      assert.ok(drawn.every(fig => Number.isFinite(fig.pelvis.x)), intimate);
+    }
+  });
+
+  it('parsePoseGuideIntent + synthesizeStickSkeleton builds unique stances', () => {
+    const sit = parsePoseGuideIntent('They sit on the couch and whisper.', 0);
+    assert.equal(sit.base, 'sit');
+    const walk = parsePoseGuideIntent('Mid-stride down a rainy alley.', 0);
+    assert.equal(walk.base, 'walk');
+    const run = parsePoseGuideIntent('She sprints across the plaza.', 0);
+    assert.equal(run.base, 'run');
+    const lie = parsePoseGuideIntent('Sprawled on the floor after the fall.', 0);
+    assert.equal(lie.base, 'lie');
+
+    const a = synthesizeStickSkeleton(sit);
+    const b = synthesizeStickSkeleton(sit);
+    assert.deepEqual(a, b, 'same intent redraws the same skeleton');
+
+    const walkA = synthesizeStickSkeleton(walk);
+    const walkOther = synthesizeStickSkeleton(
+      parsePoseGuideIntent('Walking through the market stalls.', 0)
+    );
+    assert.notDeepEqual(
+      walkA.lAnkle,
+      walkOther.lAnkle,
+      'different scene text yields a different generated stance'
+    );
+    assert.ok(a.pelvis.y > walkA.pelvis.y, 'sit pelvis is lower than walk');
+    const standA = synthesizeStickSkeleton(parsePoseGuideIntent('Standing still with hands in pockets.', 0));
+    const walkSpan = Math.abs(walkA.lAnkle.x - walkA.rAnkle.x);
+    const standSpan = Math.abs(standA.lAnkle.x - standA.rAnkle.x);
+    assert.ok(
+      walkSpan > standSpan + 0.08,
+      `mid-stride ankle span (${walkSpan}) should clearly exceed stand (${standSpan})`
+    );
+  });
+
+  it('synthesizeSceneStickFigures lays out multi-person poses', () => {
+    const solo = synthesizeSceneStickFigures('Standing alone in the doorway.', 0);
+    assert.equal(solo.figures.length, 1);
+
+    const duo = synthesizeSceneStickFigures('Face to face, talking to each other.', 0);
+    assert.equal(duo.figures.length, 2);
+    assert.ok(duo.figures[0]!.pelvis.x < duo.figures[1]!.pelvis.x);
+
+    const crowd = synthesizeSceneStickFigures('Lost among the crowd at dusk.', 0);
+    assert.equal(crowd.figures.length, 3);
+  });
+
+  it('reads Story clean-rated stances without sex layouts', async () => {
+    const { resolveSceneGuidePlan } = await import('./pose-guide');
+    const pick = (text: string) => {
+      const plan = resolveSceneGuidePlan(text, 0, { openPose: true, allowIntimate: false });
+      return `${plan.openPose.poseKey}`;
+    };
+    // Sex layouts off: a wall lean stays a solo lean, a wooden spoon is not spooning.
+    assert.equal(pick('She leans against a brick wall under a streetlamp, arms folded.'), 'lean_wall:1');
+    assert.equal(
+      pick('She dances alone in the kitchen, spinning with a wooden spoon as a mic.'),
+      'dance:1'
+    );
+    assert.equal(pick('She lies on her back on the car hood staring up at the stars.'), 'lie:1');
+    assert.equal(pick('She kneels in the flower bed planting tulips.'), 'kneel:1');
+    assert.equal(pick('Stoop talk · Sitting on the front steps with lemonade, knees up.'), 'sit:1');
+    assert.equal(pick('She drives the convertible, one hand on the wheel.'), 'sit:1');
+    assert.equal(pick('She rides a bicycle down the hill, basket full of groceries.'), 'sit:1');
+    assert.equal(pick('She and her date lean in for a kiss on the rooftop.'), 'lean:2');
+    // Wardrobe, not a second person.
+    assert.equal(pick("She leans in the doorway in her boyfriend's shirt."), 'lean:1');
+    // A stated recline turns a gesture layout horizontal ("lies supine … hands behind head").
+    const hood = resolveSceneGuidePlan(
+      'She lies supine on the car hood, hands clasped behind head.',
+      0,
+      { openPose: true, allowIntimate: false }
+    );
+    assert.equal(hood.intent.base, 'lie');
+  });
+
+  it('parseSocialLayout maps hug/dance/fight/climb/phone/look-back and everyday Day stances', async () => {
+    const { parseSocialLayout, synthesizeSocialStickFigures, parsePoseGuideIntent } =
+      await import('./pose-guide');
+    assert.equal(parseSocialLayout('They hug in the rain.'), 'hug');
+    assert.equal(parseSocialLayout('A slow dance under neon.'), 'dance');
+    assert.equal(parseSocialLayout('Stretching by the window, arms overhead.'), 'stretch');
+    // The stretch layout draws a standing reach; a lying stretch must fall through to lie.
+    assert.equal(parseSocialLayout('lying on the rug mid-stretch before the day starts'), null);
+    assert.equal(parseSocialLayout('They waltz across the ballroom.'), 'dance');
+    // Intimate chaise/alcove copy mentioning "ballroom" must not become a dance wireframe.
+    assert.equal(
+      parseSocialLayout(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise."
+      ),
+      null
+    );
+    assert.equal(
+      parsePoseGuideIntent(
+        "She hangs suspended in the ballroom's shadowed alcove as he lowers her into a velvet chaise, thumb on her clit.",
+        0
+      ).intimate,
+      'lift'
+    );
+    assert.equal(parseSocialLayout('Sparring in the alley.'), 'fight');
+    assert.equal(parseSocialLayout('Climbing the fire escape.'), 'climb');
+    assert.equal(parseSocialLayout('Looking at a phone on the stoop.'), 'phone');
+    assert.equal(parseSocialLayout('Looks back over the shoulder.'), 'look_back');
+    assert.equal(parseSocialLayout('looking over a shoulder while zipping'), 'look_back');
+    assert.equal(
+      parseSocialLayout('twisting to zip a dress in a mirror — back arched'),
+      'look_back'
+    );
+    assert.equal(parseSocialLayout('Stretching arms overhead mid-yawn.'), 'stretch');
+    assert.equal(parseSocialLayout('Waving hello from the balcony.'), 'wave');
+    assert.equal(parseSocialLayout('Standing with arms crossed waiting.'), 'cross_arms');
+    assert.equal(parseSocialLayout('Pausing with hands in pockets.'), 'pockets');
+    assert.equal(parseSocialLayout('Pouring coffee, mug in hand.'), 'drink');
+    assert.equal(parseSocialLayout('Carrying a tote bag over one shoulder.'), 'carry');
+    assert.equal(parseSocialLayout('Sitting on a bench reading a book.'), 'read');
+    assert.equal(parseSocialLayout('Standing at a railing, hands on the rail.'), 'rail');
+    assert.equal(parseSocialLayout('Pointing toward a storefront across the street.'), 'point');
+    assert.equal(parseSocialLayout('Standing in the doorway.'), null);
+
+    const hug = parsePoseGuideIntent('They embrace each other tightly.', 0);
+    assert.equal(hug.social, 'hug');
+    assert.equal(hug.people, 2);
+    const hugFigs = synthesizeSocialStickFigures(hug);
+    assert.equal(hugFigs.length, 2);
+    assert.ok(Math.abs(hugFigs[0]!.pelvis.x - hugFigs[1]!.pelvis.x) < 0.2);
+
+    const climb = parsePoseGuideIntent('Climbing the ladder alone.', 0);
+    assert.equal(climb.social, 'climb');
+    assert.equal(climb.people, 1);
+    assert.equal(synthesizeSocialStickFigures(climb).length, 1);
+
+    const phone = parsePoseGuideIntent('Checks a phone while waiting.', 0);
+    assert.equal(phone.social, 'phone');
+    assert.equal(synthesizeSceneStickFigures('Checks a phone while waiting.', 0).intent.social, 'phone');
+
+    const stretch = parsePoseGuideIntent('Stretching arms overhead mid-yawn.', 0);
+    assert.equal(stretch.social, 'stretch');
+    assert.equal(stretch.people, 1);
+    const stretchFigs = synthesizeSocialStickFigures(stretch);
+    assert.equal(stretchFigs.length, 1);
+    assert.ok(stretchFigs[0]!.rWrist.y < stretchFigs[0]!.head.y + 0.02);
+
+    assert.equal(parsePoseGuideIntent('Holding a glass at a bar rail.', 0).social, 'drink');
+    assert.equal(
+      parsePoseGuideIntent('Standing at a railing watching the light, hands on the rail.', 0).social,
+      'rail'
+    );
+
+    const dance = synthesizeSceneStickFigures('Dancing together at the party.', 0);
+    assert.equal(dance.intent.social, 'dance');
+    assert.equal(dance.figures.length, 2);
+
+    const soloDance = synthesizeSceneStickFigures(
+      'DANCING alone on the patio in evening wear — hips mid-sway, hands trailing her own waist',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(soloDance.intent.social, 'dance');
+    assert.equal(soloDance.figures.length, 1, 'solo dance must not draw a ballroom pair');
+
+    const zipTwist = synthesizeSceneStickFigures(
+      'twisting to zip a dress in a mirror — back arched, looking over a shoulder, lingerie straps visible',
+      0,
+      { forcePeople: 1, clothedUprightOnly: true }
+    );
+    assert.equal(zipTwist.intent.social, 'look_back');
+    assert.equal(zipTwist.figures.length, 1);
+    const zipFig = zipTwist.figures[0]!;
+    assert.ok(
+      zipFig.lWrist.x > 0.4 && zipFig.lWrist.x < 0.6 && zipFig.rWrist.x > 0.4 && zipFig.rWrist.x < 0.6,
+      'zip hands should meet at mid-back, not hang at sides'
+    );
+
+    const fight = synthesizeSceneStickFigures('They fight in the courtyard.', 0);
+    assert.equal(fight.intent.social, 'fight');
+    assert.equal(fight.figures.length, 2);
+    assert.ok(
+      Math.abs(fight.figures[0]!.pelvis.x - fight.figures[1]!.pelvis.x) >
+        Math.abs(hugFigs[0]!.pelvis.x - hugFigs[1]!.pelvis.x)
+    );
+
+    const duoSocial = new Set(['hug', 'dance', 'fight']);
+    for (const social of [
+      'hug',
+      'dance',
+      'fight',
+      'climb',
+      'phone',
+      'look_back',
+      'wave',
+      'cross_arms',
+      'pockets',
+      'stretch',
+      'drink',
+      'carry',
+      'read',
+      'rail',
+      'point',
+      'sport_sprint',
+      'sport_yoga_warrior',
+      'sport_yoga_dog',
+      'sport_cycle',
+      'sport_swing',
+      'sport_serve',
+      'sport_forehand',
+      'sport_jump_shot',
+      'sport_kick',
+      'sport_throw',
+      'sport_lunge',
+      'sport_handstand',
+      'sport_pitch',
+      'sport_stick',
+      'sport_block',
+      'sport_hurdle',
+      'sport_slide',
+      'sport_dunk',
+      'sport_ski',
+      'sport_putt',
+      'sport_overhead',
+    ] as const) {
+      const drawn = synthesizeSocialStickFigures({
+        base: 'stand',
+        armLeft: 'hold',
+        armRight: 'hold',
+        lean: 0,
+        stride: 0.3,
+        seed: 7,
+        people: duoSocial.has(social) ? 2 : 1,
+        social,
+        label: social,
+      });
+      assert.ok(drawn.length >= 1, social);
+      assert.ok(drawn.every(fig => Number.isFinite(fig.pelvis.x)), social);
+      if (String(social).startsWith('sport_')) {
+        assert.equal(drawn.length, 1, `${social} stays solo`);
+      }
+    }
+  });
+
+  it('parseSportLayout maps Day Sport beat lines to mid-action Image 3 layouts', async () => {
+    const { parseSportLayout, parseSocialLayout, parsePoseGuideIntent, synthesizeSceneStickFigures } =
+      await import('./pose-guide');
+
+    assert.equal(
+      parseSportLayout(
+        'mid-stride sprint drive on the track — running athletic action in proper running kit and sport footwear, mid-play on a running venue, Cast alone'
+      ),
+      'sport_sprint'
+    );
+    assert.equal(
+      parseSportLayout(
+        'holding warrior two with arms extended — yoga athletic action in proper yoga kit'
+      ),
+      'sport_yoga_warrior'
+    );
+    assert.equal(
+      parseSportLayout('transitioning through downward dog with long spine — yoga athletic action'),
+      'sport_yoga_dog'
+    );
+    assert.equal(
+      parseSportLayout(
+        'sprinting out of the saddle on a road bike — cycling athletic action in proper cycling kit'
+      ),
+      'sport_cycle'
+    );
+    assert.equal(
+      parseSportLayout(
+        'elevating into a jump shot with elbow aligned — basketball athletic action'
+      ),
+      'sport_jump_shot'
+    );
+    assert.equal(
+      parseSportLayout(
+        'uncoiling into a forehand with racket head lagging — tennis athletic action'
+      ),
+      'sport_forehand'
+    );
+    assert.equal(
+      parseSportLayout(
+        'tossing into a serve with knee bend and upward extension — tennis athletic action'
+      ),
+      'sport_serve'
+    );
+    assert.equal(
+      parseSportLayout(
+        'striking the ball with full follow-through — soccer athletic action'
+      ),
+      'sport_kick'
+    );
+    assert.equal(
+      parseSportLayout(
+        'hurling a javelin with full body rotation — track and field athletic action'
+      ),
+      'sport_throw'
+    );
+    assert.equal(
+      parseSportLayout(
+        'lunging into an attack with foil extended — fencing athletic action'
+      ),
+      'sport_lunge'
+    );
+    assert.equal(
+      parseSportLayout(
+        'throwing a high roundhouse kick with hips fully rotated — martial arts athletic action'
+      ),
+      'sport_kick'
+    );
+    assert.equal(
+      parseSportLayout(
+        'blocking a strike with forearm chambered — martial arts athletic action'
+      ),
+      'sport_block'
+    );
+    assert.equal(
+      parseSportLayout(
+        'holding a handstand line on the floor exercise mat — gymnastics athletic action'
+      ),
+      'sport_handstand'
+    );
+    assert.equal(
+      parseSportLayout(
+        'winding up for a wrist shot with weight on the back skate — hockey athletic action'
+      ),
+      'sport_stick'
+    );
+    assert.equal(
+      parseSportLayout(
+        'unwinding through a driver swing with balanced finish — golf athletic action'
+      ),
+      'sport_swing'
+    );
+    assert.equal(
+      parseSportLayout(
+        'delivering a pitch from the windup with leg kick high — baseball athletic action'
+      ),
+      'sport_pitch'
+    );
+    assert.equal(
+      parseSportLayout(
+        'dynoing to a hold on an overhang with hips driving upward — climbing athletic action'
+      ),
+      'climb'
+    );
+    assert.equal(
+      parseSportLayout(
+        'clearing a hurdle with lead leg extended — running athletic action'
+      ),
+      'sport_hurdle'
+    );
+    assert.equal(
+      parseSportLayout(
+        'dunking two-handed through the rim with knees tucked — basketball athletic action'
+      ),
+      'sport_dunk'
+    );
+    assert.equal(
+      parseSportLayout(
+        'sliding into base with dirt kicking up — baseball athletic action'
+      ),
+      'sport_slide'
+    );
+    assert.equal(
+      parseSportLayout(
+        'carving through a slalom turn with snow spraying — ski athletic action'
+      ),
+      'sport_ski'
+    );
+    assert.equal(
+      parseSportLayout(
+        'rolling a putt with quiet shoulders and steady head — golf athletic action'
+      ),
+      'sport_putt'
+    );
+    assert.equal(
+      parseSportLayout(
+        'smashing an overhead with racket high and torso arched back — tennis athletic action'
+      ),
+      'sport_overhead'
+    );
+    assert.equal(
+      parseSportLayout(
+        'driving a freestyle stroke with a high elbow catch — swimming athletic action'
+      ),
+      'sport_swim'
+    );
+    assert.equal(
+      parseSportLayout(
+        'spiking the ball with a full overhead arm swing — volleyball athletic action'
+      ),
+      'sport_spike'
+    );
+    assert.equal(
+      parseSportLayout(
+        'snapping a jab with the lead hand from a tight boxing stance — boxing athletic action'
+      ),
+      'sport_box'
+    );
+    assert.equal(
+      parseSportLayout('carving down the face of a clean wave — surfing athletic action'),
+      'sport_surf'
+    );
+
+    // Martial arts must not become duo fight Image 3.
+    assert.equal(
+      parseSocialLayout(
+        'throwing a high roundhouse kick — martial arts athletic action, Cast alone'
+      ),
+      'sport_kick'
+    );
+    const martial = parsePoseGuideIntent(
+      'throwing a high roundhouse kick — martial arts athletic action, Cast alone',
+      0
+    );
+    assert.equal(martial.social, 'sport_kick');
+    assert.equal(martial.people, 1);
+
+    const sprint = synthesizeSceneStickFigures(
+      'mid-stride sprint drive — running athletic action, Cast alone',
+      0
+    );
+    assert.equal(sprint.intent.social, 'sport_sprint');
+    assert.equal(sprint.figures.length, 1);
+    assert.ok(
+      Math.abs(sprint.figures[0]!.lAnkle.x - sprint.figures[0]!.rAnkle.x) > 0.35,
+      'sprint stride should be wide'
+    );
+
+    const dog = synthesizeSceneStickFigures(
+      'transitioning through downward dog — yoga athletic action',
+      0
+    );
+    assert.equal(dog.intent.social, 'sport_yoga_dog');
+    assert.ok(dog.figures[0]!.pelvis.y < dog.figures[0]!.head.y, 'dog hips above head');
+  });
+
+  it('drawDayPoseGuide paints each Day slot without throwing', () => {
+    const ops: string[] = [];
+    const ctx = {
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      lineCap: '',
+      lineJoin: '',
+      fillRect: (...args: unknown[]) => {
+        ops.push(`fillRect:${args.join(',')}`);
+      },
+      beginPath: () => {
+        ops.push('beginPath');
+      },
+      arc: () => {
+        ops.push('arc');
+      },
+      moveTo: () => {
+        ops.push('moveTo');
+      },
+      lineTo: () => {
+        ops.push('lineTo');
+      },
+      stroke: () => {
+        ops.push('stroke');
+      },
+      fill: () => {
+        ops.push('fill');
+      },
+    } as unknown as CanvasRenderingContext2D;
+
+    for (const slotId of ['morning', 'afternoon', 'evening', 'night'] as const) {
+      ops.length = 0;
+      drawDayPoseGuide(ctx, slotId);
+      assert.ok(ops.some(op => op.startsWith('fillRect')));
+      assert.ok(ops.includes('arc'));
+      assert.ok(ops.includes('fill'), 'mannequin head/hand blobs use fill');
+      assert.ok(ops.filter(op => op === 'stroke').length > 5);
+    }
+  });
+
+  it('outline-gray pose guides paint white paper not charcoal', () => {
+    let paper = '';
+    const ctx = {
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 0,
+      lineCap: '',
+      lineJoin: '',
+      fillRect() {
+        paper = String((this as { fillStyle: string }).fillStyle);
+      },
+      beginPath() {},
+      arc() {},
+      moveTo() {},
+      lineTo() {},
+      stroke() {},
+      fill() {},
+    } as unknown as CanvasRenderingContext2D;
+    drawDayPoseGuide(ctx, 'morning', 'outline-gray');
+    assert.equal(paper.toLowerCase(), '#ffffff');
+  });
+});
+
+describe('wall-press layout parsing', () => {
+  it('reads a wall or glass press from behind as the standing wall layout', () => {
+    assert.equal(parseIntimateLayout('pinned against the wall from behind'), 'wall');
+    assert.equal(parseIntimateLayout('he takes her from behind against the wall'), 'wall');
+    assert.equal(parseIntimateLayout('pressed against the hotel window from behind'), 'wall');
+    assert.equal(parseIntimateLayout('up against the shower glass, fucked from behind'), 'wall');
+    assert.equal(parseIntimateLayout('wall sex in the hallway'), 'wall');
+  });
+
+  it('keeps explicit bends and surface leans bent over', () => {
+    assert.equal(parseIntimateLayout('bent over against the wall, taken from behind'), 'bent');
+    assert.equal(parseIntimateLayout('doggy style against the headboard wall'), 'bent');
+    assert.equal(parseIntimateLayout('from behind over the desk by the window'), 'bent');
+    assert.equal(parseIntimateLayout('taken from behind on the bed'), 'bent');
+  });
+
+  it('draws the wall figures for a wall press from behind', () => {
+    const { intent, figures } = synthesizeSceneStickFigures(
+      'pinned against the wall from behind',
+      0,
+      { forcePeople: 2 }
+    );
+    assert.equal(intent.intimate, 'wall');
+    assert.equal(figures.length, 2);
+    assert.ok(figures.every(figure => figure.facing === 'left'));
+  });
+});
+
+describe('everyday pose layouts', () => {
+  const solo = { allowIntimate: false as const, forcePeople: 1 };
+
+  it('maps the everyday stance cues to their own layouts', () => {
+    assert.equal(parseSocialLayout('tying a lace with one foot up on the step'), 'foot_up');
+    assert.equal(parseSocialLayout('bending to pick up the mail inside the door'), 'bend_pick');
+    assert.equal(parseSocialLayout('leaning against a brick wall waiting'), 'lean_wall');
+    assert.equal(parseSocialLayout('climbing the stairs with a mug'), 'stairs');
+    assert.equal(parseSocialLayout('tucking hair behind an ear'), 'hair_touch');
+    assert.equal(parseSocialLayout('adjusting a bag strap on the shoulder'), 'hair_touch');
+    assert.equal(parseSocialLayout('shrugging mid-conversation, palms up'), 'shrug');
+    assert.equal(parseSocialLayout('hands on hips surveying the counter'), 'hands_hips');
+  });
+
+  it('draws those layouts as distinct body shapes', () => {
+    assert.equal(parsePoseGuideIntent('bending to pick up the mail', 0, solo).base, 'crouch');
+    assert.equal(parsePoseGuideIntent('climbing the stairs with a mug', 0, solo).base, 'walk');
+    assert.equal(
+      parsePoseGuideIntent('leaning against a brick wall waiting', 0, solo).base,
+      'lean'
+    );
+    assert.equal(
+      parsePoseGuideIntent('tying a lace with one foot up on the step', 0, solo).base,
+      'lean'
+    );
+  });
+
+  it('lets a stated posture outrank a hand-gesture layout', () => {
+    // The gesture keeps the arms; the body follows the posture the beat actually names.
+    const lying = parsePoseGuideIntent('lying across the bed scrolling a phone', 0, solo);
+    assert.equal(lying.social, 'phone');
+    assert.equal(lying.base, 'lie');
+
+    const seated = parsePoseGuideIntent('sitting on a park bench reading a book', 0, solo);
+    assert.equal(seated.social, 'read');
+    assert.equal(seated.base, 'sit');
+
+    // A genuinely standing gesture is untouched.
+    assert.equal(parsePoseGuideIntent('waving from the balcony', 0, solo).base, 'stand');
+  });
+
+  it('only draws sex layouts when intimate layouts are allowed', () => {
+    const beat = 'leaning against a brick wall waiting for a friend';
+    // Adult moods keep the existing behaviour.
+    assert.equal(parsePoseGuideIntent(beat, 0).intimate, 'wall');
+    // Everyday must not turn an innocent wall lean into a two-figure wall press.
+    const everyday = parsePoseGuideIntent(beat, 0, { allowIntimate: false });
+    assert.equal(everyday.intimate ?? null, null);
+    assert.equal(everyday.social, 'lean_wall');
+  });
+  it('parseSportLayout lets the named sport settle actions shared with another sport', async () => {
+    const { parseSportLayout } = await import('./pose-guide');
+    const { buildDaySportBeatPresets } = await import('./sport');
+    const { DAY_PARTS } = await import('./parts');
+    const beat = (pose: string, sport: string) =>
+      `${pose} — ${sport} athletic action in proper ${sport} kit and sport footwear`;
+    const cases: Array<[string, string, string]> = [
+      ['diving into open water with a long freestyle pull and splash', 'triathlon', 'sport_swim'],
+      ['mounting the bike in transition with a flying leap onto the saddle', 'triathlon', 'sport_cycle'],
+      ['sprinting off the bike toward the run segment', 'triathlon', 'sport_sprint'],
+      ['exploding out of starting blocks on the track', 'track and field', 'sport_sprint'],
+      ['planting the pole and rising into a vault over the bar', 'track and field', 'sport_hurdle'],
+      ['popping a small ollie over a park box with skis level', 'ski', 'sport_ski'],
+      ['carving through a rooty singletrack descent with the bike leaned into a berm', 'mountain biking', 'sport_cycle'],
+      ['shouldering the bike over a wooden barrier with mud on the calves', 'cyclocross', 'sport_sprint'],
+      ['squatting behind the plate framing a pitch with mitt soft', 'baseball', 'sport_squat'],
+      ['unloading into a swing with hips rotating through the zone', 'baseball', 'sport_swing'],
+      ['driving a reverse punch with hips squared and rear heel planted', 'martial arts', 'sport_box'],
+    ];
+    for (const [pose, sport, layout] of cases) {
+      assert.equal(parseSportLayout(beat(pose, sport)), layout, `${sport}: ${pose}`);
+    }
+    // Every Day Sport preset gets a guide — a null layout drops Image 3 for that slot.
+    for (const slot of DAY_PARTS.flatMap(part => [part, `${part}-2` as const])) {
+      for (const line of buildDaySportBeatPresets(slot)) {
+        assert.notEqual(parseSportLayout(line), null, line);
+      }
+    }
+  });
+  it('parseIntimateLayout: rear-entry on all fours is bent, and straddling furniture is not riding', async () => {
+    const { parseIntimateLayout } = await import('./pose-guide');
+    assert.equal(
+      parseIntimateLayout(
+        'Behind: rear-entry sex. Lead on hands and knees, hips raised; partner kneeling behind, gripping her hips'
+      ),
+      'bent'
+    );
+    assert.notEqual(
+      parseIntimateLayout('She straddles a bench as he kneels behind her, mouth sealed to her neck'),
+      'straddle'
+    );
+    assert.equal(parseIntimateLayout('She straddles him on the couch, riding slowly'), 'straddle');
+  });
+  it('writer act gives way when the beat plainly states another posture', async () => {
+    const { resolveSceneGuidePlan, textLeadPosture } = await import('./pose-guide');
+    assert.equal(textLeadPosture('She balances on one foot against the glass as he presses up behind her'), 'stand');
+    assert.equal(textLeadPosture('She straddles a bench as he kneels behind her'), 'sit');
+    // Prompt boilerplate negations are not the pose.
+    assert.equal(textLeadPosture('Lana on the bed — not a standing fashion portrait'), null);
+    const plan = (text: string, act: string) =>
+      resolveSceneGuidePlan(text, 0, { openPose: true, pose: { people: 2, act } } as never).intent;
+    // Contradiction: the words win.
+    assert.equal(plan('She balances on one foot as he presses up behind her', 'kneeling').intimate, 'standing');
+    assert.equal(plan('Rain slicks her thighs as he sinks into her from above', 'straddle').intimate, 'missionary');
+    // No contradiction: the writer still wins, and the filename label follows it.
+    const kept = plan('She lies still as he withdraws', 'afterglow');
+    assert.equal(kept.intimate, 'afterglow');
+    assert.match(kept.label, /^afterglow-/);
+  });
+
+  it('parsePoseGuideIntent draws a clothed spoon on Everyday, not a standing lean', () => {
+    const beat = 'spooning with her boyfriend in bed under white sheets, him behind her';
+    const everyday = parsePoseGuideIntent(beat, 0, { forcePeople: 2, allowIntimate: false });
+    assert.match(everyday.label, /^spoon-/);
+    // Vacation / Suggestive keep their upright-only rule.
+    const upright = parsePoseGuideIntent(beat, 0, {
+      forcePeople: 2,
+      clothedUprightOnly: true,
+      allowIntimate: false,
+    });
+    assert.doesNotMatch(upright.label, /^spoon-/);
+    // Other sex layouts stay adult-only.
+    const wall = parsePoseGuideIntent('leaning against a brick wall waiting for a friend', 0, {
+      forcePeople: 2,
+      allowIntimate: false,
+    });
+    assert.doesNotMatch(wall.label, /^wall-/);
+    // A wooden spoon is not spooning.
+    const cooking = parsePoseGuideIntent(
+      'stirring a pot of pasta sauce at the stove, wooden spoon raised',
+      0,
+      { forcePeople: 1, allowIntimate: false }
+    );
+    assert.doesNotMatch(cooking.label, /^spoon-/);
+  });
+
+  it('resolveSceneGuidePlan draws a routed hug as a plain standing pair when asked', async () => {
+    const { resolveSceneGuidePlan } = await import('./pose-guide');
+    const text = 'walking arm-in-arm with her boyfriend on a city sidewalk at dusk';
+    const walk = resolveSceneGuidePlan(text, 2, {
+      openPose: true,
+      forcePeople: 2,
+      avoidLayouts: new Set(['hug']),
+    });
+    const stand = resolveSceneGuidePlan(text, 2, {
+      openPose: true,
+      forcePeople: 2,
+      avoidLayouts: new Set(['hug']),
+      plainPostureBase: 'stand',
+    });
+    assert.equal(stand.routedAround, 'hug');
+    assert.equal(stand.openPose.poseKey, 'stand:2');
+    assert.notEqual(walk.openPose.poseKey, 'stand:2');
+  });
+});
+
+describe('straddle rider sits on the partner hips', () => {
+  for (const layout of ['straddle', 'reverse_straddle'] as const) {
+    it(`${layout}: rider pelvis straight above his, knees at his hip line`, () => {
+      const [rider, bottom] = synthesizeIntimateStickFigures({
+        base: 'sit',
+        armLeft: 'down',
+        armRight: 'down',
+        lean: 0,
+        stride: 0,
+        seed: 12345,
+        label: 'x',
+        people: 2,
+        intimate: layout,
+        sceneText: 'she straddles him on the bed',
+      });
+      assert.ok(Math.abs(rider!.pelvis.x - bottom!.pelvis.x) < 0.05, 'rider over his pelvis');
+      assert.ok(rider!.pelvis.y < bottom!.pelvis.y - 0.15, 'rider sits above him');
+      assert.ok(Math.abs(rider!.lKnee.y - bottom!.pelvis.y) < 0.05, 'knees beside his hips');
+    });
+  }
+});
+
+describe('pose words that are not a pose (Day prompt sweep findings)', () => {
+  it('a stated posture beats place words, props and bikes (2026-10-17 beat audit)', () => {
+    const intent = (scene: string) =>
+      parsePoseGuideIntent(scene, 0, { forcePeople: 1, allowIntimate: false });
+    assert.equal(intent('sitting on the bed edge pulling on an ankle boot').base, 'sit');
+    assert.equal(intent('kneeling on the floor sorting a stack of board games').base, 'kneel');
+    assert.equal(
+      intent('kneeling on the bedroom floor finishing her costume, pieces laid around her').base,
+      'kneel'
+    );
+    assert.equal(intent('lying on the bed with the lights off').base, 'lie');
+    const laptopInBed = intent('lying on the couch with her laptop open on her stomach');
+    assert.equal(laptopInBed.base, 'lie');
+    assert.notEqual(laptopInBed.social, 'laptop');
+    assert.equal(intent('typing on her laptop at the café table').social, 'laptop');
+    assert.equal(intent('walking a friend’s bike alongside them on the promenade').base, 'walk');
+    assert.equal(intent('cycling along the canal path').base, 'sit');
+  });
+
+  it('"knees drawn up" lies only when nothing seats her', () => {
+    const base = (scene: string) => parsePoseGuideIntent(scene, 0, { forcePeople: 1 }).base;
+    // "sitting on the curb … knees drawn up" was drawn lying (lie-hold-hold) and 2511 followed it.
+    for (const seated of [
+      'sitting on the curb under the streetlight, knees drawn up',
+      'sitting on the dark windowsill in an oversized shirt, knees drawn up to her chest',
+      'SEATED on the bow of a small boat — hips on the deck, knees drawn up',
+    ]) {
+      assert.equal(base(seated), 'sit', seated);
+    }
+    for (const lying of [
+      'RELAXING on a beach towel with a sunhat over her face — knees drawn up',
+      'lying on the couch with a bowl of popcorn watching a movie, knees drawn up',
+    ]) {
+      assert.equal(base(lying), 'lie', lying);
+    }
+  });
+
+  const clothed = { allowIntimate: false as const, forcePeople: 1 };
+
+  it('twirling or hugging a thing is one person doing neither', () => {
+    assert.equal(
+      parseSocialLayout('sitting at a dinner table twirling pasta, one elbow on the table'),
+      null
+    );
+    assert.equal(parseSocialLayout('twirling a glass of white wine, leaning toward the candle'), null);
+    assert.equal(parseSocialLayout('twirling once under a streetlight, coat flaring'), 'dance');
+    assert.equal(parseSocialLayout('twirling her around the dance floor'), 'dance');
+    assert.equal(
+      parseSocialLayout('hugging a pillow while standing by the window, looking out at the city'),
+      null
+    );
+    assert.equal(parseSocialLayout('hugging her knees on the sofa'), null);
+    assert.equal(parseSocialLayout('hugging a friend hello on the sidewalk, both smiling'), 'hug');
+  });
+
+  it('does not read a negated clause as the pose', () => {
+    assert.equal(
+      parseSocialLayout('one leg locked straight at hip height — never a yoga tree pose'),
+      null
+    );
+    assert.equal(parseSocialLayout('standing by the door, not waving, no dancing'), null);
+    // The drawing's seed stays on the text as written.
+    const text = 'sitting on the sill in a short robe — never a standing fashion plate';
+    assert.equal(parsePoseGuideIntent(text, 0, clothed).base, 'sit');
+    assert.equal(parsePoseGuideIntent(text, 0, clothed).sceneText, text);
+  });
+
+  it('seats a kayak paddler; "mid-stroke" is a swimmer only in the water', () => {
+    const options = { clothedUprightOnly: true as const, forcePeople: 1 };
+    assert.equal(
+      parsePoseGuideIntent('PADDLING a kayak mid-stroke — paddle dipped', 0, options).base,
+      'sit'
+    );
+    assert.equal(
+      parsePoseGuideIntent('SWIMMING a lap mid-stroke in the hotel pool', 0, options).base,
+      'lie'
+    );
+  });
+
+  it('counts a hugged friend, and sex verbs only where sex layouts are allowed', () => {
+    assert.equal(countPoseGuidePeople('hugging a friend hello on the sidewalk, both smiling'), 2);
+    assert.equal(countPoseGuidePeople('arm around a friend on a rooftop at golden hour'), 2);
+    assert.equal(countPoseGuidePeople("one arm around a friend's dog on the porch"), 1);
+    for (const beat of [
+      'leaning on a balcony railing with a breeze lifting a short hem',
+      'unzipping a dress halfway, lingerie visible underneath',
+      'driving the final meters of a sprint with chest thrust forward',
+      'seated power climb grinding big gears with elbows in',
+      'mounting the bike in transition with a flying leap onto the saddle',
+    ]) {
+      assert.equal(countPoseGuidePeople(beat, { sexVocabulary: false }), 1, beat);
+      assert.equal(parsePoseGuideIntent(beat, 0, { allowIntimate: false }).people, 1, beat);
+    }
+    // A named partner still counts on a clothed beat; the adult read is unchanged.
+    assert.equal(
+      countPoseGuidePeople("sitting sideways on her partner's lap on the couch", {
+        sexVocabulary: false,
+      }),
+      2
+    );
+    assert.equal(countPoseGuidePeople('grinding on the bed mid-thrust'), 2);
+  });
+
+  it('knows whether a text states a pose', () => {
+    assert.equal(sceneTextStatesPose('humming along to a song in her head'), false);
+    assert.equal(sceneTextStatesPose('standing in line at the post office'), true);
+    assert.equal(sceneTextStatesPose('stirring a pot of pasta sauce at the stove'), true);
+    assert.equal(sceneTextStatesPose(''), false);
+  });
+});
+
+describe('reconcileWrittenPose — the scene writer\'s pose against the scene\'s words', () => {
+  it('drops a named pose the words give no support for', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    // What a local 8B model actually returned (2026-10-02).
+    for (const [layout, text] of [
+      ['hands_hips', 'Mara lifts her lantern high above her head, the beam cutting the dark.'],
+      ['rail', 'Mara balances on one leg atop a crumbling brick wall.'],
+      ['dance', 'She sits at the bar, nursing a drink.'],
+      ['sport_serve', 'She waits under the awning, watching the street.'],
+    ] as const) {
+      const result = reconcileWrittenPose({ layout, body: 'stand' }, text);
+      assert.equal(result.spec?.layout, undefined, text);
+      assert.match(result.changed.join(' '), /not what the scene says/, text);
+    }
+  });
+
+  it('drops a full-body layout the words contradict, and draws the stated posture', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    const lying = reconcileWrittenPose({ layout: 'stairs' }, 'She lies on the stairs, staring up.');
+    assert.deepEqual(lying.spec, { body: 'lie' });
+    assert.equal(lying.changed.length, 1);
+    assert.deepEqual(
+      reconcileWrittenPose({ body: 'lie' }, 'She is sitting on the kitchen counter.').spec,
+      { body: 'sit' }
+    );
+  });
+
+  it('keeps a hand gesture, on the posture the words state', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'phone' }, 'She sits on the stairs scrolling her phone.').spec,
+      { layout: 'phone', body: 'sit' }
+    );
+  });
+
+  it('leaves an agreeing pose alone', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    for (const [spec, text] of [
+      [{ layout: 'dance' }, 'She dances alone in the empty ballroom.'],
+      [{ layout: 'laptop' }, 'She sits at the desk, typing.'],
+      [{ layout: 'lie_side' }, 'She is lying on her side on the sofa with a book.'],
+      [{ layout: 'wave' }, 'She stands on the platform and waves.'],
+      [{ layout: 'wave' }, 'She hails a cab in the rain.'],
+      [{ layout: 'arms_up' }, 'She lifts the lantern high overhead.'],
+      [{ body: 'kneel' }, 'She is sitting back on her heels in the garden.'],
+      [{ layout: 'stairs' }, 'She takes the stairs two at a time.'],
+      [{ layout: 'sport_cycle' }, 'She sits on the bike at the lights.'],
+      [{ limbs: { right_arm: ['up', 'up'] } }, 'She lifts the lantern.'],
+    ] as const) {
+      const result = reconcileWrittenPose(spec, text);
+      assert.deepEqual(result.spec, spec, text);
+      assert.deepEqual(result.changed, [], text);
+    }
+  });
+
+  it('a two-person layout in a one-person scene is dropped', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'hug', people: 1 }, 'She hugs herself against the cold.').spec,
+      { people: 1 }
+    );
+    assert.deepEqual(reconcileWrittenPose({ layout: 'hug', people: 2 }, 'They hug at the gate.').spec, {
+      layout: 'hug',
+      people: 2,
+    });
+  });
+});
+
+describe('Story pose text and the lead\'s posture (Story pose sweep findings)', () => {
+  it('reads the pose from the scene, not from the stored still prompt', async () => {
+    const { sceneTextFromStoryPoseInput } = await import('./pose-guide');
+    const stored =
+      'Replace the scene with a walled garden with climbing vines. Final still must be a photorealistic live-action photograph.';
+    assert.equal(
+      sceneTextFromStoryPoseInput({ title: 'Fog', blurb: 'Nothing moves.', prompt: stored }),
+      'Fog · Nothing moves.'
+    );
+    // A retry (prompt stored) draws what the first take drew.
+    assert.equal(
+      resolveStoryPoseGuideKeyFromBeat({ title: 'Fog', blurb: 'Nothing moves.', prompt: stored, storyIndex: 1 }),
+      resolveStoryPoseGuideKeyFromBeat({ title: 'Fog', blurb: 'Nothing moves.', storyIndex: 1 })
+    );
+    // Legacy beat with neither title nor blurb: the prompt is all there is.
+    assert.equal(sceneTextFromStoryPoseInput({ prompt: 'She sits on a crate.' }), 'She sits on a crate.');
+  });
+
+  it('treats a title as a label: its own, and one quoted from an earlier beat', async () => {
+    const { sceneTextFromStoryPoseInput } = await import('./pose-guide');
+    assert.equal(
+      sceneTextFromStoryPoseInput({
+        title: 'Sunrise punch-out',
+        blurb: 'You freeze mid-stretch because that is the job.',
+        allowIntimate: false,
+      }),
+      'You freeze mid-stretch because that is the job.'
+    );
+    // No pose in the blurb: the title may supply one.
+    assert.equal(
+      sceneTextFromStoryPoseInput({ title: 'Couch talk', blurb: 'An honest hour.' }),
+      'Couch talk · An honest hour.'
+    );
+    const fork = {
+      title: 'Walk away',
+      blurb: 'Doppio leaves milk pitcher duel for good, one look back, no one following.',
+      allowIntimate: false,
+    };
+    assert.equal(parseSocialLayout(sceneTextFromStoryPoseInput(fork)), 'fight');
+    assert.equal(
+      parseSocialLayout(sceneTextFromStoryPoseInput({ ...fork, quotedTitles: ['Milk pitcher duel'] })),
+      'look_back'
+    );
+  });
+
+  it('counts the people the words name', () => {
+    assert.equal(countPoseGuidePeople('Two consenting adults in a doorway — close enough to kiss.'), 2);
+    assert.equal(countPoseGuidePeople('two naked adults on the bed'), 2);
+    assert.equal(countPoseGuidePeople('Lana with two distinct adult partners — three nude bodies on a bed'), 3);
+    assert.equal(countPoseGuidePeople('two cups of coffee on the counter'), 1);
+    // SFW: a dance floor or a "punch-out" is not a second person.
+    const sfw = { allowIntimate: false as const };
+    assert.equal(parsePoseGuideIntent('The dance floor is a stump. You are killing it.', 0, sfw).people, 1);
+    assert.equal(parsePoseGuideIntent('She dances with a stranger under the lights.', 0, sfw).people, 2);
+    // Where sex layouts are on, a dance is still a pair unless she is alone.
+    assert.equal(parsePoseGuideIntent('The ballroom is empty and she dances.', 0).people, 2);
+  });
+
+  it('finds the lead\'s posture in more wordings, and only the lead\'s', async () => {
+    const { textLeadPosture } = await import('./pose-guide');
+    for (const [text, posture] of [
+      ['She sat on the steps.', 'sit'],
+      ['She perches on a stool at the counter.', 'sit'],
+      ['She stood by the door.', 'stand'],
+      ['She rises from the chair and stands at the window.', 'stand'],
+      ['She lay on the rug.', 'lie'],
+      ['She reclines on the chaise.', 'lie'],
+      ['Lana kneels to tie a shoe.', 'kneel'],
+      ['She knelt in the garden.', 'kneel'],
+      ['She crouches behind the crates.', 'kneel'],
+      ['Squatting by the campfire.', 'kneel'],
+      ['Kneeling on the rug to wrap a present.', 'kneel'],
+      ['Empty lot, moths, you stand like a tiny lighthouse of rules.', 'stand'],
+      // Not the lead.
+      ['Windblown courier in a cracked-leather jacket, hair standing on end.', null],
+      ['A sentient stew in a chipped bowl, spoon standing at attention.', null],
+      ['The statue stands in the square.', null],
+      ['The door is standing open.', null],
+      ['A distinct adult partner kneeling for oral sex on Lana.', null],
+      // A partner's posture does not count against hers.
+      ['She straddles a bench as he kneels behind her', 'sit'],
+    ] as const) {
+      assert.equal(textLeadPosture(text), posture, text);
+    }
+  });
+
+  it('checks a written sport layout against the stated posture too', async () => {
+    const { reconcileWrittenPose } = await import('./pose-guide');
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'sport_pushup' }, 'She stands at the gym door, towel over one shoulder.').spec,
+      { body: 'stand' }
+    );
+    // A seat on a bike survives: the cycling pose is a low one.
+    assert.deepEqual(
+      reconcileWrittenPose({ layout: 'sport_cycle' }, 'She sits on the bike at the lights.').spec,
+      { layout: 'sport_cycle' }
+    );
+  });
+});
+
+describe('solo self-touch: the drawing puts her second hand where the words do', () => {
+  it('on her back, the second wrist holds the raised knee (not a third hand there)', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'solo masturbation lying across the bed, one hand between her thighs — alone, nude',
+      0,
+      { forcePeople: 1 }
+    );
+    const body = figures[0]!;
+    assert.ok(Math.hypot(body.lWrist.x - body.lKnee.x, body.lWrist.y - body.lKnee.y) < 0.05);
+  });
+
+  it('kneeling, the second wrist is on her chest, away from the vulva', () => {
+    const { figures } = synthesizeSceneStickFigures(
+      'solo kneeling on the sheets masturbating after dark, soft lamp',
+      0,
+      { forcePeople: 1 }
+    );
+    const body = figures[0]!;
+    assert.ok(body.lWrist.y < body.pelvis.y - 0.15);
+  });
+
+  it('keeps a braced, toy or sheet-gripping hand where those poses put it', () => {
+    assert.equal(soloSecondHand('seated', 'sitting on the bed edge masturbating'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back with a purple dildo'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back, fist in the sheets'), null);
+    assert.equal(soloSecondHand('on_back', 'on her back with ankles near her shoulders'), 'knee');
+    assert.equal(soloSecondHand('kneeling', 'kneeling on the bed masturbating'), 'breast');
+  });
+});
+
+describe('stairs beats with a word before the steps', () => {
+  it('walk up the stairs, not a hand-over-hand climb (user still, 2026-10-17)', async () => {
+    const { parseSocialLayout } = await import('./pose-guide');
+    assert.equal(parseSocialLayout('climbing theater steps mid-stride in her outfit'), 'stairs');
+    assert.equal(parseSocialLayout('up the library steps with coffee'), 'stairs');
+    assert.equal(parseSocialLayout('climbing a rock wall at the gym'), 'climb');
+  });
+});
+
+describe('"chin up" as a posture', () => {
+  it('hands on hips, chin up is not a pull-up (night sweep, 2026-10-17)', async () => {
+    const { parseSocialLayout } = await import('./pose-guide');
+    assert.equal(parseSocialLayout('posing against a studio backdrop, hands on hips, chin up'), 'hands_hips');
+    assert.equal(parseSocialLayout('doing chin ups at the park bars'), 'sport_pullup');
+    assert.equal(parseSocialLayout('strict chin-ups at the gym'), 'sport_pullup');
+  });
+});

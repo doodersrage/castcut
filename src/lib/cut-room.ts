@@ -8,7 +8,7 @@
 import { cutGeneratedTitle, type CutGeneratedStage, type CutGeneratedStatus } from './cut-generate';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { roleplayWatchPlaylist } from './character-film';
-import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from './day-planner';
+import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from './day/planner';
 import type { KeyedShot } from './film-cut-plan';
 import type { RoleplayStoryBeat } from './roleplay';
 import type { CutBridgeStatus } from './cut-bridge';

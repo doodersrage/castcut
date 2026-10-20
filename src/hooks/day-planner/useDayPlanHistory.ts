@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DaySlot } from '@/lib/day-planner';
+import type { DaySlot } from '@/lib/day/planner';
 import {
   EMPTY_PLAN_HISTORY,
   planChangeLabel,
@@ -10,7 +10,7 @@ import {
   samePlan,
   undoPlanStep,
   type DayPlanHistory,
-} from '@/lib/day-plan-history';
+} from '@/lib/day/plan-history';
 
 /** Edits closer together than this are one step (typing a beat is one undo, not forty). */
 const BURST_MS = 1000;

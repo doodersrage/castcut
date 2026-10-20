@@ -8,9 +8,9 @@ import {
   resolveSceneGuidePlan,
   SCENE_POSE_LAYOUT_IDS,
   synthesizeSceneStickFigures,
-} from './day-pose-guide';
-import { normalizeDaySlots } from './day-planner';
-import { planDaySlotPose } from './day-slot-pose';
+} from './day/pose-guide';
+import { normalizeDaySlots } from './day/planner';
+import { planDaySlotPose } from './day/slot-pose';
 import {
   alignBodyToGuide,
   buildPoseMissView,

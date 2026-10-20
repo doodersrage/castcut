@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { resolveStoryScenePose } from '../hooks/roleplay/story-scene-pose';
-import { resolveSceneGuidePlan, sceneTextFromStoryPoseInput } from './day-pose-guide';
+import { resolveSceneGuidePlan, sceneTextFromStoryPoseInput } from './day/pose-guide';
 import { mergeAvoidedPoseLayouts } from './pose-guide-prompt';
 
 const RAPID = 'qwen-image-edit-rapid-aio';

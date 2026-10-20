@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
-import { DAY_EVENT_MAX_LENGTH, type DayEvent } from '@/lib/day-event';
-import { DAY_PREMISE_MAX_LENGTH, dayPremiseAvailable } from '@/lib/day-premise';
+import { DAY_EVENT_MAX_LENGTH, type DayEvent } from '@/lib/day/event';
+import { DAY_PREMISE_MAX_LENGTH, dayPremiseAvailable } from '@/lib/day/premise';
 
 type IdeaMode = 'day' | 'event';
 

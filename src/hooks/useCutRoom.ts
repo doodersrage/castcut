@@ -74,10 +74,10 @@ import {
   splitCutRoomKey,
   type CutSource,
 } from '@/lib/cut-room';
-import { dayEpisodeSnapshot } from '@/lib/day-episode-snapshot';
-import { applyDayNarration } from '@/lib/day-narration';
-import { dayThemeOf } from '@/lib/day-themes';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
+import { applyDayNarration } from '@/lib/day/narration';
+import { dayThemeOf } from '@/lib/day/themes';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import {
   dayStillShownImage,
   dayStillsCachePatch,
@@ -86,7 +86,7 @@ import {
   upsertDaySlotStill,
   type DaySlotId,
   type DaySlotStill,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import { mergeDeliveryProblems } from '@/lib/film-delivery-check';
 import { checkCutDelivery } from '@/lib/film-delivery-check-client';
 import {

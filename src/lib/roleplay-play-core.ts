@@ -134,7 +134,7 @@ export function buildRoleplayRequestBody(input: {
   /** True when Image 2 will carry a packshot / BYO garment. */
   hasGarmentReference?: boolean;
   /** Adult Solo/Duo/Mixed mix for rolled scenes. */
-  intimateMix?: import('./day-planner').DayIntimateMix | string | null;
+  intimateMix?: import('./day/planner').DayIntimateMix | string | null;
   /** The active Cast lead (its Sex trait and descriptor decide he / she over the bible's look). */
   lead?: RoleplayLeadCast | null;
 }): Record<string, unknown> {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import type { SetAsideDay } from '@/lib/day-episode-snapshot';
+import type { SetAsideDay } from '@/lib/day/episode-snapshot';
 
 /**
  * After "Open this Day again" on the Cast page: the Day that was on the board is kept aside —

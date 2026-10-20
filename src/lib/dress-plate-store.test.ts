@@ -6,7 +6,7 @@ import {
   storyDressPlateApplies,
   storyDressPlatePrompt,
   stripOutfitLeadLines,
-} from './day-dress-plate';
+} from './day/dress-plate';
 import {
   clearDressPlates,
   findDressPlate,

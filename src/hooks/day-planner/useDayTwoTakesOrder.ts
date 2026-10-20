@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery } from '@/lib/comfyui-gallery';
-import { dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
+import { dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import {
   dayTwoTakesNeedsOrder,
   dayTwoTakesOrderPatch,
   dayTwoTakesPairId,
-} from '@/lib/day-two-takes';
+} from '@/lib/day/two-takes';
 import { countDuoStill } from '@/lib/duo-still-check-client';
 import { likelierTwoTake, type DuoStillCounts } from '@/lib/duo-still-check';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';

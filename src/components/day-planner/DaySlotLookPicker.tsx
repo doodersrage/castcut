@@ -3,7 +3,7 @@
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import { castLookPortraitTile, castPlateTiles } from '@/lib/character-plate-thumb';
 import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
-import type { DaySlot, DaySlotId } from '@/lib/day-planner';
+import type { DaySlot, DaySlotId } from '@/lib/day/planner';
 
 /**
  * Which of the Cast's looks a Day slot is made in, picked by its plate: "Day's look" (the

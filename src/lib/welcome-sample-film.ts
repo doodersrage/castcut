@@ -4,7 +4,7 @@
  */
 
 import type { FilmPlaylistShot } from './character-film';
-import type { DaySlotId, DaySlotStill } from './day-planner';
+import type { DaySlotId, DaySlotStill } from './day/planner';
 
 /** Mute morning→night sample cut (ffmpeg-generated, checked into public/). */
 export const WELCOME_SAMPLE_REEL_URL = '/samples/day-sample-reel.mp4';

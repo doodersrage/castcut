@@ -14,7 +14,7 @@ describe('Klein color anchor on Outfit try-ons', () => {
 
 describe('Day dress plate engine', () => {
   it('renders on Edit 2511 when installed, else the still engine; Klein plates are made anew', async () => {
-    const { dressPlateEngine } = await import('./day-dress-plate-client');
+    const { dressPlateEngine } = await import('./day/dress-plate-client');
     const { findDayDressPlate } = await import('./dress-plate-cache');
     const E2511 = 'qwen-image-edit-2511-lightning-8';
     assert.equal(dressPlateEngine('qwen-rapid-aio-edit', () => true), 'qwen-image-2.1-edit-turbo-8');

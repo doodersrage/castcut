@@ -24,7 +24,7 @@ import {
   type DaySlot,
   type DaySlotId,
   type DaySlotStill,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
@@ -33,10 +33,10 @@ import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play-slot-qualit
 import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day-slot-progress';
+import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day/slot-progress';
 import { getGalleryCache } from '@/lib/gallery-db-store';
-import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
-import { dayLooksWrongMark } from '@/lib/day-looks-wrong';
+import { dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day/two-takes';
+import { dayLooksWrongMark } from '@/lib/day/looks-wrong';
 import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';

@@ -3,7 +3,7 @@ import {
   generateRoleplayPrompt,
   generateRoleplayScenes,
 } from '@/lib/specialized/roleplay-generator';
-import { normalizeScenePoseSpec } from '@/lib/day-pose-guide';
+import { normalizeScenePoseSpec } from '@/lib/day/pose-guide';
 import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
 import { normalizeSharedGenerationOptions } from '@/lib/specialized/normalize';
 import { enrichGenerateResult } from '@/lib/generation-diagnostics';

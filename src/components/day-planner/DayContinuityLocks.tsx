@@ -1,6 +1,6 @@
 'use client';
 
-import type { ContinuityLock } from '@/lib/day-continuity-locks';
+import type { ContinuityLock } from '@/lib/day/continuity-locks';
 
 /**
  * "Held across the Day" — face, clothes, place, light — and what each still is free to change,

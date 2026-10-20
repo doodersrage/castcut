@@ -13,7 +13,7 @@
  * merged or half-read couple would teach the guide a broken pose.
  */
 
-import { resolveSceneGuidePlan, type IntimateLayout } from '@/lib/day-pose-guide';
+import { resolveSceneGuidePlan, type IntimateLayout } from '@/lib/day/pose-guide';
 import { bodyIsUsable, type NormalizedBody, type PoseLibraryEntry } from '@/lib/pose-library';
 import { scorePoseMatch, type DetectedPose } from '@/lib/pose-score';
 

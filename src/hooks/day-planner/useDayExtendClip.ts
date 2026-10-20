@@ -10,7 +10,7 @@ import {
   type ClipExtendRequest,
 } from '@/lib/clip-extend';
 import { keepClipInGallery } from '@/lib/clip-gallery-keep';
-import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day-planner';
+import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import { spokenLineHeat } from '@/lib/spoken-line';

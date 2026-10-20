@@ -4,7 +4,7 @@ import { handOffOutfitPicks, keptLookOutfitFromTryOn, realKitId } from '@/lib/ou
 import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
 import { useCallback, useEffect } from 'react';
 import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
-import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
+import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting-room';
 import {
@@ -30,7 +30,7 @@ import {
   saveLookPack,
 } from '@/lib/look-pack';
 import { bumpPlayCampaignStep } from '@/lib/play-campaign';
-import { ensureDaySlotsMatchMood } from '@/lib/day-planner';
+import { ensureDaySlotsMatchMood } from '@/lib/day/planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/roleplay-play-core';
 import { loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play-settings';
@@ -291,7 +291,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       if (keptNow && tryOn.imageUrl?.trim() && tryOn.dressPlateKey) {
         const plate = { key: tryOn.dressPlateKey, model: input.shared.model };
         const imageUrl = tryOn.imageUrl;
-        void import('@/lib/day-dress-plate-client').then(({ registerDressPlateFromImage }) =>
+        void import('@/lib/day/dress-plate-client').then(({ registerDressPlateFromImage }) =>
           registerDressPlateFromImage(plate, imageUrl)
         );
       }

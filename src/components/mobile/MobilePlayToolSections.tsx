@@ -25,7 +25,7 @@ import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useMobilePlayToolOrchestration } from '@/hooks/useMobilePlayToolOrchestration';
 import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
-import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day-planner';
+import { DAY_INTIMATE_MIX_OPTIONS, normalizeDayIntimateMix } from '@/lib/day/planner';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { deriveStoryPhase } from '@/lib/play-step-machine';
 import {

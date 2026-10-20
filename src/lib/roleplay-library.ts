@@ -3,7 +3,7 @@ import {
   normalizePoseCameraChoice,
   normalizePoseLookChoice,
   normalizeScenePoseSpec,
-} from '@/lib/day-pose-guide';
+} from '@/lib/day/pose-guide';
 import { normalizeSpokenLine, normalizeSpokenLineTone } from './ltx25-renderer';
 import { readBrowserValue, writeBrowserValue } from './browser-storage';
 import { getCharacter, type CharacterRecord } from './character-os';

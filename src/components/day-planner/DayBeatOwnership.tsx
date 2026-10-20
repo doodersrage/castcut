@@ -1,6 +1,6 @@
 'use client';
 
-import { dayBeatIsTyped, restoreDayBeatPatch, type DaySlot } from '@/lib/day-planner';
+import { dayBeatIsTyped, restoreDayBeatPatch, type DaySlot } from '@/lib/day/planner';
 
 /**
  * Beside a slot's Beat field: "Your words" when the beat is the player's (it reaches the prompt as

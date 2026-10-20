@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import type { DaySlot, DaySlotStill } from './day-planner';
+import type { DaySlot, DaySlotStill } from './day/planner';
 import { estimateQueueEta, formatEta, typicalRenderMs } from './queue-eta';
 import { describeQueueJob, groupQueueJobs } from './queue-job-context';
 import { buildPlayJobIndex, playJobLabeller, repointPlayJobIds } from './play-queue-jobs';

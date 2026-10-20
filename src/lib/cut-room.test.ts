@@ -9,7 +9,7 @@ import {
   cutRoomSourceShots,
   splitCutRoomKey,
 } from './cut-room';
-import type { DaySlot, DaySlotStill } from './day-planner';
+import type { DaySlot, DaySlotStill } from './day/planner';
 import type { RoleplayStoryBeat } from './roleplay';
 
 const slots = [

@@ -13,7 +13,7 @@ import {
   wornOutfitKey,
 } from '@/lib/cast-wardrobe';
 import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
 import { galleryEntryPrimaryThumbUrl, galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 

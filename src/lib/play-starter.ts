@@ -15,7 +15,7 @@ import {
   diversifyDaySlotScenes,
   normalizeDaySlots,
   type DaySlot,
-} from './day-planner';
+} from './day/planner';
 import { clearLookPack, saveLookPack, type LookPack } from './look-pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './play-campaign';
 import {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayWatchPlaylist } from './day-planner';
+import { dayWatchPlaylist } from './day/planner';
 import { filmShotSubtitle } from './media-kind';
 import { subtitleLines } from './video-polish';
 

@@ -6,7 +6,7 @@
  * names and media URLs point at nothing, so import uploads each again as its look's plate. Stills
  * (Day and Story) stay where they were rendered; the plan and the story text come along.
  */
-import type { ParkedDay } from './day-cast-park';
+import type { ParkedDay } from './day/cast-park';
 import type { CharacterLookOutfit, CharacterRecord } from './character-os';
 import type { RoleplayLibrarySession } from './roleplay-library';
 import { restampStoryCast } from './story-session-guard';

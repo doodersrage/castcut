@@ -1,7 +1,7 @@
 'use client';
 
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
-import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
+import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day/partner';
 
 export type DayPartnerOption = {
   id: string;

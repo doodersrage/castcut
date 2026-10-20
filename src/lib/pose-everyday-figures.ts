@@ -8,7 +8,7 @@
  * same layout doesn't draw an identical mannequin each time.
  */
 
-import type { PoseGuideBase, SocialLayout, StickSkeleton } from '@/lib/day-pose-guide';
+import type { PoseGuideBase, SocialLayout, StickSkeleton } from '@/lib/day/pose-guide';
 
 type Point = { x: number; y: number };
 type Joint = readonly [number, number];

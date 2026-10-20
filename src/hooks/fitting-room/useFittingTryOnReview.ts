@@ -5,7 +5,7 @@ import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-clien
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import type { FittingCompareTryOn } from '@/lib/fitting-room';
 import { decideTryOnReview, type TryOnReview } from '@/lib/fitting-tryon-review';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 import { recordFaceMatchScore } from '@/lib/play-metrics';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { scorePoseMatch } from '@/lib/pose-score';

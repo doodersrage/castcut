@@ -6,7 +6,7 @@ import {
   synthesizeIntimateStickFigures,
   synthesizeStickSkeleton,
   type StickSkeleton,
-} from './day-pose-guide';
+} from './day/pose-guide';
 import {
   drawOpenPoseFigures,
   inferPoseFacing,

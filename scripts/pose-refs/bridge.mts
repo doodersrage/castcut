@@ -32,9 +32,9 @@
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day-pose-guide';
-import { dayPoseWords } from '@/lib/day-pose-presets';
-import { BUILT_IN_POSE_PACKS } from '@/lib/day-pose-packs';
+import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day/pose-guide';
+import { dayPoseWords } from '@/lib/day/pose-presets';
+import { BUILT_IN_POSE_PACKS } from '@/lib/day/pose-packs';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { describePoseFigure } from '@/lib/pose-describe';
 import { scoreLimbAngles } from '@/lib/pose-limb-score';

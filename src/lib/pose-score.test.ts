@@ -6,7 +6,7 @@ import {
   synthesizeSceneStickFigures,
   synthesizeStickSkeleton,
   type StickSkeleton,
-} from './day-pose-guide';
+} from './day/pose-guide';
 import { stickToOpenPoseKeypoints } from './pose-guide-openpose';
 import {
   bodyIsUsable,

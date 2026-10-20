@@ -3,7 +3,7 @@
  * Pure helpers only — storage writes live in `play-starter.ts` (`applyRemixDayFilmState`).
  */
 
-import { dayPartOf, type DayPart, type DaySlot } from './day-planner';
+import { dayPartOf, type DayPart, type DaySlot } from './day/planner';
 
 export type DayRemixKind = 'new-day' | 'new-outfit' | 'theme';
 

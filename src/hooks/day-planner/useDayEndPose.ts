@@ -13,14 +13,14 @@ import {
   DAY_END_POSE_EDIT_NEGATIVE,
   dayEndPoseSupported,
   type DayEndPose,
-} from '@/lib/day-end-pose';
-import { dayPartnerNoun } from '@/lib/day-partner';
+} from '@/lib/day/end-pose';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import {
   dayStillsCachePatch,
   isDayAdultMood,
   upsertDaySlotStill,
   type DaySlotId,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import { clipEngineForShot, dayClipVideoModel } from '@/lib/ltx25-renderer';
 import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';

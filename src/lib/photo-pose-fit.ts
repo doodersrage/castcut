@@ -5,7 +5,7 @@
  * tests share it.
  */
 
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 
 export type PhotoPoseFit = {
   pose: PhotoPose;

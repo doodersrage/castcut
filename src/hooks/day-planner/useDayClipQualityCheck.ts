@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day-planner';
+import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from '@/lib/day/planner';
 import { decideClipQuality, type ClipCheck } from '@/lib/clip-quality';
 import { sampleClipFrames } from '@/lib/clip-frame-sample';
 import { uploadComfyInputImage } from '@/lib/comfyui-image-upload';

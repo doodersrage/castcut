@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 import { poseStarterBody } from '@/lib/pose-starters';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each

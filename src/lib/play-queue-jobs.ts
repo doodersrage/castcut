@@ -3,7 +3,7 @@
  * link), and keeping them pointed at a job "Run next" resubmitted. Registered by play-features.ts.
  */
 
-import type { DaySlot, DaySlotStill } from './day-planner';
+import type { DaySlot, DaySlotStill } from './day/planner';
 import type { RoleplayStoryBeat } from './roleplay';
 import { galleryToolHrefForEntry } from './gallery-tool-href';
 import type { QueueJobDescriber, QueueJobLabeller } from './queue-job-context';

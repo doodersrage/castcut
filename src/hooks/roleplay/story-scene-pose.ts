@@ -12,8 +12,8 @@ import {
   resolveSceneGuidePlan,
   sceneTextFromStoryPoseInput,
   type ScenePoseSpec,
-} from '@/lib/day-pose-guide';
-import { mergePickedPose } from '@/lib/day-slot-pose';
+} from '@/lib/day/pose-guide';
+import { mergePickedPose } from '@/lib/day/slot-pose';
 import { composedPoseForScene } from '@/lib/pose-compose';
 import {
   isOpenPoseStyle,

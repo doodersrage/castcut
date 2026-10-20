@@ -13,8 +13,8 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day-pose-guide';
-import { dayPoseWords } from '@/lib/day-pose-presets';
+import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day/pose-guide';
+import { dayPoseWords } from '@/lib/day/pose-presets';
 import { describePhotoPose, describePoseFigure } from '@/lib/pose-describe';
 import { POSE_PICKER_GROUPS } from '@/lib/pose-layout-labels';
 import { parsePoseReferences, poseReferencesFor } from '@/lib/pose-references';

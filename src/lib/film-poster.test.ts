@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { DEFAULT_DAY_SLOTS, type DaySlotStill } from './day-planner';
+import { DEFAULT_DAY_SLOTS, type DaySlotStill } from './day/planner';
 import {
   coverRect,
   pickPosterShotUrl,

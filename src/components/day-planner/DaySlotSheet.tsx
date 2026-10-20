@@ -5,10 +5,10 @@ import { getCharacter } from '@/lib/character-os';
 import { loadSettingsCache } from '@/lib/settings-cache';
 import StillReferenceTray from '@/components/StillReferenceTray';
 import { poseLayoutFromGuideName } from '@/lib/still-references';
-import { daySlotPoseOverride } from '@/lib/day-slot-pose';
+import { daySlotPoseOverride } from '@/lib/day/slot-pose';
 import { spokenLineHeat } from '@/lib/spoken-line';
 import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
-import { isDayAdultMood } from '@/lib/day-planner';
+import { isDayAdultMood } from '@/lib/day/planner';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
 import NarrationField from '@/components/NarrationField';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
@@ -33,7 +33,7 @@ import {
   type DaySlot,
   type DaySlotId,
   type DaySlotStill,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import type { PoseMissView } from '@/lib/pose-coaching';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/roleplay';
 

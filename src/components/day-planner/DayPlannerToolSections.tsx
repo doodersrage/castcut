@@ -4,14 +4,14 @@ import DayDubControl from '@/components/day-planner/DayDubControl';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
-import type { DaySlot } from '@/lib/day-planner';
+import type { DaySlot } from '@/lib/day/planner';
 import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
-import { dayContinuityLocks } from '@/lib/day-continuity-locks';
+import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film-cut-plan';
 import { clipUrlIsVideo } from '@/lib/clip-media-kind';
-import { continueDayAsStoryHref } from '@/lib/day-story-seed';
+import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import type { KeyedShot } from '@/lib/film-cut-plan';
@@ -22,7 +22,7 @@ import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
 import DayScriptImport from '@/components/day-planner/DayScriptImport';
-import { activeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day/event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/fix-area-client';
@@ -52,8 +52,8 @@ import {
   isDayAdultMood,
   normalizeDayIntimateMix,
   type DaySlotId,
-} from '@/lib/day-planner';
-import { dayQualityPresetLabel } from '@/lib/day-quality-preset';
+} from '@/lib/day/planner';
+import { dayQualityPresetLabel } from '@/lib/day/quality-preset';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';

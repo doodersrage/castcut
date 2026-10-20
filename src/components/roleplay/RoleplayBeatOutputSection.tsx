@@ -11,7 +11,7 @@ import {
   DAY_INTIMATE_MIX_OPTIONS,
   normalizeDayIntimateMix,
   type DayIntimateMix,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import {
   isRoleplayAdultContent,

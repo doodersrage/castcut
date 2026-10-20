@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, beforeEach, describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
-import { DEFAULT_DAY_SLOTS } from './day-planner';
+import { DEFAULT_DAY_SLOTS } from './day/planner';
 import { applyRemixDayFilmState, remixNewOutfitHref } from './play-starter';
 import { remixDayFilmHref } from './play-step-machine';
 import { loadSettingsCache, loadToolSettings, saveSharedSettings, saveToolSettings } from './settings-cache';

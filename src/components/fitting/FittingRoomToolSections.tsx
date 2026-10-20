@@ -29,7 +29,7 @@ import PlayFilmFunnelChrome from '@/components/PlayFilmFunnelChrome';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { fittingSessionStatusLine } from '@/lib/fitting-room';
 import { fittingNotesCachePatch } from '@/lib/look-pack';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import type { useFittingRoomToolOrchestration } from '@/hooks/useFittingRoomToolOrchestration';
 
 const ACCENT = 'rose' as const;

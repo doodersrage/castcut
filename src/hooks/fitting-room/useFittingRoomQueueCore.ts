@@ -6,15 +6,15 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { normalizeFootwear } from '@/lib/footwear';
-import { dayDressPlateRequestKey } from '@/lib/day-dress-plate';
+import { dayDressPlateRequestKey } from '@/lib/day/dress-plate';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
   hasFootwearImage,
 } from '@/lib/footwear-image';
-import { buildDayPoseGuide } from '@/lib/day-pose-guide';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { buildDayPoseGuide } from '@/lib/day/pose-guide';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { customPoseWords } from '@/lib/pose-describe';
 import { poseFirstLine, poseFramingLine } from '@/lib/pose-starters';
 import { resolveQueueInputImage } from '@/lib/queue-input-image';

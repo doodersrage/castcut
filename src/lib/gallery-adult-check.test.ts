@@ -21,7 +21,7 @@ import { isFilmSourceStill, resolveFilmPlaylist } from './character-film';
 import { isGalleryStitchableVideo } from './gallery-video-stitch';
 import { selectLoraDatasetEntries } from './gallery-lora-dataset-export';
 import { mergeGalleryWithServer } from './gallery-server-sync';
-import { mergeDaySlotStills } from './day-planner';
+import { mergeDaySlotStills } from './day/planner';
 import { mergeRoleplayStoryStills } from './roleplay-gallery-takes';
 import { resetServerStorageFingerprints, syncNamespaceToServer } from './storage-sync';
 import { closeStudioDb } from './sqlite/studio-db';

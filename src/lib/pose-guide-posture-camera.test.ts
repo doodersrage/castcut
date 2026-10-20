@@ -6,8 +6,8 @@ import {
   synthesizeStickSkeleton,
   parsePoseGuideIntent,
   type PoseGuideBase,
-} from './day-pose-guide';
-import { dayPoseSpecForBeat } from './day-planner';
+} from './day/pose-guide';
+import { dayPoseSpecForBeat } from './day/planner';
 import { resolvePoseCameraAngle } from './pose-guide-openpose';
 import { poseGuidePromptBlock, POSE_GUIDE_CAMERA_LINES } from './pose-guide-prompt';
 import { nextStoryPoseCheck, storyPoseMatchLabel } from './roleplay-pose-check';
@@ -154,7 +154,7 @@ describe('import pose from photo', () => {
 describe('pose import layout list', () => {
   it('matches the scene pose vocabulary (bodies, gesture / duo / sport layouts, sex layouts minus none/generic)', async () => {
     const { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } = await import(
-      './day-pose-guide'
+      './day/pose-guide'
     );
     const { POSE_IMPORT_LAYOUTS: list } = await import('./pose-import-layouts');
     assert.deepEqual(

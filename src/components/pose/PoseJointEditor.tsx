@@ -18,12 +18,12 @@ import {
   posePartOfJoint,
 } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
-import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day-pose-presets';
+import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day/pose-presets';
 import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose-references';
 import { poseLayoutLabel } from '@/lib/pose-layout-labels';
 import ModalPortal from '@/components/ui/ModalPortal';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
 import {
   bendBody,

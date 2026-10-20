@@ -7,7 +7,7 @@ import {
   normalizeDayIntimateMix,
   normalizeDayMood,
   upsertDaySlotStill,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import {
   recordFaceMatchScore,
   poseLayoutFromKey,
@@ -43,7 +43,7 @@ import { buildFaceComparePair } from '@/lib/play-face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
-import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
   buildPoseMissView,
   gestureMissWords,
@@ -64,7 +64,7 @@ type DaySlotAttempt = {
   missView?: PoseMissView;
 };
 import { reviewDaySlotStill } from '@/lib/play-slot-review-client';
-import { activeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day/event';
 
 /**
  * Opt-in Day quality gate: when a still lands, vision-review it and requeue the slot (bounded

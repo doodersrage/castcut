@@ -6,9 +6,9 @@ import {
   withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
 } from '@/lib/cast-places';
-import { applyDayNarration } from '@/lib/day-narration';
+import { applyDayNarration } from '@/lib/day/narration';
 import type { KeyedShot } from '@/lib/film-cut-plan';
-import { partnerOutfitWords } from '@/lib/day-partner-outfit';
+import { partnerOutfitWords } from '@/lib/day/partner-outfit';
 import { castMarksLine } from '@/lib/cast-marks';
 import { recordCastOutfitWorn } from '@/lib/cast-wardrobe';
 import { castRelationOf, relationAllowsRomance } from '@/lib/cast-relationships';
@@ -31,7 +31,7 @@ import {
   withDuoPartnerBodyLine,
   withNudeDuoLeadBodyLine,
   withNudeBodyPlateLine,
-} from '@/lib/day-still-prompt';
+} from '@/lib/day/still-prompt';
 import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
 import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
@@ -53,8 +53,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day-premise';
-import { dayScriptSlots, type DayScript } from '@/lib/day-script-import';
+import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day/premise';
+import { dayScriptSlots, type DayScript } from '@/lib/day/script-import';
 import {
   applyDayEventPlan,
   clearDayEventSlots,
@@ -67,13 +67,13 @@ import {
   normalizeDayEvent,
   requestDayEventPlan,
   slotsForWholeDay,
-} from '@/lib/day-event';
+} from '@/lib/day/event';
 import { SAME_SHOT_MAX_DIFF } from '@/lib/image-similarity';
 import { pictureGreyDifference } from '@/lib/image-similarity-client';
-import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day-end-pose';
+import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day/end-pose';
 import { resolveCastPlatePrepareModel } from '@/lib/cast-plate-prepare';
 import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/rapid-duo-recipe';
-import { normalizeDayThread } from '@/lib/day-thread';
+import { normalizeDayThread } from '@/lib/day/thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
@@ -85,7 +85,7 @@ import {
   stampAssembledFilm,
 } from '@/lib/character-film-assemble-lazy';
 import { filmDownloadFilename } from '@/lib/character-film';
-import { dayAfterOutfitHandoff } from '@/lib/day-outfit-scope';
+import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import {
   activeLook,
   applyCharacterRecord,
@@ -159,7 +159,7 @@ import {
   type DaySlot,
   type DaySlotId,
   setDayAvoidedBeatsSource,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import {
   castFaceDuplicatesBodyPlate,
   isClothingOnlyDayGarment,
@@ -168,9 +168,9 @@ import {
   resolveDayGarmentReinforce,
   resolveDayPlate,
   resolveDayQueueIdentityPlate,
-} from '@/lib/day-plate';
-import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day-nude-face-crop';
-import { withThirdPerson, type DayThirdPerson } from '@/lib/day-group';
+} from '@/lib/day/plate';
+import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day/nude-face-crop';
+import { withThirdPerson, type DayThirdPerson } from '@/lib/day/group';
 import { comfyInputViewUrl } from '@/lib/face-match-client';
 import {
   checkReferenceImage,
@@ -182,24 +182,24 @@ import {
   pickDayAutoKit,
   dayOutfitArcKit,
   dayOutfitBlock,
-} from '@/lib/day-auto-kit';
+} from '@/lib/day/auto-kit';
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
   uploadDayIdentityLatentPlate,
-} from '@/lib/day-vacation-face-crop';
-import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day-vacation';
-import { buildDayPoseGuide, isPenetrationLayout } from '@/lib/day-pose-guide';
+} from '@/lib/day/vacation-face-crop';
+import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
+import { buildDayPoseGuide, isPenetrationLayout } from '@/lib/day/pose-guide';
 import { customPoseWords } from '@/lib/pose-describe';
-import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day-best-of-two';
-import { dayTwoTakesApplies } from '@/lib/day-two-takes';
+import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
+import { dayTwoTakesApplies } from '@/lib/day/two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
 import {
   dayClothedGuideContradictsBeat,
   daySlotPoseLayout,
   planDaySlotPose,
   plannedDaySlotPoseKey,
-} from '@/lib/day-slot-pose';
+} from '@/lib/day/slot-pose';
 import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose-outcome-stats';
 import { pickPoseEngine, pinnedEngineModel } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
@@ -209,9 +209,9 @@ import {
 } from '@/components/FilmCutOptionsControls';
 import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { dayThemeOf } from '@/lib/day-themes';
-import { normalizeDayWeather } from '@/lib/day-weather';
-import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day-clothed-lead';
+import { dayThemeOf } from '@/lib/day/themes';
+import { normalizeDayWeather } from '@/lib/day/weather';
+import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day/clothed-lead';
 import { footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
 import {
   buildFootwearReferenceImage,
@@ -224,14 +224,14 @@ import {
   uploadDayPartnerVlFace,
   reusableDayPartnerStandIn,
   type DayPartnerStandIn,
-} from '@/lib/day-partner-stand-in';
+} from '@/lib/day/partner-stand-in';
 import {
   dayPartnerApplies,
   dayPartnerNoun,
   inventedDayPartner,
   toDayPartner,
   type DayPartner,
-} from '@/lib/day-partner';
+} from '@/lib/day/partner';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
 import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
@@ -255,13 +255,13 @@ import {
   DRESS_PLATE_SHOE_PASS_STATUS,
   dayDressPlateStatus,
   type DayDressPlateEntry,
-} from '@/lib/day-dress-plate';
+} from '@/lib/day/dress-plate';
 import { loadDressPlates, removeDressPlate, subscribeDressPlates } from '@/lib/dress-plate-store';
 import {
   dayDressPlateRequestKey,
   dayIdentityPrefersCastPlate,
   dayKeepOutfitStale,
-} from '@/lib/day-dress-plate';
+} from '@/lib/day/dress-plate';
 import {
   DAY_OUTFIT_LINE_RE,
   dayStillClothingReinforce,
@@ -272,8 +272,8 @@ import {
   dayStillIdentityRoute,
   dayStillLiesDown,
   dayStillWantsDressPlate,
-} from '@/lib/day-still-plan';
-import type { DayPlate } from '@/lib/day-plate';
+} from '@/lib/day/still-plan';
+import type { DayPlate } from '@/lib/day/plate';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
 
@@ -313,7 +313,7 @@ import {
   resolvePlayLoopEntryCharacterId,
 } from '@/lib/play-campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look-outfit-plate';
-import { resolveDaySlotLook } from '@/lib/day-slot-look';
+import { resolveDaySlotLook } from '@/lib/day/slot-look';
 import {
   chronicRerollBeats,
   cuePoseLayouts,
@@ -1552,7 +1552,7 @@ export function useDayPlannerToolOrchestrationCore() {
             : { imageUrl: packshotUrl ?? undefined };
           const hasShoes = Boolean(pickedShoes) && !footwearIsBarefoot(pickedShoes);
           try {
-            const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
+            const { ensureDayDressPlate } = await import('@/lib/day/dress-plate-client');
             const { entry } = await ensureDayDressPlate(
               {
                 model: stillModel,
@@ -2752,7 +2752,7 @@ export function useDayPlannerToolOrchestrationCore() {
                   : null;
             if (clothing && partnerCast && stillModel) {
               try {
-                const { ensureDayDressPlate } = await import('@/lib/day-dress-plate-client');
+                const { ensureDayDressPlate } = await import('@/lib/day/dress-plate-client');
                 const { entry } = await ensureDayDressPlate(
                   {
                     model: stillModel,
@@ -3427,7 +3427,7 @@ export function useDayPlannerToolOrchestrationCore() {
 
   const rerollActiveSlotScene = useCallback(
     (options?: {
-      slotId?: import('@/lib/day-planner').DaySlotId;
+      slotId?: import('@/lib/day/planner').DaySlotId;
       rerollLocation?: boolean;
       rerollBeat?: boolean;
     }) => {
@@ -3561,10 +3561,10 @@ export function useDayPlannerToolOrchestrationCore() {
     dayMood: (dayThemeOf(toolSettings.dayMood)?.id ??
       normalizeDayMood(
         isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
-      )) as import('@/lib/day-planner').DayMoodSetting,
-    setDayMood: (next: import('@/lib/day-planner').DayMoodSetting) => {
+      )) as import('@/lib/day/planner').DayMoodSetting,
+    setDayMood: (next: import('@/lib/day/planner').DayMoodSetting) => {
       const theme = dayThemeOf(next);
-      const mood: import('@/lib/day-planner').DayMoodSetting =
+      const mood: import('@/lib/day/planner').DayMoodSetting =
         theme?.id ??
         (isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next));
       const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
@@ -3667,13 +3667,13 @@ export function useDayPlannerToolOrchestrationCore() {
     // People (Solo / Mixed / Duo) — one control for every mood. Clothed moods: Solo = no
     // companion, Mixed = some stills with a friend / partner, Duo = every still. Adult moods: the
     // Solo / Mixed / Duo mix. Both settings move together so switching mood keeps the choice.
-    people: ((): import('@/lib/day-planner').DayIntimateMix => {
+    people: ((): import('@/lib/day/planner').DayIntimateMix => {
       const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
       if (isDayAdultMood(toolSettings.dayMood) && intimateEnabled) return mix;
       if (toolSettings.allowCompanions !== true) return 'solo';
       return mix === 'solo' ? 'mixed' : mix;
     })(),
-    setPeople: (next: import('@/lib/day-planner').DayIntimateMix) => {
+    setPeople: (next: import('@/lib/day/planner').DayIntimateMix) => {
       const mix = normalizeDayIntimateMix(next);
       const rawMood =
         dayThemeOf(toolSettings.dayMood)?.id ??
@@ -3693,7 +3693,7 @@ export function useDayPlannerToolOrchestrationCore() {
       });
     },
     intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
-    setIntimateMix: (next: import('@/lib/day-planner').DayIntimateMix) => {
+    setIntimateMix: (next: import('@/lib/day/planner').DayIntimateMix) => {
       const mix = normalizeDayIntimateMix(next);
       const mood =
         dayThemeOf(toolSettings.dayMood)?.id ??

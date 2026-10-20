@@ -57,7 +57,7 @@ function repoEdges(): ImportEdge[] {
 
 describe('architecture: Play layer boundary', () => {
   it('classifies the layer by path', () => {
-    assert.equal(isPlayLayer('src/lib/day-planner.ts'), true);
+    assert.equal(isPlayLayer('src/lib/day/planner.ts'), true);
     assert.equal(isPlayLayer('src/components/fitting/FittingStagePending.tsx'), true);
     assert.equal(isPlayLayer('src/hooks/useDayPlannerToolOrchestration.ts'), true);
     assert.equal(isPlayLayer('src/lib/comfyui-client.ts'), false);

@@ -3,14 +3,14 @@
 import { queueCastLookPlate } from '@/lib/cast-plate-queue';
 
 import { getCharacter } from '@/lib/character-os';
-import { partnerOutfitWords } from '@/lib/day-partner-outfit';
+import { partnerOutfitWords } from '@/lib/day/partner-outfit';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
 import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
 import { clipUrlIsSilent } from '@/lib/clip-sound';
 import { useDayAddVoice } from '@/hooks/day-planner/useDayAddVoice';
 import { useDaySlotMediaTools } from '@/hooks/day-planner/useDaySlotMediaTools';
 import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
-import type { DayLength, DaySlot } from '@/lib/day-planner';
+import type { DayLength, DaySlot } from '@/lib/day/planner';
 import { useDayExtendClip } from '@/hooks/day-planner/useDayExtendClip';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
@@ -31,7 +31,7 @@ import {
   settleDayTake,
   type DayChecksGate,
   type DaySettledTakes,
-} from '@/lib/day-finish-order';
+} from '@/lib/day/finish-order';
 import { applyCastLookPlateFromSource } from '@/lib/look-outfit-plate';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { flaggedRetryPlan } from '@/lib/play-slot-quality';
@@ -42,8 +42,8 @@ import type { FixAreaTarget } from '@/lib/fix-area-client';
 import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/still-comfy-url';
 import { notePoseTakeOutcomes, notePoseTakePair } from '@/lib/pose-outcome-stats';
-import { dayLooksWrongAvailable, dayLooksWrongTakeIds } from '@/lib/day-looks-wrong';
-import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day-two-takes';
+import { dayLooksWrongAvailable, dayLooksWrongTakeIds } from '@/lib/day/looks-wrong';
+import { dayTwoTakesMark, dayTwoTakesPickPatch, dayTwoTakesSwapPatch } from '@/lib/day/two-takes';
 import {
   dayStillFixAreaPatch,
   dayStillShownImage,
@@ -53,7 +53,7 @@ import {
   restorePreviousDayTake,
   upsertDaySlotStill,
   type DaySlotId,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import {
   applyCutShotEdits,
   cutShotProblems,

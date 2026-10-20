@@ -26,7 +26,7 @@ import {
   stillLabel,
 } from '@/components/roleplay/roleplay-story-helpers';
 import { useGalleryJobEntry } from '@/hooks/useGalleryJobEntry';
-import { daySlotJobProgress } from '@/lib/day-slot-progress';
+import { daySlotJobProgress } from '@/lib/day/slot-progress';
 
 export function RoleplayStillFrame({
   beat,

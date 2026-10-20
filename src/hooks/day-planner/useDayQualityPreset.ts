@@ -12,7 +12,7 @@ import {
   type DayQualityPresetChoice,
   type DayQualitySettings,
   type DayRenderQuality,
-} from '@/lib/day-quality-preset';
+} from '@/lib/day/quality-preset';
 import {
   loadSettingsCache,
   notifySettingsCacheUpdated,

@@ -32,7 +32,7 @@ import {
   orderedCutShots,
   withCutShotEdit,
 } from '@/lib/film-cut-plan';
-import { continueDayAsStoryHref } from '@/lib/day-story-seed';
+import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
 

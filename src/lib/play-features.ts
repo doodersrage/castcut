@@ -47,7 +47,7 @@ registerStickyCharacterFields('filmCut', 'lookPacks');
 
 // Lightning Day face-break → auto Edit face-restore (deduped inside; loaded on first use).
 registerJobCompletedHook(entry => {
-  void import('./day-vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) =>
+  void import('./day/vacation-face-restore').then(({ maybeScheduleDayVacationFaceRestore }) =>
     maybeScheduleDayVacationFaceRestore(entry)
   );
 });

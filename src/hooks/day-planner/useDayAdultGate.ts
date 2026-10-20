@@ -15,7 +15,7 @@ import {
   setGalleryAdultCheck,
 } from '@/lib/comfyui-gallery';
 import { persistCompletedGalleryMedia } from '@/lib/comfyui-gallery-client';
-import { dayPlayedMood } from '@/lib/day-still-prompt';
+import { dayPlayedMood } from '@/lib/day/still-prompt';
 import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
 
 /**

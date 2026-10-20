@@ -8,7 +8,7 @@ import {
   SUGGESTIVE_COVERAGE_LINE,
   withStrongCoverageLine,
 } from './clothed-coverage';
-import { dayStillAgeFacts, finishDayStillPrompt } from './day-still-prompt';
+import { dayStillAgeFacts, finishDayStillPrompt } from './day/still-prompt';
 import { buildRapidSuggestiveRecipe } from './rapid-duo-recipe';
 
 describe('clothed coverage (Suggestive stays clothed)', () => {

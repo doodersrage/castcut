@@ -1,6 +1,6 @@
 'use client';
 
-import { activeDayEvent } from '@/lib/day-event';
+import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/comfyui-gallery';
@@ -17,12 +17,12 @@ import {
   bestOfTwoPickPatch,
   bestOfTwoTakeId,
   isDayHardPose,
-} from '@/lib/day-best-of-two';
-import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day-two-takes';
+} from '@/lib/day/best-of-two';
+import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
 import { realismRankedScore } from '@/lib/still-realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
-import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day-planner';
+import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import { detectStillPose } from '@/lib/pose-detect-client';
 import { comfyViewUrlForStill } from '@/lib/still-comfy-url';
 

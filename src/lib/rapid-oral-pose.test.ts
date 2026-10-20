@@ -5,9 +5,9 @@ import {
   DAY_LATE_SLOT_RAUNCHY_BEAT_PRESETS,
   DAY_SLOT_INTIMATE_BEAT_PRESETS,
   DAY_SLOT_RAUNCHY_BEAT_PRESETS,
-} from './day-planner';
-import { parseIntimateLayout, resolveSceneGuidePlan } from './day-pose-guide';
-import { planDaySlotPose } from './day-slot-pose';
+} from './day/planner';
+import { parseIntimateLayout, resolveSceneGuidePlan } from './day/pose-guide';
+import { planDaySlotPose } from './day/slot-pose';
 import { buildRapidDuoRecipe } from './rapid-duo-recipe';
 import { oralReceiverSeated } from './rapid-oral-pose';
 

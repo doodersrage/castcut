@@ -35,7 +35,7 @@ describe('talking clip prompt', async () => {
 });
 
 describe('keep the full frame', async () => {
-  const { normalizeDaySlots } = await import('./day-planner');
+  const { normalizeDaySlots } = await import('./day/planner');
   it('is kept on a Day slot only when set', () => {
     const [on, off] = normalizeDaySlots([
       { id: 'morning', label: 'Morning', line: 'Hi there', lineFullFrame: true },

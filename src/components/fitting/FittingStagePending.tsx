@@ -7,7 +7,7 @@ import {
 } from '@/lib/comfyui-live-preview-store';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/comfyui-gallery-storage-meta';
 import type { ComfyGalleryEntry } from '@/lib/comfyui-gallery-entry';
-import { daySlotJobProgress } from '@/lib/day-slot-progress';
+import { daySlotJobProgress } from '@/lib/day/slot-progress';
 import { getGalleryCache } from '@/lib/gallery-db-store';
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { normalizeScenePoseSpec } from './day-pose-guide';
+import { normalizeScenePoseSpec } from './day/pose-guide';
 import { composedPoseForScene, composeWrittenPose, normalizePoseLimbs } from './pose-compose';
 
 const ASPECT = 2 / 3;

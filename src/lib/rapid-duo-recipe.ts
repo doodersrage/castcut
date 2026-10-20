@@ -12,14 +12,14 @@
  */
 import { beatLiesDown } from './beat-text';
 import { danceMoveWords } from './dance-move';
-import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day-lead-gender';
-import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day-partner';
+import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day/lead-gender';
+import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day/partner';
 import {
   parseIntimateLayout,
   resolveSoloMasturbationPoseKind,
   type IntimateLayout,
   type SoloMasturbationPoseKind,
-} from './day-pose-guide';
+} from './day/pose-guide';
 import {
   impliedNudityDuoCoverageLine,
   suggestiveBeatIsImpliedNudity,

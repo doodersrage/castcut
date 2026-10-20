@@ -25,7 +25,7 @@ import {
   setLookKeptOutfit,
   upsertCharacter,
 } from './character-os';
-import { dayDressPlateRequestKey } from './day-dress-plate';
+import { dayDressPlateRequestKey } from './day/dress-plate';
 import { resolveFittingPlateFromCharacter } from './fitting-room';
 import {
   assignOutfitPlateToCastAndFitting,

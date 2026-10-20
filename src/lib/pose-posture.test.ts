@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { synthesizeStickSkeleton } from './day-pose-guide';
+import { synthesizeStickSkeleton } from './day/pose-guide';
 import { stickToOpenPoseKeypoints } from './pose-guide-openpose';
 import type { NormalizedBody } from './pose-library';
 import {

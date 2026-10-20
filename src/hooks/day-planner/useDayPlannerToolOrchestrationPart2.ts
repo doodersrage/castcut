@@ -1,6 +1,6 @@
 'use client';
 
-import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day-dub';
+import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day/dub';
 import { holdJobCompletionEmail } from '@/lib/job-completion-email';
 import { pronounceForCast } from '@/lib/cast-speech';
 import { previouslyOnShots } from '@/lib/play-series';
@@ -9,7 +9,7 @@ import { isH3Model } from '@/lib/h3-renderer';
 import { makeFilmAngles } from '@/lib/film-angles-client';
 import { castVoiceOf } from '@/lib/cast-voice';
 import { renderNarrationLine } from '@/lib/film-narration-client';
-import { applyDayNarration, type DayNarrationLine } from '@/lib/day-narration';
+import { applyDayNarration, type DayNarrationLine } from '@/lib/day/narration';
 import { filmShapeOf } from '@/lib/video-resolution';
 import {
   framedTalkingStill,
@@ -30,29 +30,29 @@ import {
   talkingClipPrompt,
 } from '@/lib/ltx25-renderer';
 import { castVoiceSampleFor } from '@/lib/cast-voice';
-import { swapDayForCast } from '@/lib/day-cast-park';
+import { swapDayForCast } from '@/lib/day/cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
-import { nextDayThread, planTomorrowSlots } from '@/lib/day-thread';
+import { nextDayThread, planTomorrowSlots } from '@/lib/day/thread';
 import {
   dayPremiseAvailable,
   requestDayPremiseBeats,
   type DayPremiseBeat,
-} from '@/lib/day-premise';
+} from '@/lib/day/premise';
 import { sharedLlmRequestBody } from '@/lib/llm-request-options';
 import {
   clearDayEventSlots,
   dayEventClipPrompt,
   dayEventMomentWords,
   activeDayEvent,
-} from '@/lib/day-event';
+} from '@/lib/day/event';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
-import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day-end-pose';
+import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day/end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui-object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film-cut-plan';
-import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day-episode-snapshot';
+import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play-series';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -103,8 +103,8 @@ import {
   type DaySlot,
   type DaySlotId,
   isDayAdultMood,
-} from '@/lib/day-planner';
-import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day-clip-direction';
+} from '@/lib/day/planner';
+import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day/clip-direction';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still-clip-prompt';
@@ -113,7 +113,7 @@ import {
   dayClipFrames,
   dayClipSeconds,
   normalizeDayClipExtraSeconds,
-} from '@/lib/day-clip-length';
+} from '@/lib/day/clip-length';
 import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
@@ -145,7 +145,7 @@ import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look-outfit-plate';
 import { applyCustomGarmentUpload } from '@/lib/fitting-custom-garment-apply';
-import { clearDayVacationFaceBreakCache } from '@/lib/day-vacation-face-crop';
+import { clearDayVacationFaceBreakCache } from '@/lib/day/vacation-face-crop';
 import {
   loadSavedFittingGarments,
   removeSavedFittingGarment,

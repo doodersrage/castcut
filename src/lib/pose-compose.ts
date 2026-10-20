@@ -11,7 +11,7 @@ import {
   parseSocialLayout,
   type PhotoPose,
   type ScenePoseSpec,
-} from '@/lib/day-pose-guide';
+} from '@/lib/day/pose-guide';
 import type { NormalizedBody } from '@/lib/pose-library';
 import { setLimbDirections, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
 

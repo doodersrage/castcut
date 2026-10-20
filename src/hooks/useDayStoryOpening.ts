@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { storyScenesFromDay, storySeedFromDay } from '@/lib/day-story-seed';
+import { storyScenesFromDay, storySeedFromDay } from '@/lib/day/story-seed';
 import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
 import { loadSettingsCache, loadToolSettings } from '@/lib/settings-cache';

@@ -3,7 +3,7 @@
  * Session-scoped; optional wardrobe lock + vibe notes travel via query + sessionStorage.
  */
 
-import type { DaySlot } from './day-planner';
+import type { DaySlot } from './day/planner';
 import type { MoodboardTemplateId, MoodboardTile, MoodboardTileRole } from './moodboard-scene';
 import type { RoleplayTone } from './roleplay';
 import { normalizeRoleplayTone } from './roleplay';

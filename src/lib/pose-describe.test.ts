@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { assembleDayStillPrompt } from './day-still-prompt';
+import { assembleDayStillPrompt } from './day/still-prompt';
 import {
   POSE_WORDS_SOLO_MAX,
   customPoseFirstLine,

@@ -19,9 +19,9 @@ import {
   DAY_SLOT_COMPANION_BEAT_PRESETS,
   DAY_SLOT_SETTING_PRESETS,
   daySlotsForLength,
-} from './day-planner';
-import { daySportBeatPresetsForSlot } from './day-sport';
-import { dayVacationBeatPresetsForSlot, dayVacationDuoBeatPresetsForSlot } from './day-vacation';
+} from './day/planner';
+import { daySportBeatPresetsForSlot } from './day/sport';
+import { dayVacationBeatPresetsForSlot, dayVacationDuoBeatPresetsForSlot } from './day/vacation';
 import { clarifyIntimateImageLanguage } from './intimate-prompt-clarify';
 
 /** Words the rewriter only ever writes for a sex scene. */

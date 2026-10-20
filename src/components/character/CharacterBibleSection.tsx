@@ -16,7 +16,7 @@ import {
   type CharacterRecord,
 } from '@/lib/character-os';
 import { saveCharacterBio } from '@/lib/play-cast';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
 import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/roleplay-play-core';
 import {

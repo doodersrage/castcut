@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayPoseAsPhotoPose } from './day-pose-presets';
+import { dayPoseAsPhotoPose } from './day/pose-presets';
 import { fitPhotoPoseToHeadcount } from './photo-pose-fit';
 
 const stand = dayPoseAsPhotoPose('stand')!.people[0]!;

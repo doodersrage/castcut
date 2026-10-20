@@ -63,7 +63,7 @@ import {
 } from '../roleplay';
 import { runSpecializedPrompt } from './runner';
 import { getDetailLimits } from '../detail-level';
-import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day-pose-guide';
+import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day/pose-guide';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 
 export type RoleplaySharedOptions = SharedGenerationOptions & {

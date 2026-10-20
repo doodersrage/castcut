@@ -4,13 +4,13 @@ import CastcutNodesHint from '@/components/CastcutNodesHint';
 import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
 import { ChipButton, FieldLabel, SwitchButton, TextArea } from '@/components/ui/Field';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
-import type { DayRenderQuality } from '@/lib/day-quality-preset';
+import type { DayRenderQuality } from '@/lib/day/quality-preset';
 import {
   isDayAdultMood,
   type DayIntimateMix,
   type DayMoodSetting,
   type DaySlot,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 import { summarizePlayChecks } from '@/lib/play-checks-readiness';
 
 export type DayQualitySwitches = {

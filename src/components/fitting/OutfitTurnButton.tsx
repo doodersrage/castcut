@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { useOutfitRunwayClip } from '@/hooks/character/useOutfitRunwayClip';
 import { normalizeCastWardrobe, saveOutfitRunway } from '@/lib/cast-wardrobe';
 import { getCharacter } from '@/lib/character-os';
-import { dayPartnerNoun } from '@/lib/day-partner';
+import { dayPartnerNoun } from '@/lib/day/partner';
 
 /** Clips made this session, by picture (a try-on not kept has no Wardrobe outfit to keep it). */
 const made = new Map<string, string>();

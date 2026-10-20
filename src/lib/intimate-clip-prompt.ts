@@ -1,4 +1,4 @@
-import { parseIntimateLayout, type IntimateLayout } from './day-pose-guide';
+import { parseIntimateLayout, type IntimateLayout } from './day/pose-guide';
 import { twoMenBeat, twoWomenBeat } from './rapid-duo-recipe';
 import { adultAgeLine, neutralizeYouthWords } from './adult-age-safeguard';
 

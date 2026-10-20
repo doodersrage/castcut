@@ -36,7 +36,7 @@ import {
   type PoseCameraChoice,
   type PoseLookChoice,
   type ScenePoseSpec,
-} from '@/lib/day-pose-guide';
+} from '@/lib/day/pose-guide';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
 import type { StillPromptCheck } from '@/lib/still-prompt-audit';
 import type {
@@ -3082,7 +3082,7 @@ export function buildStoryProgressLightboxState(
 /** LLM cue when adult content + Solo/Duo/Mixed mix is set (mirrors Day intimateMix). */
 export function roleplayIntimateMixLine(
   content: RoleplayContentId,
-  intimateMix: import('./day-planner').DayIntimateMix | string | null | undefined
+  intimateMix: import('./day/planner').DayIntimateMix | string | null | undefined
 ): string {
   if (!isRoleplayAdultContent(content)) {
     return '';

@@ -15,8 +15,8 @@ import {
   diversifyDaySlotScenes,
   isDayIntimateSoloBeat,
   isDayRaunchySoloBeat,
-} from './day-planner';
-import { parseIntimateLayout } from './day-pose-guide';
+} from './day/planner';
+import { parseIntimateLayout } from './day/pose-guide';
 import { reinforceIntimateStillPrompt } from './intimate-prompt-clarify';
 import { applyQueuePromptSteering } from './queue-prompt-prep';
 import {
@@ -150,8 +150,8 @@ describe('Rapid duo recipe', () => {
   });
 
   it('draws the seated-oral guide for a Rapid 69 / face-sit beat so the pose check agrees', async () => {
-    const { planDaySlotPose } = await import('./day-slot-pose');
-    const { resolveSceneGuidePlan } = await import('./day-pose-guide');
+    const { planDaySlotPose } = await import('./day/slot-pose');
+    const { resolveSceneGuidePlan } = await import('./day/pose-guide');
     const layoutFor = (
       model: string,
       beat = 'sixty-nine on the couch in afternoon light — both adults fully visible'

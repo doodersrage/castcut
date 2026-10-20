@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import DayPartnerPicker, { type DayPartnerOption } from '@/components/day-planner/DayPartnerPicker';
-import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day-partner';
+import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day/partner';
 import {
   isDayAdultMood,
   normalizeDayMood,
   type DayIntimateMix,
   type DayMoodSetting,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 
 export type DayPartnerRowProps = {
   busy?: boolean;

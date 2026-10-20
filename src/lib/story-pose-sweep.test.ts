@@ -29,8 +29,8 @@ import {
   textLeadPosture,
   type PoseGuideBase,
   type ScenePoseSpec,
-} from './day-pose-guide';
-import { mergePickedPose } from './day-slot-pose';
+} from './day/pose-guide';
+import { mergePickedPose } from './day/slot-pose';
 import { clarifyIntimateImageLanguage } from './intimate-prompt-clarify';
 import { poseLayoutFromKey } from './play-metrics';
 import {

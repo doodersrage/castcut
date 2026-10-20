@@ -5,8 +5,8 @@
  * here. The whole prompt is not swapped, as Day does, because the written scene is already right
  * and a swap would turn its "he" into "she".
  */
-import { dayPartnerNoun } from './day-partner';
-import { swapDayPromptGender } from './day-lead-gender';
+import { dayPartnerNoun } from './day/partner';
+import { swapDayPromptGender } from './day/lead-gender';
 
 /** Whether the lead reads as a man, from the bible's look and the Cast record. */
 export function storyLeadIsMan(input: {

@@ -16,7 +16,7 @@ import {
   type PhotoPose,
   type PoseCameraChoice,
   type PoseGuideBuildOptions,
-} from '@/lib/day-pose-guide';
+} from '@/lib/day/pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
 import { fitPhotoPoseToHeadcount } from '@/lib/photo-pose-fit';
 import {

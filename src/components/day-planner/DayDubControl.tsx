@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { DUB_LANGUAGES } from '@/lib/day-dub';
+import { DUB_LANGUAGES } from '@/lib/day/dub';
 
 /**
  * "Dub": the Day's spoken lines in another language (day-dub.ts) — translated, then the talking

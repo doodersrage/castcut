@@ -5,7 +5,7 @@
  * hands him a pastry". Day passes its own planned headcount; Story has only the words, and one
  * recorded writer scene in ten named someone the counter missed, so it was drawn alone.
  */
-import { countPoseGuidePeople } from './day-pose-guide';
+import { countPoseGuidePeople } from './day/pose-guide';
 
 /** Words that are always a person. */
 const PERSON_NOUNS =

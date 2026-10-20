@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { characterFromPartnerStandIn } from './character-os';
-import { resolveDayCastPlate } from './day-plate';
+import { resolveDayCastPlate } from './day/plate';
 
 describe('Keep as Cast (Day partner stand-in)', () => {
   it("the stranger's face becomes the new Cast's plate, the look its descriptor", () => {

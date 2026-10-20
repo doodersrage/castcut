@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import { isDayHardPose, setLearnedHardLayoutsSource } from './day-best-of-two';
+import { isDayHardPose, setLearnedHardLayoutsSource } from './day/best-of-two';
 import {
   DEFAULT_DAY_SLOTS,
   diversifyDaySlotScenes,
   normalizeDaySlotStills,
   setDayAvoidedBeatsSource,
   upsertDaySlotStill,
-} from './day-planner';
+} from './day/planner';
 import { chronicRerollBeats, rerollBeatKey, rerollProneLayouts, type PlayMetrics } from './play-metrics';
 
 const NONE = () => new Set<string>();

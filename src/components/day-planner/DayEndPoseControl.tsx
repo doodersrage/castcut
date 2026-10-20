@@ -8,13 +8,13 @@ import {
   dayEndPoseCandidates,
   dayEndPoseFramingWarning,
   type DayEndPose,
-} from '@/lib/day-end-pose';
+} from '@/lib/day/end-pose';
 import {
   dayStillShownImage,
   type DaySlot,
   type DaySlotId,
   type DaySlotStill,
-} from '@/lib/day-planner';
+} from '@/lib/day/planner';
 
 /**
  * "End pose" beside Animate: the slot's clip starts on its still and lands on a second picture —

@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { keepClipInGallery, keepStillInGallery } from '@/lib/clip-gallery-keep';
-import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day-planner';
+import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import {
   requestCopyMoves,
   requestDanceToMusic,

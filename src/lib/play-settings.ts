@@ -47,7 +47,7 @@ export type RoleplayToolCache = {
   footwearImageUrl?: string;
   footwearImageFilename?: string;
   /** Adult roll mix: solo / duo / mixed (same chips as Day Intimate). */
-  intimateMix?: import('./day-planner').DayIntimateMix;
+  intimateMix?: import('./day/planner').DayIntimateMix;
 };
 
 /** Fitting Room — outfit try-on from a Cast plate + locked wardrobe kit. */
@@ -111,26 +111,26 @@ export type FittingToolCache = {
   /** Front and back: each try-on is followed by a back view of it (unset = on). */
   tryOnFrontBack?: boolean;
   /** Outfit → Pose → Custom: the joint editor's skeleton, sent as Image 3 (unset = as the plate). */
-  tryOnPose?: import('./day-pose-guide').PhotoPose;
+  tryOnPose?: import('./day/pose-guide').PhotoPose;
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */
 export type DayToolCache = {
   /** Other Casts' Days, parked when the Cast changed (day-cast-park). */
-  parkedDays?: Record<string, import('./day-cast-park').ParkedDay>;
+  parkedDays?: Record<string, import('./day/cast-park').ParkedDay>;
   /** The Day an "Open this Day again" replaced, so it can come back (day-episode-snapshot). */
-  setAsideDay?: import('./day-episode-snapshot').SetAsideDay;
-  slots?: import('./day-planner').DaySlot[];
+  setAsideDay?: import('./day/episode-snapshot').SetAsideDay;
+  slots?: import('./day/planner').DaySlot[];
   /** This Cast's run of Days: its idea and the last Day's beats, for Tomorrow (day-thread.ts). */
-  dayThread?: import('./day-thread').DayThread;
+  dayThread?: import('./day/thread').DayThread;
   /** One event (day-event.ts): every slot a moment of it; unset = an ordinary Day. */
-  dayEvent?: import('./day-event').DayEvent;
+  dayEvent?: import('./day/event').DayEvent;
   /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
-  outfitHandoffKept?: import('./day-outfit-scope').DayOutfitHandoffNotice;
+  outfitHandoffKept?: import('./day/outfit-scope').DayOutfitHandoffNotice;
   /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */
-  dayLength?: import('./day-planner').DayLength;
+  dayLength?: import('./day/planner').DayLength;
   /** Completed / in-flight stills for the day reel and Cut film. */
-  stills?: import('./day-planner').DaySlotStill[];
+  stills?: import('./day/planner').DaySlotStill[];
   /** Cast character that owns {@link stills}; cleared when Cast changes. */
   stillsCharacterId?: string;
   notes?: string;
@@ -200,20 +200,20 @@ export type DayToolCache = {
   /** Animate sheet Length: seconds added to a clip's default length (0, 2, 4 or 6). */
   dayClipExtraSeconds?: number;
   /** Everyday / suggestive / intimate heat for Day stills (intimate is NSFW-gated). */
-  dayMood?: import('./day-planner').DayMoodSetting;
+  dayMood?: import('./day/planner').DayMoodSetting;
   /** Cast member who plays the second person on duo stills (unset: an invented stranger). */
   partnerCharacterId?: string;
   /** "Same stranger all day": the invented partner's rendered face (see day-partner-stand-in). */
-  partnerStandIn?: import('./day-partner-stand-in').DayPartnerStandIn;
+  partnerStandIn?: import('./day/partner-stand-in').DayPartnerStandIn;
   /**
    * The face picture actually sent as the Cast partner on the last two-person still (the
    * uploaded crop), so the partner tile shows what the engine saw.
    */
   partnerSentFace?: { partnerId: string; filename: string; url: string };
   /** Weather / season on every setting (unset: whatever the setting says). */
-  dayWeather?: import('./day-weather').DayWeather;
+  dayWeather?: import('./day/weather').DayWeather;
   /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */
-  intimateMix?: import('./day-planner').DayIntimateMix;
+  intimateMix?: import('./day/planner').DayIntimateMix;
   /** True when {@link plateImageUrl} is the isolated cutout for {@link plateIsolateSourceKey}. */
   referenceIsolated?: boolean;
   /** Fingerprint of the source plate the isolate override was built from. */

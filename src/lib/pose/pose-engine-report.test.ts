@@ -10,8 +10,8 @@ import {
   reportWeakPoseLayouts,
   type PoseEngineReport,
 } from './pose-engine-report';
-import { applyPosePackToSlots, BUILT_IN_POSE_PACKS } from '../day-pose-packs';
-import { daySlotPoseLayout } from '../day-slot-pose';
+import { applyPosePackToSlots, BUILT_IN_POSE_PACKS } from '../day/pose-packs';
+import { daySlotPoseLayout } from '../day/slot-pose';
 
 const REPORT: PoseEngineReport = {
   date: '2026-10-03',

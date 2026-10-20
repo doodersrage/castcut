@@ -13,7 +13,7 @@
  */
 
 import report from '@/lib/data/pose-engine-report.json';
-import { isDayAdultMood, normalizeDayMood } from '@/lib/day-planner';
+import { isDayAdultMood, normalizeDayMood } from '@/lib/day/planner';
 import { poseModelFamily, type PoseModelFamily } from '@/lib/pose/pose-model-profile';
 
 /** One pose on one engine: the share of stills that showed the pose, and how many were judged. */

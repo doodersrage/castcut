@@ -12,7 +12,7 @@ import {
   dayPlateSourceKey,
   resolveDayPlateForIsolate,
   type DayPlate,
-} from '@/lib/day-plate';
+} from '@/lib/day/plate';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,

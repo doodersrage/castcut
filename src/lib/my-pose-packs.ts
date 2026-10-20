@@ -8,8 +8,8 @@ import {
   readBrowserValue,
   writeBrowserValue,
 } from '@/lib/browser-storage';
-import type { DaySlot } from '@/lib/day-planner';
-import { normalizePosePack, posePackFromSlots, type PosePack } from '@/lib/day-pose-packs';
+import type { DaySlot } from '@/lib/day/planner';
+import { normalizePosePack, posePackFromSlots, type PosePack } from '@/lib/day/pose-packs';
 
 import { recordListSpec } from './record-list-sync';
 import { trackRecordListWrite } from './record-tombstones';

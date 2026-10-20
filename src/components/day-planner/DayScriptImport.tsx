@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/Field';
-import { DAY_SCRIPT_MAX_CARDS, parseDayScript, type DayScript } from '@/lib/day-script-import';
+import { DAY_SCRIPT_MAX_CARDS, parseDayScript, type DayScript } from '@/lib/day/script-import';
 
 /**
  * "Import a script…" under Day's idea row: paste (or open) a Fountain screenplay or a plain

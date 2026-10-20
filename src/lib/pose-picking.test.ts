@@ -5,9 +5,9 @@ import {
   parseSocialLayout,
   SCENE_POSE_LAYOUT_IDS,
   synthesizeSceneStickFigures,
-} from './day-pose-guide';
-import { diversifyDaySlotScenes, normalizeDaySlots, type DaySlot } from './day-planner';
-import { daySlotPoseOverride, mergePickedPose, planDaySlotPose } from './day-slot-pose';
+} from './day/pose-guide';
+import { diversifyDaySlotScenes, normalizeDaySlots, type DaySlot } from './day/planner';
+import { daySlotPoseOverride, mergePickedPose, planDaySlotPose } from './day/slot-pose';
 import {
   poseLayoutFromKey,
   cuePoseLayouts,

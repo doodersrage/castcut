@@ -7,8 +7,8 @@ import {
   daySlotProgressState,
   type DaySlot,
   type DaySlotStill,
-} from '@/lib/day-planner';
-import { dayTwoTakesOrdered, dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day-two-takes';
+} from '@/lib/day/planner';
+import { dayTwoTakesOrdered, dayTwoTakesPending, dayTwoTakesReady } from '@/lib/day/two-takes';
 
 /**
  * Two takes of an intimate still side by side (day-two-takes.ts): a "Keep this one" under each

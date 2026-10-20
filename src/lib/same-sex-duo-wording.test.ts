@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { masculineClothes, sameSexPartnerBeat } from './day-lead-gender';
-import { parseIntimateLayout } from './day-pose-guide';
+import { masculineClothes, sameSexPartnerBeat } from './day/lead-gender';
+import { parseIntimateLayout } from './day/pose-guide';
 import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from './rapid-duo-recipe';
 import { sheGivesOral } from './rapid-oral-pose';
-import type { DayPartner } from './day-partner';
-import { buildDaySlotPromptForStill } from './day-still-prompt';
+import type { DayPartner } from './day/partner';
+import { buildDaySlotPromptForStill } from './day/still-prompt';
 import { DEFAULT_POSE_GUIDE_STYLE } from './pose-guide-prompt';
 
 // Two men on Day (2026-10-06): a same-sex partner's beat is reworded ("his lap" → "her partner's

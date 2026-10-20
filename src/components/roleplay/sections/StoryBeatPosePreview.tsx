@@ -9,8 +9,8 @@ import {
   photoPoseForStill,
   sceneTextFromStoryPoseInput,
   type PoseGuideBuildOptions,
-} from '@/lib/day-pose-guide';
-import { mergePickedPose } from '@/lib/day-slot-pose';
+} from '@/lib/day/pose-guide';
+import { mergePickedPose } from '@/lib/day/slot-pose';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
 import {
   isRoleplayAdultContent,

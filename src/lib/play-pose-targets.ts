@@ -5,7 +5,7 @@
  */
 
 import type { PhotoPose } from '@/lib/pose-types';
-import type { DaySlot } from '@/lib/day-planner';
+import type { DaySlot } from '@/lib/day/planner';
 import type { RoleplayStoryBeat } from '@/lib/roleplay';
 import { loadSettingsCache, saveToolSettings } from '@/lib/settings-cache';
 

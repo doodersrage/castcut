@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { getCharacter } from '@/lib/character-os';
-import { normalizeDayIntimateMix } from '@/lib/day-planner';
+import { normalizeDayIntimateMix } from '@/lib/day/planner';
 import { playCampaignHref } from '@/lib/play-campaign';
 import {
   countRoleplayCompletedClips,

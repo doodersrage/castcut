@@ -8,8 +8,8 @@ import {
   DAY_CLIP_EXTRA_SECONDS,
   normalizeDayClipExtraSeconds,
   type DayClipExtraSeconds,
-} from '@/lib/day-clip-length';
-import type { DaySlot } from '@/lib/day-planner';
+} from '@/lib/day/clip-length';
+import type { DaySlot } from '@/lib/day/planner';
 
 export type DayClipPreview = {
   engineLabel: string;

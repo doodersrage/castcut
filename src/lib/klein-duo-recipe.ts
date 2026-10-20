@@ -12,7 +12,7 @@
  * nearly every seed.
  */
 
-import { CLOTHED_SPOON_RE } from './day-pose-guide';
+import { CLOTHED_SPOON_RE } from './day/pose-guide';
 import { KLEIN_SPOON_RECIPE_MARK } from './prompt-recipe-mark';
 import { isFluxKleinModel } from './model-denoise-defaults';
 import { inferPoseGuidePartner } from './pose-guide-prompt';

@@ -5,8 +5,8 @@ import {
   parseSocialLayout,
   synthesizeSceneStickFigures,
   type StickSkeleton,
-} from './day-pose-guide';
-import { buildDaySportBeatPresets } from './day-sport';
+} from './day/pose-guide';
+import { buildDaySportBeatPresets } from './day/sport';
 
 const SAMPLES: Record<string, string> = {
   sit_floor: 'sitting cross-legged on the rug with a mug',

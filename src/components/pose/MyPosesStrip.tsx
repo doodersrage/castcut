@@ -2,7 +2,7 @@
 
 import { useMemo, useSyncExternalStore } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
-import type { PhotoPose } from '@/lib/day-pose-guide';
+import type { PhotoPose } from '@/lib/day/pose-guide';
 import { loadMyPoses, removeMyPose, subscribeMyPoses, type MyPose } from '@/lib/my-poses';
 
 function useMyPoses(): MyPose[] {

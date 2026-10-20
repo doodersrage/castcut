@@ -7,7 +7,7 @@ import {
   normalizeCastRelationships,
   relationAllowsRomance,
 } from './cast-relationships';
-import { dayPartnerApplies, type DayPartner } from './day-partner';
+import { dayPartnerApplies, type DayPartner } from './day/partner';
 
 const sister: DayPartner = { name: 'Maya', noun: 'woman', relation: 'sibling' };
 const boyfriend: DayPartner = { name: 'Tomas', noun: 'man', relation: 'partner' };

@@ -10,7 +10,7 @@ import { galleryEntryPrimaryViewUrl } from '@/lib/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui-settings';
 import { getCharacter, setLookPlateStance, type CharacterRecord } from '@/lib/character-os';
 import { castMarkEditPhrases } from '@/lib/cast-marks';
-import type { DayPartnerNoun } from '@/lib/day-partner';
+import type { DayPartnerNoun } from '@/lib/day/partner';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
 import { measureStillFaceMatch } from '@/lib/face-match-client';
 import { resolveFittingGarmentPackshotModel } from '@/lib/fitting-kit-previews';

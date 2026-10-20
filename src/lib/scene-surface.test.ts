@@ -4,7 +4,7 @@ import {
   BUILT_IN_POSE_PACKS,
   applyPosePackToSlots,
   posePackEntryFitsSetting,
-} from './day-pose-packs';
+} from './day/pose-packs';
 import {
   DAY_LATE_SLOT_BEAT_PRESETS,
   DAY_LATE_SLOT_SETTING_PRESETS,
@@ -13,8 +13,8 @@ import {
   diversifyDaySlotScenes,
   everydayStanceDirective,
   type DaySlot,
-} from './day-planner';
-import { dayStillSceneRedraw, dayStillSceneSlot } from './day-still-prompt';
+} from './day/planner';
+import { dayStillSceneRedraw, dayStillSceneSlot } from './day/still-prompt';
 import {
   beatFitsSetting,
   beatPlaceConflicts,
