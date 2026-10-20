@@ -68,6 +68,7 @@ const QWEN_EDIT_MODELS = [
   'qwen-image-2.1-edit-lightning-4',
   'qwen-image-2.1-edit-pruna-8',
   'qwen-image-2.1-edit-turbo-8',
+  'qwen-image-2.1-edit-uncensored-turbo-8',
   'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',
@@ -230,6 +231,16 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: ['qwen-image-2.1-edit-turbo-8'],
     notes:
       'Turbo on its own — replaces the 2.1 base + Turbo LoRA for the Turbo engine (half the download).',
+  },
+  {
+    id: 'qwen-image-2.1-turbo-uncensored-gguf',
+    label: 'Qwen-Image 2.1 Turbo Uncensored (BF16 GGUF)',
+    kind: 'unet',
+    filename: 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf',
+    bytes: 16388045536,
+    modelIds: ['qwen-image-2.1-edit-uncensored-turbo-8'],
+    notes:
+      'Bring your own: place the file in diffusion_models (or unet). Loads with the ComfyUI-GGUF custom node.',
   },
   {
     id: 'qwen-image-2.1-turbo-lora',

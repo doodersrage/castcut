@@ -7,6 +7,8 @@ import { poseModelFamily } from '../pose/pose-model-profile';
 import {
   hasQwenImage21TurboCheckpoint,
   qwenImage21FastSampler,
+  QWEN_IMAGE_21_TURBO_UNCENSORED_GGUF,
+  QWEN_IMAGE_21_TURBO_UNCENSORED_MODEL,
 } from '../engine/qwen-image-21-renderer';
 import type { ComfyImageModel } from '../comfy-models/client';
 import {
@@ -536,6 +538,10 @@ export function resolveRuntimeForQueue(
           ...(qwenImage21FastSampler(model) === 'turbo-8'
             ? {
                 qwenImage21EightStep: 'turbo' as const,
+                // Turbo Uncensored: the player's full Turbo GGUF, loaded on its own.
+                ...(model === QWEN_IMAGE_21_TURBO_UNCENSORED_MODEL
+                  ? { qwenImage21TurboUnet: QWEN_IMAGE_21_TURBO_UNCENSORED_GGUF }
+                  : {}),
                 // The Turbo checkpoint when ComfyUI has it; else the 2.1 base + Turbo LoRA.
                 // The URL-keyed cache is empty when the browser uses the server's default ComfyUI
                 // (the async resolver then passes null): read whichever inventory was fetched.

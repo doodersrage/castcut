@@ -56,6 +56,13 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-vae',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  // Turbo Uncensored: the player's own GGUF (no download link) on ComfyUI-GGUF.
+  'qwen-image-2.1-edit-uncensored-turbo-8': [
+    'qwen-image-2.1-turbo-uncensored-gguf',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+    'qwen-rapid-aio-nsfw-checkpoint',
+  ],
 };
 
 /** Custom-node packs, named by a node type ComfyUI Manager can resolve to its pack. */
@@ -69,6 +76,7 @@ const NODE_PACKS = {
     label: 'Qwen-Image 2.1 Fun-Acc 4-step sampler (T8)',
     nodeTypes: ['T8QwenImage21FunAccPDD4Step'],
   },
+  gguf: { label: 'ComfyUI-GGUF (GGUF model loader)', nodeTypes: ['UnetLoaderGGUF'] },
 } as const;
 
 export type TaskNodePack = { label: string; nodeTypes: readonly string[] };
@@ -122,6 +130,10 @@ export function taskRequirements(input: TaskRequirementInput): TaskRequirements 
   if (model.startsWith('qwen-image-2.1') && model.endsWith('lightning-4')) {
     nodePacks.push(NODE_PACKS.qwenImage21FourStep);
     reasons.push('4-step sampler');
+  }
+  if (model === 'qwen-image-2.1-edit-uncensored-turbo-8') {
+    nodePacks.push(NODE_PACKS.gguf);
+    reasons.push('GGUF loader');
   }
   if (input.adult && isRapidStillModel(model)) {
     // Nude Day / Story stills queue on the NSFW Edit model (resolveAdultNudePlateQueueModel).

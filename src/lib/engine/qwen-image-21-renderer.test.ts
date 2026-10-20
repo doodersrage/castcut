@@ -636,7 +636,7 @@ describe('Qwen-Image 2.1 Turbo checkpoint', () => {
     '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
     '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
   };
-  const nodes = (opts: Record<string, boolean>) =>
+  const nodes = (opts: Record<string, boolean | string>) =>
     Object.values(
       convertQwenEditWorkflowToImage21(structuredClone(graph), opts).workflow as Record<string, { class_type: string; inputs: Record<string, unknown> }>
     );
@@ -645,6 +645,23 @@ describe('Qwen-Image 2.1 Turbo checkpoint', () => {
     const w = nodes({ eightStep: true, eightStepTurbo: true, turboCheckpoint: true });
     assert.equal(w.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_turbo_int8_convrot.safetensors');
     assert.equal(w.filter(n => n.class_type === 'LoraLoaderModelOnly').length, 0);
+  });
+
+  it('loads Turbo Uncensored from its GGUF with no base and no LoRA', () => {
+    const w = nodes({
+      eightStep: true,
+      eightStepTurbo: true,
+      turboCheckpoint: true,
+      turboUnet: 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf',
+    });
+    const loader = w.find(n => n.class_type === 'UnetLoaderGGUF')!;
+    assert.equal(loader.inputs.unet_name, 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf');
+    assert.equal(loader.inputs.weight_dtype, undefined);
+    assert.equal(w.filter(n => n.class_type === 'UNETLoader').length, 0);
+    assert.equal(w.filter(n => n.class_type === 'LoraLoaderModelOnly').length, 0);
+    // Off the Turbo path (Pruna) the file is ignored.
+    const pruna = nodes({ eightStep: true, turboUnet: 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf' });
+    assert.equal(pruna.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_bf16.safetensors');
   });
 
   it('keeps the base + Turbo LoRA without it, and Pruna ignores the flag', () => {

@@ -24,6 +24,7 @@ export const MODEL_FAMILY_GROUPS: readonly (readonly ComfyImageModel[])[] = [
     'qwen-image-2.1-edit-lightning-4',
     'qwen-image-2.1-edit-pruna-8',
     'qwen-image-2.1-edit-turbo-8',
+    'qwen-image-2.1-edit-uncensored-turbo-8',
   ],
   ['qwen-image-edit-2511', 'qwen-image-edit-2511-lightning-4', 'qwen-image-edit-2511-lightning-8'],
   ['qwen-rapid-aio-edit', 'qwen-rapid-aio-edit-nsfw', 'qwen-rapid-aio-sfw', 'qwen-rapid-aio-nsfw'],

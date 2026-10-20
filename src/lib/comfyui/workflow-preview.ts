@@ -260,6 +260,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
         inventoryModels?.unets,
         runtime?.qwenImage21TurboCheckpoint
       ),
+      qwenImage21TurboUnet: runtime?.qwenImage21TurboUnet,
       videoRenderer: runtime?.videoRenderer,
     }
   );

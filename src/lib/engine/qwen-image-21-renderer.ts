@@ -107,6 +107,13 @@ export const QWEN_IMAGE_21_MODEL = 'qwen-image-2.1-edit';
 export const QWEN_IMAGE_21_LIGHTNING_MODEL = 'qwen-image-2.1-edit-lightning-4';
 export const QWEN_IMAGE_21_PRUNA_8_MODEL = 'qwen-image-2.1-edit-pruna-8';
 export const QWEN_IMAGE_21_TURBO_8_MODEL = 'qwen-image-2.1-edit-turbo-8';
+/**
+ * Turbo Uncensored: the player's own full Turbo finetune as a BF16 GGUF (16.4 GB), loaded with
+ * ComfyUI-GGUF's UnetLoaderGGUF. Everything else is Turbo's: the id ends in turbo-8, so its 8-step
+ * sampler, schedule and recipes apply.
+ */
+export const QWEN_IMAGE_21_TURBO_UNCENSORED_MODEL = 'qwen-image-2.1-edit-uncensored-turbo-8';
+export const QWEN_IMAGE_21_TURBO_UNCENSORED_GGUF = 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf';
 
 export function isQwenImage21Model(model: string | null | undefined): boolean {
   return String(model ?? '')
@@ -817,6 +824,11 @@ export function convertQwenEditWorkflowToImage21(
     /** With `eightStepTurbo`: load the Turbo checkpoint (QWEN_IMAGE_21_TURBO_UNET), no base + LoRA. */
     turboCheckpoint?: boolean;
     /**
+     * With `eightStepTurbo`: load this full Turbo model instead (a `.gguf` with UnetLoaderGGUF),
+     * no base + LoRA — Turbo Uncensored (QWEN_IMAGE_21_TURBO_UNCENSORED_GGUF).
+     */
+    turboUnet?: string;
+    /**
      * The player's own Qwen-Image 2.1 LoRAs (their LoRA stack, 2.1 family only), chained onto the
      * model in order. Nothing else adds a LoRA here — the source graph's LoRAs are 20B and drop.
      */
@@ -873,18 +885,23 @@ export function convertQwenEditWorkflowToImage21(
     workflow[id] = node;
     return id;
   };
-  const turboCheckpoint =
-    options.turboCheckpoint === true &&
-    options.eightStepTurbo === true &&
-    options.eightStep === true &&
-    options.fourStep !== true;
-  const unet = add({
-    class_type: 'UNETLoader',
-    inputs: {
-      unet_name: turboCheckpoint ? QWEN_IMAGE_21_TURBO_UNET : QWEN_IMAGE_21_FILES.unet,
-      weight_dtype: 'default',
-    },
-  });
+  const turboPath =
+    options.eightStepTurbo === true && options.eightStep === true && options.fourStep !== true;
+  const turboUnet = turboPath ? options.turboUnet?.trim() || '' : '';
+  // A full Turbo model of its own (checkpoint or GGUF) loads alone: no base, no Turbo LoRA.
+  const turboCheckpoint = turboPath && (Boolean(turboUnet) || options.turboCheckpoint === true);
+  const unet = add(
+    /\.gguf$/i.test(turboUnet)
+      ? { class_type: 'UnetLoaderGGUF', inputs: { unet_name: turboUnet } }
+      : {
+          class_type: 'UNETLoader',
+          inputs: {
+            unet_name:
+              turboUnet || (turboCheckpoint ? QWEN_IMAGE_21_TURBO_UNET : QWEN_IMAGE_21_FILES.unet),
+            weight_dtype: 'default',
+          },
+        }
+  );
   const clip = add({
     class_type: 'CLIPLoader',
     inputs: { clip_name: QWEN_IMAGE_21_FILES.clip, type: 'qwen_image', device: 'default' },
