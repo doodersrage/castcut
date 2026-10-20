@@ -1,13 +1,13 @@
 'use client';
 
-import { keepClipInGallery } from '@/lib/clip-gallery-keep';
+import { keepClipInGallery } from '@/lib/clip/gallery-keep';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { clipUrlIsAnimatedImage } from '@/lib/clip-media-kind';
-import { requestClipVoice } from '@/lib/clip-voice';
+import { clipUrlIsAnimatedImage } from '@/lib/clip/media-kind';
+import { requestClipVoice } from '@/lib/clip/voice';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { upsertDaySlotStill, type DaySlot } from '@/lib/day/planner';
-import { spokenLineHeat } from '@/lib/spoken-line';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
 
 /**
  * Day "Add voice": a finished silent clip (two-person adult clips render on WAN, which makes no

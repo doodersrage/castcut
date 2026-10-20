@@ -1,6 +1,6 @@
-import type { QueueQualityProfile } from '../queue-quality-profile';
+import type { QueueQualityProfile } from '../queue/quality-profile';
 import { readComboOptionList } from '../comfyui/combo';
-import { normalizeQueueQualityProfile } from '../queue-quality-profile';
+import { normalizeQueueQualityProfile } from '../queue/quality-profile';
 
 type WorkflowNode = {
   class_type?: string;

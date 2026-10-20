@@ -9,14 +9,14 @@ import {
   normalizeTrainJob,
   registerTrainJobLora,
   type TrainJob,
-} from '@/lib/lora-train-job';
-import { persistLoraDatasetFiles, loraTrainOutputDir } from '@/lib/lora-train-dataset';
-import { installTrainLoraIntoComfy } from '@/lib/lora-train-install';
+} from '@/lib/lora/train-job';
+import { persistLoraDatasetFiles, loraTrainOutputDir } from '@/lib/lora/train-dataset';
+import { installTrainLoraIntoComfy } from '@/lib/lora/train-install';
 import {
   getDurableTrainJob,
   listDurableTrainJobs,
   saveDurableTrainJob,
-} from '@/lib/lora-train-store';
+} from '@/lib/lora/train-store';
 import {
   buildKohyaTrainArgv,
   getLoraTrainTemplate,
@@ -24,9 +24,9 @@ import {
   normalizeLoraTrainTemplateId,
   parseKohyaTrainProgress,
   type LoraTrainTemplateId,
-} from '@/lib/lora-train-templates';
-import type { LoraLibraryEntry } from '@/lib/lora-stack';
-import { assertSafeHttpUrl } from '@/lib/url-safety';
+} from '@/lib/lora/train-templates';
+import type { LoraLibraryEntry } from '@/lib/lora/stack';
+import { assertSafeHttpUrl } from '@/lib/server/url-safety';
 
 export const runtime = 'nodejs';
 

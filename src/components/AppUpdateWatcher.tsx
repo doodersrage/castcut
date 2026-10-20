@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { readBrowserString, writeBrowserString } from '@/lib/browser-storage';
-import type { AppVersionCheckResult } from '@/lib/app-version';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { readBrowserString, writeBrowserString } from '@/lib/storage/browser-storage';
+import type { AppVersionCheckResult } from '@/lib/app/version';
 
 /** Only alert once per release — remembers the newest version already surfaced. */
 const SEEN_VERSION_KEY = 'comfy-update-seen-version-v1';

@@ -11,8 +11,8 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import { comfyBaseUrl } from '@/lib/comfyui/comfy-utility-graph-server';
-import { locateFaceInComfy } from '@/lib/face-locate-server';
-import { detectPoseInComfyStill } from '@/lib/pose-detect-server';
+import { locateFaceInComfy } from '@/lib/face/locate-server';
+import { detectPoseInComfyStill } from '@/lib/pose/detect-server';
 
 /** A fully clothed adult standing full-body, face to camera (rendered by the app, Rapid SFW). */
 export const CHECK_SAMPLE_PATH = path.join('public', 'samples', 'check-sample.webp');

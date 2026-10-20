@@ -9,7 +9,7 @@ import {
   FACE_DETAIL_IMAGE_TOKEN,
 } from '../gallery/output-face-detail';
 import { getComfyModelDefinition } from '../comfy-models/client';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import { isQwenLightningModel } from './model-sampling-patch';
 
 type WorkflowNode = {

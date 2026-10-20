@@ -1,7 +1,7 @@
-import { generatePrompt, type PromptMode } from '@/lib/prompt-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
-import { applyLockedLocation } from '@/lib/locked-location';
-import { normalizeGenerationSettings } from '@/lib/generation-settings';
+import { generatePrompt, type PromptMode } from '@/lib/prompt/generator';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
+import { applyLockedLocation } from '@/lib/scene/locked-location';
+import { normalizeGenerationSettings } from '@/lib/queue/generation-settings';
 import {
   normalizeRecentClothing,
   normalizeLockedWardrobeId,
@@ -9,8 +9,8 @@ import {
   normalizeVariationSeed,
 } from '@/lib/specialized/normalize';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLlmRequestOptions, resolveRequestLlmEnabled } from '@/lib/llm-request-options';
-import { isLlmBusy, LlmBusyError } from '@/lib/llm-client';
+import { parseLlmRequestOptions, resolveRequestLlmEnabled } from '@/lib/llm/request-options';
+import { isLlmBusy, LlmBusyError } from '@/lib/llm/client';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

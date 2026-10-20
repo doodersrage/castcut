@@ -8,8 +8,8 @@ import {
   castLookPortraitTile,
   castPlateThumbUrl,
   castPlateTiles,
-} from '@/lib/character-plate-thumb';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
+} from '@/lib/character/plate-thumb';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   addLookFromShared,
   applyCharacterRecord,
@@ -26,10 +26,10 @@ import {
   type CharacterRecord,
   renameActiveLook,
   upsertCharacter,
-} from '@/lib/character-os';
-import { prepareCharacterStore, switchCharacterLook } from '@/lib/character-hooks';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+} from '@/lib/character/os';
+import { prepareCharacterStore, switchCharacterLook } from '@/lib/character/hooks';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 type CharacterOsPickerProps = {
   /**

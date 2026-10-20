@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/hooks/useAuth';
-import type { AutoSyncResult } from '@/lib/auto-storage-sync';
-import type { StorageNamespace } from '@/lib/storage-namespaces';
-import type { MergeChoice } from '@/lib/storage-merge';
-import { suggestMergeChoice } from '@/lib/storage-merge';
+import type { AutoSyncResult } from '@/lib/storage/auto-storage-sync';
+import type { StorageNamespace } from '@/lib/storage/namespaces';
+import type { MergeChoice } from '@/lib/storage/merge';
+import { suggestMergeChoice } from '@/lib/storage/merge';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 
 const StorageSyncConflictModal = dynamic(() => import('@/components/StorageSyncConflictModal'), {
@@ -55,7 +55,7 @@ export default function AutoStorageSyncInit() {
     }
 
     return deferIdle(() => {
-      void import('@/lib/auto-storage-sync').then(async ({ autoPullStorageIfEmpty }) => {
+      void import('@/lib/storage/auto-storage-sync').then(async ({ autoPullStorageIfEmpty }) => {
         const result = await autoPullStorageIfEmpty();
         // Startup path auto-merges; conflicts here are a rare fallback only.
         if (result.conflicts.length > 0 && !wasDismissedThisSession()) {
@@ -78,7 +78,7 @@ export default function AutoStorageSyncInit() {
   if (!auth) return null; // Hydration / HMR boundary
 
   async function resolveConflicts(choices: Partial<Record<StorageNamespace, MergeChoice>>) {
-    const { applyStorageMerge } = await import('@/lib/auto-storage-sync');
+    const { applyStorageMerge } = await import('@/lib/storage/auto-storage-sync');
     await applyStorageMerge(choices);
     markDismissedThisSession();
     setOpen(false);
@@ -109,15 +109,17 @@ export default function AutoStorageSyncInit() {
 export function useStorageConflictProbe() {
   return {
     probe: async (
-      ...args: Parameters<(typeof import('@/lib/auto-storage-sync'))['probeStorageConflicts']>
+      ...args: Parameters<
+        (typeof import('@/lib/storage/auto-storage-sync'))['probeStorageConflicts']
+      >
     ) => {
-      const { probeStorageConflicts } = await import('@/lib/auto-storage-sync');
+      const { probeStorageConflicts } = await import('@/lib/storage/auto-storage-sync');
       return probeStorageConflicts(...args);
     },
     apply: async (
-      ...args: Parameters<(typeof import('@/lib/auto-storage-sync'))['applyStorageMerge']>
+      ...args: Parameters<(typeof import('@/lib/storage/auto-storage-sync'))['applyStorageMerge']>
     ) => {
-      const { applyStorageMerge } = await import('@/lib/auto-storage-sync');
+      const { applyStorageMerge } = await import('@/lib/storage/auto-storage-sync');
       return applyStorageMerge(...args);
     },
   };

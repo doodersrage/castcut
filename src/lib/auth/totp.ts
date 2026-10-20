@@ -1,5 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto';
-import { PRODUCT_NAME } from '../brand';
+import { PRODUCT_NAME } from '../app/brand';
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 

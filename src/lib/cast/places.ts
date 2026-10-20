@@ -124,7 +124,7 @@ import {
   type CastPlaceChoice,
   type CastPlaces,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export type { CastPlaceChoice, CastPlaces };
 

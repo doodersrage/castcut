@@ -1,4 +1,4 @@
-import { llmImageUploadHandlers } from '@/lib/llm-image-routes';
+import { llmImageUploadHandlers } from '@/lib/llm/image-routes';
 
 const handlers = llmImageUploadHandlers('gemini');
 

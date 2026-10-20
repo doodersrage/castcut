@@ -5,7 +5,7 @@ import {
   type ComfyImageModelDefinition,
   type ComfyModelCategory,
 } from '@/lib/comfy-models';
-import type { DetailLevel } from '@/lib/detail-level';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
 
 export const API_VERSION = '1.1.0';
 

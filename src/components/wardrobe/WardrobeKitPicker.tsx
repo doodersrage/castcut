@@ -10,7 +10,7 @@ import { TextInput } from '@/components/ui/Field';
 import UiIcon from '@/components/ui/UiIcon';
 import type { FittingSwipeKit } from '@/lib/fitting/room';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
-import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
+import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 import {
   buildWardrobeKitStrip,
   filterWardrobeKitsByQuery,
@@ -19,7 +19,7 @@ import {
   loadRecentWardrobeKitIds,
   rememberWardrobeKitId,
   subscribeRecentWardrobeKitIds,
-} from '@/lib/wardrobe-kit-picker';
+} from '@/lib/wardrobe/kit-picker';
 
 export type WardrobeKitPickerKit = FittingSwipeKit;
 

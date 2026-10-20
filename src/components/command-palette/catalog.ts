@@ -6,17 +6,17 @@ import {
   APP_NAV_PROFILE_LINK,
   APP_NAV_SETTINGS_LINK,
   flattenAppNavLinks,
-} from '@/lib/app-nav-catalog';
+} from '@/lib/app/nav-catalog';
 import {
   isLeanWorkspaceMode,
   isRoleplayFocusNavHref,
   loadWorkspaceMode,
   navGroupsForPath,
   usesPlayChrome,
-} from '@/lib/workspace-mode';
-import { SETTINGS_TABS, settingsTabHref, SIMPLE_SETTINGS_TAB_IDS } from '@/lib/settings-nav';
-import { buildSettingsSearchEntries, settingsSearchHref } from '@/lib/settings-search-index';
-import { studioTabHref, studioTabsForWorkspaceMode } from '@/lib/studio-nav';
+} from '@/lib/app/workspace-mode';
+import { SETTINGS_TABS, settingsTabHref, SIMPLE_SETTINGS_TAB_IDS } from '@/lib/settings/nav';
+import { buildSettingsSearchEntries, settingsSearchHref } from '@/lib/settings/search-index';
+import { studioTabHref, studioTabsForWorkspaceMode } from '@/lib/app/studio-nav';
 import { ACTION_ITEMS } from '@/components/command-palette/action-items';
 import type { CommandItem } from '@/components/command-palette/types';
 

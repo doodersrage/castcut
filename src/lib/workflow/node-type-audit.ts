@@ -1,5 +1,5 @@
 import { KNOWN_COMFY_NODE_PACK_BY_CLASS } from '../comfyui/custom-node-registry';
-import { settingsComfyUiSectionHref } from '../settings-comfyui-nav';
+import { settingsComfyUiSectionHref } from '../settings/comfyui-nav';
 
 export type WorkflowNodeTypeIssue = {
   severity: 'error' | 'warn';

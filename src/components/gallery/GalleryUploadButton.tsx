@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import { importLocalImagesToGallery } from '@/lib/gallery/local-import';
-import { pushAppToast } from '@/lib/app-toast';
+import { pushAppToast } from '@/lib/app/toast';
 
 export const GALLERY_UPLOAD_ACCEPT =
   'image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif';

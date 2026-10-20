@@ -1,4 +1,4 @@
-import { fetchDiffusersJobStatus, getDiffusersBaseUrl } from '@/lib/diffusers-client';
+import { fetchDiffusersJobStatus, getDiffusersBaseUrl } from '@/lib/engine/diffusers-client';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

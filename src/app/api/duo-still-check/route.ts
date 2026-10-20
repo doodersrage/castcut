@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { countDuoStillInComfy } from '@/lib/duo-still-check-server';
+import { countDuoStillInComfy } from '@/lib/checks/duo-still-check-server';
 
 export const runtime = 'nodejs';
 

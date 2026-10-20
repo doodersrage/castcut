@@ -3,7 +3,7 @@
  * try-on, wait for it and stage the result as a ComfyUI input image.
  */
 
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import {
   buildDayDressPlatePrompt,
@@ -14,24 +14,24 @@ import {
   type DayDressPlateKeyInput,
 } from '@/lib/day/dress-plate';
 import { findDressPlate, loadDressPlates, saveDressPlate } from '@/lib/day/dress-plate-store';
-import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { footwearIsBarefoot, footwearPromptLine, normalizeFootwear } from '@/lib/footwear';
+import { comfyInputViewUrl } from '@/lib/face/match-client';
+import { footwearIsBarefoot, footwearPromptLine, normalizeFootwear } from '@/lib/wardrobe/footwear';
 import {
   buildFeetPassPrompt,
   FOOTWEAR_CHECK_VERSION,
   footwearCheckApplies,
   footwearNeedsFeetPass,
   resolveFeetPassModel,
-} from '@/lib/footwear-check';
+} from '@/lib/wardrobe/footwear-check';
 import {
   cachedInstalledModelCheck,
   checkStillFootwear,
   fetchInstalledModelCheck,
   type FootwearCheckShared,
-} from '@/lib/footwear-check-client';
-import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/footwear-image';
-import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+} from '@/lib/wardrobe/footwear-check-client';
+import { buildFootwearReferenceImage, hasFootwearImage } from '@/lib/wardrobe/footwear-image';
+import { loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 
 export type DayDressPlateRequest = DayDressPlateKeyInput & {
   subject: 'she' | 'he';

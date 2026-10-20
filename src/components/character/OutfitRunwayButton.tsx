@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useOutfitRunwayClip } from '@/hooks/character/useOutfitRunwayClip';
 import { saveOutfitRunway } from '@/lib/cast/wardrobe';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 
 /**
  * "Runway" on a Wardrobe outfit: a short turn-around clip made from the outfit's picture, kept

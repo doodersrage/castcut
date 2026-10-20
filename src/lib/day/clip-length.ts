@@ -1,5 +1,5 @@
-import { h3FrameCount, isH3Model } from '../h3-renderer';
-import { isLtx25Model, LTX25_FPS, ltx25FrameCount } from '../ltx25-renderer';
+import { h3FrameCount, isH3Model } from '../engine/h3-renderer';
+import { isLtx25Model, LTX25_FPS, ltx25FrameCount } from '../video/ltx25-renderer';
 
 /** Day clips are queued at WAN's rate; LTX-2.5 and MiniMax-H3 convert frames/fps to seconds. */
 export const DAY_CLIP_FPS = 16;

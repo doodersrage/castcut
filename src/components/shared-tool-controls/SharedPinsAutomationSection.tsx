@@ -1,6 +1,6 @@
 'use client';
 
-import { PINNED_VARIATION_SEED_LABEL } from '@/lib/tool-ui-labels';
+import { PINNED_VARIATION_SEED_LABEL } from '@/lib/app/tool-ui-labels';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { FieldDivider, FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';

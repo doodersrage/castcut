@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { githubBugReportUrl } from '@/lib/project-links';
+import { githubBugReportUrl } from '@/lib/app/project-links';
 
 export default function ReportBugLink({
   className = '',

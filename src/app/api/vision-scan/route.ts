@@ -1,9 +1,9 @@
 import { normalizeComfyModel } from '@/lib/comfy-models';
-import { normalizeDetailLevel } from '@/lib/detail-level';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
-import { normalizeStillScanPurpose, scanStillReference } from '@/lib/vision-still-scan';
+import { normalizeStillScanPurpose, scanStillReference } from '@/lib/vision/still-scan';
 
 export const runtime = 'nodejs';
 

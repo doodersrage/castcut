@@ -4,10 +4,10 @@
  * settings wrappers.
  */
 
-import type { PhotoPose } from '@/lib/pose-types';
+import type { PhotoPose } from '@/lib/pose/types';
 import type { DaySlot } from '@/lib/day/planner';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
-import { loadSettingsCache, saveToolSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, saveToolSettings } from '@/lib/settings/cache';
 
 /** Set a slot's pose to `pose` (drawn exactly; the picked layout / variant are cleared). */
 export function withDaySlotPose(slots: DaySlot[], slotId: string, pose: PhotoPose): DaySlot[] {
@@ -35,7 +35,7 @@ export function withStoryBeatPose(
   );
 }
 
-import type { PoseTargetGroup, PoseTargetOption } from '@/lib/pose-targets';
+import type { PoseTargetGroup, PoseTargetOption } from '@/lib/pose/targets';
 
 /** Day slots the pose can go to (label · beat). */
 export function daySlotPoseTargets(): PoseTargetOption[] {

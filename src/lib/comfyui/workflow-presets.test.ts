@@ -15,7 +15,7 @@ const readBrowserValue = mock.fn(<T>(_key: string): T | null => state.store as u
 const writeBrowserValue = mock.fn((_key: string, value: unknown) => {
   state.store = value as ComfyWorkflowPreset[];
 });
-mock.module("../browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
+mock.module("../storage/browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
 
 function withWindow<T>(fn: () => T): T {
   Object.defineProperty(globalThis, "window", { configurable: true, value: {} });

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { adultAgeLine, withAdultAgeLine } from '../adult-age-safeguard';
+import { adultAgeLine, withAdultAgeLine } from '../adult/adult-age-safeguard';
 import { describe, it } from 'node:test';
 import {
   buildDaySlotPrompt,
@@ -17,8 +17,8 @@ import {
   isDayRaunchySoloBeat,
 } from '../day/planner';
 import { parseIntimateLayout } from '../day/pose-guide';
-import { reinforceIntimateStillPrompt } from '../intimate-prompt-clarify';
-import { applyQueuePromptSteering } from '../queue-prompt-prep';
+import { reinforceIntimateStillPrompt } from '../adult/intimate-prompt-clarify';
+import { applyQueuePromptSteering } from '../queue/prompt-prep';
 import {
   rapidAdultSkipsPoseGuide,
   beatLiesDown,

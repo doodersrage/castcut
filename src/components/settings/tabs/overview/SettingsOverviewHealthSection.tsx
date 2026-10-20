@@ -6,9 +6,9 @@ import ServerEnvPanel from '@/components/settings/ServerEnvPanel';
 import StorageHealthChip from '@/components/StorageHealthChip';
 import { ToolSection, HealthCard } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 
 type Props = {

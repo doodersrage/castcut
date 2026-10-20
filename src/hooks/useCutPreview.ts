@@ -11,12 +11,12 @@
  * playhead; pictures and clips are kept by URL between builds, so a rebuild is quick.
  */
 
-import { FULL_BOX, containBox, framingPoint, moveAt } from '@/lib/cut-move';
-import { LOGO_WIDTH, PIP_WIDTH, lowerThirdAlpha } from '@/lib/cut-overlay';
-import { reframeXAt, type ReframePoint } from '@/lib/cut-reframe';
+import { FULL_BOX, containBox, framingPoint, moveAt } from '@/lib/video/cut-move';
+import { LOGO_WIDTH, PIP_WIDTH, lowerThirdAlpha } from '@/lib/video/cut-overlay';
+import { reframeXAt, type ReframePoint } from '@/lib/video/cut-reframe';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
-import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
+import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio/mix-levels';
 import {
   drawCaption,
   drawContain,
@@ -24,7 +24,7 @@ import {
   drawCover,
   drawLowerThird,
   drawTitleCard,
-} from '@/lib/cut-canvas-draw';
+} from '@/lib/video/cut-canvas-draw';
 import {
   colourMatrixSvgValues,
   colourStatsFromPixels,
@@ -33,19 +33,19 @@ import {
   normalizeLookStrength,
   shotGradeMatrices,
   type ShotColourStats,
-} from '@/lib/cut-look';
+} from '@/lib/video/cut-look';
 import {
   musicFadeGainAt,
   normalizeAmbienceLevel,
   normalizeMusicStartSec,
   soundOverlap,
-} from '@/lib/cut-sound';
+} from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from '@/lib/film/cut-media';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film/cut-plan';
 import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film/cut-preview';
-import type { FilmPlaylistShot } from '@/lib/media-kind';
-import { captionOpacity, stillMotionZoom, type FilmTitleCard } from '@/lib/video-polish';
-import { FILM_PRESET_SIZE, filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
+import type { FilmPlaylistShot } from '@/lib/media/kind';
+import { captionOpacity, stillMotionZoom, type FilmTitleCard } from '@/lib/video/polish';
+import { FILM_PRESET_SIZE, filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 
 /** Canvas size per shape — small, the preview is for judging the edit, not the pixels. */

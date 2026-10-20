@@ -7,8 +7,12 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
 import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
-import { HELD_MAX_UPDATED_EVENT, listHeldMaxJobs, type HeldMaxJob } from '@/lib/held-max-queue';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import {
+  HELD_MAX_UPDATED_EVENT,
+  listHeldMaxJobs,
+  type HeldMaxJob,
+} from '@/lib/queue/held-max-queue';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
 import {
@@ -16,12 +20,12 @@ import {
   getSystemTrayMessagesSnapshot,
   subscribeSystemTrayMessages,
   type SystemTrayMessage,
-} from '@/lib/system-tray-messages';
+} from '@/lib/app/system-tray-messages';
 import {
   refreshSharedHealth,
   subscribeSharedHealth,
   type RawHealthResponse,
-} from '@/lib/shared-health-poll';
+} from '@/lib/storage/shared-health-poll';
 
 export type SystemTrayAssetJob = {
   id: string;

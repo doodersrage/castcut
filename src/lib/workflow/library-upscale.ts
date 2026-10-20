@@ -1,6 +1,6 @@
 import { loadComfyWorkflowFiles, type ComfyWorkflowFile } from '../comfyui/workflow-files';
-import { resolveWorkflowForModelSelection } from '../model-workflow-map';
-import { loadSettingsCache } from '../settings-cache';
+import { resolveWorkflowForModelSelection } from '../model/workflow-map';
+import { loadSettingsCache } from '../settings/cache';
 
 type WorkflowNode = {
   class_type?: string;

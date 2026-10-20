@@ -1,5 +1,5 @@
-import { getDiffusersBaseUrl } from '@/lib/diffusers-client';
-import { parseEngineUploadRequest } from '@/lib/engine-upload-parse';
+import { getDiffusersBaseUrl } from '@/lib/engine/diffusers-client';
+import { parseEngineUploadRequest } from '@/lib/engine/upload-parse';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

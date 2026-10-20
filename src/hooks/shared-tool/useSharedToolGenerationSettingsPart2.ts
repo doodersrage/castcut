@@ -5,35 +5,35 @@ import {
   normalizeModelSamplerPresetTier,
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
+} from '@/lib/model/sampler-defaults';
 import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
   type ResolutionOrientation,
   type ResolutionSizeTier,
-} from '@/lib/model-resolution-defaults';
-import { normalizeAnatomyGuardMode, type AnatomyGuardMode } from '@/lib/anatomy-guard';
+} from '@/lib/model/resolution-defaults';
+import { normalizeAnatomyGuardMode, type AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
-import { normalizeRenderRealismMode, type RenderRealismMode } from '@/lib/render-realism';
+} from '@/lib/queue/quality-profile';
+import { normalizeRenderRealismMode, type RenderRealismMode } from '@/lib/engine/render-realism';
 import {
   loadSettingsCache,
   saveSessionLoraSelectionNow,
   saveSharedSettings,
-} from '@/lib/settings-cache';
-import { isBrowserStorageReady } from '@/lib/browser-storage';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/settings/cache';
+import { isBrowserStorageReady } from '@/lib/storage/browser-storage';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   resolveLoraIdsForModelSelection,
   setSessionLoraIdsForModel,
   setSessionLoraStrengthOverridesForModel,
-} from '@/lib/model-lora-map';
+} from '@/lib/model/lora-map';
 import {
   normalizeSessionLoraStrengthOverrides,
   type SessionLoraStrengthOverrides,
-} from '@/lib/lora-stack';
+} from '@/lib/lora/stack';
 import type { UseSharedToolGenerationSettingsOptions } from '@/hooks/shared-tool/shared-tool-generation-settings-types';
 import type { SharedToolGenerationSettingsCore } from '@/hooks/shared-tool/useSharedToolGenerationSettingsCore';
 import { useSharedToolGenerationRecipes } from '@/hooks/shared-tool/useSharedToolGenerationRecipes';
@@ -110,7 +110,7 @@ export function useSharedToolGenerationSettingsPart2(
         ...baseShared,
         ...patch,
       }).then(() => {
-        void import('@/lib/app-toast').then(({ pushAppToast }) => {
+        void import('@/lib/app/toast').then(({ pushAppToast }) => {
           pushAppToast({ text: 'Saved — LoRA session', tone: 'success', ttlMs: 1800 });
         });
       });

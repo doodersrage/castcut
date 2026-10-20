@@ -11,7 +11,7 @@ import {
   type OutfitQualityPreset,
   type OutfitQualityPresetChoice,
 } from '@/lib/fitting/outfit-quality-preset';
-import type { RenderQuality } from '@/lib/render-quality';
+import type { RenderQuality } from '@/lib/engine/render-quality';
 
 const ACCENT = 'rose' as const;
 

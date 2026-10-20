@@ -1,6 +1,6 @@
 'use client';
 
-import type { IdentityMark } from '@/lib/identity-mark';
+import type { IdentityMark } from '@/lib/character/identity-mark';
 
 /** "Looks like Nora 72%" / "Face may drift 48%" / "Not Nora? 31%" (identity-mark.ts). */
 export default function IdentityMarkChip({

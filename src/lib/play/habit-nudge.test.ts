@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
-import { upsertCharacter, createBlankCharacter } from '../character-os';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
+import { upsertCharacter, createBlankCharacter } from '../character/os';
 import { savePlayCampaignState } from './campaign';
 import {
   PLAY_HABIT_NUDGE_KEY,

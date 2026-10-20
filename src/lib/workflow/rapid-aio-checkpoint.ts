@@ -1,5 +1,5 @@
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
-import { DEFAULT_CHECKPOINT_TOKEN, SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model-checkpoint-map';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
+import { DEFAULT_CHECKPOINT_TOKEN, SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model/checkpoint-map';
 import { isLoraLoaderClassType, loraFilenameImpliesLightning } from './lora-patch';
 
 type WorkflowNodeRecord = {

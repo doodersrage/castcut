@@ -6,25 +6,25 @@ import {
   applyToolQualityRecipe,
   formatToolQualityRecipeHint,
   recipesForTool,
-} from '@/lib/tool-quality-recipes';
+} from '@/lib/app/tool-quality-recipes';
 import {
   applySessionRecipeShared,
   formatSessionRecipeSubtitle,
   loadSessionRecipes,
-} from '@/lib/session-recipes';
+} from '@/lib/prompt/session-recipes';
 import {
   loadSettingsCache,
   saveSharedSettings,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
+} from '@/lib/queue/quality-profile';
 import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
-} from '@/lib/model-resolution-defaults';
+} from '@/lib/model/resolution-defaults';
 
 type EditToolRecipeStripProps = {
   toolId: string;

@@ -6,10 +6,10 @@ import {
   hasBackgroundPresetOptions,
   mergeBackgroundPresetsIntoPrompt,
   normalizeBackgroundPresetOptions,
-} from '../background-options';
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
+} from '../scene/background-options';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
 import { buildRandomBackgroundSeed } from './scene-pools';
-import { mergeLocationExclusions } from '../location-exclusions';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
 import { runSpecializedPrompt } from './runner';
 import type { BackgroundOptions, ToolGenerateResult } from './types';
 

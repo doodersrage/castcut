@@ -1,16 +1,16 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { formatPromptPair, modelUsesNegativePrompt } from '@/lib/prompt-pair';
-import { buildPromptSidecar, downloadPromptSidecar } from '@/lib/prompt-sidecar';
+import { formatPromptPair, modelUsesNegativePrompt } from '@/lib/prompt/pair';
+import { buildPromptSidecar, downloadPromptSidecar } from '@/lib/prompt/sidecar';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
-import { resolveQueueNegativePrompt } from '@/lib/queue-negative';
-import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { prepareQueuePrompts } from '@/lib/queue-prompt-prep';
-import type { GenerationDiagnostics } from '@/lib/generation-diagnostics';
+import { resolveQueueNegativePrompt } from '@/lib/queue/negative';
+import { resolveParentHistoryId } from '@/lib/prompt/lineage-session';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { prepareQueuePrompts } from '@/lib/queue/prompt-prep';
+import type { GenerationDiagnostics } from '@/lib/queue/generation-diagnostics';
 import type { PromptResultActionsConfig } from '@/hooks/prompt-result/types';
 
 type TransformsDeps = {
@@ -249,7 +249,7 @@ export function usePromptResultTransforms(config: PromptResultActionsConfig, dep
         queueParamsBase?: WorkflowParamValues;
         identityLock?: boolean;
         identityLockStrength?: number;
-        identityKind?: import('@/lib/compose-identity-lock').ComposeIdentityKind;
+        identityKind?: import('@/lib/prompt/compose-identity-lock').ComposeIdentityKind;
       }
     ) => {
       if (!prompt.trim()) {

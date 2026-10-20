@@ -5,13 +5,13 @@ import {
   type CollabDraftFields,
   type CollabDraftPayload,
   type CollabPresencePeer,
-} from '@/lib/collab-presence';
+} from '@/lib/storage/collab-presence';
 import {
   broadcastCollabRoom,
   getCollabRoom,
   subscribeCollabRoom,
   updateCollabRoom,
-} from '@/lib/collab-store';
+} from '@/lib/storage/collab-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

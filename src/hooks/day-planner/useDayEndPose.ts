@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
-import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { probeImageUrlDimensions } from '@/lib/storage/browser-image-dimensions';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import {
@@ -21,12 +21,12 @@ import {
   upsertDaySlotStill,
   type DaySlotId,
 } from '@/lib/day/planner';
-import { clipEngineForShot, dayClipVideoModel } from '@/lib/ltx25-renderer';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
-import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
-import { stillPromptPeople } from '@/lib/still-clip-prompt';
-import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings } from '@/lib/settings-cache';
+import { clipEngineForShot, dayClipVideoModel } from '@/lib/video/ltx25-renderer';
+import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
+import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
+import { stillPromptPeople } from '@/lib/still/clip-prompt';
+import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings } from '@/lib/settings/cache';
 
 /**
  * The engine a Day slot's clip queues on: the Video tool's pick, except two-person adult

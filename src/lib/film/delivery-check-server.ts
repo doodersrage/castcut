@@ -22,13 +22,13 @@ import {
   CUT_SAMPLE_H,
   CUT_SAMPLE_W,
 } from './delivery-check';
-import { resolvePromptDataDir } from '../prompt-data-paths';
-import { fetchFilmShotBytes } from '../video-shot-fetch';
-import { resolveFfmpegBinary } from '../video-server-encode';
+import { resolvePromptDataDir } from '../prompt/data-paths';
+import { fetchFilmShotBytes } from '../video/shot-fetch';
+import { resolveFfmpegBinary } from '../video/server-encode';
 import { freeComfyUiMemoryServer } from '../comfyui/free-server';
-import { visionCompletion } from '../llm-client';
-import { resolveRequestLlmEndpoint, type LlmRequestOptions } from '../llm-request-options';
-import { resolveVisionModel } from '../vision-model-auto';
+import { visionCompletion } from '../llm/client';
+import { resolveRequestLlmEndpoint, type LlmRequestOptions } from '../llm/request-options';
+import { resolveVisionModel } from '../vision/model-auto';
 
 export type DeliveryCheckShot = {
   key: string;

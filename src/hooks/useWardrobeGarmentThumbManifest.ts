@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { subscribeWardrobeGarmentThumbManifest } from '@/lib/wardrobe-garment-thumbs';
+import { subscribeWardrobeGarmentThumbManifest } from '@/lib/wardrobe/garment-thumbs';
 
 /**
  * Bumps when the garment-thumb manifest finishes loading so kit pickers

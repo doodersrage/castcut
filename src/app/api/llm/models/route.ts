@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { listRemoteLlmModels } from '@/lib/llm-models';
+import { listRemoteLlmModels } from '@/lib/llm/models';
 
 export const runtime = 'nodejs';
 

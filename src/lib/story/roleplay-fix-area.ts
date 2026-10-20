@@ -7,10 +7,10 @@
  */
 
 import type { MutableRefObject } from 'react';
-import { storyRatingNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
+import { storyRatingNeedsAdultSafeguards } from '@/lib/adult/adult-appearance-gate';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
-import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
+import { findGalleryEntryForStill, recordFixAreaInGallery } from '@/lib/edit/fix-area-gallery';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
 import { comfyViewUrlForStill, isComfyViewUrl } from '@/lib/comfyui/still-comfy-url';

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { fetchRunwayJobStatus } from '@/lib/runway-client';
+import { fetchRunwayJobStatus } from '@/lib/cloud/runway-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

@@ -12,27 +12,27 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { postComfyUiPrompt } from '@/lib/comfyui/queue-request';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   clearHeldMaxJobs,
   isComfyQueueIdle,
   removeHeldMaxJob,
   type HeldMaxJob,
-} from '@/lib/held-max-queue';
+} from '@/lib/queue/held-max-queue';
 import { useHeldMaxJobs } from '@/hooks/useHeldMaxJobs';
 import {
   requeueMoireCleanFromGalleryEntry,
   requeueRefineFromGalleryEntry,
   requeueUpscaleFromGalleryEntry,
 } from '@/lib/comfyui/requeue';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { formatPoolQueueStrip, summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 import {
   refreshSharedHealth,
   subscribeSharedHealth,
   type RawHealthResponse,
-} from '@/lib/shared-health-poll';
-import { appHasRoute } from '@/lib/app-profile';
+} from '@/lib/storage/shared-health-poll';
+import { appHasRoute } from '@/lib/app/profile';
 
 type ComfyHealth = {
   ok: boolean;
@@ -136,7 +136,7 @@ export default function QueueOrchestrationPanel(props: { compact?: boolean }) {
     try {
       for (const job of jobs) {
         if (job.kind === 'generate') {
-          const { guardQueueQualityForVram } = await import('@/lib/vram-queue-guard');
+          const { guardQueueQualityForVram } = await import('@/lib/queue/vram-queue-guard');
           const vramGuard = await guardQueueQualityForVram({
             profile: job.qualityProfile,
             runtime: job.comfy,

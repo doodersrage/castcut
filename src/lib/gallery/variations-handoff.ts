@@ -1,10 +1,10 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
-import type { BatchFromTopicsItem } from '../batch-from-topics';
+import type { BatchFromTopicsItem } from '../batch/from-topics';
 import {
   buildTopicsVariationsHandoff,
   saveTopicsVariationsHandoff,
   variationsPathFromTopics,
-} from '../topics-variations-handoff';
+} from '../variation/topics-variations-handoff';
 import { applyGalleryStackToSession } from './stack-restore';
 
 export const GALLERY_VARIATIONS_HANDOFF_KEY = 'gallery-variations-handoff-v1';

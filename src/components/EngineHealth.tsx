@@ -8,16 +8,16 @@ import {
   engineForModel,
   engineHealthChipLabel,
   type EngineHealth as EngineHealthResult,
-} from '@/lib/engine-health-engines';
-import { ENGINE_HEALTH_UPDATED_EVENT, readEngineHealth } from '@/lib/engine-health-store';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+} from '@/lib/engine/health-engines';
+import { ENGINE_HEALTH_UPDATED_EVENT, readEngineHealth } from '@/lib/engine/health-store';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 
 /** The check builds a graph (queue runtime, preview) — loaded only when one is needed. */
 async function checkEngineHealth(
   model: string,
   options?: { force?: boolean }
 ): Promise<EngineHealthResult> {
-  const lib = await import('@/lib/engine-health-client');
+  const lib = await import('@/lib/engine/health-client');
   return lib.checkEngineHealth(model, options);
 }
 

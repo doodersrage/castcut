@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { activeLook, looksOf, type CharacterRecord } from '@/lib/character-os';
-import { DAY_IDENTITY_BARS } from '@/lib/identity-mark';
+import { activeLook, looksOf, type CharacterRecord } from '@/lib/character/os';
+import { DAY_IDENTITY_BARS } from '@/lib/character/identity-mark';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import {
   compareLookPlates,
@@ -12,8 +12,8 @@ import {
   PLATE_DRIFT_BELOW,
   unmeasuredLookStills,
   type LookPlateComparison,
-} from '@/lib/likeness-measure-client';
-import { likenessModelLabel, likenessTrend } from '@/lib/likeness-trend';
+} from '@/lib/character/likeness-measure-client';
+import { likenessModelLabel, likenessTrend } from '@/lib/character/likeness-trend';
 
 const WIDTH = 320;
 const HEIGHT = 72;

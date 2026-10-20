@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { locateFaceInComfy } from '@/lib/face-locate-server';
+import { locateFaceInComfy } from '@/lib/face/locate-server';
 
 export const runtime = 'nodejs';
 

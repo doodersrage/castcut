@@ -1,6 +1,6 @@
 'use client';
 
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { type MouseEvent } from 'react';
 import { Spinner } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';

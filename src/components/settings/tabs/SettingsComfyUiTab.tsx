@@ -23,8 +23,8 @@ import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/co
 import { placeholderTokensFromSettings } from '@/lib/comfyui/settings';
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
-import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   SETTINGS_TOOL_ACCENT,
   type HealthResponse,

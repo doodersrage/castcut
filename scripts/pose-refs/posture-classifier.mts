@@ -7,7 +7,7 @@
  * photo only when both land in agreeing groups (`groupsAgree`), so any classifier works as long
  * as it is consistent with itself.
  *
- * Today: the pose check's posture classes (src/lib/pose-posture.ts). To try another, write a
+ * Today: the pose check's posture classes (src/lib/pose/posture.ts). To try another, write a
  * module with the same exports and run the harvester with POSE_REFS_CLASSIFIER=path/to/it.mts.
  */
 
@@ -15,8 +15,8 @@ import {
   classifyPosture as readPosture,
   postureGroupsAgree,
   type PostureGroup,
-} from '@/lib/pose-posture';
-import type { NormalizedBody } from '@/lib/pose-library';
+} from '@/lib/pose/posture';
+import type { NormalizedBody } from '@/lib/pose/library';
 
 export function classifyPosture(input: {
   people: NormalizedBody[];

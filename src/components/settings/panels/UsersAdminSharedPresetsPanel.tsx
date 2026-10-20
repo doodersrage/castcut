@@ -1,6 +1,6 @@
 'use client';
 
-import type { SharedPresetEntry } from '@/lib/shared-preset-store';
+import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';

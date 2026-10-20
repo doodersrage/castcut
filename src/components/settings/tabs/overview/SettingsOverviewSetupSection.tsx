@@ -1,13 +1,13 @@
 'use client';
 
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 import Link from 'next/link';
 import { useState } from 'react';
 import AppSlot from '@/components/AppSlot';
 import BackupRestoreFlow from '@/components/BackupRestoreFlow';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
+import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 import {
   ESSENTIAL_TASKS,

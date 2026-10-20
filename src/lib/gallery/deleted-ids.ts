@@ -1,6 +1,6 @@
 'use client';
 
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 const STORAGE_KEY = 'prompt-studio.gallery-deleted-ids';
 const MAX_TOMBSTONES = 5000;

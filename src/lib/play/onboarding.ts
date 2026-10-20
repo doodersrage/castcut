@@ -1,13 +1,13 @@
 /** Play's onboarding milestones (first film started, first film cut) with their Play metrics. */
 
-import { markOnboardingStepDone } from '../onboarding-store';
+import { markOnboardingStepDone } from '../app/onboarding-store';
 
 /** First Moodboard → Day / Roleplay film loop after a still lands. */
 export function markOnboardingFirstPlayCampaign(): boolean {
   void import('./metrics').then(({ recordFirstPlayCampaignStart }) => {
     recordFirstPlayCampaignStart();
   });
-  void import('../local-observability').then(({ noteFirstPlayCampaignMetric }) => {
+  void import('../server/local-observability').then(({ noteFirstPlayCampaignMetric }) => {
     noteFirstPlayCampaignMetric();
   });
   return markOnboardingStepDone('first-play-campaign');
@@ -18,7 +18,7 @@ export function markOnboardingFirstFilmCut(): boolean {
   void import('./metrics').then(({ recordFirstFilmCut }) => {
     recordFirstFilmCut();
   });
-  void import('../local-observability').then(({ noteFirstFilmCutMetric }) => {
+  void import('../server/local-observability').then(({ noteFirstFilmCutMetric }) => {
     noteFirstFilmCutMetric();
   });
   return markOnboardingStepDone('first-film-cut');

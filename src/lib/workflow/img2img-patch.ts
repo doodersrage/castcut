@@ -1,4 +1,4 @@
-import { isFluxKleinModel } from '../model-denoise-defaults';
+import { isFluxKleinModel } from '../model/denoise-defaults';
 import { normalizeInputImageFilenames } from './load-image-bindings';
 
 type WorkflowNode = {

@@ -5,7 +5,7 @@
  * Story's name, else one made from the session (and the session kept in the library).
  */
 
-import { getCharacter, loadCharacters, type CharacterRecord } from '../character-os';
+import { getCharacter, loadCharacters, type CharacterRecord } from '../character/os';
 import { characterFromRoleplaySession, upsertCharacterFromRoleplaySession } from '../play/cast';
 import type { RoleplayToolCache } from '../play/settings';
 import { snapshotRoleplaySession, upsertRoleplayLibrarySession } from './roleplay-library';

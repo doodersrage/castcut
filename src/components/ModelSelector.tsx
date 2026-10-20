@@ -21,13 +21,13 @@ import {
   modelPickerTags,
   pushRecentModel,
   toggleStarredModel,
-} from '@/lib/model-picker';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/model/picker';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   loadSettingsCache,
   notifySettingsCacheUpdated,
   saveSharedSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 
 type ModelSelectorProps = {
   value: ComfyImageModel;

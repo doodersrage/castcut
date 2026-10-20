@@ -1,6 +1,6 @@
 import type { ComfyImageModel } from '../comfy-models/client';
-import type { DetailLevel } from '../detail-level';
-import type { LlmRequestOptions } from '../llm-request-options';
+import type { DetailLevel } from '../prompt/detail-level';
+import type { LlmRequestOptions } from '../llm/request-options';
 
 export type ToolLimits = {
   minChars?: number;
@@ -45,7 +45,7 @@ export type RandomSceneOptions = SharedGenerationOptions & {
   avoidedTokensInstruction?: string;
 };
 
-import type { CharacterPresetOptions } from '../character-options';
+import type { CharacterPresetOptions } from '../character/options';
 
 export type CharacterOptions = SharedGenerationOptions & {
   hints?: string;
@@ -71,15 +71,15 @@ export type CharacterOptions = SharedGenerationOptions & {
   activeCharacterDescriptor?: string;
 };
 
-import type { GenerationDiagnostics } from '../generation-diagnostics';
+import type { GenerationDiagnostics } from '../queue/generation-diagnostics';
 
 export type EnrichedToolGenerateResult = ToolGenerateResult & {
   diagnostics?: GenerationDiagnostics;
 };
 
-import type { BackgroundPresetOptions } from '../background-options';
-import type { FantasyPresetOptions, FantasyShotFraming } from '../fantasy-options';
-import type { PetPresetOptions } from '../pet-options';
+import type { BackgroundPresetOptions } from '../scene/background-options';
+import type { FantasyPresetOptions, FantasyShotFraming } from '../scene/fantasy-options';
+import type { PetPresetOptions } from '../scene/pet-options';
 
 export type BackgroundOptions = SharedGenerationOptions & {
   settingType?: string;
@@ -124,7 +124,7 @@ export type ImagePromptOptions = SharedGenerationOptions & {
   imageDataUrl: string;
   mimeType?: string;
   focus?: ImagePromptFocus;
-  descriptionPreset?: import('../image-prompt-presets').ImagePromptDescriptionPreset;
+  descriptionPreset?: import('../prompt/image-prompt-presets').ImagePromptDescriptionPreset;
   extraHints?: string;
 };
 
@@ -132,8 +132,8 @@ export type LogoOptions = SharedGenerationOptions & {
   brandName?: string;
   tagline?: string;
   industry?: string;
-  stylePreset?: import('../logo-presets').LogoStylePresetId;
-  motif?: import('../logo-presets').LogoMotifId;
+  stylePreset?: import('../app/logo-presets').LogoStylePresetId;
+  motif?: import('../app/logo-presets').LogoMotifId;
   includeWordmark?: boolean;
   extraNotes?: string;
 };

@@ -1,16 +1,16 @@
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
 import {
   buildPetPresetBlock,
   buildPetPresetUserDirective,
   hasPetPresetOptions,
   normalizePetPresetOptions,
   countPetPresetSelections,
-} from '../pet-options';
-import { applyLockedLocation } from '../locked-location';
-import { applyLockedVariationSeed } from '../locked-variation-seed';
-import { mergeLocationExclusions } from '../location-exclusions';
-import { buildPetMandatoryBlock, parsePetHints } from '../pet-hints';
-import { buildRandomPetSeed } from '../pet-scene-pools';
+} from '../scene/pet-options';
+import { applyLockedLocation } from '../scene/locked-location';
+import { applyLockedVariationSeed } from '../variation/locked-variation-seed';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
+import { buildPetMandatoryBlock, parsePetHints } from '../scene/pet-hints';
+import { buildRandomPetSeed } from '../scene/pet-scene-pools';
 import { runSpecializedPrompt } from './runner';
 import type { PetOptions, ToolGenerateResult } from './types';
 

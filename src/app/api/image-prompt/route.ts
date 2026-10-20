@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { normalizeDetailLevel } from '@/lib/detail-level';
+import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
 import { normalizeComfyModel } from '@/lib/comfy-models';
 import {
   fileToDataUrl,
@@ -7,8 +7,8 @@ import {
   normalizeImageDataUrl,
 } from '@/lib/specialized/image-prompt-generator';
 import type { ImagePromptFocus } from '@/lib/specialized/types';
-import { normalizeImagePromptDescriptionPreset } from '@/lib/image-prompt-presets';
-import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm-request-options';
+import { normalizeImagePromptDescriptionPreset } from '@/lib/prompt/image-prompt-presets';
+import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm/request-options';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

@@ -6,12 +6,12 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui/live-preview-store';
 import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { formatEta } from '@/lib/queue-eta';
-import type { QueueJobLabel } from '@/lib/queue-job-context';
+import { formatEta } from '@/lib/queue/eta';
+import type { QueueJobLabel } from '@/lib/queue/job-context';
 
 export default function QueueActiveJobRow({
   entry,

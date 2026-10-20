@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { loadKeyboardShortcuts, parseCombo } from '@/lib/keyboard-shortcuts-store';
+import { loadKeyboardShortcuts, parseCombo } from '@/lib/app/keyboard-shortcuts-store';
 
 /** Queue/generate shortcuts stay available while typing in fields. */
 const TYPING_OK_ACTIONS = new Set(['primary-generate', 'send-comfyui']);

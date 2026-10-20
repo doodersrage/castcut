@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { markOnboardingDiscoverPalette } from '@/lib/onboarding-hooks';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { markOnboardingDiscoverPalette } from '@/lib/app/onboarding-hooks';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { CommandItem } from '@/components/command-palette/types';
 
 type UseCommandPaletteKeyboardOptions = {

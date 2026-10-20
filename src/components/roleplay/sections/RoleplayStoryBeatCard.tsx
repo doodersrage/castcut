@@ -1,14 +1,14 @@
 'use client';
 
 import ClipExtendSheet from '@/components/ClipExtendSheet';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
 import SketchSheet from '@/components/day-planner/SketchSheet';
-import { continueClipActionLabel } from '@/lib/video-clip-mode';
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { continueClipActionLabel } from '@/lib/video/clip-mode';
+import { loadEngineSettings } from '@/lib/engine/settings';
 import {
   canRetryRoleplayClip,
   canRetryRoleplayStill,
@@ -22,7 +22,7 @@ import { looksLikeMotionUrl } from '@/lib/story/roleplay-film';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import PoseMissPanel from '@/components/pose/PoseMissPanel';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
-import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult-appearance-gate';
+import { ADULT_GATE_WITHHELD_MESSAGE } from '@/lib/adult/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import StoryBeatSheet from '@/components/roleplay/sections/StoryBeatSheet';
 import { useStoryBeatEditActions } from '@/components/roleplay/StoryBeatEditContext';
@@ -38,8 +38,8 @@ import {
   storyPoseMatchLabel,
   storyRealismLabel,
 } from '@/lib/story/roleplay-pose-check';
-import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face/match';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
 import {
   beatMotionUrl,
   beatPreviewUrl,

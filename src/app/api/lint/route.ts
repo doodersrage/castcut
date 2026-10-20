@@ -1,4 +1,4 @@
-import { lintPrompt } from '@/lib/prompt-diagnostics';
+import { lintPrompt } from '@/lib/prompt/diagnostics';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

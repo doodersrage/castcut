@@ -1,4 +1,4 @@
-import { previewAvoidance } from '@/lib/avoidance-preview';
+import { previewAvoidance } from '@/lib/prompt/avoidance-preview';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

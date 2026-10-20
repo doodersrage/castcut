@@ -1,4 +1,4 @@
-import { blendPoseEngineReport, loadPoseOutcomeStats } from '@/lib/pose-outcome-stats';
+import { blendPoseEngineReport, loadPoseOutcomeStats } from '@/lib/pose/outcome-stats';
 import { POSE_ENGINE_REPORT, type PoseEngineReport } from '@/lib/pose/pose-engine-report';
 
 /**

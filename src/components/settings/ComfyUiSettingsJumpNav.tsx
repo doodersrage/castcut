@@ -5,7 +5,7 @@ import { accentFocusClass } from '@/components/ui/ToolPageShell';
 import {
   filterComfyUiSettingsSections,
   type ComfyUiSettingsSectionId,
-} from '@/lib/settings-comfyui-nav';
+} from '@/lib/settings/comfyui-nav';
 
 export default function ComfyUiSettingsJumpNav({
   activeSection,

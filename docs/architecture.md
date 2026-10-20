@@ -18,20 +18,20 @@ Shell (`src/app/layout.tsx`) wraps pages with `AuthProvider`, `AppNav`, gallery 
 
 ### Browser (primary)
 
-IndexedDB via Dexie — database `comfy-prompt-studio-v1` (`src/lib/app-db.ts`):
+IndexedDB via Dexie — database `comfy-prompt-studio-v1` (`src/lib/app/db.ts`):
 
 - `galleryEntries` — Comfy jobs and outputs
 - `kv` — settings, prompt history, workflow library, plugins, projects, etc.
 
-Access: `src/lib/browser-storage.ts`, `src/lib/gallery/db-store.ts`, init `src/lib/app-db-init.ts`. Legacy `localStorage` keys migrate into Dexie on first hydrate. Theme/density stay mirrored in `localStorage` for the FOUC script and are also included in `studio-extras` sync.
+Access: `src/lib/storage/browser-storage.ts`, `src/lib/gallery/db-store.ts`, init `src/lib/app/db-init.ts`. Legacy `localStorage` keys migrate into Dexie on first hydrate. Theme/density stay mirrored in `localStorage` for the FOUC script and are also included in `studio-extras` sync.
 
-Durable browser writes listed in `src/lib/durable-sync-keys.ts` schedule a debounced server push.
+Durable browser writes listed in `src/lib/storage/durable-sync-keys.ts` schedule a debounced server push.
 
 ### Server (optional SQLite)
 
 When `PROMPT_DATA_DIR` is set, Castcut opens `{PROMPT_DATA_DIR}/studio.sqlite` (WAL) via `src/lib/sqlite/studio-db.ts`:
 
-- Namespaces (`src/lib/storage-namespaces.ts`) in a `kv` table, scoped `global` or `user:{userId}`
+- Namespaces (`src/lib/storage/namespaces.ts`) in a `kv` table, scoped `global` or `user:{userId}`
 - Gallery rows in `gallery_entries` (not one JSON blob); tombstones in `gallery_deleted_ids`
 - Auth, sessions, API keys, reset tokens, audit, LLM usage, analytics, collab rooms as tables
 - SMTP / queue-export overlays in `kv`
@@ -40,13 +40,13 @@ Leftover JSON files (`*.json` under the data dir and `auth/`) are imported once 
 
 Without `PROMPT_DATA_DIR`, `/api/storage` is disabled. Auth and shared presets still persist to `studio.sqlite` under the default data root (`.prompt-studio-data`). SMTP overlay stays in memory until restart.
 
-**Studio backup** (`src/lib/studio-backup.ts`) is a versioned JSON download (v5) of history, settings, gallery, and `collectStudioExtras()` (gallery ELO and other Dexie KV). It is not a dump of `PROMPT_DATA_DIR`.
+**Studio backup** (`src/lib/storage/studio-backup.ts`) is a versioned JSON download (v5) of history, settings, gallery, and `collectStudioExtras()` (gallery ELO and other Dexie KV). It is not a dump of `PROMPT_DATA_DIR`.
 
 **Auto-synced namespaces** (`SYNC_STORAGE_NAMESPACES`): `settings-cache`, `prompt-history`, `comfy-gallery`, `gallery-deleted-ids`, `studio-extras`.
 
 `studio-extras` covers workflows, ComfyUI settings, recipes, projects, webhooks, avoided tokens, templates, campaigns, appearance prefs, onboarding, workspace mode, held-max jobs, notifications, and other durable browser state. Legacy namespaces (`scheduled-batch`, `webhook-settings`, `avoided-tokens`, `prompt-projects`) are folded into `studio-extras` on pull.
 
-Sync helpers: `src/lib/storage-sync.ts`, `src/lib/auto-storage-sync.ts`, `src/lib/studio-extras.ts`, APIs under `src/app/api/storage/**`. Browser Dexie remains the working cache; the server database is the durable copy.
+Sync helpers: `src/lib/storage/sync.ts`, `src/lib/storage/auto-storage-sync.ts`, `src/lib/app/studio-extras.ts`, APIs under `src/app/api/storage/**`. Browser Dexie remains the working cache; the server database is the durable copy.
 
 ## ComfyUI queue path
 
@@ -68,8 +68,8 @@ flowchart LR
 | Tokens, inject, loaders, images          | `src/lib/comfyui/config.ts`                                               |
 | Graph optimize / direct patch            | `src/lib/workflow/queue-optimizer.ts`, `src/lib/workflow/direct-patch.ts` |
 | Workflow library (Dexie KV)              | `src/lib/comfyui/workflow-files.ts`                                       |
-| Draft / Final / Max (+ per-tool)         | `src/lib/queue-quality-profile.ts`, `src/lib/tool-quality-profiles.ts`    |
-| Plugin mutators                          | `src/lib/plugin-queue-hooks.ts`                                           |
+| Draft / Final / Max (+ per-tool)         | `src/lib/queue/quality-profile.ts`, `src/lib/app/tool-quality-profiles.ts`    |
+| Plugin mutators                          | `src/lib/plugin/queue-hooks.ts`                                           |
 | Gallery + progress                       | `src/lib/gallery/comfyui-gallery-client.ts`, `src/lib/comfyui/websocket.ts`       |
 | Engine seam (queue / progress)           | `src/lib/engine` → `getEngineAdapter()`                                   |
 
@@ -88,8 +88,8 @@ Thin browser seam for **queue / status / view / upload / progress** so backends 
 | Diffusers implementation | `src/lib/engine/diffusers-adapter.ts`                                                               |
 | Fal implementation       | `src/lib/engine/fal-adapter.ts`                                                                     |
 | Replicate implementation | `src/lib/engine/replicate-adapter.ts`                                                               |
-| Runway implementation    | `src/lib/engine/runway-adapter.ts` + `src/lib/runway-client.ts`                                      |
-| ChatGPT / Gemini / Grok  | `src/lib/engine/cloud-adapter.ts` + `src/lib/llm-image-client.ts` + `src/lib/cloud-video-client.ts` |
+| Runway implementation    | `src/lib/engine/runway-adapter.ts` + `src/lib/cloud/runway-client.ts`                                      |
+| ChatGPT / Gemini / Grok  | `src/lib/engine/cloud-adapter.ts` + `src/lib/llm/image-client.ts` + `src/lib/cloud/cloud-video-client.ts` |
 | Cloud registry           | `src/lib/engine/capabilities.ts` (`CLOUD_ENGINE_OPTIONS`)                                           |
 | Selection                | `getEngineAdapter()` / `getEngineAdapterById()` in `src/lib/engine/index.ts`                        |
 | Settings                 | `inferenceEngine` + Diffusers URL + cloud key/model (Settings → Inference engine)                   |
@@ -138,7 +138,7 @@ Invites: `POST /api/auth/invite` (admin) creates or re-sends a user and emails a
 
 ## Plugins
 
-Client Dexie manifests (`src/lib/plugin-manifest.ts`) plus an optional **server registry** under `{PROMPT_DATA_DIR}/plugins` (`src/lib/server-plugin-registry.ts`, `GET`/`POST`/`DELETE /api/plugins/server`).
+Client Dexie manifests (`src/lib/plugin/manifest.ts`) plus an optional **server registry** under `{PROMPT_DATA_DIR}/plugins` (`src/lib/plugin/server-plugin-registry.ts`, `GET`/`POST`/`DELETE /api/plugins/server`).
 
 ```ts
 {
@@ -156,18 +156,18 @@ Client Dexie manifests (`src/lib/plugin-manifest.ts`) plus an optional **server 
 - Iframe host protocol (queue / apply-prompt / LoRA stack / workflow tokens / gallery tag / engine): [plugin-iframe-host.md](plugin-iframe-host.md); example at `/plugin-examples/hello-iframe.html`
 - Caps: 48 client runtime plugins, 32 server plugins, 24 manual queue hooks; bookmarks stay separate (32)
 
-Bookmarks (non-manifest) are separate: `src/lib/tool-plugin-registry.ts`. Example hook: `src/app/api/plugin-hooks/denoise-rewrite/route.ts`. Optional install HMAC: `PROMPT_PLUGIN_HMAC_SECRET`.
+Bookmarks (non-manifest) are separate: `src/lib/app/tool-plugin-registry.ts`. Example hook: `src/app/api/plugin-hooks/denoise-rewrite/route.ts`. Optional install HMAC: `PROMPT_PLUGIN_HMAC_SECRET`.
 
 ## LLM and vision
 
 | Concern                                  | Where                                                                  |
 | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Chat / vision client                     | `src/lib/llm-client.ts`                                                |
-| Env helpers                              | `src/lib/llm-env.ts`                                                   |
-| Vision downscale/recompress before model | `src/lib/vision-image-prepare.ts`                                      |
+| Chat / vision client                     | `src/lib/llm/client.ts`                                                |
+| Env helpers                              | `src/lib/llm/env.ts`                                                   |
+| Vision downscale/recompress before model | `src/lib/vision/image-prepare.ts`                                      |
 | Generate / format / refine               | `/api/generate`, `/api/format`, `/api/refine` (+ tool-specific routes) |
 
-LLM routes are gated as `llm-api` when auth is on. Prompt cleanup / thinking-artifact stripping lives in `src/lib/prompt-cleanup.ts`.
+LLM routes are gated as `llm-api` when auth is on. Prompt cleanup / thinking-artifact stripping lives in `src/lib/prompt/cleanup.ts`.
 
 ## Env categories
 
@@ -186,11 +186,11 @@ See `.env.example` for the full list. Groups that matter for architecture:
 
 | Question                                     | Start here                                                                       |
 | -------------------------------------------- | -------------------------------------------------------------------------------- |
-| Why did queue change my graph?               | `comfyui-config.ts`, `workflow-queue-optimizer.ts`, Settings → workflow takeover |
-| Where did this setting go?                   | Dexie `kv` via `browser-storage.ts` / `settings-cache`                           |
+| Why did queue change my graph?               | `lib/comfyui/config.ts`, `lib/workflow/queue-optimizer.ts`, Settings → workflow takeover |
+| Where did this setting go?                   | Dexie `kv` via `lib/storage/browser-storage.ts` / `settings-cache`                           |
 | Why is a nav item missing?                   | `auth/features.ts` + user/group `blockedFeatures`                                |
 | Why did invite/reset mail use the wrong URL? | `PROMPT_API_URL` — default is `http://127.0.0.1:47832`                           |
-| Why did probe fail with allowlist?           | `url-safety.ts` / `COMFYUI_ALLOWED_HOSTS`; copy snippet from cluster panel       |
-| Why did a plugin alter queue?                | `plugin-queue-hooks.ts` + installed manifests                                    |
-| Refine / vision blew up?                     | `vision-image-prepare.ts`, `llm-client.ts`, `/api/refine`                        |
+| Why did probe fail with allowlist?           | `lib/server/url-safety.ts` / `COMFYUI_ALLOWED_HOSTS`; copy snippet from cluster panel       |
+| Why did a plugin alter queue?                | `lib/plugin/queue-hooks.ts` + installed manifests                                    |
+| Refine / vision blew up?                     | `lib/vision/image-prepare.ts`, `lib/llm/client.ts`, `/api/refine`                        |
 | Where does queue / progress hit the engine?  | `src/lib/engine` (`getEngineAdapter`) — ComfyUI or Diffusers                     |

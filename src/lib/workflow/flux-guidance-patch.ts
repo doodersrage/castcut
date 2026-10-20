@@ -1,5 +1,5 @@
 import type { WorkflowParamValues } from '../comfyui/config';
-import { isFlux1FamilyModel } from '../model-denoise-defaults';
+import { isFlux1FamilyModel } from '../model/denoise-defaults';
 
 export const FLUX_GUIDANCE_NODE_TYPE = 'FluxGuidance';
 

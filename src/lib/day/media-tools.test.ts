@@ -4,34 +4,34 @@ import {
   buildClipFinishGraph,
   CLIP_FINISH_SAVE_NODE,
   clipFinishPlan,
-} from '../clip-finish';
-import { readClipStream } from '../clip-finish-server';
-import { isGpuMemoryError } from '../heavy-graph-server';
+} from '../clip/finish';
+import { readClipStream } from '../clip/finish-server';
+import { isGpuMemoryError } from '../server/heavy-graph-server';
 import {
   buildLipSyncGraph,
   LIP_SYNC_MODELS,
   lipSyncFrames,
   lipSyncSegmentCount,
   lipSyncSize,
-} from '../lip-sync';
-import { readDurationSeconds, readPictureSize, speakerSplit } from '../lip-sync-server';
+} from '../audio/lip-sync';
+import { readDurationSeconds, readPictureSize, speakerSplit } from '../audio/lip-sync-server';
 import {
   buildMusicDanceGraph,
   MUSIC_DANCE_MODELS,
   musicDancePrompts,
   musicDanceSegments,
   musicDanceSize,
-} from '../music-dance';
-import { sketchPrompt } from '../sketch';
-import { buildStillUpscaleGraph, stillUpscaleSize } from '../still-upscale';
+} from '../audio/music-dance';
+import { sketchPrompt } from '../edit/sketch';
+import { buildStillUpscaleGraph, stillUpscaleSize } from '../still/upscale';
 import {
   buildMotionTransferGraph,
   MOTION_MAX_FRAMES,
   motionSegmentCount,
   motionTransferSize,
-} from '../motion-transfer';
-import { buildRelightGraph, RELIGHT_LORA, relightPrompt, relightSize } from '../relight';
-import { pickRelightCheckpoint } from '../relight-server';
+} from '../video/motion-transfer';
+import { buildRelightGraph, RELIGHT_LORA, relightPrompt, relightSize } from '../edit/relight';
+import { pickRelightCheckpoint } from '../edit/relight-server';
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
 const nodes = (graph: Record<string, unknown>) => Object.values(graph) as Node[];

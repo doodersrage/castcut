@@ -1,6 +1,6 @@
 import { generateNsfwPrompt } from '@/lib/specialized/nsfw-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
-import { isNsfwGeneratorEnabledServer } from '@/lib/nsfw-generator-env';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
+import { isNsfwGeneratorEnabledServer } from '@/lib/adult/nsfw-generator-env';
 import { normalizeSharedGenerationOptions } from '@/lib/specialized/normalize';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';

@@ -6,12 +6,12 @@
  * beat; the beat card shows it and suggests a retry when the still ignored its guide.
  */
 
-import type { NormalizedBody } from '@/lib/pose-library';
-import type { PoseMissView } from '@/lib/pose-coaching';
-import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
-import { STORY_FACE_MATCH_WARN_BELOW, STORY_MIN_FACE_MATCH } from '@/lib/face-match';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
-import { REALISM_COMPUTER_MADE_AT_OR_BELOW } from '@/lib/still-realism';
+import type { NormalizedBody } from '@/lib/pose/library';
+import type { PoseMissView } from '@/lib/pose/coaching';
+import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
+import { STORY_FACE_MATCH_WARN_BELOW, STORY_MIN_FACE_MATCH } from '@/lib/face/match';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
+import { REALISM_COMPUTER_MADE_AT_OR_BELOW } from '@/lib/still/realism';
 
 /**
  * The bars every Story reader uses — the beat card, "Retry N flagged" and the pre-cut check.

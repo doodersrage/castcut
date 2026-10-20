@@ -13,7 +13,7 @@ import {
   type CastRelationKind,
   type CastRelationship,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export const CAST_RELATION_KINDS: ReadonlyArray<{
   id: CastRelationKind;

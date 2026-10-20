@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { useAuth } from '@/hooks/useAuth';
 import type { AppFeatureId } from '@/lib/auth/features';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadLastToolRoute, resolveLandingRoute } from '@/lib/last-tool-route';
-import { PRODUCT_NAME } from '@/lib/brand';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadLastToolRoute, resolveLandingRoute } from '@/lib/app/last-tool-route';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 
 type LoginMode = 'sign-in' | 'totp' | 'forgot' | 'reset' | 'setup';
 

@@ -12,7 +12,7 @@ import {
   wearOutfitAgain,
   wornOutfitKey,
 } from '@/lib/cast/wardrobe';
-import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character-os';
+import { activeLook, getCharacter, type CharacterRecord } from '@/lib/character/os';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import {

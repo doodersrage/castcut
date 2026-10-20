@@ -1,6 +1,6 @@
 import { parseIntimateLayout, type IntimateLayout } from '../day/pose-guide';
 import { twoMenBeat, twoWomenBeat } from './rapid-duo-recipe';
-import { adultAgeLine, neutralizeYouthWords } from '../adult-age-safeguard';
+import { adultAgeLine, neutralizeYouthWords } from '../adult/adult-age-safeguard';
 
 /**
  * Animate prompt for an Intimate / Raunchy Day still (WAN I2V). The LLM clip writer asked for

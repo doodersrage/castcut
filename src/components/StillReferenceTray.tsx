@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { stillReferenceViewUrl, type StillReference } from '@/lib/still-references';
-import { loadStillReferences } from '@/lib/still-references-client';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { stillReferenceViewUrl, type StillReference } from '@/lib/still/references';
+import { loadStillReferences } from '@/lib/still/references-client';
 
 /** A way to change (or pin) one reference, offered under its picture. */
 export type StillReferenceAction = {

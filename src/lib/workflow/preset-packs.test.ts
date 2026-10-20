@@ -9,7 +9,7 @@ const readBrowserValue = mock.fn(<T,>(key: string): T | null => (storage.has(key
 const writeBrowserValue = mock.fn((key: string, value: unknown) => {
   storage.set(key, value);
 });
-mock.module('../browser-storage', { namedExports: { readBrowserValue, writeBrowserValue } });
+mock.module('../storage/browser-storage', { namedExports: { readBrowserValue, writeBrowserValue } });
 
 type OptimizeResult = { workflowJson: string; contentHash: string };
 let optimizeImpl: (input: Record<string, unknown>) => OptimizeResult = input => ({
@@ -20,14 +20,14 @@ const optimizeWorkflowForQueue = mock.fn((input: Record<string, unknown>) => opt
 mock.module('./queue-optimizer', { namedExports: { optimizeWorkflowForQueue } });
 
 const normalizeQueueQualityProfile = mock.fn((profile: unknown) => profile ?? 'balanced');
-mock.module('../queue-quality-profile', { namedExports: { normalizeQueueQualityProfile } });
+mock.module('../queue/quality-profile', { namedExports: { normalizeQueueQualityProfile } });
 
 const workflowContentHash = mock.fn((json: string) => `raw-hash-${json.length}`);
 mock.module('./content-hash', { namedExports: { workflowContentHash } });
 
 let sharedSettings: Record<string, unknown> = { model: 'sdxl', queueQualityProfile: 'balanced' };
 const loadSettingsCache = mock.fn(() => ({ shared: sharedSettings }));
-mock.module('../settings-cache', { namedExports: { loadSettingsCache } });
+mock.module('../settings/cache', { namedExports: { loadSettingsCache } });
 
 const inferModelsFromWorkflowLabel = mock.fn((_input: { name: string; filename?: string }) => [] as string[]);
 mock.module('./category-defaults', { namedExports: { inferModelsFromWorkflowLabel } });

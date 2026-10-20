@@ -1,18 +1,18 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import { toastBulkQueueSummary } from '@/lib/app-toast';
-import { loadActiveProjectId } from '@/lib/prompt-projects';
+import { toastBulkQueueSummary } from '@/lib/app/toast';
+import { loadActiveProjectId } from '@/lib/prompt/projects';
 import {
   exportGalleryCsv,
   exportGalleryJsonl,
   downloadTextFile,
-} from '@/lib/history-export-formats';
+} from '@/lib/history/export-formats';
 import {
   downloadGalleryImagesSequential,
   downloadGallerySidecarBundle,
 } from '@/lib/gallery/comfyui-gallery-export';
-import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue-requeue-images';
+import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue/requeue-images';
 import type {
   GalleryBulkExperimentHandlers,
   UseGalleryPanelActionsInput,
@@ -132,7 +132,7 @@ export function useGalleryBulkActions({
         }
         stitchBusyRef.current = true;
         setRequeueStatus('Stitching selected clips…');
-        void import('@/lib/video-assemble')
+        void import('@/lib/video/assemble')
           .then(({ stitchSelectedGalleryVideos }) =>
             stitchSelectedGalleryVideos({
               entries: selectedEntries,

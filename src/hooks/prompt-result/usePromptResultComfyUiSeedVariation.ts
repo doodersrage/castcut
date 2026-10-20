@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import type { SendComfyUiFn, SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
 export function usePromptResultComfyUiSeedVariation(

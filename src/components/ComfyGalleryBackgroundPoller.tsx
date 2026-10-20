@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery';
-import { initBrowserStorage } from '@/lib/browser-storage';
+import { initBrowserStorage } from '@/lib/storage/browser-storage';
 import { hasPendingGalleryPollMeta } from '@/lib/gallery/pending-polls';
 
 function scheduleIdle(callback: () => void, timeoutMs: number): () => void {

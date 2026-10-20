@@ -9,10 +9,10 @@ import {
   parseRegionalSegments,
   REGIONAL_PROMPT_TOKENS,
   type RegionalPromptSegment,
-} from '@/lib/regional-prompt-builder';
+} from '@/lib/prompt/regional-prompt-builder';
 import { FieldLabel, TextArea } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 type RegionalPromptBuilderPanelProps = {
   onApply: (prompt: string) => void;

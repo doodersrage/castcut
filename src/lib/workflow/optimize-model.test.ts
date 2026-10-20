@@ -9,7 +9,7 @@ let sharedModel = 'sdxl';
 const loadSettingsCache = mock.fn(() => ({
   shared: { modelWorkflowMap: sharedModelWorkflowMap, model: sharedModel },
 }));
-mock.module('../settings-cache', { namedExports: { loadSettingsCache } });
+mock.module('../settings/cache', { namedExports: { loadSettingsCache } });
 
 afterEach(() => {
   sharedModelWorkflowMap = undefined;

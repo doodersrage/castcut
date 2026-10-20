@@ -1,4 +1,4 @@
-import type { DetailLevel, FewShotExample } from '../detail-level';
+import type { DetailLevel, FewShotExample } from '../prompt/detail-level';
 
 export type ComfyModelCategory =
   | 'stable-diffusion'

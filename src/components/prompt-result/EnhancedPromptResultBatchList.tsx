@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleSection, ToolBlockGroup, ToolSection } from '@/components/ui/ToolPageShell';
 import { BatchPromptCard, type BatchPromptCrossLinks } from '@/components/ui/BatchPromptCard';
-import { readRawPrompt } from '@/lib/raw-prompt';
+import { readRawPrompt } from '@/lib/prompt/raw-prompt';
 import type {
   BatchPromptItem,
   BatchPromptItemActions,

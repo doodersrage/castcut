@@ -15,9 +15,9 @@ import {
 } from '../comfyui/config';
 import { getComfyModelDefinition, type ComfyImageModel } from '../comfy-models';
 import { isQwenLightningModel } from './model-sampling-patch';
-import { DEFAULT_CHECKPOINT_TOKEN } from '../model-checkpoint-map';
+import { DEFAULT_CHECKPOINT_TOKEN } from '../model/checkpoint-map';
 import { qwenLoaderFilenames } from './scaffold';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 export function qwenScaffold(tokens: WorkflowPlaceholderTokens): Record<string, unknown> {
   const loaders = qwenLoaderFilenames();

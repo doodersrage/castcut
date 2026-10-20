@@ -6,9 +6,9 @@ import {
   downloadGalleryImagesSequential,
   downloadGallerySidecarBundle,
 } from '@/lib/gallery/comfyui-gallery-export';
-import { toastBulkQueueSummary } from '@/lib/app-toast';
+import { toastBulkQueueSummary } from '@/lib/app/toast';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { loadCharacters } from '@/lib/character-os';
+import { loadCharacters } from '@/lib/character/os';
 import { partitionGalleryForArchivePurge } from '@/lib/gallery/protected-ids';
 
 export type UseGalleryPanelRecoveryOptions = {

@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { chromeBtn } from '@/components/ui/image-lightbox/chromeBtn';
-import { normalizeHistogramChannel, type LightboxHistogram } from '@/lib/lightbox-histogram';
+import { normalizeHistogramChannel, type LightboxHistogram } from '@/lib/media/lightbox-histogram';
 
 export type ImageLightboxHistogramPanelProps = {
   compact?: boolean;

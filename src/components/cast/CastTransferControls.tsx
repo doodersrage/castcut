@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { characterHomeHref } from '@/lib/character-os';
+import { characterHomeHref } from '@/lib/character/os';
 
 /** "Export" for one Cast: a file with its record, picture, Story and Day plan; or a bundle. */
 export function CastExportButton({ characterId }: { characterId: string }) {

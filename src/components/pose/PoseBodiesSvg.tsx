@@ -1,6 +1,6 @@
 'use client';
 
-import type { NormalizedBody } from '@/lib/pose-library';
+import type { NormalizedBody } from '@/lib/pose/library';
 
 type PosePart = 'rightArm' | 'leftArm' | 'rightLeg' | 'leftLeg';
 

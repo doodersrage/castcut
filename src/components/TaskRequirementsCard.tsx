@@ -8,9 +8,9 @@ import type {
 } from '@/components/settings/comfy-model-assets/comfy-model-assets-types';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   formatTaskBytes,
   missingTaskRequirements,
@@ -18,7 +18,7 @@ import {
   taskRequirements,
   type TaskAssetState,
   type TaskRequirementInput,
-} from '@/lib/task-requirements';
+} from '@/lib/media/task-requirements';
 
 const ACTIVE_JOB = new Set(['queued', 'downloading', 'verifying']);
 

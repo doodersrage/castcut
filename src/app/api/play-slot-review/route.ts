@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { reviewPlaySlotStill } from '@/lib/play/slot-review-server';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 

@@ -2,8 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { loadCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadCollapsibleOpen, saveCollapsibleOpen } from '@/lib/app/collapsible-persist';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export function CollapsibleSection({
   title,

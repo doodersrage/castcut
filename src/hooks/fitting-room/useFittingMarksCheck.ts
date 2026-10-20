@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import type { FittingRoomQueueInput } from '@/hooks/fitting-room/useFittingRoomQueueCore';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
   buildMarksRepairPrompt,
   checkableMarks,

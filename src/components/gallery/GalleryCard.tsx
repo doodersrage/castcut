@@ -2,13 +2,16 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
-import { formatComfyHostLabel } from '@/lib/queue-status-notes';
+import { formatComfyHostLabel } from '@/lib/queue/status-notes';
 import {
   formatRenderDuration,
   resolveGalleryRenderDurationMs,
 } from '@/lib/comfyui/render-duration';
-import { scoreGalleryEntryHeuristic, type AestheticScoreResult } from '@/lib/aesthetic-score';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import {
+  scoreGalleryEntryHeuristic,
+  type AestheticScoreResult,
+} from '@/lib/vision/aesthetic-score';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   galleryEntryMediaKinds,
   galleryEntryPrimaryLqipUrl,
@@ -23,8 +26,8 @@ import { galleryDerivedKindLabel } from '@/lib/gallery/derived-kind';
 import { shouldUseHtmlVideoElement } from '@/lib/comfyui/outputs';
 import GalleryCardBodyBlock from '@/components/gallery/GalleryCardBodyBlock';
 import GalleryCardImageBlock from '@/components/gallery/GalleryCardImageBlock';
-import { describeQueueJob } from '@/lib/queue-job-context';
-import { engineFamilyLabel } from '@/lib/model-files';
+import { describeQueueJob } from '@/lib/queue/job-context';
+import { engineFamilyLabel } from '@/lib/model/files';
 
 type GalleryCardProps = {
   entry: ComfyGalleryEntry;
@@ -42,7 +45,7 @@ type GalleryCardProps = {
   onDownloadError: (message: string | null) => void;
   onRequeue: (
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   onCancel: () => void;

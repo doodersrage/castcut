@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { CAST_VOICE_SAMPLE_SEC } from './voice';
-import { filmTempOsDir, resolveFfmpegBinary } from '../video-server-encode';
+import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 
 /** ffmpeg args: the first sample-length of sound, mono 24 kHz WAV. */
 export function voiceSampleArgs(input: string, output: string): string[] {
@@ -54,7 +54,7 @@ export async function extractVoiceSample(input: {
 }): Promise<Uint8Array> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
-  const { fetchFilmShotBytes } = await import('../video-shot-fetch');
+  const { fetchFilmShotBytes } = await import('../video/shot-fetch');
   const fetched = await fetchFilmShotBytes({
     url: input.clipUrl,
     requestOrigin: input.requestOrigin,

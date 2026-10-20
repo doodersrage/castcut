@@ -1,6 +1,6 @@
 import type { EmailConfig } from './types';
 import type { PublicEmailConfig, StoredEmailConfig } from './types';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 import { readKv, writeKv } from '@/lib/sqlite/kv';
 
 export type { PublicEmailConfig, StoredEmailConfig } from './types';

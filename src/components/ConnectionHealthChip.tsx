@@ -7,13 +7,13 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { settingsTabHref } from '@/lib/settings-nav';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { settingsTabHref } from '@/lib/settings/nav';
 import {
   refreshSharedHealth,
   subscribeSharedHealth,
   type RawHealthResponse,
-} from '@/lib/shared-health-poll';
+} from '@/lib/storage/shared-health-poll';
 
 type ChipHealth = {
   llmOk: boolean;

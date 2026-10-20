@@ -1,4 +1,4 @@
-import { rememberPublicAppOrigin } from '@/lib/public-app-origin';
+import { rememberPublicAppOrigin } from '@/lib/server/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { createSessionToken, sessionCookieValue } from '@/lib/auth/session';
 import { parsePendingLoginToken } from '@/lib/auth/pending-login';
@@ -10,7 +10,7 @@ import {
   recordLoginFailure,
   recordLoginSuccess,
 } from '@/lib/auth/login-throttle';
-import { rateLimitClientKey } from '@/lib/api-rate-limit';
+import { rateLimitClientKey } from '@/lib/server/api-rate-limit';
 
 export const runtime = 'nodejs';
 

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
 import {
   characterCardFacts,
@@ -16,11 +16,11 @@ import {
   referenceSheetPrompt,
   saveReferenceSheetView,
 } from '@/lib/cast/reference-sheet';
-import { activeLook, type CharacterRecord } from '@/lib/character-os';
+import { activeLook, type CharacterRecord } from '@/lib/character/os';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day/partner';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { ssr: false });
 

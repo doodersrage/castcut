@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState } from '@/components/ui/ViewState';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { DIFFUSERS_DEFAULT_MODEL } from '@/lib/diffusers-defaults';
-import { buildDiffusersLightningPresets } from '@/lib/diffusers-presets';
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { DIFFUSERS_DEFAULT_MODEL } from '@/lib/engine/diffusers-defaults';
+import { buildDiffusersLightningPresets } from '@/lib/engine/diffusers-presets';
+import { loadEngineSettings } from '@/lib/engine/settings';
 
 export type DiffusersCheckpointOption = {
   id: string;

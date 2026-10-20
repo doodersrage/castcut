@@ -7,12 +7,12 @@
  * same prompt at queue time). Talking clips use their own prompt (talkingClipPrompt).
  */
 
-import { adultAgeLineIn } from '../adult-age-safeguard';
+import { adultAgeLineIn } from '../adult/adult-age-safeguard';
 import { swapDayPromptGender } from './lead-gender';
 import { buildDaySlotMotionSubject, isDayAdultMood, type DaySlot } from './planner';
 import { buildIntimateClipPrompt } from '../play/intimate-clip-prompt';
-import { RAPID_DUO_RECIPE_MARK } from '../prompt-recipe-mark';
-import { buildStillClipPrompt, stillPromptPeople } from '../still-clip-prompt';
+import { RAPID_DUO_RECIPE_MARK } from '../prompt/recipe-mark';
+import { buildStillClipPrompt, stillPromptPeople } from '../still/clip-prompt';
 
 /** The direction Animate uses when the player gives none. */
 export function defaultDayClipDirection(slot: DaySlot, characterName?: string): string {

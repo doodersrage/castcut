@@ -4,11 +4,11 @@ import {
   upsertComfyWorkflowFile,
   type ComfyWorkflowFile,
 } from '../comfyui/workflow-files';
-import { loadSettingsCache } from '../settings-cache';
-import { resolveQueueParams } from '../queue-params-settings';
+import { loadSettingsCache } from '../settings/cache';
+import { resolveQueueParams } from '../queue/params-settings';
 import { optimizeWorkflowForQueue } from './queue-optimizer';
 import { resolveOptimizeModelForWorkflowFile } from './optimize-model';
-import { normalizeQueueQualityProfile } from '../queue-quality-profile';
+import { normalizeQueueQualityProfile } from '../queue/quality-profile';
 
 export type OptimizeAllWorkflowsResult = {
   updated: number;
@@ -29,8 +29,8 @@ function optimizeWorkflowFileRecord(input: {
   tokens: WorkflowPlaceholderTokens;
   fallbackModel: string;
   perWorkflowModel: boolean;
-  modelWorkflowMap?: import('../model-workflow-map').ModelWorkflowMap;
-  queueQualityProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  modelWorkflowMap?: import('../model/workflow-map').ModelWorkflowMap;
+  queueQualityProfile?: import('../queue/quality-profile').QueueQualityProfile;
   workflowSdxlRefinerEnrich?: boolean;
   workflowNeuralUpscalePolish?: boolean;
   workflowSharpenAfterUpscale?: boolean;

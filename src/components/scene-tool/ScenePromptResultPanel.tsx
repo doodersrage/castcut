@@ -2,13 +2,13 @@
 
 import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
-import { continueEditResultProps } from '@/lib/continue-edit-result-props';
-import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
-import { readRawPrompt } from '@/lib/raw-prompt';
-import { getReformatTargetLabel } from '@/lib/reformat-target';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
+import { continueEditResultProps } from '@/lib/edit/continue-edit-result-props';
+import { promptResultPreviewProps } from '@/lib/prompt/result-preview-props';
+import { readRawPrompt } from '@/lib/prompt/raw-prompt';
+import { getReformatTargetLabel } from '@/lib/edit/reformat-target';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { EnrichedToolGenerateResult } from '@/lib/specialized/types';
 
 type PromptResultActions = ReturnType<typeof usePromptResultActions>;

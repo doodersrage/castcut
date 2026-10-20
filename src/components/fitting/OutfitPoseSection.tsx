@@ -6,7 +6,7 @@ import MyPosesStrip from '@/components/pose/MyPosesStrip';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import type { PhotoPose } from '@/lib/day/pose-guide';
-import { poseStarterBody } from '@/lib/pose-starters';
+import { poseStarterBody } from '@/lib/pose/starters';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
@@ -51,7 +51,7 @@ export default function OutfitPoseSection({
     setPhotoStatus('Reading the pose…');
     try {
       // Loaded on demand: pulls in the ComfyUI upload + DWPose detection.
-      const { readPoseFromPhoto } = await import('@/lib/pose-library-import');
+      const { readPoseFromPhoto } = await import('@/lib/pose/library-import');
       const read = await readPoseFromPhoto(file);
       setEditing(false);
       onChange({ ...read, people: read.people.slice(0, 1), source: 'photo' });

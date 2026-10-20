@@ -4,15 +4,15 @@ import { ToolSection, CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 import { useEffect, useState } from 'react';
-import { loadAutoImproveLog, summarizeAutoImproveLog } from '@/lib/auto-improve-log';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadAutoImproveLog, summarizeAutoImproveLog } from '@/lib/edit/auto-improve-log';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   AUTO_IMPROVE_MODES,
   SETTINGS_BROWSER_PRESETS,
   settingsPresetSharedPatch,
   type SettingsBrowserPreset,
-} from '@/lib/settings-presets';
+} from '@/lib/settings/presets';
 
 /** The rating automations that are on, in a few words each. */
 export function activeAutoImproveActions(settings: ComfyUiSettings): string[] {

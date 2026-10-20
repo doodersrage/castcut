@@ -1,14 +1,14 @@
 'use client';
 
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   parseModelCheckpointMap,
   parseModelVaeMap,
   parseModelRefinerMap,
-} from '@/lib/model-checkpoint-map';
-import { parseModelUpscaleMap } from '@/lib/model-upscale-map';
-import { parseModelControlNetMap } from '@/lib/model-controlnet-map';
-import { parseModelLoraMap } from '@/lib/model-lora-map';
+} from '@/lib/model/checkpoint-map';
+import { parseModelUpscaleMap } from '@/lib/model/upscale-map';
+import { parseModelControlNetMap } from '@/lib/model/controlnet-map';
+import { parseModelLoraMap } from '@/lib/model/lora-map';
 import FaceDetailerHealthChip from '@/components/settings/FaceDetailerHealthChip';
 import IdentityPackHealthChips from '@/components/settings/IdentityPackHealthChips';
 import { accentFocusClass, CollapsibleSection } from '@/components/ui/ToolPageShell';

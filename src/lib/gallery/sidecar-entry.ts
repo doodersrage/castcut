@@ -6,7 +6,7 @@ import {
   sidecarRequeueContext,
   sidecarOutputViewUrl,
   type PromptSidecar,
-} from '../prompt-sidecar';
+} from '../prompt/sidecar';
 
 /** Build a pseudo gallery entry from an imported sidecar for upscale/refine actions. */
 export function galleryEntryFromSidecar(sidecar: PromptSidecar): ComfyGalleryEntry | null {

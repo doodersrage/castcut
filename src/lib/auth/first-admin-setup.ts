@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
-import { isNetworkExposedDeployment } from '@/lib/bind-exposure-check';
-import { resolvePromptAuthDir } from '@/lib/prompt-data-paths';
+import { isNetworkExposedDeployment } from '@/lib/checks/bind-exposure-check';
+import { resolvePromptAuthDir } from '@/lib/prompt/data-paths';
 import { forgetGeneratedSecret, generatedSecret } from './generated-secrets';
 
 /**

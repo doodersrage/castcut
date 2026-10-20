@@ -10,8 +10,8 @@ import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film/cut-plan';
-import { useRenderBackend } from '@/lib/render-backend-status';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
+import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import PlateStanceNudge from '@/components/character/PlateStanceNudge';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
@@ -47,7 +47,7 @@ import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day/event';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import SideSheet from '@/components/ui/SideSheet';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
@@ -66,26 +66,26 @@ import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   resolveFilmFailurePlaybook,
   resolveQueueFailureGuideLabel,
-} from '@/lib/queue-failure-playbook';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
+} from '@/lib/queue/failure-playbook';
+import { toMobileStudioHref } from '@/lib/app/mobile-studio';
 import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import {
   hasCompletedFirstFilm,
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
 } from '@/lib/play/metrics';
 import { deriveDayPhase } from '@/lib/play/step-machine';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
 import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 

@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { setLookPlateStance, type CharacterLook } from '@/lib/character-os';
+import { setLookPlateStance, type CharacterLook } from '@/lib/character/os';
 import type { FittingPlate } from '@/lib/fitting/room';
-import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose-detect-client';
+import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose/detect-client';
 import {
   currentPlateStance,
   plateStanceKey,
   readPlateStance,
   type PlateStance,
-} from '@/lib/plate-stance';
+} from '@/lib/plate/stance';
 
 /**
  * The active look plate's stance (seated, lying, feet cut off…). Read once per plate with the

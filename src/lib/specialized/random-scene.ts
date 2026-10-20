@@ -1,18 +1,18 @@
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
 import {
   buildGenerateWardrobeAssignments,
   buildGenerateWardrobeUserDirective,
   mergeGenerateWardrobeIntoPrompt,
-} from '../generate-wardrobe';
-import { buildNoClothingUserDirective, hintsImplyNoClothing } from '../clothing-tags';
-import { getDetailLimits } from '../detail-level';
-import { isMultiPersonInput } from '../distinct-people';
-import { DEFAULT_GENERATION_SETTINGS } from '../generation-settings';
-import { generatePrompt } from '../prompt-generator';
-import { mergeLocationExclusions } from '../location-exclusions';
-import { applyLockedLocation } from '../locked-location';
-import { applyLockedVariationSeed } from '../locked-variation-seed';
-import { resolveModelForPromptGeneration } from '../queue-tool-model';
+} from '../wardrobe/generate-wardrobe';
+import { buildNoClothingUserDirective, hintsImplyNoClothing } from '../wardrobe/clothing-tags';
+import { getDetailLimits } from '../prompt/detail-level';
+import { isMultiPersonInput } from '../checks/distinct-people';
+import { DEFAULT_GENERATION_SETTINGS } from '../queue/generation-settings';
+import { generatePrompt } from '../prompt/generator';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
+import { applyLockedLocation } from '../scene/locked-location';
+import { applyLockedVariationSeed } from '../variation/locked-variation-seed';
+import { resolveModelForPromptGeneration } from '../queue/tool-model';
 import { buildRandomSceneSeed } from './scene-pools';
 import { buildToolResult, runSpecializedPrompt } from './runner';
 import type { RandomSceneOptions, ToolGenerateResult } from './types';

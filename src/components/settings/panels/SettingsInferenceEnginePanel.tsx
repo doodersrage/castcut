@@ -2,7 +2,7 @@
 
 import EngineKeyCheckButton, { useEngineKeyCheck } from '@/components/settings/EngineKeyCheck';
 import { useState } from 'react';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   CLOUD_ENGINE_OPTIONS,
   DEFAULT_FAL_EXTEND_MODEL,
@@ -30,7 +30,7 @@ import {
   type CloudEngineId,
 } from '@/lib/engine/capabilities';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 import DiffusersEngineInstall, {
   useDiffusersEngine,
 } from '@/components/settings/panels/DiffusersEngineInstall';

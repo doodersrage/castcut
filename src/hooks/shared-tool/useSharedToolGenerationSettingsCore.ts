@@ -5,34 +5,34 @@ import {
   normalizeModelSamplerPresetTier,
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
+} from '@/lib/model/sampler-defaults';
 import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
   type ResolutionOrientation,
   type ResolutionSizeTier,
-} from '@/lib/model-resolution-defaults';
-import { normalizeAnatomyGuardMode, type AnatomyGuardMode } from '@/lib/anatomy-guard';
+} from '@/lib/model/resolution-defaults';
+import { normalizeAnatomyGuardMode, type AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
-import { normalizeRenderRealismMode, type RenderRealismMode } from '@/lib/render-realism';
-import { SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
+} from '@/lib/queue/quality-profile';
+import { normalizeRenderRealismMode, type RenderRealismMode } from '@/lib/engine/render-realism';
+import { SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
 import {
   latestGenerateLookRecipe,
   SESSION_RECIPES_UPDATED_EVENT,
   type SessionRecipe,
-} from '@/lib/session-recipes';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { isBrowserStorageReady, whenBrowserStorageReady } from '@/lib/browser-storage';
+} from '@/lib/prompt/session-recipes';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { isBrowserStorageReady, whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   resolveEffectiveSessionLoraStrengthOverrides,
   resolveLoraIdsForModelSelection,
   type SessionActiveLoraIdsByModel,
   type SessionLoraStrengthOverridesByModel,
-} from '@/lib/model-lora-map';
-import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
+} from '@/lib/model/lora-map';
+import type { SessionLoraStrengthOverrides } from '@/lib/lora/stack';
 import type { UseSharedToolGenerationSettingsOptions } from '@/hooks/shared-tool/shared-tool-generation-settings-types';
 
 export function useSharedToolGenerationSettingsCore({

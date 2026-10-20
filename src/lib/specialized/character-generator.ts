@@ -10,39 +10,39 @@ import {
   isDuoHeadcount,
   mergeCharacterPresetsIntoPrompt,
   normalizeCharacterPresetOptions,
-} from '../character-options';
+} from '../character/options';
 import {
   buildCharacterMandatoryBlock,
   buildDuoIdentityUserDirective,
   parseCharacterHints,
   pickCharacterIdentitySeed,
   pickDuoCharacterIdentitySeeds,
-} from '../character-hints';
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
+} from '../character/hints';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
 import {
   buildSinglePersonSystemAddendum,
   buildSinglePersonUserDirective,
   buildSoloSubjectLockDirective,
-} from '../single-person';
+} from '../checks/single-person';
 import {
   buildDistinctPeopleUserDirective,
   ensureDistinctPeoplePrompt,
   parsePeopleConstraint,
   stripStreetClothingFromAthleticPeoplePrompt,
-} from '../distinct-people';
+} from '../checks/distinct-people';
 import {
   buildClothingCoherenceUserDirective,
   buildClothingPickFilters,
   buildNoClothingUserDirective,
   hintsImplyNoClothing,
   subjectGenderToClothingGender,
-} from '../clothing-tags';
+} from '../wardrobe/clothing-tags';
 import {
   buildGenerateWardrobeAssignments,
   buildGenerateWardrobeUserDirective,
   mergeGenerateWardrobeIntoPrompt,
-} from '../generate-wardrobe';
-import { inferAthleticSport } from '../athletic-sport-profiles';
+} from '../wardrobe/generate-wardrobe';
+import { inferAthleticSport } from '../scene/athletic-sport-profiles';
 import {
   formatSportActionInstructions,
   getSportActionInstructions,
@@ -50,13 +50,16 @@ import {
   ensureCyclingHelmetInPrompt,
   ensureAthleticBottomInPrompt,
   promptMentionsBicycleOrRiding,
-} from '../athletic-sport-actions';
-import { DEFAULT_GENERATION_SETTINGS } from '../generation-settings';
-import { hasWardrobeCatalogSelection, shouldPickRandomCharacterOutfit } from '../clothing-catalog';
-import { getDetailLimits } from '../detail-level';
-import { mergeLocationExclusions } from '../location-exclusions';
-import { applyLockedLocation } from '../locked-location';
-import { applyLockedVariationSeed } from '../locked-variation-seed';
+} from '../scene/athletic-sport-actions';
+import { DEFAULT_GENERATION_SETTINGS } from '../queue/generation-settings';
+import {
+  hasWardrobeCatalogSelection,
+  shouldPickRandomCharacterOutfit,
+} from '../wardrobe/clothing-catalog';
+import { getDetailLimits } from '../prompt/detail-level';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
+import { applyLockedLocation } from '../scene/locked-location';
+import { applyLockedVariationSeed } from '../variation/locked-variation-seed';
 import { buildRandomCharacterSeed } from './scene-pools';
 import { runSpecializedPrompt } from './runner';
 import type { CharacterOptions, ToolGenerateResult } from './types';

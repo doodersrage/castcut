@@ -12,33 +12,33 @@ import {
   loadComfyGallery,
   loadVisibleComfyGallery,
 } from '@/lib/gallery/comfyui-gallery';
-import { loadScheduledBatchConfig } from '@/lib/scheduled-batch';
-import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt-projects';
+import { loadScheduledBatchConfig } from '@/lib/batch/scheduled-batch';
+import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt/projects';
 import {
   loadLastToolDraft,
   clearLastToolDraft,
   type ToolDraftSummary,
-} from '@/lib/tool-draft-memory';
-import { loadLastToolRoute, clearLastToolRoute } from '@/lib/last-tool-route';
-import { flattenAppNavLinks } from '@/lib/app-nav-catalog';
-import { buildGalleryFocusUrl, buildUseAsHintsUrlFromGallery } from '@/lib/use-as-hints-url';
+} from '@/lib/app/tool-draft-memory';
+import { loadLastToolRoute, clearLastToolRoute } from '@/lib/app/last-tool-route';
+import { flattenAppNavLinks } from '@/lib/app/nav-catalog';
+import { buildGalleryFocusUrl, buildUseAsHintsUrlFromGallery } from '@/lib/prompt/use-as-hints-url';
 import {
   startPromptEditorFromGalleryEntry,
   startRefineFromGalleryEntry,
   startRoleplayFromGalleryEntry,
-} from '@/lib/improve-output';
+} from '@/lib/edit/improve-output';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { useHubPageDescription, useToolSectionDescription } from '@/hooks/useToolPageDescription';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { saveWorkspaceMode } from '@/lib/workspace-mode';
+import { saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import AppSlot from '@/components/AppSlot';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { appFlag } from '@/lib/app-flags';
+import { appFlag } from '@/lib/app/flags';
 import {
   StatCard,
   ToolActionRow,
@@ -46,7 +46,7 @@ import {
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
-import { APP_HAS_PLAY, appHasRoute } from '@/lib/app-profile';
+import { APP_HAS_PLAY, appHasRoute } from '@/lib/app/profile';
 import AppRouteLink from '@/components/ui/AppRouteLink';
 
 const QueueOrchestrationPanel = dynamic(() => import('@/components/QueueOrchestrationPanel'), {

@@ -12,7 +12,7 @@ import {
   saveCastSpeech,
   type CastSpeech,
 } from '@/lib/cast/speech';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 
 /**
  * Cast → How they talk (cast-speech.ts): sounds-like spellings for words the clip voice gets

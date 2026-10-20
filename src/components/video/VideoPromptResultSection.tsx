@@ -2,8 +2,8 @@
 
 import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
-import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
-import { continueEditResultProps } from '@/lib/continue-edit-result-props';
+import { promptResultPreviewProps } from '@/lib/prompt/result-preview-props';
+import { continueEditResultProps } from '@/lib/edit/continue-edit-result-props';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;

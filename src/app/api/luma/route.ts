@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { queueLumaImage } from '@/lib/luma-client';
+import { queueLumaImage } from '@/lib/cloud/luma-client';
 import {
   DEFAULT_LUMA_I2V_MODEL,
   DEFAULT_LUMA_T2V_MODEL,
   cloudSettingsHref,
 } from '@/lib/engine/capabilities';
-import { inferVideoClipMode } from '@/lib/video-clip-mode';
+import { inferVideoClipMode } from '@/lib/video/clip-mode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

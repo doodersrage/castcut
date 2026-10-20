@@ -9,9 +9,9 @@ import { useVideoPromptQueue } from '@/hooks/useVideoPromptQueue';
 import { useVideoPromptFieldSetters } from '@/hooks/useVideoPromptFieldSetters';
 import { useVideoWorkflowScaffold } from '@/hooks/useVideoWorkflowScaffold';
 import { useVideoPromptModelSync } from '@/hooks/useVideoPromptModelSync';
-import { DEFAULT_VIDEO_TOOL_CACHE } from '@/lib/settings-cache';
-import { isVideoModel } from '@/lib/queue-tool-model';
-import { inferVideoClipMode, type VideoClipMode } from '@/lib/video-clip-mode';
+import { DEFAULT_VIDEO_TOOL_CACHE } from '@/lib/settings/cache';
+import { isVideoModel } from '@/lib/queue/tool-model';
+import { inferVideoClipMode, type VideoClipMode } from '@/lib/video/clip-mode';
 
 export function useVideoPromptOrchestration() {
   const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(

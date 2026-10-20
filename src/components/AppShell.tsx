@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import AppNav from '@/components/AppNav';
 import { useHydrated } from '@/hooks/useHydrated';
 import MobileStudioOfferBanner from '@/components/MobileStudioOfferBanner';
-import { isMobileStudioPath } from '@/lib/mobile-studio';
+import { isMobileStudioPath } from '@/lib/app/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import type { WorkspaceMode } from '@/lib/workspace-mode';
+import type { WorkspaceMode } from '@/lib/app/workspace-mode';
 import InventorySyncNotice from '@/components/InventorySyncNotice';
 // Nearly every route renders ToolLayout. Loaded here it ships once in the shared chunk; when the
 // last shell import of it went away (sidebar theme control), Turbopack copied it into ~22 route
@@ -25,15 +25,15 @@ import '@/components/ui/UiIcon';
 import '@/components/ui/ViewState';
 import '@/hooks/useCachedSettings';
 import '@/hooks/usePromptHistory';
-import '@/lib/diffusers-defaults';
-import '@/lib/diffusers-workflow-support';
-import '@/lib/experiment-groups';
-import '@/lib/generate-handoff';
-import '@/lib/plugin-queue-hooks';
-import '@/lib/prompt-lineage-session';
-import '@/lib/prompt-versioning';
-import '@/lib/session-recipes';
-import '@/lib/video-last-frame';
+import '@/lib/engine/diffusers-defaults';
+import '@/lib/engine/diffusers-workflow-support';
+import '@/lib/experiment/groups';
+import '@/lib/history/generate-handoff';
+import '@/lib/plugin/queue-hooks';
+import '@/lib/prompt/lineage-session';
+import '@/lib/prompt/versioning';
+import '@/lib/prompt/session-recipes';
+import '@/lib/video/last-frame';
 // Components most tool pages render (queue bar, job status, toasts, setup banner…): 12–38 route
 // chunks each on CI's build. Shared here they cost the shell ~7 KB gzip and save ~90 KB overall.
 // (Measured: bare imports of a few plain queue libs did not move them — they can be dropped as

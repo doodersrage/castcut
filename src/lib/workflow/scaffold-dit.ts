@@ -13,8 +13,8 @@ import {
   DEFAULT_CHECKPOINT_TOKEN,
   DEFAULT_UNET_TOKEN,
   suggestedVaeFilenameForModel,
-} from '../model-checkpoint-map';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+} from '../model/checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 export function isAuraFlowModel(model?: ComfyImageModel | string): boolean {
   return String(model ?? '').trim() === 'auraflow' || /auraflow/i.test(String(model ?? ''));

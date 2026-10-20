@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { applyDayNarration } from './narration';
 import type { DaySlot, DaySlotStill } from './planner';
-import type { FilmPlaylistShot } from '../media-kind';
+import type { FilmPlaylistShot } from '../media/kind';
 
 const slot = (id: string, narration?: string) => ({ id, label: id, narration }) as unknown as DaySlot;
 const shot = (key: string): FilmPlaylistShot & { key: string } => ({

@@ -18,8 +18,8 @@ import {
   DEFAULT_RESOLUTION_ORIENTATION,
   DEFAULT_RESOLUTION_SIZE_TIER,
   ensureLightningNativeResolutionParams,
-} from '../model-resolution-defaults';
-import { isLightningModelId, shouldNeutralizeStyleLorasAtQueue } from '../model-sampler-defaults';
+} from '../model/resolution-defaults';
+import { isLightningModelId, shouldNeutralizeStyleLorasAtQueue } from '../model/sampler-defaults';
 import { isLatentSizeNode, normalizeEmptyLatentForModel } from './direct-patch';
 import { isAppOutputUpscaleNode } from './enrich-markers';
 import {

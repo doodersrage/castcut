@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import type { ComfyInputFolderReport } from '@/lib/comfyui/comfy-input-cleanup';
-import { formatBytes } from '@/lib/model-files';
+import { formatBytes } from '@/lib/model/files';
 
 export type SettingsComfyInputFolderPanelProps = {
   comfyUrl?: string;

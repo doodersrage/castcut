@@ -2,15 +2,15 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import type { GalleryCardActions } from '@/components/gallery/GalleryCardItem';
-import { startAnatomyRepairFromGalleryEntry } from '@/lib/improve-output';
-import { toastHeldMax, toastQueueOutcome } from '@/lib/app-toast';
+import { startAnatomyRepairFromGalleryEntry } from '@/lib/edit/improve-output';
+import { toastHeldMax, toastQueueOutcome } from '@/lib/app/toast';
 import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery/handoff';
 import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import {
   galleryEntryPrimaryMediaKind,
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import type { UseGalleryPanelActionsInput } from '@/hooks/gallery/gallery-panel-actions-types';
 
 const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
@@ -85,7 +85,7 @@ export function useGalleryCardActions({
         const willFavorite = entry ? !entry.favorite : false;
         toggleFavorite(id);
         if (entry && willFavorite) {
-          void import('@/lib/auto-improve-loop')
+          void import('@/lib/edit/auto-improve-loop')
             .then(({ runAutoImproveOnFavorite }) => runAutoImproveOnFavorite(entry, true))
             .then(message => {
               if (message) {
@@ -97,7 +97,7 @@ export function useGalleryCardActions({
       requeue: (
         id: string,
         newSeed: boolean,
-        qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+        qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
         options?: { exactGraph?: boolean; stickyHost?: boolean }
       ) => {
         const entry = entriesRef.current.find(item => item.id === id);
@@ -285,7 +285,7 @@ export function useGalleryCardActions({
         void Promise.all([
           loadGalleryRequeue(),
           import('@/lib/comfyui/settings'),
-          import('@/lib/skin-refine'),
+          import('@/lib/face/skin-refine'),
         ])
           .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {
             const settings = loadComfyUiSettings();

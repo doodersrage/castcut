@@ -6,7 +6,7 @@
  */
 
 import type { ComfyNodeDef, ComfyNodeDefs } from '@/lib/comfyui/comfy-editor-graph';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 /** This app's folder in ComfyUI's Workflows (Castcut, or PromptStudio for the classic app). */
 export const APP_EDITOR_DIR = `workflows/${PRODUCT_OUTPUT_PREFIX}`;

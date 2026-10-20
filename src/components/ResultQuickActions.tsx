@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
-import { loadPromptRecipes, type PromptRecipe } from '@/lib/prompt-recipes';
-import { toastQueueOutcome } from '@/lib/app-toast';
+import { loadPromptRecipes, type PromptRecipe } from '@/lib/prompt/recipes';
+import { toastQueueOutcome } from '@/lib/app/toast';
 import {
   queueSameSeedShootout,
   queueFamilySameSeedShootout,
   DEFAULT_SHOOTOUT_MODELS,
-} from '@/lib/model-shootout';
-import { modelsInSameFamily } from '@/lib/model-workflow-map';
-import { toastHeldMax } from '@/lib/app-toast';
+} from '@/lib/experiment/model-shootout';
+import { modelsInSameFamily } from '@/lib/model/workflow-map';
+import { toastHeldMax } from '@/lib/app/toast';
 
 type ResultQuickActionsProps = {
   prompt: string;

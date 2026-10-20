@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { queueFalImage } from '@/lib/fal-client';
+import { queueFalImage } from '@/lib/cloud/fal-client';
 import {
   DEFAULT_FAL_EXTEND_MODEL,
   DEFAULT_FAL_I2V_MODEL,
@@ -8,7 +8,7 @@ import {
   DEFAULT_FAL_T2V_MODEL,
   DEFAULT_FAL_TXT2IMG_MODEL,
 } from '@/lib/engine/capabilities';
-import { inferVideoClipMode } from '@/lib/video-clip-mode';
+import { inferVideoClipMode } from '@/lib/video/clip-mode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { formatBytes } from '@/lib/model-files';
+import { formatBytes } from '@/lib/model/files';
 import {
   clearThumbnailCache,
   removeGalleryMediaCleanup,

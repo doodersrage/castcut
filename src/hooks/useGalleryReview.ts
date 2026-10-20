@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { recordAvoidedTokensFromGalleryEntry } from '@/lib/avoided-tokens';
-import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
-import { learnFromLowRatedPrompt } from '@/lib/negative-learner';
-import { markOnboardingGalleryReview } from '@/lib/onboarding-hooks';
-import { pushNotification } from '@/lib/notification-center';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { recordAvoidedTokensFromGalleryEntry } from '@/lib/prompt/avoided-tokens';
+import { recordCatalogBiasFromPrompt } from '@/lib/search/catalog-rating-bias';
+import { learnFromLowRatedPrompt } from '@/lib/prompt/negative-learner';
+import { markOnboardingGalleryReview } from '@/lib/app/onboarding-hooks';
+import { pushNotification } from '@/lib/app/notification-center';
 import { scrollGalleryEntryIntoView } from '@/lib/gallery/scroll';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
@@ -66,7 +66,7 @@ export function useGalleryReview({
       setReviewRating(entry.id, rating);
       recordCatalogBiasFromPrompt(entry.prompt, rating);
       if (rating >= 4) {
-        void import('@/lib/sampler-memory').then(({ rememberSamplerFromGalleryEntry }) => {
+        void import('@/lib/history/sampler-memory').then(({ rememberSamplerFromGalleryEntry }) => {
           rememberSamplerFromGalleryEntry(entry);
         });
       }
@@ -89,7 +89,7 @@ export function useGalleryReview({
         }
       }
       markOnboardingGalleryReview();
-      void import('@/lib/auto-improve-loop')
+      void import('@/lib/edit/auto-improve-loop')
         .then(({ runAutoImproveOnRating }) => runAutoImproveOnRating(entry, rating))
         .then(message => {
           if (message) {

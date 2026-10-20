@@ -13,7 +13,7 @@ import {
   GALLERY_SLIDESHOW_TRANSITION_OPTIONS,
   resolveGallerySlideshowTransitionMs,
 } from '@/lib/gallery/comfyui-gallery';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   isStillLightboxKind,
   shouldUseHtmlVideoElement,
@@ -25,7 +25,7 @@ import {
   saveGalleryLightboxUiPreferences,
   type GalleryLightboxFit,
 } from '@/lib/gallery/lightbox-prefs';
-import { computeLightboxHistogram, type LightboxHistogram } from '@/lib/lightbox-histogram';
+import { computeLightboxHistogram, type LightboxHistogram } from '@/lib/media/lightbox-histogram';
 import { resolveSlideDirection } from '@/components/ui/image-lightbox/imageLightboxTransitions';
 import type {
   ImageLightboxSlideshowOptions,

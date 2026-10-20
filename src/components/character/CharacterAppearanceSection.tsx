@@ -33,7 +33,7 @@ import {
   isRolledAppearanceDescriptor,
   normalizeCharacterTraits,
   type CharacterTraits,
-} from '@/lib/character-appearance';
+} from '@/lib/character/appearance';
 import { requestCastPlateTraitEdit } from '@/lib/cast/plate-trait-edit';
 import {
   activeLook,
@@ -43,7 +43,7 @@ import {
   saveCharacterTraits,
   setCastPlateTraits,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const FIELDS: Array<{

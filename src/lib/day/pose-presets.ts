@@ -11,14 +11,14 @@ import {
   type PoseGuideBase,
   type SocialLayout,
 } from '@/lib/day/pose-guide';
-import type { PoseLibraryEntry } from '@/lib/pose-library';
-import type { PoseReference } from '@/lib/pose-references';
-import { poseLayoutCue } from '@/lib/pose-coaching';
+import type { PoseLibraryEntry } from '@/lib/pose/library';
+import type { PoseReference } from '@/lib/pose/references';
+import { poseLayoutCue } from '@/lib/pose/coaching';
 import {
   POSE_PICKER_GROUPS,
   poseLayoutLabel,
   type PosePickerGroup,
-} from '@/lib/pose-layout-labels';
+} from '@/lib/pose/layout-labels';
 
 const BODY_IDS: ReadonlySet<string> = new Set(SCENE_POSE_BODY_IDS);
 

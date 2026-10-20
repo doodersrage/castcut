@@ -9,7 +9,7 @@ import {
   deleteModelFile,
   listModelFilesWithUsage,
   ModelFileDeleteError,
-} from '@/lib/model-files-server';
+} from '@/lib/model/files-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

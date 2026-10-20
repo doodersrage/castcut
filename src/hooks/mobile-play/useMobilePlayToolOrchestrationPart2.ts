@@ -9,7 +9,7 @@ import {
 } from '@/lib/story/roleplay';
 import { useRoleplaySceneFlow } from '@/hooks/useRoleplaySceneFlow';
 import { lastRoleplayMotionSource } from '@/lib/story/roleplay-film';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import { buildStoryFixAreaTarget } from '@/lib/story/roleplay-fix-area';
 import type { MobilePlayToolOrchestrationCore } from '@/hooks/mobile-play/useMobilePlayToolOrchestrationCore';
 import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';

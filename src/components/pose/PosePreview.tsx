@@ -17,13 +17,13 @@ import {
   type PoseCameraChoice,
   type PoseGuideBuildOptions,
 } from '@/lib/day/pose-guide';
-import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
-import { fitPhotoPoseToHeadcount } from '@/lib/photo-pose-fit';
+import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose/layout-labels';
+import { fitPhotoPoseToHeadcount } from '@/lib/pose/photo-pose-fit';
 import {
   POSE_REFERENCE_SOURCE_WORDS,
   poseReferenceCreditText,
   poseReferencesFor,
-} from '@/lib/pose-references';
+} from '@/lib/pose/references';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
@@ -188,7 +188,7 @@ export default function PosePreview({
     setPhotoStatus('Reading the pose…');
     try {
       // Loaded on demand: pulls in ComfyUI upload + DWPose.
-      const { readPoseFromPhoto } = await import('@/lib/pose-library-import');
+      const { readPoseFromPhoto } = await import('@/lib/pose/library-import');
       const { pose, note } = fitPhotoPoseToHeadcount(await readPoseFromPhoto(file), photoPeople);
       onChange({ posePhoto: pose, poseLayout: undefined, poseVariant: undefined });
       if (thumbUrlRef.current) URL.revokeObjectURL(thumbUrlRef.current);
@@ -205,7 +205,7 @@ export default function PosePreview({
 
   const savePhoto = async () => {
     if (!picks.posePhoto) return;
-    const { savePhotoPoseToLibrary } = await import('@/lib/pose-library-import');
+    const { savePhotoPoseToLibrary } = await import('@/lib/pose/library-import');
     const { key } = savePhotoPoseToLibrary(picks.posePhoto, drawnId);
     setPhotoError(false);
     setPhotoStatus(`Saved to the pose library as ${poseLayoutLabel(drawnId)} (${key}).`);

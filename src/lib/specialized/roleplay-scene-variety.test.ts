@@ -8,7 +8,7 @@ const chatCompletion = mock.fn(async (input: { messages: Array<{ content: string
   return replies.shift() ?? '';
 });
 // isLlmEnabled: a still prompt's finishing pass asks it (no server LLM: the pass is skipped).
-mock.module('../llm-client', { namedExports: { chatCompletion, isLlmEnabled: () => false } });
+mock.module('../llm/client', { namedExports: { chatCompletion, isLlmEnabled: () => false } });
 
 const PLACES = [
   ['Rooftop at dusk', 'They slip onto the rooftop as the city lights come on'],

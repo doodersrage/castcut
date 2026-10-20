@@ -1,4 +1,4 @@
-import { chatCompletion } from '../llm-client';
+import { chatCompletion } from '../llm/client';
 import {
   buildDayPremiseMessages,
   DAY_PREMISE_MAX_LENGTH,
@@ -10,7 +10,7 @@ import {
   resolveRequestLlmEndpoint,
   resolveRequestLlmModel,
   type LlmRequestOptions,
-} from '../llm-request-options';
+} from '../llm/request-options';
 
 /** One LLM call: the premise's beats for these slots. Throws when the LLM is off or says nothing usable. */
 export async function writeDayPremiseBeats(options: {

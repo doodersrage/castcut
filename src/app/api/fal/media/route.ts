@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { uploadFalCdnFile } from '@/lib/fal-client';
+import { uploadFalCdnFile } from '@/lib/cloud/fal-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;

@@ -7,7 +7,7 @@ const chatCompletion = mock.fn(async (input: { messages: Array<{ content: string
   prompts.push(input.messages.map(message => message.content).join('\n'));
   return replies.shift() ?? '';
 });
-mock.module('../llm-client', { namedExports: { chatCompletion, isLlmEnabled: () => false } });
+mock.module('../llm/client', { namedExports: { chatCompletion, isLlmEnabled: () => false } });
 
 const BIO = {
   name: 'Gloovi',

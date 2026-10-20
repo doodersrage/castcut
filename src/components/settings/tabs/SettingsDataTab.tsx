@@ -7,9 +7,9 @@ import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
 import PicturesBackupPanel from '@/components/settings/PicturesBackupPanel';
 import GalleryMediaCleanupPanel from '@/components/settings/GalleryMediaCleanupPanel';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
-import { clearAllLocalPromptData, localDataKeys } from '@/lib/local-data-reset';
+import { clearAllLocalPromptData, localDataKeys } from '@/lib/storage/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui/settings';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { TextArea, FieldLabel, TextInput } from '@/components/ui/Field';
@@ -24,10 +24,10 @@ import {
   loadLocalObservability,
   summarizeLocalReliability,
   summarizePlayFunnel,
-} from '@/lib/local-observability';
-import { resetFirstQueueSetupModal } from '@/lib/first-queue-setup';
+} from '@/lib/server/local-observability';
+import { resetFirstQueueSetupModal } from '@/lib/app/first-queue-setup';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 function FailureSparkline({ series }: { series: number[] }) {
   const max = Math.max(1, ...series);

@@ -1,10 +1,10 @@
-import { getCharacter, type CharacterRecord } from '../character-os';
+import { getCharacter, type CharacterRecord } from '../character/os';
 import { storyPeople, storyPeopleLine } from './cast-lines';
-import { avoidedTokensRequestBody } from '../avoided-tokens';
-import { getCachedClothingLabel } from '../clothing-catalog-client';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '../isolate-subject';
-import { sharedLlmRequestBody } from '../llm-request-options';
-import { resolveAdultNudePlateQueueModel } from '../queue-tool-model';
+import { avoidedTokensRequestBody } from '../prompt/avoided-tokens';
+import { getCachedClothingLabel } from '../wardrobe/clothing-catalog-client';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '../edit/isolate-subject';
+import { sharedLlmRequestBody } from '../llm/request-options';
+import { resolveAdultNudePlateQueueModel } from '../queue/tool-model';
 import {
   normalizeAvoidedRoleplayNames,
   resolveRoleplayLockedCharacterName,
@@ -14,9 +14,9 @@ import {
   type RoleplayStoryBeat,
   type RoleplayTone,
 } from './roleplay';
-import type { SharedToolSettings } from '../settings-cache';
+import type { SharedToolSettings } from '../settings/cache';
 import type { EnrichedToolGenerateResult } from '../specialized/types';
-import { buildFittingGarmentReferenceExtras } from '../wardrobe-garment-thumbs';
+import { buildFittingGarmentReferenceExtras } from '../wardrobe/garment-thumbs';
 
 export type RoleplayApiPayload = EnrichedToolGenerateResult & {
   error?: string;
@@ -226,7 +226,7 @@ export function buildRoleplayQueueStillOptions(input: {
   poseGuideFilename?: string | null;
   poseGuideUrl?: string | null;
   /** Style the guide was drawn in — only OpenPose guides may go through ControlNet. */
-  poseGuideStyle?: import('../pose-guide-prompt').PoseGuideStylePreference | null;
+  poseGuideStyle?: import('../pose/guide-prompt').PoseGuideStylePreference | null;
   /** Drop Image 2 clothing packshot (intimate nude/sex beats). */
   omitGarment?: boolean;
   /** Active Comfy model — gates ControlNet attach when a CN weight is mapped. */

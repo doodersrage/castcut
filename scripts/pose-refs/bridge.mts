@@ -35,18 +35,18 @@ import { resolve } from 'node:path';
 import { resolveSceneGuidePlan, type SocialLayout } from '@/lib/day/pose-guide';
 import { dayPoseWords } from '@/lib/day/pose-presets';
 import { BUILT_IN_POSE_PACKS } from '@/lib/day/pose-packs';
-import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose-layout-labels';
-import { describePoseFigure } from '@/lib/pose-describe';
-import { scoreLimbAngles } from '@/lib/pose-limb-score';
+import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose/layout-labels';
+import { describePoseFigure } from '@/lib/pose/describe';
+import { scoreLimbAngles } from '@/lib/pose/limb-score';
 import {
   cocoKeypointsToBody,
   projectSkeletons,
   type CameraView,
   type Skeleton3D,
-} from '@/lib/pose-reference-sources';
-import { duoRelation, mergePersonReads, type PersonRead } from '@/lib/pose-reference-duo';
-import { countProminentPeople } from '@/lib/pose-score';
-import type { NormalizedBody } from '@/lib/pose-library';
+} from '@/lib/pose/reference-sources';
+import { duoRelation, mergePersonReads, type PersonRead } from '@/lib/pose/reference-duo';
+import { countProminentPeople } from '@/lib/pose/score';
+import type { NormalizedBody } from '@/lib/pose/library';
 
 type PostureRead = { posture: string; group: string; confident: boolean };
 type Classifier = {

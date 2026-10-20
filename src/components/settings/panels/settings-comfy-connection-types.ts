@@ -1,8 +1,8 @@
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
 import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
-import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
+import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 
 export type SettingsComfyConnectionPanelProps = {

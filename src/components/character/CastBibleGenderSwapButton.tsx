@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
-import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
+import { probeImageUrlDimensions } from '@/lib/storage/browser-image-dimensions';
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
 import {
   buildCastBibleGenderSwapNegative,
   buildCastBibleGenderSwapPrompt,
-} from '@/lib/character-bible-picture';
-import { saveCharacterBiblePictureSwap, type CharacterRecord } from '@/lib/character-os';
+} from '@/lib/character/bible-picture';
+import { saveCharacterBiblePictureSwap, type CharacterRecord } from '@/lib/character/os';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /**
  * "Gender swap" under the bible picture: an Edit 2511 edit of the rendered picture (scene, pose,

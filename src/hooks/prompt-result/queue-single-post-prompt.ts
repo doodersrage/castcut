@@ -1,25 +1,25 @@
 import type { MutableRefObject } from 'react';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
-import { rememberedSamplerOverrides } from '@/lib/sampler-memory';
+import { rememberedSamplerOverrides } from '@/lib/history/sampler-memory';
 import {
   resolveSharedEffectiveSessionLoraIds,
   resolveSharedEffectiveSessionLoraStrengthOverrides,
 } from '@/lib/comfyui/settings';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { engineDisplayName, isCloudEngine, parseEngineId } from '@/lib/engine/capabilities';
 import {
   loadEngineSettings,
   resolveCloudEngineHost,
   resolveCloudQueueExtras,
   resolveCloudQueueModel,
-} from '@/lib/engine-settings';
-import { workshopCropToApi } from '@/lib/diffusers-defaults';
-import { formatDiffusersQueueRouting } from '@/lib/diffusers-workflow-support';
-import { toastQueueOutcome } from '@/lib/app-toast';
-import { joinQueueStatusNotes } from '@/lib/queue-status-notes';
-import { dispatchWebhook } from '@/lib/webhook-settings';
-import { markOnboardingFirstQueue } from '@/lib/onboarding-hooks';
+} from '@/lib/engine/settings';
+import { workshopCropToApi } from '@/lib/engine/diffusers-defaults';
+import { formatDiffusersQueueRouting } from '@/lib/engine/diffusers-workflow-support';
+import { toastQueueOutcome } from '@/lib/app/toast';
+import { joinQueueStatusNotes } from '@/lib/queue/status-notes';
+import { dispatchWebhook } from '@/lib/settings/webhook-settings';
+import { markOnboardingFirstQueue } from '@/lib/app/onboarding-hooks';
 import type {
   ComfyUiTrackerApi,
   SendComfyUiOptions,
@@ -40,10 +40,10 @@ export async function postQueueSinglePrompt(input: {
   effectiveTool: string;
   queueParams: WorkflowParamValues;
   runtime: QueueRuntime | undefined;
-  effectiveQualityProfile: import('@/lib/queue-quality-profile').QueueQualityProfile;
+  effectiveQualityProfile: import('@/lib/queue/quality-profile').QueueQualityProfile;
   inputImageFilename: string | undefined;
   inputImageFilenames: string[];
-  clipMode: import('@/lib/video-clip-mode').VideoClipMode | undefined;
+  clipMode: import('@/lib/video/clip-mode').VideoClipMode | undefined;
   parentVideoUrl: string | undefined;
   previewComfyUrlHint: string | undefined;
   resolvedHistoryId: string | undefined;
@@ -77,7 +77,7 @@ export async function postQueueSinglePrompt(input: {
   const { setComfyUiStatus, setComfyUiJob, trackComfyUiJob } = tracker;
   const engineSettings = loadEngineSettings();
   const cloudEngine = isCloudEngine(engineAdapter.id);
-  const { cloudNativeExtendEngines } = await import('@/lib/video-clip-mode');
+  const { cloudNativeExtendEngines } = await import('@/lib/video/clip-mode');
   const nativeExtend = clipMode === 'extend' && cloudNativeExtendEngines(engineAdapter.id);
   const usesInitImage = Boolean(inputImageFilename) && clipMode !== 't2v' && !nativeExtend;
 

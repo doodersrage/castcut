@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   DEFAULT_QUEUE_PARAMS,
   loadQueueParamsSettings,
   saveQueueParamsSettings,
   type QueueParamsSettings,
-} from '@/lib/queue-params-settings';
+} from '@/lib/queue/params-settings';
 import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 

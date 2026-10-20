@@ -7,7 +7,7 @@ import type {
   GalleryPageSize,
 } from './comfyui-gallery';
 import type { GalleryDensity } from './density';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 export type GallerySavedView = {
   id: string;

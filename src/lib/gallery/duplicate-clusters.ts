@@ -1,5 +1,5 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { findDuplicatePrompts } from '../prompt-duplicate-detection';
+import { findDuplicatePrompts } from '../prompt/duplicate-detection';
 
 export type GalleryDuplicateCluster = {
   ids: string[];

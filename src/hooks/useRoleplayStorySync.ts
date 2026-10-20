@@ -17,7 +17,7 @@ import {
   peekContinueStitch,
   stitchContinueClips,
   takeContinueStitch,
-} from '@/lib/video-continue-stitch';
+} from '@/lib/video/continue-stitch';
 
 /** Keep Roleplay story beats in sync with gallery stills for a shared session. */
 export function useRoleplayStorySync(

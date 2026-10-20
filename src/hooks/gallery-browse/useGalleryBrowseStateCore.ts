@@ -19,10 +19,10 @@ import {
   readInitialGalleryPage,
   saveGallerySessionState,
 } from '@/lib/gallery/session-state';
-import { EXPERIMENT_WINNERS_UPDATED_EVENT, loadExperimentWinners } from '@/lib/experiment-winners';
+import { EXPERIMENT_WINNERS_UPDATED_EVENT, loadExperimentWinners } from '@/lib/experiment/winners';
 import { loadGalleryDensity, saveGalleryDensity, type GalleryDensity } from '@/lib/gallery/density';
-import { loadActiveProjectId } from '@/lib/prompt-projects';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadActiveProjectId } from '@/lib/prompt/projects';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   loadGalleryViewPreferences,
   saveGalleryViewPreferences,

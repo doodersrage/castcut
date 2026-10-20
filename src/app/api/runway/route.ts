@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { queueRunwayImage } from '@/lib/runway-client';
+import { queueRunwayImage } from '@/lib/cloud/runway-client';
 import {
   DEFAULT_RUNWAY_EXTEND_MODEL,
   DEFAULT_RUNWAY_I2V_MODEL,
@@ -9,7 +9,7 @@ import {
   DEFAULT_RUNWAY_TXT2IMG_MODEL,
   cloudSettingsHref,
 } from '@/lib/engine/capabilities';
-import { inferVideoClipMode } from '@/lib/video-clip-mode';
+import { inferVideoClipMode } from '@/lib/video/clip-mode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

@@ -4,7 +4,7 @@
  * one clip, fed back through LTXVReferenceAudio + the ID-LoRA, pulls later clips toward it.
  */
 
-import { getCharacter, upsertCharacter, type CastVoice } from '../character-os';
+import { getCharacter, upsertCharacter, type CastVoice } from '../character/os';
 
 /** ID-LoRA was trained on ~5 s references; longer or shorter ones transfer worse. */
 export const CAST_VOICE_SAMPLE_SEC = 5;

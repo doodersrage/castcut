@@ -11,12 +11,12 @@ import type {
   GallerySlideshowIntervalMs,
   GallerySlideshowTransition,
 } from '@/lib/gallery/comfyui-gallery';
-import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
+import type { PromptProject } from '@/lib/prompt/projects';
 import type { GalleryStats } from '@/lib/gallery/stats';
 import type { GalleryDuplicateCluster } from '@/lib/gallery/duplicate-clusters';
-import type { ExperimentWinnerRecord } from '@/lib/experiment-winners';
-import type { ExperimentGroup } from '@/lib/experiment-groups';
+import type { ExperimentWinnerRecord } from '@/lib/experiment/winners';
+import type { ExperimentGroup } from '@/lib/experiment/groups';
 import { buildGalleryLineageGroups } from '@/lib/gallery/lineage-groups';
 import type {
   ImageLightboxSlideChrome,

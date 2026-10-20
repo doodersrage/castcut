@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { resolvePromptDataDir } from '@/lib/prompt-data-paths';
+import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { importLegacyJsonFiles } from './json-import';
 
 const SCHEMA_VERSION = '1';

@@ -8,9 +8,9 @@ import {
   TURBO_EDIT_STRENGTH_OPTIONS,
   usesTurboEditStrengthUi,
   type TurboEditStrength,
-} from '@/lib/turbo-edit-strength';
-import { isBooguEditTurboModel, isZImageTurboModel } from '@/lib/model-denoise-defaults';
-import { isKleinDistilledModel } from '@/lib/model-sampler-defaults';
+} from '@/lib/engine/turbo-edit-strength';
+import { isBooguEditTurboModel, isZImageTurboModel } from '@/lib/model/denoise-defaults';
+import { isKleinDistilledModel } from '@/lib/model/sampler-defaults';
 
 type TurboEditStrengthControlsProps = {
   model?: string | null;

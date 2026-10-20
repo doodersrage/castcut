@@ -8,14 +8,14 @@
  */
 
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { DayPartnerNoun } from '@/lib/day/partner';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { cropPortraitFaceRegionFromBlob } from '@/lib/portrait-face-crop';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
+import { cropPortraitFaceRegionFromBlob } from '@/lib/face/portrait-face-crop';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { pickCompanionLook } from '@/lib/day/clothed-lead';
-import { neutralizeYouthWords } from '@/lib/adult-age-safeguard';
+import { neutralizeYouthWords } from '@/lib/adult/adult-age-safeguard';
 
 export type DayPartnerStandIn = {
   noun: 'man' | 'woman';

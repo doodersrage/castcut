@@ -10,7 +10,7 @@ import {
   startPromptEditorFromResult,
   startRefineFromResult,
   startVideoFromResult,
-} from '@/lib/improve-output';
+} from '@/lib/edit/improve-output';
 import type { PromptResultActionsConfig } from '@/hooks/prompt-result/types';
 
 export function usePromptResultHandoffs(config: PromptResultActionsConfig) {

@@ -5,19 +5,19 @@ import { useCallback, useState } from 'react';
 import {
   appendUserToolQualityRecipe,
   buildToolQualityRecipeFromGalleryEntry,
-} from '@/lib/tool-quality-recipes';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+} from '@/lib/app/tool-quality-recipes';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { resolveSharedEffectiveSessionLoraStrengthOverrides } from '@/lib/comfyui/settings';
-import { recordAvoidedTokensFromGalleryEntry } from '@/lib/avoided-tokens';
-import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
-import { setLineageParent } from '@/lib/prompt-lineage-session';
+import { recordAvoidedTokensFromGalleryEntry } from '@/lib/prompt/avoided-tokens';
+import { recordCatalogBiasFromPrompt } from '@/lib/search/catalog-rating-bias';
+import { setLineageParent } from '@/lib/prompt/lineage-session';
 import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery/mutations';
-import { toastHeldMax } from '@/lib/app-toast';
-import { startImproveFromGalleryEntry } from '@/lib/improve-output';
+import { toastHeldMax } from '@/lib/app/toast';
+import { startImproveFromGalleryEntry } from '@/lib/edit/improve-output';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
-import { experimentGroupIdForPrompt } from '@/lib/experiment-groups';
-import { markExperimentWinner } from '@/lib/experiment-winners';
+import { experimentGroupIdForPrompt } from '@/lib/experiment/groups';
+import { markExperimentWinner } from '@/lib/experiment/winners';
 import { applyGalleryStackToSession } from '@/lib/gallery/stack-restore';
 import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
 
@@ -88,7 +88,7 @@ export function useGalleryCompareHandlers({
         }${stack.applied ? ` · stack on ${galleryToolLabel(entry.tool)}` : ''}`
       );
       router.push(galleryToolHrefForEntry(entry));
-      void import('@/lib/auto-improve-loop')
+      void import('@/lib/edit/auto-improve-loop')
         .then(({ runAutoImproveOnRating }) => runAutoImproveOnRating(entry, 5))
         .then(message => {
           if (message) {
@@ -141,7 +141,7 @@ export function useGalleryCompareHandlers({
       if (entry) {
         recordCatalogBiasFromPrompt(entry.prompt, rating);
         if (rating) {
-          void import('@/lib/auto-improve-loop')
+          void import('@/lib/edit/auto-improve-loop')
             .then(({ runAutoImproveOnRating }) => runAutoImproveOnRating(entry, rating))
             .then(message => {
               if (message) {
@@ -276,7 +276,7 @@ export function useGalleryCompareHandlers({
     void Promise.all([
       loadGalleryRequeue(),
       import('@/lib/comfyui/settings'),
-      import('@/lib/skin-refine'),
+      import('@/lib/face/skin-refine'),
     ])
       .then(([{ requeueSkinRefineFromGalleryEntry }, { loadComfyUiSettings }, skin]) => {
         const model = skin.resolvePlaySkinRefineQueueModel(loadComfyUiSettings());

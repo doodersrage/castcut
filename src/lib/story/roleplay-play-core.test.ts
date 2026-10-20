@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '../isolate-subject';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '../edit/isolate-subject';
 import { buildRoleplayQueueStillOptions, buildRoleplayRequestBody } from './roleplay-play-core';
-import { DEFAULT_SHARED_SETTINGS } from '../settings-cache';
+import { DEFAULT_SHARED_SETTINGS } from '../settings/cache';
 
 describe('roleplay-play-core', () => {
   it('omits still identity options when not in photo mode', () => {

@@ -3,18 +3,18 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { gpuAutoMatchPlan, gpuSettingsSuggestion } from '@/lib/gpu-settings-match';
+import { gpuAutoMatchPlan, gpuSettingsSuggestion } from '@/lib/engine/gpu-settings-match';
 import {
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
   isSettingsSyncedWithServer,
-} from '@/lib/settings-push-flush';
+} from '@/lib/settings/push-flush';
 import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
   saveSharedSettings,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
-import { subscribeSharedHealth } from '@/lib/shared-health-poll';
+} from '@/lib/settings/cache';
+import { subscribeSharedHealth } from '@/lib/storage/shared-health-poll';
 
 /** Set by the earlier click-to-match offer; a card offered there isn't matched again. */
 const LEGACY_GPU_OFFER_KEY = 'castcut.gpuMatchOffered.v1';

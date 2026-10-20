@@ -8,7 +8,7 @@ import {
   normalizeCastMarks,
   type CastMark,
 } from './marks';
-import { appendCleanSkinPositive } from '../clean-skin';
+import { appendCleanSkinPositive } from '../face/clean-skin';
 import { buildLookCastPlateNegative, buildLookCastPlatePrompt } from '../look/outfit-plate';
 
 const rose: CastMark = { id: 'a', what: 'a small fine-line rose tattoo', where: 'left arm' };
@@ -75,7 +75,7 @@ describe('cast marks', () => {
 
 describe('cast marks and the negative', () => {
   it('keeps extra ink out when her own tattoo is in the prompt', async () => {
-    const { mergeCleanSkinNegatives } = await import('../clean-skin');
+    const { mergeCleanSkinNegatives } = await import('../face/clean-skin');
     const prompt = `A woman. ${castMarksLine([rose], { outfit: 'a tee' })}`;
     const negative = mergeCleanSkinNegatives('blurry', prompt) ?? '';
     assert.match(negative, /tattoos on both arms/);

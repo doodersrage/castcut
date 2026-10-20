@@ -6,7 +6,7 @@ import {
   getIpAdapterHealth,
   getPulidHealth,
   type IdentityPackHealth,
-} from '@/lib/identity-pack-health';
+} from '@/lib/character/identity-pack-health';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 
 type IdentityPackHealthChipsProps = {

@@ -5,9 +5,9 @@ import {
   descriptionForWorkspace,
   HUB_PAGE_DESCRIPTIONS,
   sectionDescriptionForWorkspace,
-} from '@/lib/tool-page-chrome';
+} from '@/lib/app/tool-page-chrome';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 
 /** Pick full vs Simple workspace copy for ToolLayout descriptions. */
 export function useToolPageDescription(full: string, simple: string): string {

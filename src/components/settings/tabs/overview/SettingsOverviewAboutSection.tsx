@@ -3,9 +3,9 @@
 import AppUpdateStatus from '@/components/settings/AppUpdateStatus';
 import ReportBugLink from '@/components/ReportBugLink';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { POSE_REFERENCE_CREDITS_URL } from '@/lib/pose-references';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
-import { PRODUCT_NAME } from '@/lib/brand';
+import { POSE_REFERENCE_CREDITS_URL } from '@/lib/pose/references';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 
 export function SettingsOverviewAboutSection() {
   return (

@@ -1,6 +1,6 @@
 import { apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { getLlmConfig } from '@/lib/llm-client';
-import { discoverComfyUi, discoverLlm } from '@/lib/service-discovery';
+import { getLlmConfig } from '@/lib/llm/client';
+import { discoverComfyUi, discoverLlm } from '@/lib/server/service-discovery';
 
 export const runtime = 'nodejs';
 

@@ -15,7 +15,7 @@ import {
   upsertCharacter,
   withNewPlateLook,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   resolveFittingPlateFromCharacter,
   withRoleplayLookPlateFromCast,
@@ -32,13 +32,13 @@ import {
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_FITTING_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,
 } from '@/lib/play/settings';
-import { identityLockForLook, identityLockPatchChanges } from '@/lib/identity-lock-look';
+import { identityLockForLook, identityLockPatchChanges } from '@/lib/character/identity-lock-look';
 
 function samePlatePicture(
   session: { referenceImageUrl?: string; referenceImageFilename?: string },

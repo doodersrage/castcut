@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { settingsTabHref } from '@/lib/settings-nav';
+import { settingsTabHref } from '@/lib/settings/nav';
 import {
   recheckRenderBackend,
   RENDER_BACKEND_OFFLINE_MESSAGE,
   useRenderBackend,
-} from '@/lib/render-backend-status';
+} from '@/lib/engine/render-backend-status';
 
 /**
  * Top-of-page notice while nothing can render (ComfyUI unreachable): says so in plain words and

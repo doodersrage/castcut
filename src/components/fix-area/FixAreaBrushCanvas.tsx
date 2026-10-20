@@ -12,7 +12,7 @@ import {
   type Ref,
 } from 'react';
 import { Button } from '@/components/ui/Button';
-import { maskBoundsFraction, type FixAreaBox } from '@/lib/fix-area';
+import { maskBoundsFraction, type FixAreaBox } from '@/lib/edit/fix-area';
 import {
   createOffscreenCanvas,
   fitMaskEditorDimensions,
@@ -20,7 +20,7 @@ import {
   maskCanvasHasContent,
   pointerToCanvasPoint,
   type MaskPoint,
-} from '@/lib/inpaint-mask-canvas';
+} from '@/lib/edit/inpaint-mask-canvas';
 
 export type FixAreaBrushExport = {
   /** The painted mask (white = fix, black = keep) as a PNG data URL. */

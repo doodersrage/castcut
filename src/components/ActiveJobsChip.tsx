@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { useSystemTrayState } from '@/hooks/useSystemTrayState';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { estimateQueueEta, formatEta } from '@/lib/queue-eta';
-import { openSystemTrayPanel } from '@/lib/system-tray-panel';
+import { estimateQueueEta, formatEta } from '@/lib/queue/eta';
+import { openSystemTrayPanel } from '@/lib/app/system-tray-panel';
 
 /**
  * Compact chip showing live gallery/queue job count — links to Queue, or with `trayToggle` opens

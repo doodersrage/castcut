@@ -8,7 +8,7 @@ import {
   BROWSER_STORAGE_HEALTH_EVENT,
   readBrowserValue,
   writeBrowserValue,
-} from '@/lib/browser-storage';
+} from '@/lib/storage/browser-storage';
 import {
   findDayDressPlate,
   forgetDayDressPlate,
@@ -16,8 +16,8 @@ import {
   type DayDressPlateEntry,
 } from '@/lib/day/dress-plate-cache';
 
-import { recordListSpec } from '../record-list-sync';
-import { trackRecordListWrite } from '../record-tombstones';
+import { recordListSpec } from '../storage/record-list-sync';
+import { trackRecordListWrite } from '../storage/record-tombstones';
 
 export const DRESS_PLATES_STORAGE_KEY = 'dress-plates';
 export const DRESS_PLATES_CHANGED_EVENT = 'dress-plates-changed';

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { accentForPath, type ToolAccent } from '@/lib/tool-theme';
+import { accentForPath, type ToolAccent } from '@/lib/app/tool-theme';
 
 type PageCanvasProps = {
   children: ReactNode;

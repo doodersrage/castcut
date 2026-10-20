@@ -2,8 +2,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveUserIdFromApiKey } from '@/lib/auth/api-keys';
 import { findUserById } from '@/lib/auth/store';
-import { generatePrompt } from '@/lib/prompt-generator';
-import { normalizeGenerationSettings } from '@/lib/generation-settings';
+import { generatePrompt } from '@/lib/prompt/generator';
+import { normalizeGenerationSettings } from '@/lib/queue/generation-settings';
 import { readSessionFromRequest } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';

@@ -2,20 +2,20 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { toastQueueOutcome } from '@/lib/app-toast';
+import { toastQueueOutcome } from '@/lib/app/toast';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { RETRY_LAST_FAILED_QUEUE_EVENT, retryLastFailedQueue } from '@/lib/last-failed-queue';
+import { RETRY_LAST_FAILED_QUEUE_EVENT, retryLastFailedQueue } from '@/lib/queue/last-failed-queue';
 import {
   clearSystemTrayMessages,
   dismissSystemTrayMessage,
   type SystemTrayMessage,
-} from '@/lib/system-tray-messages';
+} from '@/lib/app/system-tray-messages';
 import { useSystemTrayState } from '@/hooks/useSystemTrayState';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
 import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import { TrayNotice } from '@/components/system-tray/TrayNotice';
 import { SystemTrayActivityCard } from '@/components/system-tray/SystemTrayActivityCard';
-import { SYSTEM_TRAY_PANEL_EVENT, type SystemTrayPanelAnchor } from '@/lib/system-tray-panel';
+import { SYSTEM_TRAY_PANEL_EVENT, type SystemTrayPanelAnchor } from '@/lib/app/system-tray-panel';
 
 /** Space the floating Engine button keeps above this tray. Published on <html>. */
 export const SYSTEM_TRAY_HEIGHT_VAR = '--system-tray-height';

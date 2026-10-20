@@ -8,7 +8,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { loadCollapsibleOpen, saveCollapsibleOpen } from '@/lib/collapsible-persist';
+import { loadCollapsibleOpen, saveCollapsibleOpen } from '@/lib/app/collapsible-persist';
 
 /** A foldable group: its title, what is set (one line), the rows. Open state is remembered. */
 export function OptionGroup({

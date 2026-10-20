@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
 
-mock.module("../app-db", { namedExports: { appDb: null } });
+mock.module("../app/db", { namedExports: { appDb: null } });
 
 const storageState = new Map<string, unknown>();
 const readBrowserValue = mock.fn(<T>(key: string): T | null => (storageState.has(key) ? (storageState.get(key) as T) : null));
@@ -12,12 +12,12 @@ const writeBrowserValue = mock.fn((key: string, value: unknown) => {
 const removeBrowserKey = mock.fn((key: string) => {
   storageState.delete(key);
 });
-mock.module("../browser-storage", { namedExports: { readBrowserValue, writeBrowserValue, removeBrowserKey } });
+mock.module("../storage/browser-storage", { namedExports: { readBrowserValue, writeBrowserValue, removeBrowserKey } });
 
 let activeUserId: string | null = null;
 const getActiveUserId = mock.fn((): string | null => activeUserId);
 const isUserScoped = mock.fn((): boolean => Boolean(activeUserId));
-mock.module("../user-scope", { namedExports: { getActiveUserId, isUserScoped } });
+mock.module("../user/scope", { namedExports: { getActiveUserId, isUserScoped } });
 
 function installWindowStub() {
   const dispatched: Event[] = [];

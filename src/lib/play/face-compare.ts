@@ -8,7 +8,7 @@
  * a warning, never as grounds for an automatic reroll.
  */
 
-import { coverRect, type CoverRect } from '../cover-rect';
+import { coverRect, type CoverRect } from '../edit/cover-rect';
 
 /** Square tile per panel. Big enough for a face to survive JPEG, small enough to stay cheap. */
 export const FACE_COMPARE_TILE = 512;

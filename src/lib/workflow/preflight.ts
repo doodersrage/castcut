@@ -1,15 +1,15 @@
 'use client';
 
-import { modelUsesNegativePrompt } from '../prompt-pair';
+import { modelUsesNegativePrompt } from '../prompt/pair';
 import { getComfyModelDefinition, type ComfyImageModel } from '../comfy-models/client';
-import { isInpaintModel, isEditQueueTool } from '../model-denoise-defaults';
+import { isInpaintModel, isEditQueueTool } from '../model/denoise-defaults';
 import { resolveRuntimeForQueueAsync } from '../comfyui/runtime-for-model';
 import { fetchWorkflowPreview } from '../comfyui/requeue';
-import { resolveQueueParams } from '../queue-params-settings';
+import { resolveQueueParams } from '../queue/params-settings';
 import type { WorkflowParamValues } from '../comfyui/config';
 import { auditLoaderMapsAtQueueTime } from './queue-loader-preflight';
-import { auditLoraStackAtQueueTime } from '../lora-stack-preflight';
-import { resolveActiveLoraStack } from '../lora-stack';
+import { auditLoraStackAtQueueTime } from '../lora/stack-preflight';
+import { resolveActiveLoraStack } from '../lora/stack';
 import { fetchComfyObjectInfoCached } from '../comfyui/object-info-cache';
 import { collectWorkflowGraphPreflightIssues, type WorkflowPreflightIssue } from './preflight-core';
 
@@ -30,7 +30,7 @@ export async function runWorkflowPreflight(input: {
   hasControlImage?: boolean;
   tool?: string;
   queueParams?: WorkflowParamValues;
-  qualityProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  qualityProfile?: import('../queue/quality-profile').QueueQualityProfile;
   comfy?: import('../comfyui/config').ComfyUiRuntimeConfig;
 }): Promise<WorkflowPreflightResult> {
   const issues: WorkflowPreflightIssue[] = [];

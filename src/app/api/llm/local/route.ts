@@ -1,15 +1,15 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
-import { clearTextModelCache } from '@/lib/llm-text-model-auto';
+import { clearTextModelCache } from '@/lib/llm/text-model-auto';
 import {
   ensureLocalLlm,
   localLlmStatus,
   setLocalLlmUse,
   startLocalLlmInstall,
   stopLocalLlm,
-} from '@/lib/llm-local-server';
-import { clearVisionModelCache } from '@/lib/vision-model-auto';
+} from '@/lib/llm/local-server';
+import { clearVisionModelCache } from '@/lib/vision/model-auto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

@@ -14,7 +14,7 @@ import {
   type PlaySeries,
   type PlaySeriesStore,
 } from '@/lib/play/series';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 /** Season (series) state for the active Cast on Day: current season, stitch, and close. */
 export function useDaySeries(characterId: string | undefined) {

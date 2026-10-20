@@ -4,7 +4,8 @@ export const ACTION_ITEMS: CommandItem[] = [
   {
     id: 'sync-now',
     label: 'Sync storage now',
-    action: () => void import('@/lib/auto-storage-sync').then(m => m.autoPushStorageDebounced()),
+    action: () =>
+      void import('@/lib/storage/auto-storage-sync').then(m => m.autoPushStorageDebounced()),
     group: 'Actions',
   },
   {
@@ -12,8 +13,8 @@ export const ACTION_ITEMS: CommandItem[] = [
     label: 'Save session snapshot',
     subtitle: 'Model, quality, LoRAs, sampler — restore anytime',
     action: () => {
-      void import('@/lib/session-recipes').then(async m => {
-        const { loadSettingsCache } = await import('@/lib/settings-cache');
+      void import('@/lib/prompt/session-recipes').then(async m => {
+        const { loadSettingsCache } = await import('@/lib/settings/cache');
         const shared = loadSettingsCache().shared;
         const recipe = m.buildSessionRecipeFromShared({ shared });
         m.pushSessionRecipe(recipe);
@@ -26,8 +27,8 @@ export const ACTION_ITEMS: CommandItem[] = [
     label: 'Restore latest session snapshot',
     subtitle: 'Applies the most recent Save session snapshot',
     action: () => {
-      void import('@/lib/session-recipes').then(async m => {
-        const { loadSettingsCache, saveSharedSettings } = await import('@/lib/settings-cache');
+      void import('@/lib/prompt/session-recipes').then(async m => {
+        const { loadSettingsCache, saveSharedSettings } = await import('@/lib/settings/cache');
         const latest = m.loadSessionRecipes()[0];
         if (!latest) {
           return;
@@ -51,7 +52,7 @@ export const ACTION_ITEMS: CommandItem[] = [
     subtitle: 'Enable system workflows and adapt loader maps from ComfyUI',
     group: 'Actions',
     action: () => {
-      void import('@/lib/first-run-setup').then(async ({ runHealAndReady }) => {
+      void import('@/lib/app/first-run-setup').then(async ({ runHealAndReady }) => {
         const result = await runHealAndReady({
           onProgress: progress => {
             window.dispatchEvent(
@@ -60,7 +61,7 @@ export const ACTION_ITEMS: CommandItem[] = [
           },
         });
         if (result.ok || result.systemWorkflowsEnabled) {
-          void import('@/lib/first-run-dismiss').then(({ dismissFirstRunSetupSurfaces }) => {
+          void import('@/lib/app/first-run-dismiss').then(({ dismissFirstRunSetupSurfaces }) => {
             dismissFirstRunSetupSurfaces();
           });
         }
@@ -89,7 +90,7 @@ export const ACTION_ITEMS: CommandItem[] = [
     label: 'Report a bug',
     subtitle: 'Open a GitHub issue',
     action: () => {
-      void import('@/lib/project-links').then(m => m.openGitHubBugReport());
+      void import('@/lib/app/project-links').then(m => m.openGitHubBugReport());
     },
     group: 'Actions',
   },

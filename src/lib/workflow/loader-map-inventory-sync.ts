@@ -4,15 +4,15 @@ import {
   SUGGESTED_MODEL_VAE_MAP,
   type ModelCheckpointMap,
   type ModelVaeMap,
-} from '../model-checkpoint-map';
-import type { ModelControlNetMap } from '../model-controlnet-map';
-import { pickQwenPoseControlNetFilename } from '../model-controlnet-map';
-import { qwenUnetFamiliesCompatible } from '../model-loader-precision';
-import { SUGGESTED_MODEL_UPSCALE_MAP, type ModelUpscaleMap } from '../model-upscale-map';
+} from '../model/checkpoint-map';
+import type { ModelControlNetMap } from '../model/controlnet-map';
+import { pickQwenPoseControlNetFilename } from '../model/controlnet-map';
+import { qwenUnetFamiliesCompatible } from '../model/loader-precision';
+import { SUGGESTED_MODEL_UPSCALE_MAP, type ModelUpscaleMap } from '../model/upscale-map';
 import {
   isVideoCheckpointMapKey,
   pickVideoCheckpointFromInventory,
-} from '../video-checkpoint-pick';
+} from '../video/checkpoint-pick';
 
 function buildSuggestedControlNetMap(controlNets: string[]): ModelControlNetMap {
   const qwenCn = pickQwenPoseControlNetFilename(controlNets);

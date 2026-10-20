@@ -1,4 +1,4 @@
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 export type GalleryLightboxFit = 'contain' | 'cover' | 'actual';
 

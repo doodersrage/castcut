@@ -1,29 +1,29 @@
 'use client';
 
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
   clipExtendProgressNote,
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
-} from '@/lib/clip-extend';
-import { keepClipInGallery } from '@/lib/clip-gallery-keep';
+} from '@/lib/clip/extend';
+import { keepClipInGallery } from '@/lib/clip/gallery-keep';
 import {
   useStoryBeatMediaTools,
   type StoryBeatMediaTools,
 } from '@/hooks/roleplay/useStoryBeatMediaTools';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { clipUrlIsAnimatedImage } from '@/lib/clip-media-kind';
-import { requestClipVoice } from '@/lib/clip-voice';
-import { spokenLineHeat } from '@/lib/spoken-line';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { clipUrlIsAnimatedImage } from '@/lib/clip/media-kind';
+import { requestClipVoice } from '@/lib/clip/voice';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import {
   normalizeSpokenLine,
   normalizeSpokenLineTone,
   type SpokenLineTone,
-} from '@/lib/ltx25-renderer';
+} from '@/lib/video/ltx25-renderer';
 import {
   storyBeatKey,
   storyBeatRewriteRevertPatch,

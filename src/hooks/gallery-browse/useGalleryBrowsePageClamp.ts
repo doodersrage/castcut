@@ -6,7 +6,7 @@ import type {
   ComfyGallerySort,
   GalleryPageSize,
 } from '@/lib/gallery/comfyui-gallery';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type GalleryBrowsePageClampContext = {
   pendingRestorePageRef: MutableRefObject<number | null>;

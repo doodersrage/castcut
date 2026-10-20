@@ -3,7 +3,7 @@ import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
-import { shotReframePath } from '@/lib/cut-reframe-server';
+import { shotReframePath } from '@/lib/video/cut-reframe-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return apiError(error instanceof Error ? error.message : 'Invalid ComfyUI URL.', 400);
   }
   try {
-    const { fetchFilmShotBytes } = await import('@/lib/video-shot-fetch');
+    const { fetchFilmShotBytes } = await import('@/lib/video/shot-fetch');
     const fetched = await fetchFilmShotBytes({
       url,
       requestOrigin: new URL(request.url).origin,

@@ -11,9 +11,9 @@ import {
   upsertDaySlotStill,
 } from '@/lib/day/planner';
 import { resolveDayVacationFaceBreakPlate } from '@/lib/day/vacation-face-crop';
-import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
-import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face-finish-client';
+import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face/locate';
+import { comfyInputViewUrl } from '@/lib/face/match-client';
+import { planStillFaceFinish, runStillFaceFinish } from '@/lib/face/finish-client';
 import { faceFinishAwaitsChecks, type DayChecksGate } from '@/lib/day/finish-order';
 import { waitForModelTurn } from '@/lib/comfyui/comfy-model-turn';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';

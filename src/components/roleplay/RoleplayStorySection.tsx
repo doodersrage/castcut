@@ -2,7 +2,7 @@
 
 import { applyCutShotEdits } from '@/lib/film/cut-plan';
 import { storyCutCoverageLine } from '@/lib/film/delivery-check';
-import { storyShotIdentity } from '@/lib/identity-mark';
+import { storyShotIdentity } from '@/lib/character/identity-mark';
 import { roleplayWatchPlaylist } from '@/lib/film/character-film';
 import type { KeyedShot } from '@/lib/film/cut-plan';
 import type { ReactNode } from 'react';
@@ -56,7 +56,9 @@ export type RoleplayStorySectionProps = {
   onSelectClipTake: (beat: RoleplayStoryBeat, index: number) => void;
   onCopy: (beat: RoleplayStoryBeat) => void;
   /** Fix an area (fix-area.ts) on a beat's shown still. */
-  fixAreaFor?: (beat: RoleplayStoryBeat) => import('@/lib/fix-area-client').FixAreaTarget | null;
+  fixAreaFor?: (
+    beat: RoleplayStoryBeat
+  ) => import('@/lib/edit/fix-area-client').FixAreaTarget | null;
   /** Edit a scene's text on its card, then write and queue its still again. */
   beatEdit?: StoryBeatEditActions;
   onRollScenes?: () => void;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { changedSettings } from '../settings-defaults-diff';
-import { DEFAULT_SHARED_SETTINGS } from '../settings-cache';
+import { changedSettings } from '../settings/defaults-diff';
+import { DEFAULT_SHARED_SETTINGS } from '../settings/cache';
 
 describe('Gallery backups setting', () => {
   it('is on by default; turned off it is listed under Gallery storage', () => {

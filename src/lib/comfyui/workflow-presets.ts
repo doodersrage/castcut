@@ -1,6 +1,6 @@
 import type { WorkflowParamValues, CustomWorkflowToken } from './config';
 import { DEFAULT_NEGATIVE_TOKEN, DEFAULT_POSITIVE_TOKEN } from './config';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 export const COMFY_WORKFLOW_PRESETS_KEY = 'comfyui-workflow-presets-v1';
 

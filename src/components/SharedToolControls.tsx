@@ -2,23 +2,26 @@
 
 import { useSharedToolGenerationSettings } from '@/hooks/useSharedToolGenerationSettings';
 import { useSharedToolModelWorkflow } from '@/hooks/useSharedToolModelWorkflow';
-import { getDetailLimits } from '@/lib/detail-level';
+import { getDetailLimits } from '@/lib/prompt/detail-level';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import {
   formatQueueQualityProfileHint,
   resolveQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
+} from '@/lib/queue/quality-profile';
 import {
   loadSettingsCache,
   notifySettingsCacheUpdated,
   saveSharedSettings,
-} from '@/lib/settings-cache';
-import { describeToolQualitySource, qualityForEveryToolPatch } from '@/lib/tool-quality-profiles';
+} from '@/lib/settings/cache';
+import {
+  describeToolQualitySource,
+  qualityForEveryToolPatch,
+} from '@/lib/app/tool-quality-profiles';
 import SharedLoraEmbeddingsBlock from '@/components/shared-tool-controls/SharedLoraEmbeddingsBlock';
-import { accentRingClass } from '@/lib/tool-theme';
+import { accentRingClass } from '@/lib/app/tool-theme';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { workspaceControlsDefaultOpen } from '@/lib/workspace-mode';
+import { workspaceControlsDefaultOpen } from '@/lib/app/workspace-mode';
 import SharedModelSurface from '@/components/shared-tool-controls/SharedModelSurface';
 import SharedPrimaryControls from '@/components/shared-tool-controls/SharedPrimaryControls';
 import SharedToolAdvancedCollapsible from '@/components/shared-tool-controls/SharedToolAdvancedCollapsible';

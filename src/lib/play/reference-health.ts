@@ -1,9 +1,9 @@
-import { getCharacter } from '../character-os';
-import { resolveCastFaceForPlate } from '../character-identity';
-import { resolveFittingPlateFromCharacter } from '../character-plate';
-import { referenceViewUrl } from '../reference-check-client';
-import type { ReferenceHealthItem, ReferenceHealthSource } from '../reference-health';
-import { loadSettingsCache } from '../settings-cache';
+import { getCharacter } from '../character/os';
+import { resolveCastFaceForPlate } from '../character/identity';
+import { resolveFittingPlateFromCharacter } from '../character/plate';
+import { referenceViewUrl } from '../checks/reference-check-client';
+import type { ReferenceHealthItem, ReferenceHealthSource } from '../checks/reference-health';
+import { loadSettingsCache } from '../settings/cache';
 
 /** Workflow health: Day's partner (plate and face lock) and the invented partner's face. */
 export const dayPartnerReferenceHealth: ReferenceHealthSource = ({ lead, leadPlate }) => {

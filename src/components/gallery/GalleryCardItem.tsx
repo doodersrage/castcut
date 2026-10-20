@@ -19,7 +19,7 @@ import {
   galleryEntrySupportsUpscale,
 } from '@/lib/gallery/entry-actions';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { resolvePlaySkinRefineModel } from '@/lib/skin-refine';
+import { resolvePlaySkinRefineModel } from '@/lib/face/skin-refine';
 
 export type GalleryCardActions = {
   toggleSelected: (id: string, options?: { shift?: boolean }) => void;
@@ -28,7 +28,7 @@ export type GalleryCardActions = {
   requeue: (
     id: string,
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   cancel: (id: string) => void;
@@ -136,7 +136,7 @@ function GalleryCardItem({
   const onRequeue = useCallback(
     (
       newSeed: boolean,
-      qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+      qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
       options?: { exactGraph?: boolean; stickyHost?: boolean }
     ) => actionsRef.current.requeue(entry.id, newSeed, qualityProfile, options),
     [actionsRef, entry.id]

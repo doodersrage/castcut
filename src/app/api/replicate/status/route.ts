@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { fetchReplicateJobStatus } from '@/lib/replicate-client';
+import { fetchReplicateJobStatus } from '@/lib/cloud/replicate-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

@@ -7,13 +7,13 @@
  * card — and keeps the film on the Cast.
  */
 
-import { planReel, type ReelLength } from '@/lib/cut-reel';
+import { planReel, type ReelLength } from '@/lib/video/cut-reel';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { startClipExtend, waitForClipExtend } from '@/lib/clip-extend';
-import type { CutGeneratedStatus } from '@/lib/cut-generate';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { spokenLineHeat } from '@/lib/spoken-line';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { startClipExtend, waitForClipExtend } from '@/lib/clip/extend';
+import type { CutGeneratedStatus } from '@/lib/video/cut-generate';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -21,10 +21,10 @@ import {
 } from '@/components/FilmCutOptionsControls';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
+import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
 import { castVoiceOf } from '@/lib/cast/voice';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
-import { getCharacter, type CharacterRecord } from '@/lib/character-os';
+import { getCharacter, type CharacterRecord } from '@/lib/character/os';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   filterComfyGalleryEntries,
@@ -36,7 +36,7 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
-import { renderTextCard } from '@/lib/cut-text-card';
+import { renderTextCard } from '@/lib/video/cut-text-card';
 import {
   CUT_BRIDGE_FRAMES,
   CUT_BRIDGE_PROMPT,
@@ -45,17 +45,17 @@ import {
   cutBridgeJoinEdits,
   placeCutBridge,
   type CutBridgeStatus,
-} from '@/lib/cut-bridge';
-import { H3_REQUIRED_NODE } from '@/lib/h3-renderer';
+} from '@/lib/video/cut-bridge';
+import { H3_REQUIRED_NODE } from '@/lib/engine/h3-renderer';
 import {
   CUT_GENERATE_CLIP_FRAMES,
   CUT_GENERATE_NEGATIVE,
   cutGenerateCanvas,
   cutGenerateClipPrompt,
   cutGenerateStillPrompt,
-} from '@/lib/cut-generate';
-import { cutGenerateModel } from '@/lib/queue-tool-model';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+} from '@/lib/video/cut-generate';
+import { cutGenerateModel } from '@/lib/queue/tool-model';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
@@ -98,7 +98,7 @@ import {
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine } from '@/lib/film/narration-client';
 import { widenStillForFilm } from '@/lib/film/widen-client';
-import { isAssembledFilmEntry } from '@/lib/media-kind';
+import { isAssembledFilmEntry } from '@/lib/media/kind';
 import { completePlayCampaign } from '@/lib/play/campaign';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import {
@@ -108,7 +108,7 @@ import {
   recordDayFilmEpisode,
 } from '@/lib/play/series';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
-import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { loadRoleplayLibrary } from '@/lib/story/roleplay-library';
 import {
@@ -117,10 +117,10 @@ import {
   storyPoseMatchLabel,
   storyRealismLabel,
 } from '@/lib/story/roleplay-pose-check';
-import { REALISM_MISS_REASON } from '@/lib/still-realism';
+import { REALISM_MISS_REASON } from '@/lib/still/realism';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
 import { resolveStoryFilmCast, storyFilmName } from '@/lib/story/film-cast';
-import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];
 
@@ -1439,7 +1439,7 @@ export function useCutRoom() {
         );
         markOnboardingFirstPlayCampaign();
         if (markOnboardingFirstFilmCut()) {
-          void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+          void import('@/lib/app/system-tray-celebrate').then(({ celebrateSystemTray }) => {
             celebrateSystemTray('job');
           });
         }
@@ -1449,7 +1449,7 @@ export function useCutRoom() {
           withStory: sources.includes('story'),
           persisted: result.persisted,
         });
-        void import('@/lib/local-observability').then(({ noteFilmCutSourceMetric }) => {
+        void import('@/lib/server/local-observability').then(({ noteFilmCutSourceMetric }) => {
           for (const source of sources)
             noteFilmCutSourceMetric(source === 'day' ? 'day' : 'roleplay');
         });

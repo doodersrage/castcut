@@ -6,7 +6,7 @@ import {
   SUBJECT_SHOT_SCALE_OPTIONS,
   type FantasyShotScale,
   type SubjectShotScale,
-} from '@/lib/tool-ui-labels';
+} from '@/lib/app/tool-ui-labels';
 import { ChipButton, FieldLabel } from '@/components/ui/Field';
 
 type ShotScaleControlProps<T extends string> = {

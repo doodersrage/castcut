@@ -23,7 +23,7 @@ import {
   type WorkflowParamValues,
   type WorkflowPlaceholderTokens,
 } from './config';
-import { readBrowserValue, removeBrowserKey, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, removeBrowserKey, writeBrowserValue } from '../storage/browser-storage';
 import {
   applySessionLoraSelection,
   applySessionLoraStrengthOverrides,
@@ -34,14 +34,14 @@ import {
   normalizeLoraLibrary,
   type LoraLibraryEntry,
   type SessionLoraStrengthOverrides,
-} from '../lora-stack';
+} from '../lora/stack';
 import {
   resolveEffectiveSessionLoraIds,
   resolveEffectiveSessionLoraStrengthOverrides,
-} from '../model-lora-map';
-import { loadSettingsCache } from '../settings-cache';
-import { loraFamilyForModel } from '../lora-family-detect';
-import { loraChangesFaceAt } from '../lora-check';
+} from '../model/lora-map';
+import { loadSettingsCache } from '../settings/cache';
+import { loraFamilyForModel } from '../lora/family-detect';
+import { loraChangesFaceAt } from '../lora/check';
 
 /**
  * Per-model session → model LoRA map → library enabled flags.
@@ -83,7 +83,7 @@ export type ComfyUiSettings = {
   customTokens?: CustomWorkflowToken[];
   loraLibrary?: LoraLibraryEntry[];
   /** Named LoRA stacks per model family (lora-library-tools.ts). */
-  loraStackPresets?: import('../lora-library-tools').LoraStackPreset[];
+  loraStackPresets?: import('../lora/library-tools').LoraStackPreset[];
   /**
    * Scale the active LoRAs down together when their strengths add up to more than this
    * (Lightning excluded). Unset = DEFAULT_LORA_STRENGTH_BUDGET; 0 = no cap.
@@ -125,7 +125,7 @@ export type ComfyUiSettings = {
    */
   warmUpOnToolOpen?: boolean;
   /** Saved negative presets for queue / copy pair. */
-  negativeProfiles?: import('../negative-profiles').NegativeProfile[];
+  negativeProfiles?: import('../prompt/negative-profiles').NegativeProfile[];
   selectedNegativeProfileId?: string;
 };
 
@@ -447,7 +447,7 @@ export function comfyUiSettingsToRuntime(
   settings: ComfyUiSettings,
   options?: {
     sessionActiveLoraIds?: string[];
-    sessionLoraStrengthOverrides?: import('../lora-stack').SessionLoraStrengthOverrides;
+    sessionLoraStrengthOverrides?: import('../lora/stack').SessionLoraStrengthOverrides;
     model?: string;
     /** Cast-locked queues (Day, Story): drop LoRAs whose Check on Cast says they change faces. */
     skipFaceChangingLoras?: boolean;

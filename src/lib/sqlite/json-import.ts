@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolvePromptAuthDir, resolvePromptDataDir } from '@/lib/prompt-data-paths';
-import { STORAGE_NAMESPACES, type StorageNamespace } from '@/lib/storage-namespaces';
+import { resolvePromptAuthDir, resolvePromptDataDir } from '@/lib/prompt/data-paths';
+import { STORAGE_NAMESPACES, type StorageNamespace } from '@/lib/storage/namespaces';
 import { upsertGalleryEntries, writeGalleryDeletedIds } from './gallery';
 import { kvKeyExists, kvScopeForUser, writeKv } from './kv';
 import { getSchemaMeta, setSchemaMeta } from './studio-db';

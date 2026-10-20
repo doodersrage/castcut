@@ -8,12 +8,12 @@ import {
   getInstantIdHealth,
   isIdentityPackReady,
   shouldWarnIdentityPackMissing,
-} from '@/lib/identity-pack-health';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { getCharacter } from '@/lib/character-os';
+} from '@/lib/character/identity-pack-health';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { getCharacter } from '@/lib/character/os';
 import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { toolEffectiveModel } from '@/lib/tool-effective-model';
+import { toolEffectiveModel } from '@/lib/app/tool-effective-model';
 
 /** Film routes → the tool whose model the page queues. */
 const ROUTE_TOOL_KEY: Record<string, string> = {

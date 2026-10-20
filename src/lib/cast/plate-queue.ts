@@ -1,7 +1,7 @@
 'use client';
 
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
-import { getCharacter, setCastPlateTraits } from '@/lib/character-os';
+import { getCharacter, setCastPlateTraits } from '@/lib/character/os';
 import {
   fetchComfyObjectInfoModelsCached,
   readCachedComfyObjectInfoModels,
@@ -11,7 +11,7 @@ import {
   ensureOutfitPlateAfterLook,
   type OutfitPlateEnsureResult,
 } from '@/lib/look/outfit-plate';
-import { resolvePreferredLookModel } from '@/lib/queue-tool-model';
+import { resolvePreferredLookModel } from '@/lib/queue/tool-model';
 
 type SendComfyUi = Parameters<typeof ensureOutfitPlateAfterLook>[0]['sendComfyUi'];
 

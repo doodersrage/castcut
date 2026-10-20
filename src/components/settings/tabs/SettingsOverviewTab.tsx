@@ -1,7 +1,7 @@
 'use client';
 
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 import { SettingsOverviewSetupSection } from '@/components/settings/tabs/overview/SettingsOverviewSetupSection';
 import { SettingsOverviewHealthSection } from '@/components/settings/tabs/overview/SettingsOverviewHealthSection';

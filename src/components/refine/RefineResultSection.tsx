@@ -3,10 +3,10 @@
 import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import EditToolRecipeStrip from '@/components/EditToolRecipeStrip';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
-import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
-import { continueEditResultProps } from '@/lib/continue-edit-result-props';
-import { getReformatTargetLabel } from '@/lib/reformat-target';
-import { diffPromptWords } from '@/lib/prompt-diff';
+import { promptResultPreviewProps } from '@/lib/prompt/result-preview-props';
+import { continueEditResultProps } from '@/lib/edit/continue-edit-result-props';
+import { getReformatTargetLabel } from '@/lib/edit/reformat-target';
+import { diffPromptWords } from '@/lib/prompt/diff';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { useRefineToolOrchestration } from '@/hooks/useRefineToolOrchestration';
 

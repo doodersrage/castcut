@@ -9,7 +9,7 @@ const stripGalleryWorkflowJsonForExport = mock.fn((entry: ComfyGalleryEntry) => 
 mock.module("./workflow-hygiene", { namedExports: { stripGalleryWorkflowJsonForExport } });
 
 const buildPromptSidecar = mock.fn((input: Record<string, unknown>) => ({ sidecar: true, input }));
-mock.module("../prompt-sidecar", {
+mock.module("../prompt/sidecar", {
   namedExports: {
     buildPromptSidecar,
     readSidecarOutputImage: mock.fn(),

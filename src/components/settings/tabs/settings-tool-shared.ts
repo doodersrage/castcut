@@ -1,5 +1,5 @@
-import type { ServerEnvSummary } from '@/lib/server-env-summary';
-import type { ComfyUiSettingsSectionId } from '@/lib/settings-comfyui-nav';
+import type { ServerEnvSummary } from '@/lib/server/server-env-summary';
+import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
 
 export const SETTINGS_TOOL_ACCENT = 'neutral' as const;
 

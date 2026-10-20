@@ -3,15 +3,15 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   dismissPlayHabitNudge,
   resolvePlayHabitNudge,
   type PlayHabitNudge,
 } from '@/lib/play/habit-nudge';
 import { PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 /** Soft 24h habit prompt after the latest film cut. */
 export default function PlayHabitNudgeBanner() {

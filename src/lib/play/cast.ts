@@ -30,12 +30,12 @@ import {
   castIdForRoleplaySession,
   applyRemovedCharacterIds,
   type CharacterRecord,
-} from '../character-os';
-import { isRolledAppearanceDescriptor } from '../character-appearance';
-import { withSuppressedDurableSyncPush } from '../browser-storage';
-import type { CharacterIdentityBundle } from '../character-identity-bundle';
+} from '../character/os';
+import { isRolledAppearanceDescriptor } from '../character/appearance';
+import { withSuppressedDurableSyncPush } from '../storage/browser-storage';
+import type { CharacterIdentityBundle } from '../character/identity-bundle';
 
-declare module '../character-os' {
+declare module '../character/os' {
   interface CharacterFeatureFields {
     bio?: RoleplayBio;
     tone?: RoleplayTone;

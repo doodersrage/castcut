@@ -4,9 +4,9 @@ import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 import { AppNavSidebarLink } from '@/components/app-nav/AppNavSidebarLink';
 import { linkIsActive } from '@/components/app-nav/linkIsActive';
-import { isNavFavorite } from '@/lib/nav-favorites';
+import { isNavFavorite } from '@/lib/app/nav-favorites';
 import type { AppNavSidebarViewModel } from '@/components/app-nav/useAppNavSidebar';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 type Props = Pick<
   AppNavSidebarViewModel,

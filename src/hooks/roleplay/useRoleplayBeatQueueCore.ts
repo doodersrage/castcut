@@ -3,14 +3,14 @@
 import { releaseInterruptedStoryWrites } from '@/hooks/roleplay/story-beat-edit';
 import { storyPoseForcePeople } from '@/lib/story/scene-people';
 
-import { composedPoseForScene } from '@/lib/pose-compose';
+import { composedPoseForScene } from '@/lib/pose/compose';
 import { queuedDayStillPrompt } from '@/lib/day/still-prompt';
 import {
   repairStillPrompt,
   stillPromptCheckRecord,
   stillPromptIssuesLine,
   type StillPromptCheck,
-} from '@/lib/still-prompt-audit';
+} from '@/lib/still/prompt-audit';
 import { storyLeadIsMan, storyPromptForManLead } from '@/lib/story/lead-gender';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
@@ -18,7 +18,7 @@ import {
   footwearIsBarefoot,
   footwearPromptLine,
   normalizeFootwear,
-} from '@/lib/footwear';
+} from '@/lib/wardrobe/footwear';
 import {
   DRESS_PLATE_SHOE_PASS_STATUS,
   dayDressPlateStatus,
@@ -28,12 +28,12 @@ import {
   stripOutfitLeadLines,
 } from '@/lib/day/dress-plate';
 import { setDressPlateActivity } from '@/lib/day/dress-plate-status';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { checkStillReferences } from '@/lib/reference-check-client';
-import { getCachedClothingLabel, humanizeClothingId } from '@/lib/clothing-catalog-client';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { checkStillReferences } from '@/lib/checks/reference-check-client';
+import { getCachedClothingLabel, humanizeClothingId } from '@/lib/wardrobe/clothing-catalog-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { applyCharacterRecord, castLoraSessionIds, getCharacter } from '@/lib/character-os';
+import { applyCharacterRecord, castLoraSessionIds, getCharacter } from '@/lib/character/os';
 import { storyCastLines, storyFamilyRomance, storyPeople } from '@/lib/story/cast-lines';
 import { upsertCharacterFromRoleplaySession } from '@/lib/play/cast';
 import {
@@ -45,7 +45,7 @@ import {
   loadSettingsCache,
   saveSharedSettings,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { type RoleplayToolCache } from '@/lib/play/settings';
 import {
   beginRoleplayStillRetryPatch,
@@ -70,28 +70,28 @@ import {
 } from '@/lib/story/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/story/roleplay-film';
 import { withStoryAdultAges } from '@/lib/story/adult-ages';
-import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
-import { storyRatingNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
-import type { CharacterAgeBand } from '@/lib/character-appearance';
+import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
+import { storyRatingNeedsAdultSafeguards } from '@/lib/adult/adult-appearance-gate';
+import type { CharacterAgeBand } from '@/lib/character/appearance';
 import { roleplaySceneWritePlan, storyHasBeat } from '@/lib/story/roleplay-story-write';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { dispatchWebhook } from '@/lib/webhook-settings';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
+import { dispatchWebhook } from '@/lib/settings/webhook-settings';
 import { snapshotRoleplaySession } from '@/lib/story/roleplay-library';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look/outfit-plate';
 import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day/pose-guide';
-import { customPoseFirstLine, customPoseWords } from '@/lib/pose-describe';
-import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
+import { customPoseFirstLine, customPoseWords } from '@/lib/pose/describe';
+import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose/guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
-} from '@/lib/klein-face-reference';
+} from '@/lib/engine/klein-face-reference';
 import { mergePickedPose, storyPoseSceneText } from '@/lib/day/slot-pose';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play/metrics';
-import { notePoseTakeQueued } from '@/lib/pose-outcome-stats';
+import { notePoseTakeQueued } from '@/lib/pose/outcome-stats';
 import {
   ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
@@ -99,21 +99,21 @@ import {
   promptGivesHandsAJob,
   poseLookLine,
   postureCueLine,
-} from '@/lib/pose-coaching';
-import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
-import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
-import { loadPoseLibrary } from '@/lib/pose-library';
-import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
-import { describePoseLeadPosition } from '@/lib/pose-guide-openpose';
+} from '@/lib/pose/coaching';
+import { DEFAULT_MIN_POSE_MATCH, POSE_MISMATCH_NUDGE } from '@/lib/pose/score';
+import { probeImageUrlDimensions } from '@/lib/storage/browser-image-dimensions';
+import { loadPoseLibrary } from '@/lib/pose/library';
+import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
+import { describePoseLeadPosition } from '@/lib/pose/guide-openpose';
 import type { StoryPoseGuideExpect } from '@/lib/story/roleplay-pose-check';
-import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
-import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
-import { poseGuideFailureReason } from '@/lib/pose-guide-status';
-import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
+import { loadPoseGuideStylePreference } from '@/lib/engine/render-realism-settings';
+import { poseGuideFailureReason } from '@/lib/pose/guide-status';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { resolveStoryNudeFaceFilename } from '@/lib/story/nude-face';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate/render-size';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
 

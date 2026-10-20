@@ -5,9 +5,9 @@ import RenderRealismHints from '@/components/RenderRealismHints';
 import AnatomyGuardHints from '@/components/AnatomyGuardHints';
 import { useState, useSyncExternalStore } from 'react';
 import { ChipButton } from '@/components/ui/Field';
-import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose-library';
-import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose-import-layouts';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/pose/library';
+import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose/import-layouts';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
 import GpuMatchCard from '@/components/settings/GpuMatchCard';
 import KleinEnhancerStatus, {
@@ -15,25 +15,25 @@ import KleinEnhancerStatus, {
   useKleinEnhancerNodes,
 } from '@/components/settings/KleinEnhancerStatus';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   MODEL_SAMPLER_PRESET_OPTIONS,
   normalizeModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
+} from '@/lib/model/sampler-defaults';
 import {
   RESOLUTION_ORIENTATION_CORE,
   RESOLUTION_ORIENTATION_OPTIONS,
   normalizeResolutionOrientation,
-} from '@/lib/model-resolution-defaults';
+} from '@/lib/model/resolution-defaults';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
-import { qualityForEveryToolPatch, summarizeToolQualities } from '@/lib/tool-quality-profiles';
+} from '@/lib/queue/quality-profile';
+import { qualityForEveryToolPatch, summarizeToolQualities } from '@/lib/app/tool-quality-profiles';
 import {
   normalizeStoredPoseGuideStyle,
   type PoseGuideStylePreference,
-} from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/guide-prompt';
 
 const POSE_GUIDE_STYLE_OPTIONS: Array<{
   id: PoseGuideStylePreference;
@@ -104,7 +104,7 @@ function PoseLibraryControl() {
     setStatus('Reading the pose…');
     try {
       // Loaded on demand: the import pulls in ComfyUI upload + pose detection.
-      const { importPoseFromPhoto } = await import('@/lib/pose-library-import');
+      const { importPoseFromPhoto } = await import('@/lib/pose/library-import');
       const result = await importPoseFromPhoto({ file, layout });
       setStatus(
         `Saved as ${result.key} (${result.people} ${result.people === 1 ? 'person' : 'people'}).`

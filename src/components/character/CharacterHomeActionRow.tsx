@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { loadPlayCampaignState } from '@/lib/play/campaign';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { CastExportButton } from '@/components/cast/CastTransferControls';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';

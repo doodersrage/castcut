@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { assertSafeHttpUrl, isWebhookPrivateAllowed } from '@/lib/url-safety';
-import { formatWebhookPayload } from '@/lib/webhook-payload';
-import type { WebhookJobPayload } from '@/lib/webhook-settings';
+import { assertSafeHttpUrl, isWebhookPrivateAllowed } from '@/lib/server/url-safety';
+import { formatWebhookPayload } from '@/lib/server/webhook-payload';
+import type { WebhookJobPayload } from '@/lib/settings/webhook-settings';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +10,7 @@ type DispatchBody = {
   url?: string;
   secret?: string;
   payload?: Record<string, unknown>;
-  template?: import('@/lib/webhook-payload').WebhookTemplate;
+  template?: import('@/lib/server/webhook-payload').WebhookTemplate;
 };
 
 export async function GET() {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       });
       // A public-looking name that resolves to a private address is refused too.
       if (!isWebhookPrivateAllowed()) {
-        const { assertPublicFetchUrl } = await import('@/lib/url-safety-server');
+        const { assertPublicFetchUrl } = await import('@/lib/server/url-safety-server');
         safeUrl = await assertPublicFetchUrl(safeUrl.toString());
       }
     } catch (error) {

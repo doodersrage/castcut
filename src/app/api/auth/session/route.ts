@@ -1,5 +1,5 @@
 import { apiJson } from '@/lib/api/response';
-import { rememberPublicAppOrigin } from '@/lib/public-app-origin';
+import { rememberPublicAppOrigin } from '@/lib/server/public-app-origin';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { announceSetupCode, setupCodeRequired } from '@/lib/auth/first-admin-setup';
 import {

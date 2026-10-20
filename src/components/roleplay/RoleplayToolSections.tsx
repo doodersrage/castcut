@@ -1,10 +1,10 @@
 'use client';
 
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 
 import SharedToolControls from '@/components/SharedToolControls';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
@@ -32,7 +32,7 @@ import {
   ToolSection,
 } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character/os';
 import { normalizeDayIntimateMix } from '@/lib/day/planner';
 import { playCampaignHref } from '@/lib/play/campaign';
 import {
@@ -44,7 +44,7 @@ import {
   roleplayMoodSummary,
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 import { useCallback, useMemo } from 'react';
 
 const ACCENT = 'amber' as const;

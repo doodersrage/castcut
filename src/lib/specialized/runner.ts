@@ -4,25 +4,25 @@ import {
   getComfyModelDefinition,
   type ComfyImageModel,
 } from '../comfy-models';
-import { getDetailLimits } from '../detail-level';
+import { getDetailLimits } from '../prompt/detail-level';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   resolveRequestTemplateFallback,
   resolveRequestTemperature,
-} from '../llm-request-options';
-import { chatCompletion } from '../llm-client';
-import { isThinkingOnlyArtifact, stripPromptArtifacts } from '../prompt-cleanup';
-import { ensureSinglePersonPrompt } from '../single-person';
+} from '../llm/request-options';
+import { chatCompletion } from '../llm/client';
+import { isThinkingOnlyArtifact, stripPromptArtifacts } from '../prompt/cleanup';
+import { ensureSinglePersonPrompt } from '../checks/single-person';
 import {
   sanitizeQwenPrompt,
   formatPromptForModel,
   trimPromptToMaxChars,
   compactPromptForProfile,
-} from '../qwen-clarity';
-import { expandSparsePromptWithLlm, needsSparsePromptExpand } from '../sparse-prompt-expand';
-import { withRawPrompt } from '../raw-prompt';
-import type { DetailLevel } from '../detail-level';
+} from '../engine/qwen-clarity';
+import { expandSparsePromptWithLlm, needsSparsePromptExpand } from '../prompt/sparse-prompt-expand';
+import { withRawPrompt } from '../prompt/raw-prompt';
+import type { DetailLevel } from '../prompt/detail-level';
 import type { ToolGenerateResult, ToolLimits } from './types';
 
 export function buildToolResult(
@@ -69,7 +69,7 @@ export async function runSpecializedPrompt(options: {
   llmModel?: string;
   /** false = template-only for this request/browser; undefined = server LLM_ENABLED default. */
   llmEnabled?: boolean;
-  llmProvider?: import('../llm-providers').SessionLlmProvider;
+  llmProvider?: import('../llm/providers').SessionLlmProvider;
   llmApiKey?: string;
   maxTokens?: number;
   metadata?: Record<string, unknown>;
@@ -185,7 +185,7 @@ async function finalizeSpecializedPrompt(
   postProcessPrompt?: (prompt: string) => string,
   allowSparseLlmExpand = false,
   llm?: {
-    llmProvider?: import('../llm-providers').SessionLlmProvider;
+    llmProvider?: import('../llm/providers').SessionLlmProvider;
     llmApiKey?: string;
     llmModel?: string;
   },

@@ -1,4 +1,4 @@
-import type { ExperimentGroup } from '../experiment-groups';
+import type { ExperimentGroup } from '../experiment/groups';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 
 const DEFAULT_WINDOW_MS = 45_000;

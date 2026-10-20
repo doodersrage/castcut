@@ -9,19 +9,19 @@ import {
   ANATOMY_REPAIR_CHANGE_DESCRIPTION,
   ANATOMY_REPAIR_MASK_DESCRIPTION,
   isAnatomyRepairHandoff,
-} from '@/lib/anatomy-repair-handoff';
+} from '@/lib/adult/anatomy-repair-handoff';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { buildInpaintInstruction } from '@/lib/regional-prompt-builder';
-import { isInpaintModel } from '@/lib/model-denoise-defaults';
-import { DEFAULT_INPAINT_TOOL_CACHE } from '@/lib/settings-cache';
-import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { buildInpaintInstruction } from '@/lib/prompt/regional-prompt-builder';
+import { isInpaintModel } from '@/lib/model/denoise-defaults';
+import { DEFAULT_INPAINT_TOOL_CACHE } from '@/lib/settings/cache';
+import { createDefaultRegionalSlots } from '@/lib/prompt/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { sharedPatchFromGalleryHandoff } from '@/lib/gallery/handoff';
-import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision/still-scan-client';
 
 const DEFAULT_INPAINT_MODEL: ComfyImageModel = 'flux-inpaint';
 

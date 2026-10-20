@@ -1,4 +1,4 @@
-import type { UserAnalyticsSnapshot } from '../user-analytics';
+import type { UserAnalyticsSnapshot } from '../user/analytics';
 import {
   loadAnalyticsHistory,
   loadAnalyticsSnapshots,

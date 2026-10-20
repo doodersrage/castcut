@@ -6,7 +6,7 @@
 
 import { roleplayWatchPlaylist } from '../film/character-film';
 import { narrationSeconds, NARRATION_MAX_CHARS } from '../film/narration';
-import type { FilmPlaylistShot } from '../media-kind';
+import type { FilmPlaylistShot } from '../media/kind';
 import type { RoleplayStoryBeat } from './roleplay';
 
 /** Seconds of a "Previously on" shot (as Day's). */

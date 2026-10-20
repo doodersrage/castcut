@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { takeCastVoiceFromClip } from '@/lib/cast/voice';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 export const TAKE_VOICE_DONE = 'Voice kept. Cast → Voice → “Steer talking clips” uses it in clips.';
 

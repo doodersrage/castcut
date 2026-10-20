@@ -15,7 +15,7 @@ import {
   saveCastProps,
   type CastProp,
 } from '@/lib/cast/props';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 
 /**
  * Cast → Props: her phone, bag, car, dog… described once (cast-props.ts). A Day still whose beat

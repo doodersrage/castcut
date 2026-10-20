@@ -2,12 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import BackgroundPresetControls from '@/components/BackgroundPresetControls';
-import { applySceneStarterWorkflowHints } from '@/lib/scene-starter-workflow-hints';
-import { isSportStarterPreset } from '@/lib/sport-presets';
+import { applySceneStarterWorkflowHints } from '@/lib/scene/starter-workflow-hints';
+import { isSportStarterPreset } from '@/lib/scene/sport-presets';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { ChipButton, FieldDivider, FieldLabel } from '@/components/ui/Field';
 import { SceneQuickTags } from '@/components/scene-tool/SceneToolSections';
-import { accentFocusClass } from '@/lib/tool-theme';
+import { accentFocusClass } from '@/lib/app/tool-theme';
 import {
   presetVariantForSceneMode,
   type useCharacterToolOrchestration,

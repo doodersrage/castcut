@@ -1,4 +1,4 @@
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { loadEngineSettings } from '@/lib/engine/settings';
 import { comfyEngineAdapter } from './comfy-adapter';
 import { diffusersEngineAdapter } from './diffusers-adapter';
 import { falEngineAdapter } from './fal-adapter';

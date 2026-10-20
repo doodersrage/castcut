@@ -4,7 +4,7 @@
  * face crop / dressed plate made from it) and its outfit. Unset, or the active look, the slot
  * queues exactly as before: the same record, plate and outfit picks come back.
  */
-import { activeLook, characterWithLook, looksOf, type CharacterRecord } from '../character-os';
+import { activeLook, characterWithLook, looksOf, type CharacterRecord } from '../character/os';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import { resolveDayPlate, resolveDayPlateForIsolate, type DayPlate } from './plate';
 import type { DaySlot } from './planner';

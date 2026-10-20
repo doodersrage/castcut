@@ -1,6 +1,6 @@
 'use client';
 
-import { PRODUCT_NAME } from '@/lib/brand';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 
 type BrandMarkProps = {
   className?: string;

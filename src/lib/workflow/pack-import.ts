@@ -5,15 +5,15 @@ import {
   type ComfyWorkflowFile,
 } from '../comfyui/workflow-files';
 import { inferModelsFromWorkflowLabel } from './category-defaults';
-import { assignWorkflowToInferredModels } from '../model-workflow-map';
-import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from '../settings-cache';
+import { assignWorkflowToInferredModels } from '../model/workflow-map';
+import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from '../settings/cache';
 import {
   inferWorkflowGraphKind,
   mergeInferredModels,
   suggestMediaCustomTokens,
   type WorkflowGraphKind,
 } from './graph-kind';
-import { isWorkflowJsonFileName, isZipFileName, readZipTextEntries } from '../zip-read';
+import { isWorkflowJsonFileName, isZipFileName, readZipTextEntries } from '../storage/zip-read';
 import type { ComfyImageModel } from '../comfy-models/client';
 import type { WorkflowPlaceholderTokens } from '../comfyui/config';
 

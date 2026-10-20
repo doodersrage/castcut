@@ -33,9 +33,9 @@ import {
   upscaleMethodForProfile,
   upscaleScaleForProfile,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
-import { isFluxFineTuneCheckpointModel } from '../model-checkpoint-map';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
+} from '../queue/quality-profile';
+import { isFluxFineTuneCheckpointModel } from '../model/checkpoint-map';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import {
   isModelSamplingFluxNode,
   isModelSamplingPatchNode,
@@ -45,8 +45,8 @@ import {
   MODEL_SAMPLING_FLUX_NODE_TYPE,
 } from './model-sampling-patch';
 import { IMAGE_SCALE_BY_NODE_TYPE } from './direct-patch';
-import { isUpscaleModelInstalled, pickUpscaleModelFromInventory } from '../model-upscale-map';
-import { pickSdxlRefinerFromInventory } from '../model-checkpoint-map';
+import { isUpscaleModelInstalled, pickUpscaleModelFromInventory } from '../model/upscale-map';
+import { pickSdxlRefinerFromInventory } from '../model/checkpoint-map';
 import type { WorkflowQueueOptimizeChange } from './queue-optimizer';
 import {
   isAppEnrichedNode,

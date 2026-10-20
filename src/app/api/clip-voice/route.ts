@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { dubClipWithVoice } from '@/lib/clip-dub-server';
+import { dubClipWithVoice } from '@/lib/clip/dub-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 280;

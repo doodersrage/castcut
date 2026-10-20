@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { WorkflowPlaceholderTokens } from "../comfyui/config";
-import { DEFAULT_UNET_TOKEN } from "../model-checkpoint-map";
+import { DEFAULT_UNET_TOKEN } from "../model/checkpoint-map";
 import { zImageScaffold } from "./scaffold-zimage-boogu";
 
 type NodeLike = { class_type?: string; inputs?: Record<string, unknown>; _meta?: { title?: string } };

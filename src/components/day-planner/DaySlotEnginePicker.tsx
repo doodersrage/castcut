@@ -7,10 +7,10 @@ import {
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui/object-info-cache';
 import { DAY_SLOT_ENGINES, type DaySlot, type DaySlotId } from '@/lib/day/planner';
-import { installedComfyModels } from '@/lib/model-picker';
+import { installedComfyModels } from '@/lib/model/picker';
 import { pinnedEngineModel, POSE_REPORT_ENGINE_LABELS } from '@/lib/pose/pose-engine-report';
 import { poseModelFamily } from '@/lib/pose/pose-model-profile';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 function readInstalled(
   inventory: ReturnType<typeof readCachedComfyObjectInfoModels>

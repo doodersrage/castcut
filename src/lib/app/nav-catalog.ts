@@ -1,0 +1,229 @@
+/** Shared nav catalog for AppNav + Command Palette. */
+
+import { APP_HAS_PLAY, appOffersRoute } from './profile';
+
+export type AppNavLink = {
+  href: string;
+  label: string;
+  description: string;
+};
+
+export type AppNavGroup = {
+  label: string;
+  links: AppNavLink[];
+};
+
+/** Collapsed sidebar group for rarely used and parked tools (still reachable via ⌘K / URL). */
+export const APP_NAV_EXTRAS_GROUP_LABEL = 'More tools';
+
+/**
+ * Grouped around the Film loop (Cast → Look → Outfit → Day → Story → Film), then making and
+ * editing images, then the library. Rarely used tools sit under More tools (collapsed).
+ */
+const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
+  {
+    label: 'Film',
+    links: [
+      {
+        href: '/play',
+        label: 'Film',
+        description: 'Pick who it’s about, plan their Day, cut the film',
+      },
+      {
+        href: '/characters',
+        label: 'Cast',
+        description: 'Everyone you make films with',
+      },
+      { href: '/fitting', label: 'Outfit', description: 'Try clothes on, keep the one you like' },
+      {
+        href: '/day',
+        label: 'Day',
+        description: 'Plan the scenes and render the stills',
+      },
+      {
+        href: '/story',
+        label: 'Story',
+        description: 'What happens next, scene by scene',
+      },
+      {
+        href: '/cut',
+        label: 'Cut',
+        description: 'Put the shots together into the film',
+      },
+      {
+        href: '/character',
+        label: 'Character',
+        description: 'Person, pet, fantasy, or environment — switch on the page',
+      },
+    ],
+  },
+  {
+    label: 'Create',
+    links: [
+      { href: '/', label: 'Generate', description: 'Keywords or random scene' },
+      { href: '/prompt', label: 'Prompt Editor', description: 'Edit & optimize' },
+      { href: '/image-prompt', label: 'Image → Prompt', description: 'Vision upload' },
+      { href: '/video', label: 'Video', description: 'Motion prompts' },
+      { href: '/variations', label: 'Variations', description: 'Grid queue and matrix sweeps' },
+    ],
+  },
+  {
+    label: 'Edit',
+    links: [
+      { href: '/refine', label: 'Refine', description: 'Image + intent fix' },
+      { href: '/inpaint', label: 'Inpaint', description: 'Mask + region prompt' },
+      { href: '/outpaint', label: 'Outpaint', description: 'Expand canvas borders' },
+      { href: '/compose', label: 'Compose', description: 'Multi-image transfer & edit' },
+      { href: '/controlnet', label: 'ControlNet', description: 'Structure prompts' },
+    ],
+  },
+  {
+    label: 'Library',
+    links: [
+      { href: '/gallery', label: 'Gallery', description: 'Everything you’ve made' },
+      { href: '/queue', label: 'Queue', description: 'What’s rendering now, and what failed' },
+      { href: '/dashboard', label: 'Dashboard', description: 'Jobs, queue & recent outputs' },
+      { href: '/studio', label: 'Studio', description: 'History, presets, and compare' },
+    ],
+  },
+  {
+    label: APP_NAV_EXTRAS_GROUP_LABEL,
+    links: [
+      { href: '/format', label: 'Format', description: 'Draft → model-ready' },
+      { href: '/lint', label: 'Lint', description: 'Diagnostics & fix' },
+      { href: '/negative', label: 'Negative', description: 'SD negatives' },
+      { href: '/workflow-editor', label: 'Workflow editor', description: 'Edit Comfy node graphs' },
+      { href: '/plugins', label: 'Plugins', description: 'Runtime manifests and nav bookmarks' },
+      {
+        href: '/m',
+        label: 'Castcut phone',
+        description: 'Phone film loop — Film hub, Look, Outfit, Day, Story + Cut',
+      },
+      {
+        href: '/topics',
+        label: 'Topics',
+        description: 'Idea list — parked specialty; prefer Generate / Film',
+      },
+      {
+        href: '/audio',
+        label: 'Audio',
+        description: 'Sound / music prompts — parked specialty tool',
+      },
+      {
+        href: '/mesh',
+        label: '3D Mesh',
+        description: 'Image → mesh prompts — parked specialty tool',
+      },
+      {
+        href: '/logo',
+        label: 'Logo',
+        description: 'SVG marks & raster logo prompts — parked specialty tool',
+      },
+    ],
+  },
+];
+
+/** The Film group is Castcut's (Play); the classic app lists the tools only (app-profile.ts). */
+export const APP_NAV_GROUPS: AppNavGroup[] = ALL_APP_NAV_GROUPS.filter(
+  group => APP_HAS_PLAY || group.label !== 'Film'
+)
+  .map(group => ({ ...group, links: group.links.filter(link => appOffersRoute(link.href)) }))
+  .filter(group => group.links.length > 0);
+
+export const APP_NAV_SETTINGS_LINK: AppNavLink = {
+  href: '/settings',
+  label: 'Settings',
+  description: 'Health & ComfyUI',
+};
+
+export const APP_NAV_PROFILE_LINK: AppNavLink = {
+  href: '/profile',
+  label: 'Profile',
+  description: 'Appearance & account',
+};
+
+/** Legacy scene routes — command palette only; Character page switcher covers these families. */
+export const APP_NAV_SCENE_ALIASES: AppNavLink[] = [
+  {
+    href: '/background',
+    label: 'Background (scene)',
+    description: 'Environment-only — opens Background tool',
+  },
+  { href: '/pet', label: 'Pet (scene)', description: 'Dogs, cats & more — opens Pet tool' },
+  { href: '/fantasy', label: 'Fantasy (scene)', description: 'Magic & myth — opens Fantasy tool' },
+];
+
+/** Soft-deprecated specialty hrefs (Extras group + legacy scene aliases). */
+export const APP_NAV_PARKED_HREFS = [
+  '/topics',
+  '/audio',
+  '/mesh',
+  '/logo',
+  '/pet',
+  '/fantasy',
+  '/background',
+] as const;
+
+export function isParkedNavHref(href: string): boolean {
+  const path = href.split('?')[0] || '/';
+  return (APP_NAV_PARKED_HREFS as readonly string[]).includes(path);
+}
+
+export function flattenAppNavLinks(
+  groups: AppNavGroup[] = APP_NAV_GROUPS,
+  options?: { includeSceneAliases?: boolean }
+): AppNavLink[] {
+  const links = groups.flatMap(group => group.links);
+  if (!options?.includeSceneAliases) {
+    return links;
+  }
+  const seen = new Set(links.map(link => link.href.split('?')[0] ?? link.href));
+  for (const alias of APP_NAV_SCENE_ALIASES) {
+    const path = alias.href.split('?')[0] ?? alias.href;
+    if (seen.has(path)) {
+      continue;
+    }
+    seen.add(path);
+    links.push(alias);
+  }
+  return links;
+}
+
+/**
+ * Append plugin-contributed links into the Library group, skipping hrefs already
+ * present in the catalog (path match, query ignored).
+ */
+export function mergePluginLinksIntoNav(
+  groups: AppNavGroup[] = APP_NAV_GROUPS,
+  pluginLinks: AppNavLink[]
+): AppNavGroup[] {
+  if (!pluginLinks.length) {
+    return groups;
+  }
+  const existing = new Set(
+    groups.flatMap(group => group.links.map(link => link.href.split('?')[0] ?? link.href))
+  );
+  const unique = pluginLinks.filter(link => {
+    const path = link.href.split('?')[0] ?? link.href;
+    if (existing.has(path)) {
+      return false;
+    }
+    existing.add(path);
+    return true;
+  });
+  if (!unique.length) {
+    return groups;
+  }
+  let merged = false;
+  const next = groups.map(group => {
+    if (group.label !== 'Library' && group.label !== 'Tools') {
+      return group;
+    }
+    merged = true;
+    return { ...group, links: [...group.links, ...unique] };
+  });
+  if (merged) {
+    return next;
+  }
+  return [...next, { label: 'Plugins', links: unique }];
+}

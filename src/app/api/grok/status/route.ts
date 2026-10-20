@@ -1,4 +1,4 @@
-import { llmImageStatusHandlers } from '@/lib/llm-image-routes';
+import { llmImageStatusHandlers } from '@/lib/llm/image-routes';
 
 const handlers = llmImageStatusHandlers('grok');
 

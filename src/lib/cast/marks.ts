@@ -15,7 +15,7 @@ import {
   type CastMark,
   type CastMarkSpot,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export const CAST_MARK_SPOTS: readonly CastMarkSpot[] = [
   'face',

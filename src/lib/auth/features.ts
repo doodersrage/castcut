@@ -1,4 +1,4 @@
-import { appHasRoute } from '../app-profile';
+import { appHasRoute } from '../app/profile';
 
 export const APP_FEATURES = [
   { id: 'dashboard', label: 'Dashboard', description: 'Home dashboard and queue overview' },

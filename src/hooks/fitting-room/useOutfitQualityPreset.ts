@@ -12,8 +12,8 @@ import {
   type OutfitQualityPresetChoice,
   type OutfitQualitySettings,
 } from '@/lib/fitting/outfit-quality-preset';
-import type { RenderQuality } from '@/lib/render-quality';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { RenderQuality } from '@/lib/engine/render-quality';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { FittingToolCache } from '@/lib/play/settings';
 
 /**

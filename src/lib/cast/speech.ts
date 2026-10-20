@@ -14,7 +14,7 @@ import {
   type CastPronunciation,
   type CastSpeech,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export type { CastPronunciation, CastSpeech };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { recommendModels, type ModelRecommendation } from '@/lib/model-recommender';
+import { recommendModels, type ModelRecommendation } from '@/lib/model/recommender';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 

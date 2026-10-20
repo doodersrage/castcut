@@ -7,7 +7,7 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui/live-preview-store';
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import {

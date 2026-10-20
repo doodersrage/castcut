@@ -10,8 +10,8 @@
  * Keep each placement concrete (who lies/sits/stands where, facing which way, what touches
  * what). Do not add "never …" locks: CFG 1 has no negative, and naming a thing summons it.
  */
-import { beatLiesDown } from '../beat-text';
-import { danceMoveWords } from '../dance-move';
+import { beatLiesDown } from '../prompt/beat-text';
+import { danceMoveWords } from '../pose/dance-move';
 import { herToHisHim, masculineClothes, swapDayPromptGender } from '@/lib/day/lead-gender';
 import { dayPartnerRecipeLine, type DayPartner, type DayPartnerNoun } from '@/lib/day/partner';
 import {
@@ -24,24 +24,24 @@ import {
   impliedNudityDuoCoverageLine,
   suggestiveBeatIsImpliedNudity,
   suggestiveCoverageLine,
-} from '../clothed-coverage';
-import { stripNegatedClauses } from '../negated-clauses';
-import { poseSurfaces, sceneSurfaces, sceneVenue, surfaceFitsVenue } from '../scene-surface';
+} from '../wardrobe/clothed-coverage';
+import { stripNegatedClauses } from '../prompt/negated-clauses';
+import { poseSurfaces, sceneSurfaces, sceneVenue, surfaceFitsVenue } from '../scene/surface';
 import {
   isFloorSurface,
   ORAL_SEAT_RE,
   oralSeat,
   rapidDuoSurface,
   sheGivesOral,
-} from '../rapid-oral-pose';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
+} from '../pose/rapid-oral-pose';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import {
   RAPID_DUO_RECIPE_MARK,
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
   DAY_CLOTHED_RECIPE_MARK,
   RAPID_VACATION_RECIPE_MARK,
-} from '../prompt-recipe-mark';
+} from '../prompt/recipe-mark';
 
 /** Scissoring words in a beat — the still renders the missionary pose instead (Rapid can't draw it). */
 export const RAPID_SCISSORS_FALLBACK_RE =
@@ -88,9 +88,9 @@ export {
   RAPID_SOLO_RECIPE_MARK,
   RAPID_SUGGESTIVE_RECIPE_MARK,
   RAPID_VACATION_RECIPE_MARK,
-} from '../prompt-recipe-mark';
+} from '../prompt/recipe-mark';
 
-export { rapidDuoSurface } from '../rapid-oral-pose';
+export { rapidDuoSurface } from '../pose/rapid-oral-pose';
 
 /** Windows, glass doors and mirrors — a back-to-the-glass pose turns into a sill perch. */
 function isGlassSurface(surface: string | null): boolean {
@@ -1899,4 +1899,4 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     .replace(/\.\./g, '.');
 }
 
-export { beatLiesDown } from '../beat-text';
+export { beatLiesDown } from '../prompt/beat-text';

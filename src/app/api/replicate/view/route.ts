@@ -5,8 +5,8 @@ import {
   isAnimatedImageBytes,
   isHtmlVideoContentType,
 } from '@/lib/comfyui/outputs';
-import { ensureReplicateOutput } from '@/lib/replicate-client';
-import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/url-safety';
+import { ensureReplicateOutput } from '@/lib/cloud/replicate-client';
+import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/server/url-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

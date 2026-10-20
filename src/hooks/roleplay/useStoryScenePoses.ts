@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { resolveStoryScenePose, type StoryScenePose } from '@/hooks/roleplay/story-scene-pose';
 import { usePoseLibrary } from '@/hooks/usePoseLibrary';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
-import { poseGuideStyleForModel } from '@/lib/pose-guide-prompt';
+import { poseGuideStyleForModel } from '@/lib/pose/guide-prompt';
 import { MAX_ROLEPLAY_STORY_BEATS, type RoleplayScene } from '@/lib/story/roleplay';
 
 const NO_POSES: ReadonlyMap<string, StoryScenePose> = new Map();

@@ -7,14 +7,14 @@ import {
   getServerCharactersSnapshot,
   looksOf,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   DEFAULT_COMPOSE_IDENTITY_KIND,
   DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
   type ComposeIdentityKind,
-} from '@/lib/compose-identity-lock';
+} from '@/lib/prompt/compose-identity-lock';
 import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
 import { persistIdentityImage } from '@/lib/gallery/media-client';
 import {
@@ -22,8 +22,8 @@ import {
   lockOnLookFace,
   lookLockLabel,
   type IdentityLockSource,
-} from '@/lib/identity-lock-look';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+} from '@/lib/character/identity-lock-look';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 
 const IDENTITY_KINDS: Array<{ id: ComposeIdentityKind; label: string }> = [
   { id: 'ipadapter', label: 'IP-Adapter' },

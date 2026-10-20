@@ -19,9 +19,9 @@ import {
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
   loadImageBlobFromUrls,
   normalizeIsolateSubject,
-} from '@/lib/isolate-subject';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/edit/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { DayToolCache } from '@/lib/play/settings';
 
 type DayPlateIsolateCacheFields = Pick<

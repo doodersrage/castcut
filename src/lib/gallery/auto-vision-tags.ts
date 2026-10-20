@@ -7,8 +7,8 @@ import {
 } from './comfyui-gallery';
 import { loadComfyUiSettings } from '../comfyui/settings';
 import { galleryUploadPromptLooksGeneric } from './local-import';
-import { sharedLlmRequestBody } from '../llm-request-options';
-import { loadSettingsCache } from '../settings-cache';
+import { sharedLlmRequestBody } from '../llm/request-options';
+import { loadSettingsCache } from '../settings/cache';
 
 /**
  * Why tagging is off for this page (no vision model), or null. Every landed still asked again and

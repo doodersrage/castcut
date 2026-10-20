@@ -7,18 +7,18 @@ import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import type { ComfyLoraInventoryFile } from '@/lib/comfyui/object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { loraChangesFaceAt } from '@/lib/lora-check';
-import { LORA_FAMILY_LABELS, type LoraFamily } from '@/lib/lora-family-detect';
+import { loraChangesFaceAt } from '@/lib/lora/check';
+import { LORA_FAMILY_LABELS, type LoraFamily } from '@/lib/lora/family-detect';
 import {
   loraStackMembership,
   normalizeLoraStackPresets,
   type LoraScanRow,
   type LoraUsageStats,
-} from '@/lib/lora-library-tools';
-import { fetchLoraScanRows } from '@/lib/lora-scan-client';
-import { isLightningLibraryEntry, type LoraLibraryEntry } from '@/lib/lora-stack';
-import { loraModelFilterLabel } from '@/lib/lora-model-compat';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/lora/library-tools';
+import { fetchLoraScanRows } from '@/lib/lora/scan-client';
+import { isLightningLibraryEntry, type LoraLibraryEntry } from '@/lib/lora/stack';
+import { loraModelFilterLabel } from '@/lib/lora/model-compat';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 type Status = 'all' | 'active' | 'unused' | 'flagged' | 'not-added';
 

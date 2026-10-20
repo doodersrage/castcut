@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { SETTINGS_TABS, type SettingsTab, type SettingsTabDefinition } from '@/lib/settings-nav';
+import { SETTINGS_TABS, type SettingsTab, type SettingsTabDefinition } from '@/lib/settings/nav';
 import { ToolMetaPanel } from '@/components/ui/ToolPageShell';
 
 export default function SettingsSubNav({

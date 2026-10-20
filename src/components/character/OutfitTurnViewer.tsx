@@ -6,7 +6,7 @@ import {
   turnLoop,
   TURN_SIGNATURE_H,
   TURN_SIGNATURE_W,
-} from '@/lib/outfit-turn';
+} from '@/lib/wardrobe/outfit-turn';
 
 /** Frames read from the clip per second (LTX and H3 clips are 24 fps). */
 const READ_FPS = 24;

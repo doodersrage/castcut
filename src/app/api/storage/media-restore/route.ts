@@ -1,13 +1,13 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { mediaBackupComfyUrl, mediaBackupRequestOwner } from '@/lib/media-backup-route';
+import { mediaBackupComfyUrl, mediaBackupRequestOwner } from '@/lib/storage/media-backup-route';
 import {
   appendMediaRestoreChunk,
   getMediaRestoreJob,
   mediaRestoreUploadedBytes,
   startMediaRestoreJob,
   startMediaRestoreUpload,
-} from '@/lib/media-backup-server';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+} from '@/lib/storage/media-backup-server';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

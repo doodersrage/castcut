@@ -6,7 +6,7 @@ import {
   downloadPicturesBackup,
   restorePicturesBackup,
   type MediaRestoreProgress,
-} from '@/lib/media-backup-client';
+} from '@/lib/storage/media-backup-client';
 
 function gb(bytes: number): string {
   return bytes >= 1024 ** 3

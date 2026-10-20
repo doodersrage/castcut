@@ -12,7 +12,7 @@ import {
   normalizeDayIntimateMix,
   type DayIntimateMix,
 } from '@/lib/day/planner';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import {
   isRoleplayAdultContent,
   type RoleplayContentId,

@@ -2,22 +2,22 @@
 
 import { useCallback, useState } from 'react';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { looksLikeVideoUrl } from '@/lib/media-kind';
-import { extractVideoLastFrame } from '@/lib/video-last-frame';
-import { preferCloudForVideoStillHandoff } from '@/lib/video-still-handoff';
-import { canFalExtendFromParentUrl, type VideoClipMode } from '@/lib/video-clip-mode';
-import { loadEngineSettings, saveEngineSettings } from '@/lib/engine-settings';
+import { looksLikeVideoUrl } from '@/lib/media/kind';
+import { extractVideoLastFrame } from '@/lib/video/last-frame';
+import { preferCloudForVideoStillHandoff } from '@/lib/video/still-handoff';
+import { canFalExtendFromParentUrl, type VideoClipMode } from '@/lib/video/clip-mode';
+import { loadEngineSettings, saveEngineSettings } from '@/lib/engine/settings';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { isVideoModel } from '@/lib/queue-tool-model';
+import { isVideoModel } from '@/lib/queue/tool-model';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   parseVisionScanApiResponse,
   prepareVisionScanImagePayload,
   resolveStillFileForVisionScan,
-} from '@/lib/vision-scan-still';
+} from '@/lib/vision/scan-still';
 
 export const LOCAL_INIT_IMAGE_MARKER = 'local-upload';
 

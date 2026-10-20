@@ -1,7 +1,7 @@
 import { generateLogoPrompt } from '@/lib/specialized/logo-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import { normalizeSharedGenerationOptions } from '@/lib/specialized/normalize';
-import type { LogoMotifId, LogoStylePresetId } from '@/lib/logo-presets';
+import type { LogoMotifId, LogoStylePresetId } from '@/lib/app/logo-presets';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { writeDayEventPlan } from '@/lib/day/event-server';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 
 export const runtime = 'nodejs';
 

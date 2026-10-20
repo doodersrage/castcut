@@ -1,22 +1,22 @@
 'use client';
 
 import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day/dub';
-import { holdJobCompletionEmail } from '@/lib/job-completion-email';
+import { holdJobCompletionEmail } from '@/lib/server/job-completion-email';
 import { pronounceForCast } from '@/lib/cast/speech';
 import { previouslyOnShots } from '@/lib/play/series';
 import { widenStillForFilm } from '@/lib/film/widen-client';
-import { isH3Model } from '@/lib/h3-renderer';
+import { isH3Model } from '@/lib/engine/h3-renderer';
 import { makeFilmAngles } from '@/lib/film/angles-client';
 import { castVoiceOf } from '@/lib/cast/voice';
 import { renderNarrationLine } from '@/lib/film/narration-client';
 import { applyDayNarration, type DayNarrationLine } from '@/lib/day/narration';
-import { filmShapeOf } from '@/lib/video-resolution';
+import { filmShapeOf } from '@/lib/video/resolution';
 import {
   framedTalkingStill,
   talkingStillFraming,
   talkingStillBody,
-} from '@/lib/talking-clip-framing-client';
-import { stillWordsSeated } from '@/lib/talking-clip-framing';
+} from '@/lib/clip/talking-clip-framing-client';
+import { stillWordsSeated } from '@/lib/clip/talking-clip-framing';
 import {
   isLtx25Model,
   ROOM_SOUND_UNDER_TALKING,
@@ -28,7 +28,7 @@ import {
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
   normalizeSpokenLine,
   talkingClipPrompt,
-} from '@/lib/ltx25-renderer';
+} from '@/lib/video/ltx25-renderer';
 import { castVoiceSampleFor } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
@@ -38,18 +38,18 @@ import {
   requestDayPremiseBeats,
   type DayPremiseBeat,
 } from '@/lib/day/premise';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
   clearDayEventSlots,
   dayEventClipPrompt,
   dayEventMomentWords,
   activeDayEvent,
 } from '@/lib/day/event';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
 import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day/end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
-import { resolveQueueInputImageFilename } from '@/lib/queue-input-image';
+import { resolveQueueInputImageFilename } from '@/lib/queue/input-image';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film/cut-plan';
 import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
@@ -58,10 +58,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { parseCharacterHints } from '@/lib/character-hints';
+import { parseCharacterHints } from '@/lib/character/hints';
 import {
   assembleAndStampFilm,
   downloadFilmBlob,
@@ -74,14 +74,14 @@ import {
   castLoraSessionIds,
   getCharacter,
   upsertCharacter,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
-import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
+import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
 import {
   fetchClothingLabels,
   fetchClothingSelectOptions,
   getCachedClothingLabel,
-} from '@/lib/clothing-catalog-client';
+} from '@/lib/wardrobe/clothing-catalog-client';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
@@ -105,21 +105,21 @@ import {
   isDayAdultMood,
 } from '@/lib/day/planner';
 import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day/clip-direction';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { stillPromptPeople } from '@/lib/still-clip-prompt';
+import { stillPromptPeople } from '@/lib/still/clip-prompt';
 import {
   DAY_CLIP_EXTRA_SECONDS,
   dayClipFrames,
   dayClipSeconds,
   normalizeDayClipExtraSeconds,
 } from '@/lib/day/clip-length';
-import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult-age-safeguard';
+import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import {
   applyLookPackToDaySlots,
   loadLookPack,
@@ -133,16 +133,16 @@ import { applyRemixDayFilmState, remixNewOutfitHref } from '@/lib/play/starter';
 import { dayThemeById, type DayRemixKind } from '@/lib/play/remix';
 import { recordDayFilmEpisode } from '@/lib/play/series';
 import { exportFilmPoster, pickPosterStillUrl } from '@/lib/film/poster';
-import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/mobile-studio';
+import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/app/mobile-studio';
 import { markComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { planAppBurst } from '@/lib/comfyui/comfy-model-turn';
 import { buildDemoDayStills } from '@/lib/film/welcome-sample-film';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look/outfit-plate';
 import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { clearDayVacationFaceBreakCache } from '@/lib/day/vacation-face-crop';
@@ -153,22 +153,22 @@ import {
   updateSavedFittingGarmentDescription,
 } from '@/lib/fitting/saved-garments';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
-import { scanStillWithVision } from '@/lib/vision-still-scan-client';
-import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
+import { scanStillWithVision } from '@/lib/vision/still-scan-client';
+import { resolveStillFileForVisionScan } from '@/lib/vision/scan-still';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
 
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { filmResolutionForCutOptions } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions } from '@/lib/video/resolution';
 
 export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestrationCore) {
   const {
@@ -1078,7 +1078,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         }
         markOnboardingFirstPlayCampaign();
         const firstCut = markOnboardingFirstFilmCut();
-        void import('@/lib/local-observability').then(
+        void import('@/lib/server/local-observability').then(
           ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
             noteFilmCutSourceMetric('day');
             if (character && result.persisted) {
@@ -1090,7 +1090,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           completePlayCampaign({ characterId: character.id, stepId: 'day' });
         }
         if (firstCut) {
-          void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+          void import('@/lib/app/system-tray-celebrate').then(({ celebrateSystemTray }) => {
             celebrateSystemTray('job');
           });
           setFirstCutCelebrate(true);
@@ -1264,7 +1264,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       ...loadSettingsCache().shared,
       ...applyCharacterRecord(next),
     });
-    void import('@/lib/local-observability').then(({ noteSaveToCastMetric }) => {
+    void import('@/lib/server/local-observability').then(({ noteSaveToCastMetric }) => {
       noteSaveToCastMetric();
     });
     if (!film?.data?.length) {
@@ -1329,7 +1329,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setFilmStatus('Demo stills loaded — cutting film…');
     setError(null);
     pendingAutoCutRef.current = true;
-    void import('@/lib/local-observability').then(({ noteDemoDayStillsMetric }) => {
+    void import('@/lib/server/local-observability').then(({ noteDemoDayStillsMetric }) => {
       noteDemoDayStillsMetric();
     });
   }, [setError, setFilmStatus, shared.activeCharacterId, updateToolSettings, stillsRef]);
@@ -1598,7 +1598,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         router.replace(dayToolHref(next));
         return;
       }
-      void import('@/lib/local-observability').then(({ noteStarterDayQueueMetric }) => {
+      void import('@/lib/server/local-observability').then(({ noteStarterDayQueueMetric }) => {
         noteStarterDayQueueMetric();
       });
       await queueAll().finally(() => {

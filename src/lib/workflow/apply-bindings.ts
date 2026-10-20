@@ -24,13 +24,13 @@ import {
   DEFAULT_CHECKPOINT_TOKEN,
   DEFAULT_UNET_TOKEN,
   DEFAULT_VAE_TOKEN,
-} from '../model-checkpoint-map';
-import { DEFAULT_UPSCALE_MODEL_TOKEN } from '../model-upscale-map';
+} from '../model/checkpoint-map';
+import { DEFAULT_UPSCALE_MODEL_TOKEN } from '../model/upscale-map';
 import {
   DEFAULT_CONTROLNET_MODEL_TOKEN,
   DEFAULT_CONTROL_IMAGE_TOKEN,
-} from '../model-controlnet-map';
-import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from '../audio-mesh-prompt';
+} from '../model/controlnet-map';
+import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from '../audio/mesh-prompt';
 import {
   countLoadImageNodes,
   figureIndexForLoadImageBinding,

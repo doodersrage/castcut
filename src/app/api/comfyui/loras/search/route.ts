@@ -3,7 +3,7 @@ import {
   buildCivitaiSearchUrl,
   mapCivitaiSearchItems,
   sanitizeCivitaiBaseModel,
-} from '@/lib/civitai-lora';
+} from '@/lib/lora/civitai-lora';
 
 export const runtime = 'nodejs';
 

@@ -3,19 +3,19 @@ import type { ComfyImageModel } from '../comfy-models/client';
 import {
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
-} from '../compose-identity-lock';
-import { normalizeSessionLoraStrengthOverrides } from '../lora-stack';
+} from '../prompt/compose-identity-lock';
+import { normalizeSessionLoraStrengthOverrides } from '../lora/stack';
 import {
   setSessionLoraIdsForModel,
   setSessionLoraStrengthOverridesForModel,
-} from '../model-lora-map';
-import { inferResolutionOrientationAndTier } from '../model-resolution-defaults';
-import { pickModelSamplerOverrideFields } from '../model-sampler-defaults';
-import { normalizeQueueQualityProfile } from '../queue-quality-profile';
-import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from '../settings-cache';
-import { buildSessionRecipeFromShared, pushSessionRecipe } from '../session-recipes';
-import { embeddingStem } from '../textual-inversion';
-import { saveGenerateHandoff } from '../generate-handoff';
+} from '../model/lora-map';
+import { inferResolutionOrientationAndTier } from '../model/resolution-defaults';
+import { pickModelSamplerOverrideFields } from '../model/sampler-defaults';
+import { normalizeQueueQualityProfile } from '../queue/quality-profile';
+import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from '../settings/cache';
+import { buildSessionRecipeFromShared, pushSessionRecipe } from '../prompt/session-recipes';
+import { embeddingStem } from '../lora/textual-inversion';
+import { saveGenerateHandoff } from '../history/generate-handoff';
 import { isGalleryCapKeeper } from './cap';
 import { galleryToolHrefForEntry, galleryToolLabel } from './tool-href';
 
@@ -286,7 +286,7 @@ export function applyGalleryStackToSession(
   const href = galleryToolHrefForEntry(entry);
   const toolLabel = galleryToolLabel(entry.tool);
   if (options?.toast !== false) {
-    void import('../app-toast').then(({ pushAppToast }) => {
+    void import('../app/toast').then(({ pushAppToast }) => {
       pushAppToast({
         text: summary ? `Stack on ${toolLabel} · ${summary}` : `Stack restored on ${toolLabel}`,
         href,
@@ -352,7 +352,7 @@ export function saveGalleryLookFromEntry(entry: ComfyGalleryEntry): {
     label,
   });
   pushSessionRecipe(recipe);
-  void import('../app-toast').then(({ pushAppToast }) => {
+  void import('../app/toast').then(({ pushAppToast }) => {
     pushAppToast({
       text: `Saved look · ${recipe.label}`,
     });

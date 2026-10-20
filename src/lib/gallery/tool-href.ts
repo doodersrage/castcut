@@ -1,4 +1,4 @@
-import { appHasRoute } from '../app-profile';
+import { appHasRoute } from '../app/profile';
 
 /**
  * Map a gallery entry's queue-time `tool` id onto an in-app route.

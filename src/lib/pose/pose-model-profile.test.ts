@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { poseModelFamily, poseProfileForModel } from './pose-model-profile';
-import { resolveAdultNudePlateQueueModel, resolveModelForQueueTool } from '../queue-tool-model';
+import { resolveAdultNudePlateQueueModel, resolveModelForQueueTool } from '../queue/tool-model';
 
 describe('pose model profiles', () => {
   it('maps model ids to families', () => {
@@ -75,7 +75,7 @@ describe('Qwen-Image 2.1 runtime', () => {
 
 describe('Day adult hand-off', () => {
   it('Edit 2511 sends adult nude stills to Rapid AIO NSFW when it is installed, for that still only', async () => {
-    const { resolveDayStillModel } = await import('../queue-tool-model');
+    const { resolveDayStillModel } = await import('../queue/tool-model');
     const installed = (id: string) => id === 'qwen-rapid-aio-edit-nsfw';
     const picked = 'qwen-image-edit-2511-lightning-8';
     assert.equal(
@@ -94,7 +94,7 @@ describe('Day adult hand-off', () => {
   });
 
   it('Qwen-Image 2.1 hands nude penetration duos to Rapid AIO NSFW when it is installed', async () => {
-    const { resolveDayStillModel } = await import('../queue-tool-model');
+    const { resolveDayStillModel } = await import('../queue/tool-model');
     const installed = (id: string) => id === 'qwen-rapid-aio-edit-nsfw';
     const picked = 'qwen-image-2.1-edit-turbo-8';
     assert.equal(
@@ -128,7 +128,7 @@ describe('Day adult hand-off', () => {
   });
 
   it('Qwen-Image 2.1 keeps its clothed two-person stills (Turbo: two people 56/56)', async () => {
-    const { resolveDayStillModel } = await import('../queue-tool-model');
+    const { resolveDayStillModel } = await import('../queue/tool-model');
     const installed = (id: string) => id === 'qwen-rapid-aio-edit';
     for (const picked of [
       'qwen-image-2.1-edit',

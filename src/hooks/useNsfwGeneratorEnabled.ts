@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchNsfwGeneratorEnabled } from '@/lib/nsfw-generator-nav';
-import { isNsfwGeneratorEnabledClient } from '@/lib/nsfw-generator-env';
+import { fetchNsfwGeneratorEnabled } from '@/lib/adult/nsfw-generator-nav';
+import { isNsfwGeneratorEnabledClient } from '@/lib/adult/nsfw-generator-env';
 
 /**
  * Resolves env-gated adult content from the build-time public flag, or from

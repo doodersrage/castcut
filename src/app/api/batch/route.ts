@@ -1,9 +1,9 @@
-import { batchGenerateCharacter } from '@/lib/batch-generate';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { batchGenerateCharacter } from '@/lib/batch/generate';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import {
   normalizeCharacterPresetOptions,
   type CharacterPresetOptions,
-} from '@/lib/character-options';
+} from '@/lib/character/options';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,

@@ -4,7 +4,7 @@ import SceneFamilySwitcher from '@/components/SceneFamilySwitcher';
 import { FieldDivider, FieldLabel } from '@/components/ui/Field';
 import { ChipButton } from '@/components/ui/Field';
 import { CHARACTER_SCENE_MODE_OPTIONS } from '@/hooks/useCharacterToolOrchestration';
-import type { CharacterSceneMode } from '@/lib/settings-cache';
+import type { CharacterSceneMode } from '@/lib/settings/cache';
 
 function defaultPortraitStyle(mode: CharacterSceneMode): 'portrait' | 'full-body' | 'action' {
   return mode === 'solo' ? 'portrait' : 'action';

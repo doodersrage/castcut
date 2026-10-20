@@ -1,5 +1,5 @@
-import { buildNegativePrompt } from '@/lib/negative-prompt-builder';
-import { inferAthleticSport } from '@/lib/athletic-sport-profiles';
+import { buildNegativePrompt } from '@/lib/prompt/negative-prompt-builder';
+import { inferAthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

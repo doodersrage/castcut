@@ -20,8 +20,8 @@ import {
   parseGestureAnswers,
   readHandGestures,
   type GestureAnswer,
-} from '../src/lib/pose-gesture';
-import { parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose-score';
+} from '../src/lib/pose/gesture';
+import { parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose/score';
 
 type Row = {
   id: string;

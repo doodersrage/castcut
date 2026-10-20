@@ -1,9 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { modelSupportsSessionIdentityLock } from '@/lib/compose-identity-lock';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
+import { modelSupportsSessionIdentityLock } from '@/lib/prompt/compose-identity-lock';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 
 const IdentityLockSessionControl = dynamic(

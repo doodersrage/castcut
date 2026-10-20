@@ -12,7 +12,7 @@ import {
   workflowHasLoraLoader,
 } from "./lightning-queue";
 import { applyWorkflowNodeBindings } from "./apply-bindings";
-import { resolveLoaderPrecisionTier } from "../model-loader-precision";
+import { resolveLoaderPrecisionTier } from "../model/loader-precision";
 import { patchModelSamplingInWorkflow } from "./model-sampling-patch";
 import { patchSamplerParamsInWorkflow } from "../comfyui/config";
 

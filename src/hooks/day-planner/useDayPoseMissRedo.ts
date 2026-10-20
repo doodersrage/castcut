@@ -4,7 +4,7 @@ import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
-import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
+import { isIntimateDuoStillPrompt } from '@/lib/still/clip-prompt';
 import { isDayHardPose } from '@/lib/day/best-of-two';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
@@ -14,23 +14,23 @@ import {
   poseRedoTakeId,
   type PoseRedoLedger,
 } from '@/lib/day/pose-redo';
-import { detectStillPose } from '@/lib/pose-detect-client';
+import { detectStillPose } from '@/lib/pose/detect-client';
 import {
   buildPoseMissView,
   gestureMissWords,
   poseLimbFixNudge,
   promptGivesHandsAJob,
   type PoseMissView,
-} from '@/lib/pose-coaching';
-import { gestureFixNudge } from '@/lib/pose-gesture';
-import type { RealismVerdict } from '@/lib/still-realism';
+} from '@/lib/pose/coaching';
+import { gestureFixNudge } from '@/lib/pose/gesture';
+import type { RealismVerdict } from '@/lib/still/realism';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_MISMATCH_NUDGE,
   posturePairWords,
   scorePoseMatch,
   guidePostureContradictsWords,
-} from '@/lib/pose-score';
+} from '@/lib/pose/score';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
@@ -217,7 +217,7 @@ export function useDayPoseMissRedo(
       void (async () => {
         try {
           setStatus(`Checking ${target.label}…`);
-          const { checkStillRealism } = await import('@/lib/pose-gesture-vision-client');
+          const { checkStillRealism } = await import('@/lib/pose/gesture-vision-client');
           const realism = await checkStillRealism({ imageUrl, shared });
           const decision = poseRedoDecision({
             enabled: redoPoseMisses,
@@ -271,7 +271,7 @@ export function useDayPoseMissRedo(
         let realism: RealismVerdict | null = null;
         if (match.score >= DEFAULT_MIN_POSE_MATCH) {
           setStatus(`Checking ${target.label} gesture…`);
-          const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
+          const { checkStillPoseVision } = await import('@/lib/pose/gesture-vision-client');
           ({ match, realism } = await checkStillPoseVision({
             imageUrl,
             beat: expectation.beat ?? target.sceneHints,

@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 import ModalPortal from '@/components/ui/ModalPortal';
 import { galleryEntryPrimaryViewUrl, getGalleryEntryById } from '@/lib/gallery/comfyui-gallery';
-import type { PhotoPose } from '@/lib/pose-types';
-import { poseTargetGroups, type PoseTargetOption } from '@/lib/pose-targets';
-import { POSE_IMPORT_GROUPS } from '@/lib/pose-import-layouts';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import type { PhotoPose } from '@/lib/pose/types';
+import { poseTargetGroups, type PoseTargetOption } from '@/lib/pose/targets';
+import { POSE_IMPORT_GROUPS } from '@/lib/pose/import-layouts';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import { GALLERY_USE_POSE_EVENT } from '@/lib/gallery/pose-event';
 
 type Read =
@@ -39,7 +39,7 @@ function GalleryPoseDialog({ entryId, onClose }: { entryId: string; onClose: () 
       });
       return;
     }
-    void import('@/lib/pose-library-import')
+    void import('@/lib/pose/library-import')
       .then(({ readPoseFromImageUrl }) => readPoseFromImageUrl(url))
       .then(pose => {
         if (!cancelled) setRead({ status: 'ok', pose });
@@ -132,7 +132,7 @@ function GalleryPoseDialog({ entryId, onClose }: { entryId: string; onClose: () 
                 data-testid="gallery-pose-save"
                 onClick={() => {
                   if (!pose) return;
-                  void import('@/lib/pose-library-import').then(({ savePhotoPoseToLibrary }) => {
+                  void import('@/lib/pose/library-import').then(({ savePhotoPoseToLibrary }) => {
                     const { key } = savePhotoPoseToLibrary(pose, layout);
                     setDone({
                       text: `Saved to the pose library as ${poseLayoutLabel(layout)} (${key}).`,

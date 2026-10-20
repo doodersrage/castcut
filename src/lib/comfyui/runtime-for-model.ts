@@ -1,10 +1,13 @@
 'use client';
 
-import { appFlag } from '../app-flags';
-import { isH3Model } from '../h3-renderer';
-import { isLtx25Model } from '../ltx25-renderer';
+import { appFlag } from '../app/flags';
+import { isH3Model } from '../engine/h3-renderer';
+import { isLtx25Model } from '../video/ltx25-renderer';
 import { poseModelFamily } from '../pose/pose-model-profile';
-import { hasQwenImage21TurboCheckpoint, qwenImage21FastSampler } from '../qwen-image-21-renderer';
+import {
+  hasQwenImage21TurboCheckpoint,
+  qwenImage21FastSampler,
+} from '../engine/qwen-image-21-renderer';
 import type { ComfyImageModel } from '../comfy-models/client';
 import {
   loadComfyWorkflowFiles,
@@ -16,10 +19,10 @@ import {
   comfyUiSettingsToRuntime,
   loadComfyUiSettings,
 } from './settings';
-import { enrichLoraLibraryForUltraRealModel } from '../ultrareal-amplifier-lora';
-import { enrichLoraLibraryForKleinBaseModel } from '../klein-realistic-detail-lora';
+import { enrichLoraLibraryForUltraRealModel } from '../lora/ultrareal-amplifier-lora';
+import { enrichLoraLibraryForKleinBaseModel } from '../lora/klein-realistic-detail-lora';
 import type { ComfyUiSettings } from './settings';
-import { loadSettingsCache, saveSharedSettings } from '../settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '../settings/cache';
 import type { ComfyUiModelLists } from './object-info';
 import {
   fetchComfyObjectInfoCached,
@@ -30,11 +33,11 @@ import {
   loaderMapsChanged,
   syncLoaderMapsFromInventory,
 } from '../workflow/loader-map-inventory-sync';
-import { resolveWorkflowForModel, resolveWorkflowForModelSelection } from '../model-workflow-map';
+import { resolveWorkflowForModel, resolveWorkflowForModelSelection } from '../model/workflow-map';
 import { resolveSelectedWorkflowRuntime, getSelectedWorkflowFileId } from './runtime';
 import type { ComfyUiRuntimeConfig } from './config';
-import { resolveQueueQualityProfile, normalizeQueueQualityProfile } from '../queue-quality-profile';
-import { isVideoModel, resolveModelForQueueTool } from '../queue-tool-model';
+import { resolveQueueQualityProfile, normalizeQueueQualityProfile } from '../queue/quality-profile';
+import { isVideoModel, resolveModelForQueueTool } from '../queue/tool-model';
 import { workflowGraphIsVideo } from '../workflow/graph-kind';
 import { rankWorkflowFilesForModel } from '../workflow/category-defaults';
 import {
@@ -47,9 +50,9 @@ import {
   applySystemWorkflowToRuntime,
   usesSystemWorkflowPath,
 } from '../workflow/system-workflow-runtime';
-import { resolveIdentityLockApiUrl } from '../identity-lock-host';
+import { resolveIdentityLockApiUrl } from '../character/identity-lock-host';
 
-export { resolveIdentityLockApiUrl } from '../identity-lock-host';
+export { resolveIdentityLockApiUrl } from '../character/identity-lock-host';
 
 // Cache for parsed workflow JSON — avoids redundant parse on same string across model checks.
 const _workflowParseCache = new Map<string, Record<string, unknown>>();
@@ -93,7 +96,7 @@ export type ResolveRuntimeOptions = {
    */
   sessionActiveLoraIds?: string[];
   /** Job-pinned strength tweaks (e.g. Story dips SNOFS when Image 3 pose must win). */
-  sessionLoraStrengthOverrides?: import('../lora-stack').SessionLoraStrengthOverrides;
+  sessionLoraStrengthOverrides?: import('../lora/stack').SessionLoraStrengthOverrides;
   /** Cast-locked queue (Day, Story): skip LoRAs whose Check on Cast says they change faces. */
   skipFaceChangingLoras?: boolean;
   /** Cap the Klein color anchor for this queue (kleinColorAnchorStrengthForTool). */

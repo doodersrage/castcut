@@ -15,19 +15,19 @@ import {
   setCharacterTrigger,
   type CharacterLook,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   queueCharacterLookValidation,
   registerCharacterLookLora,
   exportKeepersAndTrain,
   trainJobsForCharacter,
-} from '@/lib/character-lora-flywheel';
+} from '@/lib/character/lora-flywheel';
 import { downloadLoraDatasetZip } from '@/lib/gallery/lora-dataset-export';
-import { checkLoraKeepers } from '@/lib/lora-keeper-check';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { checkLoraKeepers } from '@/lib/lora/keeper-check';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { normalizeTrainJobs, type TrainJob } from '@/lib/lora-train-job';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { normalizeTrainJobs, type TrainJob } from '@/lib/lora/train-job';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { galleryEntryThumbUrls, type ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 
 export default function CharacterLoraFlywheel({
@@ -77,7 +77,7 @@ export default function CharacterLoraFlywheel({
         return;
       }
       const data = (await response.json()) as { jobs?: TrainJob[] };
-      const { mergeTrainJobs, persistTrainJobs } = await import('@/lib/character-lora-flywheel');
+      const { mergeTrainJobs, persistTrainJobs } = await import('@/lib/character/lora-flywheel');
       const merged = persistTrainJobs(
         mergeTrainJobs(
           normalizeTrainJobs(loadSettingsCache().shared.loraTrainJobs),

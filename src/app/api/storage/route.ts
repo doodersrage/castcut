@@ -4,16 +4,16 @@ import {
   readServerStorage,
   writeServerStorage,
   type StorageNamespace,
-} from '@/lib/server-storage';
-import { isStorageNamespace } from '@/lib/storage-namespaces';
-import { withMergedRecordLists } from '@/lib/record-list-sync';
-import { storageFingerprint } from '@/lib/storage-sync';
+} from '@/lib/storage/server-storage';
+import { isStorageNamespace } from '@/lib/storage/namespaces';
+import { withMergedRecordLists } from '@/lib/storage/record-list-sync';
+import { storageFingerprint } from '@/lib/storage/sync';
 import {
   readUserServerStorage,
   writeUserServerStorage,
   USER_STORAGE_NAMESPACES,
   type UserStorageNamespace,
-} from '@/lib/user-server-storage';
+} from '@/lib/storage/user-server-storage';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';

@@ -28,7 +28,7 @@ people in that pose in three open sources and keeps 3–5 good, different skelet
 
 The app draws them as variants of the pose (variant 0 stays the hand-drawn figure; *Try another*
 walks through the real ones) and lists them under *Real poses…* in the pose editor. See
-`src/lib/pose-references.ts` (`source` says where each came from).
+`src/lib/pose/references.ts` (`source` says where each came from).
 
 **Only skeletons ship** (`public/pose-references.json`, with each item's credit). The
 cropped photos stay in the local cache below as the harvest's record — never committed, never in
@@ -70,7 +70,7 @@ could read. `people.py` reads each person on their own:
    taking the other out is the second person; a person found twice is kept once.
 3. DWPose reads each person's crop with everyone else greyed out; joints that still landed on
    someone else's mask are marked, and the app's `mergePersonReads`
-   (`src/lib/pose-reference-duo.ts`, over the bridge) moves the reads back to image pixels,
+   (`src/lib/pose/reference-duo.ts`, over the bridge) moves the reads back to image pixels,
    drops the marked joints and any second read of one body. A read whose joints are not on its
    own mask is dropped.
 
@@ -151,6 +151,6 @@ The posture classifier is a hook: any module exporting
 
 ## Adding a pose
 
-Add it to the app's pose list (`src/lib/pose-layout-labels.ts`), then give it queries, the
+Add it to the app's pose list (`src/lib/pose/layout-labels.ts`), then give it queries, the
 vision question's pose words and (if needed) allowed postures in `poses.py`, and rerun with
 `--pose <id>`.

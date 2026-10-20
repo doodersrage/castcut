@@ -8,9 +8,9 @@ import VideoPromptResultSection from '@/components/video/VideoPromptResultSectio
 import VideoPromptHistorySeedSection from '@/components/video/VideoPromptHistorySeedSection';
 import { useVideoPromptOrchestration } from '@/hooks/useVideoPromptOrchestration';
 import { useToolPageDescription } from '@/hooks/useToolPageDescription';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import { ToolBadge, ToolLayout, accentFocusClass } from '@/components/ui/ToolPageShell';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 const ACCENT = 'brand' as const;
 

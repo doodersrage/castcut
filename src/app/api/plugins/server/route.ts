@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 import {
   getPluginHmacSecret,
   installServerPluginFromManifest,
@@ -14,7 +14,7 @@ import {
   toClientPluginManifest,
   verifyPluginInstallSignature,
   MAX_PLUGIN_ZIP_BYTES,
-} from '@/lib/server-plugin-registry';
+} from '@/lib/plugin/server-plugin-registry';
 
 export const runtime = 'nodejs';
 

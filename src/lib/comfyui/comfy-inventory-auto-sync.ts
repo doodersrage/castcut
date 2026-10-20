@@ -10,7 +10,7 @@ import {
   loaderMapsChanged,
   syncLoaderMapsFromInventory,
 } from '../workflow/loader-map-inventory-sync';
-import { loadSettingsCache, saveSettingsCache } from '../settings-cache';
+import { loadSettingsCache, saveSettingsCache } from '../settings/cache';
 
 const FINGERPRINT_KEY = 'castcut.comfyInventoryFingerprint.v1';
 

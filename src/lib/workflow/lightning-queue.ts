@@ -1,11 +1,11 @@
 import { isQwenLightningModel } from './model-sampling-patch';
 import { QWEN_EDIT_ENCODE_IMAGE_KEYS } from './load-image-bindings';
-import { isBooguTurboModel } from '../model-denoise-defaults';
+import { isBooguTurboModel } from '../model/denoise-defaults';
 import {
   filenameLooksLikeCheckpointOnly,
   isVaeFilenameIncompatibleWithModel,
   type ModelLoaderFilenames,
-} from '../model-checkpoint-map';
+} from '../model/checkpoint-map';
 import type { WorkflowParamValues } from '../comfyui/config';
 import { isLockLatentSizeParams } from '../comfyui/config';
 import {
@@ -16,7 +16,7 @@ import {
   qwenEdit2511UnetFilename,
   qwenLightningPinsBf16Unet,
   qwenUnetFamilyFromFilename,
-} from '../model-loader-precision';
+} from '../model/loader-precision';
 import { isLatentSizeNode, patchLoaderNodesInWorkflow } from './direct-patch';
 import {
   isLoraLoaderClassType,

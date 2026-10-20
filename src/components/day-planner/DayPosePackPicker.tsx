@@ -24,12 +24,12 @@ import {
   removeMyPosePack,
   saveMyPosePack,
   subscribeMyPosePacks,
-} from '@/lib/my-pose-packs';
-import { mergeAvoidedPoseLayouts } from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/my-pose-packs';
+import { mergeAvoidedPoseLayouts } from '@/lib/pose/guide-prompt';
 import { reportWeakPoseLayouts } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
-import { learnedWeakPoseLayouts } from '@/lib/pose-outcome-stats';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
+import { learnedWeakPoseLayouts } from '@/lib/pose/outcome-stats';
 
 function useMyPosePacks(): PosePack[] {
   const json = useSyncExternalStore(

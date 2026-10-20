@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
 
 // NOTE: `appendServerGalleryEntries`/`removeServerGalleryEntriesByPromptIds` read
-// `isServerStorageEnabled` via a call-time `await import('../server-storage')` rather than a
+// `isServerStorageEnabled` via a call-time `await import('../storage/server-storage')` rather than a
 // static top-level import. Verified via real execution: this test runtime's `mock.module()` does
 // not reliably intercept a specifier reached only through such a dynamic import — a mocked
 // `isServerStorageEnabled` here was silently ignored and the REAL (env-based) one ran instead. So

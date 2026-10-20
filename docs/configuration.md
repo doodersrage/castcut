@@ -17,7 +17,7 @@ When exposing beyond localhost:
 7. Invite, reset and notice emails link to the address an admin last signed in at; set `PROMPT_API_URL` to pin another public origin. A non-loopback `PROMPT_API_URL` is treated as network-exposed and requires auth.
 8. Per-client rate limits and the sign-in throttle use the proxy's `X-Real-IP` / last `X-Forwarded-For` when they are sent (`TRUST_PROXY_HEADERS` unset). Set `TRUST_PROXY_HEADERS=false` to ignore them; on a server reached directly a made-up header only dodges the per-client limit — the per-username sign-in limit (5 failures / 15 min) still holds.
 
-Startup fail-closed signals (`src/lib/bind-exposure-check.ts`): `PROMPT_EXPOSED`, bind host `0.0.0.0`/`::` (`HOSTNAME` / `HOST` / `PROMPT_BIND_HOST`), or a non-loopback `PROMPT_API_URL`. Escape hatch: `PROMPT_ALLOW_INSECURE_AUTH=1` (logs loudly; never use on a reachable network). Desktop shells (`PROMPT_DESKTOP`) are always treated as local.
+Startup fail-closed signals (`src/lib/checks/bind-exposure-check.ts`): `PROMPT_EXPOSED`, bind host `0.0.0.0`/`::` (`HOSTNAME` / `HOST` / `PROMPT_BIND_HOST`), or a non-loopback `PROMPT_API_URL`. Escape hatch: `PROMPT_ALLOW_INSECURE_AUTH=1` (logs loudly; never use on a reachable network). Desktop shells (`PROMPT_DESKTOP`) are always treated as local.
 
 ## Production checklist
 

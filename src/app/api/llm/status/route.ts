@@ -1,4 +1,4 @@
-import { getLlmInflightCount, getLlmMaxInflight, isLlmBusy, isLlmEnabled } from '@/lib/llm-client';
+import { getLlmInflightCount, getLlmMaxInflight, isLlmBusy, isLlmEnabled } from '@/lib/llm/client';
 import { apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

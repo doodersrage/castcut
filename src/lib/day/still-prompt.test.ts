@@ -6,9 +6,9 @@ import { dayPoseFirstLine,
   queuedDayStillPrompt,
   type DayStillPromptFacts,
 } from './still-prompt';
-import { auditStillPrompt } from '../still-prompt-audit';
+import { auditStillPrompt } from '../still/prompt-audit';
 import { buildCompactDayDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../play/rapid-duo-recipe';
-import { dayDuoPoseWords } from '../pose-coaching';
+import { dayDuoPoseWords } from '../pose/coaching';
 
 const RECIPE =
   'Edit Image 1: Day photo: One woman alone. She dances. She wears the outfit from the second image. Moment: dancing under club lights. Place: nightclub dance floor. Keep her face from the first image. Match her body to the third image (pose map).';

@@ -1,7 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DEFAULT_WILDCARDS, parseWildcardListFile, type WildcardMap } from '@/lib/wildcard-expand';
+import {
+  DEFAULT_WILDCARDS,
+  parseWildcardListFile,
+  type WildcardMap,
+} from '@/lib/prompt/wildcard-expand';
 import { FieldLabel } from '@/components/ui/Field';
 
 type WildcardListsEditorProps = {

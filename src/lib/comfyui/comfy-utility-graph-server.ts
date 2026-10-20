@@ -13,12 +13,12 @@ import {
   castcutRoutes,
   castcutStageAsInput,
   recordCastcutFallback,
-} from '@/lib/castcut-routes-server';
+} from '@/lib/castcut/routes-server';
 import { checkQueueNumber } from '@/lib/comfyui/comfy-model-batch';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { deleteComfyUiHistoryItems } from '@/lib/comfyui/status';
-import { parseTextChunks } from '@/lib/png-metadata';
+import { parseTextChunks } from '@/lib/history/png-metadata';
 
 type NodeInputSpec = [unknown, Record<string, unknown>?];
 

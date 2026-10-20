@@ -12,7 +12,7 @@ import {
   upsertCharacter,
   type CharacterLook,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 import {
   buildCastFile,
   castFileDay,
@@ -28,13 +28,13 @@ import {
   withReferenceSheetsMoved,
 } from './transfer';
 import { loadComfyUiSettings } from '../comfyui/settings';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '../isolate-subject';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '../edit/isolate-subject';
 import {
   getRoleplayLibrarySession,
   roleplayLibraryIdForCharacter,
   upsertRoleplayLibrarySession,
 } from '../story/roleplay-library';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings-cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '../play/settings';
 
 /** The Cast's own picture: its face lock, else its reference photo. */
@@ -178,8 +178,8 @@ async function placeOutfitPictures(
   if (!pictures.length) return { moved };
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
   const [{ resolveQueueInputImage }, { stampedUploadName }] = await Promise.all([
-    import('../queue-input-image'),
-    import('../upload-name'),
+    import('../queue/input-image'),
+    import('../storage/upload-name'),
   ]);
   let error: string | undefined;
   for (const picture of pictures) {

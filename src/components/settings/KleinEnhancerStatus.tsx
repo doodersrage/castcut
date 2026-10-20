@@ -7,7 +7,7 @@ import {
   kleinEnhancerPackAvailable,
   kleinMultiReferenceAvailable,
   kleinTextEnhancerAvailable,
-} from '@/lib/klein-enhancer-workflow-patch';
+} from '@/lib/engine/klein-enhancer-workflow-patch';
 
 /** undefined = still asking ComfyUI; null = ComfyUI didn't answer. */
 export type KleinEnhancerNodes = Set<string> | null | undefined;

@@ -11,7 +11,7 @@ import {
   selectCharacterKeepers,
   selectLoraDatasetEntries,
 } from "./lora-dataset-export";
-import { readZipTextEntries } from "../zip-read";
+import { readZipTextEntries } from "../storage/zip-read";
 import type { ComfyGalleryEntry } from "./comfyui-gallery-entry";
 
 function makeEntry(overrides: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry {

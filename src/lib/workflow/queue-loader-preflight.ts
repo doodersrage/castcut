@@ -1,7 +1,7 @@
 'use client';
 
 import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '../comfyui/settings';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 import { auditLoaderMapsAgainstComfyUi } from './loader-map-health-audit';
 import { fetchComfyObjectInfoModelsCached } from '../comfyui/object-info-cache';
 import { resolveSelectedWorkflowRuntime } from '../comfyui/runtime';

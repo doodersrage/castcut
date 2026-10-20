@@ -14,9 +14,9 @@ import {
   isFluxKleinModel,
   isQwenEditModel,
   isZImageModel,
-} from '@/lib/model-denoise-defaults';
-import { normalizeTurboEditStrength } from '@/lib/turbo-edit-strength';
-import { getReformatTargetModel } from '@/lib/reformat-target';
+} from '@/lib/model/denoise-defaults';
+import { normalizeTurboEditStrength } from '@/lib/engine/turbo-edit-strength';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import {
   buildComposeInstruction,
   COMPOSE_DEFAULT_MODEL,
@@ -26,7 +26,7 @@ import {
   isAggressiveComposeInstruction,
   type ComposeMode,
   type ComposeStarterTemplate,
-} from '@/lib/compose-prompt';
+} from '@/lib/prompt/compose-prompt';
 import {
   DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
   formatComposeIdentityLockHint,
@@ -34,25 +34,25 @@ import {
   formatKleinEnhancerIdentityHint,
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
-} from '@/lib/compose-identity-lock';
-import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
+} from '@/lib/prompt/compose-identity-lock';
+import { createDefaultRegionalSlots } from '@/lib/prompt/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
 import { sharedPatchFromGalleryHandoff } from '@/lib/gallery/handoff';
 import {
   isolateSubjectOnWhite,
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
   normalizeIsolateSubject,
-} from '@/lib/isolate-subject';
+} from '@/lib/edit/isolate-subject';
 import {
   CLOUD_COMPOSE_TRANSFER_BLOCKED,
   cloudComposeBlocksTransfer,
   cloudComposeSendsOnlyImage1,
-} from '@/lib/cloud-compose-refs';
+} from '@/lib/cloud/cloud-compose-refs';
 import { isCloudEngine } from '@/lib/engine/capabilities';
-import { loadEngineSettings } from '@/lib/engine-settings';
-import { DEFAULT_IMAGE_COMPOSE_TOOL_CACHE } from '@/lib/settings-cache';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadEngineSettings } from '@/lib/engine/settings';
+import { DEFAULT_IMAGE_COMPOSE_TOOL_CACHE } from '@/lib/settings/cache';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   emptyFigure,
   emptySlots,
@@ -60,14 +60,14 @@ import {
   revokeBlobUrl,
   revokeFigureUrls,
   type FigureSlot,
-} from '@/lib/compose-figure-slot';
-import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
-import { scanComposeTransferWithVision } from '@/lib/compose-transfer-scan-client';
+} from '@/lib/prompt/compose-figure-slot';
+import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision/still-scan-client';
+import { scanComposeTransferWithVision } from '@/lib/prompt/compose-transfer-scan-client';
 import {
   normalizeComposeTransferRecipe,
   type ComposeTransferRecipe,
-} from '@/lib/compose-transfer-scan-shared';
-import { installedComfyModels } from '@/lib/model-picker';
+} from '@/lib/prompt/compose-transfer-scan-shared';
+import { installedComfyModels } from '@/lib/model/picker';
 import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 /** Which engines ComfyUI has (from the cached model list), or null when it isn't known yet. */
@@ -451,7 +451,7 @@ export function useComposeToolOrchestrationCore() {
       model?: string;
       queueParams?: WorkflowParamValues;
       sessionActiveLoraIds?: string[];
-      queueQualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile;
+      queueQualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile;
       handoffMode?: import('@/lib/gallery/handoff').GalleryHandoffMode;
       file: File | null;
       previewUrl: string | null;

@@ -7,7 +7,7 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { useHubPageDescription } from '@/hooks/useToolPageDescription';
 import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import { ToolLayout } from '@/components/ui/ToolPageShell';
 
 const ComfyUiGalleryPanel = dynamic(() => import('@/components/ComfyUiGalleryPanel'), {

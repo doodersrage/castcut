@@ -3,7 +3,7 @@ import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
-import { countComfyQueue } from '@/lib/castcut-nodes-setup-server';
+import { countComfyQueue } from '@/lib/castcut/nodes-setup-server';
 import { requestComfyUiRestart } from '@/lib/comfyui/restart';
 
 export const runtime = 'nodejs';

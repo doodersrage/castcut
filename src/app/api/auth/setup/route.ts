@@ -9,8 +9,8 @@ import {
 } from '@/lib/auth/store';
 import { finishSetup, setupCodeMatches } from '@/lib/auth/first-admin-setup';
 import { loginRetryAfterSec, recordLoginFailure } from '@/lib/auth/login-throttle';
-import { rateLimitClientKey } from '@/lib/api-rate-limit';
-import { rememberPublicAppOrigin } from '@/lib/public-app-origin';
+import { rateLimitClientKey } from '@/lib/server/api-rate-limit';
+import { rememberPublicAppOrigin } from '@/lib/server/public-app-origin';
 
 export const runtime = 'nodejs';
 

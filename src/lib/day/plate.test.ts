@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
   dayNudeNeedsAutoFaceCrop,

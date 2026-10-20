@@ -9,10 +9,10 @@ import ProfileSecurityPanel from '@/components/profile/ProfileSecurityPanel';
 import ProfileAppearancePanel from '@/components/profile/ProfileAppearancePanel';
 import ProfileNotificationsPanel from '@/components/profile/ProfileNotificationsPanel';
 import ProfileBackupPanel from '@/components/profile/ProfileBackupPanel';
-import type { SharedPresetEntry } from '@/lib/shared-preset-store';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import Link from 'next/link';
-import { settingsTabHref } from '@/lib/settings-nav';
+import { settingsTabHref } from '@/lib/settings/nav';
 
 export default function ProfilePanel() {
   const auth = useAuth();

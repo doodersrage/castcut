@@ -1,4 +1,4 @@
-import { fixPromptRules } from '@/lib/prompt-fix';
+import { fixPromptRules } from '@/lib/prompt/fix';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

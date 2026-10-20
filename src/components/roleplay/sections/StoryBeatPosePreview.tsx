@@ -1,7 +1,7 @@
 'use client';
 
 import { storyPoseForcePeople } from '@/lib/story/scene-people';
-import { composedPoseForScene } from '@/lib/pose-compose';
+import { composedPoseForScene } from '@/lib/pose/compose';
 import { useMemo } from 'react';
 import PosePreview, { type PosePicks } from '@/components/pose/PosePreview';
 import { useWeakPoseLayouts } from '@/hooks/useWeakPoseLayouts';
@@ -11,13 +11,13 @@ import {
   type PoseGuideBuildOptions,
 } from '@/lib/day/pose-guide';
 import { mergePickedPose } from '@/lib/day/slot-pose';
-import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose-guide-prompt';
+import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose/guide-prompt';
 import {
   isRoleplayAdultContent,
   resolveRoleplayToneAndContent,
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /** Whether a beat has any pose choice set (keeps its Pose section open). */
 export function storyBeatHasPosePicks(beat: RoleplayStoryBeat): boolean {

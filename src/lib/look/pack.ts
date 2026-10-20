@@ -4,7 +4,11 @@
  */
 
 import type { DaySlot } from '../day/planner';
-import type { MoodboardTemplateId, MoodboardTile, MoodboardTileRole } from '../moodboard-scene';
+import type {
+  MoodboardTemplateId,
+  MoodboardTile,
+  MoodboardTileRole,
+} from '../scene/moodboard-scene';
 import type { RoleplayTone } from '../story/roleplay';
 import { normalizeRoleplayTone } from '../story/roleplay';
 import type { RoleplayToolCache } from '../play/settings';

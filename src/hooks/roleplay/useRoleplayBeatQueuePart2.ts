@@ -1,15 +1,19 @@
 'use client';
 
 import { pronounceForCast } from '@/lib/cast/speech';
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import {
   framedTalkingStill,
   talkingStillFraming,
   talkingStillBody,
-} from '@/lib/talking-clip-framing-client';
-import { stillWordsSeated } from '@/lib/talking-clip-framing';
-import { adultAgeLineIn, neutralizeYouthWords, withAdultAgeLine } from '@/lib/adult-age-safeguard';
-import { stripStillPromptForClip } from '@/lib/clip-prompt-from-still';
+} from '@/lib/clip/talking-clip-framing-client';
+import { stillWordsSeated } from '@/lib/clip/talking-clip-framing';
+import {
+  adultAgeLineIn,
+  neutralizeYouthWords,
+  withAdultAgeLine,
+} from '@/lib/adult/adult-age-safeguard';
+import { stripStillPromptForClip } from '@/lib/clip/prompt-from-still';
 import {
   clipEngineForShot,
   ROOM_SOUND_UNDER_TALKING,
@@ -24,22 +28,22 @@ import {
   talkingClipPrompt,
   dayClipVideoModel,
   storyClipChoice,
-} from '@/lib/ltx25-renderer';
+} from '@/lib/video/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { castVoiceSampleFor } from '@/lib/cast/voice';
-import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
-import { stillPromptPeople } from '@/lib/still-clip-prompt';
-import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt-recipe-mark';
+import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
+import { stillPromptPeople } from '@/lib/still/clip-prompt';
+import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { useCallback, useEffect, useRef } from 'react';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { loadEngineSettings } from '@/lib/engine-settings';
-import { resolveFalExtendParentUrl } from '@/lib/fal-extend-upload';
+import { loadEngineSettings } from '@/lib/engine/settings';
+import { resolveFalExtendParentUrl } from '@/lib/cloud/fal-extend-upload';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
-} from '@/lib/settings-cache';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
+} from '@/lib/settings/cache';
+import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
 import {
   beginRoleplayClipRetryPatch,
   lastCompletedRoleplayStillUrl,
@@ -48,20 +52,20 @@ import {
   roleplayClipTakes,
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
-import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
+import { reinforceIntimateStillPrompt } from '@/lib/adult/intimate-prompt-clarify';
 import {
   looksLikeVideoUrl,
   nextRoleplayMotionKind,
   shouldAutoQueueRoleplayClip,
 } from '@/lib/story/roleplay-film';
-import { extractVideoLastFrame } from '@/lib/video-last-frame';
+import { extractVideoLastFrame } from '@/lib/video/last-frame';
 import {
   canFalExtendFromParentUrl,
   continueClipPathRanMessage,
   resolveVideoContinuePath,
   type VideoContinuePath,
-} from '@/lib/video-clip-mode';
-import { registerContinueStitch } from '@/lib/video-continue-stitch';
+} from '@/lib/video/clip-mode';
+import { registerContinueStitch } from '@/lib/video/continue-stitch';
 import type {
   RoleplayBeatQueueCore,
   UseRoleplayBeatQueueOptions,

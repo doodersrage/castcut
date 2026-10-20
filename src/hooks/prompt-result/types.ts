@@ -1,5 +1,5 @@
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { DetailLevel } from '@/lib/detail-level';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
 
 export type WorkflowPreviewResult = Awaited<
   ReturnType<typeof import('@/lib/comfyui/requeue').fetchWorkflowPreview>

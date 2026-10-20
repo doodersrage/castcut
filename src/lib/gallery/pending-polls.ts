@@ -1,4 +1,4 @@
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 const PENDING_POLLS_KEY = 'comfy-gallery-pending-polls-v1';
 

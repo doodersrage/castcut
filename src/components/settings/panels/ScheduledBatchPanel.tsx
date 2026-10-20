@@ -5,12 +5,12 @@ import {
   loadScheduledBatchConfig,
   saveScheduledBatchConfig,
   type ScheduledBatchConfig,
-} from '@/lib/scheduled-batch';
-import type { ScheduledBatchServerStatus } from '@/lib/scheduled-batch-profile-sync';
-import { detailLevelLabel, type DetailLevel } from '@/lib/detail-level';
-import { QUEUE_QUALITY_PROFILE_OPTIONS } from '@/lib/queue-quality-profile';
+} from '@/lib/batch/scheduled-batch';
+import type { ScheduledBatchServerStatus } from '@/lib/batch/scheduled-batch-profile-sync';
+import { detailLevelLabel, type DetailLevel } from '@/lib/prompt/detail-level';
+import { QUEUE_QUALITY_PROFILE_OPTIONS } from '@/lib/queue/quality-profile';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';

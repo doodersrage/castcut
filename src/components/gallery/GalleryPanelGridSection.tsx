@@ -5,8 +5,8 @@ import GalleryDisplayGrid from '@/components/gallery/GalleryDisplayGrid';
 import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryPaginator from '@/components/gallery/GalleryPaginator';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
-import type { ExperimentWinnerRecord } from '@/lib/experiment-winners';
-import type { ExperimentGroup } from '@/lib/experiment-groups';
+import type { ExperimentWinnerRecord } from '@/lib/experiment/winners';
+import type { ExperimentGroup } from '@/lib/experiment/groups';
 import { buildGalleryLineageGroups } from '@/lib/gallery/lineage-groups';
 import type { GalleryDensity } from '@/lib/gallery/density';
 

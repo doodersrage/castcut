@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it, beforeEach, afterEach } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import {
   FITTING_SAVED_GARMENTS_LIMIT,
   FITTING_SAVED_GARMENTS_STORAGE_KEY,

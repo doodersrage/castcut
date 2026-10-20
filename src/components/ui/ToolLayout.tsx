@@ -9,8 +9,8 @@ import {
   ToolSection,
   type ToolPageWidth,
 } from '@/components/ui/ToolPageShell';
-import { TOOL_SIDEBAR_DESCRIPTION, TOOL_SIDEBAR_TITLE } from '@/lib/tool-page-chrome';
-import { type ToolAccent } from '@/lib/tool-theme';
+import { TOOL_SIDEBAR_DESCRIPTION, TOOL_SIDEBAR_TITLE } from '@/lib/app/tool-page-chrome';
+import { type ToolAccent } from '@/lib/app/tool-theme';
 
 type ToolLayoutProps = {
   accent?: ToolAccent;

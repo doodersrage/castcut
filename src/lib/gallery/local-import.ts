@@ -170,7 +170,7 @@ async function promptFromUploadFile(file: File): Promise<string> {
     return fallback;
   }
   try {
-    const { readPngMetadataFile } = await import('../png-metadata');
+    const { readPngMetadataFile } = await import('../history/png-metadata');
     const metadata = await readPngMetadataFile(file);
     const positive = metadata.positive?.trim();
     if (positive) {

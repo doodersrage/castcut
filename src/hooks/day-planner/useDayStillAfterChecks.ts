@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
   buildMarksRepairPrompt,
   checkableMarks,
@@ -26,8 +26,8 @@ import {
   upsertDaySlotStill,
 } from '@/lib/day/planner';
 import { dayTwoTakesPending } from '@/lib/day/two-takes';
-import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
-import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
+import { STILL_MIN_FACE_MATCH } from '@/lib/face/match';
+import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**

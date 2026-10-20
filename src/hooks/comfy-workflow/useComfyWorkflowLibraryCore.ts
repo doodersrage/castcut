@@ -31,10 +31,10 @@ import {
 } from '@/lib/workflow/preset-packs';
 import { suggestWorkflowNodeMappings } from '@/lib/workflow/node-mapper';
 import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow/apply-bindings';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { markOnboardingSystemWorkflowsEnabled } from '@/lib/onboarding-hooks';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { markOnboardingSystemWorkflowsEnabled } from '@/lib/app/onboarding-hooks';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
 import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui/settings';
 import {
   buildControlNetWorkflowScaffold,
@@ -45,7 +45,7 @@ import {
 } from '@/lib/workflow/scaffold';
 import { inspectWorkflowGraphJson } from '@/lib/workflow/graph-inspect';
 import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
-import { assignWorkflowToInferredModels } from '@/lib/model-workflow-map';
+import { assignWorkflowToInferredModels } from '@/lib/model/workflow-map';
 import {
   optimizeWorkflowForQueue,
   suggestedOptimizedWorkflowName,
@@ -56,7 +56,7 @@ import {
 } from '@/lib/workflow/library-batch';
 import { diffWorkflowNodes } from '@/lib/workflow/diff';
 import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow/health-audit';
-import { downloadText } from '@/lib/download-text';
+import { downloadText } from '@/lib/storage/download-text';
 import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
 
 export type UseComfyWorkflowLibraryOptions = {

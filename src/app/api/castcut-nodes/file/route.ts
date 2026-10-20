@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { apiError } from '@/lib/api/response';
-import { CASTCUT_NODES_BUNDLED_VERSION, CASTCUT_NODES_FILE_NAME } from '@/lib/castcut-nodes-setup';
+import { CASTCUT_NODES_BUNDLED_VERSION, CASTCUT_NODES_FILE_NAME } from '@/lib/castcut/nodes-setup';
 
 export const runtime = 'nodejs';
 

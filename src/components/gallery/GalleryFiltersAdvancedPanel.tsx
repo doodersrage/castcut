@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { VisionBackfillProgress } from '@/lib/gallery/vision-backfill';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { PromptProject } from '@/lib/prompt/projects';
 import type { GalleryPageSize } from '@/lib/gallery/comfyui-gallery';
 import { GALLERY_PAGE_SIZE_ALL, GALLERY_PAGE_SIZE_OPTIONS } from '@/lib/gallery/comfyui-gallery';
 import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';

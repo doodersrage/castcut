@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { usesSystemWorkflowPath } from '@/lib/workflow/system-workflow-runtime';
 
 const ComfyWorkflowSelector = dynamic(() => import('@/components/ComfyWorkflowSelector'), {

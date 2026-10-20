@@ -1,15 +1,15 @@
 'use client';
 
 import CutReadinessNotes from '@/components/CutReadinessNotes';
-import type { IdentityMark } from '@/lib/identity-mark';
+import type { IdentityMark } from '@/lib/character/identity-mark';
 import type { KeyedShot } from '@/lib/film/cut-plan';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import { remixDayFilmHref } from '@/lib/play/starter';
 
 export type RoleplayFilmCutActionsProps = {

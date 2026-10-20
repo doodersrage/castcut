@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api/response';
-import { cancelFixAreaJobs, queueFixAreaInComfy, readFixAreaJob } from '@/lib/fix-area-server';
+import { cancelFixAreaJobs, queueFixAreaInComfy, readFixAreaJob } from '@/lib/edit/fix-area-server';
 
 export const runtime = 'nodejs';
 

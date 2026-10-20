@@ -4,14 +4,14 @@ import {
   parseMarksCheck,
   type MarksCheckReading,
 } from '@/lib/cast/marks-check';
-import { visionCompletion } from '@/lib/llm-client';
+import { visionCompletion } from '@/lib/llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   type LlmRequestOptions,
-} from '@/lib/llm-request-options';
-import { splitImageDataUrl } from '@/lib/vision-image-prepare';
-import { resolveVisionModel } from '@/lib/vision-model-auto';
+} from '@/lib/llm/request-options';
+import { splitImageDataUrl } from '@/lib/vision/image-prepare';
+import { resolveVisionModel } from '@/lib/vision/model-auto';
 
 /** The whole still at up to 1280 px — glasses and a forearm tattoo need the detail. */
 async function stillForCheck(imageDataUrl: string): Promise<string> {

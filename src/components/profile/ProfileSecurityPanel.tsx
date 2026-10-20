@@ -8,9 +8,9 @@ import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   loadKeyboardShortcuts,
   saveKeyboardShortcuts,
-} from '@/lib/keyboard-shortcuts-store';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { userAgentLabel } from '@/lib/user-agent-label';
+} from '@/lib/app/keyboard-shortcuts-store';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { userAgentLabel } from '@/lib/user/agent-label';
 
 type ApiKeyRow = {
   id: string;

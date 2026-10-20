@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { downloadGalleryImage, downloadGallerySidecar } from '@/lib/gallery/comfyui-gallery-export';
 import { galleryDownloadActionLabel } from '@/lib/comfyui/outputs';
-import { studioHistoryUrl } from '@/lib/prompt-lineage';
+import { studioHistoryUrl } from '@/lib/prompt/lineage';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
 import { useOpenInComfy } from '@/components/OpenInComfyButton';

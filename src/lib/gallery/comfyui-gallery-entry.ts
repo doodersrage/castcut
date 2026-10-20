@@ -84,11 +84,11 @@ export type ComfyGalleryEntry = {
   /** ControlNet reference view URLs at queue time (multi-ref stack). */
   controlImageUrls?: string[];
   /** Queue quality profile used when this job was queued (draft / final / max). */
-  queueQualityProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  queueQualityProfile?: import('../queue/quality-profile').QueueQualityProfile;
   /** Session LoRA library ids active when this job was queued (for re-edit same stack). */
   sessionActiveLoraIds?: string[];
   /** Session LoRA strength tweaks active when this job was queued. */
-  sessionLoraStrengthOverrides?: import('../lora-stack').SessionLoraStrengthOverrides;
+  sessionLoraStrengthOverrides?: import('../lora/stack').SessionLoraStrengthOverrides;
   /** Session textual-inversion stems active when this job was queued. */
   sessionEmbeddingTokens?: string[];
   /** Quick review rating from gallery review mode. */
@@ -110,7 +110,7 @@ export type ComfyGalleryEntry = {
   /** User-applied labels (distinct from LLM visionTags). */
   userTags?: string[];
   /** A cut film: how it was cut, so it can be shown and re-cut (cut-recipe.ts). */
-  cutRecipe?: import('../cut-recipe').CutRecipe;
+  cutRecipe?: import('../video/cut-recipe').CutRecipe;
   /** Named custom group assigned from gallery multi-select. One group per entry. */
   customGroup?: string;
   /**

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { choosePhoneView } from '@/lib/phone-view';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { choosePhoneView } from '@/lib/app/phone-view';
 import BrandMark from '@/components/BrandMark';
 import ActiveJobsChip from '@/components/ActiveJobsChip';
 import { AppNavSidebarContent } from '@/components/app-nav/AppNavSidebarContent';

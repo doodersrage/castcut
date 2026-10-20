@@ -1,7 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { startImproveFromGalleryEntry, startInpaintFromGalleryEntry } from '@/lib/improve-output';
+import {
+  startImproveFromGalleryEntry,
+  startInpaintFromGalleryEntry,
+} from '@/lib/edit/improve-output';
 import { downloadGalleryImage } from '@/lib/gallery/comfyui-gallery-export';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import {
@@ -23,7 +26,7 @@ type Props = {
   onOpenImage: (index: number) => void;
   onRequeue: (
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   onDownloadError: (message: string | null) => void;

@@ -6,8 +6,8 @@ import {
   normalizeSessionLlmProvider,
   type LlmCatalogEntry,
   type SessionLlmProvider,
-} from '@/lib/llm-providers';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+} from '@/lib/llm/providers';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   catalogEntriesFromPayload,
   fetchLlmCatalog,

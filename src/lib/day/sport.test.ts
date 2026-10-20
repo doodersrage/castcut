@@ -30,7 +30,7 @@ describe('day-sport', () => {
   });
 
   it('expands sport pose pools past the original three-per-sport floor', async () => {
-    const { listSportActionPoses } = await import('../athletic-sport-actions');
+    const { listSportActionPoses } = await import('../scene/athletic-sport-actions');
     for (const sport of [
       'running',
       'tennis',

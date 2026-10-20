@@ -7,9 +7,9 @@ import {
   dismissMobileStudioOffer,
   MOBILE_STUDIO_OFFER_MQ,
   shouldOfferMobileStudio,
-} from '@/lib/mobile-studio-offer';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { choosePhoneView } from '@/lib/phone-view';
+} from '@/lib/app/mobile-studio-offer';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { choosePhoneView } from '@/lib/app/phone-view';
 
 /** Narrow-viewport offer to switch into Mobile Studio (/m). */
 export default function MobileStudioOfferBanner() {

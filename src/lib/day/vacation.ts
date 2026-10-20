@@ -6,7 +6,7 @@
  * don’t freeze every still. No kneeling-on-bed / hands-and-knees.
  */
 
-import { danceMoveWords } from '@/lib/dance-move';
+import { danceMoveWords } from '@/lib/pose/dance-move';
 import type { DaySlotId } from '@/lib/day/planner';
 import { dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day/parts';
 

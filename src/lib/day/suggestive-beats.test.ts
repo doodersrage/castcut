@@ -6,9 +6,9 @@ import {
   DAY_SLOT_SUGGESTIVE_DUO_BEAT_PRESETS,
   daySlotMatchesAdultMix,
 } from './planner';
-import { stripNegatedClauses } from '../negated-clauses';
+import { stripNegatedClauses } from '../prompt/negated-clauses';
 import { suggestiveBeatClothes } from '../play/rapid-duo-recipe';
-import { suggestiveBeatIsImpliedNudity } from '../clothed-coverage';
+import { suggestiveBeatIsImpliedNudity } from '../wardrobe/clothed-coverage';
 
 /**
  * Suggestive is a clothed mood. The pose report card (2026-10-03) drew a bare bottom or chest from

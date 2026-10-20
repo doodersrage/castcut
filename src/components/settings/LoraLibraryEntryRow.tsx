@@ -3,10 +3,10 @@
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
 import { fetchLoraTriggerPhrase } from '@/lib/comfyui/object-info-cache';
 import type { ComfyLoraInventoryFile } from '@/lib/comfyui/object-info-cache';
-import type { LoraLibraryEntry } from '@/lib/lora-stack';
-import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
-import { loraChangesFaceAt } from '@/lib/lora-check';
-import type { LoraUsageStats } from '@/lib/lora-library-tools';
+import type { LoraLibraryEntry } from '@/lib/lora/stack';
+import { LORA_FAMILY_LABELS } from '@/lib/lora/family-detect';
+import { loraChangesFaceAt } from '@/lib/lora/check';
+import type { LoraUsageStats } from '@/lib/lora/library-tools';
 import LoraFaceCheckSection from '@/components/settings/LoraFaceCheckSection';
 
 type LoraLibraryEntryRowProps = {

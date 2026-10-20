@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { PRODUCT_NAME } from '@/lib/brand';
-import type { LocalLlmStatus } from '@/lib/llm-local';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { PRODUCT_NAME } from '@/lib/app/brand';
+import type { LocalLlmStatus } from '@/lib/llm/local';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 const CONTEXTS = [8192, 16384, 32768];
 

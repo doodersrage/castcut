@@ -6,8 +6,8 @@ import {
   matchInventoryFilename,
   unetLoaderPlacementMessage,
 } from './loader-map-inventory-sync';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
-import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model-checkpoint-map';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
+import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model/checkpoint-map';
 import type { WorkflowHealthIssue } from './health-audit';
 
 function modelUsesUnetLoaderGraph(model: string): boolean {

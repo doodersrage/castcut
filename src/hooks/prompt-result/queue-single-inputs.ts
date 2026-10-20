@@ -1,8 +1,8 @@
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { engineDisplayName } from '@/lib/engine/capabilities';
 import type { EngineAdapter } from '@/lib/engine/types';
-import { resolveQueueInputImage, resolveQueueInputImageFilename } from '@/lib/queue-input-image';
+import { resolveQueueInputImage, resolveQueueInputImageFilename } from '@/lib/queue/input-image';
 import { MAX_INPUT_IMAGE_FILENAMES } from '@/lib/workflow/load-image-bindings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
@@ -10,7 +10,7 @@ export type QueueSingleInputsResult = {
   inputImageFilename?: string;
   inputImageFilenames: string[];
   uploadedFigureSize?: { width: number; height: number };
-  clipMode?: import('@/lib/video-clip-mode').VideoClipMode;
+  clipMode?: import('@/lib/video/clip-mode').VideoClipMode;
   parentVideoUrl: string;
   maskImageFilename?: string;
   controlImageFilename?: string;
@@ -45,7 +45,7 @@ export async function resolveQueueSingleInputs(input: {
     setComfyUiStatus(cloudEngine ? 'Uploading reference image…' : 'Uploading image to ComfyUI…');
     if (!uploadedFigureSize && options?.inputImage) {
       try {
-        const { probeImageFileDimensions } = await import('@/lib/browser-image-dimensions');
+        const { probeImageFileDimensions } = await import('@/lib/storage/browser-image-dimensions');
         const probed = await probeImageFileDimensions(options.inputImage);
         if (probed) {
           uploadedFigureSize = probed;
@@ -81,7 +81,7 @@ export async function resolveQueueSingleInputs(input: {
   if (!uploadedFigureSize) {
     try {
       const { probeImageFileDimensions, probeImageUrlDimensions } =
-        await import('@/lib/browser-image-dimensions');
+        await import('@/lib/storage/browser-image-dimensions');
       if (options?.inputImage) {
         const probed = await probeImageFileDimensions(options.inputImage);
         if (probed) {
@@ -135,7 +135,7 @@ export async function resolveQueueSingleInputs(input: {
   }
 
   const { inferVideoClipMode, falVideoRequiresFirstFrame, cloudNativeExtendEngines } =
-    await import('@/lib/video-clip-mode');
+    await import('@/lib/video/clip-mode');
   const clipMode =
     effectiveTool === 'video'
       ? inferVideoClipMode({
@@ -178,7 +178,7 @@ export async function resolveQueueSingleInputs(input: {
   }
 
   if (cloudEngine && !inputImageFilename) {
-    const { resolveCloudIdentityFallback } = await import('@/lib/cloud-identity-fallback');
+    const { resolveCloudIdentityFallback } = await import('@/lib/cloud/cloud-identity-fallback');
     const identity = loadSettingsCache().shared;
     const fallback = resolveCloudIdentityFallback({
       inputImageFilename,
@@ -204,8 +204,8 @@ export async function resolveQueueSingleInputs(input: {
 
   let cloudFaceRefPromptInstruction: string | undefined;
   if (cloudEngine && options?.identityLock === true) {
-    const { buildCloudComposeFaceRefPayload } = await import('@/lib/cloud-compose-refs');
-    const { loadEngineSettings } = await import('@/lib/engine-settings');
+    const { buildCloudComposeFaceRefPayload } = await import('@/lib/cloud/cloud-compose-refs');
+    const { loadEngineSettings } = await import('@/lib/engine/settings');
     const { defaultCloudImg2ImgModel } = await import('@/lib/engine/capabilities');
     const identity = loadSettingsCache().shared;
     const engineSettings = loadEngineSettings();

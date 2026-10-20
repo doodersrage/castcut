@@ -6,7 +6,7 @@ type Issue = { severity: 'error' | 'warn'; message: string };
 // ---- ./prompt-pair ----
 let negativePromptModelResult = false;
 const modelUsesNegativePrompt = mock.fn((_model: string) => negativePromptModelResult);
-mock.module('../prompt-pair', { namedExports: { modelUsesNegativePrompt } });
+mock.module('../prompt/pair', { namedExports: { modelUsesNegativePrompt } });
 
 // ---- ./comfy-models/client ----
 let modelCategory = 'stable-diffusion';
@@ -18,7 +18,7 @@ let inpaintModelResult = false;
 let editQueueToolResult = false;
 const isInpaintModel = mock.fn((_model: string) => inpaintModelResult);
 const isEditQueueTool = mock.fn((_tool?: string) => editQueueToolResult);
-mock.module('../model-denoise-defaults', { namedExports: { isInpaintModel, isEditQueueTool } });
+mock.module('../model/denoise-defaults', { namedExports: { isInpaintModel, isEditQueueTool } });
 
 // ---- ./comfyui-runtime-for-model ----
 let runtimeResult: Record<string, unknown> | undefined | null = {
@@ -53,7 +53,7 @@ mock.module('../comfyui/requeue', { namedExports: { fetchWorkflowPreview } });
 
 // ---- ./queue-params-settings ----
 const resolveQueueParams = mock.fn((input?: Record<string, unknown>) => input ?? {});
-mock.module('../queue-params-settings', { namedExports: { resolveQueueParams } });
+mock.module('../queue/params-settings', { namedExports: { resolveQueueParams } });
 
 // ---- ./workflow-queue-loader-preflight ----
 let loaderIssues: Issue[] = [];
@@ -63,7 +63,7 @@ mock.module('./queue-loader-preflight', { namedExports: { auditLoaderMapsAtQueue
 // ---- ./lora-stack-preflight ----
 let loraIssues: Issue[] = [];
 const auditLoraStackAtQueueTime = mock.fn((_input: unknown) => loraIssues);
-mock.module('../lora-stack-preflight', { namedExports: { auditLoraStackAtQueueTime } });
+mock.module('../lora/stack-preflight', { namedExports: { auditLoraStackAtQueueTime } });
 
 // ---- ./comfyui-object-info-cache ----
 let objectInfoResult: { nodeTypes?: Set<string>; models?: unknown } | null = {

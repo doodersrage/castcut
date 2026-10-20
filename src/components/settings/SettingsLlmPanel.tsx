@@ -1,7 +1,7 @@
 'use client';
 
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { SessionLlmProvider } from '@/lib/llm-providers';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { SessionLlmProvider } from '@/lib/llm/providers';
 import { useLlmCatalog } from '@/hooks/useLlmCatalog';
 import LlmProviderPanel from '@/components/settings/panels/LlmProviderPanel';
 import LocalLlmPanel from '@/components/settings/panels/LocalLlmPanel';

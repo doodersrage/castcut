@@ -8,7 +8,7 @@ import {
   FAL_VIDEO_DURATION_SECONDS,
   snapFalVideoDurationSec,
   type VideoClipMode,
-} from '@/lib/video-clip-mode';
+} from '@/lib/video/clip-mode';
 import { engineDisplayName } from '@/lib/engine/capabilities';
 import type { EngineId } from '@/lib/engine/types';
 

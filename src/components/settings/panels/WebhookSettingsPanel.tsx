@@ -6,12 +6,12 @@ import {
   isWebhookEventEnabled,
   normalizeWebhookEnabledEvents,
   type WebhookSettings,
-} from '@/lib/webhook-settings';
+} from '@/lib/settings/webhook-settings';
 import {
   loadScheduledBatchConfig,
   saveScheduledBatchConfig,
   type ScheduledBatchConfig,
-} from '@/lib/scheduled-batch';
+} from '@/lib/batch/scheduled-batch';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
 

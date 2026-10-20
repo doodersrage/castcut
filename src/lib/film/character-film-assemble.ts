@@ -3,16 +3,16 @@
  * (video-assemble.ts, shared) and keep the cut on the Cast.
  */
 
-import type { CutSoundOptions } from '@/lib/cut-sound';
+import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from './cut-media';
 import type { FilmCutLength } from './cut-plan';
-import { filmDownloadFilename, type FilmPlaylistShot } from '../media-kind';
-import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from '../video-assemble';
-import type { FilmResolutionPreset } from '../video-resolution';
-import type { FilmTitleCard } from '../video-polish';
-import { cutRecipeFrom, type CutRecipe } from '../cut-recipe';
+import { filmDownloadFilename, type FilmPlaylistShot } from '../media/kind';
+import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from '../video/assemble';
+import type { FilmResolutionPreset } from '../video/resolution';
+import type { FilmTitleCard } from '../video/polish';
+import { cutRecipeFrom, type CutRecipe } from '../video/cut-recipe';
 
-export * from '../video-assemble';
+export * from '../video/assemble';
 
 export async function assembleAndStampFilm(input: {
   shots: FilmPlaylistShot[];

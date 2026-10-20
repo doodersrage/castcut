@@ -11,10 +11,13 @@ import {
   LTX25_REFINE_LORA,
   LTX25_REFINE_NODES,
   LTX25_AMBIENCE_NODES,
-} from '../ltx25-renderer';
-import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../h3-renderer';
-import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from '../wan-clip-canvas';
-import { convertQwenEditWorkflowToImage21, qwenImage21Steps } from '../qwen-image-21-renderer';
+} from '../video/ltx25-renderer';
+import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../engine/h3-renderer';
+import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from '../clip/wan-clip-canvas';
+import {
+  convertQwenEditWorkflowToImage21,
+  qwenImage21Steps,
+} from '../engine/qwen-image-21-renderer';
 import {
   isQwenLightningModel,
   patchModelSamplingInWorkflow,
@@ -37,7 +40,7 @@ import {
   isFlux1FamilyModel,
   isQwenRapidAioModel,
   resolveDistilledQueueDenoise,
-} from '../model-denoise-defaults';
+} from '../model/denoise-defaults';
 import {
   buildLightningLoraFilenameMap,
   loraFilenameImpliesLightning,
@@ -48,7 +51,7 @@ import {
   applyLoraStackToWorkflow,
   withActiveLoraTriggers,
   type LoraLibraryEntry,
-} from '../lora-stack';
+} from '../lora/stack';
 import {
   classifyPromptEncodeBinding,
   isPromptEncodeNode,
@@ -69,15 +72,15 @@ import {
   MAX_INPUT_IMAGE_FILENAMES,
   normalizeInputImageFilenames,
 } from '../workflow/load-image-bindings';
-import type { ModelLoaderFilenames } from '../model-checkpoint-map';
+import type { ModelLoaderFilenames } from '../model/checkpoint-map';
 import { matchInventoryFilenameNearMiss } from '../workflow/loader-map-inventory-sync';
 import {
   isVideoCheckpointMapKey,
   pickVideoCheckpointFromInventory,
-} from '../video-checkpoint-pick';
-import { ensureLtxClipLoaderForQueue } from '../video-i2v-scaffold';
+} from '../video/checkpoint-pick';
+import { ensureLtxClipLoaderForQueue } from '../video/i2v-scaffold';
 import { stripComfyUiOnlyNodes } from '../workflow/node-type-audit';
-import { applyCastcutBestOfTwo, castcutBestOfTwoAvailable } from '../castcut-nodes';
+import { applyCastcutBestOfTwo, castcutBestOfTwoAvailable } from '../castcut/nodes';
 import {
   normalizeComfyApiWorkflow,
   parseWorkflowJson,
@@ -129,19 +132,19 @@ import {
   type ModelRefinerMap,
   type ModelUnetMap,
   type ModelVaeMap,
-} from '../model-checkpoint-map';
+} from '../model/checkpoint-map';
 import { maybeRewriteRapidAioWorkflowLoaders } from '../workflow/rapid-aio-checkpoint';
 import {
   resolveLoaderPrecisionTier,
   preferInstalledFp8ForEdit2511,
   type LoaderPrecisionTier,
-} from '../model-loader-precision';
+} from '../model/loader-precision';
 import {
   DEFAULT_RESOLUTION_ORIENTATION,
   DEFAULT_RESOLUTION_SIZE_TIER,
   ensureLightningNativeResolutionParams,
   resolveModelResolutionParams,
-} from '../model-resolution-defaults';
+} from '../model/resolution-defaults';
 import {
   resolveModelSamplerParams,
   ensureDistilledSamplerParams,
@@ -150,19 +153,19 @@ import {
   ksamplerSafeScheduler,
   shouldNeutralizeStyleLorasAtQueue,
   type ModelSamplerPresetTier,
-} from '../model-sampler-defaults';
+} from '../model/sampler-defaults';
 import {
   normalizeQueueQualityProfile,
   resolveEffectiveSamplerPreset,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
-import { loadSettingsCache } from '../settings-cache';
+} from '../queue/quality-profile';
+import { loadSettingsCache } from '../settings/cache';
 import {
   DEFAULT_UPSCALE_MODEL_TOKEN,
   resolveUpscaleModelFilename,
   SUGGESTED_MODEL_UPSCALE_MAP,
   type ModelUpscaleMap,
-} from '../model-upscale-map';
+} from '../model/upscale-map';
 import {
   DEFAULT_IPADAPTER_IMAGE_TOKEN,
   DEFAULT_IPADAPTER_MODEL_TOKEN,
@@ -311,7 +314,7 @@ export type ComfyUiRuntimeConfig = {
   /** When true (default), upgrade Klein compose refs to Flux2Klein Enhancer nodes when installed. */
   kleinEnhancerEnabled?: boolean;
   /** Identity Feature Transfer Final preset (HARD/MID/SOFT lock). */
-  kleinEnhancerIdentityPreset?: import('../klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
+  kleinEnhancerIdentityPreset?: import('../engine/klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
   kleinEnhancerTextEnabled?: boolean;
   kleinEnhancerColorAnchorEnabled?: boolean;
   kleinEnhancerColorAnchorStrength?: number;
@@ -352,7 +355,7 @@ export type ComfyUiRuntimeConfig = {
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
   queueTargetModel?: string;
   /** Effective queue quality profile for this request (sampler, resolution, upscale). */
-  queueQualityProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  queueQualityProfile?: import('../queue/quality-profile').QueueQualityProfile;
   /** Client-side checkpoint map forwarded for server-side loader resolution. */
   modelCheckpointMap?: ModelCheckpointMap;
   /** Client-side VAE map forwarded for server-side loader resolution. */
@@ -366,7 +369,7 @@ export type ComfyUiRuntimeConfig = {
   /** Model id from last library optimize — required with hash for full early-exit. */
   workflowOptimizedModel?: string;
   /** Quality profile from last library optimize — required with hash for full early-exit. */
-  workflowOptimizedProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  workflowOptimizedProfile?: import('../queue/quality-profile').QueueQualityProfile;
   /** When Use system workflows is on: whether queue used a library pack or built-in scaffold. */
   systemWorkflowSource?: 'pack' | 'scaffold';
   /** Display label for the pack filename or "Built-in scaffold". */
@@ -377,9 +380,9 @@ export type ComfyUiRuntimeConfig = {
    */
   loraLibrary?: LoraLibraryEntry[];
   /** Multi-slot regional edit — bound at inject / direct-patch time. */
-  regionalSlots?: import('../regional-prompt-slots').RegionalPromptSlot[];
+  regionalSlots?: import('../prompt/regional-prompt-slots').RegionalPromptSlot[];
   /** Sidebar KSampler overrides forwarded for server-side inject (incl. denoise). */
-  modelSamplerOverrides?: import('../model-sampler-defaults').ModelSamplerOverrideFields;
+  modelSamplerOverrides?: import('../model/sampler-defaults').ModelSamplerOverrideFields;
   /**
    * Preferred ComfyUI pool host from SharedToolSettings. When set and the host
    * is in COMFYUI_POOL and healthy-ish, pool routing prefers it.
@@ -1436,7 +1439,7 @@ export function injectPromptsWithFallbacks(
     /** ComfyUI object_info node class names — gates the optional CLIPVisionLoader on IP-Adapter insert. */
     availableNodeTypes?: Iterable<string> | null;
     /** Multi-slot regional edit prompts/masks. */
-    regionalSlots?: import('../regional-prompt-slots').RegionalPromptSlot[];
+    regionalSlots?: import('../prompt/regional-prompt-slots').RegionalPromptSlot[];
     kleinEnhancerEnabled?: boolean;
     /** Swap the Qwen-Edit sampler onto Qwen-Image 2.1 (Engine → Renderer). */
     qwenRenderer?: 'rapid' | 'qwen-image-2.1';
@@ -1446,11 +1449,11 @@ export function injectPromptsWithFallbacks(
     qwenImage21KeepEngine?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
-    kleinEnhancerIdentityPreset?: import('../klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
+    kleinEnhancerIdentityPreset?: import('../engine/klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
     kleinEnhancerTextEnabled?: boolean;
     kleinEnhancerColorAnchorEnabled?: boolean;
     kleinEnhancerColorAnchorStrength?: number;
-    samplerOverrides?: import('../model-sampler-defaults').ModelSamplerOverrideFields;
+    samplerOverrides?: import('../model/sampler-defaults').ModelSamplerOverrideFields;
   }
 ): WorkflowInjectionResult {
   // LoRAs marked "add trigger" need their trigger word in the prompt to fire.

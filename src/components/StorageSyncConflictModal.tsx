@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { StorageNamespaceConflict, MergeChoice } from '@/lib/storage-merge';
-import type { StorageNamespace } from '@/lib/storage-namespaces';
-import { previewMergeChoices } from '@/lib/storage-merge-preview';
+import type { StorageNamespaceConflict, MergeChoice } from '@/lib/storage/merge';
+import type { StorageNamespace } from '@/lib/storage/namespaces';
+import { previewMergeChoices } from '@/lib/storage/merge-preview';
 import BrandBars from '@/components/BrandBars';
 import BrandMark from '@/components/BrandMark';
 import { Button } from '@/components/ui/Button';

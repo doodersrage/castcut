@@ -1,11 +1,11 @@
 'use client';
 
-import { locateFaceOnPlateBlob } from '@/lib/face-locate-client';
+import { locateFaceOnPlateBlob } from '@/lib/face/locate-client';
 import {
   cropFaceBoxFromBlob,
   cropPortraitFaceRegionFromBlob,
   type PortraitFaceCropOptions,
-} from '@/lib/portrait-face-crop';
+} from '@/lib/face/portrait-face-crop';
 
 /**
  * The Cast face crop (Day / Story Image 1, the Face finish reference) cut around the face the
@@ -47,4 +47,4 @@ export async function cropCastFaceFromBlob(
   return { file, face: located?.available && !located.face ? 'missing' : 'unknown' };
 }
 
-export { clearCastFaceLocateCache, locateFaceOnPlateBlob } from '@/lib/face-locate-client';
+export { clearCastFaceLocateCache, locateFaceOnPlateBlob } from '@/lib/face/locate-client';

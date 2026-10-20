@@ -5,7 +5,7 @@ import {
   formatRenderRealismHint,
   RENDER_REALISM_OPTIONS,
   type RenderRealismMode,
-} from '@/lib/render-realism';
+} from '@/lib/engine/render-realism';
 
 type RenderRealismHintsProps = {
   mode: RenderRealismMode;

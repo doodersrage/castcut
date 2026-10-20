@@ -14,9 +14,9 @@ import {
   sidecarNegativePrompt,
   sidecarRequeueContext,
   type PromptSidecar,
-} from '@/lib/prompt-sidecar';
+} from '@/lib/prompt/sidecar';
 import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
-import { toastHeldMax } from '@/lib/app-toast';
+import { toastHeldMax } from '@/lib/app/toast';
 import { Button } from '@/components/ui/Button';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
 import QueueOrchestrationPanel from '@/components/QueueOrchestrationPanel';

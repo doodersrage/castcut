@@ -7,12 +7,12 @@ Goal (2026-10-09): declutter Castcut and give the classic Prompt Studio tools a 
 | Layer | What | May import |
 |---|---|---|
 | **Play** | Film, Cast, Look (moodboard), Day, Outfit, Story; their hooks, components, routes and libraries (`isPlayLayer`, `src/lib/architecture-boundaries.ts`) | anything |
-| **Shared** | ComfyUI render pipeline (`comfyui-*`, `comfy-*`, `workflow-*`, `queue-*`), settings sync, auth, storage, Gallery, the app shell, UI primitives | shared only |
+| **Shared** | ComfyUI render pipeline (`lib/comfyui/`, `lib/workflow/`, `lib/queue/`), settings sync, auth, storage, Gallery, the app shell, UI primitives | shared only |
 | **Studio** | The classic tools: prompt, compose, ControlNet, inpaint/outpaint, video, audio, mesh, fantasy, pet, topics, format, negative, logo, variations, refine, workflow editor | shared only |
 
 The rule is one-way: nothing outside Play imports Play.
 
-Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: files outside the Play folders that only Play uses. These include the pose editor, the wardrobe pickers, Story's writer, the Play API routes and the mobile Play pages, found by reachability from the shared app routes. They move into the Castcut app in step 4. The phone app (`/m`, `components/mobile`, mobile hooks) is Castcut's too. Its route helpers (`lib/mobile-*`) stay shared.
+Play is the path patterns in `isPlayLayer` plus `architecture/play-owned.json`: files outside the Play folders that only Play uses. These include the pose editor, the wardrobe pickers, Story's writer, the Play API routes and the mobile Play pages, found by reachability from the shared app routes. They move into the Castcut app in step 4. The phone app (`/m`, `components/mobile`, mobile hooks) is Castcut's too. Its route helpers (`lib/app/mobile-*`) stay shared.
 
 ## The guard
 
@@ -29,11 +29,11 @@ Regenerating the baseline is for removals only, never to admit a new crossing. T
 
 | Imports into Play | File | Why |
 |---|---|---|
-| 10 | `lib/settings-cache.ts` | stores and normalises every tool's settings, including Day/Outfit/Story types and defaults |
+| 10 | `lib/settings/cache.ts` | stores and normalises every tool's settings, including Day/Outfit/Story types and defaults |
 | 7 | `components/mobile/MobileStudioShell.tsx` | the mobile shell mounts Play screens |
 | 6 | `lib/specialized/roleplay-generator.ts` | Story's writer lives outside the Play folders |
-| 6 | `lib/studio-extras.ts` | Cast / Play extras in the shared store |
-| 5 | `components/HomeDashboard.tsx`, `lib/character-os.ts` | home and Cast cards |
+| 6 | `lib/app/studio-extras.ts` | Cast / Play extras in the shared store |
+| 5 | `components/HomeDashboard.tsx`, `lib/character/os.ts` | home and Cast cards |
 | 4 | `app/api/film/assemble/route.ts`, `components/mobile/MobileCaptureTool.tsx` | film assembly, mobile capture |
 | 2–3 | Gallery empty panel, pose editor, nav, onboarding, data reset, queue prompt prep, requeue | small hooks into Play |
 
@@ -51,29 +51,39 @@ Regenerating the baseline is for removals only, never to admit a new crossing. T
 
 ### Pattern for step 2 (first use: Cast-change clean-up, 2026-10-09)
 
-Shared code exposes a registration point (`registerCastChangeScrubber` in `settings-cache.ts`). The Play logic moves into the Play layer (`play-cast-change.ts`) and is registered by `lib/play/features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
+Shared code exposes a registration point (`registerCastChangeScrubber` in `lib/settings/cache.ts`). The Play logic moves into the Play layer (`lib/play/cast-change.ts`) and is registered by `lib/play/features.ts`, which `components/PlayFeatures.tsx` loads from the Castcut root layout. `src/app/layout.tsx` is the one allowed crossing (`PLAY_COMPOSITION_ROOTS`); the classic app's layout won't mount PlayFeatures.
 
 ### Feature settings
 
-Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play/settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`settings-cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
+Play's tool settings (Story `roleplay`, Outfit `fitting`, `day`, Look `moodboard`) and their defaults live in `lib/play/settings.ts`. They join `ToolSettingsCache` by declaration merging into `FeatureToolSettings` (`lib/settings/cache.ts`), so the shared settings name no feature, and the classic app simply has no such keys.
 
 ### Cast records
 
-The Cast store (`character-os.ts`) is shared: Gallery filters, identity lock, LoRA training and IP-Adapter use it. Play's parts of a record (Story bio/tone/content/playAs, film cut, Look packs) are declared in `lib/play/cast.ts` through `CharacterFeatureFields`, together with the functions that use them. Their normaliser is registered with `registerCharacterNormalizer`. The record normaliser keeps any field it does not name, so feature data survives where the feature isn't loaded; `character-feature-fields.test.ts` guards this.
+The Cast store (`lib/character/os.ts`) is shared: Gallery filters, identity lock, LoRA training and IP-Adapter use it. Play's parts of a record (Story bio/tone/content/playAs, film cut, Look packs) are declared in `lib/play/cast.ts` through `CharacterFeatureFields`, together with the functions that use them. Their normaliser is registered with `registerCharacterNormalizer`. The record normaliser keeps any field it does not name, so feature data survives where the feature isn't loaded; `character-feature-fields.test.ts` guards this.
 
 ### UI slots and flags
 
-Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app-flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play/features.ts`.
+Shared screens render named slots (`components/AppSlot.tsx`): `<AppSlot name="home.top" />` for places features add to, and `<AppSlotOwner name="gallery.empty" fallback={…} />` for places one feature takes over, with a plain fallback for the classic app. Yes/no questions go through `lib/app/flags.ts` (`appFlag('home.showGoalChooser')`). Play registers its components and answers in `components/PlayAppSlots.tsx` and `lib/play/features.ts`.
 
 ### Data hooks
 
-Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook`, `registerCastChangeScrubber`, `registerPoseTargetGroup` (where the Gallery pose dialog can send a pose) and `registerQueueJobDescriber` (Queue page labels, and "Run next" repointing), `registerNavHrefResolver` / `registerNavClickFollower` (`lib/nav-links.ts`), `registerCharacterStorePreparer` / `registerCharacterLookSwitcher` (`lib/character-hooks.ts`, the Cast picker in the shared tool controls) and `registerGalleryKeeperHook`. Pose data shapes live in `lib/pose-types.ts`.
+Other registration points: `registerStudioExtrasSection` (a feature's fields in the synced studio-extras payload, same keys and apply guards), `registerLocalDataReset` (what "Clear all local data" clears and lists), `registerResumeCta` (empty states' "pick up where you left off"), `registerJobCompletedHook`, `registerCastChangeScrubber`, `registerPoseTargetGroup` (where the Gallery pose dialog can send a pose) and `registerQueueJobDescriber` (Queue page labels, and "Run next" repointing), `registerNavHrefResolver` / `registerNavClickFollower` (`lib/app/nav-links.ts`), `registerCharacterStorePreparer` / `registerCharacterLookSwitcher` (`lib/character/hooks.ts`, the Cast picker in the shared tool controls) and `registerGalleryKeeperHook`. Pose data shapes live in `lib/pose/types.ts`.
 
 ### Shared media and identity
 
-Clip assembly is shared: `lib/video-assemble.ts` (encode in the browser or on the server through `/api/film/assemble`, then keep it in the Gallery), used by Gallery's stitch, Video continue and Play's film cut (`character-film-assemble.ts` adds the cut planner). Shared helpers that Play modules re-export: `media-kind` (video checks, still holds, film size caps), `character-plate`, `character-plate-thumb`, `character-identity` (a Cast's face lock and LoRAs on a queued job) and `face-locate-client`.
+Clip assembly is shared: `lib/video/assemble.ts` (encode in the browser or on the server through `/api/film/assemble`, then keep it in the Gallery), used by Gallery's stitch, Video continue and Play's film cut (`lib/film/character-film-assemble.ts` adds the cut planner). Shared helpers that Play modules re-export: `media-kind` (video checks, still holds, film size caps), `character-plate`, `character-plate-thumb`, `character-identity` (a Cast's face lock and LoRAs on a queued job) and `face-locate-client`.
 
 Each step lands separately with the unit and e2e suites green, so Castcut never breaks along the way.
+
+## Lib layout
+
+`src/lib` is in domain folders (since 2026-10-20). A file's folder names its domain, and the name inside it drops that prefix: `lib/gallery/cap.ts`, not `lib/gallery-cap.ts`.
+
+- **Play:** `day/`, `play/`, `story/`, `film/`, `cast/`, `fitting/`, `look/`. `PLAY_LAYER_RE` matches these folders, so a new file in one of them is Play. A Play module that isn't in a Play folder goes in `architecture/play-owned.json`.
+- **Shared:** `comfyui/`, `comfy-models/`, `workflow/`, `queue/`, `batch/`, `engine/`, `model/`, `lora/`, `cloud/`, `llm/`, `vision/`, `gallery/`, `history/`, `search/`, `prompt/`, `scene/`, `pose/`, `wardrobe/`, `character/`, `face/`, `plate/`, `still/`, `clip/`, `video/`, `audio/`, `edit/`, `checks/`, `adult/`, `variation/`, `experiment/`, `best-of-n/`, `settings/`, `storage/`, `user/`, `auth/`, `server/`, `api/`, `app/`, `plugin/`, `media/`, `castcut/`, `specialized/`, `sqlite/`, `email/`, `data/` (JSON).
+- **Root:** only the build tooling scripts import (`architecture-boundaries.ts`, `classic-app.ts`) and `service-worker.js`. Tests that span many features are in `__tests__/`.
+- **Moving files:** `npx tsx scripts/move-lib-files.mts --map moves.json` (or `--prefix x- --dir x`) runs `git mv` and rewrites every import, `import()`, `mock.module` and `src/lib/…` path that points at a moved file. It refuses a move that would change a file's side of the Play boundary. Paths built with `join(…, 'lib', …)` aren't rewritten: the catalog generators (`scripts/generate-clothing.mjs`, `generate-locations.mjs`, `dedupe-clothing.mjs`, `generate-wardrobe-thumbs.mjs`) name their folders directly.
+- **Old paths in the core package:** every move is recorded in `architecture/lib-moves.json`. `pack-core` writes a one-line re-export at each old path of a shipped file, so Prompt Studio's `prompt-studio-core/src/lib/<old>` imports keep working. Once Prompt Studio imports the new paths, drop the re-exports in a major core release.
 
 ## Prompt Studio (github.com/doodersrage/prompt-studio)
 
@@ -85,5 +95,5 @@ Prompt Studio, the classic tools without Play, is its own repository and app. Si
 - **Routes:** `prompt-studio-sync-routes` (`scripts/core-sync-routes.mjs` with `scripts/classic-wrappers.mjs`) writes Prompt Studio's `src/app` wrappers: the core's routes outside Play (`coreRouteFiles`, `lib/classic-app.ts`), and its own `src/studio-app` pages, which win at the same route (its `/` is Generate; Castcut's redirects to Film).
 - **Updates:** Prompt Studio's daily `core-update.yml` installs a newer core, regenerates the routes, type-checks, runs its unit tests and builds, then opens a `core-<version>` PR. A shared change that breaks Prompt Studio shows up there (or in `check:core` here, for type errors).
 - **Links in the shared code:** `appHasRoute` (app-profile) knows each app's pages; `STUDIO_ONLY_ROUTES` lists Prompt Studio's, so nav, palette, search and Gallery handoffs hide them in Castcut. Keep it in step when Prompt Studio adds or removes a page.
-- **App profile** (`lib/app-profile.ts`): `APP_HAS_PLAY` is false in Prompt Studio's build (`NEXT_PUBLIC_APP_PROFILE=classic`): its name, no Film workspace or nav group, Studio as the first-run workspace, the classic engine list in Settings.
+- **App profile** (`lib/app/profile.ts`): `APP_HAS_PLAY` is false in Prompt Studio's build (`NEXT_PUBLIC_APP_PROFILE=classic`): its name, no Film workspace or nav group, Studio as the first-run workspace, the classic engine list in Settings.
 - **Local install note:** on a machine with a system libvips, `sharp`'s install script builds from source and fails; install with `SHARP_IGNORE_GLOBAL_LIBVIPS=1`.

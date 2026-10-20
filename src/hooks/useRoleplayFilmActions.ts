@@ -15,7 +15,7 @@ import {
   storyPoseMatchLabel,
   storyRealismLabel,
 } from '@/lib/story/roleplay-pose-check';
-import { REALISM_MISS_REASON } from '@/lib/still-realism';
+import { REALISM_MISS_REASON } from '@/lib/still/realism';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
@@ -28,16 +28,16 @@ import {
   stampAssembledFilm,
 } from '@/lib/film/character-film-assemble-lazy';
 import { roleplayWatchPlaylist } from '@/lib/film/character-film';
-import { applyCharacterRecord, getCharacter } from '@/lib/character-os';
+import { applyCharacterRecord, getCharacter } from '@/lib/character/os';
 import { upsertCharacterFromRoleplaySession } from '@/lib/play/cast';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import { completePlayCampaign } from '@/lib/play/campaign';
 import { loadRoleplayLibrary, persistRoleplayLibraryFromCache } from '@/lib/story/roleplay-library';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { type RoleplayToolCache } from '@/lib/play/settings';
-import { resolveFilmFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
-import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 import { widenStillForFilm } from '@/lib/film/widen-client';
 import { renderNarrationLine } from '@/lib/film/narration-client';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
@@ -248,7 +248,7 @@ export function useRoleplayFilmActions(input: {
         }
         markOnboardingFirstPlayCampaign();
         const firstCut = markOnboardingFirstFilmCut();
-        void import('@/lib/local-observability').then(
+        void import('@/lib/server/local-observability').then(
           ({ noteFilmCutSourceMetric, noteSaveToCastMetric }) => {
             noteFilmCutSourceMetric('roleplay');
             if (character && result.persisted) {
@@ -260,7 +260,7 @@ export function useRoleplayFilmActions(input: {
           completePlayCampaign({ characterId: character.id, stepId: 'roleplay' });
         }
         if (firstCut) {
-          void import('@/lib/system-tray-celebrate').then(({ celebrateSystemTray }) => {
+          void import('@/lib/app/system-tray-celebrate').then(({ celebrateSystemTray }) => {
             celebrateSystemTray('job');
           });
           setFirstCutCelebrate(true);
@@ -305,7 +305,7 @@ export function useRoleplayFilmActions(input: {
       ...applyCharacterRecord(created),
     });
     setFilmCharacterId(created.id);
-    void import('@/lib/local-observability').then(({ noteSaveToCastMetric }) => {
+    void import('@/lib/server/local-observability').then(({ noteSaveToCastMetric }) => {
       noteSaveToCastMetric();
     });
     const film = assembledFilmRef.current;

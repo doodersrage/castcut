@@ -8,20 +8,20 @@ import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { isInpaintModel } from '@/lib/model-denoise-defaults';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
-import { DEFAULT_REFINE_TOOL_CACHE } from '@/lib/settings-cache';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
+import { isInpaintModel } from '@/lib/model/denoise-defaults';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { resolveParentHistoryId } from '@/lib/prompt/lineage-session';
+import { DEFAULT_REFINE_TOOL_CACHE } from '@/lib/settings/cache';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { createDefaultRegionalSlots } from '@/lib/prompt/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
 import { sharedPatchFromGalleryHandoff, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import {
   parseVisionScanApiResponse,
   prepareVisionScanImagePayload,
   resolveStillFileForVisionScan,
-} from '@/lib/vision-scan-still';
+} from '@/lib/vision/scan-still';
 
 export function useRefineToolOrchestration() {
   const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(

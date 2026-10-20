@@ -1,8 +1,8 @@
-import { refineImagePrompt, scanRefineReference } from '@/lib/image-refine';
+import { refineImagePrompt, scanRefineReference } from '@/lib/edit/image-refine';
 import { fileToDataUrl, normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
-import { normalizeDetailLevel } from '@/lib/detail-level';
+import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
 import { normalizeComfyModel } from '@/lib/comfy-models';
-import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm/request-options';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

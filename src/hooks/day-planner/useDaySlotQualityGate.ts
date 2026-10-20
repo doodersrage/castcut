@@ -14,9 +14,9 @@ import {
   recordPoseMatchScore,
   recordSlotReviewOutcome,
 } from '@/lib/play/metrics';
-import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { detectStillPose } from '@/lib/pose-detect-client';
-import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
+import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
+import { detectStillPose } from '@/lib/pose/detect-client';
+import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose/library';
 import {
   DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
@@ -26,8 +26,8 @@ import {
   guidePostureContradictsWords,
   scorePoseMatch,
   type PoseMatchResult,
-} from '@/lib/pose-score';
-import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/score';
+import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
 import {
   decideSlotQuality,
   FACE_MISMATCH_NUDGE,
@@ -41,7 +41,7 @@ import {
 } from '@/lib/play/slot-quality';
 import { buildFaceComparePair } from '@/lib/play/face-compare';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
-import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
+import { isIntimateDuoStillPrompt } from '@/lib/still/clip-prompt';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
@@ -50,11 +50,11 @@ import {
   poseLimbFixNudge,
   promptGivesHandsAJob,
   type PoseMissView,
-} from '@/lib/pose-coaching';
-import { gestureFixNudge } from '@/lib/pose-gesture';
-import { betterTakeIndex, type TakeScores } from '@/lib/take-scoring';
-import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face-match';
-import { REALISM_MISS_REASON, REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still-realism';
+} from '@/lib/pose/coaching';
+import { gestureFixNudge } from '@/lib/pose/gesture';
+import { betterTakeIndex, type TakeScores } from '@/lib/queue/take-scoring';
+import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face/match';
+import { REALISM_MISS_REASON, REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still/realism';
 
 type DaySlotAttempt = {
   imageUrl: string;
@@ -229,7 +229,7 @@ export function useDaySlotQualityGate(
               // visible action (the cup at the mouth, the phone up): one vision call asks both.
               if (poseMatch.score >= DEFAULT_MIN_POSE_MATCH) {
                 setQualityStatus(`Checking ${target.label} gesture…`);
-                const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
+                const { checkStillPoseVision } = await import('@/lib/pose/gesture-vision-client');
                 ({ match: poseMatch } = await checkStillPoseVision({
                   imageUrl,
                   beat: expectation.beat ?? target.sceneHints,
@@ -291,7 +291,7 @@ export function useDaySlotQualityGate(
         setQualityStatus(`Reviewing ${target.label}…`);
         // How real it looks: its own vision call (in the review prompt it never fired).
         // And where it is: the place check rides the same upload (still-place.ts).
-        const { checkStillRealismAndPlace } = await import('@/lib/pose-gesture-vision-client');
+        const { checkStillRealismAndPlace } = await import('@/lib/pose/gesture-vision-client');
         const looked = await checkStillRealismAndPlace({
           imageUrl: checkUrl,
           place: target.location,

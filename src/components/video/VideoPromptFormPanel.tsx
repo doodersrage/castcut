@@ -9,8 +9,8 @@ import VideoPromptClipModeSection, {
   VideoPromptTimingFieldsSection,
 } from '@/components/video/VideoPromptFormSections';
 import type { EngineId } from '@/lib/engine/types';
-import type { VideoClipMode } from '@/lib/video-clip-mode';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { VideoClipMode } from '@/lib/video/clip-mode';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 
 const ACCENT = 'brand' as const;
 

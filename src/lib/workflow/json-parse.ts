@@ -35,7 +35,7 @@ import {
   DEFAULT_UNET_TOKEN,
   DEFAULT_VAE_TOKEN,
   DEFAULT_CHECKPOINT_TOKEN,
-} from '../model-checkpoint-map';
+} from '../model/checkpoint-map';
 import { LORA_PLACEHOLDER_TOKEN_PATTERN } from './lora-patch';
 
 export function normalizeComfyApiWorkflow(value: Record<string, unknown>): Record<string, unknown> {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import {
   addBlankCastLook,
   followCastOutfitInSessions,
@@ -15,7 +15,7 @@ import {
   castPlateTiles,
   keptPhotoOutfitLabel,
   nextCastLookName,
-} from '../character-plate-thumb';
+} from '../character/plate-thumb';
 import {
   activeLook,
   applyCharacterRecordFresh,
@@ -24,7 +24,7 @@ import {
   looksOf,
   setLookKeptOutfit,
   upsertCharacter,
-} from '../character-os';
+} from '../character/os';
 import { dayDressPlateRequestKey } from '../day/dress-plate';
 import { resolveFittingPlateFromCharacter } from '../fitting/room';
 import {
@@ -33,7 +33,7 @@ import {
   syncSharedIdentityToCast,
 } from '../look/outfit-plate';
 import { keptLookOutfitFromTryOn } from '../fitting/outfit-handoff';
-import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveSharedSettings, saveToolSettings } from '../settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveSharedSettings, saveToolSettings } from '../settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '../play/settings';
 
 function installMemoryWindow() {

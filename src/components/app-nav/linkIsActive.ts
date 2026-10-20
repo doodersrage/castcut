@@ -1,4 +1,4 @@
-import type { AppNavLink } from '@/lib/app-nav-catalog';
+import type { AppNavLink } from '@/lib/app/nav-catalog';
 
 export function linkIsActive(link: AppNavLink, pathname: string, search: string): boolean {
   const [path, query = ''] = link.href.split('?');

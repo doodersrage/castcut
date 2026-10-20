@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback } from 'react';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { isVideoModel } from '@/lib/queue-tool-model';
+import { isVideoModel } from '@/lib/queue/tool-model';
 
 type UseVideoPromptFieldSettersOptions = {
   subject: string;

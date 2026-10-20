@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { galleryEntryFromSidecar } from "./sidecar-entry";
-import type { PromptSidecar } from "../prompt-sidecar";
+import type { PromptSidecar } from "../prompt/sidecar";
 
 describe("gallery-sidecar-entry", () => {
   it("builds a pseudo gallery entry from sidecar output metadata", () => {

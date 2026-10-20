@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import type { ComfyUiRuntimeConfig } from '@/lib/comfyui/config';
 import {
   comfyUiSettingsToRuntime,

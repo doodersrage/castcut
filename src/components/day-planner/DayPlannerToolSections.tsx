@@ -10,7 +10,7 @@ import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
 import { applyCutShotEdits } from '@/lib/film/cut-plan';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -25,7 +25,7 @@ import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day/event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import SideSheet from '@/components/ui/SideSheet';
 import {
   CollapsibleSection,
@@ -34,17 +34,17 @@ import {
   ToolSection,
 } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import {
   countWardrobeOptionsForFilter,
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   buildDayProgressLightboxState,
@@ -59,7 +59,7 @@ import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import dynamic from 'next/dynamic';
 import {
   useCallback,
@@ -98,7 +98,7 @@ import {
   PLAY_METRICS_UPDATED_EVENT,
 } from '@/lib/play/metrics';
 import { deriveDayPhase } from '@/lib/play/step-machine';
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
 import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 

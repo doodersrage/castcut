@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayWatchPlaylist } from '../day/planner';
-import { filmShotSubtitle } from '../media-kind';
-import { subtitleLines } from '../video-polish';
+import { filmShotSubtitle } from '../media/kind';
+import { subtitleLines } from '../video/polish';
 
 describe('burned-in subtitles', () => {
   it('a talking clip carries its line (and the reply); else the narration', () => {

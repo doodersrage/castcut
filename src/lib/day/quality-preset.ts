@@ -1,4 +1,4 @@
-import type { QueueQualityProfile } from '../queue-quality-profile';
+import type { QueueQualityProfile } from '../queue/quality-profile';
 
 /**
  * Day's one Quality control: Fast / Balanced / Best. A preset is a render quality (the Engine's

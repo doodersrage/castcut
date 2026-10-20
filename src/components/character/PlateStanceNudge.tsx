@@ -10,14 +10,14 @@ import {
   getServerCharactersSnapshot,
   looksOf,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { resolveLookPlate } from '@/lib/fitting/room';
 import {
   parseDismissedPlateKeys,
   plateStanceKey,
   plateStanceNudge,
   withDismissedPlateKey,
-} from '@/lib/plate-stance';
+} from '@/lib/plate/stance';
 
 /** Per-viewer convenience: plates whose stance note this browser dismissed. */
 const DISMISSED_KEY = 'plate-stance-nudge-dismissed';

@@ -1,10 +1,10 @@
 import type { ComfyWorkflowPreset } from '../comfyui/workflow-presets';
 import { upsertComfyWorkflowFile } from '../comfyui/workflow-files';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import { optimizeWorkflowForQueue } from './queue-optimizer';
-import { normalizeQueueQualityProfile } from '../queue-quality-profile';
+import { normalizeQueueQualityProfile } from '../queue/quality-profile';
 import { workflowContentHash } from './content-hash';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 import { inferModelsFromWorkflowLabel } from './category-defaults';
 
 export const WORKFLOW_PRESET_PACKS_KEY = 'comfyui-workflow-preset-packs-v1';

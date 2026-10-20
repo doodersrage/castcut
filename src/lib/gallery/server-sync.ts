@@ -1,9 +1,9 @@
 'use client';
 
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
-import { pullNamespaceFromServer, syncNamespaceToServer } from '../storage-sync';
+import { pullNamespaceFromServer, syncNamespaceToServer } from '../storage/sync';
 import { capGalleryEntriesForLocalStorage } from './cap';
-import { loadCharacters } from '../character-os';
+import { loadCharacters } from '../character/os';
 import { collectGalleryProtectedEntryIds } from './protected-ids';
 import { MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
 import { isGalleryEntryHidden } from './adult-check';

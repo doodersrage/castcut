@@ -1,4 +1,4 @@
-import { getDiffusersBaseUrl } from '@/lib/diffusers-client';
+import { getDiffusersBaseUrl } from '@/lib/engine/diffusers-client';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
 import {
   contentTypeForViewBytes,
@@ -9,7 +9,7 @@ import {
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
   normalizeComfyViewType,
-} from '@/lib/url-safety';
+} from '@/lib/server/url-safety';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

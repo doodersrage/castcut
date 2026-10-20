@@ -8,8 +8,8 @@
  */
 
 import { relationAllowsRomance, type CastRelationKind } from '../cast/relationships';
-import { inferSubjectGenderFromHints } from '@/lib/distinct-people';
-import type { CharacterAgeBand } from '@/lib/character-appearance';
+import { inferSubjectGenderFromHints } from '@/lib/checks/distinct-people';
+import type { CharacterAgeBand } from '@/lib/character/appearance';
 
 export type DayPartnerNoun = 'man' | 'woman' | 'person';
 

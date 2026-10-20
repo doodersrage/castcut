@@ -5,8 +5,8 @@ import type { GalleryCardActions } from '@/components/gallery/GalleryCardItem';
 import {
   startRefineFromGalleryEntry,
   startReeditRefineFromGalleryEntry,
-} from '@/lib/improve-output';
-import { toastBulkQueueSummary } from '@/lib/app-toast';
+} from '@/lib/edit/improve-output';
+import { toastBulkQueueSummary } from '@/lib/app/toast';
 import { firstUnreviewedInRun } from '@/lib/gallery/queue-runs';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
@@ -14,7 +14,7 @@ import {
   loadExperimentWinners,
   markExperimentWinner,
   type ExperimentWinnerRecord,
-} from '@/lib/experiment-winners';
+} from '@/lib/experiment/winners';
 
 type UseGalleryExperimentGridHandlersArgs = {
   experimentWinners: Record<string, ExperimentWinnerRecord>;

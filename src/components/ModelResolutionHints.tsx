@@ -10,9 +10,9 @@ import {
   resolutionSizeTiersForModel,
   type ResolutionOrientation,
   type ResolutionSizeTier,
-} from '@/lib/model-resolution-defaults';
+} from '@/lib/model/resolution-defaults';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { isAudioModel, isMeshModel } from '@/lib/queue-tool-model';
+import { isAudioModel, isMeshModel } from '@/lib/queue/tool-model';
 import { useEffect } from 'react';
 
 type ModelResolutionHintsProps = {

@@ -7,7 +7,7 @@ import {
   CAST_PLATE_TRAIT_EDIT_EVENT,
   type CastPlateTraitEditRequest,
 } from '@/lib/cast/plate-trait-edit';
-import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
+import { CHARACTERS_UPDATED_EVENT } from '@/lib/character/os';
 
 const LookPlateMarksRepair = dynamic(() => import('@/components/play/LookPlateMarksRepair'), {
   ssr: false,
@@ -69,7 +69,7 @@ export default function LookPlateGuardWatcher() {
         traitEditRef.current.delete(`${job.characterId}:${job.lookId}`);
       }
       if (result === 'skipped') return;
-      void import('@/lib/system-tray-messages').then(({ pushSystemTrayMessage }) =>
+      void import('@/lib/app/system-tray-messages').then(({ pushSystemTrayMessage }) =>
         pushSystemTrayMessage({
           text:
             job.kind === 'traits'
@@ -94,7 +94,7 @@ export default function LookPlateGuardWatcher() {
     const onRequest = (event: Event) => {
       const request = (event as CustomEvent<CastPlateTraitEditRequest>).detail;
       if (!request?.characterId || !request.lookId) return;
-      void import('@/lib/character-os').then(({ getCharacter }) => {
+      void import('@/lib/character/os').then(({ getCharacter }) => {
         const character = getCharacter(request.characterId);
         if (!character) return;
         traitEditRef.current.add(`${request.characterId}:${request.lookId}`);
@@ -123,9 +123,9 @@ export default function LookPlateGuardWatcher() {
     };
     const scan = () => {
       void Promise.all([
-        import('@/lib/character-os'),
-        import('@/lib/settings-cache'),
-        import('@/lib/likeness-measure-client'),
+        import('@/lib/character/os'),
+        import('@/lib/settings/cache'),
+        import('@/lib/character/likeness-measure-client'),
       ]).then(([cast, settings, likeness]) => {
         if (cancelled) return;
         const castId = settings.loadSettingsCache().shared.activeCharacterId?.trim();
@@ -164,7 +164,7 @@ export default function LookPlateGuardWatcher() {
           }
           const asked = traitEditRef.current.delete(key);
           queue.push(async () => {
-            const guard = await import('@/lib/look-plate-guard');
+            const guard = await import('@/lib/character/look-plate-guard');
             const result = asked
               ? null
               : await guard.checkLookPlate({
@@ -190,7 +190,7 @@ export default function LookPlateGuardWatcher() {
               }
               return;
             }
-            const { pushSystemTrayMessage } = await import('@/lib/system-tray-messages');
+            const { pushSystemTrayMessage } = await import('@/lib/app/system-tray-messages');
             pushSystemTrayMessage({
               text: result.noFace
                 ? `The new plate for “${look.name}” shows no face — likely ${character.name} from behind. Every still starts from it — make the plate again, or put back the earlier one on Cast home → Looks.`

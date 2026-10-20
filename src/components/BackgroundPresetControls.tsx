@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   BACKGROUND_PRESET_UI_SECTIONS,
   BACKGROUND_SURFACE_MATERIAL_OPTIONS,
@@ -14,8 +14,8 @@ import {
   type BackgroundPresetOptions,
   type BackgroundPresetUiField,
   type BackgroundPresetUiSection,
-} from '@/lib/background-options';
-import type { BackgroundToolCache } from '@/lib/settings-cache';
+} from '@/lib/scene/background-options';
+import type { BackgroundToolCache } from '@/lib/settings/cache';
 import { SelectInput, TextInput } from '@/components/ui/Field';
 
 function BackgroundSelect({

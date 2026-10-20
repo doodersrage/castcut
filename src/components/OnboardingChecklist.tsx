@@ -1,8 +1,8 @@
 'use client';
 
-import { appFlag } from '@/lib/app-flags';
+import { appFlag } from '@/lib/app/flags';
 import { useEffect, useMemo, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { canAccessNavFeature, useAllowedFeatures, useAuth } from '@/hooks/useAuth';
@@ -14,15 +14,15 @@ import {
   loadOnboardingState,
   ONBOARDING_UPDATED_EVENT,
   type OnboardingStep,
-} from '@/lib/onboarding-store';
+} from '@/lib/app/onboarding-store';
 import { Button } from '@/components/ui/Button';
-import { settingsTabHref } from '@/lib/settings-nav';
+import { settingsTabHref } from '@/lib/settings/nav';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { saveWorkspaceMode } from '@/lib/workspace-mode';
+import { saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import {
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
   isSettingsSyncedWithServer,
-} from '@/lib/settings-push-flush';
+} from '@/lib/settings/push-flush';
 
 /** Longest wait for the first server sync before showing a new browser's checklist. */
 const CHECKLIST_SYNC_WAIT_MS = 8000;

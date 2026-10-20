@@ -3,7 +3,7 @@ import { describe, it, mock } from "node:test";
 import type { ComfyUiSettings } from "./settings";
 import type { ComfyUiRuntimeConfig } from "./config";
 import type { ComfyWorkflowFile } from "./workflow-files";
-import type { SettingsCache } from "../settings-cache";
+import type { SettingsCache } from "../settings/cache";
 
 const comfyUiSettingsToRuntime = mock.fn(
   (_settings: ComfyUiSettings): ComfyUiRuntimeConfig | undefined => ({ apiUrl: "http://base" })
@@ -31,7 +31,7 @@ const loadSettingsCache = mock.fn(
 const saveSharedSettings = mock.fn((next: SettingsCache["shared"]) => {
   sharedSettings = next;
 });
-mock.module("../settings-cache", { namedExports: { loadSettingsCache, saveSharedSettings } });
+mock.module("../settings/cache", { namedExports: { loadSettingsCache, saveSharedSettings } });
 
 describe("comfyui-runtime", async () => {
   const {

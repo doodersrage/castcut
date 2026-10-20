@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { fetchFalJobStatus } from '@/lib/fal-client';
+import { fetchFalJobStatus } from '@/lib/cloud/fal-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

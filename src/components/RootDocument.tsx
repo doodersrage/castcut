@@ -12,7 +12,7 @@ import ComfyGalleryBackgroundPoller from '@/components/ComfyGalleryBackgroundPol
 import UserScopeInit from '@/components/UserScopeInit';
 import AutoStorageSyncInit from '@/components/AutoStorageSyncInit';
 import DeferredShellClient from '@/components/DeferredShellClient';
-import { normalizeWorkspaceMode, WORKSPACE_MODE_COOKIE } from '@/lib/workspace-mode';
+import { normalizeWorkspaceMode, WORKSPACE_MODE_COOKIE } from '@/lib/app/workspace-mode';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

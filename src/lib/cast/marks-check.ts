@@ -13,7 +13,7 @@
  */
 
 import { castMarkPhrase, castMarkSpotShows } from './marks';
-import type { CastMark, CastMarkSpot } from '../character-os';
+import type { CastMark, CastMarkSpot } from '../character/os';
 
 export const MARKS_CHECK_VERSION = 1;
 

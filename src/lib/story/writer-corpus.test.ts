@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { resolveStoryScenePose } from '../../hooks/roleplay/story-scene-pose';
-import { clarifyIntimateImageLanguage } from '../intimate-prompt-clarify';
+import { clarifyIntimateImageLanguage } from '../adult/intimate-prompt-clarify';
 import { repairStoryScene } from './scene-check';
 
 type RecordedScene = {

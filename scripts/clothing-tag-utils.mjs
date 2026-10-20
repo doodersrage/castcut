@@ -1,4 +1,4 @@
-/** Keep CONTEXT_RULES aligned with src/lib/clothing-tags.ts (runtime catalog tagging). */
+/** Keep CONTEXT_RULES aligned with src/lib/wardrobe/clothing-tags.ts (runtime catalog tagging). */
 
 const WOMEN_GARMENT =
   /\b(?:dress|gown|skirt|heels|stiletto|tutu|cocktail dress|evening gown|a-line skirt|fish-tail skirt|maxi skirt|mini skirt|pencil skirt|wrap skirt|romper|camisole|corset top|blouse|peasant blouse|wrap blouse|halter top|slip dress|shirt dress|sweater dress|dirndl|sari|salwar kameez|hanbok|flamenco dress|ballroom dance dress|mary jane|kitten heels|block heel pumps|ballet flats|leggings|yoga pants|bikini|one-piece swimsuit|tankini|chemise|negligee|lingerie|bralette|bustier|teddy|garter belt|tap pants|stockings|pantyhose|tights|fishnet|twinset|skirt suit|fascinator|opera gloves)\b/i;

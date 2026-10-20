@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
+import { APP_NAV_SETTINGS_LINK } from '@/lib/app/nav-catalog';
 import NotificationBell from '@/components/NotificationBell';
 import ConnectionHealthChip from '@/components/ConnectionHealthChip';
 import ActiveJobsChip from '@/components/ActiveJobsChip';

@@ -1,10 +1,10 @@
 'use client';
 
-import { PRODUCT_NAME } from '@/lib/brand';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { DiffusersEngineAvailability } from '@/lib/diffusers-engine-install';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { DiffusersEngineAvailability } from '@/lib/engine/diffusers-engine-install';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 const RUNNING = new Set(['downloading', 'unpacking', 'installing']);
 const PHASE_LABEL: Record<string, string> = {

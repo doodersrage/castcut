@@ -6,7 +6,7 @@ const readBrowserValue = mock.fn(<T>(key: string): T | null => (store.get(key) a
 const writeBrowserValue = mock.fn((key: string, value: unknown) => {
   store.set(key, value);
 });
-mock.module("../browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
+mock.module("../storage/browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
 
 describe("comfy-setup-intent", async () => {
   const { markComfyQueueIntent, hasComfyQueueIntent, COMFY_QUEUE_INTENT_EVENT } = await import(

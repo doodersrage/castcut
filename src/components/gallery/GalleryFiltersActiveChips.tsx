@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyGalleryFilter, ComfyGallerySort } from '@/lib/gallery/comfyui-gallery';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { PromptProject } from '@/lib/prompt/projects';
 import {
   buildActiveFilterChips,
   clearAllGalleryFilters,

@@ -11,13 +11,13 @@ import {
   startInpaintFromGalleryEntry,
   startMeshFromGalleryEntry,
   startOutpaintFromGalleryEntry,
-} from '@/lib/improve-output';
+} from '@/lib/edit/improve-output';
 import {
   galleryVariationsPath,
   prepareGalleryVariationsFromEntry,
 } from '@/lib/gallery/variations-handoff';
-import { loadEngineSettings } from '@/lib/engine-settings';
-import { continueClipActionLabel } from '@/lib/video-clip-mode';
+import { loadEngineSettings } from '@/lib/engine/settings';
+import { continueClipActionLabel } from '@/lib/video/clip-mode';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
 

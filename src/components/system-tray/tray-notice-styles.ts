@@ -1,4 +1,4 @@
-import type { SystemTrayMessageTone } from '@/lib/system-tray-messages';
+import type { SystemTrayMessageTone } from '@/lib/app/system-tray-messages';
 
 export type TrayNoticeTone = SystemTrayMessageTone;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { AuthGroup } from '@/lib/auth/types';
-import type { SharedProject } from '@/lib/shared-projects-store';
+import type { SharedProject } from '@/lib/storage/shared-projects-store';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';

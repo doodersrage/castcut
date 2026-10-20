@@ -1,6 +1,6 @@
 'use client';
 
-import { lookPlateDrifted } from '@/lib/look-plate-guard';
+import { lookPlateDrifted } from '@/lib/character/look-plate-guard';
 import CastVoiceSection from '@/components/character/CastVoiceSection';
 import CastLikenessSection from '@/components/character/CastLikenessSection';
 import CastMarksSection from '@/components/character/CastMarksSection';
@@ -24,7 +24,7 @@ import CharacterBibleSection from '@/components/character/CharacterBibleSection'
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
-import { activeLook } from '@/lib/character-os';
+import { activeLook } from '@/lib/character/os';
 import CastSeasonsSection from '@/components/character/CastSeasonsSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';

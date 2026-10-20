@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
-import { MAX_STILL_VISION_QUESTIONS, type GestureQuestion } from '@/lib/pose-gesture';
-import { askGestureVision } from '@/lib/pose-gesture-vision-server';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
+import { MAX_STILL_VISION_QUESTIONS, type GestureQuestion } from '@/lib/pose/gesture';
+import { askGestureVision } from '@/lib/pose/gesture-vision-server';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 
 export const runtime = 'nodejs';

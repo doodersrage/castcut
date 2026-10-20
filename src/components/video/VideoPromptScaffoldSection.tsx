@@ -2,8 +2,8 @@
 
 import MediaScaffoldReadyPanel from '@/components/MediaScaffoldReadyPanel';
 import ComfyModelAssetsPanel from '@/components/settings/ComfyModelAssetsPanel';
-import { isVideoModel } from '@/lib/queue-tool-model';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import { isVideoModel } from '@/lib/queue/tool-model';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 
 type VideoPromptScaffoldSectionProps = {
   model: string;
@@ -37,7 +37,8 @@ export default function VideoPromptScaffoldSection({
             onInstalled={() => {
               void (async () => {
                 try {
-                  const { pinVideoWeightsAfterInstall } = await import('@/lib/pin-video-weights');
+                  const { pinVideoWeightsAfterInstall } =
+                    await import('@/lib/video/pin-video-weights');
                   const result = await pinVideoWeightsAfterInstall(model);
                   if (result.sharedPatch) {
                     onSharedPatch(result.sharedPatch);

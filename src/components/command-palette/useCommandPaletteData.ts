@@ -1,28 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import type { AppFeatureId } from '@/lib/auth/features';
-import { NSFW_GENERATOR_NAV_LINK } from '@/lib/nsfw-generator-nav';
-import { loadNavFavorites } from '@/lib/nav-favorites';
-import { loadRecentDestinations, type RecentDestination } from '@/lib/recent-destinations';
-import { clearLastToolRoute, loadLastToolRoute } from '@/lib/last-tool-route';
+import { NSFW_GENERATOR_NAV_LINK } from '@/lib/adult/nsfw-generator-nav';
+import { loadNavFavorites } from '@/lib/app/nav-favorites';
+import { loadRecentDestinations, type RecentDestination } from '@/lib/history/recent-destinations';
+import { clearLastToolRoute, loadLastToolRoute } from '@/lib/app/last-tool-route';
 import {
   clearLastToolDraft,
   loadLastToolDraft,
   type ToolDraftSummary,
-} from '@/lib/tool-draft-memory';
-import type { GlobalSearchResult } from '@/lib/global-search';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadWorkspaceMode, usesPlayChrome } from '@/lib/workspace-mode';
+} from '@/lib/app/tool-draft-memory';
+import type { GlobalSearchResult } from '@/lib/search/global-search';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadWorkspaceMode, usesPlayChrome } from '@/lib/app/workspace-mode';
 import {
   buildNavItems,
   isCommandItemAllowed,
   allowPaletteItemOnPath,
 } from '@/components/command-palette/catalog';
 import type { CommandItem } from '@/components/command-palette/types';
-import type { SessionRecipe } from '@/lib/session-recipes';
+import type { SessionRecipe } from '@/lib/prompt/session-recipes';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
-import { appHasRoute } from '@/lib/app-profile';
-import { describeQueueJob } from '@/lib/queue-job-context';
+import { appHasRoute } from '@/lib/app/profile';
+import { describeQueueJob } from '@/lib/queue/job-context';
 
 type UseCommandPaletteDataOptions = {
   open: boolean;
@@ -96,7 +96,7 @@ export function useCommandPaletteOpenState(open: boolean) {
       setLastRoute(loadLastToolRoute());
       setLastDraft(loadLastToolDraft());
     });
-    void import('@/lib/session-recipes').then(({ latestGenerateLookRecipe }) => {
+    void import('@/lib/prompt/session-recipes').then(({ latestGenerateLookRecipe }) => {
       setLastLook(latestGenerateLookRecipe());
     });
     void import('@/lib/gallery/stack-restore').then(async ({ pickKeeperStackEntry }) => {
@@ -110,7 +110,7 @@ export function useCommandPaletteOpenState(open: boolean) {
           .slice(0, 5)
       );
     });
-    void import('@/lib/prompt-projects').then(({ loadActiveProjectId, loadPromptProjects }) => {
+    void import('@/lib/prompt/projects').then(({ loadActiveProjectId, loadPromptProjects }) => {
       const activeId = loadActiveProjectId();
       if (!activeId) {
         setActiveProjectLabel(null);
@@ -144,7 +144,7 @@ export function useCommandPalettePluginNav(
     if (!open) {
       return;
     }
-    void import('@/lib/plugin-nav-links').then(({ resolveAllPluginNavLinks }) => {
+    void import('@/lib/plugin/nav-links').then(({ resolveAllPluginNavLinks }) => {
       setPluginNavItems(
         resolveAllPluginNavLinks().map(link => ({
           id: `plugin-nav-${link.href}`,
@@ -169,7 +169,7 @@ export function useCommandPaletteGlobalSearch(query: string) {
     }
 
     let cancelled = false;
-    void import('@/lib/global-search').then(({ searchGlobalForApp }) => {
+    void import('@/lib/search/global-search').then(({ searchGlobalForApp }) => {
       if (cancelled) {
         return;
       }

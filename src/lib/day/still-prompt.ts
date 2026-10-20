@@ -11,7 +11,7 @@
 
 import { withCastPlace } from '../cast/places';
 import { castRelationSentence } from '../cast/relationships';
-import { withEatingUtensil } from '../eating-utensil';
+import { withEatingUtensil } from '../wardrobe/eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day/clothed-lead';
 import {
   inDayPromptVoice,
@@ -45,13 +45,13 @@ import {
 } from '@/lib/day/plate';
 import { dayStillLiesDown } from '@/lib/day/still-plan';
 import { resolveRoleplaySetting } from '@/lib/story/roleplay';
-import { beatFitsSetting, fitBeatToSetting, withSceneGround } from '@/lib/scene-surface';
+import { beatFitsSetting, fitBeatToSetting, withSceneGround } from '@/lib/scene/surface';
 import { withDayWeather } from '@/lib/day/weather';
-import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
-import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
-import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/footwear';
-import { reinforceIntimateStillPrompt } from '@/lib/intimate-prompt-clarify';
-import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/klein-face-reference';
+import type { PoseLeadPosition } from '@/lib/pose/guide-openpose';
+import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
+import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/wardrobe/footwear';
+import { reinforceIntimateStillPrompt } from '@/lib/adult/intimate-prompt-clarify';
+import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/engine/klein-face-reference';
 import {
   ALWAYS_CUED_DUO_LAYOUTS,
   dayDuoPoseWords,
@@ -63,18 +63,18 @@ import {
   withSportActionPoseCue,
   type DuoPoseNames,
   sportPoseFirstLine,
-} from '@/lib/pose-coaching';
-import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose-describe';
-import { POSE_MISMATCH_NUDGE } from '@/lib/pose-score';
-import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/prompt-recipe-mark';
-import { adultBodyPhrase } from '@/lib/character-appearance';
-import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult-age-safeguard';
-import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
+} from '@/lib/pose/coaching';
+import { customPoseFirstLine, withCustomPoseSentence } from '@/lib/pose/describe';
+import { POSE_MISMATCH_NUDGE } from '@/lib/pose/score';
+import { RAPID_DUO_RECIPE_MARK, isRapidDuoRecipePrompt } from '@/lib/prompt/recipe-mark';
+import { adultBodyPhrase } from '@/lib/character/appearance';
+import { applyAdultAgeSafeguards, type AgePerson } from '@/lib/adult/adult-age-safeguard';
+import { dayMoodNeedsAdultSafeguards } from '@/lib/adult/adult-appearance-gate';
 import {
   dayMoodMustStayClothed,
   softenBareSkinWords,
   withStrongCoverageLine,
-} from '@/lib/clothed-coverage';
+} from '@/lib/wardrobe/clothed-coverage';
 
 export type DayStillPromptFacts = {
   /** The slot's brief or recipe (buildDaySlotPrompt). */

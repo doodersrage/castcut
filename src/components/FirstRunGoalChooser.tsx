@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FIRST_RUN_GOAL_OPTIONS, saveFirstRunGoal } from '@/lib/first-run-goal';
-import { saveWorkspaceMode } from '@/lib/workspace-mode';
+import { FIRST_RUN_GOAL_OPTIONS, saveFirstRunGoal } from '@/lib/app/first-run-goal';
+import { saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 
 type FirstRunGoalChooserProps = {

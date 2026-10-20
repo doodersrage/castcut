@@ -1,9 +1,9 @@
 'use client';
 
-import { inspectPromptWeights } from '@/lib/prompt-weight-inspector';
+import { inspectPromptWeights } from '@/lib/prompt/weight-inspector';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import TagAssistToolbar from '@/components/TagAssistToolbar';
-import { modelUsesTagAssist } from '@/lib/tag-assist';
+import { modelUsesTagAssist } from '@/lib/prompt/tag-assist';
 
 export default function PromptWeightInspector(props: {
   prompt: string;

@@ -6,13 +6,13 @@
  */
 import { type WorkflowPlaceholderTokens } from '../comfyui/config';
 import { type ComfyImageModel } from '../comfy-models';
-import { isFluxKleinModel } from '../model-denoise-defaults';
+import { isFluxKleinModel } from '../model/denoise-defaults';
 import {
   DEFAULT_UNET_TOKEN,
   resolveLoaderFilenamesForModel,
   suggestedVaeFilenameForModel,
-} from '../model-checkpoint-map';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+} from '../model/checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 const DEFAULT_FLUX_CLIP_L = 'clip_l.safetensors';
 const DEFAULT_FLUX_CLIP_T5 = 't5xxl_fp16.safetensors';

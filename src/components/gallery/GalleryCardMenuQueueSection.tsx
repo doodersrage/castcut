@@ -7,7 +7,7 @@ import {
 } from '@/lib/gallery/stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
 import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { loadEngineSettings } from '@/lib/engine/settings';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';

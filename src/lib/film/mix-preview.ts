@@ -5,12 +5,12 @@
  * "preview dialogue and music together before exporting"). Sound only; the reel shows picture.
  */
 
-import { clipTrimWindow } from '../clip-trim';
-import { cutJoins, cutStarts, filmSpeechStarts, type CutTimelineKind } from '../cut-timeline';
+import { clipTrimWindow } from '../clip/trim';
+import { cutJoins, cutStarts, filmSpeechStarts, type CutTimelineKind } from '../video/cut-timeline';
 import { probeMediaDurationSec } from './cut-media';
-import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from '../media-kind';
-import { normalizeMusicLevel, normalizeVoiceLevel } from '../audio-mix-levels';
-import { TITLE_CARD_SEC } from '../video-polish';
+import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from '../media/kind';
+import { normalizeMusicLevel, normalizeVoiceLevel } from '../audio/mix-levels';
+import { TITLE_CARD_SEC } from '../video/polish';
 
 /** The music sits at this share of its level under a line (the encode's sidechain, roughly). */
 export const PREVIEW_DUCK = 0.35;

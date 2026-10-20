@@ -23,7 +23,7 @@ import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,

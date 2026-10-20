@@ -2,11 +2,11 @@ import type { AuthGroup, AuthUser } from '@/lib/auth/types';
 import type { RegisteredSession } from '@/lib/auth/session-registry';
 import type { UserApiKey } from '@/lib/auth/api-keys';
 import type { AuditLogEntry } from '@/lib/auth/audit-log';
-import type { LlmUsageEntry } from '@/lib/llm-usage-log';
-import type { UserAnalyticsSnapshot } from '@/lib/user-analytics';
-import type { CollabRoomState } from '@/lib/collab-store';
-import type { SharedProject } from '@/lib/shared-projects-store';
-import type { SharedPresetEntry } from '@/lib/shared-preset-store';
+import type { LlmUsageEntry } from '@/lib/llm/usage-log';
+import type { UserAnalyticsSnapshot } from '@/lib/user/analytics';
+import type { CollabRoomState } from '@/lib/storage/collab-store';
+import type { SharedProject } from '@/lib/storage/shared-projects-store';
+import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
 import { decodeJson, encodeJson, getStudioDb, withStudioTransaction } from './studio-db';
 
 type PasswordResetToken = {

@@ -1,4 +1,4 @@
-import { getNsfwGeneratorPreset, type NsfwGeneratorPreset } from '../nsfw-generator-presets';
+import { getNsfwGeneratorPreset, type NsfwGeneratorPreset } from '../adult/nsfw-generator-presets';
 import { runSpecializedPrompt } from './runner';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 

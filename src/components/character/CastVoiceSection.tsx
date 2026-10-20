@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { fetchComfyLoraInventory } from '@/lib/comfyui/object-info-cache';
-import { LTX25_ID_LORA } from '@/lib/ltx25-renderer';
+import { LTX25_ID_LORA } from '@/lib/video/ltx25-renderer';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
@@ -16,8 +16,8 @@ import {
   takeCastVoiceFromClip,
   takeCastVoiceFromFile,
 } from '@/lib/cast/voice';
-import { getCharacter, type CharacterRecord } from '@/lib/character-os';
-import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
+import { getCharacter, type CharacterRecord } from '@/lib/character/os';
+import { resolveFittingPlateFromCharacter } from '@/lib/character/plate';
 
 type Audition = { index: number; url?: string; error?: string };
 

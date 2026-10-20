@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { detectPeopleInComfyStill, detectPoseInComfyStill } from '@/lib/pose-detect-server';
+import { detectPeopleInComfyStill, detectPoseInComfyStill } from '@/lib/pose/detect-server';
 
 export const runtime = 'nodejs';
 

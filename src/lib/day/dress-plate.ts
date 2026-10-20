@@ -13,7 +13,7 @@
 import { buildFittingOutfitPrompt } from '@/lib/fitting/room';
 import { isDayAdultMood, normalizeDayMood } from '@/lib/day/planner';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import type { CharacterLookOutfit } from '@/lib/character-os';
+import type { CharacterLookOutfit } from '@/lib/character/os';
 
 export {
   DAY_DRESS_PLATE_CACHE_LIMIT,

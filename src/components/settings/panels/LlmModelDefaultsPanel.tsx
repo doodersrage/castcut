@@ -2,8 +2,8 @@
 
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { LlmCatalogEntry, SessionLlmProvider } from '@/lib/llm-providers';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { LlmCatalogEntry, SessionLlmProvider } from '@/lib/llm/providers';
 import {
   SessionLlmModelSelect,
   TEMP_PRESETS,

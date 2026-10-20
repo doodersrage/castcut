@@ -2,10 +2,10 @@
 
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { parseCharacterHints } from '@/lib/character-hints';
-import { getCharacter } from '@/lib/character-os';
-import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
-import { fetchClothingSelectOptions } from '@/lib/clothing-catalog-client';
+import { parseCharacterHints } from '@/lib/character/hints';
+import { getCharacter } from '@/lib/character/os';
+import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
+import { fetchClothingSelectOptions } from '@/lib/wardrobe/clothing-catalog-client';
 import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import {
   removeSavedFittingGarment,
@@ -13,16 +13,16 @@ import {
   loadSavedFittingGarments,
   updateSavedFittingGarmentDescription,
 } from '@/lib/fitting/saved-garments';
-import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
-import { scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { resolveStillFileForVisionScan } from '@/lib/vision/scan-still';
+import { scanStillWithVision } from '@/lib/vision/still-scan-client';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+} from '@/lib/wardrobe/catalog-ui';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { RoleplayToolCache } from '@/lib/play/settings';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 

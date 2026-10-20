@@ -10,7 +10,7 @@ import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button } from '@/components/ui/Button';
 import { OptionRow } from '@/components/cut/CutOptionParts';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
-import { OVERLAY_CORNERS, type OverlayCorner } from '@/lib/cut-overlay';
+import { OVERLAY_CORNERS, type OverlayCorner } from '@/lib/video/cut-overlay';
 import type { CutShotEdit } from '@/lib/film/cut-plan';
 
 const field =

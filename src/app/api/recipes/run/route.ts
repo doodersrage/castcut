@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { runPromptRecipeSteps } from '@/lib/prompt-recipes';
+import { runPromptRecipeSteps } from '@/lib/prompt/recipes';
 
 export const runtime = 'nodejs';
 
@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     prompt?: string;
     model?: string;
-    steps?: import('@/lib/prompt-recipes').PromptRecipeStep[];
+    steps?: import('@/lib/prompt/recipes').PromptRecipeStep[];
   };
   if (!body.prompt?.trim() || !body.steps?.length) {
     return apiError('prompt and steps are required.', 400);

@@ -6,8 +6,8 @@
  */
 
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
-import { filmMediaLooksVideo } from '../media-kind';
-import { DEFAULT_RENDER_MS, estimateQueueEta, formatEta, typicalRenderMs } from '../queue-eta';
+import { filmMediaLooksVideo } from '../media/kind';
+import { DEFAULT_RENDER_MS, estimateQueueEta, formatEta, typicalRenderMs } from '../queue/eta';
 
 type StillLike = {
   slotId: string;

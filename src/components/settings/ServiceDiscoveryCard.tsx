@@ -1,11 +1,11 @@
 'use client';
 
-import { PRODUCT_NAME } from '@/lib/brand';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { HealthResponse } from '@/components/settings/tabs/settings-tool-shared';
-import type { FoundComfyUi, FoundLlm } from '@/lib/service-discovery';
-import { sameServiceAddress } from '@/lib/service-address';
+import type { FoundComfyUi, FoundLlm } from '@/lib/server/service-discovery';
+import { sameServiceAddress } from '@/lib/server/service-address';
 
 type Found = { comfy: FoundComfyUi[]; llm: FoundLlm[]; llmBaseUrl?: string };
 

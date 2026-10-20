@@ -2,8 +2,8 @@ import 'server-only';
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolvePromptDataDir } from '../prompt-data-paths';
-import { isServerStorageEnabled } from '../server-storage';
+import { resolvePromptDataDir } from '../prompt/data-paths';
+import { isServerStorageEnabled } from '../storage/server-storage';
 
 const SAFE_ID = /^[A-Za-z0-9._-]{1,128}$/;
 // "." and ".." are otherwise valid under SAFE_ID's character class, and both are

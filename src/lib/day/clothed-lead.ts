@@ -7,7 +7,7 @@
 
 import { isDayAdultMood, normalizeDayMood } from '@/lib/day/planner';
 import { dayWeatherIsOutdoor } from '@/lib/day/weather';
-import { pickDistinctSubjects } from '@/lib/variation-seed';
+import { pickDistinctSubjects } from '@/lib/variation/seed';
 
 /** Marks on the body ride into every still and read as wounds ("a faded scar on one forearm"). */
 const BODY_MARK_CLAUSE_RE =

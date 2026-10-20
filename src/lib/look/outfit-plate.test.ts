@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import {
   assignOutfitPlateToCastAndFitting,
   buildLookCastPlateNegative,
@@ -22,9 +22,9 @@ import {
   stripDemographicCuesFromStyle,
   styleNotesForLookPlate,
 } from './outfit-plate';
-import { createBlankCharacter, getCharacter, upsertCharacter, activeLook } from '../character-os';
+import { createBlankCharacter, getCharacter, upsertCharacter, activeLook } from '../character/os';
 import { saveComfyGallery, type ComfyGalleryEntry } from '../gallery/comfyui-gallery';
-import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveToolSettings } from '../settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSettingsCache, saveToolSettings } from '../settings/cache';
 import { DEFAULT_FITTING_TOOL_CACHE } from '../play/settings';
 
 function installMemoryWindow() {

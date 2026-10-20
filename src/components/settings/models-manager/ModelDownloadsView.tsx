@@ -7,7 +7,7 @@ import type { ComfyModelAssetsViewModel } from '@/components/settings/comfy-mode
 import type { AssetRow } from '@/components/settings/comfy-model-assets/comfy-model-assets-types';
 import { COMFY_ASSET_KIND_LABELS, type ComfyAssetKind } from '@/lib/comfyui/comfy-asset-kinds';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { engineFamilyLabel, formatBytes } from '@/lib/model-files';
+import { engineFamilyLabel, formatBytes } from '@/lib/model/files';
 
 type EngineGroup = {
   label: string;

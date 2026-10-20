@@ -6,7 +6,7 @@
  * table / terrace; an everyday or vacation kit as the Image 2 packshot 6/6 dressed.
  */
 
-import { categoryLabel } from '@/lib/clothing-catalog-fields';
+import { categoryLabel } from '@/lib/wardrobe/clothing-catalog-fields';
 import { normalizeDayMood, type DayMood } from '@/lib/day/planner';
 import { dayPartOf } from '@/lib/day/parts';
 import { dayThemeOf } from '@/lib/day/themes';

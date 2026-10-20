@@ -1,6 +1,6 @@
 'use client';
 
-import { characterFromShared, getCharacter, upsertCharacter } from '@/lib/character-os';
+import { characterFromShared, getCharacter, upsertCharacter } from '@/lib/character/os';
 import { addCharacterLookPack, lookPacksOf } from '@/lib/play/cast';
 import { getCharacterLookPack } from '@/lib/play/cast';
 import {
@@ -9,7 +9,7 @@ import {
   parseLookPackFile,
   saveLookPack,
 } from '@/lib/look/pack';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';

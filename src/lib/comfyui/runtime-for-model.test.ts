@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { resetBrowserStorageCache } from "../browser-storage";
+import { resetBrowserStorageCache } from "../storage/browser-storage";
 import {
   resolveRuntimeForModel,
   resolveRuntimeForQueue,
@@ -11,7 +11,7 @@ import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
   saveSharedSettings,
-} from "../settings-cache";
+} from "../settings/cache";
 import { buildWorkflowScaffoldForModel } from "../workflow/scaffold";
 
 function withMockLocalStorage(run: () => void | Promise<void>): Promise<void> {

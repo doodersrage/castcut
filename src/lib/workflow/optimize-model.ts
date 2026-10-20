@@ -1,8 +1,8 @@
 import type { ComfyImageModel } from '../comfy-models/client';
 import type { ComfyWorkflowFile } from '../comfyui/workflow-files';
 import { inferModelsFromWorkflowLabel } from './category-defaults';
-import type { ModelWorkflowMap } from '../model-workflow-map';
-import { loadSettingsCache } from '../settings-cache';
+import type { ModelWorkflowMap } from '../model/workflow-map';
+import { loadSettingsCache } from '../settings/cache';
 
 /** Pick the best model id to run optimize/enrich heuristics for a library workflow file. */
 export function resolveOptimizeModelForWorkflowFile(

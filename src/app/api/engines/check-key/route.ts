@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { checkEngineKey, KEY_CHECK_ENGINES, type KeyCheckEngine } from '@/lib/engine-key-check';
+import { checkEngineKey, KEY_CHECK_ENGINES, type KeyCheckEngine } from '@/lib/engine/key-check';
 
 export const runtime = 'nodejs';
 

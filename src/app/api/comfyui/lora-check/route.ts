@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { runLoraCheckRender } from '@/lib/lora-check-server';
+import { runLoraCheckRender } from '@/lib/lora/check-server';
 
 export const runtime = 'nodejs';
 

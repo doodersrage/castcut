@@ -11,7 +11,7 @@ import {
   type FilmShotKind,
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
-} from '../media-kind';
+} from '../media/kind';
 import { isGalleryEntryHidden } from '../gallery/adult-check';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from '../story/roleplay';
 import { looksLikeMotionUrl } from '../story/roleplay-film';
@@ -286,8 +286,8 @@ export function roleplayWatchPlaylist(
   return shots;
 }
 
-export { filmMediaLooksVideo, isAssembledFilmEntry } from '../media-kind';
-export type { FilmMediaRef, FilmPlaylistShot, FilmShotKind } from '../media-kind';
+export { filmMediaLooksVideo, isAssembledFilmEntry } from '../media/kind';
+export type { FilmMediaRef, FilmPlaylistShot, FilmShotKind } from '../media/kind';
 
 export {
   canStampAssembledFilm,
@@ -298,4 +298,4 @@ export {
   MAX_SERVER_GALLERY_FILM_BYTES,
   MAX_STILL_HOLD_SEC,
   MIN_STILL_HOLD_SEC,
-} from '../media-kind';
+} from '../media/kind';

@@ -15,7 +15,7 @@ import {
   civitaiLoraDownloadUrl,
   isCivitaiDownloadUrl,
   parseCivitaiVersionId,
-} from '../civitai-lora';
+} from '../lora/civitai-lora';
 
 export type ComfyAssetJobStatus =
   'queued' | 'downloading' | 'verifying' | 'complete' | 'error' | 'cancelled';

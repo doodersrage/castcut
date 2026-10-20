@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { SystemTrayAssetJob, SystemTrayPrimary } from '@/hooks/useSystemTrayState';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import { GalleryTrayRow } from '@/components/system-tray/GalleryTrayRow';

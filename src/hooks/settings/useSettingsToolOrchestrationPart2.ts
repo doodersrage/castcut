@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { STUDIO_BACKUP_LAST_EXPORT_KEY } from '@/lib/studio-backup-meta';
+import { STUDIO_BACKUP_LAST_EXPORT_KEY } from '@/lib/storage/studio-backup-meta';
 import {
   readBrowserString,
   whenBrowserStorageReady,
   writeBrowserString,
-} from '@/lib/browser-storage';
+} from '@/lib/storage/browser-storage';
 import { useComfyUiSettings } from '@/hooks/useComfyUiSettings';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
 import {
@@ -24,10 +24,10 @@ import {
   formatModelRefinerMap,
   mergeSuggestedLoaderMaps,
   formatSuggestedLoaderMergeMessage,
-} from '@/lib/model-checkpoint-map';
-import { formatModelUpscaleMap } from '@/lib/model-upscale-map';
-import { formatModelControlNetMap } from '@/lib/model-controlnet-map';
-import { formatModelLoraMap } from '@/lib/model-lora-map';
+} from '@/lib/model/checkpoint-map';
+import { formatModelUpscaleMap } from '@/lib/model/upscale-map';
+import { formatModelControlNetMap } from '@/lib/model/controlnet-map';
+import { formatModelLoraMap } from '@/lib/model/lora-map';
 import {
   formatInventorySyncMessage,
   syncLoaderMapsFromInventory,
@@ -39,29 +39,33 @@ import {
   saveSharedSettingsNow,
   SETTINGS_CACHE_UPDATED_EVENT,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import {
   DEFAULT_SCHEDULED_BATCH,
   loadScheduledBatchConfig,
   type ScheduledBatchConfig,
-} from '@/lib/scheduled-batch';
+} from '@/lib/batch/scheduled-batch';
 import {
   fetchScheduledBatchServerStatus,
   pushScheduledBatchProfile,
   type ScheduledBatchServerStatus,
-} from '@/lib/scheduled-batch-profile-sync';
+} from '@/lib/batch/scheduled-batch-profile-sync';
 import {
   DEFAULT_WEBHOOK_SETTINGS,
   loadWebhookSettings,
   type WebhookSettings,
-} from '@/lib/webhook-settings';
-import { AVOIDED_TOKENS_UPDATED_EVENT, exportAvoidedTokenList } from '@/lib/avoided-tokens';
-import { WEBHOOK_LOG_UPDATED_EVENT, loadWebhookLog, type WebhookLogEntry } from '@/lib/webhook-log';
+} from '@/lib/settings/webhook-settings';
+import { AVOIDED_TOKENS_UPDATED_EVENT, exportAvoidedTokenList } from '@/lib/prompt/avoided-tokens';
+import {
+  WEBHOOK_LOG_UPDATED_EVENT,
+  loadWebhookLog,
+  type WebhookLogEntry,
+} from '@/lib/server/webhook-log';
 import {
   isComfyNotificationSupported,
   requestComfyNotificationPermission,
 } from '@/lib/comfyui/notifications';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   normalizeSettingsTab,
   settingsTabHref,
@@ -69,7 +73,7 @@ import {
   isSimpleSettingsTab,
   settingsViewFromSearchParams,
   type SettingsTab,
-} from '@/lib/settings-nav';
+} from '@/lib/settings/nav';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { useSettingsPageDescriptionRich } from '@/hooks/useToolPageDescription';
 import {
@@ -77,7 +81,7 @@ import {
   normalizeComfyUiSettingsSection,
   settingsComfyUiSectionHref,
   type ComfyUiSettingsSectionId,
-} from '@/lib/settings-comfyui-nav';
+} from '@/lib/settings/comfyui-nav';
 import {
   COMFYUI_SECTION_ELEMENT_IDS,
   PLAYBOOK_SECTION_CHECKLISTS,
@@ -86,10 +90,10 @@ import {
   isHealthResponse,
   type HealthResponse,
 } from '@/components/settings/tabs/settings-tool-shared';
-import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/onboarding-hooks';
+import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/app/onboarding-hooks';
 import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
-import { runHealAndReady, readAdaptedLoaderMapTexts } from '@/lib/first-run-setup';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
+import { runHealAndReady, readAdaptedLoaderMapTexts } from '@/lib/app/first-run-setup';
 
 import type { SettingsToolOrchestrationCore } from '@/hooks/settings/useSettingsToolOrchestrationCore';
 
@@ -310,7 +314,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
         },
       });
       if (result.ok || result.systemWorkflowsEnabled) {
-        void import('@/lib/first-run-dismiss').then(({ dismissFirstRunSetupSurfaces }) => {
+        void import('@/lib/app/first-run-dismiss').then(({ dismissFirstRunSetupSurfaces }) => {
           dismissFirstRunSetupSurfaces();
         });
       }
@@ -357,7 +361,8 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
   const handleImport = useCallback(async (file: File) => {
     try {
       const raw = await file.text();
-      const { importStudioBackup, parseStudioBackupFile } = await import('@/lib/studio-backup');
+      const { importStudioBackup, parseStudioBackupFile } =
+        await import('@/lib/storage/studio-backup');
       importStudioBackup(parseStudioBackupFile(raw));
       setStatus('Backup imported. Reload the page to apply all settings.');
     } catch (err) {
@@ -366,7 +371,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
   }, []);
 
   const handleExportBackup = useCallback(() => {
-    void import('@/lib/studio-backup').then(({ downloadStudioBackup }) => {
+    void import('@/lib/storage/studio-backup').then(({ downloadStudioBackup }) => {
       downloadStudioBackup();
       writeBrowserString(STUDIO_BACKUP_LAST_EXPORT_KEY, String(Date.now()));
       setBackupReminder(null);

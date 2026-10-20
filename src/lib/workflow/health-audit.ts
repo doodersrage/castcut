@@ -2,7 +2,7 @@ import { WORKFLOW_LIBRARY_LARGE_COUNT, type ComfyWorkflowFile } from '../comfyui
 import { findUnresolvedPlaceholderTokens } from './placeholder-audit';
 import { workflowContentHash, workflowJsonContentHash } from './content-hash';
 import { resolveOptimizeModelForWorkflowFile } from './optimize-model';
-import type { ModelWorkflowMap } from '../model-workflow-map';
+import type { ModelWorkflowMap } from '../model/workflow-map';
 import { auditWorkflowStackCompatibility } from './stack-fingerprint';
 import { modelWorkflowKind, pickWorkflowForModelKind, workflowFileKind } from './kind';
 

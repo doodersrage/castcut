@@ -3,8 +3,8 @@ import {
   loadServerScheduledBatchStatus,
   saveServerScheduledBatchProfile,
   saveServerScheduledBatchScheduler,
-} from '@/lib/server-scheduled-batch';
-import type { ScheduledBatchProfile } from '@/lib/scheduled-batch-profile';
+} from '@/lib/batch/server-scheduled-batch';
+import type { ScheduledBatchProfile } from '@/lib/batch/scheduled-batch-profile';
 
 export const runtime = 'nodejs';
 

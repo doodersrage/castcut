@@ -1,11 +1,11 @@
 'use client';
 
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 import { resolveDayCastPlate } from '@/lib/day/plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day/nude-face-crop';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
 import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 
 /**
  * Face-only Image 1 for nude Story beats — same fix as Day Intimate/Raunchy. A Cast underwear

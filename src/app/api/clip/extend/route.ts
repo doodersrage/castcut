@@ -6,9 +6,9 @@ import {
   planClipExtend,
   startClipExtendJob,
   type ClipExtendInput,
-} from '@/lib/clip-extend-server';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
-import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
+} from '@/lib/clip/extend-server';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
+import { normalizeSpokenLineTone } from '@/lib/video/ltx25-renderer';
 
 export const runtime = 'nodejs';
 

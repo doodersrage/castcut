@@ -5,8 +5,8 @@ import {
   dayClipSeconds,
   normalizeDayClipExtraSeconds,
 } from './clip-length';
-import { H3_MODEL_ID } from '../h3-renderer';
-import { LTX25_MODEL_ID } from '../ltx25-renderer';
+import { H3_MODEL_ID } from '../engine/h3-renderer';
+import { LTX25_MODEL_ID } from '../video/ltx25-renderer';
 
 describe('day clip length', () => {
   it('keeps the old defaults with no extra seconds', () => {

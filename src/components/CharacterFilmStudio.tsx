@@ -29,7 +29,7 @@ import {
 } from '@/lib/film/character-film';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import { saveCharacterFilmCut } from '@/lib/play/cast';
-import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 import { exportFilmPoster, pickPosterShotUrl } from '@/lib/film/poster';
 import { remixDayFilmHref } from '@/lib/play/starter';
 import {
@@ -149,7 +149,7 @@ export default function CharacterFilmStudio({
         shots={playlist}
         emptyLabel="Queue clips or add stills to the cut, then watch them in order."
         onWatchStart={() => {
-          void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+          void import('@/lib/app/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
             markOnboardingWatchFirstFilm();
           });
         }}

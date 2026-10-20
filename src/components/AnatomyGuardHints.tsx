@@ -5,7 +5,7 @@ import {
   ANATOMY_GUARD_OPTIONS,
   formatAnatomyGuardHint,
   type AnatomyGuardMode,
-} from '@/lib/anatomy-guard';
+} from '@/lib/adult/anatomy-guard';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 
 type AnatomyGuardHintsProps = {

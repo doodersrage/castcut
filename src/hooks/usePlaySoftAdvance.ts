@@ -7,7 +7,7 @@ import type {
 } from '@/components/PlaySoftAdvanceBanner';
 import { buildPlaySoftAdvance, type PlayCampaignStepId } from '@/lib/play/step-machine';
 import type { LookPack } from '@/lib/look/pack';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
+import { toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 export type UsePlaySoftAdvanceOptions = {
   /** Map desk hrefs to /m/... when true. */

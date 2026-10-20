@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import ImageLightboxBottomChrome from '@/components/ui/image-lightbox/ImageLightboxBottomChrome';
 import ImageLightboxImageStage from '@/components/ui/image-lightbox/ImageLightboxImageStage';
 import ImageLightboxShell from '@/components/ui/image-lightbox/ImageLightboxShell';

@@ -10,7 +10,7 @@ type Props = {
   onCancel: () => void;
   onRequeue: (
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   /** Unused since the extra retries moved to the More menu; kept for the callers. */

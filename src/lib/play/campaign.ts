@@ -3,7 +3,7 @@
  * Step graph lives in play-step-machine; this module owns persistence + bumps.
  */
 
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import { notePlayPhaseStep } from './metrics';
 import type { LookPack } from '../look/pack';
 import { saveLookPack } from '../look/pack';
@@ -329,7 +329,7 @@ export function bumpPlayCampaignStep(input: {
   };
   savePlayCampaignState(next);
   notePlayPhaseStep(input.stepId);
-  void import('../local-observability').then(
+  void import('../server/local-observability').then(
     ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
       noteCampaignStepMetric();
       noteCampaignMaxStepMetric(nextIndex);
@@ -395,7 +395,7 @@ export function completePlayCampaign(input: {
   savePlayCampaignState(next);
   // The cut ends the Day phase — close it rather than leaving the clock running.
   notePlayPhaseStep('complete');
-  void import('../local-observability').then(({ noteCampaignMaxStepMetric }) => {
+  void import('../server/local-observability').then(({ noteCampaignMaxStepMetric }) => {
     noteCampaignMaxStepMetric(next.stepIndex);
   });
   return next;

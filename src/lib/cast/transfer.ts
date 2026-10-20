@@ -7,7 +7,7 @@
  * (Day and Story) stay where they were rendered; the plan and the story text come along.
  */
 import type { ParkedDay } from '../day/cast-park';
-import type { CharacterLookOutfit, CharacterRecord } from '../character-os';
+import type { CharacterLookOutfit, CharacterRecord } from '../character/os';
 import type { RoleplayLibrarySession } from '../story/roleplay-library';
 import { restampStoryCast } from '../story/session-guard';
 import type { DayToolCache } from '../play/settings';

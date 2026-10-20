@@ -6,17 +6,17 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
+import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
 import {
   isSettingsSyncedWithServer,
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
-} from '@/lib/settings-push-flush';
-import { loadOnboardingState } from '@/lib/onboarding-store';
-import { runHealAndReady } from '@/lib/first-run-setup';
-import { settingsTabHref } from '@/lib/settings-nav';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+} from '@/lib/settings/push-flush';
+import { loadOnboardingState } from '@/lib/app/onboarding-store';
+import { runHealAndReady } from '@/lib/app/first-run-setup';
+import { settingsTabHref } from '@/lib/settings/nav';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 import {
   cloudEngineOption,
   engineDisplayName,
@@ -29,8 +29,8 @@ import {
   readBrowserValue,
   whenBrowserStorageReady,
   writeBrowserValue,
-} from '@/lib/browser-storage';
-import { SETUP_READINESS_DISMISS_KEY } from '@/lib/first-run-dismiss';
+} from '@/lib/storage/browser-storage';
+import { SETUP_READINESS_DISMISS_KEY } from '@/lib/app/first-run-dismiss';
 
 const DISMISS_KEY = SETUP_READINESS_DISMISS_KEY;
 

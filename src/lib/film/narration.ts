@@ -10,7 +10,7 @@
  * on the other (226), breathier — offered, not forced. Pure graph builder.
  */
 
-import { LTX25_FILES, LTX25_ID_LORA } from '../ltx25-renderer';
+import { LTX25_FILES, LTX25_ID_LORA } from '../video/ltx25-renderer';
 
 export const NARRATION_REQUIRED_NODES = [
   'LTXVAudioOnlyModel',

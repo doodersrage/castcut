@@ -10,9 +10,9 @@ import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache
 import { isDayAdultMood, type DaySlot, type DaySlotId } from '@/lib/day/planner';
 import { dayPoseGuideFallbackIndex } from '@/lib/day/pose-guide';
 import { planDaySlotPose, plannedDaySlotPoseKey } from '@/lib/day/slot-pose';
-import { installedComfyModels } from '@/lib/model-picker';
-import type { PoseMissView } from '@/lib/pose-coaching';
-import { poseEngineHint, poseOutcomeEngine } from '@/lib/pose-outcome-stats';
+import { installedComfyModels } from '@/lib/model/picker';
+import type { PoseMissView } from '@/lib/pose/coaching';
+import { poseEngineHint, poseOutcomeEngine } from '@/lib/pose/outcome-stats';
 
 /** Engine families with an installed model, or null while the inventory isn't known. */
 function installedPoseEngines(): Set<string> | null {

@@ -3,7 +3,7 @@
  * and the same apply guards as when studio-extras owned them, so the stored payload is unchanged.
  */
 
-import type { StudioExtrasPayload, StudioExtrasSection } from '../studio-extras';
+import type { StudioExtrasPayload, StudioExtrasSection } from '../app/studio-extras';
 import type { DayDressPlateEntry } from '../day/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '../day/dress-plate-store';
 import {
@@ -18,7 +18,7 @@ import {
   type PlayCampaignState,
 } from './campaign';
 import { loadPlayMetrics, savePlayMetrics, type PlayMetrics } from './metrics';
-import { loadMyPosePacks, replaceMyPosePacks } from '../my-pose-packs';
+import { loadMyPosePacks, replaceMyPosePacks } from '../pose/my-pose-packs';
 import type { PosePack } from '../day/pose-packs';
 
 export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {

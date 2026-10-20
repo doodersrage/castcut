@@ -18,8 +18,8 @@ import {
   modelFileUses,
   type ModelFileRow,
   type ModelFileUse,
-} from '@/lib/model-files';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/model/files';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { useModelFiles } from './useModelFiles';
 
 type Filter = 'all' | 'unused' | 'partial' | 'links';

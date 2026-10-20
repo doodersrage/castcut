@@ -5,7 +5,7 @@ import {
   inputNamePrefix,
   isContentAddressedInputName,
 } from './comfy-input-name';
-import { isMultiPersonPoseGuide, isPlayerPoseGuide } from '../qwen-image-21-renderer';
+import { isMultiPersonPoseGuide, isPlayerPoseGuide } from '../engine/qwen-image-21-renderer';
 
 const HASH = '0123456789abcdef'.repeat(4);
 

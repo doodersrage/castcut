@@ -1,10 +1,10 @@
-import { visionCompletion } from '../llm-client';
+import { visionCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   type LlmRequestOptions,
-} from '../llm-request-options';
-import { resolveVisionModel } from '../vision-model-auto';
+} from '../llm/request-options';
+import { resolveVisionModel } from '../vision/model-auto';
 
 /** No vision model to ask (LLM off, or none set or found) — not a failure of the call. */
 export class VisionModelUnavailableError extends Error {

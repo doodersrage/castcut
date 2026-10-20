@@ -3,9 +3,9 @@
 import type { ReactNode } from 'react';
 import { FieldDivider, FieldError, FieldLabel, TextArea } from '@/components/ui/Field';
 import { PrimaryButton } from '@/components/ui/Button';
-import { SCENE_HINTS_LABEL } from '@/lib/tool-ui-labels';
-import { accentButtonClass } from '@/lib/tool-theme';
-import type { ToolAccent } from '@/lib/tool-theme';
+import { SCENE_HINTS_LABEL } from '@/lib/app/tool-ui-labels';
+import { accentButtonClass } from '@/lib/app/tool-theme';
+import type { ToolAccent } from '@/lib/app/tool-theme';
 
 type SceneQuickTagsProps = {
   settingType: string;

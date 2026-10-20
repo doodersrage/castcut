@@ -8,13 +8,13 @@ import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryUploadButton from '@/components/gallery/GalleryUploadButton';
 import MotionMedia from '@/components/ui/MotionMedia';
 import { useComfyUiGallery } from '@/hooks/useComfyUiGallery';
-import { recordCatalogBiasFromPrompt } from '@/lib/catalog-rating-bias';
+import { recordCatalogBiasFromPrompt } from '@/lib/search/catalog-rating-bias';
 import {
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   filterComfyGalleryEntries,
   galleryEntryPrimaryThumbUrl,
@@ -28,13 +28,13 @@ import {
   toMobileStudioHref,
   upsertCharacterPlate,
   withCharacterQuery,
-} from '@/lib/mobile-studio';
+} from '@/lib/app/mobile-studio';
 import { remixDayFilmHref } from '@/lib/play/starter';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const RATINGS = [1, 2, 3, 4, 5] as const;
@@ -108,7 +108,7 @@ export default function MobileGalleryTool() {
       return;
     }
     // Honest Watch step — only when a film is actually on screen autoplaying.
-    void import('@/lib/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
+    void import('@/lib/app/onboarding-hooks').then(({ markOnboardingWatchFirstFilm }) => {
       markOnboardingWatchFirstFilm();
     });
   }, [entries.length, filmMode, selectedUrl]);

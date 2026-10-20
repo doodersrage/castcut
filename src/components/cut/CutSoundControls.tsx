@@ -15,7 +15,7 @@ import {
   normalizeMusicFadeOutSec,
   normalizeMusicStartSec,
   type CutSoundOptions,
-} from '@/lib/cut-sound';
+} from '@/lib/video/cut-sound';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film/audio-bed';
 
 export default function CutSoundControls({

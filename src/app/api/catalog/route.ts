@@ -1,10 +1,14 @@
-import { searchCatalog, listCatalogClothing, listCatalogLocations } from '@/lib/catalog-index';
+import {
+  searchCatalog,
+  listCatalogClothing,
+  listCatalogLocations,
+} from '@/lib/search/catalog-index';
 import {
   CLOTHING_CATALOG_FIELD_KEYS,
   getClothingCatalogFieldCategories,
   type ClothingCatalogFieldKey,
-} from '@/lib/clothing-catalog-fields';
-import { getClothingSelectOptions } from '@/lib/clothing-catalog';
+} from '@/lib/wardrobe/clothing-catalog-fields';
+import { getClothingSelectOptions } from '@/lib/wardrobe/clothing-catalog';
 import { apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

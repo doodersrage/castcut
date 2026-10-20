@@ -4,7 +4,7 @@ import { findUserById, isAuthEnabled } from '@/lib/auth/store';
 import {
   diffusersEngineAvailability,
   startDiffusersEngineInstall,
-} from '@/lib/diffusers-engine-install';
+} from '@/lib/engine/diffusers-engine-install';
 
 export const runtime = 'nodejs';
 

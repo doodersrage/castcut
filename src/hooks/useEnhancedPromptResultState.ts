@@ -9,9 +9,9 @@ import type {
 } from '@/components/prompt-result/enhanced-prompt-result-types';
 import { buildEnhancedPromptStatusNotes } from '@/components/prompt-result/enhanced-prompt-result-utils';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
-import { DEFAULT_READINESS_MIN_SCORE, isReadinessQueueAllowed } from '@/lib/readiness-gate';
-import type { PromptReadinessResult } from '@/lib/prompt-readiness';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { DEFAULT_READINESS_MIN_SCORE, isReadinessQueueAllowed } from '@/lib/checks/readiness-gate';
+import type { PromptReadinessResult } from '@/lib/prompt/readiness';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { usesSystemWorkflowPath } from '@/lib/workflow/system-workflow-runtime';
 import { markComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';

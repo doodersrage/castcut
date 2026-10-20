@@ -409,9 +409,9 @@ function selectCuratedIds(entries, limit) {
 }
 
 async function loadCatalogEntries() {
-  const catalogUrl = pathToFileURL(path.join(ROOT, 'src', 'lib', 'clothing-catalog.ts')).href;
+  const catalogUrl = pathToFileURL(path.join(ROOT, 'src', 'lib', 'wardrobe', 'clothing-catalog.ts')).href;
   const fieldsUrl = pathToFileURL(
-    path.join(ROOT, 'src', 'lib', 'clothing-catalog-fields.ts')
+    path.join(ROOT, 'src', 'lib', 'wardrobe', 'clothing-catalog-fields.ts')
   ).href;
   const [catalog, fields] = await Promise.all([import(catalogUrl), import(fieldsUrl)]);
   if (typeof catalog.getClothingSelectOptions !== 'function') {

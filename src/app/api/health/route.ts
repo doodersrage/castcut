@@ -1,25 +1,25 @@
 import { isAuthEnabled } from '@/lib/auth/store';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { timingSafeEqual } from 'node:crypto';
-import { detectVisionModel } from '@/lib/vision-model-auto';
+import { detectVisionModel } from '@/lib/vision/model-auto';
 import {
   checkCollabHealth,
   checkComfyUiPoolHealth,
   checkDiffusersHealth,
   checkLlmHealth,
   getExpandedComfyUiHealth,
-} from '@/lib/service-health';
-import { getLlmConfig, isLlmEnabled, allowTemplateFallback } from '@/lib/llm-client';
+} from '@/lib/server/service-health';
+import { getLlmConfig, isLlmEnabled, allowTemplateFallback } from '@/lib/llm/client';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { getComfyUiWorkflowSummary } from '@/lib/comfyui/status';
-import { summarizeApiUsage } from '@/lib/api-usage-log';
-import { isServerStorageEnabled, readServerStorage } from '@/lib/server-storage';
+import { summarizeApiUsage } from '@/lib/server/api-usage-log';
+import { isServerStorageEnabled, readServerStorage } from '@/lib/storage/server-storage';
 import { isEmailConfigured } from '@/lib/email/config';
 import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from '@/lib/comfyui/config';
-import { diffusersEngineAvailability } from '@/lib/diffusers-engine-install';
+import { diffusersEngineAvailability } from '@/lib/engine/diffusers-engine-install';
 import { apiJson } from '@/lib/api/response';
 import { getAuthBootstrapInfo } from '@/lib/auth/store';
-import { getServerEnvSummary } from '@/lib/server-env-summary';
+import { getServerEnvSummary } from '@/lib/server/server-env-summary';
 
 export const runtime = 'nodejs';
 

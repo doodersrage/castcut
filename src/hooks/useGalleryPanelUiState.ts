@@ -12,7 +12,7 @@ import {
 import type { ReadonlyURLSearchParams } from 'next/navigation';
 import { runGalleryImageImport } from '@/components/gallery/GalleryUploadButton';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { type ParamExperimentAxis } from '@/lib/param-experiment-queue';
+import { type ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
 
 export type GalleryPanelUiState = {
   downloadError: string | null;

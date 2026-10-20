@@ -10,7 +10,7 @@ import {
   upsertCharacter,
   type CastProp,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export type { CastProp };
 

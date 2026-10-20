@@ -1,0 +1,81 @@
+import { isQwenLightningModel } from '../workflow/model-sampling-patch';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
+import { snapLatentSize } from '../storage/browser-image-dimensions';
+
+/**
+ * Play fits the Cast plate into the still (ResizeAndPad → EmptyLatent). The
+ * pixels the edit model actually sees are that canvas, not the source file.
+ * Official Qwen medium is 1328 on the long edge; step plate-backed Play stills
+ * up so identity has more pixels. Lightning stays on its native ladder —
+ * off-ladder sizes mosaic CFG-1.
+ */
+export const PLAY_CAST_PLATE_MIN_LONG_EDGE = 1536;
+
+export function enlargePlayCastPlateLatent(
+  size: { width: number; height: number },
+  model?: string | null
+): { width: number; height: number } | null {
+  if (isQwenLightningModel(model ?? undefined)) {
+    return null;
+  }
+  const width = Math.round(size.width);
+  const height = Math.round(size.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return null;
+  }
+  const longEdge = Math.max(width, height);
+  if (longEdge >= PLAY_CAST_PLATE_MIN_LONG_EDGE) {
+    return null;
+  }
+  const scale = PLAY_CAST_PLATE_MIN_LONG_EDGE / longEdge;
+  const snap = (value: number) => Math.max(64, Math.round((value * scale) / 8) * 8);
+  return { width: snap(width), height: snap(height) };
+}
+
+/** Plate-shaped Play latents keep the plate's own size inside this long-edge band. */
+export const PLAY_CAST_PLATE_FIT_MIN_LONG_EDGE = 1328;
+export const PLAY_CAST_PLATE_FIT_MAX_LONG_EDGE = 1536;
+
+/**
+ * Rapid AIO plate stills render at a 1280 long edge (960×1280 for the 3:4 plate). Same-seed
+ * sweep 2026-09-30 (Story + Day, 5 beats × 2 seeds): skin speckle 5.6 → 2.3 per 10k skin px
+ * against 1104×1472, face distance 0.92 → 0.85, poses held; 864×1152 lost the face gain.
+ */
+export const PLAY_CAST_PLATE_RAPID_LONG_EDGE = 1280;
+
+/**
+ * Latent for a Play still whose Image 1 is the Cast plate: the plate's aspect
+ * and roughly its own size, never the sidebar orientation. A square latent pads
+ * a tall plate with white bars and the face drifts; stepping a portrait plate up
+ * to a 1536 long edge also scored worse live (1104×1472 plate: 0.46 face distance
+ * at native size vs 0.56 at 1152×1536). Lightning snaps to its ladder instead.
+ */
+export function fitPlayCastPlateLatent(
+  plate: { width: number; height: number },
+  model?: string | null
+): { width: number; height: number } | null {
+  if (isQwenLightningModel(model ?? undefined)) {
+    return null;
+  }
+  const { width, height } = plate;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return null;
+  }
+  const longEdge = Math.max(width, height);
+  const target = isQwenRapidAioModel(model ?? undefined)
+    ? PLAY_CAST_PLATE_RAPID_LONG_EDGE
+    : Math.min(
+        PLAY_CAST_PLATE_FIT_MAX_LONG_EDGE,
+        Math.max(PLAY_CAST_PLATE_FIT_MIN_LONG_EDGE, longEdge)
+      );
+  const scale = target / longEdge;
+  return snapLatentSize(width * scale, height * scale);
+}
+
+/**
+ * Canvas for a Play still whose Image 1 is only a face crop. The crop's own
+ * shape says nothing about the body, and without a probed size the latent fell
+ * back to the square sidebar (1536²): flat square-on mugshots, crunchy skin.
+ * Same-seed replay at the Cast plate's 3:4 portrait fixed pose, depth and skin.
+ */
+export const PLAY_FACE_CROP_CANVAS = { width: 1104, height: 1472 } as const;

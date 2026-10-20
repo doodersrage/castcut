@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_NEGATIVE_PROFILES, type NegativeProfile } from '@/lib/negative-profiles';
+import { DEFAULT_NEGATIVE_PROFILES, type NegativeProfile } from '@/lib/prompt/negative-profiles';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 

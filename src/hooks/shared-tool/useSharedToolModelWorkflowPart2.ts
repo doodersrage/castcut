@@ -2,20 +2,20 @@
 
 import type { DiffusersCheckpointOption } from '@/components/DiffusersCheckpointSelector';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { supportedModelsFilterHint } from '@/lib/model-workflow-map';
+import { supportedModelsFilterHint } from '@/lib/model/workflow-map';
 import {
   resolvePreferredImg2imgModel,
   resolvePreferredLookModel,
   toolIgnoresSystemWorkflowSnap,
-} from '@/lib/queue-tool-model';
-import { isImg2imgCapableModel } from '@/lib/model-denoise-defaults';
-import { formatQueueQualityProfileHint } from '@/lib/queue-quality-profile';
+} from '@/lib/queue/tool-model';
+import { isImg2imgCapableModel } from '@/lib/model/denoise-defaults';
+import { formatQueueQualityProfileHint } from '@/lib/queue/quality-profile';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import {
   describeSystemWorkflowChoice,
   isSystemWorkflowSupportedModel,
@@ -26,13 +26,13 @@ import {
 import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
 import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui/runtime-for-model';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { isBrowserStorageReady } from '@/lib/browser-storage';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { isBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   DIFFUSERS_DEFAULT_MODEL,
   resolveStudioModelForDiffusersAsset,
-} from '@/lib/diffusers-defaults';
-import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '@/lib/model-checkpoint-map';
+} from '@/lib/engine/diffusers-defaults';
+import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '@/lib/model/checkpoint-map';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';

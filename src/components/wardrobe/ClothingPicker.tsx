@@ -15,7 +15,7 @@ import WardrobeKitPicker, {
 } from '@/components/wardrobe/WardrobeKitPicker';
 import WearingCard from '@/components/wardrobe/WearingCard';
 import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
-import type { ToolAccent } from '@/lib/tool-theme';
+import type { ToolAccent } from '@/lib/app/tool-theme';
 import {
   findSavedFittingGarmentByFilename,
   loadSavedFittingGarments,

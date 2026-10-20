@@ -1,10 +1,10 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { countSessionLoraStrengthOverrides } from '@/lib/lora-stack';
-import { hasSessionLoraIdsForModel } from '@/lib/model-lora-map';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { modelSupportsTextualInversion } from '@/lib/textual-inversion';
+import { countSessionLoraStrengthOverrides } from '@/lib/lora/stack';
+import { hasSessionLoraIdsForModel } from '@/lib/model/lora-map';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
+import { modelSupportsTextualInversion } from '@/lib/lora/textual-inversion';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SharedAdvancedSectionsProps } from '@/components/shared-tool-controls/SharedAdvancedSections';
 

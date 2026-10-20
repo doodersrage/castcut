@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
-import { renderQualityProfile, type RenderQuality } from '@/lib/render-quality';
+import { renderQualityProfile, type RenderQuality } from '@/lib/engine/render-quality';
 import {
   loadSettingsCache,
   notifySettingsCacheUpdated,
   saveSharedSettings,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 
 /**
  * Write a tool's render quality (Good / Best) to its queue quality profile — the same path as

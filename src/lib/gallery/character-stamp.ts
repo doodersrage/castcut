@@ -3,7 +3,7 @@
  * Active-character leftover must not stamp Compose (or other foreign tools).
  */
 
-import { looksOf, loadCharacters } from '../character-os';
+import { looksOf, loadCharacters } from '../character/os';
 import { clearGalleryCharacterStamp, loadComfyGallery } from './comfyui-gallery';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 

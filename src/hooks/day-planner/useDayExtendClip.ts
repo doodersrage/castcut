@@ -8,12 +8,12 @@ import {
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
-} from '@/lib/clip-extend';
-import { keepClipInGallery } from '@/lib/clip-gallery-keep';
+} from '@/lib/clip/extend';
+import { keepClipInGallery } from '@/lib/clip/gallery-keep';
 import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { spokenLineHeat } from '@/lib/spoken-line';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
 
 /**
  * Day "Make it 30 s": the slot's finished clip grows to about 30 seconds in chained segments

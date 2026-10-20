@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { packCutProject, type ProjectExportShot } from '@/lib/cut-project-export-server';
+import { packCutProject, type ProjectExportShot } from '@/lib/video/cut-project-export-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

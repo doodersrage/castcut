@@ -2,19 +2,19 @@
 
 import { useMemo } from 'react';
 import { formatMutatedJobsStatus, queueMutatedGalleryJobs } from '@/lib/gallery/mutations';
-import { queueNegativeAbTest } from '@/lib/negative-ab-queue';
-import { queueSeedExperiment } from '@/lib/seed-experiment-queue';
-import { queueParamExperiment } from '@/lib/param-experiment-queue';
-import { toastHeldMax } from '@/lib/app-toast';
+import { queueNegativeAbTest } from '@/lib/experiment/negative-ab-queue';
+import { queueSeedExperiment } from '@/lib/experiment/seed-experiment-queue';
+import { queueParamExperiment } from '@/lib/experiment/param-experiment-queue';
+import { toastHeldMax } from '@/lib/app/toast';
 import {
   galleryTopicsPath,
   galleryVariationsPath,
   prepareGalleryTopicsFromEntry,
   prepareGalleryVariationsFromEntry,
 } from '@/lib/gallery/variations-handoff';
-import { resolveExperimentWinnerEntry } from '@/lib/experiment-winners';
+import { resolveExperimentWinnerEntry } from '@/lib/experiment/winners';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
+import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/gallery/gallery-panel-actions-types';
 
 export type UseGalleryExperimentActionsInput = {
@@ -105,7 +105,7 @@ export function useGalleryExperimentActions({
         const entry = selectedEntries[0];
         if (!entry) return;
         setRequeueStatus('Queueing CFG × steps grid…');
-        void import('@/lib/param-experiment-grid')
+        void import('@/lib/experiment/param-experiment-grid')
           .then(({ queueParamExperimentGrid }) =>
             queueParamExperimentGrid({
               prompt: entry.prompt,

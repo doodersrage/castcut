@@ -12,7 +12,7 @@ import {
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   CHARACTER_AGE_BAND_SELECT_OPTIONS,
   CHARACTER_BODY_BUILD_SELECT_OPTIONS,
@@ -46,7 +46,7 @@ import {
   type CharacterEthnicity,
   type CharacterHeight,
   type CharacterSex,
-} from '@/lib/character-appearance';
+} from '@/lib/character/appearance';
 import type { CastMark } from '@/lib/cast/marks';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import type { usePlayCampaignWizardOrchestration } from '@/hooks/usePlayCampaignWizardOrchestration';

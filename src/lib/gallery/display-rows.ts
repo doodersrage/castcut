@@ -1,4 +1,4 @@
-import type { ExperimentGroup } from '../experiment-groups';
+import type { ExperimentGroup } from '../experiment/groups';
 import type { GalleryLineageGroup } from './lineage-groups';
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 

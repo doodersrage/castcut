@@ -8,23 +8,23 @@ import {
   withRoleplayTakeChecks,
 } from '@/lib/story/roleplay';
 import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/story/roleplay-pose-check';
-import { detectStillPose } from '@/lib/pose-detect-client';
-import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
-import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose-library';
+import { detectStillPose } from '@/lib/pose/detect-client';
+import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
+import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose/library';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_LIBRARY_MIN_SCORE,
   posturePairWords,
   scorePoseMatch,
-} from '@/lib/pose-score';
+} from '@/lib/pose/score';
 import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play/metrics';
-import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face-match-client';
-import { STORY_MIN_FACE_MATCH } from '@/lib/face-match';
-import { buildPoseMissView } from '@/lib/pose-coaching';
+import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
+import { STORY_MIN_FACE_MATCH } from '@/lib/face/match';
+import { buildPoseMissView } from '@/lib/pose/coaching';
 import { recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /**
  * Story pose check: when a still that was queued with an Image 3 guide lands, read its pose
@@ -74,7 +74,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
         // Posture unreadable from the keypoints against a clear guide (a standing still before a
         // kneeling guide often reads unsure): the vision model's yes/no settles it.
         const { checkStillPoseVision, checkStillRealism } =
-          await import('@/lib/pose-gesture-vision-client');
+          await import('@/lib/pose/gesture-vision-client');
         // The realism question rides along (its own model call): Story stills were computer-made
         // far more often than Day's (story-photographable.ts), and nothing on the card said so.
         const vision = await checkStillPoseVision({

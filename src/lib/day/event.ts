@@ -10,7 +10,7 @@
  * crossfade; pose, place and camera lined up at every join.
  */
 
-import type { ChatMessage } from '@/lib/llm-client';
+import type { ChatMessage } from '@/lib/llm/client';
 import type { DaySlot } from '@/lib/day/planner';
 
 export const DAY_EVENT_MAX_LENGTH = 240;

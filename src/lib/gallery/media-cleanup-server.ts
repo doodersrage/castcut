@@ -14,7 +14,7 @@ import 'server-only';
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolvePromptDataDir } from '../prompt-data-paths';
+import { resolvePromptDataDir } from '../prompt/data-paths';
 
 const ENTRY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** A link or path to a kept copy: `/api/gallery/media/<id>…` or `gallery-media/<owner>/<id>`. */

@@ -8,7 +8,7 @@
  * pose unchanged, no white left.
  */
 
-import { waitForGalleryPromptIds } from '../best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '../best-of-n/vision-queue';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '../cast/plate-prepare';
 import { galleryEntryPrimaryViewUrl } from '../gallery/comfyui-gallery';
 import type { FittingPlate } from '../fitting/room';

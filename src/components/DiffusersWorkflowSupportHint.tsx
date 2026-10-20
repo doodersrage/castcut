@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { classifyDiffusersWorkflow } from '@/lib/diffusers-client';
-import { formatDiffusersClassifyHint } from '@/lib/diffusers-workflow-support';
+import { classifyDiffusersWorkflow } from '@/lib/engine/diffusers-client';
+import { formatDiffusersClassifyHint } from '@/lib/engine/diffusers-workflow-support';
 
 type DiffusersWorkflowSupportHintProps = {
   workflowJson?: string | null;

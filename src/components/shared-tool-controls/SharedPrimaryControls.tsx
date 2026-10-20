@@ -3,18 +3,18 @@
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel } from '@/components/ui/Field';
-import { modelSupportsSessionIdentityLock } from '@/lib/compose-identity-lock';
-import type { DetailLevel, DetailLimits } from '@/lib/detail-level';
+import { modelSupportsSessionIdentityLock } from '@/lib/prompt/compose-identity-lock';
+import type { DetailLevel, DetailLimits } from '@/lib/prompt/detail-level';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
-import type { QueueQualityProfile } from '@/lib/queue-quality-profile';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/resolution-defaults';
+import type { QueueQualityProfile } from '@/lib/queue/quality-profile';
 import {
   applySessionRecipeShared,
   latestGenerateLookRecipe,
   type SessionRecipe,
-} from '@/lib/session-recipes';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+} from '@/lib/prompt/session-recipes';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 
 const ModelResolutionHints = dynamic(() => import('@/components/ModelResolutionHints'), {
   ssr: false,

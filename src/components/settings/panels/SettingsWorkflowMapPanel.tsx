@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
-import { formatModelCheckpointMap, formatModelVaeMap } from '@/lib/model-checkpoint-map';
-import { formatModelUpscaleMap } from '@/lib/model-upscale-map';
+import { formatModelCheckpointMap, formatModelVaeMap } from '@/lib/model/checkpoint-map';
+import { formatModelUpscaleMap } from '@/lib/model/upscale-map';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import {
   countMappedModels,
@@ -14,8 +14,8 @@ import {
   loadSettingsCache,
   setUseSystemWorkflowsPref,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
-import { markOnboardingSystemWorkflowsEnabled } from '@/lib/onboarding-hooks';
+} from '@/lib/settings/cache';
+import { markOnboardingSystemWorkflowsEnabled } from '@/lib/app/onboarding-hooks';
 import {
   SETTINGS_TOOL_ACCENT,
   formatModelWorkflowMap,
@@ -113,7 +113,7 @@ export default function SettingsWorkflowMapPanel({
                 setSystemWorkflowsSaveHint(
                   enabled ? 'Saved — stays on after refresh.' : 'Saved — system workflows off.'
                 );
-                void import('@/lib/app-toast').then(({ pushAppToast }) => {
+                void import('@/lib/app/toast').then(({ pushAppToast }) => {
                   pushAppToast({
                     text: enabled ? 'Saved — system workflows on' : 'Saved — system workflows off',
                     tone: 'success',

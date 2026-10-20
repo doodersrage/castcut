@@ -12,7 +12,7 @@ import {
   MODEL_SAMPLER_PRESET_OPTIONS,
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
+} from '@/lib/model/sampler-defaults';
 import { formatModelSamplingHint } from '@/lib/workflow/model-sampling-patch';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 

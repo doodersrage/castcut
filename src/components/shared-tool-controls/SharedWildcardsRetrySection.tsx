@@ -1,6 +1,6 @@
 'use client';
 
-import { expandWildcardText, textHasWildcardTokens } from '@/lib/wildcard-expand';
+import { expandWildcardText, textHasWildcardTokens } from '@/lib/prompt/wildcard-expand';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';

@@ -1,7 +1,7 @@
 /**
  * Client-safe Comfy model registry helpers (no prompt-profile / shape / compact deps).
  */
-import type { DetailLevel } from '../detail-level';
+import type { DetailLevel } from '../prompt/detail-level';
 import { COMFY_IMAGE_MODELS, COMFY_MODEL_IDS, DEFAULT_COMFY_MODEL } from './registry';
 import type { ComfyImageModel, ComfyImageModelDefinition, PromptLimits } from './types';
 

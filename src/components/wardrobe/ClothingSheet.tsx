@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import SideSheet from '@/components/ui/SideSheet';
-import type { ClothingSummaryThumb } from '@/lib/clothing-summary';
+import type { ClothingSummaryThumb } from '@/lib/wardrobe/clothing-summary';
 
 /**
  * The clothing picker (kit deck, your own photo, footwear — some sixty controls) as a sheet

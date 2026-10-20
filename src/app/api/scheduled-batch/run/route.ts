@@ -3,9 +3,9 @@ import {
   notifyServerScheduledBatchComplete,
   resolveServerScheduledBatchConfig,
   shouldRunServerScheduledBatch,
-} from '@/lib/server-scheduled-batch';
+} from '@/lib/batch/server-scheduled-batch';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import type { ScheduledBatchConfig } from '@/lib/scheduled-batch';
+import type { ScheduledBatchConfig } from '@/lib/batch/scheduled-batch';
 
 export const runtime = 'nodejs';
 

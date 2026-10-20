@@ -6,11 +6,11 @@ import {
   applyQueueFailureFix,
   resolveQueueFailureFixes,
   type QueueFailureFixKind,
-} from '@/lib/queue-failure-fix';
+} from '@/lib/queue/failure-fix';
 import {
   resolveQueueFailureGuideLabel,
   resolveQueueFailureHref,
-} from '@/lib/queue-failure-playbook';
+} from '@/lib/queue/failure-playbook';
 
 export default function FailedJobFixButtons({
   entry,

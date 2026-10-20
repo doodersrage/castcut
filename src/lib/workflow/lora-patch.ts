@@ -1,5 +1,5 @@
 import type { WorkflowDirectPatchCounts } from './direct-patch';
-import { isBooguTurboModel, isZImageTurboModel } from '../model-denoise-defaults';
+import { isBooguTurboModel, isZImageTurboModel } from '../model/denoise-defaults';
 
 const LORA_LOADER_TYPES = new Set([
   'LoraLoader',

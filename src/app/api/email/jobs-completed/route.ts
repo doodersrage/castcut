@@ -1,11 +1,11 @@
-import { publicAppOrigin } from '@/lib/public-app-origin';
+import { publicAppOrigin } from '@/lib/server/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
 import { brandedEmailHtml, emailParagraphs } from '@/lib/email/brand';
 import { sendEmail, isEmailConfigured } from '@/lib/email/mailer';
 import { getEmailConfig } from '@/lib/email/config';
-import { PRODUCT_NAME } from '@/lib/brand';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 
 export const runtime = 'nodejs';
 

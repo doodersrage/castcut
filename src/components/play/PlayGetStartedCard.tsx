@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { startStarterPlayFilm } from '@/lib/play/starter';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
+import { toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 /** Scroll to Outfit's Character section and focus its picker. */
 function revealOutfitCharacter(): void {

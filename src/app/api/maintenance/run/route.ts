@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api/response';
-import { runServerUserMaintenance } from '@/lib/server-user-maintenance';
+import { runServerUserMaintenance } from '@/lib/server/server-user-maintenance';
 
 export const runtime = 'nodejs';
 

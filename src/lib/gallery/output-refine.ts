@@ -23,10 +23,10 @@ import {
   isFluxKleinModel,
   isQwenEditModel,
   isQwenRapidAioModel,
-} from '../model-denoise-defaults';
-import { defaultLoaderPrecisionTier, qwenDualClipFilename } from '../model-loader-precision';
-import { suggestedVaeFilenameForModel } from '../model-checkpoint-map';
-import type { QueueQualityProfile } from '../queue-quality-profile';
+} from '../model/denoise-defaults';
+import { defaultLoaderPrecisionTier, qwenDualClipFilename } from '../model/loader-precision';
+import { suggestedVaeFilenameForModel } from '../model/checkpoint-map';
+import type { QueueQualityProfile } from '../queue/quality-profile';
 import { fluxImg2imgScaffold, fluxKleinEditScaffold } from '../workflow/scaffold-flux';
 import { qwenEditComposeScaffold } from '../workflow/scaffold-qwen';
 

@@ -23,7 +23,7 @@ import { roleplayWatchPlaylist } from '../film/character-film';
 import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from '../day/planner';
 import { castDayPlan } from '../day/story-seed';
 import { applyCutShotEdits, type CutShotEdits, type KeyedShot } from '../film/cut-plan';
-import type { FilmTitleCard } from '../video-polish';
+import type { FilmTitleCard } from '../video/polish';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import type { RoleplayLibrarySession } from '../story/roleplay-library';
 import type { DayToolCache, RoleplayToolCache } from './settings';

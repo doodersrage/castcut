@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 
 /**
  * After settings hydrate, push any non-trivial cached draft into the

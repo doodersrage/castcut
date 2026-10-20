@@ -1,4 +1,4 @@
-import { castcutObjectInfoFingerprint } from '../castcut-routes-server';
+import { castcutObjectInfoFingerprint } from '../castcut/routes-server';
 import { getComfyUiBaseUrl } from './client';
 import { readComboOptionList } from './combo';
 import type { ComfyUiRuntimeConfig } from './config';

@@ -2,9 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import DiffusersSamplingReadout from '@/components/DiffusersSamplingReadout';
-import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
-import { type QueueQualityProfile } from '@/lib/queue-quality-profile';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/resolution-defaults';
+import { type QueueQualityProfile } from '@/lib/queue/quality-profile';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { SystemWorkflowChoiceDescription } from '@/lib/workflow/system-workflow-runtime';
 
 const QueueRecipesPanel = dynamic(() => import('@/components/QueueRecipesPanel'), {

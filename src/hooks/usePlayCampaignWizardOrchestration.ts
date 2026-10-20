@@ -2,14 +2,14 @@
 
 import { saveCastMarks, type CastMark } from '@/lib/cast/marks';
 
-import { loadLocalObservability } from '@/lib/local-observability';
+import { loadLocalObservability } from '@/lib/server/local-observability';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
 } from '@/lib/play/metrics';
-import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
-import { loadOnboardingState } from '@/lib/onboarding-store';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings/push-flush';
+import { loadOnboardingState } from '@/lib/app/onboarding-store';
 import { derivePlayJourney, derivePlayProgress } from '@/lib/play/step-machine';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -21,12 +21,12 @@ import {
   createBlankCharacter,
   getCharacter,
   upsertCharacter,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { addCharacterLookPack, getCharacterLookPack, lookPacksOf } from '@/lib/play/cast';
 import type {
   CharacterAppearanceDraft,
   CharacterAppearanceFormDraft,
-} from '@/lib/character-appearance';
+} from '@/lib/character/appearance';
 import {
   clearLookPack,
   clearLookPackShareHash,
@@ -49,11 +49,11 @@ import {
   stagePlayCampaignHandoff,
   type PlayCampaignStepId,
 } from '@/lib/play/campaign';
-import { CHARACTERS_UPDATED_EVENT } from '@/lib/character-os';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
-import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '@/lib/settings-cache';
+import { CHARACTERS_UPDATED_EVENT } from '@/lib/character/os';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
+import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_MOODBOARD_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type PlayCampaignWizardProps = {
   initialCharacterId?: string;
@@ -386,7 +386,7 @@ export function usePlayCampaignWizardOrchestration({
       });
       if (stepId !== 'character') {
         markOnboardingFirstPlayCampaign();
-        void import('@/lib/local-observability').then(
+        void import('@/lib/server/local-observability').then(
           ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
             noteCampaignStepMetric();
             noteCampaignMaxStepMetric(stepIndex >= 0 ? stepIndex : 0);
@@ -476,7 +476,7 @@ export function usePlayCampaignWizardOrchestration({
         updatedAt: Date.now(),
       });
       markOnboardingFirstPlayCampaign();
-      void import('@/lib/local-observability').then(
+      void import('@/lib/server/local-observability').then(
         ({ noteCampaignStepMetric, noteCampaignMaxStepMetric }) => {
           noteCampaignStepMetric();
           noteCampaignMaxStepMetric(dayIndex >= 0 ? dayIndex : 0);

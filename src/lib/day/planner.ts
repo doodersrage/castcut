@@ -1,14 +1,14 @@
-import { danceMoveWords } from '@/lib/dance-move';
+import { danceMoveWords } from '@/lib/pose/dance-move';
 import { normalizeDubLanguage } from './dub';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
   normalizeSpokenLine,
   normalizeSpokenLineTone,
   type SpokenLineTone,
-} from '../ltx25-renderer';
+} from '../video/ltx25-renderer';
 import { storySceneNamesSecondPerson } from '../story/scene-people';
-import { beatOwnsFootwear } from '../footwear';
-import { intimateBeatIsOffBed } from '../intimate-prompt-clarify';
+import { beatOwnsFootwear } from '../wardrobe/footwear';
+import { intimateBeatIsOffBed } from '../adult/intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
   buildRapidSoloRecipe,
@@ -18,16 +18,16 @@ import {
   buildCompactDayRecipe,
   buildRapidVacationRecipe,
 } from '../play/rapid-duo-recipe';
-import { stripNegatedClauses } from '../negated-clauses';
+import { stripNegatedClauses } from '../prompt/negated-clauses';
 import { normalizeDayEndPose, type DayEndPose } from './end-pose';
-import { normalizeStillPromptCheck, type StillPromptCheck } from '../still-prompt-audit';
+import { normalizeStillPromptCheck, type StillPromptCheck } from '../still/prompt-audit';
 import {
   clampStillHoldSec,
   DEFAULT_STILL_HOLD_SEC,
   type FilmPlaylistShot,
 } from '@/lib/film/character-film';
 import { captionFromBeat } from '@/lib/film/cut-plan';
-import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/compose-prompt';
+import { QWEN_POSE_UNLOCK_MODIFY_PREFIX } from '@/lib/prompt/compose-prompt';
 import {
   countPoseGuidePeople,
   parseIntimateLayout,
@@ -49,17 +49,17 @@ import {
   KLEIN_MALE_PARTNER_OUTFIT_LINE,
   poseGuidePromptBlock,
   type PoseGuideStylePreference,
-} from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/guide-prompt';
 import { buildKleinSpoonRecipe, kleinSpoonRecipeApplies } from '@/lib/play/klein-duo-recipe';
-import { describePoseLeadPosition, type PoseLeadPosition } from '@/lib/pose-guide-openpose';
+import { describePoseLeadPosition, type PoseLeadPosition } from '@/lib/pose/guide-openpose';
 import { resolveRoleplaySetting, storyBeatOmitsGarmentPackshot } from '@/lib/story/roleplay';
 import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,
   type RenderRealismMode,
-} from '@/lib/render-realism';
-import { buildSinglePersonUserDirective } from '@/lib/single-person';
-import { beatFitsSetting, fitBeatToSetting, surfaceWordsForSetting } from '@/lib/scene-surface';
+} from '@/lib/engine/render-realism';
+import { buildSinglePersonUserDirective } from '@/lib/checks/single-person';
+import { beatFitsSetting, fitBeatToSetting, surfaceWordsForSetting } from '@/lib/scene/surface';
 import {
   daySportBeatPresetsForSlot,
   daySportSettingPresetsForSlot,
@@ -95,7 +95,7 @@ import {
   buildQwenRapidNudeEditLead,
   SOLO_DILDO_INSERTION_CUE,
   SOLO_DILDO_NO_EXTERNAL_HOLD_CUE,
-} from '@/lib/qwen-rapid-nude-edit';
+} from '@/lib/engine/qwen-rapid-nude-edit';
 import { isDayVacationFaceRestorePrompt } from '@/lib/day/vacation-face-restore';
 
 import { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day/parts';

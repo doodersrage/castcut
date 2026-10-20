@@ -2,8 +2,8 @@ import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { buildComfyViewPath } from '../comfyui/outputs';
 import { resolveDurableGalleryStillUrl } from './media-client';
 import type { WorkflowParamValues } from '../comfyui/config';
-import type { QueueQualityProfile } from '../queue-quality-profile';
-import { setLineageParent } from '../prompt-lineage-session';
+import type { QueueQualityProfile } from '../queue/quality-profile';
+import { setLineageParent } from '../prompt/lineage-session';
 import { resolveSharedEffectiveSessionLoraIds } from '../comfyui/settings';
 
 export const GALLERY_HANDOFF_KEY = 'gallery-handoff-v1';
@@ -52,7 +52,7 @@ export type GalleryHandoffPayload = {
   sessionActiveLoraIds?: string[];
   queueQualityProfile?: QueueQualityProfile;
   /** Compose identity lock backend restored on re-edit. */
-  identityKind?: import('../compose-identity-lock').ComposeIdentityKind;
+  identityKind?: import('../prompt/compose-identity-lock').ComposeIdentityKind;
   /** reedit = open tool with same stack; upscale-* routed via gallery enhance actions. */
   handoffMode?: GalleryHandoffMode;
   savedAt: number;

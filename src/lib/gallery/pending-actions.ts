@@ -1,4 +1,4 @@
-import type { QueueQualityProfile } from '../queue-quality-profile';
+import type { QueueQualityProfile } from '../queue/quality-profile';
 
 const pendingRefineAfterUpscale = new Map<
   string,

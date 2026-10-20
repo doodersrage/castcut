@@ -23,7 +23,7 @@ import { selectLoraDatasetEntries } from './lora-dataset-export';
 import { mergeGalleryWithServer } from './server-sync';
 import { mergeDaySlotStills } from '../day/planner';
 import { mergeRoleplayStoryStills } from '../story/roleplay-gallery-takes';
-import { resetServerStorageFingerprints, syncNamespaceToServer } from '../storage-sync';
+import { resetServerStorageFingerprints, syncNamespaceToServer } from '../storage/sync';
 import { closeStudioDb } from '../sqlite/studio-db';
 import { readGalleryEntries, upsertGalleryEntries } from '../sqlite/gallery';
 

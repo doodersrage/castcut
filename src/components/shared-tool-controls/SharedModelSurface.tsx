@@ -12,12 +12,12 @@ import {
   type ComfyImageModel,
 } from '@/lib/comfy-models/client';
 import { engineDisplayName } from '@/lib/engine/capabilities';
-import { resolveCloudTxt2ImgModel } from '@/lib/engine-settings';
-import { isBooguEditModel } from '@/lib/model-denoise-defaults';
-import type { SupportedModelsSource } from '@/lib/model-workflow-map';
-import { resolveTxt2iCounterpartForGenerate } from '@/lib/queue-tool-model';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { resolveCloudTxt2ImgModel } from '@/lib/engine/settings';
+import { isBooguEditModel } from '@/lib/model/denoise-defaults';
+import type { SupportedModelsSource } from '@/lib/model/workflow-map';
+import { resolveTxt2iCounterpartForGenerate } from '@/lib/queue/tool-model';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 
 const ModelSelector = dynamic(() => import('@/components/ModelSelector'), {
   ssr: false,

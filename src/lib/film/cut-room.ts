@@ -9,13 +9,13 @@ import {
   cutGeneratedTitle,
   type CutGeneratedStage,
   type CutGeneratedStatus,
-} from '../cut-generate';
+} from '../video/cut-generate';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { roleplayWatchPlaylist } from './character-film';
 import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from '../day/planner';
 import type { KeyedShot } from './cut-plan';
 import type { RoleplayStoryBeat } from '../story/roleplay';
-import type { CutBridgeStatus } from '../cut-bridge';
+import type { CutBridgeStatus } from '../video/cut-bridge';
 
 export type CutSource = 'day' | 'story';
 

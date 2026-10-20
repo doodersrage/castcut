@@ -1,8 +1,8 @@
 'use client';
 
 import { HistoryHintSeedPanel } from '@/components/scene-tool/HistoryHintSeedPanel';
-import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene-hint-source';
-import type { VideoToolCache } from '@/lib/settings-cache';
+import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene/hint-source';
+import type { VideoToolCache } from '@/lib/settings/cache';
 
 type VideoPromptHistorySeedSectionProps = {
   toolSettings: VideoToolCache;

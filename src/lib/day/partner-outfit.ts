@@ -5,7 +5,7 @@
  * dressed them anew.
  */
 
-import { activeLook, type CharacterRecord } from '../character-os';
+import { activeLook, type CharacterRecord } from '../character/os';
 import { dayGarmentPromptName, dayOutfitPromptName } from './clothed-lead';
 
 export function partnerOutfitWords(

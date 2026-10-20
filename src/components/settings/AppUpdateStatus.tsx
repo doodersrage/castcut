@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { AppVersionCheckResult } from '@/lib/app-version';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { AppVersionCheckResult } from '@/lib/app/version';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export default function AppUpdateStatus() {
   const [state, setState] = useState<AppVersionCheckResult | null>(null);

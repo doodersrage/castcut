@@ -1,6 +1,6 @@
 'use client';
 
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { loadEngineSettings } from '@/lib/engine/settings';
 import { createComfyUiClientId } from '@/lib/comfyui/websocket';
 import { parseEngineId } from './capabilities';
 import { buildDiffusersViewPath } from './view-paths';
@@ -248,8 +248,8 @@ export const diffusersEngineAdapter: EngineAdapter = {
   },
 
   async uploadInputImage(input: EngineUploadInput) {
-    const { compressImageForEngineUpload } = await import('@/lib/browser-compress-image');
-    const { fileToDataUrl } = await import('@/lib/browser-file-data-url');
+    const { compressImageForEngineUpload } = await import('@/lib/storage/browser-compress-image');
+    const { fileToDataUrl } = await import('@/lib/storage/browser-file-data-url');
     const engineUrl = input.engineUrl?.trim() || loadEngineSettings().diffusersApiUrl;
 
     const prepared = await compressImageForEngineUpload(input.file, {

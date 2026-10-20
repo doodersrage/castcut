@@ -15,20 +15,20 @@ import {
   slugCharacterName,
   upsertCharacter,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 import { castFileDay, castFileName, placeImportedCast, type CastFileDay } from './transfer';
 import { loadComfyGallery, saveComfyGallery } from '../gallery/comfyui-gallery';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { loadComfyUiSettings } from '../comfyui/settings';
 import type { DayDressPlateEntry } from '../day/dress-plate-cache';
 import { loadDressPlates, replaceDressPlates } from '../day/dress-plate-store';
-import { collectComfyFileRefs } from '../media-backup-refs';
+import { collectComfyFileRefs } from '../storage/media-backup-refs';
 import {
   restorePicturesBackup,
   type MediaRestoreProgress,
   type MediaRestoreStatus,
-} from '../media-backup-client';
-import { isAssembledFilmEntry } from '../media-kind';
+} from '../storage/media-backup-client';
+import { isAssembledFilmEntry } from '../media/kind';
 import { DEFAULT_DAY_TOOL_CACHE } from '../play/settings';
 import {
   getRoleplayLibrarySession,
@@ -36,7 +36,7 @@ import {
   upsertRoleplayLibrarySession,
   type RoleplayLibrarySession,
 } from '../story/roleplay-library';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings-cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
 
 export const CAST_BUNDLE_KIND = 'castcut-cast-bundle';
 export const CAST_BUNDLE_VERSION = 1;

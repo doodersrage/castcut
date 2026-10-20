@@ -7,7 +7,7 @@ import {
   hasChosenWorkspaceMode,
   saveWorkspaceMode,
   type WorkspaceMode,
-} from '@/lib/workspace-mode';
+} from '@/lib/app/workspace-mode';
 
 function subscribeWorkspaceChosen(onChange: () => void): () => void {
   window.addEventListener(WORKSPACE_MODE_CHANGED_EVENT, onChange);
@@ -15,7 +15,7 @@ function subscribeWorkspaceChosen(onChange: () => void): () => void {
 }
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { Button } from '@/components/ui/Button';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 const DEFAULT_MODE: WorkspaceMode = APP_HAS_PLAY ? 'play' : 'studio';
 

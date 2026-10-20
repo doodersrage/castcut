@@ -6,7 +6,7 @@ import {
   getServerSyncStatus,
   getSyncStatus,
   subscribeSyncStatus,
-} from '@/lib/sync-status';
+} from '@/lib/storage/sync-status';
 
 const TONE_CLASS = {
   ok: 'text-[var(--text-muted)]',

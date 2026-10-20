@@ -5,24 +5,24 @@
  * keep the scene). Replaces "Remove clothing", which was the base-layer part alone.
  */
 
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { getCharacter, setLookPlateStance, type CharacterRecord } from '@/lib/character-os';
+import { getCharacter, setLookPlateStance, type CharacterRecord } from '@/lib/character/os';
 import { castMarkEditPhrases } from '@/lib/cast/marks';
 import type { DayPartnerNoun } from '@/lib/day/partner';
-import { STILL_MIN_FACE_MATCH } from '@/lib/face-match';
-import { measureStillFaceMatch } from '@/lib/face-match-client';
+import { STILL_MIN_FACE_MATCH } from '@/lib/face/match';
+import { measureStillFaceMatch } from '@/lib/face/match-client';
 import { resolveFittingGarmentPackshotModel } from '@/lib/fitting/kit-previews';
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting/room';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
 import { applyCastLookPlateFromSource } from '@/lib/look/outfit-plate';
-import { plateStanceKey } from '@/lib/plate-stance';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { plateStanceKey } from '@/lib/plate/stance';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { isSystemWorkflowSupportedModel } from '@/lib/workflow/system-workflow-runtime';
 import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
-import { installedComfyModels } from '@/lib/model-picker';
+import { installedComfyModels } from '@/lib/model/picker';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 

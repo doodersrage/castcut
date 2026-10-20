@@ -3,13 +3,13 @@
 import CompactDraftSavesStatus from '@/components/settings/CompactDraftSavesStatus';
 import ToolQualityProfilesSettings from '@/components/settings/ToolQualityProfilesSettings';
 import SettingsLoaderMapsPanel from '@/components/settings/panels/SettingsLoaderMapsPanel';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import {
   QUEUE_BEHAVIOR_PROFILES,
   applyQueueBehaviorProfile,
   detectQueueBehaviorProfile,
   type QueueBehaviorProfileId,
-} from '@/lib/queue-behavior-profiles';
+} from '@/lib/queue/behavior-profiles';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
 import { CollapsibleSection, ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import { daySlotsForLength, dayBeatIsTyped, typedDayBeatPatch, type DaySlot } from './planner';
 import { dayPoseAsPhotoPose } from './pose-presets';
 import {
@@ -18,10 +18,10 @@ import {
   removeMyPosePack,
   replaceMyPosePacks,
   saveMyPosePack,
-} from '../my-pose-packs';
+} from '../pose/my-pose-packs';
 import { planDaySlotPose } from './slot-pose';
 import { resolveSceneGuidePlan } from './pose-guide';
-import { POSE_PICKER_GROUPS } from '../pose-layout-labels';
+import { POSE_PICKER_GROUPS } from '../pose/layout-labels';
 
 const PICKER_IDS = new Set(POSE_PICKER_GROUPS.flatMap(group => group.ids));
 /** Layouts the live sweeps flagged (see the module comment). */

@@ -6,7 +6,7 @@ import {
   poseLibrarySnapshot,
   subscribePoseLibrary,
   type PoseLibraryEntry,
-} from '@/lib/pose-library';
+} from '@/lib/pose/library';
 
 /** The browser pose library, live. Empty on the server and during hydration. */
 export function usePoseLibrary(): PoseLibraryEntry[] {

@@ -1,10 +1,10 @@
 import { generateFantasyPrompt } from '@/lib/specialized/fantasy-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import {
   normalizeFantasyPresetOptions,
   type FantasyPresetOptions,
   type FantasyShotFraming,
-} from '@/lib/fantasy-options';
+} from '@/lib/scene/fantasy-options';
 import {
   normalizeBlockedLocations,
   normalizeRecentLocations,

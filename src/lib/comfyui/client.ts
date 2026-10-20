@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { qwenImage21TurboCheckpointFor } from '../qwen-image-21-renderer';
+import { qwenImage21TurboCheckpointFor } from '../engine/qwen-image-21-renderer';
 import path from 'node:path';
 import {
   type ComfyUiRuntimeConfig,
@@ -13,7 +13,7 @@ import {
   normalizeComfyApiWorkflow,
   type WorkflowParamValues,
 } from './config';
-import { writeQueueArtifact } from '../queue-artifacts';
+import { writeQueueArtifact } from '../queue/artifacts';
 import { loadServerWorkflowJson } from './server-workflows';
 import { applyUserComfyUiOverride } from './user-comfy-url';
 import {
@@ -25,15 +25,19 @@ import {
   resolveComfyUiUrlWithPoolDetailed,
   type ComfyUiPoolRoutingMeta,
 } from './pool';
-import { isDeadHostErrorMessage, isDeadHostHttpStatus, pickAlternateComfyUrl } from '../oom-retry';
+import {
+  isDeadHostErrorMessage,
+  isDeadHostHttpStatus,
+  pickAlternateComfyUrl,
+} from '../queue/oom-retry';
 import {
   getComfyUiAllowedHosts,
   isComfyClientUrlAllowed,
   normalizeSafeHttpUrl,
-} from '../url-safety';
+} from '../server/url-safety';
 import { optimizeWorkflowForQueue } from '../workflow/queue-optimizer';
 import { runWorkflowPreflightSync } from '../workflow/preflight-sync';
-import { resolveActiveLoraStack } from '../lora-stack';
+import { resolveActiveLoraStack } from '../lora/stack';
 import { fetchComfyObjectInfoPayload } from './object-info';
 import { formatComfyUiQueueValidationError } from './queue-validation-error';
 import { workflowContentHash } from '../workflow/content-hash';
@@ -131,8 +135,8 @@ async function applyServerPluginQueueHooks(input: {
   | { ok: false; error: string }
 > {
   try {
-    const { runServerQueuePreflight } = await import('../server-plugin-hooks');
-    const { isServerPluginRegistryEnabled } = await import('../server-plugin-registry');
+    const { runServerQueuePreflight } = await import('../plugin/server-plugin-hooks');
+    const { isServerPluginRegistryEnabled } = await import('../plugin/server-plugin-registry');
     if (!isServerPluginRegistryEnabled()) {
       return { ok: true, request: input.request, workflow: input.workflow };
     }
@@ -183,8 +187,8 @@ async function dispatchServerQueuePost(input: {
   workflow?: Record<string, unknown>;
 }): Promise<void> {
   try {
-    const { runServerQueuePost } = await import('../server-plugin-hooks');
-    const { isServerPluginRegistryEnabled } = await import('../server-plugin-registry');
+    const { runServerQueuePost } = await import('../plugin/server-plugin-hooks');
+    const { isServerPluginRegistryEnabled } = await import('../plugin/server-plugin-registry');
     if (!isServerPluginRegistryEnabled()) {
       return;
     }
@@ -826,7 +830,7 @@ export async function queuePromptToComfyUi(
 
     if (preferDiffusers && activePromptBody.prompt && typeof activePromptBody.prompt === 'object') {
       const { classifyDiffusersWorkflow, queueDiffusersWorkflow } =
-        await import('../diffusers-client');
+        await import('../engine/diffusers-client');
       const graph = activePromptBody.prompt as Record<string, unknown>;
       const classified = await classifyDiffusersWorkflow(graph, options?.diffusersUrl);
       let diffusersFallbackReason: string | undefined;

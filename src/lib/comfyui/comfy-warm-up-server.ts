@@ -11,7 +11,7 @@ import {
 } from './comfy-warm-up';
 import { getComfyUiRoot } from './comfy-asset-paths';
 import { parseComfyUiSystemStats } from './system-stats';
-import { resolvePromptDataDir } from '../prompt-data-paths';
+import { resolvePromptDataDir } from '../prompt/data-paths';
 
 /**
  * Server side of the model-aware queue: what ComfyUI is doing (whose jobs wait on which model,

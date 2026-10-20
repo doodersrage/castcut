@@ -1,18 +1,18 @@
 import { composeActionLocation, composeSceneLocation } from './location-composer';
-import { ALL_EXTRA_SCENE_LOCATIONS } from '../location-catalog-batches';
-import { parseSettingHint } from '../hint-location';
-import { parsePeopleConstraint } from '../distinct-people';
-import { inferAthleticSport } from '../athletic-sport-profiles';
+import { ALL_EXTRA_SCENE_LOCATIONS } from '../scene/location-catalog-batches';
+import { parseSettingHint } from '../prompt/hint-location';
+import { parsePeopleConstraint } from '../checks/distinct-people';
+import { inferAthleticSport } from '../scene/athletic-sport-profiles';
 import {
   buildSportPoseIncompatibilities,
   getSportDuoCompetitionLine,
   pickSceneLocationForSportHints,
   pickSportActionPose,
   pickSportActionSetting,
-} from '../athletic-sport-actions';
-import { promptContainsAvoidedTokensFromList } from '../avoidance-options';
-import { parseCharacterHints, pickCharacterIdentitySeed } from '../character-hints';
-import { pickCharacterSubject } from '../variation-seed';
+} from '../scene/athletic-sport-actions';
+import { promptContainsAvoidedTokensFromList } from '../prompt/avoidance-options';
+import { parseCharacterHints, pickCharacterIdentitySeed } from '../character/hints';
+import { pickCharacterSubject } from '../variation/seed';
 
 const LOCATIONS = [
   'abandoned observatory on a windy cliff',

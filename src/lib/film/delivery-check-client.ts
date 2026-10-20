@@ -4,9 +4,9 @@
  */
 
 import { duplicateShots, shotDeliveryReasons, type ShotProbe } from './delivery-check';
-import { sharedLlmRequestBody } from '../llm-request-options';
-import { loadSettingsCache } from '../settings-cache';
-import type { FilmPlaylistShot } from '../media-kind';
+import { sharedLlmRequestBody } from '../llm/request-options';
+import { loadSettingsCache } from '../settings/cache';
+import type { FilmPlaylistShot } from '../media/kind';
 
 const CHECK_TIMEOUT_MS = 45_000;
 /** With the writing check: one vision read per shot (a few seconds each). */

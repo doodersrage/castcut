@@ -2,8 +2,8 @@
 
 import CastPersonaPartChips from '@/components/cast/CastPersonaPartChips';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { getCharacter, upsertCharacter } from '@/lib/character-os';
-import type { CharacterRecord } from '@/lib/character-os';
+import { getCharacter, upsertCharacter } from '@/lib/character/os';
+import type { CharacterRecord } from '@/lib/character/os';
 import { CUSTOM_ROLEPLAY_PERSONA_ID } from '@/lib/story/roleplay';
 
 type CharacterPersonaSectionProps = {

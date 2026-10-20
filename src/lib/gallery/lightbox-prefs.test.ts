@@ -7,7 +7,7 @@ const readBrowserValue = mock.fn(<T>(): T | null => stored as T | null);
 const writeBrowserValue = mock.fn((_key: string, value: unknown) => {
   stored = value;
 });
-mock.module("../browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
+mock.module("../storage/browser-storage", { namedExports: { readBrowserValue, writeBrowserValue } });
 
 describe("gallery-lightbox-prefs", async () => {
   const {

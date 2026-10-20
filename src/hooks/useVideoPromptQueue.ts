@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { nextRoleplayMotionKind } from '@/lib/media-kind';
+import { nextRoleplayMotionKind } from '@/lib/media/kind';
 import {
   canFalExtendFromParentUrl,
   continueClipPathRanMessage,
@@ -11,17 +11,17 @@ import {
   resolveVideoContinuePath,
   type VideoClipMode,
   type VideoContinuePath,
-} from '@/lib/video-clip-mode';
+} from '@/lib/video/clip-mode';
 import { engineDisplayName } from '@/lib/engine/capabilities';
-import { resolveFalExtendParentUrl } from '@/lib/fal-extend-upload';
-import { loadEngineSettings } from '@/lib/engine-settings';
-import { extractVideoLastFrame } from '@/lib/video-last-frame';
-import { registerContinueStitch } from '@/lib/video-continue-stitch';
+import { resolveFalExtendParentUrl } from '@/lib/cloud/fal-extend-upload';
+import { loadEngineSettings } from '@/lib/engine/settings';
+import { extractVideoLastFrame } from '@/lib/video/last-frame';
+import { registerContinueStitch } from '@/lib/video/continue-stitch';
 import { isFetchableImageRef, LOCAL_INIT_IMAGE_MARKER } from '@/hooks/useVideoPromptInitImage';
-import { getCharacter } from '@/lib/character-os';
-import { withCastIdentityQueueFields } from '@/lib/character-identity';
+import { getCharacter } from '@/lib/character/os';
+import { withCastIdentityQueueFields } from '@/lib/character/identity';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 
 type PromptActions = ReturnType<typeof usePromptResultActions>;
 

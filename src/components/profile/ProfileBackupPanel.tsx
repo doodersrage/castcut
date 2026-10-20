@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import BackupRestoreFlow from '@/components/BackupRestoreFlow';
-import { downloadStudioBackup } from '@/lib/studio-backup';
+import { downloadStudioBackup } from '@/lib/storage/studio-backup';
 
 export default function ProfileBackupPanel() {
   const [status, setStatus] = useState<string | null>(null);

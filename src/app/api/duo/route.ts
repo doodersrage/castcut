@@ -1,10 +1,10 @@
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import { generateCharacterPrompt } from '@/lib/specialized/character-generator';
-import { enrichGenerateResult } from '@/lib/generation-diagnostics';
+import { enrichGenerateResult } from '@/lib/queue/generation-diagnostics';
 import {
   normalizeCharacterPresetOptions,
   type CharacterPresetOptions,
-} from '@/lib/character-options';
+} from '@/lib/character/options';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,
@@ -14,7 +14,7 @@ import {
   normalizeLockedLocation,
   normalizeVariationSeed,
 } from '@/lib/specialized/normalize';
-import { getSportPreset } from '@/lib/sport-presets';
+import { getSportPreset } from '@/lib/scene/sport-presets';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

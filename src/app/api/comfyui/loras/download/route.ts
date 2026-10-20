@@ -5,7 +5,7 @@ import {
   civitaiLoraDownloadUrl,
   parseCivitaiVersionId,
   sanitizeLoraFilename,
-} from '@/lib/civitai-lora';
+} from '@/lib/lora/civitai-lora';
 import {
   listComfyAssetJobs,
   runComfyAssetDownloadJob,

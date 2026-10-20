@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { DEFAULT_SHOOTOUT_MODELS, queueSameSeedShootout } from '@/lib/model-shootout';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { DEFAULT_SHOOTOUT_MODELS, queueSameSeedShootout } from '@/lib/experiment/model-shootout';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export default function ModelShootoutPanel() {
   const [prompt, setPrompt] = useState('');
@@ -67,7 +67,7 @@ export default function ModelShootoutPanel() {
             seed: Number(seed) || 0,
           }).then(result => {
             if (result.held > 0) {
-              void import('@/lib/app-toast').then(({ toastHeldMax }) =>
+              void import('@/lib/app/toast').then(({ toastHeldMax }) =>
                 toastHeldMax({
                   text: 'Max shootout jobs held until ComfyUI is idle',
                   count: result.held,

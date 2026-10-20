@@ -1,6 +1,6 @@
 'use client';
 
-import { CUT_FRAMINGS, type CutFraming } from '@/lib/cut-move';
+import { CUT_FRAMINGS, type CutFraming } from '@/lib/video/cut-move';
 import { CutShotOverlayEditor } from '@/components/cut/CutOverlayControls';
 import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
@@ -18,8 +18,8 @@ import {
   type KeyedShot,
 } from '@/lib/film/cut-plan';
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
-import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
-import type { IdentityMark } from '@/lib/identity-mark';
+import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/video/cut-timeline';
+import type { IdentityMark } from '@/lib/character/identity-mark';
 
 /**
  * Day / Story shot list: order, leave a shot out, edit its caption (when titles are on), set a

@@ -1,5 +1,5 @@
-import { appDb } from '../app-db';
-import { readBrowserValue, removeBrowserKey, writeBrowserValue } from '../browser-storage';
+import { appDb } from '../app/db';
+import { readBrowserValue, removeBrowserKey, writeBrowserValue } from '../storage/browser-storage';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import {
   COMFYUI_GALLERY_KEY,
@@ -7,8 +7,8 @@ import {
   MAX_GALLERY_ENTRIES,
 } from './comfyui-gallery-storage-meta';
 import { filterOutDeletedGalleryEntries } from './deleted-ids';
-import { getActiveUserId, isUserScoped } from '../user-scope';
-import { seedBatchCorpus } from '../embedding-rank';
+import { getActiveUserId, isUserScoped } from '../user/scope';
+import { seedBatchCorpus } from '../search/embedding-rank';
 
 /** First paint loads one page of recent entries; the rest hydrate in the background. */
 export const INITIAL_GALLERY_LOAD_LIMIT = 48;

@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserAnalyticsSnapshot } from '@/lib/user-analytics';
+import type { UserAnalyticsSnapshot } from '@/lib/user/analytics';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { formatCapturedAt } from '@/hooks/useUsersAdminState';

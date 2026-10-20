@@ -4,7 +4,7 @@ import { isAuthEnabled } from '@/lib/auth/store';
 import {
   installCastcutNodesWithManager,
   readCastcutNodesReport,
-} from '@/lib/castcut-nodes-setup-server';
+} from '@/lib/castcut/nodes-setup-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 

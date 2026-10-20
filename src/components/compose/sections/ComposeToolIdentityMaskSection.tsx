@@ -6,16 +6,16 @@ import TurboEditStrengthControls from '@/components/TurboEditStrengthControls';
 import {
   CLOUD_COMPOSE_SINGLE_REF_WARNING,
   isCloudMultiRefEditModel,
-} from '@/lib/cloud-compose-refs';
+} from '@/lib/cloud/cloud-compose-refs';
 import { isCloudEngine } from '@/lib/engine/capabilities';
-import { isBooguEditModel, isFluxKleinModel, isZImageModel } from '@/lib/model-denoise-defaults';
-import { normalizeTurboEditStrength } from '@/lib/turbo-edit-strength';
-import { Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING } from '@/lib/compose-prompt';
+import { isBooguEditModel, isFluxKleinModel, isZImageModel } from '@/lib/model/denoise-defaults';
+import { normalizeTurboEditStrength } from '@/lib/engine/turbo-edit-strength';
+import { Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING } from '@/lib/prompt/compose-prompt';
 import {
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
   type ComposeIdentityKind,
-} from '@/lib/compose-identity-lock';
+} from '@/lib/prompt/compose-identity-lock';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { useComposeToolOrchestration } from '@/hooks/useComposeToolOrchestration';
 

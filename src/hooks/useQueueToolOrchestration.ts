@@ -3,12 +3,12 @@
 import { isCancelledJob } from '@/lib/comfyui/queue-cancel';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadComfyGallery, type ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { toastBulkQueueSummary, toastQueueOutcome } from '@/lib/app-toast';
+import { toastBulkQueueSummary, toastQueueOutcome } from '@/lib/app/toast';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import { requeueComfyJobFromEntry, requeueComfyJobs } from '@/lib/comfyui/requeue';
-import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue-requeue-images';
-import { markOnboardingFirstQueue } from '@/lib/onboarding-hooks';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { resolveRequeueImageUrlsFromEntry } from '@/lib/queue/requeue-images';
+import { markOnboardingFirstQueue } from '@/lib/app/onboarding-hooks';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   cancelComfyUiJob,
   freeComfyUiMemory,
@@ -20,19 +20,19 @@ import { mergeHostJobLists, type ComfyJobListItem, type HostOrphanJob } from '@/
 import { listHealComfyUrls } from '@/lib/comfyui/manager-install-client';
 import { summarizePoolQueueDepth } from '@/lib/comfyui/host-ready';
 import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
-import { refreshSharedHealth } from '@/lib/shared-health-poll';
+import { refreshSharedHealth } from '@/lib/storage/shared-health-poll';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { removeComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { cancelComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
-import { loadCharacters } from '@/lib/character-os';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
-import { estimateQueueEta } from '@/lib/queue-eta';
+import { loadCharacters } from '@/lib/character/os';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
+import { estimateQueueEta } from '@/lib/queue/eta';
 import {
   describeQueueJob,
   groupQueueJobs,
   queueJobLabeller,
   repointQueueJob,
-} from '@/lib/queue-job-context';
+} from '@/lib/queue/job-context';
 
 type ComfyQueueHealth = {
   queueRunning?: number;

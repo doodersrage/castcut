@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
-import type { PublicQueueExportConfig } from '@/lib/queue-export-types';
+import type { PublicQueueExportConfig } from '@/lib/queue/export-types';
 
 export default function QueueExportSettingsPanel() {
   const auth = useAuth();

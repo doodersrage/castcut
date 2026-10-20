@@ -8,16 +8,16 @@ import 'server-only';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchEngineOutputBuffer } from '../engine-output-fetch';
+import { fetchEngineOutputBuffer } from '../engine/output-fetch';
 import { type GalleryArchiveEntryDescriptor } from './archive-job-client';
 import { readGalleryOriginalFile } from './media-store';
 import { createZipFileFromDiskPaths, type ZipDiskEntry } from './zip-stream';
-import { resolvePromptDataDir } from '../prompt-data-paths';
+import { resolvePromptDataDir } from '../prompt/data-paths';
 import {
   normalizeComfyViewType,
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
-} from '../url-safety';
+} from '../server/url-safety';
 
 export type { GalleryArchiveEntryDescriptor } from './archive-job-client';
 export { toArchiveEntryDescriptor } from './archive-job-client';

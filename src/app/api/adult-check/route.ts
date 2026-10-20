@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { askAdultAppearanceVision } from '@/lib/adult-appearance-gate-server';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 
 export const runtime = 'nodejs';

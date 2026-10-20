@@ -9,7 +9,7 @@
 import type { ComfyWorkflowFile } from '../comfyui/workflow-files';
 import { resolveRuntimeForQueueAsync } from '../comfyui/runtime-for-model';
 import type { ComfyImageModel } from '../comfy-models/client';
-import { isEditCapableModel } from '../model-denoise-defaults';
+import { isEditCapableModel } from '../model/denoise-defaults';
 import { runWorkflowPreflight } from './preflight';
 import { isToolScaffoldWorkflow, type WorkflowHealthIssue } from './health-audit';
 

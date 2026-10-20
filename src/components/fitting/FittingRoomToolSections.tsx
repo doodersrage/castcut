@@ -5,7 +5,7 @@ import SideSheet from '@/components/ui/SideSheet';
 import { Button } from '@/components/ui/Button';
 
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
 import FittingCompareSection from '@/components/fitting/FittingCompareSection';
 import FittingActionRow from '@/components/fitting/FittingActionRow';

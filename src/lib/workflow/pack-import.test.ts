@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { resetBrowserStorageCache } from "../browser-storage";
+import { resetBrowserStorageCache } from "../storage/browser-storage";
 import {
   inferWorkflowGraphKind,
   mergeInferredModels,
   suggestMediaCustomTokens,
 } from "./graph-kind";
 import { importComfyWorkflowPack } from "./pack-import";
-import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from "../audio-mesh-prompt";
+import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from "../audio/mesh-prompt";
 import { buildZipBlob } from "../gallery/zip-export";
-import { readZipTextEntries } from "../zip-read";
+import { readZipTextEntries } from "../storage/zip-read";
 import { applyWorkflowNodeBindings } from "./apply-bindings";
 import { suggestWorkflowNodeMappings } from "./node-mapper";
 import {

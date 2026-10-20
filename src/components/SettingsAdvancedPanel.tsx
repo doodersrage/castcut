@@ -5,15 +5,15 @@ import { useEffect, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
-import { syncNamespaceToServer, pullNamespaceFromServer } from '@/lib/storage-sync';
+import { syncNamespaceToServer, pullNamespaceFromServer } from '@/lib/storage/sync';
 import { SyncStatusLine } from '@/components/SyncStatusLine';
 import ObservabilityDashboard from '@/components/ObservabilityDashboard';
 import PromptRecipesPanel from '@/components/settings/PromptRecipesPanel';
 import NegativeLearnerPanel from '@/components/settings/NegativeLearnerPanel';
 import ModelShootoutPanel from '@/components/settings/ModelShootoutPanel';
-import { loadSettingsCache, saveSettingsCache, type SettingsCache } from '@/lib/settings-cache';
-import { initAppDb } from '@/lib/app-db-init';
-import { loadPromptHistoryStore, savePromptHistoryStore } from '@/lib/prompt-history';
+import { loadSettingsCache, saveSettingsCache, type SettingsCache } from '@/lib/settings/cache';
+import { initAppDb } from '@/lib/app/db-init';
+import { loadPromptHistoryStore, savePromptHistoryStore } from '@/lib/prompt/history';
 import {
   loadComfyGallery,
   saveComfyGalleryAsync,
@@ -119,7 +119,7 @@ export default function SettingsAdvancedPanel() {
     tasks.push(syncNamespaceToServer('comfy-gallery', gallery));
     const { loadGalleryDeletedIds } = await import('@/lib/gallery/deleted-ids');
     tasks.push(syncNamespaceToServer('gallery-deleted-ids', loadGalleryDeletedIds()));
-    const { collectStudioExtras } = await import('@/lib/studio-extras');
+    const { collectStudioExtras } = await import('@/lib/app/studio-extras');
     tasks.push(syncNamespaceToServer('studio-extras', collectStudioExtras()));
     const results = await Promise.all(tasks);
     setStatus(
@@ -192,7 +192,7 @@ export default function SettingsAdvancedPanel() {
       'gallery-deleted-ids'
     );
     const extras =
-      await pullNamespaceFromServer<import('@/lib/studio-extras').StudioExtrasPayload>(
+      await pullNamespaceFromServer<import('@/lib/app/studio-extras').StudioExtrasPayload>(
         'studio-extras'
       );
     const {
@@ -201,7 +201,7 @@ export default function SettingsAdvancedPanel() {
       mergeGalleryDeletedIds,
       saveGalleryDeletedIds,
     } = await import('@/lib/gallery/deleted-ids');
-    const { applyStudioExtras } = await import('@/lib/studio-extras');
+    const { applyStudioExtras } = await import('@/lib/app/studio-extras');
     const serverDeleted = Array.isArray(deletedPayload)
       ? deletedPayload
       : Array.isArray(deletedPayload?.ids)
@@ -214,7 +214,7 @@ export default function SettingsAdvancedPanel() {
       saveSettingsCache(settings);
     }
     if (history) {
-      savePromptHistoryStore(history as import('@/lib/prompt-history').PromptHistoryEntry[]);
+      savePromptHistoryStore(history as import('@/lib/prompt/history').PromptHistoryEntry[]);
     }
     if (gallery) {
       await saveComfyGalleryAsync(filterOutDeletedGalleryEntries(gallery));

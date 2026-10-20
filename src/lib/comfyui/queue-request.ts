@@ -8,7 +8,7 @@
 import { parseEngineId } from '../engine/capabilities';
 import { registerAppComfyJob } from './comfy-model-turn';
 import { loadComfyUiSettings } from './settings';
-import { assertRenderBackendReachable } from '../render-backend-status';
+import { assertRenderBackendReachable } from '../engine/render-backend-status';
 import {
   createComfyUiClientId,
   openComfyPreviewSocketBeforeQueue,

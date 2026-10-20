@@ -1,5 +1,5 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
-import { tokenize, bigrams } from '../semantic-search';
+import { tokenize, bigrams } from '../search/semantic-search';
 
 export type GallerySimilarityScore = {
   entry: ComfyGalleryEntry;

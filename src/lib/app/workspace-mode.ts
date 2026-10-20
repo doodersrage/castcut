@@ -1,0 +1,372 @@
+import { readBrowserString, writeBrowserString } from '../storage/browser-storage';
+import {
+  APP_NAV_EXTRAS_GROUP_LABEL,
+  APP_NAV_GROUPS,
+  APP_NAV_SETTINGS_LINK,
+  flattenAppNavLinks,
+  isParkedNavHref,
+  type AppNavGroup,
+  type AppNavLink,
+} from './nav-catalog';
+import { markOnboardingSetWorkspace } from './onboarding-hooks';
+import { APP_HAS_PLAY } from './profile';
+
+export type WorkspaceMode = 'simple' | 'play' | 'studio' | 'full';
+
+const MODE_KEY = 'comfy-workspace-mode-v1';
+const CHOSEN_KEY = 'comfy-workspace-mode-chosen-v1';
+
+export const WORKSPACE_MODE_CHANGED_EVENT = 'workspace-mode-changed';
+export const WORKSPACE_MODE_COOKIE = 'comfy-workspace-mode-v1';
+
+function persistWorkspaceModeCookie(mode: WorkspaceMode): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  try {
+    document.cookie = `${WORKSPACE_MODE_COOKIE}=${mode}; Path=/; Max-Age=31536000; SameSite=Lax`;
+  } catch {
+    /* private mode / mocked document */
+  }
+}
+
+type WorkspaceModeOption = {
+  id: WorkspaceMode;
+  label: string;
+  /** Make / Control / Build framing for first-run and Profile copy. */
+  shortTag: 'Make' | 'Control' | 'Build';
+  description: string;
+};
+
+const ALL_WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = [
+  {
+    id: 'play',
+    label: 'Film',
+    shortTag: 'Make',
+    description:
+      'Everyday filmmaking (the default): Cast, Look & Outfit, Day / Story, Gallery and Cut — the creative decisions, nothing else.',
+  },
+  {
+    id: 'simple',
+    label: 'Simple',
+    shortTag: 'Make',
+    description: 'Make with lean chrome — Essentials + More tools; advanced controls collapsed.',
+  },
+  {
+    id: 'studio',
+    label: 'Studio',
+    shortTag: 'Control',
+    description: APP_HAS_PLAY
+      ? 'More control: prompts, references, model settings and every tool, with your film kept in view. Specialist tools, workflow graphs and integrations sit under More tools.'
+      : 'Control how they are made — full catalog in Create / Edit / Library / More tools. Advanced collapsed.',
+  },
+  {
+    id: 'full',
+    label: 'Full',
+    shortTag: 'Build',
+    description: 'Build the machinery — everything visible with advanced controls open.',
+  },
+];
+
+/** The workspaces this app offers (no Film without Play). */
+export const WORKSPACE_MODE_OPTIONS: WorkspaceModeOption[] = ALL_WORKSPACE_MODE_OPTIONS.filter(
+  option => (APP_HAS_PLAY ? option.id === 'play' || option.id === 'studio' : option.id !== 'play')
+);
+
+/** Primary destinations for Simple workspace (path or path?query). */
+export const SIMPLE_NAV_HREFS = [
+  '/dashboard',
+  '/',
+  '/play',
+  '/characters',
+  '/story',
+  '/gallery',
+  '/queue',
+] as const;
+
+/** Preferred order inside Simple “More tools” (still reachable via ⌘K). */
+export const SIMPLE_MORE_NAV_HREFS = [
+  '/m',
+  '/character',
+  '/video',
+  '/refine',
+  '/compose',
+  '/inpaint',
+  '/studio',
+  '/fitting',
+  '/day',
+  '/moodboard',
+  '/image-prompt',
+  '/format',
+] as const;
+
+/**
+ * Routes that slim chrome to Play: Cast, Roleplay, Gallery, Queue, plus All tools.
+ * Character home (`/characters/[id]`) is included; `/character` (the generator) is not.
+ */
+export const ROLEPLAY_FOCUS_HREFS = [
+  '/play',
+  '/story',
+  '/fitting',
+  '/day',
+  '/moodboard',
+  '/characters',
+] as const;
+
+/** Destinations listed in the Play sidebar (All tools is appended separately). */
+export const ROLEPLAY_FOCUS_NAV_HREFS = [
+  '/characters',
+  '/play',
+  '/fitting',
+  '/day',
+  '/story',
+  '/gallery',
+  '/queue',
+] as const;
+
+/**
+ * Escape hatch so Play focus is not a trap, labeled All tools: Castcut's sidebar layout (its "/"
+ * is Film), opening on the Gallery; Generate in the classic app.
+ */
+export const ROLEPLAY_FOCUS_ESCAPE_HREF = APP_HAS_PLAY ? '/gallery' : '/';
+
+export function isRoleplayFocusPath(pathname: string | null | undefined): boolean {
+  if (!pathname) {
+    return false;
+  }
+  const path = pathname.split('?')[0] || '/';
+  return (
+    path === '/play' ||
+    path === '/story' ||
+    path === '/roleplay' ||
+    path === '/fitting' ||
+    path === '/day' ||
+    path === '/moodboard' ||
+    path === '/characters' ||
+    path.startsWith('/characters/')
+  );
+}
+
+/** First run / unknown: Film in Castcut; Studio in the classic app (no Play). */
+const DEFAULT_WORKSPACE_MODE: WorkspaceMode = APP_HAS_PLAY ? 'play' : 'studio';
+
+export function normalizeWorkspaceMode(value: unknown): WorkspaceMode {
+  if (value === 'play' && !APP_HAS_PLAY) {
+    return DEFAULT_WORKSPACE_MODE;
+  }
+  // Castcut has two layouts: Film and Studio (the sidebar). Simple was lean (→ Film); Full was
+  // Studio with advanced controls open (→ Studio).
+  if (APP_HAS_PLAY && value === 'simple') return 'play';
+  if (APP_HAS_PLAY && value === 'full') return 'studio';
+  if (value === 'simple' || value === 'play' || value === 'studio' || value === 'full') {
+    return value;
+  }
+  return DEFAULT_WORKSPACE_MODE;
+}
+
+export function loadWorkspaceMode(): WorkspaceMode {
+  if (typeof window === 'undefined') {
+    return DEFAULT_WORKSPACE_MODE;
+  }
+  return normalizeWorkspaceMode(readBrowserString(MODE_KEY));
+}
+
+export function saveWorkspaceMode(mode: WorkspaceMode): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const next = normalizeWorkspaceMode(mode);
+  writeBrowserString(MODE_KEY, next);
+  writeBrowserString(CHOSEN_KEY, '1');
+  document.documentElement.dataset.workspace = next;
+  persistWorkspaceModeCookie(next);
+  markOnboardingSetWorkspace();
+  window.dispatchEvent(new Event(WORKSPACE_MODE_CHANGED_EVENT));
+}
+
+export function hasChosenWorkspaceMode(): boolean {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+  return readBrowserString(CHOSEN_KEY) === '1';
+}
+
+/** Returning users already have chrome prefs — don't force the welcome dialog. */
+function hasExistingChromePrefs(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return Boolean(
+    readBrowserString('comfy-nav-favorites-v1') ||
+    readBrowserString('comfy-ui-density-v1') ||
+    readBrowserString('comfy-nav-expanded-groups-v2') ||
+    readBrowserString('comfy-recent-destinations-v1')
+  );
+}
+
+export function applyWorkspaceMode(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  if (!hasChosenWorkspaceMode() && hasExistingChromePrefs()) {
+    writeBrowserString(CHOSEN_KEY, '1');
+  }
+  document.documentElement.dataset.workspace = loadWorkspaceMode();
+  persistWorkspaceModeCookie(loadWorkspaceMode());
+}
+
+export function clearWorkspaceModeChoice(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  writeBrowserString(CHOSEN_KEY, '');
+}
+
+export function isLeanWorkspaceMode(mode: WorkspaceMode): boolean {
+  return mode === 'simple' || mode === 'play';
+}
+
+function playNavGroups(baseGroups: AppNavGroup[]): AppNavGroup[] {
+  const catalog = flattenAppNavLinks(baseGroups);
+  const playLinks = ROLEPLAY_FOCUS_NAV_HREFS.map(href => linkByHref(href, catalog)).filter(
+    (link): link is AppNavLink => Boolean(link)
+  );
+  const escape = linkByHref(ROLEPLAY_FOCUS_ESCAPE_HREF, catalog) ?? {
+    href: ROLEPLAY_FOCUS_ESCAPE_HREF,
+    label: 'Generate',
+    description: 'Keywords or random scene',
+  };
+  // Castcut's escape is the Gallery, already listed: no second entry for it.
+  const escapeListed = playLinks.some(link => hrefKey(link.href) === hrefKey(escape.href));
+  return [
+    {
+      label: 'Play',
+      links: [
+        ...playLinks,
+        ...(escapeListed
+          ? []
+          : [
+              {
+                ...escape,
+                label: 'All tools',
+                description: 'Leave Play and open the full studio',
+              },
+            ]),
+      ],
+    },
+  ];
+}
+
+function hrefKey(href: string): string {
+  return href.split('?')[0] || '/';
+}
+
+function linkByHref(href: string, catalog: AppNavLink[]): AppNavLink | undefined {
+  return (
+    catalog.find(link => link.href === href) ??
+    catalog.find(link => hrefKey(link.href) === hrefKey(href))
+  );
+}
+
+/**
+ * Studio/Full IA: split the old mega-Tools list into Edit / Media / Library.
+ * Simple: Essentials + More tools.
+ */
+export function navGroupsForWorkspaceMode(
+  mode: WorkspaceMode,
+  baseGroups: AppNavGroup[] = APP_NAV_GROUPS
+): AppNavGroup[] {
+  const flat = flattenAppNavLinks(baseGroups);
+  const byHref = (href: string) => linkByHref(href, flat);
+
+  if (mode === 'play') {
+    return playNavGroups(baseGroups);
+  }
+
+  if (mode === 'simple') {
+    const essentials = SIMPLE_NAV_HREFS.map(href => byHref(href)).filter(
+      (link): link is AppNavLink => Boolean(link)
+    );
+    const essentialKeys = new Set(essentials.map(link => link.href));
+    const morePreferred = SIMPLE_MORE_NAV_HREFS.map(href => byHref(href)).filter(
+      (link): link is AppNavLink => Boolean(link)
+    );
+    const moreRest = flat.filter(
+      link => !essentialKeys.has(link.href) && !morePreferred.some(item => item.href === link.href)
+    );
+    // Parked specialty tools stay reachable but sort last under More.
+    const moreActive = moreRest.filter(link => !isParkedNavHref(link.href));
+    const moreParked = moreRest.filter(link => isParkedNavHref(link.href));
+    const more = [...morePreferred, ...moreActive, ...moreParked];
+    const groups: AppNavGroup[] = [{ label: 'Essentials', links: essentials }];
+    if (more.length > 0) {
+      groups.push({ label: 'More tools', links: more });
+    }
+    return groups;
+  }
+
+  // Studio + Full share the same group structure (baseGroups already restructured).
+  return baseGroups;
+}
+
+/**
+ * Workspace groups, then Play-route slim or Play workspace kiosk.
+ * Play mode uses the same destinations on every path.
+ */
+export function usesPlayChrome(mode: WorkspaceMode, pathname?: string | null): boolean {
+  return mode === 'play' || isRoleplayFocusPath(pathname);
+}
+
+export function navGroupsForPath(
+  mode: WorkspaceMode,
+  pathname: string,
+  baseGroups: AppNavGroup[] = APP_NAV_GROUPS
+): AppNavGroup[] {
+  if (usesPlayChrome(mode, pathname)) {
+    return playNavGroups(baseGroups);
+  }
+  return navGroupsForWorkspaceMode(mode, baseGroups);
+}
+
+export function isRoleplayFocusNavHref(href: string): boolean {
+  const path = href.split('?')[0] || '/';
+  if (path === ROLEPLAY_FOCUS_ESCAPE_HREF || path === '/settings' || path === '/profile') {
+    return true;
+  }
+  if ((ROLEPLAY_FOCUS_NAV_HREFS as readonly string[]).includes(path)) {
+    return true;
+  }
+  return path.startsWith('/characters/');
+}
+
+/** Default expanded group labels for a workspace mode when the user has no saved prefs. */
+export function defaultExpandedNavGroups(mode: WorkspaceMode, groups: AppNavGroup[]): string[] {
+  if (mode === 'play') {
+    // Play kiosk catalog uses a single "Play" group; full catalog expands Scene (Film loop).
+    if (groups.some(group => group.label === 'Play')) {
+      return ['Play'];
+    }
+    if (groups.some(group => group.label === 'Film')) {
+      return ['Film'];
+    }
+    return groups.slice(0, 1).map(group => group.label);
+  }
+  if (mode === 'simple') {
+    return ['Essentials'];
+  }
+  if (mode === 'full') {
+    return groups.map(group => group.label);
+  }
+  // Studio: keep More tools collapsed by default to reduce noise.
+  return groups.map(group => group.label).filter(label => label !== APP_NAV_EXTRAS_GROUP_LABEL);
+}
+
+export function workspaceShowsAdvancedControls(mode: WorkspaceMode): boolean {
+  return !isLeanWorkspaceMode(mode);
+}
+
+export function workspaceControlsDefaultOpen(mode: WorkspaceMode): boolean {
+  return mode === 'full';
+}
+
+export { APP_NAV_SETTINGS_LINK };

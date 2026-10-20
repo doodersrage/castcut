@@ -1,11 +1,11 @@
 'use client';
 
-import { buildGalleryFocusUrl } from '@/lib/use-as-hints-url';
+import { buildGalleryFocusUrl } from '@/lib/prompt/use-as-hints-url';
 import GalleryEntryPreview from '@/components/ui/GalleryEntryPreview';
 import { ButtonLink } from '@/components/ui/Button';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
-import { engineFamilyLabel } from '@/lib/model-files';
+import { engineFamilyLabel } from '@/lib/model/files';
 
 export default function QueueCompletedRow({ entry }: { entry: ComfyGalleryEntry }) {
   const galleryHref = buildGalleryFocusUrl(entry.id);

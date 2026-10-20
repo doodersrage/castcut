@@ -1,12 +1,12 @@
 'use client';
 
 import { ChipButton } from '@/components/ui/Field';
-import { QUEUE_QUALITY_PROFILE_OPTIONS } from '@/lib/queue-quality-profile';
+import { QUEUE_QUALITY_PROFILE_OPTIONS } from '@/lib/queue/quality-profile';
 import {
   TOOL_QUEUE_QUALITY_OPTIONS,
   toolQueueQualityLabel,
   type ToolQueueQualityProfiles,
-} from '@/lib/tool-quality-profiles';
+} from '@/lib/app/tool-quality-profiles';
 
 type ToolQualityProfilesSettingsProps = {
   profiles: ToolQueueQualityProfiles;

@@ -4,8 +4,8 @@ import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
-import { isIntimateDuoStillPrompt } from '@/lib/still-clip-prompt';
-import { notePoseTakePair } from '@/lib/pose-outcome-stats';
+import { isIntimateDuoStillPrompt } from '@/lib/still/clip-prompt';
+import { notePoseTakePair } from '@/lib/pose/outcome-stats';
 import {
   bestOfTwoDecision,
   bestOfTwoFailedPatch,
@@ -19,11 +19,11 @@ import {
   isDayHardPose,
 } from '@/lib/day/best-of-two';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
-import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose-score';
-import { realismRankedScore } from '@/lib/still-realism';
-import { fetchCastcutBestOfTwoReport } from '@/lib/castcut-report-client';
+import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose/score';
+import { realismRankedScore } from '@/lib/still/realism';
+import { fetchCastcutBestOfTwoReport } from '@/lib/castcut/report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
-import { detectStillPose } from '@/lib/pose-detect-client';
+import { detectStillPose } from '@/lib/pose/detect-client';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
@@ -203,7 +203,7 @@ export function useDayBestOfTwo(
           guideAspect: expectation.aspect,
           detected: detected.pose,
         });
-        const { checkStillPoseVision } = await import('@/lib/pose-gesture-vision-client');
+        const { checkStillPoseVision } = await import('@/lib/pose/gesture-vision-client');
         const { match, realism } = await checkStillPoseVision({
           imageUrl: still.imageUrl!,
           beat: expectation.beat ?? target.sceneHints,

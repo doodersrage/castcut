@@ -6,7 +6,7 @@ import { after, before, describe, it, mock } from 'node:test';
 
 mock.module('server-only', { defaultExport: {}, namedExports: {} });
 
-import type { CharacterRecord } from '../character-os';
+import type { CharacterRecord } from '../character/os';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { archiveThenPurgeGalleryEntries } from './archive-purge';
 

@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
-import { suggestSpokenLine } from '@/lib/spoken-line-server';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
+import { suggestSpokenLine } from '@/lib/audio/spoken-line-server';
 
 export const runtime = 'nodejs';
 

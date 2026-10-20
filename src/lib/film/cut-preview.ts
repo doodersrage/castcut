@@ -4,10 +4,15 @@
  * (cut-timeline.ts), so the preview plays the cut as it will come out. Pure.
  */
 
-import { cutJoins, cutStarts, type CutTransitionIn, type CutTransitionKind } from '../cut-timeline';
-import { clipTrimWindow } from '../clip-trim';
-import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from '../media-kind';
-import { filmShotCaption, TITLE_CARD_SEC } from '../video-polish';
+import {
+  cutJoins,
+  cutStarts,
+  type CutTransitionIn,
+  type CutTransitionKind,
+} from '../video/cut-timeline';
+import { clipTrimWindow } from '../clip/trim';
+import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from '../media/kind';
+import { filmShotCaption, TITLE_CARD_SEC } from '../video/polish';
 
 export type PreviewItem = {
   kind: 'title' | 'still' | 'clip';

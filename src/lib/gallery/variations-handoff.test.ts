@@ -7,7 +7,7 @@ const buildTopicsVariationsHandoff = mock.fn(
 );
 const saveTopicsVariationsHandoff = mock.fn((_payload: unknown) => {});
 const variationsPathFromTopics = mock.fn(() => '/variations?from=topics');
-mock.module('../topics-variations-handoff', {
+mock.module('../variation/topics-variations-handoff', {
   namedExports: {
     buildTopicsVariationsHandoff,
     saveTopicsVariationsHandoff,

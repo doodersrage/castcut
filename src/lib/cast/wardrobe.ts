@@ -13,7 +13,7 @@ import {
   type CastWornOutfit,
   type CharacterLookOutfit,
   type CharacterRecord,
-} from '../character-os';
+} from '../character/os';
 
 export type { CastWornOutfit };
 

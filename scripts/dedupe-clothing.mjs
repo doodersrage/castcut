@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const LIB_DIR = path.join(ROOT, 'src/lib');
+const LIB_DIR = path.join(ROOT, 'src/lib/wardrobe');
 const CATALOG_GLOB = /^clothing-catalog-(\d+)\.ts$/;
 const ENTRY_LINE =
   /^\s*(\{ id: "[^"]+", label: "([^"]+)", category: "([^"]+)", script: "[^"]*"(?:, gender: "[^"]+")?(?:, contexts: \[[^\]]*\])? \}),?\s*$/;

@@ -7,14 +7,14 @@ import {
   formatQueueSizeQualityExplain,
   resolveQueueQualityProfile,
   type QueueQualityProfile,
-} from '@/lib/queue-quality-profile';
-import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
+} from '@/lib/queue/quality-profile';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/resolution-defaults';
 import {
   applyToolQualityRecipe,
   formatToolQualityRecipeHint,
   recipesForTool,
   type ToolQualityRecipe,
-} from '@/lib/tool-quality-recipes';
+} from '@/lib/app/tool-quality-recipes';
 import {
   applySessionRecipeShared,
   buildSessionRecipeFromShared,
@@ -23,12 +23,12 @@ import {
   loadSessionRecipes,
   pushSessionRecipe,
   type SessionRecipe,
-} from '@/lib/session-recipes';
+} from '@/lib/prompt/session-recipes';
 import {
   loadSettingsCache,
   saveSharedSettings,
   type SharedToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 
 export function toolLikelyHasInputImage(toolId?: string): boolean {
   // Video I2V (init image) counts as an edit-with-image context for size explain.

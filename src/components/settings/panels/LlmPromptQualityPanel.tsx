@@ -2,7 +2,7 @@
 
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { DETAIL_OPTIONS } from '@/components/settings/panels/llm-panel-shared';
 
 export type LlmPromptQualityPanelProps = {

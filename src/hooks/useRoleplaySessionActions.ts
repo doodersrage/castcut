@@ -16,7 +16,7 @@ import {
   type RoleplayTone,
 } from '@/lib/story/roleplay';
 import { downloadRoleplayStoryBundle } from '@/lib/story/roleplay-export';
-import type { FixAreaTarget } from '@/lib/fix-area-client';
+import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import { buildStoryFixAreaTarget } from '@/lib/story/roleplay-fix-area';
 import type { RoleplayScene } from '@/lib/story/roleplay';
 import type { RoleplayToolCache } from '@/lib/play/settings';

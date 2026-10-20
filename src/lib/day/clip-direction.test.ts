@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { buildDaySlotClipPrompt, defaultDayClipDirection } from './clip-direction';
-import { buildStillClipPrompt } from '../still-clip-prompt';
+import { buildStillClipPrompt } from '../still/clip-prompt';
 import { buildIntimateClipPrompt } from '../play/intimate-clip-prompt';
 import type { DaySlot } from './planner';
 

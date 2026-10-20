@@ -4,7 +4,7 @@
  */
 
 import { swapDayForCast } from '../day/cast-park';
-import type { ToolSettingsCache } from '../settings-cache';
+import type { ToolSettingsCache } from '../settings/cache';
 
 /**
  * Clear Cast-bound Play tool plates when activeCharacterId changes.

@@ -2,17 +2,17 @@
 
 import type { ReactNode } from 'react';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { AnatomyGuardMode } from '@/lib/anatomy-guard';
+import type { AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
 import type {
   ModelSamplerOverrideFields,
   ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
-import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
-import type { QueueQualityProfile } from '@/lib/queue-quality-profile';
-import type { RenderRealismMode } from '@/lib/render-realism';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
-import type { SessionActiveLoraIdsByModel } from '@/lib/model-lora-map';
+} from '@/lib/model/sampler-defaults';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/resolution-defaults';
+import type { QueueQualityProfile } from '@/lib/queue/quality-profile';
+import type { RenderRealismMode } from '@/lib/engine/render-realism';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { SessionLoraStrengthOverrides } from '@/lib/lora/stack';
+import type { SessionActiveLoraIdsByModel } from '@/lib/model/lora-map';
 import SharedQualitySamplingSection from '@/components/shared-tool-controls/SharedQualitySamplingSection';
 import SharedWildcardsRetrySection from '@/components/shared-tool-controls/SharedWildcardsRetrySection';
 import SharedPinsAutomationSection from '@/components/shared-tool-controls/SharedPinsAutomationSection';

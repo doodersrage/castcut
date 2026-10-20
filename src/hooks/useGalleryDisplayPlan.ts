@@ -6,14 +6,14 @@ import {
   type GalleryBrowsePageClampContext,
 } from '@/hooks/useGalleryBrowseState';
 import { previewGalleryCapEviction } from '@/lib/gallery/cap';
-import { loadCharacters } from '@/lib/character-os';
+import { loadCharacters } from '@/lib/character/os';
 import { collectGalleryProtectedEntryIds } from '@/lib/gallery/protected-ids';
 import { clusterGalleryDuplicates } from '@/lib/gallery/duplicate-clusters';
 import {
   buildGalleryLineageGroups,
   galleryLineageGroupingEnabled,
 } from '@/lib/gallery/lineage-groups';
-import { groupGalleryExperiments } from '@/lib/experiment-groups';
+import { groupGalleryExperiments } from '@/lib/experiment/groups';
 import { groupGalleryFilmRuns, groupGalleryQueueRuns } from '@/lib/gallery/queue-runs';
 import {
   normalizeExperimentGroupAnchors,
@@ -31,7 +31,7 @@ import {
   type GalleryPageSize,
 } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryDensity } from '@/lib/gallery/density';
-import type { ExperimentGroup } from '@/lib/experiment-groups';
+import type { ExperimentGroup } from '@/lib/experiment/groups';
 
 /**
  * Compact embeds (Settings Data) set showFilters=false so URL/filter chrome stays

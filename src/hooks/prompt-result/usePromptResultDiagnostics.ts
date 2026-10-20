@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { GenerationDiagnostics } from '@/lib/generation-diagnostics';
+import type { GenerationDiagnostics } from '@/lib/queue/generation-diagnostics';
 import type { PromptResultActionsConfig } from '@/hooks/prompt-result/types';
 
 export function usePromptResultDiagnostics(config: PromptResultActionsConfig) {

@@ -13,10 +13,10 @@ import {
   sortEditorChanges,
   type EditorChange,
 } from '@/lib/comfyui/comfy-editor-diff';
-import { pickModelSamplerOverrideFields } from '@/lib/model-sampler-defaults';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { PRODUCT_NAME, PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { pickModelSamplerOverrideFields } from '@/lib/model/sampler-defaults';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { PRODUCT_NAME, PRODUCT_OUTPUT_PREFIX } from '@/lib/app/brand';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 export type SettingsComfyEditorImportPanelProps = {
   comfyUrl?: string;

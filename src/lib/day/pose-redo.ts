@@ -9,8 +9,8 @@
  * the same way, once (a new seed) — "Redone — looked computer-made" on the card.
  */
 
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
-import { REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still-realism';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
+import { REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still/realism';
 
 /** What a redo was for. */
 export type PoseRedoReason = 'pose' | 'realism';

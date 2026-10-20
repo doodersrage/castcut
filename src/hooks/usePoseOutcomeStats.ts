@@ -8,7 +8,7 @@ import {
   POSE_OUTCOMES_UPDATED_EVENT,
   poseOutcomeStatsForSync,
   type PoseOutcomeStats,
-} from '@/lib/pose-outcome-stats';
+} from '@/lib/pose/outcome-stats';
 
 function subscribe(onStoreChange: () => void) {
   window.addEventListener(POSE_OUTCOMES_UPDATED_EVENT, onStoreChange);

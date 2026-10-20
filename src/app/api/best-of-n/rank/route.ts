@@ -1,4 +1,4 @@
-import { rankPromptsWithLlm } from '@/lib/best-of-n-rank-server';
+import { rankPromptsWithLlm } from '@/lib/best-of-n/rank-server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

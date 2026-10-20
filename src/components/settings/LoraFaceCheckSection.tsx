@@ -6,9 +6,9 @@ import {
   LORA_FACE_SAFE_DROP,
   loraChangesFaceAt,
   type LoraFaceCheck,
-} from '@/lib/lora-check';
-import { runLoraCheck, type LoraCheckRender } from '@/lib/lora-check-client';
-import type { LoraLibraryEntry } from '@/lib/lora-stack';
+} from '@/lib/lora/check';
+import { runLoraCheck, type LoraCheckRender } from '@/lib/lora/check-client';
+import type { LoraLibraryEntry } from '@/lib/lora/stack';
 
 type Props = {
   entry: LoraLibraryEntry;

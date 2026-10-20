@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import BrandBars from '@/components/BrandBars';
 import BrandMark from '@/components/BrandMark';
 import PageCanvas from '@/components/ui/PageCanvas';
-import type { ToolAccent } from '@/lib/tool-theme';
+import type { ToolAccent } from '@/lib/app/tool-theme';
 
 type SystemPageShellProps = {
   accent?: ToolAccent;

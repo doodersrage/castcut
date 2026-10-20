@@ -1,4 +1,4 @@
-import { publicAppOrigin } from '@/lib/public-app-origin';
+import { publicAppOrigin } from '@/lib/server/public-app-origin';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { appendAuditLog } from '@/lib/auth/audit-log';
 import type { AppFeatureId } from '@/lib/auth/features';

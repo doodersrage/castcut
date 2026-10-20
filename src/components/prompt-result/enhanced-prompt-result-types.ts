@@ -48,7 +48,7 @@ export type EnhancedPromptResultProps = {
   copied: boolean;
   onCopy: () => void;
   extraMeta?: string;
-  diagnostics?: import('@/lib/generation-diagnostics').GenerationDiagnostics | null;
+  diagnostics?: import('@/lib/queue/generation-diagnostics').GenerationDiagnostics | null;
   onSaveHistory?: () => void;
   onSendComfyUi?: () => void;
   onFixPrompt?: () => void;
@@ -80,7 +80,7 @@ export type EnhancedPromptResultProps = {
   compactStatus?: string | null;
   reformatStatus?: string | null;
   pipelineStatus?: string | null;
-  preDiagnostics?: import('@/lib/generation-diagnostics').GenerationDiagnostics | null;
+  preDiagnostics?: import('@/lib/queue/generation-diagnostics').GenerationDiagnostics | null;
   comfyUiStatus?: string | null;
   comfyUiJob?: import('@/lib/comfyui/job-status').ComfyUiJobTrackerState | null;
   comfyUiPreviewUrl?: string | null;
@@ -91,7 +91,7 @@ export type EnhancedPromptResultProps = {
   batchCrossLinks?: import('@/components/ui/BatchPromptCard').BatchPromptCrossLinks;
   batchPromptActions?: BatchPromptItemActions;
   readinessModel?: import('@/lib/comfy-models/client').ComfyImageModel | string;
-  readinessDetail?: import('@/lib/detail-level').DetailLevel | string;
+  readinessDetail?: import('@/lib/prompt/detail-level').DetailLevel | string;
   readinessHints?: string;
   negativePrompt?: string;
   readinessMinScore?: number;

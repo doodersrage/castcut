@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { loadPromptRecipes, upsertPromptRecipe, type PromptRecipeStep } from '@/lib/prompt-recipes';
+import { loadPromptRecipes, upsertPromptRecipe, type PromptRecipeStep } from '@/lib/prompt/recipes';
 
 const STEP_OPTIONS: PromptRecipeStep[] = ['lint', 'fix', 'compact', 'queue'];
 

@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useBrowserStorageHealth } from '@/hooks/useBrowserStorageHealth';
-import { flushBrowserStorageNow } from '@/lib/browser-storage';
-import { settingsTabHref } from '@/lib/settings-nav';
-import { pushAppToast } from '@/lib/app-toast';
+import { flushBrowserStorageNow } from '@/lib/storage/browser-storage';
+import { settingsTabHref } from '@/lib/settings/nav';
+import { pushAppToast } from '@/lib/app/toast';
 
 function formatSavedAt(timestamp: number | null): string {
   if (!timestamp) {

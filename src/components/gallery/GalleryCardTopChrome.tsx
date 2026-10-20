@@ -1,7 +1,7 @@
 'use client';
 
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
-import type { AestheticScoreResult } from '@/lib/aesthetic-score';
+import type { AestheticScoreResult } from '@/lib/vision/aesthetic-score';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
 

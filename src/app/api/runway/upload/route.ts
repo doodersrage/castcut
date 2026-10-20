@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseEngineUploadRequest } from '@/lib/engine-upload-parse';
-import { storeRunwayUpload } from '@/lib/runway-client';
+import { parseEngineUploadRequest } from '@/lib/engine/upload-parse';
+import { storeRunwayUpload } from '@/lib/cloud/runway-client';
 import { RUNWAY_API_HOST } from '@/lib/engine/capabilities';
 
 export const runtime = 'nodejs';

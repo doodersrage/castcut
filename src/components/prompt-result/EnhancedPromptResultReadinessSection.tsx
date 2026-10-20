@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
-import type { DetailLevel } from '@/lib/detail-level';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 
 const ReadinessBadge = dynamic(() => import('@/components/ReadinessBadge'), {
@@ -27,7 +27,7 @@ export type EnhancedPromptResultReadinessSectionProps = {
   onCompact?: () => void;
   onFixPrompt?: () => void;
   onReformat?: () => void;
-  onResult: (result: import('@/lib/prompt-readiness').PromptReadinessResult | null) => void;
+  onResult: (result: import('@/lib/prompt/readiness').PromptReadinessResult | null) => void;
 };
 
 export default function EnhancedPromptResultReadinessSection({

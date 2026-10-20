@@ -9,7 +9,7 @@ import {
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { getCharacterLookPack } from '@/lib/play/cast';
 import { storySeedFromDay } from '@/lib/day/story-seed';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
@@ -24,7 +24,7 @@ import {
 } from '@/lib/story/roleplay-library';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story/session-guard';
-import { loadSettingsCache, loadToolSettings, type SharedToolSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, loadToolSettings, type SharedToolSettings } from '@/lib/settings/cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_ROLEPLAY_TOOL_CACHE,

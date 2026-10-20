@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { inferAthleticSport } from '../athletic-sport-profiles';
+import { inferAthleticSport } from '../scene/athletic-sport-profiles';
 import {
   parseSocialLayout,
   synthesizeSceneStickFigures,

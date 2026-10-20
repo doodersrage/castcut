@@ -4,22 +4,22 @@
  * and which shots have problems worth a look first. Pure — no browser, no ffmpeg.
  */
 
-import { normalizeCutFraming, type CutFraming } from '../cut-move';
-import { cleanLowerThird, normalizeOverlayCorner } from '../cut-overlay';
+import { normalizeCutFraming, type CutFraming } from '../video/cut-move';
+import { cleanLowerThird, normalizeOverlayCorner } from '../video/cut-overlay';
 import {
   CUT_TRANSITION_SEC,
   CUT_TRANSITIONS,
   cutJoins,
   type CutTransitionKind,
-} from '../cut-timeline';
+} from '../video/cut-timeline';
 import {
   DEFAULT_STILL_HOLD_SEC,
   MAX_STILL_HOLD_SEC,
   MIN_STILL_HOLD_SEC,
   type FilmPlaylistShot,
 } from './character-film';
-import { TITLE_CARD_SEC } from '../video-polish';
-import { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip-trim';
+import { TITLE_CARD_SEC } from '../video/polish';
+import { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip/trim';
 
 /** A shot with a stable key (Day slot id, Story beat id@at) the edits refer to. */
 export type KeyedShot = FilmPlaylistShot & { key: string };
@@ -109,7 +109,7 @@ export function framingCropRect(
   return { x, y, width: cropW, height: cropH };
 }
 
-export { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip-trim';
+export { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip/trim';
 
 export type CutShotEdits = {
   /** Shot keys in the order the player set; unknown / new keys follow in natural order. */

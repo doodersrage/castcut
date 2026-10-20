@@ -34,10 +34,10 @@ import {
   isQwenEditModel,
   isZImageImg2imgQueueTool,
   isZImageModel,
-} from '../model-denoise-defaults';
+} from '../model/denoise-defaults';
 import { isQwenLightningModel, isWanLightningModel } from './model-sampling-patch';
-import { DEFAULT_UNET_TOKEN } from '../model-checkpoint-map';
-import { defaultLoaderPrecisionTier, qwenDualClipFilename } from '../model-loader-precision';
+import { DEFAULT_UNET_TOKEN } from '../model/checkpoint-map';
+import { defaultLoaderPrecisionTier, qwenDualClipFilename } from '../model/loader-precision';
 import { applyWorkflowNodeBindings } from './apply-bindings';
 import { prepareWorkflowJsonImport } from './import';
 import { suggestWorkflowNodeMappings } from './node-mapper';

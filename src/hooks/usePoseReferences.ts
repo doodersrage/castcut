@@ -6,7 +6,7 @@ import {
   loadPoseReferences,
   subscribePoseReferences,
   type PoseReference,
-} from '@/lib/pose-references';
+} from '@/lib/pose/references';
 
 const NONE: readonly PoseReference[] = [];
 

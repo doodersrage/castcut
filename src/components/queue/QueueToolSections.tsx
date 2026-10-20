@@ -15,16 +15,16 @@ import {
 import { formatPoolQueueStrip } from '@/lib/comfyui/host-ready';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import AppSlot from '@/components/AppSlot';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
-import { formatEta } from '@/lib/queue-eta';
+import { formatEta } from '@/lib/queue/eta';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 import { galleryFailureSummary } from '@/lib/gallery/failure-summary';
-import { engineFamilyLabel } from '@/lib/model-files';
+import { engineFamilyLabel } from '@/lib/model/files';
 
 const ACCENT = 'brand' as const;
 

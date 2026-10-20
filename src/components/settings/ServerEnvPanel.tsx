@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { ServerEnvGroup } from '@/lib/server-env-summary';
-import { buildEnvSnippet } from '@/lib/env-snippet';
+import type { ServerEnvGroup } from '@/lib/server/server-env-summary';
+import { buildEnvSnippet } from '@/lib/server/env-snippet';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 

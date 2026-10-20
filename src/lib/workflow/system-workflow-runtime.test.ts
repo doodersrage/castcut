@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ComfyWorkflowFile } from "../comfyui/workflow-files";
-import { DEFAULT_SHARED_SETTINGS } from "../settings-cache";
+import { DEFAULT_SHARED_SETTINGS } from "../settings/cache";
 import {
   applySystemWorkflowToRuntime,
   buildSystemWorkflowQueueParams,

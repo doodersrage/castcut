@@ -3,9 +3,9 @@
 import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { EngineHealthChipBadge } from '@/components/EngineHealth';
-import { engineSummary, formatEngineSummary } from '@/lib/engine-summary';
-import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { toolEffectiveModel } from '@/lib/tool-effective-model';
+import { engineSummary, formatEngineSummary } from '@/lib/engine/summary';
+import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings/cache';
+import { toolEffectiveModel } from '@/lib/app/tool-effective-model';
 
 function subscribeSettings(onChange: () => void): () => void {
   window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onChange);

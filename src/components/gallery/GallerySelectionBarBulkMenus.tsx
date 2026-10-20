@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
+import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
 import { ActionMenu, MenuItem } from '@/components/gallery/GallerySelectionBarMenus';
 
 type QueueCapabilities = {
@@ -33,7 +33,7 @@ type GallerySelectionBarBulkMenusProps = {
   customGroups?: string[];
   groupDraft: string;
   onGroupDraftChange: (value: string) => void;
-  projects: import('@/lib/prompt-projects').PromptProject[];
+  projects: import('@/lib/prompt/projects').PromptProject[];
   onExportSidecars: () => void;
   onDownloadImages: () => void;
   onExportZip: () => void;

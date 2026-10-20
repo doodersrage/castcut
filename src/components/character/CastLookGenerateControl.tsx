@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /**
  * "Generate plate" on Cast home's Looks: a Cast's first plate is rendered from the description on

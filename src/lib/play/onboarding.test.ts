@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
 
 const markOnboardingStepDone = mock.fn((_step: string) => true);
-mock.module('../onboarding-store', { namedExports: { markOnboardingStepDone } });
+mock.module('../app/onboarding-store', { namedExports: { markOnboardingStepDone } });
 
 afterEach(() => {
   markOnboardingStepDone.mock.resetCalls();

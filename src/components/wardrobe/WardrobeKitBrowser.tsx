@@ -11,9 +11,9 @@ import {
   formatWardrobeKitCount,
   formatWardrobeKitLabel,
   WARDROBE_KIT_BROWSER_PAGE,
-} from '@/lib/wardrobe-kit-picker';
+} from '@/lib/wardrobe/kit-picker';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
-import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
+import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 import type { WardrobeKitThumbState } from '@/components/wardrobe/WardrobeKitPicker';
 
 export type WardrobeKitBrowserProps = {

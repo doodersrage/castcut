@@ -1,7 +1,7 @@
 'use client';
 
-import type { PromptDiagnostics } from '@/lib/prompt-diagnostics';
-import { summarizeDiagnostics } from '@/lib/generation-diagnostics';
+import type { PromptDiagnostics } from '@/lib/prompt/diagnostics';
+import { summarizeDiagnostics } from '@/lib/queue/generation-diagnostics';
 
 type PromptDiagnosticsPanelProps = {
   diagnostics: PromptDiagnostics | null;

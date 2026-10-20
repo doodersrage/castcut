@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { ChipButton } from '@/components/ui/Field';
-import { appHasRoute } from '@/lib/app-profile';
+import { appHasRoute } from '@/lib/app/profile';
 
 const ALL_SCENE_FAMILY_OPTIONS = [
   { href: '/character', label: 'Character' },

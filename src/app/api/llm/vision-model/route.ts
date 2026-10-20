@@ -6,7 +6,7 @@ import {
   startVisionModelDownload,
   VISION_MODEL_CHOICES,
   visionModelDownloadStatus,
-} from '@/lib/vision-model-download-server';
+} from '@/lib/vision/model-download-server';
 
 export const runtime = 'nodejs';
 

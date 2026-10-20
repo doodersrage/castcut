@@ -3,7 +3,7 @@
  * favorites, ≥4★, Cast look keeperEntryIds, and stills matching Cast look plates.
  */
 
-import { looksOf, type CharacterRecord } from '../character-os';
+import { looksOf, type CharacterRecord } from '../character/os';
 import { GALLERY_CAP_KEEPER_MIN_RATING, type GalleryCapEntry } from './cap';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { isIdentityMediaUrl } from './media-client';

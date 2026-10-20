@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
-import { normalizeOverlayCorner } from '@/lib/cut-overlay';
-import { normalizeCutSound } from '@/lib/cut-sound';
-import { normalizeCutTransition } from '@/lib/cut-timeline';
-import { normalizeFilmTitleCard } from '@/lib/video-polish';
-import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
+import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
+import { normalizeCutSound } from '@/lib/video/cut-sound';
+import { normalizeCutTransition } from '@/lib/video/cut-timeline';
+import { normalizeFilmTitleCard } from '@/lib/video/polish';
+import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio/mix-levels';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import type { FilmPlaylistShot } from '@/lib/media-kind';
+import type { FilmPlaylistShot } from '@/lib/media/kind';
 import {
   getFilmAssembleJob,
   readFilmAssembleOutput,
   startFilmAssembleJob,
-} from '@/lib/video-assemble-jobs';
-import { isServerFilmEncodeAvailable } from '@/lib/video-server-encode';
+} from '@/lib/video/assemble-jobs';
+import { isServerFilmEncodeAvailable } from '@/lib/video/server-encode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

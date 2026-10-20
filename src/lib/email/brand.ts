@@ -1,10 +1,10 @@
-import { publicAppOrigin } from '@/lib/public-app-origin';
+import { publicAppOrigin } from '@/lib/server/public-app-origin';
 /**
  * Shared branded HTML shell for transactional email.
  * Uses inline styles + table layout for client compatibility.
  */
 
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/app/brand';
 
 const BRAND_MARK_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="40" height="40"><rect width="64" height="64" rx="16" fill="#0b0f14"/><rect x="14" y="14" width="36" height="36" rx="9" fill="#141b24" stroke="#5eead4" stroke-width="1.75"/><rect x="21" y="24" width="18" height="3.2" rx="1.6" fill="#5eead4"/><rect x="21" y="30.5" width="13" height="3.2" rx="1.6" fill="#38bdf8" opacity="0.85"/><rect x="21" y="37" width="16" height="3.2" rx="1.6" fill="#f0ab7c" opacity="0.75"/></svg>`

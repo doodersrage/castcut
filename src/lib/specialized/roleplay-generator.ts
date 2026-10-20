@@ -1,13 +1,13 @@
-import { LIMB_DIRECTIONS } from '../pose-limb-presets';
-import { spokenLineHeat, type SpokenLineHeat } from '@/lib/spoken-line';
-import { chatCompletion } from '../llm-client';
+import { LIMB_DIRECTIONS } from '../pose/limb-presets';
+import { spokenLineHeat, type SpokenLineHeat } from '@/lib/audio/spoken-line';
+import { chatCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   resolveRequestLlmModel,
   resolveRequestTemplateFallback,
-} from '../llm-request-options';
-import { stripPromptArtifacts } from '../prompt-cleanup';
+} from '../llm/request-options';
+import { stripPromptArtifacts } from '../prompt/cleanup';
 import { storyLeadIsMan, storyScenesForManLead } from '../story/lead-gender';
 import { repairStoryScene } from '../story/scene-check';
 import {
@@ -20,7 +20,7 @@ import {
 import {
   clarifyIntimateImageLanguage,
   reinforceIntimateStillPrompt,
-} from '../intimate-prompt-clarify';
+} from '../adult/intimate-prompt-clarify';
 import {
   extractJsonValue,
   salvageJsonArrayObjects,
@@ -62,7 +62,7 @@ import {
   type RoleplayTone,
 } from '../story/roleplay';
 import { runSpecializedPrompt } from './runner';
-import { getDetailLimits } from '../detail-level';
+import { getDetailLimits } from '../prompt/detail-level';
 import { SCENE_POSE_ACT_IDS, SCENE_POSE_BODY_IDS, SCENE_POSE_LAYOUT_IDS } from '../day/pose-guide';
 import type { SharedGenerationOptions, ToolGenerateResult } from './types';
 

@@ -1,6 +1,6 @@
 import { generateCharacterPrompt } from '@/lib/specialized/character-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
-import { enrichGenerateResult } from '@/lib/generation-diagnostics';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
+import { enrichGenerateResult } from '@/lib/queue/generation-diagnostics';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,
@@ -13,7 +13,7 @@ import {
 import {
   normalizeCharacterPresetOptions,
   type CharacterPresetOptions,
-} from '@/lib/character-options';
+} from '@/lib/character/options';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

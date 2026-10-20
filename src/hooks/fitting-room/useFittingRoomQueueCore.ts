@@ -2,22 +2,22 @@
 
 import { tryOnMarksLine } from '@/lib/cast/marks';
 import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still-prompt-audit';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { normalizeFootwear } from '@/lib/footwear';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still/prompt-audit';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { normalizeFootwear } from '@/lib/wardrobe/footwear';
 import { dayDressPlateRequestKey } from '@/lib/day/dress-plate';
-import { footwearIsBarefoot, footwearPromptLine } from '@/lib/footwear';
+import { footwearIsBarefoot, footwearPromptLine } from '@/lib/wardrobe/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
   hasFootwearImage,
-} from '@/lib/footwear-image';
+} from '@/lib/wardrobe/footwear-image';
 import { buildDayPoseGuide } from '@/lib/day/pose-guide';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import { customPoseWords } from '@/lib/pose-describe';
-import { poseFirstLine, poseFramingLine } from '@/lib/pose-starters';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { customPoseWords } from '@/lib/pose/describe';
+import { poseFirstLine, poseFramingLine } from '@/lib/pose/starters';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import {
@@ -44,15 +44,18 @@ import {
   type FittingPendingTryOn,
   type FittingSwipeKit,
 } from '@/lib/fitting/room';
-import { comfyInputViewUrl } from '@/lib/face-match-client';
-import { footwearCheckNote, footwearNeedsFeetPass } from '@/lib/footwear-check';
-import { cachedInstalledModelCheck, checkStillFootwear } from '@/lib/footwear-check-client';
-import { loadImageBlobFromUrls } from '@/lib/isolate-subject';
-import { checkStillReferences } from '@/lib/reference-check-client';
+import { comfyInputViewUrl } from '@/lib/face/match-client';
+import { footwearCheckNote, footwearNeedsFeetPass } from '@/lib/wardrobe/footwear-check';
+import {
+  cachedInstalledModelCheck,
+  checkStillFootwear,
+} from '@/lib/wardrobe/footwear-check-client';
+import { loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
+import { checkStillReferences } from '@/lib/checks/reference-check-client';
 import {
   buildFittingGarmentReferenceExtras,
   loadWardrobeGarmentThumbManifest,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import {
   countInFlightFittingKitPreviews,
   FITTING_KIT_PREVIEW_CONCURRENCY,
@@ -67,13 +70,13 @@ import {
   upsertFittingKitPreview,
   type FittingKitPreview,
 } from '@/lib/fitting/kit-previews';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import { withCastIdentityQueueFields } from '@/lib/look/outfit-plate';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { FittingToolCache } from '@/lib/play/settings';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 
 const TOOL_ID = 'fitting' as const;
@@ -145,7 +148,7 @@ export type FittingRoomQueueInput = {
   previewModel: string | null | undefined;
   previewQueueParams: WorkflowParamValues;
   previewQueueResolveOptions: Pick<
-    import('@/lib/queue-params-settings').ResolveQueueParamsOptions,
+    import('@/lib/queue/params-settings').ResolveQueueParamsOptions,
     'resolutionSizeTier' | 'resolutionOrientation' | 'preserveInputAspect'
   >;
   swipeKit: (delta: number) => void;

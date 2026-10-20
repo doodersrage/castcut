@@ -1,6 +1,6 @@
 'use client';
 
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character/os';
 import { PLAY_CAMPAIGN_STEPS, playCampaignHref } from '@/lib/play/campaign';
 import { remixDayFilmHref } from '@/lib/play/starter';
 import { Button, ButtonLink } from '@/components/ui/Button';

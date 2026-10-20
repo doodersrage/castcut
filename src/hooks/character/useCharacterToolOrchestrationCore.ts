@@ -1,24 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { applyHintSourceFromSearchParams } from '@/lib/tool-url-params';
+import { applyHintSourceFromSearchParams } from '@/lib/app/tool-url-params';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useRecentLocations } from '@/hooks/useRecentLocations';
 import { useRecentClothing } from '@/hooks/useRecentClothing';
 import { useLocationBlocklist } from '@/hooks/useLocationBlocklist';
-import { fetchClothingLabels, getCachedClothingLabel } from '@/lib/clothing-catalog-client';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import {
+  fetchClothingLabels,
+  getCachedClothingLabel,
+} from '@/lib/wardrobe/clothing-catalog-client';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { DEFAULT_CHARACTER_TOOL_CACHE, type CharacterSceneMode } from '@/lib/settings-cache';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { DEFAULT_CHARACTER_TOOL_CACHE, type CharacterSceneMode } from '@/lib/settings/cache';
 import type { EnrichedToolGenerateResult } from '@/lib/specialized/types';
-import { readVariationSeedFromResult } from '@/lib/variation-seed-metadata';
-import { applyShareableSceneParams, parseScenePresetFromSearch } from '@/lib/scene-preset-url';
-import { getSportPreset } from '@/lib/sport-presets';
-import { type ToolAccent } from '@/lib/tool-theme';
-import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene-hint-source';
-import { countHistorySeedCandidates } from '@/lib/history-hint-seed';
+import { readVariationSeedFromResult } from '@/lib/variation/seed-metadata';
+import { applyShareableSceneParams, parseScenePresetFromSearch } from '@/lib/scene/preset-url';
+import { getSportPreset } from '@/lib/scene/sport-presets';
+import { type ToolAccent } from '@/lib/app/tool-theme';
+import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene/hint-source';
+import { countHistorySeedCandidates } from '@/lib/prompt/history-hint-seed';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 
 const SOLO_BATCH_COUNT = 3;

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
-import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
-import { resolveCastFaceForPlate } from '@/lib/character-identity';
-import { checkReferenceImage } from '@/lib/reference-check-client';
-import { referenceVerdictLabel, type ReferenceVerdict } from '@/lib/reference-check';
-import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { extraReferenceHealthItems, type ReferenceHealthItem } from '@/lib/reference-health';
+import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character/os';
+import { resolveFittingPlateFromCharacter } from '@/lib/character/plate';
+import { resolveCastFaceForPlate } from '@/lib/character/identity';
+import { checkReferenceImage } from '@/lib/checks/reference-check-client';
+import { referenceVerdictLabel, type ReferenceVerdict } from '@/lib/checks/reference-check';
+import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings/cache';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { extraReferenceHealthItems, type ReferenceHealthItem } from '@/lib/checks/reference-health';
 
 type ReferenceHealthRow = ReferenceHealthItem & { verdict: ReferenceVerdict | null };
 

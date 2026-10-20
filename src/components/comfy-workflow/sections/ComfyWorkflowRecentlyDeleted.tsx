@@ -8,8 +8,8 @@ import {
   restoreDeletedComfyWorkflowFile,
   type DeletedComfyWorkflowFile,
 } from '@/lib/comfyui/workflow-files';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 
 /** Deleted workflows stay here for 30 days — one click puts one back with its id and tokens. */
 export function ComfyWorkflowRecentlyDeleted({

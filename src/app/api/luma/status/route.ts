@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { fetchLumaJobStatus } from '@/lib/luma-client';
+import { fetchLumaJobStatus } from '@/lib/cloud/luma-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

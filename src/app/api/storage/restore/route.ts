@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
-import { readUserServerStorage } from '@/lib/user-server-storage';
-import { isServerStorageEnabled } from '@/lib/server-storage';
-import type { UserStorageNamespace } from '@/lib/user-server-storage';
+import { readUserServerStorage } from '@/lib/storage/user-server-storage';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
+import type { UserStorageNamespace } from '@/lib/storage/user-server-storage';
 
 export const runtime = 'nodejs';
 

@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { recommendModels } from '@/lib/model-recommender';
+import { recommendModels } from '@/lib/model/recommender';
 
 export const runtime = 'nodejs';
 

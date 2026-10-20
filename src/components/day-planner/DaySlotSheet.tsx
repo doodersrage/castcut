@@ -1,15 +1,15 @@
 'use client';
 
 import { castCatchphrases } from '@/lib/cast/speech';
-import { getCharacter } from '@/lib/character-os';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { getCharacter } from '@/lib/character/os';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import StillReferenceTray from '@/components/StillReferenceTray';
-import { poseLayoutFromGuideName } from '@/lib/still-references';
+import { poseLayoutFromGuideName } from '@/lib/still/references';
 import { daySlotPoseOverride } from '@/lib/day/slot-pose';
-import { spokenLineHeat } from '@/lib/spoken-line';
-import { normalizeSpokenLineTone } from '@/lib/ltx25-renderer';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
+import { normalizeSpokenLineTone } from '@/lib/video/ltx25-renderer';
 import { isDayAdultMood } from '@/lib/day/planner';
-import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/spoken-line-context';
+import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/audio/spoken-line-context';
 import NarrationField from '@/components/NarrationField';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import type { DayPartnerOption } from '@/components/day-planner/DayPartnerPicker';
@@ -25,8 +25,8 @@ import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import SideSheet from '@/components/ui/SideSheet';
 import UiIcon from '@/components/ui/UiIcon';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
-import type { CharacterRecord } from '@/lib/character-os';
-import type { ClothingSummaryThumb } from '@/lib/clothing-summary';
+import type { CharacterRecord } from '@/lib/character/os';
+import type { ClothingSummaryThumb } from '@/lib/wardrobe/clothing-summary';
 import {
   daySlotProgressState,
   typedDayBeatPatch,
@@ -34,7 +34,7 @@ import {
   type DaySlotId,
   type DaySlotStill,
 } from '@/lib/day/planner';
-import type { PoseMissView } from '@/lib/pose-coaching';
+import type { PoseMissView } from '@/lib/pose/coaching';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/story/roleplay';
 
 export type DaySlotSheetProps = {

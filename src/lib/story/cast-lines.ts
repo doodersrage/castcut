@@ -12,7 +12,7 @@ import { castMarksLine } from '../cast/marks';
 import { placeRoomOfSetting, resolveCastPlace } from '../cast/places';
 import { castPropsLine } from '../cast/props';
 import { castRelationInfo, normalizeCastRelationships } from '../cast/relationships';
-import { activeLook, looksOf, type CastRelationKind, type CharacterRecord } from '../character-os';
+import { activeLook, looksOf, type CastRelationKind, type CharacterRecord } from '../character/os';
 
 type CastLike =
   | (Pick<CharacterRecord, 'marks' | 'props' | 'relationships' | 'places'> & { id?: string })

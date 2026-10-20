@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character-os';
-import { loadLocalObservability } from '@/lib/local-observability';
+import { CHARACTERS_UPDATED_EVENT, getCharacter } from '@/lib/character/os';
+import { loadLocalObservability } from '@/lib/server/local-observability';
 import { loadLookPack } from '@/lib/look/pack';
 import {
   loadActivePlayCampaign,
@@ -15,10 +15,10 @@ import {
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
 } from '@/lib/play/metrics';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
-import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
-import { saveWorkspaceMode } from '@/lib/workspace-mode';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings/push-flush';
+import { saveWorkspaceMode } from '@/lib/app/workspace-mode';
 
 type FilmContext = { cast: string; progress: string; next: { label: string; href: string } | null };
 

@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
-import { addAvoidedToken } from '@/lib/avoided-tokens';
+import { addAvoidedToken } from '@/lib/prompt/avoided-tokens';
 import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
-import { DEFAULT_NEGATIVE_PROFILES } from '@/lib/negative-profiles';
+import { DEFAULT_NEGATIVE_PROFILES } from '@/lib/prompt/negative-profiles';
 import {
   activeNegativeSuggestions,
   dismissNegativeSuggestion,
   loadNegativeSuggestions,
   type NegativeSuggestion,
-} from '@/lib/negative-learner';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/prompt/negative-learner';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export default function NegativeLearnerPanel() {
   const [items, setItems] = useState<NegativeSuggestion[]>([]);

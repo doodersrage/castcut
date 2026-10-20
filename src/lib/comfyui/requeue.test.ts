@@ -58,7 +58,7 @@ describe('comfyui-requeue pure/self-contained helpers', () => {
 
   describe('restoreExactGraphFromComfyHistory error/early-return branches', () => {
     // The success path performs `await import('../gallery/comfyui-gallery')` and
-    // `void import('../local-observability')...` to write into gallery
+    // `void import('../server/local-observability')...` to write into gallery
     // storage — intentionally left uncovered here to avoid pulling that
     // storage layer into this unit test. Only the 5 self-contained
     // error/early-return branches are exercised.

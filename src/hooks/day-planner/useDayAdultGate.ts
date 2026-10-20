@@ -7,8 +7,8 @@ import {
   ADULT_GATE_WITHHELD_MESSAGE,
   CLOTHED_GATE_REQUEUE_MESSAGE,
   CLOTHED_GATE_WITHHELD_MESSAGE,
-} from '@/lib/adult-appearance-gate';
-import { dayMoodMustStayClothed } from '@/lib/clothed-coverage';
+} from '@/lib/adult/adult-appearance-gate';
+import { dayMoodMustStayClothed } from '@/lib/wardrobe/clothed-coverage';
 import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
@@ -16,7 +16,7 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-client';
 import { dayPlayedMood } from '@/lib/day/still-prompt';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 
 /**
  * The adult-appearance gate on Day (adult-appearance-gate.ts): every Suggestive / Intimate /
@@ -66,7 +66,8 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
       try {
         const strongTake = entry.adultCheck?.strong === true;
         const coveredTake = entry.adultCheck?.covered === true;
-        const { checkStillAdultAppearance } = await import('@/lib/adult-appearance-gate-client');
+        const { checkStillAdultAppearance } =
+          await import('@/lib/adult/adult-appearance-gate-client');
         const decision = await checkStillAdultAppearance({
           imageUrl,
           strongTake,

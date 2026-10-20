@@ -9,8 +9,8 @@ import {
   summarizeBackup,
   type BackupCompareRow,
   type BackupSummary,
-} from '@/lib/backup-preview';
-import type { StudioBackup } from '@/lib/studio-backup';
+} from '@/lib/storage/backup-preview';
+import type { StudioBackup } from '@/lib/storage/studio-backup';
 
 type Pending = {
   backup: StudioBackup;
@@ -43,7 +43,8 @@ export default function BackupRestoreFlow({
 
   const readFile = async (file: File) => {
     try {
-      const { exportStudioBackup, parseStudioBackupFile } = await import('@/lib/studio-backup');
+      const { exportStudioBackup, parseStudioBackupFile } =
+        await import('@/lib/storage/studio-backup');
       const backup = parseStudioBackupFile(await file.text());
       const fileSummary = summarizeBackup(backup as never);
       const here = summarizeBackup(exportStudioBackup() as never);
@@ -62,7 +63,8 @@ export default function BackupRestoreFlow({
     if (!pending) return;
     setBusy(true);
     try {
-      const { downloadStudioBackup, importStudioBackup } = await import('@/lib/studio-backup');
+      const { downloadStudioBackup, importStudioBackup } =
+        await import('@/lib/storage/studio-backup');
       if (keepCopy) downloadStudioBackup();
       importStudioBackup(pending.backup);
       setPending(null);

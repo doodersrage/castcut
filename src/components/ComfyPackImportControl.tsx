@@ -6,7 +6,7 @@ import {
   importComfyWorkflowPack,
   type PackImportResult,
 } from '@/lib/workflow/pack-import';
-import { markOnboardingSystemWorkflowsEnabled } from '@/lib/onboarding-hooks';
+import { markOnboardingSystemWorkflowsEnabled } from '@/lib/app/onboarding-hooks';
 import { Button } from '@/components/ui/Button';
 
 type ComfyPackImportControlProps = {

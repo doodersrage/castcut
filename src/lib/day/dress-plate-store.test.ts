@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import {
   DRESS_PLATE_OUTFIT_LINE,
   storyDressPlateApplies,

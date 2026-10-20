@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { FieldError, TextInput } from '@/components/ui/Field';
 import SideSheet from '@/components/ui/SideSheet';
-import { requestSketch } from '@/lib/media-actions-client';
+import { requestSketch } from '@/lib/media/actions-client';
 
 const COLOURS = ['#e11d48', '#f59e0b', '#16a34a', '#2563eb', '#7c3aed', '#111827', '#f8fafc'];
 const LONG_SIDE = 1024;

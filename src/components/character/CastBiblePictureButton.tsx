@@ -3,29 +3,29 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
   buildCastBiblePictureNegative,
   buildCastBiblePicturePrompt,
-} from '@/lib/character-bible-picture';
+} from '@/lib/character/bible-picture';
 import {
   activeLook,
   getCharacter,
   saveCharacterBiblePicture,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { withCastIdentityQueueFields } from '@/lib/look/outfit-plate';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate/render-size';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import {
   isRoleplayAdultContent,
   normalizeRoleplayContent,
   type RoleplayBio,
 } from '@/lib/story/roleplay';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { resolveStoryNudeFaceFilename } from '@/lib/story/nude-face';
 
 type Phase = 'idle' | 'preparing' | 'rendering';

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { resolvePromptAuthDir } from '@/lib/prompt-data-paths';
+import { resolvePromptAuthDir } from '@/lib/prompt/data-paths';
 
 /**
  * Secrets the server makes itself on first start and keeps in the data folder, so a new install

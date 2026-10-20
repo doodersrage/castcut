@@ -13,10 +13,10 @@
  * `bestOfTwoJob` marks it until the job's report fills the same fields.
  */
 
-import { castcutViewUrl, type CastcutBestOfTwoReport } from '@/lib/castcut-nodes';
+import { castcutViewUrl, type CastcutBestOfTwoReport } from '@/lib/castcut/nodes';
 import type { DaySlotStill } from '@/lib/day/planner';
-import type { NormalizedBody } from '@/lib/pose-library';
-import { scorePoseMatch, type DetectedPose } from '@/lib/pose-score';
+import type { NormalizedBody } from '@/lib/pose/library';
+import { scorePoseMatch, type DetectedPose } from '@/lib/pose/score';
 
 /**
  * Pose-guide layouts (the first part of a guide's pose key, `layout:people`) that Day stills miss

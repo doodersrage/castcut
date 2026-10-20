@@ -6,7 +6,7 @@ import {
   scanGalleryMediaLeftovers,
 } from '@/lib/gallery/media-cleanup-server';
 import { clearViewDiskCache, measureViewDiskCache } from '@/lib/comfyui/view-cache';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;

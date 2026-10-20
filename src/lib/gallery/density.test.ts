@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   resetBrowserStorageCache,
   withSuppressedDurableSyncPush,
-} from "../browser-storage";
+} from "../storage/browser-storage";
 import {
   GALLERY_DENSITY_KEY,
   normalizeGalleryDensity,

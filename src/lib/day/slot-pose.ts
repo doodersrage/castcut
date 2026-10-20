@@ -20,7 +20,7 @@ import {
   textLeadPosture,
 } from '@/lib/day/pose-guide';
 import { RAPID_ORAL_FALLBACK_RE } from '@/lib/play/rapid-duo-recipe';
-import { SEATED_ORAL_GUIDE_TEXT } from '@/lib/rapid-oral-pose';
+import { SEATED_ORAL_GUIDE_TEXT } from '@/lib/pose/rapid-oral-pose';
 import {
   dayPoseSpecForBeat,
   isDayAdultMood,
@@ -37,9 +37,9 @@ import {
   dayClothedHeatPoseNeedsBodyUnlock,
   vacationStanceDirective,
 } from '@/lib/day/vacation';
-import { clarifyIntimateImageLanguage } from '@/lib/intimate-prompt-clarify';
-import { stripNegatedClauses } from '@/lib/negated-clauses';
-import { mergeAvoidedPoseLayouts } from '@/lib/pose-guide-prompt';
+import { clarifyIntimateImageLanguage } from '@/lib/adult/intimate-prompt-clarify';
+import { stripNegatedClauses } from '@/lib/prompt/negated-clauses';
+import { mergeAvoidedPoseLayouts } from '@/lib/pose/guide-prompt';
 
 export type DaySlotPosePlan = {
   /** Scene text the guide reads (undefined → the slot's default stance). */

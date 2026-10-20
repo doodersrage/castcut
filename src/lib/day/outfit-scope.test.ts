@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { clothingSummaryThumbs } from '../clothing-summary';
+import { clothingSummaryThumbs } from '../wardrobe/clothing-summary';
 import {
   dayAfterOutfitHandoff,
   dayHandoffKeptSlotIds,

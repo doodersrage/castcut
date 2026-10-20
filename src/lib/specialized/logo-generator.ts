@@ -1,4 +1,4 @@
-import { getLogoStylePreset, type LogoMotifId, type LogoStylePresetId } from '../logo-presets';
+import { getLogoStylePreset, type LogoMotifId, type LogoStylePresetId } from '../app/logo-presets';
 import { runSpecializedPrompt } from './runner';
 import type { LogoOptions, ToolGenerateResult } from './types';
 

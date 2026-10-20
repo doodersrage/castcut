@@ -1,5 +1,5 @@
 import { parseComfyUiSystemStats } from './system-stats';
-import { normalizeSafeHttpUrl, getComfyUiAllowedHosts } from '../url-safety';
+import { normalizeSafeHttpUrl, getComfyUiAllowedHosts } from '../server/url-safety';
 
 let poolIndex = 0;
 

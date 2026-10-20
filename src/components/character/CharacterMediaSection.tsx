@@ -14,7 +14,7 @@ import {
   resolveGalleryLightboxOpenIndex,
 } from '@/lib/gallery/comfyui-gallery';
 import { buildLightboxStateFromPlaylist } from '@/lib/gallery/lightbox-state';
-import { castPlateTiles } from '@/lib/character-plate-thumb';
+import { castPlateTiles } from '@/lib/character/plate-thumb';
 import { filterGalleryEntriesByLook, galleryLookChips } from '@/lib/gallery/look-filter';
 import { remixDayFilmHref } from '@/lib/play/starter';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';

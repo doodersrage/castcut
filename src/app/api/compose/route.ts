@@ -1,14 +1,14 @@
 import { generateBackgroundPrompt } from '@/lib/specialized/background-generator';
 import { generateCharacterPrompt } from '@/lib/specialized/character-generator';
-import { enrichGenerateResult } from '@/lib/generation-diagnostics';
+import { enrichGenerateResult } from '@/lib/queue/generation-diagnostics';
 import {
   normalizeCharacterPresetOptions,
   type CharacterPresetOptions,
-} from '@/lib/character-options';
+} from '@/lib/character/options';
 import {
   normalizeBackgroundPresetOptions,
   type BackgroundPresetOptions,
-} from '@/lib/background-options';
+} from '@/lib/scene/background-options';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,
@@ -18,8 +18,8 @@ import {
   normalizeLockedLocation,
   normalizeVariationSeed,
 } from '@/lib/specialized/normalize';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
-import { composeScenePrompt, type ComposeSceneStyle } from '@/lib/scene-composer';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
+import { composeScenePrompt, type ComposeSceneStyle } from '@/lib/scene/composer';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

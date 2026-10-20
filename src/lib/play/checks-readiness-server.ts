@@ -3,16 +3,16 @@
  */
 
 import { probeFilmScore } from '../film/score-server';
-import { isLlmEnabled } from '@/lib/llm-client';
-import { detectVisionModel } from '@/lib/vision-model-auto';
-import { detectLmStudio } from '@/lib/vision-model-download-server';
+import { isLlmEnabled } from '@/lib/llm/client';
+import { detectVisionModel } from '@/lib/vision/model-auto';
+import { detectLmStudio } from '@/lib/vision/model-download-server';
 import { comfyBaseUrl, resolveComfyNode } from '@/lib/comfyui/comfy-utility-graph-server';
 import {
   ffmpegHasDrawtext,
   resolveFfmpegBinary,
   resolveFilmFontFile,
-} from '@/lib/video-server-encode';
-import { parseComfyUiSystemStats } from '@/lib/castcut-nodes-setup';
+} from '@/lib/video/server-encode';
+import { parseComfyUiSystemStats } from '@/lib/castcut/nodes-setup';
 import { buildPlayChecksReadiness, type PlayChecksReadiness } from '@/lib/play/checks-readiness';
 
 async function comfyReachable(baseUrl: string): Promise<boolean> {

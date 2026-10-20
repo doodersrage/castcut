@@ -4,7 +4,7 @@
  */
 
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
-import { isVideoLikeEntry } from '../media-kind';
+import { isVideoLikeEntry } from '../media/kind';
 import type { RoleplayStoryBeat } from './roleplay';
 import { lastCompletedRoleplayStillUrl, roleplayClipTakes } from './roleplay';
 
@@ -93,4 +93,4 @@ export {
   nextRoleplayMotionKind,
   looksLikeVideoUrl,
   looksLikeMotionUrl,
-} from '../media-kind';
+} from '../media/kind';

@@ -5,14 +5,14 @@
  * the same Cast, its parent the film it was cut from.
  */
 
-import { isCutRecipe } from '../cut-recipe';
+import { isCutRecipe } from '../video/cut-recipe';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { assembleAndStampFilm, downloadFilmBlob } from './character-film-assemble-lazy';
 import {
   filmResolutionForCutOptions,
   normalizeFilmResolution,
   type FilmShape,
-} from '../video-resolution';
+} from '../video/resolution';
 
 /** Shape and size a recipe was cut at (for the Re-cut pickers' starting values). */
 export function recipeShapeAndSize(resolution?: string): {

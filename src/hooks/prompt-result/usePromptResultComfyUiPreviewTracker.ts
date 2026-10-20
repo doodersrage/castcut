@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { resolveModelForQueueTool } from '@/lib/queue-tool-model';
+import { resolveModelForQueueTool } from '@/lib/queue/tool-model';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryPrimaryViewUrl,
@@ -11,13 +11,13 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { registerComfyGalleryJob } from '@/lib/gallery/comfyui-gallery-client';
-import { attachGalleryPromptIdToHistory, linkGalleryToHistory } from '@/lib/prompt-lineage';
-import { loadActiveProjectId } from '@/lib/prompt-projects';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { attachGalleryPromptIdToHistory, linkGalleryToHistory } from '@/lib/prompt/lineage';
+import { loadActiveProjectId } from '@/lib/prompt/projects';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { getEngineAdapter } from '@/lib/engine';
 import { engineDisplayName } from '@/lib/engine/capabilities';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
-import { prepareQueuePrompts } from '@/lib/queue-prompt-prep';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
+import { prepareQueuePrompts } from '@/lib/queue/prompt-prep';
 import {
   formatComfyUiJobStatusLine,
   isComfyUiJobProcessing,

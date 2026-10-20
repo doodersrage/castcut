@@ -12,15 +12,15 @@ export async function registerNode(
     assertSecureExposureOrThrow,
     isInsecureAuthExplicitlyAllowed,
     isNetworkExposedDeployment,
-  } = await import('@/lib/bind-exposure-check');
+  } = await import('@/lib/checks/bind-exposure-check');
   const { isAuthExplicitlyEnabled } = await import('@/lib/auth/config');
   if (isInsecureAuthExplicitlyAllowed()) {
     // Still surface what would have failed so operators notice the escape hatch.
     const { isUsingInsecureSessionSecret, INSECURE_SESSION_SECRET_WARNING } =
-      await import('@/lib/session-secret-check');
+      await import('@/lib/user/session-secret-check');
     const { isUsingDefaultAdminCredentials, getDefaultAdminCredentialsWarning } =
-      await import('@/lib/default-admin-check');
-    const { AUTH_OFF_EXPOSED_ERROR } = await import('@/lib/bind-exposure-check');
+      await import('@/lib/user/default-admin-check');
+    const { AUTH_OFF_EXPOSED_ERROR } = await import('@/lib/checks/bind-exposure-check');
     if (isUsingInsecureSessionSecret()) {
       console.warn(`[security] PROMPT_ALLOW_INSECURE_AUTH=1 — ${INSECURE_SESSION_SECRET_WARNING}`);
     }
@@ -39,7 +39,7 @@ export async function registerNode(
   startServerScheduledBatchLoop();
 
   // The built-in LLM's hooks (llm-local.ts): LLM calls find it, start it on demand.
-  await import('@/lib/llm-local-server');
+  await import('@/lib/llm/local-server');
 
   if (process.env.SERVER_USER_MAINTENANCE === 'true') {
     const maintenanceIntervalMin = Number(process.env.SERVER_USER_MAINTENANCE_INTERVAL_MIN ?? '15');

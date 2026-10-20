@@ -6,13 +6,13 @@ import {
   isFluxKleinModel,
   isQwenEditModel,
   isZImageModel,
-} from '@/lib/model-denoise-defaults';
+} from '@/lib/model/denoise-defaults';
 import {
   COMPOSE_MODIFY_TEMPLATE_GROUPS,
   COMPOSE_TRANSFER_TEMPLATE_GROUPS,
   isAggressiveComposeInstruction,
   type ComposeStarterTemplate,
-} from '@/lib/compose-prompt';
+} from '@/lib/prompt/compose-prompt';
 import {
   formatComposeIdentityLockHint,
   formatKleinEnhancerComposeHint,
@@ -20,16 +20,16 @@ import {
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
   DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
-} from '@/lib/compose-identity-lock';
-import { createDefaultRegionalSlots } from '@/lib/regional-prompt-slots';
+} from '@/lib/prompt/compose-identity-lock';
+import { createDefaultRegionalSlots } from '@/lib/prompt/regional-prompt-slots';
 import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
-import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import { ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/edit/isolate-subject';
 import {
   CLOUD_COMPOSE_TRANSFER_BLOCKED,
   cloudComposeBlocksTransfer,
   formatCloudComposeIdentityHint,
   isCloudMultiRefEditModel,
-} from '@/lib/cloud-compose-refs';
+} from '@/lib/cloud/cloud-compose-refs';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import type { ComposeToolOrchestrationCore } from '@/hooks/compose/useComposeToolOrchestrationCore';
 

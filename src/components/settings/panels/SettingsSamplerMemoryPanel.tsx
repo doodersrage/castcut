@@ -1,6 +1,6 @@
 'use client';
 
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';

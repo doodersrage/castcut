@@ -1,5 +1,5 @@
 import type { MutableRefObject } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import type { ComfyUiJobTrackerState } from '@/lib/comfyui/job-status';
@@ -35,9 +35,9 @@ export type SendComfyUiOptions = {
   controlImageUrls?: Array<string | undefined>;
   controlImageFilenames?: string[];
   queueParamsBase?: WorkflowParamValues;
-  qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile;
-  resolutionSizeTier?: import('@/lib/model-resolution-defaults').ResolutionSizeTier;
-  resolutionOrientation?: import('@/lib/model-resolution-defaults').ResolutionOrientation;
+  qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile;
+  resolutionSizeTier?: import('@/lib/model/resolution-defaults').ResolutionSizeTier;
+  resolutionOrientation?: import('@/lib/model/resolution-defaults').ResolutionOrientation;
   /** When false, keep queueParamsBase W×H instead of Lightning compose upsnap. */
   preserveInputAspect?: boolean;
   /** Override probed upload dimensions (e.g. locked fitting preview thumbs). */
@@ -57,11 +57,11 @@ export type SendComfyUiOptions = {
   /** Merged into runtime customTokens before inject (e.g. {{REGION_*}}). */
   customTokens?: Array<{ token: string; value: string }>;
   /** Multi-slot regional edit for AttentionCouple / {{REGION_*}} binding. */
-  regionalSlots?: import('@/lib/regional-prompt-slots').RegionalPromptSlot[];
+  regionalSlots?: import('@/lib/prompt/regional-prompt-slots').RegionalPromptSlot[];
   /** Compose: lock identity from Figure 1 via IP-Adapter after upload. */
   identityLock?: boolean;
   identityLockStrength?: number;
-  identityKind?: import('@/lib/compose-identity-lock').ComposeIdentityKind;
+  identityKind?: import('@/lib/prompt/compose-identity-lock').ComposeIdentityKind;
   /** Gallery lineage when queueing a derived job (e.g. ControlNet from gallery). */
   parentGalleryEntryId?: string;
   characterId?: string;
@@ -72,11 +72,11 @@ export type SendComfyUiOptions = {
   queueTool?: string;
   queueModel?: ComfyImageModel;
   /** Video T2V vs I2V vs documented Fal extend. */
-  clipMode?: import('@/lib/video-clip-mode').VideoClipMode;
+  clipMode?: import('@/lib/video/clip-mode').VideoClipMode;
   /** Public Fal clip URL for clipMode extend. */
   videoUrl?: string;
   /** Override shared turbo edit strength for this queue (e.g. fitting draft previews). */
-  turboEditStrength?: import('@/lib/turbo-edit-strength').TurboEditStrength;
+  turboEditStrength?: import('@/lib/engine/turbo-edit-strength').TurboEditStrength;
   /** Cap the Klein Enhancer color anchor for this queue (the dress plate: 0.1 — over-baked at 0.45). */
   kleinColorAnchorMax?: number;
   /** Override hook hints for this queue — pass '' to skip tool notes on previews. */
@@ -87,7 +87,7 @@ export type SendComfyUiOptions = {
    */
   sessionActiveLoraIds?: string[];
   /** Job-pinned LoRA strength tweaks for this queue only. */
-  sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
+  sessionLoraStrengthOverrides?: import('@/lib/lora/stack').SessionLoraStrengthOverrides;
   /**
    * An adult still for the adult-appearance gate: the gallery entry is registered `pending`
    * (hidden everywhere, no result preview) until the gate passes it. `strong`: this take uses
@@ -112,12 +112,12 @@ export type TrackComfyUiJobInput = {
   derivedKind?: import('@/lib/gallery/comfyui-gallery-entry').ComfyGalleryEntry['derivedKind'];
   sourceImageUrl?: string;
   maskImageUrl?: string;
-  queueQualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile;
+  queueQualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile;
   /** Actual model queued (may differ from picker when Generate remaps Edit Lightning). */
   model?: ComfyImageModel;
   tool?: string;
   sessionActiveLoraIds?: string[];
-  sessionLoraStrengthOverrides?: import('@/lib/lora-stack').SessionLoraStrengthOverrides;
+  sessionLoraStrengthOverrides?: import('@/lib/lora/stack').SessionLoraStrengthOverrides;
   engineId?: import('@/lib/engine/types').EngineId;
   /** Registered held by the adult-appearance gate (SendComfyUiOptions.adultGate). */
   adultCheck?: import('@/lib/gallery/adult-check').GalleryAdultCheck;

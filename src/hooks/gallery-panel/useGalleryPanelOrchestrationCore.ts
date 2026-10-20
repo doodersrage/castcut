@@ -22,9 +22,9 @@ import { isGalleryStoreReady } from '@/lib/gallery/comfyui-gallery';
 import { parseGalleryPickTarget } from '@/lib/gallery/handoff';
 import { MAX_GALLERY_ENTRIES } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { computeGalleryStats } from '@/lib/gallery/stats';
-import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt-projects';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { loadActiveProjectId, loadPromptProjects } from '@/lib/prompt/projects';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 
 export type UseGalleryPanelOrchestrationOptions = {
   limit?: number;

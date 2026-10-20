@@ -5,17 +5,17 @@ import {
   scorePromptReadiness,
   type PromptReadinessResult,
   type ReadinessCheck,
-} from '@/lib/prompt-readiness';
+} from '@/lib/prompt/readiness';
 import {
   DEFAULT_READINESS_MIN_SCORE,
   isReadinessQueueAllowed,
   readinessGateMessage,
-} from '@/lib/readiness-gate';
-import { planReadinessAutoFix } from '@/lib/readiness-auto-fix';
+} from '@/lib/checks/readiness-gate';
+import { planReadinessAutoFix } from '@/lib/checks/readiness-auto-fix';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import type { DetailLevel } from '@/lib/detail-level';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
 import { Button } from '@/components/ui/Button';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 function isPromptReadinessResult(value: unknown): value is PromptReadinessResult {
   if (!value || typeof value !== 'object') {

@@ -4,7 +4,7 @@
  * Next-action / stall / href resolution delegates to play-step-machine.
  */
 
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import type { LookPack } from '../look/pack';
 import {
   resolvePlayStall,

@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef } from 'react';
-import type { PromptSidecar } from '@/lib/prompt-sidecar';
-import { readPromptSidecarFile } from '@/lib/prompt-sidecar';
+import type { PromptSidecar } from '@/lib/prompt/sidecar';
+import { readPromptSidecarFile } from '@/lib/prompt/sidecar';
 
 type SidecarImportButtonProps = {
   onImport: (sidecar: PromptSidecar) => void;

@@ -4,9 +4,9 @@ import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import EditToolRecipeStrip from '@/components/EditToolRecipeStrip';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
 import RegionalEditPanel from '@/components/RegionalEditPanel';
-import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
-import { continueEditResultProps } from '@/lib/continue-edit-result-props';
-import { getReformatTargetLabel } from '@/lib/reformat-target';
+import { promptResultPreviewProps } from '@/lib/prompt/result-preview-props';
+import { continueEditResultProps } from '@/lib/edit/continue-edit-result-props';
+import { getReformatTargetLabel } from '@/lib/edit/reformat-target';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { useInpaintToolOrchestration } from '@/hooks/useInpaintToolOrchestration';
 

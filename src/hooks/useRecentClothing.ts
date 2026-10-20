@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { loadRecentClothingIds, pushRecentClothingIds } from '@/lib/recent-clothing';
+import { loadRecentClothingIds, pushRecentClothingIds } from '@/lib/wardrobe/recent-clothing';
 
 export function useRecentClothing() {
   const getRecent = useCallback(() => loadRecentClothingIds(), []);

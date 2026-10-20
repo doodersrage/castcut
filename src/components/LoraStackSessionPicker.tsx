@@ -12,28 +12,28 @@ import {
   resolveSessionActiveLoraIds,
   type LoraLibraryEntry,
   type SessionLoraStrengthOverrides,
-} from '@/lib/lora-stack';
+} from '@/lib/lora/stack';
 import {
   hasSessionLoraIdsForModel,
   resolveEffectiveSessionLoraIds,
   resolveModelDefaultLoraIds,
   type ModelLoraMap,
   type SessionActiveLoraIdsByModel,
-} from '@/lib/model-lora-map';
+} from '@/lib/model/lora-map';
 import {
   filterLorasForSelectedModel,
   isLoraCompatibleWithModel,
   loraModelFilterLabel,
-} from '@/lib/lora-model-compat';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/lora/model-compat';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import ComfyLoraPreviewThumb from '@/components/ComfyLoraPreviewThumb';
-import { fetchLoraScanRows, scanUnscannedLorasOnce } from '@/lib/lora-scan-client';
+import { fetchLoraScanRows, scanUnscannedLorasOnce } from '@/lib/lora/scan-client';
 import { fetchComfyLoraInventoryFiles } from '@/lib/comfyui/object-info-cache';
-import { LORA_FAMILY_LABELS } from '@/lib/lora-family-detect';
-import { loraChangesFaceAt } from '@/lib/lora-check';
+import { LORA_FAMILY_LABELS } from '@/lib/lora/family-detect';
+import { loraChangesFaceAt } from '@/lib/lora/check';
 import {
   addScannedLorasToLibrary,
   deleteLoraStackPreset,
@@ -43,7 +43,7 @@ import {
   LORA_STACK_WARN_SIZE,
   normalizeLoraStackPresets,
   saveLoraStackPreset,
-} from '@/lib/lora-library-tools';
+} from '@/lib/lora/library-tools';
 
 type LoraStackSessionPickerProps = {
   model?: string;

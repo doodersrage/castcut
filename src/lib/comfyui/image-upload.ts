@@ -1,7 +1,7 @@
 'use client';
 
-import { compressImageForEngineUpload } from '../browser-compress-image';
-import { fileToDataUrl } from '../browser-file-data-url';
+import { compressImageForEngineUpload } from '../storage/browser-compress-image';
+import { fileToDataUrl } from '../storage/browser-file-data-url';
 import { resolveRuntimeForModel } from './runtime-for-model';
 import type { ComfyImageModel } from '../comfy-models/client';
 
@@ -172,7 +172,7 @@ export async function uploadComfyInputImage(input: {
   let width: number | undefined;
   let height: number | undefined;
   try {
-    const { probeImageFileDimensions } = await import('../browser-image-dimensions');
+    const { probeImageFileDimensions } = await import('../storage/browser-image-dimensions');
     const size = await probeImageFileDimensions(prepared);
     if (size) {
       width = size.width;

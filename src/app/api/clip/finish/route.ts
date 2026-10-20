@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { ClipAlreadyFinishedError, finishClip } from '@/lib/clip-finish-server';
+import { ClipAlreadyFinishedError, finishClip } from '@/lib/clip/finish-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 1300;

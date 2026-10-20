@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { initBrowserStorage, readBrowserString, writeBrowserString } from '@/lib/browser-storage';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import {
+  initBrowserStorage,
+  readBrowserString,
+  writeBrowserString,
+} from '@/lib/storage/browser-storage';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
-import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings-cache';
+import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings/cache';
 import { resolveSelectedWorkflowRuntime } from '@/lib/comfyui/runtime';
 import { auditWorkflowLibraryHealth } from '@/lib/workflow/health-audit';
 import {

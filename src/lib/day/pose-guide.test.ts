@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { DANCE_MOVE_LIMBS, danceMoveFor } from '../dance-move';
+import { DANCE_MOVE_LIMBS, danceMoveFor } from '../pose/dance-move';
 import {
   countPoseGuidePeople,
   dayPoseGuideSize,

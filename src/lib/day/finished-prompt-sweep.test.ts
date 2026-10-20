@@ -31,7 +31,7 @@ import {
   dayStillWantsDressPlate,
 } from './still-plan';
 import { dayPartnerApplies, inventedDayPartner, type DayPartner } from './partner';
-import { activeLook, normalizeCharacterRecord, type CharacterRecord } from '../character-os';
+import { activeLook, normalizeCharacterRecord, type CharacterRecord } from '../character/os';
 import {
   type DayPlate,
   isClothingOnlyDayGarment,
@@ -79,21 +79,21 @@ import {
   finishDayStillPrompt,
   queuedDayStillPrompt,
 } from './still-prompt';
-import { hasAdultAgeLine, youthWordsIn } from '../adult-age-safeguard';
-import { dayMoodNeedsAdultSafeguards } from '../adult-appearance-gate';
+import { hasAdultAgeLine, youthWordsIn } from '../adult/adult-age-safeguard';
+import { dayMoodNeedsAdultSafeguards } from '../adult/adult-appearance-gate';
 import { DAY_THEMES } from './themes';
 import {
   dayVacationBeatPresetsForSlot,
   dayVacationDuoBeatPresetsForSlot,
   dayVacationSettingPresetsForSlot,
 } from './vacation';
-import { normalizeFootwear } from '../footwear';
+import { normalizeFootwear } from '../wardrobe/footwear';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '../play/metrics';
-import { DEFAULT_POSE_GUIDE_STYLE } from '../pose-guide-prompt';
+import { DEFAULT_POSE_GUIDE_STYLE } from '../pose/guide-prompt';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
-import { resolveDayStillModel } from '../queue-tool-model';
-import { auditStillPrompt } from '../still-prompt-audit';
-import { formatWardrobeKitLabel } from '../wardrobe-kit-picker';
+import { resolveDayStillModel } from '../queue/tool-model';
+import { auditStillPrompt } from '../still/prompt-audit';
+import { formatWardrobeKitLabel } from '../wardrobe/kit-picker';
 
 // ── Engines ──────────────────────────────────────────────────────────────────────────────
 

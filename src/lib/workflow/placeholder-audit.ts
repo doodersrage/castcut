@@ -3,17 +3,17 @@ import {
   DEFAULT_INPUT_IMAGE_TOKEN,
   DEFAULT_MASK_IMAGE_TOKEN,
 } from '../comfyui/config';
-import { isEditCapableModel, isInpaintModel } from '../model-denoise-defaults';
+import { isEditCapableModel, isInpaintModel } from '../model/denoise-defaults';
 import {
   DEFAULT_CHECKPOINT_TOKEN,
   DEFAULT_UNET_TOKEN,
   DEFAULT_VAE_TOKEN,
-} from '../model-checkpoint-map';
-import { DEFAULT_UPSCALE_MODEL_TOKEN } from '../model-upscale-map';
+} from '../model/checkpoint-map';
+import { DEFAULT_UPSCALE_MODEL_TOKEN } from '../model/upscale-map';
 import {
   DEFAULT_CONTROLNET_MODEL_TOKEN,
   DEFAULT_CONTROL_IMAGE_TOKEN,
-} from '../model-controlnet-map';
+} from '../model/controlnet-map';
 import { LORA_PLACEHOLDER_TOKEN_PATTERN, isLightningFamilyLoraToken } from './lora-patch';
 
 const LORA_TOKEN_PATTERN = LORA_PLACEHOLDER_TOKEN_PATTERN;

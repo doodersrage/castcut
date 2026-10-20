@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { activeLook, characterWithLook, type CharacterRecord } from '../character-os';
+import { activeLook, characterWithLook, type CharacterRecord } from '../character/os';
 import { swapDayForCast } from './cast-park';
 import { resolveDayFaceOnlyPlate, resolveDayQueueIdentityPlate } from './plate';
 import { normalizeDaySlots, type DaySlot } from './planner';
 import { daySlotLookOutfit, daySlotOwnLookId, resolveDaySlotLook } from './slot-look';
 import { buildDaySlotPromptForStill } from './still-prompt';
-import { DEFAULT_POSE_GUIDE_STYLE } from '../pose-guide-prompt';
+import { DEFAULT_POSE_GUIDE_STYLE } from '../pose/guide-prompt';
 import type { DayToolCache } from '../play/settings';
 
 /** A Cast with two looks: Studio (active, a kit lock) and Beach (another plate, a kept photo). */

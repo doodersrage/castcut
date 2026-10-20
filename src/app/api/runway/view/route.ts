@@ -5,8 +5,8 @@ import {
   isAnimatedImageBytes,
   isHtmlVideoContentType,
 } from '@/lib/comfyui/outputs';
-import { ensureRunwayOutput } from '@/lib/runway-client';
-import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/url-safety';
+import { ensureRunwayOutput } from '@/lib/cloud/runway-client';
+import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/server/url-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

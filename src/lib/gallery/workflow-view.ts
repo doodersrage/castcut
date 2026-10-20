@@ -3,7 +3,7 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import type { ComfyHistoryWorkflowResult } from '../comfyui/history-workflow';
 import { fetchWorkflowPreview } from '../comfyui/requeue';
-import { resolveQueueParams } from '../queue-params-settings';
+import { resolveQueueParams } from '../queue/params-settings';
 import type { WorkflowParamValues } from '../comfyui/config';
 
 export type GalleryWorkflowView = {

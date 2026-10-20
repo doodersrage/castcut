@@ -5,21 +5,21 @@ import {
   normalizeModelSamplerPresetTier,
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
+} from '@/lib/model/sampler-defaults';
 import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
   type ResolutionOrientation,
   type ResolutionSizeTier,
-} from '@/lib/model-resolution-defaults';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/model/resolution-defaults';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import {
   resolveEffectiveSessionLoraStrengthOverrides,
   setSessionLoraIdsForModel,
   setSessionLoraStrengthOverridesForModel,
-} from '@/lib/model-lora-map';
-import { normalizeQueueQualityProfile } from '@/lib/queue-quality-profile';
+} from '@/lib/model/lora-map';
+import { normalizeQueueQualityProfile } from '@/lib/queue/quality-profile';
 import type { UseSharedToolGenerationSettingsOptions } from '@/hooks/shared-tool/shared-tool-generation-settings-types';
 import type { SharedToolGenerationSettingsCore } from '@/hooks/shared-tool/useSharedToolGenerationSettingsCore';
 

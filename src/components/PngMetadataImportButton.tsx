@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef } from 'react';
-import { pngMetadataToSidecar, readPngMetadataFile } from '@/lib/png-metadata';
-import type { PromptSidecar } from '@/lib/prompt-sidecar';
+import { pngMetadataToSidecar, readPngMetadataFile } from '@/lib/history/png-metadata';
+import type { PromptSidecar } from '@/lib/prompt/sidecar';
 
 type PngMetadataImportButtonProps = {
   onImport: (sidecar: PromptSidecar) => void;

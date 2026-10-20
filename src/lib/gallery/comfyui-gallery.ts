@@ -16,7 +16,7 @@ import {
 } from '../comfyui/outputs';
 import { buildEngineViewPath } from '../engine/view-paths';
 import { isCloudEngine } from '../engine/capabilities';
-import { filterBySemanticQuery } from '../semantic-search';
+import { filterBySemanticQuery } from '../search/semantic-search';
 import { orderGalleryBySimilarity, orderGalleryByVisualSimilarity } from './similarity';
 import { clusterGalleryDuplicates, duplicateEntryIds } from './duplicate-clusters';
 import type {
@@ -34,16 +34,16 @@ import {
   clearGalleryDb,
 } from './db-store';
 import { COMFYUI_GALLERY_KEY, MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
-import { initGalleryStore } from '../app-db-init';
-import { getActiveUserId } from '../user-scope';
-import { scheduleUserAnalyticsSync } from '../user-analytics-sync';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
+import { initGalleryStore } from '../app/db-init';
+import { getActiveUserId } from '../user/scope';
+import { scheduleUserAnalyticsSync } from '../user/analytics-sync';
 import { capGalleryEntriesForLocalStorage } from './cap';
-import { loadCharacters, looksOf } from '../character-os';
+import { loadCharacters, looksOf } from '../character/os';
 import { galleryEntryMatchesLook } from './look-filter';
 import { collectGalleryProtectedEntryIds } from './protected-ids';
 import { rememberGalleryDeletedIds } from './deleted-ids';
-import { galleryEntryCorpus } from '../embedding-rank';
+import { galleryEntryCorpus } from '../search/embedding-rank';
 import {
   galleryEntryMatchesCustomGroup,
   resolveGalleryCustomGroupName,
@@ -55,10 +55,10 @@ import {
   enforceGalleryWorkflowByteBudget,
   pruneStaleGalleryWorkflowJson,
 } from './workflow-hygiene';
-import { loadSettingsCache } from '../settings-cache';
-import { celebrateSystemTray } from '../system-tray-celebrate';
+import { loadSettingsCache } from '../settings/cache';
+import { celebrateSystemTray } from '../app/system-tray-celebrate';
 import { galleryCardCaption } from './card-caption';
-import { notePoseTakeOutcome } from '../pose-outcome-stats';
+import { notePoseTakeOutcome } from '../pose/outcome-stats';
 import {
   isGalleryEntryHidden,
   withoutHiddenGalleryEntries,
@@ -72,7 +72,7 @@ export {
   COMFYUI_GALLERY_UPDATED_EVENT,
   MAX_GALLERY_ENTRIES,
 } from './comfyui-gallery-storage-meta';
-export { initAppDb, initGalleryStore, isAppDbReady, isGalleryStoreReady } from '../app-db-init';
+export { initAppDb, initGalleryStore, isAppDbReady, isGalleryStoreReady } from '../app/db-init';
 export { getGalleryCache, getGalleryEntryById } from './db-store';
 
 export type ComfyGalleryFilter = {
@@ -354,7 +354,7 @@ export function saveComfyGallery(
     if (evicted.length > 0) {
       // The local cap prefers keeping favorites/high ratings — push the full,
       // untrimmed list so server storage still has the complete history.
-      void import('../storage-sync').then(({ syncNamespaceToServer }) =>
+      void import('../storage/sync').then(({ syncNamespaceToServer }) =>
         syncNamespaceToServer('comfy-gallery', entries)
       );
       // Also download a local archive of evicted entries so nothing is only on the server.
@@ -364,14 +364,14 @@ export function saveComfyGallery(
         })
       );
     }
-    void import('../auto-storage-sync').then(({ scheduleAutoPushStorage }) =>
+    void import('../storage/auto-storage-sync').then(({ scheduleAutoPushStorage }) =>
       scheduleAutoPushStorage()
     );
   }
   void initGalleryStore()
     .then(() => persistGalleryCache())
     .then(() =>
-      import('../tab-sync').then(({ broadcastTabSync }) =>
+      import('../storage/tab-sync').then(({ broadcastTabSync }) =>
         broadcastTabSync({ type: 'gallery-updated' })
       )
     );
@@ -841,7 +841,7 @@ export function updateComfyGalleryEntryById(
   if (patch.status === 'completed') {
     const prior = entries.find(entry => entry.id === id);
     if (prior && prior.status !== 'completed') {
-      void import('../notification-center').then(({ pushNotification }) =>
+      void import('../app/notification-center').then(({ pushNotification }) =>
         pushNotification({
           title: 'ComfyUI job completed',
           body: updated!.prompt.slice(0, 80),

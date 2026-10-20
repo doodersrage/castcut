@@ -15,7 +15,7 @@ import {
   pointerToCanvasPoint,
   renderMaskEditorFrame,
   screenBrushRadiusToCanvas,
-} from '@/lib/inpaint-mask-canvas';
+} from '@/lib/edit/inpaint-mask-canvas';
 
 type InpaintMaskMode = 'draw' | 'upload';
 

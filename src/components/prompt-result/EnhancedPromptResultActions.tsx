@@ -18,7 +18,7 @@ const ResultQuickActions = dynamic(() => import('@/components/ResultQuickActions
 });
 
 import type { UseComfyWorkflowSelectionResult } from '@/hooks/useComfyWorkflowSelection';
-import { appOffersRoute } from '@/lib/app-profile';
+import { appOffersRoute } from '@/lib/app/profile';
 
 export type EnhancedPromptResultActionsProps = {
   compactActions: boolean;

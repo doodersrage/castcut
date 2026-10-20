@@ -7,7 +7,7 @@ import { ChipButton } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
-import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
+import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/wardrobe/clothing-summary';
 import type { FittingKitPreview } from '@/lib/fitting/kit-previews';
 import { getFittingKitPreview } from '@/lib/fitting/kit-previews';
 import type { FittingSwipeKit } from '@/lib/fitting/room';
@@ -17,9 +17,9 @@ import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
   type WardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
-import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe-garment-thumbs';
+import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 
 const ACCENT = 'rose' as const;
 

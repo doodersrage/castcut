@@ -8,30 +8,30 @@ import {
 import { scheduleComfyGalleryPoll } from '../gallery/comfyui-gallery-poller';
 import { getEngineAdapter, getEngineAdapterById } from '../engine';
 import { cloudEngineHost, engineDisplayName, isCloudEngine } from '../engine/capabilities';
-import { resolveCloudQueueExtras, resolveCloudQueueModel } from '../engine-settings';
-import { inferVideoClipMode } from '../video-clip-mode';
+import { resolveCloudQueueExtras, resolveCloudQueueModel } from '../engine/settings';
+import { inferVideoClipMode } from '../video/clip-mode';
 import { scheduleRefineAfterUpscaleComplete } from '../gallery/pending-actions';
 import {
   resolveWorkflowGraphEnrichOptions,
   type ComfyUiRuntimeConfig,
   type WorkflowParamValues,
 } from './config';
-import { resolveQueueInputImageFilename } from '../queue-input-image';
+import { resolveQueueInputImageFilename } from '../queue/input-image';
 import { resolveRuntimeForQueue } from './runtime-for-model';
 import {
   profileSkipsOutputUpscaleForModel,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
+} from '../queue/quality-profile';
 import { resolveSelectedWorkflowRuntime } from './runtime';
-import { resolveQueueNegativePrompt } from '../queue-negative';
-import { resolveQueueParams } from '../queue-params-settings';
+import { resolveQueueNegativePrompt } from '../queue/negative';
+import { resolveQueueParams } from '../queue/params-settings';
 import {
   refreshQueueImageParamsForRequeue,
   resolveRequeueImageUrlsFromEntry,
   auditRequeueImageReadiness,
-} from '../queue-requeue-images';
+} from '../queue/requeue-images';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
-import { findGalleryEntryForHistory } from '../prompt-lineage';
+import { findGalleryEntryForHistory } from '../prompt/lineage';
 import { runWorkflowPreflight } from '../workflow/preflight';
 import {
   buildGalleryMoireCleanWorkflow,
@@ -40,9 +40,9 @@ import {
   resolveGalleryOutputImageUrl,
   resolveGalleryOutputImageUrls,
 } from '../gallery/output-upscale';
-import { isFluxFineTuneCheckpointModel } from '../model-checkpoint-map';
+import { isFluxFineTuneCheckpointModel } from '../model/checkpoint-map';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import {
   appendPortraitRefineNegative,
   buildGalleryRefineWorkflow,
@@ -60,12 +60,12 @@ import {
   faceDetailQueueParams,
   normalizeFaceDetailDenoise,
 } from '../gallery/output-face-detail';
-import { isUpscaleModelInstalled, resolveUpscaleModelFilename } from '../model-upscale-map';
+import { isUpscaleModelInstalled, resolveUpscaleModelFilename } from '../model/upscale-map';
 import {
   fetchComfyObjectInfoCached,
   fetchComfyObjectInfoNodeTypesCached,
 } from './object-info-cache';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 import {
   loadComfyUiSettings,
   mergeLoraLibraryIntoCustomTokens,
@@ -76,12 +76,12 @@ import {
   holdMaxGalleryEnhance,
   holdMaxGenerateJob,
   shouldHoldMaxUntilIdle,
-} from '../held-max-queue';
+} from '../queue/held-max-queue';
 import {
   fetchComfyVramSnapshot,
   guardQueueQualityForVram,
   maybeDowngradeMaxForVram,
-} from '../vram-queue-guard';
+} from '../queue/vram-queue-guard';
 import {
   canMoireCleanGalleryEntry,
   canRefineGalleryEntry,
@@ -783,9 +783,10 @@ export async function requeueRefineFromGalleryEntry(
       : `Queueing ${softLabel}…`
   );
 
-  const { PLAY_SKIN_REFINE_NEGATIVE, PLAY_SKIN_REFINE_POSITIVE } = await import('../skin-refine');
-  const { applyTurboEditStrengthToPrompt } = await import('../turbo-edit-strength');
-  const { isQwenEditModel } = await import('../model-denoise-defaults');
+  const { PLAY_SKIN_REFINE_NEGATIVE, PLAY_SKIN_REFINE_POSITIVE } =
+    await import('../face/skin-refine');
+  const { applyTurboEditStrengthToPrompt } = await import('../engine/turbo-edit-strength');
+  const { isQwenEditModel } = await import('../model/denoise-defaults');
   let refinePrompt = skinPass
     ? PLAY_SKIN_REFINE_POSITIVE
     : entry.prompt.trim() || (mode === 'soft' ? 'soft-pass' : 'refine');
@@ -875,7 +876,7 @@ export function requeueSkinRefineFromGalleryEntry(
     force?: boolean;
   }
 ): Promise<RequeueComfyJobResult> {
-  return import('../skin-refine').then(({ resolveSkinRefineQueueModel }) =>
+  return import('../face/skin-refine').then(({ resolveSkinRefineQueueModel }) =>
     requeueRefineFromGalleryEntry(entry, {
       qualityProfile: options?.qualityProfile,
       onStatus: options?.onStatus,
@@ -1316,7 +1317,7 @@ export async function requeueComfyJobFromEntry(
     (entry.workflowJson?.trim() || storedEntry?.workflowJson?.trim())
   ) {
     options?.onStatus?.('Replaying stored gallery workflow graph.');
-    void import('../local-observability').then(({ noteExactReplayMetric }) => {
+    void import('../server/local-observability').then(({ noteExactReplayMetric }) => {
       noteExactReplayMetric();
     });
   }
@@ -1345,7 +1346,7 @@ export async function requeueComfyJobFromEntry(
               workflowJsonOmitted: false,
             });
           });
-          void import('../local-observability').then(({ noteExactReplayMetric }) => {
+          void import('../server/local-observability').then(({ noteExactReplayMetric }) => {
             noteExactReplayMetric();
           });
         }
@@ -1419,7 +1420,7 @@ export async function restoreExactGraphFromComfyHistory(
       hasStoredWorkflow: true,
       workflowJsonOmitted: false,
     });
-    void import('../local-observability').then(({ noteExactReplayMetric }) => {
+    void import('../server/local-observability').then(({ noteExactReplayMetric }) => {
       noteExactReplayMetric();
     });
     options?.onStatus?.('Exact graph restored to gallery entry.');

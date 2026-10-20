@@ -13,7 +13,7 @@ import { SettingsComfyConnectionAutoImproveSection } from '@/components/settings
 import { SettingsComfyConnectionQueueAutomationSection } from '@/components/settings/panels/sections/SettingsComfyConnectionQueueAutomationSection';
 import { SettingsComfyConnectionActionsFooter } from '@/components/settings/panels/sections/SettingsComfyConnectionActionsFooter';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 

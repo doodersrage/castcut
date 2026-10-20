@@ -122,7 +122,7 @@ export type ImageLightboxSlideChrome = {
    * "Fix an area" for this still (fix-area.ts): the lightbox shows the action and opens the
    * brush dialog over itself. Unset = no action.
    */
-  fixArea?: import('@/lib/fix-area-client').FixAreaTarget | null;
+  fixArea?: import('@/lib/edit/fix-area-client').FixAreaTarget | null;
   /** Set by the lightbox itself when `fixArea` is: opens the dialog. */
   onFixArea?: () => void;
 };

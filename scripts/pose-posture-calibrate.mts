@@ -19,9 +19,9 @@ import {
   gestureVisionPrompt,
   parseGestureAnswers,
   type GestureAnswer,
-} from '../src/lib/pose-gesture';
-import { applyPostureAnswer, postureQuestion } from '../src/lib/pose-posture-question';
-import { DEFAULT_MIN_POSE_MATCH, parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose-score';
+} from '../src/lib/pose/gesture';
+import { applyPostureAnswer, postureQuestion } from '../src/lib/pose/posture-question';
+import { DEFAULT_MIN_POSE_MATCH, parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose/score';
 
 type Row = {
   id: string;

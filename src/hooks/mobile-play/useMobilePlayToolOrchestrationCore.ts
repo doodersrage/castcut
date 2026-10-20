@@ -6,7 +6,7 @@ import {
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRoleplayFilmActions, type FilmSendComfyUi } from '@/hooks/useRoleplayFilmActions';
@@ -29,10 +29,10 @@ import {
   isolateSubjectOnWhite,
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
   loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
-import { normalizeCharacterPlates, type CharacterPlate } from '@/lib/mobile-studio';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { getReformatTargetModel } from '@/lib/reformat-target';
+} from '@/lib/edit/isolate-subject';
+import { normalizeCharacterPlates, type CharacterPlate } from '@/lib/app/mobile-studio';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import {
   formatRoleplayStoryProgress,
   mergeRoleplayRejectedScenes,
@@ -48,13 +48,13 @@ import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
   buildRoleplayRequestBody,
   resolveRoleplayWardrobeFields,
 } from '@/lib/story/roleplay-play-core';
-import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
+import { getCachedClothingLabel } from '@/lib/wardrobe/clothing-catalog-client';
 
 const TOOL_ID = 'roleplay';
 const EMPTY_STORY: RoleplayStoryBeat[] = [];

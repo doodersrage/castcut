@@ -11,7 +11,7 @@
 
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { isApiPromptGraph, type ComfyApiPrompt } from './comfy-editor-graph';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 export type OpenInComfyResult = {
   ok: boolean;

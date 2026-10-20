@@ -10,8 +10,8 @@
 import {
   DEFAULT_CONTROLNET_MODEL_TOKEN,
   DEFAULT_CONTROL_IMAGE_TOKEN,
-} from '../model-controlnet-map';
-import { normalizeControlNetMode, type ControlNetMode } from '../controlnet-prompt';
+} from '../model/controlnet-map';
+import { normalizeControlNetMode, type ControlNetMode } from '../prompt/controlnet-prompt';
 
 export const CONTROLNET_WORKFLOW_TOKENS = [
   DEFAULT_CONTROLNET_MODEL_TOKEN,

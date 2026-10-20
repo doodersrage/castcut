@@ -13,10 +13,10 @@ import assert from 'node:assert/strict';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { after, before, describe, it } from 'node:test';
-import { measureFaceMatchInComfy } from '../face-match-server';
+import { measureFaceMatchInComfy } from '../face/match-server';
 import { decideTryOnReview } from '../fitting/tryon-review';
-import { checkLookPlate } from '../plate-check';
-import { detectPoseInComfyStill } from '../pose-detect-server';
+import { checkLookPlate } from '../plate/check';
+import { detectPoseInComfyStill } from '../pose/detect-server';
 import { reviewPlaySlotStill } from './slot-review-server';
 
 type NodeDef = {

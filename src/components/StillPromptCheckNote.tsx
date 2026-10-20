@@ -1,4 +1,4 @@
-import { promptCheckSummary, type StillPromptCheck } from '@/lib/still-prompt-audit';
+import { promptCheckSummary, type StillPromptCheck } from '@/lib/still/prompt-audit';
 
 /**
  * The queue-time prompt check on a still's card (Day slot, Story beat): one quiet line —

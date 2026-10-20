@@ -3,7 +3,7 @@ import BrandBars from '@/components/BrandBars';
 import BrandMark from '@/components/BrandMark';
 import CommandPaletteResults from '@/components/command-palette/CommandPaletteResults';
 import type { CommandItem } from '@/components/command-palette/types';
-import { isLeanWorkspaceMode, loadWorkspaceMode } from '@/lib/workspace-mode';
+import { isLeanWorkspaceMode, loadWorkspaceMode } from '@/lib/app/workspace-mode';
 
 type CommandPalettePanelProps = {
   query: string;

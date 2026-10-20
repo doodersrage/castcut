@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
 
 const store = new Map<string, unknown>();
-mock.module('../browser-storage', {
+mock.module('../storage/browser-storage', {
   namedExports: {
     readBrowserValue: (key: string) => store.get(key) ?? null,
     writeBrowserValue: (key: string, value: unknown) => store.set(key, value),

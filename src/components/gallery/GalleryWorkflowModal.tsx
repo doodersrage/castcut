@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ModalPortal from '@/components/ui/ModalPortal';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import WorkflowPreviewPanel from '@/components/WorkflowPreviewPanel';
 import { Spinner } from '@/components/ui/Button';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
@@ -16,10 +16,10 @@ import {
 import {
   formatQueueQualityProfileLabel,
   formatQueueQualityProfileHint,
-} from '@/lib/queue-quality-profile';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { normalizeModelSamplerPresetTier } from '@/lib/model-sampler-defaults';
-import { normalizeResolutionSizeTier } from '@/lib/model-resolution-defaults';
+} from '@/lib/queue/quality-profile';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { normalizeModelSamplerPresetTier } from '@/lib/model/sampler-defaults';
+import { normalizeResolutionSizeTier } from '@/lib/model/resolution-defaults';
 import {
   formatRenderDuration,
   resolveGalleryRenderDurationMs,

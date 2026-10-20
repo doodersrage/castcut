@@ -1,6 +1,6 @@
 'use client';
 
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import StoryOwnScene from '@/components/roleplay/StoryOwnScene';
 import { StoryBeatEditProvider } from '@/components/roleplay/StoryBeatEditContext';
 import StoryScenePoseFigure from '@/components/roleplay/StoryScenePoseFigure';
@@ -37,22 +37,22 @@ import {
   roleplayQueueBlockReason,
   storySessionStatusLine,
 } from '@/lib/story/roleplay';
-import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/mobile-studio';
+import { roleplayPatchFromPlate, toMobileStudioHref } from '@/lib/app/mobile-studio';
 import StoryRetryFlagged from '@/components/roleplay/StoryRetryFlagged';
 import {
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { confirmRoleplayUndoScene, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { remixDayFilmHref } from '@/lib/play/starter';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 
 type ViewModel = ReturnType<typeof useMobilePlayToolOrchestration>;
 type Props = ViewModel & { description: string };

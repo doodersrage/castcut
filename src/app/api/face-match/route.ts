@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { FaceMatchNoFaceError, measureFaceMatchInComfy } from '@/lib/face-match-server';
+import { FaceMatchNoFaceError, measureFaceMatchInComfy } from '@/lib/face/match-server';
 
 export const runtime = 'nodejs';
 

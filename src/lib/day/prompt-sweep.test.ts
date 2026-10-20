@@ -61,9 +61,9 @@ import {
   vacationStanceDirective,
 } from './vacation';
 import { poseLayoutFromKey } from '../play/metrics';
-import { ALWAYS_CUED_DUO_LAYOUTS, poseLayoutCueLine, withRecipePoseCue } from '../pose-coaching';
+import { ALWAYS_CUED_DUO_LAYOUTS, poseLayoutCueLine, withRecipePoseCue } from '../pose/coaching';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
-import { auditStillPrompt } from '../still-prompt-audit';
+import { auditStillPrompt } from '../still/prompt-audit';
 
 // ── Engines ──────────────────────────────────────────────────────────────────────────────
 

@@ -3,16 +3,16 @@
 import { useMemo, useState } from 'react';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
-import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/clothing-summary';
+import { clothingSummaryLine, clothingSummaryThumbs } from '@/lib/wardrobe/clothing-summary';
 import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   buildWardrobeKitPickerDeck,
   resolveWardrobeGarmentThumbUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import {
   normalizeWardrobeCategoryFilter,
   wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import type { RoleplayToolCache } from '@/lib/play/settings';
 import type { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 

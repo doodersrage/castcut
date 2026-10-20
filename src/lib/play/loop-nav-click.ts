@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react';
 import { resolvePlayLoopNavHref } from './campaign';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 
 type NavClick = Pick<
   MouseEvent<HTMLAnchorElement>,

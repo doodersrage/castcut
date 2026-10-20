@@ -14,20 +14,20 @@ import PlayHabitNudgeBanner from '@/components/PlayHabitNudgeBanner';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   MOBILE_STUDIO_PRIMARY_TAB_IDS,
   MOBILE_STUDIO_TABS,
   mobileStudioTabFromPath,
   type MobileStudioTabId,
-} from '@/lib/mobile-studio';
+} from '@/lib/app/mobile-studio';
 import { resolvePlayLoopNavHref } from '@/lib/play/campaign';
 import { followCurrentPlayLoopHref } from '@/lib/play/loop-nav-click';
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { chooseDeskView } from '@/lib/phone-view';
-import { accentForPath } from '@/lib/tool-theme';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { chooseDeskView } from '@/lib/app/phone-view';
+import { accentForPath } from '@/lib/app/tool-theme';
 
 function deskBridgeHref(): string {
   const characterId =

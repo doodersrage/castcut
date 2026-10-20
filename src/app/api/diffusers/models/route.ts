@@ -1,4 +1,4 @@
-import { fetchDiffusersModels, getDiffusersBaseUrl } from '@/lib/diffusers-client';
+import { fetchDiffusersModels, getDiffusersBaseUrl } from '@/lib/engine/diffusers-client';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   let listed = await fetchDiffusersModels(engineUrlHint);
   if (!listed && autoStart) {
     // Dynamic import keeps spawn/fs paths out of this route's static NFT graph.
-    const { ensureDiffusersRunning } = await import('@/lib/diffusers-autostart');
+    const { ensureDiffusersRunning } = await import('@/lib/engine/diffusers-autostart');
     const ensured = await ensureDiffusersRunning({
       engineUrl: engineUrlHint,
       autoStart,

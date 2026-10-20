@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { DEFAULT_SHARED_SETTINGS, type SharedToolSettings } from '@/lib/settings-cache';
-import { changedSettings, resetSettingsPatch } from '@/lib/settings-defaults-diff';
-import { settingsSearchHref } from '@/lib/settings-search-index';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
-import type { SettingsTab } from '@/lib/settings-nav';
+import { DEFAULT_SHARED_SETTINGS, type SharedToolSettings } from '@/lib/settings/cache';
+import { changedSettings, resetSettingsPatch } from '@/lib/settings/defaults-diff';
+import { settingsSearchHref } from '@/lib/settings/search-index';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
+import type { SettingsTab } from '@/lib/settings/nav';
 
 /**
  * Settings that differ from a fresh install, grouped by area, each with a reset. With `tab`, only

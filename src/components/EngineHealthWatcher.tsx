@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { initBrowserStorage } from '@/lib/browser-storage';
-import { SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
-import { currentEngineHealthUrl } from '@/lib/engine-health-store';
+import { initBrowserStorage } from '@/lib/storage/browser-storage';
+import { SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
+import { currentEngineHealthUrl } from '@/lib/engine/health-store';
 
 /** How often to look for a changed ComfyUI URL (cheap: no request). */
 const URL_POLL_MS = 30 * 1000;
@@ -13,7 +13,7 @@ const RECHECK_MS = 10 * 60 * 1000;
 /**
  * Checks every pickable engine against ComfyUI when the app opens and again when the ComfyUI
  * URL changes, so the Engine chips can say "Missing node …" before a queue fails. See
- * lib/engine-health.
+ * lib/engine/health.
  */
 export default function EngineHealthWatcher() {
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function EngineHealthWatcher() {
     let lastUrl: string | null = null;
 
     const run = async (force: boolean) => {
-      const { checkAllEngineHealth } = await import('@/lib/engine-health-client');
+      const { checkAllEngineHealth } = await import('@/lib/engine/health-client');
       if (cancelled) return;
       await checkAllEngineHealth({ force }).catch(() => undefined);
     };

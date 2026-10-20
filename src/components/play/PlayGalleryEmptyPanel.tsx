@@ -7,7 +7,7 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 import { remixDayFilmHref, startStarterPlayFilm } from '@/lib/play/starter';
 
 import type { GalleryEmptySlotProps } from '@/components/AppSlot';

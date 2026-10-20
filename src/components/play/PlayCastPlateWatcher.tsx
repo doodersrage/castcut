@@ -15,7 +15,7 @@ export default function PlayCastPlateWatcher() {
     let cancelled = false;
     const attach = () => {
       if (cancelled || window.location.pathname.startsWith('/fitting')) return;
-      void Promise.all([import('@/lib/look/outfit-plate'), import('@/lib/settings-cache')])
+      void Promise.all([import('@/lib/look/outfit-plate'), import('@/lib/settings/cache')])
         .then(([plate, settings]) => {
           if (cancelled) return;
           plate.tryAttachPendingOutfitPlate(settings.loadSettingsCache().shared.activeCharacterId);

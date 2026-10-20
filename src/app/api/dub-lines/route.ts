@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { normalizeDubLanguage } from '@/lib/day/dub';
 import { translateDubLines } from '@/lib/day/dub-server';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 
 export const runtime = 'nodejs';
 

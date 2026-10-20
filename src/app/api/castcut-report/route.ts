@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { readCastcutBestOfTwoReport } from '@/lib/castcut-report-server';
+import { readCastcutBestOfTwoReport } from '@/lib/castcut/report-server';
 
 export const runtime = 'nodejs';
 

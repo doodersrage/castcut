@@ -10,8 +10,8 @@ import {
   DEFAULT_INPUT_IMAGE_4_TOKEN,
   type WorkflowPlaceholderTokens,
 } from '../comfyui/config';
-import { DEFAULT_UNET_TOKEN } from '../model-checkpoint-map';
-import { PRODUCT_OUTPUT_PREFIX } from '../brand';
+import { DEFAULT_UNET_TOKEN } from '../model/checkpoint-map';
+import { PRODUCT_OUTPUT_PREFIX } from '../app/brand';
 
 export function zImageScaffold(tokens: WorkflowPlaceholderTokens): Record<string, unknown> {
   return {

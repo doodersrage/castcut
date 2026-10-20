@@ -4,14 +4,14 @@ import {
   normalizePoseLookChoice,
   normalizeScenePoseSpec,
 } from '@/lib/day/pose-guide';
-import { normalizeSpokenLine, normalizeSpokenLineTone } from '../ltx25-renderer';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
-import { getCharacter, type CharacterRecord } from '../character-os';
+import { normalizeSpokenLine, normalizeSpokenLineTone } from '../video/ltx25-renderer';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
+import { getCharacter, type CharacterRecord } from '../character/os';
 import { castBibleLook } from '../play/cast';
 import { upsertCharacterFromRoleplaySession } from '../play/cast';
 import { withRoleplayLookPlateFromCast } from '../fitting/room';
 import { resolvePlayLoopEntryCharacterId } from '../play/campaign';
-import { loadToolSettings } from '../settings-cache';
+import { loadToolSettings } from '../settings/cache';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE, type RoleplayToolCache } from '../play/settings';
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
@@ -33,7 +33,7 @@ import {
   type RoleplayBio,
   type RoleplayStoryBeat,
 } from './roleplay';
-import { normalizeStillPromptCheck } from '../still-prompt-audit';
+import { normalizeStillPromptCheck } from '../still/prompt-audit';
 import { guardStoryForSession } from './session-guard';
 export const ROLEPLAY_LIBRARY_KEY = 'comfy-prompt-roleplay-library-v1';
 export const ROLEPLAY_LIBRARY_UPDATED_EVENT = 'roleplay-library-updated';

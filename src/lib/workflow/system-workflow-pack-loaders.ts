@@ -1,12 +1,12 @@
 import type { ComfyImageModel } from '../comfy-models/client';
-import { isFluxKleinModel } from '../model-denoise-defaults';
+import { isFluxKleinModel } from '../model/denoise-defaults';
 import { isFluxKlein9BVariant } from './scaffold-flux';
 import type { ComfyUiModelLists } from '../comfyui/object-info';
 import {
   matchInventoryFilename,
   matchInventoryFilenameNearMiss,
 } from './loader-map-inventory-sync';
-import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model-checkpoint-map';
+import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '../model/checkpoint-map';
 import { isLightningDistilledModel } from './model-sampling-patch';
 import {
   isLoraLoaderClassType,

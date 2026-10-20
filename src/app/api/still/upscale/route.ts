@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { MissingModelsError } from '@/lib/heavy-graph-server';
-import { StillAlreadyLargeError, upscaleStill } from '@/lib/still-upscale-server';
+import { MissingModelsError } from '@/lib/server/heavy-graph-server';
+import { StillAlreadyLargeError, upscaleStill } from '@/lib/still/upscale-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 920;

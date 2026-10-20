@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/Button';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import { auditWorkflowNodeTypes } from '@/lib/workflow/node-type-audit';
 import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
-import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings-cache';
-import { resolveWorkflowForModelSelection } from '@/lib/model-workflow-map';
+import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
+import { resolveWorkflowForModelSelection } from '@/lib/model/workflow-map';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { PackImportResult } from '@/lib/workflow/pack-import';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { resolveQueueFailureHref } from '@/lib/queue-failure-playbook';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { resolveQueueFailureHref } from '@/lib/queue/failure-playbook';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 
 type MediaKind = 'audio' | 'mesh' | 'video' | 'controlnet';
 

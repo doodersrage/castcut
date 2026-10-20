@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
-import { acceptedRequestOrigins, isTrustedOriginHost } from '@/lib/same-origin-host';
+import { acceptedRequestOrigins, isTrustedOriginHost } from '@/lib/server/same-origin-host';
 import type { NextRequest } from 'next/server';
 import {
   checkRateLimit,
   isHighVolumeMediaRoute,
   mediaRateLimitMax,
   rateLimitClientKey,
-} from '@/lib/api-rate-limit';
+} from '@/lib/server/api-rate-limit';
 import { resolveUserIdFromApiKey } from '@/lib/auth/api-keys';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, listGroups } from '@/lib/auth/store';
-import { checkUserRateLimit } from '@/lib/user-quotas';
-import { logApiUsage } from '@/lib/api-usage-log';
+import { checkUserRateLimit } from '@/lib/user/quotas';
+import { logApiUsage } from '@/lib/server/api-usage-log';
 import { authorizeAppRequest } from '@/lib/auth/access';
-import { phoneViewRedirect, VIEW_COOKIE } from '@/lib/phone-view';
+import { phoneViewRedirect, VIEW_COOKIE } from '@/lib/app/phone-view';
 
 function timingSafeEqualString(left: string, right: string): boolean {
   if (left.length !== right.length) {
@@ -205,7 +205,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // A phone opening a desk page gets the phone app, unless it picked Desk (lib/phone-view.ts).
+  // A phone opening a desk page gets the phone app, unless it picked Desk (lib/app/phone-view.ts).
   if (!isApiRoute && (request.method === 'GET' || request.method === 'HEAD')) {
     const phonePath = phoneViewRedirect({
       pathname: path,

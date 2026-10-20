@@ -9,7 +9,7 @@ import {
 import {
   normalizeModelSamplerPresetTier,
   type ModelSamplerPresetTier,
-} from '../model-sampler-defaults';
+} from '../model/sampler-defaults';
 
 export const MODEL_SAMPLING_SHIFT_NODE_TYPES = [
   'ModelSamplingAuraFlow',

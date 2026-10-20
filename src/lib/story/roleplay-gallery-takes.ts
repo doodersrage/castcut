@@ -11,8 +11,8 @@ import {
   MAX_ROLEPLAY_STILL_TAKES,
   MAX_ROLEPLAY_CLIP_TAKES,
 } from './roleplay';
-import { betterTakeIndex, type TakeThresholds } from '../take-scoring';
-import { REALISM_COMPUTER_MADE_AT_OR_BELOW } from '../still-realism';
+import { betterTakeIndex, type TakeThresholds } from '../queue/take-scoring';
+import { REALISM_COMPUTER_MADE_AT_OR_BELOW } from '../still/realism';
 
 export type RoleplayGalleryStill = {
   promptId: string;

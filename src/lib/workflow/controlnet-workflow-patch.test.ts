@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   DEFAULT_CONTROLNET_MODEL_TOKEN,
   DEFAULT_CONTROL_IMAGE_TOKEN,
-} from "../model-controlnet-map";
+} from "../model/controlnet-map";
 import {
   findUnresolvedControlNetTokens,
   insertControlNetChainIfMissing,

@@ -13,8 +13,8 @@ import type { ComfyUiModelLists } from '../comfyui/object-info';
 import { readCachedComfyObjectInfoModels } from '../comfyui/object-info-cache';
 import { resolveSelectedWorkflowRuntime } from '../comfyui/runtime';
 import type { ComfyWorkflowFile } from '../comfyui/workflow-files';
-import { pickVideoCheckpointFromInventory } from '../ensure-video-workflow';
-import { resolveWorkflowForModel } from '../model-workflow-map';
+import { pickVideoCheckpointFromInventory } from '../video/ensure-video-workflow';
+import { resolveWorkflowForModel } from '../model/workflow-map';
 import {
   syncLoaderMapsFromInventory,
   matchInventoryFilename,
@@ -26,7 +26,7 @@ import {
   qwenDualClipFilename,
   qwenUnetFamiliesCompatible,
   type LoaderPrecisionTier,
-} from '../model-loader-precision';
+} from '../model/loader-precision';
 import {
   isVaeFilenameIncompatibleWithModel,
   SUGGESTED_MODEL_CHECKPOINT_MAP,
@@ -35,7 +35,7 @@ import {
   resolveLoaderFilenamesForModel,
   type ModelCheckpointMap,
   type ModelVaeMap,
-} from '../model-checkpoint-map';
+} from '../model/checkpoint-map';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
   isKleinBaseModel,
@@ -43,7 +43,7 @@ import {
   isLightningModelId,
   normalizeModelSamplerPresetTier,
   resolveModelSamplerParams,
-} from '../model-sampler-defaults';
+} from '../model/sampler-defaults';
 import {
   isEditCapableModel,
   isEditQueueTool,
@@ -53,7 +53,7 @@ import {
   isZImageImg2imgQueueTool,
   isBooguEditModel,
   isBooguImageModel,
-} from '../model-denoise-defaults';
+} from '../model/denoise-defaults';
 import { maybeRewriteRapidAioWorkflowLoaders } from './rapid-aio-checkpoint';
 import { isLightningDistilledModel, resolveModelSamplingParams } from './model-sampling-patch';
 import {
@@ -62,14 +62,14 @@ import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
   resolveModelResolutionParams,
-} from '../model-resolution-defaults';
+} from '../model/resolution-defaults';
 import {
   normalizeQueueQualityProfile,
   resolveEffectiveResolutionSizeTier,
   resolveEffectiveSamplerPreset,
-} from '../queue-quality-profile';
-import type { SharedToolSettings } from '../settings-cache';
-import { DEFAULT_VIDEO_TOOL_CACHE, loadSettingsCache, loadToolSettings } from '../settings-cache';
+} from '../queue/quality-profile';
+import type { SharedToolSettings } from '../settings/cache';
+import { DEFAULT_VIDEO_TOOL_CACHE, loadSettingsCache, loadToolSettings } from '../settings/cache';
 import {
   formatPackLoaderMisses,
   inspectPackLoadersInInventory,

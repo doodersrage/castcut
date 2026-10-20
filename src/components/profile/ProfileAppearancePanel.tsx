@@ -1,16 +1,16 @@
 'use client';
 
-import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
+import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
 import { useEffect, useState } from 'react';
-import type { AmbientIntensity } from '@/lib/ambient-settings';
-import { loadAmbientIntensity, saveAmbientIntensity } from '@/lib/ambient-settings';
-import { applyCalmUi, loadCalmUi, saveCalmUi } from '@/lib/calm-settings';
-import type { UiDensity } from '@/lib/density-settings';
-import { loadUiDensity, saveUiDensity } from '@/lib/density-settings';
-import { loadToastPreferenceEnabled, rememberToastPreference } from '@/lib/app-toast';
-import { resetUiChrome } from '@/lib/reset-ui-chrome';
-import { pushAppToast } from '@/lib/app-toast';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { AmbientIntensity } from '@/lib/settings/ambient-settings';
+import { loadAmbientIntensity, saveAmbientIntensity } from '@/lib/settings/ambient-settings';
+import { applyCalmUi, loadCalmUi, saveCalmUi } from '@/lib/settings/calm-settings';
+import type { UiDensity } from '@/lib/settings/density-settings';
+import { loadUiDensity, saveUiDensity } from '@/lib/settings/density-settings';
+import { loadToastPreferenceEnabled, rememberToastPreference } from '@/lib/app/toast';
+import { resetUiChrome } from '@/lib/app/reset-ui-chrome';
+import { pushAppToast } from '@/lib/app/toast';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import ThemePreferenceControl from '@/components/ThemePreferenceControl';

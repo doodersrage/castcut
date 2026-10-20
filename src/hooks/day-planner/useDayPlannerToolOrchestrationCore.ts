@@ -13,7 +13,7 @@ import { castMarksLine } from '@/lib/cast/marks';
 import { recordCastOutfitWorn } from '@/lib/cast/wardrobe';
 import { castRelationOf, relationAllowsRomance } from '@/lib/cast/relationships';
 import { castPropsLine } from '@/lib/cast/props';
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
 import {
@@ -32,16 +32,16 @@ import {
   withNudeDuoLeadBodyLine,
   withNudeBodyPlateLine,
 } from '@/lib/day/still-prompt';
-import { isFaceDownNudeSolo } from '@/lib/face-down-solo';
-import { dayMoodNeedsAdultSafeguards } from '@/lib/adult-appearance-gate';
-import { isAdultContentPrompt } from '@/lib/adult-age-safeguard';
+import { isFaceDownNudeSolo } from '@/lib/pose/face-down-solo';
+import { dayMoodNeedsAdultSafeguards } from '@/lib/adult/adult-appearance-gate';
+import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
 import {
   repairStillPrompt,
   stillPromptCheckRecord,
   stillPromptIssuesLine,
-} from '@/lib/still-prompt-audit';
-import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
-import { installedComfyModels } from '@/lib/model-picker';
+} from '@/lib/still/prompt-audit';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
+import { installedComfyModels } from '@/lib/model/picker';
 import {
   fetchComfyObjectInfoModelsCached,
   fetchComfyObjectInfoNodeTypesCached,
@@ -52,7 +52,7 @@ import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-prof
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { applyDayPremiseBeats, requestDayPremiseBeats } from '@/lib/day/premise';
 import { dayScriptSlots, type DayScript } from '@/lib/day/script-import';
 import {
@@ -68,17 +68,17 @@ import {
   requestDayEventPlan,
   slotsForWholeDay,
 } from '@/lib/day/event';
-import { SAME_SHOT_MAX_DIFF } from '@/lib/image-similarity';
-import { pictureGreyDifference } from '@/lib/image-similarity-client';
+import { SAME_SHOT_MAX_DIFF } from '@/lib/search/image-similarity';
+import { pictureGreyDifference } from '@/lib/search/image-similarity-client';
 import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day/end-pose';
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
 import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/play/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day/thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/workspace-mode';
+import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { parseCharacterHints } from '@/lib/character-hints';
+import { parseCharacterHints } from '@/lib/character/hints';
 import {
   assembleAndStampFilm,
   downloadFilmBlob,
@@ -99,15 +99,15 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
   upsertCharacter,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
-import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
+import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
 import {
   fetchClothingLabels,
   fetchClothingSelectOptions,
   getCachedClothingLabel,
   humanizeClothingId,
-} from '@/lib/clothing-catalog-client';
+} from '@/lib/wardrobe/clothing-catalog-client';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -115,7 +115,7 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
-import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue-tool-model';
+import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue/tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import {
   STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP,
@@ -174,12 +174,12 @@ import {
 } from '@/lib/day/plate';
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day/nude-face-crop';
 import { withThirdPerson, type DayThirdPerson } from '@/lib/day/group';
-import { comfyInputViewUrl } from '@/lib/face-match-client';
+import { comfyInputViewUrl } from '@/lib/face/match-client';
 import {
   checkReferenceImage,
   checkStillReferences,
   referenceViewUrl,
-} from '@/lib/reference-check-client';
+} from '@/lib/checks/reference-check-client';
 import {
   dayMoodWantsAutoKit,
   pickDayAutoKit,
@@ -193,35 +193,35 @@ import {
 } from '@/lib/day/vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
 import { buildDayPoseGuide, isPenetrationLayout } from '@/lib/day/pose-guide';
-import { customPoseWords } from '@/lib/pose-describe';
+import { customPoseWords } from '@/lib/pose/describe';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day/two-takes';
-import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut-nodes';
+import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut/nodes';
 import {
   dayClothedGuideContradictsBeat,
   daySlotPoseLayout,
   planDaySlotPose,
   plannedDaySlotPoseKey,
 } from '@/lib/day/slot-pose';
-import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose-outcome-stats';
+import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose/outcome-stats';
 import { pickPoseEngine, pinnedEngineModel } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
   type FilmCutOptionsValue,
 } from '@/components/FilmCutOptionsControls';
-import { probeImageUrlDimensions } from '@/lib/browser-image-dimensions';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { probeImageUrlDimensions } from '@/lib/storage/browser-image-dimensions';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { dayThemeOf } from '@/lib/day/themes';
 import { normalizeDayWeather } from '@/lib/day/weather';
 import { dayGarmentPromptName, dayOutfitPromptName } from '@/lib/day/clothed-lead';
-import { footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
+import { footwearIsBarefoot, normalizeFootwear } from '@/lib/wardrobe/footwear';
 import {
   buildFootwearReferenceImage,
   footwearImageSuitsModel,
   hasFootwearImage,
-} from '@/lib/footwear-image';
-import { formatWardrobeKitLabel } from '@/lib/wardrobe-kit-picker';
+} from '@/lib/wardrobe/footwear-image';
+import { formatWardrobeKitLabel } from '@/lib/wardrobe/kit-picker';
 import {
   renderDayPartnerStandIn,
   uploadDayPartnerVlFace,
@@ -235,25 +235,28 @@ import {
   toDayPartner,
   type DayPartner,
 } from '@/lib/day/partner';
-import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose-library';
-import { isOpenPoseStyle } from '@/lib/pose-guide-prompt';
-import type { PoseLeadPosition } from '@/lib/pose-guide-openpose';
-import type { PoseGuideStylePreference } from '@/lib/pose-guide-prompt';
-import { loadPoseGuideStylePreference } from '@/lib/render-realism-settings';
-import { readsPoseGuideImage } from '@/lib/model-denoise-defaults';
+import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose/library';
+import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
+import type { PoseLeadPosition } from '@/lib/pose/guide-openpose';
+import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
+import { loadPoseGuideStylePreference } from '@/lib/engine/render-realism-settings';
+import { readsPoseGuideImage } from '@/lib/model/denoise-defaults';
 import { kleinSpoonRecipeApplies } from '@/lib/play/klein-duo-recipe';
-import { shouldAppendKleinFaceReference } from '@/lib/klein-face-reference';
+import { shouldAppendKleinFaceReference } from '@/lib/engine/klein-face-reference';
 import {
   poseGuideFailureReason,
   recordPoseGuideOutcome,
   poseGuidePreviews,
   summarizePoseGuideOutcomes,
   type PoseGuideOutcome,
-} from '@/lib/pose-guide-status';
+} from '@/lib/pose/guide-status';
 import { useDayPlateIsolate } from '@/hooks/day-planner/useDayPlateIsolate';
-import { collectIsolateSourceUrls, ISOLATE_QUEUE_BLOCKED_MESSAGE } from '@/lib/isolate-subject';
+import {
+  collectIsolateSourceUrls,
+  ISOLATE_QUEUE_BLOCKED_MESSAGE,
+} from '@/lib/edit/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import {
   DRESS_PLATE_SHOE_PASS_STATUS,
   dayDressPlateStatus,
@@ -281,8 +284,8 @@ import {
   dayStillWantsDressPlate,
 } from '@/lib/day/still-plan';
 import type { DayPlate } from '@/lib/day/plate';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face-locate';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face/locate';
 
 /**
  * The face crop fell back to the top of the plate: no face was found on it (lying down, turned
@@ -300,13 +303,13 @@ function warnNoFaceOnPlate(character: { id: string } | null | undefined): void {
 import {
   loadWardrobeGarmentThumbManifest,
   resolveWardrobeGarmentThumbQueueUrl,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   countWardrobeOptionsForFilter,
   filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe-catalog-ui';
+} from '@/lib/wardrobe/catalog-ui';
 import {
   applyLookPackToDaySlots,
   loadLookPack,
@@ -332,17 +335,17 @@ import {
   rerollProneLayouts,
   weakPoseLayouts,
 } from '@/lib/play/metrics';
-import { getReformatTargetModel } from '@/lib/reformat-target';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const TOOL_ID = 'day' as const;

@@ -1,10 +1,10 @@
 'use client';
 
-import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings/push-flush';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { isPlayStoryLocked } from '@/lib/play/step-machine';
 
-import { loadLocalObservability } from '@/lib/local-observability';
+import { loadLocalObservability } from '@/lib/server/local-observability';
 import { loadLookPack } from '@/lib/look/pack';
 import { playEffectiveProgressLabel } from '@/lib/play/campaign';
 import Link from 'next/link';
@@ -19,18 +19,18 @@ import PlayContinueChip from '@/components/PlayContinueChip';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
 import { useBottomDockRef } from '@/hooks/useBottomDockRef';
 import { featureForPath } from '@/lib/auth/features';
-import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app-nav-catalog';
-import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/workspace-mode';
+import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app/nav-catalog';
+import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import { galleryNavHref } from '@/lib/gallery/session-state';
-import { accentForPath } from '@/lib/tool-theme';
+import { accentForPath } from '@/lib/app/tool-theme';
 import {
   loadActivePlayCampaign,
   playCampaignProgressLabel,
   PLAY_CAMPAIGN_UPDATED_EVENT,
 } from '@/lib/play/campaign';
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { choosePhoneView } from '@/lib/phone-view';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { choosePhoneView } from '@/lib/app/phone-view';
 
 type KioskTab = {
   href: string;
@@ -245,7 +245,7 @@ export default function PlayKioskShell() {
                 >
                   Profile
                 </Link>
-                {/* The way back after Desk on a phone (lib/phone-view.ts). */}
+                {/* The way back after Desk on a phone (lib/app/phone-view.ts). */}
                 <Link
                   href="/m/film"
                   role="menuitem"

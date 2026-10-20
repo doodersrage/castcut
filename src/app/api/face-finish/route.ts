@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLeadFaceProbe } from '@/lib/face-finish';
-import { planFaceFinishInComfy, runFaceFinishInComfy } from '@/lib/face-finish-server';
+import { parseLeadFaceProbe } from '@/lib/face/finish';
+import { planFaceFinishInComfy, runFaceFinishInComfy } from '@/lib/face/finish-server';
 
 export const runtime = 'nodejs';
 

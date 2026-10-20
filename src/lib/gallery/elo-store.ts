@@ -1,4 +1,4 @@
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import type { EloEntry } from './elo';
 
 export const GALLERY_ELO_KEY = 'comfy-gallery-elo-v1';

@@ -1,5 +1,5 @@
 import type { StatusToastNote } from '@/components/ui/StatusToastStrip';
-import { PINNED_VARIATION_SEED_LABEL } from '@/lib/tool-ui-labels';
+import { PINNED_VARIATION_SEED_LABEL } from '@/lib/app/tool-ui-labels';
 
 export function buildEnhancedPromptStatusNotes({
   pipelineStatus,

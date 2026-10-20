@@ -7,14 +7,14 @@ import RoleplayBibleEditor from '@/components/RoleplayBibleEditor';
 import { Button } from '@/components/ui/Button';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
-import { isRolledAppearanceDescriptor } from '@/lib/character-appearance';
-import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { isRolledAppearanceDescriptor } from '@/lib/character/appearance';
+import { resolveLocalImageFile, scanStillWithVision } from '@/lib/vision/still-scan-client';
 import {
   activeLook,
   getCharacter,
   upsertCharacter,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { saveCharacterBio } from '@/lib/play/cast';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { FieldLabel, SelectInput } from '@/components/ui/Field';
@@ -31,7 +31,7 @@ import {
   normalizeRoleplayTone,
   type RoleplayBio,
 } from '@/lib/story/roleplay';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const ACCENT = 'sky' as const;

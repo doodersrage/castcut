@@ -17,9 +17,9 @@ import {
   castcutInputDelete,
   castcutRoutes,
   type CastcutInputDeleteResult,
-} from '../castcut-routes-server';
+} from '../castcut/routes-server';
 import { forgetKnownComfyInputs } from './comfy-input-upload-server';
-import { isServerStorageEnabled } from '../server-storage';
+import { isServerStorageEnabled } from '../storage/server-storage';
 
 /**
  * Settings → ComfyUI → Input folder: a report of the app-made files in ComfyUI's input folder

@@ -23,8 +23,8 @@ import {
 } from '../comfyui/config';
 import { optimizeWorkflowForQueue } from './queue-optimizer';
 import { inferModelsFromWorkflowLabel } from './category-defaults';
-import { loadSettingsCache } from '../settings-cache';
-import { normalizeQueueQualityProfile, type QueueQualityProfile } from '../queue-quality-profile';
+import { loadSettingsCache } from '../settings/cache';
+import { normalizeQueueQualityProfile, type QueueQualityProfile } from '../queue/quality-profile';
 
 export type WorkflowImportResult = {
   ok: boolean;

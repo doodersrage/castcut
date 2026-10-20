@@ -7,7 +7,7 @@ import {
   applyCharacterRecord,
   looksOf,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   dayAfterOutfitHandoff,
   dayHandoffKeptSlotIds,
@@ -19,7 +19,7 @@ import {
 } from '@/lib/day/outfit-scope';
 import type { DaySlot, DaySlotId } from '@/lib/day/planner';
 import { outfitPicks } from '@/lib/fitting/outfit-handoff';
-import { loadToolSettings, type SharedToolSettings } from '@/lib/settings-cache';
+import { loadToolSettings, type SharedToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE, type DayToolCache } from '@/lib/play/settings';
 
 /**

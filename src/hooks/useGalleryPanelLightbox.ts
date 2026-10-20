@@ -30,9 +30,9 @@ import {
   type GallerySlideshowTransition,
 } from '@/lib/gallery/comfyui-gallery';
 import { pageForGalleryEntryWithGroups } from '@/lib/gallery/display-rows';
-import type { ExperimentGroup } from '@/lib/experiment-groups';
+import type { ExperimentGroup } from '@/lib/experiment/groups';
 import { prefetchGalleryImageUrl } from '@/lib/gallery/image-prefetch';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type UseGalleryPanelLightboxOptions = {
   sortedSource: ComfyGalleryEntry[];

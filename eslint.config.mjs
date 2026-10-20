@@ -64,7 +64,7 @@ const eslintConfig = defineConfig([
                 'Server-only value import. Use /api/comfyui/history/workflow (type-only imports OK).',
             },
             {
-              name: '@/lib/export-encryption',
+              name: '@/lib/storage/export-encryption',
               message: 'Server-only encryption helpers.',
             },
             {

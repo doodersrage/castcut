@@ -10,7 +10,7 @@ import FilmCutOptionsControls, {
   DEFAULT_FILM_CUT_OPTIONS,
 } from '@/components/FilmCutOptionsControls';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
-import { filmResolutionForCutOptions } from '@/lib/video-resolution';
+import { filmResolutionForCutOptions } from '@/lib/video/resolution';
 import {
   castEpisodeSources,
   episodeCutShots,
@@ -28,7 +28,7 @@ import {
   loadSettingsCache,
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 function readSources(characterId: string): CastEpisodeSources {

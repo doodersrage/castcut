@@ -1,16 +1,16 @@
 'use client';
 
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 import {
   dayNudeNeedsAutoFaceCrop,
   resolveDayCastPlate,
   resolveDayFaceOnlyPlate,
   type DayPlate,
 } from '@/lib/day/plate';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/isolate-subject';
+import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
 import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { checkReferenceImage } from '@/lib/reference-check-client';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { checkReferenceImage } from '@/lib/checks/reference-check-client';
 
 /**
  * Resolve Image 1 for nude Day: distinct Cast face when present, else a

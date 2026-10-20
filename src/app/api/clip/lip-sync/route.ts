@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { lipSyncStill } from '@/lib/lip-sync-server';
+import { lipSyncStill } from '@/lib/audio/lip-sync-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 1900;

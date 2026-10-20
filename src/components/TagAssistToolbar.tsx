@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { applyTagAssistToSelection } from '@/lib/tag-assist';
+import { applyTagAssistToSelection } from '@/lib/prompt/tag-assist';
 
 type TagAssistToolbarProps = {
   value: string;

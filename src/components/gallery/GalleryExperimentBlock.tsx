@@ -5,7 +5,7 @@ import { useMemo, type ReactNode } from 'react';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { formatExperimentParamDiffChips } from '@/lib/gallery/param-diff';
 import { filmRunMisses } from '@/lib/gallery/queue-runs';
-import { loadCharacters } from '@/lib/character-os';
+import { loadCharacters } from '@/lib/character/os';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import GalleryExperimentCardGrid from '@/components/gallery/GalleryExperimentCardGrid';
 

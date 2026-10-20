@@ -1,26 +1,26 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
-import { resolveModelForQueueTool } from '@/lib/queue-tool-model';
-import { guardQueueQualityForVram } from '@/lib/vram-queue-guard';
-import { injectLoraTriggers } from '@/lib/lora-prompt-injection';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
+import { resolveModelForQueueTool } from '@/lib/queue/tool-model';
+import { guardQueueQualityForVram } from '@/lib/queue/vram-queue-guard';
+import { injectLoraTriggers } from '@/lib/lora/prompt-injection';
 import {
   loadComfyUiSettings,
   resolveSharedEffectiveSessionLoraIds,
   resolveSharedEffectiveSessionLoraStrengthOverrides,
 } from '@/lib/comfyui/settings';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { getEngineAdapter } from '@/lib/engine';
 import { isCloudEngine } from '@/lib/engine/capabilities';
-import { modelUsesNegativePrompt } from '@/lib/prompt-pair';
-import { resolveQueueNegativePromptRaw } from '@/lib/queue-negative';
-import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
-import { toastHeldMax, toastQueueOutcome } from '@/lib/app-toast';
-import { applyQueuePromptSteering } from '@/lib/queue-prompt-prep';
-import { dispatchWebhook } from '@/lib/webhook-settings';
-import { resolveQueueFailureHref, resolveQueueFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { modelUsesNegativePrompt } from '@/lib/prompt/pair';
+import { resolveQueueNegativePromptRaw } from '@/lib/queue/negative';
+import { resolveParentHistoryId } from '@/lib/prompt/lineage-session';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
+import { toastHeldMax, toastQueueOutcome } from '@/lib/app/toast';
+import { applyQueuePromptSteering } from '@/lib/queue/prompt-prep';
+import { dispatchWebhook } from '@/lib/settings/webhook-settings';
+import { resolveQueueFailureHref, resolveQueueFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type { ComfyUiDeps, ComfyUiTrackerApi } from '@/hooks/prompt-result/comfy-ui-types';
 import type { PromptResultActionsConfig } from '@/hooks/prompt-result/types';
 
@@ -93,7 +93,7 @@ export function usePromptResultComfyUiBatchQueue(
 
         if (vramGuard.profile === 'max') {
           const { holdMaxGenerateJob, shouldHoldMaxUntilIdle } =
-            await import('@/lib/held-max-queue');
+            await import('@/lib/queue/held-max-queue');
           if (await shouldHoldMaxUntilIdle()) {
             for (const [index, prompt] of prepared.entries()) {
               holdMaxGenerateJob({
@@ -234,7 +234,7 @@ export function usePromptResultComfyUiBatchQueue(
           );
           if (data.failed) {
             const batchMessage = `Batch queued with ${data.failed} failure(s)`;
-            void import('@/lib/local-observability').then(({ noteQueueFailureMetric }) => {
+            void import('@/lib/server/local-observability').then(({ noteQueueFailureMetric }) => {
               noteQueueFailureMetric({ message: batchMessage, href: '/queue' });
             });
           }
@@ -255,7 +255,7 @@ export function usePromptResultComfyUiBatchQueue(
           err instanceof Error ? (err as Error & { href?: string }).href : undefined;
         setComfyUiStatus(message);
         const href = hrefFromError || resolveQueueFailureHref(message) || '/queue';
-        void import('@/lib/local-observability').then(({ noteQueueFailureMetric }) => {
+        void import('@/lib/server/local-observability').then(({ noteQueueFailureMetric }) => {
           noteQueueFailureMetric({ message, href });
         });
         toastQueueOutcome({

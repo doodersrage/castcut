@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 
 export function useGalleryFilterQueryDraft(

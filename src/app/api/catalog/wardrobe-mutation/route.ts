@@ -1,5 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { buildCatalogAwareWardrobeMutationClause } from '@/lib/clothing-mutations';
+import { buildCatalogAwareWardrobeMutationClause } from '@/lib/wardrobe/clothing-mutations';
 
 export const runtime = 'nodejs';
 

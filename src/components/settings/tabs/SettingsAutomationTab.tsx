@@ -5,12 +5,16 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   checkEmbeddingSearchHealth,
   type EmbeddingSearchHealth,
-} from '@/lib/embedding-search-health';
-import type { WebhookSettings } from '@/lib/webhook-settings';
-import { clearWebhookLog, retryWebhookLogEntry, type WebhookLogEntry } from '@/lib/webhook-log';
-import type { ScheduledBatchConfig } from '@/lib/scheduled-batch';
-import type { ScheduledBatchServerStatus } from '@/lib/scheduled-batch-profile-sync';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+} from '@/lib/search/embedding-search-health';
+import type { WebhookSettings } from '@/lib/settings/webhook-settings';
+import {
+  clearWebhookLog,
+  retryWebhookLogEntry,
+  type WebhookLogEntry,
+} from '@/lib/server/webhook-log';
+import type { ScheduledBatchConfig } from '@/lib/batch/scheduled-batch';
+import type { ScheduledBatchServerStatus } from '@/lib/batch/scheduled-batch-profile-sync';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +22,7 @@ import UserScheduledCampaignSection from '@/components/settings/UserScheduledCam
 import WebhookSettingsPanel from '@/components/settings/panels/WebhookSettingsPanel';
 import AvoidedTokensPanel from '@/components/settings/panels/AvoidedTokensPanel';
 import ScheduledBatchPanel from '@/components/settings/panels/ScheduledBatchPanel';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 export type SettingsAutomationTabProps = {
   webhookSettings: WebhookSettings;

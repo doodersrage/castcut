@@ -1,5 +1,5 @@
 import { generateBackgroundPrompt } from '@/lib/specialized/background-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,
@@ -8,7 +8,7 @@ import {
 import {
   normalizeBackgroundPresetOptions,
   type BackgroundPresetOptions,
-} from '@/lib/background-options';
+} from '@/lib/scene/background-options';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

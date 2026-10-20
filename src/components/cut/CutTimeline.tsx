@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import CutSoundLane from '@/components/cut/CutSoundLane';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/film/character-film';
-import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/cut-timeline';
+import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/video/cut-timeline';
 import {
   MIN_CLIP_TRIM_SEC,
   moveCutShotBefore,

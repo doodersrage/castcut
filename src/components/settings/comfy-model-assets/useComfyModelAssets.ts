@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
-import { celebrateSystemTray } from '@/lib/system-tray-celebrate';
+import { celebrateSystemTray } from '@/lib/app/system-tray-celebrate';
 import { COMFY_ASSET_KIND_ORDER, type ComfyAssetKind } from '@/lib/comfyui/comfy-asset-kinds';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import type {

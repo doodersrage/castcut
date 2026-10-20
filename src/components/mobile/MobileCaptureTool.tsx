@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
 import {
   getCharacter,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { Button, PrimaryButton } from '@/components/ui/Button';
 import { FieldError, TextInput } from '@/components/ui/Field';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -17,7 +17,7 @@ import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { persistOwnedPlateImage } from '@/lib/gallery/media-client';
 import { saveGalleryHandoff } from '@/lib/gallery/handoff';
-import { isolateSubjectOnWhite } from '@/lib/isolate-subject';
+import { isolateSubjectOnWhite } from '@/lib/edit/isolate-subject';
 import {
   fittingPatchFromPlate,
   newCharacterPlateId,
@@ -25,14 +25,14 @@ import {
   toMobileStudioHref,
   upsertCharacterPlate,
   type CharacterPlate,
-} from '@/lib/mobile-studio';
+} from '@/lib/app/mobile-studio';
 import { startStarterPlayFilm } from '@/lib/play/starter';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import {
   DEFAULT_MOBILE_STUDIO_TOOL_CACHE,
   loadToolSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 export default function MobileCaptureTool() {

@@ -1,4 +1,4 @@
-import { appOffersRoute } from '@/lib/app-profile';
+import { appOffersRoute } from '@/lib/app/profile';
 export function GalleryMenuGroup({
   label,
   children,

@@ -1,7 +1,11 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { galleryEntryViewUrls } from './comfyui-gallery';
-import { brandedHtmlDocument, brandedHtmlSection, escapeBrandedHtml } from '../branded-html-shell';
-import { downloadTextFile } from '../history-export-formats';
+import {
+  brandedHtmlDocument,
+  brandedHtmlSection,
+  escapeBrandedHtml,
+} from '../app/branded-html-shell';
+import { downloadTextFile } from '../history/export-formats';
 
 export type CompareExportEntry = {
   id: string;

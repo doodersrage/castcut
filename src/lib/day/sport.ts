@@ -3,8 +3,8 @@
  * (when that sport typically happens).
  */
 
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
-import { getAthleticSportGuardrail, inferAthleticSport } from '@/lib/athletic-sport-profiles';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
+import { getAthleticSportGuardrail, inferAthleticSport } from '@/lib/scene/athletic-sport-profiles';
 import {
   CYCLING_DISCIPLINES,
   dayCyclingDisciplineLabel,
@@ -13,7 +13,7 @@ import {
   listSportActionPoses,
   listSportActionSettings,
   type CyclingDiscipline,
-} from '@/lib/athletic-sport-actions';
+} from '@/lib/scene/athletic-sport-actions';
 import type { DaySlotId } from '@/lib/day/planner';
 import { dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day/parts';
 

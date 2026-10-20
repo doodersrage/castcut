@@ -7,7 +7,7 @@ import type {
   EnhancedPromptResultProps,
 } from '@/components/prompt-result/enhanced-prompt-result-types';
 import { useEnhancedPromptResultState } from '@/hooks/useEnhancedPromptResultState';
-import { DEFAULT_READINESS_MIN_SCORE } from '@/lib/readiness-gate';
+import { DEFAULT_READINESS_MIN_SCORE } from '@/lib/checks/readiness-gate';
 
 export type { BatchPromptItem, BatchPromptItemActions };
 

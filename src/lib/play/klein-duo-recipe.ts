@@ -13,9 +13,9 @@
  */
 
 import { CLOTHED_SPOON_RE } from '../day/pose-guide';
-import { KLEIN_SPOON_RECIPE_MARK } from '../prompt-recipe-mark';
-import { isFluxKleinModel } from '../model-denoise-defaults';
-import { inferPoseGuidePartner } from '../pose-guide-prompt';
+import { KLEIN_SPOON_RECIPE_MARK } from '../prompt/recipe-mark';
+import { isFluxKleinModel } from '../model/denoise-defaults';
+import { inferPoseGuidePartner } from '../pose/guide-prompt';
 
 /**
  * The Klein spoon recipe applies: Klein, a clothed mood, a spoon beat, and a partner the beat

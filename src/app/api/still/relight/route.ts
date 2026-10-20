@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { RELIGHT_LOOKS } from '@/lib/relight';
-import { relightStill, RelightUnavailableError } from '@/lib/relight-server';
+import { RELIGHT_LOOKS } from '@/lib/edit/relight';
+import { relightStill, RelightUnavailableError } from '@/lib/edit/relight-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 320;

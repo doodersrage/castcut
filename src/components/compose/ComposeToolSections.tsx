@@ -1,13 +1,13 @@
 'use client';
 
-import { resolveCollabFieldValue } from '@/lib/collab-presence';
+import { resolveCollabFieldValue } from '@/lib/storage/collab-presence';
 import CollabPresenceBar from '@/components/CollabPresenceBar';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import EditToolRecipeStrip from '@/components/EditToolRecipeStrip';
 import { HistoryHintSeedPanel } from '@/components/scene-tool/HistoryHintSeedPanel';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene-hint-source';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
+import { normalizeHistorySeedScope, normalizeSceneHintSource } from '@/lib/scene/hint-source';
 import { ToolBadge, ToolLayout, accentFocusClass } from '@/components/ui/ToolPageShell';
 import type { useComposeToolOrchestration } from '@/hooks/useComposeToolOrchestration';
 import { ComposeToolFormSection } from '@/components/compose/sections/ComposeToolFormSection';

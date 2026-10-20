@@ -1,4 +1,4 @@
-import { checkForAppUpdate } from '@/lib/app-version';
+import { checkForAppUpdate } from '@/lib/app/version';
 import { apiJson } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

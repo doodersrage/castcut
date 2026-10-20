@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { welcomeSampleFilmShots, buildDemoDayStills } from '../film/welcome-sample-film';
-import { summarizePlayFunnel, type LocalObservabilityCounters } from '../local-observability';
+import { summarizePlayFunnel, type LocalObservabilityCounters } from '../server/local-observability';
 
 describe('welcome sample + funnel drop-off', () => {
   it('builds a mute sample Day reel clip', () => {

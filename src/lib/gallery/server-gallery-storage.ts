@@ -12,7 +12,7 @@ export async function appendServerGalleryEntries(entries: ComfyGalleryEntry[]): 
   if (entries.length === 0) {
     return;
   }
-  const { isServerStorageEnabled } = await import('../server-storage');
+  const { isServerStorageEnabled } = await import('../storage/server-storage');
   if (!isServerStorageEnabled()) {
     return;
   }
@@ -24,7 +24,7 @@ export async function removeServerGalleryEntriesByPromptIds(promptIds: string[])
   if (promptIds.length === 0) {
     return 0;
   }
-  const { isServerStorageEnabled } = await import('../server-storage');
+  const { isServerStorageEnabled } = await import('../storage/server-storage');
   if (!isServerStorageEnabled()) {
     return 0;
   }

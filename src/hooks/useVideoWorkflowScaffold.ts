@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { ensureVideoWorkflowScaffold } from '@/lib/ensure-video-workflow';
+import { ensureVideoWorkflowScaffold } from '@/lib/video/ensure-video-workflow';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 type UseVideoWorkflowScaffoldOptions = {
   mounted: boolean;

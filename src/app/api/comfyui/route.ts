@@ -11,7 +11,7 @@ import {
   type WorkflowParamValues,
 } from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { resolveQueueFailureHref } from '@/lib/queue-failure-playbook';
+import { resolveQueueFailureHref } from '@/lib/queue/failure-playbook';
 import { NextResponse } from 'next/server';
 
 function apiQueueError(message: string, status: number, extra?: Record<string, unknown>) {

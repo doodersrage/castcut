@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import CollabPresenceBar from '@/components/CollabPresenceBar';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import { ToolLayout } from '@/components/ui/ToolPageShell';
 import type { useCharacterToolOrchestration } from '@/hooks/useCharacterToolOrchestration';
 import { CharacterToolFormSection } from '@/components/character/sections/CharacterToolFormSection';

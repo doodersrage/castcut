@@ -6,7 +6,7 @@ import {
   downloadAvoidedTokensExport,
   importAvoidedTokensJson,
   removeAvoidedToken,
-} from '@/lib/avoided-tokens';
+} from '@/lib/prompt/avoided-tokens';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { FieldLabel, TextArea } from '@/components/ui/Field';

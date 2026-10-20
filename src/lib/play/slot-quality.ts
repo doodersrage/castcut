@@ -11,9 +11,9 @@
  * job of the IP-Adapter / LoRA locks.
  */
 
-import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face-match';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
-import { decideRealism, REALISM_MISS_REASON } from '@/lib/still-realism';
+import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face/match';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
+import { decideRealism, REALISM_MISS_REASON } from '@/lib/still/realism';
 
 export const SLOT_REVIEW_FLAGS = [
   'extra-person',

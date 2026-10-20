@@ -1,6 +1,6 @@
 import { resolveComfyUiConfig } from './client';
-import { qwenImage21TurboCheckpointFor } from '../qwen-image-21-renderer';
-import { resolveActiveLoraStack } from '../lora-stack';
+import { qwenImage21TurboCheckpointFor } from '../engine/qwen-image-21-renderer';
+import { resolveActiveLoraStack } from '../lora/stack';
 import {
   injectPromptsWithFallbacks,
   resolveQueueInjectionContext,
@@ -13,9 +13,9 @@ import { type WorkflowPlaceholderAuditIssue } from '../workflow/placeholder-audi
 import { optimizeWorkflowForQueue } from '../workflow/queue-optimizer';
 import type { ComfyUiModelLists } from './object-info';
 import { collectWorkflowGraphPreflightIssues } from '../workflow/preflight-core';
-import { resolveUpscaleModelFilename } from '../model-upscale-map';
-import { resolveRefinerFilenameForModel } from '../model-checkpoint-map';
-import { loadSettingsCache } from '../settings-cache';
+import { resolveUpscaleModelFilename } from '../model/upscale-map';
+import { resolveRefinerFilenameForModel } from '../model/checkpoint-map';
+import { loadSettingsCache } from '../settings/cache';
 import { mergeLoraLibraryIntoCustomTokens, loadComfyUiSettings } from './settings';
 
 export type WorkflowPreviewInventory = {

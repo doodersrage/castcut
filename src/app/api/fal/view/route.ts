@@ -5,8 +5,8 @@ import {
   isAnimatedImageBytes,
   isHtmlVideoContentType,
 } from '@/lib/comfyui/outputs';
-import { ensureFalOutput } from '@/lib/fal-client';
-import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/url-safety';
+import { ensureFalOutput } from '@/lib/cloud/fal-client';
+import { sanitizeComfyViewFilename, sanitizeComfyViewSubfolder } from '@/lib/server/url-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

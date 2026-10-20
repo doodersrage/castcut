@@ -4,8 +4,8 @@ import { storyHintsWithLook } from '@/lib/story/cast-lines';
 import { withCastPlace } from '@/lib/cast/places';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
 import { useCallback, type MutableRefObject } from 'react';
-import { getCharacter } from '@/lib/character-os';
-import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
+import { getCharacter } from '@/lib/character/os';
+import { getCachedClothingLabel } from '@/lib/wardrobe/clothing-catalog-client';
 import {
   buildRoleplayRequestBody,
   resolveRoleplayWardrobeFields,
@@ -18,7 +18,7 @@ import {
   type RoleplayScene,
   type RoleplayTone,
 } from '@/lib/story/roleplay';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { RoleplayToolCache } from '@/lib/play/settings';
 
 type UseRoleplayRequestBodyOptions = {

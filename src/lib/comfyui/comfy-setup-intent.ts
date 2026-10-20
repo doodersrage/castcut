@@ -1,4 +1,4 @@
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
 const COMFY_QUEUE_INTENT_KEY = 'comfy-queue-intent-v1';
 

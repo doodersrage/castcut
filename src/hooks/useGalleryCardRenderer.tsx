@@ -12,7 +12,7 @@ import {
   type GalleryLayoutMode,
 } from '@/lib/gallery/comfyui-gallery';
 import { galleryPickActionLabel, type GalleryHandoffPayload } from '@/lib/gallery/handoff';
-import { suggestRatingMutations } from '@/lib/rating-prompt-mutations';
+import { suggestRatingMutations } from '@/lib/prompt/rating-prompt-mutations';
 import type { MutableRefObject } from 'react';
 
 export type UseGalleryCardRendererOptions = {

@@ -1,10 +1,10 @@
-import { resolveVisionModel } from '@/lib/vision-model-auto';
-import { chatCompletion, visionCompletion } from '../llm-client';
+import { resolveVisionModel } from '@/lib/vision/model-auto';
+import { chatCompletion, visionCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   type LlmRequestOptions,
-} from '../llm-request-options';
+} from '../llm/request-options';
 import {
   buildSlotReviewPrompt,
   DUO_ANATOMY_PROBE_PROMPT,

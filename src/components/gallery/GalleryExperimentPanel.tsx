@@ -2,9 +2,9 @@
 
 import { memo, type ReactNode } from 'react';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
+import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
 import GallerySelectionBar from '@/components/gallery/GallerySelectionBar';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { PromptProject } from '@/lib/prompt/projects';
 
 export type GalleryExperimentPanelProps = {
   selectedCount: number;

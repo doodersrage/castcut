@@ -10,8 +10,8 @@ import {
   NOTIFICATIONS_UPDATED,
   unreadNotificationCount,
   type AppNotification,
-} from '@/lib/notification-center';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/app/notification-center';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);

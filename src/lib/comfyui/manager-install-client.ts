@@ -265,12 +265,12 @@ export async function listHealComfyUrls(
 ): Promise<string[]> {
   const { collectComfyPoolUrls } = await import('./host-ready');
   const { loadComfyUiSettings } = await import('./settings');
-  const { loadSettingsCache } = await import('../settings-cache');
+  const { loadSettingsCache } = await import('../settings/cache');
   const settings = loadComfyUiSettings();
   const extras = loadSettingsCache().shared.comfyPoolUrls ?? [];
   const fromHealth = knownPoolUrls
     ? knownPoolUrls
-    : await (await import('../oom-retry')).fetchComfyUiPoolUrlsForRetry();
+    : await (await import('../queue/oom-retry')).fetchComfyUiPoolUrlsForRetry();
   return collectComfyPoolUrls({
     primary,
     settingsUrl: settings.apiUrl,

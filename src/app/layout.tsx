@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import RootDocument from '@/components/RootDocument';
 import PlayKioskShell from '@/components/PlayKioskShell';
 import PlayFeatures from '@/components/PlayFeatures';
-import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand';
-import { ROOT_VIEWPORT, rootMetadata } from '@/lib/root-metadata';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/app/brand';
+import { ROOT_VIEWPORT, rootMetadata } from '@/lib/history/root-metadata';
 import './globals.css';
 
 export const metadata: Metadata = rootMetadata(PRODUCT_NAME, PRODUCT_TAGLINE);

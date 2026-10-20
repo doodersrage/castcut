@@ -1,4 +1,4 @@
-import { readBrowserString, writeBrowserString } from '../browser-storage';
+import { readBrowserString, writeBrowserString } from '../storage/browser-storage';
 
 export type GalleryDensity = 'comfortable' | 'compact';
 

@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 /**
  * Write app KV rows into Dexie so IDB-authoritative keys survive hydrate.
  *
- * Opened at the app's own schema (src/lib/app-db.ts: Dexie version 1 = IndexedDB version 10,
+ * Opened at the app's own schema (src/lib/app/db.ts: Dexie version 1 = IndexedDB version 10,
  * `galleryEntries` and `kv`) and the stores created when they are missing. Opening without a
  * version and skipping a missing `kv` store silently dropped the seed whenever the app page
  * before had not finished creating the database — under a parallel run that was most of the

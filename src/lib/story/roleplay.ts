@@ -1,6 +1,6 @@
 import { ROLEPLAY_ARCHETYPES, type RoleplayArchetype } from './roleplay-archetypes';
-import { parseSpokenLine } from '../spoken-line';
-import type { SpokenLineTone } from '../ltx25-renderer';
+import { parseSpokenLine } from '../audio/spoken-line';
+import type { SpokenLineTone } from '../video/ltx25-renderer';
 import { lastCompletedRoleplayStillUrl } from './roleplay-gallery-takes';
 import {
   POSE_GUIDE_ACTION_LOCK,
@@ -16,7 +16,7 @@ import {
   poseGuidePromptBlock,
   withPoseGuideEditPrompt,
   type PoseGuideStylePreference,
-} from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/guide-prompt';
 import {
   isLegacyAdultMetaBlurb,
   intimateTextDefaultsToNude,
@@ -26,7 +26,7 @@ import {
   intimateTextMentionsWardrobe,
   reinforceIntimateStillPrompt,
   modernizeStoredIntimateWording,
-} from '@/lib/intimate-prompt-clarify';
+} from '@/lib/adult/intimate-prompt-clarify';
 import {
   parseSocialLayout,
   normalizeScenePoseSpec,
@@ -37,8 +37,8 @@ import {
   type PoseLookChoice,
   type ScenePoseSpec,
 } from '@/lib/day/pose-guide';
-import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
-import type { StillPromptCheck } from '@/lib/still-prompt-audit';
+import type { SessionLoraStrengthOverrides } from '@/lib/lora/stack';
+import type { StillPromptCheck } from '@/lib/still/prompt-audit';
 import type {
   StoryFaceMatch,
   StoryPoseGuideExpect,
@@ -50,12 +50,12 @@ import {
   DEFAULT_RENDER_REALISM_MODE,
   normalizeRenderRealismMode,
   type RenderRealismMode,
-} from '@/lib/render-realism';
+} from '@/lib/engine/render-realism';
 import {
   IMPLIED_NUDITY_COVERAGE_LINE,
   IMPLIED_NUDITY_DUO_COVERAGE_LINE,
   suggestiveBeatIsImpliedNudity,
-} from '../clothed-coverage';
+} from '../wardrobe/clothed-coverage';
 
 export type RoleplayTone =
   | 'silly'

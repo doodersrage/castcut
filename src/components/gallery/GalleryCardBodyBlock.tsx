@@ -23,7 +23,7 @@ export type GalleryCardBodyBlockProps = {
   onDownloadError: (message: string | null) => void;
   onRequeue: (
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   onCancel: () => void;

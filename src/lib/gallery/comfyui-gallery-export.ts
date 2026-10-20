@@ -1,11 +1,11 @@
-import { buildPromptSidecar } from '../prompt-sidecar';
+import { buildPromptSidecar } from '../prompt/sidecar';
 import { galleryEntryDownloadUrls, type ComfyGalleryEntry } from './comfyui-gallery';
 import { buildComfyViewPath } from '../comfyui/outputs';
 import { getGalleryEntryById } from './db-store';
 import { stripGalleryWorkflowJsonForExport } from './workflow-hygiene';
 import { isGalleryEntryHidden, withoutHiddenGalleryEntries } from './adult-check';
 
-export { readSidecarOutputImage, sidecarOutputViewUrl } from '../prompt-sidecar';
+export { readSidecarOutputImage, sidecarOutputViewUrl } from '../prompt/sidecar';
 
 export function buildGallerySidecar(
   entry: ComfyGalleryEntry,

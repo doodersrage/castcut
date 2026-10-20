@@ -4,10 +4,10 @@
  * Pure store helpers + thin browser persistence (same pattern as play-campaign).
  */
 
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import { normalizeEpisodeDay, type EpisodeDay } from '../day/episode-snapshot';
 import { dayWatchPlaylist } from '../day/planner';
-import type { FilmPlaylistShot } from '../media-kind';
+import type { FilmPlaylistShot } from '../media/kind';
 
 export const PLAY_SERIES_KEY = 'play-series-v1';
 export const PLAY_SERIES_UPDATED_EVENT = 'play-series-updated';

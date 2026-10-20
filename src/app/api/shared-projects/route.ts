@@ -5,7 +5,7 @@ import {
   listSharedProjects,
   listSharedProjectsForGroups,
   upsertSharedProject,
-} from '@/lib/shared-projects-store';
+} from '@/lib/storage/shared-projects-store';
 
 export const runtime = 'nodejs';
 

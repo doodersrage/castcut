@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BROWSER_STORAGE_HEALTH_EVENT, whenBrowserStorageReady } from '@/lib/browser-storage';
+import {
+  BROWSER_STORAGE_HEALTH_EVENT,
+  whenBrowserStorageReady,
+} from '@/lib/storage/browser-storage';
 import { isAssembledFilmEntry } from '@/lib/film/character-film';
 import {
   activeLook,
@@ -16,7 +19,7 @@ import {
   renameLook,
   subscribeCharacters,
   toggleLookKeeper,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { addCharacterLookPack, lookPacksOf, removeCharacterLookPack } from '@/lib/play/cast';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -31,7 +34,7 @@ import { unstampForeignCharacterGalleryEntries } from '@/lib/gallery/character-s
 import { buildGalleryHandoff, galleryHandoffPath, saveGalleryHandoff } from '@/lib/gallery/handoff';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { selectCharacterKeepers } from '@/lib/gallery/lora-dataset-export';
 import {
   deleteRoleplayLibrarySession,
@@ -45,7 +48,7 @@ import {
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
   downloadLookPackFile,
@@ -61,8 +64,8 @@ import {
   restoreCastPlate,
   switchCastPlate,
 } from '@/lib/cast/plate-switch';
-import { castPlateTiles, nextCastLookName } from '@/lib/character-plate-thumb';
-import { fetchClothingLabels } from '@/lib/clothing-catalog-client';
+import { castPlateTiles, nextCastLookName } from '@/lib/character/plate-thumb';
+import { fetchClothingLabels } from '@/lib/wardrobe/clothing-catalog-client';
 import {
   prepareCastPlate,
   restoreCastPlateSnapshot,
@@ -73,8 +76,8 @@ import { dayPartnerNoun } from '@/lib/day/partner';
 import { usePlateStance } from '@/hooks/usePlateStance';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
 import { playCampaignHref } from '@/lib/play/campaign';
-import { continueClipActionLabel } from '@/lib/video-clip-mode';
-import { loadEngineSettings } from '@/lib/engine-settings';
+import { continueClipActionLabel } from '@/lib/video/clip-mode';
+import { loadEngineSettings } from '@/lib/engine/settings';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { buildCastHomeStatus } from '@/lib/cast/home-status';
 import { castChecklist, countCastDayStills } from '@/lib/cast/checklist';
@@ -83,7 +86,7 @@ import { useHydrated } from '@/hooks/useHydrated';
 import {
   isSettingsSyncedWithServer,
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
-} from '@/lib/settings-push-flush';
+} from '@/lib/settings/push-flush';
 
 export type MediaTab = 'all' | 'stills' | 'clips' | 'films' | 'keepers';
 

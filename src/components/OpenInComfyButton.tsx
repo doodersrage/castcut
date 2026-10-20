@@ -8,7 +8,7 @@ import {
   openPromptInComfy,
   type OpenInComfyResult,
 } from '@/lib/comfyui/open-in-comfy';
-import { PRODUCT_OUTPUT_PREFIX } from '@/lib/brand';
+import { PRODUCT_OUTPUT_PREFIX } from '@/lib/app/brand';
 
 type OpenTarget =
   | {
@@ -20,7 +20,7 @@ type OpenTarget =
   | { promptId: string };
 
 async function report(result: OpenInComfyResult): Promise<void> {
-  const { pushSystemTrayMessage } = await import('@/lib/system-tray-messages');
+  const { pushSystemTrayMessage } = await import('@/lib/app/system-tray-messages');
   pushSystemTrayMessage({
     text: result.message,
     tone: result.ok ? 'success' : 'warning',

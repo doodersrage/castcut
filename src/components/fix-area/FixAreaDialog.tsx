@@ -11,7 +11,7 @@ import {
   locateFaceInStill,
   queueFixArea,
   type FixAreaTarget,
-} from '@/lib/fix-area-client';
+} from '@/lib/edit/fix-area-client';
 import {
   faceFixBox,
   FIX_AREA_DEFAULT_TEXT,
@@ -19,13 +19,13 @@ import {
   fixAreaZoomWindow,
   type FixAreaBox,
   type FixAreaMode,
-} from '@/lib/fix-area';
+} from '@/lib/edit/fix-area';
 import {
   fixAreaCandidateCaption,
   fixAreaSessionProgress,
   type FixAreaCandidate,
-} from '@/lib/fix-area-session';
-import { fixAreaSessionStore, useFixAreaSession } from '@/lib/fix-area-session-store';
+} from '@/lib/edit/fix-area-session';
+import { fixAreaSessionStore, useFixAreaSession } from '@/lib/edit/fix-area-session-store';
 
 /**
  * One picture in the results: the whole still, or — zoomed to the area — the same window of it

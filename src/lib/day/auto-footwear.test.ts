@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayAutoFootwear } from '../footwear';
+import { dayAutoFootwear } from '../wardrobe/footwear';
 
 describe('shoes on auto for clothed Day stills', () => {
   it('names a pair outdoors and in public', () => {
@@ -35,7 +35,7 @@ describe('shoes on auto for clothed Day stills', () => {
 
 describe('sky moments need a sky', () => {
   it('fireworks do not pair with an indoor shop; a rooftop or riverside is fine', async () => {
-    const { beatFitsSetting } = await import('../scene-surface');
+    const { beatFitsSetting } = await import('../scene/surface');
     const beat = 'throws both arms up in the air as the fireworks start';
     assert.equal(beatFitsSetting(beat, 'record shop with crates of vinyl and a listening booth'), false);
     assert.equal(beatFitsSetting(beat, 'rooftop terrace with string lights'), true);

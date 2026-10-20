@@ -9,7 +9,7 @@
  * second person on a solo Day is dropped and the slot keeps Day's own beat.
  */
 
-import type { ChatMessage } from '@/lib/llm-client';
+import type { ChatMessage } from '@/lib/llm/client';
 import { normalizeDayMood, type DaySlot } from '@/lib/day/planner';
 import { dayPartOf } from '@/lib/day/parts';
 

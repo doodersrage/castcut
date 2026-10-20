@@ -1,9 +1,9 @@
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
-import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate-render-size';
+import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate/render-size';
 
 export async function buildQueueSingleParams(input: {
   config: { tool: string };
@@ -11,7 +11,7 @@ export async function buildQueueSingleParams(input: {
   queueModel: ComfyImageModel;
   effectiveTool: string;
   workflow?: Record<string, unknown>;
-  effectiveQualityProfile: import('@/lib/queue-quality-profile').QueueQualityProfile;
+  effectiveQualityProfile: import('@/lib/queue/quality-profile').QueueQualityProfile;
   inputImageFilename?: string;
   inputImageFilenames: string[];
   maskImageFilename?: string;
@@ -66,7 +66,7 @@ export async function buildQueueSingleParams(input: {
   });
 
   if (pluginDenoise != null && pluginDenoise.toString().trim() !== '') {
-    const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model-sampler-defaults');
+    const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model/sampler-defaults');
     if (!resolveUserSamplerDenoiseOverride(loadSettingsCache().shared.modelSamplerOverrides)) {
       queueParams.denoise = pluginDenoise;
     }
@@ -76,9 +76,9 @@ export async function buildQueueSingleParams(input: {
   }
 
   {
-    const { ensureDistilledSamplerParams } = await import('@/lib/model-sampler-defaults');
+    const { ensureDistilledSamplerParams } = await import('@/lib/model/sampler-defaults');
     const { isQwenRapidAioModel, isWanRapidAioModel } =
-      await import('@/lib/model-denoise-defaults');
+      await import('@/lib/model/denoise-defaults');
     const { isQwenLightningModel, isWanLightningModel } =
       await import('@/lib/workflow/model-sampling-patch');
     const isDistilled =
@@ -88,8 +88,8 @@ export async function buildQueueSingleParams(input: {
       isWanRapidAioModel(queueModel);
     if (isDistilled) {
       Object.assign(queueParams, ensureDistilledSamplerParams(queueParams, queueModel));
-      const { resolveDistilledQueueDenoise } = await import('@/lib/model-denoise-defaults');
-      const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model-sampler-defaults');
+      const { resolveDistilledQueueDenoise } = await import('@/lib/model/denoise-defaults');
+      const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model/sampler-defaults');
       const userDenoiseOverride = resolveUserSamplerDenoiseOverride(
         loadSettingsCache().shared.modelSamplerOverrides
       );
@@ -107,12 +107,12 @@ export async function buildQueueSingleParams(input: {
   }
 
   if (effectiveTool === 'compose') {
-    const { isFluxKleinModel, isZImageModel } = await import('@/lib/model-denoise-defaults');
+    const { isFluxKleinModel, isZImageModel } = await import('@/lib/model/denoise-defaults');
     const { isCloudEngine } = await import('@/lib/engine/capabilities');
     const cloudEngine = isCloudEngine(loadSettingsCache().shared.inferenceEngine);
     // Cloud face-ref uses ordered image refs + prompt instruction — never IP-Adapter patches.
     if (!cloudEngine && isFluxKleinModel(queueModel)) {
-      const { buildComposeKleinQueuePatch } = await import('@/lib/compose-identity-lock');
+      const { buildComposeKleinQueuePatch } = await import('@/lib/prompt/compose-identity-lock');
       const kleinPatch = buildComposeKleinQueuePatch({
         model: queueModel,
         inputImageFilename,
@@ -125,7 +125,8 @@ export async function buildQueueSingleParams(input: {
         Object.assign(queueParams, kleinPatch);
       }
     } else if (!cloudEngine && options?.identityLock && !isZImageModel(queueModel)) {
-      const { buildComposeIdentityLockQueuePatch } = await import('@/lib/compose-identity-lock');
+      const { buildComposeIdentityLockQueuePatch } =
+        await import('@/lib/prompt/compose-identity-lock');
       const identityPatch = buildComposeIdentityLockQueuePatch({
         enabled: true,
         strength: options.identityLockStrength,
@@ -139,7 +140,8 @@ export async function buildQueueSingleParams(input: {
   } else if (options?.identityLock) {
     const { isCloudEngine } = await import('@/lib/engine/capabilities');
     if (!isCloudEngine(loadSettingsCache().shared.inferenceEngine)) {
-      const { buildComposeIdentityLockQueuePatch } = await import('@/lib/compose-identity-lock');
+      const { buildComposeIdentityLockQueuePatch } =
+        await import('@/lib/prompt/compose-identity-lock');
       const identityPatch = buildComposeIdentityLockQueuePatch({
         enabled: true,
         strength: options.identityLockStrength,

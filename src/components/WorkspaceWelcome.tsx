@@ -1,23 +1,23 @@
 'use client';
 
-import { useRenderBackend } from '@/lib/render-backend-status';
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import { useEffect, useState } from 'react';
 import BrandMark from '@/components/BrandMark';
-import { hasChosenWorkspaceMode, saveWorkspaceMode } from '@/lib/workspace-mode';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { hasChosenWorkspaceMode, saveWorkspaceMode } from '@/lib/app/workspace-mode';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
-import { markOnboardingSetWorkspace } from '@/lib/onboarding-hooks';
-import { saveFirstRunGoal, type FirstRunGoalId } from '@/lib/first-run-goal';
-import { FIRST_RUN_GENERATE_HREF } from '@/lib/empty-cta';
+import { markOnboardingSetWorkspace } from '@/lib/app/onboarding-hooks';
+import { saveFirstRunGoal, type FirstRunGoalId } from '@/lib/app/first-run-goal';
+import { FIRST_RUN_GENERATE_HREF } from '@/lib/app/empty-cta';
 import { startStarterPlayFilm } from '@/lib/play/starter';
 import { welcomeSampleFilmShots } from '@/lib/film/welcome-sample-film';
-import { noteWelcomeShownMetric } from '@/lib/local-observability';
+import { noteWelcomeShownMetric } from '@/lib/server/local-observability';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import { useAuth } from '@/hooks/useAuth';
 import {
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
   isSettingsSyncedWithServer,
-} from '@/lib/settings-push-flush';
+} from '@/lib/settings/push-flush';
 
 /** Longest wait for the first server sync before judging a browser as brand new. */
 const WELCOME_SYNC_WAIT_MS = 8000;

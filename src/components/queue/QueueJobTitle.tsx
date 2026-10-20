@@ -2,7 +2,7 @@
 
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import Link from 'next/link';
-import type { QueueJobLabel } from '@/lib/queue-job-context';
+import type { QueueJobLabel } from '@/lib/queue/job-context';
 
 /** A job's title line: where it came from + Open link, the prompt folded away. */
 export default function QueueJobTitle({

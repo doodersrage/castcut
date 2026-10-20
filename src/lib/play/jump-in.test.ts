@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import { hasCompletedFirstFilm } from './metrics';
 import { playCampaignProgressLabel, type PlayCampaignState } from './campaign';
 import { buildStarterLookPack, startStarterPlayFilm } from './starter';
-import { loadToolSettings, saveToolSettings } from '../settings-cache';
+import { loadToolSettings, saveToolSettings } from '../settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from './settings';
 
 function installFakeWindow() {

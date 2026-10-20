@@ -33,7 +33,7 @@ export type RoleplayToolCache = {
   allowGore?: boolean;
   activeSessionId?: string;
   /** Filter catalog kits on Story (same strip as Day/Outfit). */
-  wardrobeCategoryFilter?: import('../wardrobe-catalog-ui').WardrobeCategoryFilter;
+  wardrobeCategoryFilter?: import('../wardrobe/catalog-ui').WardrobeCategoryFilter;
   /** Locked outfit kit for Story stills (Image 2 packshot when no BYO). */
   wardrobeId?: string;
   /** Bring-your-own clothing packshot (Image 2) — overrides kit packshot when set. */
@@ -76,7 +76,7 @@ export type FittingToolCache = {
   /** Cast character that owns {@link notes}; reset when Cast changes (incl. remount). */
   notesCharacterId?: string;
   /** Filter full-catalog wardrobe kits by clothing type. */
-  wardrobeCategoryFilter?: import('../wardrobe-catalog-ui').WardrobeCategoryFilter;
+  wardrobeCategoryFilter?: import('../wardrobe/catalog-ui').WardrobeCategoryFilter;
   /** Lazy draft try-on thumbs keyed by wardrobeId::lookId. */
   kitPreviews?: Record<string, import('../fitting/kit-previews').FittingKitPreview>;
   /** Auto-queue draft previews for the swipe deck when a plate is ready. */
@@ -135,7 +135,7 @@ export type DayToolCache = {
   stillsCharacterId?: string;
   notes?: string;
   /** Filter slot wardrobe kits by clothing type. */
-  wardrobeCategoryFilter?: import('../wardrobe-catalog-ui').WardrobeCategoryFilter;
+  wardrobeCategoryFilter?: import('../wardrobe/catalog-ui').WardrobeCategoryFilter;
   /** Default on — isolate the Day plate on white before queueing stills. */
   isolateSubject?: boolean;
   /**
@@ -246,8 +246,8 @@ export type DayToolCache = {
 
 /** Moodboard → Scene — reference tiles merged into one scene prompt. */
 export type MoodboardToolCache = {
-  tiles?: import('../moodboard-scene').MoodboardTile[];
-  templateId?: import('../moodboard-scene').MoodboardTemplateId;
+  tiles?: import('../scene/moodboard-scene').MoodboardTile[];
+  templateId?: import('../scene/moodboard-scene').MoodboardTemplateId;
   instruction?: string;
 };
 
@@ -296,7 +296,7 @@ export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {
   instruction: '',
 };
 
-declare module '../settings-cache' {
+declare module '../settings/cache' {
   interface FeatureToolSettings {
     roleplay?: RoleplayToolCache;
     fitting?: FittingToolCache;

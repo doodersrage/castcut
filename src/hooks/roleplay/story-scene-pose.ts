@@ -14,16 +14,16 @@ import {
   type ScenePoseSpec,
 } from '@/lib/day/pose-guide';
 import { mergePickedPose } from '@/lib/day/slot-pose';
-import { composedPoseForScene } from '@/lib/pose-compose';
+import { composedPoseForScene } from '@/lib/pose/compose';
 import {
   isOpenPoseStyle,
   mergeAvoidedPoseLayouts,
   modelPlainPostureBase,
   poseGuideStyleDrawsHands,
   type PoseGuideStylePreference,
-} from '@/lib/pose-guide-prompt';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
-import type { NormalizedBody, PoseLibraryEntry } from '@/lib/pose-library';
+} from '@/lib/pose/guide-prompt';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
+import type { NormalizedBody, PoseLibraryEntry } from '@/lib/pose/library';
 
 export type StoryScenePose = {
   /** Lead first; 0–1 of the guide canvas. */

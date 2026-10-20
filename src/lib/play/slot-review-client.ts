@@ -1,12 +1,12 @@
-import { sharedLlmRequestBody } from '../llm-request-options';
-import { lastRenderBackendStatus } from '../render-backend-status';
+import { sharedLlmRequestBody } from '../llm/request-options';
+import { lastRenderBackendStatus } from '../engine/render-backend-status';
 import type { SlotQualityReport, SlotReviewContext } from './slot-quality';
-import type { SharedToolSettings } from '../settings-cache';
+import type { SharedToolSettings } from '../settings/cache';
 import {
   parseVisionScanApiResponse,
   prepareVisionScanImagePayload,
   resolveStillFileForVisionScan,
-} from '../vision-scan-still';
+} from '../vision/scan-still';
 
 /** Review one landed Day still through `/api/play-slot-review`. Rejects on any failure. */
 export async function reviewDaySlotStill(options: {

@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import PlayFunnelStrip from '@/components/PlayFunnelStrip';
 import { ButtonLink } from '@/components/ui/Button';
 import { StatCard, ToolSection } from '@/components/ui/ToolPageShell';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   loadLocalObservability,
   summarizePlayFunnel,
   type LocalObservabilityCounters,
-} from '@/lib/local-observability';
+} from '@/lib/server/local-observability';
 import { loadPlayCampaignState } from '@/lib/play/campaign';
 import { loadLookPack } from '@/lib/look/pack';
-import { loadOnboardingState } from '@/lib/onboarding-store';
+import { loadOnboardingState } from '@/lib/app/onboarding-store';
 import {
   countFilmCutsWithinDays,
   daysFromCampaignStartToFirstFilmCut,
@@ -31,7 +31,7 @@ import {
   slowestPlayPhase,
   type PlayMetrics,
 } from '@/lib/play/metrics';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import type { LookPack } from '@/lib/look/pack';
 
 const POSE_STYLE_LABELS = {

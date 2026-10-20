@@ -8,12 +8,12 @@ import {
   VariationSliderField,
 } from '@/components/scene-tool/SceneToolSections';
 import { HistoryHintSeedPanel } from '@/components/scene-tool/HistoryHintSeedPanel';
-import { ROLL_VARIATION_LABEL, rollVariationLabel } from '@/lib/tool-ui-labels';
-import { accentFocusClass, accentRingClass } from '@/lib/tool-theme';
+import { ROLL_VARIATION_LABEL, rollVariationLabel } from '@/lib/app/tool-ui-labels';
+import { accentFocusClass, accentRingClass } from '@/lib/app/tool-theme';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { ChipButton, FieldDivider, FieldLabel } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
-import type { RegionalPromptSegment } from '@/lib/regional-prompt-builder';
+import type { RegionalPromptSegment } from '@/lib/prompt/regional-prompt-builder';
 import type { useCharacterToolOrchestration } from '@/hooks/useCharacterToolOrchestration';
 
 type Props = ReturnType<typeof useCharacterToolOrchestration>;

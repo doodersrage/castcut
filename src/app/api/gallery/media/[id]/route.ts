@@ -4,8 +4,8 @@ import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { contentTypeForViewBytes, isHtmlVideoContentType } from '@/lib/comfyui/outputs';
 import { readGalleryOriginalFile, readGalleryThumbFile } from '@/lib/gallery/media-store';
-import { parseRangeHeader } from '@/lib/http-range';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+import { parseRangeHeader } from '@/lib/server/http-range';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 
 export const runtime = 'nodejs';
 

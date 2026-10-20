@@ -5,8 +5,8 @@ import {
   KLEIN_SPOON_RECIPE_MARK,
   kleinSpoonRecipeApplies,
 } from './klein-duo-recipe';
-import { isRapidDuoRecipePrompt } from '../prompt-recipe-mark';
-import { applyTurboEditStrengthToPrompt } from '../turbo-edit-strength';
+import { isRapidDuoRecipePrompt } from '../prompt/recipe-mark';
+import { applyTurboEditStrengthToPrompt } from '../engine/turbo-edit-strength';
 
 const beat = 'spooning with her boyfriend in bed under white sheets, him behind her';
 

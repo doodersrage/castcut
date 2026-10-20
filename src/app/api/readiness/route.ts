@@ -1,5 +1,5 @@
-import { scorePromptReadiness } from '@/lib/prompt-readiness';
-import { normalizeDetailLevel } from '@/lib/detail-level';
+import { scorePromptReadiness } from '@/lib/prompt/readiness';
+import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
 import { normalizeComfyModel } from '@/lib/comfy-models';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 

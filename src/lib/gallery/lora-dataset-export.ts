@@ -2,10 +2,10 @@ import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { withoutHiddenGalleryEntries } from './adult-check';
 import { buildComfyViewPath, type ComfyOutputImage } from '../comfyui/outputs';
 import { buildZipBlob, type ZipFileEntry } from './zip-export';
-import { isAssembledFilmEntry } from '../media-kind';
-import { isVideoLikeEntry } from '../media-kind';
-import { mapWithConcurrency } from '../concurrency';
-import { getLlmMaxInflight } from '../llm-backpressure';
+import { isAssembledFilmEntry } from '../media/kind';
+import { isVideoLikeEntry } from '../media/kind';
+import { mapWithConcurrency } from '../queue/concurrency';
+import { getLlmMaxInflight } from '../llm/backpressure';
 
 /** Local ComfyUI host tolerates a handful of concurrent /view fetches (see comfyui-gallery-client.ts). */
 const IMAGE_FETCH_CONCURRENCY = 6;

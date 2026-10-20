@@ -1,13 +1,13 @@
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
-import { chatCompletion } from '../llm-client';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
+import { chatCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   resolveRequestLlmModel,
   resolveRequestTemplateFallback,
-} from '../llm-request-options';
+} from '../llm/request-options';
 import { buildTemplateTopicList } from './scene-pools';
-import { mergeLocationExclusions } from '../location-exclusions';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
 import { parseTopicLines } from './topic-list-parse';
 import type { TopicGenerateResult, TopicOptions } from './types';
 

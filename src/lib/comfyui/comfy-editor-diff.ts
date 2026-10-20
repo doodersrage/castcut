@@ -5,7 +5,7 @@
  */
 
 import { isApiLink, type ComfyApiPrompt } from './comfy-editor-graph';
-import type { ModelSamplerOverrideFields } from '../model-sampler-defaults';
+import type { ModelSamplerOverrideFields } from '../model/sampler-defaults';
 
 export type EditorChangeKind =
   | 'sampler'

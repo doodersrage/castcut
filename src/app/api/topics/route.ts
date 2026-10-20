@@ -1,7 +1,7 @@
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import { normalizeRecentLocations, normalizeBlockedLocations } from '@/lib/specialized/normalize';
 import { generateTopics } from '@/lib/specialized/topic-generator';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 

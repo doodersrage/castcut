@@ -1,5 +1,5 @@
 import BrandStudioIllustration from '@/components/BrandStudioIllustration';
-import { isNavFavorite, toggleNavFavorite } from '@/lib/nav-favorites';
+import { isNavFavorite, toggleNavFavorite } from '@/lib/app/nav-favorites';
 import type { CommandItem } from '@/components/command-palette/types';
 
 type CommandPaletteResultsProps = {

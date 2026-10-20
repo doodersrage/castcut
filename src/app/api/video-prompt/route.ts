@@ -1,8 +1,8 @@
-import { generateVideoPrompt, scanVideoInitFrame } from '@/lib/video-prompt';
+import { generateVideoPrompt, scanVideoInitFrame } from '@/lib/video/prompt';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { normalizeComfyModel } from '@/lib/comfy-models';
 import { fileToDataUrl, normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
-import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm/request-options';
 
 export const runtime = 'nodejs';
 

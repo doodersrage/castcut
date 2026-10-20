@@ -7,7 +7,7 @@ import { COMFY_IMAGE_MODELS } from '../comfy-models/registry';
 import type { ComfyImageModel } from '../comfy-models/types';
 import type { ComfyUiModelLists } from '../comfyui/object-info';
 import type { ComfyWorkflowFile } from '../comfyui/workflow-files';
-import type { SharedToolSettings } from '../settings-cache';
+import type { SharedToolSettings } from '../settings/cache';
 import { pickPackWorkflowForModel } from './system-workflow-runtime';
 
 export type WorkflowFileUsage = {

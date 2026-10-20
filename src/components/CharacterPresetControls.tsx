@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import type { ClothingCatalogFieldKey } from '@/lib/clothing-catalog-fields';
-import { fetchClothingSelectOptions } from '@/lib/clothing-catalog-client';
-import { parseCharacterHints } from '@/lib/character-hints';
-import { subjectGenderToClothingGender } from '@/lib/clothing-gender';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import type { ClothingCatalogFieldKey } from '@/lib/wardrobe/clothing-catalog-fields';
+import { fetchClothingSelectOptions } from '@/lib/wardrobe/clothing-catalog-client';
+import { parseCharacterHints } from '@/lib/character/hints';
+import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
 import {
   CHARACTER_POSE_TARGET_PLACEHOLDERS,
   CHARACTER_PRESET_UI_SECTIONS,
@@ -19,8 +19,8 @@ import {
   type CharacterPresetOptions,
   type CharacterPresetUiField,
   type CharacterPresetUiSection,
-} from '@/lib/character-options-ui';
-import type { CharacterToolCache } from '@/lib/settings-cache';
+} from '@/lib/character/options-ui';
+import type { CharacterToolCache } from '@/lib/settings/cache';
 import { SelectInput, TextInput } from '@/components/ui/Field';
 
 function ClothingCatalogSelect({

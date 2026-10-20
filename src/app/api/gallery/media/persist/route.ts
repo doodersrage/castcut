@@ -14,13 +14,13 @@ import {
   persistIdentityFile,
   persistGalleryOriginalFile,
 } from '@/lib/gallery/media-store';
-import { isServerStorageEnabled } from '@/lib/server-storage';
-import { fetchEngineOutputBuffer } from '@/lib/engine-output-fetch';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
+import { fetchEngineOutputBuffer } from '@/lib/engine/output-fetch';
 import {
   normalizeComfyViewType,
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
-} from '@/lib/url-safety';
+} from '@/lib/server/url-safety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

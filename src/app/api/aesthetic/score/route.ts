@@ -1,5 +1,5 @@
-import { scoreGalleryEntryHeuristic } from '@/lib/aesthetic-score';
-import { scoreGalleryEntryVision } from '@/lib/aesthetic-score-vision';
+import { scoreGalleryEntryHeuristic } from '@/lib/vision/aesthetic-score';
+import { scoreGalleryEntryVision } from '@/lib/vision/aesthetic-score-vision';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 

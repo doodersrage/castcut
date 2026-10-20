@@ -1,7 +1,7 @@
 import { COMFY_IMAGE_MODELS, type ComfyImageModel, type ComfyModelCategory } from '../comfy-models';
-import { isEditCapableModel, isQwenRapidAioModel } from '../model-denoise-defaults';
+import { isEditCapableModel, isQwenRapidAioModel } from '../model/denoise-defaults';
 import type { ComfyWorkflowFile } from '../comfyui/workflow-files';
-import type { ModelWorkflowMap } from '../model-workflow-map';
+import type { ModelWorkflowMap } from '../model/workflow-map';
 import { scoreWorkflowStackForModel } from './stack-fingerprint';
 import { workflowHasLoraLoader } from './lightning-queue';
 

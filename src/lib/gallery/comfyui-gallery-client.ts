@@ -17,27 +17,27 @@ import { clearComfyLivePreviewUrl, suppressComfyLivePreview } from '../comfyui/l
 import { getEngineAdapter, getEngineAdapterById } from '../engine';
 import { isCloudEngine } from '../engine/capabilities';
 import type { EngineProgressSubscription } from '../engine';
-import { dispatchWebhook } from '../webhook-settings';
-import { noteScheduledBatchJobComplete } from '../scheduled-batch-tracker';
+import { dispatchWebhook } from '../settings/webhook-settings';
+import { noteScheduledBatchJobComplete } from '../batch/scheduled-batch-tracker';
 import {
   noteJobCompletionEmail,
   setJobCompletionEmailActiveCounter,
-} from '../job-completion-email';
+} from '../server/job-completion-email';
 import { autoTagGalleryEntry } from './auto-vision-tags';
 import { inheritedAdultCheck, isGalleryEntryHidden } from './adult-check';
-import { backfillHistoryGalleryLink } from '../prompt-lineage';
-import { mapWithConcurrency } from '../concurrency';
+import { backfillHistoryGalleryLink } from '../prompt/lineage';
+import { mapWithConcurrency } from '../queue/concurrency';
 import {
   consumePendingRefineAfterUpscale,
   consumePendingSkinRefineAfterStill,
 } from './pending-actions';
 import type { WorkflowParamValues } from '../comfyui/config';
-import { buildGalleryImageUrlsFromQueueParams } from '../queue-requeue-images';
+import { buildGalleryImageUrlsFromQueueParams } from '../queue/requeue-images';
 import { freeComfyUiMemory } from '../comfyui/queue-control';
-import { normalizeQueueQualityProfile } from '../queue-quality-profile';
-import { loadSettingsCache } from '../settings-cache';
-import { getCharacter } from '../character-os';
-import { attemptGalleryHostFailover } from '../oom-retry';
+import { normalizeQueueQualityProfile } from '../queue/quality-profile';
+import { loadSettingsCache } from '../settings/cache';
+import { getCharacter } from '../character/os';
+import { attemptGalleryHostFailover } from '../queue/oom-retry';
 import { resolveGalleryRenderDurationMs } from '../comfyui/render-duration';
 import { forgetPendingGalleryPoll } from './pending-polls';
 import { resolveGalleryCharacterStamp, resolveGalleryLookStamp } from './character-stamp';
@@ -94,10 +94,10 @@ export type RegisterComfyGalleryJobInput = {
   sourceImageUrl?: string;
   maskImageUrl?: string;
   controlImageUrls?: string[];
-  queueQualityProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  queueQualityProfile?: import('../queue/quality-profile').QueueQualityProfile;
   /** Session LoRA ids active at queue time (for re-edit same stack). */
   sessionActiveLoraIds?: string[];
-  sessionLoraStrengthOverrides?: import('../lora-stack').SessionLoraStrengthOverrides;
+  sessionLoraStrengthOverrides?: import('../lora/stack').SessionLoraStrengthOverrides;
   sessionEmbeddingTokens?: string[];
   projectId?: string;
   comfyUrl: string;
@@ -220,7 +220,7 @@ export function inheritGallerySessionFields(
  */
 export async function persistCompletedGalleryMedia(entry: ComfyGalleryEntry): Promise<void> {
   // Settings → ComfyUI → Gallery backups (on unless turned off).
-  const { loadSettingsCache } = await import('../settings-cache');
+  const { loadSettingsCache } = await import('../settings/cache');
   if (loadSettingsCache().shared.galleryBackupCopies === false) {
     return;
   }
@@ -254,7 +254,7 @@ export function registerComfyGalleryJob(input: RegisterComfyGalleryJobInput): Co
 
   const clamped = clampGalleryWorkflowJsonDetailed(input.workflowJson);
   if (clamped.omitted && typeof window !== 'undefined') {
-    void import('../app-toast').then(({ pushAppToast }) => {
+    void import('../app/toast').then(({ pushAppToast }) => {
       pushAppToast({
         text: 'Workflow graph too large to store — exact replay may need Comfy history.',
         tone: 'warning',
@@ -818,23 +818,23 @@ function applyComfyJobStatus(
       });
 
     // Simple-mode first completed render (success metric beyond queue accept).
-    void import('../workspace-mode').then(({ isLeanWorkspaceMode, loadWorkspaceMode }) => {
+    void import('../app/workspace-mode').then(({ isLeanWorkspaceMode, loadWorkspaceMode }) => {
       if (!isLeanWorkspaceMode(loadWorkspaceMode())) {
         return;
       }
-      void import('../onboarding-hooks').then(({ markOnboardingFirstQueueSuccess }) => {
+      void import('../app/onboarding-hooks').then(({ markOnboardingFirstQueueSuccess }) => {
         const first = markOnboardingFirstQueueSuccess();
         if (!first) {
           return;
         }
-        void import('../local-observability').then(({ noteFirstQueueSuccessMetric }) => {
+        void import('../server/local-observability').then(({ noteFirstQueueSuccessMetric }) => {
           noteFirstQueueSuccessMetric();
         });
-        void import('../first-queue-setup').then(({ dismissFirstQueueSetupModal }) => {
+        void import('../app/first-queue-setup').then(({ dismissFirstQueueSetupModal }) => {
           dismissFirstQueueSetupModal();
         });
         // Tray + notification survive muted toasts (pushAppToast no-ops when toasts are off).
-        void import('../notification-center').then(({ pushNotification }) => {
+        void import('../app/notification-center').then(({ pushNotification }) => {
           pushNotification({
             title: 'First render complete',
             body: 'Rate it in Gallery review next.',
@@ -842,10 +842,10 @@ function applyComfyJobStatus(
             kind: 'job',
           });
         });
-        void import('../system-tray-celebrate').then(({ celebrateSystemTray }) => {
+        void import('../app/system-tray-celebrate').then(({ celebrateSystemTray }) => {
           celebrateSystemTray('job');
         });
-        void import('../app-toast').then(({ pushAppToast }) => {
+        void import('../app/toast').then(({ pushAppToast }) => {
           pushAppToast({
             text: 'First render complete — rate it in Gallery next.',
             tone: 'success',

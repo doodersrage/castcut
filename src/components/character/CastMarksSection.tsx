@@ -16,7 +16,7 @@ import {
   type CastMark,
   type CastMarkSpot,
 } from '@/lib/cast/marks';
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 
 /**
  * Cast → Marks: tattoos, scars, moles, freckles, glasses (cast-marks.ts). Each goes into a Day

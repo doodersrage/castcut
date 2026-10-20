@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { COMFY_ASSET_JOBS_UPDATED_EVENT } from '@/lib/comfyui/comfy-asset-events';
-import { civitaiBaseModelForStudioModel, type CivitaiLoraSearchHit } from '@/lib/civitai-lora';
+import { civitaiBaseModelForStudioModel, type CivitaiLoraSearchHit } from '@/lib/lora/civitai-lora';
 import { restartComfyUi } from '@/lib/comfyui/queue-control';
 import { fetchComfyLoraInventory } from '@/lib/comfyui/object-info-cache';
-import { loadSettingsCache } from '@/lib/settings-cache';
-import { celebrateSystemTray } from '@/lib/system-tray-celebrate';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { celebrateSystemTray } from '@/lib/app/system-tray-celebrate';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 type AssetJob = {
   id: string;

@@ -7,7 +7,7 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from 'react';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import {
   buildRoleplayRequestBody,
   roleplayBioRequestForLead,

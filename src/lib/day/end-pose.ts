@@ -9,8 +9,12 @@
  * framing (another slot's still) made both cut hard to the end frame instead of moving there.
  */
 
-import { H3_REQUIRED_NODE, isH3Model } from '../h3-renderer';
-import { LTX25_END_GUIDE_NODES, isLtx25Model, WAN_FIRST_LAST_FRAME_NODE } from '../ltx25-renderer';
+import { H3_REQUIRED_NODE, isH3Model } from '../engine/h3-renderer';
+import {
+  LTX25_END_GUIDE_NODES,
+  isLtx25Model,
+  WAN_FIRST_LAST_FRAME_NODE,
+} from '../video/ltx25-renderer';
 
 export type DayEndPoseSource = 'still' | 'edit';
 

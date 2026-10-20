@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { apiError, apiJson, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { isCutRecipe } from '@/lib/cut-recipe';
+import { isCutRecipe } from '@/lib/video/cut-recipe';
 import { buildFilmNleExport } from '@/lib/film/nle-export-server';
 
 export const runtime = 'nodejs';

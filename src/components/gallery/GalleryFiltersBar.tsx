@@ -1,6 +1,6 @@
 'use client';
 
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { PromptProject } from '@/lib/prompt/projects';
 import type {
   ComfyGalleryFilter,
   ComfyGallerySort,

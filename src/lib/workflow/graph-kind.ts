@@ -1,5 +1,5 @@
 import type { ComfyImageModel, ComfyModelCategory } from '../comfy-models/client';
-import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from '../audio-mesh-prompt';
+import { AUDIO_SECONDS_TOKEN, MESH_RESOLUTION_TOKEN } from '../audio/mesh-prompt';
 import {
   DEFAULT_INIT_IMAGE_TOKEN,
   DEFAULT_INPUT_IMAGE_TOKEN,

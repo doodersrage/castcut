@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { CASTCUT_NODE_TYPES } from '@/lib/castcut-nodes';
-import { settingsComfyUiSectionHref } from '@/lib/settings-comfyui-nav';
+import { CASTCUT_NODE_TYPES } from '@/lib/castcut/nodes';
+import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 
 /**
  * One line pointing at Settings → ComfyUI → Castcut nodes when ComfyUI lacks the pack (from the

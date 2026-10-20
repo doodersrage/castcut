@@ -4,7 +4,7 @@
  * download + purge instead of leaving the gallery full.
  */
 
-import { loadCharacters } from '../character-os';
+import { loadCharacters } from '../character/os';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { toArchiveEntryDescriptor, type GalleryArchiveEntryDescriptor } from './archive-job-client';
 import { partitionGalleryForArchivePurge } from './protected-ids';

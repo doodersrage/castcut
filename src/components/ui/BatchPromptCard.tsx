@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { CollapsibleSection, ToolContentPanel } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import { MonoTextArea } from '@/components/ui/Field';
-import { rawPromptDiffers } from '@/lib/raw-prompt';
+import { rawPromptDiffers } from '@/lib/prompt/raw-prompt';
 
 export type BatchPromptCrossLinks = {
   hintsForDuo?: string;

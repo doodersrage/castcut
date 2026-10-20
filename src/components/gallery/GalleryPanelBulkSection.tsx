@@ -3,8 +3,8 @@
 import GalleryExperimentPanel from '@/components/gallery/GalleryExperimentPanel';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/useGalleryPanelActions';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
-import type { ParamExperimentAxis } from '@/lib/param-experiment-queue';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
+import type { PromptProject } from '@/lib/prompt/projects';
 
 type GalleryPanelBulkSectionProps = {
   leanGallery: boolean;

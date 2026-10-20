@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import {
   applyRoleplayLibrarySession,
   deleteRoleplayLibrarySession,
@@ -19,7 +19,7 @@ import {
   startNewRoleplaySession,
   upsertRoleplayLibrarySession,
 } from './roleplay-library';
-import { upsertCharacter } from '../character-os';
+import { upsertCharacter } from '../character/os';
 import type { RoleplayToolCache } from '../play/settings';
 
 function withMockLocalStorage(run: () => void): void {

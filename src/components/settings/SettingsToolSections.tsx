@@ -7,8 +7,8 @@ import ToolSetupBanner from '@/components/ToolSetupBanner';
 import { ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { Button } from '@/components/ui/Button';
-import { TOOL_SETUP_LABELS } from '@/lib/tool-page-chrome';
-import { comfyUiSectionRequiresFullSettings } from '@/lib/settings-comfyui-nav';
+import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
+import { comfyUiSectionRequiresFullSettings } from '@/lib/settings/comfyui-nav';
 import { serverEnvFieldValue } from '@/components/settings/tabs/settings-tool-shared';
 import type { useSettingsToolOrchestration } from '@/hooks/useSettingsToolOrchestration';
 

@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { SelectInput } from '@/components/ui/Field';
 import { accentFocusClass } from '@/components/ui/ToolPageShell';
-import type { DetailLevel } from '@/lib/detail-level';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
 import {
   groupLlmCatalogEntries,
   type LlmCatalogEntry,
   type SessionLlmProvider,
-} from '@/lib/llm-providers';
+} from '@/lib/llm/providers';
 
 export const DETAIL_OPTIONS: Array<{ id: DetailLevel; label: string; hint: string }> = [
   { id: 'concise', label: 'Concise', hint: 'Short, dense prompts' },

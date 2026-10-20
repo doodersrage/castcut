@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { UserScheduledCampaign } from '@/lib/auth/types';
 
 const DEFAULT_CAMPAIGN: UserScheduledCampaign = {

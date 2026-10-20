@@ -9,8 +9,8 @@ import {
   NOTIFICATIONS_UPDATED,
   unreadNotificationCount,
   type AppNotification,
-} from '@/lib/notification-center';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/app/notification-center';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 

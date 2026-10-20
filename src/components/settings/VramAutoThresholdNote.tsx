@@ -1,6 +1,6 @@
 'use client';
 
-import { autoVramThresholdGb } from '@/lib/vram-queue-guard';
+import { autoVramThresholdGb } from '@/lib/queue/vram-queue-guard';
 
 /**
  * "Auto: 7 GB (24 GB card)" — the threshold the guard will use on this ComfyUI's GPU. Uses the

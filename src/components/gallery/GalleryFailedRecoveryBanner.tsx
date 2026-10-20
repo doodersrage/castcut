@@ -3,17 +3,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { applyQueueFailureFix, resolveQueueFailureFixes } from '@/lib/queue-failure-fix';
+import { applyQueueFailureFix, resolveQueueFailureFixes } from '@/lib/queue/failure-fix';
 import {
   resolveQueueFailureGuideLabel,
   resolveQueueFailureHref,
-} from '@/lib/queue-failure-playbook';
+} from '@/lib/queue/failure-playbook';
 import {
   loadLastFailedQueue,
   requestRetryLastFailedQueue,
   type LastFailedQueuePayload,
-} from '@/lib/last-failed-queue';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/queue/last-failed-queue';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type GalleryFailedRetryMode = 'same' | 'new' | 'exact';
 

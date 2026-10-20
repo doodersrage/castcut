@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { ChipButton } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { settingsTabHref } from '@/lib/settings-nav';
-import { LLM_PUBLIC_PROVIDERS, type SessionLlmProvider } from '@/lib/llm-providers';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { settingsTabHref } from '@/lib/settings/nav';
+import { LLM_PUBLIC_PROVIDERS, type SessionLlmProvider } from '@/lib/llm/providers';
 import {
   formatCatalogSource,
   STORY_MIN_LLM_CONTEXT,

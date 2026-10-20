@@ -1,7 +1,7 @@
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
-import { parseEngineUploadRequest } from '@/lib/engine-upload-parse';
+import { parseEngineUploadRequest } from '@/lib/engine/upload-parse';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

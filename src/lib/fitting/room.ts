@@ -2,12 +2,12 @@ import {
   resolveFittingPlateFromCharacter,
   resolveLookPlate,
   type FittingPlate,
-} from '../character-plate';
-import type { CharacterLook, CharacterRecord } from '@/lib/character-os';
-import { activeLook } from '@/lib/character-os';
-import { buildSinglePersonUserDirective } from '@/lib/single-person';
+} from '../character/plate';
+import type { CharacterLook, CharacterRecord } from '@/lib/character/os';
+import { activeLook } from '@/lib/character/os';
+import { buildSinglePersonUserDirective } from '@/lib/checks/single-person';
 import type { RoleplayToolCache } from '@/lib/play/settings';
-import { buildFeetPassPrompt, resolveFeetPassModel } from '@/lib/footwear-check';
+import { buildFeetPassPrompt, resolveFeetPassModel } from '@/lib/wardrobe/footwear-check';
 
 export { buildFeetPassPrompt as buildFittingFeetPassPrompt, resolveFeetPassModel };
 
@@ -902,5 +902,5 @@ export function fittingBestDefaultEngine(
   return installed ? (FITTING_DEFAULT_ENGINES.find(id => installed(id)) ?? null) : null;
 }
 
-export { resolveFittingPlateFromCharacter, resolveLookPlate } from '../character-plate';
-export type { FittingPlate } from '../character-plate';
+export { resolveFittingPlateFromCharacter, resolveLookPlate } from '../character/plate';
+export type { FittingPlate } from '../character/plate';

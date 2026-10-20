@@ -18,7 +18,7 @@ import {
   JOINT_DISTANCE_MIN_POSE_MATCH,
   parseOpenPoseJson,
   scorePoseMatch,
-} from '../src/lib/pose-score';
+} from '../src/lib/pose/score';
 
 type Row = {
   id: string;

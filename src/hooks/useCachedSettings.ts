@@ -5,7 +5,7 @@ import {
   isBrowserStorageReady,
   whenBrowserStorageReady,
   flushBrowserStorageNow,
-} from '@/lib/browser-storage';
+} from '@/lib/storage/browser-storage';
 import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
@@ -16,11 +16,11 @@ import {
   SETTINGS_CACHE_UPDATED_EVENT,
   type SharedToolSettings,
   type ToolSettingsCache,
-} from '@/lib/settings-cache';
-import { loadToolContext, saveToolContext } from '@/lib/tool-context-memory';
+} from '@/lib/settings/cache';
+import { loadToolContext, saveToolContext } from '@/lib/app/tool-context-memory';
 import { COMFY_MODEL_IDS, type ComfyImageModel } from '@/lib/comfy-models/client';
-import { sanitizePreferEditToolModel, stillImageToolModel } from '@/lib/queue-tool-model';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { sanitizePreferEditToolModel, stillImageToolModel } from '@/lib/queue/tool-model';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 /** Skip cache→React reloads briefly after local edits so typing is not clobbered. */
 const LOCAL_EDIT_REFRESH_GUARD_MS = 500;

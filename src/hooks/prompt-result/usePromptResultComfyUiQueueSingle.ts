@@ -1,24 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import type { AthleticSport } from '@/lib/athletic-sport-profiles';
-import { resolveModelForQueueTool } from '@/lib/queue-tool-model';
-import { guardQueueQualityForVram } from '@/lib/vram-queue-guard';
+import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
+import { resolveModelForQueueTool } from '@/lib/queue/tool-model';
+import { guardQueueQualityForVram } from '@/lib/queue/vram-queue-guard';
 import { parseWorkflowJson } from '@/lib/comfyui/config';
-import { resolveParentHistoryId } from '@/lib/prompt-lineage-session';
-import { injectLoraTriggers } from '@/lib/lora-prompt-injection';
+import { resolveParentHistoryId } from '@/lib/prompt/lineage-session';
+import { injectLoraTriggers } from '@/lib/lora/prompt-injection';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { getEngineAdapter } from '@/lib/engine';
 import { isCloudEngine } from '@/lib/engine/capabilities';
-import { loadEngineSettings, resolveCloudEngineHost } from '@/lib/engine-settings';
+import { loadEngineSettings, resolveCloudEngineHost } from '@/lib/engine/settings';
 import { resolveQueueSingleInputs } from '@/hooks/prompt-result/queue-single-inputs';
 import { buildQueueSingleParams } from '@/hooks/prompt-result/queue-single-params';
 import { postQueueSinglePrompt } from '@/hooks/prompt-result/queue-single-post-prompt';
-import { toastHeldMax } from '@/lib/app-toast';
-import { prepareQueuePrompts } from '@/lib/queue-prompt-prep';
-import { runPluginQueuePreflight } from '@/lib/plugin-queue-hooks';
-import { resolveQueueFailurePlaybook } from '@/lib/queue-failure-playbook';
+import { toastHeldMax } from '@/lib/app/toast';
+import { prepareQueuePrompts } from '@/lib/queue/prompt-prep';
+import { runPluginQueuePreflight } from '@/lib/plugin/queue-hooks';
+import { resolveQueueFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type {
   ComfyUiDeps,
   ComfyUiTrackerApi,
@@ -259,7 +259,7 @@ export function usePromptResultComfyUiQueueSingle(
           setComfyUiStatus,
         });
 
-        const { appendCloudFaceRefPrompt } = await import('@/lib/cloud-compose-refs');
+        const { appendCloudFaceRefPrompt } = await import('@/lib/cloud/cloud-compose-refs');
         const faceRefPrompt = appendCloudFaceRefPrompt(
           preparedPrompt,
           cloudFaceRefPromptInstruction
@@ -288,7 +288,7 @@ export function usePromptResultComfyUiQueueSingle(
 
         if (engineAdapter.id === 'comfyui' && effectiveQualityProfile === 'max') {
           const { holdMaxGenerateJob, shouldHoldMaxUntilIdle } =
-            await import('@/lib/held-max-queue');
+            await import('@/lib/queue/held-max-queue');
           if (await shouldHoldMaxUntilIdle()) {
             holdMaxGenerateJob({
               prompt: faceRefPrompt,

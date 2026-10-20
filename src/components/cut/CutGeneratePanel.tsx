@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
-import { cutGeneratedTitle } from '@/lib/cut-generate';
+import { cutGeneratedTitle } from '@/lib/video/cut-generate';
 import type { CutExtra } from '@/lib/film/cut-room';
 
 export default function CutGeneratePanel({

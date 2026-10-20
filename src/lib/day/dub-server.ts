@@ -1,10 +1,10 @@
-import { chatCompletion } from '../llm-client';
+import { chatCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
   resolveRequestLlmModel,
   type LlmRequestOptions,
-} from '../llm-request-options';
+} from '../llm/request-options';
 import { buildDubMessages, parseDubReply } from './dub';
 
 /** Translate spoken lines for a dub (day-dub.ts) — one LLM call, two tries. */

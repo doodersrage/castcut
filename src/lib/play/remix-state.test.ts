@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { after, beforeEach, describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
 import { DEFAULT_DAY_SLOTS } from '../day/planner';
 import { applyRemixDayFilmState, remixNewOutfitHref } from './starter';
 import { remixDayFilmHref } from './step-machine';
-import { loadSettingsCache, loadToolSettings, saveSharedSettings, saveToolSettings } from '../settings-cache';
+import { loadSettingsCache, loadToolSettings, saveSharedSettings, saveToolSettings } from '../settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from './settings';
 
 function installFakeWindow() {

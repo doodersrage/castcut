@@ -20,7 +20,7 @@ export async function collectBrowserGalleryMediaIds(): Promise<string[]> {
   };
 
   try {
-    const { flushBrowserStorageNow } = await import('../browser-storage');
+    const { flushBrowserStorageNow } = await import('../storage/browser-storage');
     await flushBrowserStorageNow();
   } catch {
     /* scan what is stored */
@@ -35,7 +35,7 @@ export async function collectBrowserGalleryMediaIds(): Promise<string[]> {
       /* storage blocked */
     }
   }
-  const { appDb } = await import('../app-db');
+  const { appDb } = await import('../app/db');
   if (appDb) {
     // Failures here must fail the scan: a missed Gallery would make every copy look unused.
     await appDb.kv.each(record => scan(record.value));

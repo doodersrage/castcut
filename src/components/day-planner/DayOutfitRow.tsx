@@ -3,16 +3,16 @@
 import { useRef, useState, type ReactNode } from 'react';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import ClothingSheet, { ClothingSummaryThumbStrip } from '@/components/wardrobe/ClothingSheet';
-import { castLookPortraitTile, castPlateTiles } from '@/lib/character-plate-thumb';
-import { activeLook, type CharacterRecord } from '@/lib/character-os';
+import { castLookPortraitTile, castPlateTiles } from '@/lib/character/plate-thumb';
+import { activeLook, type CharacterRecord } from '@/lib/character/os';
 import {
   clothingSummaryLine,
   clothingSummaryThumbs,
   type ClothingSummaryThumb,
-} from '@/lib/clothing-summary';
+} from '@/lib/wardrobe/clothing-summary';
 import type { DaySlot, DaySlotId } from '@/lib/day/planner';
 import { realKitId } from '@/lib/fitting/outfit-handoff';
-import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe-garment-thumbs';
+import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 
 /**
  * What the Day's row and a slot's Clothing row say is worn: the short line and its pictures.

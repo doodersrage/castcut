@@ -9,8 +9,8 @@ import {
   dayTwoTakesOrderPatch,
   dayTwoTakesPairId,
 } from '@/lib/day/two-takes';
-import { countDuoStill } from '@/lib/duo-still-check-client';
-import { likelierTwoTake, type DuoStillCounts } from '@/lib/duo-still-check';
+import { countDuoStill } from '@/lib/checks/duo-still-check-client';
+import { likelierTwoTake, type DuoStillCounts } from '@/lib/checks/duo-still-check';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**

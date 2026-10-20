@@ -5,7 +5,7 @@ import {
   NOTICE_TONE_CLASS,
   type TrayNoticeTone,
 } from '@/components/system-tray/tray-notice-styles';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 
 export function TrayNotice({
   text,
@@ -65,14 +65,14 @@ export function TrayNotice({
                     href
                   )
                 ) {
-                  void import('@/lib/local-observability').then(
+                  void import('@/lib/server/local-observability').then(
                     ({ notePlaybookCtaClickMetric }) => {
                       notePlaybookCtaClickMetric();
                     }
                   );
                   void Promise.all([
-                    import('@/lib/last-failed-queue'),
-                    import('@/lib/system-tray-messages'),
+                    import('@/lib/queue/last-failed-queue'),
+                    import('@/lib/app/system-tray-messages'),
                   ]).then(
                     ([
                       { loadLastFailedQueue, RETRY_LAST_FAILED_QUEUE_EVENT },

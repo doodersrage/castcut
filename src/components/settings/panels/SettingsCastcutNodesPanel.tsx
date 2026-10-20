@@ -1,6 +1,6 @@
 'use client';
 
-import { PRODUCT_NAME } from '@/lib/brand';
+import { PRODUCT_NAME } from '@/lib/app/brand';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
@@ -19,8 +19,8 @@ import {
   type CastcutInstallCommand,
   type CastcutNodesStatus,
   type ComfyUiSystemInfo,
-} from '@/lib/castcut-nodes-setup';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/castcut/nodes-setup';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 type Report = {
   reachable: boolean;

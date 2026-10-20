@@ -1,7 +1,7 @@
 import { comfyUiSettingsToRuntime, loadComfyUiSettings } from './settings';
 import { stripEmptyComfyUiRuntime, type ComfyUiRuntimeConfig } from './config';
 import { findComfyWorkflowFile, mergeCustomWorkflowTokens } from './workflow-files';
-import { loadSettingsCache, saveSharedSettings } from '../settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '../settings/cache';
 
 const SERVER_WORKFLOW_PREFIX = 'server:';
 

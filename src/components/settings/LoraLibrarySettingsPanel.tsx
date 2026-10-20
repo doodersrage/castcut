@@ -9,14 +9,14 @@ import {
   describeLoraStack,
   resolveActiveLoraStack,
   type LoraLibraryEntry,
-} from '@/lib/lora-stack';
+} from '@/lib/lora/stack';
 import { fetchLoraTriggerPhrase } from '@/lib/comfyui/object-info-cache';
 import { useLoraLibraryInventory } from '@/hooks/useLoraLibraryInventory';
 import LoraSearchDownloadPanel from '@/components/settings/LoraSearchDownloadPanel';
 import LoraLibraryManager from '@/components/settings/LoraLibraryManager';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
-import { fetchLoraScanRows } from '@/lib/lora-scan-client';
+import { fetchLoraScanRows } from '@/lib/lora/scan-client';
 import {
   applyLoraScanResults,
   auditLoraStacksByModel,
@@ -27,10 +27,10 @@ import {
   missingLoraEntries,
   pruneIncompatibleLoraPicks,
   removeLoraEntries,
-} from '@/lib/lora-library-tools';
+} from '@/lib/lora/library-tools';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { loraModelFilterLabel } from '@/lib/lora-model-compat';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { loraModelFilterLabel } from '@/lib/lora/model-compat';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 
 type LoraLibrarySettingsPanelProps = {
   library: LoraLibraryEntry[] | undefined;

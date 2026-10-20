@@ -5,13 +5,13 @@ import {
   DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
   normalizeComposeIdentityKind,
   normalizeComposeIdentityLockStrength,
-} from '../compose-identity-lock';
+} from '../prompt/compose-identity-lock';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { resolveComfyOutputMediaKind } from '../comfyui/outputs';
 import { persistIdentityImage, IDENTITY_MEDIA_URL } from './media-client';
 import { galleryToolHrefForEntry, galleryToolLabel } from './tool-href';
-import { resolveQueueInputImage } from '../queue-input-image';
-import { loadSettingsCache, saveSharedSettings } from '../settings-cache';
+import { resolveQueueInputImage } from '../queue/input-image';
+import { loadSettingsCache, saveSharedSettings } from '../settings/cache';
 
 export function galleryEntryCanLockFace(
   entry: Pick<ComfyGalleryEntry, 'status' | 'images'>
@@ -88,7 +88,7 @@ export async function applyGalleryFaceToSession(
       { notify: true }
     );
     if (options?.toast !== false) {
-      void import('../app-toast').then(({ pushAppToast }) => {
+      void import('../app/toast').then(({ pushAppToast }) => {
         pushAppToast({
           text: `Face locked on ${galleryToolLabel(entry.tool)} · ${filename}`,
           href: galleryToolHrefForEntry(entry),
@@ -99,7 +99,7 @@ export async function applyGalleryFaceToSession(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Face lock upload failed.';
     if (options?.toast !== false) {
-      void import('../app-toast').then(({ pushAppToast }) => {
+      void import('../app/toast').then(({ pushAppToast }) => {
         pushAppToast({ text: message, tone: 'warning' });
       });
     }
@@ -127,7 +127,8 @@ export async function relocateIdentityLockToLiveHost(input?: {
   const deadUrl = input?.deadComfyUrl?.trim() || shared.ipAdapterComfyUrl?.trim() || undefined;
   let targetUrl = input?.targetComfyUrl?.trim() || undefined;
   if (!targetUrl) {
-    const { fetchComfyUiPoolUrlsForRetry, pickAlternateComfyUrl } = await import('../oom-retry');
+    const { fetchComfyUiPoolUrlsForRetry, pickAlternateComfyUrl } =
+      await import('../queue/oom-retry');
     const poolUrls = await fetchComfyUiPoolUrlsForRetry();
     targetUrl = pickAlternateComfyUrl(poolUrls, deadUrl);
   }

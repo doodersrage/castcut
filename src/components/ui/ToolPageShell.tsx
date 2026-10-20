@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { memo } from 'react';
 import BrandBars from '@/components/BrandBars';
-import { type ToolAccent } from '@/lib/tool-theme';
+import { type ToolAccent } from '@/lib/app/tool-theme';
 
 export type ToolPageWidth = 'default' | 'wide' | 'full';
 export type ToolSectionVariant = 'primary' | 'secondary';
@@ -296,7 +296,7 @@ export const ToolPageShell = memo(function ToolPageShell({
 
 export { ToolLayout } from '@/components/ui/ToolLayout';
 
-export { accentButtonClass, accentFocusClass, accentRingClass } from '@/lib/tool-theme';
+export { accentButtonClass, accentFocusClass, accentRingClass } from '@/lib/app/tool-theme';
 
 /** @deprecated Use ROUTE_TINT_CLASSES */
-export { ROUTE_TINT_CLASSES as ROUTE_TINT_CLASSES } from '@/lib/tool-theme';
+export { ROUTE_TINT_CLASSES as ROUTE_TINT_CLASSES } from '@/lib/app/tool-theme';

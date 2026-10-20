@@ -1,6 +1,6 @@
 'use client';
 
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 
 /**
  * Setup as a status chip — "Nora · plate ready" — that opens the Setup sheet (Cast lead, look,

@@ -1,7 +1,7 @@
 /**
  * Castcut node pack test vectors: the TypeScript pose check and mask repair run on a fixed set
  * of inputs, and their outputs are written where BOTH test suites read them —
- * `src/lib/castcut-vectors.test.ts` (the TS code still gives these answers) and
+ * `src/lib/castcut/vectors.test.ts` (the TS code still gives these answers) and
  * `comfyui-nodes/castcut/tests/test_castcut.py` (the Python port gives the same answers).
  *
  *   node --import tsx scripts/castcut-test-vectors.mts \
@@ -20,10 +20,10 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { synthesizeStickSkeleton } from '../src/lib/day/pose-guide';
-import { compositeThroughMask, repairSubjectMask, type MaskRgb } from '../src/lib/isolate-mask';
-import { stickToOpenPoseKeypoints } from '../src/lib/pose-guide-openpose';
-import type { NormalizedBody } from '../src/lib/pose-library';
-import { parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose-score';
+import { compositeThroughMask, repairSubjectMask, type MaskRgb } from '../src/lib/edit/isolate-mask';
+import { stickToOpenPoseKeypoints } from '../src/lib/pose/guide-openpose';
+import type { NormalizedBody } from '../src/lib/pose/library';
+import { parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose/score';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const VECTOR_DIR = join(ROOT, 'comfyui-nodes', 'castcut', 'tests', 'vectors');

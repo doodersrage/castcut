@@ -5,7 +5,7 @@ import AppSlot from '@/components/AppSlot';
 import { useEffect, useState } from 'react';
 import SystemTrayCelebrateOverlay from '@/components/SystemTrayCelebrateOverlay';
 import CommandPaletteEager from '@/components/CommandPalette';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
 
 const CommandPaletteLazy = dynamic(() => import('@/components/CommandPalette'), {
   ssr: false,
@@ -68,7 +68,7 @@ export default function DeferredShellClient() {
   useEffect(() => {
     let cancelled = false;
 
-    void import('@/lib/scheduled-batch').then(({ loadScheduledBatchConfig }) => {
+    void import('@/lib/batch/scheduled-batch').then(({ loadScheduledBatchConfig }) => {
       if (cancelled) {
         return;
       }

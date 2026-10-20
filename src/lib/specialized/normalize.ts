@@ -1,6 +1,6 @@
 import { normalizeComfyModel } from '../comfy-models';
-import { normalizeDetailLevel, type DetailLevel } from '../detail-level';
-import { parseLlmRequestOptions } from '../llm-request-options';
+import { normalizeDetailLevel, type DetailLevel } from '../prompt/detail-level';
+import { parseLlmRequestOptions } from '../llm/request-options';
 import type { SharedGenerationOptions } from './types';
 
 export function normalizeSharedGenerationOptions(

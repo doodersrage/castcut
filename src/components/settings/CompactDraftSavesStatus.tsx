@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import { pickWebpSaveAdapter } from '@/lib/workflow/save-format';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export default function CompactDraftSavesStatus({ enabled }: { enabled: boolean }) {
   const [status, setStatus] = useState<string | null>(null);

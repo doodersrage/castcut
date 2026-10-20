@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { applyCharacterRecord } from '@/lib/character-os';
+import { applyCharacterRecord } from '@/lib/character/os';
 import { upsertCharacterFromRoleplaySession } from '@/lib/play/cast';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { type RoleplayToolCache } from '@/lib/play/settings';
 import { persistRoleplayLibraryFromCache } from '@/lib/story/roleplay-library';
 

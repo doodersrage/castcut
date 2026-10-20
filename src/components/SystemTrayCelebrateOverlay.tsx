@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { SYSTEM_TRAY_CELEBRATE_EVENT } from '@/lib/system-tray-celebrate';
+import { SYSTEM_TRAY_CELEBRATE_EVENT } from '@/lib/app/system-tray-celebrate';
 
 type Particle = {
   x: number;

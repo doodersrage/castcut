@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppFeatureId } from '@/lib/auth/features';
 import type { AuthGroup, AuthUserPublic } from '@/lib/auth/types';
 import type { AuditLogEntry } from '@/lib/auth/audit-log';
-import type { SharedPresetEntry } from '@/lib/shared-preset-store';
-import type { SharedProject } from '@/lib/shared-projects-store';
-import type { UserAnalyticsSnapshot } from '@/lib/user-analytics';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
+import type { SharedProject } from '@/lib/storage/shared-projects-store';
+import type { UserAnalyticsSnapshot } from '@/lib/user/analytics';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type UserFormState = {
   username: string;

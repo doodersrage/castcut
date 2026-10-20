@@ -1,5 +1,5 @@
 import { apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { freeLocalLlmVram } from '@/lib/llm-vram-free-server';
+import { freeLocalLlmVram } from '@/lib/llm/vram-free-server';
 
 export const runtime = 'nodejs';
 

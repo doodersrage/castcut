@@ -1,22 +1,22 @@
 'use client';
 
-import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings/push-flush';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { loadActivePlayCampaign, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play/campaign';
 import {
   loadPlayMetrics,
   PLAY_METRICS_UPDATED_EVENT,
   resolveNextPlayAction,
 } from '@/lib/play/metrics';
-import { loadLocalObservability } from '@/lib/local-observability';
-import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/onboarding-store';
+import { loadLocalObservability } from '@/lib/server/local-observability';
+import { loadOnboardingState, ONBOARDING_UPDATED_EVENT } from '@/lib/app/onboarding-store';
 import { loadLookPack } from '@/lib/look/pack';
 import { resolvePlayHabitNudge } from '@/lib/play/habit-nudge';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 
 /** The film steps in order; a page that is not a step (Gallery, Queue, …) is -1. */

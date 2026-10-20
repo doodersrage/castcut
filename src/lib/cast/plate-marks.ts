@@ -4,10 +4,10 @@
 
 import { checkableMarks, marksCheckVerdict } from './marks-check';
 import { checkStillMarks } from './marks-check-client';
-import { getCharacter, looksOf } from '../character-os';
+import { getCharacter, looksOf } from '../character/os';
 import { loadComfyUiSettings } from '../comfyui/settings';
-import { lookPlateFaceUrl } from '../likeness-measure-client';
-import { loadSettingsCache } from '../settings-cache';
+import { lookPlateFaceUrl } from '../character/likeness-measure-client';
+import { loadSettingsCache } from '../settings/cache';
 
 export async function lookPlateMissesMarks(characterId: string, lookId: string): Promise<boolean> {
   const character = getCharacter(characterId);

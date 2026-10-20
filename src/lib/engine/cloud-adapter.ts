@@ -1,7 +1,7 @@
 'use client';
 
-import { loadEngineSettings } from '@/lib/engine-settings';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadEngineSettings } from '@/lib/engine/settings';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { createComfyUiClientId } from '@/lib/comfyui/websocket';
 import { cloudEngineOption, cloudSettingsHref, type CloudEngineId } from './capabilities';
 import {
@@ -139,7 +139,7 @@ export function createCloudEngineAdapter(id: CloudEngineId): EngineAdapter {
     },
 
     async uploadInputImage(input: EngineUploadInput) {
-      const { compressImageForEngineUpload } = await import('@/lib/browser-compress-image');
+      const { compressImageForEngineUpload } = await import('@/lib/storage/browser-compress-image');
       const prepared = await compressImageForEngineUpload(input.file, {
         maxEdge: 2048,
         maxBytes: 3_500_000,

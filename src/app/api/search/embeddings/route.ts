@@ -1,4 +1,4 @@
-import { rankByEmbedding } from '@/lib/embedding-search';
+import { rankByEmbedding } from '@/lib/search/embedding-search';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 
 export const runtime = 'nodejs';

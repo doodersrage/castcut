@@ -1,7 +1,7 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { buildComfyViewPath } from '../comfyui/outputs';
 import { resolveDurableGalleryStillUrl } from './media-client';
-import { isFluxFineTuneCheckpointModel } from '../model-checkpoint-map';
+import { isFluxFineTuneCheckpointModel } from '../model/checkpoint-map';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';
 import {
   lanczosPolishScaleAfterNeural,
@@ -22,10 +22,10 @@ import {
   sharpenAlphaForProfile,
   upscaleScaleForProfile,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
+} from '../queue/quality-profile';
 import { IMAGE_SCALE_BY_NODE_TYPE } from '../workflow/direct-patch';
 import { DEFAULT_INPUT_IMAGE_TOKEN } from '../comfyui/config';
-import { isUpscaleModelInstalled } from '../model-upscale-map';
+import { isUpscaleModelInstalled } from '../model/upscale-map';
 
 type WorkflowNode = {
   class_type: string;

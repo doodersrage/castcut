@@ -1,11 +1,11 @@
 'use client';
 
-import { promptResultPreviewProps } from '@/lib/prompt-result-preview-props';
+import { promptResultPreviewProps } from '@/lib/prompt/result-preview-props';
 import EnhancedPromptResult from '@/components/LazyEnhancedPromptResult';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
 import EditToolRecipeStrip from '@/components/EditToolRecipeStrip';
-import { continueEditResultProps } from '@/lib/continue-edit-result-props';
-import { getReformatTargetLabel } from '@/lib/reformat-target';
+import { continueEditResultProps } from '@/lib/edit/continue-edit-result-props';
+import { getReformatTargetLabel } from '@/lib/edit/reformat-target';
 import type { useComposeToolOrchestration } from '@/hooks/useComposeToolOrchestration';
 
 type ComposeToolViewModel = ReturnType<typeof useComposeToolOrchestration>;

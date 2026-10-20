@@ -1,5 +1,5 @@
 import { apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import type { PluginQueueHookPayload } from '@/lib/plugin-queue-hooks';
+import type { PluginQueueHookPayload } from '@/lib/plugin/queue-hooks';
 
 export const runtime = 'nodejs';
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resetBrowserStorageCache } from '../browser-storage';
-import { getCharacter, upsertCharacter } from '../character-os';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
+import { getCharacter, upsertCharacter } from '../character/os';
 import { saveCastMarks } from './marks';
 
 function installMemoryWindow() {

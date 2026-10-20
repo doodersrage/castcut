@@ -1,7 +1,7 @@
 'use client';
 
-import { useFixAreaSessionForStill } from '@/lib/fix-area-session-store';
-import { fixAreaSessionChipLabel, fixAreaSessionProgress } from '@/lib/fix-area-session';
+import { useFixAreaSessionForStill } from '@/lib/edit/fix-area-session-store';
+import { fixAreaSessionChipLabel, fixAreaSessionProgress } from '@/lib/edit/fix-area-session';
 import { openFixAreaSession } from '@/components/fix-area/FixAreaTray';
 
 /**

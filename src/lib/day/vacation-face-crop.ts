@@ -1,6 +1,6 @@
 'use client';
 
-import type { CharacterRecord } from '@/lib/character-os';
+import type { CharacterRecord } from '@/lib/character/os';
 import type { DayPlate } from '@/lib/day/plate';
 import { resolveDayFaceOnlyPlate } from '@/lib/day/plate';
 import {
@@ -9,9 +9,9 @@ import {
   isolateSubjectOnWhite,
   ISOLATE_FILL_NEUTRAL,
   loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
+} from '@/lib/edit/isolate-subject';
 import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
 
 type FaceBreakResult = {
   facePlate: DayPlate | null;

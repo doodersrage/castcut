@@ -4,7 +4,7 @@ import { useId } from 'react';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, TextInput } from '@/components/ui/Field';
 import type { LoraTrainPanelViewModel } from '@/components/settings/lora-train/useLoraTrainPanel';
-import { LORA_TRAIN_TEMPLATES } from '@/lib/lora-train-templates';
+import { LORA_TRAIN_TEMPLATES } from '@/lib/lora/train-templates';
 
 type Props = Pick<
   LoraTrainPanelViewModel,

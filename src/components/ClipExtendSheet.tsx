@@ -8,10 +8,10 @@ import {
   CLIP_EXTEND_MAX_SEGMENTS,
   requestClipExtendPlan,
   type ClipExtendRequest,
-} from '@/lib/clip-extend';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { SPOKEN_LINE_TONES } from '@/lib/ltx25-renderer';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/clip/extend';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { SPOKEN_LINE_TONES } from '@/lib/video/ltx25-renderer';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 export type ClipExtendChoice = {
   direction?: string;

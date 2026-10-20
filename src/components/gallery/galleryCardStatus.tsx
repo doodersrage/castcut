@@ -2,7 +2,7 @@
 
 import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import { jobStatusTone, type StatusTone } from '@/lib/status-tone';
+import { jobStatusTone, type StatusTone } from '@/lib/app/status-tone';
 
 export function statusLabel(
   status: ComfyGalleryEntry['status'],

@@ -4,14 +4,14 @@ import ActionMenu, {
   ACTION_MENU_DANGER_ITEM_CLASS,
   ACTION_MENU_ITEM_CLASS,
 } from '@/components/ui/ActionMenu';
-import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { CastImportButton } from '@/components/cast/CastTransferControls';
 import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   applyCharacterRecord,
   characterHomeHref,
@@ -22,7 +22,7 @@ import {
   forgetCharacterRecord,
   subscribeCharacters,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import { migrateCharactersFromLegacy } from '@/lib/play/cast';
 import { castRosterReadinessLine } from '@/lib/cast/home-status';
 import { playCampaignHref, rosterFilmLead } from '@/lib/play/campaign';
@@ -31,7 +31,7 @@ import {
   loadSettingsCache,
   saveSharedSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 import {
   deleteRoleplayLibrarySession,
   roleplaySessionsForCharacterSync,

@@ -5,10 +5,10 @@
  * prompts used to say "adult" barely or not at all.
  */
 
-import { applyAdultAgeSafeguards, type AgePersonNoun } from '../adult-age-safeguard';
-import { storyRatingNeedsAdultSafeguards } from '../adult-appearance-gate';
-import type { CharacterAgeBand } from '../character-appearance';
-import { isRapidDuoRecipePrompt, RAPID_DUO_RECIPE_MARK } from '../prompt-recipe-mark';
+import { applyAdultAgeSafeguards, type AgePersonNoun } from '../adult/adult-age-safeguard';
+import { storyRatingNeedsAdultSafeguards } from '../adult/adult-appearance-gate';
+import type { CharacterAgeBand } from '../character/appearance';
+import { isRapidDuoRecipePrompt, RAPID_DUO_RECIPE_MARK } from '../prompt/recipe-mark';
 
 export type StoryStillAgeInput = {
   /** The story's rating (RoleplayContentId). */

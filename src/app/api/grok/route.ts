@@ -1,4 +1,4 @@
-import { llmImageQueueHandlers } from '@/lib/llm-image-routes';
+import { llmImageQueueHandlers } from '@/lib/llm/image-routes';
 
 const handlers = llmImageQueueHandlers('grok');
 

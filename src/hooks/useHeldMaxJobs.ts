@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { HELD_MAX_UPDATED_EVENT, listHeldMaxJobs, type HeldMaxJob } from '@/lib/held-max-queue';
+import {
+  HELD_MAX_UPDATED_EVENT,
+  listHeldMaxJobs,
+  type HeldMaxJob,
+} from '@/lib/queue/held-max-queue';
 
 /** Live list of held Max jobs (updates on hold/flush/clear). */
 export function useHeldMaxJobs(): HeldMaxJob[] {

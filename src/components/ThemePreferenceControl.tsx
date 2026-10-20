@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { AppTheme } from '@/lib/theme-store';
+import type { AppTheme } from '@/lib/app/theme-store';
 import {
   APP_THEME_CHANGED_EVENT,
   loadAppTheme,
   resolveAppTheme,
   saveAppTheme,
   systemPrefersDark,
-} from '@/lib/theme-store';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/app/theme-store';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 
 const THEME_OPTIONS = [

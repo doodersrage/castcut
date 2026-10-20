@@ -1,5 +1,5 @@
 import { loadComfyWorkflowFiles, type ComfyWorkflowFile } from '../comfyui/workflow-files';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 import { FACE_DETAIL_IMAGE_TOKEN } from '../gallery/output-face-detail';
 
 const FACE_DETAILER_NODE_PATTERN =

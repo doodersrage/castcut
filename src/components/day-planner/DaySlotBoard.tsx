@@ -1,10 +1,10 @@
 'use client';
 
 import IdentityMarkChip from '@/components/IdentityMarkChip';
-import { DAY_IDENTITY_BARS, identityMark } from '@/lib/identity-mark';
+import { DAY_IDENTITY_BARS, identityMark } from '@/lib/character/identity-mark';
 import ClipExtendSheet, { type ClipExtendChoice } from '@/components/ClipExtendSheet';
-import type { ClipExtendRequest } from '@/lib/clip-extend';
-import { clipUrlIsVideo } from '@/lib/clip-media-kind';
+import type { ClipExtendRequest } from '@/lib/clip/extend';
+import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
@@ -13,7 +13,7 @@ import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
   CLOTHED_GATE_WITHHELD_MESSAGE,
-} from '@/lib/adult-appearance-gate';
+} from '@/lib/adult/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
@@ -30,7 +30,7 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui/live-preview-store';
 import { slotQualityBadge, type SlotQualityLedger } from '@/lib/play/slot-quality';
-import { clipCheckLabel, type ClipCheck } from '@/lib/clip-quality';
+import { clipCheckLabel, type ClipCheck } from '@/lib/clip/quality';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { daySlotJobProgress, type DaySlotJobEntry } from '@/lib/day/slot-progress';

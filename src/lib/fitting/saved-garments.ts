@@ -4,9 +4,9 @@ import {
   BROWSER_STORAGE_HEALTH_EVENT,
   readBrowserValue,
   writeBrowserValue,
-} from '@/lib/browser-storage';
-import { recordListSpec } from '@/lib/record-list-sync';
-import { trackRecordListWrite } from '@/lib/record-tombstones';
+} from '@/lib/storage/browser-storage';
+import { recordListSpec } from '@/lib/storage/record-list-sync';
+import { trackRecordListWrite } from '@/lib/storage/record-tombstones';
 
 export const FITTING_SAVED_GARMENTS_STORAGE_KEY = 'fitting-saved-garments';
 export const FITTING_SAVED_GARMENTS_CHANGED_EVENT = 'fitting-saved-garments-changed';

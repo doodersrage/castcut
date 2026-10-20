@@ -6,7 +6,7 @@ import {
   toPublicQueueExportConfig,
   writeStoredQueueExportConfig,
   type StoredQueueExportConfig,
-} from '@/lib/queue-export-store';
+} from '@/lib/queue/export-store';
 
 export const runtime = 'nodejs';
 

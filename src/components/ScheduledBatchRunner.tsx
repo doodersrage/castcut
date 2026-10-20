@@ -5,14 +5,14 @@ import {
   loadScheduledBatchConfig,
   saveScheduledBatchConfig,
   shouldRunScheduledBatch,
-} from '@/lib/scheduled-batch';
+} from '@/lib/batch/scheduled-batch';
 import {
   generateScheduledBatchPrompts,
   rankScheduledBatchPrompts,
   resolveScheduledBatchModelDetail,
-} from '@/lib/scheduled-batch-generate';
-import { retryFailedWebhookDeliveries } from '@/lib/webhook-log';
-import { toastQueueOutcome } from '@/lib/app-toast';
+} from '@/lib/batch/scheduled-batch-generate';
+import { retryFailedWebhookDeliveries } from '@/lib/server/webhook-log';
+import { toastQueueOutcome } from '@/lib/app/toast';
 
 export default function ScheduledBatchRunner() {
   const runningRef = useRef(false);
@@ -35,15 +35,16 @@ export default function ScheduledBatchRunner() {
 
         runningRef.current = true;
         try {
-          const { loadSettingsCache } = await import('@/lib/settings-cache');
-          const { resolveQueueNegativePrompt } = await import('@/lib/queue-negative');
+          const { loadSettingsCache } = await import('@/lib/settings/cache');
+          const { resolveQueueNegativePrompt } = await import('@/lib/queue/negative');
           const { resolveRuntimeForQueue } = await import('@/lib/comfyui/runtime-for-model');
-          const { resolveQueueParams } = await import('@/lib/queue-params-settings');
+          const { resolveQueueParams } = await import('@/lib/queue/params-settings');
           const { registerComfyGalleryJob } = await import('@/lib/gallery/comfyui-gallery-client');
           const { scheduleComfyGalleryPoll } = await import('@/lib/gallery/comfyui-gallery-poller');
           const { postComfyUiPrompt } = await import('@/lib/comfyui/queue-request');
-          const { registerScheduledBatchQueue } = await import('@/lib/scheduled-batch-tracker');
-          const { dispatchWebhook } = await import('@/lib/webhook-settings');
+          const { registerScheduledBatchQueue } =
+            await import('@/lib/batch/scheduled-batch-tracker');
+          const { dispatchWebhook } = await import('@/lib/settings/webhook-settings');
 
           const { shared } = loadSettingsCache();
           const { model, detail, qualityProfile } = resolveScheduledBatchModelDetail(config, {
@@ -76,8 +77,8 @@ export default function ScheduledBatchRunner() {
               hints: config.genre,
               tool: 'scheduled-batch',
             });
-            const { guardQueueQualityForVram } = await import('@/lib/vram-queue-guard');
-            const { maybeHoldMaxGenerateJobs } = await import('@/lib/held-max-queue');
+            const { guardQueueQualityForVram } = await import('@/lib/queue/vram-queue-guard');
+            const { maybeHoldMaxGenerateJobs } = await import('@/lib/queue/held-max-queue');
             const baseRuntime = resolveRuntimeForQueue(model, 'scheduled-batch');
             const vramGuard = await guardQueueQualityForVram({ runtime: baseRuntime });
             const runtime = vramGuard.runtime ?? baseRuntime;
@@ -145,7 +146,7 @@ export default function ScheduledBatchRunner() {
             }
 
             if (useVisionRank && queuedPromptIds.length > 0) {
-              const { runPostQueueVisionCull } = await import('@/lib/best-of-n-vision-queue');
+              const { runPostQueueVisionCull } = await import('@/lib/best-of-n/vision-queue');
               toastQueueOutcome({
                 ok: true,
                 text: `Scheduled batch · waiting for ${queuedPromptIds.length} outputs to vision-rank…`,

@@ -18,9 +18,9 @@ import {
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui/live-preview-store';
 import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { toMobileStudioHref } from '@/lib/mobile-studio';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { subscribeSharedHealth, type RawHealthResponse } from '@/lib/shared-health-poll';
+import { toMobileStudioHref } from '@/lib/app/mobile-studio';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { subscribeSharedHealth, type RawHealthResponse } from '@/lib/storage/shared-health-poll';
 
 type ComfyHealth = {
   ok: boolean;

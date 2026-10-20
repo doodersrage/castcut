@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { loadComfyWorkflowFiles, type ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
 import { getSelectedWorkflowFileId, setSelectedWorkflowFileId } from '@/lib/comfyui/runtime';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings-cache';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export type ServerWorkflowOption = {
   id: string;

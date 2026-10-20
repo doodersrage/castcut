@@ -11,8 +11,8 @@ import {
   type CollabDraftFields,
   type CollabDraftPayload,
   type CollabPresencePeer,
-} from '@/lib/collab-presence';
-import { loadActiveProjectId, loadPromptProjects, setActiveProjectId } from '@/lib/prompt-projects';
+} from '@/lib/storage/collab-presence';
+import { loadActiveProjectId, loadPromptProjects, setActiveProjectId } from '@/lib/prompt/projects';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
 

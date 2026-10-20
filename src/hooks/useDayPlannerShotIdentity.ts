@@ -11,7 +11,7 @@ import {
   dayFaceBySlot,
   identityMark,
   type IdentityMark,
-} from '@/lib/identity-mark';
+} from '@/lib/character/identity-mark';
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
 

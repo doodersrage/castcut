@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { checkReferenceInComfy } from '@/lib/reference-check-server';
-import type { ReferenceRole } from '@/lib/reference-check';
+import { checkReferenceInComfy } from '@/lib/checks/reference-check-server';
+import type { ReferenceRole } from '@/lib/checks/reference-check';
 
 export const runtime = 'nodejs';
 

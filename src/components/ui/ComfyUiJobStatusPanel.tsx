@@ -18,9 +18,9 @@ import { loadComfyGallery, COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/c
 import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import { cancelComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { cancelComfyUiJob } from '@/lib/comfyui/queue-control';
-import { toastQueueOutcome } from '@/lib/app-toast';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { jobStatusTone, statusToneClasses } from '@/lib/status-tone';
+import { toastQueueOutcome } from '@/lib/app/toast';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { jobStatusTone, statusToneClasses } from '@/lib/app/status-tone';
 
 type ComfyUiJobStatusPanelProps = {
   job: ComfyUiJobTrackerState;

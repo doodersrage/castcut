@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { KeyCheckResult } from '@/lib/engine-key-check';
+import type { KeyCheckResult } from '@/lib/engine/key-check';
 
 type Result = KeyCheckResult & { source?: 'settings' | 'server' | null };
 

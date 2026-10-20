@@ -6,7 +6,7 @@ import {
   deleteSharedPreset,
   listSharedPresets,
   upsertSharedPreset,
-} from '@/lib/shared-preset-store';
+} from '@/lib/storage/shared-preset-store';
 
 export const runtime = 'nodejs';
 

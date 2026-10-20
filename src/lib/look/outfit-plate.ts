@@ -1,5 +1,5 @@
 import { castMarksPlateLine } from '../cast/marks';
-import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/character-identity';
+import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/character/identity';
 import {
   activeLook,
   createLookId,
@@ -7,19 +7,19 @@ import {
   upsertCharacter,
   withNewPlateLook,
   type CharacterRecord,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   plateTraitDetails,
   sanitizeCharacterAppearanceDescriptor,
-} from '@/lib/character-appearance';
+} from '@/lib/character/appearance';
 import { followCastPlateInSessions } from '@/lib/cast/plate-switch';
 import { resolveFittingPlateFromCharacter } from '@/lib/fitting/room';
 import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,
   loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
-import type { MoodboardTile } from '@/lib/moodboard-scene';
+} from '@/lib/edit/isolate-subject';
+import type { MoodboardTile } from '@/lib/scene/moodboard-scene';
 import type { LookPack } from '@/lib/look/pack';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
@@ -29,9 +29,9 @@ import {
   loadComfyGallery,
 } from '@/lib/gallery/comfyui-gallery';
 import { castPlateMediaId, persistOwnedPlateImage } from '@/lib/gallery/media-client';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { stampedUploadName } from '@/lib/upload-name';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { stampedUploadName } from '@/lib/storage/upload-name';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_FITTING_TOOL_CACHE, type FittingToolCache } from '@/lib/play/settings';
 import type { SendComfyUiOptions } from '@/hooks/prompt-result/comfy-ui-types';
 
@@ -1161,4 +1161,4 @@ export {
   syncSharedIdentityToCast,
   withCastFaceQueueParams,
   withCastIdentityQueueFields,
-} from '@/lib/character-identity';
+} from '@/lib/character/identity';

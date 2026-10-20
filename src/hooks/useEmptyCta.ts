@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useSyncExternalStore } from 'react';
-import { APP_HAS_PLAY } from '@/lib/app-profile';
-import { resolveGenerateEmptyCta, resolveStudioEmptyCta, type EmptyCta } from '@/lib/empty-cta';
+import { APP_HAS_PLAY } from '@/lib/app/profile';
+import { resolveGenerateEmptyCta, resolveStudioEmptyCta, type EmptyCta } from '@/lib/app/empty-cta';
 
 const subscribeNothing = () => () => {};
 

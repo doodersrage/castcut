@@ -5,7 +5,7 @@
  */
 
 import type { LookPack } from '../look/pack';
-import { retiredLookHref } from '../retired-look';
+import { retiredLookHref } from '../app/retired-look';
 import { lookPackDayHref, lookPackFittingHref, lookPackRoleplayHref } from '../look/pack';
 import {
   cachedDayLength,

@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState, type MutableRefObject } from 'react';
-import { getCharacter } from '@/lib/character-os';
-import { keepClipInGallery, keepStillInGallery } from '@/lib/clip-gallery-keep';
+import { getCharacter } from '@/lib/character/os';
+import { keepClipInGallery, keepStillInGallery } from '@/lib/clip/gallery-keep';
 import {
   requestCopyMoves,
   requestDanceToMusic,
@@ -10,11 +10,11 @@ import {
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
-} from '@/lib/media-actions-client';
+} from '@/lib/media/actions-client';
 import { storyBeatKey } from '@/lib/play/pose-targets';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 export type StoryMediaTool = 'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';
 

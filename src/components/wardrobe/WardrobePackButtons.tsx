@@ -34,7 +34,7 @@ export default function WardrobePackButtons({
           onClick={() => {
             setBusy(true);
             setMessage(null);
-            void import('@/lib/wardrobe-pack-client')
+            void import('@/lib/wardrobe/pack-client')
               .then(({ exportWardrobePack }) => exportWardrobePack(kind))
               .then(({ exported, missing }) =>
                 setMessage(
@@ -70,7 +70,7 @@ export default function WardrobePackButtons({
             if (!file) return;
             setBusy(true);
             setMessage(null);
-            void import('@/lib/wardrobe-pack-client')
+            void import('@/lib/wardrobe/pack-client')
               .then(async ({ importWardrobePack, wardrobePackImportMessage }) =>
                 setMessage(wardrobePackImportMessage(await importWardrobePack(file)))
               )

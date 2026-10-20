@@ -3,9 +3,9 @@
 import type { BatchPromptItemActions } from '@/components/EnhancedPromptResult';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import MobileStickyQueueBar from '@/components/MobileStickyQueueBar';
-import { regionalPromptCustomTokens } from '@/lib/regional-prompt-builder';
-import { getSportPreset } from '@/lib/sport-presets';
-import { readVariationSeedFromMetadata } from '@/lib/variation-seed-metadata';
+import { regionalPromptCustomTokens } from '@/lib/prompt/regional-prompt-builder';
+import { getSportPreset } from '@/lib/scene/sport-presets';
+import { readVariationSeedFromMetadata } from '@/lib/variation/seed-metadata';
 import type { useCharacterToolOrchestration } from '@/hooks/useCharacterToolOrchestration';
 
 type CharacterToolViewModel = ReturnType<typeof useCharacterToolOrchestration>;

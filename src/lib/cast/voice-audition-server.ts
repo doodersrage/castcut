@@ -13,7 +13,7 @@ import {
   stageComfyImageAsInput,
   type ComfyImageRef,
 } from '../comfyui/comfy-utility-graph-server';
-import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from '../ltx25-renderer';
+import { buildLtx25TalkingClipGraph, LTX25_SPEECH_SAVE_NODE } from '../video/ltx25-renderer';
 
 async function stagePlate(input: {
   baseUrl: string;
@@ -25,7 +25,7 @@ async function stagePlate(input: {
     ? parseComfyViewRef(input.plateUrl)
     : null;
   if (ref) return stageComfyImageAsInput(input.baseUrl, ref, 'voice-audition');
-  const { fetchFilmShotBytes } = await import('../video-shot-fetch');
+  const { fetchFilmShotBytes } = await import('../video/shot-fetch');
   const fetched = await fetchFilmShotBytes({
     url: input.plateUrl,
     requestOrigin: input.requestOrigin,

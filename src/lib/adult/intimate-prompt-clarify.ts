@@ -1,0 +1,1454 @@
+/**
+ * Rewrite literary intimate euphemisms into direct anatomical language
+ * image models parse reliably (Qwen/Flux often miss "slick core", "manhood", etc.).
+ *
+ * The possessive and "the/a" forms use everyday words (center, entrance, opening, heat, private,
+ * pride, tool, button, release …), so those rules only run on text that is sexual, or on a phrase
+ * that cannot mean anything else ("her slick folds"). Without that gate a PG-13 story card read
+ * "the vagina mess of …" (from "The private mess of …"), and "the entrance of the hotel",
+ * "her center of gravity" and "his tool belt" were rewritten the same way.
+ */
+
+import { stripNegatedClauses } from '../prompt/negated-clauses';
+import { isRapidDuoRecipePrompt } from '../prompt/recipe-mark';
+import { softenQwenRapidNudeSafetyTriggers } from '@/lib/engine/qwen-rapid-nude-edit';
+
+type ClarifyRule = {
+  /** Everyday words: applies only in sexual context or to a self-evident phrase. */
+  ambiguous?: boolean;
+  pattern: RegExp;
+  replace: string | ((match: string, ...groups: string[]) => string);
+};
+
+const PRONOUN = '(her|his|their)';
+const OBJ = '(her|him|them)';
+
+/** Adjectives LLMs stack before core / folds / entrance euphemisms (one or more). */
+const CORE_ADJ =
+  '(?:slick|wet|hot|warm|molten|dripping|soaked|swollen|tight|aching|needy|eager|quivering|trembling|silken|soft|juicy|creamy|slicked|drenched|slippery|clenching|pulsing|throbbing|slicked-?up|glistening|dewy|slicked\\s+wet|slick\\s+wet|warm\\s+wet|hot\\s+wet)';
+const CORE_ADJ_RUN = `(?:${CORE_ADJ}\\s+)+`;
+
+/** Female / receptive genital euphemism nouns. */
+const FEMALE_CORE =
+  '(?:core|folds?|channel|entrance|flower|honey\\s*pot|love\\s*canal|womanhood|cunny|cunt|snatch|quim|slit|center|depths?|heat|opening|passage|tunnel|sheath|hollow|nethers?|privates?|womanly\\s+parts?|most\\s+intimate\\s+place)';
+
+/** Male genital euphemism nouns (possessive). */
+const MALE_MEMBER =
+  '(?:manhood|member|length|girth|shaft|hardness|erection|arousal|cockstand|rod|tool|package|pride|lance|spear|pole|column|arousal|bulge|hardness)';
+
+/** Clit euphemisms. */
+const CLIT_NOUN = '(?:clit(?:oris)?|pearl|nub|button|bean|bud|sweet\\s*spot)';
+
+/** Breast euphemisms. */
+const BREAST_NOUN =
+  '(?:mounds?|orbs?|globes?|teats?|udders?|melons?|funbags?|tits?|bosoms?|bust|cleavage|soft\\s+flesh|pillowy\\s+chest)';
+
+/** Ass euphemisms (possessive — avoid bare "behind" / face "cheeks"). */
+const ASS_NOUN = '(?:rear|backside|rump|ass\\s+cheeks|hindquarters)';
+
+/** Cum / fluid euphemisms (possessive — avoid bare "cream" food). */
+const CUM_NOUN = '(?:seed|spend|release|essence|load|finish|spendings?|climax)';
+
+function vaginaFor(pronoun: string): string {
+  return pronoun.toLowerCase() === 'his' ? `${pronoun} ass` : `${pronoun} vagina`;
+}
+
+function penetrateFor(pronoun: string, lead = 'penetrating'): string {
+  return pronoun.toLowerCase() === 'his' ? `${lead} ${pronoun} ass` : `${lead} ${pronoun} vagina`;
+}
+
+/**
+ * Text that is about sex or nudity — the gate for the ambiguous rules. Only words that mean one
+ * thing: "climax", "thrust", "moan", "grind", "oral", "explicit", "soaked" and the like also
+ * describe a story's climax, a door thrust open or a rain-soaked street, and with them in the
+ * list those sentences were rewritten ("her center of gravity" → "her vagina of gravity").
+ */
+const SEXUAL_CONTEXT_RE =
+  /\b(?:sex(?:ual|ually)?|nude|naked|topless|erotic\w*|aroused|arousal|orgasm\w*|penetrat\w*|blowjob|handjob|finger(?:ing|ed)\s+(?:her|him|them)|cock|penis|pussy|vagina|clit\w*|nipples?|cum(?:s|ming)?|fuck\w*|mak(?:e|es|ing)\s+love|lovemaking|between\s+(?:her|his|their)\s+(?:legs|thighs)|doggy[- ]?style|reverse\s+cowgirl|cowgirl\s+position|bare\s+breasts?|foreplay|masturbat\w*|rear-entry|mid-sex|manhood|womanhood|cunny|cunt|quim|honey\s*pot|love\s*canal|cockstand|erection|asshole|anus|tits?)\b/i;
+
+/**
+ * Adjectives and nouns that make ONE phrase unmistakable ("her slick folds", "the dripping
+ * entrance"). Checked against the matched phrase only — never the surrounding text.
+ */
+const SELF_EVIDENT_RE =
+  /\b(?:wet\s+(?:core|folds?|channel|slit)|slick\w*|molten|dripping|soaked|swollen|aching|needy|quivering|clenching|pulsing|throbbing|drenched|honey\s*pot|love\s*canal|womanhood|cunny|cunt|snatch|quim|nethers?|womanly\s+parts?|most\s+intimate\s+place|manhood|cockstand|erection|clit(?:oris)?|nipples?|asshole|anus|tits?|funbags?)\b/i;
+
+/** "the/a" + an everyday noun with no adjective ("the entrance", "a flower") is never rewritten. */
+const BARE_DETERMINER_RE = /^(?:the|that|this|an?)\s+\S+$/i;
+
+/**
+ * Longer / more specific patterns first.
+ */
+const INTIMATE_CLARIFY_RULES: ClarifyRule[] = [
+  // ——— Penetration / fingering into core ———
+  {
+    pattern: new RegExp(
+      String.raw`\bfingers?\s+(?:into|inside|in|through)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) =>
+      p.toLowerCase() === 'his'
+        ? `fingers penetrating ${p} ass`
+        : `fingers penetrating ${p} vagina`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:tongue|mouth)\s+(?:into|inside|in|on|over)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `tongue on ${vaginaFor(p)}`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:cock|penis|dick|shaft|member|manhood|rod|pole)\s+(?:into|inside|in|through)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) =>
+      p.toLowerCase() === 'his' ? `cock penetrating ${p} ass` : `cock penetrating ${p} vagina`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:buried|sank|sinking|plunged|plunging|thrust(?:s|ing)?|pushed|pushing|slid|sliding|drove|driving|rammed|ramming|sunk|hilted|sheathed)\s+(?:(?:deep|fully|fully\s+deep)\s+)?(?:(?:into|inside|in)\s+)?${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => penetrateFor(p),
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\breached\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => penetrateFor(p),
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:filled|filling|stuffed|stuffing|stretched|stretching)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) =>
+      p.toLowerCase() === 'his' ? `filling ${p} ass` : `filling ${p} vagina`,
+  },
+
+  // ——— Hands / clit ———
+  {
+    pattern: /\bthumb\s+circles?\s+(her|his|their)\s+clit\b/gi,
+    replace: (_m, p: string) => `thumb rubbing ${p} clit`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:hand|fingers?)\s+(?:between|in)\s+${PRONOUN}\s+legs\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `hand between ${p} legs, fingering`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:working|rubbing|stroking|teasing|circling|flicking)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${CLIT_NOUN}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `rubbing ${p} clit`,
+  },
+  // "Gilded frame of her bare legs" is literary leg shape — not a picture/mirror frame.
+  {
+    pattern: /\bgilded\s+frame\s+of\s+(her|his|their)\s+bare\s+legs\b/gi,
+    replace: (_m, p: string) => `candlelight along ${p} bare legs`,
+  },
+  {
+    pattern: /\b(?:ornate|golden|gilded)\s+frame\s+of\s+(her|his|their)\s+(?:bare\s+)?legs\b/gi,
+    replace: (_m, p: string) => `the long lines of ${p} bare legs`,
+  },
+
+  // ——— Possessive anatomy ———
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`, 'gi'),
+    replace: (_m, p: string) => vaginaFor(p),
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${CLIT_NOUN}\b`, 'gi'),
+    replace: (_m, p: string) => `${p} clit`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b${PRONOUN}\s+(?:thick\s+|hard\s+|rigid\s+|throbbing\s+|aching\s+|swollen\s+|heavy\s+|stiff\s+)?${MALE_MEMBER}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `${p} erect penis`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b${PRONOUN}\s+(?:full\s+|soft\s+|heavy\s+|bare\s+|naked\s+|exposed\s+)?${BREAST_NOUN}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `${p} breasts`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b${PRONOUN}\s+(?:hard\s+|stiff\s+|peaked\s+|pebbled\s+|sensitive\s+)?(?:nipples?|buds?|tips?)\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `${p} nipples`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${PRONOUN}\s+${ASS_NOUN}\b`, 'gi'),
+    replace: (_m, p: string) => `${p} ass`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b${PRONOUN}\s+(?:tight\s+|puckered\s+|eager\s+)?(?:asshole|anus|ring|back\s*door|rosebud)\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `${p} asshole`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b${PRONOUN}\s+(?:heavy\s+|tight\s+|full\s+)?(?:balls?|sac|stones?|nuts?)\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `${p} balls`,
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${PRONOUN}\s+${CUM_NOUN}\b`, 'gi'),
+    replace: (_m, p: string) => `${p} cum`,
+  },
+
+  // ——— Determiner / bare core (the wet core, slick core) ———
+  {
+    ambiguous: true,
+    pattern: new RegExp(
+      String.raw`\b(?:the|that|this|a|an)\s+(?:${CORE_ADJ_RUN})?${FEMALE_CORE}\b`,
+      'gi'
+    ),
+    replace: 'the vagina',
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}core\b`, 'gi'),
+    replace: 'wet vagina',
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}folds?\b`, 'gi'),
+    replace: 'wet vagina',
+  },
+  {
+    ambiguous: true,
+    pattern: new RegExp(String.raw`\b${CORE_ADJ_RUN}(?:channel|entrance|slit|quim|cunny)\b`, 'gi'),
+    replace: 'wet vagina',
+  },
+  {
+    pattern: /\b(?:love\s*canal|honey\s*pot|womanhood)\b/gi,
+    replace: 'vagina',
+  },
+  {
+    pattern: /\bmanhood\b/gi,
+    replace: 'erect penis',
+  },
+  {
+    pattern: /\b(?:throbbing|aching|rigid|hard|stiff)\s+member\b/gi,
+    replace: 'erect penis',
+  },
+
+  // ——— Oral / sex acts ———
+  {
+    pattern: /\blaps?\s+at\s+(?:her|his|their)\s+(?:inner\s+)?thigh\b/gi,
+    replace: 'licking her inner thigh during oral sex',
+  },
+  {
+    pattern: /\b(?:tongue|mouth)\s+laps?\s+at\b/gi,
+    replace: 'tongue licking',
+  },
+  {
+    pattern: /\bfingers?\s+curl(?:s|ing)?\s+around\s+(her|his|their)\s+clit\b/gi,
+    replace: (_m, p: string) => `fingers rubbing ${p} clit`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:tasting|devouring|feasting\s+on|lapping\s+(?:at|up)|laps?\s+at|mouthing)\s+${OBJ}\b`,
+      'gi'
+    ),
+    replace: (_m, obj: string) => `performing oral sex on ${obj}`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:going\s+down\s+on|ate\s+out|eating\s+out|went\s+down\s+on)\s+${OBJ}\b`,
+      'gi'
+    ),
+    replace: (_m, obj: string) => `oral sex on ${obj}`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:sucking|suckles?|suckling|blowing)\s+(?:on\s+)?${PRONOUN}\s+(?:cock|dick|penis|member|manhood|shaft)\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `sucking ${p} cock`,
+  },
+  {
+    pattern: new RegExp(
+      String.raw`\b(?:sucking|suckles?|lick(?:ing|s|ed)?)\s+${PRONOUN}\s+(?:${CORE_ADJ_RUN})?${CLIT_NOUN}\b`,
+      'gi'
+    ),
+    replace: (_m, p: string) => `licking ${p} clit`,
+  },
+  {
+    pattern:
+      /\b(?:sheathed|buried|sank|sinking)\s+(?:(?:his|her|their)\s+)?(?:cock|penis|member|manhood|shaft|length|dick)\s+(?:(?:deep\s+)?(?:inside|into|in)\s+)?(?:her|his|their)?\b/gi,
+    replace: 'penetrating with his cock',
+  },
+  {
+    pattern:
+      /\b(?:joined|joining|coupled|coupling|became\s+one|becoming\s+one|sheathed\s+(?:himself|herself|themselves)|buried\s+(?:himself|herself|themselves)|rocked\s+together|moved\s+as\s+one)\b/gi,
+    replace: 'penetrating in sex',
+    // "the stranger's joined hands", "they moved as one across the floor": ordinary words. A
+    // PG-13 Story scene came out as "the stranger's penetrating in sex hands" and was then
+    // queued as an adult still (outfit line dropped, three people drawn).
+    ambiguous: true,
+  },
+  {
+    pattern: /\bmaking\s+love\b/gi,
+    replace: 'having sex',
+  },
+  {
+    pattern: /\blovemaking\b/gi,
+    replace: 'sex',
+  },
+  {
+    pattern: /\bintimate\s+union\b/gi,
+    replace: 'penetrative sex',
+  },
+  {
+    pattern: /\bcarnal\s+(?:act|knowledge|union)\b/gi,
+    replace: 'sex',
+  },
+  {
+    pattern: /\b(?:the\s+)?(?:deed|act)\s+itself\b/gi,
+    replace: 'sex',
+  },
+  {
+    pattern: /\bspilling\s+(?:his|her|their)\s+seed\b/gi,
+    replace: 'cumming',
+  },
+  {
+    pattern: /\b(?:came|coming|spent)\s+(?:inside|in|on)\s+(her|him|them)\b/gi,
+    replace: (_m, obj: string) => `cumming on ${obj}`,
+  },
+  {
+    pattern: /\b(?:finished|finishing)\s+(?:inside|in|on)\s+(her|him|them)\b/gi,
+    replace: (_m, obj: string) => `cumming inside ${obj}`,
+  },
+  {
+    // "riding her own hand" is solo — not straddling a partner.
+    pattern:
+      /\b(?:straddled|straddling|mounted|mounting|rode|riding)\s+(him|her|them)\b(?!\s+own\b)/gi,
+    replace: (_m, obj: string) => `straddling ${obj} in sex`,
+  },
+  // Meta beat-template phrasing that confuses image models (legacy adult forks)
+  {
+    pattern:
+      /\b(?:([A-Z][\w'-]+)\s+)?Office\s+bent\s+over\s+after\s+[^,—.]{1,48},?\s*taken\s+from\s+behind\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
+    replace:
+      'leaning over an office desk with a distinct adult partner behind her in rear-entry sex, nude, mid-thrust, camera behind them',
+  },
+  {
+    pattern:
+      /\bbent\s+over\s+after\s+[^,—.]{1,48},?\s*taken\s+from\s+behind\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
+    replace:
+      'on hands and knees with a distinct adult partner behind her in rear-entry sex, nude, mid-thrust, camera behind them',
+  },
+  {
+    pattern: /\s*[—-]\s*doggy\s+or\s+bent-over\s+sex,?\s*explicit\s+and\s+readable\.?/gi,
+    replace:
+      ' — rear-entry sex with a distinct adult partner, nude, mid-thrust, camera behind them',
+  },
+  {
+    pattern: /\bdoggy\s+or\s+bent-over\s+sex\b/gi,
+    replace: 'rear-entry sex',
+  },
+  {
+    pattern: /\bdoggy(?:[- ]style)?\s+sex\b/gi,
+    replace: 'rear-entry sex',
+  },
+  // Any doggy/doggystyle token summons literal dogs (worse without SNOFS).
+  {
+    pattern: /\bdoggystyle(?:\s+position)?\b/gi,
+    replace: 'rear-entry',
+  },
+  {
+    pattern: /\bdoggy(?:[- ]style)?\b/gi,
+    replace: 'from behind',
+  },
+  {
+    pattern: /\bexplicit\s+and\s+readable\.?\b/gi,
+    replace: 'clear nude bodies',
+  },
+  {
+    pattern: /\ban?\s+explicit\s+pose\s+you\s+can\s+photograph\.?\b/gi,
+    replace: 'nude sex pose',
+  },
+  {
+    pattern: /\boral\s+sex\s+as\s+the\s+still\.?\b/gi,
+    replace: 'oral sex in progress',
+  },
+  {
+    pattern: /\b(?:skin\s+and\s+motion\s+clear|exhibition\s+heat,?\s*not\s+fade-to-black)\.?\b/gi,
+    replace: 'nude bodies clear',
+  },
+  {
+    pattern: /\bthe\s+still\s+is\s+about\b/gi,
+    replace: 'showing',
+  },
+  {
+    pattern: /\bas\s+the\s+last\s+still\.?\b/gi,
+    replace: '',
+  },
+  {
+    pattern: /\bstory\s+over\s+on\s+a\s+quiet\s+erotic\s+still\.?\b/gi,
+    replace: 'quiet erotic portrait',
+  },
+  {
+    pattern: /\bFinal\s+beat:\s*/gi,
+    replace: '',
+  },
+  {
+    pattern: /\bCredits\s+on\b/gi,
+    replace: 'Camera on',
+  },
+  // "after <poetic prior title>" is continuity, not set dressing — drop before sex cues
+  {
+    pattern:
+      /\bafter\s+[^,—.]{1,48},?\s*(?=(?:taken\s+from\s+behind|bent\s+over|on\s+hands\s+and\s+knees|partner\s+behind|doggy|camera\s+from\s+behind))/gi,
+    replace: '',
+  },
+  {
+    pattern: /\btaken\s+from\s+behind\b/gi,
+    replace: 'camera from behind',
+  },
+  {
+    pattern:
+      /\bbent\s+over\b(?!\s+(?:an?|the|his|her|their)\b|\s+(?:office\s+)?(?:desk|chair|table|counter|sink|bed|couch|sofa|railing|rail|vanity|dresser|armrest))(?=.{0,80}(?:doggy|sex|fuck|partner|thrust|camera\s+from\s+behind))/gi,
+    replace: 'on hands and knees',
+  },
+];
+
+/**
+ * Convert literary intimate euphemisms to direct words for image models.
+ * Idempotent for already-direct language. `contextText` is the wider text a fragment came from
+ * (a title, blurb and prompt clarified one by one), used to decide whether it is sexual.
+ */
+export function clarifyIntimateImageLanguage(prompt: string, contextText?: string): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const context = contextText ? `${contextText} ${trimmed}` : trimmed;
+  const sexual = SEXUAL_CONTEXT_RE.test(context);
+  let next = trimmed;
+  for (const rule of INTIMATE_CLARIFY_RULES) {
+    rule.pattern.lastIndex = 0;
+    const replace = rule.replace;
+    if (!rule.ambiguous) {
+      next =
+        typeof replace === 'function'
+          ? next.replace(rule.pattern, replace)
+          : next.replace(rule.pattern, replace);
+      continue;
+    }
+    next = next.replace(rule.pattern, (match: string, ...groups: unknown[]) => {
+      const selfEvident = SELF_EVIDENT_RE.test(match);
+      if (!selfEvident && (!sexual || BARE_DETERMINER_RE.test(match))) {
+        return match;
+      }
+      return typeof replace === 'function'
+        ? replace(match, ...(groups.filter(group => typeof group === 'string') as string[]))
+        : replace;
+    });
+  }
+
+  return next
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+}
+
+/** True when the prompt still contains common literary euphemisms we rewrite. */
+export function promptHasIntimateEuphemisms(prompt: string): boolean {
+  const sample = prompt.trim();
+  if (!sample) {
+    return false;
+  }
+  return INTIMATE_CLARIFY_RULES.some(rule => {
+    rule.pattern.lastIndex = 0;
+    return rule.pattern.test(sample);
+  });
+}
+
+/** Legacy adult fork blurbs that models misread as decor / mirrors / twins. */
+export function isLegacyAdultMetaBlurb(text: string | null | undefined): boolean {
+  return /explicit and readable|doggy or bent-over|pose you can photograph|as the still|fade-to-black/i.test(
+    text?.trim() || ''
+  );
+}
+
+const INTIMATE_ACT_CUE =
+  /\b(doggy(?:[- ]style)?|doggystyle|rear-entry|from\s+behind|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|thrust(?:s|ing)?|oral\s+sex|cunnilingus|fellatio|blowjob|sixty[- ]?nine|facesit|facesitting|licking|tongue|clit|kneeling|barefoot|mid-thrust|penetration|fingering|missionary|mating\s+press|cowgirl|straddl|spoon(?:ing)?|prone|lap\s+sit|standing\s+sex|grab(?:s|bing)?|grip(?:s|ping)?|clutch(?:es|ing)?|hands?\s+on|pin(?:s|ned|ning)?|hold(?:s|ing)?\s+(?:her|him|their|his|hips|waist)|masturbat(?:e|es|ing|ion)?|self[- ]pleasur\w*|touch(?:ing)?\s+(?:herself|himself|themselves))\b/i;
+
+const INTIMATE_WARDROBE_CUE =
+  /\b(lingerie|bra|panties|underwear|stockings|garter|corset|dress|skirt|shirt|blouse|outfit|clothes|clothing|wardrobe|wearing|half[- ]dressed|unzip|garment|bodysuit|teddy|chemise|robe|boots|heels|pajama|pyjama|pajamas|pyjamas|silk\s+bottoms|bottoms|pants|trousers|shorts|jeans|tee|t-shirt)\b/i;
+
+const INTIMATE_NUDE_CUE =
+  /\b(nude|naked|fully\s+nude|bare\s+bodies?|unclothed|nothing\s+(?:on|worn)|no\s+clothes)\b/i;
+
+const INTIMATE_DUO_LOCK =
+  'Two adults: Cast lead (Image 1 face) in the lead role + distinct partner — no twin people or duplicate faces (room mirrors/glass OK); show the sex act, not a standing portrait.';
+
+const INTIMATE_POSE_LOCK =
+  'Match the beat’s named pose and stance as written — not a standing fashion portrait.';
+
+const INTIMATE_CONTACT_LOCK =
+  'Cross-person touch only (hands/mouth on the other body); partner does the grabbing named in the beat — no self-grab, no role-reversed hands, no fused silhouette.';
+
+// Never name the garments here — "no lingerie, bra, or panties" summons them (the Day fix).
+const INTIMATE_NUDE_DEFAULT =
+  'Both adults fully nude — bare skin only (clothes are now gone): bare breasts and bare hips, zero fabric on either body; Image 1 and Image 2 fabric is invisible and must not be copied.';
+
+/**
+ * Stored Story prompts (rerolls) predate the no-garment-names wording — upgrade the old lines so
+ * "no lingerie, bra, or panties" and "lingerie portrait" don't come back and summon them.
+ */
+export function modernizeStoredIntimateWording(text: string): string {
+  return text
+    .replace(
+      /Both adults[^.]*?\(no turtleneck, suit, lingerie, bra, or panties\)[^.]*\./g,
+      INTIMATE_NUDE_DEFAULT
+    )
+    .replace(/not a standing lingerie portrait/g, 'not a standing portrait')
+    .replace(
+      /not a standing fashion portrait or lingerie pose/g,
+      'not a standing fashion portrait'
+    );
+}
+
+/**
+ * The text a pose/act cue should read: the `beat:` line when the prompt has one (Day stills),
+ * otherwise the prompt minus the DUO ACT enumeration — negated clauses dropped either way.
+ * Read whole-prompt, "DUO ACT: … (missionary, doggy, oral, cowgirl, wall sex)" gave every duo
+ * beat a leading "missionary position", the ORAL clause and the doggy lock.
+ */
+export function intimatePoseSample(text: string): string {
+  const beat = text.match(/^beat:\s*(.+)$/im)?.[1];
+  const sample = (beat ?? text)
+    .replace(/^[ \t]*DUO ACT:[^\n]*$/gim, ' ')
+    .replace(/\((?:missionary|doggy|from behind|oral|cowgirl|wall sex|,\s*)+\)/gi, ' ');
+  return stripNegatedClauses(sample);
+}
+
+/**
+ * Beat happens off the bed (wall, couch, armchair, sink, counter, shower, standing lift…).
+ * The duo foreground/camera/props lines assumed "bare sheets" — Rapid then laid a standing
+ * wall press, a couch 69 or an armchair ride back down on a mattress.
+ */
+export function intimateBeatIsOffBed(text: string | null | undefined): boolean {
+  const sample = stripNegatedClauses(text ?? '');
+  return (
+    /\b(wall|couch|sofa|armchair|chair|sink|counter|desk|table|shower|floor|rug|window|railing|balcony|stairs?|lifted|standing|vanity|dresser)\b/i.test(
+      sample
+    ) && !/\b(bed|mattress|sheets)\b/i.test(sample)
+  );
+}
+
+/**
+ * SNOFS / NSFW LoRA caption cues. Bare "sex" alone collapses every beat to one pose —
+ * prefer trained "… position" phrases (see CivArchive SNOFS trigger list).
+ */
+export function snofsPositionCueForText(text: string | null | undefined): string | null {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return null;
+  }
+  if (
+    /rear-entry sex|missionary position|cowgirl position|reverse cowgirl position|spooning position|prone position/i.test(
+      sample
+    )
+  ) {
+    return null;
+  }
+  if (/\b(missionary|on\s+(?:her|his|their)\s+back|pinned\s+(?:down|beneath))\b/i.test(sample)) {
+    return 'missionary position';
+  }
+  if (/\breverse\s+cowgirl\b/i.test(sample)) {
+    return 'reverse cowgirl position';
+  }
+  if (/\b(cowgirl|straddl|riding)\b/i.test(sample)) {
+    return 'cowgirl position';
+  }
+  if (/\b(prone|face[- ]down)\b/i.test(sample)) {
+    return 'prone position';
+  }
+  if (/\bspoon/i.test(sample)) {
+    return 'spooning position';
+  }
+  if (/\b(blowjob|fellatio)\b/i.test(sample)) {
+    return 'blowjob';
+  }
+  if (/\b(cunnilingus|licking.{0,24}clit|tongue.{0,24}clit)\b/i.test(sample)) {
+    return 'cunnilingus';
+  }
+  if (/\b(sixty[- ]?nine|69)\b/i.test(sample)) {
+    return 'sixty-nine';
+  }
+  if (/\b(facesit|face[- ]sit|sits?\s+on\s+(?:his|her|their)\s+face)\b/i.test(sample)) {
+    return 'facesitting';
+  }
+  if (/\b(mating\s+press|legs?\s+over\s+(?:his|her|their)\s+shoulders)\b/i.test(sample)) {
+    return 'missionary position';
+  }
+  if (/\b(standing\s+sex|upright\s+sex|against\s+the\s+window)\b/i.test(sample)) {
+    return 'sex';
+  }
+  if (/\b(lap\s+sit|on\s+(?:his|her|their)\s+lap)\b/i.test(sample)) {
+    return 'sex';
+  }
+  // Never inject "doggystyle" — it paints literal dogs. Compact Behind/Chair recipes
+  // already encode rear-entry; other poses use their own cues above.
+  return null;
+}
+
+/** True when copy names garments / lingerie (packshot + clothed intimate stills stay valid). */
+export function intimateTextMentionsWardrobe(text: string | null | undefined): boolean {
+  return INTIMATE_WARDROBE_CUE.test(text?.trim() || '');
+}
+
+/** Sex/oral/etc. beat with no wardrobe words → default to nude (and skip Image 2 kits). */
+export function intimateTextDefaultsToNude(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  if (!INTIMATE_ACT_CUE.test(sample) && !/\b(sex|fuck|nude\s+sex)\b/i.test(sample)) {
+    return false;
+  }
+  if (intimateTextMentionsWardrobe(sample)) {
+    return false;
+  }
+  return true;
+}
+
+/** Sex/fingering/oral/etc. cues — used when layout parsers miss literary wall/elevator phrasing. */
+export function intimateTextImpliesAct(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  return (
+    INTIMATE_ACT_CUE.test(sample) ||
+    /\b(sex|fuck|nude\s+sex|vagina|penis|collarbone|throat|elevator)\b/i.test(sample)
+  );
+}
+
+/**
+ * "Tongue on collarbone" + wall press gets misread as a face-to-face tongue kiss,
+ * and stacking a long recipe ON TOP of the literary blurb drowns Qwen Edit into
+ * masks / third people / balcony windows. Replace the beat with one short recipe.
+ */
+function rewriteWallCollarboneContact(text: string): string {
+  const wallish =
+    /\b(against.{0,40}wall|press(?:es|ed|ing)?\s+(?:her|him|them)\s+back|elevator|mirrored?\s+elevator)\b/i.test(
+      text
+    );
+  const collarboneMouth =
+    /\b(tongue|lick(?:s|ing)?|laps?|lips|mouth)\b.{0,48}\b(collarbone|nape|neck)\b|\b(collarbone|nape)\b.{0,48}\b(tongue|lick(?:s|ing)?|laps?|lips|mouth)\b/i.test(
+      text
+    );
+  if (!wallish || !collarboneMouth) {
+    return text;
+  }
+  if (/Rear wall press/i.test(text) && /Exactly two adults/i.test(text)) {
+    return text;
+  }
+
+  return [
+    'FULL BODY standing shot (head to mid-calf) — do not crop at the waist.',
+    'Rear wall press: glass elevator, city neon through rear glass, exactly two adults, clean anatomy, no glasses.',
+    'Side view: lead pressed to glass on camera-left; partner chest-to-back behind her, head visible over her shoulder, mouth on her neck.',
+    "Lead both hands on the glass. Partner's left hand on the front of her throat; partner's right hand on her front crotch between her legs — never on her butt.",
+    'Simple reflections only.',
+  ].join(' ');
+}
+
+/**
+ * "Gilded frame of her legs" + suspended→chaise gets misread as a mirror-frame
+ * portrait or a face-to-face couch straddle. Replace with a short carry-lower recipe.
+ */
+function rewriteChaiseLowerContact(text: string): string {
+  const chaiseLower =
+    /\b(chaise|daybed|fainting\s+couch)\b/i.test(text) &&
+    /\b(suspend(?:ed|ing)|hangs?\s+suspended|lower(?:s|ing)\s+(?:her|him|them)|arms?\s+wrapped|around\s+his\s+neck)\b/i.test(
+      text
+    );
+  if (!chaiseLower) {
+    return text;
+  }
+  if (/Chaise lower:/i.test(text) && /Exactly two adults/i.test(text)) {
+    return text;
+  }
+
+  return [
+    'Chaise lower: ballroom alcove, long velvet chaise, candlelight.',
+    'Exactly two adults — both fully nude (nothing worn; discard reference clothes); four legs total, no extra limbs, no flesh blob.',
+    'He STANDS on the floor beside the chaise (feet planted — he is not sitting). She is mid-air as he lowers her onto the cushions; arms around his shoulders; cheek at his shoulder.',
+    'Side profile, same facing toward the chaise. Mouths apart — no kiss.',
+    'His hands support her thigh and hip only. Clean separate bodies.',
+  ].join(' ');
+}
+
+/**
+ * Piano-bench oral: "back bent" + piano makes Edit drape her over the lid and
+ * invent a behind kneel + hand salad. Replace with a short beside-oral recipe.
+ */
+function rewritePianoBenchOralContact(text: string): string {
+  const pianoBench =
+    /\b(piano\s+bench|piano\s+stool|lacquered\s+piano|grand\s+piano|piano)\b/i.test(text) &&
+    /\b(bench|kneel(?:s|ing)?|knees)\b/i.test(text);
+  const oralBeside =
+    /\b(tongue|lick(?:s|ing)?|laps?|oral|cunnilingus|clit)\b/i.test(text) &&
+    /\b(kneel(?:s|ing)?|beside|thigh|clit)\b/i.test(text);
+  if (!pianoBench || !oralBeside) {
+    return text;
+  }
+  if (/^Piano oral:/i.test(text) && /Exactly two adults/i.test(text)) {
+    if (
+      /four hands only/i.test(text) &&
+      /kneeling ON the piano bench/i.test(text) &&
+      /kneels BESIDE/i.test(text) &&
+      !/bent OVER the piano|rear-entry|partner behind/i.test(text)
+    ) {
+      return text;
+    }
+  }
+
+  return [
+    'Piano oral: night room with a black lacquered grand piano and padded piano bench, single crystal lamp glow — not a blank studio.',
+    'Exactly TWO adults, exactly two faces, four hands only — no extra arms, no phantom hand on the bench, no flesh blob at the join.',
+    'She kneels ON the piano bench (knees on the cushion), torso upright with a slight forward lean — NOT draped over the piano lid, NOT bent over the keys, NOT rear-entry.',
+    'He kneels BESIDE her on the floor (or bench end), face toward her crotch — mouth licking her inner thigh / vulva during oral sex; one hand rubbing her clit; his other hand on her thigh — both hands attached to his arms.',
+    'Her hands brace on the bench or his shoulder only — never a third hand sprouting from her torso. Barefoot, fully nude — nothing worn. Mouths closed except his tongue on her. Side three-quarter camera, clean separate bodies, readable anatomy.',
+  ].join(' ');
+}
+
+/**
+ * Hunched-over-chair blurbs that also say "arms around his neck" make Edit sit her
+ * on the seat and twist 180°. Drop the neck-lock; plant hands on the chair like desk bent.
+ */
+function rewriteChairBentContact(text: string): string {
+  const chairish = /\b(chair|ergonomic)\b/i.test(text);
+  const hunched =
+    /\b(hunch(?:ed|ing)?|bent\s+over|lean(?:s|ing)?\s+over|over\s+the\s+(?:chair|ergonomic)|arms?\s+locked\s+around)\b/i.test(
+      text
+    );
+  const fromBehind =
+    /\b(from\s+behind|thrust(?:s|ing)?|doggy|partner\s+behind|camera\s+(?:from\s+)?behind|rear-entry)\b/i.test(
+      text
+    );
+  // Desk-only "leaning over an office desk" is the Behind office recipe — don't steal it.
+  if (!chairish || !hunched || !fromBehind) {
+    return text;
+  }
+  if (/^Chair bent:/i.test(text) && /Exactly two adults/i.test(text)) {
+    if (
+      /rear-entry sex/i.test(text) &&
+      /hands on the chair/i.test(text) &&
+      /four hands only/i.test(text) &&
+      /feet flat on the floor|feet on the floor/i.test(text) &&
+      /NOT sitting|not sitting/i.test(text) &&
+      !/reach back around his neck|arms locked around his neck/i.test(text) &&
+      !/\bdoggy/i.test(text)
+    ) {
+      return text;
+    }
+    // Stale Chair bent (neck-lock / sit bait / doggy bait): rebuild.
+  }
+
+  const wardrobe = intimateTextMentionsWardrobe(text)
+    ? 'Damp silk pajama bottoms stay on her thighs (fabric visible) — not a striped skirt, not nude from the waist.'
+    : 'Nude as needed — no extra garments.';
+  const clitHand = /\bclit\b/i.test(text)
+    ? 'His front hand reaches around to stroke her clit over the silk fabric — connected to his arm, not a floating third hand.'
+    : 'His other hand stays on her hip.';
+
+  return [
+    'Chair bent: rear-entry sex. office interior with an ergonomic mesh chair — not a blank gray studio.',
+    'Exactly TWO adults, exactly two faces, four hands only — no extra arms, no phantom fingers at the join, no flesh blob.',
+    'She STANDS on the floor bent OVER the chair back (both feet flat) — NOT kneeling on the seat, NOT sitting, NOT straddling, NOT twisting to face the camera.',
+    'Her hands plant on the chair seat or armrests for support; head may glance back over one shoulder only — do not wrap her arms around his neck.',
+    'Partner STANDS behind with pelvis connected to his torso, mid-thrust rear-entry; one hand on her hip;',
+    clitHand,
+    wardrobe,
+    'Side three-quarter camera, mouths closed, clean separate bodies, readable anatomy. Humans only — never a dog, puppy, canine, pet, or animal in frame.',
+  ].join(' ');
+}
+
+/**
+ * Filing-cabinet / open-drawer rear-entry cues (shared by recipe + Image 3 pose).
+ */
+export function intimateTextImpliesCabinetDrawer(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  if (/^Cabinet drawer:/i.test(sample)) {
+    return true;
+  }
+  return /\b(steel\s+cabinet|filing\s+cabinet|cabinet(?:'s)?\s+open\s+drawer|open\s+drawer|slumped\s+sideways.{0,40}drawer)\b/i.test(
+    sample
+  );
+}
+
+/**
+ * Desk / ledger / table surface bent (standing lean) — not carpet all-fours.
+ * Archive rooms and "curled over a stack" count as surface bent.
+ * Bare "office lights" alone does not count (cabinet/drawer beats stay distinct).
+ */
+export function intimateTextImpliesSurfaceBent(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  if (intimateTextImpliesCabinetDrawer(sample)) {
+    return false;
+  }
+  return (
+    /\b(office\s+desk|desk|ledger|ledgers|archive|table|counter|filing|workbench|bookshelf|console)\b/i.test(
+      sample
+    ) || /\bcurled?\s+over\s+(?:a\s+|the\s+)?(?:stack|pile|heap)\b/i.test(sample)
+  );
+}
+
+/**
+ * Rear-entry with the lead on her feet — at a railing, on a ledge or pier, pressed to metal —
+ * and nothing folding her down onto hands and knees. The all-fours recipe used to replace
+ * these beats wholesale, contradicting a standing pose guide (and the model followed the text).
+ */
+export function intimateTextImpliesStandingRear(text: string | null | undefined): boolean {
+  const sample = text?.trim() || '';
+  if (!sample) {
+    return false;
+  }
+  const standing =
+    /\b(stands?|standing|on\s+(?:her|his|their)\s+feet|(?:on|at)\s+(?:a|the)\s+(?:[\w'-]+\s+){0,3}(?:ledge|railing|rail|pier|plank|balcony|landing)|(?:up\s+)?against\s+(?:the\s+)?(?:[\w'-]+\s+){0,3}(?:railing|rail|metal|steel|pipe|pillar|post|balustrade)|gripping\s+the\s+(?:railing|rail|ledge)|pressed\s+(?:to|against))\b/i.test(
+      sample
+    );
+  const folded =
+    /\b(hands\s+and\s+knees|all\s+fours|on\s+(?:her|his|their)\s+knees|bent\s+over|bend(?:s|ing)?\s+(?:(?:her|him|them)\s+)?over|ass[- ]up|lying|lies\s+(?:down|back|on)|prone|face[- ]down)\b/i.test(
+      sample
+    );
+  return standing && !folded;
+}
+
+/**
+ * Filing-cabinet / open-drawer rear-entry — not desk bent, not carpet doggy.
+ */
+function rewriteCabinetDrawerContact(text: string): string {
+  const cabinet = intimateTextImpliesCabinetDrawer(text);
+  const fromBehind =
+    /\b(from\s+behind|thrust(?:s|ing)?|partner\s+behind|rear-entry|hand\s+grips?\s+her\s+waist)\b/i.test(
+      text
+    );
+  if (!cabinet || !fromBehind) {
+    return text;
+  }
+  if (/^Cabinet drawer:/i.test(text) && /Exactly two adults/i.test(text)) {
+    if (
+      /four hands only/i.test(text) &&
+      /open drawer/i.test(text) &&
+      /both fully nude|Image 1 face only/i.test(text) &&
+      !/\bdesk\b/i.test(text) &&
+      !/\bdoggy/i.test(text)
+    ) {
+      return text;
+    }
+  }
+
+  const genitalHand = /\b(vagina|clit|finger|sinks?\s+(?:deep\s+)?into)\b/i.test(text)
+    ? 'One hand grips her waist; the other sinks into her vagina between her thighs — both hands attached to his arms, not a floating third hand.'
+    : 'Both hands on her waist/hips only — connected to his arms.';
+
+  return [
+    'Cabinet drawer: rear-entry sex. office storage area with a steel filing cabinet, one drawer pulled open — not a desk lean, not carpet all-fours.',
+    'Exactly TWO adults, exactly two faces, four hands only — both fully nude; Image 1 face only (discard Image 1 clothes and standing body — never a clothed third man in black between them).',
+    'She is slumped sideways into the open cabinet drawer (hips at the drawer edge, thighs parted), not standing bent over a desk.',
+    'Partner stands behind with pelvis connected to his torso, mid-thrust rear-entry — one nude man only, no extra clothed office worker.',
+    genitalHand,
+    'Office lights cast long shadows over her bare calves and his sweat-slicked back. Mouths closed, clean separate solid opaque bodies — never a translucent ghost, black morphsuit, or Image 3 diagram. Humans only.',
+  ].join(' ');
+}
+
+/**
+ * Soft withdrawal / afterglow lying in an open drawer — not coffin close-up, not rear-entry.
+ */
+function rewriteDrawerAfterglowContact(text: string): string {
+  if (!/\bdrawer\b/i.test(text)) {
+    return text;
+  }
+  if (
+    /\b(from\s+behind|thrust(?:s|ing)?|rear-entry|slumped\s+sideways|partner\s+behind)\b/i.test(
+      text
+    )
+  ) {
+    return text;
+  }
+  const afterglowish =
+    /\b(lies?\s+still|eyes?\s+closed|withdraw(?:s|ing)?|afterglow|scent of (?:him|her|them)|hand slips free|thumb.{0,40}clit)\b/i.test(
+      text
+    );
+  if (!afterglowish) {
+    return text;
+  }
+  if (/^Drawer afterglow:/i.test(text) && /Exactly TWO|Exactly two adults/i.test(text)) {
+    if (
+      /open.{0,24}drawer|filing/i.test(text) &&
+      /clit between|fully nude/i.test(text) &&
+      !/coffin|finger in (?:her |his |their )?mouth/i.test(text)
+    ) {
+      return text;
+    }
+  }
+
+  return [
+    'Drawer afterglow: soft post-sex withdrawal. office with an OPEN steel filing-cabinet drawer pulled out — she lies on her back in the open drawer under dim light; mid-shot from hips to faces, not sealed inside a white metal coffin, not a face-only crop.',
+    'Exactly TWO fully nude adults, exactly two faces, four hands only — Image 1 face only; bare breasts, zero fabric on either body; never a third person.',
+    'He leans over her as he withdraws slowly; his thumb smears her clit between her thighs, then his hand slips free — never a finger in her mouth, never a floating third hand near her face.',
+    'Eyes closed, mouths calm, soft afterglow; clean separate solid opaque bodies, readable anatomy.',
+  ].join(' ');
+}
+
+/**
+ * Doggy / bent-over meta ("Amber Office bent over after…") leaves title crumbs and
+ * Edit merges limbs at the join. Replace with one short readable recipe.
+ * Never say doggy/doggystyle — that paints literal dogs.
+ */
+function rewriteDoggyBentContact(text: string): string {
+  const wallish = /\b(against.{0,40}wall|wall\s+press|elevator|Rear wall press)\b/i.test(text);
+  if (wallish) {
+    return text;
+  }
+  // Piano-bench oral is beside licking — never collapse to behind bent-over-piano.
+  if (
+    /^Piano oral:/i.test(text) ||
+    (/\bpiano\b/i.test(text) && /\b(oral|clit|tongue|lick)/i.test(text))
+  ) {
+    return text;
+  }
+  if (/^Cabinet drawer:/i.test(text) || /\b(cabinet|open\s+drawer)\b/i.test(text)) {
+    return text;
+  }
+  // Prone / face-down is its own layout — don't collapse to standing desk Behind.
+  if (
+    /\b(prone|face[- ]down)\b/i.test(text) &&
+    !/\b(hands\s+and\s+knees|bent\s+over|desk|chair|ledger|archive)\b/i.test(text)
+  ) {
+    return text;
+  }
+  // Standing chair hunch is a different beat — don't collapse to all-fours doggy.
+  if (/^Chair bent:/i.test(text)) {
+    return text;
+  }
+  if (
+    /\b(chair|ergonomic)\b/i.test(text) &&
+    /\b(hunch(?:ed|ing)?|bent\s+over|lean(?:s|ing)?\s+over|arms?\s+locked\s+around)\b/i.test(text)
+  ) {
+    return text;
+  }
+  const doggyish =
+    /\b(doggy(?:[- ]style)?|doggystyle|rear-entry|hands\s+and\s+knees|partner\s+behind|camera\s+(?:from\s+)?behind|bent\s+over|leaning\s+over|curled?\s+over|from\s+behind|mid-thrust|fucks?\s+her\s+from\s+behind|fucks?\s+him\s+from\s+behind)\b/i.test(
+      intimatePoseSample(text)
+    ) || isLegacyAdultMetaBlurb(text);
+  if (!doggyish) {
+    return text;
+  }
+  if (/^Behind:/i.test(text) && /Exactly two adults/i.test(text)) {
+    // Keep only fully upgraded recipes; older Behind: drafts fall through to rebuild.
+    if (
+      /rear-entry sex/i.test(text) &&
+      /two faces/i.test(text) &&
+      /four hands only|connected torso|pelvis clearly connected/i.test(text) &&
+      !/\bdoggy/i.test(text)
+    ) {
+      return text;
+    }
+  }
+  // Legacy cached "Doggy:" recipes — rewrite once without the animal bait word.
+  if (/^Doggy:/i.test(text) && /Exactly two adults/i.test(text)) {
+    text = text.replace(/^Doggy:/i, 'Behind:').replace(/\bdoggy(?:[- ]style)?\b/gi, 'rear-entry');
+  }
+
+  const surface = intimateTextImpliesSurfaceBent(text);
+  const archive = /\b(archive|ledger)\b/i.test(text);
+  const throat = /\bthroat\b/i.test(text);
+  const genitalHand =
+    /\b(vagina|clit|finger|sinks?\s+(?:deep\s+)?into|between\s+(?:her|his|their)\s+(?:legs|thighs))\b/i.test(
+      text
+    );
+  const bedroom = /\b(bed(?:room)?|mattress|sheets)\b/i.test(text);
+
+  if (surface) {
+    const setting = archive
+      ? 'dim archive room with a stack of ledgers / desk surface under flickering bulb light — lead curled or bent OVER the ledgers (torso on the stack or hips at the edge), not sex on the carpet floor'
+      : 'modern office — lead bent OVER the desk (torso on the desktop or hips at the desk edge), not sex on the carpet floor';
+    const contact =
+      throat && genitalHand
+        ? 'Partner stands fully behind her with pelvis clearly connected to his torso, mid-thrust rear-entry sex: one hand cups her throat from behind, the other sinks into her vagina / between her thighs — not both hands on her hips only, not a floating third hand.'
+        : throat
+          ? 'Partner stands fully behind her with pelvis clearly connected to his torso, mid-thrust rear-entry sex: one hand cups her throat from behind, the other on her hip — she does not hold her own throat.'
+          : 'Partner stands fully behind her with pelvis clearly connected to his torso; gripping her hips only (not shoulders); nude mid-thrust rear-entry sex.';
+    return [
+      `Behind: rear-entry sex. ${setting}.`,
+      'Exactly TWO adults, exactly two faces, four hands only — humans only; never a dog or pet; no third head; never a third black morphsuit.',
+      contact,
+      'Lead looks back over one shoulder; both mouths closed — no dual camera O-faces.',
+      'Partner is fully bare-skinned nude (bare chest, bare back, bare hips, bare legs) — never a black morphsuit, zentai, catsuit, or schematic capsule; never leave only his face and hands uncovered.',
+      '¾ rear three-quarter camera, clean separate bodies, readable anatomy.',
+    ].join(' ');
+  }
+
+  if (intimateTextImpliesStandingRear(text)) {
+    return [
+      'Behind: standing rear-entry sex.',
+      'Exactly TWO adults, exactly two faces, four hands only — humans only; never a dog or pet; no third head; never a third black morphsuit.',
+      'Lead standing on her feet, leaning forward onto the railing / wall / ledge in the scene, back to her partner; partner standing close behind with pelvis connected to his torso, one hand on her hip, nude mid-thrust — both upright on their feet, neither one down on the floor.',
+      'Mouths closed — no dual camera O-faces. Partner fully bare-skinned nude — never a black morphsuit/zentai with only face and hands showing; never an Image 3 diagram in the photo.',
+      '¾ rear three-quarter camera, clean separate bodies, readable anatomy.',
+    ].join(' ');
+  }
+
+  const setting = bedroom ? 'bedroom, on a bed' : 'indoors, on a firm surface';
+  return [
+    `Behind: rear-entry sex. ${setting}.`,
+    'Exactly TWO adults, exactly two faces, four hands only — humans only; never a dog or pet; no third head; never a third black morphsuit.',
+    'Lead on hands and knees, hips raised; partner kneeling behind with pelvis connected to his torso, gripping her hips only (not shoulders), nude mid-thrust rear-entry sex.',
+    'Mouths closed — no dual camera O-faces. Partner fully bare-skinned nude — never a black morphsuit/zentai with only face and hands showing; never an Image 3 diagram in the photo.',
+    '¾ rear three-quarter camera, clean separate bodies, readable anatomy.',
+  ].join(' ');
+}
+
+const INTIMATE_SOLO_NUDE_DEFAULT =
+  'She wears nothing — bare skin only (clothes are now gone): bare breasts and bare hips, zero fabric on her body; Image 1 fabric is invisible and must not be copied.';
+
+/** Day brief sections that only a solo still carries. */
+const SOLO_BRIEF_RE =
+  /\b(?:SOLO SUBJECT \(mandatory\)|SOLO ACT:|SOLO TOY LOCK|MOOD:\s*(?:intimate|raunchy)\s+solo)/i;
+const SOLO_BEAT_RE =
+  /\b(?:solo|alone|masturbat\w*|self[- ]pleasur\w*|self[- ]touch\w*|touch(?:es|ing)?\s+herself|finger(?:s|ing)?\s+herself|her\s+own\s+hand|one\s+adult\s+only)\b/i;
+const DUO_BEAT_RE =
+  /\b(?:partner|lover|boyfriend|girlfriend|husband|wife|second\s+adult|two\s+adults|both\s+of\s+them|PARTNERS:|mid-sex|his\s+(?:cock|penis|dick|hips|mouth|tongue|lap))\b/i;
+
+/**
+ * One adult alone (masturbation / self-touch). The duo rewrites below turned 15 of 17 Day solo
+ * presets into partner prompts — "bent over the foot of the bed masturbating" became a two-adult
+ * rear-entry recipe and Rapid painted a man behind her (live 2026-09-27).
+ */
+export function intimateTextIsSolo(text: string): boolean {
+  if (SOLO_BRIEF_RE.test(text) && !/\b(?:PARTNERS:|exactly TWO adults)\b/.test(text)) {
+    return true;
+  }
+  const affirmative = stripNegatedClauses(text);
+  return SOLO_BEAT_RE.test(affirmative) && !DUO_BEAT_RE.test(affirmative);
+}
+
+/**
+ * Clarify euphemisms/meta, then lock duo sex poses so models do not invent twin stands.
+ */
+export function reinforceIntimateStillPrompt(
+  prompt: string,
+  options?: {
+    /**
+     * A pose guide already drew a non-rear layout (spoon, missionary, straddle…). The canned
+     * all-fours "Behind:" recipe would contradict Image 3 — live Story: a spoon guide plus the
+     * all-fours recipe plus an overhead camera rendered the couple upside down.
+     */
+    skipRearRecipe?: boolean;
+  }
+): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  // Rapid duo recipe is compact on purpose — the long locks are what broke its poses.
+  if (isRapidDuoRecipePrompt(trimmed)) {
+    return trimmed;
+  }
+  // Suggestive / Vacation / Sport / Everyday Day stills must not get nude/duo locks —
+  // "hands on" zipper and "sex contact" bans false-trigger intimateTextImpliesAct.
+  if (/\bMOOD:\s*(?:suggestive|vacation|sport|everyday)\b/i.test(trimmed)) {
+    return softenQwenRapidNudeSafetyTriggers(trimmed);
+  }
+  // Idempotent: compact recipes must not re-run clarify (e.g. "bent OVER the desk"
+  // → "on hands and knees the desk") or get chair/doggy locks stacked twice.
+  if (
+    (/^Behind:/i.test(trimmed) ||
+      /^Doggy:/i.test(trimmed) ||
+      /^Chair bent:/i.test(trimmed) ||
+      /^Piano oral:/i.test(trimmed) ||
+      /^Cabinet drawer:/i.test(trimmed) ||
+      /^Drawer afterglow:/i.test(trimmed) ||
+      /Rear wall press/i.test(trimmed) ||
+      /^Chaise lower:/i.test(trimmed)) &&
+    /Exactly two adults|Exactly TWO/i.test(trimmed)
+  ) {
+    if (/^Doggy:/i.test(trimmed)) {
+      // Fall through so office/bedroom recipe rebuilds.
+    } else if (
+      /^Behind:/i.test(trimmed) &&
+      (!/rear-entry sex/i.test(trimmed) ||
+        !/two faces/i.test(trimmed) ||
+        !/four hands only|connected torso|pelvis clearly connected/i.test(trimmed) ||
+        /\bdoggy/i.test(trimmed))
+    ) {
+      // Stale Behind: — rebuild below.
+    } else if (
+      /^Chair bent:/i.test(trimmed) &&
+      (!/rear-entry sex/i.test(trimmed) ||
+        !/hands on the chair/i.test(trimmed) ||
+        !/four hands only/i.test(trimmed) ||
+        !/NOT sitting|not sitting/i.test(trimmed) ||
+        /reach back around his neck|arms locked around his neck/i.test(trimmed) ||
+        /\bdoggy/i.test(trimmed))
+    ) {
+      // Stale Chair bent: — rebuild below.
+    } else if (
+      /^Piano oral:/i.test(trimmed) &&
+      (!/four hands only/i.test(trimmed) ||
+        !/kneeling ON the piano bench/i.test(trimmed) ||
+        !/kneels BESIDE/i.test(trimmed) ||
+        /bent OVER the piano|rear-entry|partner behind/i.test(trimmed))
+    ) {
+      // Stale Piano oral: — rebuild below.
+    } else if (
+      /^Cabinet drawer:/i.test(trimmed) &&
+      (!/four hands only/i.test(trimmed) ||
+        !/open drawer/i.test(trimmed) ||
+        !/both fully nude|Image 1 face only/i.test(trimmed) ||
+        /\bdesk\b/i.test(trimmed) ||
+        /\bdoggy/i.test(trimmed))
+    ) {
+      // Stale Cabinet drawer: — rebuild below.
+    } else if (
+      /^Drawer afterglow:/i.test(trimmed) &&
+      (!/four hands only/i.test(trimmed) ||
+        !/open.{0,24}drawer|filing/i.test(trimmed) ||
+        !/clit between|fully nude/i.test(trimmed) ||
+        /finger in (?:her |his |their )?mouth|coffin/i.test(trimmed))
+    ) {
+      // Stale Drawer afterglow: — rebuild below.
+    } else if (
+      /^Behind:/i.test(trimmed) ||
+      /^Chair bent:/i.test(trimmed) ||
+      /^Piano oral:/i.test(trimmed) ||
+      /^Cabinet drawer:/i.test(trimmed) ||
+      /^Drawer afterglow:/i.test(trimmed)
+    ) {
+      return softenQwenRapidNudeSafetyTriggers(trimmed.replace(/[ \t]{2,}/g, ' ').trim());
+    } else {
+      // Wall / chaise compact recipes.
+      return softenQwenRapidNudeSafetyTriggers(trimmed.replace(/[ \t]{2,}/g, ' ').trim());
+    }
+  }
+
+  const clarified = clarifyIntimateImageLanguage(trimmed);
+  if (!clarified) {
+    return clarified;
+  }
+  if (!intimateTextImpliesAct(clarified)) {
+    return softenQwenRapidNudeSafetyTriggers(clarified);
+  }
+  const solo = intimateTextIsSolo(clarified);
+  let next = clarified;
+  // Every rewrite below is a two-adult recipe — a solo beat keeps its own words.
+  if (!solo) {
+    next = rewriteWallCollarboneContact(next);
+    next = rewriteChaiseLowerContact(next);
+    next = rewritePianoBenchOralContact(next);
+    next = rewriteDrawerAfterglowContact(next);
+    next = rewriteCabinetDrawerContact(next);
+    next = rewriteChairBentContact(next);
+    if (!options?.skipRearRecipe) {
+      next = rewriteDoggyBentContact(next);
+    }
+  }
+  const wallRecipe = /Rear wall press/i.test(next);
+  const chaiseRecipe = /Chaise lower:/i.test(next);
+  const chairRecipe = /^Chair bent:/i.test(next);
+  const pianoOralRecipe = /^Piano oral:/i.test(next);
+  const cabinetRecipe = /^Cabinet drawer:/i.test(next);
+  const drawerAfterglowRecipe = /^Drawer afterglow:/i.test(next);
+  const behindRecipe = /^Behind:/i.test(next) || /^Doggy:/i.test(next);
+  const compactRecipe =
+    wallRecipe ||
+    chaiseRecipe ||
+    chairRecipe ||
+    pianoOralRecipe ||
+    cabinetRecipe ||
+    drawerAfterglowRecipe ||
+    behindRecipe;
+
+  // SNOFS cues name partner positions ("missionary position." on a solo on-her-back beat).
+  if (!compactRecipe && !solo) {
+    const snofsCue = snofsPositionCueForText(intimatePoseSample(next));
+    // Idempotent — Story re-reinforces its own output ("sex. sex. sex.").
+    if (snofsCue && !next.toLowerCase().startsWith(`${snofsCue.toLowerCase()}.`)) {
+      next = `${snofsCue}. ${next}`;
+    }
+  }
+
+  if (
+    !compactRecipe &&
+    !solo &&
+    /\b(doggy|hands\s+and\s+knees|partner\s+behind|camera\s+from\s+behind|rear-entry)\b/i.test(
+      intimatePoseSample(next)
+    ) &&
+    !/\b(partner|second\s+(?:person|adult)|behind\s+(?:her|him|them)|chest-to-back)\b/i.test(next)
+  ) {
+    next = `${next}, distinct adult partner behind the lead in rear-entry sex`;
+  }
+  // Day/Story oral (non-piano): stop hand-in-mouth + soft-date prop collapse.
+  if (
+    !compactRecipe &&
+    /\b(oral(?:\s+sex)?|cunnilingus|fellatio|blow\s*job|sixty[- ]?nine|69)\b/i.test(
+      intimatePoseSample(next)
+    ) &&
+    !/^Piano oral:/i.test(next)
+  ) {
+    if (
+      !/never (?:put )?(?:a )?(?:hand|fingers?) (?:in|inside|into) (?:his|her|their|own) mouth/i.test(
+        next
+      )
+    ) {
+      next = `${next} ORAL: giver mouth on partner genitals or inner thigh; both hands flat on partner thighs — never hand or fingers in own mouth; no book, phone, or wine prop unless the beat names it.`;
+    }
+  }
+  // Adult Day/Story: kill soft-date prop collapse — empty-bed positives (naming
+  // book/planner in the positive summons lined notebooks on Rapid AIO).
+  // Fingers-only beats ban toys in negatives; dildo beats name the toy in positives.
+  if (
+    !compactRecipe &&
+    /\b(MOOD:\s*(?:raunchy|intimate)|mid-sex|oral\s+sex|PARTNERS:|SOLO SUBJECT|masturbat\w*|self[- ]pleasur\w*|finger(?:ing)?|dildo)\b/i.test(
+      next
+    ) &&
+    !/\b(notebook|clipboard|spreadsheet|ledger|open book|reading a book|journal|planner)\b/i.test(
+      next.match(/\bbeat[^:]*:\s*([^\n.]+)/i)?.[1] ?? ''
+    )
+  ) {
+    const raunchySolo =
+      /\b(MOOD:\s*raunchy\s+solo|SOLO ACT:|wild mid-fingering|wild dildo|FULLY NUDE wild fingering)\b/i.test(
+        next
+      );
+    const soloToy =
+      /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
+        next
+      );
+    if (raunchySolo) {
+      if (
+        !/FOREGROUND:\s*(?:match the beat pose|rumpled sheets and (?:fingers|bare skin|both hands|her (?:hand|fingers)|a realistic silicone)|empty rumpled sheets|bare sheets)/i.test(
+          next
+        )
+      ) {
+        next = soloToy
+          ? `${next} FOREGROUND: match the beat pose — rumpled sheets and bare skin; a realistic penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening as written; never invent a man; never books on the bed.`
+          : `${next} FOREGROUND: match the beat pose — rumpled sheets and bare skin; fingers on her vulva mid-act as written; nothing held; never books on the bed.`;
+      }
+      if (!/PROPS \+ FRAME:|PROPS:\s*empty hands|bare nightstand/i.test(next)) {
+        next = soloToy
+          ? `${next} PROPS + FRAME: beat pose fills the frame — tip of the penis-shaped dildo deep into her vaginal opening thrusting deeper as written; bare nightstand; zero fabric on the body; never invent a man; never dildo upright against belly.`
+          : `${next} PROPS + FRAME: beat pose fills the frame — fingers on vulva mid-act as written; bare nightstand; zero fabric on the body; nothing held.`;
+      }
+    } else if (
+      !/FOREGROUND:\s*empty rumpled sheets|FOREGROUND:\s*bare sheets|FOREGROUND:\s*rumpled sheets and (?:fingers|both hands|her)|empty lap|nothing held/i.test(
+        next
+      )
+    ) {
+      next = `${next} FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; hands on own body only.`;
+    }
+    if (
+      !raunchySolo &&
+      !/PROPS:\s*empty hands|PROPS \+ FRAME|bare nightstand|nothing open on the bed/i.test(next)
+    ) {
+      next = `${next} PROPS + FRAME: beat pose and bare skin fill the frame — sheets and skin only; empty hands on bodies; bare nightstand.`;
+    }
+  }
+  // Intimate / Raunchy Solo: stop soft lingerie pin-up / anatomy morph / camera-stare collapse.
+  if (
+    !compactRecipe &&
+    /\b(MOOD:\s*(?:intimate|raunchy)\s+solo|SOLO SUBJECT \(mandatory\)|solo masturbat\w*|solo finger|alone .{0,40}touching|SOLO ACT:)\b/i.test(
+      next
+    ) &&
+    !/\b(PARTNERS:|exactly TWO adults|two-adult framing)\b/i.test(next)
+  ) {
+    const soloToy =
+      /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
+        next
+      );
+    if (
+      !/POSE WINS:|never a soft (?:floral-)?dress pin-up|never a polite dressed portrait|empty rumpled sheets only|beige-lingerie|tan bikini|nothing held|rock-on|bra cups|thigh-frame|claw|follow the beat body stance|Put her body into this exact pose|silicone dildo/i.test(
+        next
+      )
+    ) {
+      next = soloToy
+        ? `${next} POSE WINS: follow the beat body stance exactly — a realistic penis-shaped silicone dildo with the tip of the penis pushed deep into her vaginal opening, shaft entering her vagina, both hands on the base thrusting deeper; bare breasts with nipples visible; never invent a man or partner; never hold the dildo upright against her belly; never claw/splayed/heart/V fingers on thighs; never raised rock-on/peace/jazz hands; never a soft floral-dress, tan bikini top, or beige-lingerie pin-up staring at the lens; SETTING is empty backdrop only.`
+        : `${next} POSE WINS: follow the beat body stance exactly — on her back, kneeling, all fours, side-lying, standing, leaning, or seated as written; fingers on her vulva mid-act as the beat says; bare breasts with nipples visible; nothing held; never claw/splayed/heart/V fingers on thighs; never raised rock-on/peace/jazz hands; never a soft floral-dress, tan bikini top, or beige-lingerie pin-up staring at the lens; SETTING is empty backdrop only.`;
+    }
+    if (
+      !/ANATOMY:\s*one adult woman|natural vulva|never a penis|futa|vaginal opening/i.test(next)
+    ) {
+      next = soloToy
+        ? `${next} ANATOMY: one adult woman alone — natural vulva and labia only; penis-shaped silicone dildo with tip pushed into her vaginal opening — never a penis attached to a man, never invent a male partner, never futa; exactly two hands with five fingers each.`
+        : `${next} ANATOMY: one adult woman — natural vulva and labia only; never a penis, phallus, futa, or fleshy crotch protrusion; exactly two hands with five fingers each.`;
+    }
+    if (!/never free-floating steam|never floating steam|schematic vapor/i.test(next)) {
+      next = `${next} LIGHTING: natural room/lamp/window light only — never free-floating steam/smoke wisps.`;
+    }
+  }
+  // Duo Day/Story: stop threesome / Cast-portrait-third-person collapse.
+  if (
+    !compactRecipe &&
+    /\b(PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|two-adult framing)\b/i.test(next)
+  ) {
+    if (!/exactly TWO adults total|zero third faces|four hands max|DUO VISIBLE/i.test(next)) {
+      next = `${next} HEADCOUNT LOCK: exactly TWO adults total (four hands max) — Cast face on one body only; never a third face, never a camera-facing Cast clone beside the sex act, never a threesome or fused multi-body pile. DUO VISIBLE: partner head and torso share the bed/frame mid-contact — never a solo Cast nude portrait with empty sheets beside her.`;
+    }
+    // Strip accidental solo locks if a duo headcount is already demanded.
+    if (/SOLO SUBJECT \(mandatory\)/i.test(next)) {
+      next = next.replace(/SOLO SUBJECT \(mandatory\)[^\n]*/gi, '').replace(/\n{3,}/g, '\n\n');
+    }
+    if (
+      /Image 3 shows exactly ONE (?:magenta schematic|outline figure)|Image 3 has one skeleton:/i.test(
+        next
+      )
+    ) {
+      next = next
+        .replace(/Image 3 shows exactly ONE magenta schematic[^\n]*/gi, '')
+        .replace(/Image 3 shows exactly ONE outline figure[^\n]*/gi, '')
+        .replace(/ ?Image 3 has one skeleton:[^\n]*/gi, '')
+        .replace(/\n{3,}/g, '\n\n');
+    }
+    if (
+      !/BODIES:\s*exactly two fully separate|clear pelvis join|never fused torso|two pelvises/i.test(
+        next
+      )
+    ) {
+      next = `${next} BODIES: exactly two fully separate adults — two heads, two torsos, two pelvises, four legs; clear sex join without a flesh blob or shared hip mass; never double genitals, never crop the partner head off; partner head and shoulders stay in frame.`;
+    }
+    if (
+      !/HANDS:\s*exactly four hands|never a floating\/ghost hand|never a fifth hand/i.test(next)
+    ) {
+      next = `${next} HANDS: exactly four hands — each wrist attached to a visible forearm and shoulder of its owner; never a floating/ghost hand on a hip or thigh; never a fifth hand.`;
+    }
+    if (
+      !/SKIN:\s*both adults|never a black morphsuit|never paint Image 3 as a black morphsuit|never (?:a )?black bodysuit|zentai|only (?:his |her )?face and hands/i.test(
+        next
+      )
+    ) {
+      next = `${next} SKIN: both adults have real human skin on the whole body — partner bare chest/back/hips/legs; never paint Image 3 as a black morphsuit, zentai, catsuit, black bodysuit, or latex void suit that leaves only face and hands uncovered; never a black rubber blob between bodies.`;
+    }
+    if (!/SKIN TEXTURE:|natural matte pores|never oily plastic/i.test(next)) {
+      next = `${next} SKIN TEXTURE: natural matte pores — never oily plastic wet shine or airbrushed CGI skin.`;
+    }
+    if (!/LIGHTING:\s*natural room|never cyan or magenta|never cyan\/magenta/i.test(next)) {
+      // OpenPose guides: no color words in the positive (they self-condition CFG-1 stacks).
+      next = /Image 3 is an OpenPose keypoint/i.test(next)
+        ? `${next} LIGHTING: natural room/lamp light only — never neon gels, chest glow, or Image 3 skeleton colors painted into the scene.`
+        : `${next} LIGHTING: natural room/lamp light only — never cyan or magenta neon gels, chest glow, schematic smoke, or Image 3 colors painted into the scene.`;
+    }
+    if (!/bare nightstand|nothing open on the bed|FOREGROUND:\s*bare sheets/i.test(next)) {
+      next = `${next} PROPS: bare sheets and bodies only — bare nightstand; nothing open on the bed.`;
+    }
+  }
+  // Literary wall/elevator presses often miss "against the wall" parsers — spell the stance.
+  // Skip when a compact recipe already shipped (avoid bloat / false matches on pose-lock copy),
+  // and on solo beats: every line here stages a partner.
+  if (!compactRecipe && !solo) {
+    if (
+      /\b(lean(?:s|ing)?\s+against|press(?:es|ed|ing)?\s+(?:her|him|them)\s+back|elevator).{0,80}\b(wall|elevator)\b/i.test(
+        next
+      ) ||
+      (/\bagainst(?:\s+the)?(?:\s+[\w'-]+){0,3}\s+wall\b/i.test(next) &&
+        !/when the beat is a wall press|wall press standing|standing wall press/i.test(next))
+    ) {
+      if (
+        !/\bSTANDING upright|feet flat on the floor|partner behind pressing|SAME FACING/i.test(next)
+      ) {
+        next = `${next} STANDING upright sex against the wall: both adults on their feet (knees off the floor), lead's back flat to the wall, partner behind pressing in SAME FACING — not a face-to-face kiss or frontal hug.`;
+      }
+      if (!/\bSAME FACING|same facing|never turn into a face-to-face/i.test(next)) {
+        next = `${next} Same facing only — partner stays behind her; do not rotate into a face-to-face kiss.`;
+      }
+    }
+    if (
+      /\bcups?\s+(?:her|his|their)\s+throat\b/i.test(next) ||
+      /hand cups her throat from behind/i.test(next)
+    ) {
+      if (!/\bshe does not hold her own throat|lead does not grab/i.test(next)) {
+        next = `${next} Partner's hand cups the lead's throat; she does not hold her own throat or jaw.`;
+      }
+    }
+    if (
+      /\bcollarbone\b/i.test(next) &&
+      /\b(mouth|lick|neck|lips)\b/i.test(next) &&
+      !/no mouth-to-mouth|never a mouth-to-mouth/i.test(next)
+    ) {
+      next = `${next} Mouths stay apart — partner lips on the back of her neck/collarbone only, never a mouth-to-mouth or face-to-face kiss.`;
+    }
+    if (
+      /\b(sinks?\s+into|fingers?\s+(?:in|into)|hand\s+(?:in|between)|fingering\s+her\s+vagina)\b.{0,40}\b(vagina|core|clit|thighs?)\b/i.test(
+        next
+      ) ||
+      /\b(vagina|wet\s+core)\b/i.test(next)
+    ) {
+      if (
+        !/\bbetween (?:her|the lead'?s?) thighs|fingering her vagina|on genitals|front vagina|rubbing her clit|thumb rubbing\b/i.test(
+          next
+        )
+      ) {
+        next = `${next} Partner's other hand is between the lead's thighs / on genitals — not only on the waist or mirror.`;
+      }
+    }
+    // Negated mentions ("never … neon gels" in the lighting lock) aren't an elevator scene.
+    if (/\b(mirror|glass\s+doors?|neon|elevator)\b/i.test(stripNegatedClauses(next))) {
+      if (!/\bKeep the named room mirrors|glass elevator|elevator cab/i.test(next)) {
+        next = `${next} Keep mirrored walls and glass elevator doors with city neon visible — do not replace them with a plain metal box.`;
+      }
+    }
+  }
+  if (intimateTextDefaultsToNude(next) && !INTIMATE_NUDE_CUE.test(next)) {
+    next = `${next}. ${solo ? INTIMATE_SOLO_NUDE_DEFAULT : INTIMATE_NUDE_DEFAULT}`;
+  }
+  // Compact wall/chaise/chair/doggy recipes already carry headcount / pose / contact — don't re-stack locks.
+  if (!compactRecipe) {
+    if (
+      !solo &&
+      !/never twins|Two adults: Cast lead|no twin people|Exactly TWO adults|Exactly two adults/i.test(
+        next
+      )
+    ) {
+      next = `${next}. ${INTIMATE_DUO_LOCK}`;
+    }
+    if (
+      !/Match the named pose|Bodies must match the described pose|Match the beat’s named pose|Rear wall press|Chaise lower:|^Behind:|^Doggy:|^Chair bent:|^Piano oral:|^Cabinet drawer:|^Drawer afterglow:/i.test(
+        next
+      )
+    ) {
+      next = `${next} ${INTIMATE_POSE_LOCK}`;
+    }
+    if (!solo && !/Cross-person touch|two separate bodies|no floating third hand/i.test(next)) {
+      next = `${next} ${INTIMATE_CONTACT_LOCK}`;
+    }
+  }
+  return softenQwenRapidNudeSafetyTriggers(next.replace(/[ \t]{2,}/g, ' ').trim());
+}

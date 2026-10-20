@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { whenBrowserStorageReady } from '@/lib/browser-storage';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   clearGalleryHandoff,
   fetchHandoffImageFile,

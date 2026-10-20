@@ -1,8 +1,8 @@
 'use client';
 
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { resolveDiffusersModelHint } from '@/lib/diffusers-defaults';
-import { resolveQueueParams } from '@/lib/queue-params-settings';
+import { resolveDiffusersModelHint } from '@/lib/engine/diffusers-defaults';
+import { resolveQueueParams } from '@/lib/queue/params-settings';
 
 export default function DiffusersSamplingReadout({
   model,

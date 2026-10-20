@@ -1,6 +1,6 @@
-import { renderQualityLabel, type RenderQuality } from '../render-quality';
-import type { QueueQualityProfile } from '../queue-quality-profile';
-import { renderQualityFromProfile } from '../render-quality';
+import { renderQualityLabel, type RenderQuality } from '../engine/render-quality';
+import type { QueueQualityProfile } from '../queue/quality-profile';
+import { renderQualityFromProfile } from '../engine/render-quality';
 
 /**
  * Outfit's one Quality control, in Day's vocabulary: Fast / Balanced / Best. A preset is a

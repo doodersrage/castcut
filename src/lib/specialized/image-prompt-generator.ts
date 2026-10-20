@@ -1,8 +1,8 @@
-import { resolveVisionModel } from '@/lib/vision-model-auto';
+import { resolveVisionModel } from '@/lib/vision/model-auto';
 import { getComfyModelDefinition, comfyModelLabel } from '../comfy-models';
-import { getDetailLimits, type DetailLevel } from '../detail-level';
-import { allowTemplateFallback, visionCompletion } from '../llm-client';
-import { resolveRequestLlmEnabled, resolveRequestLlmEndpoint } from '../llm-request-options';
+import { getDetailLimits, type DetailLevel } from '../prompt/detail-level';
+import { allowTemplateFallback, visionCompletion } from '../llm/client';
+import { resolveRequestLlmEnabled, resolveRequestLlmEndpoint } from '../llm/request-options';
 import {
   applyVisionFocusTrim,
   stripPromptArtifacts,
@@ -11,15 +11,15 @@ import {
   isVisionPromptHardFailure,
   isVisionPromptInsufficient,
   visionPromptTargetChars,
-} from '../prompt-cleanup';
-import { sanitizeQwenPrompt, formatPromptForModel } from '../qwen-clarity';
-import { buildVisionFormatRules } from '../prompt-shape';
+} from '../prompt/cleanup';
+import { sanitizeQwenPrompt, formatPromptForModel } from '../engine/qwen-clarity';
+import { buildVisionFormatRules } from '../prompt/shape';
 import {
   getImagePromptPreset,
   mergeImagePromptHints,
   normalizeImagePromptDescriptionPreset,
   type ImagePromptDescriptionPreset,
-} from '../image-prompt-presets';
+} from '../prompt/image-prompt-presets';
 import { buildToolResult } from './runner';
 import type { ImagePromptFocus, ImagePromptOptions, ToolGenerateResult } from './types';
 

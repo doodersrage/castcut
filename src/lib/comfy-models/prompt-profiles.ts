@@ -1,6 +1,6 @@
-import type { FewShotExample } from '../detail-level';
-import { isFluxFineTuneCheckpointModel } from '../model-checkpoint-map';
-import { isKleinBaseModel, isKleinDistilledModel } from '../model-sampler-defaults';
+import type { FewShotExample } from '../prompt/detail-level';
+import { isFluxFineTuneCheckpointModel } from '../model/checkpoint-map';
+import { isKleinBaseModel, isKleinDistilledModel } from '../model/sampler-defaults';
 import { getProfileLimits } from './limits';
 import type { ComfyImageModelDefinition, DetailLevel, PromptProfileId } from './types';
 

@@ -1,4 +1,4 @@
-import { publicAppOrigin } from '@/lib/public-app-origin';
+import { publicAppOrigin } from '@/lib/server/public-app-origin';
 import 'server-only';
 
 import { findUserById } from '@/lib/auth/store';

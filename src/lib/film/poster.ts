@@ -4,7 +4,7 @@
  * Pure geometry + naming live here so they can be tested without a canvas.
  */
 
-import { normalizeFilmTitleCard, type FilmTitleCard } from '../video-polish';
+import { normalizeFilmTitleCard, type FilmTitleCard } from '../video/polish';
 import { addComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import { loadComfyUiSettings } from '../comfyui/settings';
 import type { DaySlot, DaySlotId, DaySlotStill } from '../day/planner';
@@ -12,14 +12,14 @@ import {
   FILM_PRESET_SIZE,
   normalizeFilmResolution,
   type FilmResolutionPreset,
-} from '../video-resolution';
-import { coverRect } from '../cover-rect';
+} from '../video/resolution';
+import { coverRect } from '../edit/cover-rect';
 import { persistGalleryOriginal } from '../gallery/media-client';
 
 export const POSTER_TAG = 'poster';
 
-export type { CoverRect as PosterRect } from '../cover-rect';
-export { coverRect } from '../cover-rect';
+export type { CoverRect as PosterRect } from '../edit/cover-rect';
+export { coverRect } from '../edit/cover-rect';
 
 export function posterSizeFor(resolution?: FilmResolutionPreset | string): {
   width: number;

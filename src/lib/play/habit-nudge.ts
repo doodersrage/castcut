@@ -2,12 +2,12 @@
  * Soft nudge to cut another Day film ~24h after the latest cut.
  */
 
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import { loadPlayMetrics, type PlayMetrics } from './metrics';
 import { loadPlayCampaignState, PLAY_CAMPAIGN_STEPS } from './campaign';
-import { getCharacter } from '../character-os';
+import { getCharacter } from '../character/os';
 import { remixDayFilmHref } from './starter';
-import { loadSettingsCache } from '../settings-cache';
+import { loadSettingsCache } from '../settings/cache';
 
 export const PLAY_HABIT_NUDGE_KEY = 'comfy-play-habit-nudge-v1';
 

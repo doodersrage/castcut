@@ -3,7 +3,7 @@ import { apiError } from '@/lib/api/response';
 import { contentTypeForViewBytes } from '@/lib/comfyui/outputs';
 import { liveFilmReview } from '@/lib/film/review-store';
 import { readGalleryOriginalFile } from '@/lib/gallery/media-store';
-import { parseRangeHeader } from '@/lib/http-range';
+import { parseRangeHeader } from '@/lib/server/http-range';
 
 export const runtime = 'nodejs';
 

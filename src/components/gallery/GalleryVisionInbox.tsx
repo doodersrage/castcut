@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { aestheticScoreFromVisionRating } from '@/lib/aesthetic-score';
+import { aestheticScoreFromVisionRating } from '@/lib/vision/aesthetic-score';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { updateComfyGalleryEntryById } from '@/lib/gallery/comfyui-gallery';
 

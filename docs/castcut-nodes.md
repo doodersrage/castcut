@@ -147,5 +147,5 @@ The pack's source, tests and Comfy Registry metadata (`pyproject.toml`) live in
 ([doodersrage/castcut-nodes](https://github.com/doodersrage/castcut-nodes)) that is published to the
 Registry (`comfy node publish`). When a node changes, bump
 `CASTCUT_VERSION` in `castcut_nodes.py`, `version` in `pyproject.toml` and
-`CASTCUT_NODES_BUNDLED_VERSION` in `src/lib/castcut-nodes-setup.ts` together — the Python and
+`CASTCUT_NODES_BUNDLED_VERSION` in `src/lib/castcut/nodes-setup.ts` together — the Python and
 TypeScript tests check they agree.

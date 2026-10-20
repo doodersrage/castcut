@@ -1,4 +1,4 @@
-import { normalizeTrainJobs, upsertTrainJob, type TrainJob } from '@/lib/lora-train-job';
+import { normalizeTrainJobs, upsertTrainJob, type TrainJob } from '@/lib/lora/train-job';
 
 export function mergeJobs(local: TrainJob[], remote: TrainJob[]): TrainJob[] {
   let next = normalizeTrainJobs(local);

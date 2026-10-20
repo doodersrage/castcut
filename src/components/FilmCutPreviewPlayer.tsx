@@ -3,9 +3,9 @@
 import { Button } from '@/components/ui/Button';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { formatCutTime, useCutPreview } from '@/hooks/useCutPreview';
-import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio-mix-levels';
+import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio/mix-levels';
 import type { KeyedShot } from '@/lib/film/cut-plan';
-import type { FilmTitleCard } from '@/lib/video-polish';
+import type { FilmTitleCard } from '@/lib/video/polish';
 
 /**
  * Preview the cut (useCutPreview): the shots as the encode will put them together, with the

@@ -1,6 +1,6 @@
 'use client';
 
-import type { PoseGuidePreview } from '@/lib/pose-guide-status';
+import type { PoseGuidePreview } from '@/lib/pose/guide-status';
 
 type DayStatusStripProps = {
   statusLine: string;

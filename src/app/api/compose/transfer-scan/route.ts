@@ -1,11 +1,11 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import {
   normalizeComposeTransferRecipe,
   runComposeTransferScan,
   type ComposeTransferScanImage,
-} from '@/lib/compose-transfer-scan';
-import { LlmBusyError } from '@/lib/llm-client';
+} from '@/lib/prompt/compose-transfer-scan';
+import { LlmBusyError } from '@/lib/llm/client';
 
 export const runtime = 'nodejs';
 

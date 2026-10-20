@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
-import type { LoraDatasetExportUiOptions } from '@/lib/lora-dataset-export-ui';
+import type { LoraDatasetExportUiOptions } from '@/lib/lora/dataset-export-ui';
 
 type UseGalleryLoraExportConfirmOptions = {
   loraExportScope: 'favorites' | 'selected';

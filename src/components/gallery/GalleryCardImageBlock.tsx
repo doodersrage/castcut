@@ -1,6 +1,6 @@
 'use client';
 
-import type { AestheticScoreResult } from '@/lib/aesthetic-score';
+import type { AestheticScoreResult } from '@/lib/vision/aesthetic-score';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { GalleryCardHeroMedia } from '@/components/gallery/GalleryCardHeroMedia';
 import { GalleryCardHoverActions } from '@/components/gallery/GalleryCardHoverActions';
@@ -18,7 +18,7 @@ export type GalleryCardImageBlockProps = {
   onDownloadError: (message: string | null) => void;
   onRequeue: (
     newSeed: boolean,
-    qualityProfile?: import('@/lib/queue-quality-profile').QueueQualityProfile,
+    qualityProfile?: import('@/lib/queue/quality-profile').QueueQualityProfile,
     options?: { exactGraph?: boolean; stickyHost?: boolean }
   ) => void;
   onCancel: () => void;

@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import SideSheet from '@/components/ui/SideSheet';
-import { MUSIC_DANCE_AMPLITUDES, MUSIC_DANCE_STYLES } from '@/lib/music-dance';
-import { RELIGHT_LOOKS } from '@/lib/relight';
+import { MUSIC_DANCE_AMPLITUDES, MUSIC_DANCE_STYLES } from '@/lib/audio/music-dance';
+import { RELIGHT_LOOKS } from '@/lib/edit/relight';
 
 export type SlotMediaSheetKind = 'moves' | 'dance' | 'lip-sync' | 'relight';
 

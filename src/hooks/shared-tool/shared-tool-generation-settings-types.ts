@@ -2,18 +2,18 @@ import type { Dispatch, SetStateAction } from 'react';
 import type {
   ModelSamplerOverrideFields,
   ModelSamplerPresetTier,
-} from '@/lib/model-sampler-defaults';
-import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model-resolution-defaults';
-import type { AnatomyGuardMode } from '@/lib/anatomy-guard';
-import type { QueueQualityProfile } from '@/lib/queue-quality-profile';
-import type { RenderRealismMode } from '@/lib/render-realism';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import type { SessionRecipe } from '@/lib/session-recipes';
+} from '@/lib/model/sampler-defaults';
+import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/resolution-defaults';
+import type { AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
+import type { QueueQualityProfile } from '@/lib/queue/quality-profile';
+import type { RenderRealismMode } from '@/lib/engine/render-realism';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { SessionRecipe } from '@/lib/prompt/session-recipes';
 import type {
   SessionActiveLoraIdsByModel,
   SessionLoraStrengthOverridesByModel,
-} from '@/lib/model-lora-map';
-import type { SessionLoraStrengthOverrides } from '@/lib/lora-stack';
+} from '@/lib/model/lora-map';
+import type { SessionLoraStrengthOverrides } from '@/lib/lora/stack';
 
 export type UseSharedToolGenerationSettingsOptions = {
   shared: SharedToolSettings;

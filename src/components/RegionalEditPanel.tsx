@@ -11,13 +11,13 @@ import {
   normalizeRegionalPromptSlots,
   normalizeRegionalSlotStrength,
   type RegionalPromptSlot,
-} from '@/lib/regional-prompt-slots';
+} from '@/lib/prompt/regional-prompt-slots';
 import {
   formatRegionalEditHealthChip,
   resolveRegionalEditHealth,
   type RegionalEditHealth,
 } from '@/lib/workflow/regional-patch';
-import { regionalPromptCustomTokens } from '@/lib/regional-prompt-builder';
+import { regionalPromptCustomTokens } from '@/lib/prompt/regional-prompt-builder';
 
 type RegionalEditPanelProps = {
   slots: RegionalPromptSlot[];

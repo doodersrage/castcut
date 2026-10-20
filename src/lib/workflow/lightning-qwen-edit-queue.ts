@@ -29,7 +29,7 @@ import {
   LOAD_IMAGE_TYPES,
 } from './lightning-queue';
 import type { WorkflowParamValues } from '../comfyui/config';
-import { isEditCapableModel, isBooguEditModel } from '../model-denoise-defaults';
+import { isEditCapableModel, isBooguEditModel } from '../model/denoise-defaults';
 import { normalizeInputImageFilenames, QWEN_EDIT_ENCODE_IMAGE_KEYS } from './load-image-bindings';
 
 export function disconnectQwenEditReferenceImagesForTxt2Img(

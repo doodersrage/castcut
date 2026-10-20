@@ -22,8 +22,8 @@ import {
   type PoseCameraChoice,
   type PoseLookChoice,
 } from '@/lib/day/pose-guide';
-import { POSE_PICKER_GROUPS } from '@/lib/pose-layout-labels';
-import { beatFitsSetting, settingHostsLying, textLiesDown } from '@/lib/scene-surface';
+import { POSE_PICKER_GROUPS } from '@/lib/pose/layout-labels';
+import { beatFitsSetting, settingHostsLying, textLiesDown } from '@/lib/scene/surface';
 
 /** One pose in a pack: a named Day pose (layout / posture) or a skeleton (photo / edit). */
 export type PosePackEntry = {

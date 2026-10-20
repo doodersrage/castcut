@@ -12,22 +12,22 @@ import {
   type SceneStarterFilterState,
   type SceneStarterFramingFilter,
   type SceneStarterPreset,
-} from '@/lib/scene-starter-presets';
+} from '@/lib/scene/starter-presets';
 import {
   buildUserSceneStarterFromHints,
   loadUserSceneStarterPresets,
   upsertUserSceneStarterPreset,
-} from '@/lib/user-scene-starter-presets';
+} from '@/lib/user/scene-starter-presets';
 import {
   buildPresetVariationsHandoff,
   presetVariationsPath,
   savePresetVariationsHandoff,
-} from '@/lib/preset-variations-handoff';
-import { ROUTE_TINT_CLASSES, type ToolAccent } from '@/lib/tool-theme';
+} from '@/lib/variation/preset-variations-handoff';
+import { ROUTE_TINT_CLASSES, type ToolAccent } from '@/lib/app/tool-theme';
 import { TextInput } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
-import { appHasRoute } from '@/lib/app-profile';
+import { appHasRoute } from '@/lib/app/profile';
 
 const FRAMING_OPTIONS: { value: SceneStarterFramingFilter; label: string }[] = [
   { value: 'all', label: 'All framing' },
@@ -380,4 +380,4 @@ export default function SceneStarterPresetChips({
   );
 }
 
-export { applySceneStarterWorkflowHints } from '@/lib/scene-starter-workflow-hints';
+export { applySceneStarterWorkflowHints } from '@/lib/scene/starter-workflow-hints';

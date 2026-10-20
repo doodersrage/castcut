@@ -7,14 +7,14 @@ import {
 } from '@/lib/fitting/outfit-handoff';
 import { recordCastOutfitWorn } from '@/lib/cast/wardrobe';
 import { useCallback, useEffect } from 'react';
-import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character-os';
+import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character/os';
 import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
-import { getCachedClothingLabel } from '@/lib/clothing-catalog-client';
+import { getCachedClothingLabel } from '@/lib/wardrobe/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting/room';
 import {
   buildFittingGarmentReferenceExtras,
   loadWardrobeGarmentThumbManifest,
-} from '@/lib/wardrobe-garment-thumbs';
+} from '@/lib/wardrobe/garment-thumbs';
 import {
   countInFlightFittingKitPreviews,
   FITTING_KIT_PREVIEW_CONCURRENCY,
@@ -36,7 +36,7 @@ import {
 import { bumpPlayCampaignStep } from '@/lib/play/campaign';
 import { ensureDaySlotsMatchMood } from '@/lib/day/planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
-import { loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 import type {
   FittingRoomQueueCore,
@@ -363,7 +363,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       });
       input.setContinueDayHref(dayHref);
       bumpPlayCampaignStep({ characterId, stepId: 'day', lookPackId: undefined });
-      void import('@/lib/local-observability').then(({ noteKeepTryOnMetric }) => {
+      void import('@/lib/server/local-observability').then(({ noteKeepTryOnMetric }) => {
         noteKeepTryOnMetric();
       });
       const keptOwn = handed.outfitHandoffKept?.slotIds.length ?? 0;

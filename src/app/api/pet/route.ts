@@ -1,6 +1,6 @@
-import { normalizePetPresetOptions, type PetPresetOptions } from '@/lib/pet-options';
+import { normalizePetPresetOptions, type PetPresetOptions } from '@/lib/scene/pet-options';
 import { generatePetPrompt } from '@/lib/specialized/pet-generator';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import {
   normalizeBlockedLocations,
   normalizeRecentLocations,

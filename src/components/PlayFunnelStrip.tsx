@@ -1,12 +1,15 @@
 'use client';
 
-import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings-push-flush';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { SETTINGS_SYNCED_WITH_SERVER_EVENT } from '@/lib/settings/push-flush';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ButtonLink } from '@/components/ui/Button';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
-import { loadLocalObservability, type LocalObservabilityCounters } from '@/lib/local-observability';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import {
+  loadLocalObservability,
+  type LocalObservabilityCounters,
+} from '@/lib/server/local-observability';
 import { loadActivePlayCampaign } from '@/lib/play/campaign';
 import { loadLookPack, type LookPack } from '@/lib/look/pack';
 import {
@@ -17,7 +20,7 @@ import {
   type PlayMetrics,
 } from '@/lib/play/metrics';
 import { derivePlayJourney, playStepById } from '@/lib/play/step-machine';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 function formatDays(days: number): string {
   if (days < 1) {

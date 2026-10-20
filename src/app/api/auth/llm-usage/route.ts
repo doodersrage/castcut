@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { findUserById } from '@/lib/auth/store';
-import { listLlmUsage, summarizeLlmUsage } from '@/lib/llm-usage-log';
+import { listLlmUsage, summarizeLlmUsage } from '@/lib/llm/usage-log';
 
 export const runtime = 'nodejs';
 

@@ -6,7 +6,7 @@ import {
   marksCheckVerdict,
   parseMarksCheck,
 } from './marks-check';
-import type { CastMark } from '../character-os';
+import type { CastMark } from '../character/os';
 
 const glasses: CastMark = { id: 'g', what: 'thin round wire-rimmed glasses', where: 'face' };
 const rose: CastMark = { id: 'r', what: 'a small fine-line rose tattoo', where: 'left arm' };

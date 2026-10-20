@@ -19,9 +19,9 @@ import { useRoleplayWardrobe } from '@/hooks/useRoleplayWardrobe';
 import { useStoryBeatEdit } from '@/hooks/roleplay/useStoryBeatEdit';
 import { useStorySessionGuard } from '@/hooks/roleplay/useStorySessionGuard';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character/os';
 import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
-import { getReformatTargetModel } from '@/lib/reformat-target';
+import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
   ROLEPLAY_ARCHETYPES,

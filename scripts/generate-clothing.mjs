@@ -35,7 +35,7 @@ import {
 import { tagClothingEntry } from './clothing-tag-utils.mjs';
 
 const ROOT = process.cwd();
-const LIB_DIR = path.join(ROOT, 'src/lib');
+const LIB_DIR = path.join(ROOT, 'src/lib/wardrobe');
 const BATCH_INDEX = path.join(LIB_DIR, 'clothing-catalog-batches.ts');
 const CATALOG_GLOB = /^clothing-catalog-(\d+)\.ts$/;
 

@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from 'react';
 import { usePromptHistory } from '@/hooks/usePromptHistory';
-import type { GenerationDiagnostics } from '@/lib/generation-diagnostics';
-import { loadActiveProjectId } from '@/lib/prompt-projects';
-import { clearLineageParent, resolveParentHistoryId } from '@/lib/prompt-lineage-session';
-import { computePromptContentHash, nextPromptVersionFields } from '@/lib/prompt-versioning';
-import { loadPromptHistoryStore } from '@/lib/prompt-history';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import type { GenerationDiagnostics } from '@/lib/queue/generation-diagnostics';
+import { loadActiveProjectId } from '@/lib/prompt/projects';
+import { clearLineageParent, resolveParentHistoryId } from '@/lib/prompt/lineage-session';
+import { computePromptContentHash, nextPromptVersionFields } from '@/lib/prompt/versioning';
+import { loadPromptHistoryStore } from '@/lib/prompt/history';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import type { PromptResultActionsConfig } from '@/hooks/prompt-result/types';
 
 export function usePromptResultHistory(
@@ -83,7 +83,7 @@ export function usePromptResultHistory(
         },
       });
       setHistorySaved(true);
-      void import('@/lib/webhook-settings').then(({ dispatchWebhook }) => {
+      void import('@/lib/settings/webhook-settings').then(({ dispatchWebhook }) => {
         void dispatchWebhook({
           event: 'prompt.history.saved',
           tool: config.tool,
@@ -92,7 +92,7 @@ export function usePromptResultHistory(
           completedAt: Date.now(),
         });
       });
-      void import('@/lib/plugin-queue-hooks').then(({ dispatchPluginLifecycleHooks }) => {
+      void import('@/lib/plugin/queue-hooks').then(({ dispatchPluginLifecycleHooks }) => {
         void dispatchPluginLifecycleHooks({
           event: 'prompt-history-saved',
           tool: config.tool,

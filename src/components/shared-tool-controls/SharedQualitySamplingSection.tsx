@@ -5,9 +5,9 @@ import Link from 'next/link';
 import {
   hasModelSamplerOverrides,
   MODEL_SAMPLER_PRESET_OPTIONS,
-} from '@/lib/model-sampler-defaults';
-import { ANATOMY_GUARD_OPTIONS } from '@/lib/anatomy-guard';
-import { RENDER_REALISM_OPTIONS } from '@/lib/render-realism';
+} from '@/lib/model/sampler-defaults';
+import { ANATOMY_GUARD_OPTIONS } from '@/lib/adult/anatomy-guard';
+import { RENDER_REALISM_OPTIONS } from '@/lib/engine/render-realism';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SharedAdvancedSectionsProps } from '@/components/shared-tool-controls/SharedAdvancedSections';
 

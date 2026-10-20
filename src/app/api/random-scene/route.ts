@@ -1,5 +1,5 @@
 import { generateRandomScene } from '@/lib/specialized/random-scene';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import {
   normalizeSharedGenerationOptions,
   normalizeRecentLocations,

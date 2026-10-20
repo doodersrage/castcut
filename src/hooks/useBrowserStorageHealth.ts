@@ -6,7 +6,7 @@ import {
   getBrowserStorageHealth,
   whenBrowserStorageReady,
   type BrowserStorageHealth,
-} from '@/lib/browser-storage';
+} from '@/lib/storage/browser-storage';
 
 export function useBrowserStorageHealth(): BrowserStorageHealth {
   const [health, setHealth] = useState<BrowserStorageHealth>(() => getBrowserStorageHealth());

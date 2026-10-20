@@ -2,19 +2,19 @@
 
 import { useCallback } from 'react';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { runwayClipPrompt } from '@/lib/cast/wardrobe';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
-import type { EngineHealthState } from '@/lib/engine-health-engines';
+import type { EngineHealthState } from '@/lib/engine/health-engines';
 import {
   pickRunwayClipEngine,
   RUNWAY_CLIP_ENGINES,
   type RunwayClipEngine,
-} from '@/lib/outfit-runway';
+} from '@/lib/wardrobe/outfit-runway';
 
 /** Health of each runway engine, best first, stopping at the first one ComfyUI is ready for. */
 async function chooseRunwayEngine(): Promise<RunwayClipEngine> {
-  const { checkEngineHealth } = await import('@/lib/engine-health-client');
+  const { checkEngineHealth } = await import('@/lib/engine/health-client');
   const states = new Map<string, EngineHealthState>();
   for (const engine of RUNWAY_CLIP_ENGINES) {
     const state = await checkEngineHealth(engine.model)

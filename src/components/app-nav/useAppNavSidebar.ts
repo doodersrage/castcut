@@ -4,27 +4,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { featureForPath } from '@/lib/auth/features';
 import { canAccessNavFeature, useAuth } from '@/hooks/useAuth';
-import { BUILTIN_TOOL_PLUGINS, type ToolPlugin } from '@/lib/tool-plugin-registry';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { BUILTIN_TOOL_PLUGINS, type ToolPlugin } from '@/lib/app/tool-plugin-registry';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   APP_NAV_GROUPS,
   APP_NAV_SETTINGS_LINK,
   mergePluginLinksIntoNav,
   type AppNavLink,
-} from '@/lib/app-nav-catalog';
-import { defaultExpandedNavGroups, navGroupsForPath } from '@/lib/workspace-mode';
-import { PLUGIN_MANIFEST_UPDATED_EVENT } from '@/lib/plugin-manifest';
-import { NSFW_GENERATOR_NAV_LINK } from '@/lib/nsfw-generator-nav';
+} from '@/lib/app/nav-catalog';
+import { defaultExpandedNavGroups, navGroupsForPath } from '@/lib/app/workspace-mode';
+import { PLUGIN_MANIFEST_UPDATED_EVENT } from '@/lib/plugin/manifest';
+import { NSFW_GENERATOR_NAV_LINK } from '@/lib/adult/nsfw-generator-nav';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isNavFavorite, loadNavFavorites, toggleNavFavorite } from '@/lib/nav-favorites';
+import { isNavFavorite, loadNavFavorites, toggleNavFavorite } from '@/lib/app/nav-favorites';
 import {
   loadExpandedNavGroups,
   saveExpandedNavGroups,
   toggleExpandedNavGroup,
-} from '@/lib/nav-expanded-groups';
-import { pushRecentDestination } from '@/lib/recent-destinations';
-import { saveLastToolRoute } from '@/lib/last-tool-route';
+} from '@/lib/app/nav-expanded-groups';
+import { pushRecentDestination } from '@/lib/history/recent-destinations';
+import { saveLastToolRoute } from '@/lib/app/last-tool-route';
 import { linkIsActive } from '@/components/app-nav/linkIsActive';
 
 export function useAppNavSidebar() {
@@ -86,8 +86,8 @@ export function useAppNavSidebar() {
 
     const loadPlugins = () => {
       void Promise.all([
-        import('@/lib/tool-plugin-registry'),
-        import('@/lib/plugin-manifest'),
+        import('@/lib/app/tool-plugin-registry'),
+        import('@/lib/plugin/manifest'),
       ]).then(([{ loadToolPlugins }, { navLinksFromInstalledPlugins }]) => {
         setCustomPlugins(
           loadToolPlugins().filter(

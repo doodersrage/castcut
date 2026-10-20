@@ -2,9 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import { pushSystemTrayMessage } from '@/lib/system-tray-messages';
-import { fixAreaSessionProgress, type FixAreaSession } from '@/lib/fix-area-session';
-import { fixAreaSessionStore, useFixAreaSessions } from '@/lib/fix-area-session-store';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { fixAreaSessionProgress, type FixAreaSession } from '@/lib/edit/fix-area-session';
+import { fixAreaSessionStore, useFixAreaSessions } from '@/lib/edit/fix-area-session-store';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,

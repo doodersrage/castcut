@@ -8,7 +8,7 @@ import {
   listUserAnalyticsSnapshots,
   saveUserAnalyticsSnapshot,
 } from '@/lib/auth/analytics-store';
-import type { UserAnalyticsSnapshot } from '@/lib/user-analytics';
+import type { UserAnalyticsSnapshot } from '@/lib/user/analytics';
 
 export const runtime = 'nodejs';
 

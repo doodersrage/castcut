@@ -2,13 +2,13 @@
 
 import { useMemo, useSyncExternalStore } from 'react';
 import { useHydrated } from '@/hooks/useHydrated';
-import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/browser-storage';
-import { castPlateTiles } from '@/lib/character-plate-thumb';
+import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
+import { castPlateTiles } from '@/lib/character/plate-thumb';
 import {
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
+} from '@/lib/character/os';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   getGalleryCache,

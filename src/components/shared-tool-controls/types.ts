@@ -1,5 +1,5 @@
-import type { DetailLevel } from '@/lib/detail-level';
-import type { SharedToolSettings } from '@/lib/settings-cache';
+import type { DetailLevel } from '@/lib/prompt/detail-level';
+import type { SharedToolSettings } from '@/lib/settings/cache';
 
 export type SharedToolControlsProps = {
   shared: SharedToolSettings;

@@ -4,7 +4,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldLabel } from '@/components/ui/Field';
 import { galleryPickPath } from '@/lib/gallery/handoff';
-import type { VideoClipMode } from '@/lib/video-clip-mode';
+import type { VideoClipMode } from '@/lib/video/clip-mode';
 import { isFetchableImageRef } from '@/hooks/useVideoPromptInitImage';
 
 type VideoPromptInitImageSectionProps = {

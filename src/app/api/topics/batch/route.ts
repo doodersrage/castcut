@@ -1,6 +1,6 @@
-import { batchGenerateFromTopics, type BatchFromTopicsTarget } from '@/lib/batch-from-topics';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { batchGenerateFromTopics, type BatchFromTopicsTarget } from '@/lib/batch/from-topics';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import {
   normalizeRecentClothing,
   normalizeLockedWardrobeId,
@@ -9,7 +9,7 @@ import {
   normalizeSharedGenerationOptions,
 } from '@/lib/specialized/normalize';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { LlmBusyError } from '@/lib/llm-client';
+import { LlmBusyError } from '@/lib/llm/client';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { checkLookPlate, type PlateCheck } from '@/lib/plate-check';
-import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose-detect-client';
+import { checkLookPlate, type PlateCheck } from '@/lib/plate/check';
+import { detectStillPoseShared, plateDetectUrl } from '@/lib/pose/detect-client';
 
 export type PlateCheckOutcome =
   | { state: 'done'; check: PlateCheck }

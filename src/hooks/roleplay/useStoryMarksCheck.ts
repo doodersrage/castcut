@@ -5,7 +5,7 @@ import {
   leadIsMan,
   type UseRoleplayBeatQueueOptions,
 } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
   buildMarksRepairPrompt,
   checkableMarks,
@@ -15,7 +15,7 @@ import {
 } from '@/lib/cast/marks-check';
 import { checkStillMarks } from '@/lib/cast/marks-check-client';
 import { resolveCastPlatePrepareModel, snapshotPlate } from '@/lib/cast/plate-prepare';
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character/os';
 import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,

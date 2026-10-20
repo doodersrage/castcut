@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it, mock } from 'node:test';
 
-import type { UserAnalyticsSnapshot } from '../user-analytics';
+import type { UserAnalyticsSnapshot } from '../user/analytics';
 
 type Snapshot = UserAnalyticsSnapshot;
 

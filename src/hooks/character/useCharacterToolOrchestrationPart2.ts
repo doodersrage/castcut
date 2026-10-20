@@ -1,17 +1,17 @@
 'use client';
 
 import { useCallback } from 'react';
-import { rememberDraftFields } from '@/lib/remember-draft-fields';
+import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { resolveSceneHintsForGeneration } from '@/components/scene-tool/HistoryHintSeedPanel';
-import { presetOptionsFromBackgroundCache } from '@/lib/background-options';
-import { readSceneLocationFromMetadata } from '@/lib/recent-locations';
-import { readClothingIdsFromMetadata } from '@/lib/recent-clothing';
-import { avoidedTokensRequestBody } from '@/lib/avoided-tokens';
-import { sharedLlmRequestBody } from '@/lib/llm-request-options';
-import { presetOptionsFromCache } from '@/lib/character-options-ui';
+import { presetOptionsFromBackgroundCache } from '@/lib/scene/background-options';
+import { readSceneLocationFromMetadata } from '@/lib/scene/recent-locations';
+import { readClothingIdsFromMetadata } from '@/lib/wardrobe/recent-clothing';
+import { avoidedTokensRequestBody } from '@/lib/prompt/avoided-tokens';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { presetOptionsFromCache } from '@/lib/character/options-ui';
 import type { EnrichedToolGenerateResult } from '@/lib/specialized/types';
-import { downloadPromptPairTextFile } from '@/lib/prompt-pair';
-import { resolveCollabFieldValue } from '@/lib/collab-presence';
+import { downloadPromptPairTextFile } from '@/lib/prompt/pair';
+import { resolveCollabFieldValue } from '@/lib/storage/collab-presence';
 import type { CharacterToolOrchestrationCore } from '@/hooks/character/useCharacterToolOrchestrationCore';
 
 export function useCharacterToolOrchestrationPart2(ctx: CharacterToolOrchestrationCore) {

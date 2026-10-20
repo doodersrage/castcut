@@ -10,9 +10,9 @@ import {
   startReeditComposeFromGalleryEntry,
   startReeditRefineFromGalleryEntry,
   startVideoFromGalleryEntry,
-} from '@/lib/improve-output';
+} from '@/lib/edit/improve-output';
 import { comfyUiJobProgressPercent, comfyUiJobStatusLabel } from '@/lib/comfyui/job-status';
-import { formatComfyHostLabel } from '@/lib/queue-status-notes';
+import { formatComfyHostLabel } from '@/lib/queue/status-notes';
 import { filmsUsingEntry } from '@/lib/gallery/used-in';
 import { galleryEntryViewUrls } from '@/lib/gallery/comfyui-gallery';
 import { galleryNeedsLookReasons } from '@/lib/gallery/needs-look';
@@ -26,7 +26,7 @@ import {
 } from '@/lib/gallery/stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
 import { galleryToolHrefForEntry, galleryToolLabel } from '@/lib/gallery/tool-href';
-import { galleryEntryComfyStillUrl, recordFixAreaInGallery } from '@/lib/fix-area-gallery';
+import { galleryEntryComfyStillUrl, recordFixAreaInGallery } from '@/lib/edit/fix-area-gallery';
 import {
   galleryEntryLightboxUrls,
   galleryEntryPrimaryMediaKind,

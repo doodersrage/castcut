@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseIsolateFill } from '@/lib/isolate-subject';
-import { isolateSubjectOnFillDetailed } from '@/lib/isolate-subject-server';
+import { parseIsolateFill } from '@/lib/edit/isolate-subject';
+import { isolateSubjectOnFillDetailed } from '@/lib/edit/isolate-subject-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;

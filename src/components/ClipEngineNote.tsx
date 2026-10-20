@@ -2,15 +2,15 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { EngineHealthNote } from '@/components/EngineHealth';
-import { H3_LICENCE_NOTE } from '@/lib/h3-renderer';
-import { dayClipVideoModel, isLtx25Model, storyClipChoice } from '@/lib/ltx25-renderer';
-import { resolvePreferredVideoModel } from '@/lib/queue-tool-model';
+import { H3_LICENCE_NOTE } from '@/lib/engine/h3-renderer';
+import { dayClipVideoModel, isLtx25Model, storyClipChoice } from '@/lib/video/ltx25-renderer';
+import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
 import {
   DEFAULT_VIDEO_TOOL_CACHE,
   loadSettingsCache,
   loadToolSettings,
   saveToolSettings,
-} from '@/lib/settings-cache';
+} from '@/lib/settings/cache';
 
 const subscribe = () => () => {};
 

@@ -5,38 +5,38 @@
  */
 
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
-import { registerCastChangeScrubber, loadSettingsCache } from '../settings-cache';
+import { registerCastChangeScrubber, loadSettingsCache } from '../settings/cache';
 import { registerJobCompletedHook } from '../gallery/comfyui-gallery';
-import { registerAppFlag } from '../app-flags';
-import { registerStudioExtrasSection } from '../studio-extras';
+import { registerAppFlag } from '../app/flags';
+import { registerStudioExtrasSection } from '../app/studio-extras';
 import { PLAY_STUDIO_EXTRAS_SECTION } from './studio-extras';
 import { loadPlayCampaignState, resolvePlayLoopNavHref } from './campaign';
 import { hasCompletedFirstFilm, loadPlayMetrics, resolveNextPlayAction } from './metrics';
 import { clearPlayCampaignState, PLAY_CAMPAIGN_KEY } from './campaign';
 import { clearLookPack, loadLookPack, LOOK_PACK_KEY } from '../look/pack';
 import { PLAY_METRICS_KEY, savePlayMetrics } from './metrics';
-import { registerLocalDataReset } from '../local-data-reset';
-import { registerResumeCta } from '../empty-cta';
-import { registerPoseTargetGroup } from '../pose-targets';
-import { registerReferenceHealthItems } from '../reference-health';
+import { registerLocalDataReset } from '../storage/local-data-reset';
+import { registerResumeCta } from '../app/empty-cta';
+import { registerPoseTargetGroup } from '../pose/targets';
+import { registerReferenceHealthItems } from '../checks/reference-health';
 import { dayPartnerReferenceHealth } from './reference-health';
-import { registerFaceCheckReference } from '../face-check-reference';
-import { comfyInputViewUrl } from '../face-match-client';
-import { registerCharacterLookSwitcher, registerCharacterStorePreparer } from '../character-hooks';
+import { registerFaceCheckReference } from '../face/check-reference';
+import { comfyInputViewUrl } from '../face/match-client';
+import { registerCharacterLookSwitcher, registerCharacterStorePreparer } from '../character/hooks';
 import { migrateCharactersFromLegacy } from './cast';
 import { switchCastPlate } from '../cast/plate-switch';
 import { roleplaySessionsForCharacterSync } from '../story/roleplay-library';
-import { listSavedIdentityBundles } from '../settings-cache';
-import { registerNavClickFollower, registerNavHrefResolver } from '../nav-links';
+import { listSavedIdentityBundles } from '../settings/cache';
+import { registerNavClickFollower, registerNavHrefResolver } from '../app/nav-links';
 import { followCurrentPlayLoopHref } from './loop-nav-click';
 import { registerGalleryKeeperHook } from '../gallery/judgment-hooks';
-import { registerQueueJobDescriber } from '../queue-job-context';
-import { registerCharacterNormalizer, registerStickyCharacterFields } from '../character-os';
+import { registerQueueJobDescriber } from '../queue/job-context';
+import { registerCharacterNormalizer, registerStickyCharacterFields } from '../character/os';
 import { normalizeCharacterLookPacks } from './cast';
 import { PLAY_QUEUE_JOB_DESCRIBER } from './queue-jobs';
 import { PLAY_POSE_TARGET_GROUPS } from './pose-targets';
-import { loadLocalObservability } from '../local-observability';
-import { loadOnboardingState } from '../onboarding-store';
+import { loadLocalObservability } from '../server/local-observability';
+import { loadOnboardingState } from '../app/onboarding-store';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
@@ -105,7 +105,7 @@ registerQueueJobDescriber('play', PLAY_QUEUE_JOB_DESCRIBER);
 // A kept intimate two-person still teaches the pose library its layout (local only). Loaded on
 // demand: it pulls in the pose guide planner.
 registerGalleryKeeperHook(entries => {
-  void import('../pose-kept-intimate-client')
+  void import('../pose/kept-intimate-client')
     .then(({ learnKeptIntimatePoses }) => learnKeptIntimatePoses(entries))
     .catch(() => {});
 });

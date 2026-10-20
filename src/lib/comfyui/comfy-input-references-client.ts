@@ -16,7 +16,7 @@ export async function collectBrowserInputReferences(): Promise<string[]> {
   };
 
   try {
-    const { flushBrowserStorageNow } = await import('../browser-storage');
+    const { flushBrowserStorageNow } = await import('../storage/browser-storage');
     await flushBrowserStorageNow();
   } catch {
     /* scan what is stored */
@@ -33,7 +33,7 @@ export async function collectBrowserInputReferences(): Promise<string[]> {
     }
   }
 
-  const { appDb } = await import('../app-db');
+  const { appDb } = await import('../app/db');
   if (appDb) {
     // Failures here must fail the scan: a missed gallery would make every still look unused.
     await appDb.kv.each(record => scan(record.value));

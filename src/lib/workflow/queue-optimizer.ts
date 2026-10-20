@@ -30,7 +30,7 @@ import {
   profileUsesUpscaleEnrich,
   resolveEffectiveSamplerPreset,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
+} from '../queue/quality-profile';
 import { normalizeEmptyLatentForModel } from './direct-patch';
 import { workflowHasAppQueueEnrich } from './enrich-markers';
 

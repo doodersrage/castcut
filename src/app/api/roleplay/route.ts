@@ -4,9 +4,9 @@ import {
   generateRoleplayScenes,
 } from '@/lib/specialized/roleplay-generator';
 import { normalizeScenePoseSpec } from '@/lib/day/pose-guide';
-import { resolveAvoidanceOptions } from '@/lib/avoidance-options';
+import { resolveAvoidanceOptions } from '@/lib/prompt/avoidance-options';
 import { normalizeSharedGenerationOptions } from '@/lib/specialized/normalize';
-import { enrichGenerateResult } from '@/lib/generation-diagnostics';
+import { enrichGenerateResult } from '@/lib/queue/generation-diagnostics';
 import {
   normalizeAvoidedRoleplayNames,
   parseRoleplayAllowGore,
@@ -20,7 +20,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
-import { isNsfwGeneratorEnabledServer } from '@/lib/nsfw-generator-env';
+import { isNsfwGeneratorEnabledServer } from '@/lib/adult/nsfw-generator-env';
 
 export const runtime = 'nodejs';
 

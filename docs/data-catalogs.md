@@ -25,7 +25,7 @@ npm run locations:generate -- --add 1000 --seed 42
 npm run locations:generate -- --add 250 --batch 4
 ```
 
-New batches land in `src/lib/location-catalog-extra-N.ts`. The script updates `src/lib/location-catalog-batches.ts` automatically — do not edit that index by hand. Word pools live in `scripts/location-word-pools.mjs`.
+New batches land in `src/lib/scene/location-catalog-extra-N.ts`. The script updates `src/lib/scene/location-catalog-batches.ts` automatically — do not edit that index by hand. Word pools live in `scripts/location-word-pools.mjs`.
 
 ## Clothing library
 

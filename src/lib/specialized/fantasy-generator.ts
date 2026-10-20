@@ -7,20 +7,20 @@ import {
   normalizeFantasyPresetOptions,
   resolveFantasyFocus,
   resolveFantasyShotFraming,
-} from '../fantasy-options';
-import { buildMandatoryLocationBlock, parseSettingHint } from '../hint-location';
+} from '../scene/fantasy-options';
+import { buildMandatoryLocationBlock, parseSettingHint } from '../prompt/hint-location';
 import {
   buildGenerateWardrobeAssignments,
   buildGenerateWardrobeUserDirective,
   mergeGenerateWardrobeIntoPrompt,
-} from '../generate-wardrobe';
-import { buildNoClothingUserDirective, hintsImplyNoClothing } from '../clothing-tags';
-import { isMultiPersonInput } from '../distinct-people';
-import { DEFAULT_GENERATION_SETTINGS } from '../generation-settings';
-import { applyLockedLocation } from '../locked-location';
-import { applyLockedVariationSeed } from '../locked-variation-seed';
-import { mergeLocationExclusions } from '../location-exclusions';
-import { buildRandomFantasySeed, fantasyFocusIncludesPeople } from '../fantasy-scene-pools';
+} from '../wardrobe/generate-wardrobe';
+import { buildNoClothingUserDirective, hintsImplyNoClothing } from '../wardrobe/clothing-tags';
+import { isMultiPersonInput } from '../checks/distinct-people';
+import { DEFAULT_GENERATION_SETTINGS } from '../queue/generation-settings';
+import { applyLockedLocation } from '../scene/locked-location';
+import { applyLockedVariationSeed } from '../variation/locked-variation-seed';
+import { mergeLocationExclusions } from '../scene/location-exclusions';
+import { buildRandomFantasySeed, fantasyFocusIncludesPeople } from '../scene/fantasy-scene-pools';
 import { runSpecializedPrompt } from './runner';
 import type { FantasyOptions, ToolGenerateResult } from './types';
 

@@ -16,7 +16,7 @@ mock.module('../comfyui/workflow-files', { namedExports: { loadComfyWorkflowFile
 
 let modelWorkflowMap: Record<string, string> | undefined;
 const loadSettingsCache = mock.fn(() => ({ shared: { modelWorkflowMap } }));
-mock.module('../settings-cache', { namedExports: { loadSettingsCache } });
+mock.module('../settings/cache', { namedExports: { loadSettingsCache } });
 
 function pipelineWorkflow(): string {
   return JSON.stringify({

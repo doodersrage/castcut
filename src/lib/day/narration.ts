@@ -6,7 +6,7 @@
  */
 
 import type { DaySlot, DaySlotStill } from './planner';
-import type { FilmPlaylistShot } from '../media-kind';
+import type { FilmPlaylistShot } from '../media/kind';
 import { holdForNarration } from '../story/film';
 
 export type DayNarrationLine = { slotId: string; label: string; line: string };

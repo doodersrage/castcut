@@ -29,7 +29,7 @@ import {
   shouldFollowFittingPending,
   withRoleplayLookPlateFromCast,
 } from './room';
-import type { CharacterRecord } from '../character-os';
+import type { CharacterRecord } from '../character/os';
 import type { RoleplayToolCache } from '../play/settings';
 
 describe('fitting-room swipe deck', () => {

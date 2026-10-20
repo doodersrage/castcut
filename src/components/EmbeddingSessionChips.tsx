@@ -7,12 +7,12 @@ import {
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui/object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   embeddingStem,
   modelSupportsTextualInversion,
   toggleEmbeddingName,
-} from '@/lib/textual-inversion';
+} from '@/lib/lora/textual-inversion';
 
 export default function EmbeddingSessionChips({
   model,

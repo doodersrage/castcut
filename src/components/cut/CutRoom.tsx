@@ -6,7 +6,7 @@
  * films sit under it to re-cut, export or share.
  */
 
-import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video-resolution';
+import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -33,8 +33,8 @@ import {
   withCutShotEdit,
 } from '@/lib/film/cut-plan';
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
-import { resolveQueueFailureGuideLabel } from '@/lib/queue-failure-playbook';
-import { isMobileStudioPath, toMobileStudioHref } from '@/lib/mobile-studio';
+import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 export default function CutRoom() {
   const vm = useCutRoom();

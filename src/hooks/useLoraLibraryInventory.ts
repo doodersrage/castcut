@@ -5,7 +5,7 @@ import {
   fetchComfyLoraInventoryFiles,
   type ComfyLoraInventoryFile,
 } from '@/lib/comfyui/object-info-cache';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 export function useLoraLibraryInventory(comfyUrl?: string) {
   const [inventoryLoras, setInventoryLoras] = useState<ComfyLoraInventoryFile[]>([]);

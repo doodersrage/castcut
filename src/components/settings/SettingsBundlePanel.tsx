@@ -7,7 +7,7 @@ import {
   downloadSettingsBundle,
   importSettingsBundle,
   parseSettingsBundle,
-} from '@/lib/settings-export';
+} from '@/lib/settings/export';
 
 export default function SettingsBundlePanel({
   onImported,

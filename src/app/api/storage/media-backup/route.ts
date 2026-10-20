@@ -3,14 +3,14 @@ import {
   comfyRefFromViewUrl,
   MEDIA_BACKUP_MAX_COMFY_FILES,
   type ComfyFileRef,
-} from '@/lib/media-backup-refs';
-import { mediaBackupComfyUrl, mediaBackupRequestOwner } from '@/lib/media-backup-route';
+} from '@/lib/storage/media-backup-refs';
+import { mediaBackupComfyUrl, mediaBackupRequestOwner } from '@/lib/storage/media-backup-route';
 import {
   createMediaBackupTicket,
   mediaBackupWebStream,
   takeMediaBackupTicket,
-} from '@/lib/media-backup-server';
-import { isServerStorageEnabled } from '@/lib/server-storage';
+} from '@/lib/storage/media-backup-server';
+import { isServerStorageEnabled } from '@/lib/storage/server-storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 3600;

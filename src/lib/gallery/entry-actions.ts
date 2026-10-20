@@ -1,12 +1,12 @@
 import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { resolveGalleryOutputImageUrl } from './output-upscale';
-import { isQwenRapidAioModel } from '../model-denoise-defaults';
+import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';
 import {
   normalizeQueueQualityProfile,
   profileSkipsOutputUpscaleForModel,
   type QueueQualityProfile,
-} from '../queue-quality-profile';
+} from '../queue/quality-profile';
 
 /** Gallery Upscale is for models that benefit from Lanczos/neural — not distilled ones. */
 export function galleryEntrySupportsUpscale(

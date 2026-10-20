@@ -8,7 +8,7 @@ const fetchWorkflowPreview = mock.fn((args: PreviewArgs) => previewImpl(args));
 mock.module('../comfyui/requeue', { namedExports: { fetchWorkflowPreview } });
 
 const resolveQueueParams = mock.fn((args: PreviewArgs) => ({ resolved: true, ...args }));
-mock.module('../queue-params-settings', { namedExports: { resolveQueueParams } });
+mock.module('../queue/params-settings', { namedExports: { resolveQueueParams } });
 
 type FetchImpl = (url: string, init?: RequestInit) => Response | Promise<Response>;
 function installFetchStub(impl: FetchImpl) {

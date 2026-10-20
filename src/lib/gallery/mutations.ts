@@ -5,17 +5,17 @@ import { resolveRuntimeForQueue } from '../comfyui/runtime-for-model';
 import { registerComfyGalleryJob } from './comfyui-gallery-client';
 import { scheduleComfyGalleryPoll } from './comfyui-gallery-poller';
 import { postComfyUiPrompt } from '../comfyui/queue-request';
-import { resolveQueueParams } from '../queue-params-settings';
+import { resolveQueueParams } from '../queue/params-settings';
 import {
   refreshQueueImageParamsForRequeue,
   resolveRequeueImageUrlsFromEntry,
-} from '../queue-requeue-images';
-import { injectLoraTriggers } from '../lora-prompt-injection';
-import { guardQueueQualityForVram } from '../vram-queue-guard';
-import { maybeHoldMaxGenerateJobs } from '../held-max-queue';
-import { prepareQueuePrompts } from '../queue-prompt-prep';
-import { readClothingIdsFromMetadata } from '../recent-clothing';
-import { compactClothingScript } from '../clothing-quality';
+} from '../queue/requeue-images';
+import { injectLoraTriggers } from '../lora/prompt-injection';
+import { guardQueueQualityForVram } from '../queue/vram-queue-guard';
+import { maybeHoldMaxGenerateJobs } from '../queue/held-max-queue';
+import { prepareQueuePrompts } from '../queue/prompt-prep';
+import { readClothingIdsFromMetadata } from '../wardrobe/recent-clothing';
+import { compactClothingScript } from '../wardrobe/clothing-quality';
 
 type WardrobeMutationClause = { clause: string; summary?: string; wardrobeId?: string | null };
 

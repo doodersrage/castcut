@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
-import { writeUserExportSnapshot } from '@/lib/user-server-storage';
-import { encryptExportPayload } from '@/lib/export-encryption';
-import { readUserServerStorage } from '@/lib/user-server-storage';
+import { writeUserExportSnapshot } from '@/lib/storage/user-server-storage';
+import { encryptExportPayload } from '@/lib/storage/export-encryption';
+import { readUserServerStorage } from '@/lib/storage/user-server-storage';
 
 export const runtime = 'nodejs';
 

@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { compactPromptToLimit } from '@/lib/compact-prompt';
-import { normalizeDetailLevel } from '@/lib/detail-level';
+import { compactPromptToLimit } from '@/lib/prompt/compact-prompt';
+import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
 import { normalizeComfyModel } from '@/lib/comfy-models';
 import { NextResponse } from 'next/server';
 

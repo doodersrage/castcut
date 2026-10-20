@@ -12,8 +12,8 @@ import {
   loadWorkspaceMode,
   WORKSPACE_MODE_CHANGED_EVENT,
   type WorkspaceMode,
-} from '@/lib/workspace-mode';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/app/workspace-mode';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 const WorkspaceModeContext = createContext<WorkspaceMode>('simple');
 

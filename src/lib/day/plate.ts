@@ -1,4 +1,4 @@
-import { activeLook, type CharacterRecord } from '@/lib/character-os';
+import { activeLook, type CharacterRecord } from '@/lib/character/os';
 import {
   galleryEntryDownloadUrls,
   galleryEntryPrimaryViewUrl,
@@ -6,7 +6,7 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting/room';
 import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
-import { isCastPlateReferenceName } from '@/lib/reference-check';
+import { isCastPlateReferenceName } from '@/lib/checks/reference-check';
 
 export type DayPlateSource = 'keeper' | 'cast';
 

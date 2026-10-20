@@ -31,18 +31,18 @@ import {
   type ScenePoseSpec,
 } from '../day/pose-guide';
 import { mergePickedPose } from '../day/slot-pose';
-import { clarifyIntimateImageLanguage } from '../intimate-prompt-clarify';
+import { clarifyIntimateImageLanguage } from '../adult/intimate-prompt-clarify';
 import { poseLayoutFromKey } from '../play/metrics';
 import {
   ALWAYS_CUED_DUO_LAYOUTS,
   poseLayoutCueLine,
   postureCueLine,
-} from '../pose-coaching';
+} from '../pose/coaching';
 import {
   DEFAULT_POSE_GUIDE_STYLE,
   mergeAvoidedPoseLayouts,
   modelPlainPostureBase,
-} from '../pose-guide-prompt';
+} from '../pose/guide-prompt';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
 import {
   CUSTOM_ROLEPLAY_PERSONA_ID,
@@ -64,7 +64,7 @@ import {
   type RoleplayStoryBeat,
   type RoleplayTone,
 } from './roleplay';
-import { auditStillPrompt } from '../still-prompt-audit';
+import { auditStillPrompt } from '../still/prompt-audit';
 
 // ── Engines ──────────────────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { isDesktopShellClient } from '@/lib/desktop-shell';
+import { isDesktopShellClient } from '@/lib/server/desktop-shell';
 import { serverEnvFieldValue } from '@/components/settings/tabs/settings-tool-shared';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 

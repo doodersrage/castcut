@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { isVideoModel, resolvePreferredVideoModel } from '@/lib/queue-tool-model';
+import { isVideoModel, resolvePreferredVideoModel } from '@/lib/queue/tool-model';
 
 type UseVideoPromptModelSyncOptions = {
   mounted: boolean;

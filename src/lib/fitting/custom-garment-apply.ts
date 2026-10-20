@@ -2,7 +2,7 @@
  * Shared Outfit/Day BYO clothing upload: ready packshot or isolate + ghost-mannequin extract.
  */
 
-import { waitForGalleryPromptIds } from '@/lib/best-of-n-vision-queue';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
@@ -20,9 +20,9 @@ import {
   collectIsolateSourceUrls,
   isolateSubjectOnWhite,
   loadImageBlobFromUrls,
-} from '@/lib/isolate-subject';
-import { resolveQueueInputImage } from '@/lib/queue-input-image';
-import { stampedUploadName } from '@/lib/upload-name';
+} from '@/lib/edit/isolate-subject';
+import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { stampedUploadName } from '@/lib/storage/upload-name';
 
 export type ApplyCustomGarmentInput = {
   file?: File | null;

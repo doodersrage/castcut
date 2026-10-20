@@ -1,8 +1,8 @@
-import { getDiffusersBaseUrl, queueDiffusersTxt2Img } from '@/lib/diffusers-client';
-import { resolveDiffusersModelHint } from '@/lib/diffusers-defaults';
-import { resolveDiffusersOutputPost } from '@/lib/diffusers-output-post';
+import { getDiffusersBaseUrl, queueDiffusersTxt2Img } from '@/lib/engine/diffusers-client';
+import { resolveDiffusersModelHint } from '@/lib/engine/diffusers-defaults';
+import { resolveDiffusersOutputPost } from '@/lib/engine/diffusers-output-post';
 import { freeComfyUiMemoryServer } from '@/lib/comfyui/free-server';
-import { normalizeQueueQualityProfile } from '@/lib/queue-quality-profile';
+import { normalizeQueueQualityProfile } from '@/lib/queue/quality-profile';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       hasInputImage: body.hasInputImage === true,
     });
 
-    const { ensureDiffusersRunning } = await import('@/lib/diffusers-autostart');
+    const { ensureDiffusersRunning } = await import('@/lib/engine/diffusers-autostart');
     const ensured = await ensureDiffusersRunning({
       engineUrl: engineUrlHint,
       autoStart: body.autoStart !== false,

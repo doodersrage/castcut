@@ -3,10 +3,10 @@
 import { useEffect, useRef } from 'react';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { prepareCastPlate, type CastPlatePrepareOptions } from '@/lib/cast/plate-prepare';
-import { activeLook, getCharacter } from '@/lib/character-os';
+import { activeLook, getCharacter } from '@/lib/character/os';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import { resolveFittingPlateFromCharacter } from '@/lib/character-plate';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { resolveFittingPlateFromCharacter } from '@/lib/character/plate';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /**
  * Fixes the active look's new plate once with Cast home's Prepare plate: paints on the Cast's

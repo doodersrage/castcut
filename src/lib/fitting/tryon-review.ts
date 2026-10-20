@@ -5,9 +5,9 @@
  * the player picks Keep (or Requeue) with the numbers.
  */
 
-import { STILL_MIN_FACE_MATCH, STILL_FACE_MATCH_WARN_BELOW } from '@/lib/face-match';
+import { STILL_MIN_FACE_MATCH, STILL_FACE_MATCH_WARN_BELOW } from '@/lib/face/match';
 import { slotReviewFlagLabel, type SlotQualityReport } from '@/lib/play/slot-quality';
-import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose-score';
+import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
 
 export type TryOnReview = {
   /** The image that was reviewed — a requeued try-on gets a fresh review. */

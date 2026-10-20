@@ -1,6 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 export async function tryRelocateIdentityAndRetry(input: {
   message: string;
@@ -19,7 +19,7 @@ export async function tryRelocateIdentityAndRetry(input: {
     return null;
   }
 
-  const { shouldRelocateIdentityLock } = await import('@/lib/identity-lock-host');
+  const { shouldRelocateIdentityLock } = await import('@/lib/character/identity-lock-host');
   if (!shouldRelocateIdentityLock(message)) {
     return null;
   }
@@ -65,14 +65,14 @@ export function handleQueueFailure(input: {
   const message = err instanceof Error ? err.message : 'ComfyUI failed.';
   const hrefFromError = err instanceof Error ? (err as Error & { href?: string }).href : undefined;
   setComfyUiStatus(message);
-  void import('@/lib/queue-failure-playbook').then(({ resolveQueueFailureHref }) => {
+  void import('@/lib/queue/failure-playbook').then(({ resolveQueueFailureHref }) => {
     const href = hrefFromError || resolveQueueFailureHref(message) || '/queue';
-    void import('@/lib/local-observability').then(({ noteQueueFailureMetric }) => {
+    void import('@/lib/server/local-observability').then(({ noteQueueFailureMetric }) => {
       noteQueueFailureMetric({ message, href });
     });
-    void import('@/lib/last-failed-queue').then(
+    void import('@/lib/queue/last-failed-queue').then(
       ({ saveLastFailedQueue, RETRY_LAST_FAILED_QUEUE_EVENT }) => {
-        void import('@/lib/app-toast').then(({ toastQueueOutcome }) => {
+        void import('@/lib/app/toast').then(({ toastQueueOutcome }) => {
           saveLastFailedQueue(
             failedQueueSnapshot ?? {
               prompt,

@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
-import { audioPeaks } from '@/lib/audio-peaks-client';
+import { audioPeaks } from '@/lib/audio/peaks-client';
 
 export default function CutSoundLane({
   loaded,

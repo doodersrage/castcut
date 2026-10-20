@@ -9,14 +9,14 @@ import {
   filterCommandPaletteItems,
   type useCommandPaletteOpenState,
 } from '@/components/command-palette/useCommandPaletteData';
-import { resolveNavHref } from '@/lib/nav-links';
-import { loadSettingsCache } from '@/lib/settings-cache';
+import { resolveNavHref } from '@/lib/app/nav-links';
+import { loadSettingsCache } from '@/lib/settings/cache';
 type OpenState = ReturnType<typeof useCommandPaletteOpenState>;
 
 function createApplyLastLookHandler(router: AppRouterInstance) {
   return () => {
-    void import('@/lib/session-recipes').then(async m => {
-      const { loadSettingsCache, saveSharedSettings } = await import('@/lib/settings-cache');
+    void import('@/lib/prompt/session-recipes').then(async m => {
+      const { loadSettingsCache, saveSharedSettings } = await import('@/lib/settings/cache');
       const recipe = m.latestGenerateLookRecipe();
       if (!recipe) {
         return;

@@ -14,7 +14,7 @@ import path from 'node:path';
 import { adjectives, atmospheres, places, regions } from './location-word-pools.mjs';
 
 const ROOT = process.cwd();
-const LIB_DIR = path.join(ROOT, 'src/lib');
+const LIB_DIR = path.join(ROOT, 'src/lib/scene');
 const SCENE_POOLS = path.join(ROOT, 'src/lib/specialized/scene-pools.ts');
 const BATCH_INDEX = path.join(LIB_DIR, 'location-catalog-batches.ts');
 const CATALOG_GLOB = /^location-catalog-extra(?:-(\d+))?\.ts$/;

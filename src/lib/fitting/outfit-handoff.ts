@@ -199,9 +199,9 @@ export async function handOffOutfitPicks(
     { activeLook, getCharacter, looksOf },
     { dayAfterOutfitHandoff },
   ] = await Promise.all([
-    import('../settings-cache'),
+    import('../settings/cache'),
     import('../play/settings'),
-    import('../character-os'),
+    import('../character/os'),
     import('../day/outfit-scope'),
   ]);
   if (options.day !== false) {

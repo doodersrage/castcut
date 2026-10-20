@@ -5,7 +5,7 @@ import {
   suggestWorkflowDefaultsByCategory,
   workflowRequiresInputImage,
 } from "./category-defaults";
-import { resolveWorkflowForModelSelection } from "../model-workflow-map";
+import { resolveWorkflowForModelSelection } from "../model/workflow-map";
 
 describe("workflow-category-defaults", () => {
   it("detects edit/inpaint workflows from json markers", () => {

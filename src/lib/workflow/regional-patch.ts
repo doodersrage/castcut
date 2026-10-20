@@ -9,13 +9,13 @@
 import {
   patchRegionalTokensInWorkflow,
   type RegionalPromptSegment,
-} from '../regional-prompt-builder';
+} from '../prompt/regional-prompt-builder';
 import {
   regionalSlotsHaveContent,
   regionalSlotsHaveMasks,
   regionalSlotsToSegments,
   type RegionalPromptSlot,
-} from '../regional-prompt-slots';
+} from '../prompt/regional-prompt-slots';
 
 export const REGIONAL_NODE_CLASSES = [
   'AttentionCouple',

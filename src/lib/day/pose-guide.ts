@@ -9,17 +9,17 @@
  * contact read clearly — still face-free / clothing-free.
  */
 
-import { DANCE_MOVE_LIMBS, danceMoveFor } from '@/lib/dance-move';
-import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose-limb-presets';
+import { DANCE_MOVE_LIMBS, danceMoveFor } from '@/lib/pose/dance-move';
+import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose/limb-presets';
 import type { DaySlotId } from '@/lib/day/planner';
 import {
   clarifyIntimateImageLanguage,
   intimateTextImpliesCabinetDrawer,
   intimateTextImpliesSurfaceBent,
   intimateTextImpliesStandingRear,
-} from '@/lib/intimate-prompt-clarify';
-import { stripNegatedClauses } from '@/lib/negated-clauses';
-import { oralReceiverSeated } from '@/lib/rapid-oral-pose';
+} from '@/lib/adult/intimate-prompt-clarify';
+import { stripNegatedClauses } from '@/lib/prompt/negated-clauses';
+import { oralReceiverSeated } from '@/lib/pose/rapid-oral-pose';
 import {
   drawOpenPoseFigures,
   drawOpenPosePeople,
@@ -37,14 +37,14 @@ import {
   type PoseCameraAngle,
   type PoseFacing,
   type PoseLeadPosition,
-} from '@/lib/pose-guide-openpose';
+} from '@/lib/pose/guide-openpose';
 import {
   isOpenPoseStyle,
   normalizePoseGuideStylePreference,
   poseGuideStyleDrawsHands,
   usesOutlineGrayPoseGuide,
   type PoseGuideStylePreference,
-} from '@/lib/pose-guide-prompt';
+} from '@/lib/pose/guide-prompt';
 import {
   duoSoloFallback,
   everydayFigures,
@@ -57,8 +57,8 @@ import {
   poseLibraryKey,
   type NormalizedBody,
   type PoseLibraryEntry,
-} from '@/lib/pose-library';
-import { bodyCentreX, mirrorBodies } from '@/lib/pose-starters';
+} from '@/lib/pose/library';
+import { bodyCentreX, mirrorBodies } from '@/lib/pose/starters';
 import {
   loadedPoseReferences,
   loadPoseReferences,
@@ -66,12 +66,12 @@ import {
   poseReferenceForVariant,
   poseReferencesFor,
   type PoseReference,
-} from '@/lib/pose-references';
+} from '@/lib/pose/references';
 
 type Point = { x: number; y: number };
 
-export type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose-types';
-import type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose-types';
+export type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
+import type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
 
 const WIDTH = 512;
 const HEIGHT = 768;

@@ -8,8 +8,8 @@ import {
   createBlankCharacter,
   getCharacter,
   upsertCharacter,
-} from '../character-os';
-import { pickCharacterSubject } from '../variation-seed';
+} from '../character/os';
+import { pickCharacterSubject } from '../variation/seed';
 import {
   DEFAULT_DAY_SLOTS,
   diversifyDaySlotScenes,
@@ -27,13 +27,13 @@ import {
 } from './remix';
 import { resolvePlayStepHref } from './step-machine';
 import { markOnboardingFirstPlayCampaign } from './onboarding';
-import { noteStarterFilmMetric } from '../local-observability';
+import { noteStarterFilmMetric } from '../server/local-observability';
 import {
   loadSettingsCache,
   loadToolSettings,
   saveSharedSettings,
   saveToolSettings,
-} from '../settings-cache';
+} from '../settings/cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_MOODBOARD_TOOL_CACHE,

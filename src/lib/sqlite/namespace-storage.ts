@@ -1,5 +1,5 @@
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
-import { STORAGE_NAMESPACES, type StorageNamespace } from '@/lib/storage-namespaces';
+import { STORAGE_NAMESPACES, type StorageNamespace } from '@/lib/storage/namespaces';
 import {
   countGalleryEntries,
   readGalleryDeletedIds,

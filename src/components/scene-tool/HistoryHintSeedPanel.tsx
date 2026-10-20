@@ -10,18 +10,18 @@ import {
   listHistoryHintSuggestions,
   pickHistoryHintSeed,
   type HistoryHintSeedResult,
-} from '@/lib/history-hint-seed';
+} from '@/lib/prompt/history-hint-seed';
 import {
   HISTORY_SEED_SCOPE_OPTIONS,
   SCENE_HINT_SOURCE_OPTIONS,
   type HistorySeedScope,
   type HistorySeedTool,
   type SceneHintSource,
-} from '@/lib/scene-hint-source';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+} from '@/lib/scene/hint-source';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import AppRouteLink from '@/components/ui/AppRouteLink';
-import { appHasRoute } from '@/lib/app-profile';
+import { appHasRoute } from '@/lib/app/profile';
 
 const HISTORY_EMPTY_GUIDANCE: Partial<
   Record<HistorySeedTool, { message: string; href: string; linkLabel: string }>

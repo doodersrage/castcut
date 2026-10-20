@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { keepClipInGallery, keepStillInGallery } from '@/lib/clip-gallery-keep';
+import { keepClipInGallery, keepStillInGallery } from '@/lib/clip/gallery-keep';
 import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import {
   requestCopyMoves,
@@ -11,7 +11,7 @@ import {
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
-} from '@/lib/media-actions-client';
+} from '@/lib/media/actions-client';
 
 export type DaySlotMediaTool =
   'finish' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch' | 'upscale';

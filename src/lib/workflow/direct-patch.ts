@@ -1,8 +1,8 @@
 import { isQwenLightningModel } from './model-sampling-patch';
-import { shouldNeutralizeStyleLorasAtQueue } from '../model-sampler-defaults';
+import { shouldNeutralizeStyleLorasAtQueue } from '../model/sampler-defaults';
 import type { WorkflowParamValues } from '../comfyui/config';
 import { COMFY_MODEL_IDS, getComfyModelDefinition, type ComfyImageModel } from '../comfy-models';
-import { isFlux1FamilyModel, isFluxKleinModel } from '../model-denoise-defaults';
+import { isFlux1FamilyModel, isFluxKleinModel } from '../model/denoise-defaults';
 import {
   DEFAULT_CHECKPOINT_TOKEN,
   DEFAULT_UNET_TOKEN,
@@ -10,16 +10,16 @@ import {
   filenameLooksLikeCheckpointOnly,
   isVaeFilenameIncompatibleWithModel,
   type ModelLoaderFilenames,
-} from '../model-checkpoint-map';
-import { precisionHintFromFilename, qwenUnetFamiliesCompatible } from '../model-loader-precision';
-import { DEFAULT_CONTROL_IMAGE_TOKEN } from '../model-controlnet-map';
-import { DEFAULT_UPSCALE_MODEL_TOKEN, SUGGESTED_MODEL_UPSCALE_MAP } from '../model-upscale-map';
+} from '../model/checkpoint-map';
+import { precisionHintFromFilename, qwenUnetFamiliesCompatible } from '../model/loader-precision';
+import { DEFAULT_CONTROL_IMAGE_TOKEN } from '../model/controlnet-map';
+import { DEFAULT_UPSCALE_MODEL_TOKEN, SUGGESTED_MODEL_UPSCALE_MAP } from '../model/upscale-map';
 import {
   buildLoraFilenameMapFromCustomTokens,
   buildLightningLoraFilenameMap,
   patchLoraNodesInWorkflow,
 } from './lora-patch';
-import { applyLoraStackToWorkflow, type LoraLibraryEntry } from '../lora-stack';
+import { applyLoraStackToWorkflow, type LoraLibraryEntry } from '../lora/stack';
 import {
   insertIpAdapterChainIfMissing,
   insertIpAdapterStack,
@@ -27,9 +27,12 @@ import {
 } from './ipadapter-workflow-patch';
 import { insertControlNetChainIfMissing, insertControlNetStack } from './controlnet-workflow-patch';
 import { insertIdentityChainIfMissing } from './identity-workflow-patch';
-import { type RegionalPromptSegment } from '../regional-prompt-builder';
+import { type RegionalPromptSegment } from '../prompt/regional-prompt-builder';
 import { applyRegionalEditToWorkflow } from './regional-patch';
-import { normalizeRegionalPromptSlots, type RegionalPromptSlot } from '../regional-prompt-slots';
+import {
+  normalizeRegionalPromptSlots,
+  type RegionalPromptSlot,
+} from '../prompt/regional-prompt-slots';
 import {
   countFigureLoadImageSlots,
   inferLoadImageBinding,
@@ -41,10 +44,10 @@ import {
   ensureKleinEnhancerPackWiringInWorkflow,
   kleinEnhancerPackAvailable,
   type KleinEnhancerIdentityPreset,
-} from '../klein-enhancer-workflow-patch';
+} from '../engine/klein-enhancer-workflow-patch';
 import { ensureFluxGuidanceInWorkflow } from './flux-guidance-patch';
-import { isVideoCheckpointMapKey } from '../video-checkpoint-pick';
-import { WAN_FIRST_LAST_FRAME_NODE } from '../ltx25-renderer';
+import { isVideoCheckpointMapKey } from '../video/checkpoint-pick';
+import { WAN_FIRST_LAST_FRAME_NODE } from '../video/ltx25-renderer';
 import {
   buildBuiltInVideoI2vWorkflow,
   resolveInstalledVideoWeight,
@@ -54,7 +57,7 @@ import {
   ensureLtxClipLoaderForQueue,
   isLtxVideoModel,
   pickLtxTextEncoderFilename,
-} from '../video-i2v-scaffold';
+} from '../video/i2v-scaffold';
 
 export const IMAGE_SCALE_BY_NODE_TYPE = 'ImageScaleBy';
 

@@ -17,7 +17,7 @@ import {
   type CharacterRecord,
   type ReferenceSheetView,
   type ReferenceSheetViewId,
-} from '../character-os';
+} from '../character/os';
 import type { DayPartnerNoun } from '../day/partner';
 
 export type { ReferenceSheetView, ReferenceSheetViewId };

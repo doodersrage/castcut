@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { checkFootwearInStill } from '@/lib/footwear-check-server';
-import { parseLlmRequestOptions } from '@/lib/llm-request-options';
+import { checkFootwearInStill } from '@/lib/wardrobe/footwear-check-server';
+import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 
 export const runtime = 'nodejs';

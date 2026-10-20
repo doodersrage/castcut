@@ -3,13 +3,13 @@ import {
   DEFAULT_CHECKPOINT_TOKEN,
   DEFAULT_UNET_TOKEN,
   DEFAULT_VAE_TOKEN,
-} from '../model-checkpoint-map';
+} from '../model/checkpoint-map';
 import { LIGHTNING_LORA_TOKEN } from '../workflow/lora-patch';
 import { loadComfyWorkflowPresets, type ComfyWorkflowPreset } from './workflow-presets';
-import { readBrowserValue, writeBrowserValue } from '../browser-storage';
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 
-import { recordListSpec } from '../record-list-sync';
-import { trackRecordListWrite } from '../record-tombstones';
+import { recordListSpec } from '../storage/record-list-sync';
+import { trackRecordListWrite } from '../storage/record-tombstones';
 
 export const COMFY_WORKFLOW_FILES_KEY = 'comfyui-workflow-files-v1';
 
@@ -52,7 +52,7 @@ export type ComfyWorkflowFile = {
   /** Model id used for the last optimize enrich pass. */
   lastOptimizedModel?: string;
   /** Quality profile used for the last optimize enrich pass. */
-  lastOptimizedProfile?: import('../queue-quality-profile').QueueQualityProfile;
+  lastOptimizedProfile?: import('../queue/quality-profile').QueueQualityProfile;
   /**
    * Per-workflow token overrides ({{CHECKPOINT}}, {{LORA_LIGHTNING}}, …).
    * Beat Settings custom tokens for the same key; loader tokens also beat the

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { parseEngineUploadRequest } from '@/lib/engine-upload-parse';
-import { getLumaUpload, storeLumaUpload } from '@/lib/luma-client';
+import { parseEngineUploadRequest } from '@/lib/engine/upload-parse';
+import { getLumaUpload, storeLumaUpload } from '@/lib/cloud/luma-client';
 import { LUMA_API_HOST } from '@/lib/engine/capabilities';
 
 export const runtime = 'nodejs';

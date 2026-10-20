@@ -23,7 +23,7 @@ import {
   normalizeComfyViewType,
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
-} from '@/lib/url-safety';
+} from '@/lib/server/url-safety';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

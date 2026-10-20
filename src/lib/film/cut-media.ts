@@ -10,7 +10,7 @@ import {
   snapHoldsToBeat,
   type FilmCutLength,
 } from './cut-plan';
-import { locateFaceOnPlateBlob } from '../face-locate-client';
+import { locateFaceOnPlateBlob } from '../face/locate-client';
 import type { FilmPlaylistShot } from './character-film';
 
 const PROBE_TIMEOUT_MS = 8_000;

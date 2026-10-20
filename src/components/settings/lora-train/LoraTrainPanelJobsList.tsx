@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
-import { createTrainJob, upsertTrainJob } from '@/lib/lora-train-job';
+import { createTrainJob, upsertTrainJob } from '@/lib/lora/train-job';
 import {
   clampPercent,
   formatProgress,

@@ -1,7 +1,7 @@
 'use client';
 
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
-import { formatPoseLimbMisses, type PoseMissView } from '@/lib/pose-coaching';
+import { formatPoseLimbMisses, type PoseMissView } from '@/lib/pose/coaching';
 
 /**
  * A pose miss, shown: the guide's lead (faint, dashed) with the still's lead laid over it,

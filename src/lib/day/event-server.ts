@@ -1,4 +1,4 @@
-import { chatCompletion, type ChatMessage } from '../llm-client';
+import { chatCompletion, type ChatMessage } from '../llm/client';
 import {
   buildDayEventMessages,
   DAY_EVENT_MAX_LENGTH,
@@ -10,7 +10,7 @@ import {
   resolveRequestLlmEndpoint,
   resolveRequestLlmModel,
   type LlmRequestOptions,
-} from '../llm-request-options';
+} from '../llm/request-options';
 
 /**
  * The event's moments from the LLM. Six tries: a small local model (Llama 3.2 3B) gave a usable

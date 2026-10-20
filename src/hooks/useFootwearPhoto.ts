@@ -2,13 +2,13 @@
 
 import { useCallback } from 'react';
 import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
-import { normalizeFootwear } from '@/lib/footwear';
-import { updateSavedFootwearWords } from '@/lib/footwear-saved';
-import { collectIsolateSourceUrls } from '@/lib/isolate-subject';
+import { normalizeFootwear } from '@/lib/wardrobe/footwear';
+import { updateSavedFootwearWords } from '@/lib/wardrobe/footwear-saved';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { resolveStillFileForVisionScan } from '@/lib/vision-scan-still';
-import type { SharedToolSettings } from '@/lib/settings-cache';
-import { scanStillWithVision } from '@/lib/vision-still-scan-client';
+import { resolveStillFileForVisionScan } from '@/lib/vision/scan-still';
+import type { SharedToolSettings } from '@/lib/settings/cache';
+import { scanStillWithVision } from '@/lib/vision/still-scan-client';
 
 export type FootwearPatch = {
   footwear?: string;

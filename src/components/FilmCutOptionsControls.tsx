@@ -2,16 +2,16 @@
 
 import { CutLogoControl } from '@/components/cut/CutOverlayControls';
 import CutSoundControls from '@/components/cut/CutSoundControls';
-import type { CutSoundOptions } from '@/lib/cut-sound';
+import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import {
   FILM_LOOKS,
   normalizeFilmLook,
   normalizeLookStrength,
   type FilmLook,
-} from '@/lib/cut-look';
+} from '@/lib/video/cut-look';
 import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmCutPreviewPlayer from '@/components/FilmCutPreviewPlayer';
-import type { FilmTitleCard } from '@/lib/video-polish';
+import type { FilmTitleCard } from '@/lib/video/polish';
 import {
   applyCutShotEdits,
   normalizeFilmCutLength,
@@ -33,15 +33,15 @@ import { Button } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film/audio-bed';
 import { estimateCutSeconds, requestFilmScore, type FilmScoreBrief } from '@/lib/film/score';
-import type { IdentityMark } from '@/lib/identity-mark';
+import type { IdentityMark } from '@/lib/character/identity-mark';
 import {
   mixLevelsSummary,
   MUSIC_LEVEL_RANGE,
   normalizeMusicLevel,
   normalizeVoiceLevel,
   VOICE_LEVEL_RANGE,
-} from '@/lib/audio-mix-levels';
-import { FILM_SHAPES, filmShapeOf, type FilmShape } from '@/lib/video-resolution';
+} from '@/lib/audio/mix-levels';
+import { FILM_SHAPES, filmShapeOf, type FilmShape } from '@/lib/video/resolution';
 
 export type FilmCutOptionsValue = {
   crossfadeSec: number;

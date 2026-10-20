@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { isTransientProgressStatus } from '@/lib/status-progress';
-import { scheduleAfterCommit } from '@/lib/schedule-after-commit';
+import { isTransientProgressStatus } from '@/lib/app/status-progress';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import UiIcon from '@/components/ui/UiIcon';
 
 export type StatusToastNote = {

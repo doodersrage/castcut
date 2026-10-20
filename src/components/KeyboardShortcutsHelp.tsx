@@ -1,6 +1,6 @@
 'use client';
 
-import { loadKeyboardShortcuts } from '@/lib/keyboard-shortcuts-store';
+import { loadKeyboardShortcuts } from '@/lib/app/keyboard-shortcuts-store';
 
 export default function KeyboardShortcutsHelp({
   open,

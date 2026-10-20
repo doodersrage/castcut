@@ -11,13 +11,17 @@ import UploadTile from '@/components/wardrobe/UploadTile';
 import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import WearingCard from '@/components/wardrobe/WearingCard';
 import type { ApplyFootwearPhoto, FootwearPatch } from '@/hooks/useFootwearPhoto';
-import { FOOTWEAR_MAX_LENGTH, footwearIsBarefoot, normalizeFootwear } from '@/lib/footwear';
+import {
+  FOOTWEAR_MAX_LENGTH,
+  footwearIsBarefoot,
+  normalizeFootwear,
+} from '@/lib/wardrobe/footwear';
 import {
   FOOTWEAR_KITS,
   footwearKitForWords,
   footwearKitImageUrl,
   type FootwearKitGroup,
-} from '@/lib/footwear-kits';
+} from '@/lib/wardrobe/footwear-kits';
 import {
   findSavedFootwearByFilename,
   loadSavedFootwear,
@@ -26,8 +30,8 @@ import {
   subscribeSavedFootwear,
   updateSavedFootwearWords,
   type SavedFootwear,
-} from '@/lib/footwear-saved';
-import type { ToolAccent } from '@/lib/tool-theme';
+} from '@/lib/wardrobe/footwear-saved';
+import type { ToolAccent } from '@/lib/app/tool-theme';
 
 type FootwearMode = 'kit' | 'photo' | 'words';
 

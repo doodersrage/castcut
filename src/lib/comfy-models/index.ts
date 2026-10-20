@@ -1,4 +1,4 @@
-import type { DetailLevel } from '../detail-level';
+import type { DetailLevel } from '../prompt/detail-level';
 import {
   buildProfileClarityAddendum,
   buildProfileSystemPrompt,
@@ -6,8 +6,8 @@ import {
   fluxIgnoresNegative,
   getProfileFewShots,
 } from './prompt-profiles';
-import { enforcePromptShapeForProfile } from '../prompt-shape';
-import { compactPromptForProfile } from '../prompt-compact';
+import { enforcePromptShapeForProfile } from '../prompt/shape';
+import { compactPromptForProfile } from '../prompt/compact';
 import { getComfyModelDefinition, type ComfyImageModel } from './client';
 
 export {
@@ -68,8 +68,8 @@ export function buildModelUserDirective(detail: DetailLevel, model: ComfyImageMo
 export function getModelFewShots(
   model: ComfyImageModel,
   detail: DetailLevel,
-  fallback: import('../detail-level').FewShotExample[]
-): import('../detail-level').FewShotExample[] {
+  fallback: import('../prompt/detail-level').FewShotExample[]
+): import('../prompt/detail-level').FewShotExample[] {
   return getProfileFewShots(getComfyModelDefinition(model), detail, fallback);
 }
 

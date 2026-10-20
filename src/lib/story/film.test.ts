@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { roleplayWatchPlaylist } from '../film/character-film';
-import type { FilmPlaylistShot } from '../media-kind';
+import type { FilmPlaylistShot } from '../media/kind';
 import type { RoleplayStoryBeat } from './roleplay';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from './film';
 

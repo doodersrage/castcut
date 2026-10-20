@@ -11,7 +11,7 @@ import {
   patchVideoImageToVideoWiringInWorkflow,
   patchWorkflowDirectParams,
 } from "./direct-patch";
-import { DEFAULT_UNET_TOKEN, DEFAULT_VAE_TOKEN } from "../model-checkpoint-map";
+import { DEFAULT_UNET_TOKEN, DEFAULT_VAE_TOKEN } from "../model/checkpoint-map";
 import { DEFAULT_IPADAPTER_IMAGE_TOKEN, DEFAULT_IPADAPTER_STRENGTH_TOKEN } from "./ipadapter-workflow-patch";
 import { buildWorkflowScaffoldForModel } from "./scaffold";
 

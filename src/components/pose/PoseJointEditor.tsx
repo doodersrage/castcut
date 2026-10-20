@@ -20,11 +20,11 @@ import {
 import { Button } from '@/components/ui/Button';
 import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day/pose-presets';
 import { usePoseReferences } from '@/hooks/usePoseReferences';
-import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose-references';
-import { poseLayoutLabel } from '@/lib/pose-layout-labels';
+import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose/references';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day/pose-guide';
-import type { NormalizedBody } from '@/lib/pose-library';
+import type { NormalizedBody } from '@/lib/pose/library';
 import {
   bendBody,
   bodyFacing,
@@ -35,15 +35,15 @@ import {
   rotateBody,
   type BodyDepth,
   type BodyRotation,
-} from '@/lib/pose-joint-edit';
-import { saveMyPose } from '@/lib/my-poses';
+} from '@/lib/pose/joint-edit';
+import { saveMyPose } from '@/lib/pose/my-poses';
 import {
   ASSUMED_SUBJECT,
   fitBodyToBox,
   imageBoxOnCanvas,
   subjectBoxFromPixels,
   type FitBox,
-} from '@/lib/pose-fit';
+} from '@/lib/pose/fit';
 import {
   ARM_PRESETS,
   HEAD_DIRECTIONS,
@@ -58,13 +58,13 @@ import {
   readHeadDirection,
   type HeadDirection,
   type LimbSide,
-} from '@/lib/pose-limb-presets';
+} from '@/lib/pose/limb-presets';
 import {
   describePhotoPose,
   headDirectionWords,
   withHeadWords,
   withoutHeadWords,
-} from '@/lib/pose-describe';
+} from '@/lib/pose/describe';
 import {
   addPartner,
   mirrorBodies,
@@ -74,7 +74,7 @@ import {
   replaceLead,
   swapSides,
   type PoseStarterId,
-} from '@/lib/pose-starters';
+} from '@/lib/pose/starters';
 
 /** The figures' names: the Cast is the lead (Image 1), the second figure their partner. */
 function figureName(person: number): string {

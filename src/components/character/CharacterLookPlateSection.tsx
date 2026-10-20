@@ -1,6 +1,6 @@
 'use client';
 
-import { getCharacter } from '@/lib/character-os';
+import { getCharacter } from '@/lib/character/os';
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
@@ -15,10 +15,10 @@ import type { FittingPlate } from '@/lib/fitting/room';
 import { galleryPickPath } from '@/lib/gallery/handoff';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery/media-client';
 import type { CastPlatePrepareOptions, prepareCastPlate } from '@/lib/cast/plate-prepare';
-import { castLookPortraitTile, type CastPlateTile } from '@/lib/character-plate-thumb';
-import type { CharacterLookPlateRecord } from '@/lib/character-os';
+import { castLookPortraitTile, type CastPlateTile } from '@/lib/character/plate-thumb';
+import type { CharacterLookPlateRecord } from '@/lib/character/os';
 import type { DayPartnerNoun } from '@/lib/day/partner';
-import { plateStanceNote, type PlateStance } from '@/lib/plate-stance';
+import { plateStanceNote, type PlateStance } from '@/lib/plate/stance';
 
 const CastPlatePrepareControl = dynamic(
   () => import('@/components/character/CastPlatePrepareControl'),

@@ -8,8 +8,8 @@ import {
   SPOKEN_LINE_MAX_CHARS,
   SPOKEN_LINE_TONES,
   type SpokenLineTone,
-} from '@/lib/ltx25-renderer';
-import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings-cache';
+} from '@/lib/video/ltx25-renderer';
+import { DEFAULT_VIDEO_TOOL_CACHE, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 
 /**
  * What the lead says in a clip (Story scene / Day slot). A line makes Animate render a talking

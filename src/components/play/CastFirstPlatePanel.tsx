@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ButtonLink } from '@/components/ui/Button';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
-import { castPlateThumbUrl } from '@/lib/character-plate-thumb';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
 import {
   characterHomeHref,
   getCharactersSnapshot,
   getServerCharactersSnapshot,
   subscribeCharacters,
-} from '@/lib/character-os';
-import { loadSettingsCache } from '@/lib/settings-cache';
+} from '@/lib/character/os';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /**
  * Right after Film creates a Cast: render its first plate (UltraReal, from the description —

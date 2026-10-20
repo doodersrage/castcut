@@ -1,6 +1,6 @@
 import { buildGallerySidecar } from './comfyui-gallery-export';
 import { galleryEntryDownloadUrls, type ComfyGalleryEntry } from './comfyui-gallery';
-import { mapWithConcurrency } from '../concurrency';
+import { mapWithConcurrency } from '../queue/concurrency';
 import { buildZipBlob, type ZipFileEntry } from './zip-core';
 import { withoutHiddenGalleryEntries } from './adult-check';
 

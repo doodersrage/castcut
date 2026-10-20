@@ -14,7 +14,7 @@ import type {
   GalleryLayoutMode,
   GalleryPageSize,
 } from '@/lib/gallery/comfyui-gallery';
-import type { PromptProject } from '@/lib/prompt-projects';
+import type { PromptProject } from '@/lib/prompt/projects';
 import type { GalleryStats } from '@/lib/gallery/stats';
 import type { GalleryDensity } from '@/lib/gallery/density';
 

@@ -1,4 +1,4 @@
-import { formatPrompt, normalizeFormatSettings, type FormatMode } from '@/lib/prompt-formatter';
+import { formatPrompt, normalizeFormatSettings, type FormatMode } from '@/lib/prompt/formatter';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 
