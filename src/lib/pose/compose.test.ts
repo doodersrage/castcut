@@ -124,7 +124,7 @@ describe('what a body cannot do', () => {
     // One lifted leg is a pose; and a jump may lift both.
     assert.match(
       composeWrittenPose({ body: 'stand', limbs: { right_leg: ['out', 'down_in'] } })!.words ?? '',
-      /right leg/
+      /right (?:leg|knee)/
     );
     assert.ok(
       composeWrittenPose({

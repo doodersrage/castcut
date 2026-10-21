@@ -294,6 +294,9 @@ def classify_posture(body, aspect):
     if foreshortened:
         if feet_drop is not None and feet_drop >= 1.4 and knee_drop >= 0.6:
             return _read("standing", False, facing, tilt)
+        # Feet well under the hips, knees below them, the torso short: leaning toward the camera.
+        if feet_drop is not None and feet_drop >= 0.9 and knee_drop >= 0.25:
+            return _read("bending", False, facing, tilt)
         return _read("unknown", False, facing, tilt)
     near_tilt = tilt > LYING_TILT_DEG - TILT_MARGIN_DEG
     if knee_drop < SEATED_KNEE_DROP:
@@ -301,6 +304,8 @@ def classify_posture(body, aspect):
             angle = _knee_angle_deg(support["hip"], support["knee"], support["ankle"])
             if 0.25 < feet_drop < 0.75 and angle < 80:
                 return _read("crouching", False, facing, tilt)
+            if _is_squat(full, hip, ref):
+                return _read("crouching", not near_tilt, facing, tilt)
         return _read(
             "sitting", (not near_tilt) and knee_drop < SEATED_KNEE_DROP - DROP_MARGIN, facing, tilt
         )
@@ -308,7 +313,21 @@ def classify_posture(body, aspect):
         return _read("bending" if tilt > 25 else "standing", False, facing, tilt)
     lowest_knee = max(leg["knee"]["y"] for leg in with_knee)
     shin_drop = (support["ankle"]["y"] - lowest_knee) / ref
-    if shin_drop < KNEELING_SHIN_DROP:
+    # A straight leg standing upright under the hip, longer than the other thigh: not kneeling.
+    down_knee = None
+    for leg in with_knee:
+        if down_knee is None or leg["knee"]["y"] > down_knee["knee"]["y"]:
+            down_knee = leg
+    standing_leg = any(
+        leg is not down_knee
+        and leg["knee"]["y"] < down_knee["knee"]["y"] - 0.1 * ref
+        and leg["ankle"]["y"] >= support["ankle"]["y"] - 0.1 * ref
+        and _knee_angle_deg(leg["hip"], leg["knee"], leg["ankle"]) > 155
+        and _from_down_deg(leg["hip"], leg["ankle"]) < 25
+        and _dist(leg["hip"], leg["ankle"]) > 1.15 * _dist(down_knee["hip"], down_knee["knee"])
+        for leg in full
+    )
+    if shin_drop < KNEELING_SHIN_DROP and not standing_leg:
         return _read(
             "kneeling",
             (not near_tilt) and shin_drop < KNEELING_SHIN_DROP - DROP_MARGIN,
@@ -328,23 +347,87 @@ def classify_posture(body, aspect):
     return _read("standing", confident_stand and tilt <= 20, facing, tilt)
 
 
+SQUAT_SHIN_DEG = 30
+SQUAT_KNEE_DEG = 80
+SQUAT_HIP_OVER_FEET = 0.45
+FACE_UP = 0.08
+FACE_DOWN = 0.1
+STACKED_SHOULDERS = 0.3
+
+
+def _is_squat(legs, hip, ref):
+    """Knees folded tight, a shin tipped forward, the hips over the feet: a squat, not a seat."""
+    if not legs:
+        return False
+    knees = [_knee_angle_deg(leg["hip"], leg["knee"], leg["ankle"]) for leg in legs]
+    shins = [180 - _from_down_deg(leg["ankle"], leg["knee"]) for leg in legs]
+    feet_x = 0.0
+    for leg in legs:
+        feet_x += leg["ankle"]["x"]
+    feet_x /= len(legs)
+    return (
+        min(knees) < SQUAT_KNEE_DEG
+        and max(shins) > SQUAT_SHIN_DEG
+        and abs(hip["x"] - feet_x) < SQUAT_HIP_OVER_FEET * ref
+    )
+
+
 def _lying_kind(body, aspect, ref):
+    """On the back, side or front: a knee bent up, feet kicked up behind, propped on the
+    forearms, the face against the ears, then the shoulder line (posture.ts lyingKind)."""
     p = _scaled(body, aspect)
     rs = p(R_SHOULDER)
     ls = p(L_SHOULDER)
     neck = p(NECK)
+    hip = _mean([p(R_HIP), p(L_HIP)])
+    legs = []
+    for h, k, a in ((R_HIP, R_KNEE, R_ANKLE), (L_HIP, L_KNEE, L_ANKLE)):
+        leg_hip = p(h) or hip
+        knee = p(k)
+        ankle = p(a)
+        if knee and ankle and leg_hip:
+            legs.append({"hip": leg_hip, "knee": knee, "ankle": ankle})
+    if any(leg["knee"]["y"] < min(leg["hip"]["y"], leg["ankle"]["y"]) - 0.18 * ref for leg in legs):
+        return "lying-back"
+    if (
+        legs
+        and all(leg["knee"]["y"] > leg["hip"]["y"] - 0.15 * ref for leg in legs)
+        and any(
+            leg["ankle"]["y"] < leg["knee"]["y"] - 0.3 * ref
+            and leg["ankle"]["y"] < leg["hip"]["y"] - 0.2 * ref
+            for leg in legs
+        )
+    ):
+        return "lying-front"
     elbows = [point for point in (p(3), p(6)) if point is not None]
     shoulders = _mean([rs, ls])
     nose = p(NOSE)
-    if (
-        shoulders
-        and neck
-        and nose
-        and len(elbows) == 2
-        and all(elbow["y"] > shoulders["y"] + 0.2 * ref for elbow in elbows)
-        and nose["y"] < neck["y"] - 0.1 * ref
-    ):
-        return "lying-front"
+    if shoulders and neck and hip and nose and len(elbows) == 2:
+        torso = _dist(neck, hip) or 1
+
+        def along(point):
+            return (
+                (point["x"] - neck["x"]) * (neck["x"] - hip["x"])
+                + (point["y"] - neck["y"]) * (neck["y"] - hip["y"])
+            ) / torso
+
+        if (
+            all(
+                elbow["y"] > shoulders["y"] + 0.2 * ref and along(elbow) > -0.2 * ref
+                for elbow in elbows
+            )
+            and nose["y"] < neck["y"] - 0.1 * ref
+        ):
+            return "lying-front"
+    ear_line = _mean([p(16), p(17)])
+    if nose and ear_line:
+        nose_up = (ear_line["y"] - nose["y"]) / ref
+        if nose_up > FACE_UP:
+            return "lying-back"
+        if nose_up < -FACE_DOWN:
+            if rs and ls and abs(rs["y"] - ls["y"]) >= STACKED_SHOULDERS * ref:
+                return "lying-side"
+            return "lying-front"
     if rs and ls and _dist(rs, ls) < SIDE_SHOULDER_SHARE * ref:
         return "lying-side"
     return "lying-back"

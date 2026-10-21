@@ -32,7 +32,12 @@ import {
   readHeadDirection,
   type HeadDirection,
 } from '@/lib/pose/limb-presets';
-import { classifyPosture } from '@/lib/pose/posture';
+import {
+  bodyReferenceLength,
+  classifyPosture,
+  readLyingKind,
+  type PostureClass,
+} from '@/lib/pose/posture';
 import { bodyCentreX, readPoseStance } from '@/lib/pose/starters';
 import { withSceneGround } from '@/lib/scene/surface';
 import {
@@ -165,34 +170,59 @@ export function describePoseFigure(
   const ground = Math.max(hip.y, ...legs.flatMap(leg => [leg.knee.y, leg.ankle.y]));
 
   // ── Base posture ──────────────────────────────────────────────────────────────────────
+  // One posture model: the classifier (posture.ts — the pose check reads stills with it too)
+  // decides what the body is doing; the stance reader only adds detail within that class (which
+  // knee is down, a seat vs the floor, a lean). The stance reader alone took its lowest joint for
+  // the floor and her feet for what she stands on: seats, squats and kneels read as "standing on
+  // her right leg", squats as seats, every stride with a foot off the floor as one-legged.
   let stance = read.stance;
   const [rs, ls] = [at(2), at(5)];
   const nose = at(0);
+  const ref = bodyReferenceLength(body, a) || unit;
+  const kneeAngles = legs.map(leg => jointAngle(leg.hip, leg.knee, leg.ankle));
+  const readLean = read.stance.match(/, (leaning [^,]+)$/)?.[1] ?? null;
   if (visionStance) {
     stance = visionStance;
   } else if (lying) {
-    stance = lyingStance(posture.posture, readAs, { neck, hip, nose, rs, ls, unit, at });
+    const kind = posture.group === 'lying' ? posture.posture : readLyingKind(body, a);
+    stance = lyingStance(kind, readAs);
   } else if (posture.posture === 'all-fours' && !/hands and knees/.test(stance)) {
     stance = 'on all fours';
   } else if (posture.posture === 'upside-down') {
     stance = 'upside down, in a handstand';
-  } else if (
-    (posture.group === 'seated' || posture.group === 'low') &&
-    (posture.confident
-      ? /^(?:standing|walking)\b/.test(stance)
-      : // Unsure, only against the one-legged read itself — the seated misread every time.
-        /^standing on (?:her|his) (?:right|left) leg\b/.test(stance))
-  ) {
-    // The stance reader takes the lowest joint for the floor and her feet for what she stands
-    // on: a seat on an edge, at a laptop or on her knees read as "standing on her right leg, left
-    // leg lifted" (pose references: perch / laptop / kneel, 6 of the 9 clean-label misses). The
-    // posture classifier read all six right; it wins when the two disagree like this.
+  } else if (posture.posture === 'bending') {
     stance =
-      posture.posture === 'kneeling'
-        ? 'kneeling'
-        : posture.posture === 'crouching'
-          ? 'crouching low'
-          : 'sitting';
+      bendStance({
+        tilt: posture.tiltDeg ?? 0,
+        towardCamera: dist(neck, hip) < 0.65 * ref,
+        kneeAngles,
+        leaningForward: readLean === 'leaning forward',
+      }) ?? stance;
+  } else if (posture.posture === 'crouching') {
+    // Feet planted, hips low, knees folded: a squat (the deep front-on squat and the
+    // cross-legged floor sit are told apart below).
+    stance =
+      kneeAngles.length && Math.min(...kneeAngles) < 85
+        ? 'in a deep squat'
+        : 'in a squat, knees bent';
+  } else if (posture.posture === 'kneeling') {
+    if (!/^(?:kneeling|on (?:her|his) hands and knees)/.test(stance)) stance = 'kneeling';
+  } else if (posture.posture === 'sitting') {
+    if (!/^(?:seated|sitting)/.test(stance)) stance = 'sitting';
+  } else if (posture.posture === 'standing') {
+    const onFeet = standingLegs(legs, hip, ref, readAs);
+    if (onFeet) {
+      stance = readLean ? `${onFeet}, ${readLean}` : onFeet;
+    } else if (/^(?:standing on|kneeling|seated|sitting|crouching|squatting)/.test(stance)) {
+      // Both feet down: never one-legged, never kneeling (the classifier wants a knee on the
+      // floor and no straight leg under the hip), and not seated unless the classifier is unsure.
+      if (/^(?:standing on|kneeling)/.test(stance) || posture.confident) {
+        const apart =
+          legs.length === 2 && Math.abs(legs[0]!.ankle.x - legs[1]!.ankle.x) > 0.5 * ref;
+        stance = apart ? 'walking mid-stride' : 'standing';
+        if (readLean) stance = `${stance}, ${readLean}`;
+      }
+    }
   }
   if (!visionStance && !lying && legs.length === 2) {
     const [right, left] = [legs[0]!, legs[1]!];
@@ -228,7 +258,7 @@ export function describePoseFigure(
       Math.min(...angles) < 140 &&
       Math.max(...angles) > 155 &&
       // A wide lunge's bent thigh is level, which the stance reader takes for a seat.
-      (/^(?:walking mid-stride|standing)/.test(stance) ||
+      (/^(?:walking mid-stride|standing|bending forward)/.test(stance) ||
         posture.posture === 'standing' ||
         posture.posture === 'crouching')
     ) {
@@ -239,9 +269,10 @@ export function describePoseFigure(
   }
 
   // One knee down: "kneeling" alone knelt on both knees on Rapid (2/2) — say where the other
-  // foot is and that its knee is up.
+  // foot is and that its knee is up. (A lean the stance reader added is dropped: the knee up
+  // in front is what tells.)
   const oneKnee = stance.match(
-    /^kneeling on (?:her|his) (right|left) knee, other foot flat on the floor$/
+    /^kneeling on (?:her|his) (right|left) knee, other foot flat on the floor(?:, leaning [^,]+)?$/
   );
   if (oneKnee) {
     const other = oneKnee[1] === 'right' ? 'left' : 'right';
@@ -280,17 +311,38 @@ export function describePoseFigure(
   // A posture the vision read gave (reclining, sitting…) is often shot from above, its torso
   // foreshortened: the neck-to-hip line still says which way is up for the arms.
   const upright = torsoLength > unit * (visionStance && !visionLying ? 0.2 : 0.5);
-  const up = upright
-    ? { x: (neck.x - hip.x) / torsoLength, y: (neck.y - hip.y) / torsoLength }
-    : { x: 0, y: -1 };
+  // Bent over or leaning hard, the arms are read in the picture's frame — against gravity, as
+  // the eye reads them: in the torso's frame a bend's hanging arms came out "stretched out to
+  // the sides" (bend_pick-1, the pose bench), and the engines held them out.
+  const gravity =
+    !lying &&
+    !visionStance &&
+    posture.posture !== 'upside-down' &&
+    (posture.tiltDeg ?? 0) >= GRAVITY_TILT_DEG;
+  const up =
+    upright && !gravity
+      ? { x: (neck.x - hip.x) / torsoLength, y: (neck.y - hip.y) / torsoLength }
+      : { x: 0, y: -1 };
   const side = { x: -up.y, y: up.x };
   const along = (p: Pt) => (p.x - neck.x) * up.x + (p.y - neck.y) * up.y;
   const across = (p: Pt) => (p.x - hip.x) * side.x + (p.y - hip.y) * side.y;
   const headPoint = nose ?? { x: neck.x + up.x * unit * 0.25, y: neck.y + up.y * unit * 0.25 };
   type ArmPose =
-    'overhead' | 'upout' | 'head' | 'face' | 'hip' | 'out' | 'crossed' | 'knee' | 'prop';
+    | 'overhead'
+    | 'upout'
+    | 'head'
+    | 'face'
+    | 'hip'
+    | 'out'
+    | 'crossed'
+    | 'knee'
+    | 'prop'
+    | 'held'
+    | 'reach-down'
+    | 'hang'
+    | 'floor';
   const arms: Array<{ side: 'right' | 'left'; pose: ArmPose }> = [];
-  if (upright || lying) {
+  if (upright || lying || gravity) {
     for (const [armSide, si, ei, wi, hi] of [
       ['right', 2, 3, 4, 8],
       ['left', 5, 6, 7, 11],
@@ -366,6 +418,13 @@ export function describePoseFigure(
         pose = 'crossed';
       } else if (legs.some(leg => dist(wrist, leg.knee) < unit * 0.22) && !lying) {
         pose = 'knee';
+      } else if (!lying) {
+        pose = heldArm(shoulder, elbow, wrist, {
+          ref,
+          gravity,
+          body: [ownHip, ...legs.map(leg => leg.knee)],
+          ground: legs.length ? Math.max(...legs.map(leg => leg.ankle.y)) : null,
+        });
       }
       if (pose) arms.push({ side: armSide, pose });
     }
@@ -375,26 +434,17 @@ export function describePoseFigure(
   const prop = arms.find(arm => arm.pose === 'prop');
   if (prop) {
     stance = `lying on ${readAs} side, head propped on ${readAs} ${prop.side} hand`;
-  } else if (lying && /^lying on (?:her|his) front/.test(stance)) {
-    // Face down on straight arms (a push-up), not on the forearms.
-    const straightArms = (
-      [
-        [2, 3, 4],
-        [5, 6, 7],
-      ] as const
-    ).every(([si, ei, wi]) => {
-      const [s, e, w] = [at(si), at(ei), at(wi)];
-      return Boolean(
-        s &&
-        e &&
-        w &&
-        w.y > e.y &&
-        e.y > s.y &&
-        jointAngle(s, e, w) > 150 &&
-        w.y - s.y > unit * 0.45
-      );
+  } else if (lying && !visionStance) {
+    stance = withLyingSupport(stance, {
+      at,
+      legs,
+      kneeAngles,
+      neck,
+      hip,
+      ref,
+      tilt: posture.tiltDeg ?? 90,
+      whose: readAs,
     });
-    if (straightArms) stance = `face down, body raised on straight arms`;
   }
   const armFact = (pose: ArmPose, both: string, one: (s: string) => string, weight: number) => {
     const hits = arms.filter(arm => arm.pose === pose);
@@ -422,6 +472,19 @@ export function describePoseFigure(
     s => `${readAs} ${s} arm stretched out to the side`,
     6
   );
+  // Any arm held away from her body is said: an arm left out of the words was left out of the
+  // picture (an arm held out on kneel-2, one reaching to the ground on sit_floor-2).
+  armFact('held', 'both arms held out', s => `${readAs} ${s} arm held out`, 6.2);
+  armFact(
+    'reach-down',
+    'both arms reaching down and out',
+    s => `${readAs} ${s} arm reaching down and out`,
+    5.5
+  );
+  if (arms.filter(arm => arm.pose === 'hang').length === 2) {
+    facts.push({ text: 'arms hanging down', weight: 4.5 });
+  }
+  armFact('floor', 'hands down on the floor', s => `${readAs} ${s} hand down on the floor`, 5);
   if (arms.filter(arm => arm.pose === 'crossed').length === 2) {
     facts.push({ text: `arms folded across ${readAs} chest`, weight: 6 });
   }
@@ -546,10 +609,13 @@ export function describePoseFigure(
     // the stance reader calls it "crouching low" (COCO floor sits, 4 of 5).
     if (
       anklesCrossed &&
-      /^crouching low/.test(stance) &&
+      /^(?:crouching low|in a (?:deep )?squat)/.test(stance) &&
       (right.knee.y + left.knee.y) / 2 >= hip.y - unit * 0.1
     ) {
-      stance = stance.replace(/^crouching low/, 'sitting cross-legged on the floor');
+      stance = stance.replace(
+        /^(?:crouching low|in a deep squat|in a squat, knees bent)/,
+        'sitting cross-legged on the floor'
+      );
     }
     if (anklesCrossed && !/cross-legged/.test(stance)) {
       facts.push({
@@ -719,45 +785,185 @@ function withPictureSides(text: string, body: NormalizedBody, aspect: number): s
   );
 }
 
-/** Lying on the back, side or front, from the shoulders and the face. */
-function lyingStance(
-  posture: string,
-  whose: 'her' | 'his',
+/** Torso tilted this far from upright: the arms are read in the picture's frame. */
+const GRAVITY_TILT_DEG = 35;
+/** A foot this far (reference lengths) above the other is off the floor. */
+const FOOT_OFF_FLOOR = 0.3;
+
+type Leg = { side: 'right' | 'left'; hip: Pt; knee: Pt; ankle: Pt };
+
+/** Angle of a→b from straight down the picture, degrees (0 hanging, 180 straight up). */
+function fromDownDeg(a: Pt, b: Pt): number {
+  const length = dist(a, b);
+  if (length < 1e-9) return 0;
+  return (Math.acos(Math.max(-1, Math.min(1, (b.y - a.y) / length))) * 180) / Math.PI;
+}
+
+/** Lying on the back, side or front, as the posture classifier reads it (posture.ts). */
+function lyingStance(posture: PostureClass, whose: 'her' | 'his'): string {
+  if (posture === 'lying-front') return `lying on ${whose} front`;
+  if (posture === 'lying-side') return `lying on ${whose} side`;
+  return `lying on ${whose} back`;
+}
+
+/** The knees as the angles say: straight past 160°, slightly bent to 135°, bent under it. */
+function kneeWords(kneeAngles: number[]): string {
+  if (kneeAngles.length === 0) return 'legs straight';
+  const bentest = Math.min(...kneeAngles);
+  return bentest >= 160 ? 'legs straight' : bentest < 135 ? 'knees bent' : 'knees slightly bent';
+}
+
+/**
+ * A bend in words, with the knees as they are: "legs straight" on a deadlift's bent knees
+ * (sport_deadlift-2, the pose bench) gave shallow straight-legged bends on every engine. Null
+ * keeps the stance reader's words (a lean to one side is not a bend).
+ */
+function bendStance(input: {
+  tilt: number;
+  towardCamera: boolean;
+  kneeAngles: number[];
+  leaningForward: boolean;
+}): string | null {
+  const knees = kneeWords(input.kneeAngles);
+  if (input.towardCamera) return `bent forward at the waist toward the camera, ${knees}`;
+  if (input.tilt > 115) return `bent right over at the waist, ${knees}, head down by the knees`;
+  if (input.tilt >= 70) return `bent forward at the waist, ${knees}, back level with the floor`;
+  if (input.tilt >= 50) return `bent forward at the waist, ${knees}`;
+  return input.leaningForward ? `bending forward from the hips, ${knees}` : null;
+}
+
+/**
+ * Standing with one foot off the floor: a stride or a one-legged pose. A stride keeps the lifted
+ * leg near straight, or only just off the floor, or swings it back off a straight standing leg;
+ * a one-legged pose raises the knee, kicks, or folds the foot up behind a bent standing knee.
+ * Pose references: walk / run read "standing on her left leg, right leg off the floor" 6 of 10
+ * with the stance reader alone; jump-4's one-legged stand was rendered on both feet until the
+ * words said only one foot is down. Null: both feet are down.
+ */
+function standingLegs(legs: Leg[], hip: Pt, ref: number, whose: 'her' | 'his'): string | null {
+  if (legs.length !== 2) return null;
+  const support = legs[0]!.ankle.y >= legs[1]!.ankle.y ? legs[0]! : legs[1]!;
+  const other = support === legs[0] ? legs[1]! : legs[0]!;
+  const lift = (support.ankle.y - other.ankle.y) / ref;
+  if (lift < FOOT_OFF_FLOOR) return null;
+  const otherAngle = jointAngle(other.hip, other.knee, other.ankle);
+  const supportAngle = jointAngle(support.hip, support.knee, support.ankle);
+  const kneeRaised = other.knee.y < support.knee.y - 0.25 * ref || other.knee.y < hip.y + 0.3 * ref;
+  const stride =
+    !kneeRaised &&
+    lift < 0.8 &&
+    (otherAngle >= 150 || lift < 0.35 || (supportAngle >= 170 && lift < 0.5));
+  if (stride) return `walking mid-stride, ${whose} ${other.side} foot off the floor`;
+  const them = whose === 'his' ? 'him' : 'her';
+  const sideways = Math.abs(other.ankle.x - hip.x) > 0.6 * ref;
+  const lifted =
+    kneeRaised && otherAngle < 110
+      ? `${whose} ${other.side} knee raised high`
+      : other.ankle.y < hip.y - 0.1 * ref
+        ? `${whose} ${other.side} leg kicked up high${sideways ? ' to the side' : ''}`
+        : sideways && otherAngle > 100
+          ? `${whose} ${other.side} leg kicked out to the side`
+          : kneeRaised
+            ? `${whose} ${other.side} knee raised`
+            : otherAngle < 150
+              ? `${whose} ${other.side} foot lifted off the floor behind ${them}, knee bent`
+              : `${whose} ${other.side} foot lifted off the floor`;
+  return `standing on only ${whose} ${support.side} foot, ${lifted}`;
+}
+
+/**
+ * An arm none of the named reads caught, read against gravity: held out (55° or more off
+ * straight down), reaching down and out (40–55°, straight, clear of her body), or — bent over —
+ * hanging, or down on the floor. Null: an arm at rest by her side.
+ */
+function heldArm(
+  shoulder: Pt,
+  elbow: Pt | null,
+  wrist: Pt,
+  input: { ref: number; gravity: boolean; body: Pt[]; ground: number | null }
+): 'held' | 'reach-down' | 'hang' | 'floor' | null {
+  const { ref, gravity } = input;
+  const reach = dist(shoulder, wrist);
+  const angle = fromDownDeg(shoulder, wrist);
+  if (gravity && angle < 30) {
+    return input.ground !== null && input.ground - wrist.y < 0.4 * ref ? 'floor' : 'hang';
+  }
+  if (reach < 0.5 * ref) return null;
+  if (angle >= 55) return 'held';
+  const straight = !elbow || jointAngle(shoulder, elbow, wrist) > 140;
+  const clear = input.body.every(point => dist(wrist, point) > 0.35 * ref);
+  return angle >= 40 && straight && clear ? 'reach-down' : null;
+}
+
+/**
+ * Lying, what holds her up: a plank (legs straight, hips off the floor, on straight arms or the
+ * forearms planted on the feet's floor — read before the lying side, which a plank's face-down
+ * body often misses), propped on the elbows on her front, or reclining back on them.
+ */
+function withLyingSupport(
+  stance: string,
   input: {
+    at: (i: number) => Pt | null;
+    legs: Leg[];
+    kneeAngles: number[];
     neck: Pt;
     hip: Pt;
-    nose: Pt | null;
-    rs: Pt | null;
-    ls: Pt | null;
-    unit: number;
-    at: (i: number) => Pt | null;
+    ref: number;
+    tilt: number;
+    whose: 'her' | 'his';
   }
 ): string {
-  if (posture === 'lying-front') return `lying on ${whose} front, propped on ${whose} elbows`;
-  const { neck, hip, nose, rs, ls, unit, at } = input;
-  // Across the body: which way the face points (up off the floor = on the back).
-  const axis = { x: neck.x - hip.x, y: neck.y - hip.y };
-  const length = Math.hypot(axis.x, axis.y) || 1;
-  const normal = { x: -axis.y / length, y: axis.x / length };
-  const ears = [at(16), at(17)].filter(Boolean) as Pt[];
-  const headMiddle = ears.length
-    ? {
-        x: ears.reduce((sum, p) => sum + p.x, 0) / ears.length,
-        y: ears.reduce((sum, p) => sum + p.y, 0) / ears.length,
-      }
-    : null;
-  const faceUp =
-    nose && headMiddle
-      ? -((nose.x - headMiddle.x) * normal.x + (nose.y - headMiddle.y) * normal.y) *
-        Math.sign(normal.y || 1)
-      : 0;
-  const stacked = rs && ls ? dist(rs, ls) < unit * 0.35 : true;
-  if (!stacked) {
-    // Shoulders one above the other in the picture: on her side, front or back to us.
-    return `lying on ${whose} side`;
+  const { at, legs, kneeAngles, neck, hip, ref, tilt, whose } = input;
+  if (/\bhead propped\b/.test(stance)) return stance;
+  const arms = (
+    [
+      ['right', 2, 3, 4],
+      ['left', 5, 6, 7],
+    ] as const
+  ).flatMap(([side, si, ei, wi]) => {
+    const [s, e, w] = [at(si), at(ei), at(wi)];
+    return s && e && w ? [{ side, s, e, w }] : [];
+  });
+  const lowestFoot = legs.length ? Math.max(...legs.map(leg => leg.ankle.y)) : null;
+  if (
+    lowestFoot !== null &&
+    legs.length === 2 &&
+    kneeAngles.every(angle => angle > 150) &&
+    tilt < 84 &&
+    lowestFoot - hip.y > 0.2 * ref
+  ) {
+    const onFloor = (p: Pt) => Math.abs(p.y - lowestFoot) < 0.3 * ref;
+    const straight = arms.filter(
+      arm =>
+        jointAngle(arm.s, arm.e, arm.w) > 150 &&
+        arm.w.y - arm.s.y > 0.45 * ref &&
+        fromDownDeg(arm.s, arm.w) < 30 &&
+        onFloor(arm.w)
+    );
+    const forearms = arms.filter(
+      arm => arm.e.y - arm.s.y > 0.2 * ref && onFloor(arm.e) && onFloor(arm.w)
+    );
+    const raised = arms.find(arm => arm.w.y < arm.s.y - 0.2 * ref);
+    if (straight.length === 1 && raised) {
+      return `in a side plank on ${whose} ${straight[0]!.side} arm, ${whose} ${raised.side} arm raised`;
+    }
+    if (straight.length > 0) return 'in a plank, face down on straight arms';
+    if (forearms.length > 0) return `in a plank, face down on ${whose} forearms`;
   }
-  if (faceUp < -unit * 0.03) return `lying on ${whose} front`;
-  return `lying on ${whose} back`;
+  const elbowsDown = arms.filter(arm => arm.e.y > arm.s.y + 0.2 * ref);
+  const nose = at(0);
+  if (/^lying on (?:her|his) front$/.test(stance)) {
+    return elbowsDown.length === 2 && nose && nose.y < neck.y - 0.1 * ref
+      ? `${stance}, propped on ${whose} elbows`
+      : stance;
+  }
+  // On the back with the chest raised: reclining on the elbows.
+  if (/^lying on (?:her|his) back$/.test(stance) && tilt < 72 && elbowsDown.length > 0) {
+    return elbowsDown.length === 2
+      ? `${stance}, propped up on ${whose} elbows`
+      : `${stance}, propped up on ${whose} ${elbowsDown[0]!.side} elbow`;
+  }
+  return stance;
 }
 
 /**
