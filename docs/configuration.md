@@ -147,7 +147,7 @@ Settings → LLM → **Built-in LLM** installs llama.cpp's server (a pinned rele
 ### Built-in LLM in Docker {#llm-in-docker}
 
 The Castcut image is Alpine (musl), and llama.cpp's builds need glibc — so in Docker,
-Settings → LLM says *"This server's system … can't run llama.cpp's builds"*. Run llama.cpp's
+Settings → LLM says _"This server's system … can't run llama.cpp's builds"_. Run llama.cpp's
 own server container beside Castcut instead. It is the same server and model the built-in
 LLM uses; it just stays running.
 
@@ -198,21 +198,21 @@ LLM uses; it just stays running.
 
 **Other hardware** — swap the image tag:
 
-| GPU | Image | Extra flags |
-| --- | --- | --- |
-| NVIDIA | `ghcr.io/ggml-org/llama.cpp:server-cuda` | `--gpus all` |
-| AMD (ROCm) | `ghcr.io/ggml-org/llama.cpp:server-rocm` | `--device /dev/kfd --device /dev/dri` |
-| AMD / Intel (Vulkan) | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | `--device /dev/dri` |
-| None (CPU) | `ghcr.io/ggml-org/llama.cpp:server` | drop `-ngl 99` — slow, but it works |
+| GPU                  | Image                                      | Extra flags                           |
+| -------------------- | ------------------------------------------ | ------------------------------------- |
+| NVIDIA               | `ghcr.io/ggml-org/llama.cpp:server-cuda`   | `--gpus all`                          |
+| AMD (ROCm)           | `ghcr.io/ggml-org/llama.cpp:server-rocm`   | `--device /dev/kfd --device /dev/dri` |
+| AMD / Intel (Vulkan) | `ghcr.io/ggml-org/llama.cpp:server-vulkan` | `--device /dev/dri`                   |
+| None (CPU)           | `ghcr.io/ggml-org/llama.cpp:server`        | drop `-ngl 99` — slow, but it works   |
 
 **Check it:** `curl http://<llm host>:8080/v1/models` lists `castcut-local`; in Castcut,
 **Settings → Overview → Play checks** shows the LLM and the vision model as ready.
 
 !!! tip "Sharing the GPU with ComfyUI"
-    The model holds about 6–7 GB of VRAM while the container runs. On a 24 GB card that is
-    fine for stills; the big video tools (Copy moves, Dance, Lip-sync) free a *built-in* LLM
-    automatically, but not a container — stop it (`docker stop castcut-llm`) before a long
-    video session if they run out of memory, or run the LLM on another machine.
+The model holds about 6–7 GB of VRAM while the container runs. On a 24 GB card that is
+fine for stills; the big video tools (Copy moves, Dance, Lip-sync) free a _built-in_ LLM
+automatically, but not a container — stop it (`docker stop castcut-llm`) before a long
+video session if they run out of memory, or run the LLM on another machine.
 
 ### Your own LLM server
 
@@ -223,6 +223,7 @@ The generator calls any **OpenAI-compatible** chat completions API. Configure vi
 | `LLM_API_BASE_URL`                              | `http://localhost:11434/v1`                | API base URL                                                                                                                                                                                                                                                                        |
 | `LLM_API_KEY`                                   | _(empty)_                                  | Bearer token if required                                                                                                                                                                                                                                                            |
 | `LLM_MODEL`                                     | `dolphin-llama3`                           | Model name                                                                                                                                                                                                                                                                          |
+| `LLM_REQUEST_TIMEOUT_MS`                        | `240000`                                   | How long a language-model request waits for its answer to start before failing with a plain reason (0 = no limit). Stops Day's queue stalling when LM Studio can't load its model                                                                                                   |
 | `LLM_TEMPERATURE`                               | `0.95`                                     | Sampling temperature (higher = more variation)                                                                                                                                                                                                                                      |
 | `LLM_ENABLED`                                   | `true`                                     | Set `false` for template-only mode                                                                                                                                                                                                                                                  |
 | `ALLOW_TEMPLATE_FALLBACK`                       | `true`                                     | Fall back if LLM is unreachable                                                                                                                                                                                                                                                     |

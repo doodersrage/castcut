@@ -9,6 +9,7 @@ import { acquireLlmSlot, withLlmSlot } from './backpressure';
 import { prepareVisionImageDataUrl, splitImageDataUrl } from '../vision/image-prepare';
 import { PRODUCT_NAME } from '../app/brand';
 import { ensureLocalLlmFor, localLlmEndpoint } from './local';
+import { fetchLlm } from './request-timeout';
 
 export { allowTemplateFallback, getLlmTemperature, isLlmEnabled } from './env';
 export { LlmBusyError, getLlmInflightCount, getLlmMaxInflight, isLlmBusy } from './backpressure';
@@ -437,7 +438,7 @@ async function ollamaNativeChatCompletion(options: {
   temperature?: number;
   extraBody?: Record<string, unknown>;
 }): Promise<string> {
-  const response = await fetch(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
+  const response = await fetchLlm(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
     method: 'POST',
     headers: buildAuthHeaders(options.apiKey, options.baseUrl),
     body: JSON.stringify({
@@ -541,7 +542,7 @@ async function ollamaNativeVisionCompletion(options: {
     throw error;
   }
 
-  const response = await fetch(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
+  const response = await fetchLlm(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
     method: 'POST',
     headers: buildAuthHeaders(options.apiKey, options.baseUrl),
     body: requestBody,
@@ -706,7 +707,7 @@ async function openAiCompatibleChatCompletion(options: {
   }
 
   const post = () =>
-    fetch(`${options.baseUrl}/chat/completions`, {
+    fetchLlm(`${options.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: buildAuthHeaders(options.apiKey, options.baseUrl),
       body: requestBody,
@@ -784,7 +785,7 @@ async function* ollamaNativeChatCompletionStream(options: {
   extraBody?: Record<string, unknown>;
   signal?: AbortSignal;
 }): AsyncGenerator<string> {
-  const response = await fetch(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
+  const response = await fetchLlm(`${ollamaNativeBaseUrl(options.baseUrl)}/api/chat`, {
     method: 'POST',
     headers: buildAuthHeaders(options.apiKey, options.baseUrl),
     signal: options.signal,
@@ -844,7 +845,7 @@ async function* openAiCompatibleChatCompletionStream(options: {
   extraBody?: Record<string, unknown>;
   signal?: AbortSignal;
 }): AsyncGenerator<string> {
-  const response = await fetch(`${options.baseUrl}/chat/completions`, {
+  const response = await fetchLlm(`${options.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: buildAuthHeaders(options.apiKey, options.baseUrl),
     signal: options.signal,
