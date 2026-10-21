@@ -2092,6 +2092,128 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
   background: color-mix(in oklab, var(--accent-muted) 70%, var(--accent) 30%);
 }
 
+/* Small button variants (Button variant="pill" | "overlay" | "icon"). In the components layer,
+   unlike the ui-btn-* classes above, so a layout utility passed with them (shrink-0, h-7 w-7,
+   max-md:min-h-7, px-3) still applies. */
+@layer components {
+  .ui-btn-pill,
+  .ui-btn-overlay,
+  .ui-btn-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    white-space: nowrap;
+    border: 1px solid transparent;
+    line-height: 1.4;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-fast),
+      border-color var(--transition-fast),
+      color var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  .ui-btn-pill:focus-visible,
+  .ui-btn-overlay:focus-visible,
+  .ui-btn-icon:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-ring);
+  }
+
+  .ui-btn-pill:disabled,
+  .ui-btn-overlay:disabled,
+  .ui-btn-icon:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  /* A small rounded toggle / filter / inline action: "Poster", "Weight", "All". Pressed
+     (aria-pressed) or data-active reads as on. */
+  .ui-btn-pill {
+    border-radius: var(--radius-full);
+    border-color: var(--border-default);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .ui-btn-pill:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+
+  .ui-btn-pill[aria-pressed='true'],
+  .ui-btn-pill[data-active='true'] {
+    border-color: var(--accent-border);
+    background: var(--accent-muted);
+    color: var(--accent-text);
+  }
+
+  /* A tiny action sitting over a picture (a gallery card's hover row): blurred backing so it
+     reads on any image. data-tone: strong | success | warning | accent. */
+  .ui-btn-overlay {
+    border-radius: var(--radius-sm);
+    border-color: var(--border-subtle);
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
+    color: var(--text-secondary);
+    background: color-mix(in oklab, var(--bg-base) 70%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .ui-btn-overlay:hover:not(:disabled) {
+    border-color: var(--border-default);
+    color: var(--text-primary);
+  }
+
+  .ui-btn-overlay[data-tone='strong'] {
+    border-color: color-mix(in oklab, var(--border-default) 80%, transparent);
+    background: color-mix(in oklab, var(--bg-base) 80%, transparent);
+    color: var(--text-primary);
+  }
+
+  .ui-btn-overlay[data-tone='success'] {
+    border-color: var(--tint-success-border);
+    background: var(--tint-success-bg);
+    color: var(--tint-success-text);
+  }
+
+  .ui-btn-overlay[data-tone='warning'] {
+    border-color: var(--tint-warning-border);
+    background: var(--tint-warning-bg);
+    color: var(--tint-warning-text);
+  }
+
+  .ui-btn-overlay[data-tone='accent'] {
+    border-color: var(--accent-border);
+    background: var(--accent-muted);
+    color: var(--accent-text);
+  }
+
+  .ui-btn-overlay[data-tone='accent']:hover:not(:disabled) {
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--accent-text);
+  }
+
+  /* A square icon-only button (↑ ↓, ✕, ⋯): 32 px, quiet until hovered. */
+  .ui-btn-icon {
+    height: 2rem;
+    width: 2rem;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    color: var(--text-secondary);
+    background: transparent;
+  }
+
+  .ui-btn-icon:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+}
+
 /* ─── Chips & toggles ───────────────────────────────────────────────────── */
 .ui-chip {
   display: inline-flex;

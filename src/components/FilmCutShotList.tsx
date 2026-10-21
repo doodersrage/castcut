@@ -24,6 +24,7 @@ import {
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/video/cut-timeline';
 import type { IdentityMark } from '@/lib/character/identity-mark';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Day / Story shot list: order, leave a shot out, edit its caption (when titles are on), set a
@@ -555,25 +556,23 @@ export default function FilmCutShotList({
               </div>
               {/* 32 px squares: the bare arrows were 9×16 px, too small to tap on a phone. */}
               <span className="flex shrink-0 flex-col gap-0.5">
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                <Button
+                  variant="icon"
                   disabled={disabled || index === 0}
                   aria-label={`Move ${shot.title} earlier`}
                   onClick={() => onChange({ ...edits, order: moveCutShot(keys, shot.key, -1) })}
                 >
                   ↑
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                </Button>
+                <Button
+                  variant="icon"
                   disabled={disabled || index === ordered.length - 1}
                   aria-label={`Move ${shot.title} later`}
                   data-testid={`${testIdPrefix}-shot-down-${shot.key}`}
                   onClick={() => onChange({ ...edits, order: moveCutShot(keys, shot.key, 1) })}
                 >
                   ↓
-                </button>
+                </Button>
               </span>
             </li>
           );

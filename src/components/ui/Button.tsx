@@ -2,8 +2,24 @@ import Link from 'next/link';
 import type { LinkProps } from 'next/link';
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'info' | 'accent-outline';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'danger'
+  | 'info'
+  | 'accent-outline'
+  /** Inline underlined action in running text ("Clear", "Show all"). */
+  | 'link'
+  /** Small rounded toggle / filter; aria-pressed or data-active shows it on. */
+  | 'pill'
+  /** Tiny action over a picture (gallery card hover row); see `tone`. */
+  | 'overlay'
+  /** 32 px square icon-only button (↑ ↓ ✕); give it an aria-label. */
+  | 'icon';
 type ButtonSize = 'default' | 'sm';
+/** Colour of an `overlay` button. */
+type ButtonTone = 'default' | 'strong' | 'success' | 'warning' | 'accent';
 
 type LoadingProps = {
   loading?: boolean;
@@ -14,6 +30,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   LoadingProps & {
     variant?: ButtonVariant;
     size?: ButtonSize;
+    /** Colour of an `overlay` button (ignored by the other variants). */
+    tone?: ButtonTone;
     fullWidth?: boolean;
     children: ReactNode;
   };
@@ -25,7 +43,21 @@ const variantClasses: Record<ButtonVariant, string> = {
   danger: 'ui-btn-danger',
   info: 'ui-btn-info',
   'accent-outline': 'ui-btn-accent-outline',
+  link: 'ui-text-link',
+  pill: 'ui-btn-pill',
+  overlay: 'ui-btn-overlay',
+  icon: 'ui-btn-icon',
 };
+
+/** The small variants carry their own size (and sit in the components layer, so utilities win). */
+const SIZED_VARIANTS = new Set<ButtonVariant>([
+  'primary',
+  'secondary',
+  'ghost',
+  'danger',
+  'info',
+  'accent-outline',
+]);
 
 function buttonClassName({
   variant = 'secondary',
@@ -38,7 +70,7 @@ function buttonClassName({
   fullWidth?: boolean;
   className?: string;
 }) {
-  const sizeClass = size === 'sm' ? 'ui-btn-sm' : '';
+  const sizeClass = size === 'sm' && SIZED_VARIANTS.has(variant) ? 'ui-btn-sm' : '';
   return `${variantClasses[variant]} ${sizeClass} ${fullWidth ? 'ui-btn-full' : ''} ${className}`.trim();
 }
 
@@ -84,6 +116,7 @@ export function Skeleton({ className = '', ...props }: HTMLAttributes<HTMLDivEle
 export function Button({
   variant = 'secondary',
   size = 'default',
+  tone,
   fullWidth = false,
   loading = false,
   loadingLabel,
@@ -97,6 +130,7 @@ export function Button({
       type="button"
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      data-tone={tone && tone !== 'default' ? tone : undefined}
       className={buttonClassName({ variant, size, fullWidth, className })}
       {...props}
     >

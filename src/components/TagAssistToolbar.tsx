@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { applyTagAssistToSelection } from '@/lib/prompt/tag-assist';
+import { Button } from '@/components/ui/Button';
 
 type TagAssistToolbarProps = {
   value: string;
@@ -42,30 +43,27 @@ export default function TagAssistToolbar({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+        <Button
           onClick={() => apply('emphasis')}
           title="Wrap selection as (phrase:1.2) — SD tag weight syntax"
-          className="rounded-full border border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          variant="pill"
         >
           Emphasize selection
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => apply('deemphasis')}
           title="Wrap selection as [phrase:0.8] — lower SD tag weight"
-          className="rounded-full border border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          variant="pill"
         >
           De-emphasize selection
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => apply('tags')}
           title="Convert selection to comma-separated tags"
-          className="rounded-full border border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          variant="pill"
         >
           Tags from selection
-        </button>
+        </Button>
       </div>
       {hint ? <p className="text-[11px] text-[var(--tint-warning-text)]">{hint}</p> : null}
     </div>

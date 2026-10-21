@@ -18,6 +18,7 @@ import {
   type CutShotEdit,
   type CutShotEdits,
 } from '@/lib/film/cut-plan';
+import { Button } from '@/components/ui/Button';
 
 type Drag =
   | { kind: 'hold'; key: string; startX: number; base: number; value: number }
@@ -206,23 +207,23 @@ export default function CutTimeline({
           Click to jump · drag a shot to move it · drag its edge to hold or trim
         </span>
         <span className="flex items-center gap-1">
-          <button
-            type="button"
-            className="h-7 w-7 rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+          <Button
+            variant="icon"
+            className="h-7 w-7"
             aria-label="Zoom the timeline out"
             onClick={() => setZoom(value => Math.max(0.5, value / 1.5))}
           >
             −
-          </button>
-          <button
-            type="button"
-            className="h-7 w-7 rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+          </Button>
+          <Button
+            variant="icon"
+            className="h-7 w-7"
             aria-label="Zoom the timeline in"
             data-testid="cut-timeline-zoom-in"
             onClick={() => setZoom(value => Math.min(8, value * 1.5))}
           >
             +
-          </button>
+          </Button>
         </span>
       </div>
       <div

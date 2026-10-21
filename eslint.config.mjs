@@ -76,6 +76,31 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // New buttons go through <Button variant=…> (src/components/ui/Button: primary, secondary,
+    // ghost, danger, pill, overlay, icon, link …) instead of a hand-styled class string. Warns on
+    // a raw <button> whose className is a string / template with no design-system class in it.
+    // Menu items using an exported class constant (ACTION_MENU_ITEM_CLASS) are not flagged.
+    files: ['src/**/*.tsx'],
+    ignores: ['src/components/ui/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector:
+            "JSXOpeningElement[name.name='button'] > JSXAttribute[name.name='className'] > Literal:not([value=/ui-(btn|chip|tab|segmented|text-link)/])",
+          message:
+            'Hand-styled <button>: use <Button variant=…> from @/components/ui/Button (add a variant there if none fits).',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='button'] > JSXAttribute[name.name='className'] > JSXExpressionContainer > TemplateLiteral:not(:has(TemplateElement[value.raw=/ui-(btn|chip|tab|segmented|text-link)/]))",
+          message:
+            'Hand-styled <button>: use <Button variant=…> from @/components/ui/Button (add a variant there if none fits).',
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
