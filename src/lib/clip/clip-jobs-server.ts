@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ClipJob, ClipJobTool } from './clip-jobs';
 import { MissingModelsError } from '../server/heavy-graph-server';
+import { friendlyError } from '../server/friendly-error';
 
 export type ClipJobContext = {
   signal: AbortSignal;
@@ -153,15 +154,13 @@ export function resetClipJobsForTest(): void {
 
 /** A failed job's message, and the missing model files when that is why. */
 export function describeClipJobError(error: unknown): Pick<ClipJob, 'error' | 'missing'> {
-  const message = error instanceof Error ? error.message : 'The clip job failed.';
+  const message = friendlyError(error, {
+    service: 'comfyui',
+    fallback: 'The clip job failed.',
+  }).message;
   if (!(error instanceof MissingModelsError)) return { error: message };
-  const listed = (error as { missing?: unknown }).missing;
-  const missing = Array.isArray(listed)
-    ? listed
-        .map(item =>
-          typeof item === 'string' ? item : String((item as { file?: unknown })?.file ?? '')
-        )
-        .filter(Boolean)
-    : (/needs (.+?) in ComfyUI/.exec(message)?.[1]?.split(/,\s*/) ?? []);
+  const missing = error.missing.length
+    ? error.missing
+    : (/needs (.+?) in ComfyUI/.exec(error.message)?.[1]?.split(/,\s*/) ?? []);
   return { error: message, missing };
 }

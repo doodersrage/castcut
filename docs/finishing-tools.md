@@ -39,6 +39,12 @@ Queue, Animate and Play another.
 Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth** and
 **Make more realistic**. The new clip is kept next to the original. One clip job runs at a time.
 
+Both run in the background. The **jobs tray** shows how far along a job is (Make more realistic
+counts its parts and gives the time left) with a **Cancel** button, which also stops the work in
+ComfyUI. Reloading or leaving the page doesn't lose the clip: the tray carries on, keeps the clip
+in the Gallery when it's done and puts it on the Day slot or Story scene next time that's open.
+A failed job stays in the tray with **Retry**, or **Install** when model files are missing.
+
 ---
 
 ## Sharpen & smooth { #sharpen-smooth }
@@ -58,6 +64,9 @@ detail turn into real texture. Motion, framing and faces stay. The clip's own so
 
 - The menus run **medium** strength (0.3). `POST /api/clip/realism` also takes
   `"strength": "light"` (0.2) or `"strong"` (0.4) — more real, but further from the original.
+  It answers `{ job }` at once; follow it with `GET /api/clip/jobs?jobId=` (its `note`, `done`
+  of `total`, `etaSec`, and `url` when completed) and cancel with `DELETE` on the same URL.
+  `/api/clip/finish` works the same way.
 - Clips longer than 81 frames (about 5 s at 16 fps) render in overlapping parts that are
   crossfaded back together. Each part takes a few minutes.
 - Clips bigger than 720p are re-rendered at 720p.

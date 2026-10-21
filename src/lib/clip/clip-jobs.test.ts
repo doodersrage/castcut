@@ -67,7 +67,8 @@ describe('clip jobs (server)', () => {
       'realism',
       async () => {
         throw new MissingModelsError(
-          'Make more realistic needs wan.safetensors, lora.safetensors in ComfyUI — install them from Settings → ComfyUI → Models.'
+          'Make more realistic needs wan.safetensors, lora.safetensors in ComfyUI — install them from Settings → ComfyUI → Models.',
+          ['wan.safetensors', 'lora.safetensors']
         );
       },
       { describeError: describeClipJobError }

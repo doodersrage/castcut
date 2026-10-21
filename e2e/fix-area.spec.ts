@@ -15,7 +15,7 @@ import { isolateServerStorage } from './helpers/storage';
  * Runs on the production server (CI) and, unchanged, on `next dev` (React StrictMode: every
  * effect mounts, cleans up and mounts again). The `cancelled` count below is what the dev-only
  * bug of 2026-10-05 would trip — a closed flag left set by the double mount cancelled both takes
- * the moment Fix queued them. See docs/release-2.3-test-checklist.md (2.4) for the dev run.
+ * the moment Fix queued them. See docs/archive/release-2.3-test-checklist.md (2.4) for the dev run.
  */
 
 async function stubComfy(
