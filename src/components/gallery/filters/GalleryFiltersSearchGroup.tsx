@@ -5,6 +5,7 @@ import type React from 'react';
 import type { ComfyGalleryFilter, ComfyGalleryJobStatus } from '@/lib/gallery/comfyui-gallery';
 import { GALLERY_UNGROUPED_FILTER } from '@/lib/gallery/custom-groups';
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type Props = {
   /** Phones: hide everything but Search (the Filters toggle opens it). */
@@ -154,11 +155,14 @@ export function GalleryFiltersSearchGroup({
               type="button"
               data-testid="gallery-group-delete"
               className="ui-btn-ghost ui-btn-sm text-[11px] text-[var(--tint-danger-text)]"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm(
-                    `Remove group “${filter.customGroup}” from all gallery items? Files stay; only the group label is cleared.`
-                  )
+                  await confirmAction({
+                    title: `Delete the group “${filter.customGroup}”?`,
+                    body: 'The label comes off every gallery item. The stills and clips stay.',
+                    confirmLabel: 'Delete group',
+                    tone: 'danger',
+                  })
                 ) {
                   onDeleteCustomGroup(filter.customGroup!);
                   setFilter(previous => ({ ...previous, customGroup: undefined }));

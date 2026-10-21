@@ -36,6 +36,7 @@ import {
   deleteRoleplayLibrarySession,
   roleplaySessionsForCharacterSync,
 } from '@/lib/story/roleplay-library';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 function applyCharacter(character: CharacterRecord) {
   saveSharedSettings({
@@ -79,13 +80,16 @@ export default function CharacterCastRoster() {
 
   const filmLead = rosterFilmLead(characters, activeCharacterId);
 
-  const forgetCharacter = (id: string) => {
+  const forgetCharacter = async (id: string) => {
     const character = characters.find(entry => entry.id === id);
     const name = character?.name?.trim() || 'this character';
     if (
-      !window.confirm(
-        `Remove ${name} from the cast? Looks on this record go with it. Gallery stills stay in the gallery.`
-      )
+      !(await confirmAction({
+        title: `Remove ${name} from the cast?`,
+        body: 'Their looks go with them. Gallery stills stay in the Gallery.',
+        confirmLabel: 'Remove',
+        tone: 'danger',
+      }))
     ) {
       return;
     }

@@ -11,6 +11,7 @@ import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { EmptyState } from '@/components/ui/ViewState';
 import { FieldLabel, TextArea } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type AvoidedTokensPanelProps = {
   avoidedTokens: string[];
@@ -100,10 +101,13 @@ export default function AvoidedTokensPanel({
               if (!file) {
                 return;
               }
-              void file.text().then(raw => {
-                const merge = window.confirm(
-                  'Merge imported tokens into the list? Cancel replaces the full list.'
-                );
+              void file.text().then(async raw => {
+                const merge = await confirmAction({
+                  title: 'Add the imported tokens to your list?',
+                  body: 'Merge keeps your list and adds these. Replace swaps your whole list for the file.',
+                  confirmLabel: 'Merge',
+                  cancelLabel: 'Replace list',
+                });
                 const count = importAvoidedTokensJson(raw, merge ? 'merge' : 'replace');
                 setStatus(`Imported ${count} avoided token(s).`);
               });

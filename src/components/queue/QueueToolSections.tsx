@@ -25,6 +25,7 @@ import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestratio
 import { APP_HAS_PLAY } from '@/lib/app/profile';
 import { galleryFailureSummary } from '@/lib/gallery/failure-summary';
 import { engineFamilyLabel } from '@/lib/model/files';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 const ACCENT = 'brand' as const;
 
@@ -187,11 +188,14 @@ export default function QueueToolSections({
                           variant="danger"
                           className="shrink-0"
                           data-testid="queue-cancel-batch"
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              window.confirm(
-                                `Cancel all ${group.entries.length} jobs in this batch?`
-                              )
+                              await confirmAction({
+                                title: `Cancel all ${group.entries.length} jobs in this batch?`,
+                                confirmLabel: 'Cancel batch',
+                                cancelLabel: 'Keep them',
+                                tone: 'danger',
+                              })
                             ) {
                               void cancelBatch(group.entries);
                             }

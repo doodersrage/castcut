@@ -6,6 +6,7 @@ import { GalleryCapWarningBanner } from '@/components/gallery/GalleryPanelChrome
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryCapWarningLevel } from '@/lib/gallery/cap';
 import { MAX_GALLERY_ENTRIES } from '@/lib/gallery/comfyui-gallery-storage-meta';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type GalleryPanelCapSectionProps = {
   showFilters: boolean;
@@ -119,14 +120,17 @@ export default function GalleryPanelCapSection({
             purgeRestOnly();
             setCapWizardOpen(false);
           }}
-          onDeleteEvicted={() => {
+          onDeleteEvicted={async () => {
             if (capEvictionPreview.length === 0) {
               return;
             }
             if (
-              window.confirm(
-                `Delete ${capEvictionPreview.length} at-risk gallery entries? Favorites, ratings, Cast look plates, and look keepers stay.`
-              )
+              await confirmAction({
+                title: `Delete ${capEvictionPreview.length} at-risk gallery entries?`,
+                body: 'Favorites, ratings, Cast look plates and look keepers stay.',
+                confirmLabel: 'Delete',
+                tone: 'danger',
+              })
             ) {
               removeEntries(capEvictionPreview.map(entry => entry.id));
               setCapWizardOpen(false);

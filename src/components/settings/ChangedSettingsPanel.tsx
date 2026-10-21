@@ -8,6 +8,7 @@ import { changedSettings, resetSettingsPatch } from '@/lib/settings/defaults-dif
 import { settingsSearchHref } from '@/lib/settings/search-index';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
 import type { SettingsTab } from '@/lib/settings/nav';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 /**
  * Settings that differ from a fresh install, grouped by area, each with a reset. With `tab`, only
@@ -101,11 +102,13 @@ export default function ChangedSettingsPanel({
             size="sm"
             variant="secondary"
             data-testid="changed-settings-reset-all"
-            onClick={() => {
+            onClick={async () => {
               if (
-                window.confirm(
-                  `Reset ${changed.length} setting${changed.length === 1 ? '' : 's'} to their defaults?`
-                )
+                await confirmAction({
+                  title: `Reset ${changed.length} setting${changed.length === 1 ? '' : 's'} to the defaults?`,
+                  confirmLabel: 'Reset',
+                  tone: 'danger',
+                })
               ) {
                 updateSharedSettings(
                   resetSettingsPatch(

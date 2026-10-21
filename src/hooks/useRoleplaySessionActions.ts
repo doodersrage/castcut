@@ -2,7 +2,7 @@
 
 import { useCallback, useState, type MutableRefObject } from 'react';
 import {
-  confirmRoleplayUndoScene,
+  roleplayUndoSceneQuestion,
   CUSTOM_ROLEPLAY_PERSONA_ID,
   ROLEPLAY_CONTENT,
   ROLEPLAY_TONES,
@@ -20,6 +20,7 @@ import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import { buildStoryFixAreaTarget } from '@/lib/story/roleplay-fix-area';
 import type { RoleplayScene } from '@/lib/story/roleplay';
 import type { RoleplayToolCache } from '@/lib/play/settings';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type AssembledFilmRef = MutableRefObject<{ filename: string; data: Uint8Array } | null>;
 
@@ -177,12 +178,14 @@ export function useRoleplaySessionActions({
   }, [setScenes, updateToolSettings]);
 
   /** Take the last scene back out of the reel — the step before it is open again. */
-  const undoLastScene = useCallback(() => {
-    const story = storyRef.current;
-    const last = story[story.length - 1];
-    if (!last || !confirmRoleplayUndoScene(last.title)) {
+  const undoLastScene = useCallback(async () => {
+    const last = storyRef.current[storyRef.current.length - 1];
+    if (!last || !(await confirmAction(roleplayUndoSceneQuestion(last.title)))) {
       return;
     }
+    // The reel as it is now: a still that finished while the question was open stays.
+    const story = storyRef.current;
+    if (story.length === 0) return;
     updateToolSettings({ story: story.slice(0, -1) });
     setScenes([]);
   }, [setScenes, storyRef, updateToolSettings]);

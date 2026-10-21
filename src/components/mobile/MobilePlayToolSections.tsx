@@ -45,7 +45,7 @@ import {
   getServerCharactersSnapshot,
   subscribeCharacters,
 } from '@/lib/character/os';
-import { confirmRoleplayUndoScene, type RoleplayStoryBeat } from '@/lib/story/roleplay';
+import { roleplayUndoSceneQuestion, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { remixDayFilmHref } from '@/lib/play/starter';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import {
@@ -53,6 +53,7 @@ import {
   loadToolSettings,
   saveToolSettings,
 } from '@/lib/settings/cache';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type ViewModel = ReturnType<typeof useMobilePlayToolOrchestration>;
 type Props = ViewModel & { description: string };
@@ -118,12 +119,13 @@ export default function MobilePlayToolSections({ description: _description, ...v
 
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   // As desk Story: the reel as it is now (a still that just finished is not put back).
-  const undoLastScene = () => {
-    const current = storyRef.current;
-    const last = current[current.length - 1];
-    if (!last || !confirmRoleplayUndoScene(last.title)) {
+  const undoLastScene = async () => {
+    const last = storyRef.current[storyRef.current.length - 1];
+    if (!last || !(await confirmAction(roleplayUndoSceneQuestion(last.title)))) {
       return;
     }
+    const current = storyRef.current;
+    if (current.length === 0) return;
     updateToolSettings({ story: current.slice(0, -1) });
     setScenes([]);
   };

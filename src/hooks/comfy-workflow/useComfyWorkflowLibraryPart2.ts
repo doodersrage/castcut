@@ -58,6 +58,7 @@ import { diffWorkflowNodes } from '@/lib/workflow/diff';
 import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow/health-audit';
 import { downloadText } from '@/lib/storage/download-text';
 import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type UseComfyWorkflowLibraryOptions = {
   placeholderTokens: WorkflowPlaceholderTokens;
@@ -369,18 +370,19 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
   }, [onStatus, placeholderTokens, refresh]);
 
   const removeFile = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const shared = loadSettingsCache().shared;
       const pinned = Object.entries(shared.modelWorkflowMap ?? {})
         .filter(([, workflowId]) => workflowId?.trim() === id)
         .map(([model]) => model);
       if (
         pinned.length > 0 &&
-        typeof window !== 'undefined' &&
-        typeof window.confirm === 'function' &&
-        !window.confirm(
-          `This workflow is pinned for ${pinned.join(', ')}. Delete it and let those use the automatic pick?`
-        )
+        !(await confirmAction({
+          title: 'Delete this pinned workflow?',
+          body: `It is pinned for ${pinned.join(', ')}. Those go back to the automatic pick.`,
+          confirmLabel: 'Delete',
+          tone: 'danger',
+        }))
       ) {
         return;
       }

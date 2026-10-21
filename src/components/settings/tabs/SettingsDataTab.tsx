@@ -28,6 +28,7 @@ import {
 import { resetFirstQueueSetupModal } from '@/lib/app/first-queue-setup';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 function FailureSparkline({ series }: { series: number[] }) {
   const max = Math.max(1, ...series);
@@ -126,9 +127,14 @@ export default function SettingsDataTab({
           />
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (
-                window.confirm('Clear all local prompt history, settings, presets, and templates?')
+                await confirmAction({
+                  title: 'Clear all local data?',
+                  body: 'Prompt history, settings, presets and templates in this browser are cleared.',
+                  confirmLabel: 'Clear local data',
+                  tone: 'danger',
+                })
               ) {
                 clearAllLocalPromptData();
                 resetComfyUiSettings();

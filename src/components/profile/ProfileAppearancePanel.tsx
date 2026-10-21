@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import ThemePreferenceControl from '@/components/ThemePreferenceControl';
 import WorkspaceModeControl from '@/components/WorkspaceModeControl';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export default function ProfileAppearancePanel() {
   const [ambient, setAmbient] = useState<AmbientIntensity>('subtle');
@@ -150,11 +151,14 @@ export default function ProfileAppearancePanel() {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => {
+          onClick={async () => {
             if (
-              !window.confirm(
-                'Reset the layout? Pinned tools, recent pages, open sections and remembered drafts are forgotten.'
-              )
+              !(await confirmAction({
+                title: 'Reset the layout?',
+                body: 'Pinned tools, recent pages, open sections and remembered drafts are forgotten. Your theme stays.',
+                confirmLabel: 'Reset layout',
+                tone: 'danger',
+              }))
             ) {
               return;
             }

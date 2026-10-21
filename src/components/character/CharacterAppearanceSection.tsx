@@ -45,6 +45,7 @@ import {
   type CharacterRecord,
 } from '@/lib/character/os';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 const FIELDS: Array<{
   key: keyof CharacterTraits;
@@ -145,9 +146,12 @@ export default function CharacterAppearanceSection({
 
   const startOver = async () => {
     if (
-      !window.confirm(
-        `Start ${character.name} over from scratch? Every look's plate is cleared (they stay in Earlier plates) and the next plate is rendered fresh from the traits — a new face, so Day and Story pictures will look different.`
-      )
+      !(await confirmAction({
+        title: `Start ${character.name} over from scratch?`,
+        body: "Every look's plate is cleared (they stay in Earlier plates) and the next plate is rendered fresh from the traits — a new face, so Day and Story pictures will look different.",
+        confirmLabel: 'Start over',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
