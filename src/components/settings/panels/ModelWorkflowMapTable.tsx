@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/registry';
 import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
 import { modelWorkflowKind, workflowFileKind, type WorkflowKind } from '@/lib/workflow/kind';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 const FACE_DETAILER_KEY = 'faceDetailer';
 
@@ -94,7 +95,7 @@ export default function ModelWorkflowMapTable({
   return (
     <div className="space-y-2" data-testid="model-workflow-map-table">
       {disabled && rows.length === 0 ? (
-        <p className="text-xs text-[var(--text-muted)]">Loading saved map…</p>
+        <DataListSkeleton rows={2} label="Loading saved map" />
       ) : rows.length === 0 ? (
         <p className="text-xs text-[var(--text-muted)]">
           No models pinned — every model uses {automaticLabel}.

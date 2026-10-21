@@ -34,6 +34,7 @@ import {
   saveToolSettings,
 } from '@/lib/settings/cache';
 import { DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import { ToolPageSkeleton } from '@/components/ui/ViewState';
 
 export default function MobileCaptureTool() {
   const { mounted, shared, toolSettings, updateToolSettings } = useCachedSettings(
@@ -189,7 +190,7 @@ export default function MobileCaptureTool() {
   );
 
   if (!mounted) {
-    return <p className="type-caption text-[var(--text-muted)]">Loading capture…</p>;
+    return <ToolPageSkeleton label="Loading capture" />;
   }
 
   const activeCastId = shared.activeCharacterId?.trim() || '';

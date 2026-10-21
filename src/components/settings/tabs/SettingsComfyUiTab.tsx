@@ -31,10 +31,11 @@ import {
 } from '@/components/settings/tabs/settings-tool-shared';
 import { ToolSection, accentFocusClass, CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 const ComfyWorkflowLibraryPanel = dynamic(() => import('@/components/ComfyWorkflowLibraryPanel'), {
   ssr: false,
-  loading: () => <p className="text-sm text-[var(--text-muted)]">Loading workflow library…</p>,
+  loading: () => <DataListSkeleton rows={4} label="Loading workflow library" />,
 });
 
 const ACCENT = SETTINGS_TOOL_ACCENT;

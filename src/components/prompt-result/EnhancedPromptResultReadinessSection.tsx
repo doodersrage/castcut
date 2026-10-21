@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { DetailLevel } from '@/lib/prompt/detail-level';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
+import { PanelSkeleton } from '@/components/ui/ViewState';
 
 const ReadinessBadge = dynamic(() => import('@/components/ReadinessBadge'), {
   ssr: false,
@@ -11,7 +12,7 @@ const ReadinessBadge = dynamic(() => import('@/components/ReadinessBadge'), {
 });
 const PromptWeightInspector = dynamic(() => import('@/components/PromptWeightInspector'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <PanelSkeleton className="h-40" />,
 });
 
 export type EnhancedPromptResultReadinessSectionProps = {

@@ -221,9 +221,18 @@ export function HistoryCardSkeleton() {
   );
 }
 
-export function DataListSkeleton({ rows = 5 }: { rows?: number }) {
+/**
+ * Placeholder rows for a list that is still loading. With `label` it announces itself as a
+ * busy status ("Loading assets"); without one it stays hidden from assistive tech.
+ */
+export function DataListSkeleton({ rows = 5, label }: { rows?: number; label?: string }) {
   return (
-    <div className="ui-list" aria-hidden>
+    <div
+      className="ui-list"
+      {...(label
+        ? { role: 'status', 'aria-busy': true, 'aria-label': label }
+        : { 'aria-hidden': true })}
+    >
       {Array.from({ length: rows }, (_, index) => (
         <div key={index} className="ui-list-row">
           <div className="ui-list-primary space-y-2">
@@ -296,5 +305,16 @@ export function ToolPageSkeleton({ label = 'Loading' }: { label?: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * A fixed-height placeholder block for a lazily loaded panel (a `dynamic()` import's `loading`),
+ * so the panel's space is held while its chunk loads instead of popping in. Pass the height
+ * (`h-20`) roughly matching the panel.
+ */
+export function PanelSkeleton({ className = 'h-20' }: { className?: string }) {
+  return (
+    <Skeleton className={`w-full rounded-[var(--radius-md)] ${className}`.trim()} aria-hidden />
   );
 }

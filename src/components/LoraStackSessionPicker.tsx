@@ -44,6 +44,7 @@ import {
   normalizeLoraStackPresets,
   saveLoraStackPreset,
 } from '@/lib/lora/library-tools';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 type LoraStackSessionPickerProps = {
   model?: string;
@@ -228,7 +229,7 @@ export default function LoraStackSessionPicker({
   };
 
   if (!snapshot) {
-    return <p className="type-caption text-[var(--text-muted)]">Loading LoRA stack…</p>;
+    return <DataListSkeleton rows={2} label="Loading LoRA stack" />;
   }
 
   const selectable = listSelectableLoraLibraryEntries(snapshot.library);

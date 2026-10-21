@@ -36,6 +36,7 @@ import {
   saveToolSettings,
 } from '@/lib/settings/cache';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import { ToolPageSkeleton } from '@/components/ui/ViewState';
 
 const RATINGS = [1, 2, 3, 4, 5] as const;
 
@@ -143,7 +144,7 @@ export default function MobileGalleryTool() {
   };
 
   if (!storeReady) {
-    return <p className="type-caption text-[var(--text-muted)]">Loading gallery…</p>;
+    return <ToolPageSkeleton label="Loading gallery" />;
   }
 
   return (

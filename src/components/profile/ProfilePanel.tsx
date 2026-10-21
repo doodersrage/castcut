@@ -13,6 +13,7 @@ import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import Link from 'next/link';
 import { settingsTabHref } from '@/lib/settings/nav';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 export default function ProfilePanel() {
   const auth = useAuth();
@@ -123,7 +124,7 @@ export default function ProfilePanel() {
   if (!user) {
     return (
       <ToolSection title="Account settings">
-        <p className="text-sm text-[var(--text-muted)]">Loading your profile…</p>
+        <DataListSkeleton rows={3} label="Loading your profile" />
       </ToolSection>
     );
   }

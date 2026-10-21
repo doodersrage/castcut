@@ -23,6 +23,7 @@ import {
   updateSavedFittingGarmentDescription,
   type SavedFittingGarment,
 } from '@/lib/fitting/saved-garments';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 type ClothingMode = 'kit' | 'photo';
 
@@ -206,7 +207,7 @@ export default function ClothingPicker({
               }
             />
           ) : (
-            <p className="type-caption text-[var(--text-muted)]">Loading outfit kits…</p>
+            <DataListSkeleton rows={3} label="Loading outfit kits" />
           )}
         </div>
       ) : (

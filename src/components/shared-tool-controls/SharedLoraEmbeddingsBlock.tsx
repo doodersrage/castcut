@@ -7,10 +7,11 @@ import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { modelSupportsTextualInversion } from '@/lib/lora/textual-inversion';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SharedAdvancedSectionsProps } from '@/components/shared-tool-controls/SharedAdvancedSections';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 const LoraStackSessionPicker = dynamic(() => import('@/components/LoraStackSessionPicker'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <DataListSkeleton rows={2} />,
 });
 const EmbeddingSessionChips = dynamic(() => import('@/components/EmbeddingSessionChips'), {
   ssr: false,
