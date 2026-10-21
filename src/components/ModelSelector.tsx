@@ -15,12 +15,12 @@ import {
 } from '@/lib/comfyui/object-info-cache';
 import {
   installedComfyModels,
-  MODEL_PICKER_GROUPS,
-  modelMatchesQuery,
-  modelPickerGroup,
+  modelPickerSections,
   modelPickerTags,
   pushRecentModel,
   toggleStarredModel,
+  type ModelPickerRow,
+  type ModelPickerSection,
 } from '@/lib/model/picker';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
@@ -64,11 +64,9 @@ function useComfyModelInventory(): ComfyUiModelLists | null | undefined {
   return models;
 }
 
-type Row =
-  | { kind: 'model'; key: string; entry: ComfyImageModelDefinition; installed: boolean | null }
-  | { kind: 'more'; key: string; count: number };
+type Row = ModelPickerRow<ComfyImageModelDefinition>;
 
-type Section = { key: string; label: string; rows: Row[] };
+type Section = ModelPickerSection<ComfyImageModelDefinition>;
 
 function Tags({ tags }: { tags: string[] }) {
   if (tags.length === 0) return null;
@@ -85,7 +83,7 @@ function Tags({ tags }: { tags: string[] }) {
 
 /**
  * Engine model picker: a compact selected row, and a floating searchable list — Recent and
- * Starred first, then models grouped by job. Only installed models show until "Show more".
+ * Starred first, then installed models grouped by job; the rest under a collapsed "Not installed".
  */
 export default function ModelSelector({
   value,
@@ -148,51 +146,19 @@ export default function ModelSelector({
     [installed]
   );
 
-  const sections = useMemo((): Section[] => {
-    const modelRow = (entry: ComfyImageModelDefinition, section: string): Row => ({
-      kind: 'model',
-      key: `${section}:${entry.id}`,
-      entry,
-      installed: isInstalled(entry.id),
-    });
-    const visible = (entry: ComfyImageModelDefinition) =>
-      showMissing || isInstalled(entry.id) !== false || entry.id === value;
-    const matches = catalog.filter(entry => modelMatchesQuery(entry, query));
-    const missingCount = matches.filter(entry => isInstalled(entry.id) === false).length;
-    const moreRow: Row[] =
-      !showMissing && missingCount > 0 ? [{ kind: 'more', key: 'more', count: missingCount }] : [];
-
-    if (query.trim()) {
-      const shown = matches.filter(visible);
-      return [
-        {
-          key: 'results',
-          label: 'Results',
-          rows: [...shown.map(entry => modelRow(entry, 'r')), ...moreRow],
-        },
-      ];
-    }
-    const byId = new Map(catalog.map(entry => [entry.id, entry]));
-    const pick = (ids: string[]) =>
-      ids
-        .map(modelId => byId.get(modelId as ComfyImageModel))
-        .filter(Boolean) as ComfyImageModelDefinition[];
-    const out: Section[] = [];
-    const recents = pick(prefs.recents).filter(visible);
-    if (recents.length)
-      out.push({ key: 'recent', label: 'Recent', rows: recents.map(e => modelRow(e, 'recent')) });
-    const stars = pick(prefs.stars).filter(visible);
-    if (stars.length)
-      out.push({ key: 'starred', label: 'Starred', rows: stars.map(e => modelRow(e, 'star')) });
-    for (const group of MODEL_PICKER_GROUPS) {
-      const rows = catalog
-        .filter(entry => modelPickerGroup(entry) === group.id && visible(entry))
-        .map(entry => modelRow(entry, group.id));
-      if (rows.length) out.push({ key: group.id, label: group.label, rows });
-    }
-    if (moreRow.length) out.push({ key: 'more', label: '', rows: moreRow });
-    return out;
-  }, [catalog, isInstalled, prefs, query, showMissing, value]);
+  const sections = useMemo(
+    (): Section[] =>
+      modelPickerSections({
+        catalog,
+        isInstalled,
+        value,
+        query,
+        showMissing,
+        recents: prefs.recents,
+        stars: prefs.stars,
+      }),
+    [catalog, isInstalled, prefs, query, showMissing, value]
+  );
 
   const flatRows = useMemo(() => sections.flatMap(section => section.rows), [sections]);
 
@@ -301,7 +267,7 @@ export default function ModelSelector({
   const activate = (row: Row | undefined) => {
     if (!row) return;
     if (row.kind === 'more') {
-      setShowMissing(true);
+      setShowMissing(shown => !shown);
       return;
     }
     selectModel(row.entry.id);
@@ -324,7 +290,6 @@ export default function ModelSelector({
   const keepSearchFocus = (event: React.MouseEvent) => event.preventDefault();
 
   const selectedTags = modelPickerTags(selected, installed?.get(selected.id));
-  let rowIndex = -1;
 
   return (
     <div id={id}>
@@ -402,8 +367,7 @@ export default function ModelSelector({
                   <div key={section.key} role="group" aria-label={section.label || undefined}>
                     {section.label ? <p className="model-picker-section">{section.label}</p> : null}
                     {section.rows.map(row => {
-                      rowIndex += 1;
-                      const index = rowIndex;
+                      const index = flatRows.indexOf(row);
                       const active = index === activeIndex;
                       if (row.kind === 'more') {
                         return (
@@ -414,11 +378,14 @@ export default function ModelSelector({
                             aria-selected={active}
                             data-row-index={index}
                             className={`model-picker-row model-picker-more ${active ? 'model-picker-row-active' : ''}`}
+                            data-testid="model-picker-missing-toggle"
                             onMouseEnter={() => setActiveIndex(index)}
                             onMouseDown={keepSearchFocus}
                             onClick={() => activate(row)}
                           >
-                            Show {row.count} more (not installed)
+                            {row.expanded
+                              ? 'Hide engines that are not installed'
+                              : `Not installed (${row.count}) — show`}
                           </div>
                         );
                       }
