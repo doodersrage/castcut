@@ -5,6 +5,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import { writeClipSource } from './clip-source-server';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -341,7 +342,7 @@ export async function planClipExtend(
   try {
     const source = path.join(/* turbopackIgnore: true */ dir, 'clip.bin');
     const at24 = path.join(/* turbopackIgnore: true */ dir, 'at24.mp4');
-    await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
+    await writeClipSource(ffmpeg, fetched.buffer, source);
     const original = await probe(ffmpeg, source);
     const clip = await normalizePiece(ffmpeg, source, at24, {
       width: original.width & ~1,
@@ -397,7 +398,7 @@ export async function extendClip(
   await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
   const at = (name: string) => path.join(/* turbopackIgnore: true */ dir, name);
   try {
-    await fs.writeFile(/* turbopackIgnore: true */ at('clip.bin'), fetched.buffer);
+    await writeClipSource(ffmpeg, fetched.buffer, at('clip.bin'));
     const original = await probe(ffmpeg, at('clip.bin'));
     // Even sides for x264; the clip's own size.
     const size = { width: original.width & ~1, height: original.height & ~1 };

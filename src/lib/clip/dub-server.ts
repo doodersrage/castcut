@@ -5,6 +5,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import { writeClipSource } from './clip-source-server';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -98,7 +99,7 @@ export async function dubClipWithVoice(input: {
     const source = path.join(/* turbopackIgnore: true */ dir, 'clip.bin');
     const at24 = path.join(/* turbopackIgnore: true */ dir, 'at24.mp4');
     const cut = path.join(/* turbopackIgnore: true */ dir, 'dub-input.mp4');
-    await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
+    await writeClipSource(ffmpeg, fetched.buffer, source);
     const encode = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an'];
     // Pass 1: 24 fps, and count what came out; pass 2: cut to an 8k+1 frame count.
     const log = await run(ffmpeg, [

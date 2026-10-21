@@ -5,6 +5,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import { writeClipSource } from './clip-source-server';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -32,9 +33,18 @@ function run(bin: string, args: string[], signal?: AbortSignal): Promise<string>
     child.on('close', code => {
       if (code === 0) return resolve(stderr);
       if (!signal?.aborted) console.error('[clip] ffmpeg failed:', stderr.trim().slice(-4000));
-      reject(new Error(ffmpegFailureMessage(stderr, code)));
+      // The short reason for people; the whole log rides along for callers that parse it.
+      reject(Object.assign(new Error(ffmpegFailureMessage(stderr, code)), { stderr }));
     });
   });
+}
+
+/** A failed run's full ffmpeg log (stream lines included), for parsing. */
+function ffmpegLog(error: unknown): string {
+  const stderr = (error as { stderr?: unknown } | null)?.stderr;
+  return typeof stderr === 'string'
+    ? stderr
+    : String(error instanceof Error ? error.message : error);
 }
 
 /** Size and frame rate from ffmpeg's stream line ("… 832x480 … 16 fps"). */
@@ -75,7 +85,7 @@ export async function finishClip(input: {
   try {
     const source = path.join(/* turbopackIgnore: true */ dir, 'clip.bin');
     const mp4 = path.join(/* turbopackIgnore: true */ dir, 'finish-input.mp4');
-    await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
+    await writeClipSource(ffmpeg, fetched.buffer, source);
     // An MP4 ComfyUI's LoadVideo reads: even sides, H.264, the sound (if any) kept.
     const log = await run(
       ffmpeg,
@@ -100,7 +110,7 @@ export async function finishClip(input: {
       signal
     );
     const probe = await run(ffmpeg, ['-i', mp4, '-f', 'null', '-'], signal).catch(error =>
-      String(error instanceof Error ? error.message : error)
+      ffmpegLog(error)
     );
     const stream = readClipStream(probe) ?? readClipStream(log);
     if (!stream) throw new Error('Could not read that clip.');
