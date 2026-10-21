@@ -39,11 +39,44 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 | Field | What it does |
 | --- | --- |
 | **Setting · Beat** | Where she is and what she does |
-| **Pose** | The pose the beat matched — **Change pose**, **Try another**, **From a photo…** |
+| **Pose** | The pose the beat matched — **Change pose**, **Try another**, **From a photo…**, **Edit joints** (the pose editor, below) |
 | **Clothing** | This slot's outfit and shoes |
 | **Line** | What she says in the clip — *Suggest a line* writes one |
 | **Narration** | Voice-over heard over the shot in the film — *Suggest a narration* writes one |
 | **Also in this still** | A third Cast member with her and the partner (People: Mixed or Duo, clothed moods, Edit 2511 or Qwen-Image 2.1). **And a fourth** adds one more on Qwen-Image 2.1; the Cast's room photo still comes along, as a fifth picture |
+
+## The pose editor
+
+**Edit joints** (and Outfit's **Custom pose**, and a Story scene's pose) opens the pose editor:
+a smooth, neutral 3D body — a woman by default, a man for *his* poses — standing in the
+picture's own frame.
+
+| To | Do |
+| --- | --- |
+| Move an arm or a leg | Drag the coloured ball on the hand or foot. The elbow or knee follows and only bends the natural way; a foot stays flat |
+| Turn the head | Drag the yellow ring in front of the face — the head looks at it (as far as a neck turns) |
+| Move the whole figure | Drag the white ring at the hips |
+| Turn one part | Click it (a forearm, the chest, the head…) for rotation rings; drag a ring, or the outer white one to turn it freely. Click empty space, or **Done**, to finish. Clicking the hips turns the whole figure |
+| Look around | Drag empty space to orbit, scroll or pinch to zoom, right-drag or two fingers to pan. On a phone one finger orbits unless it starts on a ball |
+| Frame it | **Front**, **Side**, **Back**, **Top** jump the camera there |
+
+The camera *is* the picture: the pose map for the still is the body seen from where you look,
+so a **Side** view makes a side-on pose. **Toward or away from the camera** flips a limb to the
+other side of the picture plane without changing the picture — the one thing a flat pose
+cannot say. **Mirror**, **Reset**, **Undo** / **Redo** (Ctrl+Z), **Start from** (Stand, Sit,
+Kneel, Lie down, Walk, **More poses…**, **Real poses…**), a partner (**Add partner**, *Lead* /
+*Partner* tabs, **Swap sides**, each with a **Woman** / **Man** body) and **Show her picture**
+work as before.
+
+Saving keeps the 18 skeleton points every Day tool reads — the pose map, the words, the pose
+check — and the 3D body alongside, so reopening the editor puts the body back exactly. A pose
+made elsewhere (a Day pose, a real pose, My poses, *From a photo*) opens as the body read from
+its points; check a foreshortened limb and flip it if it reads the wrong way.
+
+**Wireframe editor** (top of the panel) switches to the flat stick-figure editor — it still has
+the Quick positions, Copy a side, Fit to her picture and the start outline — and the choice is
+remembered; **3D editor** switches back. Without WebGL the wireframe editor opens by itself.
+The bodies are Blender Studio's *Human Base Meshes* (CC0).
 
 ## Quality
 

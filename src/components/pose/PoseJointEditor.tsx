@@ -115,6 +115,7 @@ export default function PoseJointEditor({
   backdropLabel,
   duoSeed,
   soloStill = false,
+  onUse3d,
 }: {
   bodies: NormalizedBody[];
   aspect: number;
@@ -140,6 +141,8 @@ export default function PoseJointEditor({
   duoSeed?: NormalizedBody[];
   /** The still draws one person: a partner is kept with the pose but not drawn. */
   soloStill?: boolean;
+  /** Switch to the 3D editor, handing it the pose as it stands (absent without WebGL). */
+  onUse3d?: (bodies: NormalizedBody[], words: string | null) => void;
 }) {
   const titleId = useId();
   const [bodies, setBodies] = useState<NormalizedBody[]>(() =>
@@ -1016,9 +1019,22 @@ export default function PoseJointEditor({
       </div>
       <div className="flex min-h-0 w-full flex-col max-md:flex-1 md:w-[26rem] md:shrink-0">
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          <h2 id={titleId} className="type-heading">
-            Edit pose
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id={titleId} className="type-heading">
+              Edit pose
+            </h2>
+            {onUse3d ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                title="Pose a smooth 3D body instead of the stick figure"
+                data-testid={`${testIdPrefix}-mode-3d`}
+                onClick={() => onUse3d(bodies, presetWords)}
+              >
+                3D editor
+              </Button>
+            ) : null}
+          </div>
           <div className="space-y-1.5" data-testid={`${testIdPrefix}-editor-tools`}>
             <p className="type-caption text-[var(--text-muted)]">Start from</p>
             <div className="flex flex-wrap gap-1.5">

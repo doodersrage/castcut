@@ -27,7 +27,8 @@ import {
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
-const PoseJointEditor = dynamic(() => import('@/components/pose/PoseJointEditor'), {
+// The pose editor (3D, or the wireframe one) — each loads its own chunk when opened.
+const PoseEditor = dynamic(() => import('@/components/pose/PoseEditor'), {
   ssr: false,
 });
 
@@ -222,7 +223,8 @@ export default function PosePreview({
 
   if (editing) {
     return (
-      <PoseJointEditor
+      <PoseEditor
+        rig3d={picks.posePhoto?.rig3d}
         bodies={editorPlan.bodies}
         aspect={openPose.canvas.width / openPose.canvas.height}
         testIdPrefix={testIdPrefix}

@@ -30,7 +30,7 @@ Open **Outfit** (`/fitting`).
 | Option | What it does |
 | --- | --- |
 | **As the plate** | Keeps the plate's stance |
-| **Custom pose** | The pose editor — drag hands and feet, start from a named pose |
+| **Custom pose** | The [pose editor](guide-day.md#the-pose-editor) — a 3D body: drag hands and feet, turn the head, orbit the camera; start from a named pose |
 | **From a photo** | Reads the pose of someone in a photo |
 
 The box *The prompt will open with* shows the pose in words. The models follow the words
