@@ -30,6 +30,7 @@ import {
   posturePairWords,
   scorePoseMatch,
   guidePostureContradictsWords,
+  isCustomPoseKey,
 } from '@/lib/pose/score';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
@@ -265,6 +266,7 @@ export function useDayPoseMissRedo(
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
+          customPose: isCustomPoseKey(expectation.poseKey),
         });
         // Posture unread or the beat has an action: one vision call checks both, and rates how
         // real the still looks.
