@@ -32,7 +32,7 @@ export default function ImageLightboxJobBadge({
       {job.status === 'error' ? (
         <span
           aria-hidden
-          className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--tint-danger-text)] text-[10px] font-bold leading-none text-[var(--bg-base)]"
+          className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--tint-danger-text)] text-3xs font-bold leading-none text-[var(--bg-base)]"
         >
           !
         </span>

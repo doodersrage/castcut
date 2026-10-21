@@ -94,7 +94,7 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
                 </span>
                 {isNext ? (
                   <span
-                    className="shrink-0 rounded-md bg-[var(--accent-text)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bg-base,white)]"
+                    className="shrink-0 rounded-md bg-[var(--accent-text)] px-1.5 py-0.5 text-3xs font-semibold uppercase tracking-wide text-[var(--bg-base,white)]"
                     data-testid="cast-checklist-next"
                   >
                     Next

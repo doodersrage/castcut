@@ -65,7 +65,7 @@ export default function TagAssistToolbar({
           Tags from selection
         </Button>
       </div>
-      {hint ? <p className="text-[11px] text-[var(--tint-warning-text)]">{hint}</p> : null}
+      {hint ? <p className="text-2xs text-[var(--tint-warning-text)]">{hint}</p> : null}
     </div>
   );
 }

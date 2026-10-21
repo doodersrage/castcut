@@ -29,7 +29,7 @@ export default function PromptWeightInspector(props: {
 
       {props.onChange && supportsTagAssist ? (
         <>
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-2xs text-[var(--text-muted)]">
             Select text in the prompt editor, then apply SD-style emphasis or comma tags.
           </p>
           <TagAssistToolbar

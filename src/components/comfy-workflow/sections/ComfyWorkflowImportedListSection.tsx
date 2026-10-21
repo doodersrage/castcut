@@ -97,7 +97,7 @@ export function ComfyWorkflowEditPanel({
             <label key={field.token} className="block space-y-1.5">
               <span className="type-caption">
                 {field.label}{' '}
-                <code className="text-[10px] text-[var(--accent-text)]">{field.token}</code>
+                <code className="text-3xs text-[var(--accent-text)]">{field.token}</code>
               </span>
               <TextInput
                 value={getWorkflowTokenValue(editingTokens, field.token)}
@@ -197,7 +197,7 @@ export function ComfyWorkflowEditPanel({
             </Button>
           </div>
           {bindingPreview ? (
-            <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/60 p-2 text-[11px] text-[var(--text-muted)]">
+            <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]/60 p-2 text-2xs text-[var(--text-muted)]">
               {bindingPreview}
             </pre>
           ) : null}
@@ -276,7 +276,7 @@ export function ComfyWorkflowImportedRow({
           <p className="type-heading">
             {displayName}
             {active && (
-              <span className="ml-2 rounded-full bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--accent-text)]">
+              <span className="ml-2 rounded-full bg-[var(--accent-muted)] px-2 py-0.5 text-3xs uppercase tracking-wide text-[var(--accent-text)]">
                 Active
               </span>
             )}
@@ -293,7 +293,7 @@ export function ComfyWorkflowImportedRow({
             className="type-caption mt-1 flex flex-wrap items-center gap-1.5"
             data-testid="workflow-usage"
           >
-            <span className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
+            <span className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-3xs uppercase tracking-wide text-[var(--text-secondary)]">
               {WORKFLOW_KIND_LABEL[workflowFileKind(file)]}
             </span>
             {usage?.pinned.length ? (

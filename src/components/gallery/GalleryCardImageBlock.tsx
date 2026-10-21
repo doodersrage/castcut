@@ -172,7 +172,7 @@ export default function GalleryCardImageBlock({
       entry.queuePosition != null &&
       entry.queuePosition > 0 &&
       progressPercent == null ? (
-        <p className="absolute bottom-2 left-2 z-10 rounded-full border border-[var(--border-default)]/60 bg-[var(--bg-base)]/80 px-2 py-0.5 text-[10px] text-[var(--text-muted)] backdrop-blur">
+        <p className="absolute bottom-2 left-2 z-10 rounded-full border border-[var(--border-default)]/60 bg-[var(--bg-base)]/80 px-2 py-0.5 text-3xs text-[var(--text-muted)] backdrop-blur">
           Queue #{entry.queuePosition}
         </p>
       ) : null}

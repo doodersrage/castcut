@@ -112,9 +112,7 @@ export default function ModelWorkflowMapTable({
               >
                 <span className="min-w-[10rem] flex-1 text-xs text-[var(--text-primary)]">
                   {modelLabel(model)}
-                  <span className="ml-1 font-mono text-[10px] text-[var(--text-muted)]">
-                    {model}
-                  </span>
+                  <span className="ml-1 font-mono text-3xs text-[var(--text-muted)]">{model}</span>
                 </span>
                 <select
                   value={workflowId}
@@ -130,7 +128,7 @@ export default function ModelWorkflowMapTable({
                   {options(model)}
                 </select>
                 <span
-                  className={`text-[10px] ${
+                  className={`text-3xs ${
                     status.tone === 'ok'
                       ? 'text-[var(--text-muted)]'
                       : 'ui-status-danger font-medium'

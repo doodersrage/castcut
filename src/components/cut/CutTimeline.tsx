@@ -250,7 +250,7 @@ export default function CutTimeline({
             {ticks.map(t => (
               <span
                 key={t}
-                className="absolute top-0 h-full border-l border-[var(--border-subtle)] pl-0.5 text-[10px] tabular-nums text-[var(--text-muted)]"
+                className="absolute top-0 h-full border-l border-[var(--border-subtle)] pl-0.5 text-3xs tabular-nums text-[var(--text-muted)]"
                 style={{ left: t * pps }}
               >
                 {Math.floor(t / 60)}:{String(Math.round(t) % 60).padStart(2, '0')}
@@ -277,7 +277,7 @@ export default function CutTimeline({
               return (
                 <div
                   key={`title-${index}`}
-                  className="absolute top-6 flex h-[5.5rem] items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-black px-1 text-center text-[10px] text-white/80"
+                  className="absolute top-6 flex h-[5.5rem] items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-black px-1 text-center text-3xs text-white/80"
                   style={{ left, width: blockWidth }}
                   title="Title card"
                 >
@@ -398,7 +398,7 @@ export default function CutTimeline({
                     style={{ width: Math.min(blockWidth, item.inSec * pps) }}
                   />
                 ) : null}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-[10px] text-white">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-3xs text-white">
                   {item.kind === 'clip' ? '▶ ' : ''}
                   {loaded?.shots[item.shot]?.title}
                   {live ? ` · ${live.value} s` : ''}

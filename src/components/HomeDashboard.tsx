@@ -390,7 +390,7 @@ export default function HomeDashboard() {
                           : 'Open in gallery'
                       }
                     />
-                    <p className="pointer-events-none relative z-[2] line-clamp-2 p-2 text-[11px] text-[var(--text-tertiary)]">
+                    <p className="pointer-events-none relative z-[2] line-clamp-2 p-2 text-2xs text-[var(--text-tertiary)]">
                       {/* The beat, not the internal edit instruction the still was queued with. */}
                       {galleryCardCaption(entry.prompt) || entry.prompt}
                     </p>
@@ -398,41 +398,41 @@ export default function HomeDashboard() {
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex translate-y-1 gap-1 bg-gradient-to-t from-[var(--bg-base)] via-[var(--bg-base)]/80 to-transparent p-2 pt-8 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
                     <button
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => void requeueComfyJobFromEntry(entry)}
                     >
                       Re-queue
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startRefineFromGalleryEntry(entry)}
                     >
                       Refine
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startRoleplayFromGalleryEntry(entry)}
                     >
                       Story
                     </button>
                     <button
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startPromptEditorFromGalleryEntry(entry)}
                     >
                       Edit
                     </button>
                     <AppRouteLink
                       href={hintsHref}
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     >
                       Hints
                     </AppRouteLink>
                     <Link
                       href={focusHref}
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     >
                       Open
                     </Link>

@@ -20,7 +20,7 @@ export default function IdentityMarkChip({
         : 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-secondary)]';
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] leading-4 ${tone}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-3xs leading-4 ${tone}`}
       title={mark.detail}
       data-testid={testId}
       data-tone={mark.tone}

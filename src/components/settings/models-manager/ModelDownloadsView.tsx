@@ -169,23 +169,23 @@ export default function ModelDownloadsView({ vm }: { vm: ComfyModelAssetsViewMod
                       <li key={row.id} className="flex flex-wrap items-center gap-2 py-1.5">
                         <div className="min-w-0 flex-1">
                           <p className="text-xs text-[var(--text-primary)]">{row.label}</p>
-                          <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">
+                          <p className="truncate font-mono text-3xs text-[var(--text-muted)]">
                             {COMFY_ASSET_KIND_LABELS[row.kind as ComfyAssetKind] ?? row.kind} ·{' '}
                             {row.filename}
                           </p>
                           {row.notes ? (
-                            <p className="text-[10px] text-[var(--text-muted)]">{row.notes}</p>
+                            <p className="text-3xs text-[var(--text-muted)]">{row.notes}</p>
                           ) : null}
                         </div>
-                        <span className="w-16 text-right font-mono text-[11px] text-[var(--text-secondary)]">
+                        <span className="w-16 text-right font-mono text-2xs text-[var(--text-secondary)]">
                           {row.bytes ? formatBytes(row.bytes) : ''}
                         </span>
                         {row.status === 'installed' ? (
-                          <span className="w-20 text-right text-[11px] text-[var(--tint-success-text)]">
+                          <span className="w-20 text-right text-2xs text-[var(--tint-success-text)]">
                             Installed
                           </span>
                         ) : job ? (
-                          <span className="w-20 text-right text-[11px] text-[var(--text-secondary)]">
+                          <span className="w-20 text-right text-2xs text-[var(--text-secondary)]">
                             {job.status === 'downloading'
                               ? `${Math.round(job.progress * 100)}%`
                               : job.status}
@@ -200,7 +200,7 @@ export default function ModelDownloadsView({ vm }: { vm: ComfyModelAssetsViewMod
                             Install
                           </Button>
                         ) : (
-                          <span className="w-20 text-right text-[11px] text-[var(--text-muted)]">
+                          <span className="w-20 text-right text-2xs text-[var(--text-muted)]">
                             Manual
                           </span>
                         )}

@@ -89,18 +89,18 @@ export default function RegionalEditPanel({
       className="rounded-xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-[11px] text-[var(--text-muted)]">
+        <p className="text-2xs text-[var(--text-muted)]">
           With AttentionCouple / RegionalPrompt nodes, slots bind spatially; otherwise{' '}
           <code className="text-[var(--text-muted)]">{'{{REGION_*}}'}</code> text fallback.
         </p>
         <span
-          className={`rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide ${healthTone}`}
+          className={`rounded-full border px-2.5 py-1 text-3xs font-medium uppercase tracking-wide ${healthTone}`}
           title={health.detail}
         >
           {formatRegionalEditHealthChip(health)}
         </span>
       </div>
-      <p className="text-[11px] text-[var(--text-muted)]">{formatRegionalSlotsHint(normalized)}</p>
+      <p className="text-2xs text-[var(--text-muted)]">{formatRegionalSlotsHint(normalized)}</p>
 
       {normalized.map(slot => (
         <div
@@ -109,7 +109,7 @@ export default function RegionalEditPanel({
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <FieldLabel>{slot.label}</FieldLabel>
-            <label className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+            <label className="flex items-center gap-2 text-2xs text-[var(--text-muted)]">
               Strength
               <TextInput
                 type="number"

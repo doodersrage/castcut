@@ -39,13 +39,13 @@ export default function GalleryLineageBlock({
       }
     >
       <div className="flex items-center justify-between gap-2 px-1">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--accent-text)]">
+        <p className="text-3xs font-medium uppercase tracking-wide text-[var(--accent-text)]">
           Lineage · {group.derivatives.length + 1} outputs
         </p>
         <button
           type="button"
           onClick={onToggle}
-          className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.6 text-[10px] font-medium text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.6 text-3xs font-medium text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           {collapsed ? 'Expand' : 'Collapse'}
         </button>
@@ -53,7 +53,7 @@ export default function GalleryLineageBlock({
       {timeline.length > 0 ? (
         <ol
           data-testid="gallery-lineage-timeline"
-          className="space-y-1 px-1 text-[10px] text-[var(--text-secondary)]"
+          className="space-y-1 px-1 text-3xs text-[var(--text-secondary)]"
         >
           {timeline.map(step => (
             <li key={step.entry.id} className="truncate">

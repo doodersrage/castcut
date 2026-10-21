@@ -90,7 +90,7 @@ export default function FaceDetailerHealthChip({
     <div className="mt-3 space-y-1">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${tone}`}
+          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-2xs font-medium ${tone}`}
         >
           FaceDetailer: {health.label}
           {health.workflowName ? ` · ${health.workflowName}` : ''}

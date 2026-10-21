@@ -98,7 +98,7 @@ function MaterialSection({
             </p>
           </div>
           {sectionCount > 0 && (
-            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-3xs font-medium text-[var(--text-muted)]">
               {sectionCount}
             </span>
           )}
@@ -167,7 +167,7 @@ function PresetSection({
             )}
           </div>
           {sectionCount > 0 && (
-            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-3xs font-medium text-[var(--text-muted)]">
               {sectionCount}
             </span>
           )}
@@ -228,7 +228,7 @@ export default function BackgroundPresetControls({
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-0.5">
             {activeCount > 0 && (
-              <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-300">
+              <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wide text-teal-300">
                 {activeCount} active
               </span>
             )}

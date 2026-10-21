@@ -87,7 +87,7 @@ export default function StorageHealthChip({ className = '' }: { className?: stri
           type="button"
           onClick={() => void retryFlush()}
           disabled={retrying}
-          className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-muted)]/50 px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-60"
+          className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-muted)]/50 px-2.5 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-60"
         >
           {retrying ? 'Retrying…' : 'Retry save'}
         </button>
@@ -95,7 +95,7 @@ export default function StorageHealthChip({ className = '' }: { className?: stri
       {health.lastError ? (
         <Link
           href={settingsTabHref('data')}
-          className="rounded-full border border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] px-2.5 py-1 text-[11px] text-[var(--tint-danger-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-full border border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] px-2.5 py-1 text-2xs text-[var(--tint-danger-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Export backup
         </Link>

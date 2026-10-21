@@ -39,7 +39,7 @@ export function TrayNotice({
               type="button"
               data-testid="system-tray-more-notices"
               aria-label={`Show ${moreCount} more notice${moreCount === 1 ? '' : 's'}`}
-              className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] font-medium tabular-nums text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs font-medium tabular-nums text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               onClick={onShowMore}
             >
               +{moreCount}

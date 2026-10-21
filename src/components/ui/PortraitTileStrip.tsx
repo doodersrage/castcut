@@ -107,7 +107,7 @@ export default function PortraitTileStrip({
                   className="h-full w-full object-cover object-top"
                 />
               ) : tile.placeholder ? (
-                <span className="flex flex-col items-center px-0.5 text-[10px] font-normal leading-tight">
+                <span className="flex flex-col items-center px-0.5 text-3xs font-normal leading-tight">
                   <span aria-hidden className="text-base leading-none">
                     +
                   </span>
@@ -120,13 +120,13 @@ export default function PortraitTileStrip({
             {selected ? (
               <span
                 aria-hidden
-                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold leading-none text-[var(--on-accent)] shadow"
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-3xs font-bold leading-none text-[var(--on-accent)] shadow"
               >
                 ✓
               </span>
             ) : null}
             <span
-              className={`line-clamp-2 w-full text-[11px] leading-tight ${
+              className={`line-clamp-2 w-full text-2xs leading-tight ${
                 selected
                   ? 'font-semibold text-[var(--accent-text)]'
                   : 'text-[var(--text-secondary)]'
@@ -135,7 +135,7 @@ export default function PortraitTileStrip({
               {tile.label}
             </span>
             {tile.caption ? (
-              <span className="line-clamp-1 w-full text-[10px] leading-tight text-[var(--text-muted)]">
+              <span className="line-clamp-1 w-full text-3xs leading-tight text-[var(--text-muted)]">
                 {tile.caption}
               </span>
             ) : null}

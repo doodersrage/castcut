@@ -104,6 +104,15 @@
   --muted: var(--text-secondary);
 }
 
+/* Small type for dense chrome (badges, tags, timeline labels): text-2xs 11px, text-3xs 10px,
+   text-4xs 9px. Font size only — line height comes from the context, as with the text-[11px]
+   arbitrary values these replace. Prefer type-caption (12px) for running text. */
+@theme {
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
+  --text-4xs: 0.5625rem;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

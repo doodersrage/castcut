@@ -358,7 +358,7 @@ export default function WorkflowHealthPanel({
                         type="button"
                         onClick={() => applyRemap(issue)}
                         data-testid="workflow-health-remap"
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
                       >
                         {issue.remap.workflowId
                           ? `Use “${issue.remap.workflowName ?? issue.remap.workflowId}”`
@@ -370,7 +370,7 @@ export default function WorkflowHealthPanel({
                         type="button"
                         onClick={() => applyFix(issue)}
                         data-testid="workflow-health-fix"
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
                       >
                         Use {issue.fix.value.replace(/\.(safetensors|ckpt|gguf)$/i, '')}
                       </button>
@@ -382,7 +382,7 @@ export default function WorkflowHealthPanel({
                           dispatchWorkflowHealthSelect(issue.workflowId, 'open-workflow');
                           onStatus?.(`Opened workflow “${issue.workflowName}” in library.`);
                         }}
-                        className="rounded-lg border border-[var(--border-default)]/70 px-2 py-0.5 text-[10px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+                        className="rounded-lg border border-[var(--border-default)]/70 px-2 py-0.5 text-3xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
                       >
                         Open
                       </button>
@@ -394,7 +394,7 @@ export default function WorkflowHealthPanel({
                           dispatchWorkflowHealthSelect(issue.workflowId, 'optimize-workflow');
                           onStatus?.(`Optimizing “${issue.workflowName}”…`);
                         }}
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
                       >
                         Optimize
                       </button>

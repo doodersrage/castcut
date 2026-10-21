@@ -99,7 +99,7 @@ export default function CutSoundLane({
       {narrated.map(item => (
         <span
           key={`n${item.shot}`}
-          className="absolute top-[18px] h-[12px] truncate rounded-sm bg-amber-400/70 px-1 text-[9px] leading-[12px] text-black"
+          className="absolute top-[18px] h-[12px] truncate rounded-sm bg-amber-400/70 px-1 text-4xs leading-[12px] text-black"
           style={{ left: item.startSec * pps, width: Math.max(24, item.durSec * pps - 2) }}
           title={`Narration: ${loaded?.shots[item.shot]?.narrationText}`}
         >
@@ -107,7 +107,7 @@ export default function CutSoundLane({
         </span>
       ))}
       <span
-        className="absolute left-1 top-[32px] truncate text-[10px] text-[var(--text-muted)]"
+        className="absolute left-1 top-[32px] truncate text-3xs text-[var(--text-muted)]"
         data-testid="cut-sound-note"
       >
         ♪ {note}

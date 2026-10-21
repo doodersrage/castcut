@@ -161,7 +161,7 @@ export default function CharacterMediaSection({
                 aria-pressed={selected}
                 data-testid={`cast-media-look-${chip.id || 'all'}`}
                 onClick={() => setLookFilter(chip.id && !selected ? chip.id : null)}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-0.5 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-0.5 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   selected
                     ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
                     : 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'

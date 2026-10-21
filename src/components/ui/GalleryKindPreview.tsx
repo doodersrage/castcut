@@ -46,7 +46,7 @@ export default function GalleryKindPreview({
       <div
         className={`flex flex-col items-center justify-center gap-2 bg-[var(--bg-muted)] px-3 py-4 ${className ?? ''}`}
       >
-        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+        <span className="text-3xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
           Audio
         </span>
         <audio src={url} controls className="w-full max-w-full" preload="metadata">
@@ -60,7 +60,7 @@ export default function GalleryKindPreview({
       <div
         className={`flex flex-col items-center justify-center gap-1 bg-[var(--bg-muted)] px-3 text-center ${className ?? ''}`}
       >
-        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+        <span className="text-3xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
           3D mesh
         </span>
         <span className="max-w-full truncate text-xs text-[var(--text-secondary)]">

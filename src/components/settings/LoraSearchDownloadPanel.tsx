@@ -381,7 +381,7 @@ export default function LoraSearchDownloadPanel({
                     {hit.creator ? ` · ${hit.creator}` : ''}
                     {hit.bytes ? ` · ${formatBytes(hit.bytes)}` : ''}
                   </p>
-                  <code className="block truncate text-[11px] text-[var(--text-secondary)]">
+                  <code className="block truncate text-2xs text-[var(--text-secondary)]">
                     {hit.filename}
                   </code>
                 </div>

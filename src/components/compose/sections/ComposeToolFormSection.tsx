@@ -57,7 +57,7 @@ export function ComposeToolInstructionSection({
         <div className="space-y-4">
           {templateGroups.map(group => (
             <div key={group.id} className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+              <p className="text-2xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
                 {group.label}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -85,7 +85,7 @@ export function ComposeToolInstructionSection({
                     >
                       {template.label}
                       {minFigures > 1 ? (
-                        <span className="ml-1 text-[10px] text-[var(--text-muted)]">
+                        <span className="ml-1 text-3xs text-[var(--text-muted)]">
                           · {minFigures}img
                         </span>
                       ) : null}

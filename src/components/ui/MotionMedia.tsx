@@ -94,7 +94,7 @@ export default function MotionMedia({
         aria-label={alt || 'Clip unavailable'}
         data-testid="motion-media-missing"
       >
-        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+        <span className="text-3xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
           Clip unavailable
         </span>
         <span className="type-caption text-[var(--text-muted)]">

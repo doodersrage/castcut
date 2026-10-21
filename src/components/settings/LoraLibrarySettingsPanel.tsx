@@ -354,7 +354,7 @@ export default function LoraLibrarySettingsPanel({
         <label className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
           <span>
             Combined strength cap
-            <span className="block text-[11px]">
+            <span className="block text-2xs">
               When the active LoRAs add up to more than this, all are scaled down together
               (Lightning excluded). Big stacks at full strength leak content, swap outfits and move
               faces.

@@ -20,7 +20,7 @@ export default function GalleryUsedInBadge({ entry }: { entry: ComfyGalleryEntry
   return (
     <Link
       href={`/gallery?focus=${encodeURIComponent(first.filmEntryId)}`}
-      className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)] hover:border-[var(--accent-border)]"
+      className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-muted)] px-2 py-0.5 text-3xs text-[var(--text-secondary)] hover:border-[var(--accent-border)]"
       title={`Used in ${films.map(film => `“${film.title}”`).join(', ')} — delete it and a re-cut loses this shot.`}
       data-testid="gallery-card-used-in"
     >

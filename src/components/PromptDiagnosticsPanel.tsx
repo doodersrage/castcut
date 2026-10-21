@@ -37,7 +37,7 @@ export default function PromptDiagnosticsPanel({
     <section className="space-y-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)]/60 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-[var(--text-primary)]">Diagnostics</h3>
-        <span className="rounded-full border border-[var(--border-default)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+        <span className="rounded-full border border-[var(--border-default)] px-2 py-0.5 text-2xs text-[var(--text-muted)]">
           {summary}
         </span>
       </div>

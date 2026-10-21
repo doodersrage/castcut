@@ -332,11 +332,11 @@ export function ComfyUiGalleryJobPlaceholder({
               : 'Waiting'}
         </p>
         {entry.queuePosition != null && entry.queuePosition > 0 ? (
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-2xs text-[var(--text-muted)]">
             Position {entry.queuePosition} in queue
           </p>
         ) : entry.status === 'running' && percent == null ? (
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-2xs text-[var(--text-muted)]">
             {previewUrl ? 'Receiving latent frames…' : 'Executing workflow…'}
           </p>
         ) : null}
@@ -353,15 +353,15 @@ export function ComfyUiGalleryJobPlaceholder({
               <div className="ui-progress-fill" style={{ width: `${percent}%` }} />
             </div>
             {progressLabel ? (
-              <p className="text-[11px] text-[var(--text-muted)]">
+              <p className="text-2xs text-[var(--text-muted)]">
                 {percent != null ? `${percent}% · ${progressLabel}` : progressLabel}
               </p>
             ) : percent != null ? (
-              <p className="text-[11px] tabular-nums text-[var(--text-muted)]">{percent}%</p>
+              <p className="text-2xs tabular-nums text-[var(--text-muted)]">{percent}%</p>
             ) : null}
           </div>
         ) : entry.statusMessage?.trim() ? (
-          <p className="text-[11px] text-[var(--text-muted)]">{entry.statusMessage}</p>
+          <p className="text-2xs text-[var(--text-muted)]">{entry.statusMessage}</p>
         ) : null}
       </div>
     </div>

@@ -183,7 +183,7 @@ export default function ReadinessBadge(props: {
       ) : null}
 
       {failedChecks.length === 0 ? null : (
-        <p className="mt-2 text-[11px] text-[var(--text-muted)]">
+        <p className="mt-2 text-2xs text-[var(--text-muted)]">
           {failedChecks.length} check(s) failed
           {canAutoFix ? ' — use Fix readiness issues or queue anyway.' : '.'}
         </p>

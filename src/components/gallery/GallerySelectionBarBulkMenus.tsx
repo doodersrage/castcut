@@ -254,13 +254,13 @@ export default function GallerySelectionBarBulkMenus(props: GallerySelectionBarB
               aria-label="Gallery group name"
               data-testid="gallery-group-name-input"
               maxLength={80}
-              className="ui-input w-full px-2 py-1 text-[11px]"
+              className="ui-input w-full px-2 py-1 text-2xs"
             />
             <button
               type="submit"
               disabled={!groupDraft.trim()}
               data-testid="gallery-group-assign"
-              className="ui-menu-item rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] text-[11px] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] disabled:opacity-40"
+              className="ui-menu-item rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] text-2xs transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] disabled:opacity-40"
             >
               Assign to group
             </button>

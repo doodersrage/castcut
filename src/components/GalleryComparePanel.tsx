@@ -224,7 +224,7 @@ export default function GalleryComparePanel({
               Save winner as recipe
             </Button>
           ) : (
-            <p className="self-center text-[11px] text-[var(--text-muted)]">
+            <p className="self-center text-2xs text-[var(--text-muted)]">
               Select a winner below to save its quality recipe
             </p>
           )}
@@ -249,7 +249,7 @@ export default function GalleryComparePanel({
       {status ? <p className="text-xs text-[var(--accent-text)]/90">{status}</p> : null}
       {differingParams.length > 0 ? (
         <div data-testid="gallery-compare-param-diff" className="ui-table-shell">
-          <table className="ui-table text-[11px]">
+          <table className="ui-table text-2xs">
             <thead>
               <tr>
                 <th>Param</th>
@@ -317,23 +317,20 @@ export default function GalleryComparePanel({
                   No image
                 </div>
               )}
-              <p className="text-[11px] text-[var(--text-muted)]">
+              <p className="text-2xs text-[var(--text-muted)]">
                 {entry.model} · seed {entry.queueParams?.seed ?? '?'}
                 {entry.queueParams?.cfg != null ? ` · cfg ${entry.queueParams.cfg}` : ''}
                 {entry.queueParams?.steps != null ? ` · ${entry.queueParams.steps} steps` : ''}
                 {entry.reviewRating ? ` · ${entry.reviewRating}★` : ''}
               </p>
-              <pre
-                className="ui-code-block max-h-24 overflow-auto p-2 text-[11px]"
-                data-tone="muted"
-              >
+              <pre className="ui-code-block max-h-24 overflow-auto p-2 text-2xs" data-tone="muted">
                 {entry.prompt}
               </pre>
               <div className="flex flex-wrap gap-1">
                 {onPickWinner ? (
                   <Button
                     variant={compareWinnerId === entry.id ? 'primary' : 'secondary'}
-                    className="!min-h-7 px-2 text-[11px]"
+                    className="!min-h-7 px-2 text-2xs"
                     onClick={() => {
                       if (tournament && pairs[pairIndex]) {
                         const [a, b] = pairs[pairIndex];
@@ -357,7 +354,7 @@ export default function GalleryComparePanel({
                     type="button"
                     disabled={!onRate}
                     onClick={() => onRate?.(entry.id, rating as ComfyGalleryEntry['reviewRating'])}
-                    className={`rounded px-1.5 py-0.5 text-[10px] ${
+                    className={`rounded px-1.5 py-0.5 text-3xs ${
                       entry.reviewRating === rating
                         ? 'bg-[var(--accent)] text-[var(--on-accent)]'
                         : 'bg-[var(--bg-muted)] text-[var(--text-muted)] hover:bg-[var(--bg-muted)]'
@@ -370,7 +367,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onFavorite(entry.id)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--text-secondary)]"
                   >
                     {entry.favorite ? '★ Fav' : '☆ Fav'}
                   </button>
@@ -379,7 +376,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onMutate(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-success-text)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-success-text)]"
                   >
                     Mutate
                   </button>
@@ -388,7 +385,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onImprove(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs"
                   >
                     Improve
                   </button>
@@ -399,7 +396,7 @@ export default function GalleryComparePanel({
                       <button
                         type="button"
                         onClick={() => onMoireClean(entry, 'final')}
-                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-success-text)]"
+                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-success-text)]"
                       >
                         Moiré Final
                       </button>
@@ -408,7 +405,7 @@ export default function GalleryComparePanel({
                       <button
                         type="button"
                         onClick={() => onMoireClean(entry, 'max')}
-                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-success-text)]"
+                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-success-text)]"
                       >
                         Moiré Max
                       </button>
@@ -421,7 +418,7 @@ export default function GalleryComparePanel({
                       <button
                         type="button"
                         onClick={() => onUpscale(entry, 'final')}
-                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-success-text)]"
+                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-success-text)]"
                       >
                         Upscale Final
                       </button>
@@ -430,7 +427,7 @@ export default function GalleryComparePanel({
                       <button
                         type="button"
                         onClick={() => onUpscale(entry, 'max')}
-                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-success-text)]"
+                        className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-success-text)]"
                       >
                         Upscale Max
                       </button>
@@ -441,7 +438,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onSoftSecondPass(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs"
                   >
                     Soft pass
                   </button>
@@ -450,7 +447,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onSkinRefine(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs"
                     data-testid="compare-skin-refine"
                   >
                     Skin refine
@@ -460,7 +457,7 @@ export default function GalleryComparePanel({
                   <button
                     type="button"
                     onClick={() => onRefine(entry)}
-                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-[10px] text-[var(--tint-warning-text)]"
+                    className="ui-chip !min-h-0 px-1.5 py-0.5 text-3xs text-[var(--tint-warning-text)]"
                   >
                     Refine
                   </button>

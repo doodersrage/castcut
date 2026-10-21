@@ -61,7 +61,7 @@ export default function CutGalleryPicker({
                     />
                   ) : null}
                   {clip ? (
-                    <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-[10px] text-white">
+                    <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-3xs text-white">
                       ▶ clip
                     </span>
                   ) : null}

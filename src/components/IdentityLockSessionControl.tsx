@@ -154,7 +154,7 @@ export default function IdentityLockSessionControl({
                   persist(lockOnLookFace(castLook));
                   setStatus(null);
                 }}
-                className="rounded-lg border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                className="rounded-lg border border-[var(--border-subtle)] px-2 py-0.5 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 title={`Lock the face of ${lookLockLabel(lookStatus.lookName ?? '')} instead`}
               >
                 Use this look&rsquo;s
@@ -251,7 +251,7 @@ export default function IdentityLockSessionControl({
           <button
             type="button"
             onClick={clearLock}
-            className="rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+            className="rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
           >
             Clear
           </button>

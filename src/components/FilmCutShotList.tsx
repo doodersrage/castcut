@@ -187,7 +187,7 @@ export default function FilmCutShotList({
                 onPointerDown={() => setArmed(shot.key)}
                 onPointerUp={() => setArmed(current => (dragging ? current : null))}
               >
-                ⠿<span className="mt-0.5 text-[10px]">{index + 1}</span>
+                ⠿<span className="mt-0.5 text-3xs">{index + 1}</span>
               </span>
               {onPick ? (
                 <button
@@ -215,7 +215,7 @@ export default function FilmCutShotList({
                   />
                   <span className="font-medium text-[var(--text-primary)]">{shot.title}</span>
                   {tagFor?.(shot) ? (
-                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] text-[var(--text-muted)]">
+                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs text-[var(--text-muted)]">
                       {tagFor(shot)}
                     </span>
                   ) : null}
@@ -584,7 +584,7 @@ export default function FilmCutShotList({
 
 /** A quiet tag on a shot card for a setting made in its ⋯ menu (Poster, Overlay). */
 const SHOT_STATE_BADGE_CLASS =
-  'rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[11px] text-[var(--accent-text)]';
+  'rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-2xs text-[var(--accent-text)]';
 
 /** "from [0] to [6.2] of 6.2 s": a clip's in and out points (the length is read off the file). */
 function ClipTrimInputs({
@@ -668,7 +668,7 @@ function ShotThumb({ shot }: { shot: KeyedShot }) {
       <span className={box}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={shot.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-3xs text-white">
           ▶ clip
         </span>
       </span>
@@ -687,7 +687,7 @@ function ShotThumb({ shot }: { shot: KeyedShot }) {
           onMouseEnter={event => void event.currentTarget.play().catch(() => undefined)}
           onMouseLeave={event => event.currentTarget.pause()}
         />
-        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-3xs text-white">
           ▶ clip
         </span>
       </span>
@@ -709,7 +709,7 @@ function ShotWords({ shot }: { shot: KeyedShot }) {
   const over = !said ? (shot.narrationText?.trim() ?? '') : '';
   if (!beat && !said && !over) return null;
   return (
-    <p className="line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+    <p className="line-clamp-2 text-2xs text-[var(--text-secondary)]">
       {beat}
       {said ? (
         <span className="text-[var(--text-primary)]">

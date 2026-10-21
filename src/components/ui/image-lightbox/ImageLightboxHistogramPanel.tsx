@@ -58,7 +58,7 @@ export default function ImageLightboxHistogramPanel({
             const normalized = normalizeHistogramChannel(values);
             return (
               <div key={label} className="flex items-end gap-0.5">
-                <span className="w-3 shrink-0 text-[10px] opacity-70">{label}</span>
+                <span className="w-3 shrink-0 text-3xs opacity-70">{label}</span>
                 <div className="flex h-8 flex-1 items-end gap-px">
                   {normalized.map((value, bucket) => (
                     <div

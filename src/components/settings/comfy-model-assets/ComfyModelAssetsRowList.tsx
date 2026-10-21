@@ -64,7 +64,7 @@ export function ComfyModelAssetsRowList({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 space-y-0.5">
                       <p className="text-sm font-medium text-[var(--text-primary)]">{row.label}</p>
-                      <p className="font-mono text-[11px] text-[var(--tint-success-text)]">
+                      <p className="font-mono text-2xs text-[var(--tint-success-text)]">
                         {row.filename}
                       </p>
                       <p className="type-caption text-[var(--text-muted)]">

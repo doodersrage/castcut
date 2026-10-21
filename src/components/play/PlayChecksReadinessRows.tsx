@@ -80,7 +80,7 @@ function CommandLine({ command, note }: { command: string; note?: string }) {
   return (
     <span className="mt-1 block space-y-1" data-testid="play-checks-command">
       <span className="flex items-center gap-2">
-        <code className="break-all rounded bg-[var(--bg-muted)]/60 px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-primary)]">
+        <code className="break-all rounded bg-[var(--bg-muted)]/60 px-1.5 py-0.5 font-mono text-2xs text-[var(--text-primary)]">
           {command}
         </code>
         <button

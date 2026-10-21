@@ -18,7 +18,7 @@ export function FilterChip(props: {
         isActive
           ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
           : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-secondary)]'
-      } rounded-xl px-2.5 py-1 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
+      } rounded-xl px-2.5 py-1 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
     >
       {props.label}
     </button>

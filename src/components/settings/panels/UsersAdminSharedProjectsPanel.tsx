@@ -90,7 +90,7 @@ export default function UsersAdminSharedProjectsPanel({
               {project.notes ? (
                 <p className="text-xs text-[var(--text-muted)]">{project.notes}</p>
               ) : null}
-              <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+              <p className="mt-1 text-3xs text-[var(--text-muted)]">
                 Groups:{' '}
                 {project.groupIds.length > 0
                   ? project.groupIds

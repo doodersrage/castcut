@@ -108,7 +108,7 @@ export default function DiffusersEngineInstall({
         <p className="text-xs text-[var(--text-secondary)]" role="status">
           {PHASE_LABEL[state.job.phase]}
           {state.job.log.length ? (
-            <span className="mt-1 block truncate font-mono text-[11px] text-[var(--text-muted)]">
+            <span className="mt-1 block truncate font-mono text-2xs text-[var(--text-muted)]">
               {state.job.log[state.job.log.length - 1]}
             </span>
           ) : null}

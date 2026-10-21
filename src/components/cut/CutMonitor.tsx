@@ -61,7 +61,7 @@ export default function CutMonitor({
         />
         {building ? (
           <span
-            className="absolute right-2 top-2 rounded bg-black/70 px-2 py-0.5 text-[11px] text-white"
+            className="absolute right-2 top-2 rounded bg-black/70 px-2 py-0.5 text-2xs text-white"
             role="status"
             data-testid="cut-preview-building"
           >

@@ -2174,7 +2174,7 @@ function ReferencePosePicker({
                     />
                   ))}
                 </svg>
-                <span className="text-[10px] leading-tight text-[var(--text-secondary)]">
+                <span className="text-3xs leading-tight text-[var(--text-secondary)]">
                   {reference.variant}
                 </span>
               </button>
@@ -2242,7 +2242,7 @@ function DayPosePicker({
                   ) : (
                     <span className="h-16 w-full rounded bg-white" />
                   )}
-                  <span className="line-clamp-2 min-h-[2lh] text-[10px] leading-tight text-[var(--text-secondary)]">
+                  <span className="line-clamp-2 min-h-[2lh] text-3xs leading-tight text-[var(--text-secondary)]">
                     {label}
                   </span>
                 </button>

@@ -108,7 +108,7 @@ export default function GalleryPanelBulkSection({
             onClick={() =>
               setFilter(previous => ({ ...previous, characterId: undefined, lookId: undefined }))
             }
-            className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-[11px] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
+            className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-2xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
           >
             Clear
           </button>

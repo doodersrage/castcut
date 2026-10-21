@@ -36,7 +36,7 @@ function packTitle(kind: IdentityPackHealth['kind']): string {
 function PackChip({ health }: { health: IdentityPackHealth }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${chipTone(health.status)}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-2xs font-medium ${chipTone(health.status)}`}
       data-testid={`identity-pack-${health.kind}`}
     >
       {packTitle(health.kind)}: {health.label}

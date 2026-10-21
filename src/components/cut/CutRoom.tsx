@@ -683,7 +683,7 @@ export default function CutRoom() {
                       {extra.status === 'failed' ? (
                         <button
                           type="button"
-                          className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                          className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                           onClick={() => vm.removeAdded(extra.key)}
                         >
                           Remove
@@ -714,7 +714,7 @@ export default function CutRoom() {
                       </span>
                       <button
                         type="button"
-                        className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                        className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                         onClick={() => vm.removeAdded(extra.key)}
                       >
                         {extra.status === 'failed' ? 'Remove' : 'Forget'}
@@ -778,7 +778,7 @@ export default function CutRoom() {
                     ) : null}
                     <button
                       type="button"
-                      className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                      className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                       data-testid={`cut-remove-${shot.key}`}
                       onClick={() => vm.removeAdded(shot.key)}
                     >

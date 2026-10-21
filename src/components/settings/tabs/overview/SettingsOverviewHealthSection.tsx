@@ -292,7 +292,7 @@ function ComfyLogsSnippet({ comfyUrl }: { comfyUrl?: string }) {
         <p className="text-xs text-[var(--text-muted)]">No recent log lines.</p>
       ) : null}
       {lines && lines.length > 0 ? (
-        <pre className="ui-scroll-region max-h-48 overflow-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] p-3 text-[11px] leading-5 text-[var(--text-secondary)]">
+        <pre className="ui-scroll-region max-h-48 overflow-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] p-3 text-2xs leading-5 text-[var(--text-secondary)]">
           {lines.join('\n')}
         </pre>
       ) : null}

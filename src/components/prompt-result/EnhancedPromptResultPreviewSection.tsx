@@ -120,18 +120,14 @@ export default function EnhancedPromptResultPreviewSection({
         onQueueSeedBatch ? (
           <div data-testid="result-continue-edit" className="flex flex-wrap gap-1.5">
             {onRefine ? (
-              <Button
-                variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
-                onClick={onRefine}
-              >
+              <Button variant="secondary" className="!min-h-8 px-2.5 text-2xs" onClick={onRefine}>
                 Refine
               </Button>
             ) : null}
             {onContinueInpaint ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onContinueInpaint}
               >
                 Inpaint
@@ -140,7 +136,7 @@ export default function EnhancedPromptResultPreviewSection({
             {onContinueOutpaint ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onContinueOutpaint}
               >
                 Outpaint
@@ -149,7 +145,7 @@ export default function EnhancedPromptResultPreviewSection({
             {onContinueCompose ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onContinueCompose}
               >
                 Compose
@@ -158,7 +154,7 @@ export default function EnhancedPromptResultPreviewSection({
             {onContinueVideo ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onContinueVideo}
               >
                 Video
@@ -167,7 +163,7 @@ export default function EnhancedPromptResultPreviewSection({
             {onContinueControlNet ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onContinueControlNet}
               >
                 ControlNet
@@ -176,7 +172,7 @@ export default function EnhancedPromptResultPreviewSection({
             {onQueueSeedBatch ? (
               <Button
                 variant="secondary"
-                className="!min-h-8 px-2.5 text-[11px]"
+                className="!min-h-8 px-2.5 text-2xs"
                 onClick={onQueueSeedBatch}
               >
                 {seedBatchLabel ?? '3 seeds'}

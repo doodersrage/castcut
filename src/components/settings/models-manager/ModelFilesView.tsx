@@ -88,7 +88,7 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
           <p className="truncate font-mono text-xs text-[var(--text-primary)]" title={file.path}>
             {file.name}
           </p>
-          <p className="text-[11px] text-[var(--text-muted)]">
+          <p className="text-2xs text-[var(--text-muted)]">
             {file.folder}
             {file.linkTarget ? ` · link → ${file.linkTarget}` : ''}
             {file.partial ? ' · unfinished download' : ''}
@@ -103,7 +103,7 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
               {labels.map(label => (
                 <span
                   key={label}
-                  className="rounded-full border border-[var(--border-subtle)] px-1.5 py-px text-[10px] text-[var(--text-muted)]"
+                  className="rounded-full border border-[var(--border-subtle)] px-1.5 py-px text-3xs text-[var(--text-muted)]"
                 >
                   {label}
                 </span>
@@ -125,14 +125,14 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
             disabled={Boolean(block)}
             title={block ?? `Delete ${baseName} from disk`}
             data-testid="model-file-delete"
-            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-[11px] text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
+            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-2xs text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
           >
             Delete
           </button>
         )}
       </div>
       {block && !readOnly ? (
-        <p className="ml-7 text-[10px] text-[var(--text-muted)]">Kept: {block}</p>
+        <p className="ml-7 text-3xs text-[var(--text-muted)]">Kept: {block}</p>
       ) : null}
       {confirming && !readOnly ? (
         <form
@@ -148,7 +148,7 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
               .finally(() => setBusy(false));
           }}
         >
-          <label className="text-[11px] text-[var(--text-secondary)]">
+          <label className="text-2xs text-[var(--text-secondary)]">
             Type <span className="font-mono">{baseName}</span> to delete it for good
             {file.linkTarget ? ' (removes the link only)' : ` — frees ${formatBytes(file.bytes)}`}:
             <input
@@ -168,7 +168,7 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
           >
             Delete permanently
           </Button>
-          {error ? <p className="w-full text-[11px] ui-status-danger">{error}</p> : null}
+          {error ? <p className="w-full text-2xs ui-status-danger">{error}</p> : null}
         </form>
       ) : null}
     </li>
@@ -394,7 +394,7 @@ export default function ModelFilesView({
               key={value}
               active={filter === value}
               onClick={() => setFilter(value)}
-              className="px-2 text-[11px]"
+              className="px-2 text-2xs"
             >
               {label}
             </ChipButton>
