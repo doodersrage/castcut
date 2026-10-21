@@ -86,7 +86,7 @@ export function GalleryFiltersLeanRow({
                   : (Number(value) as GalleryPageSize)
               );
             }}
-            className="ui-input px-2 py-1 text-[11px]"
+            className="ui-input px-2 py-1 text-2xs"
           >
             {GALLERY_PAGE_SIZE_OPTIONS.map(option => (
               <option key={String(option)} value={String(option)}>

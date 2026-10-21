@@ -92,7 +92,7 @@ export default function LoraFaceCheckSection({ entry, onSave }: Props) {
           >
             {verdict(check, strength)}
           </p>
-          <table className="w-full text-[11px] text-[var(--text-muted)]">
+          <table className="w-full text-2xs text-[var(--text-muted)]">
             <thead>
               <tr className="text-left">
                 <th className="font-normal">Strength</th>
@@ -158,7 +158,7 @@ export default function LoraFaceCheckSection({ entry, onSave }: Props) {
               href={render.imageUrl}
               target="_blank"
               rel="noreferrer"
-              className="block w-16 text-center text-[10px] text-[var(--text-muted)]"
+              className="block w-16 text-center text-3xs text-[var(--text-muted)]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy thumbs */}
               <img

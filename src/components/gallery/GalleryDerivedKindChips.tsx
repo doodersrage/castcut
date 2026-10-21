@@ -36,7 +36,7 @@ export default function GalleryDerivedKindChips({
               derivedKind: undefined,
             }))
           }
-          className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-[11px] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
+          className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-2xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
         >
           Clear lineage filter
         </button>
@@ -57,7 +57,7 @@ export default function GalleryDerivedKindChips({
               derivedKind: previous.derivedKind === kind ? undefined : kind,
             }))
           }
-          className={`rounded-full border px-2.5 py-0.5 text-[11px] transition ${
+          className={`rounded-full border px-2.5 py-0.5 text-2xs transition ${
             filter.derivedKind === kind
               ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
               : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/40 text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'

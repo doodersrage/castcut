@@ -200,7 +200,7 @@ function WardrobeKitBrowserDialog({
                   {selected ? (
                     <span
                       aria-hidden
-                      className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm"
+                      className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] shadow-sm"
                     >
                       <UiIcon name="check" size={13} />
                     </span>

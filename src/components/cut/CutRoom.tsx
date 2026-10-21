@@ -406,26 +406,26 @@ export default function CutRoom() {
                   onNext={() => step(1)}
                   extra={
                     <>
-                      <button
-                        type="button"
-                        className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
+                      <Button
+                        variant="icon"
+                        className="w-auto px-2 text-xs"
                         disabled={!vm.canUndo}
                         title="Undo (Ctrl+Z)"
                         data-testid="cut-undo"
                         onClick={vm.undo}
                       >
                         ↶ Undo
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40"
+                      </Button>
+                      <Button
+                        variant="icon"
+                        className="w-auto px-2 text-xs"
                         disabled={!vm.canRedo}
                         title="Redo (Ctrl+Shift+Z)"
                         data-testid="cut-redo"
                         onClick={vm.redo}
                       >
                         ↷ Redo
-                      </button>
+                      </Button>
                       {vm.missingDayNarration.length > 0 ? (
                         <Button
                           size="sm"
@@ -683,7 +683,7 @@ export default function CutRoom() {
                       {extra.status === 'failed' ? (
                         <button
                           type="button"
-                          className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                          className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                           onClick={() => vm.removeAdded(extra.key)}
                         >
                           Remove
@@ -714,7 +714,7 @@ export default function CutRoom() {
                       </span>
                       <button
                         type="button"
-                        className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                        className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                         onClick={() => vm.removeAdded(extra.key)}
                       >
                         {extra.status === 'failed' ? 'Remove' : 'Forget'}
@@ -778,7 +778,7 @@ export default function CutRoom() {
                     ) : null}
                     <button
                       type="button"
-                      className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                      className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                       data-testid={`cut-remove-${shot.key}`}
                       onClick={() => vm.removeAdded(shot.key)}
                     >

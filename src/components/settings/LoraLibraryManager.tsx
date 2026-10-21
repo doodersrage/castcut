@@ -225,7 +225,7 @@ export default function LoraLibraryManager({
             key={value}
             active={status === value}
             onClick={() => setStatus(value)}
-            className="px-2 text-[11px]"
+            className="px-2 text-2xs"
           >
             {label}
           </ChipButton>
@@ -235,7 +235,7 @@ export default function LoraLibraryManager({
         <ChipButton
           active={family === 'all'}
           onClick={() => setFamily('all')}
-          className="px-2 text-[11px]"
+          className="px-2 text-2xs"
         >
           Every model
         </ChipButton>
@@ -244,7 +244,7 @@ export default function LoraLibraryManager({
             key={value}
             active={family === value}
             onClick={() => setFamily(value)}
-            className="px-2 text-[11px]"
+            className="px-2 text-2xs"
           >
             {LORA_FAMILY_LABELS[value]} {count}
           </ChipButton>
@@ -354,23 +354,23 @@ export default function LoraLibraryManager({
                     >
                       {entry.label || entry.id}
                     </span>
-                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] text-[var(--text-muted)]">
+                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs text-[var(--text-muted)]">
                       {entry.familySource === 'missing'
                         ? 'File missing'
                         : LORA_FAMILY_LABELS[familyOf(entry)]}
                     </span>
                     {isLightningLibraryEntry(entry) ? (
-                      <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] text-[var(--text-muted)]">
+                      <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs text-[var(--text-muted)]">
                         Speed
                       </span>
                     ) : null}
                     {changesFace ? (
-                      <span className="rounded-full border border-[var(--tint-danger-border)] px-1.5 text-[10px] text-[var(--tint-danger-text)]">
+                      <span className="rounded-full border border-[var(--tint-danger-border)] px-1.5 text-3xs text-[var(--tint-danger-text)]">
                         Changes faces
                       </span>
                     ) : null}
                   </span>
-                  <span className="block truncate text-[11px] text-[var(--text-muted)]">
+                  <span className="block truncate text-2xs text-[var(--text-muted)]">
                     <span className="font-mono">{entry.tokenValue || 'no file'}</span>
                     {stats ? ` · ${stats.images} image${stats.images === 1 ? '' : 's'}` : ''}
                     {stats?.favorites ? ` · ${stats.favorites} ♥` : ''}
@@ -385,7 +385,7 @@ export default function LoraLibraryManager({
                 <span className="w-10 text-right font-mono text-xs tabular-nums text-[var(--text-secondary)]">
                   {(entry.strengthModel ?? 1).toFixed(2)}
                 </span>
-                <label className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                <label className="flex items-center gap-1 text-2xs text-[var(--text-muted)]">
                   <input
                     type="checkbox"
                     checked={entry.enabled !== false}
@@ -399,7 +399,7 @@ export default function LoraLibraryManager({
               {open ? (
                 <div className="space-y-2 bg-[var(--bg-muted)]/40 px-3 pb-3 pt-1">
                   {member && (member.models.length > 0 || member.savedStacks.length > 0) ? (
-                    <p className="text-[11px] text-[var(--text-secondary)]">
+                    <p className="text-2xs text-[var(--text-secondary)]">
                       {member.models.length > 0
                         ? `Picked on: ${member.models.map(model => loraModelFilterLabel(model)).join(', ')}. `
                         : ''}
@@ -450,7 +450,7 @@ export default function LoraLibraryManager({
           <li className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-muted)]/40 px-2 py-1.5">
             <button
               type="button"
-              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="text-2xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               aria-expanded={showFiles}
               data-testid="lora-manager-files-toggle"
               onClick={() => setPaging({ key: filterKey, limit: rowLimit, files: !showFiles })}
@@ -485,7 +485,7 @@ export default function LoraLibraryManager({
                 <span className="block truncate font-mono text-xs text-[var(--text-secondary)]">
                   {file.name}
                 </span>
-                <span className="text-[10px] text-[var(--text-muted)]">
+                <span className="text-3xs text-[var(--text-muted)]">
                   {scan ? LORA_FAMILY_LABELS[scan.family] : 'Identifying…'}
                   {scan?.trigger ? ` · trigger “${scan.trigger}”` : ''}
                 </span>

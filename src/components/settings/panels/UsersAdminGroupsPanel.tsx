@@ -35,18 +35,15 @@ export default function UsersAdminGroupsPanel({
       </p>
       <div className="mb-4 flex flex-wrap gap-2">
         {groups.map(group => (
-          <button
+          <Button
             key={group.id}
-            type="button"
             onClick={() => setSelectedGroupId(group.id)}
-            className={`rounded-full border px-3 py-1 text-xs transition max-md:min-h-8 ${
-              selectedGroupId === group.id
-                ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
-            }`}
+            variant="pill"
+            data-active={selectedGroupId === group.id ? 'true' : undefined}
+            className="max-md:min-h-8"
           >
             {group.name}
-          </button>
+          </Button>
         ))}
         <button
           type="button"

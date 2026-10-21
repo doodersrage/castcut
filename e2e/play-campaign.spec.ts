@@ -2200,6 +2200,7 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   await room.getByTestId('cut-shot-trim-day:night-start').fill('1');
   // A closer frame for a still, the poster from a clip frame, and the lines' level.
   await room.getByTestId('cut-shot-framing-day:morning').selectOption('close');
+  await room.getByTestId('cut-shot-menu-day:night-trigger').click();
   await room.getByTestId('cut-shot-poster-day:night').click();
   await expect(room.getByTestId('cut-shot-poster-day:night')).toHaveAttribute('aria-pressed', 'true');
   await room.getByTestId('cut-shot-poster-at-day:night').fill('2.5');

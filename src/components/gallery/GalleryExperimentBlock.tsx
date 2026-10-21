@@ -171,7 +171,7 @@ export default function GalleryExperimentBlock({
     >
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="min-w-0 space-y-1">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--tint-info-text)]">
+          <p className="text-3xs font-medium uppercase tracking-wide text-[var(--tint-info-text)]">
             Experiment · {groupEntries.length} variants
             {isPart ? ` · showing ${partStart}–${partEnd}` : ''}
             {winnerEntryId ? ' · crowned' : ''}
@@ -237,7 +237,7 @@ export default function GalleryExperimentBlock({
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--tint-info-text)] backdrop-blur-sm transition hover:border-[var(--tint-info-border)] hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-3xs font-medium text-[var(--tint-info-text)] backdrop-blur-sm transition hover:border-[var(--tint-info-border)] hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             {collapsed ? 'Expand' : 'Collapse'}
           </button>

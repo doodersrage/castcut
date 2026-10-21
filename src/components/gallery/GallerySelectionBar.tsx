@@ -178,7 +178,7 @@ export default function GallerySelectionBar(props: GallerySelectionBarProps) {
         </button>
 
         {!props.lean ? (
-          <label className="ml-auto hidden items-center gap-1 text-[11px] text-[var(--text-muted)] sm:flex">
+          <label className="ml-auto hidden items-center gap-1 text-2xs text-[var(--text-muted)] sm:flex">
             Param axis
             <select
               value={props.paramAxis}

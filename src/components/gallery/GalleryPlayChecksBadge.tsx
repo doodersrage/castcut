@@ -24,7 +24,7 @@ export default function GalleryPlayChecksBadge({ entry }: { entry: ComfyGalleryE
     : 'Checks from Day, Story or the clip check';
   return (
     <span
-      className={`rounded-full border px-2 py-0.5 text-[10px] ${
+      className={`rounded-full border px-2 py-0.5 text-3xs ${
         reasons.length
           ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)]'
           : 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-secondary)]'

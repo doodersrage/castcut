@@ -70,7 +70,7 @@ export default function GalleryFiltersSavedViews({
             value={viewNameDraft}
             onChange={event => setViewNameDraft(event.target.value)}
             placeholder="Name this view…"
-            className="ui-input min-w-[10rem] px-2 py-1 text-[11px]"
+            className="ui-input min-w-[10rem] px-2 py-1 text-2xs"
           />
           <button
             type="button"

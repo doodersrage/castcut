@@ -37,7 +37,7 @@ export default function GalleryCastFilter({
   if (casts.length === 0) return null;
   const active = filter.characterId?.trim() || '';
   const chip = (selected: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-xl border px-2 py-0.5 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+    `inline-flex items-center gap-1.5 rounded-xl border px-2 py-0.5 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
       selected
         ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
         : 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
@@ -88,7 +88,7 @@ export default function GalleryCastFilter({
           ) : (
             <span
               aria-hidden
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--bg-active)] text-[9px]"
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--bg-active)] text-4xs"
             >
               {cast.name.slice(0, 1).toUpperCase()}
             </span>

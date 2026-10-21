@@ -6,7 +6,7 @@ import { CollapsibleSection, ToolActionRow, ToolSection } from '@/components/ui/
 
 const ComfyWorkflowSelector = dynamic(() => import('@/components/ComfyWorkflowSelector'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <PanelSkeleton className="h-16" />,
 });
 const QueueParamsPanel = dynamic(() => import('@/components/QueueParamsPanel'), {
   ssr: false,
@@ -19,6 +19,7 @@ const ResultQuickActions = dynamic(() => import('@/components/ResultQuickActions
 
 import type { UseComfyWorkflowSelectionResult } from '@/hooks/useComfyWorkflowSelection';
 import { appOffersRoute } from '@/lib/app/profile';
+import { PanelSkeleton } from '@/components/ui/ViewState';
 
 export type EnhancedPromptResultActionsProps = {
   compactActions: boolean;

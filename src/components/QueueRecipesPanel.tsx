@@ -166,7 +166,7 @@ export default function QueueRecipesPanel({
       <div className="min-w-0 space-y-1">
         <p className="type-caption text-[var(--accent-text)]">Size &amp; quality path</p>
         <p
-          className="break-words font-mono text-[11px] leading-relaxed text-[var(--accent-text)]/90"
+          className="break-words font-mono text-2xs leading-relaxed text-[var(--accent-text)]/90"
           title={explain}
         >
           {explain}
@@ -198,14 +198,14 @@ export default function QueueRecipesPanel({
           <Button
             type="button"
             variant="secondary"
-            className="h-7 px-2.5 text-[11px]"
+            className="h-7 px-2.5 text-2xs"
             onClick={handleSaveSession}
           >
             Save session
           </Button>
         </div>
         {sessionRecipes.length === 0 ? (
-          <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+          <p className="text-2xs leading-relaxed text-[var(--text-muted)]">
             Snapshot model, quality, LoRAs, and sampler/resolution for one-click restore.
           </p>
         ) : (
@@ -217,21 +217,21 @@ export default function QueueRecipesPanel({
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs text-[var(--text-primary)]">{recipe.label}</p>
-                  <p className="truncate text-[10px] text-[var(--text-muted)]">
+                  <p className="truncate text-3xs text-[var(--text-muted)]">
                     {formatSessionRecipeSubtitle(recipe)}
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-7 shrink-0 px-2 text-[11px]"
+                  className="h-7 shrink-0 px-2 text-2xs"
                   onClick={() => handleRestoreSession(recipe)}
                 >
                   Restore
                 </Button>
                 <button
                   type="button"
-                  className="shrink-0 rounded-md px-1.5 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-muted)]/80 hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="shrink-0 rounded-md px-1.5 py-1 text-3xs text-[var(--text-muted)] transition hover:bg-[var(--bg-muted)]/80 hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   onClick={() => handleDeleteSession(recipe.id)}
                   aria-label={`Delete ${recipe.label}`}
                 >
@@ -244,7 +244,7 @@ export default function QueueRecipesPanel({
       </div>
 
       {status ? (
-        <p className="text-[11px] text-[var(--accent-text)]" role="status">
+        <p className="text-2xs text-[var(--accent-text)]" role="status">
           {status}
         </p>
       ) : null}

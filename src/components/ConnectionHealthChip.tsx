@@ -52,7 +52,14 @@ function toneClass(ok: boolean | 'warn' | null): string {
     : 'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)]';
 }
 
-export default function ConnectionHealthChip({ compact = false }: { compact?: boolean }) {
+export default function ConnectionHealthChip({
+  compact = false,
+  onClick,
+}: {
+  compact?: boolean;
+  /** After following the chip's link (the sidebar closes its phone drawer). */
+  onClick?: () => void;
+}) {
   const [health, setHealth] = useState<ChipHealth | null>(null);
 
   useEffect(() => {
@@ -101,6 +108,7 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
   return (
     <Link
       href={settingsTabHref('overview')}
+      onClick={onClick}
       title={title}
       data-testid="connection-health-chip"
       data-state={
@@ -116,7 +124,7 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
         compact && tone === true
           ? // All well: a quiet dot, not an empty green pill (UI review 2026-10-15).
             'inline-flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]'
-          : `inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-[11px] font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(tone)}`
+          : `inline-flex items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5 text-2xs font-medium transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${compact ? 'max-sm:min-h-8 max-sm:min-w-8 max-sm:justify-center ' : ''}${toneClass(tone)}`
       }
     >
       <span

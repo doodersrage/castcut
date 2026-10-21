@@ -179,7 +179,7 @@ export default function ImageLightboxSlide({
               style={{ width: `${(100 / Math.max(baPosition, 1)) * 100}%` }}
             />
           </div>
-          <label className="absolute inset-x-4 bottom-3 z-[2] flex items-center gap-3 rounded-full bg-black/55 px-3 py-1.5 text-[11px] text-white/85 backdrop-blur-md">
+          <label className="absolute inset-x-4 bottom-3 z-[2] flex items-center gap-3 rounded-full bg-black/55 px-3 py-1.5 text-2xs text-white/85 backdrop-blur-md">
             <span className="shrink-0">{slideChrome?.beforeAfterLabel ?? 'Before'} / After</span>
             <input
               type="range"

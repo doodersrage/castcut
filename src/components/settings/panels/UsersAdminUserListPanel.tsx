@@ -2,6 +2,7 @@
 
 import type { AuthUserPublic } from '@/lib/auth/types';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import { Button } from '@/components/ui/Button';
 
 export type UsersAdminUserListPanelProps = {
   users: AuthUserPublic[];
@@ -18,20 +19,17 @@ export default function UsersAdminUserListPanel({
     <ToolSection title="Users">
       <div className="mb-4 flex flex-wrap gap-2">
         {users.map(user => (
-          <button
+          <Button
             key={user.id}
-            type="button"
             onClick={() => setSelectedUserId(user.id)}
-            className={`rounded-full border px-3 py-1 text-xs transition max-md:min-h-8 ${
-              selectedUserId === user.id
-                ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)]'
-            }`}
+            variant="pill"
+            data-active={selectedUserId === user.id ? 'true' : undefined}
+            className="max-md:min-h-8"
           >
             {user.username}
             {user.role === 'admin' ? ' · admin' : ''}
             {!user.enabled ? ' · disabled' : ''}
-          </button>
+          </Button>
         ))}
         <button
           type="button"

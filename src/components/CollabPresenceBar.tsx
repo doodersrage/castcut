@@ -233,13 +233,13 @@ export default function CollabPresenceBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/50 px-3 py-2 text-[11px] text-[var(--text-muted)]">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/50 px-3 py-2 text-2xs text-[var(--text-muted)]">
       <span className="font-medium text-[var(--text-secondary)]">Live</span>
       <label className="flex items-center gap-1.5">
         <span className="sr-only">Collab room</span>
         <SelectInput
           aria-label="Collab room"
-          className="!min-h-7 !py-0.5 !text-[11px]"
+          className="!min-h-7 !py-0.5 !text-2xs"
           value={projectId}
           onChange={event => applyProjectId(event.target.value)}
         >
@@ -256,7 +256,7 @@ export default function CollabPresenceBar({
       </label>
       <Button
         variant="ghost"
-        className="!min-h-7 px-2 text-[10px]"
+        className="!min-h-7 px-2 text-3xs"
         onClick={() => void copyShareLink()}
       >
         {shareCopied ? 'Link copied' : 'Copy share link'}
@@ -280,7 +280,7 @@ export default function CollabPresenceBar({
           {onApplyRemoteDraft ? (
             <Button
               variant="ghost"
-              className="!min-h-7 px-2 text-[10px]"
+              className="!min-h-7 px-2 text-3xs"
               onClick={() => {
                 onApplyRemoteDraft(remoteDraft);
                 setRemoteDraft(null);
@@ -292,7 +292,7 @@ export default function CollabPresenceBar({
           ) : null}
           <button
             type="button"
-            className="text-[10px] underline opacity-80"
+            className="text-3xs underline opacity-80"
             onClick={() => setRemoteDraft(null)}
           >
             Dismiss

@@ -129,15 +129,15 @@ export function GalleryCardHeroMedia({
         />
       )}
       {isVideoHero ? (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-4xs font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
           Video
         </span>
       ) : primaryMediaKind === 'audio' ? (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-4xs font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
           Audio
         </span>
       ) : primaryMediaKind === 'mesh' ? (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full border border-white/15 bg-black/55 px-1.5 py-0.5 text-4xs font-medium uppercase tracking-wide text-white/85 backdrop-blur-sm">
           3D
         </span>
       ) : null}

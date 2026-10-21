@@ -72,7 +72,7 @@ export default function ImageLightboxMetaPanel({
           {chips.map(chip => (
             <span
               key={chip}
-              className={`rounded-md px-2 py-0.5 text-[11px] ${
+              className={`rounded-md px-2 py-0.5 text-2xs ${
                 compact
                   ? 'bg-white/10 text-white/80'
                   : 'bg-[var(--bg-muted)] text-[var(--text-muted)]'

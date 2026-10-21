@@ -15,9 +15,12 @@ export default function ActiveJobsChip({
   className = '',
   compact = false,
   trayToggle,
+  onClick,
 }: {
   className?: string;
   compact?: boolean;
+  /** After the chip's own action (the sidebar closes its phone drawer). */
+  onClick?: () => void;
   /** Open the jobs panel under the header ('top') or by the sidebar ('bottom'). */
   trayToggle?: boolean | 'top' | 'bottom';
 }) {
@@ -45,8 +48,11 @@ export default function ActiveJobsChip({
         type="button"
         data-testid="active-jobs-chip"
         title={`${title} — show jobs`}
-        onClick={() => openSystemTrayPanel(trayToggle === 'bottom' ? 'bottom' : 'top')}
-        className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
+        onClick={() => {
+          openSystemTrayPanel(trayToggle === 'bottom' ? 'bottom' : 'top');
+          onClick?.();
+        }}
+        className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
       >
         <span
           className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-text)]"
@@ -61,9 +67,10 @@ export default function ActiveJobsChip({
   return (
     <Link
       href="/queue"
+      onClick={onClick}
       data-testid="active-jobs-chip"
       title={`${title} — open Queue`}
-      className={`inline-flex items-center gap-1.5 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--accent-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-1 text-2xs font-medium text-[var(--accent-text)] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
     >
       <span
         className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-text)]"

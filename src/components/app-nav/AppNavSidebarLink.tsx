@@ -13,11 +13,14 @@ export function AppNavSidebarLink({
   active,
   favorited,
   onToggleFavorite,
+  onNavigate,
 }: {
   link: AppNavLink;
   active: boolean;
   favorited?: boolean;
   onToggleFavorite?: () => void;
+  /** After following the link (closes the phone drawer). Not called by the pin toggle. */
+  onNavigate?: () => void;
 }) {
   const router = useRouter();
   const characterId =
@@ -49,6 +52,7 @@ export function AppNavSidebarLink({
             prefetchGalleryPage();
           }
           followNavClick(event, navHref, baseHref, href => router.push(href));
+          onNavigate?.();
         }}
       >
         {link.label}

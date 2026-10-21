@@ -138,7 +138,7 @@ export function GalleryFiltersSearchGroup({
             <button
               type="button"
               data-testid="gallery-group-rename"
-              className="ui-btn-ghost ui-btn-sm text-[11px]"
+              className="ui-btn-ghost ui-btn-sm text-2xs"
               onClick={() => {
                 const next = window.prompt('Rename group', filter.customGroup);
                 if (next?.trim() && next.trim() !== filter.customGroup) {
@@ -154,7 +154,7 @@ export function GalleryFiltersSearchGroup({
             <button
               type="button"
               data-testid="gallery-group-delete"
-              className="ui-btn-ghost ui-btn-sm text-[11px] text-[var(--tint-danger-text)]"
+              className="ui-btn-ghost ui-btn-sm text-2xs text-[var(--tint-danger-text)]"
               onClick={async () => {
                 if (
                   await confirmAction({

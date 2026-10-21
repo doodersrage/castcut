@@ -28,7 +28,7 @@ export default function DayContinuityLocks({
           title={lock.detail}
           data-testid={`${testId}-${lock.id}`}
           data-held={lock.held ? 'true' : 'false'}
-          className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] leading-4 ${
+          className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-2xs leading-4 ${
             lock.held
               ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--text-primary)]'
               : 'border-dashed border-[var(--border-subtle)] text-[var(--text-muted)]'

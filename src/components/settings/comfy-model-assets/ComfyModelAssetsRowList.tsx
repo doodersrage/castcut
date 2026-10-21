@@ -7,6 +7,7 @@ import {
   statusLabel,
 } from '@/components/settings/comfy-model-assets/comfy-model-assets-utils';
 import type { ComfyModelAssetsViewModel } from '@/components/settings/comfy-model-assets/useComfyModelAssets';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 type Props = Pick<
   ComfyModelAssetsViewModel,
@@ -33,7 +34,7 @@ export function ComfyModelAssetsRowList({
   install,
 }: Props) {
   if (loading && visibleRows.length === 0) {
-    return <p className="type-caption text-[var(--text-muted)]">Loading assets…</p>;
+    return <DataListSkeleton rows={4} label="Loading assets" />;
   }
 
   if (visibleRows.length === 0) {
@@ -63,7 +64,7 @@ export function ComfyModelAssetsRowList({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 space-y-0.5">
                       <p className="text-sm font-medium text-[var(--text-primary)]">{row.label}</p>
-                      <p className="font-mono text-[11px] text-[var(--tint-success-text)]">
+                      <p className="font-mono text-2xs text-[var(--tint-success-text)]">
                         {row.filename}
                       </p>
                       <p className="type-caption text-[var(--text-muted)]">

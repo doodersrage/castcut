@@ -220,7 +220,7 @@ export default function ComfyClusterSettingsPanel({
               Copy .env snippet
             </Button>
           </div>
-          <pre className="overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--text-muted)]">
+          <pre className="overflow-x-auto whitespace-pre-wrap text-2xs text-[var(--text-muted)]">
             {envSnippet.snippet}
           </pre>
           {copyStatus ? <p className="text-xs text-[var(--text-muted)]">{copyStatus}</p> : null}
@@ -328,7 +328,7 @@ export default function ComfyClusterSettingsPanel({
         </span>
       </label>
 
-      <p className="text-[11px] text-[var(--text-muted)]">
+      <p className="text-2xs text-[var(--text-muted)]">
         SSRF guards (<code className="ui-inline-code">COMFYUI_ALLOW_CLIENT_URL</code>,{' '}
         <code className="ui-inline-code">COMFYUI_ALLOWED_HOSTS</code>) stay in env.{' '}
         <Link href={settingsComfyUiSectionHref('connection')} className="text-[var(--accent-text)]">

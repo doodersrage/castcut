@@ -243,7 +243,7 @@ function PresetSection({
             )}
           </div>
           {sectionCount > 0 && (
-            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+            <span className="shrink-0 rounded-full border border-[var(--border-default)] bg-[var(--bg-muted)] px-2 py-0.5 text-3xs font-medium text-[var(--text-muted)]">
               {sectionCount}
             </span>
           )}

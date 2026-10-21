@@ -22,7 +22,7 @@ export function AssetTrayRow({
         <button
           type="button"
           onClick={() => onCancel(job.id)}
-          className="shrink-0 rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="shrink-0 rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Cancel
         </button>

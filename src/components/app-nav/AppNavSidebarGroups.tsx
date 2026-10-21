@@ -69,14 +69,14 @@ export function AppNavSidebarGroups({
                   <p className="type-overline px-3">Pinned</p>
                   <div className="space-y-1">
                     {pinnedLinks.map(link => (
-                      <div key={`pinned-${link.href}`} onClick={onNavigate}>
-                        <AppNavSidebarLink
-                          link={link}
-                          active={linkIsActive(link, pathname, search)}
-                          favorited
-                          onToggleFavorite={() => handleToggleFavorite(link.href)}
-                        />
-                      </div>
+                      <AppNavSidebarLink
+                        key={`pinned-${link.href}`}
+                        link={link}
+                        active={linkIsActive(link, pathname, search)}
+                        favorited
+                        onToggleFavorite={() => handleToggleFavorite(link.href)}
+                        onNavigate={onNavigate}
+                      />
                     ))}
                   </div>
                 </>
@@ -111,14 +111,14 @@ export function AppNavSidebarGroups({
                   {expanded ? (
                     <div className="space-y-1">
                       {group.links.map(link => (
-                        <div key={link.href} onClick={onNavigate}>
-                          <AppNavSidebarLink
-                            link={link}
-                            active={linkIsActive(link, pathname, search)}
-                            favorited={isNavFavorite(link.href, favorites)}
-                            onToggleFavorite={() => handleToggleFavorite(link.href)}
-                          />
-                        </div>
+                        <AppNavSidebarLink
+                          key={link.href}
+                          link={link}
+                          active={linkIsActive(link, pathname, search)}
+                          favorited={isNavFavorite(link.href, favorites)}
+                          onToggleFavorite={() => handleToggleFavorite(link.href)}
+                          onNavigate={onNavigate}
+                        />
                       ))}
                     </div>
                   ) : null}

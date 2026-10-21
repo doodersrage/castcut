@@ -65,7 +65,7 @@ export default function LoraLibraryEntryRow({
           </label>
           {entry.family ? (
             <span
-              className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]"
+              className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-3xs text-[var(--text-muted)]"
               title={
                 entry.familySource === 'missing'
                   ? 'This file is no longer in ComfyUI — remove the entry or re-download it'
@@ -80,7 +80,7 @@ export default function LoraLibraryEntryRow({
           ) : null}
           {loraChangesFaceAt(entry.faceCheck, strengthModel) ? (
             <span
-              className="rounded-full border border-[var(--tint-danger-border)] px-2 py-0.5 text-[10px] text-[var(--tint-danger-text)]"
+              className="rounded-full border border-[var(--tint-danger-border)] px-2 py-0.5 text-3xs text-[var(--tint-danger-text)]"
               title="Check on Cast measured this LoRA pulling the Cast's face away at this strength. Day and Story leave it out."
               data-testid="lora-entry-changes-face"
             >
@@ -88,7 +88,7 @@ export default function LoraLibraryEntryRow({
             </span>
           ) : null}
           {usage ? (
-            <span className="text-[10px] text-[var(--text-muted)]" data-testid="lora-entry-usage">
+            <span className="text-3xs text-[var(--text-muted)]" data-testid="lora-entry-usage">
               {usage.images} image{usage.images === 1 ? '' : 's'}
               {usage.favorites ? ` · ${usage.favorites} ♥` : ''}
               {usage.wellRated ? ` · ${usage.wellRated} rated 4+` : ''}

@@ -65,7 +65,7 @@ export default function GalleryDuplicateClustersPanel({
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  className="ui-btn-ghost ui-btn-sm text-[11px]"
+                  className="ui-btn-ghost ui-btn-sm text-2xs"
                   onClick={() => onShowCluster(cluster.ids)}
                 >
                   Show
@@ -73,7 +73,7 @@ export default function GalleryDuplicateClustersPanel({
                 {cluster.ids.length >= 2 && cluster.ids.length <= 4 ? (
                   <button
                     type="button"
-                    className="ui-btn-ghost ui-btn-sm text-[11px]"
+                    className="ui-btn-ghost ui-btn-sm text-2xs"
                     onClick={() => onCompare(cluster.ids)}
                   >
                     Compare
@@ -81,7 +81,7 @@ export default function GalleryDuplicateClustersPanel({
                 ) : null}
                 <button
                   type="button"
-                  className="ui-btn-ghost ui-btn-sm text-[11px] text-[var(--tint-danger-text)]"
+                  className="ui-btn-ghost ui-btn-sm text-2xs text-[var(--tint-danger-text)]"
                   onClick={() => onKeepHighest(cluster)}
                 >
                   Keep highest

@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 /**
  * The Clothing picker (kits, own photo, shoes), loaded when a Clothing sheet opens. Day, Story
@@ -10,7 +11,7 @@ import dynamic from 'next/dynamic';
  */
 const ClothingPicker = dynamic(() => import('@/components/wardrobe/ClothingPicker'), {
   ssr: false,
-  loading: () => <p className="type-caption text-[var(--text-muted)]">Loading clothing…</p>,
+  loading: () => <DataListSkeleton rows={3} label="Loading clothing" />,
 });
 
 export default ClothingPicker;

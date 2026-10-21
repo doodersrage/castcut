@@ -130,7 +130,7 @@ export default function ObservabilityDashboard() {
 function Metric(props: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-base)]/70 p-3">
-      <p className="text-[11px] uppercase tracking-wide text-[var(--text-muted)]">{props.label}</p>
+      <p className="text-2xs uppercase tracking-wide text-[var(--text-muted)]">{props.label}</p>
       <p className="mt-1 text-base font-semibold text-[var(--text-primary)]">{props.value}</p>
     </div>
   );

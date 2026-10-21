@@ -4,10 +4,11 @@ import dynamic from 'next/dynamic';
 import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { usesSystemWorkflowPath } from '@/lib/workflow/system-workflow-runtime';
+import { PanelSkeleton } from '@/components/ui/ViewState';
 
 const ComfyWorkflowSelector = dynamic(() => import('@/components/ComfyWorkflowSelector'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <PanelSkeleton className="h-24" />,
 });
 
 export type SharedWorkflowBlockServerFile = {

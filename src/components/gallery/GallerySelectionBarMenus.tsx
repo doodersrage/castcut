@@ -56,7 +56,7 @@ export function MenuItem(props: { label: string; onClick: () => void; disabled?:
       type="button"
       disabled={props.disabled}
       onClick={props.onClick}
-      className={`ui-menu-item rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] text-[11px] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
+      className={`ui-menu-item rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] text-2xs transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
     >
       {props.label}
     </button>

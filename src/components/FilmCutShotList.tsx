@@ -2,7 +2,11 @@
 
 import { CUT_FRAMINGS, type CutFraming } from '@/lib/video/cut-move';
 import { CutShotOverlayEditor } from '@/components/cut/CutOverlayControls';
-import { useEffect, useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
+import ShotCardMenu, {
+  SHOT_CARD_MENU_ITEM_CLASS,
+  ShotCardMenuGroup,
+} from '@/components/ui/ShotCardMenu';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/film/character-film';
 import {
@@ -20,6 +24,7 @@ import {
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/video/cut-timeline';
 import type { IdentityMark } from '@/lib/character/identity-mark';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Day / Story shot list: order, leave a shot out, edit its caption (when titles are on), set a
@@ -65,6 +70,11 @@ export default function FilmCutShotList({
   const [over, setOver] = useState<string | null>(null);
   /** The shot whose overlay editor is open. */
   const [overlayOpen, setOverlayOpen] = useState<string | null>(null);
+  /** Keyboard reorder: what the polite live region last said ("Morning moved to 2 of 5"). */
+  const [announcement, setAnnouncement] = useState('');
+  /** The grip to put focus back on after a keyboard move (its row was moved in the DOM). */
+  const refocusKey = useRef<string | null>(null);
+  const grips = useRef(new Map<string, HTMLSpanElement>());
   const known = new Set(shots.map(shot => shot.key));
   const ordered = orderedCutShots(shots, edits);
   const keys = ordered.map(shot => shot.key);
@@ -80,8 +90,28 @@ export default function FilmCutShotList({
       },
     });
 
+  // After a keyboard move re-renders the list, put focus back on the moved shot's grip.
+  useEffect(() => {
+    const key = refocusKey.current;
+    if (!key) return;
+    refocusKey.current = null;
+    grips.current.get(key)?.focus();
+  });
+
+  /** Arrow Up / Down on a grip moves its shot one place (the same move as the ↑ / ↓ buttons). */
+  const moveByKey = (shot: KeyedShot, delta: -1 | 1) => {
+    const next = moveCutShot(keys, shot.key, delta);
+    if (next === keys) return;
+    onChange({ ...edits, order: next });
+    refocusKey.current = shot.key;
+    setAnnouncement(`${shot.title} moved to ${next.indexOf(shot.key) + 1} of ${next.length}`);
+  };
+
   return (
     <div className="space-y-1.5" data-testid={`${testIdPrefix}-shot-list`}>
+      <p className="sr-only" aria-live="polite" data-testid={`${testIdPrefix}-shot-reorder-status`}>
+        {announcement}
+      </p>
       <p className="type-caption text-[var(--text-muted)]">
         Shots — drag to reorder, leave out{captions ? ', caption' : ''}
         {holdsLocked ? '' : ', hold'}, frame stills
@@ -136,16 +166,28 @@ export default function FilmCutShotList({
               data-testid={`${testIdPrefix}-shot-${shot.key}`}
             >
               <span
+                ref={node => {
+                  if (node) grips.current.set(shot.key, node);
+                  else grips.current.delete(shot.key);
+                }}
                 role="button"
-                tabIndex={-1}
-                aria-label={`Drag ${shot.title} to reorder`}
-                title="Drag to reorder"
-                className={`flex w-6 shrink-0 cursor-grab select-none flex-col items-center self-stretch justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-muted)] hover:bg-[var(--bg-hover)] active:cursor-grabbing ${disabled ? 'pointer-events-none opacity-40' : ''}`}
+                tabIndex={disabled ? -1 : 0}
+                aria-disabled={disabled || undefined}
+                aria-label={`Reorder ${shot.title}, shot ${index + 1} of ${ordered.length}. Drag, or press Arrow Up or Arrow Down to move it`}
+                title="Drag to reorder (or focus and press ↑ / ↓)"
+                className={`flex w-6 shrink-0 cursor-grab select-none flex-col items-center self-stretch justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-muted)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] active:cursor-grabbing ${disabled ? 'pointer-events-none opacity-40' : ''}`}
                 data-testid={`${testIdPrefix}-shot-grip-${shot.key}`}
+                onKeyDown={event => {
+                  if (disabled) return;
+                  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    moveByKey(shot, event.key === 'ArrowUp' ? -1 : 1);
+                  }
+                }}
                 onPointerDown={() => setArmed(shot.key)}
                 onPointerUp={() => setArmed(current => (dragging ? current : null))}
               >
-                ⠿<span className="mt-0.5 text-[10px]">{index + 1}</span>
+                ⠿<span className="mt-0.5 text-3xs">{index + 1}</span>
               </span>
               {onPick ? (
                 <button
@@ -173,7 +215,7 @@ export default function FilmCutShotList({
                   />
                   <span className="font-medium text-[var(--text-primary)]">{shot.title}</span>
                   {tagFor?.(shot) ? (
-                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-[10px] text-[var(--text-muted)]">
+                    <span className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs text-[var(--text-muted)]">
                       {tagFor(shot)}
                     </span>
                   ) : null}
@@ -427,46 +469,52 @@ export default function FilmCutShotList({
                       onChange={patch => patchShot(shot.key, patch)}
                     />
                   ) : null}
-                  <button
-                    type="button"
-                    aria-pressed={isPoster}
-                    disabled={disabled || !included}
-                    title={
-                      shot.kind === 'clip'
-                        ? 'Save poster uses a frame of this clip'
-                        : 'Save poster uses this still'
-                    }
-                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                      isPoster
-                        ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                        : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    } disabled:opacity-40`}
-                    data-testid={`${testIdPrefix}-shot-poster-${shot.key}`}
-                    onClick={() =>
-                      onChange({
-                        ...edits,
-                        order: keys,
-                        poster: isPoster ? undefined : { key: shot.key },
-                      })
-                    }
+                  {isPoster ? <span className={SHOT_STATE_BADGE_CLASS}>Poster</span> : null}
+                  {edit?.lowerThird || edit?.pipUrl ? (
+                    <span className={SHOT_STATE_BADGE_CLASS}>Overlay</span>
+                  ) : null}
+                  <ShotCardMenu
+                    label={shot.title}
+                    align="left"
+                    testId={`${testIdPrefix}-shot-menu-${shot.key}`}
                   >
-                    Poster
-                  </button>
-                  <button
-                    type="button"
-                    aria-expanded={overlayOpen === shot.key}
-                    disabled={disabled || !included}
-                    title="A lower third (a name or place) or a picture in a corner of this shot"
-                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                      edit?.lowerThird || edit?.pipUrl
-                        ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                        : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                    } disabled:opacity-40`}
-                    data-testid={`${testIdPrefix}-shot-overlay-${shot.key}`}
-                    onClick={() => setOverlayOpen(open => (open === shot.key ? null : shot.key))}
-                  >
-                    Overlay…
-                  </button>
+                    <ShotCardMenuGroup label="The cut">
+                      <button
+                        type="button"
+                        aria-pressed={isPoster}
+                        disabled={disabled || !included}
+                        title={
+                          shot.kind === 'clip'
+                            ? 'Save poster uses a frame of this clip'
+                            : 'Save poster uses this still'
+                        }
+                        className={SHOT_CARD_MENU_ITEM_CLASS}
+                        data-testid={`${testIdPrefix}-shot-poster-${shot.key}`}
+                        onClick={() =>
+                          onChange({
+                            ...edits,
+                            order: keys,
+                            poster: isPoster ? undefined : { key: shot.key },
+                          })
+                        }
+                      >
+                        {isPoster ? '✓ Poster' : 'Use as poster'}
+                      </button>
+                      <button
+                        type="button"
+                        aria-expanded={overlayOpen === shot.key}
+                        disabled={disabled || !included}
+                        title="A lower third (a name or place) or a picture in a corner of this shot"
+                        className={SHOT_CARD_MENU_ITEM_CLASS}
+                        data-testid={`${testIdPrefix}-shot-overlay-${shot.key}`}
+                        onClick={() =>
+                          setOverlayOpen(open => (open === shot.key ? null : shot.key))
+                        }
+                      >
+                        {overlayOpen === shot.key ? 'Close overlay' : 'Overlay…'}
+                      </button>
+                    </ShotCardMenuGroup>
+                  </ShotCardMenu>
                   {overlayOpen === shot.key ? (
                     <div className="basis-full">
                       <CutShotOverlayEditor
@@ -508,25 +556,23 @@ export default function FilmCutShotList({
               </div>
               {/* 32 px squares: the bare arrows were 9×16 px, too small to tap on a phone. */}
               <span className="flex shrink-0 flex-col gap-0.5">
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                <Button
+                  variant="icon"
                   disabled={disabled || index === 0}
                   aria-label={`Move ${shot.title} earlier`}
                   onClick={() => onChange({ ...edits, order: moveCutShot(keys, shot.key, -1) })}
                 >
                   ↑
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-base text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                </Button>
+                <Button
+                  variant="icon"
                   disabled={disabled || index === ordered.length - 1}
                   aria-label={`Move ${shot.title} later`}
                   data-testid={`${testIdPrefix}-shot-down-${shot.key}`}
                   onClick={() => onChange({ ...edits, order: moveCutShot(keys, shot.key, 1) })}
                 >
                   ↓
-                </button>
+                </Button>
               </span>
             </li>
           );
@@ -535,6 +581,10 @@ export default function FilmCutShotList({
     </div>
   );
 }
+
+/** A quiet tag on a shot card for a setting made in its ⋯ menu (Poster, Overlay). */
+const SHOT_STATE_BADGE_CLASS =
+  'rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-2xs text-[var(--accent-text)]';
 
 /** "from [0] to [6.2] of 6.2 s": a clip's in and out points (the length is read off the file). */
 function ClipTrimInputs({
@@ -618,7 +668,7 @@ function ShotThumb({ shot }: { shot: KeyedShot }) {
       <span className={box}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={shot.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-3xs text-white">
           ▶ clip
         </span>
       </span>
@@ -637,7 +687,7 @@ function ShotThumb({ shot }: { shot: KeyedShot }) {
           onMouseEnter={event => void event.currentTarget.play().catch(() => undefined)}
           onMouseLeave={event => event.currentTarget.pause()}
         />
-        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-[10px] text-white">
+        <span className="absolute bottom-0.5 left-0.5 rounded bg-black/70 px-1 text-3xs text-white">
           ▶ clip
         </span>
       </span>
@@ -659,7 +709,7 @@ function ShotWords({ shot }: { shot: KeyedShot }) {
   const over = !said ? (shot.narrationText?.trim() ?? '') : '';
   if (!beat && !said && !over) return null;
   return (
-    <p className="line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+    <p className="line-clamp-2 text-2xs text-[var(--text-secondary)]">
       {beat}
       {said ? (
         <span className="text-[var(--text-primary)]">

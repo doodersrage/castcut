@@ -41,7 +41,7 @@ export function ComfyWorkflowRecentlyDeleted({
           >
             <span className="text-xs text-[var(--text-primary)]">
               {entry.file.name}
-              <span className="ml-2 text-[10px] text-[var(--text-muted)]">
+              <span className="ml-2 text-3xs text-[var(--text-muted)]">
                 deleted {new Date(entry.deletedAt).toLocaleString()}
               </span>
             </span>

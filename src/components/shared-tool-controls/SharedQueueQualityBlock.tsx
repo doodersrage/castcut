@@ -6,10 +6,11 @@ import type { ResolutionOrientation, ResolutionSizeTier } from '@/lib/model/reso
 import { type QueueQualityProfile } from '@/lib/queue/quality-profile';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { SystemWorkflowChoiceDescription } from '@/lib/workflow/system-workflow-runtime';
+import { PanelSkeleton } from '@/components/ui/ViewState';
 
 const QueueRecipesPanel = dynamic(() => import('@/components/QueueRecipesPanel'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <PanelSkeleton className="h-28" />,
 });
 
 export type SharedQueueQualityBlockProps = {

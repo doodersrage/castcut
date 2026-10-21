@@ -305,7 +305,7 @@ export function GalleryFiltersAdvancedPanel({
           disabled={backfillLoading}
           onClick={() => void runVisionBackfill()}
           className={`ui-btn-ghost ui-btn-sm text-xs rounded-xl border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] transition hover:bg-[var(--tint-info-bg)] hover:border-[var(--tint-info-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40 ${
-            backfillLoading ? 'text-slate-400' : 'text-[var(--tint-info-text)]'
+            backfillLoading ? 'text-[var(--text-muted)]' : 'text-[var(--tint-info-text)]'
           }`}
         >
           {backfillLoading
@@ -315,7 +315,7 @@ export function GalleryFiltersAdvancedPanel({
             : 'Tag untagged'}
         </button>
         {filter.semanticSearch && embeddingSearchUnavailable ? (
-          <span className="rounded-[var(--radius-full)] border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2.5 py-1 text-[10px] text-[var(--tint-warning-text)]">
+          <span className="rounded-[var(--radius-full)] border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2.5 py-1 text-3xs text-[var(--tint-warning-text)]">
             Semantic search needs LLM embeddings — using text match
           </span>
         ) : null}
@@ -375,7 +375,7 @@ export function GalleryFiltersAdvancedPanel({
       </div>
 
       {filter.reviewMode ? (
-        <p className="rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2 text-[11px] text-[var(--accent-text)]">
+        <p className="rounded-[var(--radius-md)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2 text-2xs text-[var(--accent-text)]">
           Review shortcuts: <kbd className="rounded bg-[var(--bg-muted)] px-1">1–5</kbd> rate ·{' '}
           <kbd className="rounded bg-[var(--bg-muted)] px-1">F</kbd> favorite ·{' '}
           <kbd className="rounded bg-[var(--bg-muted)] px-1">N</kbd>/

@@ -59,7 +59,7 @@ export function ShotCardMenuGroup({ label, children }: { label?: string; childre
       {label ? (
         <p
           aria-hidden="true"
-          className="px-2 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+          className="px-2 pt-0.5 text-3xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
         >
           {label}
         </p>

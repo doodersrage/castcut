@@ -186,7 +186,7 @@ export default function GalleryCardBodyBlock({
             {statusLabel(entry.status, entry)}
           </span>
           {entry.reviewRating ? (
-            <span className="text-[10px] text-[var(--accent-text)]">{entry.reviewRating}★</span>
+            <span className="text-3xs text-[var(--accent-text)]">{entry.reviewRating}★</span>
           ) : null}
           <GalleryPlayChecksBadge entry={entry} />
           <GalleryUsedInBadge entry={entry} />
@@ -390,7 +390,7 @@ export default function GalleryCardBodyBlock({
       ) : null}
 
       {reviewMode && reviewMutationHints && reviewMutationHints.length > 0 ? (
-        <ul className="space-y-1 rounded-xl border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-3 py-2 text-[11px] text-[var(--tint-warning-text)]">
+        <ul className="space-y-1 rounded-xl border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-3 py-2 text-2xs text-[var(--tint-warning-text)]">
           {reviewMutationHints.map(hint => (
             <li key={hint}>· {hint}</li>
           ))}
@@ -405,7 +405,7 @@ export default function GalleryCardBodyBlock({
               : ''
           }`}
         >
-          <span className="text-[11px] text-[var(--text-muted)]">Rate</span>
+          <span className="text-2xs text-[var(--text-muted)]">Rate</span>
           {[1, 2, 3, 4, 5].map(rating => (
             <button
               key={rating}

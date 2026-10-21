@@ -39,7 +39,7 @@ export default function MobileStickyQueueBar({
             {label}
           </button>
           {status ? (
-            <p className="max-w-[40%] truncate text-[11px] text-[var(--text-muted)]">{status}</p>
+            <p className="max-w-[40%] truncate text-2xs text-[var(--text-muted)]">{status}</p>
           ) : null}
         </div>
       </div>

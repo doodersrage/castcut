@@ -44,6 +44,7 @@ import {
   normalizeLoraStackPresets,
   saveLoraStackPreset,
 } from '@/lib/lora/library-tools';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 type LoraStackSessionPickerProps = {
   model?: string;
@@ -137,7 +138,7 @@ function StrengthSlider({
 }) {
   return (
     <label className="block space-y-1.5" onClick={event => event.stopPropagation()}>
-      <span className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+      <span className="flex items-center justify-between text-2xs text-[var(--text-muted)]">
         <span>{label}</span>
         <span className="font-mono tabular-nums text-[var(--text-secondary)]">
           {value.toFixed(2)}
@@ -228,7 +229,7 @@ export default function LoraStackSessionPicker({
   };
 
   if (!snapshot) {
-    return <p className="type-caption text-[var(--text-muted)]">Loading LoRA stack…</p>;
+    return <DataListSkeleton rows={2} label="Loading LoRA stack" />;
   }
 
   const selectable = listSelectableLoraLibraryEntries(snapshot.library);
@@ -359,7 +360,7 @@ export default function LoraStackSessionPicker({
                           onSessionStrengthOverridesChange?.(preset.strengthOverrides);
                         }
                       }}
-                      className="px-2 text-[11px]"
+                      className="px-2 text-2xs"
                     >
                       {preset.name} · {preset.loraIds.length}
                     </ChipButton>
@@ -367,7 +368,7 @@ export default function LoraStackSessionPicker({
                       type="button"
                       aria-label={`Delete saved stack ${preset.name}`}
                       onClick={() => savePresets(deleteLoraStackPreset(presets, preset.id))}
-                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
+                      className="text-2xs text-[var(--text-muted)] hover:text-[var(--accent-text)]"
                     >
                       ×
                     </button>
@@ -494,7 +495,7 @@ export default function LoraStackSessionPicker({
                         {entry.label || entry.id}
                       </span>
                       {mismatched ? (
-                        <span className="block text-[10px] ui-status-danger">
+                        <span className="block text-3xs ui-status-danger">
                           {entry.family &&
                           entry.familySource !== 'unreadable' &&
                           entry.familySource !== 'missing'
@@ -505,7 +506,7 @@ export default function LoraStackSessionPicker({
                       {!mismatched &&
                       loraChangesFaceAt(entry.faceCheck, strengths.strengthModel) ? (
                         <span
-                          className="block text-[10px] ui-status-danger"
+                          className="block text-3xs ui-status-danger"
                           data-testid="lora-row-changes-face"
                         >
                           Changes faces — left out of Day and Story
@@ -513,7 +514,7 @@ export default function LoraStackSessionPicker({
                       ) : null}
                     </span>
                     {checked || strengths.hasSessionOverride ? (
-                      <span className="shrink-0 font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
+                      <span className="shrink-0 font-mono text-3xs tabular-nums text-[var(--text-muted)]">
                         {strengths.strengthModel.toFixed(2)}/{strengths.strengthClip.toFixed(2)}
                         {strengths.hasSessionOverride ? (
                           <span className="ml-1 rounded bg-[var(--accent-muted)] px-1 text-[var(--accent-text)]">
@@ -536,7 +537,7 @@ export default function LoraStackSessionPicker({
             <p className="truncate text-sm font-medium text-[var(--text-primary)]">
               {tuningEntry.label || tuningEntry.id}
             </p>
-            <p className="truncate font-mono text-[10px] text-[var(--text-muted)]">
+            <p className="truncate font-mono text-3xs text-[var(--text-muted)]">
               {tuningEntry.tokenValue}
             </p>
           </div>
@@ -545,14 +546,14 @@ export default function LoraStackSessionPicker({
             <ChipButton
               active={strengthEditMode === 'session'}
               onClick={() => setStrengthEditMode('session')}
-              className="w-full justify-center px-2 text-[11px]"
+              className="w-full justify-center px-2 text-2xs"
             >
               This run
             </ChipButton>
             <ChipButton
               active={strengthEditMode === 'library'}
               onClick={() => setStrengthEditMode('library')}
-              className="w-full justify-center px-2 text-[11px]"
+              className="w-full justify-center px-2 text-2xs"
             >
               Default
             </ChipButton>

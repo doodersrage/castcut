@@ -6,6 +6,7 @@ import { ToolSection } from '@/components/ui/ToolPageShell';
 import { ButtonLink } from '@/components/ui/Button';
 import UsersAdminPanel from '@/components/settings/UsersAdminPanel';
 import SmtpSettingsPanel from '@/components/settings/SmtpSettingsPanel';
+import { DataListSkeleton } from '@/components/ui/ViewState';
 
 export default function UsersSettingsPanel() {
   const auth = useAuth();
@@ -13,7 +14,7 @@ export default function UsersSettingsPanel() {
   if (!auth) {
     return (
       <ToolSection title="Users">
-        <p className="text-sm text-[var(--text-muted)]">Loading account settings…</p>
+        <DataListSkeleton rows={3} label="Loading account settings" />
       </ToolSection>
     );
   }
@@ -23,7 +24,7 @@ export default function UsersSettingsPanel() {
   if (loading) {
     return (
       <ToolSection title="Users">
-        <p className="text-sm text-[var(--text-muted)]">Loading account settings…</p>
+        <DataListSkeleton rows={3} label="Loading account settings" />
       </ToolSection>
     );
   }

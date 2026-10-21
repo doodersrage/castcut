@@ -219,7 +219,7 @@ export default function SettingsAutomationTab({
                   {expandedWebhookLogId === entry.id ? 'Hide payload' : 'Show payload'}
                 </button>
                 {expandedWebhookLogId === entry.id ? (
-                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-2 text-[11px] text-[var(--text-secondary)]">
+                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-2 text-2xs text-[var(--text-secondary)]">
                     {JSON.stringify(entry.payload, null, 2)}
                   </pre>
                 ) : null}

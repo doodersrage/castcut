@@ -16,7 +16,7 @@ export function GalleryMenuGroup({
           {label}
           <span
             aria-hidden
-            className="text-[10px] text-[var(--text-muted)] transition group-open/menu:rotate-90"
+            className="text-3xs text-[var(--text-muted)] transition group-open/menu:rotate-90"
           >
             ▸
           </span>
@@ -28,7 +28,7 @@ export function GalleryMenuGroup({
   return (
     <div className="border-t border-[var(--border-subtle)]/80 py-1 first:border-t-0 first:pt-0">
       {label ? (
-        <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        <p className="px-3 pb-1 pt-1.5 text-3xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           {label}
         </p>
       ) : null}

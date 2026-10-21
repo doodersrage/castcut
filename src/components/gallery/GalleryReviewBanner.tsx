@@ -14,7 +14,7 @@ export default function GalleryReviewBanner({ filter }: GalleryReviewBannerProps
       role="status"
     >
       <p className="text-sm font-medium text-[var(--text-primary)]">Review mode</p>
-      <p className="mt-1 text-[11px] leading-relaxed text-[var(--accent-text)]">
+      <p className="mt-1 text-2xs leading-relaxed text-[var(--accent-text)]">
         Click a card to focus it, then rate with <kbd className="ui-kbd">1–5</kbd>, favorite with{' '}
         <kbd className="ui-kbd">F</kbd>, navigate with <kbd className="ui-kbd">N</kbd> /{' '}
         <kbd className="ui-kbd">P</kbd>

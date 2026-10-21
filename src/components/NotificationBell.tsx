@@ -70,7 +70,7 @@ export default function NotificationBell() {
       >
         Alerts
         {unread > 0 ? (
-          <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] text-white">
+          <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-3xs text-[var(--on-accent)]">
             {unread}
           </span>
         ) : null}
@@ -90,7 +90,7 @@ export default function NotificationBell() {
             </div>
             <button
               type="button"
-              className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--accent-text)] transition hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-md px-1.5 py-0.5 text-3xs text-[var(--accent-text)] transition hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               onClick={() => {
                 markAllNotificationsRead();
                 refresh();
@@ -105,7 +105,7 @@ export default function NotificationBell() {
                 <p className="text-xs font-medium text-[var(--text-primary)]">
                   No notifications yet
                 </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                <p className="mt-1 text-2xs leading-relaxed text-[var(--text-muted)]">
                   Queue completions, review tips, and sync notices will show up here.
                 </p>
               </li>

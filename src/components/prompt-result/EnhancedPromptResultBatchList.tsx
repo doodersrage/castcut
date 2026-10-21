@@ -12,10 +12,11 @@ import type {
 
 const ComfyWorkflowSelector = dynamic(() => import('@/components/ComfyWorkflowSelector'), {
   ssr: false,
-  loading: () => null,
+  loading: () => <PanelSkeleton className="h-16" />,
 });
 
 import type { UseComfyWorkflowSelectionResult } from '@/hooks/useComfyWorkflowSelection';
+import { PanelSkeleton } from '@/components/ui/ViewState';
 
 export type EnhancedPromptResultBatchListProps = {
   batchItems: BatchPromptItem[];

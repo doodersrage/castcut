@@ -81,7 +81,7 @@ export default function ClothingTile({
       {selected ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-sm ring-2 ring-[var(--bg-base)]"
+          className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] shadow-sm ring-2 ring-[var(--bg-base)]"
         >
           <UiIcon name="check" size={12} />
         </span>

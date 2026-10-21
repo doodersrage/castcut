@@ -144,7 +144,7 @@ export function SystemTrayActivityCard({
                 ) : null}
               </div>
               {extraCount > 0 ? (
-                <span className="max-md:hidden shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--accent-text)]">
+                <span className="max-md:hidden shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs font-medium tabular-nums text-[var(--accent-text)]">
                   +{extraCount}
                 </span>
               ) : null}
@@ -171,7 +171,7 @@ export function SystemTrayActivityCard({
             onClick={() => cancelGalleryJob(primary.entry)}
             // Phones: the collapsed pill is only the count — a Cancel beside it doubled its width
             // over the page. Open the pill to cancel.
-            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-[11px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50`}
+            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {cancellingGalleryIds.has(primary.entry.id) ? '…' : 'Cancel'}
           </button>
@@ -181,7 +181,7 @@ export function SystemTrayActivityCard({
             aria-label="Cancel download"
             data-testid="system-tray-cancel-primary-asset"
             onClick={() => cancelAssetJob(primary.job.id)}
-            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-[11px] font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
+            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
           >
             Cancel
           </button>

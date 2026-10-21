@@ -18,6 +18,7 @@ import {
   type CutShotEdit,
   type CutShotEdits,
 } from '@/lib/film/cut-plan';
+import { Button } from '@/components/ui/Button';
 
 type Drag =
   | { kind: 'hold'; key: string; startX: number; base: number; value: number }
@@ -206,23 +207,23 @@ export default function CutTimeline({
           Click to jump · drag a shot to move it · drag its edge to hold or trim
         </span>
         <span className="flex items-center gap-1">
-          <button
-            type="button"
-            className="h-7 w-7 rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+          <Button
+            variant="icon"
+            className="h-7 w-7"
             aria-label="Zoom the timeline out"
             onClick={() => setZoom(value => Math.max(0.5, value / 1.5))}
           >
             −
-          </button>
-          <button
-            type="button"
-            className="h-7 w-7 rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+          </Button>
+          <Button
+            variant="icon"
+            className="h-7 w-7"
             aria-label="Zoom the timeline in"
             data-testid="cut-timeline-zoom-in"
             onClick={() => setZoom(value => Math.min(8, value * 1.5))}
           >
             +
-          </button>
+          </Button>
         </span>
       </div>
       <div
@@ -249,7 +250,7 @@ export default function CutTimeline({
             {ticks.map(t => (
               <span
                 key={t}
-                className="absolute top-0 h-full border-l border-[var(--border-subtle)] pl-0.5 text-[10px] tabular-nums text-[var(--text-muted)]"
+                className="absolute top-0 h-full border-l border-[var(--border-subtle)] pl-0.5 text-3xs tabular-nums text-[var(--text-muted)]"
                 style={{ left: t * pps }}
               >
                 {Math.floor(t / 60)}:{String(Math.round(t) % 60).padStart(2, '0')}
@@ -276,7 +277,7 @@ export default function CutTimeline({
               return (
                 <div
                   key={`title-${index}`}
-                  className="absolute top-6 flex h-[5.5rem] items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-black px-1 text-center text-[10px] text-white/80"
+                  className="absolute top-6 flex h-[5.5rem] items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-black px-1 text-center text-3xs text-white/80"
                   style={{ left, width: blockWidth }}
                   title="Title card"
                 >
@@ -294,7 +295,7 @@ export default function CutTimeline({
                   key={`${key}-in`}
                   className={`absolute top-[0.85rem] z-10 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border text-[12px] leading-none shadow ${
                     own
-                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                   }`}
                   style={{ left }}
@@ -397,7 +398,7 @@ export default function CutTimeline({
                     style={{ width: Math.min(blockWidth, item.inSec * pps) }}
                   />
                 ) : null}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-[10px] text-white">
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 text-3xs text-white">
                   {item.kind === 'clip' ? '▶ ' : ''}
                   {loaded?.shots[item.shot]?.title}
                   {live ? ` · ${live.value} s` : ''}

@@ -124,7 +124,7 @@ export default function CutGeneratePanel({
               </span>
               <button
                 type="button"
-                className="text-[11px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
                 onClick={() => onRemove(extra.key)}
               >
                 {extra.status === 'failed' ? 'Remove' : 'Cancel'}

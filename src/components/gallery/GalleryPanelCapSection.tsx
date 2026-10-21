@@ -82,7 +82,7 @@ export default function GalleryPanelCapSection({
             {!showFilters ? (
               <Link
                 href="/gallery?atRisk=1"
-                className="rounded-xl border border-current/30 bg-black/10 px-2.5 py-1 text-[11px] font-medium transition hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               >
                 Open full gallery
               </Link>
@@ -90,7 +90,7 @@ export default function GalleryPanelCapSection({
             <button
               type="button"
               onClick={clearAtRisk}
-              className="rounded-xl border border-current/30 bg-black/10 px-2.5 py-1 text-[11px] font-medium transition hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             >
               Clear
             </button>

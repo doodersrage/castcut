@@ -100,7 +100,7 @@ export default function GalleryFailedRecoveryBanner({
               value={retryMode}
               onChange={event => setRetryMode(event.target.value as GalleryFailedRetryMode)}
               data-testid="gallery-failed-retry-mode"
-              className="ui-input px-2 py-1 text-[11px]"
+              className="ui-input px-2 py-1 text-2xs"
             >
               <option value="same">Same seed</option>
               <option value="new">New seed</option>
@@ -151,7 +151,7 @@ export default function GalleryFailedRecoveryBanner({
               className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--tint-danger-border)] bg-[var(--bg-base)]/35 px-3 py-2"
             >
               <p
-                className="min-w-0 flex-1 truncate text-[11px] text-[var(--tint-danger-text)]"
+                className="min-w-0 flex-1 truncate text-2xs text-[var(--tint-danger-text)]"
                 title={cluster.label}
               >
                 <span className="mr-2 font-medium text-[var(--tint-danger-text)]">

@@ -16,6 +16,7 @@ import {
   renderMaskEditorFrame,
   screenBrushRadiusToCanvas,
 } from '@/lib/edit/inpaint-mask-canvas';
+import { ErrorState } from '@/components/ui/ViewState';
 
 type InpaintMaskMode = 'draw' | 'upload';
 
@@ -321,9 +322,7 @@ export default function InpaintMaskEditor({
             <p className="type-caption text-[var(--text-muted)]">Loading mask editor…</p>
           ) : null}
           {loadError ? (
-            <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-200/90">
-              {loadError}
-            </p>
+            <ErrorState compact title="Could not load the mask editor" description={loadError} />
           ) : null}
         </div>
       ) : (
