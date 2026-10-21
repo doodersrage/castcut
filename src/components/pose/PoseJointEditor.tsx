@@ -4,7 +4,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -18,10 +17,8 @@ import {
   posePartOfJoint,
 } from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
-import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day/pose-presets';
-import { usePoseReferences } from '@/hooks/usePoseReferences';
-import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose/references';
-import { poseLayoutLabel } from '@/lib/pose/layout-labels';
+import { dayPoseAsPhotoPose, dayPoseWords } from '@/lib/day/pose-presets';
+import { type PoseReference } from '@/lib/pose/references';
 import ModalPortal from '@/components/ui/ModalPortal';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import type { NormalizedBody } from '@/lib/pose/library';
@@ -37,13 +34,7 @@ import {
   type BodyRotation,
 } from '@/lib/pose/joint-edit';
 import { saveMyPose } from '@/lib/pose/my-poses';
-import {
-  ASSUMED_SUBJECT,
-  fitBodyToBox,
-  imageBoxOnCanvas,
-  subjectBoxFromPixels,
-  type FitBox,
-} from '@/lib/pose/fit';
+import { fitBodyToBox, imageBoxOnCanvas, type FitBox } from '@/lib/pose/fit';
 import {
   ARM_PRESETS,
   HEAD_DIRECTIONS,
@@ -75,270 +66,34 @@ import {
   swapSides,
   type PoseStarterId,
 } from '@/lib/pose/starters';
-
-/** The figures' names: the Cast is the lead (Image 1), the second figure their partner. */
-function figureName(person: number): string {
-  return person === 0 ? 'Lead' : 'Partner';
-}
-
-/** Draggable joints: nose, neck, arms, legs (eyes / ears ride along with the nose). */
-const EDITABLE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
-const JOINT_NAMES: Record<number, string> = {
-  0: 'head',
-  1: 'neck — drag to bend at the waist',
-  2: 'right shoulder',
-  3: 'right elbow',
-  4: 'right wrist',
-  5: 'left shoulder',
-  6: 'left elbow',
-  7: 'left wrist',
-  8: 'right hip',
-  9: 'right knee',
-  10: 'right ankle',
-  11: 'left hip',
-  12: 'left knee',
-  13: 'left ankle',
-};
-
-const JOINT_LABELS: Record<number, string> = {
-  0: 'Head',
-  1: 'Neck',
-  2: 'Right shoulder',
-  3: 'Right elbow',
-  4: 'Right wrist',
-  5: 'Left shoulder',
-  6: 'Left elbow',
-  7: 'Left wrist',
-  8: 'Right hip',
-  9: 'Right knee',
-  10: 'Right ankle',
-  11: 'Left hip',
-  12: 'Left knee',
-  13: 'Left ankle',
-};
-
-const LIMB_ENDS = new Set([4, 7, 10, 13]);
-
-/** The bone a joint swings on, used only to separate overlapping handles in side view. */
-const JOINT_PARENT: Record<number, number> = {
-  0: 1,
-  2: 1,
-  3: 2,
-  4: 3,
-  5: 1,
-  6: 5,
-  7: 6,
-  8: 1,
-  9: 8,
-  10: 9,
-  11: 1,
-  12: 11,
-  13: 12,
-};
-
-/**
- * Where a joint's handle is drawn. Side view stacks both arms, and a wrist on a hip, onto one
- * dot, so a click could only move one of them. Once the shoulders have come together, handles
- * in that pile step apart across the bone. Facing the camera, the handles stay on the joints.
- * The skeleton underneath is unchanged.
- */
-function handlePosition(
-  body: NormalizedBody,
-  joint: number,
-  aspect: number
-): { x: number; y: number } | null {
-  const point = body[joint];
-  if (!point) return null;
-  const right = body[2];
-  const left = body[5];
-  const shoulders = right && left ? Math.hypot((right.x - left.x) * aspect, right.y - left.y) : 1;
-  if (shoulders > 0.025) return { x: point.x, y: point.y };
-  const cluster = EDITABLE.filter(other => {
-    const there = body[other];
-    return there != null && Math.hypot((there.x - point.x) * aspect, there.y - point.y) <= 0.028;
-  });
-  if (cluster.length < 2) return { x: point.x, y: point.y };
-  const index = cluster.indexOf(joint as (typeof EDITABLE)[number]);
-  const parent = body[JOINT_PARENT[joint] ?? 1] ?? point;
-  const dx = (point.x - parent.x) * aspect;
-  const dy = point.y - parent.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const across = ((index - (cluster.length - 1) / 2) * 0.036) / length;
-  return {
-    x: point.x + (-dy * across) / aspect,
-    y: point.y + dx * across,
-  };
-}
-
-function jointHint(joint: number): string {
-  const name = JOINT_LABELS[joint] ?? 'Joint';
-  if (LIMB_ENDS.has(joint)) return `${name} — the limb bends to follow`;
-  if (joint === 1) return 'Neck — bends at the waist, legs stay planted';
-  if (joint === 0) return 'Head';
-  return `${name} — swings on its own`;
-}
-
-type PoseHover =
-  | { kind: 'idle' }
-  | { kind: 'joint'; person: number; joint: number }
-  | { kind: 'torso'; person: number }
-  | { kind: 'spin' }
-  | { kind: 'space' };
-
-function hoverKey(hover: PoseHover): string {
-  if (hover.kind === 'joint') return `joint-${hover.person}-${hover.joint}`;
-  if (hover.kind === 'torso') return `torso-${hover.person}`;
-  return hover.kind;
-}
-
-function pointInPolygon(x: number, y: number, polygon: Array<{ x: number; y: number }>): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const a = polygon[i]!;
-    const b = polygon[j]!;
-    const crosses = a.y > y !== b.y > y;
-    const xAt = ((b.x - a.x) * (y - a.y)) / (b.y - a.y || 1) + a.x;
-    if (crosses && x < xAt) inside = !inside;
-  }
-  return inside;
-}
-
-function distanceToSegment(
-  px: number,
-  py: number,
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number
-): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-
-type PoseSnapshot = { bodies: NormalizedBody[]; depths: Array<BodyDepth | null> };
-
-/** What a drag on the canvas is doing. */
-type Drag =
-  | { kind: 'joint'; person: number; joint: number; ox?: number; oy?: number }
-  /** Grabbing the torso: moves the whole figure. */
-  | { kind: 'body'; person: number; x: number; y: number }
-  /** Background drag: sideways turns the figure, up / down tilts it. */
-  | { kind: 'orbit'; person: number; x: number; y: number }
-  /** The round handle above the head: spins the figure in the picture. */
-  | { kind: 'spin'; person: number; angle: number };
-
-/**
- * What is drawn behind the figure is a taste, not part of a pose: remembered across slots and
- * sessions, so the picture does not have to be switched off again for every pose.
- */
-const SHOW_BACKDROP_KEY = 'comfy-pose-editor-backdrop-v1';
-const SHOW_START_KEY = 'comfy-pose-editor-start-ghost-v1';
-const BACKDROP_OPACITY_KEY = 'comfy-pose-editor-backdrop-opacity-v1';
-/** How strongly their picture shows through: faint by default, never solid (the figure must read). */
-const BACKDROP_OPACITY = { min: 0.1, max: 0.9, step: 0.05, initial: 0.3 } as const;
-
-/** On unless switched off; private windows and blocked storage read as on. */
-function readShown(key: string): boolean {
-  try {
-    return window.localStorage.getItem(key) !== '0';
-  } catch {
-    return true;
-  }
-}
-
-function rememberShown(key: string, shown: boolean) {
-  try {
-    window.localStorage.setItem(key, shown ? '1' : '0');
-  } catch {
-    // Not remembered: the toggle still works for this session.
-  }
-}
-
-function readBackdropOpacity(): number {
-  try {
-    const value = Number(window.localStorage.getItem(BACKDROP_OPACITY_KEY));
-    return value >= BACKDROP_OPACITY.min && value <= BACKDROP_OPACITY.max
-      ? value
-      : BACKDROP_OPACITY.initial;
-  } catch {
-    return BACKDROP_OPACITY.initial;
-  }
-}
-
-function rememberBackdropOpacity(value: number) {
-  try {
-    window.localStorage.setItem(BACKDROP_OPACITY_KEY, String(value));
-  } catch {
-    // Not remembered: the slider still works for this session.
-  }
-}
-
-/** The face points (nose, eyes, ears): the Head chips move only these. */
-const FACE_JOINTS = new Set([0, 14, 15, 16, 17]);
-
-/**
- * A figure's pose without its face, and its face alone: a Day pose keeps its own words while the
- * body is as picked, and a Head chip only adds to them.
- */
-const poseKey = (body: NormalizedBody) =>
-  JSON.stringify(body.map((point, joint) => (FACE_JOINTS.has(joint) ? null : point)));
-const faceKey = (body: NormalizedBody) =>
-  JSON.stringify(body.map((point, joint) => (FACE_JOINTS.has(joint) ? point : null)));
-
-/**
- * Where the person stands in their picture (fractions of the picture) and its shape. Measured on
- * a small copy: plates on a flat ground give their pixel box; a picture that cannot be read back
- * (another origin taints the canvas), a busy photo, or one that will not load falls back to "the
- * whole height, centred".
- */
-function measureBackdrop(url: string): Promise<{ box: FitBox; aspect: number | null }> {
-  return new Promise(resolve => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.onload = () => {
-      const aspect =
-        image.naturalWidth > 0 && image.naturalHeight > 0
-          ? image.naturalWidth / image.naturalHeight
-          : null;
-      try {
-        const longest = Math.max(image.naturalWidth, image.naturalHeight, 1);
-        const shrink = Math.min(1, 160 / longest);
-        const width = Math.max(1, Math.round(image.naturalWidth * shrink));
-        const height = Math.max(1, Math.round(image.naturalHeight * shrink));
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        if (!context) throw new Error('no 2d context');
-        context.drawImage(image, 0, 0, width, height);
-        const pixels = context.getImageData(0, 0, width, height);
-        resolve({
-          box: subjectBoxFromPixels(pixels.data, width, height) ?? ASSUMED_SUBJECT,
-          aspect,
-        });
-      } catch {
-        resolve({ box: ASSUMED_SUBJECT, aspect });
-      }
-    };
-    image.onerror = () => resolve({ box: ASSUMED_SUBJECT, aspect: null });
-    image.src = url;
-  });
-}
-
-/** The unforeshortened figure depth is guessed against. */
-const STAND = poseStarterBody('stand');
-
-const hipCentre = (body: NormalizedBody) => {
-  const hips = [body[8], body[11]].filter(Boolean) as Array<{ x: number; y: number }>;
-  if (hips.length === 0) return body[1] ?? null;
-  return {
-    x: hips.reduce((sum, p) => sum + p.x, 0) / hips.length,
-    y: hips.reduce((sum, p) => sum + p.y, 0) / hips.length,
-  };
-};
+import {
+  figureName,
+  EDITABLE,
+  JOINT_NAMES,
+  JOINT_LABELS,
+  handlePosition,
+  jointHint,
+  type PoseHover,
+  hoverKey,
+  pointInPolygon,
+  distanceToSegment,
+  type PoseSnapshot,
+  type Drag,
+  SHOW_BACKDROP_KEY,
+  SHOW_START_KEY,
+  BACKDROP_OPACITY,
+  readShown,
+  rememberShown,
+  readBackdropOpacity,
+  rememberBackdropOpacity,
+  poseKey,
+  faceKey,
+  measureBackdrop,
+  STAND,
+  hipCentre,
+} from '@/components/pose/pose-joint-editor-model';
+import { PoseTopView } from '@/components/pose/PoseTopView';
+import { DayPosePicker, ReferencePosePicker } from '@/components/pose/PosePickers';
 
 /**
  * Pose a guide skeleton by hand. Start from a standing, sitting, kneeling, lying, or walking
@@ -1998,259 +1753,5 @@ export default function PoseJointEditor({
         </div>
       </div>
     </ModalPortal>
-  );
-}
-
-/**
- * The figure from straight above, the camera at the bottom: shoulders, hips, head, hands and
- * feet, with an arrow out of the chest. Shows at a glance which way it faces and what is nearer.
- */
-function PoseTopView({
-  body,
-  depth,
-  aspect,
-  color,
-}: {
-  body: NormalizedBody;
-  depth: BodyDepth;
-  aspect: number;
-  color: string;
-}) {
-  const centre = hipCentre(body);
-  const facing = bodyFacing(body, depth, aspect);
-  if (!centre) return null;
-  const centreZ = ((depth[8] ?? 0) + (depth[11] ?? 0)) / 2;
-  // x: left–right as on the canvas; y: depth, nearer the camera = lower. Scaled to fill the box.
-  const raw = (i: number) => {
-    const p = body[i];
-    return p ? { x: (p.x - centre.x) * aspect, y: (depth[i] ?? 0) - centreZ } : null;
-  };
-  const extent = Math.max(
-    0.14,
-    ...body.map((_, i) => {
-      const p = raw(i);
-      return p ? Math.max(Math.abs(p.x), Math.abs(p.y)) : 0;
-    })
-  );
-  const scale = 0.27 / extent;
-  const at = (i: number) => {
-    const p = raw(i);
-    return p ? { x: p.x * scale, y: p.y * scale } : null;
-  };
-  const line = (a: number, b: number, stroke: string, width: number) => {
-    const p = at(a);
-    const q = at(b);
-    return p && q ? (
-      <line
-        key={`${a}-${b}`}
-        x1={p.x}
-        y1={p.y}
-        x2={q.x}
-        y2={q.y}
-        stroke={stroke}
-        strokeWidth={width}
-      />
-    ) : null;
-  };
-  const head = at(0);
-  const chest = at(1);
-  return (
-    <svg
-      viewBox="-0.4 -0.4 0.8 0.8"
-      width={96}
-      height={96}
-      role="img"
-      aria-label={`Seen from above: ${facing?.label ?? 'facing you'}`}
-      className="shrink-0 rounded-[var(--radius-md)] bg-[var(--bg-muted)]"
-      strokeLinecap="round"
-    >
-      {/* The camera: a small wedge at the bottom edge. */}
-      <path d="M-0.05 0.39 L0 0.31 L0.05 0.39 Z" fill="var(--text-muted)" />
-      {[
-        [8, 9, POSE_PART_COLORS.rightLeg],
-        [9, 10, POSE_PART_COLORS.rightLeg],
-        [11, 12, POSE_PART_COLORS.leftLeg],
-        [12, 13, POSE_PART_COLORS.leftLeg],
-        [2, 3, POSE_PART_COLORS.rightArm],
-        [3, 4, POSE_PART_COLORS.rightArm],
-        [5, 6, POSE_PART_COLORS.leftArm],
-        [6, 7, POSE_PART_COLORS.leftArm],
-      ].map(([a, b, stroke]) => line(a as number, b as number, stroke as string, 0.022))}
-      {line(8, 11, color, 0.035)}
-      {line(2, 5, color, 0.05)}
-      {head ? <circle cx={head.x} cy={head.y} r={0.055} fill={color} /> : null}
-      {chest && facing ? (
-        <line
-          x1={chest.x}
-          y1={chest.y}
-          x2={chest.x + facing.normal.x * 0.2}
-          y2={chest.y + facing.normal.z * 0.2}
-          stroke="var(--text-primary)"
-          strokeWidth={0.02}
-          markerEnd="url(#pose-top-arrow)"
-        />
-      ) : null}
-      <defs>
-        <marker
-          id="pose-top-arrow"
-          viewBox="0 0 10 10"
-          refX="6"
-          refY="5"
-          markerWidth="5"
-          markerHeight="5"
-          orient="auto"
-        >
-          <path d="M0 0 L10 5 L0 10 Z" fill="var(--text-primary)" />
-        </marker>
-      </defs>
-    </svg>
-  );
-}
-
-/**
- * Real-world reference poses (pose-references.ts) as small figures, grouped by Day pose in Day's
- * order. Each tile's tooltip credits the photo it was read from.
- */
-function ReferencePosePicker({
-  testIdPrefix,
-  twoPeople,
-  onPick,
-}: {
-  testIdPrefix: string;
-  twoPeople: boolean;
-  onPick: (reference: PoseReference) => void;
-}) {
-  const references = usePoseReferences();
-  const groups = useMemo(() => {
-    const order = new Map(
-      [...soloDayPoseGroups().flatMap(group => group.ids), 'hug', 'dance', 'fight'].map(
-        (id, index) => [id, index]
-      )
-    );
-    const byPose = new Map<string, PoseReference[]>();
-    for (const reference of references) {
-      if (reference.people.length > 1 && !twoPeople) continue;
-      byPose.set(reference.pose, [...(byPose.get(reference.pose) ?? []), reference]);
-    }
-    return [...byPose.entries()].sort(
-      ([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b)
-    );
-  }, [references, twoPeople]);
-  return (
-    <div
-      className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
-      data-testid={`${testIdPrefix}-real-pose-grid`}
-    >
-      {groups.length === 0 ? (
-        <p className="type-caption text-[var(--text-muted)]">Loading real poses…</p>
-      ) : null}
-      {groups.map(([pose, list]) => (
-        <div key={pose} className="space-y-1">
-          <p className="type-caption text-[var(--text-muted)]">{poseLayoutLabel(pose)}</p>
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
-            {list.map(reference => (
-              <button
-                key={reference.id}
-                type="button"
-                title={`${poseLayoutLabel(pose)}${reference.draft ? ' (draft)' : ''} — ${poseReferenceCreditLine(reference)}`}
-                aria-label={`${poseLayoutLabel(pose)}, real pose ${reference.variant}`}
-                data-testid={`${testIdPrefix}-real-pose-${reference.id}`}
-                onClick={() => onPick(reference)}
-                className="flex flex-col items-center gap-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-1 text-center transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-              >
-                <svg
-                  viewBox={`0 0 ${reference.aspect} 1`}
-                  aria-hidden
-                  className="h-16 w-full rounded bg-white"
-                >
-                  {reference.people.map((body, index) => (
-                    <PoseFigureShape
-                      key={index}
-                      body={body}
-                      aspect={reference.aspect}
-                      color={POSE_FIGURE_COLORS[index % POSE_FIGURE_COLORS.length]!}
-                      weight={0.02}
-                      parts
-                    />
-                  ))}
-                </svg>
-                <span className="text-3xs leading-tight text-[var(--text-secondary)]">
-                  {reference.variant}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const dayPoseFigures = new Map<string, { body: NormalizedBody; aspect: number } | null>();
-function dayPoseFigure(id: string) {
-  if (!dayPoseFigures.has(id)) {
-    const pose = dayPoseAsPhotoPose(id);
-    const body = pose?.people[0];
-    dayPoseFigures.set(id, pose && body ? { body, aspect: pose.aspect } : null);
-  }
-  return dayPoseFigures.get(id) ?? null;
-}
-
-/** Day's named poses as small drawn figures, grouped as in Day's own pose list. */
-function DayPosePicker({
-  testIdPrefix,
-  onPick,
-}: {
-  testIdPrefix: string;
-  onPick: (id: string) => void;
-}) {
-  return (
-    <div
-      className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
-      data-testid={`${testIdPrefix}-day-pose-grid`}
-    >
-      {soloDayPoseGroups().map(group => (
-        <div key={group.label} className="space-y-1">
-          <p className="type-caption text-[var(--text-muted)]">{group.label}</p>
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
-            {group.ids.map(id => {
-              const figure = dayPoseFigure(id);
-              const label = poseLayoutLabel(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  title={label}
-                  data-testid={`${testIdPrefix}-day-pose-${id}`}
-                  onClick={() => onPick(id)}
-                  className="flex flex-col items-center gap-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-1 text-center transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                >
-                  {figure ? (
-                    <svg
-                      viewBox={`0 0 ${figure.aspect} 1`}
-                      aria-hidden
-                      className="h-16 w-full rounded bg-white"
-                    >
-                      <PoseFigureShape
-                        body={figure.body}
-                        aspect={figure.aspect}
-                        color={POSE_FIGURE_COLORS[0]!}
-                        weight={0.02}
-                        parts
-                      />
-                    </svg>
-                  ) : (
-                    <span className="h-16 w-full rounded bg-white" />
-                  )}
-                  <span className="line-clamp-2 min-h-[2lh] text-3xs leading-tight text-[var(--text-secondary)]">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
