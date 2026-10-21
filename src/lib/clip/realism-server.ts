@@ -24,18 +24,22 @@ import {
 } from './realism';
 import { readClipStream } from './finish-server';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
+import { throwIfCancelled, type ClipJobContext } from './clip-jobs-server';
+import { ffmpegFailureMessage } from './clip-jobs';
 
-function run(bin: string, args: string[]): Promise<string> {
+function run(bin: string, args: string[], signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'], signal });
     let stderr = '';
     child.stderr.on('data', chunk => {
       stderr += String(chunk);
     });
     child.on('error', reject);
-    child.on('close', code =>
-      code === 0 ? resolve(stderr) : reject(new Error(stderr.trim() || `ffmpeg exited ${code}`))
-    );
+    child.on('close', code => {
+      if (code === 0) return resolve(stderr);
+      if (!signal?.aborted) console.error('[clip] ffmpeg failed:', stderr.trim().slice(-4000));
+      reject(new Error(ffmpegFailureMessage(stderr, code)));
+    });
   });
 }
 
@@ -54,7 +58,11 @@ export async function makeClipRealistic(input: {
   requestOrigin?: string;
   userId?: string | null;
   seed?: number;
+  /** The background job's signal and progress (clip-jobs-server.ts). */
+  job?: ClipJobContext;
 }): Promise<string> {
+  const signal = input.job?.signal;
+  const progress = input.job?.progress ?? (() => undefined);
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
@@ -70,9 +78,11 @@ export async function makeClipRealistic(input: {
   try {
     const source = file('clip.bin');
     await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
-    const probe = await run(ffmpeg, ['-i', source, '-map', '0:v:0', '-f', 'null', '-']).catch(
-      error => String(error instanceof Error ? error.message : error)
-    );
+    const probe = await run(
+      ffmpeg,
+      ['-i', source, '-map', '0:v:0', '-f', 'null', '-'],
+      signal
+    ).catch(error => String(error instanceof Error ? error.message : error));
     const stream = readClipStream(probe);
     const total = readFrameCount(probe);
     if (!stream || !total) throw new Error('Could not read that clip.');
@@ -82,6 +92,8 @@ export async function makeClipRealistic(input: {
     const chunks = clipRealismChunks(total);
     if (!chunks.length) throw new Error('That clip is too short to re-render.');
     const size = clipRealismSize(stream.width, stream.height);
+    // One step per chunk, then the join.
+    progress({ total: chunks.length + 1, note: 'Checking the models…' });
 
     const baseUrl = comfyBaseUrl(input.comfyUrl);
     await requireComfyModels(baseUrl, 'Make more realistic', [
@@ -95,30 +107,42 @@ export async function makeClipRealistic(input: {
     const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
     const rendered: string[] = [];
     for (const [index, chunk] of chunks.entries()) {
+      throwIfCancelled(signal);
+      progress({
+        done: index,
+        note:
+          chunks.length > 1
+            ? `Re-rendering part ${index + 1} of ${chunks.length}`
+            : 'Re-rendering the clip',
+      });
       const part = file(`chunk-${index}.mp4`);
       const pad = chunk.rendered - chunk.frames;
-      await run(ffmpeg, [
-        '-y',
-        '-i',
-        source,
-        '-vf',
+      await run(
+        ffmpeg,
         [
-          `select='between(n\\,${chunk.start}\\,${chunk.start + chunk.frames - 1})'`,
-          'setpts=N/FRAME_RATE/TB',
-          ...(pad > 0 ? [`tpad=stop_mode=clone:stop=${pad}`] : []),
-          'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-        ].join(','),
-        '-an',
-        '-r',
-        String(fps),
-        '-c:v',
-        'libx264',
-        '-crf',
-        '12',
-        '-pix_fmt',
-        'yuv420p',
-        part,
-      ]);
+          '-y',
+          '-i',
+          source,
+          '-vf',
+          [
+            `select='between(n\\,${chunk.start}\\,${chunk.start + chunk.frames - 1})'`,
+            'setpts=N/FRAME_RATE/TB',
+            ...(pad > 0 ? [`tpad=stop_mode=clone:stop=${pad}`] : []),
+            'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+          ].join(','),
+          '-an',
+          '-r',
+          String(fps),
+          '-c:v',
+          'libx264',
+          '-crf',
+          '12',
+          '-pix_fmt',
+          'yuv420p',
+          part,
+        ],
+        signal
+      );
       const uploaded = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ part)),
@@ -132,6 +156,7 @@ export async function makeClipRealistic(input: {
         priority: 'queue',
         // One 81-frame chunk on WAN 14B takes a few minutes; leave room for a cold model load.
         timeoutMs: 20 * 60_000,
+        signal,
         prompt: buildClipRealismGraph({
           video: uploaded.name,
           ...size,
@@ -164,32 +189,38 @@ export async function makeClipRealistic(input: {
       rendered.push(done);
     }
 
+    throwIfCancelled(signal);
+    progress({ done: chunks.length, note: 'Joining the parts and putting the sound back' });
     // Join: chunks crossfaded over their shared frames, the clip's own sound (if any) put back.
     const joined = file('realistic.mp4');
-    await run(ffmpeg, [
-      '-y',
-      ...rendered.flatMap(part => ['-i', part]),
-      '-i',
-      source,
-      '-filter_complex',
-      clipRealismJoinFilter(chunks, fps),
-      '-map',
-      '[out]',
-      '-map',
-      `${rendered.length}:a?`,
-      '-c:v',
-      'libx264',
-      '-crf',
-      '14',
-      '-pix_fmt',
-      'yuv420p',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '192k',
-      '-shortest',
-      joined,
-    ]);
+    await run(
+      ffmpeg,
+      [
+        '-y',
+        ...rendered.flatMap(part => ['-i', part]),
+        '-i',
+        source,
+        '-filter_complex',
+        clipRealismJoinFilter(chunks, fps),
+        '-map',
+        '[out]',
+        '-map',
+        `${rendered.length}:a?`,
+        '-c:v',
+        'libx264',
+        '-crf',
+        '14',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        '-shortest',
+        joined,
+      ],
+      signal
+    );
     const uploaded = await uploadComfyInputContent({
       baseUrl,
       bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ joined)),

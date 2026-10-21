@@ -1,18 +1,24 @@
 'use client';
 
-import { useCallback, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { getCharacter } from '@/lib/character/os';
 import { keepClipInGallery, keepStillInGallery } from '@/lib/clip/gallery-keep';
 import {
   requestCopyMoves,
   requestDanceToMusic,
-  requestFinishClip,
-  requestRealismClip,
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
 } from '@/lib/media/actions-client';
 import { storyBeatKey } from '@/lib/play/pose-targets';
+import {
+  CLIP_JOBS_UPDATED_EVENT,
+  orphanedClipJob,
+  runClipJob,
+  takeKeptClipJobs,
+  type KeptClip,
+} from '@/lib/clip/clip-jobs-tracker';
+import { CLIP_JOB_LABEL, type ClipJobTool } from '@/lib/clip/clip-jobs';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
 import { loadSettingsCache } from '@/lib/settings/cache';
@@ -47,6 +53,16 @@ export type StoryBeatMediaTools = {
  * Relight its still. Clips replace the scene's clip; a relit still joins its takes, pinned (as
  * Fix an area does). Kept in the Gallery; one at a time.
  */
+/** A kept clip as the scene's clip fields. */
+function keptClipPatch(latest: RoleplayStoryBeat, kept: KeptClip): Partial<RoleplayStoryBeat> {
+  return {
+    clipUrl: kept.url,
+    clipStatus: 'completed',
+    clipPromptId: kept.promptId,
+    clipRenderPromptId: latest.clipRenderPromptId ?? latest.clipPromptId,
+  };
+}
+
 export function useStoryBeatMediaTools({
   storyRef,
   updateToolSettings,
@@ -95,51 +111,71 @@ export function useStoryBeatMediaTools({
       url: string,
       kind: 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync',
       label: string
-    ): Promise<Partial<RoleplayStoryBeat>> => {
-      const kept = await keepClipInGallery({
-        url,
-        kind,
-        prompt: `${label} · ${latest.title}`,
-        tool: 'roleplay',
-        sourcePromptId: latest.clipPromptId ?? latest.promptId,
-      });
-      return {
-        clipUrl: kept.url,
-        clipStatus: 'completed',
-        clipPromptId: kept.promptId,
-        clipRenderPromptId: latest.clipRenderPromptId ?? latest.clipPromptId,
-      };
-    },
+    ): Promise<Partial<RoleplayStoryBeat>> =>
+      keptClipPatch(
+        latest,
+        await keepClipInGallery({
+          url,
+          kind,
+          prompt: `${label} · ${latest.title}`,
+          tool: 'roleplay',
+          sourcePromptId: latest.clipPromptId ?? latest.promptId,
+        })
+      ),
     []
   );
 
   const stillOf = (latest: RoleplayStoryBeat) =>
     latest.stillStatus === 'completed' ? latest.imageUrl?.trim() || '' : '';
 
-  const finish = useCallback(
-    (beat: RoleplayStoryBeat) =>
-      run(beat, 'finish', async latest => {
+  /** Sharpen & smooth / Make more realistic: a background job the jobs tray follows. */
+  const clipJob = useCallback(
+    (beat: RoleplayStoryBeat, tool: ClipJobTool) =>
+      run(beat, tool, async latest => {
         const clipUrl = latest.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
         if (!clipUrl) throw new Error('This scene has no finished clip.');
-        return keptClip(latest, await requestFinishClip(clipUrl), 'finish', 'Sharpen & smooth');
+        const label = `${CLIP_JOB_LABEL[tool]} · ${latest.title}`;
+        const kept = await runClipJob({
+          tool,
+          body: { clipUrl },
+          keep: {
+            kind: tool,
+            prompt: label,
+            tool: 'roleplay',
+            sourcePromptId: latest.clipPromptId ?? latest.promptId,
+          },
+          owner: { feature: 'story', ref: storyBeatKey(latest) },
+          label,
+        });
+        return keptClipPatch(latest, kept);
       }),
-    [keptClip, run]
+    [run]
   );
+  const finish = useCallback((beat: RoleplayStoryBeat) => clipJob(beat, 'finish'), [clipJob]);
+  const realism = useCallback((beat: RoleplayStoryBeat) => clipJob(beat, 'realism'), [clipJob]);
 
-  const realism = useCallback(
-    (beat: RoleplayStoryBeat) =>
-      run(beat, 'realism', async latest => {
-        const clipUrl = latest.clipStatus === 'completed' ? latest.clipUrl?.trim() : '';
-        if (!clipUrl) throw new Error('This scene has no finished clip.');
-        return keptClip(
-          latest,
-          await requestRealismClip(clipUrl),
-          'realism',
-          'Make more realistic'
-        );
-      }),
-    [keptClip, run]
-  );
+  // A clip job that outlived the page: its scene shows busy while it runs, and gets the clip
+  // once kept — if the scene still has the clip it started from.
+  const [orphan, setOrphan] = useState<StoryBeatMediaTools['busy']>(null);
+  useEffect(() => {
+    const sync = () => {
+      takeKeptClipJobs('story', entry => {
+        const beat = storyRef.current.find(item => storyBeatKey(item) === entry.owner?.ref);
+        if (!beat) return false;
+        if (entry.kept && beat.clipUrl?.trim() === entry.body.clipUrl) {
+          updateToolSettings({
+            story: patchRoleplayStoryBeat(storyRef.current, beat, keptClipPatch(beat, entry.kept)),
+          });
+        }
+        return true;
+      });
+      const running = orphanedClipJob('story');
+      setOrphan(running?.owner ? { key: running.owner.ref, tool: running.tool } : null);
+    };
+    sync();
+    window.addEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+  }, [storyRef, updateToolSettings]);
 
   const moves = useCallback(
     (beat: RoleplayStoryBeat, video: Blob, options: { motion?: string; keepSound?: boolean }) =>
@@ -262,5 +298,15 @@ export function useStoryBeatMediaTools({
     [run]
   );
 
-  return { busy, finish, realism, moves, dance, lipSync, relight, upscale, applySketch };
+  return {
+    busy: busy ?? orphan,
+    finish,
+    realism,
+    moves,
+    dance,
+    lipSync,
+    relight,
+    upscale,
+    applySketch,
+  };
 }

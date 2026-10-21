@@ -22,6 +22,12 @@ import {
   type SystemTrayMessage,
 } from '@/lib/app/system-tray-messages';
 import {
+  CLIP_JOBS_UPDATED_EVENT,
+  loadTrackedClipJobs,
+  resumeClipJobs,
+  type TrackedClipJob,
+} from '@/lib/clip/clip-jobs-tracker';
+import {
   refreshSharedHealth,
   subscribeSharedHealth,
   type RawHealthResponse,
@@ -44,12 +50,15 @@ export type SystemTrayPrimary =
   | { kind: 'gallery'; entry: ComfyGalleryEntry; percent: number | null }
   | { kind: 'asset'; job: SystemTrayAssetJob }
   | { kind: 'held'; count: number; label: string }
+  | { kind: 'clip'; job: TrackedClipJob }
   | { kind: 'queue'; pending: number; running: number };
 
 export type SystemTrayState = {
   activeGalleryJobs: ComfyGalleryEntry[];
   heldJobs: HeldMaxJob[];
   assetJobs: SystemTrayAssetJob[];
+  /** Clip finishing jobs this browser started: running, or failed (with Retry). */
+  clipJobs: TrackedClipJob[];
   queueHealth: SystemTrayQueueHealth | null;
   primary: SystemTrayPrimary | null;
   totalActiveCount: number;
@@ -81,11 +90,17 @@ function resolvePrimary(
   activeGalleryJobs: ComfyGalleryEntry[],
   assetJobs: SystemTrayAssetJob[],
   heldJobs: HeldMaxJob[],
-  queueHealth: SystemTrayQueueHealth | null
+  queueHealth: SystemTrayQueueHealth | null,
+  clipJobs: TrackedClipJob[] = []
 ): SystemTrayPrimary | null {
   const running = activeGalleryJobs.find(entry => entry.status === 'running');
   if (running) {
     return { kind: 'gallery', entry: running, percent: comfyUiJobProgressPercent(running) };
+  }
+
+  const clip = clipJobs.find(job => job.state === 'running');
+  if (clip) {
+    return { kind: 'clip', job: clip };
   }
 
   const downloading = assetJobs.find(
@@ -121,6 +136,11 @@ function resolvePrimary(
     };
   }
 
+  // A failed clip job stays up (with Retry) until it is dismissed.
+  if (clipJobs[0]) {
+    return { kind: 'clip', job: clipJobs[0] };
+  }
+
   return null;
 }
 
@@ -129,6 +149,7 @@ export function useSystemTrayState(options?: { pollAssets?: boolean }): SystemTr
   const [galleryEntries, setGalleryEntries] = useState<ComfyGalleryEntry[]>([]);
   const [heldJobs, setHeldJobs] = useState<HeldMaxJob[]>([]);
   const [assetJobs, setAssetJobs] = useState<SystemTrayAssetJob[]>([]);
+  const [clipJobs, setClipJobs] = useState<TrackedClipJob[]>([]);
   const [queueHealth, setQueueHealth] = useState<SystemTrayQueueHealth | null>(null);
   const trayMessages = useSyncExternalStore(
     subscribeSystemTrayMessages,
@@ -252,6 +273,22 @@ export function useSystemTrayState(options?: { pollAssets?: boolean }): SystemTr
     };
   }, [refresh, refreshAssets, refreshGallery, refreshHeld]);
 
+  // Clip jobs: carry on watching the ones a reload left running; the list follows the tracker.
+  useEffect(() => {
+    const sync = () =>
+      setClipJobs(
+        loadTrackedClipJobs().filter(job => job.state === 'running' || job.state === 'failed')
+      );
+    sync();
+    resumeClipJobs();
+    window.addEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
   // Download progress has no push channel — poll only while one is running.
   useEffect(() => {
     if (!downloading) {
@@ -280,20 +317,24 @@ export function useSystemTrayState(options?: { pollAssets?: boolean }): SystemTr
   );
 
   const primary = useMemo(
-    () => resolvePrimary(activeGalleryJobs, assetJobs, heldJobs, queueHealth),
-    [activeGalleryJobs, assetJobs, heldJobs, queueHealth]
+    () => resolvePrimary(activeGalleryJobs, assetJobs, heldJobs, queueHealth, clipJobs),
+    [activeGalleryJobs, assetJobs, heldJobs, queueHealth, clipJobs]
   );
 
-  const totalActiveCount = activeGalleryJobs.length + heldJobs.length + assetJobs.length;
+  const runningClipJobs = clipJobs.filter(job => job.state === 'running').length;
+  const totalActiveCount =
+    activeGalleryJobs.length + heldJobs.length + assetJobs.length + runningClipJobs;
 
   const hasActivity =
     totalActiveCount > 0 ||
+    clipJobs.length > 0 ||
     (queueHealth != null && (queueHealth.queuePending > 0 || queueHealth.queueRunning > 0));
 
   return {
     activeGalleryJobs,
     heldJobs,
     assetJobs,
+    clipJobs,
     queueHealth,
     primary,
     totalActiveCount,

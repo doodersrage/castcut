@@ -1,14 +1,20 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { keepClipInGallery, keepStillInGallery } from '@/lib/clip/gallery-keep';
 import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import {
+  CLIP_JOBS_UPDATED_EVENT,
+  orphanedClipJob,
+  runClipJob,
+  takeKeptClipJobs,
+  type KeptClip,
+} from '@/lib/clip/clip-jobs-tracker';
+import { CLIP_JOB_LABEL, type ClipJobTool } from '@/lib/clip/clip-jobs';
+import {
   requestCopyMoves,
   requestDanceToMusic,
-  requestFinishClip,
-  requestRealismClip,
   requestLipSync,
   requestRelight,
   requestUpscaleStill,
@@ -37,6 +43,16 @@ export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
  * and replaces the slot's clip — or, for Relight, the picture the slot shows (finishedUrl).
  * One at a time: these are minutes-long GPU jobs.
  */
+/** A kept clip as the slot's clip fields. */
+function keptClipPatch(still: DaySlotStill, kept: KeptClip): Partial<DaySlotStill> {
+  return {
+    clipUrl: kept.url,
+    clipStatus: 'completed',
+    clipPromptId: kept.promptId,
+    clipRenderPromptId: still.clipRenderPromptId ?? still.clipPromptId,
+  };
+}
+
 export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const { character, stillsRef, updateToolSettings } = ctx;
   const [busy, setBusy] = useState<{ slotId: string; tool: DaySlotMediaTool } | null>(null);
@@ -79,43 +95,70 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     url: string,
     kind: 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync',
     prompt: string
-  ): Promise<Partial<DaySlotStill>> => {
-    const kept = await keepClipInGallery({
-      url,
-      kind,
-      prompt,
-      tool: 'day',
-      sourcePromptId: still.clipPromptId ?? still.promptId,
-    });
-    return {
-      clipUrl: kept.url,
-      clipStatus: 'completed',
-      clipPromptId: kept.promptId,
-      clipRenderPromptId: still.clipRenderPromptId ?? still.clipPromptId,
+  ): Promise<Partial<DaySlotStill>> =>
+    keptClipPatch(
+      still,
+      await keepClipInGallery({
+        url,
+        kind,
+        prompt,
+        tool: 'day',
+        sourcePromptId: still.clipPromptId ?? still.promptId,
+      })
+    );
+
+  /** Sharpen & smooth / Make more realistic: a background job the jobs tray follows. */
+  const clipJob = useCallback(
+    (slot: DaySlot, tool: ClipJobTool) =>
+      run(slot, tool, async still => {
+        const clipUrl = still.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
+        if (!clipUrl) throw new Error('This slot has no finished clip.');
+        const label = `${CLIP_JOB_LABEL[tool]} · ${slot.label}`;
+        const kept = await runClipJob({
+          tool,
+          body: { clipUrl },
+          keep: {
+            kind: tool,
+            prompt: label,
+            tool: 'day',
+            sourcePromptId: still.clipPromptId ?? still.promptId,
+          },
+          owner: { feature: 'day', ref: slot.id },
+          label,
+        });
+        return keptClipPatch(still, kept);
+      }),
+    [run]
+  );
+  const finishSlotClip = useCallback((slot: DaySlot) => clipJob(slot, 'finish'), [clipJob]);
+  const realismSlotClip = useCallback((slot: DaySlot) => clipJob(slot, 'realism'), [clipJob]);
+
+  // A clip job that outlived the page (a reload, another page meanwhile): show its slot busy
+  // while it runs, and put its clip in place once it's kept — if the slot still has the clip it
+  // started from (otherwise the new one just stays in the Gallery).
+  const [orphan, setOrphan] = useState<{ slotId: string; tool: DaySlotMediaTool } | null>(null);
+  useEffect(() => {
+    const sync = () => {
+      takeKeptClipJobs('day', entry => {
+        const still = stillsRef.current.find(item => item.slotId === entry.owner?.ref);
+        if (!still) return false;
+        if (entry.kept && still.clipUrl?.trim() === entry.body.clipUrl) {
+          updateToolSettings({
+            stills: upsertDaySlotStill(stillsRef.current, {
+              ...still,
+              ...keptClipPatch(still, entry.kept),
+            }),
+          });
+        }
+        return true;
+      });
+      const running = orphanedClipJob('day');
+      setOrphan(running?.owner ? { slotId: running.owner.ref, tool: running.tool } : null);
     };
-  };
-
-  const finishSlotClip = useCallback(
-    (slot: DaySlot) =>
-      run(slot, 'finish', async still => {
-        const clipUrl = still.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
-        if (!clipUrl) throw new Error('This slot has no finished clip.');
-        const url = await requestFinishClip(clipUrl);
-        return clipPatch(still, url, 'finish', `Sharpen & smooth · ${slot.label}`);
-      }),
-    [run]
-  );
-
-  const realismSlotClip = useCallback(
-    (slot: DaySlot) =>
-      run(slot, 'realism', async still => {
-        const clipUrl = still.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
-        if (!clipUrl) throw new Error('This slot has no finished clip.');
-        const url = await requestRealismClip(clipUrl);
-        return clipPatch(still, url, 'realism', `Make more realistic · ${slot.label}`);
-      }),
-    [run]
-  );
+    sync();
+    window.addEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+    return () => window.removeEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
+  }, [stillsRef, updateToolSettings]);
 
   const copyMovesToSlot = useCallback(
     (slot: DaySlot, video: Blob, options: { motion?: string; keepSound?: boolean } = {}) =>
@@ -226,7 +269,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   );
 
   return {
-    busy,
+    busy: busy ?? orphan,
     finishSlotClip,
     realismSlotClip,
     copyMovesToSlot,

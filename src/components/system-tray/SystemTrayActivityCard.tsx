@@ -8,6 +8,8 @@ import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import { GalleryTrayRow } from '@/components/system-tray/GalleryTrayRow';
 import { AssetTrayRow } from '@/components/system-tray/AssetTrayRow';
+import { ClipJobTrayRow } from '@/components/system-tray/ClipJobTrayRow';
+import type { TrackedClipJob } from '@/lib/clip/clip-jobs-tracker';
 import {
   primaryPercent,
   primarySubtitle,
@@ -21,6 +23,7 @@ type SystemTrayActivityCardProps = {
   primary: SystemTrayPrimary;
   totalActiveCount: number;
   assetJobs: SystemTrayAssetJob[];
+  clipJobs?: TrackedClipJob[];
   activeGalleryJobs: ComfyGalleryEntry[];
   heldJobs: Array<{ id: string; label: string }>;
   queueHealth: { queuePending: number; queueRunning: number } | null;
@@ -36,6 +39,7 @@ export function SystemTrayActivityCard({
   primary,
   totalActiveCount,
   assetJobs,
+  clipJobs = [],
   activeGalleryJobs,
   heldJobs,
   queueHealth,
@@ -242,6 +246,19 @@ export function SystemTrayActivityCard({
                     onCancel={cancelGalleryJob}
                     cancelling={cancellingGalleryIds.has(entry.id)}
                   />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {clipJobs.length > 0 ? (
+            <section className="mb-3 space-y-2" data-testid="clip-jobs-section">
+              <h3 className="type-caption font-medium text-[var(--text-muted)]">
+                Clip jobs ({clipJobs.length})
+              </h3>
+              <ul className="space-y-2">
+                {clipJobs.map(job => (
+                  <ClipJobTrayRow key={job.jobId} job={job} />
                 ))}
               </ul>
             </section>

@@ -4,10 +4,10 @@ import {
   galleryClipTools,
   registerGalleryClipTool,
   runGalleryClipTool,
-  runningGalleryClipTool,
   type GalleryClipTool,
 } from './clip-tools';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { ClipJobBusyError } from '../clip/clip-jobs';
 
 const entry = { id: 'entry-1', prompt: 'a swim at night', tool: 'day' } as ComfyGalleryEntry;
 
@@ -16,9 +16,8 @@ function tool(overrides: Partial<GalleryClipTool> = {}): GalleryClipTool {
     id: 'test',
     label: 'Test pass',
     busyText: 'Testing…',
-    doneText: 'Tested.',
     keepKind: 'realism',
-    run: async () => '/api/comfyui/view?filename=out.mp4&type=input',
+    job: 'realism',
     ...overrides,
   };
 }
@@ -35,51 +34,52 @@ describe('gallery clip tools', () => {
     );
   });
 
-  it('keeps the new clip as a child of the Gallery entry it came from', async () => {
-    const kept: unknown[] = [];
-    const toasts: string[] = [];
-    const error = await runGalleryClipTool(tool(), entry, '/clip.mp4', {
-      keep: async input => {
-        kept.push(input);
-        return { url: input.url };
+  it('starts a background job that keeps the new clip as a child of the entry', async () => {
+    const runs: unknown[] = [];
+    const error = await runGalleryClipTool(
+      tool({ body: () => ({ strength: 'light' }) }),
+      entry,
+      '/clip.mp4',
+      {
+        run: async input => {
+          runs.push(input);
+          return { url: '/kept.mp4' };
+        },
+        toast: () => null,
+      }
+    );
+    assert.equal(error, null);
+    assert.deepEqual(runs, [
+      {
+        tool: 'realism',
+        body: { clipUrl: '/clip.mp4', entryId: 'entry-1', strength: 'light' },
+        keep: {
+          kind: 'realism',
+          prompt: 'Test pass · a swim at night',
+          tool: 'day',
+          sourceEntryId: 'entry-1',
+        },
+        owner: { feature: 'gallery', ref: 'entry-1' },
+        label: 'Test pass · a swim at night',
       },
+    ]);
+  });
+
+  it('says so when the server is busy, and returns a failure', async () => {
+    const toasts: string[] = [];
+    const busy = await runGalleryClipTool(tool(), entry, '/clip.mp4', {
+      run: async () => Promise.reject(new ClipJobBusyError()),
       toast: input => {
         toasts.push(input.tone ?? '');
         return null;
       },
     });
-    assert.equal(error, null);
-    assert.deepEqual(kept, [
-      {
-        url: '/api/comfyui/view?filename=out.mp4&type=input',
-        kind: 'realism',
-        prompt: 'Test pass · a swim at night',
-        tool: 'day',
-        sourceEntryId: 'entry-1',
-      },
-    ]);
-    assert.deepEqual(toasts, ['info', 'success']);
-    assert.equal(runningGalleryClipTool(), null);
-  });
-
-  it('runs one at a time and reports a failure', async () => {
-    let release!: () => void;
-    const slow = runGalleryClipTool(
-      tool({ run: () => new Promise(resolve => (release = () => resolve('/x'))) }),
-      entry,
-      '/clip.mp4',
-      { keep: async input => ({ url: input.url }), toast: () => null }
-    );
-    const blocked = await runGalleryClipTool(tool(), entry, '/clip.mp4', { toast: () => null });
-    assert.match(blocked ?? '', /one at a time/);
-    release();
-    assert.equal(await slow, null);
-    const failed = await runGalleryClipTool(
-      tool({ run: async () => Promise.reject(new Error('needs the WAN model')) }),
-      entry,
-      '/clip.mp4',
-      { toast: () => null }
-    );
+    assert.match(busy ?? '', /one at a time/);
+    assert.deepEqual(toasts, ['info', 'warning']);
+    const failed = await runGalleryClipTool(tool(), entry, '/clip.mp4', {
+      run: async () => Promise.reject(new Error('needs the WAN model')),
+      toast: () => null,
+    });
     assert.equal(failed, 'needs the WAN model');
   });
 });

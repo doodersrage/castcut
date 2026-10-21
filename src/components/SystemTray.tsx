@@ -34,6 +34,7 @@ export default function SystemTray() {
     activeGalleryJobs,
     heldJobs,
     assetJobs,
+    clipJobs,
     queueHealth,
     primary,
     totalActiveCount,
@@ -224,6 +225,7 @@ export default function SystemTray() {
           primary={primary}
           totalActiveCount={totalActiveCount}
           assetJobs={assetJobs}
+          clipJobs={clipJobs}
           activeGalleryJobs={activeGalleryJobs}
           heldJobs={heldJobs}
           queueHealth={queueHealth}

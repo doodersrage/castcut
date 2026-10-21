@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
 import { seedSettingsCacheOnNextLoad } from './helpers/idb';
@@ -82,6 +82,30 @@ test('Relight: a look from the sheet re-lights the slot still', async ({ page })
   expect(posts[0]?.stillUrl).toBe('/icon.svg');
 });
 
+/** Sharpen & smooth runs as a background job: started at once, then polled until done. */
+function clipJob(status: 'running' | 'completed', url?: string) {
+  return {
+    id: 'e2e-clip-job',
+    tool: 'finish',
+    status,
+    done: status === 'completed' ? 2 : 1,
+    total: 2,
+    note: status === 'completed' ? 'Done' : 'Sharpening on ComfyUI',
+    startedAt: Date.now(),
+    ...(url ? { url } : {}),
+  };
+}
+
+async function mockClipJobDone(page: Page, url: string) {
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: clipJob('completed', url) }),
+    })
+  );
+}
+
 test('Sharpen & smooth: the finished clip replaces the slot clip', async ({ page }) => {
   const posts: Array<Record<string, unknown>> = [];
   await page.route('**/api/clip/finish', route => {
@@ -89,9 +113,10 @@ test('Sharpen & smooth: the finished clip replaces the slot clip', async ({ page
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-finished.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-finished.mp4');
   await openDay(page);
   await page.getByTestId('day-progress-finish-morning').click();
   await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
@@ -199,9 +224,10 @@ test('Story: Sharpen & smooth and Relight a scene', async ({ page }) => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-story-finished.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-story-finished.mp4');
   await page.route('**/api/still/relight', route => {
     relight.push(route.request().postDataJSON() as Record<string, unknown>);
     return route.fulfill({

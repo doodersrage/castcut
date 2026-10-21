@@ -221,6 +221,8 @@ export async function runComfyUtilityGraph<T>(input: {
    * already waiting (long jobs such as Make it 30 s, so they do not hold up queued renders).
    */
   priority?: 'check' | 'front' | 'queue';
+  /** Aborting takes the prompt off ComfyUI's queue (or interrupts it if running) and throws. */
+  signal?: AbortSignal;
 }): Promise<{ result: T } | { result: undefined; completed: true }> {
   const { baseUrl, label } = input;
   const queued = await fetch(`${baseUrl}/prompt`, {
@@ -250,6 +252,10 @@ export async function runComfyUtilityGraph<T>(input: {
   try {
     while (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 800));
+      if (input.signal?.aborted) {
+        await cancelComfyPrompt(baseUrl, promptId);
+        throw new Error(`${label} was cancelled.`);
+      }
       // A ComfyUI busy loading a big model can stall a request past 8 s: try again, not fail.
       const response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId)}`, {
         signal: AbortSignal.timeout(8000),
@@ -275,6 +281,29 @@ export async function runComfyUtilityGraph<T>(input: {
     throw new Error(`${label} timed out waiting for ComfyUI.`);
   } finally {
     void deleteComfyUiHistoryItems(baseUrl, [promptId]);
+  }
+}
+
+/**
+ * Take a prompt off ComfyUI's queue, and stop it if it is the one running (ComfyUI's /interrupt
+ * with a prompt id leaves any other job alone). Best-effort.
+ */
+export async function cancelComfyPrompt(baseUrl: string, promptId: string): Promise<void> {
+  const post = (route: string, body: unknown) =>
+    fetch(`${baseUrl}${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
+    }).catch(() => null);
+  await post('/queue', { delete: [promptId] });
+  const queue = await fetch(`${baseUrl}/queue`, { signal: AbortSignal.timeout(5000) })
+    .then(response =>
+      response.ok ? (response.json() as Promise<{ queue_running?: unknown[][] }>) : null
+    )
+    .catch(() => null);
+  if (queue?.queue_running?.some(item => item?.[1] === promptId)) {
+    await post('/interrupt', { prompt_id: promptId });
   }
 }
 

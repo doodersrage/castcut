@@ -8,8 +8,9 @@
  * it as a child of the clip it came from.
  */
 
-import { keepClipInGallery } from '../clip/gallery-keep';
 import { pushAppToast } from '../app/toast';
+import { ClipJobBusyError, type ClipJobTool } from '../clip/clip-jobs';
+import { runClipJob, runningTrackedClipJob } from '../clip/clip-jobs-tracker';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 
 export type GalleryClipTool = {
@@ -20,11 +21,12 @@ export type GalleryClipTool = {
   title?: string;
   /** Toast while it runs ("Sharpening…"). */
   busyText: string;
-  /** Toast when the new clip is in the Gallery. */
-  doneText: string;
   /** How the new clip is filed (its derived kind and file name). */
   keepKind: 'finish' | 'realism';
-  run: (input: { clipUrl: string; entry: ComfyGalleryEntry }) => Promise<string>;
+  /** The background clip job it runs (clip-jobs.ts). */
+  job: ClipJobTool;
+  /** Extra request fields (e.g. a strength). */
+  body?: (input: { clipUrl: string; entry: ComfyGalleryEntry }) => Record<string, unknown>;
 };
 
 const tools: GalleryClipTool[] = [];
@@ -40,50 +42,53 @@ export function galleryClipTools(): readonly GalleryClipTool[] {
   return tools;
 }
 
-let running: string | null = null;
-
-/** The tool running now (one at a time: these are minutes-long GPU jobs), or null. */
+/** The clip job running now (one at a time: these are minutes-long GPU jobs), or null. */
 export function runningGalleryClipTool(): string | null {
-  return running;
+  return runningTrackedClipJob()?.tool ?? null;
 }
 
 /**
- * Runs `tool` on the entry's clip and keeps the result in the Gallery as its child. Progress and
- * the outcome show as toasts; resolves to the error message, or null when the new clip is kept.
+ * Starts `tool` on the entry's clip as a background job; the jobs tray shows its progress (with
+ * Cancel), and the new clip is kept in the Gallery as the entry's child — also if the page is
+ * reloaded meanwhile. Resolves to the error message, or null when the new clip is kept.
  */
 export async function runGalleryClipTool(
   tool: GalleryClipTool,
   entry: ComfyGalleryEntry,
   clipUrl: string,
   deps: {
-    keep?: typeof keepClipInGallery;
+    run?: typeof runClipJob;
     toast?: typeof pushAppToast;
   } = {}
 ): Promise<string | null> {
   const toast = deps.toast ?? pushAppToast;
-  if (running) {
-    const message = 'Another clip job is running — one at a time.';
+  if (runningTrackedClipJob()) {
+    const message = 'Another clip job is running — one at a time. It is in the jobs tray.';
     toast({ text: message, tone: 'warning' });
     return message;
   }
-  running = tool.id;
-  toast({ text: `${tool.busyText} This takes a few minutes.`, tone: 'info', ttlMs: 8000 });
+  toast({
+    text: `${tool.busyText} It takes a few minutes — follow it in the jobs tray.`,
+    tone: 'info',
+    ttlMs: 8000,
+  });
   try {
-    const url = await tool.run({ clipUrl, entry });
-    await (deps.keep ?? keepClipInGallery)({
-      url,
-      kind: tool.keepKind,
-      prompt: `${tool.label}${entry.prompt ? ` · ${entry.prompt.slice(0, 120)}` : ''}`,
-      tool: entry.tool || 'gallery',
-      sourceEntryId: entry.id,
+    await (deps.run ?? runClipJob)({
+      tool: tool.job,
+      body: { clipUrl, entryId: entry.id, ...tool.body?.({ clipUrl, entry }) },
+      keep: {
+        kind: tool.keepKind,
+        prompt: `${tool.label}${entry.prompt ? ` · ${entry.prompt.slice(0, 120)}` : ''}`,
+        tool: entry.tool || 'gallery',
+        sourceEntryId: entry.id,
+      },
+      owner: { feature: 'gallery', ref: entry.id },
+      label: `${tool.label}${entry.prompt ? ` · ${entry.prompt.slice(0, 60)}` : ''}`,
     });
-    toast({ text: tool.doneText, tone: 'success' });
     return null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : `${tool.label} failed.`;
-    toast({ text: message, tone: 'danger', ttlMs: 0 });
-    return message;
-  } finally {
-    running = null;
+    // The tracker has already said why (with Retry) — a busy server is the one case it doesn't.
+    if (error instanceof ClipJobBusyError) toast({ text: error.message, tone: 'warning' });
+    return error instanceof Error ? error.message : `${tool.label} failed.`;
   }
 }

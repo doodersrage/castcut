@@ -18,18 +18,22 @@ import {
   clipFinishPlan,
 } from './finish';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
+import { throwIfCancelled, type ClipJobContext } from './clip-jobs-server';
+import { ffmpegFailureMessage } from './clip-jobs';
 
-function run(bin: string, args: string[]): Promise<string> {
+function run(bin: string, args: string[], signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'], signal });
     let stderr = '';
     child.stderr.on('data', chunk => {
       stderr += String(chunk);
     });
     child.on('error', reject);
-    child.on('close', code =>
-      code === 0 ? resolve(stderr) : reject(new Error(stderr.trim() || `ffmpeg exited ${code}`))
-    );
+    child.on('close', code => {
+      if (code === 0) return resolve(stderr);
+      if (!signal?.aborted) console.error('[clip] ffmpeg failed:', stderr.trim().slice(-4000));
+      reject(new Error(ffmpegFailureMessage(stderr, code)));
+    });
   });
 }
 
@@ -52,7 +56,11 @@ export async function finishClip(input: {
   requestOrigin?: string;
   userId?: string | null;
   seed?: number;
+  /** The background job's signal and progress (clip-jobs-server.ts). */
+  job?: ClipJobContext;
 }): Promise<string> {
+  const signal = input.job?.signal;
+  const progress = input.job?.progress ?? (() => undefined);
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
@@ -69,25 +77,29 @@ export async function finishClip(input: {
     const mp4 = path.join(/* turbopackIgnore: true */ dir, 'finish-input.mp4');
     await fs.writeFile(/* turbopackIgnore: true */ source, fetched.buffer);
     // An MP4 ComfyUI's LoadVideo reads: even sides, H.264, the sound (if any) kept.
-    const log = await run(ffmpeg, [
-      '-y',
-      '-i',
-      source,
-      '-vf',
-      'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-      '-c:v',
-      'libx264',
-      '-crf',
-      '12',
-      '-pix_fmt',
-      'yuv420p',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '192k',
-      mp4,
-    ]);
-    const probe = await run(ffmpeg, ['-i', mp4, '-f', 'null', '-']).catch(error =>
+    const log = await run(
+      ffmpeg,
+      [
+        '-y',
+        '-i',
+        source,
+        '-vf',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+        '-c:v',
+        'libx264',
+        '-crf',
+        '12',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        mp4,
+      ],
+      signal
+    );
+    const probe = await run(ffmpeg, ['-i', mp4, '-f', 'null', '-'], signal).catch(error =>
       String(error instanceof Error ? error.message : error)
     );
     const stream = readClipStream(probe) ?? readClipStream(log);
@@ -106,6 +118,17 @@ export async function finishClip(input: {
         ? [{ folder: 'frame_interpolation', file: CLIP_FINISH_MODELS.interpolation }]
         : []),
     ]);
+    throwIfCancelled(signal);
+    progress({
+      total: 2,
+      done: 1,
+      note:
+        plan.scale > 1 && plan.multiplier > 1
+          ? 'Sharpening and smoothing on ComfyUI'
+          : plan.scale > 1
+            ? 'Sharpening on ComfyUI'
+            : 'Smoothing the motion on ComfyUI',
+    });
     const uploaded = await uploadComfyInputContent({
       baseUrl,
       bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ mp4)),
@@ -119,6 +142,7 @@ export async function finishClip(input: {
       priority: 'queue',
       // A 30-second clip upscaled in chunks takes several minutes.
       timeoutMs: 20 * 60_000,
+      signal,
       prompt: buildClipFinishGraph({
         video: uploaded.name,
         plan,

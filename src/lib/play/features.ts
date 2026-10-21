@@ -38,7 +38,6 @@ import { PLAY_POSE_TARGET_GROUPS } from './pose-targets';
 import { loadLocalObservability } from '../server/local-observability';
 import { loadOnboardingState } from '../app/onboarding-store';
 import { registerGalleryClipTool } from '../gallery/clip-tools';
-import { requestFinishClip, requestRealismClip } from '../media/actions-client';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
@@ -151,15 +150,13 @@ registerGalleryClipTool({
   id: 'finish',
   label: 'Sharpen & smooth',
   busyText: 'Sharpening the clip…',
-  doneText: 'Done — the sharper, smoother clip is in the Gallery next to the original.',
   keepKind: 'finish',
-  run: ({ clipUrl, entry }) => requestFinishClip(clipUrl, entry.id),
+  job: 'finish',
 });
 registerGalleryClipTool({
   id: 'realism',
   label: 'Make more realistic',
   busyText: 'Making the clip more realistic…',
-  doneText: 'Done — the more realistic clip is in the Gallery next to the original.',
   keepKind: 'realism',
-  run: ({ clipUrl, entry }) => requestRealismClip(clipUrl, { entryId: entry.id }),
+  job: 'realism',
 });
