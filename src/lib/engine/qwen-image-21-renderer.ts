@@ -544,7 +544,24 @@ const NATURAL_LOOK_BACK =
   'her body turned three-quarters away from the camera and her head turned back over her shoulder only as far as a real neck turns - face in three-quarter profile, eyes glancing back at the camera';
 
 function withNaturalLookBack(prompt: string): string {
-  return prompt.replace(LOOK_BACK, NATURAL_LOOK_BACK);
+  return withGroundSlide(prompt.replace(LOOK_BACK, NATURAL_LOOK_BACK));
+}
+
+/**
+ * A slide into a base drew her running at it (softball, both seeds, 2026-10-20 sweep): the
+ * slide said in the body — down on the dirt, on her hip, lead leg out at the base.
+ */
+export const QWEN_IMAGE_21_SLIDE_BODY =
+  'down on the dirt, sliding on her hip and the back of her thigh, lead leg straight out toward the base, the other leg bent under her, body low along the ground in a cloud of dust — not running, not upright';
+
+function withGroundSlide(prompt: string): string {
+  if (!/\bslid(?:e|es|ing)\b[^.\n]*\b(?:base|plate|home)\b|\bsliding:/i.test(prompt)) return prompt;
+  if (prompt.includes(QWEN_IMAGE_21_SLIDE_BODY)) return prompt;
+  return prompt.replace(
+    /(POSE FIRST: )([^\n]*?)(\.)(?=\s|$)/,
+    (_match, head: string, pose: string, dot: string) =>
+      `${head}${pose}; ${QWEN_IMAGE_21_SLIDE_BODY}${dot}`
+  );
 }
 
 /**
@@ -569,9 +586,54 @@ function withCandidStill(prompt: string): string {
     const head = out.slice(0, first + 'full body in frame'.length);
     out = head + out.slice(head.length).replace(/,? full body in frame/g, '');
   }
+  // A sport still is mid-action ("ACTION: …", "POSE FIRST: mid-action"): never "relaxed, between
+  // poses", never a relaxed stance.
+  if (/\bACTION: |POSE FIRST: mid-action\b/.test(out)) return out;
+  out = withRelaxedPoseFirst(out);
   return out.includes(QWEN_IMAGE_21_CANDID_LINE)
     ? out
     : out.replace(/(\s)SCENE: /, `$1${QWEN_IMAGE_21_CANDID_LINE} SCENE: `);
+}
+
+/** A POSE FIRST line that already puts her off her feet or in motion: left as it is. */
+const NOT_STANDING_RE =
+  /\b(?:sit|sits|sitting|seated|kneel\w*|lie|lies|lying|lay\w*|crouch\w*|squat\w*|bend\w*|bent (?:over|forward|down|double)|on all fours|curl\w*|foot (?:up|on)|armchair|sofa|couch|bed|floor|jump\w*|leap\w*|run\w*|jog\w*|walk\w*|stride|mid-step|climb\w*|lean\w*|perch\w*|reclin\w*|dance\w*|danc\w*|swim\w*|cycl\w*|rid\w*|skat\w*|ski\w*|hang\w*|handstand|stretch\w*)\b/i;
+
+export const QWEN_IMAGE_21_RELAXED_STANCE =
+  'standing relaxed, her weight on one leg and the other knee softly bent, hips and shoulders turned a little from the camera';
+export const QWEN_IMAGE_21_LEAN_BODY =
+  'her shoulder and hip resting against it, weight on one leg, one foot crossed over the other';
+
+/**
+ * The POSE FIRST line, made natural on 2.1 (the user's own sweep of every one-person Day layout,
+ * 2026-10-20, full plate, two seeds):
+ * - A standing gesture (hands on hips, in pockets, arms crossed, a phone, a drink, a wave…) came
+ *   out a mannequin — centred, square on, legs straight together; the arms were right. Her stance
+ *   is said: weight on one leg, a soft knee, turned a little. Only for a standing pose: on the
+ *   kneel, "weight on one leg" stood her up.
+ * - "leaning against a café wall" stood her upright next to it (no body words): how she leans.
+ * - Eating or drinking "at a café table" stood her beside the table: she sits on a chair at it.
+ */
+function withRelaxedPoseFirst(prompt: string): string {
+  return prompt.replace(
+    /(POSE FIRST: )([^\n]*?)(\.)(?=\s|$)/,
+    (match, head: string, pose: string, dot: string) => {
+      let next = pose;
+      if (/\bleaning against\b/i.test(next) && !/\bshoulder\b|\bhip\b/i.test(next)) {
+        next = `${next}, ${QWEN_IMAGE_21_LEAN_BODY}`;
+      } else if (
+        /\b(?:eat\w*|drink\w*|sipp\w*|breakfast|lunch|dinner)\b[^—]*\bat (?:a|the) (?:\w+ )?(?:café |cafe |restaurant |dining |kitchen |breakfast |bistro )?table\b|\bat (?:a|the) (?:\w+ )?(?:café|cafe|restaurant|dining|bistro) table\b[^—]*\b(?:eat\w*|drink\w*|sipp\w*)\b/i.test(
+          next
+        ) &&
+        !/\b(?:sit|sits|sitting|seated|stand\w*)\b/i.test(next)
+      ) {
+        next = `${next}, sitting on a chair at the table`;
+      } else if (!NOT_STANDING_RE.test(next) && !next.includes(QWEN_IMAGE_21_RELAXED_STANCE)) {
+        next = `${next}, ${QWEN_IMAGE_21_RELAXED_STANCE}`;
+      }
+      return next === pose ? match : `${head}${next}${dot}`;
+    }
+  );
 }
 
 /**

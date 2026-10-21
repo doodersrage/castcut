@@ -26,6 +26,9 @@ import {
   isLyingBackNudeSolo,
   withNaturalPoses,
   QWEN_IMAGE_21_CANDID_LINE,
+  QWEN_IMAGE_21_LEAN_BODY,
+  QWEN_IMAGE_21_RELAXED_STANCE,
+  QWEN_IMAGE_21_SLIDE_BODY,
   hasQwenImage21TurboCheckpoint,
   qwenImage21TurboCheckpointFor,
   withDaylightLine,
@@ -832,11 +835,11 @@ describe('2.1 duo jobs', () => {
     assert.match(withNaturalPoses(wrap('on the couch sharing coffee after the party')), /each holds a mug of coffee/);
     const walk = wrap('walking side by side through the market');
     assert.equal(withNaturalPoses(walk), walk);
-    // A one-person still: this rewrite leaves it; only the candid camera line joins.
+    // A one-person still: this rewrite leaves it; the relaxed stance and candid line join.
     const solo = 'Edit <image1>: POSE FIRST: cooking pasta at the stove. SCENE: home.';
     assert.equal(
       withNaturalPoses(solo),
-      `Edit <image1>: POSE FIRST: cooking pasta at the stove. ${QWEN_IMAGE_21_CANDID_LINE} SCENE: home.`
+      `Edit <image1>: POSE FIRST: cooking pasta at the stove, ${QWEN_IMAGE_21_RELAXED_STANCE}. ${QWEN_IMAGE_21_CANDID_LINE} SCENE: home.`
     );
   });
 });
@@ -948,6 +951,41 @@ describe('Qwen-Image 2.1: natural look-backs and candid scene stills', () => {
     assert.equal(withNaturalPoses(plate), plate);
     const duo = SOLO.replace('One woman alone', 'Exactly two people');
     assert.doesNotMatch(withNaturalPoses(duo), /Photographed candidly/);
+  });
+});
+
+describe('Qwen-Image 2.1: natural POSE FIRST on one-person stills (2026-10-20 sweep)', () => {
+  const still = (pose: string) => `Edit <image1>: POSE FIRST: ${pose}.\nSCENE: she is in the park — show that place around her.`;
+  const first = (pose: string) => withNaturalPoses(still(pose)).split('\n')[0]!;
+
+  it('a standing gesture gets a relaxed stance; a pose off her feet or in motion does not', () => {
+    assert.match(first('both hands on the hips, elbows bent out to the sides'), new RegExp(QWEN_IMAGE_21_RELAXED_STANCE));
+    for (const pose of [
+      'she kneels upright on the bed',
+      'both hands hold a book open — reads a book, curled up in an armchair',
+      'she walks mid-step, one foot ahead of the other',
+      'she crouches low, knees bent deep',
+      'one foot up on a bench, tying her sneaker',
+    ]) {
+      assert.doesNotMatch(first(pose), /standing relaxed/, pose);
+    }
+  });
+
+  it('a lean says how she leans; eating at a café table sits her down', () => {
+    assert.ok(first('she is leaning against a café wall').endsWith(`${QWEN_IMAGE_21_LEAN_BODY}.`));
+    assert.match(first('one hand brings food up to the mouth — eating a croissant at a café table'), /sitting on a chair at the table\.$/);
+    assert.doesNotMatch(first('she stands eating a croissant at a café table'), /sitting on a chair/);
+  });
+
+  it('a sport still stays mid-action: no candid line, no relaxed stance', () => {
+    const sport = 'Edit <image1>: POSE FIRST: mid-action — tennis serve, racket high.\nSCENE: she is in the court — show that place around her. ACTION: tennis serve.';
+    const out = withNaturalPoses(sport);
+    assert.doesNotMatch(out, /Photographed candidly|standing relaxed/);
+  });
+
+  it('a slide into a base is down on the dirt, not running', () => {
+    assert.match(first('mid-action — softball player sliding feet-first into second base'), new RegExp(QWEN_IMAGE_21_SLIDE_BODY.slice(0, 40)));
+    assert.equal(withNaturalPoses(withNaturalPoses(still('sliding into home plate'))), withNaturalPoses(still('sliding into home plate')));
   });
 });
 

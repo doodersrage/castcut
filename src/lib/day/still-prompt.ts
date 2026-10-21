@@ -259,7 +259,11 @@ export function dayPoseFirstLine(
       ? `${lead} — ${moment}`
       : lead
     : moment
-      ? `she is ${moment}`
+      ? // A moment that opens with its own verb ("stands tall…", "reads a book…") is said as
+        // "she stands…", not "she is stands…" (pose packs' beats do).
+        /^[a-z]+s\b/i.test(moment) && !/^(?:his|this|its|plus|as)\b/i.test(moment)
+        ? `she ${moment}`
+        : `she is ${moment}`
       : '';
   if (!words) return '';
   return image
