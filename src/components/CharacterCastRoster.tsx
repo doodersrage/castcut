@@ -24,6 +24,7 @@ import {
   type CharacterRecord,
 } from '@/lib/character/os';
 import { migrateCharactersFromLegacy } from '@/lib/play/cast';
+import { NEW_CAST_MEMBER_HREF, putDownActiveCast } from '@/lib/play/command-actions';
 import { castRosterReadinessLine } from '@/lib/cast/home-status';
 import { playCampaignHref, rosterFilmLead } from '@/lib/play/campaign';
 import {
@@ -102,23 +103,10 @@ export default function CharacterCastRoster() {
     }
   };
 
-  // Film's create form shows while no Cast is picked: put the current one down (as Film's own
-  // "None" does) and open it there.
+  // Film's create form shows while no Cast is picked: put the current one down and open it there.
   const startNewCharacter = () => {
-    saveSharedSettings({
-      ...loadSettingsCache().shared,
-      activeCharacterId: undefined,
-      activeLookId: undefined,
-      activeCharacterDescriptor: undefined,
-      ipAdapterImageFilename: undefined,
-      ipAdapterImageFilenames: undefined,
-      ipAdapterImageUrl: undefined,
-      ipAdapterComfyUrl: undefined,
-      ipAdapterStrength: undefined,
-      ipAdapterModelFilename: undefined,
-      identityKind: undefined,
-    });
-    router.push('/play?new=1');
+    putDownActiveCast();
+    router.push(NEW_CAST_MEMBER_HREF);
   };
 
   const applyAndStartFilm = (id: string) => {

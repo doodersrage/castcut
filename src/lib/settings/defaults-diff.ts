@@ -37,7 +37,7 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'detail', label: 'Prompt detail', area: LLM },
   { key: 'alwaysIncludeClothing', label: 'Always include clothing', area: LLM },
   { key: 'seedLlmWithIngredients', label: 'Seed the LLM with ingredients', area: LLM },
-  { key: 'renderRealismMode', label: 'Render realism', area: PROMPT },
+  { key: 'renderRealismMode', label: 'Prompt style', area: PROMPT },
   { key: 'poseGuideStyle', label: 'Pose guide style', area: PROMPT },
   { key: 'anatomyGuardMode', label: 'Anatomy guard', area: PROMPT },
   { key: 'kleinEnhancerEnabled', label: 'Klein Enhancer', area: PROMPT },

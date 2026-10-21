@@ -40,11 +40,12 @@ const FIELD_ENTRIES: SettingsSearchEntry[] = [
   },
   {
     id: 'render-realism',
-    label: 'Render realism',
-    subtitle: 'Prompt quality · realistic render prompt adjustments',
-    keywords: 'realism photoreal skin',
+    label: 'Prompt style',
+    subtitle: 'Prompt quality · photoreal, hyper-real or anime cues added on queue',
+    keywords: 'render realism realistic photoreal hyper anime style skin cues',
     tab: 'comfyui',
     section: 'prompt-quality',
+    focus: 'settings-prompt-style',
   },
   {
     id: 'anatomy-guard',
@@ -61,6 +62,43 @@ const FIELD_ENTRIES: SettingsSearchEntry[] = [
     keywords: 'flux klein enhancer',
     tab: 'comfyui',
     section: 'prompt-quality',
+  },
+  {
+    id: 'model-downloads',
+    label: 'Download models',
+    subtitle: 'Models · what ComfyUI is missing, one-click downloads, disk space',
+    keywords: 'download install missing weights checkpoint unet vae lora huggingface hf token disk',
+    tab: 'comfyui',
+    section: 'model-assets',
+    focus: 'settings-comfyui-model-assets',
+  },
+  {
+    id: 'finishing-tool-models',
+    label: 'Finishing tool models',
+    subtitle:
+      'Models · Sharpen & smooth, Copy moves, Lip-sync, Relight, Upscale, Make more realistic',
+    keywords:
+      'finishing finish tools sharpen smooth copy moves lip sync relight upscale seedvr rife interpolation realistic clip',
+    tab: 'comfyui',
+    section: 'model-assets',
+    focus: 'settings-comfyui-model-assets',
+  },
+  {
+    id: 'inference-engine-pick',
+    label: 'Inference engine (ComfyUI or cloud)',
+    subtitle: 'Engine · what renders: ComfyUI, Diffusers, or a cloud engine with its API key',
+    keywords:
+      'inference engine backend render comfyui diffusers cloud fal replicate openai gemini grok api key token',
+    tab: 'comfyui',
+    section: 'inference-engine',
+  },
+  {
+    id: 'heal-ready',
+    label: 'Heal & ready',
+    subtitle: 'Overview · checks ComfyUI, your models and the system workflows in one click',
+    keywords: 'heal ready setup first run system workflows fix repair install nodes',
+    tab: 'overview',
+    focus: 'heal-and-ready',
   },
   {
     id: 'auto-sync-maps',
@@ -178,6 +216,17 @@ const FIELD_ENTRIES: SettingsSearchEntry[] = [
   },
 ];
 
+/** Extra words per tab (its description and section names are searched too). */
+const TAB_KEYWORDS: Record<SettingsTab, string> = {
+  overview: 'health status ready heal server env readiness checks',
+  llm: 'language model ollama openai vision text provider api key',
+  comfyui: 'comfy engine connection models workflows queue loras nodes',
+  automation: 'webhooks schedule batch timer avoided tokens words',
+  advanced: 'recipes shootout usage storage sync compare',
+  data: 'backup export import restore gallery storage reset',
+  users: 'accounts groups access permissions admin quota audit',
+};
+
 /** Deep link for an entry: tab, ComfyUI section, and the control to scroll to. */
 export function settingsSearchHref(
   entry: Pick<SettingsSearchEntry, 'tab' | 'section' | 'focus'>
@@ -200,11 +249,14 @@ export function buildSettingsSearchEntries(): SettingsSearchEntry[] {
     tab: 'comfyui',
     section: section.id,
   }));
+  const sectionLabels = COMFYUI_SETTINGS_SECTIONS.map(section => section.label).join(' ');
   const tabs: SettingsSearchEntry[] = SETTINGS_TABS.map(tab => ({
     id: `tab-${tab.id}`,
     label: `${tab.label} settings`,
     subtitle: tab.description,
-    keywords: '',
+    keywords: [tab.id, TAB_KEYWORDS[tab.id], tab.id === 'comfyui' ? sectionLabels : '']
+      .filter(Boolean)
+      .join(' '),
     tab: tab.id,
   }));
   return [...FIELD_ENTRIES, ...sections, ...tabs];

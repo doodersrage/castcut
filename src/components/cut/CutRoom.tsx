@@ -23,6 +23,8 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useCutRoom } from '@/hooks/useCutRoom';
+import { useCommandActions } from '@/hooks/useCommandActions';
+import { PLAY_COMMAND_ACTION_IDS } from '@/lib/play/command-actions';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import { CUT_SOURCES, splitCutRoomKey } from '@/lib/film/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
@@ -235,6 +237,21 @@ export default function CutRoom() {
     const from = new URLSearchParams(window.location.search).get('from');
     if (from === 'day' || from === 'story') pickOnly(from);
   }, [mounted, pickOnly]);
+  // Command palette: "Cut the film" cuts here (elsewhere it opens Cut) — the button's own handler.
+  useCommandActions([
+    {
+      id: PLAY_COMMAND_ACTION_IDS.cutFilm,
+      label: 'Cut the film',
+      subtitle: 'Cut · put the kept shots together',
+      keywords: 'cut film assemble edit export movie',
+      run: () => void vm.cutFilm(),
+      available: () =>
+        vm.mounted &&
+        !vm.assembling &&
+        !vm.checking &&
+        applyCutShotEdits(vm.shots, vm.options.shotEdits).length > 0,
+    },
+  ]);
   if (!vm.mounted) return null;
 
   const phone = typeof window !== 'undefined' && isMobileStudioPath(window.location.pathname);

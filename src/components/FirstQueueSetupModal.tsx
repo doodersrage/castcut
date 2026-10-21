@@ -9,19 +9,24 @@ import { runHealAndReady } from '@/lib/app/first-run-setup';
 import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
 import { isCloudEngine, normalizeEngineId } from '@/lib/engine/capabilities';
-import {
-  whenBrowserStorageReady,
-  readBrowserValue,
-  writeBrowserValue,
-} from '@/lib/storage/browser-storage';
-import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { ONBOARDING_UPDATED_EVENT, loadOnboardingState } from '@/lib/app/onboarding-store';
+import { dismissFirstQueueSetupModal } from '@/lib/app/first-queue-setup';
 import {
-  dismissFirstQueueSetupModal,
-  FIRST_QUEUE_SETUP_DISMISS_KEY,
   FIRST_QUEUE_SETUP_RESET_EVENT,
-} from '@/lib/app/first-queue-setup';
+  FIRST_RUN_SETUP_DISMISSED_EVENT,
+  dismissFirstRunSetupSurfaces,
+  isFirstRunSetupDismissed,
+} from '@/lib/app/first-run-dismiss';
+import {
+  COMFY_CONNECTION_HREF,
+  COMFY_CONNECTION_LINK_TEXT,
+  HEAL_READY_DOES,
+  HEAL_READY_LABEL,
+  MODEL_DOWNLOADS_HREF,
+  MODEL_DOWNLOADS_LINK_TEXT,
+} from '@/lib/app/setup-copy';
 import {
   noteFirstQueueSetupBlockedStep,
   noteFirstQueueSetupCompletedMetric,
@@ -29,8 +34,6 @@ import {
   noteFirstQueueSetupShownMetric,
   type FirstQueueSetupStepId,
 } from '@/lib/server/local-observability';
-
-const DISMISS_KEY = FIRST_QUEUE_SETUP_DISMISS_KEY;
 
 type StepState = {
   storageReady: boolean;
@@ -78,7 +81,8 @@ export default function FirstQueueSetupModal() {
       if (cancelled) {
         return;
       }
-      if (readBrowserValue<boolean>(DISMISS_KEY) === true) {
+      // Dismissed on any setup surface (checklist, banner, here) counts here too.
+      if (isFirstRunSetupDismissed()) {
         return;
       }
       if (!hasComfyQueueIntent()) {
@@ -117,14 +121,16 @@ export default function FirstQueueSetupModal() {
     const onOnboarding = () => {
       const success = loadOnboardingState().find(step => step.id === 'first-queue-success');
       if (success?.done) {
-        writeBrowserValue(DISMISS_KEY, true);
+        dismissFirstRunSetupSurfaces();
         setOpen(false);
       }
     };
+    const onDismissed = () => setOpen(false);
     window.addEventListener(COMFY_QUEUE_INTENT_EVENT, onIntent);
     window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
     window.addEventListener(ONBOARDING_UPDATED_EVENT, onOnboarding);
     window.addEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, onReset);
+    window.addEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, onDismissed);
 
     void fetch('/api/health')
       .then(response => response.json())
@@ -145,6 +151,7 @@ export default function FirstQueueSetupModal() {
       window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettings);
       window.removeEventListener(ONBOARDING_UPDATED_EVENT, onOnboarding);
       window.removeEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, onReset);
+      window.removeEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, onDismissed);
     };
   }, [refresh]);
 
@@ -194,7 +201,7 @@ export default function FirstQueueSetupModal() {
             Finish setup before your first queue
           </p>
           <p className="type-body">
-            Three quick checks so Generate can use system workflows and your ComfyUI inventory.
+            {HEAL_READY_LABEL} {HEAL_READY_DOES}. Run it once and queue.
           </p>
         </div>
 
@@ -229,10 +236,10 @@ export default function FirstQueueSetupModal() {
                   <>
                     Unreachable — check{' '}
                     <Link
-                      href={settingsComfyUiSectionHref('connection')}
+                      href={COMFY_CONNECTION_HREF}
                       className="text-[var(--accent-text)] underline-offset-2 hover:underline"
                     >
-                      Settings → Connection
+                      {COMFY_CONNECTION_LINK_TEXT}
                     </Link>
                     .
                   </>
@@ -253,6 +260,25 @@ export default function FirstQueueSetupModal() {
               </span>
             </span>
           </li>
+          <li className="flex gap-3">
+            <span className="ui-status-warning" aria-hidden>
+              ○
+            </span>
+            <span>
+              <span className="font-medium text-[var(--text-primary)]">Models</span>
+              <span className="block text-xs text-[var(--text-muted)]">
+                {HEAL_READY_LABEL} maps the models ComfyUI has. Missing ones download from{' '}
+                <Link
+                  href={MODEL_DOWNLOADS_HREF}
+                  className="text-[var(--accent-text)] underline-offset-2 hover:underline"
+                  data-testid="first-queue-setup-models"
+                >
+                  {MODEL_DOWNLOADS_LINK_TEXT}
+                </Link>
+                .
+              </span>
+            </span>
+          </li>
         </ol>
 
         {message ? (
@@ -265,7 +291,7 @@ export default function FirstQueueSetupModal() {
           <PrimaryButton
             className="ui-btn-sm"
             loading={busy}
-            loadingLabel="Enabling…"
+            loadingLabel="Healing…"
             onClick={() => {
               setBusy(true);
               void runHealAndReady({
@@ -290,7 +316,7 @@ export default function FirstQueueSetupModal() {
               });
             }}
           >
-            Enable & sync inventory
+            {HEAL_READY_LABEL}
           </PrimaryButton>
           <Button type="button" size="sm" variant="ghost" onClick={dismiss}>
             Not now

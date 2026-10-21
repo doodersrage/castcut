@@ -127,7 +127,7 @@ export default function SharedToolAdvancedCollapsible({
         title="More"
         summary={
           roleplayVariant
-            ? 'Sampler, canvas size, and render style.'
+            ? 'Sampler, canvas size, and prompt style.'
             : 'Identity lock, workflow, sampler & size, pins.'
         }
         defaultOpen={advancedOpenByDefault}

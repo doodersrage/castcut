@@ -2,7 +2,12 @@ import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage'
 import { type AppFeatureId } from '../auth/features';
 import { isRouteAllowedForFeatures } from './last-tool-route';
 import { settingsTabHref } from '../settings/nav';
-import { settingsComfyUiSectionHref } from '../settings/comfyui-nav';
+import {
+  COMFY_CONNECTION_HREF,
+  COMFY_CONNECTION_LINK_TEXT,
+  HEAL_READY_HREF,
+  HEAL_READY_STEP,
+} from './setup-copy';
 import { appHasRoute } from './profile';
 
 export type OnboardingStep = {
@@ -19,13 +24,14 @@ const LEGACY_KEY = 'comfy-onboarding-v1';
 const ALL_ONBOARDING_STEPS: Omit<OnboardingStep, 'done'>[] = [
   {
     id: 'comfy-health',
-    label: 'Confirm ComfyUI connection in Settings',
-    href: settingsComfyUiSectionHref('connection'),
+    label: `Connect ComfyUI (${COMFY_CONNECTION_LINK_TEXT})`,
+    href: COMFY_CONNECTION_HREF,
   },
   {
+    // The id predates Heal & ready, which turns system workflows on with the rest.
     id: 'system-workflows',
-    label: 'Enable system workflows (or Heal & ready)',
-    href: settingsComfyUiSectionHref('connection'),
+    label: HEAL_READY_STEP,
+    href: HEAL_READY_HREF,
   },
   {
     id: 'first-generate',
@@ -198,4 +204,14 @@ export function dismissOnboarding(): void {
   }
   writeBrowserValue(KEY, saved);
   window.dispatchEvent(new Event(ONBOARDING_UPDATED_EVENT));
+}
+
+/** The checklist steps that are first-run setup (one dismiss hides them on every surface). */
+export const ONBOARDING_SETUP_STEP_IDS: ReadonlySet<string> = new Set([
+  'comfy-health',
+  'system-workflows',
+]);
+
+export function isOnboardingSetupStep(id: string): boolean {
+  return ONBOARDING_SETUP_STEP_IDS.has(id);
 }

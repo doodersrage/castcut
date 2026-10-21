@@ -17,8 +17,14 @@ afterEach(() => {
 });
 
 describe('keyboard-shortcuts-store', async () => {
-  const { DEFAULT_KEYBOARD_SHORTCUTS, loadKeyboardShortcuts, saveKeyboardShortcuts, parseCombo } =
-    await import('./keyboard-shortcuts-store');
+  const {
+    DEFAULT_KEYBOARD_SHORTCUTS,
+    loadKeyboardShortcuts,
+    saveKeyboardShortcuts,
+    parseCombo,
+    comboMatchesEvent,
+    keyboardShortcutActionLabel,
+  } = await import('./keyboard-shortcuts-store');
 
   describe('loadKeyboardShortcuts', () => {
     it('returns the defaults when window is undefined (SSR guard)', () => {
@@ -68,29 +74,86 @@ describe('keyboard-shortcuts-store', async () => {
     });
   });
 
+  describe('copy-pair rebind (Ctrl+Shift+C is the browser inspector)', () => {
+    it('defaults to Ctrl+Alt+C, clear of browser combos', () => {
+      const copy = DEFAULT_KEYBOARD_SHORTCUTS.find(b => b.id === 'copy-pair');
+      assert.equal(copy?.combo, 'Ctrl+Alt+C');
+      assert.ok(!DEFAULT_KEYBOARD_SHORTCUTS.some(b => /^Ctrl\+Shift\+[CIJ]$/i.test(b.combo)));
+    });
+
+    it('moves a stored binding still on the old default, and saves it once', () => {
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: {} });
+      stored = [
+        { id: 'copy-pair', combo: 'ctrl + shift + c', action: 'copy-pair', selector: '[x]' },
+        { id: 'generate', combo: 'Ctrl+Enter', action: 'primary-generate' },
+      ];
+      const loaded = loadKeyboardShortcuts();
+      assert.equal(loaded[0]?.combo, 'Ctrl+Alt+C');
+      assert.equal(loaded[0]?.selector, '[x]');
+      assert.equal(writeBrowserValue.mock.calls.length, 1);
+      loadKeyboardShortcuts();
+      assert.equal(writeBrowserValue.mock.calls.length, 1, 'already migrated');
+    });
+
+    it('keeps a combo the player chose', () => {
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: {} });
+      stored = [{ id: 'copy-pair', combo: 'Ctrl+Shift+Y', action: 'copy-pair' }];
+      assert.equal(loadKeyboardShortcuts()[0]?.combo, 'Ctrl+Shift+Y');
+      assert.equal(writeBrowserValue.mock.calls.length, 0);
+    });
+  });
+
+  describe('comboMatchesEvent', () => {
+    const press = (over: Partial<KeyboardEvent>) =>
+      ({ ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, key: '', code: '', ...over }) as KeyboardEvent;
+
+    it('needs every modifier, and no extra one', () => {
+      const combo = parseCombo('Ctrl+Alt+C');
+      assert.ok(comboMatchesEvent(combo, press({ ctrlKey: true, altKey: true, key: 'c', code: 'KeyC' })));
+      assert.ok(!comboMatchesEvent(combo, press({ ctrlKey: true, shiftKey: true, key: 'C', code: 'KeyC' })));
+      assert.ok(!comboMatchesEvent(parseCombo('Ctrl+Enter'), press({ ctrlKey: true, altKey: true, key: 'Enter' })));
+    });
+
+    it('takes ⌘ for Ctrl, and the physical key when Option changes the letter', () => {
+      const combo = parseCombo('Ctrl+Alt+C');
+      assert.ok(comboMatchesEvent(combo, press({ ctrlKey: true, altKey: true, key: 'ç', code: 'KeyC' })));
+      assert.ok(comboMatchesEvent(parseCombo('Ctrl+K'), press({ metaKey: true, key: 'k', code: 'KeyK' })));
+    });
+  });
+
+  it('labels actions for the cheat sheet', () => {
+    assert.equal(keyboardShortcutActionLabel('copy-pair'), 'Copy prompt pair');
+    assert.equal(keyboardShortcutActionLabel('custom-thing'), 'custom-thing');
+  });
+
   describe('parseCombo', () => {
     it('parses ctrl+shift+letter combos', () => {
-      assert.deepEqual(parseCombo('Ctrl+Shift+C'), { ctrl: true, shift: true, key: 'c' });
+      assert.deepEqual(parseCombo('Ctrl+Shift+C'), { ctrl: true, shift: true, alt: false, key: 'c' });
     });
 
     it('parses a bare key with no modifiers', () => {
-      assert.deepEqual(parseCombo('K'), { ctrl: false, shift: false, key: 'k' });
+      assert.deepEqual(parseCombo('K'), { ctrl: false, shift: false, alt: false, key: 'k' });
     });
 
     it('treats "Cmd" as a ctrl-equivalent modifier', () => {
-      assert.deepEqual(parseCombo('Cmd+K'), { ctrl: true, shift: false, key: 'k' });
+      assert.deepEqual(parseCombo('Cmd+K'), { ctrl: true, shift: false, alt: false, key: 'k' });
     });
 
     it('trims whitespace around each part', () => {
-      assert.deepEqual(parseCombo(' Ctrl + Enter '), { ctrl: true, shift: false, key: 'enter' });
+      assert.deepEqual(parseCombo(' Ctrl + Enter '), { ctrl: true, shift: false, alt: false, key: 'enter' });
+    });
+
+    it('reads Alt / Option', () => {
+      assert.deepEqual(parseCombo('Ctrl+Alt+C'), { ctrl: true, shift: false, alt: true, key: 'c' });
+      assert.equal(parseCombo('Cmd+Option+C').alt, true);
     });
 
     it('lowercases the key', () => {
-      assert.deepEqual(parseCombo('Ctrl+ENTER'), { ctrl: true, shift: false, key: 'enter' });
+      assert.deepEqual(parseCombo('Ctrl+ENTER'), { ctrl: true, shift: false, alt: false, key: 'enter' });
     });
 
     it('returns an empty key for an empty string', () => {
-      assert.deepEqual(parseCombo(''), { ctrl: false, shift: false, key: '' });
+      assert.deepEqual(parseCombo(''), { ctrl: false, shift: false, alt: false, key: '' });
     });
   });
 });

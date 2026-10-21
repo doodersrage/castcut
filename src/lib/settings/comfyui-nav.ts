@@ -26,6 +26,7 @@ export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
     id: 'inference-engine',
     label: APP_HAS_PLAY ? 'Generate & Video engine' : 'Inference engine',
     keywords: [
+      'inference',
       'diffusers',
       'engine',
       'comfyui',

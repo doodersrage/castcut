@@ -1,21 +1,17 @@
 'use client';
 
 /**
- * First-run / empty-state banner when Comfy is down or system workflows are off.
+ * A tool page's own setup gap: ComfyUI unreachable, or the cloud engine's key. First-run setup as
+ * a whole (Heal & ready, system workflows) is the dashboard checklist's and, on a first queue,
+ * the first-queue modal's — this banner no longer repeats it on every tool page.
  */
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
-import {
-  isSettingsSyncedWithServer,
-  SETTINGS_SYNCED_WITH_SERVER_EVENT,
-} from '@/lib/settings/push-flush';
-import { loadOnboardingState } from '@/lib/app/onboarding-store';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import { runHealAndReady } from '@/lib/app/first-run-setup';
-import { settingsTabHref } from '@/lib/settings/nav';
 import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
 import {
   cloudEngineOption,
@@ -25,19 +21,20 @@ import {
 } from '@/lib/engine/capabilities';
 import { Button } from '@/components/ui/Button';
 import { COMFY_QUEUE_INTENT_EVENT, hasComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
-  readBrowserValue,
-  whenBrowserStorageReady,
-  writeBrowserValue,
-} from '@/lib/storage/browser-storage';
-import { SETUP_READINESS_DISMISS_KEY } from '@/lib/app/first-run-dismiss';
-
-const DISMISS_KEY = SETUP_READINESS_DISMISS_KEY;
-
-type Readiness = {
-  comfyOk: boolean | null;
-  systemWorkflows: boolean;
-};
+  dismissFirstRunSetupSurfaces,
+  FIRST_QUEUE_SETUP_RESET_EVENT,
+  FIRST_RUN_SETUP_DISMISSED_EVENT,
+  isFirstRunSetupDismissed,
+} from '@/lib/app/first-run-dismiss';
+import {
+  COMFY_CONNECTION_HREF,
+  COMFY_CONNECTION_LINK_TEXT,
+  HEAL_READY_DOES,
+  HEAL_READY_HREF,
+  HEAL_READY_LABEL,
+} from '@/lib/app/setup-copy';
 
 export default function SetupReadinessBanner({
   toolLabel = 'Generate',
@@ -50,22 +47,13 @@ export default function SetupReadinessBanner({
   const workspaceMode = useWorkspaceMode();
   const deferUntilQueueIntent =
     deferUntilQueueIntentProp ?? (workspaceMode === 'simple' || workspaceMode === 'play');
-  const [readiness, setReadiness] = useState<Readiness | null>(null);
+  const [comfyOk, setComfyOk] = useState<boolean | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [queueIntent, setQueueIntent] = useState(false);
 
-  const refreshSystemWorkflows = useCallback((comfyOk?: boolean | null) => {
-    const shared = loadSettingsCache().shared;
-    const onboardingEnabled = loadOnboardingState().some(
-      step => step.id === 'system-workflows' && step.done
-    );
-    setReadiness(prev => ({
-      comfyOk: comfyOk !== undefined ? comfyOk : (prev?.comfyOk ?? null),
-      systemWorkflows: shared.useSystemWorkflows === true || onboardingEnabled,
-    }));
-  }, []);
+  const refreshDismissed = useCallback(() => setDismissed(isFirstRunSetupDismissed()), []);
 
   useEffect(() => {
     if (!deferUntilQueueIntent) {
@@ -83,52 +71,39 @@ export default function SetupReadinessBanner({
     let cancelled = false;
 
     void whenBrowserStorageReady().then(() => {
-      if (cancelled) {
-        return;
+      if (!cancelled) {
+        refreshDismissed();
       }
-      setDismissed(Boolean(readBrowserValue<boolean>(DISMISS_KEY)));
-      refreshSystemWorkflows(null);
     });
 
     void fetch('/api/health')
       .then(response => response.json())
       .then((data: { comfyui?: { ok?: boolean } }) => {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setComfyOk(Boolean(data.comfyui?.ok));
         }
-        return whenBrowserStorageReady().then(() => {
-          if (cancelled) {
-            return;
-          }
-          refreshSystemWorkflows(Boolean(data.comfyui?.ok));
-        });
       })
       .catch(() => {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setComfyOk(false);
         }
-        return whenBrowserStorageReady().then(() => {
-          if (cancelled) {
-            return;
-          }
-          refreshSystemWorkflows(false);
-        });
       });
 
-    const onSettingsUpdated = () => {
+    // One dismiss for every setup surface: the checklist, the first-queue modal or another page.
+    const onDismissChange = () => {
       if (!cancelled) {
-        scheduleAfterCommit(() => refreshSystemWorkflows());
+        scheduleAfterCommit(refreshDismissed);
       }
     };
-    window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettingsUpdated);
-    window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSettingsUpdated);
+    window.addEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, onDismissChange);
+    window.addEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, onDismissChange);
 
     return () => {
       cancelled = true;
-      window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, onSettingsUpdated);
-      window.removeEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSettingsUpdated);
+      window.removeEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, onDismissChange);
+      window.removeEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, onDismissChange);
     };
-  }, [refreshSystemWorkflows]);
+  }, [refreshDismissed]);
 
   if (dismissed || (deferUntilQueueIntent && !queueIntent)) {
     return null;
@@ -160,7 +135,7 @@ export default function SetupReadinessBanner({
               size="sm"
               variant="ghost"
               onClick={() => {
-                writeBrowserValue(DISMISS_KEY, true);
+                dismissFirstRunSetupSurfaces();
                 setDismissed(true);
               }}
             >
@@ -172,45 +147,28 @@ export default function SetupReadinessBanner({
     );
   }
 
-  if (!readiness) {
-    return null;
-  }
-
-  const comfyDown = readiness.comfyOk === false;
-  // Before the first server sync a fresh browser's copy says "off" for everyone.
-  const needsSystemWf = !readiness.systemWorkflows && isSettingsSyncedWithServer();
-  if (!comfyDown && !needsSystemWf) {
+  // Only this page's gap: ComfyUI can't be reached, so nothing here renders.
+  if (comfyOk !== false) {
     return null;
   }
 
   return (
-    <div className="ui-setup-banner mb-4">
+    <div className="ui-setup-banner mb-4" data-testid="setup-readiness-banner">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-[var(--accent-text)]">
-            {needsSystemWf
-              ? `Finish setup before ${toolLabel}`
-              : `ComfyUI connection needed for ${toolLabel}`}
+            ComfyUI connection needed for {toolLabel}
           </p>
-          <ul className="type-caption space-y-1 text-[var(--text-secondary)]">
-            {comfyDown ? (
-              <li>
-                ComfyUI is unreachable — check the URL in{' '}
-                <Link
-                  href={settingsComfyUiSectionHref('connection')}
-                  className="text-[var(--accent-text)] transition hover:text-[var(--text-primary)]"
-                >
-                  Settings → Connection
-                </Link>
-                .
-              </li>
-            ) : null}
-            {needsSystemWf ? (
-              <li>
-                System workflows are off — enable them for scaffolds without importing a pack first.
-              </li>
-            ) : null}
-          </ul>
+          <p className="type-caption text-[var(--text-secondary)]">
+            ComfyUI isn’t answering — check the address in{' '}
+            <Link
+              href={COMFY_CONNECTION_HREF}
+              className="text-[var(--accent-text)] transition hover:text-[var(--text-primary)]"
+            >
+              {COMFY_CONNECTION_LINK_TEXT}
+            </Link>
+            , or run {HEAL_READY_LABEL}: it {HEAL_READY_DOES}.
+          </p>
           {message ? <p className="type-caption text-[var(--text-muted)]">{message}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -227,24 +185,24 @@ export default function SetupReadinessBanner({
               }).then(result => {
                 setBusy(false);
                 setMessage(result.message);
-                refreshSystemWorkflows(result.comfyOk ? true : false);
+                setComfyOk(result.comfyOk);
               });
             }}
           >
-            Heal & ready
+            {HEAL_READY_LABEL}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => {
-              writeBrowserValue(DISMISS_KEY, true);
+              dismissFirstRunSetupSurfaces();
               setDismissed(true);
             }}
           >
             Dismiss
           </Button>
           <Link
-            href={settingsTabHref('overview')}
+            href={HEAL_READY_HREF}
             className="type-caption text-[var(--accent-text)] transition hover:text-[var(--text-primary)]"
           >
             Settings

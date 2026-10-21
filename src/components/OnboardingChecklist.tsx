@@ -10,13 +10,19 @@ import {
   dismissOnboarding,
   isOnboardingChromeStep,
   isOnboardingCoreStep,
+  isOnboardingSetupStep,
   isOnboardingStepAccessible,
   loadOnboardingState,
   ONBOARDING_UPDATED_EVENT,
   type OnboardingStep,
 } from '@/lib/app/onboarding-store';
 import { Button } from '@/components/ui/Button';
-import { settingsTabHref } from '@/lib/settings/nav';
+import {
+  dismissFirstRunSetupSurfaces,
+  FIRST_QUEUE_SETUP_RESET_EVENT,
+  FIRST_RUN_SETUP_DISMISSED_EVENT,
+  isFirstRunSetupDismissed,
+} from '@/lib/app/first-run-dismiss';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import {
@@ -83,15 +89,19 @@ export default function OnboardingChecklist() {
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [hidden, setHidden] = useState(false);
   const [synced, setSynced] = useState(isSettingsSyncedWithServer);
-
-  const accessibleSteps = useMemo(() => {
-    if (!auth || auth.loading || !auth.authEnabled) {
-      return steps;
-    }
-    return steps.filter(step => isOnboardingStepAccessible(step, allowedFeatures));
-  }, [allowedFeatures, auth, steps]);
+  // Setup dismissed on any surface (here, the first-queue modal, a tool's banner): its steps go.
+  const [setupDismissed, setSetupDismissed] = useState(false);
 
   const settingsAccessible = canAccessNavFeature(allowedFeatures, 'settings');
+  const accessibleSteps = useMemo(() => {
+    const shown = steps.filter(
+      step => !isOnboardingSetupStep(step.id) || (!setupDismissed && settingsAccessible)
+    );
+    if (!auth || auth.loading || !auth.authEnabled) {
+      return shown;
+    }
+    return shown.filter(step => isOnboardingStepAccessible(step, allowedFeatures));
+  }, [allowedFeatures, auth, settingsAccessible, setupDismissed, steps]);
 
   useEffect(() => {
     scheduleAfterCommit(() => {
@@ -103,7 +113,9 @@ export default function OnboardingChecklist() {
       const state = withFilmFacts(loadOnboardingState());
       setSteps(state);
       setHidden(state.every(step => step.done));
+      setSetupDismissed(isFirstRunSetupDismissed());
     };
+    scheduleAfterCommit(() => setSetupDismissed(isFirstRunSetupDismissed()));
     // A new browser has no ticks until the server copy lands — it showed every step as undone.
     const onSynced = () => {
       setSynced(true);
@@ -114,7 +126,11 @@ export default function OnboardingChecklist() {
     window.addEventListener('storage', refresh);
     window.addEventListener(ONBOARDING_UPDATED_EVENT, refresh);
     window.addEventListener(SETTINGS_SYNCED_WITH_SERVER_EVENT, onSynced);
+    window.addEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, refresh);
+    window.addEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, refresh);
     return () => {
+      window.removeEventListener(FIRST_RUN_SETUP_DISMISSED_EVENT, refresh);
+      window.removeEventListener(FIRST_QUEUE_SETUP_RESET_EVENT, refresh);
       clearTimeout(syncWait);
       window.removeEventListener('focus', refresh);
       window.removeEventListener('storage', refresh);
@@ -127,7 +143,13 @@ export default function OnboardingChecklist() {
     return null;
   }
 
-  const playFocusIds = new Set(['first-play-campaign', 'first-film-cut', 'watch-first-film']);
+  // Play shows the film steps, after Heal & ready: this checklist owns first-run setup.
+  const playFocusIds = new Set([
+    'system-workflows',
+    'first-play-campaign',
+    'first-film-cut',
+    'watch-first-film',
+  ]);
   const core = accessibleSteps.filter(step => {
     if (!isOnboardingCoreStep(step.id)) {
       return false;
@@ -154,7 +176,9 @@ export default function OnboardingChecklist() {
           size="sm"
           variant="ghost"
           onClick={() => {
+            // One dismiss: the first-queue modal and tool banners stop asking too.
             dismissOnboarding();
+            dismissFirstRunSetupSurfaces();
             setHidden(true);
           }}
         >
@@ -222,22 +246,8 @@ export default function OnboardingChecklist() {
         </div>
       ) : null}
       <p className="mt-3 type-caption text-[var(--text-muted)]">
-        Prefer one click?{' '}
-        {settingsAccessible ? (
-          <>
-            Use{' '}
-            <Link
-              href={settingsTabHref('overview')}
-              className="text-[var(--accent-text)] transition hover:text-[var(--text-primary)]"
-            >
-              Settings → Heal & ready
-            </Link>
-            , or press{' '}
-          </>
-        ) : (
-          <>Press </>
-        )}
-        <kbd className="rounded border border-[var(--border-default)] px-1">⌘/Ctrl+K</kbd> anytime.
+        Press <kbd className="rounded border border-[var(--border-default)] px-1">⌘/Ctrl+K</kbd>{' '}
+        anytime to jump anywhere or find a setting.
       </p>
     </div>
   );

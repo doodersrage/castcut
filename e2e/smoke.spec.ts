@@ -104,6 +104,55 @@ test('command palette finds a setting and deep-links to it', async ({ page }) =>
   await expect(page.locator('#settings-pose-guide')).toBeVisible({ timeout: 20_000 });
 });
 
+async function openPalette(page: import('@playwright/test').Page) {
+  const dialog = page.getByRole('dialog', { name: /Command palette/i });
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible().catch(() => false)) {
+          return true;
+        }
+        await page.keyboard.press('Control+K');
+        return dialog.isVisible().catch(() => false);
+      },
+      { timeout: 20_000, intervals: [200, 400, 800] }
+    )
+    .toBeTruthy();
+  return dialog;
+}
+
+test('command palette finds Models, tabs and the inference engine in Settings', async ({ page }) => {
+  await gotoStable(page, '/dashboard');
+  await dismissBlockingOverlays(page);
+  const dialog = await openPalette(page);
+  const search = dialog.getByPlaceholder(/Jump to/);
+  await search.fill('download models');
+  await expect(dialog.getByText('Settings · Download models')).toBeVisible({ timeout: 10_000 });
+  await search.fill('inference engine');
+  await expect(dialog.getByText('Settings · Inference engine (ComfyUI or cloud)')).toBeVisible();
+  await search.fill('webhooks');
+  await expect(dialog.getByText('Settings · Webhooks').first()).toBeVisible();
+  await search.fill('render realism');
+  await expect(dialog.getByText('Settings · Prompt style')).toBeVisible();
+  await page.keyboard.press('Escape');
+});
+
+test('command palette runs Play actions: Open Story, New Cast member', async ({ page }) => {
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  const dialog = await openPalette(page);
+  const search = dialog.getByPlaceholder(/Jump to/);
+  await search.fill('new cast member');
+  await expect(dialog.getByText('New Cast member', { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+  await search.fill('open story');
+  const story = dialog.getByText('Open Story', { exact: true });
+  await expect(story).toBeVisible();
+  await story.click();
+  await expect(page).toHaveURL(/\/story(?:[?#].*)?$/, { timeout: 20_000 });
+});
+
 test('settings looks for ComfyUI at the usual addresses when it is not answering', async ({
   page,
 }) => {
@@ -117,7 +166,26 @@ test('settings looks for ComfyUI at the usual addresses when it is not answering
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   const card = page.getByTestId('service-discovery');
   await expect(card).toBeVisible({ timeout: 20_000 });
-  await card.getByTestId('service-discovery-search').click();
+  // The Settings shell can remount the card while it hydrates and drop a click that landed
+  // first (no /api/discover-services request at all): click until the search starts.
+  const searchStarted = page.waitForRequest(request => request.url().includes('/api/discover-services'), {
+    timeout: 30_000,
+  });
+  let started = false;
+  void searchStarted.then(() => {
+    started = true;
+  }, () => {});
+  await expect
+    .poll(
+      async () => {
+        if (!started) {
+          await card.getByTestId('service-discovery-search').click().catch(() => {});
+        }
+        return started;
+      },
+      { timeout: 30_000, intervals: [1_000, 2_000, 3_000] }
+    )
+    .toBeTruthy();
   // Nothing runs locally in CI: it says so rather than offering a wrong address.
   await expect(
     card.getByTestId('service-discovery-no-comfy').or(card.getByTestId('service-discovery-use-comfy').first())

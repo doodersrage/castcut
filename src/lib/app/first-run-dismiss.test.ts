@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
 const removeBrowserKey = mock.fn((_key: string) => {});
-const writeBrowserValue = mock.fn((_key: string, _value: unknown) => {});
-mock.module("../storage/browser-storage", { namedExports: { removeBrowserKey, writeBrowserValue } });
+const store = new Map<string, unknown>();
+const writeBrowserValue = mock.fn((key: string, value: unknown) => {
+  store.set(key, value);
+});
+const readBrowserValue = mock.fn((key: string) => store.get(key) ?? null);
+mock.module("../storage/browser-storage", {
+  namedExports: { removeBrowserKey, writeBrowserValue, readBrowserValue },
+});
 
 function installWindowStub() {
   const hadWindow = "window" in globalThis;
@@ -33,6 +39,8 @@ describe("first-run-dismiss", async () => {
     FIRST_QUEUE_SETUP_DISMISS_KEY,
     FIRST_QUEUE_SETUP_RESET_EVENT,
     SETUP_READINESS_DISMISS_KEY,
+    FIRST_RUN_SETUP_DISMISSED_EVENT,
+    isFirstRunSetupDismissed,
     dismissSetupReadinessBanner,
     dismissFirstRunSetupSurfaces,
     resetFirstRunSetupSurfaces,
@@ -48,32 +56,52 @@ describe("first-run-dismiss", async () => {
       dismissFirstRunSetupSurfaces();
       resetFirstRunSetupSurfaces();
 
+      assert.equal(isFirstRunSetupDismissed(), false);
       assert.equal(writeBrowserValue.mock.calls.length, 0);
       assert.equal(removeBrowserKey.mock.calls.length, 0);
     });
   });
 
   describe("with a window (browser)", () => {
-    it("dismissSetupReadinessBanner writes the readiness dismiss key to true", () => {
+    it("dismissing the banner dismisses every setup surface (one dismiss for all)", () => {
       const win = installWindowStub();
+      store.clear();
       writeBrowserValue.mock.resetCalls();
       dismissSetupReadinessBanner();
-      win.restore();
-
-      assert.equal(writeBrowserValue.mock.calls.length, 1);
-      assert.deepEqual(writeBrowserValue.mock.calls[0]?.arguments, [SETUP_READINESS_DISMISS_KEY, true]);
-    });
-
-    it("dismissFirstRunSetupSurfaces writes both the queue-setup and readiness dismiss keys", () => {
-      const win = installWindowStub();
-      writeBrowserValue.mock.resetCalls();
-      dismissFirstRunSetupSurfaces();
       win.restore();
 
       assert.deepEqual(writeBrowserValue.mock.calls.map(call => call.arguments), [
         [FIRST_QUEUE_SETUP_DISMISS_KEY, true],
         [SETUP_READINESS_DISMISS_KEY, true],
       ]);
+    });
+
+    it("dismissFirstRunSetupSurfaces writes both keys and tells mounted surfaces", () => {
+      const win = installWindowStub();
+      store.clear();
+      writeBrowserValue.mock.resetCalls();
+      dismissFirstRunSetupSurfaces();
+      const dismissed = isFirstRunSetupDismissed();
+      win.restore();
+
+      assert.deepEqual(writeBrowserValue.mock.calls.map(call => call.arguments), [
+        [FIRST_QUEUE_SETUP_DISMISS_KEY, true],
+        [SETUP_READINESS_DISMISS_KEY, true],
+      ]);
+      assert.deepEqual(win.dispatched.map(event => event.type), [FIRST_RUN_SETUP_DISMISSED_EVENT]);
+      assert.equal(dismissed, true);
+    });
+
+    it("either stored flag counts as dismissed (older banner-only or modal-only dismissals)", () => {
+      const win = installWindowStub();
+      store.clear();
+      assert.equal(isFirstRunSetupDismissed(), false);
+      store.set(SETUP_READINESS_DISMISS_KEY, true);
+      assert.equal(isFirstRunSetupDismissed(), true);
+      store.clear();
+      store.set(FIRST_QUEUE_SETUP_DISMISS_KEY, true);
+      assert.equal(isFirstRunSetupDismissed(), true);
+      win.restore();
     });
 
     it("resetFirstRunSetupSurfaces removes both keys and dispatches the reset event", () => {

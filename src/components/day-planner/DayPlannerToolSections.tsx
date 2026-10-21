@@ -1,6 +1,8 @@
 'use client';
 
 import DayDubControl from '@/components/day-planner/DayDubControl';
+import { useCommandActions } from '@/hooks/useCommandActions';
+import { PLAY_COMMAND_ACTION_IDS } from '@/lib/play/command-actions';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
@@ -367,6 +369,25 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     completedClipCount < completedShotCount &&
     !firstCutCelebrate &&
     !assemblingFilm;
+  // Command palette while Day is open: the same handlers as Queue day and Animate all.
+  useCommandActions([
+    {
+      id: PLAY_COMMAND_ACTION_IDS.queueDay,
+      label: completedShotCount > 0 ? 'Queue the rest of the Day' : 'Queue the Day',
+      subtitle: 'Day · queue every slot, morning to night',
+      keywords: 'queue day render stills all slots',
+      run: () => void queueAll(),
+      available: () => !busy && !queueBlocked,
+    },
+    {
+      id: PLAY_COMMAND_ACTION_IDS.animateAll,
+      label: 'Animate all',
+      subtitle: 'Day · turn every finished still into a clip',
+      keywords: 'animate clips video motion all',
+      run: () => void animateAllClips(),
+      available: () => canAnimateAll && !busy && !renderOffline,
+    },
+  ]);
   // End pose in the slot sheet — only when this ComfyUI can pin a last frame on the clip engine.
   const endPoseControl = endPoseSupportedFor(activeSlot.id) ? (
     <DayEndPoseControl
