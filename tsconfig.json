@@ -43,6 +43,8 @@
   ],
   "exclude": [
     "playwright.config.ts",
+    // Playwright side, like the config: it imports the e2e helpers.
+    "scripts/screenshots.mts",
     "e2e/**/*",
     "node_modules",
     "_to_delete/**/*",
