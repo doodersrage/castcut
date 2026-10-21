@@ -9,6 +9,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.11] - 2026-10-21
+
+- npm run screenshots: retake the README screenshots with Playwright, and retake them.
+- Phone Day registers Queue the Day / Animate all in the command palette, like desktop Day.
+- Gallery card menu on the shared ActionMenu: a portal mode for menus in clipped grids.
+- picker-qwen21 test: the full inventory shape installedComfyModels now takes.
+- Engine picker: installed engines first, the rest under one collapsed Not installed group.
+- Qwen-Image 2.1 stills with two or more references always sample at cfg 1.
+- Docker ships ffmpeg 9 so WAN's animated WebP clips decode in the container.
+
 ## [v2.12.10] - 2026-10-21
 
 - picker-qwen21 test: pass the full inventory shape (the build's type check failed).
