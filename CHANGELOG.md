@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.8] - 2026-10-21
+
+- Clip tools read WAN clips in Docker: "Make more realistic failed — Could not read that clip."
+
 ## [v2.12.7] - 2026-10-21
 
 - e2e: Settings' service-discovery test clicks Look for them until the search request goes out. A click that landed while the Settings shell remounted the card was dropped (no /api/discover-services at all), which failed the test about one run in three before this branch and more often with the per-tool banner's new timing.
