@@ -187,7 +187,7 @@ export default function MobileQueueTool() {
       {recent.length > 0 ? (
         <div className="space-y-2">
           <p className="type-caption text-[var(--text-muted)]">Recent outputs</p>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5 min-[360px]:grid-cols-4 sm:grid-cols-8">
             {recent.map(entry => {
               const preview = galleryEntryHeroPreviewUrl(entry);
               return (

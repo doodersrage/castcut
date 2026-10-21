@@ -65,7 +65,7 @@ export default function CutGalleryPicker({
                       ▶ clip
                     </span>
                   ) : null}
-                  <span className="absolute right-1 top-1 rounded-full bg-[var(--accent)] px-1.5 text-xs text-[var(--on-accent)] opacity-0 group-hover:opacity-100">
+                  <span className="absolute right-1 top-1 rounded-full bg-[var(--accent)] px-1.5 text-xs text-[var(--on-accent)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
                     +
                   </span>
                 </button>
