@@ -57,7 +57,7 @@ function samplerSizeEffect(profile: SharedQualitySamplingSectionProps['queueQual
 }
 
 /**
- * Sampler & size under More. Queue quality lives at the top of the Engine; render style and
+ * Sampler & size under More. Queue quality lives at the top of the Engine; prompt style and
  * anatomy guard are Settings-wide (Settings → Prompt quality) — one line here says which.
  */
 export default function SharedQualitySamplingSection({
@@ -117,7 +117,7 @@ export default function SharedQualitySamplingSection({
       </CollapsibleSection>
 
       <p className="type-caption text-[var(--text-muted)]" data-testid="engine-render-style">
-        Render style {realism ?? renderRealismMode} · anatomy guard {anatomy ?? anatomyGuardMode}
+        Prompt style {realism ?? renderRealismMode} · anatomy guard {anatomy ?? anatomyGuardMode}
         {' · '}
         <Link
           href="/settings?tab=comfyui&section=prompt-quality"

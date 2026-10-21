@@ -40,11 +40,12 @@ const FIELD_ENTRIES: SettingsSearchEntry[] = [
   },
   {
     id: 'render-realism',
-    label: 'Render realism',
-    subtitle: 'Prompt quality · realistic render prompt adjustments',
-    keywords: 'realism photoreal skin',
+    label: 'Prompt style',
+    subtitle: 'Prompt quality · photoreal, hyper-real or anime cues added on queue',
+    keywords: 'render realism realistic photoreal hyper anime style skin cues',
     tab: 'comfyui',
     section: 'prompt-quality',
+    focus: 'settings-prompt-style',
   },
   {
     id: 'anatomy-guard',

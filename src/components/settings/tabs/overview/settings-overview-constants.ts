@@ -28,7 +28,7 @@ export const ESSENTIAL_TASKS: Array<{
   },
   {
     title: 'Quality',
-    description: 'Good or Best on every tool, Best jobs, render style.',
+    description: 'Good or Best on every tool, Best jobs, prompt style.',
     section: 'prompt-quality',
   },
   {
