@@ -9,6 +9,10 @@ copyright: Copyright &copy; 2026 Robert McDowell · MIT
 docs_dir: docs
 site_dir: site
 
+# Old release notes: kept on the site but not in the nav (see docs/archive/README.md).
+not_in_nav: |
+  archive/
+
 # Broken links and anchors fail the docs build (`mkdocs build --strict` in CI).
 validation:
   links:

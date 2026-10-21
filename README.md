@@ -18,7 +18,7 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own.
 5. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day and Story, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
 
-**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Copy moves from a video** (Wan Animate 2), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
+**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Make more realistic** (WAN 2.2 low-noise re-render), **Copy moves from a video** (Wan Animate 2), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
 
 **Consistency:** one face (the Cast plate), one dressed plate per outfit, and the Cast's own places — set a photo of a real room and stills set there are built around it.
 
@@ -84,7 +84,7 @@ The classic prompt and image tools (Generate, Format, Pet, Fantasy, Topics, Vari
 | --- | --- |
 | **Stills** | Qwen-Image-Edit 2511, Qwen Rapid AIO (SFW / NSFW), Qwen-Image 2.1, FLUX.2 Klein |
 | **Clips** | LTX-2.5 (talking clips, sound), WAN 2.2 Rapid AIO, MiniMax-H3 |
-| **Finishing** | SeedVR2, RIFE, Wan Animate 2, Wan-Dancer, InfiniteTalk, Qwen-Edit Relight |
+| **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2, Wan-Dancer, InfiniteTalk, Qwen-Edit Relight |
 | **Music** | ACE-Step 1.5 |
 | **Language / vision** | Built-in llama.cpp, LM Studio, Ollama, or a hosted provider |
 

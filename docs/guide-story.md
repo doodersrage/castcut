@@ -22,8 +22,12 @@ writes one). A written narration is used even with Narrate off.
 
 ## Each scene's ⋯ menu
 
-Edit scene · Pose… · Queue still · Animate · Play another still / clip · Make it 30 s ·
-Copy prompt · Open in ComfyUI — and the [finishing tools](finishing-tools.md).
+One list: Edit scene · Pose… · Open full size · Fix an area… · Queue still · Animate ·
+Add close-ups · Play another still / clip · Extend clip (or Continue) · Add sound ·
+Make it 30 s — then the
+[finishing tools](finishing-tools.md) (Sketch, Relight, Copy moves, Upscale to 4K, Dance,
+Lip-sync, Sharpen & smooth, **Make more realistic**) · Use this voice · Copy prompt ·
+Open in ComfyUI. Each shows only when it can be used.
 
 ## It keeps track
 

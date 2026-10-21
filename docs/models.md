@@ -37,6 +37,7 @@ What each part of Castcut needs in ComfyUI. Install them from **Settings → Com
 | Tool | Models | Size |
 | --- | --- | --- |
 | **Sharpen & smooth** · **Upscale to 4K** | SeedVR2 3B int8 + VAE (RIFE 4.26 for clips) | 4 GB |
+| **Make more realistic** | WAN 2.2 T2V 14B low-noise fp8 (14.3 GB), Wan2.2-Lightning 4-step low-noise LoRA (1.2 GB), UMT5 fp8, Wan 2.1 VAE | 22 GB |
 | **Copy moves** | Wan Animate 2 distilled int8, CLIP vision H, Wan 2.1 VAE, UMT5 | 25 GB |
 | **Dance to music** | Wan-Dancer global + local, lightx2v LoRA, CLIP vision H, Wan 2.1 VAE, UMT5 | 46 GB |
 | **Lip-sync** | Wan 2.1 I2V 480p fp8, InfiniteTalk (single; multi for two people), lightx2v LoRA, wav2vec2, UMT5 | 29–34 GB |
