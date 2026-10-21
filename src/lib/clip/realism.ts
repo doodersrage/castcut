@@ -123,7 +123,9 @@ export function buildClipRealismGraph(input: {
       class_type: 'LoraLoaderModelOnly',
       inputs: { model: ['10', 0], lora_name: CLIP_REALISM_MODELS.lora, strength_model: 1 },
     },
-    '12': { class_type: 'ModelSamplingSD3', inputs: { model: ['11', 0], shift: 8 } },
+    // Shift 1, so `denoise` is the noise the clip gets: WAN's generation shift (8) bends the
+    // schedule and starts 0.2 at 0.67 noise — light and medium both changed faces (2026-10-20).
+    '12': { class_type: 'ModelSamplingSD3', inputs: { model: ['11', 0], shift: 1 } },
     '13': {
       class_type: 'CLIPLoader',
       inputs: { clip_name: CLIP_REALISM_MODELS.textEncoder, type: 'wan', device: 'default' },

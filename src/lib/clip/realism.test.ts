@@ -77,6 +77,8 @@ describe('clip realism', () => {
     assert.equal(graph['11']!.inputs.lora_name, CLIP_REALISM_MODELS.lora);
     assert.equal(graph['18']!.class_type, 'KSampler');
     assert.equal(graph['18']!.inputs.denoise, 0.3);
+    // Shift 1: the denoise is the noise the clip gets (shift 8 started 0.2 at 0.67, faces changed).
+    assert.equal(graph['12']!.inputs.shift, 1);
     assert.equal(graph['18']!.inputs.seed, 7);
     assert.equal(graph['39']!.inputs.fps, 24);
     assert.equal(graph[CLIP_REALISM_SAVE_NODE]!.class_type, 'SaveVideo');
