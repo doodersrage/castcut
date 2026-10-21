@@ -96,6 +96,7 @@ import { resolveQueueParams } from '@/lib/queue/params-settings';
 import { runHealAndReady, readAdaptedLoaderMapTexts } from '@/lib/app/first-run-setup';
 
 import type { SettingsToolOrchestrationCore } from '@/hooks/settings/useSettingsToolOrchestrationCore';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestrationCore) {
   const {
@@ -422,7 +423,17 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     [settings, updateSettings]
   );
 
-  const handleResetComfySettings = useCallback(() => {
+  const handleResetComfySettings = useCallback(async () => {
+    if (
+      !(await confirmAction({
+        title: 'Reset the ComfyUI settings?',
+        body: 'The address, workflow, models and the rest of this page go back to the server defaults.',
+        confirmLabel: 'Reset',
+        tone: 'danger',
+      }))
+    ) {
+      return;
+    }
     resetComfyUiSettings();
     updateSettings(DEFAULT_COMFYUI_SETTINGS);
     setWorkflowError(null);
