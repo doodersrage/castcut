@@ -61,7 +61,17 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 - **Add sound** gives a silent clip the sound of its place.
 - **Make it 30 s** carries a clip on in parts that continue from each other.
 
-Each card's **⋯** menu also has the [finishing tools](finishing-tools.md).
+Each card's **⋯** menu is grouped in the order you work on a shot:
+
+| Group | Has |
+| --- | --- |
+| **Redo** | Requeue · new seed, Looks wrong · redo, Retry, Queue this slot only, Reroll plan |
+| **Touch up the still** | Fix an area, Sketch, Relight, Upscale to 4K |
+| **Make it move** | Animate, Copy moves, Dance to music, Lip-sync |
+| **The clip** | Sharpen & smooth, Make more realistic, Make it 30 s, Add sound, Use this voice |
+
+Edit slot and Open full size sit at the top, Open in ComfyUI at the bottom. A group with
+nothing to offer yet is left out. See [Finishing tools](finishing-tools.md).
 
 ## Which engine for stills
 
