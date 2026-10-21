@@ -162,6 +162,30 @@ describe('Day adult hand-off', () => {
     );
   });
 
+  it('Edit 2511 hands a custom pose off its plate to Noct-Q, else Turbo (pose bench 2026-10-21)', async () => {
+    const { resolveDayStillModel } = await import('../queue/tool-model');
+    const picked = 'qwen-image-edit-2511-lightning-8';
+    const all = (id: string) =>
+      ['qwen-image-2.1-edit-noct', 'qwen-image-2.1-edit-turbo-8', 'qwen-rapid-aio-edit-nsfw'].includes(id);
+    const turboOnly = (id: string) => id === 'qwen-image-2.1-edit-turbo-8';
+    const off = { adultNude: false, customPoseOffPlate: true };
+    assert.equal(resolveDayStillModel(picked, { ...off, installed: all }), 'qwen-image-2.1-edit-noct');
+    assert.equal(resolveDayStillModel(picked, { ...off, installed: turboOnly }), 'qwen-image-2.1-edit-turbo-8');
+    // Nothing installed, the setting off, or a pose it holds: stays on 2511.
+    assert.equal(resolveDayStillModel(picked, { ...off, installed: () => false }), picked);
+    assert.equal(resolveDayStillModel(picked, { ...off, installed: all, handOffs: false }), picked);
+    assert.equal(resolveDayStillModel(picked, { adultNude: false, installed: all }), picked);
+    // An adult nude still keeps its own hand-off.
+    assert.equal(
+      resolveDayStillModel(picked, { adultNude: true, customPoseOffPlate: true, installed: all }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    // Engines without the hand-off keep the still.
+    for (const other of ['qwen-image-2.1-edit-turbo-8', 'qwen-rapid-aio-edit']) {
+      assert.equal(resolveDayStillModel(other, { ...off, installed: all }), other);
+    }
+  });
+
   it('Noct-Q keeps its own sex-pose duos; everything else is 2.1', () => {
     const noct = poseProfileForModel('qwen-image-2.1-edit-noct');
     assert.equal(noct.penetrationEngine, undefined);

@@ -452,6 +452,11 @@ export function resolveDayStillModel(
     installed?: (modelId: string) => boolean;
     /** False: no hand-off, the picked engine renders ("Pick the best engine per pose" off). */
     handOffs?: boolean;
+    /**
+     * A one-person custom pose the picked engine can't draw (custom-pose-engine.ts:
+     * customPoseOffPlate) — see pose-model-profile: customPoseEngines.
+     */
+    customPoseOffPlate?: boolean;
   }
 ): ComfyImageModel {
   const picked = normalizeModel(model);
@@ -479,10 +484,22 @@ export function resolveDayStillModel(
     return duoEngine as ComfyImageModel;
   }
   const adultEngine = poseProfileForModel(picked).adultEngine;
-  if (!options.adultNude || !adultEngine || !COMFY_MODEL_IDS.has(adultEngine)) {
-    return picked;
+  if (
+    options.adultNude &&
+    adultEngine &&
+    COMFY_MODEL_IDS.has(adultEngine) &&
+    options.installed?.(adultEngine)
+  ) {
+    return adultEngine as ComfyImageModel;
   }
-  return options.installed?.(adultEngine) ? (adultEngine as ComfyImageModel) : picked;
+  // A custom pose off the plate (lying, a plank, a back view): Edit 2511 → Noct-Q, else Turbo.
+  if (options.customPoseOffPlate && !options.adultNude) {
+    const engine = poseProfileForModel(picked).customPoseEngines?.find(
+      id => COMFY_MODEL_IDS.has(id) && options.installed?.(id)
+    );
+    if (engine) return engine as ComfyImageModel;
+  }
+  return picked;
 }
 
 /**

@@ -18,8 +18,10 @@ import {
   type PoseLibraryEntry,
 } from './library';
 import {
+  CUSTOM_POSE_MIN_LIMB_SCORE,
   DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
+  isCustomPoseKey,
   parseOpenPoseJson,
   scoreBodyMatch,
   scorePoseMatch,
@@ -124,6 +126,46 @@ describe('pose-score matching', () => {
       detected: detectedFrom([moved]),
     });
     assert.ok(result.score > 0.95);
+  });
+
+  it('a custom pose also misses on its limbs (limb score under 0.8); a planned pose does not', () => {
+    const armsUp = (arms: 'up' | 'down') =>
+      normalized(
+        synthesizeStickSkeleton(
+          {
+            base: 'stand',
+            armLeft: arms,
+            armRight: arms,
+            lean: 0,
+            stride: 0.2,
+            seed: 11,
+            people: 1,
+            label: 'stand',
+          },
+          { centerX: 0.5 }
+        )
+      );
+    const input = { guide: [armsUp('up')], guideAspect: 2 / 3, detected: detectedFrom([armsUp('down')]) };
+    const planned = scorePoseMatch(input);
+    assert.equal(planned.postureMiss, false);
+    assert.ok(planned.limbScore < CUSTOM_POSE_MIN_LIMB_SCORE, `limbs ${planned.limbScore}`);
+    assert.ok(planned.score >= DEFAULT_MIN_POSE_MATCH, 'the posture verdict alone passes it');
+    assert.equal(planned.limbMiss, undefined);
+    const custom = scorePoseMatch({ ...input, customPose: true });
+    assert.equal(custom.limbMiss, true);
+    assert.ok(custom.score < DEFAULT_MIN_POSE_MATCH);
+    assert.match(describePoseMatch(custom), /limbs off the pose/);
+    // The same pose held still passes.
+    const held = scorePoseMatch({ ...input, detected: detectedFrom([armsUp('up')]), customPose: true });
+    assert.equal(held.limbMiss, false);
+    assert.ok(held.score >= DEFAULT_MIN_POSE_MATCH);
+  });
+
+  it('knows a custom pose by its guide key', () => {
+    assert.equal(isCustomPoseKey('photo:1'), true);
+    assert.equal(isCustomPoseKey('photo:2'), true);
+    assert.equal(isCustomPoseKey('kneel:1'), false);
+    assert.equal(isCustomPoseKey(undefined), false);
   });
 
   it('counts a third body in a duo, but not a small bystander', () => {

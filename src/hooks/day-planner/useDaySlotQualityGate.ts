@@ -26,6 +26,7 @@ import {
   guidePostureContradictsWords,
   scorePoseMatch,
   type PoseMatchResult,
+  isCustomPoseKey,
 } from '@/lib/pose/score';
 import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
 import {
@@ -224,6 +225,7 @@ export function useDaySlotQualityGate(
                 guide: expectation.keypoints,
                 guideAspect: expectation.aspect,
                 detected: detected.pose,
+                customPose: isCustomPoseKey(expectation.poseKey),
               });
               // Keypoints can't read the posture against a clear guide, or the beat has a
               // visible action (the cup at the mouth, the phone up): one vision call asks both.

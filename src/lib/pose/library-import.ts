@@ -53,10 +53,11 @@ export async function readPoseFromImageUrl(imageUrl: string): Promise<PhotoPose>
   }
   const { width, height } = detected.pose.canvas;
   const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
-  // The posture read is of the whole photo: it describes the lead only when she is alone.
-  return detected.posture && people.length === 1
-    ? { aspect, people, posture: detected.posture }
-    : { aspect, people };
+  // The vision model reads one person — the photo's main subject, which is the lead (the largest,
+  // ordered first). Kept with more people in frame too: a lunge or a hurdle shot with bystanders
+  // lost it and was described from 2D joints alone (pose bench, 2026-10-21). It describes the
+  // lead only (describePhotoPose / customPoseWords use it for a one-figure pose).
+  return detected.posture ? { aspect, people, posture: detected.posture } : { aspect, people };
 }
 
 /** File a pose under a layout in the pose library (hand-picked: ranks with the best). */
