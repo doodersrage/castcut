@@ -40,7 +40,8 @@ pictures. You need all three — Castcut can install the LLM for you.
       inside the Castcut image; see [Built-in LLM in Docker](configuration.md#llm-in-docker)
     - `--profile comfyui` — ComfyUI in a container
 
-    More in [Configuration](configuration.md).
+    The image ships its own ffmpeg 9 (H.264/AAC, animated WebP, titles), so Cut film and
+    the clip tools need nothing extra. More in [Configuration](configuration.md).
 
 === "From source"
 

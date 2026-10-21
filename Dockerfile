@@ -2,6 +2,10 @@
 
 FROM node:22-alpine AS base
 
+# Static ffmpeg/ffprobe 9.0.2 (musl, amd64 + arm64). Alpine's ffmpeg package was older than 8.0
+# and could not decode animated WebP (WAN's clip format). Pinned tag + digest — bump both together.
+FROM mwader/static-ffmpeg:9.0.2@sha256:7d9bdaaf887f7e6ce6151f67325c344074b5ff1fb75316011c3376503e449a7b AS ffmpeg
+
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -34,10 +38,14 @@ ENV HOSTNAME=0.0.0.0
 
 # Server film Cut (H.264/AAC) — browser MediaRecorder remains the fallback.
 # font-dejavu: drawtext needs a font file for Cut title cards and captions.
-RUN apk add --no-cache ffmpeg font-dejavu \
+RUN apk add --no-cache font-dejavu \
   && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs \
   && mkdir -p /data && chown nextjs:nodejs /data
+
+# Static ffmpeg (libx264, aac, libwebp + animated WebP decode, drawtext/freetype, xfade).
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
+ENV FFMPEG_PATH=/usr/local/bin/ffmpeg
 
 # Server storage (Cast, gallery, settings, gallery-media originals). Mount a volume here.
 ENV PROMPT_DATA_DIR=/data

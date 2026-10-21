@@ -38,7 +38,7 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
 - **Save poster** is a center-crop of one existing still (optionally with the film title
   over it) — there is no separate poster render or frame grabbed from a motion clip.
   **Cut titles and captions** need an ffmpeg with drawtext and a font (Docker ships
-  DejaVu; set `FILM_FONT_FILE` elsewhere); without them the server cut encodes without text,
+  ffmpeg 9 and DejaVu; set `FILM_FONT_FILE` elsewhere); without them the server cut encodes without text,
   and the browser fallback always draws them.
 
 ## Generation engines
