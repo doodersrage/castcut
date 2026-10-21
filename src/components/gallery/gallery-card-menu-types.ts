@@ -1,6 +1,5 @@
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
-import type { RefObject } from 'react';
 
 export type GalleryCardMenuProps = {
   entry: ComfyGalleryEntry;
@@ -12,11 +11,7 @@ export type GalleryCardMenuProps = {
   isVideoHero: boolean;
   comfyHostLabel: string | null;
   menuOpen: boolean;
-  menuPosition: { top: number; left: number; maxHeight: number } | null;
-  menuButtonRef: RefObject<HTMLButtonElement | null>;
-  menuPanelRef: RefObject<HTMLDivElement | null>;
   setMenuOpen: (open: boolean) => void;
-  setMenuPosition: (position: { top: number; left: number; maxHeight: number } | null) => void;
   onDownloadError: (message: string | null) => void;
   onRequeue: (
     newSeed: boolean,

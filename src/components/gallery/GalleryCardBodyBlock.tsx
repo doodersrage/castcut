@@ -3,7 +3,6 @@
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import GalleryUsedInBadge from '@/components/gallery/GalleryUsedInBadge';
-import type { RefObject } from 'react';
 import GalleryCardMenu from '@/components/gallery/GalleryCardMenu';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
@@ -78,11 +77,7 @@ export type GalleryCardBodyBlockProps = {
   isVideoHero: boolean;
   comfyHostLabel: string | null;
   menuOpen: boolean;
-  menuPosition: { top: number; left: number; maxHeight: number } | null;
-  menuButtonRef: RefObject<HTMLButtonElement | null>;
-  menuPanelRef: RefObject<HTMLDivElement | null>;
   setMenuOpen: (open: boolean) => void;
-  setMenuPosition: (position: { top: number; left: number; maxHeight: number } | null) => void;
 };
 
 export default function GalleryCardBodyBlock({
@@ -146,11 +141,7 @@ export default function GalleryCardBodyBlock({
   isVideoHero,
   comfyHostLabel,
   menuOpen,
-  menuPosition,
-  menuButtonRef,
-  menuPanelRef,
   setMenuOpen,
-  setMenuPosition,
 }: GalleryCardBodyBlockProps) {
   return (
     <div
@@ -459,11 +450,7 @@ export default function GalleryCardBodyBlock({
           isVideoHero={isVideoHero}
           comfyHostLabel={comfyHostLabel}
           menuOpen={menuOpen}
-          menuPosition={menuPosition}
-          menuButtonRef={menuButtonRef}
-          menuPanelRef={menuPanelRef}
           setMenuOpen={setMenuOpen}
-          setMenuPosition={setMenuPosition}
           onDownloadError={onDownloadError}
           onRequeue={onRequeue}
           onCancel={onCancel}

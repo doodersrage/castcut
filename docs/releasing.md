@@ -73,6 +73,19 @@ The first GHCR package is **private** until you open **Packages → castcut → 
 
 Optional fallback: repo secret `GHCR_TOKEN` (classic PAT with `write:packages`). The Release workflow uses it for GHCR login when set.
 
+## README screenshots
+
+`docs/screenshots/*.png` (`film`, `day`, `phone-day`, `cast`, `story`, `pose-editor`) are retaken by a script rather than by hand. Start the app, then run:
+
+```bash
+npm run screenshots                                   # against http://127.0.0.1:47832
+npm run screenshots -- --url http://127.0.0.1:47961   # or SCREENSHOTS_URL / PROMPT_API_URL
+npm run screenshots -- --only day,phone-day           # just some of them
+npm run screenshots -- --out /tmp/shots               # somewhere other than docs/screenshots
+```
+
+The script (`scripts/screenshots.mts`, Playwright) seeds a demo install into the browser the way the e2e specs do: the Cast "Nora" (and Tomas, Sam, Nova), a finished four-slot Day, and a three-scene Story. The stills are the bundled samples in `public/samples/`, so you need no demo install and no renders. It shoots in light theme and the Film workspace, at 1440×900 for desktop and 390×844 @2x for the phone. Every API write is stubbed, so nothing is queued or uploaded to the ComfyUI behind the app. With sign-in on, it logs in with `PROMPT_E2E_USERNAME` / `PROMPT_E2E_PASSWORD` (or `PROMPT_ADMIN_*` from `.env.local`). Look at the PNGs before committing them: banners that depend on the server (missing model files, engine health) can still show.
+
 ## Notes
 
 - GitHub auto-generates the changelog from commits since the previous **published** release (today that is `Initial-Release` until the next cut).

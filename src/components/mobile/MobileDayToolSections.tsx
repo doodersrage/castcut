@@ -1,6 +1,8 @@
 'use client';
 
 import DayDubControl from '@/components/day-planner/DayDubControl';
+import { useCommandActions } from '@/hooks/useCommandActions';
+import { dayCommandActions } from '@/lib/play/command-actions';
 import DayContinuityLocks from '@/components/day-planner/DayContinuityLocks';
 import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
@@ -343,6 +345,19 @@ export default function MobileDayToolSections(vm: ViewModel) {
     completedClipCount < completedShotCount &&
     !firstCutCelebrate &&
     !assemblingFilm;
+  // Command palette while Day is open (Ctrl/⌘K with a keyboard): the same actions, gating and
+  // handlers as desktop Day and this screen's Queue day / Animate all buttons.
+  useCommandActions(
+    dayCommandActions({
+      completedShotCount,
+      busy,
+      queueBlocked,
+      canAnimateAll,
+      renderOffline,
+      queueAll: () => void queueAll(),
+      animateAll: () => void animateAllClips(),
+    })
+  );
   // End pose in the slot sheet — only when this ComfyUI can pin a last frame on the clip engine.
   const endPoseControl = endPoseSupportedFor(activeSlot.id) ? (
     <DayEndPoseControl

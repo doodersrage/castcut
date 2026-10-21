@@ -16,6 +16,7 @@
     "dev:analyze": "ANALYZE=true next dev --webpack -p 47832",
     "build": "next build",
     "pack:core": "tsx scripts/pack-core.mts",
+    "screenshots": "tsx scripts/screenshots.mts",
     "check:core": "npm run pack:core && node scripts/check-core.mjs",
     "postbuild": "node scripts/prune-standalone.mjs",
     "build:fast": "next build",

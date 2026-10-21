@@ -77,3 +77,46 @@ export const PLAY_APP_COMMAND_ACTIONS: CommandAction[] = [
     href: '/cut',
   },
 ];
+
+/**
+ * Day's own palette actions while Day is open — desktop (DayPlannerToolSections) and the phone
+ * Day screen (MobileDayToolSections) register the same ones with the same gating: the handlers
+ * their Queue day / Animate all buttons call, available when those buttons would be enabled.
+ */
+export function dayCommandActions({
+  completedShotCount,
+  busy,
+  queueBlocked,
+  canAnimateAll,
+  renderOffline,
+  queueAll,
+  animateAll,
+}: {
+  completedShotCount: number;
+  busy: boolean;
+  /** A queue block reason is showing, or ComfyUI is offline. */
+  queueBlocked: boolean;
+  canAnimateAll: boolean;
+  renderOffline: boolean;
+  queueAll: () => void;
+  animateAll: () => void;
+}): CommandAction[] {
+  return [
+    {
+      id: PLAY_COMMAND_ACTION_IDS.queueDay,
+      label: completedShotCount > 0 ? 'Queue the rest of the Day' : 'Queue the Day',
+      subtitle: 'Day · queue every slot, morning to night',
+      keywords: 'queue day render stills all slots',
+      run: () => queueAll(),
+      available: () => !busy && !queueBlocked,
+    },
+    {
+      id: PLAY_COMMAND_ACTION_IDS.animateAll,
+      label: 'Animate all',
+      subtitle: 'Day · turn every finished still into a clip',
+      keywords: 'animate clips video motion all',
+      run: () => animateAll(),
+      available: () => canAnimateAll && !busy && !renderOffline,
+    },
+  ];
+}
