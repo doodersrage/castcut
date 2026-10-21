@@ -69,6 +69,39 @@ export function trapTabKey(event: KeyboardEvent<HTMLElement>, panel: HTMLElement
   return false;
 }
 
+// The last few focused elements, so a modal whose field takes focus on mount (autoFocus runs
+// before effects) still knows which control opened it.
+const focusHistory: HTMLElement[] = [];
+let trackingFocus = false;
+
+function trackFocus(): void {
+  if (trackingFocus || typeof document === 'undefined') return;
+  trackingFocus = true;
+  document.addEventListener(
+    'focusin',
+    event => {
+      if (!(event.target instanceof HTMLElement)) return;
+      focusHistory.push(event.target);
+      if (focusHistory.length > 8) focusHistory.shift();
+    },
+    true
+  );
+}
+
+trackFocus();
+
+function openerOutside(panel: HTMLElement | null): HTMLElement | null {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active !== document.body && !panel?.contains(active)) {
+    return active;
+  }
+  for (let index = focusHistory.length - 1; index >= 0; index -= 1) {
+    const candidate = focusHistory[index];
+    if (candidate.isConnected && !panel?.contains(candidate)) return candidate;
+  }
+  return null;
+}
+
 /**
  * While `open`: locks body scroll, moves focus into the panel (to `pickInitial`'s choice, else
  * the first control, else the panel itself), and on close gives focus back to whatever had it
@@ -85,9 +118,9 @@ export function useModalFocus(
   const { pickInitial, lockScroll = true } = options;
   useEffect(() => {
     if (!open) return;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const unlock = lockScroll ? lockBodyScroll() : () => {};
     const panel = panelRef.current;
+    const opener = openerOutside(panel);
+    const unlock = lockScroll ? lockBodyScroll() : () => {};
     if (panel && !panel.contains(document.activeElement)) {
       const initial = pickInitial?.(panel) ?? focusableIn(panel)[0] ?? panel;
       initial.focus({ preventScroll: true });

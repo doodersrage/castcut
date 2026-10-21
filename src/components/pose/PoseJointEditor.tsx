@@ -22,7 +22,7 @@ import { dayPoseAsPhotoPose, dayPoseWords, soloDayPoseGroups } from '@/lib/day/p
 import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose/references';
 import { poseLayoutLabel } from '@/lib/pose/layout-labels';
-import ModalPortal from '@/components/ui/ModalPortal';
+import Dialog from '@/components/ui/Dialog';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import type { NormalizedBody } from '@/lib/pose/library';
 import {
@@ -638,7 +638,6 @@ export default function PoseJointEditor({
     setSavedNote(null);
   };
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
   const safeAspect = aspect > 0.2 && aspect < 5 ? aspect : 2 / 3;
   const posedBody = bodies[Math.min(rotatePerson, bodies.length - 1)];
   const standing = posedBody ? legsAreStanding(posedBody, safeAspect) : false;
@@ -675,25 +674,12 @@ export default function PoseJointEditor({
     }
     onCancel();
   };
-  const requestCloseRef = useRef(requestClose);
-  useEffect(() => {
-    requestCloseRef.current = requestClose;
-  });
-
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
-
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const typing =
         target?.tagName === 'INPUT' && (target as HTMLInputElement).type !== 'checkbox';
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        requestCloseRef.current('escape');
-        return;
-      }
+      // Escape is the Dialog's (it calls requestClose('escape')).
       if (typing) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
@@ -923,1081 +909,1072 @@ export default function PoseJointEditor({
   })();
 
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[110] flex items-center justify-center bg-[var(--bg-base)]/70 p-3 backdrop-blur-sm"
-        role="presentation"
-        onClick={() => requestClose('backdrop')}
-      >
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          tabIndex={-1}
-          data-testid={`${testIdPrefix}-editor`}
-          className="flex max-h-[calc(100dvh-1.5rem)] min-h-0 w-full max-w-6xl flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] outline-none max-md:h-[calc(100dvh-1.5rem)] md:flex-row md:items-stretch md:gap-6 md:p-5"
-          onClick={event => event.stopPropagation()}
-        >
-          {/* Phone: the figure keeps its height and the controls below scroll — the controls
+    // Escape and the backdrop ask before dropping changes (requestClose); undo / redo stay on
+    // the window listener above.
+    <Dialog
+      open
+      onClose={() => requestClose('escape')}
+      onBackdropClick={() => requestClose('backdrop')}
+      labelledBy={titleId}
+      layer="dialogRaised"
+      size="full"
+      testId={`${testIdPrefix}-editor`}
+      focusPanelOnOpen
+      overlayClassName="p-3"
+      panelClassName="max-h-[calc(100dvh-1.5rem)] !max-w-6xl overflow-hidden rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] max-md:h-[calc(100dvh-1.5rem)]"
+      bodyClassName="flex min-h-0 flex-1 flex-col gap-4 p-4 md:flex-row md:items-stretch md:gap-6 md:p-5"
+    >
+      {/* Phone: the figure keeps its height and the controls below scroll — the controls
               used to take their full height and squeeze the figure to 82×122 px. */}
-          <div className="flex min-w-0 flex-col items-center justify-center gap-1.5 max-md:shrink-0 md:min-h-0 md:flex-1">
-            <svg
-              ref={svgRef}
-              viewBox={`0 0 ${safeAspect} 1`}
-              style={
-                {
-                  aspectRatio: String(safeAspect),
-                  '--pose-aspect': String(safeAspect),
-                } as CSSProperties
-              }
-              className={`h-[min(46dvh,420px)] w-auto max-w-full touch-none self-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] md:h-auto md:max-h-[min(68vh,640px)] md:w-[min(100%,calc(min(68vh,640px)*var(--pose-aspect)))] ${
-                dragging ? 'cursor-grabbing' : 'cursor-grab'
-              }`}
-              role="group"
-              aria-label="Pose joints"
-              data-testid={`${testIdPrefix}-canvas`}
-              onPointerDown={event => {
-                const at = toNormalized(event);
-                if (!at) return;
-                // The figure nearest the pointer turns.
-                const person = bodies.reduce((best, body, index) => {
-                  const centre = hipCentre(body);
-                  const bestCentre = hipCentre(bodies[best]!);
-                  return centre &&
-                    bestCentre &&
-                    Math.abs(centre.x - at.x) < Math.abs(bestCentre.x - at.x)
-                    ? index
-                    : best;
-                }, 0);
-                startDrag(event, { kind: 'orbit', person, x: at.x, y: at.y });
-              }}
-              onPointerMove={event => {
-                onMove(event);
-                applyHover(toNormalized(event));
-              }}
-              onPointerUp={event => {
-                endDrag();
-                applyHover(toNormalized(event));
-              }}
-              onPointerCancel={() => {
-                endDrag();
-                setHover({ kind: 'idle' });
-              }}
-              onPointerLeave={() => {
-                if (!drag.current) setHover({ kind: 'idle' });
-              }}
-            >
-              {/* Their picture, fitted whole into the canvas. Under everything and deaf to the
+      <div className="flex min-w-0 flex-col items-center justify-center gap-1.5 max-md:shrink-0 md:min-h-0 md:flex-1">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${safeAspect} 1`}
+          style={
+            {
+              aspectRatio: String(safeAspect),
+              '--pose-aspect': String(safeAspect),
+            } as CSSProperties
+          }
+          className={`h-[min(46dvh,420px)] w-auto max-w-full touch-none self-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)] md:h-auto md:max-h-[min(68vh,640px)] md:w-[min(100%,calc(min(68vh,640px)*var(--pose-aspect)))] ${
+            dragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+          role="group"
+          aria-label="Pose joints"
+          data-testid={`${testIdPrefix}-canvas`}
+          onPointerDown={event => {
+            const at = toNormalized(event);
+            if (!at) return;
+            // The figure nearest the pointer turns.
+            const person = bodies.reduce((best, body, index) => {
+              const centre = hipCentre(body);
+              const bestCentre = hipCentre(bodies[best]!);
+              return centre &&
+                bestCentre &&
+                Math.abs(centre.x - at.x) < Math.abs(bestCentre.x - at.x)
+                ? index
+                : best;
+            }, 0);
+            startDrag(event, { kind: 'orbit', person, x: at.x, y: at.y });
+          }}
+          onPointerMove={event => {
+            onMove(event);
+            applyHover(toNormalized(event));
+          }}
+          onPointerUp={event => {
+            endDrag();
+            applyHover(toNormalized(event));
+          }}
+          onPointerCancel={() => {
+            endDrag();
+            setHover({ kind: 'idle' });
+          }}
+          onPointerLeave={() => {
+            if (!drag.current) setHover({ kind: 'idle' });
+          }}
+        >
+          {/* Their picture, fitted whole into the canvas. Under everything and deaf to the
                   pointer: a drag over it still turns the figure. */}
-              {backdrop && showBackdrop ? (
-                <image
-                  href={backdrop}
-                  x={0}
-                  y={0}
-                  width={safeAspect}
-                  height={1}
-                  preserveAspectRatio="xMidYMid meet"
-                  opacity={backdropOpacity}
-                  style={{ pointerEvents: 'none' }}
-                  aria-hidden
-                  data-testid={`${testIdPrefix}-backdrop`}
-                  onError={() => setFailedBackdrop(backdrop)}
-                />
-              ) : null}
-              {/* Where the pose started. Butt caps: the round caps the figure is drawn with
+          {backdrop && showBackdrop ? (
+            <image
+              href={backdrop}
+              x={0}
+              y={0}
+              width={safeAspect}
+              height={1}
+              preserveAspectRatio="xMidYMid meet"
+              opacity={backdropOpacity}
+              style={{ pointerEvents: 'none' }}
+              aria-hidden
+              data-testid={`${testIdPrefix}-backdrop`}
+              onError={() => setFailedBackdrop(backdrop)}
+            />
+          ) : null}
+          {/* Where the pose started. Butt caps: the round caps the figure is drawn with
                   close the gaps and the dashes read as a solid line. */}
-              {showStart && moved ? (
-                <g
-                  opacity={0.55}
-                  style={{ pointerEvents: 'none' }}
-                  className="[&_g]:[stroke-linecap:butt]"
-                  aria-hidden
-                  data-testid={`${testIdPrefix}-start-ghost`}
-                >
-                  {opened.map((body, person) => (
-                    <PoseFigureShape
-                      key={person}
-                      body={body}
-                      aspect={safeAspect}
-                      color="var(--text-muted)"
-                      weight={0.006}
-                      dashed
-                    />
-                  ))}
-                </g>
-              ) : null}
-              {bodies.map((body, person) => {
-                const color = POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length]!;
-                const at = (i: number) => {
-                  const p = body[i];
-                  return p ? { x: p.x * safeAspect, y: p.y } : null;
-                };
-                const rs = at(2);
-                const ls = at(5);
-                const rh = at(8);
-                const lh = at(11);
-                // The figure being worked on is solid; the other one steps back.
-                const focused = bodies.length < 2 || person === handlePerson;
-                const depth = shownDepths[person] ?? liftBodyDepth(body, STAND, safeAspect);
-                const rightShoulder = body[2];
-                const leftShoulder = body[5];
-                const shoulderGap =
-                  rightShoulder && leftShoulder
-                    ? Math.hypot(
-                        (rightShoulder.x - leftShoulder.x) * safeAspect,
-                        rightShoulder.y - leftShoulder.y
-                      )
-                    : 1;
-                const neckPoint = body[1];
-                const hips = hipCentre(body);
-                const lyingDown =
-                  neckPoint &&
-                  hips &&
-                  Math.abs((neckPoint.x - hips.x) * safeAspect) > Math.abs(neckPoint.y - hips.y);
-                const showSideLetters = shoulderGap > 0.08 && !lyingDown;
-                const nameAt = (() => {
-                  if (bodies.length < 2) return null;
-                  const top = body.reduce<{ x: number; y: number } | null>(
-                    (best, p) => (p && (!best || p.y < best.y) ? p : best),
-                    null
-                  );
-                  return top ? { x: top.x * safeAspect, y: Math.max(0.03, top.y - 0.05) } : null;
-                })();
-                return (
-                  <g
-                    key={person}
-                    opacity={focused ? 1 : 0.5}
-                    data-testid={`${testIdPrefix}-figure-${person}`}
-                  >
-                    {nameAt ? (
-                      <text
-                        x={nameAt.x}
-                        y={nameAt.y}
-                        fontSize={0.03}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill={color}
-                        style={{ pointerEvents: 'none', userSelect: 'none', fontWeight: 700 }}
-                        aria-hidden
-                      >
-                        {figureName(person)}
-                      </text>
-                    ) : null}
-                    <g opacity={0.9} style={{ pointerEvents: 'none' }}>
-                      <PoseFigureShape
-                        body={body}
-                        aspect={safeAspect}
-                        color={color}
-                        weight={0.009}
-                        parts
-                        depth={depth}
-                      />
-                    </g>
-                    {rs && ls && rh && lh ? (
-                      <polygon
-                        points={[rs, ls, lh, rh].map(p => `${p.x},${p.y}`).join(' ')}
-                        fill={
-                          (dragging === 'body' && gesturePerson === person) ||
-                          (dragging == null && hover.kind === 'torso' && hover.person === person)
-                            ? color
-                            : 'transparent'
-                        }
-                        fillOpacity={0.16}
-                        className={dragging === 'body' ? 'cursor-grabbing' : 'cursor-grab'}
-                        data-testid={`${testIdPrefix}-torso-${person}`}
-                        onPointerDown={event => {
-                          const from = toNormalized(event);
-                          if (from)
-                            startDrag(event, { kind: 'body', person, x: from.x, y: from.y });
-                        }}
-                      >
-                        <title>Drag the body to move the whole figure</title>
-                      </polygon>
-                    ) : null}
-                    {EDITABLE.map(joint => {
-                      const placed = handlePosition(body, joint, safeAspect);
-                      const p = placed ? { x: placed.x * safeAspect, y: placed.y } : null;
-                      if (!p) return null;
-                      const active = activeJoint?.person === person && activeJoint.joint === joint;
-                      const hovered =
-                        dragging == null &&
-                        hover.kind === 'joint' &&
-                        hover.person === person &&
-                        hover.joint === joint;
-                      const part = posePartOfJoint(joint);
-                      // Targets overlap (a hand resting on a thigh): take the joint nearest the
-                      // pointer, not whichever circle happens to be drawn on top.
-                      const grab = (event: PointerEvent<Element>) => {
-                        const from = toNormalized(event);
-                        // A click on this dot takes this joint. Side view stacks an arm on an
-                        // arm; nearest-only always gave the same one.
-                        if (from && placed) {
-                          const onThisDot = Math.hypot(
-                            (placed.x - from.x) * safeAspect,
-                            placed.y - from.y
-                          );
-                          if (onThisDot <= 0.02) {
-                            startDrag(event, { kind: 'joint', person, joint });
-                            return;
-                          }
-                        }
-                        let nearest = joint;
-                        if (from) {
-                          let best = Infinity;
-                          for (const candidate of EDITABLE) {
-                            const q = handlePosition(body, candidate, safeAspect);
-                            if (!q) continue;
-                            const distance = Math.hypot((q.x - from.x) * safeAspect, q.y - from.y);
-                            if (distance < best) {
-                              best = distance;
-                              nearest = candidate;
-                            }
-                          }
-                        }
-                        startDrag(event, { kind: 'joint', person, joint: nearest });
-                      };
-                      return (
-                        <g key={joint}>
-                          {/* A generous invisible target: a near miss used to turn the figure. */}
-                          <circle
-                            cx={p.x}
-                            cy={p.y}
-                            // A finger needs a bigger target than a mouse pointer.
-                            r={coarsePointer ? 0.05 : 0.032}
-                            fill="transparent"
-                            className="cursor-grab"
-                            onPointerDown={grab}
-                          />
-                          <circle
-                            cx={p.x}
-                            cy={p.y}
-                            r={
-                              (active ? 0.02 : 0.014) *
-                              Math.min(1.5, Math.max(0.65, 1 + (depth[joint] ?? 0) * 2.2))
-                            }
-                            fill={part ? POSE_PART_COLORS[part] : color}
-                            stroke={hovered ? 'var(--text-primary)' : 'var(--bg-base)'}
-                            strokeWidth={0.004}
-                            tabIndex={0}
-                            role="slider"
-                            aria-label={`${figureName(person)} ${JOINT_NAMES[joint]}`}
-                            aria-valuetext={`${Math.round((body[joint]?.x ?? 0) * 100)}% across, ${Math.round((body[joint]?.y ?? 0) * 100)}% down`}
-                            className="cursor-grab focus:outline-none focus-visible:stroke-[var(--accent)]"
-                            data-testid={`${testIdPrefix}-joint-${person}-${joint}`}
-                            onPointerDown={grab}
-                            onKeyDown={onKey(person, joint)}
-                          >
-                            <title>{JOINT_LABELS[joint]}</title>
-                          </circle>
-                        </g>
-                      );
-                    })}
-                    {focused && showSideLetters
-                      ? (
-                          [
-                            [2, 'R'],
-                            [5, 'L'],
-                          ] as const
-                        ).map(([joint, letter]) => {
-                          const p = at(joint);
-                          const neck = at(1);
-                          if (!p || !neck) return null;
-                          const dx = p.x - neck.x;
-                          const dy = p.y - neck.y;
-                          const length = Math.hypot(dx, dy) || 1;
-                          return (
-                            <text
-                              key={letter}
-                              x={p.x + (dx / length) * 0.055}
-                              y={p.y + (dy / length) * 0.055}
-                              fontSize={0.032}
-                              textAnchor="middle"
-                              dominantBaseline="central"
-                              fill="var(--text-secondary)"
-                              style={{ pointerEvents: 'none', userSelect: 'none', fontWeight: 700 }}
-                              aria-hidden
-                            >
-                              {letter}
-                            </text>
-                          );
-                        })
-                      : null}
-                  </g>
-                );
-              })}
-              {handle ? (
-                <g
-                  className="cursor-alias"
-                  data-testid={`${testIdPrefix}-spin-handle`}
-                  onPointerDown={event => {
-                    const at = toNormalized(event);
-                    if (at) {
-                      startDrag(event, {
-                        kind: 'spin',
-                        person: handlePerson,
-                        angle: spinAngle(handlePerson, at),
-                      });
-                    }
-                  }}
-                >
-                  <title>Drag to spin the figure</title>
-                  <line
-                    x1={handle.from.x}
-                    y1={handle.from.y}
-                    x2={handle.x}
-                    y2={handle.y}
-                    stroke="var(--text-muted)"
-                    strokeWidth={0.003}
-                    strokeDasharray="0.008 0.008"
-                  />
-                  <circle cx={handle.x} cy={handle.y} r={0.045} fill="transparent" />
-                  <circle
-                    cx={handle.x}
-                    cy={handle.y}
-                    r={0.026}
-                    fill="var(--bg-base)"
-                    stroke="var(--text-secondary)"
-                    strokeWidth={0.004}
-                  />
+          {showStart && moved ? (
+            <g
+              opacity={0.55}
+              style={{ pointerEvents: 'none' }}
+              className="[&_g]:[stroke-linecap:butt]"
+              aria-hidden
+              data-testid={`${testIdPrefix}-start-ghost`}
+            >
+              {opened.map((body, person) => (
+                <PoseFigureShape
+                  key={person}
+                  body={body}
+                  aspect={safeAspect}
+                  color="var(--text-muted)"
+                  weight={0.006}
+                  dashed
+                />
+              ))}
+            </g>
+          ) : null}
+          {bodies.map((body, person) => {
+            const color = POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length]!;
+            const at = (i: number) => {
+              const p = body[i];
+              return p ? { x: p.x * safeAspect, y: p.y } : null;
+            };
+            const rs = at(2);
+            const ls = at(5);
+            const rh = at(8);
+            const lh = at(11);
+            // The figure being worked on is solid; the other one steps back.
+            const focused = bodies.length < 2 || person === handlePerson;
+            const depth = shownDepths[person] ?? liftBodyDepth(body, STAND, safeAspect);
+            const rightShoulder = body[2];
+            const leftShoulder = body[5];
+            const shoulderGap =
+              rightShoulder && leftShoulder
+                ? Math.hypot(
+                    (rightShoulder.x - leftShoulder.x) * safeAspect,
+                    rightShoulder.y - leftShoulder.y
+                  )
+                : 1;
+            const neckPoint = body[1];
+            const hips = hipCentre(body);
+            const lyingDown =
+              neckPoint &&
+              hips &&
+              Math.abs((neckPoint.x - hips.x) * safeAspect) > Math.abs(neckPoint.y - hips.y);
+            const showSideLetters = shoulderGap > 0.08 && !lyingDown;
+            const nameAt = (() => {
+              if (bodies.length < 2) return null;
+              const top = body.reduce<{ x: number; y: number } | null>(
+                (best, p) => (p && (!best || p.y < best.y) ? p : best),
+                null
+              );
+              return top ? { x: top.x * safeAspect, y: Math.max(0.03, top.y - 0.05) } : null;
+            })();
+            return (
+              <g
+                key={person}
+                opacity={focused ? 1 : 0.5}
+                data-testid={`${testIdPrefix}-figure-${person}`}
+              >
+                {nameAt ? (
                   <text
-                    x={handle.x}
-                    y={handle.y}
-                    fontSize={0.028}
+                    x={nameAt.x}
+                    y={nameAt.y}
+                    fontSize={0.03}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill="var(--text-secondary)"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    fill={color}
+                    style={{ pointerEvents: 'none', userSelect: 'none', fontWeight: 700 }}
+                    aria-hidden
                   >
-                    ↻
+                    {figureName(person)}
                   </text>
+                ) : null}
+                <g opacity={0.9} style={{ pointerEvents: 'none' }}>
+                  <PoseFigureShape
+                    body={body}
+                    aspect={safeAspect}
+                    color={color}
+                    weight={0.009}
+                    parts
+                    depth={depth}
+                  />
                 </g>
-              ) : null}
-            </svg>
-          </div>
-          <div className="flex min-h-0 w-full flex-col max-md:flex-1 md:w-[26rem] md:shrink-0">
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-              <h2 id={titleId} className="type-heading">
-                Edit pose
-              </h2>
-              <div className="space-y-1.5" data-testid={`${testIdPrefix}-editor-tools`}>
-                <p className="type-caption text-[var(--text-muted)]">Start from</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {POSE_STARTERS.map(starter => (
-                    <Button
-                      key={starter.id}
-                      size="sm"
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-starter-${starter.id}`}
-                      onClick={() => startFrom(starter.id)}
-                    >
-                      {starter.label}
-                    </Button>
-                  ))}
-                  {/* Any of Day's named poses, drawn the way Day draws them — picked by picture
-                      (a list of names said nothing about what "Lean on a rail" looks like). */}
-                  <Button
-                    size="sm"
-                    variant={posePickerOpen ? 'primary' : 'secondary'}
-                    className="whitespace-nowrap"
-                    aria-expanded={posePickerOpen}
-                    data-testid={`${testIdPrefix}-day-pose`}
-                    onClick={() => setPosePickerOpen(open => !open)}
-                  >
-                    {posePickerOpen ? 'Hide poses' : 'More poses…'}
-                  </Button>
-                  {/* Day's poses as read from real photos (openly licensed, credited). */}
-                  <Button
-                    size="sm"
-                    variant={referencePickerOpen ? 'primary' : 'secondary'}
-                    className="whitespace-nowrap"
-                    aria-expanded={referencePickerOpen}
-                    data-testid={`${testIdPrefix}-real-poses`}
-                    onClick={() => {
-                      setReferencePickerOpen(open => !open);
-                      setPosePickerOpen(false);
+                {rs && ls && rh && lh ? (
+                  <polygon
+                    points={[rs, ls, lh, rh].map(p => `${p.x},${p.y}`).join(' ')}
+                    fill={
+                      (dragging === 'body' && gesturePerson === person) ||
+                      (dragging == null && hover.kind === 'torso' && hover.person === person)
+                        ? color
+                        : 'transparent'
+                    }
+                    fillOpacity={0.16}
+                    className={dragging === 'body' ? 'cursor-grabbing' : 'cursor-grab'}
+                    data-testid={`${testIdPrefix}-torso-${person}`}
+                    onPointerDown={event => {
+                      const from = toNormalized(event);
+                      if (from) startDrag(event, { kind: 'body', person, x: from.x, y: from.y });
                     }}
                   >
-                    {referencePickerOpen ? 'Hide real poses' : 'Real poses…'}
-                  </Button>
-                </div>
-                {posePickerOpen ? (
-                  <DayPosePicker
-                    testIdPrefix={testIdPrefix}
-                    onPick={id => {
-                      startFromDayPose(id);
-                      setPosePickerOpen(false);
-                    }}
-                  />
+                    <title>Drag the body to move the whole figure</title>
+                  </polygon>
                 ) : null}
-                {referencePickerOpen ? (
-                  <ReferencePosePicker
-                    testIdPrefix={testIdPrefix}
-                    twoPeople={allowTwo}
-                    onPick={reference => {
-                      startFromReference(reference);
-                      setReferencePickerOpen(false);
-                    }}
-                  />
-                ) : null}
-              </div>
-              {/* One tap instead of dragging elbow and wrist on each side. */}
-              <div
-                className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
-                data-testid={`${testIdPrefix}-limb-presets`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="type-caption text-[var(--text-muted)]">Quick positions for</span>
-                  <div className="ui-segmented" role="radiogroup" aria-label="Which side">
-                    {(
+                {EDITABLE.map(joint => {
+                  const placed = handlePosition(body, joint, safeAspect);
+                  const p = placed ? { x: placed.x * safeAspect, y: placed.y } : null;
+                  if (!p) return null;
+                  const active = activeJoint?.person === person && activeJoint.joint === joint;
+                  const hovered =
+                    dragging == null &&
+                    hover.kind === 'joint' &&
+                    hover.person === person &&
+                    hover.joint === joint;
+                  const part = posePartOfJoint(joint);
+                  // Targets overlap (a hand resting on a thigh): take the joint nearest the
+                  // pointer, not whichever circle happens to be drawn on top.
+                  const grab = (event: PointerEvent<Element>) => {
+                    const from = toNormalized(event);
+                    // A click on this dot takes this joint. Side view stacks an arm on an
+                    // arm; nearest-only always gave the same one.
+                    if (from && placed) {
+                      const onThisDot = Math.hypot(
+                        (placed.x - from.x) * safeAspect,
+                        placed.y - from.y
+                      );
+                      if (onThisDot <= 0.02) {
+                        startDrag(event, { kind: 'joint', person, joint });
+                        return;
+                      }
+                    }
+                    let nearest = joint;
+                    if (from) {
+                      let best = Infinity;
+                      for (const candidate of EDITABLE) {
+                        const q = handlePosition(body, candidate, safeAspect);
+                        if (!q) continue;
+                        const distance = Math.hypot((q.x - from.x) * safeAspect, q.y - from.y);
+                        if (distance < best) {
+                          best = distance;
+                          nearest = candidate;
+                        }
+                      }
+                    }
+                    startDrag(event, { kind: 'joint', person, joint: nearest });
+                  };
+                  return (
+                    <g key={joint}>
+                      {/* A generous invisible target: a near miss used to turn the figure. */}
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        // A finger needs a bigger target than a mouse pointer.
+                        r={coarsePointer ? 0.05 : 0.032}
+                        fill="transparent"
+                        className="cursor-grab"
+                        onPointerDown={grab}
+                      />
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={
+                          (active ? 0.02 : 0.014) *
+                          Math.min(1.5, Math.max(0.65, 1 + (depth[joint] ?? 0) * 2.2))
+                        }
+                        fill={part ? POSE_PART_COLORS[part] : color}
+                        stroke={hovered ? 'var(--text-primary)' : 'var(--bg-base)'}
+                        strokeWidth={0.004}
+                        tabIndex={0}
+                        role="slider"
+                        aria-label={`${figureName(person)} ${JOINT_NAMES[joint]}`}
+                        aria-valuetext={`${Math.round((body[joint]?.x ?? 0) * 100)}% across, ${Math.round((body[joint]?.y ?? 0) * 100)}% down`}
+                        className="cursor-grab focus:outline-none focus-visible:stroke-[var(--accent)]"
+                        data-testid={`${testIdPrefix}-joint-${person}-${joint}`}
+                        onPointerDown={grab}
+                        onKeyDown={onKey(person, joint)}
+                      >
+                        <title>{JOINT_LABELS[joint]}</title>
+                      </circle>
+                    </g>
+                  );
+                })}
+                {focused && showSideLetters
+                  ? (
                       [
-                        ['both', 'Both'],
-                        ['right', 'Their right'],
-                        ['left', 'Their left'],
+                        [2, 'R'],
+                        [5, 'L'],
                       ] as const
-                    ).map(([id, label]) => (
+                    ).map(([joint, letter]) => {
+                      const p = at(joint);
+                      const neck = at(1);
+                      if (!p || !neck) return null;
+                      const dx = p.x - neck.x;
+                      const dy = p.y - neck.y;
+                      const length = Math.hypot(dx, dy) || 1;
+                      return (
+                        <text
+                          key={letter}
+                          x={p.x + (dx / length) * 0.055}
+                          y={p.y + (dy / length) * 0.055}
+                          fontSize={0.032}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="var(--text-secondary)"
+                          style={{ pointerEvents: 'none', userSelect: 'none', fontWeight: 700 }}
+                          aria-hidden
+                        >
+                          {letter}
+                        </text>
+                      );
+                    })
+                  : null}
+              </g>
+            );
+          })}
+          {handle ? (
+            <g
+              className="cursor-alias"
+              data-testid={`${testIdPrefix}-spin-handle`}
+              onPointerDown={event => {
+                const at = toNormalized(event);
+                if (at) {
+                  startDrag(event, {
+                    kind: 'spin',
+                    person: handlePerson,
+                    angle: spinAngle(handlePerson, at),
+                  });
+                }
+              }}
+            >
+              <title>Drag to spin the figure</title>
+              <line
+                x1={handle.from.x}
+                y1={handle.from.y}
+                x2={handle.x}
+                y2={handle.y}
+                stroke="var(--text-muted)"
+                strokeWidth={0.003}
+                strokeDasharray="0.008 0.008"
+              />
+              <circle cx={handle.x} cy={handle.y} r={0.045} fill="transparent" />
+              <circle
+                cx={handle.x}
+                cy={handle.y}
+                r={0.026}
+                fill="var(--bg-base)"
+                stroke="var(--text-secondary)"
+                strokeWidth={0.004}
+              />
+              <text
+                x={handle.x}
+                y={handle.y}
+                fontSize={0.028}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill="var(--text-secondary)"
+                style={{ pointerEvents: 'none', userSelect: 'none' }}
+              >
+                ↻
+              </text>
+            </g>
+          ) : null}
+        </svg>
+      </div>
+      <div className="flex min-h-0 w-full flex-col max-md:flex-1 md:w-[26rem] md:shrink-0">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+          <h2 id={titleId} className="type-heading">
+            Edit pose
+          </h2>
+          <div className="space-y-1.5" data-testid={`${testIdPrefix}-editor-tools`}>
+            <p className="type-caption text-[var(--text-muted)]">Start from</p>
+            <div className="flex flex-wrap gap-1.5">
+              {POSE_STARTERS.map(starter => (
+                <Button
+                  key={starter.id}
+                  size="sm"
+                  variant="secondary"
+                  className="whitespace-nowrap"
+                  data-testid={`${testIdPrefix}-starter-${starter.id}`}
+                  onClick={() => startFrom(starter.id)}
+                >
+                  {starter.label}
+                </Button>
+              ))}
+              {/* Any of Day's named poses, drawn the way Day draws them — picked by picture
+                      (a list of names said nothing about what "Lean on a rail" looks like). */}
+              <Button
+                size="sm"
+                variant={posePickerOpen ? 'primary' : 'secondary'}
+                className="whitespace-nowrap"
+                aria-expanded={posePickerOpen}
+                data-testid={`${testIdPrefix}-day-pose`}
+                onClick={() => setPosePickerOpen(open => !open)}
+              >
+                {posePickerOpen ? 'Hide poses' : 'More poses…'}
+              </Button>
+              {/* Day's poses as read from real photos (openly licensed, credited). */}
+              <Button
+                size="sm"
+                variant={referencePickerOpen ? 'primary' : 'secondary'}
+                className="whitespace-nowrap"
+                aria-expanded={referencePickerOpen}
+                data-testid={`${testIdPrefix}-real-poses`}
+                onClick={() => {
+                  setReferencePickerOpen(open => !open);
+                  setPosePickerOpen(false);
+                }}
+              >
+                {referencePickerOpen ? 'Hide real poses' : 'Real poses…'}
+              </Button>
+            </div>
+            {posePickerOpen ? (
+              <DayPosePicker
+                testIdPrefix={testIdPrefix}
+                onPick={id => {
+                  startFromDayPose(id);
+                  setPosePickerOpen(false);
+                }}
+              />
+            ) : null}
+            {referencePickerOpen ? (
+              <ReferencePosePicker
+                testIdPrefix={testIdPrefix}
+                twoPeople={allowTwo}
+                onPick={reference => {
+                  startFromReference(reference);
+                  setReferencePickerOpen(false);
+                }}
+              />
+            ) : null}
+          </div>
+          {/* One tap instead of dragging elbow and wrist on each side. */}
+          <div
+            className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+            data-testid={`${testIdPrefix}-limb-presets`}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="type-caption text-[var(--text-muted)]">Quick positions for</span>
+              <div className="ui-segmented" role="radiogroup" aria-label="Which side">
+                {(
+                  [
+                    ['both', 'Both'],
+                    ['right', 'Their right'],
+                    ['left', 'Their left'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    className="ui-segmented-item"
+                    aria-checked={limbSide === id}
+                    data-active={limbSide === id ? 'true' : 'false'}
+                    data-testid={`${testIdPrefix}-limb-side-${id}`}
+                    onClick={() => setLimbSide(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Arms</span>
+              {ARM_PRESETS.map(option => (
+                <Button
+                  key={option.id}
+                  size="sm"
+                  variant="secondary"
+                  className="whitespace-nowrap"
+                  data-testid={`${testIdPrefix}-arms-${option.id}`}
+                  onClick={() =>
+                    applyLimbs(body => applyArmPreset(body, option.id, limbSide, safeAspect))
+                  }
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Legs</span>
+              {LEG_PRESETS.map(option => (
+                <Button
+                  key={option.id}
+                  size="sm"
+                  variant="secondary"
+                  className="whitespace-nowrap"
+                  data-testid={`${testIdPrefix}-legs-${option.id}`}
+                  disabled={!standing}
+                  title={
+                    standing ? undefined : 'For a figure on its feet — start from Stand or Walk'
+                  }
+                  onClick={() =>
+                    applyLimbs(body => applyLegPreset(body, option.id, limbSide, safeAspect))
+                  }
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+            {/* Not a side: the head turns whichever "Quick positions for" is picked. */}
+            <div
+              className="flex flex-wrap items-center gap-1.5"
+              role="group"
+              aria-label="Head direction"
+            >
+              <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Head</span>
+              {HEAD_DIRECTIONS.map(option => {
+                const turn = headTurnSide(option.id);
+                const unavailable = turn != null && head.sideOn;
+                const active = head.direction === option.id;
+                const turnName = turn
+                  ? isThreeQuarterHead(option.id)
+                    ? `three-quarters to their ${turn}`
+                    : `to their ${turn}`
+                  : null;
+                return (
+                  <Button
+                    key={option.id}
+                    size="sm"
+                    variant={active ? 'accent-outline' : 'secondary'}
+                    className="whitespace-nowrap"
+                    aria-pressed={active}
+                    aria-label={turnName ? `Head turned ${turnName}` : undefined}
+                    data-testid={`${testIdPrefix}-head-${option.id}`}
+                    disabled={unavailable}
+                    title={
+                      unavailable
+                        ? 'For a figure facing you or away — seen from the side, turn the whole figure'
+                        : turnName
+                          ? `Turn the head ${turnName}`
+                          : option.id === 'straight'
+                            ? 'Face the camera (or straight ahead, seen from the side)'
+                            : undefined
+                    }
+                    onClick={() => turnHead(option.id)}
+                  >
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span className="type-caption text-[var(--text-muted)]">
+                Copy a side you posed by hand:
+              </span>
+              {(
+                [
+                  ['arm', 'right', 'R arm → L'],
+                  ['arm', 'left', 'L arm → R'],
+                  ['leg', 'right', 'R leg → L'],
+                  ['leg', 'left', 'L leg → R'],
+                ] as const
+              ).map(([limb, from, label]) => (
+                <Button
+                  key={`${limb}-${from}`}
+                  size="sm"
+                  variant="ghost"
+                  className="whitespace-nowrap px-2!"
+                  title={`Make their ${from === 'right' ? 'left' : 'right'} ${limb} mirror their ${from} ${limb}`}
+                  data-testid={`${testIdPrefix}-match-${limb}-${from}`}
+                  onClick={() => applyLimbs(body => matchLimb(body, limb, from))}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <p
+            className="text-sm text-[var(--text-secondary)]"
+            role="status"
+            aria-live="polite"
+            data-testid={`${testIdPrefix}-gesture`}
+          >
+            {liveText}
+          </p>
+          {/* Everything the figure responds to, in one place — the line above only names
+                  what is under the pointer, which a touch screen never shows. */}
+          <details
+            className="type-caption text-[var(--text-muted)]"
+            data-testid={`${testIdPrefix}-how-to`}
+          >
+            <summary className="flex min-h-8 cursor-pointer items-center text-[var(--text-secondary)]">
+              How to pose
+            </summary>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              <li>Drag a hand or foot: the elbow or knee bends to follow.</li>
+              <li>Drag an elbow, knee or shoulder to swing just that part.</li>
+              <li>Drag the neck to bend at the waist; the head to tilt it.</li>
+              <li>Drag the body to move the whole figure.</li>
+              <li>Drag empty space sideways to turn the figure, up or down to tilt it.</li>
+              <li>Drag the ↻ handle above the head to spin it in the picture.</li>
+              <li>
+                Arrow keys nudge the selected joint (Tab moves between joints); Ctrl+Z undoes.
+              </li>
+            </ul>
+          </details>
+          <p className="type-caption flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--text-muted)]">
+            {(
+              [
+                ['Right arm', POSE_PART_COLORS.rightArm],
+                ['Left arm', POSE_PART_COLORS.leftArm],
+                ['Right leg', POSE_PART_COLORS.rightLeg],
+                ['Left leg', POSE_PART_COLORS.leftLeg],
+              ] as const
+            ).map(([label, swatch]) => (
+              <span key={label} className="flex items-center gap-1">
+                <span
+                  aria-hidden
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ background: swatch }}
+                />
+                {label}
+              </span>
+            ))}
+            <span>Their left and right.</span>
+          </p>
+          {bodies[0] ? (
+            <div
+              className="space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+              data-testid={`${testIdPrefix}-words`}
+            >
+              <p className="text-sm text-[var(--text-secondary)]">
+                <span className="type-caption block text-[var(--text-muted)]">
+                  {leadsPrompt ? 'The prompt will open with' : 'This pose reads as'}
+                </span>
+                {describePhotoPose(
+                  {
+                    aspect: safeAspect,
+                    people: bodies,
+                    ...(presetWords ? { words: presetWords } : {}),
+                  },
+                  { lead: possessive === 'his' ? 'he' : 'she' }
+                )}
+              </p>
+              {focusBody ? (
+                <div
+                  className="flex items-center gap-3 border-t border-[var(--border-subtle)] pt-2"
+                  data-testid={`${testIdPrefix}-facing`}
+                >
+                  {showTopView ? (
+                    <PoseTopView
+                      body={focusBody}
+                      depth={focusDepth}
+                      aspect={safeAspect}
+                      color={focusColor}
+                    />
+                  ) : null}
+                  <div className="min-w-0">
+                    {showTopView ? (
+                      <p className="type-caption text-[var(--text-muted)]">Seen from above</p>
+                    ) : null}
+                    <p className="text-sm font-medium text-[var(--text-primary)]" role="status">
+                      {facing?.label ?? 'Facing you'}
+                    </p>
+                    {showTopView ? (
+                      <p className="type-caption text-[var(--text-muted)]">
+                        The arrow is the way the chest faces. Nearer limbs are thicker.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={undoable === 0}
+              title="Undo (Ctrl+Z)"
+              data-testid={`${testIdPrefix}-undo`}
+              onClick={undo}
+            >
+              Undo
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={redoable === 0}
+              title="Redo (Ctrl+Shift+Z)"
+              data-testid={`${testIdPrefix}-redo`}
+              onClick={redo}
+            >
+              Redo
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`${testIdPrefix}-mirror`}
+              onClick={() => {
+                checkpoint();
+                setDepths([]);
+                update(previous => mirrorBodies(previous));
+              }}
+            >
+              Mirror
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid={`${testIdPrefix}-reset`}
+              title="Back to the pose the editor opened with (undo-able)"
+              onClick={() => {
+                checkpoint();
+                setDepths([]);
+                setRotatePerson(0);
+                update(() => initial.map(body => body.map(p => (p ? { ...p } : null))));
+                setSavedNote(null);
+              }}
+            >
+              Reset
+            </Button>
+          </div>
+          {/* What is drawn behind the figure. Guides only: neither is part of the pose. */}
+          <div
+            className="flex flex-wrap items-center gap-x-4 text-sm text-[var(--text-secondary)]"
+            data-testid={`${testIdPrefix}-guides`}
+          >
+            {backdrop ? (
+              <label
+                className="inline-flex min-h-8 cursor-pointer items-center gap-1.5"
+                title={backdropLabel}
+              >
+                <input
+                  type="checkbox"
+                  checked={showBackdrop}
+                  data-testid={`${testIdPrefix}-show-backdrop`}
+                  onChange={event => {
+                    setShowBackdrop(event.target.checked);
+                    rememberShown(SHOW_BACKDROP_KEY, event.target.checked);
+                  }}
+                />
+                Show {possessive} picture
+              </label>
+            ) : null}
+            {backdrop && showBackdrop ? (
+              <label className="inline-flex min-h-8 items-center gap-1.5">
+                <span className="type-caption text-[var(--text-muted)]">Strength</span>
+                <input
+                  type="range"
+                  min={Math.round(BACKDROP_OPACITY.min * 100)}
+                  max={Math.round(BACKDROP_OPACITY.max * 100)}
+                  step={Math.round(BACKDROP_OPACITY.step * 100)}
+                  value={Math.round(backdropOpacity * 100)}
+                  aria-label="How strongly the picture shows through"
+                  aria-valuetext={`${Math.round(backdropOpacity * 100)}%`}
+                  className="w-24 accent-[var(--accent)]"
+                  data-testid={`${testIdPrefix}-backdrop-opacity`}
+                  onChange={event => {
+                    const next = Number(event.target.value) / 100;
+                    setBackdropOpacity(next);
+                    rememberBackdropOpacity(next);
+                  }}
+                />
+              </label>
+            ) : null}
+            {backdrop && showBackdrop ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={fitting}
+                title={`Size and place the ${bodies.length > 1 ? 'first figure' : 'figure'} over the person in the picture — the pose itself stays as it is`}
+                data-testid={`${testIdPrefix}-fit-backdrop`}
+                onClick={() => void fitToBackdrop()}
+              >
+                Fit to {possessive} picture
+              </Button>
+            ) : null}
+            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={showStart}
+                data-testid={`${testIdPrefix}-show-start`}
+                onChange={event => {
+                  setShowStart(event.target.checked);
+                  rememberShown(SHOW_START_KEY, event.target.checked);
+                }}
+              />
+              Show where it started
+            </label>
+          </div>
+          {allowTwo ? (
+            <div
+              className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+              data-testid={`${testIdPrefix}-figures`}
+            >
+              {bodies.length > 1 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <div
+                    className="ui-segmented"
+                    role="radiogroup"
+                    aria-label="Person you are posing"
+                  >
+                    {bodies.map((_, person) => (
                       <button
-                        key={id}
+                        key={person}
                         type="button"
                         role="radio"
                         className="ui-segmented-item"
-                        aria-checked={limbSide === id}
-                        data-active={limbSide === id ? 'true' : 'false'}
-                        data-testid={`${testIdPrefix}-limb-side-${id}`}
-                        onClick={() => setLimbSide(id)}
+                        aria-checked={handlePerson === person}
+                        data-active={handlePerson === person ? 'true' : 'false'}
+                        data-testid={`${testIdPrefix}-figure-tab-${person}`}
+                        onClick={() => setRotatePerson(person)}
                       >
-                        {label}
+                        <span
+                          aria-hidden
+                          className="mr-1 inline-block h-2 w-2 rounded-full"
+                          style={{
+                            background: POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length],
+                          }}
+                        />
+                        {figureName(person)}
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Arms</span>
-                  {ARM_PRESETS.map(option => (
-                    <Button
-                      key={option.id}
-                      size="sm"
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-arms-${option.id}`}
-                      onClick={() =>
-                        applyLimbs(body => applyArmPreset(body, option.id, limbSide, safeAspect))
-                      }
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Legs</span>
-                  {LEG_PRESETS.map(option => (
-                    <Button
-                      key={option.id}
-                      size="sm"
-                      variant="secondary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-legs-${option.id}`}
-                      disabled={!standing}
-                      title={
-                        standing ? undefined : 'For a figure on its feet — start from Stand or Walk'
-                      }
-                      onClick={() =>
-                        applyLimbs(body => applyLegPreset(body, option.id, limbSide, safeAspect))
-                      }
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-                {/* Not a side: the head turns whichever "Quick positions for" is picked. */}
-                <div
-                  className="flex flex-wrap items-center gap-1.5"
-                  role="group"
-                  aria-label="Head direction"
-                >
-                  <span className="type-caption w-9 shrink-0 text-[var(--text-muted)]">Head</span>
-                  {HEAD_DIRECTIONS.map(option => {
-                    const turn = headTurnSide(option.id);
-                    const unavailable = turn != null && head.sideOn;
-                    const active = head.direction === option.id;
-                    const turnName = turn
-                      ? isThreeQuarterHead(option.id)
-                        ? `three-quarters to their ${turn}`
-                        : `to their ${turn}`
-                      : null;
-                    return (
-                      <Button
-                        key={option.id}
-                        size="sm"
-                        variant={active ? 'accent-outline' : 'secondary'}
-                        className="whitespace-nowrap"
-                        aria-pressed={active}
-                        aria-label={turnName ? `Head turned ${turnName}` : undefined}
-                        data-testid={`${testIdPrefix}-head-${option.id}`}
-                        disabled={unavailable}
-                        title={
-                          unavailable
-                            ? 'For a figure facing you or away — seen from the side, turn the whole figure'
-                            : turnName
-                              ? `Turn the head ${turnName}`
-                              : option.id === 'straight'
-                                ? 'Face the camera (or straight ahead, seen from the side)'
-                                : undefined
-                        }
-                        onClick={() => turnHead(option.id)}
-                      >
-                        {option.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <span className="type-caption text-[var(--text-muted)]">
-                    Copy a side you posed by hand:
-                  </span>
-                  {(
-                    [
-                      ['arm', 'right', 'R arm → L'],
-                      ['arm', 'left', 'L arm → R'],
-                      ['leg', 'right', 'R leg → L'],
-                      ['leg', 'left', 'L leg → R'],
-                    ] as const
-                  ).map(([limb, from, label]) => (
-                    <Button
-                      key={`${limb}-${from}`}
-                      size="sm"
-                      variant="ghost"
-                      className="whitespace-nowrap px-2!"
-                      title={`Make their ${from === 'right' ? 'left' : 'right'} ${limb} mirror their ${from} ${limb}`}
-                      data-testid={`${testIdPrefix}-match-${limb}-${from}`}
-                      onClick={() => applyLimbs(body => matchLimb(body, limb, from))}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <p
-                className="text-sm text-[var(--text-secondary)]"
-                role="status"
-                aria-live="polite"
-                data-testid={`${testIdPrefix}-gesture`}
-              >
-                {liveText}
-              </p>
-              {/* Everything the figure responds to, in one place — the line above only names
-                  what is under the pointer, which a touch screen never shows. */}
-              <details
-                className="type-caption text-[var(--text-muted)]"
-                data-testid={`${testIdPrefix}-how-to`}
-              >
-                <summary className="flex min-h-8 cursor-pointer items-center text-[var(--text-secondary)]">
-                  How to pose
-                </summary>
-                <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                  <li>Drag a hand or foot: the elbow or knee bends to follow.</li>
-                  <li>Drag an elbow, knee or shoulder to swing just that part.</li>
-                  <li>Drag the neck to bend at the waist; the head to tilt it.</li>
-                  <li>Drag the body to move the whole figure.</li>
-                  <li>Drag empty space sideways to turn the figure, up or down to tilt it.</li>
-                  <li>Drag the ↻ handle above the head to spin it in the picture.</li>
-                  <li>
-                    Arrow keys nudge the selected joint (Tab moves between joints); Ctrl+Z undoes.
-                  </li>
-                </ul>
-              </details>
-              <p className="type-caption flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--text-muted)]">
-                {(
-                  [
-                    ['Right arm', POSE_PART_COLORS.rightArm],
-                    ['Left arm', POSE_PART_COLORS.leftArm],
-                    ['Right leg', POSE_PART_COLORS.rightLeg],
-                    ['Left leg', POSE_PART_COLORS.leftLeg],
-                  ] as const
-                ).map(([label, swatch]) => (
-                  <span key={label} className="flex items-center gap-1">
-                    <span
-                      aria-hidden
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ background: swatch }}
-                    />
-                    {label}
-                  </span>
-                ))}
-                <span>Their left and right.</span>
-              </p>
-              {bodies[0] ? (
-                <div
-                  className="space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
-                  data-testid={`${testIdPrefix}-words`}
-                >
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    <span className="type-caption block text-[var(--text-muted)]">
-                      {leadsPrompt ? 'The prompt will open with' : 'This pose reads as'}
-                    </span>
-                    {describePhotoPose(
-                      {
-                        aspect: safeAspect,
-                        people: bodies,
-                        ...(presetWords ? { words: presetWords } : {}),
-                      },
-                      { lead: possessive === 'his' ? 'he' : 'she' }
-                    )}
-                  </p>
-                  {focusBody ? (
-                    <div
-                      className="flex items-center gap-3 border-t border-[var(--border-subtle)] pt-2"
-                      data-testid={`${testIdPrefix}-facing`}
-                    >
-                      {showTopView ? (
-                        <PoseTopView
-                          body={focusBody}
-                          depth={focusDepth}
-                          aspect={safeAspect}
-                          color={focusColor}
-                        />
-                      ) : null}
-                      <div className="min-w-0">
-                        {showTopView ? (
-                          <p className="type-caption text-[var(--text-muted)]">Seen from above</p>
-                        ) : null}
-                        <p className="text-sm font-medium text-[var(--text-primary)]" role="status">
-                          {facing?.label ?? 'Facing you'}
-                        </p>
-                        {showTopView ? (
-                          <p className="type-caption text-[var(--text-muted)]">
-                            The arrow is the way the chest faces. Nearer limbs are thicker.
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={undoable === 0}
-                  title="Undo (Ctrl+Z)"
-                  data-testid={`${testIdPrefix}-undo`}
-                  onClick={undo}
-                >
-                  Undo
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={redoable === 0}
-                  title="Redo (Ctrl+Shift+Z)"
-                  data-testid={`${testIdPrefix}-redo`}
-                  onClick={redo}
-                >
-                  Redo
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  data-testid={`${testIdPrefix}-mirror`}
-                  onClick={() => {
-                    checkpoint();
-                    setDepths([]);
-                    update(previous => mirrorBodies(previous));
-                  }}
-                >
-                  Mirror
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  data-testid={`${testIdPrefix}-reset`}
-                  title="Back to the pose the editor opened with (undo-able)"
-                  onClick={() => {
-                    checkpoint();
-                    setDepths([]);
-                    setRotatePerson(0);
-                    update(() => initial.map(body => body.map(p => (p ? { ...p } : null))));
-                    setSavedNote(null);
-                  }}
-                >
-                  Reset
-                </Button>
-              </div>
-              {/* What is drawn behind the figure. Guides only: neither is part of the pose. */}
-              <div
-                className="flex flex-wrap items-center gap-x-4 text-sm text-[var(--text-secondary)]"
-                data-testid={`${testIdPrefix}-guides`}
-              >
-                {backdrop ? (
-                  <label
-                    className="inline-flex min-h-8 cursor-pointer items-center gap-1.5"
-                    title={backdropLabel}
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="whitespace-nowrap"
+                    title="Swap where the lead and the partner stand — both keep their pose"
+                    data-testid={`${testIdPrefix}-swap-sides`}
+                    onClick={() => {
+                      // Only where they stand changes: each keeps its turn.
+                      checkpoint();
+                      update(previous => swapSides(previous));
+                      setSavedNote(null);
+                    }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={showBackdrop}
-                      data-testid={`${testIdPrefix}-show-backdrop`}
-                      onChange={event => {
-                        setShowBackdrop(event.target.checked);
-                        rememberShown(SHOW_BACKDROP_KEY, event.target.checked);
-                      }}
-                    />
-                    Show {possessive} picture
-                  </label>
-                ) : null}
-                {backdrop && showBackdrop ? (
-                  <label className="inline-flex min-h-8 items-center gap-1.5">
-                    <span className="type-caption text-[var(--text-muted)]">Strength</span>
-                    <input
-                      type="range"
-                      min={Math.round(BACKDROP_OPACITY.min * 100)}
-                      max={Math.round(BACKDROP_OPACITY.max * 100)}
-                      step={Math.round(BACKDROP_OPACITY.step * 100)}
-                      value={Math.round(backdropOpacity * 100)}
-                      aria-label="How strongly the picture shows through"
-                      aria-valuetext={`${Math.round(backdropOpacity * 100)}%`}
-                      className="w-24 accent-[var(--accent)]"
-                      data-testid={`${testIdPrefix}-backdrop-opacity`}
-                      onChange={event => {
-                        const next = Number(event.target.value) / 100;
-                        setBackdropOpacity(next);
-                        rememberBackdropOpacity(next);
-                      }}
-                    />
-                  </label>
-                ) : null}
-                {backdrop && showBackdrop ? (
+                    Swap sides
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    disabled={fitting}
-                    title={`Size and place the ${bodies.length > 1 ? 'first figure' : 'figure'} over the person in the picture — the pose itself stays as it is`}
-                    data-testid={`${testIdPrefix}-fit-backdrop`}
-                    onClick={() => void fitToBackdrop()}
+                    className="whitespace-nowrap"
+                    data-testid={`${testIdPrefix}-remove-person`}
+                    onClick={() => changeFigures(previous => removePerson(previous))}
                   >
-                    Fit to {possessive} picture
+                    Remove partner
                   </Button>
-                ) : null}
-                <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={showStart}
-                    data-testid={`${testIdPrefix}-show-start`}
-                    onChange={event => {
-                      setShowStart(event.target.checked);
-                      rememberShown(SHOW_START_KEY, event.target.checked);
-                    }}
-                  />
-                  Show where it started
-                </label>
-              </div>
-              {allowTwo ? (
-                <div
-                  className="space-y-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
-                  data-testid={`${testIdPrefix}-figures`}
-                >
-                  {bodies.length > 1 ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div
-                        className="ui-segmented"
-                        role="radiogroup"
-                        aria-label="Person you are posing"
-                      >
-                        {bodies.map((_, person) => (
-                          <button
-                            key={person}
-                            type="button"
-                            role="radio"
-                            className="ui-segmented-item"
-                            aria-checked={handlePerson === person}
-                            data-active={handlePerson === person ? 'true' : 'false'}
-                            data-testid={`${testIdPrefix}-figure-tab-${person}`}
-                            onClick={() => setRotatePerson(person)}
-                          >
-                            <span
-                              aria-hidden
-                              className="mr-1 inline-block h-2 w-2 rounded-full"
-                              style={{
-                                background: POSE_FIGURE_COLORS[person % POSE_FIGURE_COLORS.length],
-                              }}
-                            />
-                            {figureName(person)}
-                          </button>
-                        ))}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="whitespace-nowrap"
-                        title="Swap where the lead and the partner stand — both keep their pose"
-                        data-testid={`${testIdPrefix}-swap-sides`}
-                        onClick={() => {
-                          // Only where they stand changes: each keeps its turn.
-                          checkpoint();
-                          update(previous => swapSides(previous));
-                          setSavedNote(null);
-                        }}
-                      >
-                        Swap sides
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="whitespace-nowrap"
-                        data-testid={`${testIdPrefix}-remove-person`}
-                        onClick={() => changeFigures(previous => removePerson(previous))}
-                      >
-                        Remove partner
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="type-caption text-[var(--text-muted)]">Partner</span>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="whitespace-nowrap"
-                        title="A standing partner beside the lead"
-                        data-testid={`${testIdPrefix}-add-person`}
-                        onClick={() => changeFigures(previous => addPartner(previous), 1)}
-                      >
-                        Add partner
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="whitespace-nowrap"
-                        title="A mirrored copy of the lead, facing them"
-                        data-testid={`${testIdPrefix}-add-mirrored`}
-                        onClick={() => changeFigures(previous => addPartner(previous, 'mirror'), 1)}
-                      >
-                        Mirrored partner
-                      </Button>
-                      {duoSeed && duoSeed.length === 2 ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="whitespace-nowrap"
-                          title="Both figures as this beat's two-person layout draws them"
-                          data-testid={`${testIdPrefix}-add-duo-layout`}
-                          onClick={() =>
-                            changeFigures(
-                              () => duoSeed.map(body => body.map(p => (p ? { ...p } : null))),
-                              1
-                            )
-                          }
-                        >
-                          Use the duo layout
-                        </Button>
-                      ) : null}
-                    </div>
-                  )}
-                  <p className="type-caption text-[var(--text-muted)]">
-                    {bodies.length > 1
-                      ? soloStill
-                        ? 'This still has no partner: only the lead is drawn. The partner stays with the pose for duo stills and My poses.'
-                        : 'The prompt puts the lead where the lead figure stands.'
-                      : 'Add a partner for a two-person still. A solo still uses the lead only.'}
-                  </p>
                 </div>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="type-caption text-[var(--text-muted)]">Waist</span>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="type-caption text-[var(--text-muted)]">Partner</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="whitespace-nowrap"
+                    title="A standing partner beside the lead"
+                    data-testid={`${testIdPrefix}-add-person`}
+                    onClick={() => changeFigures(previous => addPartner(previous), 1)}
+                  >
+                    Add partner
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="whitespace-nowrap"
+                    title="A mirrored copy of the lead, facing them"
+                    data-testid={`${testIdPrefix}-add-mirrored`}
+                    onClick={() => changeFigures(previous => addPartner(previous, 'mirror'), 1)}
+                  >
+                    Mirrored partner
+                  </Button>
+                  {duoSeed && duoSeed.length === 2 ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="whitespace-nowrap"
+                      title="Both figures as this beat's two-person layout draws them"
+                      data-testid={`${testIdPrefix}-add-duo-layout`}
+                      onClick={() =>
+                        changeFigures(
+                          () => duoSeed.map(body => body.map(p => (p ? { ...p } : null))),
+                          1
+                        )
+                      }
+                    >
+                      Use the duo layout
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+              <p className="type-caption text-[var(--text-muted)]">
+                {bodies.length > 1
+                  ? soloStill
+                    ? 'This still has no partner: only the lead is drawn. The partner stays with the pose for duo stills and My poses.'
+                    : 'The prompt puts the lead where the lead figure stands.'
+                  : 'Add a partner for a two-person still. A solo still uses the lead only.'}
+              </p>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="type-caption text-[var(--text-muted)]">Waist</span>
+            {(
+              [
+                ['Bend forward', STEP, 'bend-forward'],
+                ['Bend back', -STEP, 'bend-back'],
+              ] as const
+            ).map(([label, angle, id]) => (
+              <Button
+                key={id}
+                size="sm"
+                variant="secondary"
+                data-testid={`${testIdPrefix}-${id}`}
+                onClick={() => {
+                  checkpoint();
+                  bend(angle);
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <details className="type-caption text-[var(--text-muted)]">
+            <summary className="cursor-pointer text-[var(--text-secondary)]">
+              Exact turns and limb length
+            </summary>
+            <div className="mt-2 space-y-2">
+              <label className="flex items-start gap-1.5 text-[var(--text-secondary)]">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={keepProportions}
+                  data-testid={`${testIdPrefix}-keep-proportions`}
+                  onChange={event => setKeepProportions(event.target.checked)}
+                />
+                <span>
+                  Keep proportions
+                  <span className="mt-0.5 block text-[var(--text-muted)]">
+                    Limbs stay a natural length. Turn this off to shorten a limb that points at the
+                    camera.
+                  </span>
+                </span>
+              </label>
+              <p>Each click turns, tilts, or spins 15°.</p>
+              <div
+                className="flex flex-wrap items-center gap-1.5"
+                data-testid={`${testIdPrefix}-editor-rotate`}
+              >
+                {bodies.length > 1 ? <span>{figureName(handlePerson)}:</span> : null}
                 {(
                   [
-                    ['Bend forward', STEP, 'bend-forward'],
-                    ['Bend back', -STEP, 'bend-back'],
+                    ['Turn left', { turn: -STEP }, 'turn-left'],
+                    ['Turn right', { turn: STEP }, 'turn-right'],
+                    ['Tilt forward', { tilt: STEP }, 'tilt-forward'],
+                    ['Tilt back', { tilt: -STEP }, 'tilt-back'],
+                    ['Spin left', { spin: -STEP }, 'spin-left'],
+                    ['Spin right', { spin: STEP }, 'spin-right'],
                   ] as const
-                ).map(([label, angle, id]) => (
+                ).map(([label, rotation, id]) => (
                   <Button
                     key={id}
                     size="sm"
-                    variant="secondary"
-                    data-testid={`${testIdPrefix}-${id}`}
+                    variant="ghost"
+                    data-testid={`${testIdPrefix}-rotate-${id}`}
                     onClick={() => {
                       checkpoint();
-                      bend(angle);
+                      rotate(rotation);
                     }}
                   >
                     {label}
                   </Button>
                 ))}
               </div>
-              <details className="type-caption text-[var(--text-muted)]">
-                <summary className="cursor-pointer text-[var(--text-secondary)]">
-                  Exact turns and limb length
-                </summary>
-                <div className="mt-2 space-y-2">
-                  <label className="flex items-start gap-1.5 text-[var(--text-secondary)]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
-                      checked={keepProportions}
-                      data-testid={`${testIdPrefix}-keep-proportions`}
-                      onChange={event => setKeepProportions(event.target.checked)}
-                    />
-                    <span>
-                      Keep proportions
-                      <span className="mt-0.5 block text-[var(--text-muted)]">
-                        Limbs stay a natural length. Turn this off to shorten a limb that points at
-                        the camera.
-                      </span>
-                    </span>
-                  </label>
-                  <p>Each click turns, tilts, or spins 15°.</p>
-                  <div
-                    className="flex flex-wrap items-center gap-1.5"
-                    data-testid={`${testIdPrefix}-editor-rotate`}
+            </div>
+          </details>
+        </div>
+        <div className="mt-3 shrink-0 space-y-2 border-t border-[var(--border-subtle)] pt-3">
+          {confirmClose ? (
+            <div className="space-y-2" data-testid={`${testIdPrefix}-discard-confirm`}>
+              <p className="text-sm text-[var(--text-primary)]">
+                {savedNote?.startsWith('Saved to My poses')
+                  ? 'This pose is in My poses. Close without using it here?'
+                  : 'Close without using this pose?'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  data-testid={`${testIdPrefix}-keep-editing`}
+                  onClick={() => setConfirmClose(false)}
+                >
+                  Keep editing
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  data-testid={`${testIdPrefix}-discard`}
+                  onClick={onCancel}
+                >
+                  Discard
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {saveName != null ? (
+                <form
+                  className="flex flex-wrap items-center gap-2"
+                  onSubmit={event => {
+                    event.preventDefault();
+                    try {
+                      const saved = saveMyPose(
+                        { aspect: safeAspect, people: bodies, source: 'edited' },
+                        saveName.trim() || 'My pose'
+                      );
+                      setSavedNote(`Saved to My poses as “${saved.name}”.`);
+                      setSaveName(null);
+                    } catch (err) {
+                      setSavedNote(
+                        err instanceof Error ? err.message : 'Could not save that pose.'
+                      );
+                    }
+                  }}
+                >
+                  <input
+                    autoFocus
+                    aria-label="Pose name"
+                    className="ui-input h-8 w-full py-0 text-sm sm:w-48"
+                    placeholder="Name this pose"
+                    value={saveName}
+                    maxLength={60}
+                    autoComplete="off"
+                    data-testid={`${testIdPrefix}-save-name`}
+                    onChange={event => setSaveName(event.target.value)}
+                  />
+                  <Button size="sm" variant="secondary" type="submit">
+                    Save
+                  </Button>
+                  <Button size="sm" variant="ghost" type="button" onClick={() => setSaveName(null)}>
+                    Cancel
+                  </Button>
+                </form>
+              ) : null}
+              {savedNote ? (
+                <p className="type-caption text-[var(--text-muted)]" role="status">
+                  {savedNote}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="whitespace-nowrap"
+                  data-testid={`${testIdPrefix}-editor-save`}
+                  onClick={() =>
+                    onSave({
+                      aspect: safeAspect,
+                      people: bodies,
+                      source: 'edited',
+                      ...(presetWords ? { words: presetWords } : {}),
+                    })
+                  }
+                >
+                  Use this pose
+                </Button>
+                {saveName == null ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="whitespace-nowrap"
+                    data-testid={`${testIdPrefix}-save-to-my-poses`}
+                    onClick={() => {
+                      setSaveName('');
+                      setSavedNote(null);
+                      setConfirmClose(false);
+                    }}
                   >
-                    {bodies.length > 1 ? <span>{figureName(handlePerson)}:</span> : null}
-                    {(
-                      [
-                        ['Turn left', { turn: -STEP }, 'turn-left'],
-                        ['Turn right', { turn: STEP }, 'turn-right'],
-                        ['Tilt forward', { tilt: STEP }, 'tilt-forward'],
-                        ['Tilt back', { tilt: -STEP }, 'tilt-back'],
-                        ['Spin left', { spin: -STEP }, 'spin-left'],
-                        ['Spin right', { spin: STEP }, 'spin-right'],
-                      ] as const
-                    ).map(([label, rotation, id]) => (
-                      <Button
-                        key={id}
-                        size="sm"
-                        variant="ghost"
-                        data-testid={`${testIdPrefix}-rotate-${id}`}
-                        onClick={() => {
-                          checkpoint();
-                          rotate(rotation);
-                        }}
-                      >
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            </div>
-            <div className="mt-3 shrink-0 space-y-2 border-t border-[var(--border-subtle)] pt-3">
-              {confirmClose ? (
-                <div className="space-y-2" data-testid={`${testIdPrefix}-discard-confirm`}>
-                  <p className="text-sm text-[var(--text-primary)]">
-                    {savedNote?.startsWith('Saved to My poses')
-                      ? 'This pose is in My poses. Close without using it here?'
-                      : 'Close without using this pose?'}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      data-testid={`${testIdPrefix}-keep-editing`}
-                      onClick={() => setConfirmClose(false)}
-                    >
-                      Keep editing
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      data-testid={`${testIdPrefix}-discard`}
-                      onClick={onCancel}
-                    >
-                      Discard
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {saveName != null ? (
-                    <form
-                      className="flex flex-wrap items-center gap-2"
-                      onSubmit={event => {
-                        event.preventDefault();
-                        try {
-                          const saved = saveMyPose(
-                            { aspect: safeAspect, people: bodies, source: 'edited' },
-                            saveName.trim() || 'My pose'
-                          );
-                          setSavedNote(`Saved to My poses as “${saved.name}”.`);
-                          setSaveName(null);
-                        } catch (err) {
-                          setSavedNote(
-                            err instanceof Error ? err.message : 'Could not save that pose.'
-                          );
-                        }
-                      }}
-                    >
-                      <input
-                        autoFocus
-                        aria-label="Pose name"
-                        className="ui-input h-8 w-full py-0 text-sm sm:w-48"
-                        placeholder="Name this pose"
-                        value={saveName}
-                        maxLength={60}
-                        autoComplete="off"
-                        data-testid={`${testIdPrefix}-save-name`}
-                        onChange={event => setSaveName(event.target.value)}
-                      />
-                      <Button size="sm" variant="secondary" type="submit">
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        onClick={() => setSaveName(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </form>
-                  ) : null}
-                  {savedNote ? (
-                    <p className="type-caption text-[var(--text-muted)]" role="status">
-                      {savedNote}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      className="whitespace-nowrap"
-                      data-testid={`${testIdPrefix}-editor-save`}
-                      onClick={() =>
-                        onSave({
-                          aspect: safeAspect,
-                          people: bodies,
-                          source: 'edited',
-                          ...(presetWords ? { words: presetWords } : {}),
-                        })
-                      }
-                    >
-                      Use this pose
-                    </Button>
-                    {saveName == null ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="whitespace-nowrap"
-                        data-testid={`${testIdPrefix}-save-to-my-poses`}
-                        onClick={() => {
-                          setSaveName('');
-                          setSavedNote(null);
-                          setConfirmClose(false);
-                        }}
-                      >
-                        Save to My poses
-                      </Button>
-                    ) : null}
-                    <Button size="sm" variant="ghost" onClick={() => requestClose('backdrop')}>
-                      Cancel
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+                    Save to My poses
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="ghost" onClick={() => requestClose('backdrop')}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </ModalPortal>
+    </Dialog>
   );
 }
 

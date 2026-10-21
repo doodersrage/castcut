@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import ModalPortal from '@/components/ui/ModalPortal';
+import Dialog from '@/components/ui/Dialog';
 import type { GalleryComparePanelProps } from '@/components/GalleryComparePanel';
 
 const GalleryComparePanel = dynamic(() => import('@/components/GalleryComparePanel'), {
@@ -20,22 +20,21 @@ export default function GalleryCompareModal({
   onClose,
   ...panelProps
 }: GalleryCompareModalProps) {
-  if (!open || entries.length < 2) {
-    return null;
-  }
-
+  // Above the lightbox it can be opened from.
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-[var(--bg-base)]/85 p-4 backdrop-blur-sm"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Compare gallery outputs"
-      >
-        <div className="my-4 w-full max-w-7xl">
-          <GalleryComparePanel entries={entries.slice(0, 4)} onClose={onClose} {...panelProps} />
-        </div>
-      </div>
-    </ModalPortal>
+    <Dialog
+      open={open && entries.length >= 2}
+      onClose={onClose}
+      ariaLabel="Compare gallery outputs"
+      layer="dialogOverLightbox"
+      size="full"
+      align="top"
+      testId="gallery-compare"
+      backdropClassName="bg-[var(--bg-base)]/85 backdrop-blur-sm"
+      panelClassName=""
+      bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
+    >
+      <GalleryComparePanel entries={entries.slice(0, 4)} onClose={onClose} {...panelProps} />
+    </Dialog>
   );
 }

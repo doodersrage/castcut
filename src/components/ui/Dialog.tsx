@@ -16,9 +16,19 @@ import { Z_INDEX, type ZLayer } from '@/components/ui/z-index';
 const SIZE_CLASS = {
   sm: 'max-w-sm',
   md: 'max-w-md',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
-  full: 'max-w-[min(96rem,100%)]',
+  lg: 'max-w-lg',
+  xl: 'max-w-2xl',
+  '2xl': 'max-w-4xl',
+  '3xl': 'max-w-5xl',
+  full: 'max-w-7xl',
+} as const;
+
+const ALIGN_CLASS = {
+  center: 'items-center',
+  /** Tall content: starts near the top. */
+  top: 'items-start',
+  /** A bottom sheet on a phone, centred from `sm` up. */
+  sheet: 'items-end sm:items-center',
 } as const;
 
 export type DialogSize = keyof typeof SIZE_CLASS;
@@ -34,6 +44,8 @@ export type DialogProps = {
   title?: ReactNode;
   /** Id of a heading inside the children, when `title` is not given. */
   labelledBy?: string;
+  /** Accessible name when there is no visible heading to point at. */
+  ariaLabel?: string;
   /** A line under the title (aria-describedby). */
   description?: ReactNode;
   /** Controls beside the title. */
@@ -47,29 +59,39 @@ export type DialogProps = {
   /** Extra attributes on the dialog element. */
   dataAttributes?: Record<string, string>;
   size?: DialogSize;
+  /** Where the panel sits (default `center`). */
+  align?: keyof typeof ALIGN_CLASS;
   /** Stacking layer from the z-index scale (default `dialog`). */
   layer?: ZLayer;
   /** Backdrop click closes (default true). */
   closeOnBackdrop?: boolean;
+  /** Runs on a backdrop click instead of `onClose` (a dialog that asks before closing). */
+  onBackdropClick?: () => void;
   /** Escape closes (default true). */
   closeOnEscape?: boolean;
   /** `alertdialog` for a question that needs an answer (the confirm). */
   role?: 'dialog' | 'alertdialog';
   /** Focused on open; else the first control, else the panel. */
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** Focused on open: the first match inside the panel (e.g. `[data-autofocus]`). */
+  initialFocusSelector?: string;
+  /** Focus the panel itself on open, not its first control (a canvas-first editor). */
+  focusPanelOnOpen?: boolean;
   /** Replaces the panel's look (border, background, padding, width). Layout stays a column. */
   panelClassName?: string;
   panelStyle?: CSSProperties;
   /** Replaces the backdrop's look. */
   backdropClassName?: string;
-  /** Extra classes on the full-screen wrapper (alignment, padding). */
+  /** Classes on the full-screen wrapper (default `p-4`). */
   overlayClassName?: string;
   /** Classes on the scrolling body around the children (default padded). */
   bodyClassName?: string;
 };
 
+// The look most of the app's hand-built modals already shared.
 const DEFAULT_PANEL =
-  'rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-base)] text-[var(--text-primary)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]';
+  'rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/95 text-[var(--text-primary)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]';
+const DEFAULT_BACKDROP = 'bg-[var(--bg-base)]/70 backdrop-blur-sm';
 
 /**
  * A centred modal dialog on document.body: focus moves in on open, Tab cycles inside, Escape
@@ -81,6 +103,7 @@ export default function Dialog({
   onClose,
   title,
   labelledBy,
+  ariaLabel,
   description,
   headerActions,
   showClose,
@@ -89,11 +112,15 @@ export default function Dialog({
   testId,
   dataAttributes,
   size = 'md',
+  align = 'center',
   layer = 'dialog',
   closeOnBackdrop = true,
+  onBackdropClick,
   closeOnEscape = true,
   role = 'dialog',
   initialFocusRef,
+  initialFocusSelector,
+  focusPanelOnOpen = false,
   panelClassName,
   panelStyle,
   backdropClassName,
@@ -104,7 +131,13 @@ export default function Dialog({
   const titleId = useId();
   const descriptionId = useId();
 
-  useModalFocus(open, panelRef, { pickInitial: () => initialFocusRef?.current ?? null });
+  useModalFocus(open, panelRef, {
+    pickInitial: panel =>
+      focusPanelOnOpen
+        ? panel
+        : (initialFocusRef?.current ??
+          (initialFocusSelector ? panel.querySelector<HTMLElement>(initialFocusSelector) : null)),
+  });
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     // A modal opened from inside this one is portalled to document.body: its keys bubble here
@@ -128,21 +161,23 @@ export default function Dialog({
   return (
     <ModalPortal>
       <div
-        className={`fixed inset-0 flex items-center justify-center p-4 ${overlayClassName ?? ''}`}
+        className={`fixed inset-0 flex justify-center ${ALIGN_CLASS[align]} ${overlayClassName ?? 'p-4'}`}
         style={{ zIndex: Z_INDEX[layer] }}
+        data-modal-layer={layer}
         data-testid={testId ? `${testId}-root` : undefined}
       >
         <div
-          className={`absolute inset-0 ${backdropClassName ?? 'bg-[rgb(0_0_0_/0.55)] backdrop-blur-sm'}`}
+          className={`absolute inset-0 ${backdropClassName ?? DEFAULT_BACKDROP}`}
           aria-hidden
           data-testid={testId ? `${testId}-backdrop` : undefined}
-          onClick={closeOnBackdrop ? onClose : undefined}
+          onClick={closeOnBackdrop ? (onBackdropClick ?? onClose) : undefined}
         />
         <div
           ref={panelRef}
           role={role}
           aria-modal="true"
           aria-labelledby={title != null ? titleId : labelledBy}
+          aria-label={title == null && !labelledBy ? ariaLabel : undefined}
           aria-describedby={description ? descriptionId : undefined}
           tabIndex={-1}
           data-testid={testId}

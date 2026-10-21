@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
-import ModalPortal from '@/components/ui/ModalPortal';
+import { useEffect, useState } from 'react';
+import Dialog from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import type { LoraCaptionMode } from '@/lib/gallery/lora-dataset-export';
@@ -22,7 +22,6 @@ export default function LoraDatasetExportDialog({
   onCancel,
   onConfirm,
 }: LoraDatasetExportDialogProps) {
-  const titleId = useId();
   const [triggerWord, setTriggerWord] = useState('');
   const [captionMode, setCaptionMode] = useState<LoraCaptionMode>('prompt');
 
@@ -42,85 +41,63 @@ export default function LoraDatasetExportDialog({
     });
   }, [open]);
 
-  if (!open) {
-    return null;
-  }
+  const confirm = () => {
+    const options: LoraDatasetExportUiOptions = {
+      triggerWord: triggerWord.trim() || undefined,
+      captionMode,
+    };
+    const shared = loadSettingsCache().shared;
+    saveSharedSettings({
+      ...shared,
+      loraDatasetExportPrefs: normalizeLoraDatasetExportPrefs({
+        triggerWord: options.triggerWord,
+        captionMode: options.captionMode,
+      }),
+    });
+    onConfirm(options);
+  };
 
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--bg-base)]/70 p-4 backdrop-blur-sm"
-        role="presentation"
-        onClick={onCancel}
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/95 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
-          onClick={event => event.stopPropagation()}
-        >
-          <div className="space-y-1">
-            <h2 id={titleId} className="type-heading text-[var(--text-primary)]">
-              Export LoRA dataset
-            </h2>
-            <p className="type-caption text-[var(--text-muted)]">
-              Caption mode and optional trigger word for the ZIP export. Prefs are remembered for
-              the next export.
-            </p>
-          </div>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      title="Export LoRA dataset"
+      description="Caption mode and optional trigger word for the ZIP export. Prefs are remembered for the next export."
+      testId="lora-dataset-export"
+      footer={
+        <>
+          <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="button" variant="primary" size="sm" onClick={confirm}>
+            Export ZIP
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <label className="block space-y-1.5">
+          <FieldLabel>Trigger word (optional)</FieldLabel>
+          <TextInput
+            value={triggerWord}
+            onChange={event => setTriggerWord(event.target.value)}
+            placeholder="e.g. ohwx person"
+            autoFocus
+          />
+        </label>
 
-          <label className="block space-y-1.5">
-            <FieldLabel>Trigger word (optional)</FieldLabel>
-            <TextInput
-              value={triggerWord}
-              onChange={event => setTriggerWord(event.target.value)}
-              placeholder="e.g. ohwx person"
-              autoFocus
-            />
-          </label>
-
-          <label className="block space-y-1.5">
-            <FieldLabel>Caption mode</FieldLabel>
-            <SelectInput
-              value={captionMode}
-              onChange={event => setCaptionMode(event.target.value as LoraCaptionMode)}
-            >
-              <option value="prompt">prompt — cleaned gallery prompt</option>
-              <option value="tags">tags — prompt + vision tags</option>
-              <option value="vision">vision — LLM caption (slower)</option>
-            </SelectInput>
-          </label>
-
-          <div className="flex flex-wrap justify-end gap-2 pt-1">
-            <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                const options: LoraDatasetExportUiOptions = {
-                  triggerWord: triggerWord.trim() || undefined,
-                  captionMode,
-                };
-                const shared = loadSettingsCache().shared;
-                saveSharedSettings({
-                  ...shared,
-                  loraDatasetExportPrefs: normalizeLoraDatasetExportPrefs({
-                    triggerWord: options.triggerWord,
-                    captionMode: options.captionMode,
-                  }),
-                });
-                onConfirm(options);
-              }}
-            >
-              Export ZIP
-            </Button>
-          </div>
-        </div>
+        <label className="block space-y-1.5">
+          <FieldLabel>Caption mode</FieldLabel>
+          <SelectInput
+            value={captionMode}
+            onChange={event => setCaptionMode(event.target.value as LoraCaptionMode)}
+          >
+            <option value="prompt">prompt — cleaned gallery prompt</option>
+            <option value="tags">tags — prompt + vision tags</option>
+            <option value="vision">vision — LLM caption (slower)</option>
+          </SelectInput>
+        </label>
       </div>
-    </ModalPortal>
+    </Dialog>
   );
 }
