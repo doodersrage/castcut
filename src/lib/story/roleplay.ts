@@ -3241,14 +3241,17 @@ export {
  * Restart wipes the whole reel in one click — ask first when there is anything to lose.
  * Stills and clips stay in the Gallery; only the story order and beat cards go.
  */
-/** Confirm taking the last scene back out of the reel. */
-export function confirmRoleplayUndoScene(title: string | undefined): boolean {
-  if (typeof window === 'undefined') {
-    return true;
-  }
-  return window.confirm(
-    `Undo the last scene${title?.trim() ? ` (“${title.trim()}”)` : ''}? It leaves the reel so you can pick a different one. Its still and clip stay in the Gallery.`
-  );
+/** The question asked before taking the last scene back out of the reel (confirmAction). */
+export function roleplayUndoSceneQuestion(title: string | undefined): {
+  title: string;
+  body: string;
+  confirmLabel: string;
+} {
+  return {
+    title: `Undo the last scene${title?.trim() ? ` (“${title.trim()}”)` : ''}?`,
+    body: 'It leaves the reel so you can pick a different one. Its still and clip stay in the Gallery.',
+    confirmLabel: 'Undo scene',
+  };
 }
 
 /** What starting over loses and keeps — shared by the in-page dialog and the browser confirm. */

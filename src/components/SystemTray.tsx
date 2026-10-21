@@ -194,6 +194,7 @@ export default function SystemTray() {
           href={message.href}
           actionLabel={message.actionLabel}
           actionEvent={message.actionEvent}
+          onAction={message.onAction}
           moreCount={index === 0 ? hiddenNoticeCount : 0}
           onShowMore={() => setShowAllNotices(true)}
           onDismiss={() => {

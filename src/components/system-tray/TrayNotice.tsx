@@ -13,6 +13,7 @@ export function TrayNotice({
   href,
   actionLabel,
   actionEvent,
+  onAction,
   moreCount = 0,
   onShowMore,
   onDismiss,
@@ -22,6 +23,8 @@ export function TrayNotice({
   href?: string;
   actionLabel?: string;
   actionEvent?: string;
+  /** Runs on the action button (an Undo); `actionEvent`, when also set, is dispatched too. */
+  onAction?: () => void;
   /** Older notices hidden behind this one. */
   moreCount?: number;
   onShowMore?: () => void;
@@ -97,12 +100,14 @@ export function TrayNotice({
               {hrefLabel}
             </Link>
           ) : null}
-          {actionLabel && actionEvent ? (
+          {actionLabel && (actionEvent || onAction) ? (
             <button
               type="button"
               className="type-caption text-[var(--accent-text)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              data-testid="tray-notice-action"
               onClick={() => {
-                window.dispatchEvent(new Event(actionEvent));
+                onAction?.();
+                if (actionEvent) window.dispatchEvent(new Event(actionEvent));
                 onDismiss();
               }}
             >

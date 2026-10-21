@@ -87,6 +87,7 @@ import {
   isSettingsSyncedWithServer,
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
 } from '@/lib/settings/push-flush';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type MediaTab = 'all' | 'stills' | 'clips' | 'films' | 'keepers';
 
@@ -335,14 +336,17 @@ export function useCharacterHomeOrchestration(characterId: string) {
     router.push(href);
   };
 
-  const removeFromCast = () => {
+  const removeFromCast = async () => {
     if (!character) {
       return;
     }
     if (
-      !window.confirm(
-        `Remove ${character.name} from the cast? Looks on this record go with it. Gallery stills stay in the gallery.`
-      )
+      !(await confirmAction({
+        title: `Remove ${character.name} from the cast?`,
+        body: 'Their looks go with them. Gallery stills stay in the Gallery.',
+        confirmLabel: 'Remove',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -523,7 +527,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     }
   };
 
-  const clearLookPlate = useCallback(() => {
+  const clearLookPlate = useCallback(async () => {
     if (!characterId) {
       return;
     }
@@ -532,9 +536,12 @@ export function useCharacterHomeOrchestration(characterId: string) {
       return;
     }
     if (
-      !window.confirm(
-        `Remove the look plate for ${record.name}? Outfit and Day will need a new plate.`
-      )
+      !(await confirmAction({
+        title: `Remove the look plate for ${record.name}?`,
+        body: 'Outfit and Day will need a new plate.',
+        confirmLabel: 'Remove plate',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -596,16 +603,19 @@ export function useCharacterHomeOrchestration(characterId: string) {
     applyPlateChange(next, `Earlier plate restored on “${lookLabel(character, target.id)}”.`);
   };
 
-  const removeActivePlate = () => {
+  const removeActivePlate = async () => {
     if (!character || looks.length < 2) {
       return;
     }
     const target = activeLook(character);
     const label = lookLabel(character, target.id);
     if (
-      !window.confirm(
-        `Remove the look “${label}” and its plate from ${character.name}? The other looks stay.`
-      )
+      !(await confirmAction({
+        title: `Remove the look “${label}” from ${character.name}?`,
+        body: 'Its plate goes with it. The other looks stay.',
+        confirmLabel: 'Remove look',
+        tone: 'danger',
+      }))
     ) {
       return;
     }

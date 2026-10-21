@@ -604,11 +604,11 @@ test('forgetting a Cast lead asks first', async ({ page }) => {
     .getByRole('radiogroup', { name: 'Active character' })
     .getByTestId('cast-picker-character-e2e-forget');
   await expect(picked).toBeChecked({ timeout: 30_000 });
-  page.once('dialog', dialog => {
-    expect(dialog.message()).toMatch(/Forget Keep Me\?/);
-    void dialog.dismiss();
-  });
   await page.getByTestId('fitting-character').getByRole('button', { name: 'Forget' }).click();
+  const confirm = page.getByTestId('confirm-dialog');
+  await expect(confirm).toContainText(/Forget Keep Me\?/);
+  await confirm.getByTestId('confirm-dialog-cancel').click();
+  await expect(confirm).toHaveCount(0);
   await expect(picked).toBeChecked();
 });
 
@@ -1208,11 +1208,9 @@ test('story mid-flow: write your own scene, then take it back', async ({ page })
     timeout: 15_000,
   });
   // Take it back: the scene leaves the reel.
-  page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Undo the last scene');
-    void dialog.accept();
-  });
   await picker.getByTestId('story-undo-scene').click();
+  await expect(page.getByTestId('confirm-dialog')).toContainText('Undo the last scene');
+  await page.getByTestId('confirm-dialog-confirm').click();
   await expect(page.getByText('She misses the last ferry and…')).toHaveCount(0);
 });
 
@@ -1396,11 +1394,9 @@ test('phone story: take back the last scene', async ({ page }) => {
   const picker = page.getByTestId('story-beat-picker');
   await expect(picker).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('The station').filter({ visible: true }).first()).toBeVisible();
-  page.once('dialog', dialog => {
-    expect(dialog.message()).toContain('Undo the last scene');
-    void dialog.accept();
-  });
   await picker.getByTestId('story-undo-scene').click();
+  await expect(page.getByTestId('confirm-dialog')).toContainText('Undo the last scene');
+  await page.getByTestId('confirm-dialog-confirm').click();
   await expect(page.getByText('The station').filter({ visible: true })).toHaveCount(0);
   await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible();
 });
@@ -2851,8 +2847,8 @@ test('Appearance locks who the Cast is after the first plate; Start over unlocks
   await page.getByTestId('cast-trait-hairColorCustom').fill('Rose gold');
   await page.getByTestId('cast-appearance-save').click();
   await expect(page.getByTestId('cast-appearance-description')).toContainText('rose gold hair');
-  page.once('dialog', dialog => void dialog.accept());
   await page.getByTestId('cast-appearance-start-over').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
   await expect(page.getByTestId('cast-appearance-identity-locked')).toHaveCount(0);
   await expect(page.getByTestId('cast-trait-eyeColor')).toBeEnabled();
 });

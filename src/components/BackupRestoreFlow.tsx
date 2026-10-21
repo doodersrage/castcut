@@ -1,8 +1,8 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import ModalPortal from '@/components/ui/ModalPortal';
+import Dialog from '@/components/ui/Dialog';
 import {
   backupAgeLabel,
   compareBackup,
@@ -37,7 +37,6 @@ export default function BackupRestoreFlow({
   onRestored: (message: string) => void;
   onError?: (message: string) => void;
 }) {
-  const titleId = useId();
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -99,122 +98,109 @@ export default function BackupRestoreFlow({
           }}
         />
       </label>
-      {pending ? (
-        <ModalPortal>
-          <div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--bg-base)]/70 p-4 backdrop-blur-sm"
-            role="presentation"
-            onClick={() => !busy && setPending(null)}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={titleId}
-              data-testid={`${testId}-preview`}
-              className="max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/95 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
-              onClick={event => event.stopPropagation()}
-              onKeyDown={event => {
-                if (event.key === 'Escape' && !busy) setPending(null);
-              }}
+      <Dialog
+        open={Boolean(pending)}
+        onClose={() => {
+          if (!busy) setPending(null);
+        }}
+        title="Restore this backup?"
+        description={pending ? `${pending.name}${age ? ` · ${age}` : ''}` : undefined}
+        showClose={false}
+        size="lg"
+        testId={`${testId}-preview`}
+        footer={
+          <>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              data-testid={`${testId}-cancel`}
+              onClick={() => setPending(null)}
             >
-              <div>
-                <h2 id={titleId} className="type-heading">
-                  Restore this backup?
-                </h2>
-                <p className="type-caption text-[var(--text-muted)]">
-                  {pending.name}
-                  {age ? ` · ${age}` : ''}
-                </p>
-              </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-[var(--text-muted)]">
-                    <th className="py-1 pr-2 font-normal" scope="col">
-                      <span className="sr-only">What</span>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              data-testid={`${testId}-confirm-no-copy`}
+              onClick={() => void restore(false)}
+            >
+              Restore without a copy
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              loading={busy}
+              loadingLabel="Restoring"
+              data-testid={`${testId}-confirm`}
+              onClick={() => void restore(true)}
+            >
+              Save a copy of what’s here, then restore
+            </Button>
+          </>
+        }
+      >
+        {pending ? (
+          <div className="space-y-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[var(--text-muted)]">
+                  <th className="py-1 pr-2 font-normal" scope="col">
+                    <span className="sr-only">What</span>
+                  </th>
+                  <th className="py-1 pr-2 font-normal" scope="col">
+                    In the file
+                  </th>
+                  <th className="py-1 font-normal" scope="col">
+                    Here now
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.rows.map(row => (
+                  <tr
+                    key={row.label}
+                    className="border-t border-[var(--border-subtle)] align-top"
+                    data-testid={`${testId}-row-${row.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    data-fewer={row.fewer ? 'true' : 'false'}
+                  >
+                    <th scope="row" className="py-1.5 pr-2 text-left font-medium">
+                      {row.label}
                     </th>
-                    <th className="py-1 pr-2 font-normal" scope="col">
-                      In the file
-                    </th>
-                    <th className="py-1 font-normal" scope="col">
-                      Here now
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pending.rows.map(row => (
-                    <tr
-                      key={row.label}
-                      className="border-t border-[var(--border-subtle)] align-top"
-                      data-testid={`${testId}-row-${row.label.toLowerCase().replace(/\s+/g, '-')}`}
-                      data-fewer={row.fewer ? 'true' : 'false'}
+                    <td
+                      className={`py-1.5 pr-2 ${row.fewer ? 'text-[var(--tint-warning-text)]' : ''}`}
                     >
-                      <th scope="row" className="py-1.5 pr-2 text-left font-medium">
-                        {row.label}
-                      </th>
-                      <td
-                        className={`py-1.5 pr-2 ${row.fewer ? 'text-[var(--tint-warning-text)]' : ''}`}
-                      >
-                        {row.file}
-                      </td>
-                      <td className="py-1.5 text-[var(--text-secondary)]">{row.here}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {losing.length > 0 ? (
-                <p
-                  className="type-caption text-[var(--tint-warning-text)]"
-                  data-testid={`${testId}-losing`}
-                >
-                  Restoring replaces what is here: the file has less of{' '}
-                  {losing.map(row => row.label.toLowerCase()).join(', ')}.
-                </p>
-              ) : null}
-              {pending.file.rendersNotKept > 0 ? (
-                <p
-                  className="type-caption text-[var(--text-muted)]"
-                  data-testid={`${testId}-not-kept`}
-                >
-                  {pending.file.rendersNotKept} render
-                  {pending.file.rendersNotKept === 1 ? '' : 's'} in this file live only in ComfyUI’s
-                  output folder — on another computer they show as missing until that folder is
-                  copied too. A backup holds the list, settings and Cast, not the files.
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  loading={busy}
-                  loadingLabel="Restoring"
-                  data-testid={`${testId}-confirm`}
-                  onClick={() => void restore(true)}
-                >
-                  Save a copy of what’s here, then restore
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={busy}
-                  data-testid={`${testId}-confirm-no-copy`}
-                  onClick={() => void restore(false)}
-                >
-                  Restore without a copy
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busy}
-                  data-testid={`${testId}-cancel`}
-                  onClick={() => setPending(null)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                      {row.file}
+                    </td>
+                    <td className="py-1.5 text-[var(--text-secondary)]">{row.here}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {losing.length > 0 ? (
+              <p
+                className="type-caption text-[var(--tint-warning-text)]"
+                data-testid={`${testId}-losing`}
+              >
+                Restoring replaces what is here: the file has less of{' '}
+                {losing.map(row => row.label.toLowerCase()).join(', ')}.
+              </p>
+            ) : null}
+            {pending.file.rendersNotKept > 0 ? (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid={`${testId}-not-kept`}
+              >
+                {pending.file.rendersNotKept} render
+                {pending.file.rendersNotKept === 1 ? '' : 's'} in this file live only in ComfyUI’s
+                output folder — on another computer they show as missing until that folder is copied
+                too. A backup holds the list, settings and Cast, not the files.
+              </p>
+            ) : null}
           </div>
-        </ModalPortal>
-      ) : null}
+        ) : null}
+      </Dialog>
     </>
   );
 }

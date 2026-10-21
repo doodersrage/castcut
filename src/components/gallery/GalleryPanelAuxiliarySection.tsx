@@ -7,6 +7,7 @@ import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyu
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryDuplicateCluster } from '@/lib/gallery/duplicate-clusters';
 import { duplicateDropIds } from '@/lib/gallery/duplicate-clusters';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type GalleryPanelAuxiliarySectionProps = {
   showFilters: boolean;
@@ -51,23 +52,33 @@ export default function GalleryPanelAuxiliarySection({
             setSelectedIds(ids);
             setFilter(previous => ({ ...previous, duplicatesOnly: true }));
           }}
-          onKeepHighest={cluster => {
+          onKeepHighest={async cluster => {
             if (cluster.dropIds.length === 0) {
               return;
             }
-            if (window.confirm(`Delete ${cluster.dropIds.length} duplicate stills?`)) {
+            if (
+              await confirmAction({
+                title: `Delete ${cluster.dropIds.length} duplicate stills?`,
+                body: 'The highest-rated still in the group stays.',
+                confirmLabel: 'Delete',
+                tone: 'danger',
+              })
+            ) {
               removeEntries(cluster.dropIds);
             }
           }}
-          onKeepAllHighest={() => {
+          onKeepAllHighest={async () => {
             const dropIds = duplicateDropIds(duplicateClusters);
             if (dropIds.length === 0) {
               return;
             }
             if (
-              window.confirm(
-                `Delete ${dropIds.length} duplicate stills, keeping the highest-rated in each cluster?`
-              )
+              await confirmAction({
+                title: `Delete ${dropIds.length} duplicate stills?`,
+                body: 'The highest-rated still in each group stays.',
+                confirmLabel: 'Delete',
+                tone: 'danger',
+              })
             ) {
               removeEntries(dropIds);
             }

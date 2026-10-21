@@ -84,6 +84,7 @@ export default function CutVersions({
                 type="button"
                 className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 aria-label={`Delete ${version.name}`}
+                data-testid={`cut-version-delete-${version.name}`}
                 onClick={() => onDelete(version.id)}
               >
                 Delete

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/Field';
 import { DAY_SCRIPT_MAX_CARDS, parseDayScript, type DayScript } from '@/lib/day/script-import';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 /**
  * "Import a script…" under Day's idea row: paste (or open) a Fountain screenplay or a plain
@@ -111,13 +112,15 @@ export default function DayScriptImport({
           variant="primary"
           disabled={busy || shown.length === 0}
           data-testid="day-script-use"
-          onClick={() => {
+          onClick={async () => {
             if (!script) return;
             if (
               stillCount > 0 &&
-              !window.confirm(
-                `Use the script as this Day? Its ${stillCount} still${stillCount === 1 ? '' : 's'} leave the cards — they stay in the Gallery.`
-              )
+              !(await confirmAction({
+                title: 'Use the script as this Day?',
+                body: `Its ${stillCount} still${stillCount === 1 ? '' : 's'} leave the cards — they stay in the Gallery.`,
+                confirmLabel: 'Use the script',
+              }))
             ) {
               return;
             }

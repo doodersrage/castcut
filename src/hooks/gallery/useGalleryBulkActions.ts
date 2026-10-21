@@ -18,6 +18,7 @@ import type {
   UseGalleryPanelActionsInput,
 } from '@/hooks/gallery/gallery-panel-actions-types';
 import { useGalleryExperimentActions } from '@/hooks/gallery/useGalleryExperimentActions';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
 
@@ -93,12 +94,14 @@ export function useGalleryBulkActions({
         setReviewRatings(selectedIds, rating);
         setRequeueStatus(`Rated ${selectedIds.length} selected ${rating}★.`);
       },
-      onDelete: () => {
+      onDelete: async () => {
         const count = selectedIds.length;
         if (
-          !window.confirm(
-            `Remove ${count} selected ${count === 1 ? 'entry' : 'entries'} from the gallery?`
-          )
+          !(await confirmAction({
+            title: `Remove ${count} selected ${count === 1 ? 'entry' : 'entries'} from the Gallery?`,
+            confirmLabel: 'Remove',
+            tone: 'danger',
+          }))
         ) {
           return;
         }

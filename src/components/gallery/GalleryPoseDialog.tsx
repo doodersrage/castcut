@@ -5,7 +5,7 @@ import { useEffect, useId, useState } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import { Button } from '@/components/ui/Button';
 import { SelectInput } from '@/components/ui/Field';
-import ModalPortal from '@/components/ui/ModalPortal';
+import Dialog from '@/components/ui/Dialog';
 import { galleryEntryPrimaryViewUrl, getGalleryEntryById } from '@/lib/gallery/comfyui-gallery';
 import type { PhotoPose } from '@/lib/pose/types';
 import { poseTargetGroups, type PoseTargetOption } from '@/lib/pose/targets';
@@ -60,150 +60,133 @@ function GalleryPoseDialog({ entryId, onClose }: { entryId: string; onClose: () 
   const pose = read.status === 'ok' ? read.pose : null;
 
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[80] flex items-center justify-center bg-[var(--bg-base)]/70 p-4 backdrop-blur-sm"
-        role="presentation"
-        onClick={onClose}
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          data-testid="gallery-pose-dialog"
-          className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border-subtle)]/80 bg-[var(--bg-base)]/95 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
-          onClick={event => event.stopPropagation()}
-          onKeyDown={event => {
-            if (event.key === 'Escape') onClose();
-          }}
+    <Dialog
+      open
+      onClose={onClose}
+      labelledBy={titleId}
+      testId="gallery-pose-dialog"
+      bodyClassName="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5"
+    >
+      <h2 id={titleId} className="type-heading">
+        Use this pose
+      </h2>
+      {read.status === 'reading' ? (
+        <p className="type-caption text-[var(--text-muted)]">Reading the pose (DWPose)…</p>
+      ) : read.status === 'error' ? (
+        <p
+          className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"
+          data-testid="gallery-pose-error"
         >
-          <h2 id={titleId} className="type-heading">
-            Use this pose
-          </h2>
-          {read.status === 'reading' ? (
-            <p className="type-caption text-[var(--text-muted)]">Reading the pose (DWPose)…</p>
-          ) : read.status === 'error' ? (
-            <p
-              className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"
-              data-testid="gallery-pose-error"
-            >
-              {read.message}
-            </p>
-          ) : (
-            <div className="flex items-start gap-3">
-              <PoseBodiesSvg
-                layers={[{ bodies: read.pose.people }]}
-                aspect={read.pose.aspect}
-                height={120}
-                label="Pose read from this still"
-              />
-              <p className="type-caption text-[var(--text-muted)]">
-                {read.pose.people.length} {read.pose.people.length === 1 ? 'person' : 'people'} —
-                the guide draws exactly this skeleton wherever you use it.
-              </p>
-            </div>
-          )}
+          {read.message}
+        </p>
+      ) : (
+        <div className="flex items-start gap-3">
+          <PoseBodiesSvg
+            layers={[{ bodies: read.pose.people }]}
+            aspect={read.pose.aspect}
+            height={120}
+            label="Pose read from this still"
+          />
+          <p className="type-caption text-[var(--text-muted)]">
+            {read.pose.people.length} {read.pose.people.length === 1 ? 'person' : 'people'} — the
+            guide draws exactly this skeleton wherever you use it.
+          </p>
+        </div>
+      )}
 
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              Save to the pose library
-            </p>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-[var(--text-primary)]">Save to the pose library</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <SelectInput
+            value={layout}
+            aria-label="File the pose under"
+            className="w-auto! min-w-[10rem] py-1 text-sm"
+            onChange={event => setLayout(event.target.value)}
+          >
+            {POSE_IMPORT_GROUPS.map(group => (
+              <optgroup key={group.label} label={group.label}>
+                {group.ids.map(id => (
+                  <option key={id} value={id}>
+                    {poseLayoutLabel(id)}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </SelectInput>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!pose}
+            data-testid="gallery-pose-save"
+            onClick={() => {
+              if (!pose) return;
+              void import('@/lib/pose/library-import').then(({ savePhotoPoseToLibrary }) => {
+                const { key } = savePhotoPoseToLibrary(pose, layout);
+                setDone({
+                  text: `Saved to the pose library as ${poseLayoutLabel(layout)} (${key}).`,
+                });
+              });
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {targets.map(({ group, options }) =>
+        options.length > 0 ? (
+          <div key={group.id} className="space-y-2">
+            <p className="text-sm font-medium text-[var(--text-primary)]">{group.heading}</p>
             <div className="flex flex-wrap items-center gap-2">
               <SelectInput
-                value={layout}
-                aria-label="File the pose under"
+                value={picked[group.id] ?? ''}
+                aria-label={group.pickerLabel}
                 className="w-auto! min-w-[10rem] py-1 text-sm"
-                onChange={event => setLayout(event.target.value)}
+                onChange={event =>
+                  setPicked(current => ({ ...current, [group.id]: event.target.value }))
+                }
               >
-                {POSE_IMPORT_GROUPS.map(group => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.ids.map(id => (
-                      <option key={id} value={id}>
-                        {poseLayoutLabel(id)}
-                      </option>
-                    ))}
-                  </optgroup>
+                {options.map(option => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
+                  </option>
                 ))}
               </SelectInput>
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!pose}
-                data-testid="gallery-pose-save"
+                disabled={!pose || !picked[group.id]}
+                data-testid={`gallery-pose-${group.id}`}
                 onClick={() => {
                   if (!pose) return;
-                  void import('@/lib/pose/library-import').then(({ savePhotoPoseToLibrary }) => {
-                    const { key } = savePhotoPoseToLibrary(pose, layout);
-                    setDone({
-                      text: `Saved to the pose library as ${poseLayoutLabel(layout)} (${key}).`,
-                    });
-                  });
+                  group.apply(picked[group.id] ?? '', pose);
+                  setDone({ text: group.doneText, href: group.href });
                 }}
               >
-                Save
+                Use
               </Button>
             </div>
           </div>
+        ) : null
+      )}
 
-          {targets.map(({ group, options }) =>
-            options.length > 0 ? (
-              <div key={group.id} className="space-y-2">
-                <p className="text-sm font-medium text-[var(--text-primary)]">{group.heading}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <SelectInput
-                    value={picked[group.id] ?? ''}
-                    aria-label={group.pickerLabel}
-                    className="w-auto! min-w-[10rem] py-1 text-sm"
-                    onChange={event =>
-                      setPicked(current => ({ ...current, [group.id]: event.target.value }))
-                    }
-                  >
-                    {options.map(option => (
-                      <option key={option.key} value={option.key}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </SelectInput>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={!pose || !picked[group.id]}
-                    data-testid={`gallery-pose-${group.id}`}
-                    onClick={() => {
-                      if (!pose) return;
-                      group.apply(picked[group.id] ?? '', pose);
-                      setDone({ text: group.doneText, href: group.href });
-                    }}
-                  >
-                    Use
-                  </Button>
-                </div>
-              </div>
-            ) : null
-          )}
-
-          {done ? (
-            <p
-              className="type-caption text-[var(--text-secondary)]"
-              data-testid="gallery-pose-done"
-            >
-              {done.text}{' '}
-              {done.href ? (
-                <Link href={done.href} className="ui-text-link">
-                  Open
-                </Link>
-              ) : null}
-            </p>
+      {done ? (
+        <p className="type-caption text-[var(--text-secondary)]" data-testid="gallery-pose-done">
+          {done.text}{' '}
+          {done.href ? (
+            <Link href={done.href} className="ui-text-link">
+              Open
+            </Link>
           ) : null}
+        </p>
+      ) : null}
 
-          <div className="flex justify-end">
-            <Button size="sm" variant="ghost" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-        </div>
+      <div className="flex justify-end">
+        <Button size="sm" variant="ghost" onClick={onClose}>
+          Close
+        </Button>
       </div>
-    </ModalPortal>
+    </Dialog>
   );
 }
 

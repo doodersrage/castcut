@@ -92,6 +92,11 @@ export function useImageLightboxKeyboard(options: UseImageLightboxKeyboardOption
 
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
+      // A dialog over the lightbox (a confirm, Fix area, Compare) owns its keys: Escape there
+      // closes that dialog, not the lightbox under it.
+      if (target instanceof Element && target.closest('[data-modal-layer]')) {
+        return;
+      }
       if (
         target instanceof HTMLElement &&
         (target.tagName === 'INPUT' ||

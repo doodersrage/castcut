@@ -37,6 +37,7 @@ import {
   type ComfyGalleryEntry,
   type ComfyGalleryFilter,
 } from '@/lib/gallery/comfyui-gallery';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type BuildGalleryLightboxSlideChromeArgs = {
   resolvedLightbox: ImageLightboxState | null;
@@ -316,8 +317,14 @@ export function buildGalleryLightboxSlideChrome({
         setRequeueStatus('Select 2–4 images to compare');
       }
     },
-    onRemove: () => {
-      if (!window.confirm('Remove this entry from the gallery?')) {
+    onRemove: async () => {
+      if (
+        !(await confirmAction({
+          title: 'Remove this from the Gallery?',
+          confirmLabel: 'Remove',
+          tone: 'danger',
+        }))
+      ) {
         return;
       }
       removeEntry(entry.id);

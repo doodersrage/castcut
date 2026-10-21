@@ -21,11 +21,15 @@ export function shortErrorText(error: unknown, fallback = 'something went wrong.
  */
 export type AppToastTone = SystemTrayMessageTone;
 
-/** A plain notice in the system tray (fades after `ttlMs`; 0 = stays until dismissed). */
+/**
+ * A plain notice in the system tray (fades after `ttlMs`; 0 = stays until dismissed). `action`
+ * adds a button — `{ label: 'Undo', onClick }` — that runs and then dismisses the notice.
+ */
 export function pushAppToast(input: {
   text: string;
   tone?: AppToastTone;
   href?: string;
+  action?: { label: string; onClick: () => void };
   ttlMs?: number;
 }): string | null {
   return pushSystemTrayMessage(input);

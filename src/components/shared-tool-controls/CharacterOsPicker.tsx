@@ -31,6 +31,7 @@ import { prepareCharacterStore, switchCharacterLook } from '@/lib/character/hook
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
 import { pushAppToast } from '@/lib/app/toast';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type CharacterOsPickerProps = {
   /**
@@ -245,13 +246,16 @@ export default function CharacterOsPicker({
               size="sm"
               variant="ghost"
               title="Delete this Cast record (asks first)"
-              onClick={() => {
+              onClick={async () => {
                 // Forget deletes the Cast record everywhere — it sat next to "Go to home" with no
                 // confirmation.
                 if (
-                  !window.confirm(
-                    `Forget ${active?.name || 'this character'}? This deletes the Cast record and its looks from every tool. Gallery stills stay in the gallery.`
-                  )
+                  !(await confirmAction({
+                    title: `Forget ${active?.name || 'this character'}?`,
+                    body: 'This deletes the Cast record and its looks from every tool. Gallery stills stay in the Gallery.',
+                    confirmLabel: 'Forget',
+                    tone: 'danger',
+                  }))
                 ) {
                   return;
                 }

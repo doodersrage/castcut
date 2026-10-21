@@ -9,6 +9,7 @@ import {
   scanGalleryMediaCleanup,
   type GalleryMediaCleanupScan,
 } from '@/lib/gallery/media-cleanup-client';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 /**
  * The server's kept copies of renders that are no longer in the Gallery (deleting entries did not
@@ -39,11 +40,14 @@ export default function GalleryMediaCleanupPanel() {
   const remove = () =>
     run(async () => {
       if (!scan || scan.removable.length === 0) return;
-      const ok = window.confirm(
-        `Remove ${scan.removable.length.toLocaleString()} kept copies (${formatBytes(scan.removableBytes)}) of renders no longer in the Gallery?\n\n` +
+      const ok = await confirmAction({
+        title: `Remove ${scan.removable.length.toLocaleString()} kept copies (${formatBytes(scan.removableBytes)}) of renders no longer in the Gallery?`,
+        body:
           `Copies a Gallery, a Day or Story still or a Cast plate still uses, and copies newer than ${scan.minAgeDays} days, stay. ` +
-          'The originals in ComfyUI’s output folder are not touched. This cannot be undone.'
-      );
+          'The originals in ComfyUI’s output folder are not touched. This cannot be undone.',
+        confirmLabel: 'Remove copies',
+        tone: 'danger',
+      });
       if (!ok) return;
       const result = await removeGalleryMediaCleanup(scan.removable);
       setLine(

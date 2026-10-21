@@ -121,6 +121,7 @@ import { REALISM_MISS_REASON } from '@/lib/still/realism';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
 import { resolveStoryFilmCast, storyFilmName } from '@/lib/story/film-cast';
 import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];
 
@@ -1146,8 +1147,21 @@ export function useCutRoom() {
     [commitEdit, cut.toolSettings.versions, updateCut]
   );
   const deleteVersion = useCallback(
-    (id: string) =>
-      updateCut({ versions: (cut.toolSettings.versions ?? []).filter(entry => entry.id !== id) }),
+    async (id: string) => {
+      const name = cut.toolSettings.versions?.find(entry => entry.id === id)?.name?.trim();
+      // A saved version is a whole cut (shots, order, extras) with no undo once it goes.
+      if (
+        !(await confirmAction({
+          title: name ? `Delete the version “${name}”?` : 'Delete this version?',
+          body: 'The cut you are editing stays as it is.',
+          confirmLabel: 'Delete version',
+          tone: 'danger',
+        }))
+      ) {
+        return;
+      }
+      updateCut({ versions: (cut.toolSettings.versions ?? []).filter(entry => entry.id !== id) });
+    },
     [cut.toolSettings.versions, updateCut]
   );
   const isAdded = useCallback((key: string) => extras.some(extra => extra.key === key), [extras]);

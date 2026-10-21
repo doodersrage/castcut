@@ -22,8 +22,10 @@ import {
   formatSessionRecipeSubtitle,
   loadSessionRecipes,
   pushSessionRecipe,
+  saveSessionRecipes,
   type SessionRecipe,
 } from '@/lib/prompt/session-recipes';
+import { pushAppToast } from '@/lib/app/toast';
 import {
   loadSettingsCache,
   saveSharedSettings,
@@ -134,8 +136,29 @@ export default function QueueRecipesPanel({
   }
 
   function handleDeleteSession(id: string) {
+    const removed = sessionRecipes.find(recipe => recipe.id === id);
     setSessionRecipes(deleteSessionRecipe(id));
     setStatus('Session snapshot removed');
+    if (!removed) return;
+    // One click on a small ✕ and the snapshot was gone: an Undo puts it back where it was
+    // (the list is ordered by when each was saved).
+    pushAppToast({
+      text: `Removed the snapshot “${removed.label}”.`,
+      tone: 'neutral',
+      ttlMs: 8000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const restored = [
+            removed,
+            ...loadSessionRecipes().filter(entry => entry.id !== removed.id),
+          ];
+          saveSessionRecipes(restored);
+          setSessionRecipes(loadSessionRecipes());
+          setStatus(`Restored the snapshot “${removed.label}”`);
+        },
+      },
+    });
   }
 
   return (

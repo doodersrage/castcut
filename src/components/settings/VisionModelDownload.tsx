@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type Choice = { id: string; label: string; sizeGb: number; note: string };
 type State = {
@@ -63,7 +64,13 @@ export default function VisionModelDownload({ onDone }: { onDone: () => void }) 
 
   const start = async (choice: Choice) => {
     if (busy) return;
-    if (!window.confirm(`Download ${choice.label} into LM Studio (about ${choice.sizeGb} GB)?`))
+    if (
+      !(await confirmAction({
+        title: `Download ${choice.label} into LM Studio?`,
+        body: `It is about ${choice.sizeGb} GB.`,
+        confirmLabel: 'Download',
+      }))
+    )
       return;
     setBusy(true);
     setState({ jobId: null, status: 'starting' });

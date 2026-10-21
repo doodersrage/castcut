@@ -15,6 +15,7 @@ import { loadSettingsCache } from '@/lib/settings/cache';
 import { usesSystemWorkflowPath } from '@/lib/workflow/system-workflow-runtime';
 import { markComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type OrchestrationInput = Pick<
   EnhancedPromptResultProps,
@@ -117,16 +118,18 @@ export function useEnhancedPromptResultState({
   const resolvedBatchItems: BatchPromptItem[] =
     batchItems ?? batchOutputs?.map(prompt => ({ prompt })) ?? [];
 
-  const handleSendComfyUi = useCallback(() => {
+  const handleSendComfyUi = useCallback(async () => {
     if (!onSendComfyUi) return;
     if (
       readinessGateEnabled &&
       readinessResult &&
       !isReadinessQueueAllowed(readinessResult.score, readinessMinScore)
     ) {
-      const proceed = window.confirm(
-        `Prompt readiness is ${readinessResult.score}/100 (recommended minimum ${readinessMinScore}). Queue anyway?`
-      );
+      const proceed = await confirmAction({
+        title: 'Queue anyway?',
+        body: `Prompt readiness is ${readinessResult.score}/100 — the recommended minimum is ${readinessMinScore}.`,
+        confirmLabel: 'Queue anyway',
+      });
       if (!proceed) return;
     }
     markComfyQueueIntent();

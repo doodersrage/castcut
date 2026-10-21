@@ -10,6 +10,7 @@ import { toastBulkQueueSummary } from '@/lib/app/toast';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { loadCharacters } from '@/lib/character/os';
 import { partitionGalleryForArchivePurge } from '@/lib/gallery/protected-ids';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type UseGalleryPanelRecoveryOptions = {
   entries: ComfyGalleryEntry[];
@@ -155,7 +156,7 @@ export function useGalleryPanelRecovery({
     });
   }, [entries, setRequeueStatus]);
 
-  const archiveThenPurgeRest = useCallback(() => {
+  const archiveThenPurgeRest = useCallback(async () => {
     if (archiveBusyRef.current) {
       setRequeueStatus('Archive & purge already running — wait for the ZIP download.');
       return;
@@ -171,9 +172,12 @@ export function useGalleryPanelRecovery({
       return;
     }
     if (
-      !window.confirm(
-        `Archive ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'} to a single ZIP on the server, download it, then remove them?\n\nFavorites, 4–5★, Cast look plates, and look keepers stay (${kept.length} kept).\n\nIf the ZIP is already saved, use “Purge rest” or “Finish purge” instead.`
-      )
+      !(await confirmAction({
+        title: `Archive ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}, then remove them?`,
+        body: `They go into one ZIP on the server, which then downloads. Favorites, 4–5★, Cast look plates and look keepers stay (${kept.length} kept).\n\nIf you already saved the ZIP, use “Purge rest” or “Finish purge” instead.`,
+        confirmLabel: 'Archive and remove',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -191,7 +195,7 @@ export function useGalleryPanelRecovery({
     );
   }, [entries, removeEntries, runArchiveFlow, setRequeueStatus]);
 
-  const purgeRestOnly = useCallback(() => {
+  const purgeRestOnly = useCallback(async () => {
     if (archiveBusyRef.current) {
       setRequeueStatus('Archive still running — wait, or stay on this tab.');
       return;
@@ -207,9 +211,12 @@ export function useGalleryPanelRecovery({
       return;
     }
     if (
-      !window.confirm(
-        `Purge ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'} now WITHOUT creating a new archive?\n\nOnly do this if you already have the ZIP (or accept losing those files).\n\nFavorites, 4–5★, Cast look plates, and look keepers stay (${kept.length} kept).`
-      )
+      !(await confirmAction({
+        title: `Remove ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'} without a new archive?`,
+        body: `Only do this if you already have the ZIP, or are fine losing those files.\n\nFavorites, 4–5★, Cast look plates and look keepers stay (${kept.length} kept).`,
+        confirmLabel: 'Remove without archive',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -219,21 +226,27 @@ export function useGalleryPanelRecovery({
     });
   }, [entries, removeEntries, setRequeueStatus]);
 
-  const finishPendingArchivePurge = useCallback(() => {
+  const finishPendingArchivePurge = useCallback(async () => {
     if (archiveBusyRef.current) {
       setRequeueStatus('Archive still running — wait for it to finish.');
       return;
     }
     if (
-      !window.confirm(
-        'Finish purge for the latest completed server archive?\n\nThis uses the ZIP already on the server — it will not re-fetch thousands of images.'
-      )
+      !(await confirmAction({
+        title: 'Finish the purge for the latest server archive?',
+        body: 'This uses the ZIP already on the server — it does not fetch the images again.',
+        confirmLabel: 'Finish purge',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
-    const skipDownload = window.confirm(
-      'Skip downloading the ZIP again?\n\nOK = purge only (you already saved the ZIP).\nCancel = download the ZIP once more, then purge.'
-    );
+    const skipDownload = await confirmAction({
+      title: 'Download the ZIP again?',
+      body: 'Skip it if you already saved the ZIP. Otherwise it downloads once more, then the purge finishes.',
+      confirmLabel: 'Skip download',
+      cancelLabel: 'Download again',
+    });
     setRequeueStatus(
       skipDownload
         ? 'Finishing purge (ZIP download skipped)…'

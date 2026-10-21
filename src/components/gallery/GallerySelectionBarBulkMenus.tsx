@@ -3,6 +3,7 @@
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { ParamExperimentAxis } from '@/lib/experiment/param-experiment-queue';
 import { ActionMenu, MenuItem } from '@/components/gallery/GallerySelectionBarMenus';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type QueueCapabilities = {
   canUpscale: boolean;
@@ -299,7 +300,7 @@ export default function GallerySelectionBarBulkMenus(props: GallerySelectionBarB
           {props.onDeleteCustomGroup && (customGroups?.length ?? 0) > 0 ? (
             <MenuItem
               label="Delete group…"
-              onClick={() => {
+              onClick={async () => {
                 const name =
                   selectedEntries.find(entry => entry.customGroup?.trim())?.customGroup ??
                   customGroups?.[0];
@@ -307,9 +308,12 @@ export default function GallerySelectionBarBulkMenus(props: GallerySelectionBarB
                   return;
                 }
                 if (
-                  window.confirm(
-                    `Remove group “${name}” from all gallery items? Files stay; only the label is cleared.`
-                  )
+                  await confirmAction({
+                    title: `Delete the group “${name}”?`,
+                    body: 'The label comes off every gallery item. The stills and clips stay.',
+                    confirmLabel: 'Delete group',
+                    tone: 'danger',
+                  })
                 ) {
                   props.onDeleteCustomGroup?.(name);
                 }

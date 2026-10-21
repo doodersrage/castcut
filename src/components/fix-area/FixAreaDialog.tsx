@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ModalPortal from '@/components/ui/ModalPortal';
+import Dialog from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import FixAreaBrushCanvas, {
   type FixAreaBrushHandle,
@@ -168,7 +168,6 @@ export default function FixAreaDialog({
   sessionId?: string | null;
 }) {
   const brushRef = useRef<FixAreaBrushHandle>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(false);
   const [hasMask, setHasMask] = useState(false);
   const [text, setText] = useState('');
@@ -236,28 +235,6 @@ export default function FixAreaDialog({
     if (sessionId) fixAreaSessionStore().discard(sessionId);
     onClose();
   }, [onClose, sessionId]);
-
-  // Focus: into the dialog on open, back where it was on close.
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const first = dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]');
-    first?.focus();
-    return () => {
-      previous?.focus?.();
-    };
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        close();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [close]);
 
   const submit = useCallback(
     async (mode: FixAreaMode) => {
@@ -355,277 +332,263 @@ export default function FixAreaDialog({
   const unavailable = !target.comfyUrl;
 
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[140] flex items-center justify-center p-2 sm:p-4"
-        data-testid="fix-area-dialog"
-        data-phase={phase}
-      >
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          className="absolute inset-0 bg-black/80"
-          onClick={close}
-        />
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="fix-area-title"
-          className="relative z-10 flex max-h-[96vh] w-full max-w-5xl flex-col gap-3 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-base)] p-3 text-[var(--text-primary)] shadow-xl sm:p-4"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 id="fix-area-title" className="type-title text-base font-semibold">
-                {session?.mode === 'face' ? 'Fix the face' : 'Fix an area'}
-              </h2>
-              <p className="type-caption text-[var(--text-muted)]">
-                {phase === 'paint'
-                  ? 'Paint over what looks wrong — only that area is redrawn, on the same engine.'
-                  : progress && !progress.settled
-                    ? 'Two takes of the painted area are rendering. Close this and keep working — the card says when they land.'
-                    : 'Two takes of the painted area. Everything outside it is unchanged.'}
-                {target.title ? ` · ${target.title}` : ''}
-              </p>
-            </div>
-            <Button size="sm" variant="ghost" onClick={close} data-testid="fix-area-close">
-              Close
-            </Button>
-          </div>
+    // Focus goes to the brush canvas ([data-autofocus]) and back to the opener on close;
+    // Escape and the backdrop close (the takes keep rendering in the session store).
+    <Dialog
+      open
+      onClose={close}
+      labelledBy="fix-area-title"
+      layer="dialogOverLightbox"
+      size="3xl"
+      testId="fix-area-dialog"
+      dataAttributes={{ 'data-phase': phase }}
+      initialFocusSelector="[data-autofocus]"
+      overlayClassName="p-2 sm:p-4"
+      backdropClassName="bg-black/80"
+      panelClassName="max-h-[96vh] rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-base)] text-[var(--text-primary)] shadow-xl"
+      bodyClassName="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 sm:p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id="fix-area-title" className="type-title text-base font-semibold">
+            {session?.mode === 'face' ? 'Fix the face' : 'Fix an area'}
+          </h2>
+          <p className="type-caption text-[var(--text-muted)]">
+            {phase === 'paint'
+              ? 'Paint over what looks wrong — only that area is redrawn, on the same engine.'
+              : progress && !progress.settled
+                ? 'Two takes of the painted area are rendering. Close this and keep working — the card says when they land.'
+                : 'Two takes of the painted area. Everything outside it is unchanged.'}
+            {target.title ? ` · ${target.title}` : ''}
+          </p>
+        </div>
+        <Button size="sm" variant="ghost" onClick={close} data-testid="fix-area-close">
+          Close
+        </Button>
+      </div>
 
-          {/* Kept mounted through the results, so "Paint again" starts from the same strokes. */}
-          <div className={phase === 'paint' ? '' : 'hidden'}>
-            <FixAreaBrushCanvas
-              ref={brushRef}
-              imageUrl={target.displayUrl}
-              onMaskChange={setHasMask}
+      {/* Kept mounted through the results, so "Paint again" starts from the same strokes. */}
+      <div className={phase === 'paint' ? '' : 'hidden'}>
+        <FixAreaBrushCanvas ref={brushRef} imageUrl={target.displayUrl} onMaskChange={setHasMask} />
+      </div>
+      {phase === 'paint' ? (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="type-label text-sm font-medium">
+              What should be there? <span className="text-[var(--text-muted)]">(optional)</span>
+            </span>
+            <textarea
+              className="ui-input min-h-[3.5rem] w-full resize-y"
+              value={text}
+              maxLength={FIX_AREA_TEXT_MAX}
+              placeholder={`e.g. her left hand resting on the table — empty: ${FIX_AREA_DEFAULT_TEXT}`}
+              onChange={event => setText(event.target.value)}
+              data-testid="fix-area-text"
             />
-          </div>
-          {phase === 'paint' ? (
-            <>
-              <label className="flex flex-col gap-1">
-                <span className="type-label text-sm font-medium">
-                  What should be there? <span className="text-[var(--text-muted)]">(optional)</span>
-                </span>
-                <textarea
-                  className="ui-input min-h-[3.5rem] w-full resize-y"
-                  value={text}
-                  maxLength={FIX_AREA_TEXT_MAX}
-                  placeholder={`e.g. her left hand resting on the table — empty: ${FIX_AREA_DEFAULT_TEXT}`}
-                  onChange={event => setText(event.target.value)}
-                  data-testid="fix-area-text"
-                />
-              </label>
-              {unavailable ? (
-                <p className="type-caption text-[var(--tint-warning-text)]" role="status">
-                  This picture&apos;s ComfyUI output isn&apos;t available, so it can&apos;t be fixed
-                  here.
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {!hasMask ? (
-                  <span className="type-caption mr-auto text-[var(--text-muted)]">
-                    Paint over the area to fix, or fix the face in one click.
-                  </span>
-                ) : null}
-                <Button variant="ghost" onClick={close}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={submitting !== null || unavailable}
-                  loading={submitting === 'face'}
-                  loadingLabel="Finding the face"
-                  title="Finds the face, paints over it and redraws it with the Cast's face as the reference."
-                  onClick={() => void fixFace()}
-                  data-testid="fix-area-fix-face"
-                >
-                  Fix the face
-                </Button>
-                <Button
-                  variant="primary"
-                  disabled={!hasMask || submitting !== null || unavailable}
-                  loading={submitting === 'area'}
-                  loadingLabel="Queueing"
-                  onClick={() => void submit('area')}
-                  data-testid="fix-area-submit"
-                >
-                  Fix
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <ul
-                className="grid grid-cols-3 gap-2 sm:gap-3"
-                data-testid="fix-area-results"
-                aria-label="Original and candidates"
-              >
-                <li className="flex flex-col gap-2" data-testid="fix-area-original">
-                  <span className="type-label text-sm font-medium">Original</span>
-                  <Frame window={zoomWindow} aspect={aspect}>
-                    <Picture
-                      src={target.displayUrl}
-                      alt="Original"
-                      window={zoomWindow}
-                      maskUrl={maskUrl}
-                      showArea={showArea}
-                    />
-                  </Frame>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={discardAndClose}
-                    disabled={using !== null}
-                    data-testid="fix-area-keep-original"
-                  >
-                    Keep original
-                  </Button>
-                </li>
-                {candidates.map((candidate, index) => (
-                  <li
-                    key={candidate.promptId}
-                    className="flex flex-col gap-2"
-                    data-testid={`fix-area-candidate-${index}`}
-                    data-status={candidate.state.status}
-                  >
-                    <span className="type-label text-sm font-medium">
-                      Take {index + 1}
-                      {compared?.promptId === candidate.promptId ? (
-                        <span className="type-caption ml-2 text-[var(--accent-text)]">
-                          in the wipe
-                        </span>
-                      ) : null}
-                    </span>
-                    {candidate.state.status === 'ready' ? (
-                      <>
-                        <button
-                          type="button"
-                          className={`block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
-                            compared?.promptId === candidate.promptId
-                              ? 'ring-2 ring-[var(--accent-ring)]'
-                              : ''
-                          }`}
-                          aria-pressed={compared?.promptId === candidate.promptId}
-                          aria-label={`Compare take ${index + 1} in the before / after wipe`}
-                          onClick={() => setCompareId(candidate.promptId)}
-                          data-testid={`fix-area-compare-${index}`}
-                        >
-                          <Frame window={zoomWindow} aspect={aspect}>
-                            <Picture
-                              src={comfyImageViewUrl(candidate.state.image)}
-                              alt={`Fixed take ${index + 1}`}
-                              window={zoomWindow}
-                              maskUrl={maskUrl}
-                              showArea={showArea}
-                            />
-                          </Frame>
-                        </button>
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => void pickCandidate(candidate)}
-                          disabled={using !== null}
-                          loading={using === candidate.promptId}
-                          data-testid={`fix-area-use-${index}`}
-                        >
-                          Use this
-                        </Button>
-                      </>
-                    ) : (
-                      <div
-                        className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[var(--border-subtle)] p-3 text-center"
-                        role="status"
-                      >
-                        {candidate.state.status === 'queued' ||
-                        candidate.state.status === 'running' ||
-                        candidate.state.status === 'checking' ? (
-                          <span className="ui-spinner" aria-hidden />
-                        ) : null}
-                        <span className="type-caption text-[var(--text-muted)]">
-                          {fixAreaCandidateCaption(candidate.state, seconds)}
-                        </span>
-                        {candidate.state.status === 'withheld' &&
-                        candidate.state.image &&
-                        sessionId ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() =>
-                              void fixAreaSessionStore().recheck(sessionId, candidate.promptId)
-                            }
-                            data-testid={`fix-area-recheck-${index}`}
-                          >
-                            Check again
-                          </Button>
-                        ) : null}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {comparedImage && comparedIndex >= 0 ? (
-                <Wipe
-                  before={target.displayUrl}
-                  after={comfyImageViewUrl(comparedImage)}
-                  window={zoomWindow}
-                  aspect={aspect}
-                  maskUrl={maskUrl}
-                  showArea={showArea}
-                  label={`Take ${comparedIndex + 1}`}
-                />
-              ) : null}
-              {session?.mode === 'face' ? (
-                <p
-                  className="type-caption text-[var(--text-muted)]"
-                  data-testid="fix-area-identity-note"
-                >
-                  {session.identity
-                    ? "Drawn with the Cast's face as the reference (the face picture this still was made with)."
-                    : `No face reference: ${identityNote ?? 'the face is redrawn from the prompt alone.'}`}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <div className="mr-auto flex flex-wrap items-center gap-3">
-                  <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={showArea}
-                      onChange={event => setShowArea(event.target.checked)}
-                      data-testid="fix-area-show-area"
-                    />
-                    Show the painted area
-                  </label>
-                  <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={zoom}
-                      disabled={!session?.maskBox}
-                      onChange={event => setZoom(event.target.checked)}
-                      data-testid="fix-area-zoom"
-                    />
-                    Zoom to the area
-                  </label>
-                </div>
-                <Button
-                  variant="ghost"
-                  onClick={paintAgain}
-                  disabled={using !== null}
-                  data-testid="fix-area-paint-again"
-                >
-                  Paint again
-                </Button>
-              </div>
-            </>
-          )}
-          {error ? (
-            <p className="type-caption text-[var(--tint-danger-text,#f87171)]" role="alert">
-              {error}
+          </label>
+          {unavailable ? (
+            <p className="type-caption text-[var(--tint-warning-text)]" role="status">
+              This picture&apos;s ComfyUI output isn&apos;t available, so it can&apos;t be fixed
+              here.
             </p>
           ) : null}
-        </div>
-      </div>
-    </ModalPortal>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {!hasMask ? (
+              <span className="type-caption mr-auto text-[var(--text-muted)]">
+                Paint over the area to fix, or fix the face in one click.
+              </span>
+            ) : null}
+            <Button variant="ghost" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={submitting !== null || unavailable}
+              loading={submitting === 'face'}
+              loadingLabel="Finding the face"
+              title="Finds the face, paints over it and redraws it with the Cast's face as the reference."
+              onClick={() => void fixFace()}
+              data-testid="fix-area-fix-face"
+            >
+              Fix the face
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!hasMask || submitting !== null || unavailable}
+              loading={submitting === 'area'}
+              loadingLabel="Queueing"
+              onClick={() => void submit('area')}
+              data-testid="fix-area-submit"
+            >
+              Fix
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <ul
+            className="grid grid-cols-3 gap-2 sm:gap-3"
+            data-testid="fix-area-results"
+            aria-label="Original and candidates"
+          >
+            <li className="flex flex-col gap-2" data-testid="fix-area-original">
+              <span className="type-label text-sm font-medium">Original</span>
+              <Frame window={zoomWindow} aspect={aspect}>
+                <Picture
+                  src={target.displayUrl}
+                  alt="Original"
+                  window={zoomWindow}
+                  maskUrl={maskUrl}
+                  showArea={showArea}
+                />
+              </Frame>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={discardAndClose}
+                disabled={using !== null}
+                data-testid="fix-area-keep-original"
+              >
+                Keep original
+              </Button>
+            </li>
+            {candidates.map((candidate, index) => (
+              <li
+                key={candidate.promptId}
+                className="flex flex-col gap-2"
+                data-testid={`fix-area-candidate-${index}`}
+                data-status={candidate.state.status}
+              >
+                <span className="type-label text-sm font-medium">
+                  Take {index + 1}
+                  {compared?.promptId === candidate.promptId ? (
+                    <span className="type-caption ml-2 text-[var(--accent-text)]">in the wipe</span>
+                  ) : null}
+                </span>
+                {candidate.state.status === 'ready' ? (
+                  <>
+                    <button
+                      type="button"
+                      className={`block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                        compared?.promptId === candidate.promptId
+                          ? 'ring-2 ring-[var(--accent-ring)]'
+                          : ''
+                      }`}
+                      aria-pressed={compared?.promptId === candidate.promptId}
+                      aria-label={`Compare take ${index + 1} in the before / after wipe`}
+                      onClick={() => setCompareId(candidate.promptId)}
+                      data-testid={`fix-area-compare-${index}`}
+                    >
+                      <Frame window={zoomWindow} aspect={aspect}>
+                        <Picture
+                          src={comfyImageViewUrl(candidate.state.image)}
+                          alt={`Fixed take ${index + 1}`}
+                          window={zoomWindow}
+                          maskUrl={maskUrl}
+                          showArea={showArea}
+                        />
+                      </Frame>
+                    </button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => void pickCandidate(candidate)}
+                      disabled={using !== null}
+                      loading={using === candidate.promptId}
+                      data-testid={`fix-area-use-${index}`}
+                    >
+                      Use this
+                    </Button>
+                  </>
+                ) : (
+                  <div
+                    className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[var(--border-subtle)] p-3 text-center"
+                    role="status"
+                  >
+                    {candidate.state.status === 'queued' ||
+                    candidate.state.status === 'running' ||
+                    candidate.state.status === 'checking' ? (
+                      <span className="ui-spinner" aria-hidden />
+                    ) : null}
+                    <span className="type-caption text-[var(--text-muted)]">
+                      {fixAreaCandidateCaption(candidate.state, seconds)}
+                    </span>
+                    {candidate.state.status === 'withheld' && candidate.state.image && sessionId ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          void fixAreaSessionStore().recheck(sessionId, candidate.promptId)
+                        }
+                        data-testid={`fix-area-recheck-${index}`}
+                      >
+                        Check again
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+          {comparedImage && comparedIndex >= 0 ? (
+            <Wipe
+              before={target.displayUrl}
+              after={comfyImageViewUrl(comparedImage)}
+              window={zoomWindow}
+              aspect={aspect}
+              maskUrl={maskUrl}
+              showArea={showArea}
+              label={`Take ${comparedIndex + 1}`}
+            />
+          ) : null}
+          {session?.mode === 'face' ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              data-testid="fix-area-identity-note"
+            >
+              {session.identity
+                ? "Drawn with the Cast's face as the reference (the face picture this still was made with)."
+                : `No face reference: ${identityNote ?? 'the face is redrawn from the prompt alone.'}`}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="mr-auto flex flex-wrap items-center gap-3">
+              <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={showArea}
+                  onChange={event => setShowArea(event.target.checked)}
+                  data-testid="fix-area-show-area"
+                />
+                Show the painted area
+              </label>
+              <label className="type-caption flex items-center gap-2 text-[var(--text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={zoom}
+                  disabled={!session?.maskBox}
+                  onChange={event => setZoom(event.target.checked)}
+                  data-testid="fix-area-zoom"
+                />
+                Zoom to the area
+              </label>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={paintAgain}
+              disabled={using !== null}
+              data-testid="fix-area-paint-again"
+            >
+              Paint again
+            </Button>
+          </div>
+        </>
+      )}
+      {error ? (
+        <p className="type-caption text-[var(--tint-danger-text,#f87171)]" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </Dialog>
   );
 }

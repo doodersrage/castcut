@@ -8,6 +8,7 @@ import type { SharedPresetEntry } from '@/lib/storage/shared-preset-store';
 import type { SharedProject } from '@/lib/storage/shared-projects-store';
 import type { UserAnalyticsSnapshot } from '@/lib/user/analytics';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type UserFormState = {
   username: string;
@@ -264,7 +265,14 @@ export function useUsersAdminState() {
   }
 
   async function deleteUser(id: string) {
-    if (!window.confirm('Delete this user?')) {
+    const name = users.find(user => user.id === id)?.username;
+    if (
+      !(await confirmAction({
+        title: name ? `Delete the user “${name}”?` : 'Delete this user?',
+        confirmLabel: 'Delete user',
+        tone: 'danger',
+      }))
+    ) {
       return;
     }
     const response = await fetch(`/api/auth/users?id=${encodeURIComponent(id)}`, {
@@ -281,7 +289,14 @@ export function useUsersAdminState() {
   }
 
   async function deleteGroup(id: string) {
-    if (!window.confirm('Delete this group?')) {
+    const name = groups.find(group => group.id === id)?.name;
+    if (
+      !(await confirmAction({
+        title: name ? `Delete the group “${name}”?` : 'Delete this group?',
+        confirmLabel: 'Delete group',
+        tone: 'danger',
+      }))
+    ) {
       return;
     }
     const response = await fetch(`/api/auth/groups?id=${encodeURIComponent(id)}`, {
@@ -297,37 +312,95 @@ export function useUsersAdminState() {
     await refresh();
   }
 
+  // A failed request used to look like it worked: the draft cleared, the row stayed.
+  async function sharedRequestFailed(
+    request: Promise<Response>,
+    fallback: string
+  ): Promise<boolean> {
+    try {
+      const response = await request;
+      if (response.ok) return false;
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setStatus(data.error ?? `${fallback} (${response.status}).`);
+    } catch (error) {
+      setStatus(`${fallback}: ${error instanceof Error ? error.message : 'network error'}.`);
+    }
+    return true;
+  }
+
   async function publishPreset() {
-    await fetch('/api/shared-presets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sharedPresetDraft),
-    });
+    const failed = await sharedRequestFailed(
+      fetch('/api/shared-presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sharedPresetDraft),
+      }),
+      'Could not publish the preset'
+    );
+    if (failed) return;
     setSharedPresetDraft({ label: '', hints: '', category: '' });
+    setStatus('Preset published.');
     await refresh();
   }
 
   async function deletePreset(id: string) {
-    await fetch(`/api/shared-presets?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const label = sharedPresets.find(preset => preset.id === id)?.label?.trim();
+    if (
+      !(await confirmAction({
+        title: label ? `Delete the shared preset “${label}”?` : 'Delete this shared preset?',
+        body: 'It goes for everyone on this server.',
+        confirmLabel: 'Delete preset',
+        tone: 'danger',
+      }))
+    ) {
+      return;
+    }
+    const failed = await sharedRequestFailed(
+      fetch(`/api/shared-presets?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+      'Could not delete the preset'
+    );
+    if (failed) return;
+    setStatus('Preset deleted.');
     await refresh();
   }
 
   async function publishProject() {
-    await fetch('/api/shared-projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sharedProjectDraft),
-    });
+    const failed = await sharedRequestFailed(
+      fetch('/api/shared-projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sharedProjectDraft),
+      }),
+      'Could not publish the project'
+    );
+    if (failed) return;
     setSharedProjectDraft({ name: '', notes: '', groupIds: [] });
+    setStatus('Project published.');
     await refresh();
   }
 
   async function deleteProject(id: string) {
-    await fetch('/api/shared-projects', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
+    const name = sharedProjects.find(project => project.id === id)?.name?.trim();
+    if (
+      !(await confirmAction({
+        title: name ? `Delete the shared project “${name}”?` : 'Delete this shared project?',
+        body: 'It goes for everyone on this server.',
+        confirmLabel: 'Delete project',
+        tone: 'danger',
+      }))
+    ) {
+      return;
+    }
+    const failed = await sharedRequestFailed(
+      fetch('/api/shared-projects', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }),
+      'Could not delete the project'
+    );
+    if (failed) return;
+    setStatus('Project deleted.');
     await refresh();
   }
 

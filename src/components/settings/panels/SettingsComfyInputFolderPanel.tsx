@@ -5,6 +5,7 @@ import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
 import { Button } from '@/components/ui/Button';
 import type { ComfyInputFolderReport } from '@/lib/comfyui/comfy-input-cleanup';
 import { formatBytes } from '@/lib/model/files';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type SettingsComfyInputFolderPanelProps = {
   comfyUrl?: string;
@@ -53,14 +54,17 @@ export default function SettingsComfyInputFolderPanel({
   async function deleteRemovable() {
     if (!report?.canDelete || report.removable.length === 0) return;
     const count = report.removable.length;
-    const ok = window.confirm(
-      `Delete ${count.toLocaleString()} unused files (${formatBytes(report.removableBytes)}) from ComfyUI's input folder?` +
+    const ok = await confirmAction({
+      title: `Delete ${count.toLocaleString()} unused files (${formatBytes(report.removableBytes)}) from ComfyUI's input folder?`,
+      body:
         (report.sources.serverStorage
           ? ''
-          : "\n\nServer storage is off, so only this browser's data was checked — another browser using this ComfyUI may still need some of them.") +
-        '\n\nThe folder is scanned again first; files in use since, or newer than ' +
-        `${report.minAgeDays} days, are kept. This cannot be undone.`
-    );
+          : "Server storage is off, so only this browser's data was checked — another browser using this ComfyUI may still need some of them.\n\n") +
+        'The folder is scanned again first; files in use since, or newer than ' +
+        `${report.minAgeDays} days, are kept. This cannot be undone.`,
+      confirmLabel: 'Delete files',
+      tone: 'danger',
+    });
     if (!ok) return;
     setDeleting(true);
     setError(null);
