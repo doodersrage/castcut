@@ -52,7 +52,14 @@ function toneClass(ok: boolean | 'warn' | null): string {
     : 'border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] text-[var(--tint-danger-text)]';
 }
 
-export default function ConnectionHealthChip({ compact = false }: { compact?: boolean }) {
+export default function ConnectionHealthChip({
+  compact = false,
+  onClick,
+}: {
+  compact?: boolean;
+  /** After following the chip's link (the sidebar closes its phone drawer). */
+  onClick?: () => void;
+}) {
   const [health, setHealth] = useState<ChipHealth | null>(null);
 
   useEffect(() => {
@@ -101,6 +108,7 @@ export default function ConnectionHealthChip({ compact = false }: { compact?: bo
   return (
     <Link
       href={settingsTabHref('overview')}
+      onClick={onClick}
       title={title}
       data-testid="connection-health-chip"
       data-state={

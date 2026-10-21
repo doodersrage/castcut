@@ -46,9 +46,9 @@ export function AppNavSidebarFooter({
     <div className="space-y-2 border-t border-[var(--border-subtle)] px-3 pt-3">
       {navReady ? (
         <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2" onClick={onNavigate}>
-            <ConnectionHealthChip compact />
-            <ActiveJobsChip compact trayToggle="bottom" />
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <ConnectionHealthChip compact onClick={onNavigate} />
+            <ActiveJobsChip compact trayToggle="bottom" onClick={onNavigate} />
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <NotificationBell />
