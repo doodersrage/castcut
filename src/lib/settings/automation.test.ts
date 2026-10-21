@@ -5,6 +5,7 @@ import { comfyInventoryFingerprint, fillLoaderMapsFromInventory } from '../comfy
 import { buildPlayChecksReadiness } from '../play/checks-readiness';
 import { DEFAULT_SHARED_SETTINGS } from './cache';
 import { COMFYUI_SETTINGS_SECTIONS } from './comfyui-nav';
+import { SETTINGS_TABS } from './nav';
 import {
   changedSettings,
   formatSettingValue,
@@ -121,6 +122,27 @@ describe('Settings search', () => {
     for (const section of COMFYUI_SETTINGS_SECTIONS) {
       assert.ok(entries.some(entry => entry.section === section.id && entry.id.startsWith('section-')));
     }
+  });
+
+  it('lists every Settings tab, each findable by its name', () => {
+    for (const tab of SETTINGS_TABS) {
+      const entry = entries.find(item => item.id === `tab-${tab.id}`);
+      assert.ok(entry, tab.id);
+      assert.ok(matchesSettingsQuery(entry!, tab.label), tab.label);
+    }
+  });
+
+  it('finds Models, finishing tools, the inference engine, Heal & ready and Prompt style', () => {
+    const find = (query: string) => entries.filter(entry => matchesSettingsQuery(entry, query));
+    assert.ok(find('models').some(entry => entry.section === 'model-assets'));
+    assert.ok(find('download').some(entry => entry.id === 'model-downloads'));
+    assert.ok(find('finishing').some(entry => entry.id === 'finishing-tool-models'));
+    assert.ok(find('lip sync').some(entry => entry.section === 'model-assets'));
+    assert.ok(find('inference engine').some(entry => entry.section === 'inference-engine'));
+    assert.ok(find('heal').some(entry => entry.id === 'heal-ready'));
+    const style = find('realism').find(entry => entry.id === 'render-realism');
+    assert.equal(style?.label, 'Prompt style');
+    assert.equal(find('render realism')[0]?.label, 'Prompt style');
   });
 
   it('finds a setting by any of its words and deep-links to the control', () => {
