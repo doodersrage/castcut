@@ -5,7 +5,17 @@ import { resolveLoaderFilenamesForModel } from './checkpoint-map';
 import { installedComfyModels } from './picker';
 
 const installed2_1 = (unets: string[]) =>
-  [...(installedComfyModels(COMFY_IMAGE_MODELS, { checkpoints: [], unets })?.keys() ?? [])].filter(
+  [...(installedComfyModels(COMFY_IMAGE_MODELS, {
+      checkpoints: [],
+      unets,
+      vaes: [],
+      upscaleModels: [],
+      clips: [],
+      dualClipTypes: [],
+      clipLoaderTypes: [],
+      loras: [],
+      controlNets: [],
+    })?.keys() ?? [])].filter(
     id => id.startsWith('qwen-image-2.1')
   );
 
