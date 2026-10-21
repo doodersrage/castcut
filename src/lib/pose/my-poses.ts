@@ -9,6 +9,7 @@ import {
   readBrowserValue,
   writeBrowserValue,
 } from '@/lib/storage/browser-storage';
+import { normalizePoseRig3d } from '@/lib/pose/rig3d';
 import type { PhotoPose } from '@/lib/pose/types';
 
 import { recordListSpec } from '../storage/record-list-sync';
@@ -56,6 +57,7 @@ export function normalizeMyPose(raw: unknown): MyPose | null {
   if (people.length === 0 || people.length > 3) return null;
   const aspect = Number(pose?.aspect);
   const name = typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : 'My pose';
+  const rig3d = normalizePoseRig3d(pose?.rig3d, people.length);
   return {
     id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : newId(),
     name: name.slice(0, 60),
@@ -63,6 +65,7 @@ export function normalizeMyPose(raw: unknown): MyPose | null {
       aspect: Number.isFinite(aspect) && aspect > 0.2 && aspect < 5 ? aspect : 2 / 3,
       people,
       source: 'edited',
+      ...(rig3d ? { rig3d } : {}),
     },
     savedAt:
       typeof entry.savedAt === 'number' && Number.isFinite(entry.savedAt)
