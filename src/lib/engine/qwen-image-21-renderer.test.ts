@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  clampQwenImage21MultiReferenceCfg,
   convertQwenEditWorkflowToImage21,
   isClothedDuoStill,
   isMultiPersonPoseGuide,
@@ -1034,5 +1035,54 @@ describe('Qwen-Image 2.1 Noct-Q', () => {
     assert.equal(isQwenImage21NoctModel('qwen-image-2.1-edit-noct'), true);
     assert.equal(isQwenImage21NoctModel('qwen-image-2.1-edit'), false);
     assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit-noct'), null);
+  });
+});
+
+describe('Qwen-Image 2.1 multi-reference cfg guard', () => {
+  type Node = { class_type: string; inputs: Record<string, unknown> };
+  const duoGraph = (cfg: unknown, images = 2): Record<string, Node> => {
+    const encode: Node = {
+      class_type: 'TextEncodeQwenImage21',
+      inputs: { prompt: 'two people', negative_prompt: '', resolution: 1048576 },
+    };
+    for (let i = 1; i <= images; i += 1) encode.inputs[`images.image_${i}`] = [`${10 + i}`, 0];
+    return {
+      '1': encode,
+      '2': { class_type: 'ControlNetApplyAdvanced', inputs: { positive: ['1', 0], negative: ['1', 1] } },
+      '3': {
+        class_type: 'KSampler',
+        inputs: { cfg, steps: 30, positive: ['2', 0], negative: ['2', 1], latent_image: ['4', 0] },
+      },
+      '4': { class_type: 'EmptyLatentImage', inputs: { width: 1024, height: 1024, batch_size: 1 } },
+      '11': { class_type: 'LoadImage', inputs: { image: 'lead.png' } },
+      '12': { class_type: 'LoadImage', inputs: { image: 'partner.png' } },
+    };
+  };
+
+  it('lowers cfg above 1 to 1 when the 2.1 encoder has two or more references', () => {
+    for (const cfg of [2, 3, '2.5']) {
+      const { workflow, clamped } = clampQwenImage21MultiReferenceCfg(duoGraph(cfg));
+      assert.equal(clamped, 1);
+      assert.equal(workflow['3'].inputs.cfg, 1);
+    }
+  });
+
+  it('leaves one-reference stills, cfg 1 and unrelated samplers alone', () => {
+    assert.equal(clampQwenImage21MultiReferenceCfg(duoGraph(3, 1)).workflow['3'].inputs.cfg, 3);
+    assert.equal(clampQwenImage21MultiReferenceCfg(duoGraph(1)).clamped, 0);
+    const graph = duoGraph(1);
+    graph['9'] = { class_type: 'KSampler', inputs: { cfg: 5, positive: ['8', 0], negative: ['8', 0] } };
+    graph['8'] = { class_type: 'CLIPTextEncode', inputs: { text: 'x' } };
+    assert.equal(clampQwenImage21MultiReferenceCfg(graph).workflow['9'].inputs.cfg, 5);
+  });
+
+  it('a converted duo still ends at cfg 1 even when the source sampler ran higher', () => {
+    const graph = rapidDayGraph() as Record<string, Node>;
+    graph['8'].inputs.cfg = 3;
+    const { workflow } = convertQwenEditWorkflowToImage21(graph, { steps: 30 });
+    const nodes = Object.values(workflow) as Node[];
+    const encode = nodes.find(n => n.class_type === 'TextEncodeQwenImage21')!;
+    assert.ok(encode.inputs['images.image_2']);
+    assert.equal(nodes.find(n => n.class_type === 'KSampler')!.inputs.cfg, 1);
   });
 });

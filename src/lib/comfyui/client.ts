@@ -1,5 +1,8 @@
 import fs from 'node:fs';
-import { qwenImage21TurboCheckpointFor } from '../engine/qwen-image-21-renderer';
+import {
+  clampQwenImage21MultiReferenceCfg,
+  qwenImage21TurboCheckpointFor,
+} from '../engine/qwen-image-21-renderer';
 import path from 'node:path';
 import {
   type ComfyUiRuntimeConfig,
@@ -823,6 +826,12 @@ export async function queuePromptToComfyUi(
         workflowSource: 'minimal',
         replacements: { positive: 1, negative: 0 },
       };
+    }
+
+    // Last stop before /prompt (after sampler overrides and plugin hooks): a Qwen-Image 2.1
+    // still with two or more references must sample at cfg 1 — above it ComfyUI segfaults.
+    if (activePromptBody.prompt && typeof activePromptBody.prompt === 'object') {
+      clampQwenImage21MultiReferenceCfg(activePromptBody.prompt);
     }
 
     const clientId =
