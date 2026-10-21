@@ -30,6 +30,8 @@
   --accent-border: rgb(69 104 168 / 0.3);
   --accent-ring: rgb(69 104 168 / 0.24);
   --accent-text: #9eb6e0;
+  /* Label colour on a solid --accent / --accent-active fill (both themes). */
+  --on-accent: #fff;
 
   /* Functional tints — badges, status, secondary semantics */
   --tint-success-bg: rgb(52 211 153 / 0.1);
@@ -1740,7 +1742,7 @@ html[data-theme='light'] .page-canvas::before {
 .ui-segmented-item[data-active='true'] {
   /* --accent (#5b7fc4) on white text is ~3.98:1; use --accent-active for WCAG AA 4.5:1 */
   background: var(--accent-active);
-  color: white;
+  color: var(--on-accent);
   box-shadow: 0 4px 12px rgb(74 108 176 / 0.28);
 }
 
@@ -2000,7 +2002,7 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
   min-height: 2.75rem;
   padding: 0 var(--space-6);
   font-weight: 600;
-  color: white;
+  color: var(--on-accent);
   background: var(--accent);
   box-shadow: var(--shadow-btn);
 }

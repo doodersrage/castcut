@@ -359,7 +359,7 @@ export default function GalleryComparePanel({
                     onClick={() => onRate?.(entry.id, rating as ComfyGalleryEntry['reviewRating'])}
                     className={`rounded px-1.5 py-0.5 text-[10px] ${
                       entry.reviewRating === rating
-                        ? 'bg-[var(--accent)] text-white'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)]'
                         : 'bg-[var(--bg-muted)] text-[var(--text-muted)] hover:bg-[var(--bg-muted)]'
                     }`}
                   >

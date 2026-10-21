@@ -120,7 +120,7 @@ export default function PortraitTileStrip({
             {selected ? (
               <span
                 aria-hidden
-                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold leading-none text-white shadow"
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold leading-none text-[var(--on-accent)] shadow"
               >
                 ✓
               </span>

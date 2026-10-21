@@ -70,7 +70,7 @@ export default function NotificationBell() {
       >
         Alerts
         {unread > 0 ? (
-          <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] text-white">
+          <span className="ml-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] text-[var(--on-accent)]">
             {unread}
           </span>
         ) : null}

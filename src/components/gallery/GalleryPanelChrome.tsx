@@ -148,14 +148,14 @@ export function GalleryCapWarningBanner({
         <button
           type="button"
           onClick={onShowAtRisk}
-          className="rounded-xl border border-current/30 bg-black/10 px-2.5 py-1 text-[11px] font-medium transition hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-[11px] font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Show at-risk
         </button>
         <button
           type="button"
           onClick={onExportKeepers}
-          className="rounded-xl border border-current/30 bg-black/10 px-2.5 py-1 text-[11px] font-medium transition hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-[11px] font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Export keepers
         </button>
@@ -163,7 +163,7 @@ export function GalleryCapWarningBanner({
           <button
             type="button"
             onClick={onOpenCleanup}
-            className="rounded-xl border border-current/30 bg-black/10 px-2.5 py-1 text-[11px] font-medium transition hover:bg-black/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-[11px] font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             Cleanup
           </button>

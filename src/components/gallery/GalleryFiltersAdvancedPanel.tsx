@@ -305,7 +305,7 @@ export function GalleryFiltersAdvancedPanel({
           disabled={backfillLoading}
           onClick={() => void runVisionBackfill()}
           className={`ui-btn-ghost ui-btn-sm text-xs rounded-xl border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] transition hover:bg-[var(--tint-info-bg)] hover:border-[var(--tint-info-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40 ${
-            backfillLoading ? 'text-slate-400' : 'text-[var(--tint-info-text)]'
+            backfillLoading ? 'text-[var(--text-muted)]' : 'text-[var(--tint-info-text)]'
           }`}
         >
           {backfillLoading

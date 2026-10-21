@@ -294,7 +294,7 @@ export default function CutTimeline({
                   key={`${key}-in`}
                   className={`absolute top-[0.85rem] z-10 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border text-[12px] leading-none shadow ${
                     own
-                      ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                      ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                   }`}
                   style={{ left }}
