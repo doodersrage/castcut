@@ -106,6 +106,14 @@ export type PoseModelProfile = {
    */
   clothedDuoEngine?: string;
   /**
+   * A one-person custom pose (joint editor, a photo) this engine can't draw renders on the first
+   * installed engine here instead, for that still only (custom-pose-engine.ts: lying, horizontal
+   * or a back view). Edit 2511, pose bench 2026-10-21: it redrew those poses from its standing
+   * dressed plate — plank standing with arms up 4/4, lies propped up, back views facing the
+   * camera — where Noct-Q drew them right (Turbo nearly so).
+   */
+  customPoseEngines?: readonly string[];
+  /**
    * The Cast is dressed once (clothing + shoes on the look plate, day-dress-plate.ts) and clothed
    * stills use that plate:
    * - `plate`: as Image 1, the starting image (Edit 2511 — it re-poses a full plate from the
@@ -186,6 +194,7 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     poseStickyClothed: true,
     compactDayRecipes: true,
     adultEngine: 'qwen-rapid-aio-edit-nsfw',
+    customPoseEngines: ['qwen-image-2.1-edit-noct', 'qwen-image-2.1-edit-turbo-8'],
     dressPlate: 'plate',
   },
   'qwen-image-2.1': {

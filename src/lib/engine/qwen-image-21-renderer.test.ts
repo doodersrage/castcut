@@ -975,6 +975,66 @@ describe('Qwen-Image 2.1: natural POSE FIRST on one-person stills (2026-10-20 sw
     }
   });
 
+  it('a preset beat off its feet (plank, one knee, a kick, a hurdle, mid-air) gets no relaxed stance', () => {
+    for (const pose of [
+      'she holds a plank, face down, body raised on straight arms',
+      'she is down on one knee, proposing',
+      'one knee lifted to hip height, arms out for balance',
+      'she throws a high kick at the pad',
+      'she clears a hurdle, lead leg straight out',
+      'mid-air at the top of the leap',
+      'she does push-ups on the mat',
+    ]) {
+      assert.doesNotMatch(first(pose), /standing relaxed/, pose);
+    }
+    // A lifted cup or elbow is still a standing gesture.
+    assert.match(first('she is holding a cup lifted to her lips'), /standing relaxed/);
+  });
+
+  it('a custom pose keeps its POSE FIRST line as written: no relaxed stance, no candid camera', () => {
+    for (const pose of [
+      'she is face down, body raised on straight arms, legs straight behind her',
+      'she is standing with her back to the camera, both arms raised overhead',
+      'she is both hands on the hips, elbows bent out to the sides',
+    ]) {
+      const out = withNaturalPoses(still(pose), { customPose: true });
+      assert.equal(out.split('\n')[0], `Edit <image1>: POSE FIRST: ${pose}.`);
+      assert.doesNotMatch(out, /Photographed candidly|standing relaxed/);
+    }
+  });
+
+  it('the converter knows a custom pose by the player pose guide it carries', () => {
+    const graph = (guide: string) => ({
+      '4': {
+        class_type: 'TextEncodeQwenImageEditPlus',
+        inputs: {
+          prompt:
+            'Edit <image1>: POSE FIRST: she is both hands on the hips, elbows bent out to the sides.\nSCENE: she is in the park — show that place around her.',
+          image1: ['900', 0],
+          image2: ['901', 0],
+        },
+      },
+      '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+      '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+      '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+      '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+      '901': { class_type: 'LoadImage', inputs: { image: guide } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+    });
+    const promptOf = (guide: string) => {
+      const out = convertQwenEditWorkflowToImage21(graph(guide), {}).workflow as Record<
+        string,
+        { class_type: string; inputs: Record<string, unknown> }
+      >;
+      return Object.values(out)
+        .map(node => node.inputs.prompt)
+        .filter((text): text is string => typeof text === 'string')
+        .join('\n');
+    };
+    assert.doesNotMatch(promptOf('day-pose-guide-stand-photo-abc123.png'), /standing relaxed/);
+    assert.match(promptOf('day-pose-guide-stand-abc123.png'), /standing relaxed/);
+  });
+
   it('a lean says how she leans; eating at a café table sits her down', () => {
     assert.ok(first('she is leaning against a café wall').endsWith(`${QWEN_IMAGE_21_LEAN_BODY}.`));
     assert.match(first('one hand brings food up to the mouth — eating a croissant at a café table'), /sitting on a chair at the table\.$/);

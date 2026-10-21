@@ -408,7 +408,7 @@ describe('withNudeDuoLeadBodyLine', () => {
   });
 });
 
-describe('Qwen-Image 2.1: the pose words lead (it takes no pose map)', () => {
+describe('POSE FIRST for custom poses (2.1 and Edit 2511)', () => {
   const CUSTOM = 'reclining back against a sofa, her left arm raised overhead, legs apart';
 
   it('a custom pose opens the prompt as POSE FIRST, and stays in the Pose: sentence', () => {
@@ -429,10 +429,33 @@ describe('Qwen-Image 2.1: the pose words lead (it takes no pose map)', () => {
     assert.doesNotMatch(edit2511, /^POSE FIRST: /);
   });
 
-  it('a custom pose on an engine with a pose map keeps it in the Pose: sentence only', () => {
+  it('Edit 2511: a custom pose leads as POSE FIRST pointed at its map, and stays in the Pose: sentence', () => {
+    // Pose bench (2026-10-21): mid-prompt only, 2511 stood a plank up 4/4 and faced back views
+    // to the camera.
     const { prompt } = assembleDayStillPrompt(facts({ poseFirst: true, customPose: CUSTOM }));
+    assert.match(
+      prompt,
+      new RegExp(`^POSE FIRST: she is ${CUSTOM}, exactly as the pose map in Image 3 shows\\.\\n`)
+    );
+    assert.match(prompt, new RegExp(`Pose: ${CUSTOM}\\.`));
+  });
+
+  it('an engine that does not lead with POSE FIRST keeps a custom pose in the Pose: sentence only', () => {
+    const { prompt } = assembleDayStillPrompt(facts({ customPose: CUSTOM }));
     assert.doesNotMatch(prompt, /^POSE FIRST/);
     assert.match(prompt, new RegExp(`Pose: ${CUSTOM}\\.`));
+  });
+
+  it('a custom pose never calls the dressed plate standing', () => {
+    const { prompt } = assembleDayStillPrompt(
+      facts({
+        poseFirst: true,
+        customPose: 'face down, body raised on straight arms',
+        dressedPlateIsClothingImage: true,
+        beat: 'a morning workout',
+      })
+    );
+    assert.doesNotMatch(prompt, /dressed, standing/);
   });
 });
 
