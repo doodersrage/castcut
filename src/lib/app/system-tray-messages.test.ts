@@ -54,6 +54,19 @@ describe('system tray messages (the one notice store)', async () => {
     delete (globalThis as { window?: unknown }).window;
   });
 
+  it('keeps an action callback (an Undo) with its label', () => {
+    installWindow();
+    let undone = 0;
+    pushSystemTrayMessage({
+      text: 'Snapshot removed',
+      action: { label: ' Undo ', onClick: () => (undone += 1) },
+    });
+    const [message] = getSystemTrayMessages();
+    assert.equal(message?.actionLabel, 'Undo');
+    message?.onAction?.();
+    assert.equal(undone, 1);
+  });
+
   it('returns null without a window, for blank text, or when notices are muted', () => {
     assert.equal(pushSystemTrayMessage({ text: 'hi' }), null);
     installWindow();

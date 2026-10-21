@@ -20,6 +20,8 @@ export type SystemTrayMessage = {
   actionLabel?: string;
   /** CustomEvent / window name dispatched on action click. */
   actionEvent?: string;
+  /** Called on action click (an Undo) — in place of, or as well as, `actionEvent`. */
+  onAction?: () => void;
   /** No auto-dismiss — stays until the user closes it (failures). */
   sticky?: boolean;
   at: number;
@@ -74,6 +76,8 @@ export function pushSystemTrayMessage(input: {
   href?: string;
   actionLabel?: string;
   actionEvent?: string;
+  /** A button on the notice that runs `onClick` and dismisses it (an Undo). */
+  action?: { label: string; onClick: () => void };
   /** 0 = sticky until dismissed. */
   ttlMs?: number;
 }): string | null {
@@ -94,6 +98,9 @@ export function pushSystemTrayMessage(input: {
     href: input.href,
     ...(input.actionLabel?.trim() && input.actionEvent?.trim()
       ? { actionLabel: input.actionLabel.trim(), actionEvent: input.actionEvent.trim() }
+      : {}),
+    ...(input.action?.label.trim()
+      ? { actionLabel: input.action.label.trim(), onAction: input.action.onClick }
       : {}),
     ...(ttl <= 0 ? { sticky: true } : {}),
     at: Date.now(),

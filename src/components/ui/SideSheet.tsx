@@ -1,37 +1,10 @@
 'use client';
 
-import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import ModalPortal from '@/components/ui/ModalPortal';
 import UiIcon from '@/components/ui/UiIcon';
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
-
-function focusableIn(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-    element =>
-      element.getClientRects().length > 0 && !element.closest('details:not([open]) > :not(summary)')
-  );
-}
-
-// Several sheets can stack (a slot sheet under its clothing sheet): the body scroll lock is
-// counted so the first one to close does not unlock the page under the other.
-let scrollLocks = 0;
-let previousOverflow = '';
-
-function lockBodyScroll(): () => void {
-  if (scrollLocks === 0) {
-    previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-  }
-  scrollLocks += 1;
-  return () => {
-    scrollLocks = Math.max(0, scrollLocks - 1);
-    if (scrollLocks === 0) {
-      document.body.style.overflow = previousOverflow;
-    }
-  };
-}
+import { focusableIn, trapTabKey, useModalFocus } from '@/components/ui/modal-focus';
+import { Z_INDEX } from '@/components/ui/z-index';
 
 export type SideSheetProps = {
   open: boolean;
@@ -71,30 +44,14 @@ export default function SideSheet({
   children,
 }: SideSheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    openerRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const unlock = lockBodyScroll();
-    const panel = panelRef.current;
-    // The first field, not the close button — the sheet is for editing.
-    const first = panel
-      ? focusableIn(panel).find(element => element.getAttribute('data-sheet-close') == null)
-      : null;
-    (first ?? panel)?.focus({ preventScroll: true });
-    return () => {
-      unlock();
-      const opener = openerRef.current;
-      openerRef.current = null;
-      if (opener && opener.isConnected) {
-        opener.focus({ preventScroll: true });
-      }
-    };
-  }, [open]);
+  // The first field, not the close button — the sheet is for editing.
+  useModalFocus(open, panelRef, {
+    pickInitial: panel =>
+      focusableIn(panel).find(element => element.getAttribute('data-sheet-close') == null),
+  });
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     // A modal opened from inside the sheet (pose joint editor, kit browser) is portalled to
@@ -107,22 +64,7 @@ export default function SideSheet({
       onClose();
       return;
     }
-    if (event.key !== 'Tab' || !panelRef.current) return;
-    const focusable = focusableIn(panelRef.current);
-    if (focusable.length === 0) {
-      event.preventDefault();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = document.activeElement;
-    if (event.shiftKey && (active === first || active === panelRef.current)) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && active === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    trapTabKey(event, panelRef.current);
   };
 
   if (!open) return null;
@@ -130,10 +72,8 @@ export default function SideSheet({
   return (
     <ModalPortal>
       <div
-        className={[
-          'fixed inset-0 flex max-sm:items-end max-sm:justify-center sm:justify-end',
-          layer === 'raised' ? 'z-[76]' : 'z-[70]',
-        ].join(' ')}
+        className="fixed inset-0 flex max-sm:items-end max-sm:justify-center sm:justify-end"
+        style={{ zIndex: layer === 'raised' ? Z_INDEX.sheetRaised : Z_INDEX.sheet }}
         data-testid={testId ? `${testId}-root` : undefined}
       >
         <button
