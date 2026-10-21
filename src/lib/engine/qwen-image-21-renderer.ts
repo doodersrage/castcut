@@ -924,6 +924,59 @@ export function pruneUnreachableNodes(workflow: Workflow): Workflow {
   return Object.fromEntries(Object.entries(workflow).filter(([id]) => keep.has(id)));
 }
 
+/** Reference images wired into a TextEncodeQwenImage21 (`images.image_N` inputs). */
+function qwenImage21ReferenceCount(node: WorkflowNode): number {
+  return Object.entries(node.inputs).filter(
+    ([key, value]) => /^images\.image_\d+$/.test(key) && isRef(value)
+  ).length;
+}
+
+/**
+ * Keep cfg at 1 on every sampler fed by a Qwen-Image 2.1 encoder with two or more reference
+ * images. Above 1 ComfyUI batches cond + uncond, and with two references that segfaulted
+ * ComfyUI's memory manager (comfy_aimdo) — measured 2026-10-21 on a duo still at cfg 2 and at
+ * cfg 3; ComfyUI had to be restarted. The converter sets cfg 1, but a sampler override or a
+ * plugin hook can still raise it, so the queue runs this on the finished graph. Mutates and
+ * returns the graph; `clamped` counts the samplers lowered.
+ */
+export function clampQwenImage21MultiReferenceCfg<T extends Record<string, unknown>>(
+  workflow: T
+): { workflow: T; clamped: number } {
+  const graph = workflow as unknown as Record<string, WorkflowNode | undefined>;
+  const encoders = new Set(
+    Object.entries(graph)
+      .filter(
+        ([, node]) =>
+          node?.class_type === 'TextEncodeQwenImage21' &&
+          node.inputs &&
+          qwenImage21ReferenceCount(node) >= 2
+      )
+      .map(([id]) => id)
+  );
+  if (encoders.size === 0) return { workflow, clamped: 0 };
+  // Through pass-through conditioning nodes (ControlNet apply, zero-out) back to the encoder.
+  const fedByEncoder = (ref: unknown): boolean => {
+    let current = ref;
+    for (let hops = 0; hops < 16 && isRef(current); hops += 1) {
+      if (encoders.has(current[0])) return true;
+      const node = graph[current[0]];
+      if (!node?.inputs) return false;
+      current = node.inputs.conditioning ?? node.inputs.positive;
+    }
+    return false;
+  };
+  let clamped = 0;
+  for (const node of Object.values(graph)) {
+    if (!node?.inputs || !('cfg' in node.inputs)) continue;
+    const cfg = Number(node.inputs.cfg);
+    if (!(cfg > 1)) continue;
+    if (!fedByEncoder(node.inputs.positive) && !fedByEncoder(node.inputs.negative)) continue;
+    node.inputs.cfg = 1;
+    clamped += 1;
+  }
+  return { workflow, clamped };
+}
+
 /**
  * Rewire the graph's Qwen-Edit sampler onto Qwen-Image 2.1. Returns the graph untouched when it
  * has no Qwen-Edit sampler (text-to-image packs, video, other engines).
@@ -1267,5 +1320,9 @@ export function convertQwenEditWorkflowToImage21(
     }
     if (isRef(ref)) node.inputs.images = ref;
   }
-  return { workflow: pruneUnreachableNodes(workflow), converted: true };
+  // cfg is 1 above; the guard keeps a later edit to this function from reopening the crash.
+  return {
+    workflow: clampQwenImage21MultiReferenceCfg(pruneUnreachableNodes(workflow)).workflow,
+    converted: true,
+  };
 }
