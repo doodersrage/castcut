@@ -49,7 +49,7 @@ export const ACTION_ITEMS: CommandItem[] = [
   {
     id: 'heal-connection',
     label: 'Heal & ready',
-    subtitle: 'Enable system workflows and adapt loader maps from ComfyUI',
+    subtitle: 'Checks ComfyUI, your models and the system workflows in one click',
     group: 'Actions',
     action: () => {
       void import('@/lib/app/first-run-setup').then(async ({ runHealAndReady }) => {

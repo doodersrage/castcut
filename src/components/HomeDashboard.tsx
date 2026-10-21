@@ -47,6 +47,13 @@ import {
   ToolSection,
 } from '@/components/ui/ToolPageShell';
 import { APP_HAS_PLAY, appHasRoute } from '@/lib/app/profile';
+import { loadFirstRunGoal } from '@/lib/app/first-run-goal';
+import {
+  HEAL_READY_DOES,
+  HEAL_READY_HREF,
+  HEAL_READY_LABEL,
+  MODEL_DOWNLOADS_HREF,
+} from '@/lib/app/setup-copy';
 import AppRouteLink from '@/components/ui/AppRouteLink';
 
 const QueueOrchestrationPanel = dynamic(() => import('@/components/QueueOrchestrationPanel'), {
@@ -95,7 +102,8 @@ export default function HomeDashboard() {
       setProjects(loadPromptProjects());
       setDraft(loadLastToolDraft());
       setLastRoute(loadLastToolRoute());
-      setShowGoalChooser(appFlag('home.showGoalChooser'));
+      // The welcome already asked what to make; the dashboard asks only if it was skipped.
+      setShowGoalChooser(appFlag('home.showGoalChooser') && !loadFirstRunGoal());
     };
     void initGalleryStore().then(refresh);
     window.addEventListener('comfyui-gallery-updated', refresh);
@@ -146,20 +154,26 @@ export default function HomeDashboard() {
 
       <ToolSection
         title="Get ready"
-        description={
-          APP_HAS_PLAY
-            ? 'Heal & ready once, then use desk Film or phone Castcut Film.'
-            : 'Heal & ready once — it checks ComfyUI, your models and the system workflows.'
-        }
+        description={`${HEAL_READY_LABEL} once — it ${HEAL_READY_DOES}.${
+          APP_HAS_PLAY ? ' Then make films here or on your phone.' : ''
+        }`}
       >
         <ToolActionRow>
           <ButtonLink
-            href="/settings?tab=overview"
+            href={HEAL_READY_HREF}
             variant="secondary"
             size="sm"
             data-testid="dashboard-heal-ready"
           >
-            Heal & ready
+            {HEAL_READY_LABEL}
+          </ButtonLink>
+          <ButtonLink
+            href={MODEL_DOWNLOADS_HREF}
+            variant="ghost"
+            size="sm"
+            data-testid="dashboard-model-downloads"
+          >
+            Download models
           </ButtonLink>
           {APP_HAS_PLAY ? (
             <>

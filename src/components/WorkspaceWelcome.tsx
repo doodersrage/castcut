@@ -171,7 +171,8 @@ export default function WorkspaceWelcome() {
 
 /**
  * Setup state on the first screen (UI audit 2026-10-11: health came only as an optional second
- * step): ready to create, or what needs attention — you can still look around either way.
+ * step): ready to create, or not yet. Only the state: the setup itself is the checklist's and the
+ * first-queue modal's (lib/app/setup-copy.ts), so the welcome doesn't repeat their steps.
  */
 function WelcomeSetupState() {
   const { state } = useRenderBackend();
@@ -194,7 +195,7 @@ function WelcomeSetupState() {
       />
       {ready
         ? 'Ready to create — ComfyUI answers.'
-        : 'Needs attention — ComfyUI isn’t reachable yet. Look around and plan freely; renders start once it runs (Settings → Heal & ready sets it up).'}
+        : 'ComfyUI isn’t reachable yet — look around and plan freely. Your first queue walks you through setup.'}
     </p>
   );
 }

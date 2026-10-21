@@ -42,6 +42,15 @@ describe("onboarding-store", () => {
     );
     assert.equal(
       ONBOARDING_STEPS.find((step) => step.id === "system-workflows")?.href,
+      "/settings?focus=heal-and-ready",
+    );
+    // Same words as the modal, the banner and the palette.
+    assert.match(
+      ONBOARDING_STEPS.find((step) => step.id === "system-workflows")?.label ?? "",
+      /^Run Heal & ready — it checks ComfyUI, your models and the system workflows/,
+    );
+    assert.equal(
+      ONBOARDING_STEPS.find((step) => step.id === "comfy-health")?.href,
       "/settings?tab=comfyui&section=connection",
     );
     assert.equal(
