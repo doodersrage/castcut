@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.10] - 2026-10-21
+
+- picker-qwen21 test: pass the full inventory shape (the build's type check failed).
+- Qwen-Image 2.1 engines read as installed from their own files: Noct-Q showed as not installed in Docker.
+- Copy moves, Dance to music, Lip-sync and Upscale to 4K run as background jobs; Day and Story cards show the job's progress.
+
 ## [v2.12.9] - 2026-10-21
 
 - Qwen-Image 2.1 Noct-Q: a new engine for uncensored stills, tested on the player's own Day graphs before adding it.
