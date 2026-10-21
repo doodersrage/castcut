@@ -1,0 +1,43 @@
+{
+  "about": "Pose bench targets: one-person references from public/pose-references.json. 'photo' ones are also run through \"From a photo\" with the original Wikimedia photo (credit.source).",
+  "joints": [
+    "hands_hips-1",
+    "wave-3",
+    "hands_behind_head-2",
+    "arms_up-1",
+    "jump-4",
+    "sit-4",
+    "perch_edge-1",
+    "laptop-1",
+    "sit_floor-2",
+    "kneel-2",
+    "sport_lunge-2",
+    "sport_stick-3",
+    "lie-3",
+    "lie_side-1",
+    "sport_plank-1",
+    "lie_front-2",
+    "crouch-2",
+    "sport_squat-5",
+    "bend_pick-1",
+    "sport_deadlift-2",
+    "sport_yoga_warrior-1",
+    "sport_kick-4",
+    "sport_hurdle-3",
+    "look_back-1"
+  ],
+  "photo": [
+    "hands_hips-1",
+    "wave-3",
+    "hands_behind_head-2",
+    "arms_up-1",
+    "sit-4",
+    "perch_edge-1",
+    "sport_lunge-2",
+    "sport_stick-3",
+    "sport_plank-1",
+    "sport_deadlift-2",
+    "sport_yoga_warrior-1",
+    "sport_hurdle-3"
+  ]
+}
