@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import ModalPortal from '@/components/ui/ModalPortal';
+import ActionMenu from '@/components/ui/ActionMenu';
 import {
   GalleryEditSection,
   GalleryClipSection,
@@ -24,11 +24,7 @@ export default function GalleryCardMenu({
   isVideoHero,
   comfyHostLabel,
   menuOpen,
-  menuPosition,
-  menuButtonRef,
-  menuPanelRef,
   setMenuOpen,
-  setMenuPosition,
   onDownloadError,
   onRequeue,
   onCancel,
@@ -99,49 +95,28 @@ export default function GalleryCardMenu({
   };
 
   return (
-    <div className="relative ml-auto">
-      <button
-        ref={menuButtonRef}
-        type="button"
-        data-testid="gallery-card-menu"
-        aria-label="More actions"
-        aria-expanded={menuOpen}
-        aria-haspopup="menu"
-        onClick={() => {
-          if (menuOpen) {
-            setMenuOpen(false);
-            setMenuPosition(null);
-            return;
-          }
-          setMenuOpen(true);
-        }}
-        className="ui-btn-ghost ui-btn-sm text-xs"
+    <div className="ml-auto">
+      {/* The shared menu's portal mode: the grid's cards clip and virtualize, so the panel sits
+          on the body at a fixed position (flips near edges, scrolls past its max height). */}
+      <ActionMenu
+        portal
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        label="More"
+        caret={false}
+        summaryAriaLabel="More actions"
+        triggerTestId="gallery-card-menu"
+        summaryClassName="ui-btn-ghost ui-btn-sm text-xs"
       >
-        More
-      </button>
-      {menuOpen && menuPosition ? (
-        <ModalPortal>
-          <div
-            ref={menuPanelRef}
-            role="menu"
-            className="fixed z-[200] min-w-[12.5rem] overflow-y-auto rounded-xl border border-[var(--border-default)]/80 bg-[var(--bg-base)] p-1 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.85)] ring-1 ring-white/5"
-            style={{
-              top: menuPosition.top,
-              left: menuPosition.left,
-              maxHeight: menuPosition.maxHeight,
-            }}
-          >
-            <GalleryQuickSection {...sectionProps} />
-            <GalleryEnhanceSection {...sectionProps} />
-            <GalleryClipSection {...sectionProps} />
-            <GalleryEditSection {...sectionProps} />
-            <GalleryQueueSection {...sectionProps} />
-            <GalleryExportSection {...sectionProps} />
-            <GalleryLineageSection {...sectionProps} />
-            <GalleryManageSection {...sectionProps} />
-          </div>
-        </ModalPortal>
-      ) : null}
+        <GalleryQuickSection {...sectionProps} />
+        <GalleryEnhanceSection {...sectionProps} />
+        <GalleryClipSection {...sectionProps} />
+        <GalleryEditSection {...sectionProps} />
+        <GalleryQueueSection {...sectionProps} />
+        <GalleryExportSection {...sectionProps} />
+        <GalleryLineageSection {...sectionProps} />
+        <GalleryManageSection {...sectionProps} />
+      </ActionMenu>
     </div>
   );
 }

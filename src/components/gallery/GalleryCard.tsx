@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { comfyUiJobProgressPercent } from '@/lib/comfyui/job-status';
 import { formatComfyHostLabel } from '@/lib/queue/status-notes';
 import {
@@ -148,17 +148,10 @@ export default function GalleryCard({
   onPick,
   leanHoverActions = false,
 }: GalleryCardProps) {
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const menuPanelRef = useRef<HTMLDivElement>(null);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [heroLoaded, setHeroLoaded] = useState(false);
   const [heroVideoFailed, setHeroVideoFailed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    left: number;
-    maxHeight: number;
-  } | null>(null);
   const heroSrcSet = useMemo(() => galleryEntryPrimaryThumbSrcSet(entry), [entry]);
   const lqipUrl = useMemo(() => galleryEntryPrimaryLqipUrl(entry), [entry]);
   const primaryMediaKind = useMemo(() => galleryEntryPrimaryMediaKind(entry), [entry]);
@@ -260,80 +253,6 @@ export default function GalleryCard({
       setAestheticBusy(false);
     }
   };
-
-  useLayoutEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-
-    const updatePosition = () => {
-      const button = menuButtonRef.current;
-      if (!button) {
-        return;
-      }
-
-      const rect = button.getBoundingClientRect();
-      const padding = 8;
-      const menuWidth = 208;
-      const estimatedHeight = 360;
-      // Keep clear of the fixed bottom tabs and top header — the menu ran under the Film nav.
-      const rootStyle = getComputedStyle(document.documentElement);
-      const dock = parseFloat(rootStyle.getPropertyValue('--bottom-dock-height')) || 0;
-      const header = document.querySelector('header.fixed')?.getBoundingClientRect().bottom ?? 0;
-      const viewportBottom = window.innerHeight - dock;
-      const spaceBelow = viewportBottom - rect.bottom - padding;
-      const spaceAbove = rect.top - Math.max(header, 0) - padding;
-      const openUp = spaceBelow < 240 && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(
-        160,
-        Math.min(estimatedHeight, openUp ? spaceAbove - 4 : spaceBelow - 4)
-      );
-      const left = Math.min(
-        Math.max(padding, rect.right - menuWidth),
-        window.innerWidth - menuWidth - padding
-      );
-      const top = openUp
-        ? Math.max(Math.max(header, 0) + padding, rect.top - maxHeight - 6)
-        : Math.min(rect.bottom + 6, viewportBottom - maxHeight - padding);
-
-      setMenuPosition({ top, left, maxHeight });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) {
-      return;
-    }
-
-    function handlePointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (menuButtonRef.current?.contains(target) || menuPanelRef.current?.contains(target)) {
-        return;
-      }
-      setMenuOpen(false);
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setMenuOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [menuOpen]);
 
   const derivedLabel = galleryDerivedKindLabel(entry.derivedKind);
 
@@ -462,11 +381,7 @@ export default function GalleryCard({
       isVideoHero={isVideoHero}
       comfyHostLabel={comfyHostLabel}
       menuOpen={menuOpen}
-      menuPosition={menuPosition}
-      menuButtonRef={menuButtonRef}
-      menuPanelRef={menuPanelRef}
       setMenuOpen={setMenuOpen}
-      setMenuPosition={setMenuPosition}
     />
   );
 
