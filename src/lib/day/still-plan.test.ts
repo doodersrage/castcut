@@ -301,3 +301,32 @@ describe('dayStillWantsDressPlate on 2.1 with a kit the Day picked', () => {
     assert.equal(dayStillWantsDressPlate({ ...base, model: 'qwen-image-edit-2511-lightning-8' }), false);
   });
 });
+
+describe('dayStillIdentityRoute on Qwen-Image 2.1', () => {
+  const base = {
+    sceneHints: 'walking through the night market',
+    omitGarment: false,
+    hasCharacter: true,
+    hasIdentityPlate: true,
+    identitySource: 'cast' as const,
+    clothingOnlyGarment: true,
+  };
+  it('starts from the full plate in every clothed mood (no straight-on face crop)', () => {
+    for (const dayMood of ['everyday', 'vacation', 'suggestive']) {
+      for (const model of ['qwen-image-2.1-edit-turbo-8', 'qwen-image-2.1-edit-uncensored-turbo-8']) {
+        assert.equal(dayStillIdentityRoute({ ...base, dayMood, model }), 'plate', `${model} ${dayMood}`);
+      }
+    }
+  });
+  it('a nude still keeps its own route; Rapid keeps the face break', () => {
+    assert.equal(
+      dayStillIdentityRoute({ ...base, dayMood: 'intimate', model: 'qwen-image-2.1-edit-turbo-8', omitGarment: true }),
+      'nude'
+    );
+    assert.equal(
+      dayStillIdentityRoute({ ...base, dayMood: 'everyday', model: 'qwen-rapid-aio-edit' }),
+      'face-break'
+    );
+  });
+});
+

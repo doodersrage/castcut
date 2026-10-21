@@ -14,7 +14,7 @@ import {
 import { dayClothedHeatPoseNeedsBodyUnlock, daySuggestiveBeatIsSeated } from './vacation';
 import { beatOwnsFootwear, footwearIsBarefoot } from '../wardrobe/footwear';
 import { PLAY_FACE_CROP_CANVAS } from '../plate/render-size';
-import { poseProfileForModel } from '../pose/pose-model-profile';
+import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
 import { beatLiesDown, vacationBeatDressesItself } from '../play/rapid-duo-recipe';
 import { suggestiveBeatIsImpliedNudity } from '../wardrobe/clothed-coverage';
 
@@ -113,6 +113,15 @@ export function dayStillIdentityRoute(input: {
     return 'nude';
   }
   if (!input.hasIdentityPlate) {
+    return 'plate';
+  }
+  // Qwen-Image 2.1 starts from the full plate: the face crop gave it a straight-on face to paste
+  // onto every body (a back view with the face to the camera) and a catalogue-front pose. The
+  // crop exists because the full plate froze Rapid / Edit 2511 standing — 2.1 does not freeze:
+  // the user's own stills on the full plate, same graphs and seeds (2026-10-20), crouched,
+  // stretched, held the book, walked (6/6), danced and knelt (4/4), with the face turned with the
+  // body and the outfit from the clothing image.
+  if (poseModelFamily(input.model) === 'qwen-image-2.1') {
     return 'plate';
   }
   const mood = normalizeDayMood(input.dayMood);
