@@ -313,7 +313,7 @@ describe('dayStillIdentityRoute on Qwen-Image 2.1', () => {
   };
   it('starts from the full plate in every clothed mood (no straight-on face crop)', () => {
     for (const dayMood of ['everyday', 'vacation', 'suggestive']) {
-      for (const model of ['qwen-image-2.1-edit-turbo-8', 'qwen-image-2.1-edit-uncensored-turbo-8']) {
+      for (const model of ['qwen-image-2.1-edit-turbo-8', 'qwen-image-2.1-edit-pruna-8']) {
         assert.equal(dayStillIdentityRoute({ ...base, dayMood, model }), 'plate', `${model} ${dayMood}`);
       }
     }

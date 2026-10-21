@@ -248,10 +248,7 @@ export function resolveFeetPassModel(
   installed?: ((modelId: string) => boolean) | null
 ): string | null {
   const picked = String(model ?? '').trim();
-  if (
-    picked.includes('qwen-image-edit-2511') ||
-    /^qwen-image-2\.1-edit-(?:uncensored-)?turbo-8$/.test(picked)
-  ) {
+  if (picked.includes('qwen-image-edit-2511') || picked === 'qwen-image-2.1-edit-turbo-8') {
     return picked;
   }
   if (!installed) return null;

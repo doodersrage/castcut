@@ -569,7 +569,6 @@ function injectPromptsIntoWorkflow(
         enrichInventory?.availableUnets,
         runtime?.qwenImage21TurboCheckpoint
       ),
-      qwenImage21TurboUnet: runtime?.qwenImage21TurboUnet,
       videoRenderer: runtime?.videoRenderer,
       kleinEnhancerIdentityPreset: runtime?.kleinEnhancerIdentityPreset,
       kleinEnhancerTextEnabled: runtime?.kleinEnhancerTextEnabled,

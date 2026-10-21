@@ -345,8 +345,6 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21EightStep?: boolean | 'turbo';
   /** Turbo from its own int8 checkpoint (installed) instead of the 2.1 base + Turbo LoRA. */
   qwenImage21TurboCheckpoint?: boolean;
-  /** Turbo Uncensored: the full Turbo model file the graph loads (a GGUF). */
-  qwenImage21TurboUnet?: string;
   /**
    * Render on 2.1 even where the converter would keep the still on Rapid's model (sex-pose duos,
    * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
@@ -1448,8 +1446,6 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
     qwenImage21TurboCheckpoint?: boolean;
-    /** Turbo Uncensored: the full Turbo model file the graph loads (a GGUF). */
-    qwenImage21TurboUnet?: string;
     qwenImage21KeepEngine?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
@@ -1921,7 +1917,6 @@ export function injectPromptsWithFallbacks(
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
-      ...(options.qwenImage21TurboUnet ? { turboUnet: options.qwenImage21TurboUnet } : {}),
       keepEngine: options.qwenImage21KeepEngine === true,
       qualityProfile: options.qualityProfile ?? null,
       userLoras: qwenImage21UserLoras(options.loraLibrary),
@@ -2178,9 +2173,6 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21TurboCheckpoint === true) {
     result.qwenImage21TurboCheckpoint = true;
-  }
-  if (runtime.qwenImage21TurboUnet?.trim()) {
-    result.qwenImage21TurboUnet = runtime.qwenImage21TurboUnet.trim();
   }
   if (runtime.qwenImage21KeepEngine === true) {
     result.qwenImage21KeepEngine = true;

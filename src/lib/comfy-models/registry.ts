@@ -394,20 +394,6 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
   },
   {
-    id: 'qwen-image-2.1-edit-uncensored-turbo-8',
-    label: 'Qwen-Image 2.1 Turbo Uncensored (8-step)',
-    category: 'qwen',
-    comfyNode: 'TextEncodeQwenImage21',
-    comfyClass: 'QwenImage21',
-    description:
-      'Qwen-Image 2.1 Turbo Uncensored — a full Turbo finetune as a BF16 GGUF (16.4 GB, loaded with ComfyUI-GGUF), on Turbo\'s 8-step schedule and recipes. Place Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf in diffusion_models. Two-person penetration stills render on Rapid AIO NSFW unless "Pick the best engine per pose" is off.',
-    profile: 'qwen_edit_instruction',
-    referenceTokenLimit: 512,
-    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
-    unetHint: 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf',
-    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
-  },
-  {
     id: 'qwen-image-2.1-edit-pruna-8',
     label: 'Qwen-Image 2.1 Pruna (8-step)',
     category: 'qwen',

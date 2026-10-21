@@ -68,13 +68,6 @@ describe('Qwen-Image 2.1 runtime', () => {
     const turbo = resolveRuntimeForQueue('qwen-image-2.1-edit-turbo-8', 'day', { inventory: null });
     assert.equal(turbo.qwenRenderer, 'qwen-image-2.1');
     assert.equal(turbo.qwenImage21EightStep, 'turbo');
-    assert.equal(turbo.qwenImage21TurboUnet, undefined);
-    const uncensored = resolveRuntimeForQueue('qwen-image-2.1-edit-uncensored-turbo-8', 'day', {
-      inventory: null,
-    });
-    assert.equal(uncensored.qwenRenderer, 'qwen-image-2.1');
-    assert.equal(uncensored.qwenImage21EightStep, 'turbo');
-    assert.equal(uncensored.qwenImage21TurboUnet, 'Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf');
     const rapid = resolveRuntimeForQueue('qwen-rapid-aio-edit-nsfw', 'fitting', { inventory: null });
     assert.equal(rapid.qwenRenderer, undefined);
   });
