@@ -9,6 +9,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.6] - 2026-10-21
+
+- Qwen-Image 2.1: every one-person Day pose natural. Swept all 72 layouts (postures, everyday, sport) through Day's own prompt code and the 2.1 converter on the full plate, two seeds each, and fixed what read wrong:
+- Remove the Qwen-Image 2.1 Turbo Uncensored engine (from v2.12.5): it loaded Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf as a diffusion model, but the file is a text encoder — its GGUF header says qwen3vl, Qwen3-VL-8B-Instruct-Abliterated-Uncensored, 8.2B (the model Qwen-Image 2.1 reads its prompt and pictures with). Any still queued on the engine would have failed. It can't simply become the 2.1 text encoder either: ComfyUI-GGUF loads a GGUF encoder's vision part (mmproj) for qwen2vl only, so 2.1 would lose the plate and outfit pictures. Reverts 912b0acc.
+- Day shot card menu in groups: Redo, Touch up the still, Make it move, The clip. Fifteen actions sat in one flat list with re-render, still edits, clip makers and clip finishing mixed. Grouped in the order a shot is worked on, under small headings with a line between; a group with nothing to show is left out, so an unfinished slot keeps a short menu. ShotCardMenuGroup (ui/ShotCardMenu) is there for Story's and Outfit's cards too. Every action, label and test id is unchanged.
+- Qwen-Image 2.1 Day stills start from the full plate, not the straight-on face crop.
+- Qwen-Image 2.1 one-person stills: less catalogue lineup, no owl-turned heads.
+- Qwen-Image 2.1: the pose words lead, POSE FIRST, for custom poses and in every mood. 2.1 takes no pose map, so the words are the only pose it gets; a custom pose's words (joint editor, a photo, My poses) sat in the recipe's Pose: sentence mid-prompt and the POSE FIRST line was skipped for them, and adult moods skipped it too (Edit 2511's rule, measured with its map). On 2.1 a custom pose now opens the prompt (and stays in Pose:), and planned poses lead in every mood. Edit 2511 and the map engines are unchanged.
+- Joint editor poses say what the chips set: 71/101 -> 87/97 reachable chip cases right.
+- Make more realistic keeps faces: the graph ran WAN's generation shift (8), which bends the schedule so a 0.2 strength started at 0.67 noise and 0.3 at 0.77 — light and medium both gave the Cast a new face and lit the night pool up. Shift 1 makes the strength the noise the clip gets: on the 10 s pool clip (same seed) medium now keeps her face, lips and the dark night, and still gives the water a real tiled floor and caustics.
+- Pose words: a photo's posture from the vision model, and three fixes to the words custom poses send.
+
 ## [v2.12.5] - 2026-10-21
 
 - Qwen-Image 2.1 Turbo Uncensored (8-step): a new engine in the model picker that runs Turbo's 8-step schedule and recipes on the player's own full Turbo finetune, Qwen-Image-2.1-Turbo-Uncensored-BF16.gguf (16.4 GB), loaded with ComfyUI-GGUF's UnetLoaderGGUF and no base or Turbo LoRA. The id ends in turbo-8, so every Turbo rule applies; the runtime names the GGUF (qwenImage21TurboUnet) through the queue, preview and requeue paths. Settings lists it as a bring-your-own unet (no download link) and asks for the ComfyUI-GGUF pack. The int8 Turbo engine is unchanged.
