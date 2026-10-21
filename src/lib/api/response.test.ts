@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { apiError, apiJson, apiMethodNotAllowed, apiOptions, requestBaseUrl } from './response';
+import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed, apiOptions, requestBaseUrl } from './response';
 
 describe('api/response', () => {
   describe('apiJson', () => {
@@ -39,6 +39,30 @@ describe('api/response', () => {
       const body = (await res.json()) as { error: string; field: string };
       assert.equal(body.error, 'Bad request');
       assert.equal(body.field, 'email');
+    });
+
+    it('turns a bare "fetch failed" into a plain sentence and caps long text', async () => {
+      const res = apiError('fetch failed', 500);
+      const body = (await res.json()) as { error: string };
+      assert.match(body.error, /^Can't reach ComfyUI or the language model/);
+      const long = (await apiError('y'.repeat(1000), 500).json()) as { error: string };
+      assert.ok(long.error.length <= 300);
+    });
+
+    it('apiErrorFrom answers 503 with the service named when it was unreachable', async () => {
+      const cause = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+      const res = apiErrorFrom(new TypeError('fetch failed', { cause }), 500, {
+        service: 'llm',
+        url: 'http://localhost:1234/v1',
+        extra: { stage: 'x' },
+      });
+      assert.equal(res.status, 503);
+      const body = (await res.json()) as { error: string; unreachable: string; stage: string };
+      assert.match(body.error, /LM Studio at http:\/\/localhost:1234\/v1/);
+      assert.equal(body.unreachable, 'llm');
+      assert.equal(body.stage, 'x');
+      const plain = apiErrorFrom(new Error('Bad prompt'), 500);
+      assert.equal(plain.status, 500);
     });
 
     it('passes through custom headers', () => {

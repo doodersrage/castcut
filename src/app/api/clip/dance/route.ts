@@ -1,4 +1,4 @@
-import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { danceToMusic } from '@/lib/audio/music-dance-server';
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     });
     return apiJson({ url });
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Dance to music failed.', 502);
+    // Missing models → 424 with the files and a Settings link; ComfyUI down → 503.
+    return apiErrorFrom(error, 502, { service: 'comfyui', fallback: 'Dance to music failed.' });
   }
 }

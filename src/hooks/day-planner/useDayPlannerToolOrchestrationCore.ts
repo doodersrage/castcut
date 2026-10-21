@@ -285,6 +285,7 @@ import {
 } from '@/lib/day/still-plan';
 import type { DayPlate } from '@/lib/day/plate';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { pushAppToast, shortErrorText } from '@/lib/app/toast';
 import { NO_FACE_ON_PLATE_MESSAGE } from '@/lib/face/locate';
 
 /**
@@ -2013,6 +2014,11 @@ export function useDayPlannerToolOrchestrationCore() {
               }
             } catch (footwearError) {
               console.warn('Day footwear image could not be attached:', footwearError);
+              pushAppToast({
+                text: `${queueTarget.label}: the shoe picture couldn't be attached — the shoes go out in words only.`,
+                tone: 'warning',
+                ttlMs: 12_000,
+              });
             }
           }
         }
@@ -2037,6 +2043,11 @@ export function useDayPlannerToolOrchestrationCore() {
             ).facePlate;
           } catch (faceError) {
             console.warn('Klein face reference could not be attached:', faceError);
+            pushAppToast({
+              text: `${queueTarget.label}: the face close-up couldn't be attached — the face may match the cast less closely.`,
+              tone: 'warning',
+              ttlMs: 12_000,
+            });
           }
         }
 
@@ -3160,6 +3171,11 @@ export function useDayPlannerToolOrchestrationCore() {
             }
           } catch (secondError) {
             console.warn('Day: the second take was not queued:', queueTarget.label, secondError);
+            pushAppToast({
+              text: `${queueTarget.label}: the second take wasn't queued (${shortErrorText(secondError)}) — the first one is on its way.`,
+              tone: 'warning',
+              ttlMs: 12_000,
+            });
           }
         }
         // What she wore, for Cast home's wardrobe (cast-wardrobe.ts) — not a beat that drops the

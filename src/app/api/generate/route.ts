@@ -8,9 +8,9 @@ import {
   normalizeLockedLocation,
   normalizeVariationSeed,
 } from '@/lib/specialized/normalize';
-import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { parseLlmRequestOptions, resolveRequestLlmEnabled } from '@/lib/llm/request-options';
-import { isLlmBusy, LlmBusyError } from '@/lib/llm/client';
+import { getLlmConfig, isLlmBusy, LlmBusyError } from '@/lib/llm/client';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -110,9 +110,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to generate prompt.';
+    // LM Studio down: 503 with a sentence that says so, not a bare "fetch failed" 500.
+    return apiErrorFrom(error, 500, {
+      service: 'llm',
+      url: serverLlmUrl(),
+      fallback: 'Failed to generate prompt.',
+    });
+  }
+}
 
-    return apiError(message, 500);
+function serverLlmUrl(): string | undefined {
+  try {
+    return getLlmConfig().baseUrl;
+  } catch {
+    return undefined;
   }
 }
 

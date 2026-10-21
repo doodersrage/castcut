@@ -30,6 +30,7 @@ import {
 import { prepareCharacterStore, switchCharacterLook } from '@/lib/character/hooks';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
+import { pushAppToast } from '@/lib/app/toast';
 
 type CharacterOsPickerProps = {
   /**
@@ -96,6 +97,11 @@ export default function CharacterOsPicker({
         onCastChange(active, character);
       } catch (error) {
         console.error('CharacterOsPicker: failed to follow the Cast outfit', error);
+        pushAppToast({
+          text: `Switched to ${character.name || 'this Cast'}, but the previous Cast's outfit couldn't be cleared from Outfit, Day and Story — check the clothes before you queue.`,
+          tone: 'warning',
+          ttlMs: 12_000,
+        });
       }
     }
     try {
@@ -108,6 +114,11 @@ export default function CharacterOsPicker({
       );
     } catch (error) {
       console.error('CharacterOsPicker: failed to apply character', error);
+      pushAppToast({
+        text: `${character.name || 'This Cast'}'s face and wardrobe couldn't be applied — only the name and description are set. Try picking it again.`,
+        tone: 'warning',
+        ttlMs: 12_000,
+      });
       onApply({
         activeCharacterId: character.id,
         activeLookId: undefined,
@@ -134,6 +145,11 @@ export default function CharacterOsPicker({
       }
     } catch (error) {
       console.error('CharacterOsPicker: failed to apply look', error);
+      pushAppToast({
+        text: "That look couldn't be applied — the previous look is still active.",
+        tone: 'warning',
+        ttlMs: 10_000,
+      });
     }
   };
 

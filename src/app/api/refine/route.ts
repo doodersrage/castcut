@@ -3,7 +3,7 @@ import { fileToDataUrl, normalizeImageDataUrl } from '@/lib/specialized/image-pr
 import { normalizeDetailLevel } from '@/lib/prompt/detail-level';
 import { normalizeComfyModel } from '@/lib/comfy-models';
 import { parseLlmRequestOptions, parseLlmRequestOptionsFromForm } from '@/lib/llm/request-options';
-import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -133,12 +133,11 @@ export async function POST(request: Request) {
     const status = /required|must be|could not read|upload must|too large|8mb/i.test(message)
       ? 400
       : 500;
-    const stack =
-      error instanceof Error && /call stack|Maximum call stack/i.test(message)
-        ? error.stack?.split('\n').slice(0, 8).join(' | ')
-        : undefined;
-    return apiError(stack ? `${message} · ${stack}` : message, status, {
-      stage,
+    // Stack frames go to the server log (apiErrorFrom logs them), never the response.
+    return apiErrorFrom(error, status, {
+      service: 'llm',
+      fallback: 'Image refine failed.',
+      extra: { stage },
     });
   }
 }

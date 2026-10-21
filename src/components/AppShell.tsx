@@ -42,6 +42,7 @@ import '@/components/MobileStickyQueueBar';
 import '@/components/PromptDiagnosticsPanel';
 import '@/components/ToolSetupBanner';
 import RenderOfflineBanner from '@/components/RenderOfflineBanner';
+import LlmOfflineBanner from '@/components/LlmOfflineBanner';
 import '@/components/ui/ComfyUiJobStatusPanel';
 import '@/components/ui/PageCanvas';
 import '@/components/ui/StatusToastStrip';
@@ -121,6 +122,7 @@ export default function AppShell({ children, kiosk }: { children: ReactNode; kio
         <div className={kiosk?.contentClassName}>
           <div className="px-4">
             <RenderOfflineBanner />
+            <LlmOfflineBanner />
           </div>
           {children}
         </div>
@@ -130,6 +132,7 @@ export default function AppShell({ children, kiosk }: { children: ReactNode; kio
         <>
           <div className="px-4 lg:px-8">
             <RenderOfflineBanner />
+            <LlmOfflineBanner />
           </div>
           {children}
         </>

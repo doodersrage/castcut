@@ -1,3 +1,4 @@
+import { networkErrorReason } from './friendly-error';
 import { resolveServerTextModel } from '../llm/text-model-auto';
 import { getComfyUiBaseUrl } from '../comfyui/client';
 import type { ComfyUiRuntimeConfig } from '../comfyui/config';
@@ -281,20 +282,7 @@ export async function checkComfyUiHealth(runtime?: ComfyUiRuntimeConfig): Promis
 /** Why a fetch to ComfyUI failed, in words ("fetch failed" names no cause). */
 export function comfyFetchErrorText(error: unknown): string {
   if (!(error instanceof Error)) return 'ComfyUI unreachable';
-  if (error.name === 'TimeoutError' || error.name === 'AbortError') {
-    return 'no answer within 8 seconds (busy, or the address is wrong)';
-  }
-  const code = (error.cause as { code?: string } | undefined)?.code;
-  const known: Record<string, string> = {
-    ECONNREFUSED: 'connection refused (nothing listening at that address and port)',
-    EHOSTUNREACH: 'host unreachable (wrong address, or the network is down)',
-    ENETUNREACH: 'network unreachable',
-    ENOTFOUND: 'that host name does not resolve',
-    EAI_AGAIN: 'that host name does not resolve (DNS)',
-    ETIMEDOUT: 'connection timed out (firewall, or the address is wrong)',
-    ECONNRESET: 'connection reset',
-  };
-  return (code && known[code]) || (code ? `${error.message} (${code})` : error.message);
+  return networkErrorReason(error, 8) ?? error.message;
 }
 
 export async function checkDiffusersHealth(engineUrlHint?: string): Promise<DiffusersHealth> {
