@@ -440,16 +440,22 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   ]
     .filter(Boolean)
     .join('\n');
+  // Qwen-Image 2.1 takes no pose map, so the words are the only pose it gets: they lead, in every
+  // mood and for a custom pose too (whose words otherwise sat in the recipe's Pose: sentence
+  // mid-prompt). The adult exception is Edit 2511's, measured with its map.
+  const wordsOnly = facts.poseFirstWithoutMap === true;
   const poseFirstLine =
-    facts.sportActionCue && facts.poseFirstWithoutMap && !recipe && figures === 1 && !customPose
-      ? sportPoseFirstLine(prompt, drawnLayout)
-      : facts.poseFirst &&
-          recipe &&
-          (figures === 1 || figures === 2 || (facts.poseFirstWithoutMap && figures <= 1)) &&
-          !customPose &&
-          !facts.adult
-        ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
-        : '';
+    customPose && recipe && wordsOnly
+      ? customPoseFirstLine(customPose, facts.leadNoun === 'man' && !swapLead ? 'he' : 'she')
+      : facts.sportActionCue && wordsOnly && !recipe && figures === 1 && !customPose
+        ? sportPoseFirstLine(prompt, drawnLayout)
+        : facts.poseFirst &&
+            recipe &&
+            (figures === 1 || figures === 2 || (wordsOnly && figures <= 1)) &&
+            !customPose &&
+            (!facts.adult || wordsOnly)
+          ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
+          : '';
   return {
     prompt: poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt,
     cued: Boolean(poseCueLine || duoWords),

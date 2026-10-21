@@ -2287,11 +2287,13 @@ export function useDayPlannerToolOrchestrationCore() {
         // runs), from the decisions made above.
         const assembled = assembleDayStillPrompt({
           slotPrompt,
+          // Edit 2511: clothed stills only (A/B'd with its pose map). Qwen-Image 2.1 takes no map:
+          // the words lead in every mood (day-still-prompt.ts).
           poseFirst:
-            (/qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
-              poseModelFamily(stillModel) === 'qwen-image-2.1') &&
-            !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
-            !adultStill,
+            poseModelFamily(stillModel) === 'qwen-image-2.1' ||
+            (/qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
+              !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
+              !adultStill),
           // Qwen-Image 2.1 takes no pose map: the line stands on the words (Turbo, 2026-10-17).
           poseFirstWithoutMap: poseModelFamily(stillModel) === 'qwen-image-2.1',
           camera: dayStillCamera({

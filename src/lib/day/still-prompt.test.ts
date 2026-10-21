@@ -407,3 +407,32 @@ describe('withNudeDuoLeadBodyLine', () => {
     assert.match(withNudeDuoLeadBodyLine(prompt, false, 'fourth'), /Her body is the fourth image/);
   });
 });
+
+describe('Qwen-Image 2.1: the pose words lead (it takes no pose map)', () => {
+  const CUSTOM = 'reclining back against a sofa, her left arm raised overhead, legs apart';
+
+  it('a custom pose opens the prompt as POSE FIRST, and stays in the Pose: sentence', () => {
+    const { prompt } = assembleDayStillPrompt(
+      facts({ poseFirst: true, poseFirstWithoutMap: true, customPose: CUSTOM })
+    );
+    assert.match(prompt, new RegExp(`^POSE FIRST: she is ${CUSTOM}\\.\\n`));
+    assert.match(prompt, new RegExp(`Pose: ${CUSTOM}\\.`));
+  });
+
+  it('an adult still on 2.1 leads with its pose too; Edit 2511 keeps its clothed-only rule', () => {
+    const adult = { dayMood: 'intimate', adult: true };
+    const qwen21 = assembleDayStillPrompt(
+      facts({ ...adult, poseFirst: true, poseFirstWithoutMap: true })
+    ).prompt;
+    assert.match(qwen21, /^POSE FIRST: /);
+    const edit2511 = assembleDayStillPrompt(facts({ ...adult, poseFirst: true })).prompt;
+    assert.doesNotMatch(edit2511, /^POSE FIRST: /);
+  });
+
+  it('a custom pose on an engine with a pose map keeps it in the Pose: sentence only', () => {
+    const { prompt } = assembleDayStillPrompt(facts({ poseFirst: true, customPose: CUSTOM }));
+    assert.doesNotMatch(prompt, /^POSE FIRST/);
+    assert.match(prompt, new RegExp(`Pose: ${CUSTOM}\\.`));
+  });
+});
+
