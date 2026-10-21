@@ -22,12 +22,19 @@ writes one). A written narration is used even with Narrate off.
 
 ## Each scene's ⋯ menu
 
-One list: Edit scene · Pose… · Open full size · Fix an area… · Queue still · Animate ·
-Add close-ups · Play another still / clip · Extend clip (or Continue) · Add sound ·
-Make it 30 s — then the
-[finishing tools](finishing-tools.md) (Sketch, Relight, Copy moves, Upscale to 4K, Dance,
-Lip-sync, Sharpen & smooth, **Make more realistic**) · Use this voice · Copy prompt ·
-Open in ComfyUI. Each shows only when it can be used.
+Grouped in the order a scene is worked on, like Day's:
+
+| Group | Items |
+| --- | --- |
+| *(top)* | Edit scene · Pose… · Open full size |
+| **Redo** | Queue still · Play another still · Play another clip |
+| **Touch up the still** | Fix an area… · Sketch over this still… · Relight… · Upscale to 4K · Add close-ups |
+| **Make it move** | Animate still (or Text to video) · Copy moves from a video… · Dance to music… · Lip-sync to a recording… |
+| **The clip** | Extend clip (or Continue) · Sharpen & smooth clip · **Make more realistic** · Make it 30 s · Add sound · Use this voice |
+| *(bottom)* | Copy prompt · Open in ComfyUI |
+
+Each item shows only when it can be used, and a group with nothing in it is left out. The
+finishing tools are described in [Finishing tools](finishing-tools.md).
 
 ## It keeps track
 

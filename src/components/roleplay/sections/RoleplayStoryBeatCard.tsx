@@ -4,7 +4,10 @@ import ClipExtendSheet from '@/components/ClipExtendSheet';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
+import ShotCardMenu, {
+  SHOT_CARD_MENU_ITEM_CLASS,
+  ShotCardMenuGroup,
+} from '@/components/ui/ShotCardMenu';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
 import SketchSheet from '@/components/day-planner/SketchSheet';
 import { continueClipActionLabel } from '@/lib/video/clip-mode';
@@ -183,6 +186,9 @@ export function RoleplayStoryBeatCard({
   const comfyPromptId =
     beat.stillStatus === 'completed' && beat.promptId?.trim() ? beat.promptId.trim() : '';
   const openSheet = () => setSheetOpen(true);
+  const stillTools = Boolean(
+    media && beat.stillStatus === 'completed' && beat.imageUrl?.trim() && !withheld
+  );
 
   return (
     <li key={`${beat.id}-${beat.at}`}>
@@ -202,160 +208,92 @@ export function RoleplayStoryBeatCard({
             testId="story-beat-menu"
             className="absolute right-1.5 top-1.5 z-20"
           >
-            {edit ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || textLocked}
-                title={
-                  textLocked
-                    ? 'This scene is being written or queued — edit it once that is done.'
-                    : undefined
-                }
-                data-testid="story-beat-edit"
-                onClick={openSheet}
-              >
-                Edit scene
-              </button>
-            ) : null}
-            {onPoseChange ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                data-testid="story-beat-pose-open"
-                onClick={openSheet}
-              >
-                Pose…
-              </button>
-            ) : null}
-            {canOpen && onOpen ? (
-              <button type="button" className={SHOT_CARD_MENU_ITEM_CLASS} onClick={onOpen}>
-                Open full size
-              </button>
-            ) : null}
-            {onFixArea &&
-            !withheld &&
-            beat.stillStatus === 'completed' &&
-            beat.imageUrl?.trim() &&
-            !looksLikeMotionUrl(beat.imageUrl) ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
-                data-testid="story-beat-fix-area"
-                onClick={() => onFixArea(beat)}
-              >
-                Fix an area…
-              </button>
-            ) : null}
-            {canQueue ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                onClick={() => onQueue?.(beat)}
-              >
-                Queue still
-              </button>
-            ) : null}
-            {canAnimate ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                onClick={() => onAnimate?.(beat)}
-              >
-                {canAnimateStill ? 'Animate still' : 'Text to video'}
-              </button>
-            ) : null}
-            {onCloseUps && lastCompletedRoleplayStillUrl(beat) ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || closeUpsBusy}
-                title="Two more shots of this moment for the film — a face close-up and a detail — cut in for a beat right after it. Two Edit 2511 passes, about a minute."
-                data-testid="story-beat-close-ups"
-                onClick={() => onCloseUps(beat)}
-              >
-                {closeUpsBusy
-                  ? 'Making close-ups…'
-                  : beat.angles?.some(angle => angle.for === lastCompletedRoleplayStillUrl(beat))
-                    ? 'Redo close-ups'
-                    : 'Add close-ups'}
-              </button>
-            ) : null}
-            {canRetryStillAction ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                title="Play another still with a new seed"
-                data-testid="story-beat-retry"
-                onClick={() => onRetry?.(beat)}
-              >
-                Play another still
-              </button>
-            ) : null}
-            {canRetryClipAction ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                title="Play another clip with a new seed"
-                data-testid="story-beat-retry-clip"
-                onClick={() => onRetryClip?.(beat)}
-              >
-                Play another clip
-              </button>
-            ) : null}
-            {canExtend ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                onClick={() => onExtend?.(beat)}
-              >
-                {continueClipActionLabel({
-                  parentUrl: beat.clipUrl,
-                  engine: loadEngineSettings().engine,
-                })}
-              </button>
-            ) : null}
-            {edit &&
-            beat.clipStatus === 'completed' &&
-            beat.clipUrl?.trim() &&
-            !clipUrlIsVideo(beat.clipUrl, { promptId: beat.clipPromptId }) ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || Boolean(edit.voicingKey)}
-                title="Give this silent clip its sound — breathing, moans, the room — with the picture as it is. No words: the picture cannot move the lips."
-                data-testid="story-beat-add-voice"
-                onClick={() => {
-                  void edit
-                    .voiceBeatClip(beat)
-                    .then(error =>
-                      setAddVoiceNote(error ?? 'Sound added — the clip now has its room sound.')
-                    );
-                }}
-              >
-                {edit.voicingKey === storyBeatKey(beat) ? 'Adding sound…' : 'Add sound'}
-              </button>
-            ) : null}
-            {edit && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || Boolean(edit.extending)}
-                title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
-                data-testid="story-beat-extend"
-                onClick={() => setExtendSheetOpen(true)}
-              >
-                {edit.extending?.key === storyBeatKey(beat) ? 'Making it longer…' : 'Make it 30 s'}
-              </button>
-            ) : null}
-            {media && beat.stillStatus === 'completed' && beat.imageUrl?.trim() && !withheld ? (
-              <>
+            <ShotCardMenuGroup>
+              {edit ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || textLocked}
+                  title={
+                    textLocked
+                      ? 'This scene is being written or queued — edit it once that is done.'
+                      : undefined
+                  }
+                  data-testid="story-beat-edit"
+                  onClick={openSheet}
+                >
+                  Edit scene
+                </button>
+              ) : null}
+              {onPoseChange ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  data-testid="story-beat-pose-open"
+                  onClick={openSheet}
+                >
+                  Pose…
+                </button>
+              ) : null}
+              {canOpen && onOpen ? (
+                <button type="button" className={SHOT_CARD_MENU_ITEM_CLASS} onClick={onOpen}>
+                  Open full size
+                </button>
+              ) : null}
+            </ShotCardMenuGroup>
+            <ShotCardMenuGroup label="Redo">
+              {canQueue ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  onClick={() => onQueue?.(beat)}
+                >
+                  Queue still
+                </button>
+              ) : null}
+              {canRetryStillAction ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  title="Play another still with a new seed"
+                  data-testid="story-beat-retry"
+                  onClick={() => onRetry?.(beat)}
+                >
+                  Play another still
+                </button>
+              ) : null}
+              {canRetryClipAction ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  title="Play another clip with a new seed"
+                  data-testid="story-beat-retry-clip"
+                  onClick={() => onRetryClip?.(beat)}
+                >
+                  Play another clip
+                </button>
+              ) : null}
+            </ShotCardMenuGroup>
+            <ShotCardMenuGroup label="Touch up the still">
+              {onFixArea &&
+              !withheld &&
+              beat.stillStatus === 'completed' &&
+              beat.imageUrl?.trim() &&
+              !looksLikeMotionUrl(beat.imageUrl) ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
+                  data-testid="story-beat-fix-area"
+                  onClick={() => onFixArea(beat)}
+                >
+                  Fix an area…
+                </button>
+              ) : null}
+              {media && stillTools ? (
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -364,6 +302,8 @@ export function RoleplayStoryBeatCard({
                 >
                   Sketch over this still…
                 </button>
+              ) : null}
+              {media && stillTools ? (
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -373,15 +313,8 @@ export function RoleplayStoryBeatCard({
                 >
                   Relight…
                 </button>
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || media.busy !== null}
-                  data-testid="story-beat-moves"
-                  onClick={() => setMediaSheet('moves')}
-                >
-                  Copy moves from a video…
-                </button>
+              ) : null}
+              {media && stillTools ? (
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -396,6 +329,47 @@ export function RoleplayStoryBeatCard({
                 >
                   Upscale to 4K
                 </button>
+              ) : null}
+              {onCloseUps && lastCompletedRoleplayStillUrl(beat) ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || closeUpsBusy}
+                  title="Two more shots of this moment for the film — a face close-up and a detail — cut in for a beat right after it. Two Edit 2511 passes, about a minute."
+                  data-testid="story-beat-close-ups"
+                  onClick={() => onCloseUps(beat)}
+                >
+                  {closeUpsBusy
+                    ? 'Making close-ups…'
+                    : beat.angles?.some(angle => angle.for === lastCompletedRoleplayStillUrl(beat))
+                      ? 'Redo close-ups'
+                      : 'Add close-ups'}
+                </button>
+              ) : null}
+            </ShotCardMenuGroup>
+            <ShotCardMenuGroup label="Make it move">
+              {canAnimate ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  onClick={() => onAnimate?.(beat)}
+                >
+                  {canAnimateStill ? 'Animate still' : 'Text to video'}
+                </button>
+              ) : null}
+              {media && stillTools ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-moves"
+                  onClick={() => setMediaSheet('moves')}
+                >
+                  Copy moves from a video…
+                </button>
+              ) : null}
+              {media && stillTools ? (
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -405,6 +379,8 @@ export function RoleplayStoryBeatCard({
                 >
                   Dance to music…
                 </button>
+              ) : null}
+              {media && stillTools ? (
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -414,67 +390,119 @@ export function RoleplayStoryBeatCard({
                 >
                   Lip-sync to a recording…
                 </button>
-              </>
-            ) : null}
-            {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || media.busy !== null}
-                data-testid="story-beat-finish"
-                onClick={() =>
-                  runMedia(media.finish(beat), 'Done — the clip is sharper and smoother.')
-                }
-              >
-                Sharpen &amp; smooth clip
-              </button>
-            ) : null}
-            {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || media.busy !== null}
-                title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes."
-                data-testid="story-beat-realism"
-                onClick={() =>
-                  runMedia(
-                    media.realism(beat),
-                    'Done — the clip looks more real (the original is in the Gallery).'
-                  )
-                }
-              >
-                Make more realistic
-              </button>
-            ) : null}
-            {canTakeVoice ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy || takingVoice}
-                title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
-                data-testid="story-beat-take-voice"
-                onClick={() => void takeVoice()}
-              >
-                Use this voice
-              </button>
-            ) : null}
-            {canCopy ? (
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                disabled={busy}
-                onClick={() => onCopy?.(beat)}
-              >
-                Copy prompt
-              </button>
-            ) : null}
-            {comfyPromptId ? (
-              <OpenInComfyButton
-                promptId={comfyPromptId}
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                testId="story-beat-open-in-comfy"
-              />
-            ) : null}
+              ) : null}
+            </ShotCardMenuGroup>
+            <ShotCardMenuGroup label="The clip">
+              {canExtend ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  onClick={() => onExtend?.(beat)}
+                >
+                  {continueClipActionLabel({
+                    parentUrl: beat.clipUrl,
+                    engine: loadEngineSettings().engine,
+                  })}
+                </button>
+              ) : null}
+              {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  data-testid="story-beat-finish"
+                  onClick={() =>
+                    runMedia(media.finish(beat), 'Done — the clip is sharper and smoother.')
+                  }
+                >
+                  Sharpen &amp; smooth clip
+                </button>
+              ) : null}
+              {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes."
+                  data-testid="story-beat-realism"
+                  onClick={() =>
+                    runMedia(
+                      media.realism(beat),
+                      'Done — the clip looks more real (the original is in the Gallery).'
+                    )
+                  }
+                >
+                  Make more realistic
+                </button>
+              ) : null}
+              {edit && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || Boolean(edit.extending)}
+                  title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
+                  data-testid="story-beat-extend"
+                  onClick={() => setExtendSheetOpen(true)}
+                >
+                  {edit.extending?.key === storyBeatKey(beat)
+                    ? 'Making it longer…'
+                    : 'Make it 30 s'}
+                </button>
+              ) : null}
+              {edit &&
+              beat.clipStatus === 'completed' &&
+              beat.clipUrl?.trim() &&
+              !clipUrlIsVideo(beat.clipUrl, { promptId: beat.clipPromptId }) ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || Boolean(edit.voicingKey)}
+                  title="Give this silent clip its sound — breathing, moans, the room — with the picture as it is. No words: the picture cannot move the lips."
+                  data-testid="story-beat-add-voice"
+                  onClick={() => {
+                    void edit
+                      .voiceBeatClip(beat)
+                      .then(error =>
+                        setAddVoiceNote(error ?? 'Sound added — the clip now has its room sound.')
+                      );
+                  }}
+                >
+                  {edit.voicingKey === storyBeatKey(beat) ? 'Adding sound…' : 'Add sound'}
+                </button>
+              ) : null}
+              {canTakeVoice ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || takingVoice}
+                  title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                  data-testid="story-beat-take-voice"
+                  onClick={() => void takeVoice()}
+                >
+                  Use this voice
+                </button>
+              ) : null}
+            </ShotCardMenuGroup>
+            <ShotCardMenuGroup>
+              {canCopy ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy}
+                  onClick={() => onCopy?.(beat)}
+                >
+                  Copy prompt
+                </button>
+              ) : null}
+              {comfyPromptId ? (
+                <OpenInComfyButton
+                  promptId={comfyPromptId}
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  testId="story-beat-open-in-comfy"
+                />
+              ) : null}
+            </ShotCardMenuGroup>
           </ShotCardMenu>
         </div>
         <div className="space-y-1">
