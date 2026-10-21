@@ -393,8 +393,12 @@ export function readPoseStance(
     const up = legs[kinds.indexOf('raised')]!;
     const support = legs[kinds.findIndex(kind => kind !== 'raised')]!;
     // A foot only just off the floor with the legs apart is a step, not a one-legged pose.
+    // The lifted foot near the floor, not just under the hip: a knee lifted to hip height with its
+    // shin hanging (the editor's Knee up) read "walking mid-stride".
     const step =
-      up.ankle.y > up.hip.y + unit * 0.6 && Math.abs(up.ankle.x - support.ankle.x) > unit * 0.3;
+      up.ankle.y > up.hip.y + unit * 0.6 &&
+      up.ankle.y > ground - unit * 0.3 &&
+      Math.abs(up.ankle.x - support.ankle.x) > unit * 0.3;
     stance = step
       ? 'walking mid-stride'
       : `standing on ${whose} ${support.side} leg, ${describeRaised(up)}`;

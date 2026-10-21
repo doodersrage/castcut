@@ -326,7 +326,16 @@ export function describePoseFigure(
       ) {
         // On an elbow, forearm up, the head resting on the hand.
         pose = 'prop';
-      } else if (nearHead && !overFace && elbow && along(elbow) > along(shoulder) - unit * 0.12) {
+      } else if (
+        nearHead &&
+        elbow &&
+        along(elbow) > along(shoulder) - unit * 0.12 &&
+        // Flat, a hand behind the head lands over the face: what tells them apart is the elbow,
+        // lifted well over the shoulder and out (hands at the cheeks, a phone or a camera keep it
+        // at or under the shoulder). The editor's Behind head read "hands at her face" every time.
+        (!overFace ||
+          (along(elbow) > along(shoulder) + unit * 0.2 && sideOut(elbow) > sideOut(shoulder)))
+      ) {
         pose = 'head';
       } else if (raised && !nearHead) {
         pose = Math.abs(across(wrist) - across(shoulder)) > unit * 0.6 ? 'upout' : 'overhead';
@@ -566,7 +575,18 @@ export function describePoseFigure(
   }
   // The head: tipped or turned, when the body faces the camera (a back or side view says it).
   // Weighted above the hands: a turned head is the one thing the engines drop first.
-  const headFact = !view && !lying ? headDirectionWords(head.direction, readAs) : null;
+  // Turned three-quarters the head still says what the body doesn't — a profile, chin up, head
+  // bowed — unless it is the same three-quarter turn (the editor's Head chips on the Sit figure
+  // were dropped every time).
+  const bodyQuarter = view?.match(/^turned three-quarters to (?:her|his) (left|right)$/)?.[1];
+  const sameQuarter =
+    bodyQuarter != null &&
+    isThreeQuarterHead(head.direction) &&
+    headTurnSide(head.direction!) === bodyQuarter;
+  const headFact =
+    (!view || (bodyQuarter && !sameQuarter)) && !lying
+      ? headDirectionWords(head.direction, readAs)
+      : null;
   if (headFact) {
     facts.push({ text: headFact, weight: 6.5 });
   } else if (!view && !lying) {
