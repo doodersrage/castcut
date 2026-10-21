@@ -8,7 +8,7 @@ import { loadLocalObservability } from '@/lib/server/local-observability';
 import { loadLookPack } from '@/lib/look/pack';
 import { playEffectiveProgressLabel } from '@/lib/play/campaign';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ActiveJobsChip from '@/components/ActiveJobsChip';
@@ -31,6 +31,10 @@ import {
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { choosePhoneView } from '@/lib/app/phone-view';
+import ActionMenu, {
+  ACTION_MENU_ITEM_CLASS,
+  type ActionMenuHandle,
+} from '@/components/ui/ActionMenu';
 
 type KioskTab = {
   href: string;
@@ -79,7 +83,7 @@ export default function PlayKioskShell() {
   const allowed = auth?.allowedFeatures ?? 'all';
   const [firstFilmDone, setFirstFilmDone] = useState(false);
   const [progressLabel, setProgressLabel] = useState('Film · start');
-  const [moreOpen, setMoreOpen] = useState(false);
+  const moreMenu = useRef<ActionMenuHandle>(null);
 
   useEffect(() => {
     const refresh = () => {
@@ -196,89 +200,56 @@ export default function PlayKioskShell() {
           </span>
           <ConnectionHealthChip compact />
           <PlayContinueChip variant="secondary" />
-          <div className="relative">
-            <button
-              type="button"
-              className="ui-btn-secondary px-3 py-2 text-xs"
-              data-testid="play-kiosk-more"
-              aria-expanded={moreOpen}
-              aria-haspopup="menu"
-              onClick={() => setMoreOpen(open => !open)}
-            >
-              More
-            </button>
-            {moreOpen ? (
-              <div
-                role="menu"
-                className="ui-menu-panel absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] py-1 shadow-lg"
-                data-testid="play-kiosk-more-menu"
-              >
-                {moreTabs.map(entry => {
-                  const href = entry.href === '/gallery' ? galleryHref : entry.href;
-                  return (
-                    <Link
-                      key={entry.href}
-                      href={href}
-                      role="menuitem"
-                      className={`${entry.desk ? 'lg:hidden ' : ''}block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]`}
-                      onClick={() => setMoreOpen(false)}
-                    >
-                      {entry.label}
-                    </Link>
-                  );
-                })}
-                {settingsVisible ? (
-                  <Link
-                    href={APP_NAV_SETTINGS_LINK.href}
-                    role="menuitem"
-                    className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                    onClick={() => setMoreOpen(false)}
-                  >
-                    Settings
-                  </Link>
-                ) : null}
+          <ActionMenu
+            label="More"
+            caret={false}
+            summaryClassName="ui-btn-secondary px-3 py-2 text-xs"
+            handleRef={moreMenu}
+            triggerTestId="play-kiosk-more"
+            panelTestId="play-kiosk-more-menu"
+          >
+            {moreTabs.map(entry => {
+              const href = entry.href === '/gallery' ? galleryHref : entry.href;
+              return (
                 <Link
-                  href={APP_NAV_PROFILE_LINK.href}
-                  role="menuitem"
-                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                  onClick={() => setMoreOpen(false)}
+                  key={entry.href}
+                  href={href}
+                  className={`${entry.desk ? 'lg:!hidden ' : ''}${ACTION_MENU_ITEM_CLASS}`}
                 >
-                  Profile
+                  {entry.label}
                 </Link>
-                {/* The way back after Desk on a phone (lib/app/phone-view.ts). */}
-                <Link
-                  href="/m/film"
-                  role="menuitem"
-                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] lg:hidden"
-                  data-testid="film-phone-view"
-                  onClick={() => {
-                    choosePhoneView();
-                    setMoreOpen(false);
-                  }}
-                >
-                  Phone view
-                </Link>
-                {/* A menuitem itself: a plain wrapper inside role="menu" failed axe. */}
-                <ReportBugLink
-                  role="menuitem"
-                  className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                />
-                <Link
-                  href={ROLEPLAY_FOCUS_ESCAPE_HREF}
-                  role="menuitem"
-                  className="block border-t border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                  data-testid="film-all-tools"
-                  onClick={() => {
-                    // A real switch: Film sends "/" back to Play, so leaving it means Studio.
-                    saveWorkspaceMode('studio');
-                    setMoreOpen(false);
-                  }}
-                >
-                  All tools
-                </Link>
-              </div>
+              );
+            })}
+            {settingsVisible ? (
+              <Link href={APP_NAV_SETTINGS_LINK.href} className={ACTION_MENU_ITEM_CLASS}>
+                Settings
+              </Link>
             ) : null}
-          </div>
+            <Link href={APP_NAV_PROFILE_LINK.href} className={ACTION_MENU_ITEM_CLASS}>
+              Profile
+            </Link>
+            {/* The way back after Desk on a phone (lib/app/phone-view.ts). */}
+            <Link
+              href="/m/film"
+              className={`${ACTION_MENU_ITEM_CLASS} lg:!hidden`}
+              data-testid="film-phone-view"
+              onClick={() => choosePhoneView()}
+            >
+              Phone view
+            </Link>
+            <ReportBugLink className={ACTION_MENU_ITEM_CLASS} />
+            <Link
+              href={ROLEPLAY_FOCUS_ESCAPE_HREF}
+              className={`${ACTION_MENU_ITEM_CLASS} border-t !border-t-[var(--border-subtle)]`}
+              data-testid="film-all-tools"
+              onClick={() => {
+                // A real switch: Film sends "/" back to Play, so leaving it means Studio.
+                saveWorkspaceMode('studio');
+              }}
+            >
+              All tools
+            </Link>
+          </ActionMenu>
         </div>
       </header>
       <nav
@@ -321,7 +292,7 @@ export default function PlayKioskShell() {
                     ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
                     : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
                 ].join(' ')}
-                onClick={() => setMoreOpen(true)}
+                onClick={() => moreMenu.current?.open()}
               >
                 <span className="text-sm font-medium">More</span>
               </button>

@@ -1,6 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
+
+/** Opens the menu from elsewhere (a phone dock's More opening the header's menu). */
+export type ActionMenuHandle = { open: () => void };
 
 /**
  * A small "Label ▾" overflow menu for rare row / page actions. Closes when an item is
@@ -11,21 +14,34 @@ export default function ActionMenu({
   children,
   align = 'right',
   testId,
+  triggerTestId,
+  panelTestId,
   summaryClassName = 'ui-btn-ghost ui-btn-sm type-caption',
   summaryAriaLabel,
   caret = true,
+  handleRef,
 }: {
   label: ReactNode;
   children: ReactNode;
   align?: 'left' | 'right';
   testId?: string;
+  /** Test id of the trigger, when it is not `${testId}-trigger` (a menu rebuilt on this one). */
+  triggerTestId?: string;
+  /** Test id of the opened panel. */
+  panelTestId?: string;
   summaryClassName?: string;
   /** Accessible name for an icon-only trigger (a ⋯ button). */
   summaryAriaLabel?: string;
   /** The "▾" after the label; off for icon triggers. */
   caret?: boolean;
+  handleRef?: Ref<ActionMenuHandle>;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
+  useImperativeHandle(handleRef, () => ({
+    open: () => {
+      if (ref.current) ref.current.open = true;
+    },
+  }));
   const panelRef = useRef<HTMLDivElement>(null);
   const [flip, setFlip] = useState(false);
 
@@ -72,13 +88,14 @@ export default function ActionMenu({
       <summary
         className={`${summaryClassName} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
         aria-label={summaryAriaLabel}
-        data-testid={testId ? `${testId}-trigger` : undefined}
+        data-testid={triggerTestId ?? (testId ? `${testId}-trigger` : undefined)}
       >
         {label}
         {caret ? ' ▾' : null}
       </summary>
       <div
         ref={panelRef}
+        data-testid={panelTestId}
         className={`ui-menu-panel absolute z-40 mt-1 flex max-h-[70vh] min-w-[12rem] flex-col items-stretch gap-0.5 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-1 shadow-lg ${
           (align === 'right') !== flip ? 'right-0' : 'left-0'
         }`}
