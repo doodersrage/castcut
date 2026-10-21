@@ -1,10 +1,11 @@
-import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { transferMotion } from '@/lib/video/motion-transfer-server';
+import { ClipJobBusyError } from '@/lib/clip/clip-jobs';
+import { describeClipJobError, runningClipJob, startClipJob } from '@/lib/clip/clip-jobs-server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 1900;
 
 /** Under the app's 80 MB request cap (next.config proxyClientMaxBodySize). */
 const MAX_VIDEO_BYTES = 78 * 1024 * 1024;
@@ -35,21 +36,27 @@ export async function POST(request: Request) {
     return apiError('That video is too large (80 MB at most) — trim it, or record at 1080p.', 413);
   const stillUrl = text(form.get('stillUrl'), 2000);
   if (!stillUrl) return apiError('stillUrl is required.', 400);
-  try {
-    const url = await transferMotion({
-      video: new Uint8Array(await video.arrayBuffer()),
-      stillUrl,
-      look: text(form.get('look'), 600),
-      place: text(form.get('place'), 300) || undefined,
-      motion: text(form.get('motion'), 300) || undefined,
-      keepSound: text(form.get('keepSound'), 8) === 'true',
-      comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
-      requestOrigin: new URL(request.url).origin,
-      userId: user?.id ?? null,
-    });
-    return apiJson({ url });
-  } catch (error) {
-    // Missing models → 424 with the files and a Settings link; ComfyUI down → 503.
-    return apiErrorFrom(error, 502, { service: 'comfyui', fallback: 'Copy moves failed.' });
-  }
+  const videoBytes = new Uint8Array(await video.arrayBuffer());
+  const running = runningClipJob();
+  if (running) return apiError(new ClipJobBusyError(running).message, 409, { running });
+  const job = startClipJob(
+    'moves',
+    context =>
+      transferMotion({
+        video: videoBytes,
+        stillUrl,
+        look: text(form.get('look'), 600),
+        place: text(form.get('place'), 300) || undefined,
+        motion: text(form.get('motion'), 300) || undefined,
+        keepSound: text(form.get('keepSound'), 8) === 'true',
+        comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
+        requestOrigin: new URL(request.url).origin,
+        userId: user?.id ?? null,
+        job: context,
+      }),
+    { describeError: describeClipJobError }
+  );
+  return job
+    ? apiJson({ job })
+    : apiError(new ClipJobBusyError().message, 409, { running: runningClipJob() });
 }

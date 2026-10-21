@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * Client calls for the finishing tools on a still or clip: Copy moves (/api/clip/moves), Lip-sync (/api/clip/lip-sync) and Relight (/api/still/relight).
- * Each resolves to the new media's URL and rejects with the server's message. Sharpen & smooth
- * and Make more realistic run as background jobs instead (clip/clip-jobs-tracker.ts).
+ * Client calls for the quick finishing tools (Relight, Sketch): each resolves to the new media's
+ * URL. The long ones — Sharpen & smooth, Make more realistic, Copy moves, Dance to music,
+ * Lip-sync, Upscale — run as background jobs (clip/clip-jobs-tracker.ts); the form builders for
+ * their uploads are here.
  */
 
 async function readUrl(response: Response, fallback: string): Promise<string> {
@@ -22,14 +23,15 @@ export async function requestRelight(stillUrl: string, look: string): Promise<st
   return readUrl(response, 'Relight failed.');
 }
 
-export async function requestCopyMoves(input: {
+/** Copy moves' request (a background job, clip/clip-jobs-tracker.ts). */
+export function copyMovesForm(input: {
   video: Blob;
   stillUrl: string;
   look: string;
   place?: string;
   motion?: string;
   keepSound?: boolean;
-}): Promise<string> {
+}): FormData {
   const form = new FormData();
   form.set('video', input.video, 'moves.mp4');
   form.set('stillUrl', input.stillUrl);
@@ -37,53 +39,40 @@ export async function requestCopyMoves(input: {
   if (input.place) form.set('place', input.place);
   if (input.motion) form.set('motion', input.motion);
   if (input.keepSound) form.set('keepSound', 'true');
-  const response = await fetch('/api/clip/moves', {
-    method: 'POST',
-    credentials: 'same-origin',
-    body: form,
-  });
-  return readUrl(response, 'Copy moves failed.');
+  return form;
 }
 
-export async function requestLipSync(input: {
+/** Lip-sync's request (a background job). */
+export function lipSyncForm(input: {
   audio: Blob;
   /** Two people: the right-hand person's recording, said after the left-hand one's. */
   audio2?: Blob | null;
   stillUrl: string;
   prompt?: string;
-}): Promise<string> {
+}): FormData {
   const form = new FormData();
   form.set('audio', input.audio, 'voice');
   if (input.audio2) form.set('audio2', input.audio2, 'voice-2');
   form.set('stillUrl', input.stillUrl);
   if (input.prompt) form.set('prompt', input.prompt);
-  const response = await fetch('/api/clip/lip-sync', {
-    method: 'POST',
-    credentials: 'same-origin',
-    body: form,
-  });
-  return readUrl(response, 'Lip-sync failed.');
+  return form;
 }
 
-export async function requestDanceToMusic(input: {
+/** Dance to music's request (a background job). */
+export function danceForm(input: {
   music: Blob;
   stillUrl: string;
   style: string;
   amplitude: string;
   start?: number;
-}): Promise<string> {
+}): FormData {
   const form = new FormData();
   form.set('music', input.music, 'music');
   form.set('stillUrl', input.stillUrl);
   form.set('style', input.style);
   form.set('amplitude', input.amplitude);
   if (input.start) form.set('start', String(input.start));
-  const response = await fetch('/api/clip/dance', {
-    method: 'POST',
-    credentials: 'same-origin',
-    body: form,
-  });
-  return readUrl(response, 'Dance to music failed.');
+  return form;
 }
 
 export async function requestSketch(input: {
@@ -101,17 +90,4 @@ export async function requestSketch(input: {
     body: form,
   });
   return readUrl(response, 'Sketch failed.');
-}
-
-export async function requestUpscaleStill(
-  stillUrl: string,
-  target: '2x' | '4k' = '4k'
-): Promise<string> {
-  const response = await fetch('/api/still/upscale', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ stillUrl, target }),
-  });
-  return readUrl(response, 'Upscale failed.');
 }

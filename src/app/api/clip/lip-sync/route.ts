@@ -1,10 +1,11 @@
-import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { lipSyncStill } from '@/lib/audio/lip-sync-server';
+import { ClipJobBusyError } from '@/lib/clip/clip-jobs';
+import { describeClipJobError, runningClipJob, startClipJob } from '@/lib/clip/clip-jobs-server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 1900;
 
 /** The recording upload cap. */
 const MAX_AUDIO_BYTES = 60 * 1024 * 1024;
@@ -18,7 +19,7 @@ const text = (value: FormDataEntryValue | null, max: number) =>
 
 /**
  * POST multipart { audio (file), audio2? (file: the right-hand person, after the left), stillUrl,
- * prompt?, comfyUrl? } → { url }: the still speaking it.
+ * prompt?, comfyUrl? } → { job } at once (a background job — follow it at /api/clip/jobs?jobId=): the still speaking it.
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -39,21 +40,28 @@ export async function POST(request: Request) {
     return apiError('Those recordings are too large (60 MB at most).', 413);
   const stillUrl = text(form.get('stillUrl'), 2000);
   if (!stillUrl) return apiError('stillUrl is required.', 400);
-  try {
-    const url = await lipSyncStill({
-      audio: new Uint8Array(await audio.arrayBuffer()),
-      ...(second ? { secondAudio: new Uint8Array(await second.arrayBuffer()) } : {}),
-      stillUrl,
-      prompt:
-        text(form.get('prompt'), 600) ||
-        'A person talking to the camera, natural expressions and small head movements.',
-      comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
-      requestOrigin: new URL(request.url).origin,
-      userId: user?.id ?? null,
-    });
-    return apiJson({ url });
-  } catch (error) {
-    // Missing models → 424 with the files and a Settings link; ComfyUI down → 503.
-    return apiErrorFrom(error, 502, { service: 'comfyui', fallback: 'Lip-sync failed.' });
-  }
+  const audioBytes = new Uint8Array(await audio.arrayBuffer());
+  const secondBytes = second ? new Uint8Array(await second.arrayBuffer()) : null;
+  const running = runningClipJob();
+  if (running) return apiError(new ClipJobBusyError(running).message, 409, { running });
+  const job = startClipJob(
+    'lip-sync',
+    context =>
+      lipSyncStill({
+        audio: audioBytes,
+        ...(secondBytes ? { secondAudio: secondBytes } : {}),
+        stillUrl,
+        prompt:
+          text(form.get('prompt'), 600) ||
+          'A person talking to the camera, natural expressions and small head movements.',
+        comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
+        requestOrigin: new URL(request.url).origin,
+        userId: user?.id ?? null,
+        job: context,
+      }),
+    { describeError: describeClipJobError }
+  );
+  return job
+    ? apiJson({ job })
+    : apiError(new ClipJobBusyError().message, 409, { running: runningClipJob() });
 }

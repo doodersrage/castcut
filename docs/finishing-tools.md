@@ -39,7 +39,7 @@ Queue, Animate and Play another.
 Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth** and
 **Make more realistic**. The new clip is kept next to the original. One clip job runs at a time.
 
-Both run in the background. The **jobs tray** shows how far along a job is (Make more realistic
+These two — and Copy moves, Dance to music, Lip-sync and Upscale to 4K — run in the background. The **jobs tray** shows how far along a job is (Make more realistic
 counts its parts and gives the time left) with a **Cancel** button, which also stops the work in
 ComfyUI. Reloading or leaving the page doesn't lose the clip: the tray carries on, keeps the clip
 in the Gallery when it's done and puts it on the Day slot or Story scene next time that's open.

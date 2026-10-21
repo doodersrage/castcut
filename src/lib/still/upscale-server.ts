@@ -8,6 +8,7 @@ import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import { comfyBaseUrl, type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
 import { CLIP_FINISH_MODELS } from '../clip/finish';
 import { requireComfyModels, runHeavyComfyGraph } from '../server/heavy-graph-server';
+import type { ClipJobContext } from '../clip/clip-jobs-server';
 import {
   buildStillUpscaleGraph,
   STILL_UPSCALE_SAVE_NODE,
@@ -23,6 +24,8 @@ export async function upscaleStill(input: {
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
+  /** The background job's signal and progress (clip/clip-jobs-server.ts). */
+  job?: ClipJobContext;
   seed?: number;
 }): Promise<string> {
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
@@ -46,7 +49,9 @@ export async function upscaleStill(input: {
     filename: 'castcut-upscale.png',
     mimeType: still.contentType || 'image/png',
   });
+  input.job?.progress({ total: 2, done: 1, note: 'Upscaling on ComfyUI' });
   const result = await runHeavyComfyGraph<ComfyImageRef>({
+    signal: input.job?.signal,
     baseUrl,
     comfyUrl: input.comfyUrl,
     label: 'upscale',

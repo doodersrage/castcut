@@ -1,11 +1,12 @@
 /**
- * Clip finishing jobs (Sharpen & smooth, Make more realistic): minutes-long GPU passes the server
- * runs in the background. Client-safe: the job's shape, its progress words, and the HTTP calls.
+ * Finishing jobs (Sharpen & smooth, Make more realistic, Copy moves, Dance to music, Lip-sync,
+ * Upscale to 4K): minutes-long GPU passes the server runs in the background — one request each
+ * was cut off by Node's 5-minute request timeout, and the result was lost. Client-safe: the job's shape, its progress words, and the HTTP calls.
  * The server side is clip-jobs-server.ts; the browser's record of jobs it is waiting on (so a
  * reload picks them back up) is clip-jobs-tracker.ts.
  */
 
-export type ClipJobTool = 'finish' | 'realism';
+export type ClipJobTool = 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'upscale';
 
 export type ClipJobStatus = 'running' | 'completed' | 'error' | 'cancelled';
 
@@ -31,11 +32,19 @@ export type ClipJob = {
 export const CLIP_JOB_LABEL: Record<ClipJobTool, string> = {
   finish: 'Sharpen & smooth',
   realism: 'Make more realistic',
+  moves: 'Copy moves',
+  dance: 'Dance to music',
+  'lip-sync': 'Lip-sync',
+  upscale: 'Upscale to 4K',
 };
 
 export const CLIP_JOB_ENDPOINT: Record<ClipJobTool, string> = {
   finish: '/api/clip/finish',
   realism: '/api/clip/realism',
+  moves: '/api/clip/moves',
+  dance: '/api/clip/dance',
+  'lip-sync': '/api/clip/lip-sync',
+  upscale: '/api/still/upscale',
 };
 
 /** Thrown when another clip job holds the GPU (the server runs one at a time). */
@@ -97,17 +106,18 @@ async function readJob(response: Response, fallback: string): Promise<ClipJob> {
   return body.job;
 }
 
-/** Start a clip job (client): the job, at once. */
+/** Start a clip job (client): the job, at once. A FormData body goes up as a multipart form. */
 export async function startClipJob(
   tool: ClipJobTool,
-  body: Record<string, unknown>,
+  body: Record<string, unknown> | FormData,
   fetchImpl: typeof fetch = fetch
 ): Promise<ClipJob> {
+  const form = typeof FormData !== 'undefined' && body instanceof FormData;
   const response = await fetchImpl(CLIP_JOB_ENDPOINT[tool], {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    ...(form ? {} : { headers: { 'Content-Type': 'application/json' } }),
     credentials: 'same-origin',
-    body: JSON.stringify(body),
+    body: form ? body : JSON.stringify(body),
   });
   return readJob(response, `${CLIP_JOB_LABEL[tool]} failed.`);
 }

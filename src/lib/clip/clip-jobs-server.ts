@@ -76,7 +76,7 @@ export function startClipJob(
       status: 'running',
       done: 0,
       total: 1,
-      note: 'Getting the clip ready…',
+      note: 'Getting ready…',
       startedAt: Date.now(),
     },
     controller,

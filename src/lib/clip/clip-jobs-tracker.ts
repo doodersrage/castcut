@@ -8,7 +8,7 @@
  * the new clip in place next time it is open. Failures keep their request, for Retry.
  */
 
-import { keepClipInGallery } from './gallery-keep';
+import { keepClipInGallery, keepStillInGallery } from './gallery-keep';
 import {
   cancelClipJob,
   CLIP_JOB_LABEL,
@@ -24,7 +24,13 @@ import { pushSystemTrayMessage } from '../app/system-tray-messages';
 import { pushNotification } from '../app/notification-center';
 import { settingsComfyUiSectionHref } from '../settings/comfyui-nav';
 
-export type ClipJobKeep = Omit<Parameters<typeof keepClipInGallery>[0], 'url' | 'fetchImpl'>;
+/** How the result is kept in the Gallery: a clip (the default), or a still (Upscale). */
+export type ClipJobKeep =
+  | (Omit<Parameters<typeof keepClipInGallery>[0], 'url' | 'fetchImpl'> & { media?: 'clip' })
+  | (Omit<Parameters<typeof keepStillInGallery>[0], 'url' | 'fetchImpl'> & { media: 'still' });
+
+/** A job's request: JSON, or a form with an upload (Copy moves' video, a song, a recording). */
+export type ClipJobBody = Record<string, unknown> | FormData;
 
 /** Who started a job and gets its clip: a feature and its own id for the item (a slot id). */
 export type ClipJobOwner = { feature: string; ref: string };
@@ -36,10 +42,15 @@ export type TrackedClipJob = {
   tool: ClipJobTool;
   /** "Make more realistic · Morning coffee". */
   label: string;
-  /** The request, for Retry. */
-  body: Record<string, unknown>;
+  /**
+   * The request, for Retry. A form with an upload isn't stored (a video can't go in browser
+   * storage): its Retry works until the page is reloaded (see `forms`).
+   */
+  body: Record<string, unknown> | null;
   keep: ClipJobKeep;
   owner?: ClipJobOwner;
+  /** The clip or still it started from, so its owner can tell it still has it. */
+  source?: string;
   state: 'running' | 'kept' | 'failed';
   /** The server's last word on it. */
   job: ClipJob;
@@ -58,6 +69,7 @@ const POLL_MS = 4000;
 let deps = {
   fetch: (...args: Parameters<typeof fetch>) => fetch(...args),
   keep: keepClipInGallery,
+  keepStill: keepStillInGallery,
   toast: pushSystemTrayMessage,
   notify: pushNotification,
   sleep: (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)),
@@ -67,6 +79,7 @@ let deps = {
 export function forgetWatchedClipJobsForTest(): void {
   drives.clear();
   awaited.clear();
+  forms.clear();
 }
 
 /** Test hook. */
@@ -125,6 +138,17 @@ function withJobLock(
   ) as unknown as Promise<KeptClip | null>; // resolves with the callback's result
 }
 
+/** This page's upload forms by job id, for Retry (they can't be stored). */
+const forms = new Map<string, FormData>();
+
+const isForm = (body: ClipJobBody): body is FormData =>
+  typeof FormData !== 'undefined' && body instanceof FormData;
+
+/** Whether a failed job can be retried from here (an upload form is gone after a reload). */
+export function canRetryClipJob(entry: TrackedClipJob): boolean {
+  return entry.body !== null || forms.has(entry.jobId);
+}
+
 /** Ids a page is awaiting itself (its promise puts the clip in place; the tray only watches). */
 const awaited = new Set<string>();
 const drives = new Map<string, Promise<KeptClip>>();
@@ -156,8 +180,7 @@ function announceFailure(entry: TrackedClipJob): void {
           text: failureText(entry, entry.error ?? 'it did not finish.'),
           tone: 'danger',
           ttlMs: 0,
-          actionLabel: 'Retry',
-          actionEvent: retryEvent,
+          ...(canRetryClipJob(entry) ? { actionLabel: 'Retry', actionEvent: retryEvent } : {}),
         }
   );
 }
@@ -207,7 +230,10 @@ function drive(jobId: string): Promise<KeptClip> {
           ? new ClipJobMissingModelsError(message, job.missing)
           : new Error(failureText(entry, message));
       }
-      const kept = await deps.keep({ ...entry.keep, url: job.url });
+      const kept =
+        entry.keep.media === 'still'
+          ? await deps.keepStill({ ...entry.keep, url: job.url })
+          : await deps.keep({ ...entry.keep, url: job.url });
       const done = update(jobId, { state: 'kept', job, kept });
       deps.notify({
         kind: 'job',
@@ -230,9 +256,10 @@ function drive(jobId: string): Promise<KeptClip> {
  */
 export async function runClipJob(input: {
   tool: ClipJobTool;
-  body: Record<string, unknown>;
+  body: ClipJobBody;
   keep: ClipJobKeep;
   owner?: ClipJobOwner;
+  source?: string;
   label: string;
 }): Promise<KeptClip> {
   const job = await startClipJob(input.tool, input.body, deps.fetch);
@@ -240,14 +267,16 @@ export async function runClipJob(input: {
     jobId: job.id,
     tool: input.tool,
     label: input.label,
-    body: input.body,
+    body: isForm(input.body) ? null : input.body,
     keep: input.keep,
     owner: input.owner,
+    ...(input.source ? { source: input.source } : {}),
     state: 'running',
     job,
     at: Date.now(),
   };
   save([entry, ...loadTrackedClipJobs().filter(item => item.jobId !== job.id)]);
+  if (isForm(input.body)) forms.set(job.id, input.body);
   awaited.add(job.id);
   try {
     const kept = await withJobLock(job.id, true, () => drive(job.id));
@@ -302,8 +331,11 @@ export async function cancelTrackedClipJob(jobId: string): Promise<void> {
 export async function retryClipJob(jobId: string): Promise<KeptClip> {
   const entry = loadTrackedClipJobs().find(item => item.jobId === jobId);
   if (!entry) throw new Error('That clip job is gone.');
+  const body = entry.body ?? forms.get(jobId);
+  if (!body) throw new Error('Pick the file again to retry — the page was reloaded since.');
   remove(jobId);
-  return runClipJob(entry);
+  forms.delete(jobId);
+  return runClipJob({ ...entry, body });
 }
 
 /** Forget a failed job. */

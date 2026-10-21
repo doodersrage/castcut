@@ -1,16 +1,17 @@
-import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import { StillAlreadyLargeError, upscaleStill } from '@/lib/still/upscale-server';
+import { upscaleStill } from '@/lib/still/upscale-server';
+import { ClipJobBusyError } from '@/lib/clip/clip-jobs';
+import { describeClipJobError, runningClipJob, startClipJob } from '@/lib/clip/clip-jobs-server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 920;
 
 export async function GET() {
   return apiMethodNotAllowed(['POST'], '/api/still/upscale');
 }
 
-/** POST { stillUrl, target: '2x' | '4k', comfyUrl? } → { url }: the still upscaled (SeedVR2). */
+/** POST { stillUrl, target: '2x' | '4k', comfyUrl? } → { job } at once (a background job — follow it at /api/clip/jobs?jobId=): the still upscaled (SeedVR2). */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
   if (isAuthEnabled() && !user?.enabled) return apiError('Authentication required.', 401);
@@ -22,18 +23,23 @@ export async function POST(request: Request) {
   }
   const stillUrl = typeof body.stillUrl === 'string' ? body.stillUrl.trim().slice(0, 2000) : '';
   if (!stillUrl) return apiError('stillUrl is required.', 400);
-  try {
-    const url = await upscaleStill({
-      stillUrl,
-      target: body.target === '2x' ? '2x' : '4k',
-      comfyUrl: typeof body.comfyUrl === 'string' ? body.comfyUrl.trim().slice(0, 300) : undefined,
-      requestOrigin: new URL(request.url).origin,
-      userId: user?.id ?? null,
-    });
-    return apiJson({ url });
-  } catch (error) {
-    if (error instanceof StillAlreadyLargeError) return apiError(error.message, 409);
-    // Missing models → 424 with the files and a Settings link; ComfyUI down → 503.
-    return apiErrorFrom(error, 502, { service: 'comfyui', fallback: 'Upscale failed.' });
-  }
+  const running = runningClipJob();
+  if (running) return apiError(new ClipJobBusyError(running).message, 409, { running });
+  const job = startClipJob(
+    'upscale',
+    context =>
+      upscaleStill({
+        stillUrl,
+        target: body.target === '2x' ? '2x' : '4k',
+        comfyUrl:
+          typeof body.comfyUrl === 'string' ? body.comfyUrl.trim().slice(0, 300) : undefined,
+        requestOrigin: new URL(request.url).origin,
+        userId: user?.id ?? null,
+        job: context,
+      }),
+    { describeError: describeClipJobError }
+  );
+  return job
+    ? apiJson({ job })
+    : apiError(new ClipJobBusyError().message, 409, { running: runningClipJob() });
 }

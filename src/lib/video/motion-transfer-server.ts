@@ -11,6 +11,7 @@ import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import { comfyBaseUrl, type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
 import { requireComfyModels, runHeavyComfyGraph } from '../server/heavy-graph-server';
+import type { ClipJobContext } from '../clip/clip-jobs-server';
 import { readClipStream } from '../clip/finish-server';
 import {
   buildMotionTransferGraph,
@@ -52,6 +53,8 @@ export async function transferMotion(input: {
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
+  /** The background job's signal and progress (clip/clip-jobs-server.ts). */
+  job?: ClipJobContext;
   seed?: number;
 }): Promise<string> {
   const ffmpeg = await resolveFfmpegBinary();
@@ -117,7 +120,9 @@ export async function transferMotion(input: {
         mimeType: still.contentType || 'image/png',
       }),
     ]);
+    input.job?.progress({ total: 2, done: 1, note: 'Copying the moves on ComfyUI' });
     const result = await runHeavyComfyGraph<ComfyImageRef>({
+      signal: input.job?.signal,
       baseUrl,
       comfyUrl: input.comfyUrl,
       label: 'copy-moves',

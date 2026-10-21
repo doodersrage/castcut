@@ -1,5 +1,6 @@
 'use client';
 
+import { useClipJobProgress } from '@/hooks/useClipJobProgress';
 import ClipExtendSheet from '@/components/ClipExtendSheet';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useState } from 'react';
@@ -113,6 +114,7 @@ export function RoleplayStoryBeatCard({
   const [extendSheetOpen, setExtendSheetOpen] = useState(false);
   const [mediaSheet, setMediaSheet] = useState<SlotMediaSheetKind | null>(null);
   const [mediaNote, setMediaNote] = useState<string | null>(null);
+  const jobProgress = useClipJobProgress('story');
   const [sketchOpen, setSketchOpen] = useState(false);
   const media = edit?.media;
   const mediaBusyHere = media?.busy?.key === storyBeatKey(beat);
@@ -576,7 +578,9 @@ export function RoleplayStoryBeatCard({
               role="status"
               data-testid="story-beat-media-note"
             >
-              {mediaBusyHere ? 'Working on it… (a few minutes)' : mediaNote}
+              {mediaBusyHere
+                ? `Working on it… ${jobProgress[storyBeatKey(beat)] ? `— ${jobProgress[storyBeatKey(beat)]}` : '(a few minutes)'}`
+                : mediaNote}
             </p>
           ) : null}
           {edit && extendRequest ? (

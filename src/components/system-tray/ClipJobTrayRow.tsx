@@ -1,20 +1,18 @@
 'use client';
 
-import Link from 'next/link';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { useState } from 'react';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import { clipTrayStatus } from '@/components/system-tray/system-tray-helpers';
 import { clipJobPercent } from '@/lib/clip/clip-jobs';
 import {
+  canRetryClipJob,
   cancelTrackedClipJob,
   dismissClipJob,
   retryClipJob,
   type TrackedClipJob,
 } from '@/lib/clip/clip-jobs-tracker';
 import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
-
-const ROW_BUTTON =
-  'shrink-0 rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-50';
 
 /** A clip job (Sharpen & smooth, Make more realistic) in the jobs panel: progress and Cancel, or Retry. */
 export function ClipJobTrayRow({ job }: { job: TrackedClipJob }) {
@@ -38,13 +36,18 @@ export function ClipJobTrayRow({ job }: { job: TrackedClipJob }) {
         <div className="flex shrink-0 gap-1.5">
           {failed ? (
             <>
-              {job.missing?.length ? (
-                <Link href={settingsComfyUiSectionHref('model-assets')} className={ROW_BUTTON}>
+              {!job.missing?.length && !canRetryClipJob(job) ? null : job.missing?.length ? (
+                <ButtonLink
+                  href={settingsComfyUiSectionHref('model-assets')}
+                  size="sm"
+                  variant="secondary"
+                >
                   Install
-                </Link>
+                </ButtonLink>
               ) : (
-                <button
-                  type="button"
+                <Button
+                  size="sm"
+                  variant="secondary"
                   data-testid="clip-job-retry"
                   disabled={pending}
                   onClick={() => {
@@ -53,33 +56,32 @@ export function ClipJobTrayRow({ job }: { job: TrackedClipJob }) {
                       .catch(() => undefined)
                       .finally(() => setPending(false));
                   }}
-                  className={ROW_BUTTON}
                 >
                   Retry
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
+              <Button
+                size="sm"
+                variant="ghost"
                 aria-label={`Dismiss ${job.label}`}
                 onClick={() => dismissClipJob(job.jobId)}
-                className={ROW_BUTTON}
               >
                 Dismiss
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              type="button"
+            <Button
+              size="sm"
+              variant="secondary"
               data-testid="clip-job-cancel"
               disabled={pending}
               onClick={() => {
                 setPending(true);
                 void cancelTrackedClipJob(job.jobId).finally(() => setPending(false));
               }}
-              className={ROW_BUTTON}
             >
               {pending ? 'Cancelling…' : 'Cancel'}
-            </button>
+            </Button>
           )}
         </div>
       </div>

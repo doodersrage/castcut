@@ -1,5 +1,6 @@
 'use client';
 
+import { useClipJobProgress } from '@/hooks/useClipJobProgress';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { DAY_IDENTITY_BARS, identityMark } from '@/lib/character/identity-mark';
 import ClipExtendSheet, { type ClipExtendChoice } from '@/components/ClipExtendSheet';
@@ -178,6 +179,7 @@ export default function DaySlotBoard({
     null
   );
   const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
+  const jobProgress = useClipJobProgress('day');
   const [sketchFor, setSketchFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
   const runMedia = async (
     slot: DaySlot,
@@ -888,7 +890,9 @@ export default function DaySlotBoard({
                       data-testid={`day-progress-media-note-${slot.id}`}
                     >
                       {mediaTools?.busy?.slotId === slot.id
-                        ? `${DAY_SLOT_MEDIA_BUSY[mediaTools.busy.tool]} (a few minutes)`
+                        ? `${DAY_SLOT_MEDIA_BUSY[mediaTools.busy.tool]} ${
+                            jobProgress[slot.id] ? `— ${jobProgress[slot.id]}` : '(a few minutes)'
+                          }`
                         : mediaNote?.text}
                     </p>
                   ) : null}

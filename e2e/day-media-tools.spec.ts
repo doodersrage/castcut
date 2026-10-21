@@ -133,9 +133,10 @@ test('Copy moves: a picked video goes up with the still and the Cast look', asyn
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-moves.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-moves.mp4');
   await openDay(page);
   await page.getByTestId('day-progress-moves-morning').click();
   await expect(page.getByTestId('slot-media-sheet-start')).toBeDisabled();
@@ -163,9 +164,10 @@ test('Lip-sync: a picked recording makes the slot clip', async ({ page }) => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-lipsync.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-lipsync.mp4');
   await openDay(page);
   await page.getByTestId('day-progress-lip-sync-morning').click();
   await page.getByTestId('slot-media-sheet-audio').setInputFiles({
@@ -259,9 +261,10 @@ test('Dance to music: a song, a style, and the clip in place', async ({ page }) 
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-dance.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-dance.mp4');
   await openDay(page);
   await page.getByTestId('day-progress-dance-morning').click();
   await page.getByTestId('slot-media-sheet-music').setInputFiles({
@@ -288,9 +291,10 @@ test('Lip-sync with two people sends both recordings', async ({ page }) => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ url: '/e2e-lipsync-2.mp4' }),
+      body: JSON.stringify({ job: clipJob('running') }),
     });
   });
+  await mockClipJobDone(page, '/e2e-lipsync-2.mp4');
   await openDay(page);
   await page.getByTestId('day-progress-lip-sync-morning').click();
   await page.getByTestId('slot-media-sheet-audio').setInputFiles({
@@ -347,8 +351,9 @@ test('Upscale to 4K replaces the shown still', async ({ page }) => {
   const posts: Array<Record<string, unknown>> = [];
   await page.route('**/api/still/upscale', route => {
     posts.push(route.request().postDataJSON() as Record<string, unknown>);
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: '/icon.svg' }) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ job: clipJob('running') }) });
   });
+  await mockClipJobDone(page, '/icon.svg');
   await openDay(page);
   await page.getByTestId('day-progress-upscale-morning').click();
   await expect(page.getByTestId('day-progress-media-note-morning')).toContainText('4K now', { timeout: 30_000 });

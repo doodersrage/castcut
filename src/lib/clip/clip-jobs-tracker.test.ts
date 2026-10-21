@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { resetBrowserStorageCache } from '../storage/browser-storage';
 import type { ClipJob } from './clip-jobs';
 import {
+  canRetryClipJob,
   forgetWatchedClipJobsForTest,
   loadTrackedClipJobs,
   orphanedClipJob,
@@ -72,6 +73,10 @@ beforeEach(() => {
     keep: async input => {
       kept.push(input);
       return { url: '/kept.mp4', promptId: 'realism-1', entryId: 'e1' };
+    },
+    keepStill: async input => {
+      kept.push({ still: true, ...input });
+      return { url: '/kept.png', promptId: 'upscale-1' };
     },
     notify: input => void notes.push(input.title),
     toast: input => {
@@ -173,5 +178,34 @@ describe('clip job tracker', () => {
       runClipJob({ tool: 'finish', body: { clipUrl: '/clip.mp4' }, keep, label: 'Sharpen & smooth' }),
       /server restarted/
     );
+  });
+
+  it('an upload form is not stored, but can be retried until a reload', async () => {
+    const { fetchImpl, calls } = server([job({ tool: 'moves', status: 'error', error: 'out of memory' })]);
+    setClipJobTrackerDepsForTest({ fetch: fetchImpl });
+    const form = new FormData();
+    form.set('stillUrl', '/still.png');
+    await assert.rejects(
+      runClipJob({ tool: 'moves', body: form, keep: { kind: 'moves', prompt: 'Copy moves', tool: 'day' }, label: 'Copy moves' })
+    );
+    assert.equal(calls[0], 'POST /api/clip/moves');
+    const failed = loadTrackedClipJobs()[0]!;
+    assert.equal(failed.body, null);
+    assert.equal(canRetryClipJob(failed), true);
+    forgetWatchedClipJobsForTest();
+    assert.equal(canRetryClipJob(failed), false);
+  });
+
+  it('an upscale is kept as a still', async () => {
+    const { fetchImpl } = server([job({ tool: 'upscale', status: 'completed', url: '/big.png' })]);
+    setClipJobTrackerDepsForTest({ fetch: fetchImpl });
+    const result = await runClipJob({
+      tool: 'upscale',
+      body: { stillUrl: '/still.png', target: '4k' },
+      keep: { media: 'still', kind: 'upscale', prompt: 'Upscale', tool: 'day', sourcePromptId: 'p1' },
+      label: 'Upscale to 4K',
+    });
+    assert.equal(result.url, '/kept.png');
+    assert.deepEqual(kept.at(-1), { still: true, media: 'still', kind: 'upscale', prompt: 'Upscale', tool: 'day', sourcePromptId: 'p1', url: '/big.png' });
   });
 });
