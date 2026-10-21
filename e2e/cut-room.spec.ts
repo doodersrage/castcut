@@ -338,6 +338,7 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
   // Overlays: a shot's lower third, set in its overlay editor.
+  await page.getByTestId('cut-shot-menu-day:morning-trigger').click();
   await page.getByTestId('cut-shot-overlay-day:morning').click();
   await page.getByTestId('cut-shot-overlay-editor-day:morning-lower').fill('Nora');
   await expect(page.getByTestId('cut-shot-overlay-day:morning')).toHaveAttribute('aria-expanded', 'true');
