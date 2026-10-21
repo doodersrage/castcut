@@ -8,7 +8,10 @@ import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
-import ShotCardMenu, { SHOT_CARD_MENU_ITEM_CLASS } from '@/components/ui/ShotCardMenu';
+import ShotCardMenu, {
+  SHOT_CARD_MENU_ITEM_CLASS,
+  ShotCardMenuGroup,
+} from '@/components/ui/ShotCardMenu';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
@@ -334,59 +337,122 @@ export default function DaySlotBoard({
           const twoTakesPick =
             still && onPickTwoTake && dayTwoTakesPending(still) && dayTwoTakesReady(still);
 
+          // The still is finished and shown: the tools that work on the picture itself.
+          const stillTools = Boolean(doneThumb) && state === 'done' && !still?.adultHold;
+          // Grouped in the order a shot is worked on: redo it, touch up the still, make it move,
+          // finish the clip. A group with nothing to show is left out.
           const menu = (
             <ShotCardMenu label={slot.label} testId={`day-progress-menu-${slot.id}`}>
-              <button
-                type="button"
-                className={SHOT_CARD_MENU_ITEM_CLASS}
-                data-testid={`day-progress-menu-edit-${slot.id}`}
-                onClick={edit}
-              >
-                Edit slot
-              </button>
-              {openable ? (
+              <ShotCardMenuGroup>
                 <button
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
-                  data-testid={`day-progress-open-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onOpenStill?.(slot.id);
-                  }}
+                  data-testid={`day-progress-menu-edit-${slot.id}`}
+                  onClick={edit}
                 >
-                  Open full size
+                  Edit slot
                 </button>
-              ) : null}
-              {canRequeue ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy}
-                  data-testid={`day-progress-requeue-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onRetrySlot?.(slot);
-                  }}
-                >
-                  Requeue · new seed
-                </button>
-              ) : null}
-              {Boolean(doneThumb) && state === 'done' && onFixArea && !still?.adultHold ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
-                  data-testid={`day-progress-fix-area-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onFixArea(slot);
-                  }}
-                >
-                  Fix an area…
-                </button>
-              ) : null}
-              {mediaTools && Boolean(doneThumb) && state === 'done' && !still?.adultHold ? (
-                <>
+                {openable ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    data-testid={`day-progress-open-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onOpenStill?.(slot.id);
+                    }}
+                  >
+                    Open full size
+                  </button>
+                ) : null}
+              </ShotCardMenuGroup>
+              <ShotCardMenuGroup label="Redo">
+                {canRequeue ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy}
+                    data-testid={`day-progress-requeue-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onRetrySlot?.(slot);
+                    }}
+                  >
+                    Requeue · new seed
+                  </button>
+                ) : null}
+                {canRequeue && onLooksWrong ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy}
+                    title="Merged bodies, a mixed-up pose, something off: redo this slot on a new seed, and remember that this pose went wrong on this engine."
+                    data-testid={`day-progress-looks-wrong-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onLooksWrong(slot);
+                    }}
+                  >
+                    Looks wrong · redo
+                  </button>
+                ) : null}
+                {state === 'failed' && onRetrySlot ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || queueBlocked}
+                    data-testid={`day-progress-retry-${slot.id}`}
+                    onClick={() => onRetrySlot(slot)}
+                  >
+                    Retry {slot.label}
+                  </button>
+                ) : null}
+                {canQueue ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy}
+                    data-testid={`day-progress-queue-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onQueueSlot?.(slot);
+                    }}
+                  >
+                    Queue this slot only
+                  </button>
+                ) : null}
+                {onRerollSlot && state === 'idle' ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy}
+                    aria-label={`Reroll ${slot.label} plan`}
+                    data-testid={`day-progress-reroll-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onRerollSlot(slot);
+                    }}
+                  >
+                    Reroll plan
+                  </button>
+                ) : null}
+              </ShotCardMenuGroup>
+              <ShotCardMenuGroup label="Touch up the still">
+                {Boolean(doneThumb) && state === 'done' && onFixArea && !still?.adultHold ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    title="Paint over a wrong hand, a stray object or a glitch and redraw only that area."
+                    data-testid={`day-progress-fix-area-${slot.id}`}
+                    onClick={() => {
+                      onSelectSlot(slot.id);
+                      onFixArea(slot);
+                    }}
+                  >
+                    Fix an area…
+                  </button>
+                ) : null}
+                {mediaTools && stillTools ? (
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -396,6 +462,8 @@ export default function DaySlotBoard({
                   >
                     Sketch over this still…
                   </button>
+                ) : null}
+                {mediaTools && stillTools ? (
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -406,16 +474,8 @@ export default function DaySlotBoard({
                   >
                     Relight…
                   </button>
-                  <button
-                    type="button"
-                    className={SHOT_CARD_MENU_ITEM_CLASS}
-                    disabled={mediaTools.busy !== null}
-                    title="Film yourself (or pick a video): this still’s person does the same moves."
-                    data-testid={`day-progress-moves-${slot.id}`}
-                    onClick={() => setMediaSheet({ slot, kind: 'moves' })}
-                  >
-                    Copy moves from a video…
-                  </button>
+                ) : null}
+                {mediaTools && stillTools ? (
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -426,6 +486,33 @@ export default function DaySlotBoard({
                   >
                     Upscale to 4K
                   </button>
+                ) : null}
+              </ShotCardMenuGroup>
+              <ShotCardMenuGroup label="Make it move">
+                {canAnimate ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy}
+                    data-testid={`day-progress-animate-${slot.id}`}
+                    onClick={() => onAnimateSlot?.(slot)}
+                  >
+                    Animate
+                  </button>
+                ) : null}
+                {mediaTools && stillTools ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Film yourself (or pick a video): this still’s person does the same moves."
+                    data-testid={`day-progress-moves-${slot.id}`}
+                    onClick={() => setMediaSheet({ slot, kind: 'moves' })}
+                  >
+                    Copy moves from a video…
+                  </button>
+                ) : null}
+                {mediaTools && stillTools ? (
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -436,6 +523,8 @@ export default function DaySlotBoard({
                   >
                     Dance to music…
                   </button>
+                ) : null}
+                {mediaTools && stillTools ? (
                   <button
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
@@ -446,144 +535,84 @@ export default function DaySlotBoard({
                   >
                     Lip-sync to a recording…
                   </button>
-                </>
-              ) : null}
-              {mediaTools && clipState === 'done' && doneClip ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || mediaTools.busy !== null}
-                  title="Upscale the clip (SeedVR2) and give a 16 fps clip twice the frames (RIFE) — a few minutes."
-                  data-testid={`day-progress-finish-${slot.id}`}
-                  onClick={() => void runMedia(slot, 'finish', () => mediaTools.finish(slot))}
-                >
-                  Sharpen &amp; smooth clip
-                </button>
-              ) : null}
-              {mediaTools && clipState === 'done' && doneClip ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || mediaTools.busy !== null}
-                  title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes. Sharpen & smooth it after."
-                  data-testid={`day-progress-realism-${slot.id}`}
-                  onClick={() => void runMedia(slot, 'realism', () => mediaTools.realism(slot))}
-                >
-                  Make more realistic
-                </button>
-              ) : null}
-              {canRequeue && onLooksWrong ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy}
-                  title="Merged bodies, a mixed-up pose, something off: redo this slot on a new seed, and remember that this pose went wrong on this engine."
-                  data-testid={`day-progress-looks-wrong-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onLooksWrong(slot);
-                  }}
-                >
-                  Looks wrong · redo
-                </button>
-              ) : null}
-              {state === 'failed' && onRetrySlot ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || queueBlocked}
-                  data-testid={`day-progress-retry-${slot.id}`}
-                  onClick={() => onRetrySlot(slot)}
-                >
-                  Retry {slot.label}
-                </button>
-              ) : null}
-              {canQueue ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy}
-                  data-testid={`day-progress-queue-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onQueueSlot?.(slot);
-                  }}
-                >
-                  Queue this slot only
-                </button>
-              ) : null}
-              {onAddVoice &&
-              clipState === 'done' &&
-              doneClip &&
-              !clipUrlIsVideo(doneClip, { promptId: still?.clipPromptId }) ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || voicing !== null}
-                  title="Give this silent clip its sound — the place around it (birds, traffic, waves, a room), and breathing on intimate clips — with the picture as it is. No words: the picture cannot move the lips."
-                  data-testid={`day-progress-add-voice-${slot.id}`}
-                  onClick={() => void addVoice(slot)}
-                >
-                  {voicing === slot.id ? 'Adding sound…' : 'Add sound'}
-                </button>
-              ) : null}
-              {onExtendClip && clipState === 'done' && doneClip ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || extending !== null}
-                  title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
-                  data-testid={`day-progress-extend-${slot.id}`}
-                  onClick={() => (extendRequestFor ? setExtendSheet(slot) : void extendClip(slot))}
-                >
-                  {extending?.slotId === slot.id ? 'Making it longer…' : 'Make it 30 s'}
-                </button>
-              ) : null}
-              {slot.line?.trim() && clipState === 'done' && doneClip ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy || voice.taking(slot.id)}
-                  title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
-                  data-testid={`day-progress-take-voice-${slot.id}`}
-                  onClick={() => void voice.take(slot.id, doneClip)}
-                >
-                  Use this voice
-                </button>
-              ) : null}
-              {canAnimate ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy}
-                  data-testid={`day-progress-animate-${slot.id}`}
-                  onClick={() => onAnimateSlot?.(slot)}
-                >
-                  Animate
-                </button>
-              ) : null}
-              {onRerollSlot && state === 'idle' ? (
-                <button
-                  type="button"
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  disabled={busy}
-                  aria-label={`Reroll ${slot.label} plan`}
-                  data-testid={`day-progress-reroll-${slot.id}`}
-                  onClick={() => {
-                    onSelectSlot(slot.id);
-                    onRerollSlot(slot);
-                  }}
-                >
-                  Reroll plan
-                </button>
-              ) : null}
-              {doneThumb && stillPromptId ? (
-                <OpenInComfyButton
-                  promptId={stillPromptId}
-                  className={SHOT_CARD_MENU_ITEM_CLASS}
-                  testId={`day-progress-comfy-${slot.id}`}
-                />
-              ) : null}
+                ) : null}
+              </ShotCardMenuGroup>
+              <ShotCardMenuGroup label="The clip">
+                {mediaTools && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || mediaTools.busy !== null}
+                    title="Upscale the clip (SeedVR2) and give a 16 fps clip twice the frames (RIFE) — a few minutes."
+                    data-testid={`day-progress-finish-${slot.id}`}
+                    onClick={() => void runMedia(slot, 'finish', () => mediaTools.finish(slot))}
+                  >
+                    Sharpen &amp; smooth clip
+                  </button>
+                ) : null}
+                {mediaTools && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || mediaTools.busy !== null}
+                    title="Re-render the clip at low strength on WAN 2.2 for real skin, water and detail; motion and framing stay — several minutes. Sharpen & smooth it after."
+                    data-testid={`day-progress-realism-${slot.id}`}
+                    onClick={() => void runMedia(slot, 'realism', () => mediaTools.realism(slot))}
+                  >
+                    Make more realistic
+                  </button>
+                ) : null}
+                {onExtendClip && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || extending !== null}
+                    title="Carry this clip on to about 30 seconds: what happens next is written from the scene and rendered in parts that continue from each other (a few minutes)."
+                    data-testid={`day-progress-extend-${slot.id}`}
+                    onClick={() =>
+                      extendRequestFor ? setExtendSheet(slot) : void extendClip(slot)
+                    }
+                  >
+                    {extending?.slotId === slot.id ? 'Making it longer…' : 'Make it 30 s'}
+                  </button>
+                ) : null}
+                {onAddVoice &&
+                clipState === 'done' &&
+                doneClip &&
+                !clipUrlIsVideo(doneClip, { promptId: still?.clipPromptId }) ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || voicing !== null}
+                    title="Give this silent clip its sound — the place around it (birds, traffic, waves, a room), and breathing on intimate clips — with the picture as it is. No words: the picture cannot move the lips."
+                    data-testid={`day-progress-add-voice-${slot.id}`}
+                    onClick={() => void addVoice(slot)}
+                  >
+                    {voicing === slot.id ? 'Adding sound…' : 'Add sound'}
+                  </button>
+                ) : null}
+                {slot.line?.trim() && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || voice.taking(slot.id)}
+                    title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                    data-testid={`day-progress-take-voice-${slot.id}`}
+                    onClick={() => void voice.take(slot.id, doneClip)}
+                  >
+                    Use this voice
+                  </button>
+                ) : null}
+              </ShotCardMenuGroup>
+              <ShotCardMenuGroup>
+                {doneThumb && stillPromptId ? (
+                  <OpenInComfyButton
+                    promptId={stillPromptId}
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    testId={`day-progress-comfy-${slot.id}`}
+                  />
+                ) : null}
+              </ShotCardMenuGroup>
             </ShotCardMenu>
           );
 
