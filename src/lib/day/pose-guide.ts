@@ -72,6 +72,7 @@ import {
 type Point = { x: number; y: number };
 
 export type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
+import { normalizePoseRig3d } from '@/lib/pose/rig3d';
 import { normalizePhotoPosture } from '@/lib/pose/vision-posture';
 import type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
 
@@ -6390,12 +6391,15 @@ export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
       ? (record as { words: string }).words.trim().slice(0, 400) || undefined
       : undefined;
   const posture = normalizePhotoPosture((record as { posture?: unknown }).posture);
+  // The 3D editor's rig: dropping it here reopened a saved 3D pose as a guess from its points.
+  const rig3d = normalizePoseRig3d((record as { rig3d?: unknown }).rig3d, people.length);
   return {
     aspect,
     people,
     ...(record.source === 'edited' ? { source: 'edited' as const } : {}),
     ...(words ? { words } : {}),
     ...(posture ? { posture } : {}),
+    ...(rig3d ? { rig3d } : {}),
   };
 }
 

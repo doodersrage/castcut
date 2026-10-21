@@ -6,6 +6,7 @@
 
 import type { PoseFacing } from '@/lib/pose/guide-openpose';
 import type { NormalizedBody } from '@/lib/pose/library';
+import type { PoseRig3d } from '@/lib/pose/rig3d';
 
 type Point = { x: number; y: number };
 
@@ -53,6 +54,11 @@ export type PhotoPose = {
    * cannot tell (a reclining body shot from above reads as standing) and what the body rests on.
    */
   posture?: PhotoPosture;
+  /**
+   * The 3D editor's body, bones and camera (pose/rig3d.ts), so reopening it is exact. `people`
+   * is always the rig projected through that camera: nothing else needs to read this.
+   */
+  rig3d?: PoseRig3d;
 };
 
 /** The vision model's read of a photo's posture (pose/vision-posture.ts). */

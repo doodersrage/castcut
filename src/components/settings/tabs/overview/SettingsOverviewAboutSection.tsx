@@ -36,6 +36,17 @@ export function SettingsOverviewAboutSection() {
             >
               Photo credits
             </a>
+            . The 3D pose editor&rsquo;s bodies are Blender Studio&rsquo;s Human Base Meshes (CC0),
+            rigged for Castcut.{' '}
+            <a
+              href="/pose-3d/LICENSE.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              data-testid="settings-pose-3d-credits"
+            >
+              Body credits
+            </a>
           </p>
         ) : null}
       </ToolSection>

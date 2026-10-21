@@ -21,6 +21,16 @@ function seedFirstFilmDone(page: Page) {
   });
 }
 
+/**
+ * Open the pose editor as the wireframe one: the tests below drag and nudge its joint dots (the
+ * 3D editor, the default, has its own spec: pose-editor-3d.spec.ts).
+ */
+function useWireframePoseEditor(page: Page) {
+  return page.addInitScript(() => {
+    window.localStorage.setItem('castcut-pose-editor-mode-v1', 'wireframe');
+  });
+}
+
 async function expandFittingMoreMenu(page: Page) {
   const details = page.locator('details').filter({ has: page.getByTestId('fitting-plan-day') });
   await details.locator('summary').click();
@@ -395,6 +405,7 @@ test('outfit footwear: a kit, barefoot, own words, own photo', async ({ page }) 
 });
 
 test('outfit custom pose: drag editor, start figures, save to My poses', async ({ page }) => {
+  await useWireframePoseEditor(page);
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: '' },
     // A try-on plate, so the editor can show it behind the figure.
@@ -1757,6 +1768,7 @@ test('play campaign shows mismatch when saved character differs', async ({ page 
 });
 
 test('day slot editor previews the pose and lets you change it', async ({ page }) => {
+  await useWireframePoseEditor(page);
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: 'e2e-day-pose' },
     tools: {

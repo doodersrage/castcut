@@ -10,7 +10,8 @@ import { poseStarterBody } from '@/lib/pose/starters';
 
 // A modal used now and then: its own chunk, shared by every page, instead of a copy in each
 // tool page's bundle.
-const PoseJointEditor = dynamic(() => import('@/components/pose/PoseJointEditor'), {
+// The pose editor (3D, or the wireframe one) — each loads its own chunk when opened.
+const PoseEditor = dynamic(() => import('@/components/pose/PoseEditor'), {
   ssr: false,
 });
 
@@ -142,7 +143,8 @@ export default function OutfitPoseSection({
         />
       </div>
       {editing ? (
-        <PoseJointEditor
+        <PoseEditor
+          rig3d={pose?.rig3d}
           bodies={startPose.people.slice(0, 1)}
           aspect={startPose.aspect}
           testIdPrefix="outfit-pose"
