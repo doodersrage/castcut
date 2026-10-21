@@ -25,6 +25,7 @@ import {
   withTwoPersonFaces,
   isLyingBackNudeSolo,
   withNaturalPoses,
+  QWEN_IMAGE_21_CANDID_LINE,
   hasQwenImage21TurboCheckpoint,
   qwenImage21TurboCheckpointFor,
   withDaylightLine,
@@ -809,8 +810,12 @@ describe('2.1 across-the-table duos', () => {
     assert.equal(withNaturalPoses(out), out);
     const side = 'Edit <image1>: POSE FIRST: the two people — sitting side by side on the couch. SCENE: home.';
     assert.equal(withNaturalPoses(side), side);
+    // A one-person still: this rewrite leaves it; only the candid camera line joins.
     const solo = 'Edit <image1>: POSE FIRST: seated across from the window. SCENE: cafe.';
-    assert.equal(withNaturalPoses(solo), solo);
+    assert.equal(
+      withNaturalPoses(solo),
+      `Edit <image1>: POSE FIRST: seated across from the window. ${QWEN_IMAGE_21_CANDID_LINE} SCENE: cafe.`
+    );
   });
 });
 
@@ -844,8 +849,12 @@ describe('2.1 duo jobs', () => {
     assert.match(withNaturalPoses(wrap('on the couch sharing coffee after the party')), /each holds a mug of coffee/);
     const walk = wrap('walking side by side through the market');
     assert.equal(withNaturalPoses(walk), walk);
+    // A one-person still: this rewrite leaves it; only the candid camera line joins.
     const solo = 'Edit <image1>: POSE FIRST: cooking pasta at the stove. SCENE: home.';
-    assert.equal(withNaturalPoses(solo), solo);
+    assert.equal(
+      withNaturalPoses(solo),
+      `Edit <image1>: POSE FIRST: cooking pasta at the stove. ${QWEN_IMAGE_21_CANDID_LINE} SCENE: home.`
+    );
   });
 });
 
@@ -926,3 +935,36 @@ describe('the player’s own 2.1 LoRAs', () => {
     assert.deepEqual(cache.inputs.model, [loras[0]![0], 0]);
   });
 });
+
+describe('Qwen-Image 2.1: natural look-backs and candid scene stills', () => {
+  const SOLO =
+    'Edit <image1>: POSE FIRST: she kneels upright on the bed, looking back over her shoulder at the camera, full body in frame. SCENE: a dark bedroom. Vacation photo: One woman alone. She walks mid-step, full body in frame. The woman: a White woman in her thirties, athletic and endurance-toned with defined posture, with olive skin. Keep facial identity and camera framing.';
+
+  it('turns a look-back only as far as a neck turns', () => {
+    const out = withNaturalPoses(SOLO);
+    assert.doesNotMatch(out, /looking back over her shoulder at the camera/);
+    assert.match(out, /head turned back over her shoulder only as far as a real neck turns/);
+    assert.match(
+      withNaturalPoses('She stands at the stove, looking back over a shoulder.'),
+      /body turned three-quarters away/
+    );
+  });
+
+  it('a solo scene still: camera to one side, no framing or posture pin, full body said once', () => {
+    const out = withNaturalPoses(SOLO);
+    assert.ok(out.includes(`${QWEN_IMAGE_21_CANDID_LINE} SCENE: `));
+    assert.match(out, /Keep facial identity\.$/);
+    assert.doesNotMatch(out, /camera framing|defined posture/);
+    assert.equal(out.split('full body in frame').length - 1, 1);
+    assert.equal(withNaturalPoses(out), out);
+  });
+
+  it('leaves plate edits and two-person stills as they were', () => {
+    const plate =
+      'Carry out this change on <image1> even if lighting, wardrobe, or background must change. Keep facial identity and camera framing.';
+    assert.equal(withNaturalPoses(plate), plate);
+    const duo = SOLO.replace('One woman alone', 'Exactly two people');
+    assert.doesNotMatch(withNaturalPoses(duo), /Photographed candidly/);
+  });
+});
+

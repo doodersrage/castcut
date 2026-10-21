@@ -532,7 +532,53 @@ export function withNaturalPoses(prompt: string): string {
         `${s1}he leans on the railing with one hand on it, catching her breath`
     );
   }
-  return withHeldProps(withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out)))));
+  return withCandidStill(
+    withNaturalLookBack(
+      withHeldProps(withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out)))))
+    )
+  );
+}
+
+/**
+ * "Looking back over her shoulder at the camera" turned the head past what a neck can: a back
+ * view with the face crop's straight-on face on it (an owl turn). A body three-quarters away and
+ * the head turned only as far as a real neck turns, face in three-quarter profile: natural on 2/4
+ * of the user's own walk / kneel look-backs vs 0/4, none worse (same graphs and seeds,
+ * 2026-10-20).
+ */
+const LOOK_BACK = /\blooking back over (?:her|one|a|the) shoulder(?: at the camera)?/g;
+const NATURAL_LOOK_BACK =
+  'her body turned three-quarters away from the camera and her head turned back over her shoulder only as far as a real neck turns - face in three-quarter profile, eyes glancing back at the camera';
+
+function withNaturalLookBack(prompt: string): string {
+  return prompt.replace(LOOK_BACK, NATURAL_LOOK_BACK);
+}
+
+/**
+ * One person in a scene (a Day / Story still, not a plate or a finish edit) came out as a catalogue
+ * lineup: centred, square to the camera, legs straight. The edit closer's "keep … camera
+ * framing" pinned the face crop's straight-on framing, "with defined posture" (the athletic build)
+ * stood her up straight, and "full body in frame" was said twice. Without them and with the
+ * camera put to one side: looser on 4/16 of the user's own stills (8 graphs × 2 seeds; a kneel now
+ * kneels on both seeds, legs cross, hips sway), none worse. Body wording ("weight on one leg") made
+ * the kneel stand up instead, so the line names the camera and the moment only.
+ */
+export const QWEN_IMAGE_21_CANDID_LINE =
+  'Photographed candidly by a friend from a three-quarter angle, slightly off-centre in the frame, a real moment between poses, relaxed and unposed - not a fashion lineup, not facing the camera square on.';
+
+function withCandidStill(prompt: string): string {
+  if (!/\sSCENE: /.test(prompt) || /\btwo people\b|\bpartner\b/i.test(prompt)) return prompt;
+  let out = prompt
+    .replace('Keep facial identity and camera framing.', 'Keep facial identity.')
+    .replace(/,? with defined posture\b/g, '');
+  const first = out.indexOf('full body in frame');
+  if (first >= 0) {
+    const head = out.slice(0, first + 'full body in frame'.length);
+    out = head + out.slice(head.length).replace(/,? full body in frame/g, '');
+  }
+  return out.includes(QWEN_IMAGE_21_CANDID_LINE)
+    ? out
+    : out.replace(/(\s)SCENE: /, `$1${QWEN_IMAGE_21_CANDID_LINE} SCENE: `);
 }
 
 /**
