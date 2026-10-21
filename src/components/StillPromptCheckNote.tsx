@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { promptCheckSummary, type StillPromptCheck } from '@/lib/still/prompt-audit';
 
 /**
@@ -5,7 +6,7 @@ import { promptCheckSummary, type StillPromptCheck } from '@/lib/still/prompt-au
  * "Prompt check: fixed 1", or "Prompt check: 1 problem" in the warning tone — that opens to
  * list what was fixed and what is still wrong. Nothing when the prompt was clean.
  */
-export default function StillPromptCheckNote({
+function StillPromptCheckNote({
   check,
   testId,
   className = '',
@@ -42,3 +43,6 @@ export default function StillPromptCheckNote({
     </details>
   );
 }
+
+/** Memoized: one per shot card on boards that re-render often. */
+export default memo(StillPromptCheckNote);

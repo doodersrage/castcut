@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { isHtmlVideoViewUrl, stripGalleryViewWidthParam } from '@/lib/comfyui/outputs';
 
 type MotionMediaProps = {
@@ -34,7 +34,7 @@ function withRetry(url: string, attempt: number): string {
  * ComfyUI, the session not ready yet — left the Day card on "Clip unavailable" for good while
  * the same clip played in the lightbox (2026-10-11).
  */
-export default function MotionMedia({
+function MotionMedia({
   src,
   alt = '',
   className,
@@ -138,3 +138,6 @@ export default function MotionMedia({
     <img key={loadUrl} src={loadUrl} alt={alt} className={className} onError={swap} />
   );
 }
+
+/** Memoized: a Day / Story board re-renders often and its clips' props rarely change. */
+export default memo(MotionMedia);

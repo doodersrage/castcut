@@ -1,9 +1,10 @@
 'use client';
 
+import { memo } from 'react';
 import type { IdentityMark } from '@/lib/character/identity-mark';
 
 /** "Looks like Nora 72%" / "Face may drift 48%" / "Not Nora? 31%" (identity-mark.ts). */
-export default function IdentityMarkChip({
+function IdentityMarkChip({
   mark,
   testId,
   compact = false,
@@ -31,3 +32,6 @@ export default function IdentityMarkChip({
     </span>
   );
 }
+
+/** Memoized: one per shot card on boards that re-render often. */
+export default memo(IdentityMarkChip);
