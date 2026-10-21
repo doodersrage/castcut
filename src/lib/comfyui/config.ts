@@ -16,6 +16,8 @@ import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../engine/h3-rendere
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from '../clip/wan-clip-canvas';
 import {
   convertQwenEditWorkflowToImage21,
+  QWEN_IMAGE_21_NOCT_PASS,
+  QWEN_IMAGE_21_NOCT_UNET,
   qwenImage21Steps,
 } from '../engine/qwen-image-21-renderer';
 import {
@@ -345,6 +347,8 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21EightStep?: boolean | 'turbo';
   /** Turbo from its own int8 checkpoint (installed) instead of the 2.1 base + Turbo LoRA. */
   qwenImage21TurboCheckpoint?: boolean;
+  /** Noct-Q: the full pass on its own model file, steps and shift (QWEN_IMAGE_21_NOCT_PASS). */
+  qwenImage21Noct?: boolean;
   /**
    * Render on 2.1 even where the converter would keep the still on Rapid's model (sex-pose duos,
    * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
@@ -1446,6 +1450,8 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
     qwenImage21TurboCheckpoint?: boolean;
+    /** Noct-Q: the full pass on its own model file, steps and shift. */
+    qwenImage21Noct?: boolean;
     qwenImage21KeepEngine?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
@@ -1917,6 +1923,13 @@ export function injectPromptsWithFallbacks(
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
+      ...(options.qwenImage21Noct
+        ? {
+            fullUnet: QWEN_IMAGE_21_NOCT_UNET,
+            steps: QWEN_IMAGE_21_NOCT_PASS.steps,
+            shift: QWEN_IMAGE_21_NOCT_PASS.shift,
+          }
+        : {}),
       keepEngine: options.qwenImage21KeepEngine === true,
       qualityProfile: options.qualityProfile ?? null,
       userLoras: qwenImage21UserLoras(options.loraLibrary),
@@ -2176,6 +2189,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21KeepEngine === true) {
     result.qwenImage21KeepEngine = true;
+  }
+  if (runtime.qwenImage21Noct === true) {
+    result.qwenImage21Noct = true;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;

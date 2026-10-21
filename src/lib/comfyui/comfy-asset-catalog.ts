@@ -68,6 +68,7 @@ const QWEN_EDIT_MODELS = [
   'qwen-image-2.1-edit-lightning-4',
   'qwen-image-2.1-edit-pruna-8',
   'qwen-image-2.1-edit-turbo-8',
+  'qwen-image-2.1-edit-noct',
   'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',
@@ -192,7 +193,8 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'qwen_image_2.1_bf16.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_bf16.safetensors',
     bytes: 14230280616,
-    modelIds: [...QWEN_EDIT_MODELS],
+    // Noct-Q loads its own full model instead.
+    modelIds: QWEN_EDIT_MODELS.filter(id => id !== 'qwen-image-2.1-edit-noct'),
   },
   {
     id: 'qwen-image-2.1-text-encoder',
@@ -230,6 +232,18 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: ['qwen-image-2.1-edit-turbo-8'],
     notes:
       'Turbo on its own — replaces the 2.1 base + Turbo LoRA for the Turbo engine (half the download).',
+  },
+  {
+    id: 'qwen-image-2.1-noct-q-v4',
+    label: 'Qwen-Image 2.1 Noct-Q V4 (int8, uncensored, Qwen Research License)',
+    kind: 'unet',
+    filename: 'NoctQ_V4_int8_convrot.safetensors',
+    url: 'https://huggingface.co/Noctaluna/Noct-Q-Uncensored-Qwen-Image-2.1/resolve/main/NoctQ_V4_int8_convrot.safetensors',
+    bytes: 7256784368,
+    sha256: '4d92d5538253ab36e6a73b056cce5f697950f4303cb9e6686a3198d0ea13f9e8',
+    modelIds: ['qwen-image-2.1-edit-noct'],
+    notes:
+      'Noct-Q engine: a full Qwen-Image 2.1 merge (Noctaluna). Uses the 2.1 text encoder and VAE. Adult content; non-commercial use only.',
   },
   {
     id: 'qwen-image-2.1-turbo-lora',

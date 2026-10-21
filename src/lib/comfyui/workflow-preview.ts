@@ -256,6 +256,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
       qwenImage21KeepEngine: runtime?.qwenImage21KeepEngine,
+      qwenImage21Noct: runtime?.qwenImage21Noct,
       qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
         inventoryModels?.unets,
         runtime?.qwenImage21TurboCheckpoint

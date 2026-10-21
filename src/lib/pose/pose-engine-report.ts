@@ -69,6 +69,7 @@ export const POSE_REPORT_ENGINE_MODELS: Record<PoseReportEngine, readonly string
   ],
   'qwen-image-2.1': [
     'qwen-image-2.1-edit-turbo-8',
+    'qwen-image-2.1-edit-noct',
     'qwen-image-2.1-edit-pruna-8',
     'qwen-image-2.1-edit-lightning-4',
     'qwen-image-2.1-edit',

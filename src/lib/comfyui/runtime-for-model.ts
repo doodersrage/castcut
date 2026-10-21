@@ -7,6 +7,7 @@ import { poseModelFamily } from '../pose/pose-model-profile';
 import {
   hasQwenImage21TurboCheckpoint,
   qwenImage21FastSampler,
+  isQwenImage21NoctModel,
 } from '../engine/qwen-image-21-renderer';
 import type { ComfyImageModel } from '../comfy-models/client';
 import {
@@ -527,6 +528,10 @@ export function resolveRuntimeForQueue(
           qwenRenderer: 'qwen-image-2.1' as const,
           // "Pick the best engine per pose" off: no still leaves the picked engine.
           ...(appFlag('render.keepPickedEngine') ? { qwenImage21KeepEngine: true as const } : {}),
+          // Noct-Q: its own file and pass; its sex-pose duos are why it's picked, so they stay.
+          ...(isQwenImage21NoctModel(model)
+            ? { qwenImage21Noct: true as const, qwenImage21KeepEngine: true as const }
+            : {}),
           ...(qwenImage21FastSampler(model) === 'fun-acc-4'
             ? { qwenImage21FourStep: true as const }
             : {}),

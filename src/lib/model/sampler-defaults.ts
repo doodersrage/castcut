@@ -404,6 +404,13 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     maxCompatible: { steps: 30, cfg: 1, samplerName: 'euler', scheduler: 'simple' },
     max: { steps: 30, cfg: 1, samplerName: 'euler', scheduler: 'simple' },
   },
+  // Noct-Q: the converter sets its own pass (QWEN_IMAGE_21_NOCT_PASS); the steps shown match it.
+  'qwen-image-2.1-edit-noct': fixedSamplerPresets({
+    steps: 35,
+    cfg: 1,
+    samplerName: 'euler',
+    scheduler: 'simple',
+  }),
   'qwen-image-2.1-edit-lightning-4': fixedSamplerPresets({
     steps: 4,
     ...QWEN_LIGHTNING_SAMPLER,

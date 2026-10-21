@@ -238,5 +238,14 @@ export function poseModelFamily(model: string | null | undefined): PoseModelFami
 }
 
 export function poseProfileForModel(model: string | null | undefined): PoseModelProfile {
-  return POSE_MODEL_PROFILES[poseModelFamily(model)];
+  const profile = POSE_MODEL_PROFILES[poseModelFamily(model)];
+  // Noct-Q renders two-person sex poses itself — the reason to pick it (no Rapid NSFW hand-off).
+  if (
+    String(model ?? '')
+      .trim()
+      .toLowerCase() === 'qwen-image-2.1-edit-noct'
+  ) {
+    return { ...profile, penetrationEngine: undefined };
+  }
+  return profile;
 }

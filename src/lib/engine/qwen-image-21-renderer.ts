@@ -107,6 +107,31 @@ export const QWEN_IMAGE_21_MODEL = 'qwen-image-2.1-edit';
 export const QWEN_IMAGE_21_LIGHTNING_MODEL = 'qwen-image-2.1-edit-lightning-4';
 export const QWEN_IMAGE_21_PRUNA_8_MODEL = 'qwen-image-2.1-edit-pruna-8';
 export const QWEN_IMAGE_21_TURBO_8_MODEL = 'qwen-image-2.1-edit-turbo-8';
+/**
+ * Noct-Q V4 (Noctaluna, Hugging Face): a full Qwen-Image 2.1 merge, uncensored, as one int8
+ * file (7.3 GB) that loads like the base. Same text encoder, VAE and Day recipes as Qwen-Image
+ * 2.1; its own pass (QWEN_IMAGE_21_NOCT_PASS). Measured on the player's own Day graphs
+ * (2026-10-21): clothed poses level with Turbo; sex-pose duos clearly better — the pair connect
+ * where Turbo posed them side by side — so its duos stay on it (no Rapid hand-off).
+ */
+export const QWEN_IMAGE_21_NOCT_MODEL = 'qwen-image-2.1-edit-noct';
+export const QWEN_IMAGE_21_NOCT_UNET = 'NoctQ_V4_int8_convrot.safetensors';
+/**
+ * cfg 1, not the model card's 3: at 3 every still came out dark and moody (daylight parks at
+ * dusk), faces drifted from the plate, and two-person stills crashed ComfyUI (a segfault in its
+ * memory manager, cond + uncond batch; also at cfg 2). Shift 3 instead of 2.1's 0.69 spends more
+ * of the pass on the layout: a sofa sit lost its third leg. 35 steps: a lying still lost a third
+ * hand that 25 kept. About 36 s a still on a 24 GB card.
+ */
+export const QWEN_IMAGE_21_NOCT_PASS = { steps: 35, shift: 3 } as const;
+
+export function isQwenImage21NoctModel(model: string | null | undefined): boolean {
+  return (
+    String(model ?? '')
+      .trim()
+      .toLowerCase() === QWEN_IMAGE_21_NOCT_MODEL
+  );
+}
 
 export function isQwenImage21Model(model: string | null | undefined): boolean {
   return String(model ?? '')
@@ -925,6 +950,13 @@ export function convertQwenEditWorkflowToImage21(
     /** With `eightStepTurbo`: load the Turbo checkpoint (QWEN_IMAGE_21_TURBO_UNET), no base + LoRA. */
     turboCheckpoint?: boolean;
     /**
+     * The full pass on another Qwen-Image 2.1 model file in place of the base (Noct-Q). Ignored
+     * by the fast samplers, which load their own.
+     */
+    fullUnet?: string;
+    /** The sampling shift (ModelSamplingAuraFlow) instead of 2.1's own 0.69 — the full pass only. */
+    shift?: number;
+    /**
      * The player's own Qwen-Image 2.1 LoRAs (their LoRA stack, 2.1 family only), chained onto the
      * model in order. Nothing else adds a LoRA here — the source graph's LoRAs are 20B and drop.
      */
@@ -986,10 +1018,12 @@ export function convertQwenEditWorkflowToImage21(
     options.eightStepTurbo === true &&
     options.eightStep === true &&
     options.fourStep !== true;
+  const fastPass = options.fourStep === true || options.eightStep === true;
+  const fullUnet = fastPass ? '' : options.fullUnet?.trim() || '';
   const unet = add({
     class_type: 'UNETLoader',
     inputs: {
-      unet_name: turboCheckpoint ? QWEN_IMAGE_21_TURBO_UNET : QWEN_IMAGE_21_FILES.unet,
+      unet_name: turboCheckpoint ? QWEN_IMAGE_21_TURBO_UNET : fullUnet || QWEN_IMAGE_21_FILES.unet,
       weight_dtype: 'default',
     },
   });
@@ -1044,6 +1078,15 @@ export function convertQwenEditWorkflowToImage21(
     inputs: { model: [withUserLoras, 0], device: 'auto', dtype: 'default' },
   });
   let samplerModel: [string, number] = [cache, 0];
+  if (!fastPass && options.shift && options.shift > 0) {
+    samplerModel = [
+      add({
+        class_type: 'ModelSamplingAuraFlow',
+        inputs: { model: samplerModel, shift: options.shift },
+      }),
+      0,
+    ];
+  }
   // A two-person pose map is a limb diagram. 2.1 paints it: fused bodies, a third person, a
   // bare arm in the gap (live, 2026-10-01). Those stay out; a one-person map stays. Fun
   // ControlNet Union made anatomy worse and stays off unless the caller turns it on.

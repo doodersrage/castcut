@@ -33,6 +33,9 @@ import {
   qwenImage21TurboCheckpointFor,
   withDaylightLine,
   withPhotoRealismTail,
+  isQwenImage21NoctModel,
+  QWEN_IMAGE_21_NOCT_PASS,
+  QWEN_IMAGE_21_NOCT_UNET,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -989,3 +992,47 @@ describe('Qwen-Image 2.1: natural POSE FIRST on one-person stills (2026-10-20 sw
   });
 });
 
+
+describe('Qwen-Image 2.1 Noct-Q', () => {
+  const graph = {
+    '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Day photo: she reads.', image1: ['900', 0] } },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'plate.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  };
+  type Node = { class_type: string; inputs: Record<string, unknown> };
+  const convert = (opts: Parameters<typeof convertQwenEditWorkflowToImage21>[1]) =>
+    convertQwenEditWorkflowToImage21(structuredClone(graph), opts).workflow as Record<string, Node>;
+  const noct = { fullUnet: QWEN_IMAGE_21_NOCT_UNET, ...QWEN_IMAGE_21_NOCT_PASS };
+
+  it('runs the full pass on its own file, 35 steps at cfg 1, through shift 3', () => {
+    const w = convert(noct);
+    const all = Object.values(w);
+    assert.equal(all.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, QWEN_IMAGE_21_NOCT_UNET);
+    assert.equal(all.filter(n => n.class_type === 'LoraLoaderModelOnly').length, 0);
+    const ks = w['8']!.inputs;
+    assert.equal(ks.steps, 35);
+    assert.equal(ks.cfg, 1);
+    const shift = w[(ks.model as [string, number])[0]]!;
+    assert.equal(shift.class_type, 'ModelSamplingAuraFlow');
+    assert.equal(shift.inputs.shift, 3);
+    assert.equal(w[(shift.inputs.model as [string, number])[0]]!.class_type, 'QwenImage21Cache');
+  });
+
+  it('leaves the fast samplers and the plain full pass alone', () => {
+    const turbo = Object.values(convert({ ...noct, eightStep: true, eightStepTurbo: true, turboCheckpoint: true }));
+    assert.equal(turbo.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_turbo_int8_convrot.safetensors');
+    assert.equal(turbo.some(n => n.class_type === 'ModelSamplingAuraFlow'), false);
+    const plain = Object.values(convert({}));
+    assert.equal(plain.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, 'qwen_image_2.1_bf16.safetensors');
+    assert.equal(plain.some(n => n.class_type === 'ModelSamplingAuraFlow'), false);
+  });
+
+  it('is told apart from the other 2.1 engines', () => {
+    assert.equal(isQwenImage21NoctModel('qwen-image-2.1-edit-noct'), true);
+    assert.equal(isQwenImage21NoctModel('qwen-image-2.1-edit'), false);
+    assert.equal(qwenImage21FastSampler('qwen-image-2.1-edit-noct'), null);
+  });
+});

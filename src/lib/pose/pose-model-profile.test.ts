@@ -161,4 +161,12 @@ describe('Day adult hand-off', () => {
       'qwen-image-edit-2511-lightning-8'
     );
   });
+
+  it('Noct-Q keeps its own sex-pose duos; everything else is 2.1', () => {
+    const noct = poseProfileForModel('qwen-image-2.1-edit-noct');
+    assert.equal(noct.penetrationEngine, undefined);
+    assert.equal(noct.rapidGraph, true);
+    assert.equal(noct.mapDelivery.duoNude, 'none');
+    assert.equal(poseProfileForModel('qwen-image-2.1-edit-turbo-8').penetrationEngine, 'qwen-rapid-aio-edit-nsfw');
+  });
 });

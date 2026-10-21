@@ -17,6 +17,7 @@ describe("modelsInSameFamily", () => {
       "qwen-image-2.1-edit-lightning-4",
       "qwen-image-2.1-edit-pruna-8",
       "qwen-image-2.1-edit-turbo-8",
+      "qwen-image-2.1-edit-noct",
     ]);
   });
 

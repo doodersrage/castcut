@@ -35,6 +35,12 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-vae',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  // Noct-Q: its own full model in place of the 2.1 base; no Rapid fallback (its duos stay on it).
+  'qwen-image-2.1-edit-noct': [
+    'qwen-image-2.1-noct-q-v4',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+  ],
   'qwen-image-2.1-edit-lightning-4': [
     'qwen-image-2.1-bf16',
     'qwen-image-2.1-text-encoder',

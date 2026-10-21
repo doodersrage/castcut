@@ -394,6 +394,20 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
   },
   {
+    id: 'qwen-image-2.1-edit-noct',
+    label: 'Qwen-Image 2.1 Noct-Q (uncensored)',
+    category: 'qwen',
+    comfyNode: 'TextEncodeQwenImage21',
+    comfyClass: 'QwenImage21',
+    description:
+      'Noct-Q V4 — a full Qwen-Image 2.1 merge by Noctaluna, uncensored (int8, 7.3 GB). Same Cast recipes as Qwen-Image 2.1, 35 steps at cfg 1, about 36 s a still. Two-person sex poses connect where Turbo poses the pair side by side, and they stay on it. Qwen Research License (not for commercial use).',
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'NoctQ_V4_int8_convrot.safetensors',
+    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
     id: 'qwen-image-2.1-edit-pruna-8',
     label: 'Qwen-Image 2.1 Pruna (8-step)',
     category: 'qwen',
