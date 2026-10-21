@@ -2464,6 +2464,47 @@ test('mobile film funnel routes Fitting → Day', async ({ page }) => {
   await expect(page.getByTestId('mobile-day-cut')).toBeVisible();
 });
 
+// Phone Day registers the same palette actions as desktop Day, gated like its own buttons.
+test('mobile Day lists Queue the Day in the command palette when its button is live', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-m-day-palette' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-m-day-palette', name: 'Palette Cast', version: 1, updatedAt: Date.now() },
+      ],
+      removedIds: [],
+    },
+  });
+  await gotoStable(page, '/m/day?character=e2e-m-day-palette');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('mobile-day')).toBeVisible({ timeout: 30_000 });
+  const queueButton = page.getByTestId('day-queue-all');
+  await expect(queueButton).toBeVisible({ timeout: 30_000 });
+  const queueEnabled = await queueButton.isEnabled();
+  const dialog = page.getByRole('dialog', { name: /Command palette/i });
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible().catch(() => false)) return true;
+        await page.keyboard.press('Control+K');
+        return dialog.isVisible().catch(() => false);
+      },
+      { timeout: 20_000, intervals: [200, 400, 800] }
+    )
+    .toBeTruthy();
+  await dialog.getByPlaceholder(/Jump to/).fill('queue the day');
+  await expect(dialog.getByText('Queue the Day', { exact: true })).toHaveCount(
+    queueEnabled ? 1 : 0
+  );
+  // Nothing rendered yet: no Animate all (on the screen or in the palette).
+  await dialog.getByPlaceholder(/Jump to/).fill('animate all');
+  await expect(dialog.getByText('Animate all', { exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+});
+
 test('gallery exposes Film derived-kind chip', async ({ page }) => {
   // Derived-kind chips only show once the gallery has entries.
   await seedGalleryFixture(page);
