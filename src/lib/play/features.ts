@@ -39,8 +39,12 @@ import { loadLocalObservability } from '../server/local-observability';
 import { loadOnboardingState } from '../app/onboarding-store';
 import { registerGalleryClipTool } from '../gallery/clip-tools';
 import { requestFinishClip, requestRealismClip } from '../media/actions-client';
+import { registerCommandActions } from '../app/command-actions';
+import { PLAY_APP_COMMAND_ACTIONS } from './command-actions';
 
 registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
+// Command palette: New Cast member, Open Story / Outfit / Day, Cut the film (pages add more).
+registerCommandActions(PLAY_APP_COMMAND_ACTIONS);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
 // Cast records: Look packs are tidied with the rest of the record.
 registerCharacterNormalizer(normalizeCharacterLookPacks);

@@ -26,6 +26,7 @@ export function allowPaletteItemOnPath(item: CommandItem, pathname: string): boo
   }
   if (!item.href) {
     return (
+      item.registered === true ||
       item.id === 'keyboard-shortcuts' ||
       item.id === 'reload' ||
       item.id === 'report-bug' ||
@@ -56,10 +57,11 @@ export function isCommandItemAllowed(
     }
     return false;
   }
-  if (!item.href) {
+  const gate = item.href ?? item.gateHref;
+  if (!gate) {
     return true;
   }
-  const path = item.href.split('?')[0] ?? item.href;
+  const path = gate.split('?')[0] ?? gate;
   return canAccessNavFeature(allowedFeatures, featureForPath(path));
 }
 
@@ -87,9 +89,12 @@ export function buildNavItems(pathname: string): CommandItem[] {
       href: settingsTabHref(tab.id),
       group: 'Settings',
     }));
-  // Sections and individual settings, found by typing ("pose", "vision", "controlnet"…).
+  // Every tab, every ComfyUI section and the settings people look for, found by typing ("pose",
+  // "vision", "models"…) — in every workspace, Play included. Tabs already listed above are
+  // left out here.
+  const listedTabs = new Set<string>(focused ? [] : settingsTabIds);
   const settingsDeep: CommandItem[] = buildSettingsSearchEntries()
-    .filter(entry => !entry.id.startsWith('tab-'))
+    .filter(entry => !(entry.id.startsWith('tab-') && listedTabs.has(entry.tab)))
     .map(entry => ({
       id: `settings-find-${entry.id}`,
       label: `Settings · ${entry.label}`,
@@ -126,7 +131,7 @@ export function buildNavItems(pathname: string): CommandItem[] {
       group: 'Navigate',
     },
     ...(focused ? [] : settingsTabs),
-    ...(focused ? [] : settingsDeep),
+    ...settingsDeep,
     ...(focused ? [] : studioTabs),
     ...actionItems,
   ];

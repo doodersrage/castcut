@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
+import { resolveNavHref } from '@/lib/app/nav-links';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import {
+  commandActionsVersion,
+  listCommandActions,
+  runCommandAction,
+  subscribeCommandActions,
+} from '@/lib/app/command-actions';
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import type { AppFeatureId } from '@/lib/auth/features';
 import { NSFW_GENERATOR_NAV_LINK } from '@/lib/adult/nsfw-generator-nav';
@@ -73,7 +82,26 @@ export function useCommandPaletteCatalog({
     ];
   }, [nsfwGeneratorEnabled, onOpenShortcuts, pathname, playChrome, pluginNavItems]);
 
-  return { catalog, setPluginNavItems, playChrome };
+  // Feature and page actions ("Queue the Day" while Day is open). Listed fresh on every render
+  // so `available` (the button's own enabled state) is read when the palette shows.
+  const router = useRouter();
+  useSyncExternalStore(subscribeCommandActions, commandActionsVersion, () => 0);
+  const registered: CommandItem[] = listCommandActions().map(action => ({
+    id: `registered-${action.id}`,
+    label: action.label,
+    subtitle: action.subtitle,
+    keywords: action.keywords,
+    group: action.group ?? 'Actions',
+    registered: true,
+    gateHref: action.href,
+    action: () =>
+      runCommandAction(action, {
+        navigate: href =>
+          router.push(resolveNavHref(href, loadSettingsCache().shared.activeCharacterId)),
+      }),
+  }));
+
+  return { catalog: [...registered, ...catalog], setPluginNavItems, playChrome };
 }
 
 export function useCommandPaletteOpenState(open: boolean) {
