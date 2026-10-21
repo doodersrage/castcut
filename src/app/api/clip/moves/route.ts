@@ -1,4 +1,4 @@
-import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { apiError, apiErrorFrom, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import { transferMotion } from '@/lib/video/motion-transfer-server';
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     });
     return apiJson({ url });
   } catch (error) {
-    return apiError(error instanceof Error ? error.message : 'Copy moves failed.', 502);
+    // Missing models → 424 with the files and a Settings link; ComfyUI down → 503.
+    return apiErrorFrom(error, 502, { service: 'comfyui', fallback: 'Copy moves failed.' });
   }
 }

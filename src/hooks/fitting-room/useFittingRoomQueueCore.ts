@@ -5,6 +5,7 @@ import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck'
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still/prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { pushAppToast, shortErrorText } from '@/lib/app/toast';
 import { normalizeFootwear } from '@/lib/wardrobe/footwear';
 import { dayDressPlateRequestKey } from '@/lib/day/dress-plate';
 import { footwearIsBarefoot, footwearPromptLine } from '@/lib/wardrobe/footwear';
@@ -109,6 +110,11 @@ async function feetPassShoeImage(
       if (alone?.filename) return { filename: alone.filename, placement: 'alone' };
     } catch (error) {
       console.warn('Shoe pass: the shoe picture could not be staged alone:', error);
+      pushAppToast({
+        text: "Shoe pass: the shoe picture couldn't be prepared on its own — using the try-on's shoe image instead.",
+        tone: 'warning',
+        ttlMs: 12_000,
+      });
     }
   }
   const own = feetPass.shoeImageFilename?.trim();
@@ -358,6 +364,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           } catch (footwearError) {
             // The shoes still go out in words.
             console.warn('Outfit footwear image could not be attached:', footwearError);
+            pushAppToast({
+              text: "The shoe picture couldn't be attached — this try-on describes the shoes in words only.",
+              tone: 'warning',
+              ttlMs: 12_000,
+            });
           }
         }
         // The clothing image must be clothing, not a face crop or a Cast plate (reference-check.ts).
@@ -388,6 +399,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             poseGuideFilename = uploaded?.filename?.trim() || undefined;
           } catch (poseError) {
             console.warn('Outfit custom pose could not be attached:', poseError);
+            pushAppToast({
+              text: "Your custom pose couldn't be attached — this try-on goes out without it.",
+              tone: 'warning',
+              ttlMs: 12_000,
+            });
           }
         }
         const builtPrompt = buildPrompt(footwearImage);
@@ -771,6 +787,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
       } catch (error) {
         console.warn(`Outfit ${feetPass ? 'shoe pass' : 'back view'} failed:`, error);
         input.setSaveStatus(failedStatus);
+        pushAppToast({
+          text: `The ${feetPass ? 'shoe pass' : 'back view'} wasn't queued: ${shortErrorText(error)}`,
+          tone: 'warning',
+          ttlMs: 15_000,
+        });
       }
     },
     [

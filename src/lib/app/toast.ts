@@ -5,7 +5,15 @@ import {
   type SystemTrayMessageTone,
 } from './system-tray-messages';
 
+import { friendlyErrorText } from '../server/friendly-error';
+
 export { loadToastPreferenceEnabled, rememberToastPreference };
+
+/** An error as one short line for a toast (no stack, no stderr dump, capped). */
+export function shortErrorText(error: unknown, fallback = 'something went wrong.'): string {
+  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return friendlyErrorText(raw, { maxLength: 160, fallback });
+}
 
 /**
  * Convenience wrappers over the tray's notice store (`system-tray-messages.ts`). This file used
