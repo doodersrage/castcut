@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.9] - 2026-10-21
+
+- Qwen-Image 2.1 Noct-Q: a new engine for uncensored stills, tested on the player's own Day graphs before adding it.
+
 ## [v2.12.8] - 2026-10-21
 
 - Clip tools read WAN clips in Docker: "Make more realistic failed — Could not read that clip."
