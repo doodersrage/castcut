@@ -48,4 +48,29 @@ export type PhotoPose = {
    * raised high …"). Dropped as soon as the joints are edited.
    */
   words?: string;
+  /**
+   * Read from the photo by the vision model (pose/vision-posture.ts): the posture 2D joints
+   * cannot tell (a reclining body shot from above reads as standing) and what the body rests on.
+   */
+  posture?: PhotoPosture;
 };
+
+/** The vision model's read of a photo's posture (pose/vision-posture.ts). */
+export type PhotoPosture = {
+  posture: VisionPostureClass;
+  /** What the body rests on ("a sofa", "the floor"); absent when standing. */
+  support?: string;
+};
+
+export type VisionPostureClass =
+  | 'standing'
+  | 'walking'
+  | 'sitting'
+  | 'kneeling'
+  | 'crouching'
+  | 'reclining'
+  | 'lying-back'
+  | 'lying-front'
+  | 'lying-side'
+  | 'all-fours'
+  | 'bending';

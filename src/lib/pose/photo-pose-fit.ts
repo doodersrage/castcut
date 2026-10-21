@@ -29,7 +29,12 @@ export function fitPhotoPoseToHeadcount(read: PhotoPose, people?: number | null)
   const base = { aspect: read.aspect, source: 'photo' as const };
   if (people === 1) {
     return {
-      pose: { ...base, people: read.people.slice(0, 1) },
+      // The photo's posture read (one person only) stays with her figure.
+      pose: {
+        ...base,
+        people: read.people.slice(0, 1),
+        ...(read.posture ? { posture: read.posture } : {}),
+      },
       note:
         found > 1
           ? `Found ${count(found)} — this still is one person, so it uses the largest one.`
@@ -53,7 +58,11 @@ export function fitPhotoPoseToHeadcount(read: PhotoPose, people?: number | null)
   // A still is the lead, or the lead and one other: never a third figure from a group photo.
   const kept = read.people.slice(0, 2);
   return {
-    pose: { ...base, people: kept },
+    pose: {
+      ...base,
+      people: kept,
+      ...(read.posture && kept.length === 1 ? { posture: read.posture } : {}),
+    },
     note:
       found > kept.length
         ? `Found ${count(found)} — using the two largest.`

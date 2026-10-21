@@ -29,7 +29,13 @@ type Point = { x: number; y: number };
 
 /** `/api/pose-detect` reply: `available: false` when the DWPose node pack is missing. */
 export type PoseDetectResult =
-  { available: true; pose: DetectedPose } | { available: false; reason: string };
+  | {
+      available: true;
+      pose: DetectedPose;
+      /** Asked for (`posture: true`): the vision model's posture read, null when it had none. */
+      posture?: import('./types').PhotoPosture | null;
+    }
+  | { available: false; reason: string };
 
 export type DetectedPose = {
   canvas: { width: number; height: number };

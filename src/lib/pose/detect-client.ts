@@ -3,14 +3,17 @@
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
 import type { PoseDetectResult } from '@/lib/pose/score';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 
 /**
  * Browser: detect the pose in a finished still via `/api/pose-detect`. Rejects on errors.
  * `perPerson`: read each person on their own (two people in contact, pose-person-reads.ts).
+ * `posture`: also ask the vision model for the posture (a photo for "From a photo").
  */
 export async function detectStillPose(
   imageUrl: string,
-  options?: { perPerson?: boolean }
+  options?: { perPerson?: boolean; posture?: boolean }
 ): Promise<PoseDetectResult> {
   const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
   const response = await fetch('/api/pose-detect', {
@@ -21,6 +24,9 @@ export async function detectStillPose(
       imageUrl,
       ...(comfyUrl ? { comfyUrl } : {}),
       ...(options?.perPerson ? { perPerson: true } : {}),
+      ...(options?.posture
+        ? { posture: true, ...sharedLlmRequestBody(loadSettingsCache().shared) }
+        : {}),
     }),
   });
   const data = (await response.json().catch(() => ({}))) as Partial<PoseDetectResult> & {

@@ -71,6 +71,7 @@ import {
 type Point = { x: number; y: number };
 
 export type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
+import { normalizePhotoPosture } from '@/lib/pose/vision-posture';
 import type { PhotoPose, StickGaze, StickSkeleton } from '@/lib/pose/types';
 
 const WIDTH = 512;
@@ -6381,7 +6382,20 @@ export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
       })
     );
   if (people.length === 0) return undefined;
-  return record.source === 'edited' ? { aspect, people, source: 'edited' } : { aspect, people };
+  // A named pose's own words and the photo's posture read are part of the pose: dropping them
+  // here re-described a picked or reference pose from its joints after every reload.
+  const words =
+    typeof (record as { words?: unknown }).words === 'string'
+      ? (record as { words: string }).words.trim().slice(0, 400) || undefined
+      : undefined;
+  const posture = normalizePhotoPosture((record as { posture?: unknown }).posture);
+  return {
+    aspect,
+    people,
+    ...(record.source === 'edited' ? { source: 'edited' as const } : {}),
+    ...(words ? { words } : {}),
+    ...(posture ? { posture } : {}),
+  };
 }
 
 export function normalizePoseCameraChoice(raw: unknown): PoseCameraChoice | undefined {

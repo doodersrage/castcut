@@ -42,7 +42,8 @@ export async function readPoseFromPhoto(file: File): Promise<PhotoPose> {
 
 /** Read the people in an image ComfyUI can already see (a gallery still's view URL). */
 export async function readPoseFromImageUrl(imageUrl: string): Promise<PhotoPose> {
-  const detected = await detectStillPose(imageUrl);
+  // The vision model reads the posture joints can't (a body shot from above), vision-posture.ts.
+  const detected = await detectStillPose(imageUrl, { posture: true });
   if (!detected.available) {
     throw new Error(detected.reason);
   }
@@ -51,7 +52,11 @@ export async function readPoseFromImageUrl(imageUrl: string): Promise<PhotoPose>
     throw new Error('No full body found in that image — it needs the whole person in frame.');
   }
   const { width, height } = detected.pose.canvas;
-  return { aspect: width > 0 && height > 0 ? width / height : 2 / 3, people };
+  const aspect = width > 0 && height > 0 ? width / height : 2 / 3;
+  // The posture read is of the whole photo: it describes the lead only when she is alone.
+  return detected.posture && people.length === 1
+    ? { aspect, people, posture: detected.posture }
+    : { aspect, people };
 }
 
 /** File a pose under a layout in the pose library (hand-picked: ranks with the best). */

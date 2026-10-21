@@ -35,6 +35,11 @@ import {
 import { classifyPosture } from '@/lib/pose/posture';
 import { bodyCentreX, readPoseStance } from '@/lib/pose/starters';
 import { withSceneGround } from '@/lib/scene/surface';
+import {
+  visionPostureDecides,
+  visionPostureStance,
+  type PhotoPosture,
+} from '@/lib/pose/vision-posture';
 
 type Pt = { x: number; y: number };
 
@@ -68,6 +73,11 @@ export type PoseDescribeOptions = {
    * the two figures of a duo, whose lines are already long and were not A/B'd with it.
    */
   pictureSides?: boolean;
+  /**
+   * The photo's posture as the vision model read it (vision-posture.ts). A supported posture
+   * (reclining, lying, sitting, kneeling…) sets the stance; the limbs are still read here.
+   */
+  posture?: PhotoPosture | null;
 };
 
 const dist = (p: Pt, q: Pt) => Math.hypot(p.x - q.x, p.y - q.y);
@@ -135,7 +145,13 @@ export function describePoseFigure(
   const unit = read.unit;
   const hip = rHip && lHip ? mid(rHip, lHip) : (rHip ?? lHip)!;
   const posture = classifyPosture(body, a);
-  const lying = read.stance === 'lying down' || posture.group === 'lying';
+  const visionStance = visionPostureDecides(options.posture)
+    ? visionPostureStance(options.posture, readAs)
+    : null;
+  const visionLying = Boolean(visionStance && /^lying/.test(visionStance));
+  const lying = visionStance
+    ? visionLying
+    : read.stance === 'lying down' || posture.group === 'lying';
   if (lying) pictureSides = false;
 
   const legs = (
@@ -152,14 +168,33 @@ export function describePoseFigure(
   let stance = read.stance;
   const [rs, ls] = [at(2), at(5)];
   const nose = at(0);
-  if (lying) {
+  if (visionStance) {
+    stance = visionStance;
+  } else if (lying) {
     stance = lyingStance(posture.posture, readAs, { neck, hip, nose, rs, ls, unit, at });
   } else if (posture.posture === 'all-fours' && !/hands and knees/.test(stance)) {
     stance = 'on all fours';
   } else if (posture.posture === 'upside-down') {
     stance = 'upside down, in a handstand';
+  } else if (
+    (posture.group === 'seated' || posture.group === 'low') &&
+    (posture.confident
+      ? /^(?:standing|walking)\b/.test(stance)
+      : // Unsure, only against the one-legged read itself — the seated misread every time.
+        /^standing on (?:her|his) (?:right|left) leg\b/.test(stance))
+  ) {
+    // The stance reader takes the lowest joint for the floor and her feet for what she stands
+    // on: a seat on an edge, at a laptop or on her knees read as "standing on her right leg, left
+    // leg lifted" (pose references: perch / laptop / kneel, 6 of the 9 clean-label misses). The
+    // posture classifier read all six right; it wins when the two disagree like this.
+    stance =
+      posture.posture === 'kneeling'
+        ? 'kneeling'
+        : posture.posture === 'crouching'
+          ? 'crouching low'
+          : 'sitting';
   }
-  if (!lying && legs.length === 2) {
+  if (!visionStance && !lying && legs.length === 2) {
     const [right, left] = [legs[0]!, legs[1]!];
     const hipHeight = ground - hip.y;
     const kneesOut =
@@ -242,7 +277,9 @@ export function describePoseFigure(
   // ── Limb facts, in her body's own frame ───────────────────────────────────────────────
   const facts: Fact[] = [];
   const torsoLength = dist(neck, hip);
-  const upright = torsoLength > unit * 0.5;
+  // A posture the vision read gave (reclining, sitting…) is often shot from above, its torso
+  // foreshortened: the neck-to-hip line still says which way is up for the arms.
+  const upright = torsoLength > unit * (visionStance && !visionLying ? 0.2 : 0.5);
   const up = upright
     ? { x: (neck.x - hip.x) / torsoLength, y: (neck.y - hip.y) / torsoLength }
     : { x: 0, y: -1 };
@@ -446,6 +483,27 @@ export function describePoseFigure(
     });
   } else if (onKnees.length === 1) {
     facts.push({ text: `${readAs} ${onKnees[0]!.side} hand on ${readAs} knee`, weight: 3 });
+  }
+  // Seated, kneeling or reclining by the vision read: the joints' ground is not hers (a body shot
+  // from above), so each leg is said in its own frame — bent at the knee or stretched out — and
+  // whether the thighs open apart.
+  if (visionStance && !visionLying && legs.length) {
+    const bentLegs = legs.filter(leg => jointAngle(leg.hip, leg.knee, leg.ankle) < 135);
+    const straightLegs = legs.filter(leg => jointAngle(leg.hip, leg.knee, leg.ankle) > 155);
+    if (legs.length === 2) {
+      const [right, left] = [legs[0]!, legs[1]!];
+      const thigh = (leg: (typeof legs)[number]) =>
+        Math.atan2(leg.knee.y - leg.hip.y, leg.knee.x - leg.hip.x);
+      let open = Math.abs(thigh(right) - thigh(left));
+      if (open > Math.PI) open = 2 * Math.PI - open;
+      if ((open * 180) / Math.PI > 55) facts.push({ text: 'legs apart', weight: 6.5 });
+    }
+    for (const leg of bentLegs) {
+      facts.push({ text: `${readAs} ${leg.side} knee bent`, weight: 5.5 });
+    }
+    for (const leg of straightLegs) {
+      facts.push({ text: `${readAs} ${leg.side} leg stretched out`, weight: 5 });
+    }
   }
   // Legs: knees up when lying, crossed legs, weight on one leg.
   const faceDown = /^(?:lying on (?:her|his) front|face down)/.test(stance);
@@ -704,6 +762,7 @@ export function describePhotoPose(
       ...options,
       aspect: photo.aspect,
       possessive,
+      ...(photo.posture ? { posture: photo.posture } : {}),
     }).text;
   }
   const [lead, partner] = [people[0]!, people[1]!];
@@ -771,8 +830,9 @@ export function customPoseWords(input: {
     {
       aspect: drawn ? drawn.aspect : photo.aspect,
       people,
-      // A name only describes the one figure it was picked as.
+      // A name only describes the one figure it was picked as; so does a photo's posture read.
       ...(photo.words && people.length === 1 ? { words: photo.words } : {}),
+      ...(photo.posture && people.length === 1 ? { posture: photo.posture } : {}),
     },
     { sceneText: input.sceneText, lead: input.lead }
   );
