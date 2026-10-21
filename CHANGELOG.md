@@ -9,6 +9,37 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.7] - 2026-10-21
+
+- e2e: Settings' service-discovery test clicks Look for them until the search request goes out. A click that landed while the Settings shell remounted the card was dropped (no /api/discover-services at all), which failed the test about one run in three before this branch and more often with the per-tool banner's new timing.
+- Story scene menu in groups like Day's: Redo, Touch up the still, Make it move, The clip (ShotCardMenuGroup); every action, label and test id unchanged. Story guide and features updated.
+- e2e: the palette finds Download models, the inference engine, Webhooks and Prompt style (by "render realism"), and on Day lists New Cast member and runs Open Story.
+- Play boundary: own the files split out of PoseJointEditor
+- Memoize the small per-card leaves Day and Story boards redraw
+- Hand-built modals move onto ui/Dialog
+- Split PoseJointEditor along its seams; memoize the pose pickers and top view
+- Clip jobs: the shared job store reads a missing-models error by shape instead of importing Play's heavy-graph-server (Play boundary).
+- Clip jobs: failures in plain words (friendly-error), the missing files from MissingModelsError; docs on the tray's progress, Cancel and Retry and the job API; fix-area spec points at the archived checklist.
+- Type tokens for tiny text: text-2xs / 3xs / 4xs
+- First-run setup has one owner and one dismiss. A new player could meet five setup surfaces (welcome, first-queue modal, dashboard checklist, goal chooser, a banner on every tool page), each pointing at Heal & ready in other words, and dismissing one left the rest.
+- Button: pill, overlay, icon and link variants; migrate hand-styled buttons; lint rule
+- Clip jobs: Sharpen & smooth and Make more realistic run in the background with progress, Cancel and Retry, and survive a reload.
+- Plain-language errors: one friendly-error helper behind every API error, no stack frames or ffmpeg dumps in responses, LLM-down notice
+- Settings search finds every tab and section by name, plus Models, finishing tools, the inference engine and Heal & ready. Tabs only matched their label and description, so in Simple or Play the three tabs not listed (Automation, Advanced, Users) couldn't be found; each tab now has its own words (and ComfyUI's, its section names), and every tab not already listed shows once you type. New hand-written entries: Download models and Finishing tool models (Sharpen & smooth, Copy moves, Lip-sync, Relight, Upscale, Make more realistic) open Models; Inference engine (ComfyUI or cloud) opens the engine section, which Castcut labels Generate & Video engine and which now also answers to inference; Heal & ready jumps to its button on Overview.
+- Command palette: a registry for feature and page actions, and Play's in it. The palette had eight actions of its own and none of Play's.
+- Confirm or undo on destructive actions that had neither
+- Film header More menu on ActionMenu
+- Every window.confirm in components and hooks asks in the page (confirmAction)
+- "Render realism" / "Render style" is now "Prompt style" wherever it's shown (Settings → Prompt quality, the Engine summary line, More, Overview's Quality card, Changed from defaults, Settings search, the Play guide), so it no longer reads like the new Make more realistic clip pass. It steers the prompt (Off, Realistic, Hyper-realistic, Anime), which the new name says. Settings search now jumps to the control (#settings-prompt-style) and still finds it by realism, photoreal or anime. Labels only: the stored key stays renderRealismMode.
+- Copy prompt pair moves off Ctrl+Shift+C (the browser's inspect element) to Ctrl+Alt+C. A stored binding still on the old default moves with it, once; a combo the player chose is kept. Combos read Alt/Option, and letters also match by physical key, since Option changes the letter on a Mac. The cheat sheet names actions (Copy prompt pair, not copy-pair), stops listing the palette twice, and says where to change combos (Profile → Keyboard shortcuts).
+- Sidebar nav: navigate handlers on the links, not wrapper divs
+- Film cut shot list: keyboard reorder on the grip; Poster / Overlay in the shot's ⋯ menu
+- Mobile: cut picker + badge visible on touch; queue recents grid responsive
+- Theme tokens for hard-coded colours on themed surfaces
+- Shared Dialog and ConfirmDialog in ui/, with confirmAction() and a z-index scale
+- docs: Make more realistic, grouped Day card menu, Gallery clip tools; archive old release notes
+- Loading states: skeletons instead of plain "Loading …" captions
+
 ## [v2.12.6] - 2026-10-21
 
 - Qwen-Image 2.1: every one-person Day pose natural. Swept all 72 layouts (postures, everyday, sport) through Day's own prompt code and the 2.1 converter on the full plate, two seeds each, and fixed what read wrong:
