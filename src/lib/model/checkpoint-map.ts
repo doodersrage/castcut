@@ -377,6 +377,13 @@ function inferQwenLoaderHints(
     };
   }
 
+  // Qwen-Image 2.1 engines name their own file (registry unetHint / unetAlternates). The
+  // catch-all below gave them the 2512 file: Noct-Q (no alternate) never read as installed, and
+  // the full 2.1 / Pruna / Fun-Acc engines only did when 2512 happened to be there (2026-10-21).
+  if (id.startsWith('qwen-image-2.1')) {
+    return {};
+  }
+
   if (id.includes('qwen-image-2512') || id.includes('qwen_image_2512')) {
     const unet = qwen2512UnetFilename(tier);
     return {
