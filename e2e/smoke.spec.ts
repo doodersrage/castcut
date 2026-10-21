@@ -166,7 +166,26 @@ test('settings looks for ComfyUI at the usual addresses when it is not answering
   await gotoStable(page, '/settings?tab=comfyui&section=connection');
   const card = page.getByTestId('service-discovery');
   await expect(card).toBeVisible({ timeout: 20_000 });
-  await card.getByTestId('service-discovery-search').click();
+  // The Settings shell can remount the card while it hydrates and drop a click that landed
+  // first (no /api/discover-services request at all): click until the search starts.
+  const searchStarted = page.waitForRequest(request => request.url().includes('/api/discover-services'), {
+    timeout: 30_000,
+  });
+  let started = false;
+  void searchStarted.then(() => {
+    started = true;
+  }, () => {});
+  await expect
+    .poll(
+      async () => {
+        if (!started) {
+          await card.getByTestId('service-discovery-search').click().catch(() => {});
+        }
+        return started;
+      },
+      { timeout: 30_000, intervals: [1_000, 2_000, 3_000] }
+    )
+    .toBeTruthy();
   // Nothing runs locally in CI: it says so rather than offering a wrong address.
   await expect(
     card.getByTestId('service-discovery-no-comfy').or(card.getByTestId('service-discovery-use-comfy').first())
