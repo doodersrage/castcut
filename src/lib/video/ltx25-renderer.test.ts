@@ -191,10 +191,6 @@ describe('LTX-2.5 clip renderer', () => {
 
 describe('LTX-2.5 talking clips', () => {
   type G = Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
-  const refsTo = (workflow: G, id: string) =>
-    Object.values(workflow).some(node =>
-      Object.values(node.inputs ?? {}).some(v => Array.isArray(v) && v[0] === id)
-    );
 
   it('keeps the soundtrack: decodes the audio latent and saves an MP4 instead of the WebP', () => {
     const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), { speech: {} }) as {

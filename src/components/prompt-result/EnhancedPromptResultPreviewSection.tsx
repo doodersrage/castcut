@@ -21,7 +21,6 @@ export type EnhancedPromptResultPreviewSectionProps = {
 
 export default function EnhancedPromptResultPreviewSection({
   comfyUiPreviewUrl,
-  outputPreview,
   onOpenLightbox,
   onRefine,
   onContinueInpaint,

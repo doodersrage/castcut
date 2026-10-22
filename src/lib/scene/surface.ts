@@ -686,7 +686,7 @@ function postureNear(
  * sofa, head propped on one hand, reading" on a plaza → "sitting on the fountain's edge, head
  * propped on one hand, reading".
  */
-function lyingToSitting(beat: string, surfaces: SceneSurfaces): string {
+function lyingToSitting(beat: string, _surfaces: SceneSurfaces): string {
   let text = beat
     // Words only a lying body has.
     .replace(/,?\s*feet\s+kicked\s+up\s+behind(?:\s+her)?/gi, '')

@@ -23,11 +23,7 @@ import { APP_NAV_PROFILE_LINK, APP_NAV_SETTINGS_LINK } from '@/lib/app/nav-catal
 import { ROLEPLAY_FOCUS_ESCAPE_HREF, saveWorkspaceMode } from '@/lib/app/workspace-mode';
 import { galleryNavHref } from '@/lib/gallery/session-state';
 import { accentForPath } from '@/lib/app/tool-theme';
-import {
-  loadActivePlayCampaign,
-  playCampaignProgressLabel,
-  PLAY_CAMPAIGN_UPDATED_EVENT,
-} from '@/lib/play/campaign';
+import { loadActivePlayCampaign, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play/campaign';
 import { loadPlayMetrics, PLAY_METRICS_UPDATED_EVENT } from '@/lib/play/metrics';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { choosePhoneView } from '@/lib/app/phone-view';

@@ -1,10 +1,5 @@
-import {
-  resolveFittingPlateFromCharacter,
-  resolveLookPlate,
-  type FittingPlate,
-} from '../character/plate';
-import type { CharacterLook, CharacterRecord } from '@/lib/character/os';
-import { activeLook } from '@/lib/character/os';
+import { resolveFittingPlateFromCharacter } from '../character/plate';
+import type { CharacterRecord } from '@/lib/character/os';
 import { buildSinglePersonUserDirective } from '@/lib/checks/single-person';
 import type { RoleplayToolCache } from '@/lib/play/settings';
 import { buildFeetPassPrompt, resolveFeetPassModel } from '@/lib/wardrobe/footwear-check';

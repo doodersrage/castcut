@@ -35,7 +35,6 @@ import {
   DEFAULT_POSE_CANVAS,
   type OpenPosePerson,
   type PoseCameraAngle,
-  type PoseFacing,
   type PoseFraming,
   type PoseLeadPosition,
 } from '@/lib/pose/guide-openpose';
