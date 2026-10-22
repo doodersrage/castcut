@@ -150,9 +150,16 @@ export function describePoseFigure(
   const unit = read.unit;
   const hip = rHip && lHip ? mid(rHip, lHip) : (rHip ?? lHip)!;
   const posture = classifyPosture(body, a);
-  const visionStance = visionPostureDecides(options.posture)
-    ? visionPostureStance(options.posture, readAs)
-    : null;
+  // Crouching vs kneeling: the joints tell which knee is down, so they decide between the two.
+  // A one-knee kneel read "crouching" by vision lost its knee and Edit 2511 sat on a chair
+  // (pose bench re-run, 2026-10-21).
+  const lowPair = new Set(['crouching', 'kneeling']);
+  const jointsDecideLow =
+    lowPair.has(options.posture?.posture ?? '') && lowPair.has(posture.posture);
+  const visionStance =
+    visionPostureDecides(options.posture) && !jointsDecideLow
+      ? visionPostureStance(options.posture, readAs)
+      : null;
   const visionLying = Boolean(visionStance && /^lying/.test(visionStance));
   const lying = visionStance
     ? visionLying

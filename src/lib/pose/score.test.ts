@@ -128,8 +128,8 @@ describe('pose-score matching', () => {
     assert.ok(result.score > 0.95);
   });
 
-  it('a custom pose also misses on its limbs (limb score under 0.8); a planned pose does not', () => {
-    const armsUp = (arms: 'up' | 'down') =>
+  it('a custom pose also misses on its limbs (limb score under 0.75); a planned pose does not', () => {
+    const armsUp = (arms: 'up' | 'down', stride = 0.2) =>
       normalized(
         synthesizeStickSkeleton(
           {
@@ -137,7 +137,7 @@ describe('pose-score matching', () => {
             armLeft: arms,
             armRight: arms,
             lean: 0,
-            stride: 0.2,
+            stride,
             seed: 11,
             people: 1,
             label: 'stand',
@@ -145,7 +145,8 @@ describe('pose-score matching', () => {
           { centerX: 0.5 }
         )
       );
-    const input = { guide: [armsUp('up')], guideAspect: 2 / 3, detected: detectedFrom([armsUp('down')]) };
+    // Arms raised in a stride; she stands feet together, arms down.
+    const input = { guide: [armsUp('up', 0.6)], guideAspect: 2 / 3, detected: detectedFrom([armsUp('down', 0)]) };
     const planned = scorePoseMatch(input);
     assert.equal(planned.postureMiss, false);
     assert.ok(planned.limbScore < CUSTOM_POSE_MIN_LIMB_SCORE, `limbs ${planned.limbScore}`);
@@ -156,7 +157,7 @@ describe('pose-score matching', () => {
     assert.ok(custom.score < DEFAULT_MIN_POSE_MATCH);
     assert.match(describePoseMatch(custom), /limbs off the pose/);
     // The same pose held still passes.
-    const held = scorePoseMatch({ ...input, detected: detectedFrom([armsUp('up')]), customPose: true });
+    const held = scorePoseMatch({ ...input, detected: detectedFrom([armsUp('up', 0.6)]), customPose: true });
     assert.equal(held.limbMiss, false);
     assert.ok(held.score >= DEFAULT_MIN_POSE_MATCH);
   });

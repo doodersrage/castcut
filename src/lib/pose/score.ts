@@ -527,9 +527,11 @@ export function scorePoseMatch(input: {
  * passed 207, catching 7 of 26 wrong and 1 of 72 partly. Mean limb score: right 0.94, partly
  * 0.77, wrong 0.51; under 0.8 flags 23/26 wrong and 32/72 partly, and 6/118 right. A planned pose
  * is a sketch of the beat (its limbs vary freely in a right still), so it keeps the posture
- * verdict alone (calibration below).
+ * verdict alone (calibration below). Re-run after the pose-word rebuild (216 stills, 137 right /
+ * 72 partly / 7 wrong): 0.8 flagged 8 right stills (mostly Edit 2511 at 0.61–0.80); 0.75 keeps
+ * all 7 wrong and 33/72 partly, with 3 right flagged.
  */
-export const CUSTOM_POSE_MIN_LIMB_SCORE = 0.8;
+export const CUSTOM_POSE_MIN_LIMB_SCORE = 0.75;
 
 /** The pose key of a custom pose's guide (`photo:1`, `photo:2` — photoPoseKey). */
 export function isCustomPoseKey(poseKey: string | null | undefined): boolean {
