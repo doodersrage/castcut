@@ -1617,7 +1617,7 @@ export function liftBody(
   // at that distance (limbs that need not swing toward the camera to look their length).
   const tryDepth = (depth: number, stretch?: number) => {
     tryLift(depth);
-    if (options.proportions !== true) return;
+    if (options.proportions === false) return;
     const scale = fitProportions(body, aspect, depth, { camera, body: options.body, stretch });
     if (scale) tryLift(depth, scale);
   };
