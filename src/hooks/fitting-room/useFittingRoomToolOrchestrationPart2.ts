@@ -695,6 +695,8 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     fillKitPreviews,
     keepTryOn,
     queueTryOnAndSwipe,
+    keeperStandIn,
+    makeStandingPicture,
   } = useFittingRoomQueue({
     mounted,
     actions,
@@ -856,6 +858,8 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     fillKitPreviews,
     keepTryOn,
     queueTryOnAndSwipe,
+    keeperStandIn,
+    makeStandingPicture,
     clearReference,
     garmentUploading,
     garmentScanStatus,

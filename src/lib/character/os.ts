@@ -268,6 +268,12 @@ export type CharacterLook = {
    * puts them back in Outfit, Day and Story; a Day slot wearing the look queues with them.
    */
   keptOutfit?: CharacterLookOutfit;
+  /**
+   * Kept try-ons rendered in a custom pose, by keeper entry id: the standing picture of the same
+   * outfit rendered at Keep (fitting/keeper-stand-in.ts). Day and Story start from it instead of
+   * the posed picture once it has landed.
+   */
+  keeperStandIns?: Record<string, CharacterKeeperStandIn>;
   /** Plates this look had before, newest first (Cast home → Looks → Earlier plates). */
   plateHistory?: CharacterLookPlateRecord[];
   /** Side, back and expression renders of this look's plate (cast-reference-sheet.ts). */
@@ -390,6 +396,24 @@ export function restoreLookPlate(
   });
   return getCharacter(characterId);
 }
+
+/** The standing re-render of a posed Keep (fitting/keeper-stand-in.ts). */
+export type CharacterKeeperStandIn = {
+  /** Its ComfyUI job: found in the gallery by it while it renders. */
+  promptId?: string;
+  /** Its gallery entry, once it landed. */
+  entryId?: string;
+  /** Its picture, once it landed. */
+  imageUrl?: string;
+  /** When it was queued (ms). */
+  at: number;
+  /** It failed (or could not be queued): the posed picture stays, and a retry is offered. */
+  failed?: boolean;
+  /** The dressed-plate key it is stored under when it lands (Story's and Day's dress plate). */
+  dressPlateKey?: string;
+  /** The engine it rendered on (the dressed plate records it). */
+  model?: string;
+};
 
 /** What a look wears, from the try-on kept on it (Outfit → Keep). */
 export type CharacterLookOutfit = {
@@ -1547,6 +1571,45 @@ export function toggleLookKeeper(
     : [...(options?.fallbackIds ?? [])];
   const next = current.includes(id) ? current.filter(item => item !== id) : [...current, id];
   return setLookKeepers(characterId, target.id, next);
+}
+
+/**
+ * Record (or with `standIn` null, drop) the standing re-render of one kept try-on on a look. A
+ * patch merges into what is there (the job first, its picture when it lands).
+ */
+export function setLookKeeperStandIn(
+  characterId: string,
+  lookId: string,
+  keeperEntryId: string,
+  standIn: CharacterKeeperStandIn | Partial<CharacterKeeperStandIn> | null
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  const id = keeperEntryId.trim();
+  if (!character || !id) {
+    return character;
+  }
+  const looks = looksOf(character);
+  const target = looks.find(look => look.id === lookId);
+  if (!target) {
+    return character;
+  }
+  const current = { ...(target.keeperStandIns ?? {}) };
+  if (standIn === null) {
+    if (!(id in current)) return character;
+    delete current[id];
+  } else {
+    const merged = { ...current[id], ...standIn } as CharacterKeeperStandIn;
+    current[id] = { ...merged, at: merged.at ?? Date.now() };
+  }
+  const nextLook: CharacterLook = { ...target };
+  if (Object.keys(current).length > 0) nextLook.keeperStandIns = current;
+  else delete nextLook.keeperStandIns;
+  upsertCharacter({
+    ...character,
+    looks: looks.map(look => (look.id === target.id ? nextLook : look)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
 }
 
 export function pinLoraOnCharacter(

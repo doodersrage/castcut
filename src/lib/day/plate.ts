@@ -7,6 +7,7 @@ import {
 import { resolveFittingPlateFromCharacter, type FittingPlate } from '@/lib/fitting/room';
 import { resolveCastFaceForPlate } from '@/lib/look/outfit-plate';
 import { isCastPlateReferenceName } from '@/lib/checks/reference-check';
+import { keeperStandInEntry } from '@/lib/fitting/keeper-stand-in';
 
 export type DayPlateSource = 'keeper' | 'cast';
 
@@ -109,10 +110,14 @@ export function resolveDayPlate(input: {
   if (keeperIds.length > 0 && gallery.length > 0) {
     for (let index = keeperIds.length - 1; index >= 0; index -= 1) {
       const keeperId = keeperIds[index]!;
-      const entry = gallery.find(item => item.id === keeperId && item.status === 'completed');
-      if (!entry) {
+      const kept = gallery.find(item => item.id === keeperId && item.status === 'completed');
+      if (!kept) {
         continue;
       }
+      // A posed Keep's standing picture, once it landed (fitting/keeper-stand-in.ts): her pose
+      // in the kept picture was held into every Day still. Until then, the posed picture.
+      const standing = keeperStandInEntry(look?.keeperStandIns?.[keeperId], gallery);
+      const entry = standing && galleryEntryPrimaryViewUrl(standing)?.trim() ? standing : kept;
       const imageUrl = galleryEntryPrimaryViewUrl(entry)?.trim();
       if (!imageUrl) {
         continue;

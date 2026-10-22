@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Outfit: the back view of a custom-posed try-on keeps the pose, seen from behind (turned pose map + words), instead of standing
+- Outfit: Keep of a custom-posed try-on also renders her standing front on in the same outfit; Day and Story start from it once it lands (the posed picture until then); older posed Keeps offer a one-tap *Make a standing picture*
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
