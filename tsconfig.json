@@ -46,6 +46,7 @@
     // Playwright side, like the config: it imports the e2e helpers.
     "scripts/screenshots.mts",
     "scripts/pose-bench/capture.mts",
+    "scripts/pose-bench/pose-pictures.mts",
     "e2e/**/*",
     "node_modules",
     "_to_delete/**/*",
