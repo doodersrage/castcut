@@ -29,6 +29,7 @@ import {
   loadToolSettings,
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings/cache';
+import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 
 function readSources(characterId: string): CastEpisodeSources {
@@ -57,10 +58,19 @@ export default function CharacterEpisodeCut({
 }) {
   const [sources, setSources] = useState<CastEpisodeSources>(() => readSources(characterId));
   useEffect(() => {
-    const refresh = () => setSources(readSources(characterId));
+    let live = true;
+    const refresh = () => {
+      if (live) setSources(readSources(characterId));
+    };
     window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, refresh);
     window.addEventListener(ROLEPLAY_LIBRARY_UPDATED_EVENT, refresh);
+    // The first render can read storage before it has loaded, and the one "loaded" event can fire
+    // before this effect subscribes (passive effects run after paint): the episode then stayed
+    // empty. Read again now that we listen, and once more when storage is ready.
+    refresh();
+    void whenBrowserStorageReady().then(refresh);
     return () => {
+      live = false;
       window.removeEventListener(SETTINGS_CACHE_UPDATED_EVENT, refresh);
       window.removeEventListener(ROLEPLAY_LIBRARY_UPDATED_EVENT, refresh);
     };
