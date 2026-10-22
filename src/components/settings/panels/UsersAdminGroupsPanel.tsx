@@ -45,13 +45,14 @@ export default function UsersAdminGroupsPanel({
             {group.name}
           </Button>
         ))}
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={() => setSelectedGroupId('__new__')}
-          className="rounded-full border border-dashed border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)]"
+          className="rounded-full border-dashed border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)]"
         >
           + New group
-        </button>
+        </Button>
       </div>
 
       {selectedGroupId ? (

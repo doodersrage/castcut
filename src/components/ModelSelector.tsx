@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -415,7 +416,8 @@ export default function ModelSelector({
                               Get it
                             </Link>
                           ) : null}
-                          <button
+                          <Button
+                            variant="plain"
                             type="button"
                             className={`model-picker-star ${starred ? 'model-picker-star-on' : ''}`}
                             aria-label={starred ? `Unstar ${entry.label}` : `Star ${entry.label}`}
@@ -428,7 +430,7 @@ export default function ModelSelector({
                             }}
                           >
                             {starred ? '★' : '☆'}
-                          </button>
+                          </Button>
                         </div>
                       );
                     })}

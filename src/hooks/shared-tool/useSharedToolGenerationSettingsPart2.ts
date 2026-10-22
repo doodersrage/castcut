@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
@@ -205,16 +205,19 @@ export function useSharedToolGenerationSettingsPart2(
     );
   };
 
-  const handleQueueQualityProfileChange = (profile: QueueQualityProfile) => {
-    setQueueQualityProfile(profile);
-    saveSharedSettings(
-      {
-        ...loadSettingsCache().shared,
-        queueQualityProfile: profile,
-      },
-      { notify: false }
-    );
-  };
+  const handleQueueQualityProfileChange = useCallback(
+    (profile: QueueQualityProfile) => {
+      setQueueQualityProfile(profile);
+      saveSharedSettings(
+        {
+          ...loadSettingsCache().shared,
+          queueQualityProfile: profile,
+        },
+        { notify: false }
+      );
+    },
+    [setQueueQualityProfile]
+  );
 
   useEffect(() => {
     if (!storageReady) {
@@ -232,7 +235,12 @@ export function useSharedToolGenerationSettingsPart2(
       }
       handleQueueQualityProfileChange('final');
     });
-  }, [shared.queueQualityProfile, shared.useSystemWorkflows, storageReady]);
+  }, [
+    handleQueueQualityProfileChange,
+    shared.queueQualityProfile,
+    shared.useSystemWorkflows,
+    storageReady,
+  ]);
 
   const handleExpandWildcardsChange = (value: boolean) => {
     setExpandWildcards(value);

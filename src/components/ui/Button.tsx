@@ -23,11 +23,32 @@ type ButtonVariant =
   | 'tint'
   /**
    * No chrome of its own: a picture you click to open, a full-bleed hit area over media, a
-   * backdrop, a selectable picture tile. className carries the whole look; children are not wrapped.
+   * backdrop, a selectable picture tile, or a look kept in its own CSS class (a menu star, a sheet's
+   * Done). className carries the whole look; children are not wrapped.
    */
-  | 'plain';
+  | 'plain'
+  /**
+   * Neutral bordered action ("Export backup", "Restore pictures"): 1 px border, primary text, a
+   * stronger border on hover. `tone` accent | danger tints border and text. Shape, padding and
+   * size from className.
+   */
+  | 'outline'
+  /**
+   * Bordered toggle / filter chip; `selected` shows it on (accent border, fill and text). Off: a
+   * subtle border and muted text that brighten on hover. Shape, padding and size from className.
+   */
+  | 'chip'
+  /** Text action that underlines on hover ("Show all", "Retry"); colour from className or inherited. */
+  | 'underline'
+  /** Destructive text action with no chrome ("Remove", "Revoke"): danger-coloured text. */
+  | 'danger-text'
+  /** Full-width list row / menu entry: left-aligned, hover fill. Layout from className. */
+  | 'row';
 type ButtonSize = 'default' | 'sm';
-/** Colour of an `overlay` or `tint` button (`strong` is overlay-only, `info` / `danger` tint-only). */
+/**
+ * Colour of an `overlay`, `tint` or `outline` button (`strong` is overlay-only, `info` tint-only;
+ * outline takes `accent` and `danger`).
+ */
 type ButtonTone = 'default' | 'strong' | 'success' | 'warning' | 'accent' | 'info' | 'danger';
 
 type LoadingProps = {
@@ -39,8 +60,10 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   LoadingProps & {
     variant?: ButtonVariant;
     size?: ButtonSize;
-    /** Colour of an `overlay` or `tint` button (ignored by the other variants). */
+    /** Colour of an `overlay`, `tint` or `outline` button (ignored by the other variants). */
     tone?: ButtonTone;
+    /** A `chip` (or `pill`) that is on: sets data-active, which those variants style. */
+    selected?: boolean;
     fullWidth?: boolean;
     children?: ReactNode;
     /** React 19: a ref is a plain prop, passed through to the <button>. */
@@ -61,10 +84,24 @@ const variantClasses: Record<ButtonVariant, string> = {
   quiet: 'ui-btn-quiet',
   tint: 'ui-btn-tint',
   plain: 'ui-btn-plain',
+  outline: 'ui-btn-outline',
+  chip: 'ui-btn-chip',
+  underline: 'ui-btn-underline',
+  'danger-text': 'ui-btn-danger-text',
+  row: 'ui-btn-row',
 };
 
 /** Variants whose children render as given (no label <span>), so a flex / grid className lays them out. */
-const UNWRAPPED_VARIANTS = new Set<ButtonVariant>(['quiet', 'tint', 'plain']);
+const UNWRAPPED_VARIANTS = new Set<ButtonVariant>([
+  'quiet',
+  'tint',
+  'plain',
+  'outline',
+  'chip',
+  'underline',
+  'danger-text',
+  'row',
+]);
 
 /** The small variants carry their own size (and sit in the components layer, so utilities win). */
 const SIZED_VARIANTS = new Set<ButtonVariant>([
@@ -134,6 +171,7 @@ export function Button({
   variant = 'secondary',
   size = 'default',
   tone,
+  selected,
   fullWidth = false,
   loading = false,
   loadingLabel,
@@ -148,6 +186,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       data-tone={tone && tone !== 'default' ? tone : undefined}
+      data-active={selected ? 'true' : undefined}
       className={buttonClassName({ variant, size, fullWidth, className })}
       {...props}
     >

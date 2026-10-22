@@ -482,14 +482,15 @@ export default function LoraStackSessionPicker({
                   {entry.tokenValue ? (
                     <ComfyLoraPreviewThumb filename={entry.tokenValue} comfyUrl={previewComfyUrl} />
                   ) : null}
-                  <button
+                  <Button
+                    variant="row"
                     type="button"
                     aria-expanded={isTuning}
                     onClick={() => {
                       setTuningEntryId(current => (current === entry.id ? null : entry.id));
                       setStrengthEditMode('session');
                     }}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition hover:bg-[var(--bg-muted)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-0.5 transition hover:bg-[var(--bg-muted)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-sm text-[var(--text-primary)]">
@@ -524,7 +525,7 @@ export default function LoraStackSessionPicker({
                         ) : null}
                       </span>
                     ) : null}
-                  </button>
+                  </Button>
                 </div>
               </li>
             );

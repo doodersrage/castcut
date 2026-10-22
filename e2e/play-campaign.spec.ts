@@ -3862,12 +3862,11 @@ test('play campaign shows complete state after durable completedAt', async ({ pa
 test('cast home: tabs, plate empty state, no server/client title swap', async ({ page }) => {
   // The server can't see the Cast store: it used to render "Character not found" and the
   // client swapped in the name (a hydration mismatch). Now both render a loading state first.
-  let serverHtml = '';
-  await page.route('**/characters/e2e-cast-tabs', async route => {
-    const response = await route.fetch();
-    serverHtml = await response.text();
-    await route.fulfill({ response, body: serverHtml });
-  });
+  // The server's HTML for the page (same session cookies). Not by fulfilling the navigation:
+  // under `next dev` Chrome treats a fulfilled document as non-local and blocks the dev HMR
+  // socket, which carries React's debug channel — the page then never hydrates.
+  const serverHtml = await (await page.request.get('/characters/e2e-cast-tabs')).text();
+  expect(serverHtml).toContain('Loading character');
   await page.addInitScript(() => {
     window.localStorage.setItem(
       'comfy-prompt-characters-v1',

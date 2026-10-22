@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import GalleryCapCleanupWizard from '@/components/gallery/GalleryCapCleanupWizard';
 import { GalleryCapWarningBanner } from '@/components/gallery/GalleryPanelChrome';
@@ -87,13 +88,14 @@ export default function GalleryPanelCapSection({
                 Open full gallery
               </Link>
             ) : null}
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={clearAtRisk}
-              className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-xl border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium text-inherit transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             >
               Clear
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

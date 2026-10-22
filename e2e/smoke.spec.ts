@@ -200,9 +200,10 @@ test('settings looks for ComfyUI at the usual addresses when it is not answering
 });
 
 test('settings shows what changed from defaults and resets it', async ({ page }) => {
+  test.setTimeout(180_000);
   await gotoStable(page, '/settings?tab=data&focus=settings-changed-defaults');
   const panel = pageMain(page).locator('#settings-changed-defaults');
-  await expect(panel).toBeVisible({ timeout: 20_000 });
+  await expect(panel).toBeVisible({ timeout: 60_000 });
   // Change one preference in the prompt-quality section, then see it listed and reset it.
   await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-klein-enhancer');
   // The server's streamed copy of the tab (checkbox disabled) can sit hidden outside <main>.
@@ -217,6 +218,11 @@ test('settings shows what changed from defaults and resets it', async ({ page })
     .getByRole('button', { name: /^Data/ })
     .first()
     .click();
+  // The Data tab is a lazy chunk. Under `next dev` its load waits behind on-demand compiles of
+  // the routes this page calls (24 s+ on a cold or busy dev server); CI's build has it at once.
+  await expect(pageMain(page).locator('#settings-changed-defaults')).toBeAttached({
+    timeout: 90_000,
+  });
   const row = page.getByTestId('changed-setting-kleinEnhancerEnabled');
   await expect(row).toContainText('Klein Enhancer', { timeout: 20_000 });
   await page.getByTestId('changed-setting-reset-kleinEnhancerEnabled').click();

@@ -236,7 +236,10 @@ export function useSharedToolModelWorkflowCore({
             : supportedModels.models;
 
     if (
-      !shouldLimitSystemWorkflowPicker(shared) ||
+      !shouldLimitSystemWorkflowPicker({
+        useSystemWorkflows: shared.useSystemWorkflows,
+        systemWorkflowsLimitPicker: shared.systemWorkflowsLimitPicker,
+      }) ||
       showAllModelsOverride ||
       toolIgnoresSystemWorkflowSnap(toolId)
     ) {

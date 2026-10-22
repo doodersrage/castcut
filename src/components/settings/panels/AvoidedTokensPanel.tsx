@@ -132,18 +132,19 @@ export default function AvoidedTokensPanel({
       ) : (
         <div className="flex flex-wrap gap-2">
           {avoidedTokens.map(token => (
-            <button
+            <Button
+              variant="outline"
               key={token}
               type="button"
               onClick={() => {
                 removeAvoidedToken(token);
                 setStatus(`Removed “${token}”.`);
               }}
-              className="rounded-full border border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-secondary)] hover:border-[var(--tint-danger-border)]/60 hover:text-[var(--tint-danger-text)]"
+              className="rounded-full px-3 py-1 text-xs text-[var(--text-secondary)] hover:border-[var(--tint-danger-border)]/60 hover:text-[var(--tint-danger-text)]"
               title="Click to remove"
             >
               {token} ×
-            </button>
+            </Button>
           ))}
         </div>
       )}

@@ -470,15 +470,16 @@ export default function PosePreview({
         />
         {/* Tap targets 32 px tall: as bare text links they were 18 px on a phone. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0 type-caption text-[var(--text-muted)]">
-          <button
+          <Button
+            variant="underline"
             type="button"
-            className="inline-flex min-h-8 items-center underline"
+            className="inline-flex min-h-8 items-center underline underline-offset-auto"
             disabled={busy}
             data-testid={`${testIdPrefix}-edit`}
             onClick={() => setEditing(true)}
           >
             Edit joints
-          </button>
+          </Button>
           <label
             className="inline-flex min-h-8 cursor-pointer items-center underline"
             data-testid={`${testIdPrefix}-photo`}
@@ -503,9 +504,10 @@ export default function PosePreview({
           </label>
           {fromPhoto ? (
             <>
-              <button
+              <Button
+                variant="underline"
                 type="button"
-                className="underline"
+                className="underline underline-offset-auto"
                 disabled={busy}
                 data-testid={`${testIdPrefix}-photo-clear`}
                 onClick={() => {
@@ -515,16 +517,17 @@ export default function PosePreview({
                 }}
               >
                 {edited ? 'Clear edit' : 'Clear photo'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="underline"
                 type="button"
-                className="underline"
+                className="underline underline-offset-auto"
                 disabled={busy}
                 title={`File this pose in the pose library under ${poseLayoutLabel(drawnId)}`}
                 onClick={() => void savePhoto()}
               >
                 Save to pose library
-              </button>
+              </Button>
             </>
           ) : null}
         </div>

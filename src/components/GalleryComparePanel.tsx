@@ -351,8 +351,9 @@ export default function GalleryComparePanel({
                   </Button>
                 ) : null}
                 {[5, 4, 3, 2, 1].map(rating => (
-                  <button
+                  <Button
                     key={rating}
+                    variant="plain"
                     type="button"
                     disabled={!onRate}
                     onClick={() => onRate?.(entry.id, rating as ComfyGalleryEntry['reviewRating'])}
@@ -363,7 +364,7 @@ export default function GalleryComparePanel({
                     }`}
                   >
                     {rating}★
-                  </button>
+                  </Button>
                 ))}
                 {onFavorite ? (
                   <button

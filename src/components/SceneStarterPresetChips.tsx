@@ -236,52 +236,56 @@ export default function SceneStarterPresetChips({
 
       <div className="flex flex-wrap gap-2">
         {SCENE_STARTER_CATEGORIES.map(item => (
-          <button
+          <Button
+            variant="chip"
+            selected={activeCategory === item.value}
             key={item.value}
             type="button"
             onClick={() => setCategory(item.value)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
-              activeCategory === item.value
-                ? activeChipClass
-                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
+            className={`rounded-full px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+              activeCategory === item.value ? activeChipClass : 'border-[var(--border-default)]'
             }`}
           >
             {item.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {FRAMING_OPTIONS.map(option => (
-          <button
+          <Button
+            variant="chip"
+            selected={activeFilter.framing === option.value}
             key={option.value}
             type="button"
             onClick={() => patchFilter({ framing: option.value })}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+            className={`rounded-full px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
               activeFilter.framing === option.value
                 ? activeChipClass
-                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                : 'border-[var(--border-default)]'
             }`}
           >
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2">
         {SCENE_STARTER_TAG_OPTIONS.filter(tag => mode !== 'solo' || tag.id !== 'duo').map(tag => (
-          <button
+          <Button
+            variant="chip"
+            selected={activeFilter.tags.includes(tag.id)}
             key={tag.id}
             type="button"
             onClick={() => toggleTag(tag.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+            className={`rounded-full px-3 py-1 text-xs font-medium transition max-md:min-h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
               activeFilter.tags.includes(tag.id)
                 ? activeChipClass
-                : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                : 'border-[var(--border-default)]'
             }`}
           >
             {tag.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -325,7 +329,9 @@ export default function SceneStarterPresetChips({
               const active = selectedId === preset.id;
               const isUser = preset.id.startsWith('user-');
               return (
-                <button
+                <Button
+                  variant="chip"
+                  selected={active}
                   key={preset.id}
                   type="button"
                   title={[
@@ -335,10 +341,8 @@ export default function SceneStarterPresetChips({
                     .filter(Boolean)
                     .join('\n')}
                   onClick={() => onSelect(preset)}
-                  className={`rounded-lg border px-3 py-1.5 text-left text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
-                    active
-                      ? activeChipClass
-                      : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                  className={`rounded-lg px-3 py-1.5 text-left text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-ring)] ${
+                    active ? activeChipClass : 'border-[var(--border-default)]'
                   }`}
                 >
                   <span className="block">{preset.label}</span>
@@ -347,7 +351,7 @@ export default function SceneStarterPresetChips({
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>

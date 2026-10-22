@@ -277,16 +277,17 @@ export default function ProfilePanel() {
               >
                 <p className="font-medium text-[var(--text-primary)]">{preset.label}</p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{preset.hints}</p>
-                <button
+                <Button
+                  variant="quiet"
                   type="button"
                   onClick={() => {
                     void navigator.clipboard.writeText(preset.hints);
                     setStatus(`Copied hints for “${preset.label}”.`);
                   }}
-                  className="mt-2 text-xs text-[var(--accent-text)] hover:text-[var(--accent-text)]"
+                  className="mt-2 text-xs text-[var(--accent-text)] underline-offset-auto hover:text-[var(--accent-text)]"
                 >
                   Copy hints
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import type {
   CastChecklist as CastChecklistModel,
@@ -52,10 +53,12 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
           const isNext = item.id === nextId;
           return (
             <li key={item.id}>
-              <button
+              <Button
+                variant="chip"
+                selected={isNext}
                 type="button"
                 onClick={() => open(item.target)}
-                className={`flex w-full min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-inherit transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   isNext
                     ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
                     : 'border-transparent hover:border-[var(--border-subtle)] hover:bg-[var(--bg-active)]'
@@ -100,7 +103,7 @@ export default function CastChecklist({ checklist, onTab, go }: CastChecklistPro
                     Next
                   </span>
                 ) : null}
-              </button>
+              </Button>
             </li>
           );
         })}

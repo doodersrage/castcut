@@ -7,6 +7,7 @@ import {
   detectStorageConflicts,
   localSessionStackLooksEmpty,
   mergeArraysById,
+  mergeStartupServerSettings,
   suggestMergeChoice,
 } from "./merge";
 
@@ -162,5 +163,32 @@ describe("mergeArraysById", () => {
       merged.map((entry) => entry.id),
       ["other-device", "local", "both"],
     );
+  });
+});
+
+describe("mergeStartupServerSettings", () => {
+  it("keeps a setting changed while the startup pull was in flight; the server wins the rest", () => {
+    const before = {
+      shared: { kleinEnhancerEnabled: true, detail: "low", model: "flux" } as Record<string, unknown>,
+      tools: { day: { a: 2 } },
+    };
+    // The user unchecked Klein Enhancer before the (slow) pull landed.
+    const latest = { ...before, shared: { ...before.shared, kleinEnhancerEnabled: false } };
+    const server = {
+      shared: { kleinEnhancerEnabled: true, detail: "high", model: "qwen" } as Record<string, unknown>,
+      tools: { day: { a: 1 }, story: { b: 1 } },
+    };
+    const merged = mergeStartupServerSettings(before, latest, server);
+    assert.deepEqual(merged.shared, { kleinEnhancerEnabled: false, detail: "high", model: "qwen" });
+    assert.deepEqual(merged.tools, { day: { a: 2 }, story: { b: 1 } });
+  });
+
+  it("does not put a pre-pull copy back over a field the server does not hold", () => {
+    const merged = mergeStartupServerSettings(
+      { shared: { a: 1 } as Record<string, unknown> },
+      { shared: { a: 2, b: 3 } as Record<string, unknown> },
+      { shared: { c: 4 } as Record<string, unknown> }
+    );
+    assert.deepEqual(merged.shared, { a: 2, b: 3, c: 4 });
   });
 });

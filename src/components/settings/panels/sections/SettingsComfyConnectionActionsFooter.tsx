@@ -3,7 +3,7 @@
 import { restartComfyUi } from '@/lib/comfyui/queue-control';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
 import { accentButtonClass } from '@/components/ui/ToolPageShell';
-import { PrimaryButton } from '@/components/ui/Button';
+import { PrimaryButton, Button } from '@/components/ui/Button';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 
 const ACCENT = SETTINGS_TOOL_ACCENT;
@@ -35,14 +35,16 @@ export function SettingsComfyConnectionActionsFooter({
       >
         Save ComfyUI settings
       </PrimaryButton>
-      <button
+      <Button
+        variant="outline"
         type="button"
         onClick={() => void refreshHealth()}
-        className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+        className="rounded-lg px-4 py-2"
       >
         Test connection
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="outline"
         type="button"
         onClick={() => {
           void (async () => {
@@ -55,17 +57,18 @@ export function SettingsComfyConnectionActionsFooter({
             setStatus('ComfyUI restart requested. Wait a few seconds, then Test connection.');
           })();
         }}
-        className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+        className="rounded-lg px-4 py-2"
       >
         Restart ComfyUI
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="outline"
         type="button"
         onClick={handleResetComfySettings}
-        className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+        className="rounded-lg px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
       >
         Reset to server defaults
-      </button>
+      </Button>
     </div>
   );
 }

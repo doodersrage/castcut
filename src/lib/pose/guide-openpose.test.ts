@@ -22,7 +22,6 @@ import {
 } from './guide-openpose';
 
 const W = 512;
-const H = 768;
 const idx = (name: (typeof OPENPOSE_KEYPOINT_NAMES)[number]) =>
   OPENPOSE_KEYPOINT_NAMES.indexOf(name);
 

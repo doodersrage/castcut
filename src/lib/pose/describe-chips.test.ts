@@ -17,7 +17,6 @@ const A = 2 / 3;
 const STAND = poseStarterBody('stand');
 type Case = { name: string; body: NormalizedBody; expect: RegExp; reject?: RegExp };
 const cases: Case[] = [];
-const sideWord = (s: string) => (s === 'both' ? '' : s);
 const armExpect: Record<string, (s: string) => RegExp> = {
   up: s => s === 'both' ? /both arms raised|arms raised/ : new RegExp(`her ${s} arm (?:\\(on the \\w+ of the picture\\) )?(?:raised|reaching up)`),
   hips: s => s === 'both' ? /both hands on hips/ : new RegExp(`her ${s} hand (?:\\(on the \\w+ of the picture\\) )?on her hip`),

@@ -209,13 +209,14 @@ export default function PlayCampaignCharacterSection({
             {referenceFile ? (
               <p className="type-caption text-[var(--text-secondary)]">
                 Selected: {referenceFile.name}{' '}
-                <button
+                <Button
+                  variant="underline"
                   type="button"
-                  className="underline underline-offset-2"
+                  className="underline"
                   onClick={() => setReferenceFile(null)}
                 >
                   Clear
-                </button>
+                </Button>
               </p>
             ) : null}
           </div>

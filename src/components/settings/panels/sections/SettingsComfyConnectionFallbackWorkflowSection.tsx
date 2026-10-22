@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import dynamic from 'next/dynamic';
 import DiffusersWorkflowSupportHint from '@/components/DiffusersWorkflowSupportHint';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
@@ -134,14 +135,16 @@ export function SettingsComfyConnectionFallbackWorkflowSection({
           rows={3}
           className={accentFocusClass(ACCENT)}
         />
-        <button
+        <Button
+          variant="outline"
+          tone="accent"
           type="button"
           disabled={previewLoading || !previewPrompt.trim()}
           onClick={() => void handlePreviewWorkflow()}
-          className="rounded-lg border border-[var(--accent-border)] px-4 py-2 text-sm text-[var(--accent-text)] hover:border-[var(--accent)] disabled:opacity-50"
+          className="rounded-lg px-4 py-2 text-sm disabled:opacity-50"
         >
           {previewLoading ? 'Previewing…' : 'Preview injection'}
-        </button>
+        </Button>
         <WorkflowPreviewPanel
           loading={previewLoading}
           error={previewError}

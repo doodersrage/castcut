@@ -244,6 +244,36 @@ export function applyServerSessionStack<T extends { shared?: Record<string, unkn
   return { ...local, shared: nextShared };
 }
 
+/**
+ * A fresh profile's startup pull of the server's settings: the server's fields win and local
+ * tools win — except shared fields changed on this page while the pull was in flight (a toggle
+ * flipped in the first seconds, which the pull put back to the server's value; with a big gallery
+ * to pull first the window is seconds long). `before` is local as the pull started, `latest` as
+ * it lands.
+ */
+export function mergeStartupServerSettings<
+  T extends { shared?: Record<string, unknown>; tools?: object },
+>(before: T, latest: T, server: T): T {
+  const beforeShared = before.shared ?? {};
+  const latestShared = latest.shared ?? {};
+  const edited: Record<string, unknown> = {};
+  for (const key of new Set([...Object.keys(beforeShared), ...Object.keys(latestShared)])) {
+    if (JSON.stringify(beforeShared[key]) !== JSON.stringify(latestShared[key])) {
+      edited[key] = latestShared[key];
+    }
+  }
+  const merged = applyServerSessionStack(
+    {
+      ...latest,
+      ...server,
+      shared: { ...latestShared, ...(server.shared ?? {}) },
+      tools: { ...(server.tools ?? {}), ...(latest.tools ?? {}) },
+    },
+    server
+  );
+  return { ...merged, shared: { ...merged.shared, ...edited } };
+}
+
 export function mergeSettingsCache<
   T extends {
     updatedAt?: number;

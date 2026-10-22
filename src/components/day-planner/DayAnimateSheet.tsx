@@ -100,14 +100,15 @@ export default function DayAnimateSheet({
                 : 'The slot’s beat. Write what should happen instead, in plain words.'}
             </span>
             {edited ? (
-              <button
+              <Button
+                variant="underline"
                 type="button"
-                className="underline-offset-2 hover:underline"
+
                 onClick={() => setDirection(initial.defaultDirection)}
                 data-testid="day-animate-reset"
               >
                 Back to the beat
-              </button>
+              </Button>
             ) : null}
           </span>
         </label>

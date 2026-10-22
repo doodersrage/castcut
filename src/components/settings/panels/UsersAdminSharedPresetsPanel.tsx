@@ -57,13 +57,14 @@ export default function UsersAdminSharedPresetsPanel({
               <p className="font-medium text-[var(--text-primary)]">{preset.label}</p>
               <p className="text-xs text-[var(--text-muted)]">{preset.hints}</p>
             </div>
-            <button
+            <Button
+              variant="danger-text"
               type="button"
-              className="text-xs ui-status-danger"
+              className="text-xs"
               onClick={() => void onDeletePreset(preset.id)}
             >
               Delete
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

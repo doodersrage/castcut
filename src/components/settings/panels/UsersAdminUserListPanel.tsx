@@ -31,13 +31,14 @@ export default function UsersAdminUserListPanel({
             {!user.enabled ? ' · disabled' : ''}
           </Button>
         ))}
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={() => setSelectedUserId('__new__')}
-          className="rounded-full border border-dashed border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)]"
+          className="rounded-full border-dashed border-[var(--border-default)] px-3 py-1 text-xs text-[var(--text-muted)]"
         >
           + New user
-        </button>
+        </Button>
       </div>
     </ToolSection>
   );

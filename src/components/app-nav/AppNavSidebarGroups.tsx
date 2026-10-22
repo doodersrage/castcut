@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
 import { AppNavSidebarLink } from '@/components/app-nav/AppNavSidebarLink';
@@ -90,9 +91,10 @@ export function AppNavSidebarGroups({
                 isMoreTools && !expanded ? `${group.label} (${group.links.length})` : group.label;
               return (
                 <div key={group.label} className="space-y-2">
-                  <button
+                  <Button
+                    variant="row"
                     type="button"
-                    className="flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-1 text-left transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="flex w-full items-center justify-between rounded-[var(--radius-md)] px-3 py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     aria-expanded={expanded}
                     onClick={() => handleToggleGroup(group.label)}
                   >
@@ -100,7 +102,7 @@ export function AppNavSidebarGroups({
                     <span className="type-caption text-[var(--text-muted)]" aria-hidden>
                       {expanded ? '▾' : '▸'}
                     </span>
-                  </button>
+                  </Button>
                   {isMoreTools && !expanded ? (
                     <p className="type-caption px-3 text-[var(--text-muted)]">
                       Press{' '}

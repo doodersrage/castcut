@@ -513,7 +513,7 @@ export function comfyUiSettingsToRuntime(
 }
 
 export function placeholderTokensFromSettings(
-  settings: ComfyUiSettings
+  settings: Pick<ComfyUiSettings, 'positiveToken' | 'negativeToken'>
 ): WorkflowPlaceholderTokens {
   return {
     positive: settings.positiveToken?.trim() || DEFAULT_POSITIVE_TOKEN,

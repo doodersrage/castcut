@@ -16,9 +16,8 @@ export default function GalleryReviewTouchBar({
   onPrev,
 }: GalleryReviewTouchBarProps) {
   const dockRef = useBottomDockRef<HTMLDivElement>();
-  // One look for every rating (a red→orange→blue→green→accent rainbow before — UI review 2026-10-15).
-  const ratingClass = 'ui-btn-secondary';
-
+  // Every rating has one look, ui-btn-secondary (a red→orange→blue→green→accent rainbow before —
+  // UI review 2026-10-15).
   return (
     <div
       ref={dockRef}
@@ -38,7 +37,7 @@ export default function GalleryReviewTouchBar({
               key={rating}
               type="button"
               onClick={() => onRate(rating)}
-              className={`min-h-11 min-w-11 rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${ratingClass}`}
+              className={`min-h-11 min-w-11 rounded-xl border-[var(--border-subtle)]/60 bg-[var(--bg-elevated)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ui-btn-secondary`}
             >
               {rating}
             </button>

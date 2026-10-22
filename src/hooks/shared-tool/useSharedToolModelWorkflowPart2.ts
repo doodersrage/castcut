@@ -130,7 +130,10 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
       return;
     }
     if (
-      !shouldLimitSystemWorkflowPicker(shared) ||
+      !shouldLimitSystemWorkflowPicker({
+        useSystemWorkflows: shared.useSystemWorkflows,
+        systemWorkflowsLimitPicker: shared.systemWorkflowsLimitPicker,
+      }) ||
       showAllModelsOverride ||
       toolIgnoresSystemWorkflowSnap(toolId)
     ) {
@@ -291,6 +294,7 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
         display: 'Built-in scaffold',
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- usesSystemWorkflowPath reads only shared.useSystemWorkflows (listed)
   }, [
     inventoryTick,
     shared.model,
@@ -315,6 +319,7 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
     return formatQueueQualityProfileHint(queueQualityProfile, samplerPreset, resolutionSizeTier, {
       model: shared.model,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- usesSystemWorkflowPath reads only shared.useSystemWorkflows (listed)
   }, [
     queueQualityProfile,
     resolutionSizeTier,

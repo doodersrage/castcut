@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import BrandBars from '@/components/BrandBars';
@@ -62,11 +63,12 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      <button
+      <Button
+        variant="outline"
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(value => !value)}
-        className="relative rounded-full border border-[var(--border-default)]/80 bg-[var(--bg-base)]/50 px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+        className="relative rounded-full border-[var(--border-default)]/80 bg-[var(--bg-base)]/50 px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:border-[var(--accent-border)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
       >
         Alerts
         {unread > 0 ? (
@@ -74,7 +76,7 @@ export default function NotificationBell() {
             {unread}
           </span>
         ) : null}
-      </button>
+      </Button>
       {open ? (
         <div
           ref={panelRef}
@@ -88,16 +90,17 @@ export default function NotificationBell() {
                 Activity
               </p>
             </div>
-            <button
+            <Button
+              variant="quiet"
               type="button"
-              className="rounded-md px-1.5 py-0.5 text-3xs text-[var(--accent-text)] transition hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-md px-1.5 py-0.5 text-3xs text-[var(--accent-text)] underline-offset-auto transition hover:bg-[var(--accent-muted)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               onClick={() => {
                 markAllNotificationsRead();
                 refresh();
               }}
             >
               Mark all read
-            </button>
+            </Button>
           </div>
           <ul className="ui-scroll-region max-h-64 overflow-y-auto">
             {items.length === 0 ? (

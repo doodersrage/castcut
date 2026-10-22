@@ -9,6 +9,7 @@ import {
 import { galleryCardCaption } from '@/lib/gallery/card-caption';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import UiIcon from '@/components/ui/UiIcon';
+import { Button } from '@/components/ui/Button';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import {
   galleryJobPercent,
@@ -69,14 +70,15 @@ export function GalleryTrayRow({
           <p className="min-w-0 truncate text-sm text-[var(--text-primary)]">
             {galleryCardCaption(entry.prompt) || entry.model || 'Generation job'}
           </p>
-          <button
+          <Button
+            variant="outline"
             type="button"
             disabled={cancelling}
             onClick={() => onCancel(entry)}
-            className="shrink-0 rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 rounded-lg border-[var(--border-subtle)] px-2 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelling ? 'Cancelling…' : 'Cancel'}
-          </button>
+          </Button>
         </div>
         <p className="type-caption text-[var(--text-tertiary)]">
           {galleryJobStatusLabel({

@@ -2271,6 +2271,89 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
   }
 
   /* Button variant="plain" has no rule on purpose: the caller's className is its whole look. */
+
+  /* The variants below set only colours, borders and hover — shape, padding, size, transition
+     and focus ring come from the caller's utilities. Their hover sits in (hover: hover) like a
+     Tailwind hover: utility, and a caller's colour utility overrides both states. */
+
+  /* Button variant="outline" tone=…: a neutral bordered action. */
+  .ui-btn-outline {
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--border-default);
+    color: var(--text-primary);
+  }
+
+  .ui-btn-outline[data-tone='accent'] {
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+
+  .ui-btn-outline[data-tone='danger'] {
+    border-color: var(--tint-danger-border);
+    color: var(--tint-danger-text);
+  }
+
+  /* Button variant="chip" selected: a bordered toggle / filter chip. */
+  .ui-btn-chip {
+    border-style: solid;
+    border-width: 1px;
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+  }
+
+  .ui-btn-chip[data-active='true'] {
+    border-color: var(--accent-border);
+    background-color: var(--accent-muted);
+    color: var(--accent-text);
+  }
+
+  /* Button variant="underline": a text action that underlines on hover. */
+  .ui-btn-underline {
+    text-underline-offset: 2px;
+  }
+
+  /* Button variant="danger-text": a destructive text action. */
+  .ui-btn-danger-text {
+    color: var(--tint-danger-text);
+  }
+
+  /* Button variant="row": a full-width list row or menu entry. */
+  .ui-btn-row {
+    text-align: left;
+  }
+
+  @media (hover: hover) {
+    .ui-btn-outline:hover {
+      border-color: var(--border-strong);
+    }
+
+    .ui-btn-outline[data-tone='accent']:hover {
+      border-color: var(--accent);
+    }
+
+    .ui-btn-outline[data-tone='danger']:hover {
+      border-color: var(--tint-danger-border);
+    }
+
+    .ui-btn-chip:hover {
+      border-color: var(--border-default);
+      color: var(--text-primary);
+    }
+
+    .ui-btn-chip[data-active='true']:hover {
+      border-color: var(--accent-border);
+      color: var(--accent-text);
+    }
+
+    .ui-btn-underline:hover {
+      text-decoration-line: underline;
+    }
+
+    .ui-btn-row:hover {
+      background-color: var(--bg-hover);
+    }
+  }
 }
 
 /* ─── Chips & toggles ───────────────────────────────────────────────────── */

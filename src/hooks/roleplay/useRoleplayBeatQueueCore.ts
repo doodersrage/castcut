@@ -117,6 +117,7 @@ import { resolveStoryNudeFaceFilename } from '@/lib/story/nude-face';
 import { PLAY_FACE_CROP_CANVAS } from '@/lib/plate/render-size';
 import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { MutableRefObject } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 
 /** The pose guide's forcePeople option, when Story's words settle the headcount. */
 const withForcedPeople = (people: 1 | 2 | undefined) => (people ? { forcePeople: people } : {});
@@ -256,6 +257,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
     content,
     setError,
   } = options;
+  // Read when a still or clip is queued, not listed as deps: the queue callbacks drive effects
+  // (the adult gate, clip auto-queue) that must not re-run because the Cast changed.
+  const castRef = useLatestRef({
+    activeCharacterId: shared.activeCharacterId,
+    setting: toolSettings.setting,
+    leadName: toolSettings.bio?.name,
+  });
+  const sharedRef = useLatestRef(shared);
   // Clean / PG-13 / Suggestive: "leans against a brick wall" must not become a wall-sex duo.
   const adult = isRoleplayAdultContent(content);
   // Suggestive and the adult ratings: photo stills wait for the adult-appearance gate.
@@ -601,7 +610,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           {
             sendComfyUi: actions.sendComfyUi,
             // Shoes picked: the plate's feet are checked and fixed once (footwear-check.ts).
-            visionShared: shared,
+            visionShared: sharedRef.current,
             onShoePass: () => {
               setDressPlateActivity({ text: DRESS_PLATE_SHOE_PASS_STATUS, busy: true });
               pushSystemTrayMessage({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
@@ -650,6 +659,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       toolSettings.footwearImageFilename,
       toolSettings.footwearImageUrl,
       toolSettings.wardrobeId,
+      sharedRef,
     ]
   );
 
@@ -890,10 +900,10 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         ),
         poseGuide?.cueLine ?? '',
         // The Cast's marks that show in this scene and the props it mentions (as Day's stills).
-        storyCastLines(getCharacter(shared.activeCharacterId?.trim() || ''), {
+        storyCastLines(getCharacter(castRef.current.activeCharacterId?.trim() || ''), {
           scene: [beat.title, beat.blurb].filter(Boolean).join('. '),
           outfit: promptSource,
-          setting: toolSettings.setting,
+          setting: castRef.current.setting,
           undressed: adult,
           man: leadIsMan(),
         }),
@@ -932,7 +942,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       };
       // Family never plays a romantic or sexual part (cast-relationships.ts): such a scene is
       // not drawn, and its card says why.
-      const leadCast = getCharacter(shared.activeCharacterId?.trim() || '');
+      const leadCast = getCharacter(castRef.current.activeCharacterId?.trim() || '');
       const familyClash = queueStill
         ? storyFamilyRomance(
             [beat.title, beat.blurb, promptSource].filter(Boolean).join('. '),
@@ -1078,6 +1088,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       storyRef,
       toolSettings.footwear,
       updateToolSettings,
+      castRef,
     ]
   );
 
@@ -1190,7 +1201,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           clothing: stillOpts?.inputImageFilenames?.[1]?.trim()
             ? { filename: stillOpts.inputImageFilenames[1] }
             : null,
-          subject: toolSettings.bio?.name,
+          subject: castRef.current.leadName,
           comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
         });
         const rapidRecipe = storyRapidDuoRecipeFor(
@@ -1311,10 +1322,12 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
       shared.renderRealismMode,
       storyRef,
       updateToolSettings,
+      castRef,
     ]
   );
 
   return {
+    castRef,
     skipStillForClip,
     commitStill,
     queueBeat,

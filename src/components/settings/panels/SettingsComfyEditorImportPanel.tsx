@@ -162,11 +162,13 @@ export default function SettingsComfyEditorImportPanel({
           <ul className="space-y-1.5" data-testid="comfy-editor-import-files">
             {files.map(file => (
               <li key={file.name}>
-                <button
+                <Button
+                  variant="chip"
+                  selected={loaded?.name === file.name}
                   type="button"
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm text-inherit transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                     loaded?.name === file.name
-                      ? 'border-[var(--accent-border)] bg-[var(--accent-muted)]'
+                      ? ''
                       : 'border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 hover:bg-[var(--bg-muted)]'
                   }`}
                   disabled={loading}
@@ -178,7 +180,7 @@ export default function SettingsComfyEditorImportPanel({
                       saved {new Date(file.modified).toLocaleString()}
                     </span>
                   ) : null}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

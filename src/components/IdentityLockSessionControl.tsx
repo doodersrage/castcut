@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useRef, useState, useSyncExternalStore } from 'react';
 import {
   activeLook,
@@ -148,17 +149,18 @@ export default function IdentityLockSessionControl({
           {lookStatus.canUseLook && castLook ? (
             <>
               <span aria-hidden="true">—</span>
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => {
                   persist(lockOnLookFace(castLook));
                   setStatus(null);
                 }}
-                className="rounded-lg border border-[var(--border-subtle)] px-2 py-0.5 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                className="rounded-lg border-[var(--border-subtle)] px-2 py-0.5 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 title={`Lock the face of ${lookLockLabel(lookStatus.lookName ?? '')} instead`}
               >
                 Use this look&rsquo;s
-              </button>
+              </Button>
             </>
           ) : null}
         </p>
@@ -248,13 +250,14 @@ export default function IdentityLockSessionControl({
               className="w-full accent-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             />
           </label>
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={clearLock}
-            className="rounded-lg border border-[var(--border-subtle)] px-2.5 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+            className="rounded-lg border-[var(--border-subtle)] px-2.5 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
           >
             Clear
-          </button>
+          </Button>
         </div>
       ) : null}
       {uploading ? (

@@ -47,7 +47,8 @@ export default function WorkspaceModeControl({
           {WORKSPACE_MODE_OPTIONS.map(option => {
             const active = mode === option.id;
             return (
-              <button
+              <Button
+                variant="plain"
                 key={option.id}
                 type="button"
                 title={option.description}
@@ -61,7 +62,7 @@ export default function WorkspaceModeControl({
               >
                 {option.label}
                 <span className="ml-1 opacity-70">{option.shortTag}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -83,12 +84,14 @@ export default function WorkspaceModeControl({
         {WORKSPACE_MODE_OPTIONS.map(option => {
           const active = mode === option.id;
           return (
-            <button
+            <Button
+              variant="chip"
+              selected={active}
               key={option.id}
               type="button"
               aria-pressed={active}
               onClick={() => apply(option.id)}
-              className={`rounded-[var(--radius-lg)] border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+              className={`rounded-[var(--radius-lg)] px-4 py-3 text-left text-inherit transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                 active
                   ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] shadow-[var(--shadow-soft)]'
                   : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
@@ -103,7 +106,7 @@ export default function WorkspaceModeControl({
               <span className="type-caption mt-1 block text-[var(--text-muted)]">
                 {option.description}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useMemo, useState } from 'react';
 import {
   DEFAULT_WILDCARDS,
@@ -102,14 +103,15 @@ export default function WildcardListsEditor({
             )}
           </select>
         </div>
-        <button
+        <Button
+          variant="outline"
           type="button"
           disabled={disabled || !active}
           onClick={removeList}
-          className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
+          className="rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
         >
           Remove
-        </button>
+        </Button>
       </div>
 
       {active ? (
@@ -139,14 +141,15 @@ export default function WildcardListsEditor({
             className={`ui-input w-full px-(--input-padding-x) py-(--input-padding-y) type-body ${focusClassName}`}
           />
         </div>
-        <button
+        <Button
+          variant="outline"
           type="button"
           disabled={disabled || !normalizeName(draftName)}
           onClick={addList}
-          className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-sm text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
+          className="rounded-lg px-3 py-2 text-sm transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:opacity-40"
         >
           Add list
-        </button>
+        </Button>
       </div>
     </div>
   );

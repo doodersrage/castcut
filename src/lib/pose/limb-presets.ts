@@ -61,17 +61,6 @@ function swing(
   return inside ? { x: clamp(x), y: clamp(y) } : { x, y };
 }
 
-/** A point `length` from `from` toward `target` (never past it by more than the bone allows). */
-function toward(from: XY, target: XY, length: number, aspect: number): XY {
-  const dx = (target.x - from.x) * aspect;
-  const dy = target.y - from.y;
-  const distance = Math.hypot(dx, dy) || 1;
-  return {
-    x: clamp(from.x + ((dx / distance) * length) / aspect),
-    y: clamp(from.y + (dy / distance) * length),
-  };
-}
-
 /**
  * Bend a two-bone limb so its end lands on `target` (or as near as the bones reach), with the
  * middle joint on the `out` side — elbows point away from the body.

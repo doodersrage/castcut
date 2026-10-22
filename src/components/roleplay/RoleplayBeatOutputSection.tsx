@@ -152,13 +152,15 @@ export default function RoleplayBeatOutputSection({
           {scenes.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {scenes.map(scene => (
-                <button
+                <Button
+                  variant="chip"
+                  selected={playingId === scene.id}
                   key={scene.id}
                   type="button"
                   disabled={busy}
                   onClick={() => onPlayScene(scene)}
                   data-testid="story-scene-card"
-                  className={`flex items-start gap-3 rounded-[var(--radius-lg)] border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                  className={`flex items-start gap-3 rounded-[var(--radius-lg)] px-4 py-3 text-left text-inherit transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                     playingId === scene.id
                       ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
                       : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
@@ -186,7 +188,7 @@ export default function RoleplayBeatOutputSection({
                   {/* At the side, in a fixed box: the text column keeps its width whether or
                       not a card has a figure. */}
                   <StoryScenePoseFigure pose={scenePoses?.get(scene.id)} />
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}

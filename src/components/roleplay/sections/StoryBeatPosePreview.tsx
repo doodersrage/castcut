@@ -109,6 +109,7 @@ export default function StoryBeatPosePreview({
         return people ? { forcePeople: people } : {};
       })(),
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the beat's pose fields only; the beat object changes on every reel save
   }, [
     adult,
     soloStory,

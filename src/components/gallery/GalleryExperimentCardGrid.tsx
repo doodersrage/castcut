@@ -2,6 +2,7 @@
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
+import { Button } from '@/components/ui/Button';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 
 /** Virtualize when an expanded experiment mounts this many cards (grid or list). */
@@ -24,7 +25,8 @@ function ExperimentCardCell({
     <div className="group/crown relative min-w-0">
       {renderCard(entry)}
       {onCrown ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           onClick={() => onCrown(entry.id)}
           className={`absolute left-2 top-2 z-20 rounded-full border px-2 py-0.5 text-3xs font-medium backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
@@ -35,7 +37,7 @@ function ExperimentCardCell({
           title={winnerEntryId === entry.id ? 'Crowned winner' : 'Crown as winner'}
         >
           {winnerEntryId === entry.id ? '★ Winner' : 'Crown'}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -89,6 +91,8 @@ export default function GalleryExperimentCardGrid({
   const virtualize = shouldVirtualizeExperimentCards(entries.length);
   const rowEstimate = layout === 'list' ? 180 : 300;
 
+  // TanStack Virtual returns functions the compiler cannot memoize; it skips this component.
+  // eslint-disable-next-line react-hooks/incompatible-library -- see above; fine for this list
   const virtualizer = useVirtualizer({
     count: virtualize ? cardRows.length : 0,
     getScrollElement: () => parentRef.current,

@@ -111,13 +111,14 @@ export default function SettingsDataTab({
           <p className="mb-3 text-sm text-[var(--tint-warning-text)]">{backupReminder}</p>
         ) : null}
         <div className="flex flex-wrap gap-2 text-sm">
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={handleExportBackup}
-            className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[var(--text-primary)] transition hover:border-[var(--border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-lg px-4 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             Export backup
-          </button>
+          </Button>
           <BackupRestoreFlow
             label="Import backup"
             testId="settings-backup-restore"
@@ -125,7 +126,9 @@ export default function SettingsDataTab({
             onRestored={setStatus}
             onError={setStatus}
           />
-          <button
+          <Button
+            variant="outline"
+            tone="danger"
             type="button"
             onClick={async () => {
               if (
@@ -142,10 +145,10 @@ export default function SettingsDataTab({
                 setStatus('Local data cleared. Reload the page.');
               }
             }}
-            className="rounded-lg border border-[var(--tint-danger-border)] px-4 py-2 text-[var(--tint-danger-text)] transition hover:border-[var(--tint-danger-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-lg px-4 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             Reset local data
-          </button>
+          </Button>
         </div>
         {/* The storage key names are for support, not for reading — folded away. */}
         <details className="text-xs text-[var(--text-muted)]">

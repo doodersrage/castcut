@@ -74,37 +74,40 @@ export default function CharacterMediaTile({
           {!clip && onAnimateStill ? (
             <>
               {' · '}
-              <button
+              <Button
+                variant="underline"
                 type="button"
-                className="underline-offset-2 hover:underline"
+
                 onClick={onAnimateStill}
               >
                 Animate
-              </button>
+              </Button>
             </>
           ) : null}
           {!clip && onToggleKeeper ? (
             <>
               {' · '}
-              <button
+              <Button
+                variant="underline"
                 type="button"
-                className="underline-offset-2 hover:underline"
+
                 onClick={onToggleKeeper}
               >
                 {kept ? 'Drop keeper' : 'Keep'}
-              </button>
+              </Button>
             </>
           ) : null}
           {onRemoveFromCharacter ? (
             <>
               {' · '}
-              <button
+              <Button
+                variant="underline"
                 type="button"
-                className="underline-offset-2 hover:underline"
+
                 onClick={onRemoveFromCharacter}
               >
                 Remove
-              </button>
+              </Button>
             </>
           ) : null}
         </p>

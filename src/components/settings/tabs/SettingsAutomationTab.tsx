@@ -209,31 +209,33 @@ export default function SettingsAutomationTab({
                   {new Date(entry.timestamp).toLocaleString()}
                 </p>
                 <p>{entry.message ?? entry.url}</p>
-                <button
+                <Button
+                  variant="quiet"
                   type="button"
                   onClick={() =>
                     setExpandedWebhookLogId(previous => (previous === entry.id ? null : entry.id))
                   }
-                  className="mt-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="mt-2 text-[var(--text-secondary)] underline-offset-auto hover:text-[var(--text-primary)]"
                 >
                   {expandedWebhookLogId === entry.id ? 'Hide payload' : 'Show payload'}
-                </button>
+                </Button>
                 {expandedWebhookLogId === entry.id ? (
                   <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-2 text-2xs text-[var(--text-secondary)]">
                     {JSON.stringify(entry.payload, null, 2)}
                   </pre>
                 ) : null}
-                <button
+                <Button
+                  variant="quiet"
                   type="button"
                   onClick={() => {
                     void retryWebhookLogEntry(entry).then(ok =>
                       setStatus(ok ? 'Webhook retry succeeded.' : 'Webhook retry failed.')
                     );
                   }}
-                  className="mt-2 text-[var(--accent-text)] hover:text-[var(--accent-text)]"
+                  className="mt-2 text-[var(--accent-text)] underline-offset-auto hover:text-[var(--accent-text)]"
                 >
                   Retry
-                </button>
+                </Button>
               </li>
             ))}
           </ol>

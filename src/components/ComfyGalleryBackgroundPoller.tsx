@@ -85,6 +85,7 @@ export default function ComfyGalleryBackgroundPoller() {
       window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onGalleryUpdated);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auth identity fields only; the object churns every render
   }, [auth?.authEnabled, auth?.loading, auth?.user?.id]);
 
   return null;

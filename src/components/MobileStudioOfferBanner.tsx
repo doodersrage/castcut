@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -47,16 +48,17 @@ export default function MobileStudioOfferBanner() {
         On a phone? Try <span className="font-medium">Castcut Film</span>.
       </p>
       <div className="flex shrink-0 items-center gap-2">
-        <button
+        <Button
+          variant="outline"
           type="button"
-          className="rounded-lg border border-[var(--accent-border)] px-2 py-1 transition hover:bg-[var(--bg-base)]/40"
+          className="rounded-lg border-[var(--accent-border)] px-2 py-1 text-inherit transition hover:bg-[var(--bg-base)]/40"
           onClick={() => {
             dismissMobileStudioOffer();
             setVisible(false);
           }}
         >
           Not now
-        </button>
+        </Button>
         <Link
           href="/m/film"
           className="rounded-lg border border-[var(--accent-border)] bg-[var(--bg-base)]/50 px-2.5 py-1 font-medium transition hover:brightness-110"

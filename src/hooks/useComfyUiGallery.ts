@@ -166,6 +166,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
         setEmbeddingSearchUnavailable(ids === null && candidates.length > 0);
       })
       .finally(() => setEmbeddingSearchLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the filter fields that pick candidates; a view-only change must not re-rank
   }, [
     entries,
     filter.query,

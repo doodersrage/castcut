@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useFixAreaSessionForStill } from '@/lib/edit/fix-area-session-store';
 import { fixAreaSessionChipLabel, fixAreaSessionProgress } from '@/lib/edit/fix-area-session';
 import { openFixAreaSession } from '@/components/fix-area/FixAreaTray';
@@ -24,9 +25,10 @@ export default function FixAreaSessionChip({
   if (!session || !label) return null;
   const settled = fixAreaSessionProgress(session).settled;
   return (
-    <button
+    <Button
+      variant="chip"
       type="button"
-      className={`type-caption inline-flex items-center gap-1.5 rounded-[var(--radius-full)] border px-2 py-0.5 ${
+      className={`type-caption inline-flex items-center gap-1.5 rounded-[var(--radius-full)] px-2 py-0.5 ${
         settled
           ? 'border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] text-[var(--tint-success-text)]'
           : 'border-[var(--accent-border)] bg-[var(--bg-elevated)] text-[var(--accent-text)]'
@@ -41,6 +43,6 @@ export default function FixAreaSessionChip({
     >
       {!settled ? <span className="ui-spinner h-3 w-3" aria-hidden /> : null}
       {label}
-    </button>
+    </Button>
   );
 }

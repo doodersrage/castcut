@@ -473,7 +473,7 @@ export function useComposeToolOrchestrationCore() {
         previewUrl: handoff.previewUrl,
       });
     },
-    [assignFigure, setInstruction, updateShared, updateToolSettings]
+    [assignFigure, setInstruction, shared.modelCheckpointMap, updateShared, updateToolSettings]
   );
 
   useGalleryHandoff('compose', applyGalleryHandoff);

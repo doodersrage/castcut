@@ -290,13 +290,14 @@ export default function CollabPresenceBar({
               Apply draft
             </Button>
           ) : null}
-          <button
+          <Button
+            variant="underline"
             type="button"
-            className="text-3xs underline opacity-80"
+            className="text-3xs underline underline-offset-auto opacity-80"
             onClick={() => setRemoteDraft(null)}
           >
             Dismiss
-          </button>
+          </Button>
         </span>
       ) : null}
     </div>

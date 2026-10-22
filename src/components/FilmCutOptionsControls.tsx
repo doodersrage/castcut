@@ -867,9 +867,10 @@ function SoundMixControls({
         </OptionRow>
       ) : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button
+        <Button
+          variant="outline"
           type="button"
-          className="type-caption rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+          className="type-caption rounded-[var(--radius-sm)] border-[var(--border-subtle)] px-2 py-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
           disabled={disabled || previewState === 'loading'}
           onClick={() => void togglePreview()}
           data-testid={`${testIdPrefix}-mix-preview`}
@@ -879,7 +880,7 @@ function SoundMixControls({
             : previewState === 'loading'
               ? 'Loading the mix…'
               : '▶ Preview the mix'}
-        </button>
+        </Button>
         {previewNote ? (
           <span
             className="type-caption text-[var(--text-muted)]"
@@ -889,15 +890,16 @@ function SoundMixControls({
           </span>
         ) : null}
         {music !== 1 || voice !== 1 ? (
-          <button
+          <Button
+            variant="underline"
             type="button"
-            className="type-caption text-[var(--text-muted)] underline-offset-2 hover:underline"
+            className="type-caption text-[var(--text-muted)]"
             disabled={disabled}
             onClick={() => onChange({ ...value, musicLevel: undefined, voiceLevel: undefined })}
             data-testid={`${testIdPrefix}-mix-reset`}
           >
             Reset levels
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

@@ -48,7 +48,9 @@ export default function UsersAdminSharedProjectsPanel({
         {groups.map(group => {
           const active = sharedProjectDraft.groupIds.includes(group.id);
           return (
-            <button
+            <Button
+              variant="chip"
+              selected={active}
               key={group.id}
               type="button"
               onClick={() =>
@@ -59,14 +61,14 @@ export default function UsersAdminSharedProjectsPanel({
                     : [...prev.groupIds, group.id],
                 }))
               }
-              className={`rounded-full border px-3 py-1 text-xs transition max-md:min-h-8 ${
+              className={`rounded-full px-3 py-1 text-xs transition max-md:min-h-8 ${
                 active
-                  ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                  ? ''
                   : 'border-[var(--border-default)]/80 text-[var(--text-muted)] hover:border-[var(--border-default)]'
               }`}
             >
               {group.name}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -99,13 +101,14 @@ export default function UsersAdminSharedProjectsPanel({
                   : 'all (none selected)'}
               </p>
             </div>
-            <button
+            <Button
+              variant="danger-text"
               type="button"
-              className="text-xs ui-status-danger"
+              className="text-xs"
               onClick={() => void onDeleteProject(project.id)}
             >
               Delete
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

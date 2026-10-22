@@ -4,7 +4,7 @@ import ActionMenu from '@/components/ui/ActionMenu';
 import GalleryModeSwitch from '@/components/gallery/GalleryModeSwitch';
 import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
-import { ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import {
   galleryHandoffHomePath,
   galleryPickPurposeLabel,
@@ -145,28 +145,31 @@ export function GalleryCapWarningBanner({
     >
       <p className="min-w-0 flex-1">{message}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={onShowAtRisk}
-          className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-xl border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium text-inherit transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Show at-risk
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           type="button"
           onClick={onExportKeepers}
-          className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-xl border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium text-inherit transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Export keepers
-        </button>
+        </Button>
         {onOpenCleanup ? (
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={onOpenCleanup}
-            className="rounded-xl border border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-xl border-current/30 bg-[var(--bg-hover)] px-2.5 py-1 text-2xs font-medium text-inherit transition hover:bg-[var(--bg-active)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             Cleanup
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>

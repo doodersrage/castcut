@@ -181,16 +181,18 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           </Button>
         ) : null}
         {/* Desk Outfit's toggle: off uses the photo as it is, on cuts her out on white. */}
-        <button
+        <Button
+          variant="chip"
+          selected={isolateSubject}
           title="Cuts the person out onto white, so the photo’s room and clothes don’t leak into the shots"
           type="button"
           role="switch"
           aria-checked={isolateSubject}
           disabled={busy || referenceUploading}
           data-testid="mobile-fitting-isolate"
-          className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+          className={`inline-flex min-h-8 items-center rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
             isolateSubject
-              ? 'border-[var(--accent)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
+              ? 'border-[var(--accent)]'
               : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
           }`}
           onClick={() => {
@@ -224,7 +226,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
           }}
         >
           Cut out background{isolateSubject ? ' ✓' : ''}
-        </button>
+        </Button>
       </div>
     </div>
   ) : (
