@@ -16,6 +16,7 @@ import {
   openPoseWorld,
   projectPoint,
   rigProjectionError,
+  turnFigure,
 } from '@/lib/pose/rig3d-pose';
 import type {
   CameraDirection,
@@ -67,6 +68,21 @@ export function figureFacing(figure: PoseRig3dFigure): Vector3 {
   }
   if (forward.lengthSq() < 1e-6) forward.set(0, 0, 1);
   return forward.normalize();
+}
+
+/**
+ * Turn a figure about its vertical axis so its body (hips and shoulders, as figureFacing reads it)
+ * faces the camera. The starters ("Stand", "Sit"…) are drawn facing front, but their 2D shoulders
+ * are narrower than the rig's, so the lift read them as turned about 37° — "Stand" opened as a
+ * three-quarter view.
+ */
+export function faceCamera(figure: PoseRig3dFigure, camera: PoseRig3dCamera): void {
+  const toCamera = new Vector3(...camera.position).sub(new Vector3(...camera.target));
+  toCamera.y = 0;
+  if (toCamera.lengthSq() < 1e-9) return;
+  const forward = figureFacing(figure);
+  const angle = Math.atan2(toCamera.x, toCamera.z) - Math.atan2(forward.x, forward.z);
+  turnFigure(figure, Math.atan2(Math.sin(angle), Math.cos(angle)));
 }
 
 /** The figure's left, flat (unit): the side a positive azimuth turns the camera to. */

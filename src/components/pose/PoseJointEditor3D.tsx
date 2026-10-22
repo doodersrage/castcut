@@ -38,7 +38,7 @@ import {
   type FullCameraChoice,
   type PoseCameraChoice,
 } from '@/lib/pose/camera-shot';
-import { cameraForChoice, rigCameraChoice } from '@/lib/pose/rig3d-camera';
+import { cameraForChoice, faceCamera, rigCameraChoice } from '@/lib/pose/rig3d-camera';
 import { dayPoseAsPhotoPose, dayPoseWords } from '@/lib/day/pose-presets';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import { describePhotoPose } from '@/lib/pose/describe';
@@ -424,10 +424,19 @@ export default function PoseJointEditor3D({
 
   // ── Edits from the panel ────────────────────────────────────────────────────────────────
 
-  const startFromBodies = (bodies: NormalizedBody[], nextWords: string | null, both = false) => {
+  const startFromBodies = (
+    bodies: NormalizedBody[],
+    nextWords: string | null,
+    both = false,
+    facingFront = false
+  ) => {
     checkpoint();
     const current = latest.current;
     const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA);
+    // A starter faces you; the lift alone read it as turned (see faceCamera).
+    if (facingFront) {
+      for (const figure of lifted.figures) faceCamera(figure, lifted.camera);
+    }
     const figures = both ? lifted.figures : [lifted.figures[0]!, ...current.figures.slice(1)];
     const next = { ...lifted, figures };
     // A picked camera stays picked: the new pose is framed the same way.
@@ -438,7 +447,8 @@ export default function PoseJointEditor3D({
     setSavedNote(null);
     sceneRef.current?.select(0);
   };
-  const startFrom = (id: PoseStarterId) => startFromBodies([poseStarterBody(id)], null);
+  const startFrom = (id: PoseStarterId) =>
+    startFromBodies([poseStarterBody(id)], null, false, true);
   const startFromDayPose = (id: string) => {
     const picked = dayPoseAsPhotoPose(id);
     const figure = picked?.people[0];
