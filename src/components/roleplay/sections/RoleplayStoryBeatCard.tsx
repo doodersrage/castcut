@@ -746,6 +746,15 @@ export function RoleplayStoryBeatCard({
               {ADULT_GATE_WITHHELD_MESSAGE}
             </p>
           ) : null}
+          {beat.shotCut?.note && beat.shotCut.promptId === beat.promptId ? (
+            <p
+              className="type-caption text-[var(--text-muted)]"
+              role="status"
+              data-testid="story-beat-shot-cut"
+            >
+              {beat.shotCut.note}
+            </p>
+          ) : null}
           {beat.marksCheck?.note && beat.marksCheck.imageUrl === beat.imageUrl ? (
             <p
               className="type-caption text-[var(--text-muted)]"

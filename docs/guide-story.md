@@ -41,6 +41,10 @@ finishing tools are described in [Finishing tools](finishing-tools.md).
 - **Continuity** — the next still keeps the outfit, hair, place and light unless the scene changes them.
 - **Pose variety** — the writer is told which poses the last scenes used.
 - **Takes** — each re-render is a take; a clearly worse new take never replaces a better one.
+- **Close camera picks** — on the Qwen-Image 2.1 engines a **Waist up** or **Head & shoulders**
+  pick (Pose… → Camera) is cut from the still around her face, as on
+  [Day](guide-day.md#the-pose-editor); the pose check looks at the cut, and the card says when a
+  still was kept as rendered (no face found, lying down, two people, already that close).
 
 !!! note "Ratings"
     Adult ratings need the server's adult setting. Every adult still states adult ages in the

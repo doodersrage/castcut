@@ -36,6 +36,10 @@ Open **Outfit** (`/fitting`).
 The box *The prompt will open with* shows the pose in words. The models follow the words
 more than the drawing, so check it before you queue.
 
+A custom pose whose camera is **Waist up** or **Head & shoulders** is cut from the try-on around
+her face on the Qwen-Image 2.1 engines (as on Day); the back view stays full length. A camera
+closer than full body leaves her feet out of frame, so no shoe pass runs.
+
 ## Then
 
 **Continue to Day**. Changing the plate, clothes, shoes or engine later dresses her again

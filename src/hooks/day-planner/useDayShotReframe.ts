@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import { dayTwoTakesPending } from '@/lib/day/two-takes';
-import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
-import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
-import { pickedReframeShot } from '@/lib/pose/shot-reframe';
-import { reframeStillToShot } from '@/lib/pose/shot-reframe-client';
+import {
+  reframeTakeToShot,
+  shotReframeDoneWords,
+  takeWantsShotReframe,
+} from '@/lib/pose/shot-reframe-client';
 
 /**
  * A slot whose camera pick is a waist-up or head-and-shoulders shot: Qwen-Image 2.1 draws it
@@ -21,12 +22,7 @@ function stillKey(still: { imageUrl?: string; promptId?: string }): string {
 }
 
 /** The take's queued prompt asks for a shot a cut makes. */
-function wantsReframe(still: { promptId?: string }): boolean {
-  const promptId = still.promptId?.trim();
-  if (!promptId) return false;
-  const entry = loadComfyGallery().find(item => item.promptId === promptId);
-  return Boolean(entry && pickedReframeShot(entry.prompt));
-}
+const wantsReframe = takeWantsShotReframe;
 
 export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
   const { mounted, shared, slots, stills, stillsRef, updateToolSettings } = ctx;
@@ -73,10 +69,8 @@ export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
     runningRef.current = true;
     void (async () => {
       try {
-        const comfyStillUrl = comfyViewUrlForStill(targetStill, loadComfyGallery());
-        if (!comfyStillUrl) return;
         setStatus(`Framing ${target.label} to the picked shot…`);
-        const result = await reframeStillToShot(comfyStillUrl);
+        const result = await reframeTakeToShot(targetStill);
         if (!result.available) {
           setStatus(`${target.label} kept as rendered — ${result.reason}`);
           return;
@@ -96,9 +90,7 @@ export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
-        setStatus(
-          `${target.label} framed ${result.shot === 'head' ? 'head and shoulders' : 'waist-up'}.`
-        );
+        setStatus(`${target.label} framed ${shotReframeDoneWords(result.shot)}.`);
       } catch (error) {
         setStatus(
           `${target.label} kept as rendered — ${error instanceof Error ? error.message : 'the cut failed.'}`

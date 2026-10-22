@@ -50,6 +50,13 @@ describe('camera pick words', () => {
               assert.ok(promptHasPickedCamera(`SCENE: a park. ${line} Moment: x.`), line);
               assert.equal(pickedCameraLineIn(`x ${line} y`), line);
             }
+    // At the end of a prompt whose stop the queue's appended cues took (a Story still).
+    assert.equal(
+      pickedCameraLineIn(
+        'Exactly one person in the still. Camera: waist-up shot, legs out of frame, clean continuous tones, even gradients.'
+      ),
+      'Camera: waist-up shot, legs out of frame'
+    );
     // Day's own camera lines are not a pick.
     assert.equal(
       promptHasPickedCamera(

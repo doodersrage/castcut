@@ -6,6 +6,7 @@ import {
   autoPickRoleplayStillTakePatch,
   patchRoleplayStoryBeat,
   withRoleplayTakeChecks,
+  type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
 import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/story/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose/detect-client';
@@ -35,7 +36,11 @@ import { loadSettingsCache } from '@/lib/settings/cache';
  * session when the DWPose node pack is missing. Never retries on its own — the beat card shows
  * the score and the player decides.
  */
-export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
+export function useStoryPoseCheck(
+  options: UseRoleplayBeatQueueOptions,
+  /** A pass that runs first (the shot cut, useStoryShotReframe): its scenes wait for it. */
+  before?: { holdsBeat: (beat: RoleplayStoryBeat) => boolean; tick: number }
+): {
   poseCheckOff: string | null;
 } {
   const { storyRef, toolSettings, updateToolSettings, referenceImageUrl, referenceImageFilename } =
@@ -51,7 +56,14 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
     if (runningRef.current || offRef.current) {
       return;
     }
-    const beat = nextStoryPoseCheck(toolSettings.story ?? [], skippedRef.current);
+    const story = toolSettings.story ?? [];
+    const held = before ? story.filter(entry => before.holdsBeat(entry)) : [];
+    const beat = nextStoryPoseCheck(
+      story,
+      held.length
+        ? new Set([...skippedRef.current, ...held.map(entry => entry.imageUrl?.trim() ?? '')])
+        : skippedRef.current
+    );
     const expect = beat?.poseGuideExpect;
     const shownUrl = beat?.imageUrl?.trim();
     if (!beat || !expect || !shownUrl) {
@@ -214,6 +226,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
       }
     })();
   }, [
+    before,
     options.shared.model,
     referenceImageFilename,
     referenceImageUrl,

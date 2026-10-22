@@ -488,6 +488,8 @@ describe('a restored story keeps what the next scene and the checks need', () =>
           faceMatch: { distance: 0.42 },
           stillTakePinned: true,
           stillTakeAutoPicked: true,
+          shotCut: { promptId: 'p1', note: 'Framed waist-up from the take (Camera pick).' },
+          stillTakes: [{ promptId: 'p1', imageUrl: 'cut.png', framedUrl: 'cut.png' }],
         },
       ],
     });
@@ -499,6 +501,9 @@ describe('a restored story keeps what the next scene and the checks need', () =>
     assert.deepEqual(beat?.faceMatch, { distance: 0.42 });
     assert.equal(beat?.stillTakePinned, true);
     assert.equal(beat?.stillTakeAutoPicked, true);
+    // The shot cut: its note and the take's cut picture.
+    assert.equal(beat?.shotCut?.promptId, 'p1');
+    assert.equal(beat?.stillTakes?.[0]?.framedUrl, 'cut.png');
   });
 });
 

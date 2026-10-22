@@ -108,6 +108,11 @@ export type RoleplayStillTake = {
    * vision model is asked, `withheld` when it did not read as clearly adult — no image either way.
    */
   adultHold?: 'checking' | 'withheld';
+  /**
+   * A picked waist-up / close-up shot cut from this take (pose/shot-reframe.ts): shown as its
+   * `imageUrl` from then on — the gallery sync keeps it over the rendered still.
+   */
+  framedUrl?: string;
   /** Pose / face checks of this take, so switching takes shows (and ranks by) its scores. */
   poseMatch?: StoryPoseMatch;
   faceMatch?: StoryFaceMatch;
@@ -173,6 +178,11 @@ export type RoleplayStoryBeat = RoleplayScene & {
    * was found, and whether a repair pass replaced the picture. Keyed by the checked image.
    */
   marksCheck?: { imageUrl: string; note: string; repaired?: boolean };
+  /**
+   * A picked waist-up / close-up shot on Qwen-Image 2.1 (useStoryShotReframe): whether the take
+   * `promptId` was cut to it, or why it was kept as rendered. Said on the card for that take.
+   */
+  shotCut?: { promptId: string; note: string };
   /**
    * Close-ups of the shown still (film-angles-client.ts): a face close-up and a detail, cut in
    * right after the scene's shot while `for` is still the shown image.

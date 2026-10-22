@@ -95,7 +95,8 @@ cropped around her face to the shot and enlarged back to the still's size (a sec
 re-render), and that is what the slot shows — Face finish, the pose check and the other checks
 look at the cut. A take with no face to find (her back to the camera), a lying pose, a
 two-person still or one already that close is kept as rendered; the Advanced drawer's status
-line says why. (Story and Outfit stills are not cut yet.)
+line says why. Story scenes (their Camera row) and Outfit try-ons (a custom pose's camera)
+are cut the same way.
 
 **Wireframe editor** (top of the panel) switches to the flat stick-figure editor — it still has
 the Quick positions, Copy a side, Fit to her picture and the start outline — and the choice is
