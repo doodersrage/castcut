@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import type { Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import type { NormalizedBody } from '@/lib/pose/library';
 import {
   CAMERA_DIRECTIONS,
@@ -97,6 +98,11 @@ export type DirectorSheetProps = {
   place?: string;
   /** Another clip job holds the GPU: Render waits. */
   busy?: boolean;
+  /**
+   * Her posture in the still when it is known from outside the joints (the slot's or beat's
+   * picked pose): her pose in the picture is lifted toward it.
+   */
+  postures?: Posture[];
   onClose: () => void;
   /** Start Copy moves with the driving video (a background job). */
   onRender: (video: Blob, options: DirectorRenderOptions) => void;
@@ -147,9 +153,10 @@ function startDirection(body: Rig3dBodyKind, place?: string): Direction {
 function directionFromStill(
   direction: Direction,
   pose: { body: NormalizedBody; aspect: number },
-  body: Rig3dBodyKind
+  body: Rig3dBodyKind,
+  postures?: Posture[]
 ): Direction {
-  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body);
+  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body, postures);
   const start = {
     ...poseBeat('Her pose in the picture', figure, { first: true }),
     hold: direction.beats[0]!.hold,
@@ -180,6 +187,7 @@ function DirectorSheetOpen({
   body = 'female',
   place: initialPlace,
   busy = false,
+  postures,
   onClose,
   onRender,
   testId = 'director',
@@ -206,6 +214,8 @@ function DirectorSheetOpen({
   // Anything the player does keeps the start they chose; until then, her pose in the still is
   // the start once it has been read (a standing figure beside a seated still looked wrong).
   const touched = useRef(false);
+  // Her posture as the slot or beat picked it (fixed while the sheet is open).
+  const [knownPostures] = useState(postures);
 
   const loaded = useStillSize(stillUrl);
 
@@ -245,7 +255,7 @@ function DirectorSheetOpen({
         if (lead && canvas && !touched.current) {
           const pose = { body: lead, aspect: canvas.width / Math.max(1, canvas.height) };
           setDirection(current =>
-            touched.current ? current : directionFromStill(current, pose, body)
+            touched.current ? current : directionFromStill(current, pose, body, knownPostures)
           );
         }
       })
@@ -255,7 +265,7 @@ function DirectorSheetOpen({
     return () => {
       cancelled = true;
     };
-  }, [stillUrl, body]);
+  }, [stillUrl, body, knownPostures]);
 
   const frames = useMemo(() => directionFrames(direction), [direction]);
   const framing = useMemo(
@@ -332,7 +342,7 @@ function DirectorSheetOpen({
     update({ ...replaceBeat(direction, 0, start), camera });
   };
   const startFromStill = () => {
-    if (detected.pose) update(directionFromStill(direction, detected.pose, body));
+    if (detected.pose) update(directionFromStill(direction, detected.pose, body, knownPostures));
   };
 
   const addPose = () => {

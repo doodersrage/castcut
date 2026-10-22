@@ -59,6 +59,7 @@ import {
   type Limb,
   type Side,
 } from '@/lib/pose/rig3d-pose';
+import { posturesForPose, type Posture } from '@/lib/pose/rig3d-posture-points';
 import {
   POSE_STARTERS,
   addPartner,
@@ -129,6 +130,7 @@ export default function PoseJointEditor3D({
   duoSeed,
   soloStill = false,
   initialCamera,
+  postures,
 }: {
   bodies: NormalizedBody[];
   /** The rig this pose was saved with in the 3D editor, if it was. */
@@ -152,6 +154,11 @@ export default function PoseJointEditor3D({
    * opens seen through it, so what is posed is what that still frames.
    */
   initialCamera?: PoseCameraChoice;
+  /**
+   * The lead's posture when it is known from outside the points (the slot's or beat's picked
+   * pose, the vision model's read of the photo): the lift targets it instead of guessing.
+   */
+  postures?: Posture[];
 }) {
   const titleId = useId();
   const p = testIdPrefix;
@@ -172,7 +179,13 @@ export default function PoseJointEditor3D({
     const restored =
       rig3d && rigProjectionError(rig3d, initialBodies, safeAspect) < RESTORE_TOLERANCE;
     if (restored) return { rig: cloneRig(rig3d), restored: true, reframed: false };
-    const lifted = liftBodies(initialBodies, safeAspect, kinds(initialBodies.length));
+    const lifted = liftBodies(
+      initialBodies,
+      safeAspect,
+      kinds(initialBodies.length),
+      DEFAULT_CAMERA,
+      { postures: [postures] }
+    );
     if (!cameraChoiceIsSet(initialCamera)) return { rig: lifted, restored: false, reframed: false };
     const choice = { ...DEFAULT_CAMERA_CHOICE, ...initialCamera };
     return {
@@ -428,11 +441,15 @@ export default function PoseJointEditor3D({
     bodies: NormalizedBody[],
     nextWords: string | null,
     both = false,
-    facingFront = false
+    facingFront = false,
+    leadPostures?: Posture[]
   ) => {
     checkpoint();
     const current = latest.current;
-    const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA);
+    // A pose picked by name lifts toward the posture it is filed under.
+    const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA, {
+      postures: [leadPostures],
+    });
     // A starter faces you; the lift alone read it as turned (see faceCamera).
     if (facingFront) {
       for (const figure of lifted.figures) faceCamera(figure, lifted.camera);
@@ -448,17 +465,29 @@ export default function PoseJointEditor3D({
     sceneRef.current?.select(0);
   };
   const startFrom = (id: PoseStarterId) =>
-    startFromBodies([poseStarterBody(id)], null, false, true);
+    startFromBodies([poseStarterBody(id)], null, false, true, posturesForPose(id));
   const startFromDayPose = (id: string) => {
     const picked = dayPoseAsPhotoPose(id);
     const figure = picked?.people[0];
     if (!picked || !figure) return;
-    startFromBodies([widenFor(figure, picked.aspect, safeAspect)], picked.words?.trim() || null);
+    startFromBodies(
+      [widenFor(figure, picked.aspect, safeAspect)],
+      picked.words?.trim() || null,
+      false,
+      false,
+      posturesForPose(id)
+    );
   };
   const startFromReference = (reference: PoseReference) => {
     const fitted = reference.people.map(body => widenFor(body, reference.aspect, safeAspect));
     const both = fitted.length > 1 && allowTwo && !soloStill;
-    startFromBodies(both ? fitted : [fitted[0]!], dayPoseWords(reference.pose), both);
+    startFromBodies(
+      both ? fitted : [fitted[0]!],
+      dayPoseWords(reference.pose),
+      both,
+      false,
+      posturesForPose(reference.pose)
+    );
   };
 
   const changeFigures = (next: PoseRig3d, select: number) => {

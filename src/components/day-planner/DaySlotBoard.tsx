@@ -51,6 +51,7 @@ import {
   type DaySlotMediaTool,
 } from '@/hooks/day-planner/useDaySlotMediaTools';
 import { Button } from '@/components/ui/Button';
+import { pickedPostures } from '@/lib/pose/rig3d-posture-points';
 
 // Three.js and the pose body load only when the Director opens.
 const DirectorSheet = dynamic(() => import('@/components/director/DirectorSheet'), {
@@ -1025,6 +1026,7 @@ export default function DaySlotBoard({
           castName={castName}
           body={leadNoun === 'man' ? 'male' : 'female'}
           place={directorFor.slot.location}
+          postures={pickedPostures(directorFor.slot)}
           busy={mediaTools.busy !== null}
           onClose={() => setDirectorFor(null)}
           onRender={(video, options) => {
