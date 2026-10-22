@@ -13,6 +13,7 @@ import FaceDetailerHealthChip from '@/components/settings/FaceDetailerHealthChip
 import IdentityPackHealthChips from '@/components/settings/IdentityPackHealthChips';
 import { accentFocusClass, CollapsibleSection } from '@/components/ui/ToolPageShell';
 import { SETTINGS_TOOL_ACCENT } from '@/components/settings/tabs/settings-tool-shared';
+import { Button } from '@/components/ui/Button';
 
 const ACCENT = SETTINGS_TOOL_ACCENT;
 
@@ -88,14 +89,16 @@ export default function SettingsLoaderMapsPanel({
         >
           Merge suggested loader maps
         </button>
-        <button
+        <Button
+          variant="tint"
+          tone="success"
           type="button"
           disabled={!sharedMounted}
           onClick={() => void syncLoaderMapsFromComfyInventory()}
-          className={`rounded-lg border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-1.5 text-xs text-[var(--tint-success-text)] transition hover:bg-[var(--tint-success-bg)] ${accentFocusClass(ACCENT)}`}
+          className={`rounded-lg px-3 py-1.5 text-xs transition ${accentFocusClass(ACCENT)}`}
         >
           Sync from ComfyUI inventory
-        </button>
+        </Button>
       </div>
       {loaderMapMergeHint ? (
         <p className="mt-2 text-xs leading-relaxed text-[var(--tint-success-text)]">

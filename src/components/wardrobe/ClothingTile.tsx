@@ -2,6 +2,7 @@
 
 import type { Ref } from 'react';
 import UiIcon from '@/components/ui/UiIcon';
+import { Button } from '@/components/ui/Button';
 
 /** Strip tile widths — every tile is 3:4 so photos line up. */
 export const CLOTHING_TILE_WIDTH = {
@@ -46,7 +47,8 @@ export default function ClothingTile({
   const thumb = thumbUrl?.trim() || '';
   return (
     <div className={`group relative shrink-0 ${CLOTHING_TILE_WIDTH[size]}`} data-testid={testId}>
-      <button
+      <Button
+        variant="plain"
         ref={buttonRef}
         type="button"
         data-active={selected ? 'true' : 'false'}
@@ -77,7 +79,7 @@ export default function ClothingTile({
             {pending ? '…' : '—'}
           </span>
         )}
-      </button>
+      </Button>
       {selected ? (
         <span
           aria-hidden
@@ -86,7 +88,8 @@ export default function ClothingTile({
           <UiIcon name="check" size={12} />
         </span>
       ) : onRemove ? (
-        <button
+        <Button
+          variant="quiet"
           type="button"
           aria-label={`Remove ${label}`}
           title="Remove"
@@ -94,10 +97,10 @@ export default function ClothingTile({
           onClick={onRemove}
           // Always visible — phones have no hover to reveal it.
           // The ::before widens the touch target to 36 px without growing the visible button.
-          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center before:absolute before:-inset-2 before:content-[''] justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] shadow-sm ring-1 ring-[var(--border-default)] transition hover:text-[var(--text-primary)]"
+          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center before:absolute before:-inset-2 before:content-[''] justify-center rounded-full bg-[var(--bg-elevated)] shadow-sm ring-1 ring-[var(--border-default)] transition"
         >
           <UiIcon name="close" size={10} />
-        </button>
+        </Button>
       ) : null}
     </div>
   );

@@ -9,6 +9,7 @@ import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-sto
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { daySlotJobProgress } from '@/lib/day/slot-progress';
 import { getGalleryCache } from '@/lib/gallery/db-store';
+import { Button } from '@/components/ui/Button';
 
 const NO_GALLERY: ComfyGalleryEntry[] = [];
 
@@ -101,7 +102,8 @@ export function StageFrame({
     </span>
   );
   return onOpen && !progress ? (
-    <button
+    <Button
+      variant="plain"
       type="button"
       className={`${box} cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]`}
       aria-label={label}
@@ -109,7 +111,7 @@ export function StageFrame({
       onClick={onOpen}
     >
       {inner}
-    </button>
+    </Button>
   ) : (
     <div className={box} data-testid={testId} aria-busy={progress ? true : undefined}>
       {inner}

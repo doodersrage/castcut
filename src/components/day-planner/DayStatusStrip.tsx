@@ -1,6 +1,7 @@
 'use client';
 
 import type { PoseGuidePreview } from '@/lib/pose/guide-status';
+import { Button } from '@/components/ui/Button';
 
 type DayStatusStripProps = {
   statusLine: string;
@@ -62,7 +63,8 @@ export default function DayStatusStrip({
       {dressPlatePreviewUrl && !dressPlateStatus?.busy ? (
         <div className="mt-1.5 flex items-center gap-2" data-testid="day-dress-plate">
           {onOpenDressPlate ? (
-            <button
+            <Button
+              variant="plain"
               type="button"
               className="shrink-0 rounded-lg transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               aria-label="View the dressed plate larger"
@@ -76,7 +78,7 @@ export default function DayStatusStrip({
                 alt="Dressed plate the clothed stills start from"
                 className="h-16 w-12 cursor-zoom-in rounded-lg border border-[var(--border-subtle)] bg-white object-cover object-top"
               />
-            </button>
+            </Button>
           ) : (
             // eslint-disable-next-line @next/next/no-img-element -- ComfyUI proxy URL
             <img

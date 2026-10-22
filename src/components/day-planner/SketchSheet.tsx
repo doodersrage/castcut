@@ -213,7 +213,8 @@ function SketchSheetOpen({
         </label>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Brush">
           {COLOURS.map(option => (
-            <button
+            <Button
+              variant="plain"
               key={option}
               type="button"
               aria-label={`Colour ${option}`}

@@ -132,7 +132,8 @@ export default function CastWardrobeSection({
               data-testid={`cast-wardrobe-${item.key}`}
             >
               {thumb ? (
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   className="block w-full cursor-zoom-in rounded-[var(--radius-sm)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   aria-label={`Open ${item.label} full size`}
@@ -147,7 +148,7 @@ export default function CastWardrobeSection({
                     loading="lazy"
                     className="aspect-[3/4] w-full rounded-[var(--radius-sm)] object-cover"
                   />
-                </button>
+                </Button>
               ) : (
                 <div className="flex aspect-[3/4] w-full items-center justify-center rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] type-caption text-[var(--text-muted)]">
                   No still kept

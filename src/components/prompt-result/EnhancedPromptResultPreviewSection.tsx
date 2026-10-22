@@ -54,7 +54,8 @@ export default function EnhancedPromptResultPreviewSection({
             controls={previewIsHtmlVideo}
           />
           {previewIsHtmlVideo ? null : (
-            <button
+            <Button
+              variant="plain"
               type="button"
               onClick={onOpenLightbox}
               className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
@@ -63,7 +64,8 @@ export default function EnhancedPromptResultPreviewSection({
           )}
         </div>
       ) : (
-        <button
+        <Button
+          variant="plain"
           type="button"
           onClick={onOpenLightbox}
           className="block w-full cursor-zoom-in"
@@ -75,13 +77,14 @@ export default function EnhancedPromptResultPreviewSection({
             alt="ComfyUI output preview"
             className="max-h-80 w-full bg-[var(--bg-subtle)] object-contain"
           />
-        </button>
+        </Button>
       )}
       <div className="space-y-2 border-t border-[var(--border-subtle)] px-3 py-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="type-caption text-[var(--tint-success-text)]">ComfyUI output ready</span>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="quiet"
               type="button"
               onClick={onOpenLightbox}
               className="type-caption text-[var(--accent-text)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
@@ -93,7 +96,7 @@ export default function EnhancedPromptResultPreviewSection({
                   : previewIsMotion
                     ? 'View clip'
                     : 'View image'}
-            </button>
+            </Button>
             <a
               href={comfyUiPreviewUrl}
               target="_blank"

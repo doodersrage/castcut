@@ -127,7 +127,8 @@ export default function ModelDownloadsView({ vm }: { vm: ComfyModelAssetsViewMod
           return (
             <li key={group.label} className="ui-surface-inset" data-testid="model-download-group">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   onClick={() =>
                     setOpen(current => {
@@ -146,7 +147,7 @@ export default function ModelDownloadsView({ vm }: { vm: ComfyModelAssetsViewMod
                     {group.missing.length > 0 ? ` · ${sizeText(group)} to get` : ''}{' '}
                     {expanded ? '▴' : '▾'}
                   </span>
-                </button>
+                </Button>
                 {group.missing.length > 0 ? (
                   <Button
                     size="sm"

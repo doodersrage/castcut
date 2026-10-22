@@ -110,14 +110,15 @@ export function ComposeToolImagesSection({
                   ) : null}
                 </p>
                 {slot.previewUrl ? (
-                  <button
+                  <Button
+                    variant="quiet"
                     type="button"
                     disabled={mode === 'modify' && index > 0}
                     onClick={() => void assignFigure(index, null)}
-                    className="rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:pointer-events-none"
+                    className="rounded-lg px-2 py-1 text-xs transition hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:pointer-events-none"
                   >
                     Clear
-                  </button>
+                  </Button>
                 ) : null}
               </div>
               <div className="space-y-2">

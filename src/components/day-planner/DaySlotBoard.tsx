@@ -50,6 +50,7 @@ import {
   DAY_SLOT_MEDIA_BUSY,
   type DaySlotMediaTool,
 } from '@/hooks/day-planner/useDaySlotMediaTools';
+import { Button } from '@/components/ui/Button';
 
 // Three.js and the pose body load only when the Director opens.
 const DirectorSheet = dynamic(() => import('@/components/director/DirectorSheet'), {
@@ -732,7 +733,8 @@ export default function DaySlotBoard({
                         testId={`day-fix-area-chip-${slot.id}`}
                       />
                     ) : null}
-                    <button
+                    <Button
+                      variant="plain"
                       type="button"
                       className={`absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] ${openable ? 'cursor-zoom-in' : ''}`}
                       aria-pressed={selected}

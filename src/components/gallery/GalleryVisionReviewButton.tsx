@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 
 type Props = {
   imageDataUrl: string;
@@ -71,13 +72,14 @@ export default function GalleryVisionReviewButton({ imageDataUrl, prompt, onAppl
             <p className="mt-1 text-[var(--text-muted)]">{result.tags.join(' · ')}</p>
           ) : null}
           {result.suggestedRating >= 1 && result.suggestedRating <= 5 && onApplyRating ? (
-            <button
+            <Button
+              variant="tint"
               type="button"
-              className={`mt-2 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] transition hover:bg-[var(--accent-muted)] hover:border-[var(--accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] text-[var(--accent-text)]`}
+              className={`mt-2 rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] `}
               onClick={() => onApplyRating(result.suggestedRating as 1 | 2 | 3 | 4 | 5)}
             >
               Apply {result.suggestedRating}★
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}

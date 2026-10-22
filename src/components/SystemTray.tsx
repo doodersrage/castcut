@@ -16,6 +16,7 @@ import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import { TrayNotice } from '@/components/system-tray/TrayNotice';
 import { SystemTrayActivityCard } from '@/components/system-tray/SystemTrayActivityCard';
 import { SYSTEM_TRAY_PANEL_EVENT, type SystemTrayPanelAnchor } from '@/lib/app/system-tray-panel';
+import { Button } from '@/components/ui/Button';
 
 /** Space the floating Engine button keeps above this tray. Published on <html>. */
 export const SYSTEM_TRAY_HEIGHT_VAR = '--system-tray-height';
@@ -206,16 +207,17 @@ export default function SystemTray() {
         />
       ))}
       {showAllNotices && trayMessages.length > 1 ? (
-        <button
+        <Button
+          variant="quiet"
           type="button"
-          className="pointer-events-auto self-end type-caption text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="pointer-events-auto self-end type-caption transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           onClick={() => {
             clearSystemTrayMessages();
             setShowAllNotices(false);
           }}
         >
           Clear all
-        </button>
+        </Button>
       ) : null}
 
       {showActivityCard ? (

@@ -384,7 +384,8 @@ export default function CharacterBibleSection({
             ) : null}
             {biblePictureUrl ? (
               <div className="mt-3 flex flex-wrap items-start gap-3">
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   className="block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   aria-label="Open the bible picture full size"
@@ -405,9 +406,10 @@ export default function CharacterBibleSection({
                     className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
                     data-testid="character-bible-picture-image"
                   />
-                </button>
+                </Button>
                 {swappedUrl ? (
-                  <button
+                  <Button
+                    variant="plain"
                     type="button"
                     className="block max-w-full cursor-zoom-in rounded-[var(--radius-md)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     aria-label="Open the gender-swapped picture full size"
@@ -428,7 +430,7 @@ export default function CharacterBibleSection({
                       className="max-h-[28rem] max-w-full rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
                       data-testid="character-bible-swap-image"
                     />
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             ) : null}

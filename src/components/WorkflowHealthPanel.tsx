@@ -25,6 +25,7 @@ import { queueTestWorkflowFile, workflowNeedsQueueTest } from '@/lib/workflow/he
 import { resolveOptimizeModelForWorkflowFile } from '@/lib/workflow/optimize-model';
 import type { WorkflowHealthIssue } from '@/lib/workflow/health-audit';
 import ReferenceHealthSection from '@/components/ReferenceHealthSection';
+import { Button } from '@/components/ui/Button';
 
 type WorkflowHealthPanelProps = {
   refreshKey?: number;
@@ -324,14 +325,15 @@ export default function WorkflowHealthPanel({
         {queueStatus ? <p className="text-xs text-[var(--text-muted)]">{queueStatus}</p> : null}
         {loaderStatus ? <p className="text-xs text-[var(--text-muted)]">{loaderStatus}</p> : null}
         {loaderMapRepairs.length > 0 ? (
-          <button
+          <Button
+            variant="tint"
             type="button"
             onClick={applyLoaderMapRepairSuggestions}
-            className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-1.5 text-xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+            className="rounded-lg px-3 py-1.5 text-xs transition"
           >
             Apply {loaderMapRepairs.length} suggested loader map repair
             {loaderMapRepairs.length === 1 ? '' : 's'}
-          </button>
+          </Button>
         ) : null}
       </div>
       {topIssues.length > 0 ? (
@@ -354,29 +356,32 @@ export default function WorkflowHealthPanel({
                 {issue.workflowId !== 'loader-map' && issue.action ? (
                   <div className="flex shrink-0 gap-1">
                     {issue.remap ? (
-                      <button
+                      <Button
+                        variant="tint"
                         type="button"
                         onClick={() => applyRemap(issue)}
                         data-testid="workflow-health-remap"
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg px-2 py-0.5 text-3xs transition"
                       >
                         {issue.remap.workflowId
                           ? `Use “${issue.remap.workflowName ?? issue.remap.workflowId}”`
                           : 'Unmap'}
-                      </button>
+                      </Button>
                     ) : null}
                     {issue.fix ? (
-                      <button
+                      <Button
+                        variant="tint"
                         type="button"
                         onClick={() => applyFix(issue)}
                         data-testid="workflow-health-fix"
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg px-2 py-0.5 text-3xs transition"
                       >
                         Use {issue.fix.value.replace(/\.(safetensors|ckpt|gguf)$/i, '')}
-                      </button>
+                      </Button>
                     ) : null}
                     {issue.workflowId === 'model-map' ? null : (
-                      <button
+                      <Button
+                        variant="quiet"
                         type="button"
                         onClick={() => {
                           dispatchWorkflowHealthSelect(issue.workflowId, 'open-workflow');
@@ -385,19 +390,20 @@ export default function WorkflowHealthPanel({
                         className="rounded-lg border border-[var(--border-default)]/70 px-2 py-0.5 text-3xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
                       >
                         Open
-                      </button>
+                      </Button>
                     )}
                     {issue.action === 'optimize-workflow' ? (
-                      <button
+                      <Button
+                        variant="tint"
                         type="button"
                         onClick={() => {
                           dispatchWorkflowHealthSelect(issue.workflowId, 'optimize-workflow');
                           onStatus?.(`Optimizing “${issue.workflowName}”…`);
                         }}
-                        className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.5 text-3xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)]"
+                        className="rounded-lg px-2 py-0.5 text-3xs transition"
                       >
                         Optimize
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                 ) : null}

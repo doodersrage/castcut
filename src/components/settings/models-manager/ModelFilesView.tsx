@@ -115,7 +115,8 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
           {file.linkTarget ? 'link' : file.bytes ? formatBytes(file.bytes) : '—'}
         </span>
         {readOnly ? null : (
-          <button
+          <Button
+            variant="quiet"
             type="button"
             onClick={() => {
               setConfirming(value => !value);
@@ -125,10 +126,10 @@ function ModelFileRowView({ file, uses, selected, onSelect, onDelete, readOnly }
             disabled={Boolean(block)}
             title={block ?? `Delete ${baseName} from disk`}
             data-testid="model-file-delete"
-            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-2xs text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
+            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-2xs transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
           >
             Delete
-          </button>
+          </Button>
         )}
       </div>
       {block && !readOnly ? (
@@ -450,7 +451,8 @@ export default function ModelFilesView({
           const expanded = narrowed || open.has(group.id);
           return (
             <li key={group.id} className="ui-surface-inset" data-testid="model-file-group">
-              <button
+              <Button
+                variant="plain"
                 type="button"
                 onClick={() =>
                   setOpen(current => {
@@ -473,7 +475,7 @@ export default function ModelFilesView({
                 <span className="font-mono text-xs tabular-nums text-[var(--text-secondary)]">
                   {formatBytes(group.bytes)} {expanded ? '▴' : '▾'}
                 </span>
-              </button>
+              </Button>
               {expanded ? (
                 <ul className="mt-1 divide-y divide-[var(--border-subtle)]/70">
                   {sortFiles(group.files, sortBy).map(file => (

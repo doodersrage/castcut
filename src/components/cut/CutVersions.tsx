@@ -80,15 +80,16 @@ export default function CutVersions({
               >
                 Open
               </Button>
-              <button
+              <Button
+                variant="quiet"
                 type="button"
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="text-xs"
                 aria-label={`Delete ${version.name}`}
                 data-testid={`cut-version-delete-${version.name}`}
                 onClick={() => onDelete(version.id)}
               >
                 Delete
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

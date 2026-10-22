@@ -393,7 +393,8 @@ export default function RoleplayStoryReel({
                       (entry.promptCheck?.remaining?.length ?? 0) > 0;
                     return (
                       <li key={`${entry.id}-${entry.at}`} className="w-20 shrink-0">
-                        <button
+                        <Button
+                          variant="plain"
                           type="button"
                           aria-pressed={on}
                           aria-label={`Show scene ${index + 1}: ${entry.title}`}
@@ -428,7 +429,7 @@ export default function RoleplayStoryReel({
                               !<span className="sr-only"> needs a look</span>
                             </span>
                           ) : null}
-                        </button>
+                        </Button>
                       </li>
                     );
                   })}

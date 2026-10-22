@@ -6,6 +6,7 @@ import {
   type TrayNoticeTone,
 } from '@/components/system-tray/tray-notice-styles';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
+import { Button } from '@/components/ui/Button';
 
 export function TrayNotice({
   text,
@@ -38,15 +39,16 @@ export function TrayNotice({
         <p className="type-caption min-w-0 flex-1 leading-relaxed">{text}</p>
         <div className="flex shrink-0 items-center gap-2">
           {moreCount > 0 && onShowMore ? (
-            <button
+            <Button
+              variant="quiet"
               type="button"
               data-testid="system-tray-more-notices"
               aria-label={`Show ${moreCount} more notice${moreCount === 1 ? '' : 's'}`}
-              className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs font-medium tabular-nums text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-full border border-[var(--border-subtle)] px-1.5 text-3xs font-medium tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               onClick={onShowMore}
             >
               +{moreCount}
-            </button>
+            </Button>
           ) : null}
           {href?.startsWith('http') ? (
             <a
@@ -101,7 +103,8 @@ export function TrayNotice({
             </Link>
           ) : null}
           {actionLabel && (actionEvent || onAction) ? (
-            <button
+            <Button
+              variant="quiet"
               type="button"
               className="type-caption text-[var(--accent-text)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               data-testid="tray-notice-action"
@@ -112,16 +115,17 @@ export function TrayNotice({
               }}
             >
               {actionLabel}
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button
+            variant="quiet"
             type="button"
             aria-label="Dismiss"
-            className="type-caption text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="type-caption transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             onClick={onDismiss}
           >
             ✕
-          </button>
+          </Button>
         </div>
       </div>
     </div>

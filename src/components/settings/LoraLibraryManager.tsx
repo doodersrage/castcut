@@ -342,7 +342,8 @@ export default function LoraLibraryManager({
                     comfyUrl={comfyUrl}
                   />
                 ) : null}
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   onClick={() => setExpanded(open ? null : `${entry.id}-${index}`)}
                   aria-expanded={open}
@@ -381,7 +382,7 @@ export default function LoraLibraryManager({
                       ? ` · ${member.savedStacks.length} saved stack${member.savedStacks.length === 1 ? '' : 's'}`
                       : ''}
                   </span>
-                </button>
+                </Button>
                 <span className="w-10 text-right font-mono text-xs tabular-nums text-[var(--text-secondary)]">
                   {(entry.strengthModel ?? 1).toFixed(2)}
                 </span>
@@ -448,15 +449,16 @@ export default function LoraLibraryManager({
         ) : null}
         {fileRows.length > 0 ? (
           <li className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-muted)]/40 px-2 py-1.5">
-            <button
+            <Button
+              variant="quiet"
               type="button"
-              className="text-2xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="text-2xs"
               aria-expanded={showFiles}
               data-testid="lora-manager-files-toggle"
               onClick={() => setPaging({ key: filterKey, limit: rowLimit, files: !showFiles })}
             >
               {showFiles ? '▾' : '▸'} In ComfyUI, not in the library ({fileRows.length})
-            </button>
+            </Button>
             <Button
               size="sm"
               variant="ghost"
