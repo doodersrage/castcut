@@ -218,6 +218,18 @@ for (const name of capturedFiles()) {
 
 /** Day's tool settings as the app stored them (IndexedDB kv, else the localStorage mirror). */
 async function readDayState(page: Page): Promise<Record<string, unknown> | null> {
+  // A dev-server Fast Refresh reload can land mid-read: wait and read again.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await readDayStateOnce(page);
+    } catch (error) {
+      if (attempt >= 5 || !/context was destroyed|navigation/i.test(String(error))) throw error;
+      await page.waitForTimeout(3000);
+      await page.getByTestId('day-queue-all').first().waitFor({ timeout: 180_000 });
+    }
+  }
+}
+async function readDayStateOnce(page: Page): Promise<Record<string, unknown> | null> {
   return page.evaluate(async () => {
     const key = 'comfy-prompt-tool-settings-tools-v1';
     const fromIdb = await new Promise<unknown>(resolve => {
@@ -272,10 +284,19 @@ const page = await context.newPage();
 const notes: string[] = [];
 page.on('console', message => {
   const text = message.text();
+  if (process.env.BENCH_DEBUG) console.log(`[browser ${message.type()}] ${text.slice(0, 800)}`);
   if (/pose|dress plate|guide|error/i.test(text) && text.length < 600)
     notes.push(`console: ${text}`);
 });
-page.on('pageerror', error => notes.push(`pageerror: ${String(error).slice(0, 300)}`));
+page.on('pageerror', error => {
+  notes.push(`pageerror: ${String(error).slice(0, 300)}`);
+  if (process.env.BENCH_DEBUG) console.log(`[pageerror] ${error.stack ?? error}`);
+});
+if (process.env.BENCH_DEBUG)
+  page.on('request', request => {
+    if (request.url().includes('/api/') && request.method() === 'POST')
+      console.log(`[req] ${request.method()} ${request.url()}`);
+  });
 await isolateServerStorage(page);
 await page.route('**/api/version', route =>
   route.fulfill({ json: { updateAvailable: false, currentVersion: '0.0.0' } })
@@ -291,6 +312,12 @@ await page.goto('/day', { waitUntil: 'domcontentloaded' });
 const queueAll = page.getByTestId('day-queue-all').first();
 await queueAll.waitFor({ timeout: 180_000 });
 await page.waitForTimeout(6000);
+// Warm the dev server: a cold `next dev` compiles more chunks after the first load and Fast
+// Refresh reloads the page; load Day once more so those reloads land before we act.
+await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+await queueAll.waitFor({ timeout: 180_000 });
+await page.waitForTimeout(8000);
+await queueAll.waitFor({ timeout: 180_000 });
 
 const photoStatus: Record<string, string> = {};
 if (mode === 'photo') {
@@ -329,7 +356,27 @@ if (mode === 'photo') {
 
 const before = await readDayState(page);
 console.log('queueing', ids.length, 'slots on', engine);
-await queueAll.click();
+// A cold `next dev --webpack` can compile a new chunk right after the click and Fast Refresh does a
+// full reload, which drops the in-flight queue (nothing is ever sent). When no ComfyUI upload or
+// prompt has gone out 90 s after the click, reload Day and click Queue day again (up to 3 times).
+let comfySends = 0;
+page.on('request', request => {
+  if (request.method() === 'POST' && /\/api\/comfyui(\/upload)?$/.test(new URL(request.url()).pathname))
+    comfySends += 1;
+});
+for (let attempt = 1; ; attempt += 1) {
+  await queueAll.click();
+  let sent = false;
+  for (let s = 0; s < 90 && !sent; s += 1) {
+    await page.waitForTimeout(1000);
+    sent = comfySends > 0;
+  }
+  if (sent || attempt >= 3) break;
+  console.log(`nothing sent ${attempt * 90}s after Queue day (a dev reload?) — reloading Day and queueing again`);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await queueAll.waitFor({ timeout: 180_000 });
+  await page.waitForTimeout(6000);
+}
 const want = ids.length;
 const capturedIds = () =>
   new Set(
@@ -354,6 +401,10 @@ for (let i = 0; i < 900; i += 1) {
       stillsNow.some(entry => entry.slotId === slotId && entry.promptId && have.has(entry.promptId))
     );
   if (i % 60 === 59) console.log(`… ${done.length}/${want} slots captured (${have.size} graphs)`);
+  if (process.env.BENCH_DEBUG && i % 30 === 29) {
+    await page.screenshot({ path: join(outDir, `debug-${i}.png`) }).catch(() => {});
+    console.log('[day stills]', JSON.stringify(stillsNow).slice(0, 600));
+  }
   if (done.length >= want) break;
 }
 await page.waitForTimeout(3000);
