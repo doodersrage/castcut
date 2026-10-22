@@ -29,7 +29,7 @@ export type StoryBeatMediaTools = {
   moves: (
     beat: RoleplayStoryBeat,
     video: Blob,
-    options: { motion?: string; keepSound?: boolean }
+    options: { motion?: string; keepSound?: boolean; place?: string }
   ) => Promise<string | null>;
   dance: (
     beat: RoleplayStoryBeat,
@@ -216,7 +216,11 @@ export function useStoryBeatMediaTools({
   }, [storyRef, updateToolSettings]);
 
   const moves = useCallback(
-    (beat: RoleplayStoryBeat, video: Blob, options: { motion?: string; keepSound?: boolean }) =>
+    (
+      beat: RoleplayStoryBeat,
+      video: Blob,
+      options: { motion?: string; keepSound?: boolean; place?: string }
+    ) =>
       sceneJob(beat, 'moves', latest => {
         const stillUrl = needStill(latest);
         const cast = latest.castId ? getCharacter(latest.castId) : undefined;
@@ -225,7 +229,10 @@ export function useStoryBeatMediaTools({
             video,
             stillUrl,
             look: (cast?.descriptor || cast?.hints || '').trim(),
-            place: loadSettingsCache().tools.roleplay?.setting?.trim() || undefined,
+            place:
+              options.place?.trim() ||
+              loadSettingsCache().tools.roleplay?.setting?.trim() ||
+              undefined,
             motion: options.motion?.trim() || undefined,
             keepSound: options.keepSound,
           }),

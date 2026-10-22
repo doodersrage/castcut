@@ -5,6 +5,7 @@ import ActionMenu from '@/components/ui/ActionMenu';
 import {
   GalleryEditSection,
   GalleryClipSection,
+  GalleryStillSection,
   GalleryEnhanceSection,
   GalleryExportSection,
   GalleryLineageSection,
@@ -111,6 +112,7 @@ export default function GalleryCardMenu({
         <GalleryQuickSection {...sectionProps} />
         <GalleryEnhanceSection {...sectionProps} />
         <GalleryClipSection {...sectionProps} />
+        <GalleryStillSection {...sectionProps} />
         <GalleryEditSection {...sectionProps} />
         <GalleryQueueSection {...sectionProps} />
         <GalleryExportSection {...sectionProps} />
