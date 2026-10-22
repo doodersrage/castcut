@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.15] - 2026-10-22
+
+- Next.js 16.4.2: fixes the critical image-optimizer advisory (GHSA-2464-fhr4-w9xw) and a Server Actions DoS
+- Pose 3D lift: standing figures stand upright in depth; the head faces the way the picture shows
+- Director: the mannequin starts in her pose from the still, seen through the still's camera
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
