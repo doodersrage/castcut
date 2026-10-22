@@ -9,7 +9,6 @@ import { SelectInput } from '@/components/ui/Field';
 import { usePoseLibrary } from '@/hooks/usePoseLibrary';
 import { usePoseReferences } from '@/hooks/usePoseReferences';
 import {
-  POSE_CAMERA_CHOICES,
   POSE_LOOK_CHOICES,
   resolveSceneGuidePlan,
   type PoseLookChoice,
@@ -18,6 +17,19 @@ import {
   type PoseGuideBuildOptions,
 } from '@/lib/day/pose-guide';
 import { POSE_PICKER_GROUPS, poseLayoutLabel } from '@/lib/pose/layout-labels';
+import {
+  CAMERA_DIRECTIONS,
+  CAMERA_DIRECTION_LABELS,
+  CAMERA_HEIGHTS,
+  CAMERA_HEIGHT_LABELS,
+  CAMERA_LENSES,
+  CAMERA_LENS_LABELS,
+  CAMERA_SHOTS,
+  CAMERA_SHOT_LABELS,
+  cameraChoiceIsSet,
+  cameraChoiceSummary,
+} from '@/lib/pose/camera-shot';
+import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
 import { fitPhotoPoseToHeadcount } from '@/lib/pose/photo-pose-fit';
 import {
   POSE_REFERENCE_SOURCE_WORDS,
@@ -49,12 +61,19 @@ const LOOK_LABELS: Record<PoseLookChoice, string> = {
   partner: 'At the other person',
 };
 
-const CAMERA_LABELS: Record<PoseCameraChoice, string> = {
-  front: 'Eye level, front',
-  side: 'Side view',
-  overhead: 'Overhead',
-  low: 'Low angle',
+/** What the guide infers when the camera is on Auto (a lying layout is seen from above). */
+const INFERRED_CAMERA_LABELS: Record<'overhead' | 'side' | 'low', string> = {
+  overhead: 'overhead',
+  side: 'side view',
+  low: 'low angle',
 };
+
+const CAMERA_FIELDS = [
+  ['height', 'Height', CAMERA_HEIGHTS, CAMERA_HEIGHT_LABELS],
+  ['direction', 'Direction', CAMERA_DIRECTIONS, CAMERA_DIRECTION_LABELS],
+  ['shot', 'Shot', CAMERA_SHOTS, CAMERA_SHOT_LABELS],
+  ['lens', 'Lens', CAMERA_LENSES, CAMERA_LENS_LABELS],
+] as const;
 
 const selectClass = 'w-auto! min-w-[8rem] py-1 text-sm';
 
@@ -181,6 +200,13 @@ export default function PosePreview({
       }`;
   const people = openPose.keypoints.length;
   const busy = disabled || photoBusy;
+  // A pose posed in the 3D editor was taken through its own camera: that camera wins.
+  const poseCamera = useMemo(() => photoPoseCameraChoice(picks.posePhoto), [picks.posePhoto]);
+  const setCameraField = (field: keyof PoseCameraChoice, value: string) => {
+    const next: PoseCameraChoice = { ...picks.poseCamera, [field]: value || undefined };
+    if (!value) delete next[field];
+    onChange({ poseCamera: cameraChoiceIsSet(next) ? next : undefined });
+  };
 
   const readPhoto = async (file: File | undefined) => {
     if (!file) return;
@@ -225,6 +251,7 @@ export default function PosePreview({
     return (
       <PoseEditor
         rig3d={picks.posePhoto?.rig3d}
+        initialCamera={picks.poseCamera}
         bodies={editorPlan.bodies}
         aspect={openPose.canvas.width / openPose.canvas.height}
         testIdPrefix={testIdPrefix}
@@ -352,25 +379,6 @@ export default function PosePreview({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <SelectInput
-            value={picks.poseCamera ?? ''}
-            disabled={busy}
-            aria-label="Camera"
-            data-testid={`${testIdPrefix}-camera`}
-            className={selectClass}
-            onChange={event =>
-              onChange({ poseCamera: (event.target.value || undefined) as PoseCameraChoice })
-            }
-          >
-            <option value="">
-              Camera: auto{openPose.camera ? ` (${CAMERA_LABELS[openPose.camera]})` : ''}
-            </option>
-            {POSE_CAMERA_CHOICES.map(choice => (
-              <option key={choice} value={choice}>
-                {CAMERA_LABELS[choice]}
-              </option>
-            ))}
-          </SelectInput>
           {people > 1 && !fromPhoto ? (
             <SelectInput
               value={picks.poseLead ?? ''}
@@ -406,6 +414,52 @@ export default function PosePreview({
               </option>
             ))}
           </SelectInput>
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Camera"
+          data-testid={`${testIdPrefix}-camera`}
+          data-from={poseCamera ? 'pose' : cameraChoiceIsSet(picks.poseCamera) ? 'slot' : 'auto'}
+        >
+          <span className="type-caption text-[var(--text-muted)]">Camera</span>
+          {poseCamera ? (
+            <span
+              className="type-caption text-[var(--text-secondary)]"
+              data-testid={`${testIdPrefix}-camera-from-pose`}
+              title="The pose was posed in the 3D editor through its own camera — change it there (Edit joints)"
+            >
+              From the pose: {cameraChoiceSummary(poseCamera)}
+            </span>
+          ) : (
+            <>
+              {CAMERA_FIELDS.map(([field, label, values, labels]) => (
+                <SelectInput
+                  key={field}
+                  value={picks.poseCamera?.[field] ?? ''}
+                  disabled={busy}
+                  aria-label={`Camera ${label.toLowerCase()}`}
+                  data-testid={`${testIdPrefix}-camera-${field}`}
+                  className={selectClass}
+                  onChange={event => setCameraField(field, event.target.value)}
+                >
+                  <option value="">
+                    {label}: auto
+                    {field === 'height' && openPose.camera === 'overhead'
+                      ? ` (${INFERRED_CAMERA_LABELS.overhead})`
+                      : field === 'direction' && openPose.camera === 'side'
+                        ? ` (${INFERRED_CAMERA_LABELS.side})`
+                        : ''}
+                  </option>
+                  {values.map(value => (
+                    <option key={value} value={value}>
+                      {label}: {(labels as Record<string, string>)[value]}
+                    </option>
+                  ))}
+                </SelectInput>
+              ))}
+            </>
+          )}
         </div>
         <MyPosesStrip
           disabled={busy}

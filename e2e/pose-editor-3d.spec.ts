@@ -131,11 +131,11 @@ test('3D pose editor: views, flip depth, a partner, and the wireframe toggle (re
 
   // Side view: the camera moves, the pose map is the figure seen from the side.
   const front = await page.evaluate(() => window.__castcutPose3d!.bodies()[0]!);
-  await page.getByTestId(`${PREFIX}-view-side`).click();
+  await page.getByTestId(`${PREFIX}-camera-direction-side`).click();
   const side = await page.evaluate(() => window.__castcutPose3d!.bodies()[0]!);
   const width = (body: typeof front) => Math.abs(body[2]!.x - body[5]!.x);
   expect(width(side)).toBeLessThan(width(front) * 0.6);
-  await page.getByTestId(`${PREFIX}-view-front`).click();
+  await page.getByTestId(`${PREFIX}-camera-direction-front`).click();
 
   // Flip an arm's depth: the picture barely moves, the arm does.
   const rigBefore = await page.evaluate(() => window.__castcutPose3d!.rig());

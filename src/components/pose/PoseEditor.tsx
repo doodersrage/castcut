@@ -5,6 +5,7 @@ import { useState, type ComponentProps } from 'react';
 import type PoseJointEditorType from '@/components/pose/PoseJointEditor';
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3d } from '@/lib/pose/rig3d';
+import type { PoseCameraChoice } from '@/lib/pose/camera-shot';
 
 // Each editor is its own chunk: three.js and the 3D editor load only when the 3D editor opens.
 const PoseJointEditor = dynamic(() => import('@/components/pose/PoseJointEditor'), {
@@ -50,6 +51,8 @@ export function webglAvailable(): boolean {
 type EditorProps = ComponentProps<typeof PoseJointEditorType> & {
   /** The rig the pose was saved with in the 3D editor (PhotoPose.rig3d). */
   rig3d?: PoseRig3d;
+  /** The slot / beat's Camera row: a pose without a camera of its own opens seen through it. */
+  initialCamera?: PoseCameraChoice;
 };
 
 /**
@@ -57,7 +60,7 @@ type EditorProps = ComponentProps<typeof PoseJointEditorType> & {
  * click either way, remembered) or when the browser has no WebGL. Switching hands the pose
  * across as it stands.
  */
-export default function PoseEditor({ rig3d, ...props }: EditorProps) {
+export default function PoseEditor({ rig3d, initialCamera, ...props }: EditorProps) {
   const [webgl] = useState(webglAvailable);
   const [mode, setMode] = useState<PoseEditorMode>(readMode);
   // The pose as the other editor left it, once the player switches.
@@ -86,6 +89,7 @@ export default function PoseEditor({ rig3d, ...props }: EditorProps) {
         words={words}
         // The 3D editor checks a rig still draws these points before it trusts it.
         rig3d={handoff ? handoff.rig : rig3d}
+        initialCamera={initialCamera}
         onUseWireframe={(next, nextWords, rig) => switchTo('wireframe', next, nextWords, rig)}
       />
     );

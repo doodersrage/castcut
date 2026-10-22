@@ -7,7 +7,6 @@
  */
 
 import {
-  Box3,
   BufferGeometry,
   Color,
   GridHelper,
@@ -31,7 +30,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import type { PoseRig3d } from '@/lib/pose/rig3d';
+import type { PoseRig3d, PoseRig3dCamera } from '@/lib/pose/rig3d';
 import {
   cloneRig,
   figureWorld,
@@ -57,7 +56,6 @@ import {
 
 export type HandleId = 'hand_R' | 'hand_L' | 'foot_R' | 'foot_L' | 'gaze' | 'hips';
 export const HANDLES: HandleId[] = ['hand_R', 'hand_L', 'foot_R', 'foot_L', 'gaze', 'hips'];
-export type PoseView = 'front' | 'side' | 'back' | 'top';
 
 export type PoseSceneEvents = {
   /** A change is about to start (a drag, a ring turn, an orbit): checkpoint for undo. */
@@ -299,41 +297,16 @@ export class PoseScene {
     this.requestRender();
   }
 
-  setView(view: PoseView): void {
-    const figure = this.figure();
-    if (!figure) return;
-    this.events.onBegin();
-    const world = figureWorld(figure);
-    // Frame every figure whole: the centre of their joints, far enough back for the farthest.
-    const points = this.rig.figures.flatMap(f => {
-      const w = figureWorld(f);
-      const head = w.pos.head!.clone().add(new Vector3(0, 0.2, 0));
-      return [...Object.values(w.pos), head];
-    });
-    const box = new Box3().setFromPoints(points);
-    const target = box.getCenter(new Vector3());
-    const radius = Math.max(0.4, ...points.map(point => point.distanceTo(target)));
-    const halfFov = (this.rig.camera.fov * Math.PI) / 360;
-    const narrowest = Math.min(halfFov, Math.atan(Math.tan(halfFov) * this.aspect));
-    const distance = (radius / Math.sin(narrowest)) * 1.02;
-    const forward = new Vector3(0, 0, 1).applyQuaternion(world.quat.hips!);
-    forward.y = 0;
-    if (forward.lengthSq() < 1e-6) forward.set(0, 0, 1);
-    forward.normalize();
-    const left = new Vector3(0, 1, 0).cross(forward).normalize();
-    const lift = new Vector3(0, 0.12, 0);
-    const offset =
-      view === 'front'
-        ? forward.clone().multiplyScalar(distance).add(lift)
-        : view === 'back'
-          ? forward.clone().multiplyScalar(-distance).add(lift)
-          : view === 'side'
-            ? left.multiplyScalar(distance).add(lift)
-            : new Vector3(0, distance, 0).add(forward.clone().multiplyScalar(0.002));
+  /**
+   * Put the camera somewhere (the Camera panel's pick, pose/rig3d-camera.ts). Its pick rides
+   * along until the camera is orbited or zoomed by hand.
+   */
+  setCamera(camera: PoseRig3dCamera): void {
     this.rig.camera = {
-      position: target.clone().add(offset).toArray() as [number, number, number],
-      target: target.toArray() as [number, number, number],
-      fov: this.rig.camera.fov,
+      position: [...camera.position],
+      target: [...camera.target],
+      fov: camera.fov,
+      ...(camera.choice ? { choice: { ...camera.choice } } : {}),
     };
     this.applyCameraFromRig();
     this.events.onChange(this.getRig(), 'camera');
@@ -453,6 +426,8 @@ export class PoseScene {
   }
 
   private applyCameraFromRig(): void {
+    // The pick the camera was set from stays with it; only a hand orbit or zoom drops it.
+    const choice = this.rig.camera.choice;
     const posed = makeCamera(this.rig.camera, this.aspect);
     this.camera.position.copy(posed.position);
     this.camera.fov = this.rig.camera.fov;
@@ -462,6 +437,7 @@ export class PoseScene {
     this.orbit.update();
     this.ready = true;
     this.syncCameraToRig();
+    if (choice) this.rig.camera.choice = { ...choice };
     this.updateHandles();
     this.requestRender();
   }

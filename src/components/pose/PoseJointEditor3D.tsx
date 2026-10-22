@@ -22,12 +22,23 @@ import {
   rememberBackdropOpacity,
   rememberShown,
 } from '@/components/pose/pose-joint-editor-model';
+import { BONE_WORDS, PoseScene, type HandleId } from '@/components/pose/pose-3d-scene';
 import {
-  BONE_WORDS,
-  PoseScene,
-  type HandleId,
-  type PoseView,
-} from '@/components/pose/pose-3d-scene';
+  CAMERA_DIRECTIONS,
+  CAMERA_DIRECTION_LABELS,
+  CAMERA_HEIGHTS,
+  CAMERA_HEIGHT_LABELS,
+  CAMERA_LENSES,
+  CAMERA_LENS_LABELS,
+  CAMERA_SHOTS,
+  CAMERA_SHOT_LABELS,
+  DEFAULT_CAMERA_CHOICE,
+  cameraChoiceIsSet,
+  cameraChoiceLine,
+  type FullCameraChoice,
+  type PoseCameraChoice,
+} from '@/lib/pose/camera-shot';
+import { cameraForChoice, rigCameraChoice } from '@/lib/pose/rig3d-camera';
 import { dayPoseAsPhotoPose, dayPoseWords } from '@/lib/day/pose-presets';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import { describePhotoPose } from '@/lib/pose/describe';
@@ -117,6 +128,7 @@ export default function PoseJointEditor3D({
   backdropLabel,
   duoSeed,
   soloStill = false,
+  initialCamera,
 }: {
   bodies: NormalizedBody[];
   /** The rig this pose was saved with in the 3D editor, if it was. */
@@ -135,6 +147,11 @@ export default function PoseJointEditor3D({
   backdropLabel?: string;
   duoSeed?: NormalizedBody[];
   soloStill?: boolean;
+  /**
+   * The camera the slot or beat picked (its Camera row): a pose that has no camera of its own yet
+   * opens seen through it, so what is posed is what that still frames.
+   */
+  initialCamera?: PoseCameraChoice;
 }) {
   const titleId = useId();
   const p = testIdPrefix;
@@ -154,11 +171,14 @@ export default function PoseJointEditor3D({
   const [opened] = useState(() => {
     const restored =
       rig3d && rigProjectionError(rig3d, initialBodies, safeAspect) < RESTORE_TOLERANCE;
+    if (restored) return { rig: cloneRig(rig3d), restored: true, reframed: false };
+    const lifted = liftBodies(initialBodies, safeAspect, kinds(initialBodies.length));
+    if (!cameraChoiceIsSet(initialCamera)) return { rig: lifted, restored: false, reframed: false };
+    const choice = { ...DEFAULT_CAMERA_CHOICE, ...initialCamera };
     return {
-      rig: restored
-        ? cloneRig(rig3d)
-        : liftBodies(initialBodies, safeAspect, kinds(initialBodies.length)),
-      restored: Boolean(restored),
+      rig: { ...lifted, camera: cameraForChoice(lifted, choice, safeAspect) },
+      restored: false,
+      reframed: true,
     };
   });
   const [rig, setRig] = useState<PoseRig3d>(opened.rig);
@@ -166,7 +186,8 @@ export default function PoseJointEditor3D({
   // The pose (not only the camera) changed since it opened: the output is the projection.
   const [edited, setEdited] = useState(false);
   const editedRef = useRef(false);
-  const [viewChanged, setViewChanged] = useState(false);
+  // Opened through the slot's camera: the picture already differs from the points it came with.
+  const [viewChanged, setViewChanged] = useState(opened.reframed);
   // A Day pose's name and cue, kept as the words until the body is posed by hand.
   const [words, setWords] = useState<string | null>(initialWords?.trim() || null);
   const wordsRef = useRef<string | null>(initialWords?.trim() || null);
@@ -408,7 +429,10 @@ export default function PoseJointEditor3D({
     const current = latest.current;
     const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA);
     const figures = both ? lifted.figures : [lifted.figures[0]!, ...current.figures.slice(1)];
-    replaceRig({ ...lifted, figures });
+    const next = { ...lifted, figures };
+    // A picked camera stays picked: the new pose is framed the same way.
+    const choice = current.camera.choice;
+    replaceRig(choice ? { ...next, camera: cameraForChoice(next, choice, safeAspect) } : next);
     markEdited(true);
     setWordsBoth(nextWords);
     setSavedNote(null);
@@ -503,7 +527,24 @@ export default function PoseJointEditor3D({
     markEdited(true);
     setWordsBoth(null);
   };
-  const setView = (view: PoseView) => sceneRef.current?.setView(view);
+  // The Camera panel: what the camera is now (picked, or read from where it was orbited to).
+  const cameraChoice = useMemo(() => rigCameraChoice(rig, safeAspect), [rig, safeAspect]);
+  const cameraPicked = Boolean(rig.camera.choice);
+  const setCamera = (patch: Partial<FullCameraChoice>) => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    checkpoint();
+    const current = latest.current;
+    const choice = { ...rigCameraChoice(current, safeAspect), ...patch };
+    scene.setCamera(cameraForChoice(current, choice, safeAspect));
+    latest.current = scene.getRig();
+    setRig(latest.current);
+    setViewChanged(true);
+    setSavedNote(null);
+  };
+  const cameraWords = cameraChoiceLine(cameraChoice, {
+    who: figureCount > 1 ? 'them' : possessive === 'his' ? 'him' : 'her',
+  });
 
   const describeLine = outputBodies[0]
     ? describePhotoPose(
@@ -580,32 +621,6 @@ export default function PoseJointEditor3D({
             </div>
           ) : null}
         </div>
-        <div
-          className="flex flex-wrap items-center justify-center gap-1.5"
-          role="group"
-          aria-label="Camera"
-          data-testid={`${p}-views`}
-        >
-          {(
-            [
-              ['front', 'Front'],
-              ['side', 'Side'],
-              ['back', 'Back'],
-              ['top', 'Top'],
-            ] as const
-          ).map(([view, label]) => (
-            <Button
-              key={view}
-              size="sm"
-              variant="ghost"
-              title={`See ${figureCount > 1 ? 'the figure being posed' : 'the figure'} from the ${view === 'top' ? 'top' : view} — the picture is taken from here`}
-              data-testid={`${p}-view-${view}`}
-              onClick={() => setView(view)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
       </div>
       <div className="flex min-h-0 w-full flex-col max-md:flex-1 md:w-[26rem] md:shrink-0">
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -658,7 +673,8 @@ export default function PoseJointEditor3D({
                 pan.
               </li>
               <li>
-                The picture is taken from where you look: Front, Side, Back and Top jump there.
+                The picture is taken from where you look. Camera sets the height, the side, how much
+                of the body is in frame and the lens; the still is told the same.
               </li>
               <li>Ctrl+Z undoes.</li>
             </ul>
@@ -724,6 +740,84 @@ export default function PoseJointEditor3D({
                 }}
               />
             ) : null}
+          </div>
+          <div
+            className="space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+            role="group"
+            aria-label="Camera"
+            data-testid={`${p}-camera`}
+            data-picked={cameraPicked ? 'true' : 'false'}
+          >
+            <p className="type-caption text-[var(--text-muted)]">
+              Camera — the picture is taken from here
+            </p>
+            <label className="flex flex-wrap items-center gap-2">
+              <span className="type-caption w-16 shrink-0 text-[var(--text-muted)]">Height</span>
+              <input
+                type="range"
+                min={0}
+                max={CAMERA_HEIGHTS.length - 1}
+                step={1}
+                value={CAMERA_HEIGHTS.indexOf(cameraChoice.height)}
+                aria-label="Camera height"
+                aria-valuetext={CAMERA_HEIGHT_LABELS[cameraChoice.height]}
+                className="min-w-0 flex-1 accent-[var(--accent)]"
+                data-testid={`${p}-camera-height`}
+                data-value={cameraChoice.height}
+                onChange={event => {
+                  const height = CAMERA_HEIGHTS[Number(event.target.value)];
+                  if (height) setCamera({ height });
+                }}
+              />
+              <span
+                className="w-20 text-sm text-[var(--text-secondary)]"
+                data-testid={`${p}-camera-height-label`}
+              >
+                {CAMERA_HEIGHT_LABELS[cameraChoice.height]}
+              </span>
+            </label>
+            {(
+              [
+                ['direction', 'Direction', CAMERA_DIRECTIONS, CAMERA_DIRECTION_LABELS],
+                ['shot', 'Shot', CAMERA_SHOTS, CAMERA_SHOT_LABELS],
+                ['lens', 'Lens', CAMERA_LENSES, CAMERA_LENS_LABELS],
+              ] as const
+            ).map(([field, label, values, labels]) => (
+              <div key={field} className="flex flex-wrap items-center gap-2">
+                <span className="type-caption w-16 shrink-0 text-[var(--text-muted)]">{label}</span>
+                <div
+                  className="ui-segmented flex-wrap"
+                  role="radiogroup"
+                  aria-label={`Camera ${field}`}
+                  data-testid={`${p}-camera-${field}`}
+                >
+                  {values.map(value => {
+                    const active = cameraChoice[field] === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        className="ui-segmented-item"
+                        aria-checked={active}
+                        data-active={active ? 'true' : 'false'}
+                        data-testid={`${p}-camera-${field}-${value}`}
+                        disabled={
+                          field === 'direction' && cameraChoice.height === 'overhead' && !active
+                        }
+                        onClick={() => setCamera({ [field]: value })}
+                      >
+                        {(labels as Record<string, string>)[value]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className="type-caption text-[var(--text-muted)]" data-testid={`${p}-camera-words`}>
+              {cameraWords}
+              {cameraPicked ? '' : ' (read from where you turned the view)'}
+            </p>
           </div>
           {selectedPart ? (
             <div

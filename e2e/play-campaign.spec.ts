@@ -1830,8 +1830,9 @@ test('day slot editor previews the pose and lets you change it', async ({ page }
   await expect(page.getByTestId('day-slot-pose-preview-name')).toHaveText(
     /^Waving · real pose 1 of \d+$/
   );
-  await page.getByTestId('day-slot-pose-preview-camera').selectOption('low');
-  await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveValue('low');
+  await page.getByTestId('day-slot-pose-preview-camera-height').selectOption('low');
+  await expect(page.getByTestId('day-slot-pose-preview-camera-height')).toHaveValue('low');
+  await expect(page.getByTestId('day-slot-pose-preview-camera')).toHaveAttribute('data-from', 'slot');
   await expect(page.getByTestId('day-slot-pose-preview-photo')).toContainText('From a photo');
   // No ComfyUI here: the read fails, and says so plainly instead of changing the pose.
   await page.getByTestId('day-slot-pose-preview-photo-input').setInputFiles({
