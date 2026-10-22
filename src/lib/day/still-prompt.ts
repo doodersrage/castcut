@@ -110,8 +110,10 @@ export type DayStillPromptFacts = {
    */
   poseFirst?: boolean;
   /**
-   * With `poseFirst`, on an engine that takes no pose map (Qwen-Image 2.1): the line from the
-   * recipe's own stance and Moment, without naming a map.
+   * With `poseFirst`, on Qwen-Image 2.1: the line from the recipe's own stance and Moment,
+   * without naming a map. 2.1 drops the planner's own maps (painted as limbs); a custom pose's map
+   * is attached and named by the recipe, as on every engine (qwen-image-21-renderer:
+   * isPlayerPoseGuide).
    */
   poseFirstWithoutMap?: boolean;
   /**
@@ -206,8 +208,8 @@ export function dayPoseFirstLine(
   prompt: string,
   options: {
     /**
-     * One person, no pose map (Qwen-Image 2.1 takes none): the same line without "exactly as the
-     * pose map shows" — the words carry the pose.
+     * One person on Qwen-Image 2.1, which drops the planner's own map: the same line without
+     * "exactly as the pose map shows" — the words carry the pose.
      */
     withoutMap?: boolean;
   } = {}
@@ -271,6 +273,22 @@ export function dayPoseFirstLine(
     : `POSE FIRST: ${words}.`;
 }
 
+/** The image a recipe names as its pose map ("Match her body to the third image (pose map)"). */
+function recipePoseMapImage(prompt: string): number | null {
+  const word =
+    /Match (?:her body|their two bodies) to the (second|third|fourth) image \(pose map\)/.exec(
+      prompt
+    )?.[1];
+  return word ? { second: 2, third: 3, fourth: 4 }[word as 'second' | 'third' | 'fourth'] : null;
+}
+
+/** A custom POSE FIRST line pointed at the map that draws it, as the planned lines are. */
+function customPoseFirstLineWithMap(line: string, image: number | null): string {
+  return line && image
+    ? line.replace(/\.$/, `, exactly as the pose map in Image ${image} shows.`)
+    : line;
+}
+
 export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDayStillPrompt {
   const scrubbed = facts.partner
     ? scrubDayPartnerOutfitImageClaims(facts.slotPrompt)
@@ -284,7 +302,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
       : 'the outfit';
   // Not "standing" on a lying still: the plate's stance pulled lying beats upright. Nor on a
   // seated / kneeling / crouching one (a seated toast stood up with it).
+  // Nor on a custom pose: the joints say how she stands, lies or kneels, not the beat.
   const dressedStance =
+    Boolean(facts.customPose?.trim()) ||
     dayStillLiesDown({
       beat: facts.beat,
       layout: facts.pose?.layout,
@@ -444,13 +464,19 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   ]
     .filter(Boolean)
     .join('\n');
-  // Qwen-Image 2.1 takes no pose map, so the words are the only pose it gets: they lead, in every
-  // mood and for a custom pose too (whose words otherwise sat in the recipe's Pose: sentence
-  // mid-prompt). The adult exception is Edit 2511's, measured with its map.
+  // Qwen-Image 2.1 drops the planner's own maps, so for those the words are the only pose it gets:
+  // they lead, in every mood. The adult exception is Edit 2511's, measured with its map.
+  // A custom pose leads with its own words on every engine that leads with POSE FIRST (its map is
+  // attached on all of them): in the recipe's Pose: sentence alone, mid-prompt after a standing
+  // dressed plate, Edit 2511 drew a plank standing with arms up 4/4, a lie propped up, and back
+  // views facing the camera (pose bench, 2026-10-21).
   const wordsOnly = facts.poseFirstWithoutMap === true;
   const poseFirstLine =
-    customPose && recipe && wordsOnly
-      ? customPoseFirstLine(customPose, facts.leadNoun === 'man' && !swapLead ? 'he' : 'she')
+    customPose && recipe && (wordsOnly || facts.poseFirst)
+      ? customPoseFirstLineWithMap(
+          customPoseFirstLine(customPose, facts.leadNoun === 'man' && !swapLead ? 'he' : 'she'),
+          wordsOnly ? null : recipePoseMapImage(prompt)
+        )
       : facts.sportActionCue && wordsOnly && !recipe && figures === 1 && !customPose
         ? sportPoseFirstLine(prompt, drawnLayout)
         : facts.poseFirst &&

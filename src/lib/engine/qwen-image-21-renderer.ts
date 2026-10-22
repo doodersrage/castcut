@@ -535,7 +535,16 @@ const NATURAL_POSE_REWRITES: ReadonlyArray<[string, string]> = [
 ];
 const REACH_UP = /\b([Ss])he stands reaching up with one arm high, the other arm out\b/g;
 
-export function withNaturalPoses(prompt: string): string {
+export function withNaturalPoses(
+  prompt: string,
+  options: {
+    /**
+     * The still draws the player's own pose (joint editor, a photo, My poses): its POSE FIRST
+     * line is that pose in words, and its map is attached — no relaxed stance, no candid camera.
+     */
+    customPose?: boolean;
+  } = {}
+): string {
   let out = prompt;
   for (const [from, to] of NATURAL_POSE_REWRITES) out = out.split(from).join(to);
   // Reaching for a railing / rail: leaning on it, not an arm in the air.
@@ -553,7 +562,8 @@ export function withNaturalPoses(prompt: string): string {
   return withCandidStill(
     withNaturalLookBack(
       withHeldProps(withKitLowercase(withSwimsuitColour(withDuoJobs(withAcrossTable(out)))))
-    )
+    ),
+    options.customPose === true
   );
 }
 
@@ -601,7 +611,7 @@ function withGroundSlide(prompt: string): string {
 export const QWEN_IMAGE_21_CANDID_LINE =
   'Photographed candidly by a friend from a three-quarter angle, slightly off-centre in the frame, a real moment between poses, relaxed and unposed - not a fashion lineup, not facing the camera square on.';
 
-function withCandidStill(prompt: string): string {
+function withCandidStill(prompt: string, customPose = false): string {
   if (!/\sSCENE: /.test(prompt) || /\btwo people\b|\bpartner\b/i.test(prompt)) return prompt;
   let out = prompt
     .replace('Keep facial identity and camera framing.', 'Keep facial identity.')
@@ -614,15 +624,24 @@ function withCandidStill(prompt: string): string {
   // A sport still is mid-action ("ACTION: …", "POSE FIRST: mid-action"): never "relaxed, between
   // poses", never a relaxed stance.
   if (/\bACTION: |POSE FIRST: mid-action\b/.test(out)) return out;
+  // A custom pose (joint editor, a photo) is exact: its POSE FIRST line is the joints in words
+  // and its map is attached. The relaxed stance stood up 8 of 24 of them in the pose bench
+  // (2026-10-21) — "face down, body raised on straight arms, standing relaxed…" on a plank, a
+  // kneel, a hurdle, a kick — and the three-quarter candid camera fights a back view.
+  if (customPose) return out;
   out = withRelaxedPoseFirst(out);
   return out.includes(QWEN_IMAGE_21_CANDID_LINE)
     ? out
     : out.replace(/(\s)SCENE: /, `$1${QWEN_IMAGE_21_CANDID_LINE} SCENE: `);
 }
 
-/** A POSE FIRST line that already puts her off her feet or in motion: left as it is. */
+/**
+ * A POSE FIRST line that already puts her off her feet or in motion: left as it is. A raised leg
+ * ("one knee lifted"), a plank, a kick or a hurdle is not a weight-on-one-leg stance either
+ * (pose bench, 2026-10-21); a lifted elbow or cup still is, so "lifted" counts only on a leg.
+ */
 const NOT_STANDING_RE =
-  /\b(?:sit|sits|sitting|seated|kneel\w*|lie|lies|lying|lay\w*|crouch\w*|squat\w*|bend\w*|bent (?:over|forward|down|double)|on all fours|curl\w*|foot (?:up|on)|armchair|sofa|couch|bed|floor|jump\w*|leap\w*|run\w*|jog\w*|walk\w*|stride|mid-step|climb\w*|lean\w*|perch\w*|reclin\w*|dance\w*|danc\w*|swim\w*|cycl\w*|rid\w*|skat\w*|ski\w*|hang\w*|handstand|stretch\w*)\b/i;
+  /\b(?:sit|sits|sitting|seated|kneel\w*|on one knee|lie|lies|lying|lay\w*|crouch\w*|squat\w*|bend\w*|bent (?:over|forward|down|double)|on all fours|face down|plank\w*|push-ups?|(?:knee|leg|foot|feet|ankle|heel|thigh)s? (?:\w+ )?lifted|lifted (?:knee|leg|foot|heel)|off the floor|curl\w*|foot (?:up|on)|armchair|sofa|couch|bed|floor|jump\w*|leap\w*|run\w*|jog\w*|walk\w*|stride|mid-step|mid-air|climb\w*|lean\w*|perch\w*|reclin\w*|dance\w*|danc\w*|swim\w*|cycl\w*|rid\w*|skat\w*|ski\w*|hang\w*|handstand|stretch\w*|kick\w*|hurdl\w*)\b/i;
 
 export const QWEN_IMAGE_21_RELAXED_STANCE =
   'standing relaxed, her weight on one leg and the other knee softly bent, hips and shoulders turned a little from the camera';
@@ -1200,7 +1219,9 @@ export function convertQwenEditWorkflowToImage21(
         withTwoPersonFaces(
           withoutDroppedReferences(
             withProfilePromptFixes(
-              withNaturalPoses(toQwenImage21Prompt(String(encoder.inputs.prompt ?? ''))),
+              withNaturalPoses(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+                customPose: referenceFiles.some(isPlayerPoseGuide),
+              }),
               {
                 namePartnerOutfit: profile.namePartnerOutfit,
                 dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,

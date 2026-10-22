@@ -66,12 +66,15 @@ const stills = [...latest.values()].map(row => {
       guide: ref.people as never,
       guideAspect: ref.aspect,
       detected: row.detected,
+      // Every bench still draws a custom pose (joints or a photo), as Day checks it.
+      customPose: true,
     });
     out.check = {
       score: match.score,
       pass: match.score >= DEFAULT_MIN_POSE_MATCH,
       limbScore: match.limbScore,
       postureMiss: match.postureMiss,
+      limbMiss: match.limbMiss ?? false,
       gestureMiss: match.gestureMiss,
       posture: match.posture.map(
         p =>

@@ -49,6 +49,7 @@ import {
 } from '@/lib/comfyui/object-info-cache';
 import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { customPoseOffPlate } from '@/lib/pose/custom-pose-engine';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -192,7 +193,7 @@ import {
   uploadDayIdentityLatentPlate,
 } from '@/lib/day/vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
-import { buildDayPoseGuide, isPenetrationLayout } from '@/lib/day/pose-guide';
+import { buildDayPoseGuide, isPenetrationLayout, photoPoseForStill } from '@/lib/day/pose-guide';
 import { customPoseWords } from '@/lib/pose/describe';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day/two-takes';
@@ -949,8 +950,8 @@ export function useDayPlannerToolOrchestrationCore() {
     ]
   );
 
-  // The engine one still renders on (its hand-offs: Edit 2511 adult nude → Rapid, 2.1 clothed duo
-  // → Rapid), and the model it is queued as — Queue all groups stills by it (model-aware queue).
+  // The engine one still renders on (its hand-offs: Edit 2511 adult nude → Rapid, Edit 2511 custom
+  // pose off its plate → Noct-Q / Turbo, 2.1 sex-pose duo → Rapid), and the model it is queued as — Queue all groups stills by it (model-aware queue).
   const resolveSlotStillModel = useCallback(
     async (queueTarget: DaySlot) => {
       const omitGarment = dayBeatOmitsGarmentPackshot({
@@ -978,6 +979,7 @@ export function useDayPlannerToolOrchestrationCore() {
         handOffProfile.adultEngine ||
         handOffProfile.clothedDuoEngine ||
         handOffProfile.penetrationEngine ||
+        handOffProfile.customPoseEngines?.length ||
         bestEnginePerPose ||
         queueTarget.engine
           ? (readCachedComfyObjectInfoModels() ??
@@ -1008,10 +1010,26 @@ export function useDayPlannerToolOrchestrationCore() {
       // The hand-offs below (2511 adult nude, 2.1 sex-pose duos and clothed duos → Rapid) only run
       // with "Pick the best engine per pose" on; off, every still renders on the picked engine.
       const handOffs = toolSettings.bestEnginePerPose === true;
+      // A one-person custom pose Edit 2511 redraws from its standing plate (lying, a plank, a back
+      // view): Noct-Q, else Turbo, draws it (pose-model-profile: customPoseEngines).
+      const customPoseOffPlateStill =
+        handOffs &&
+        Boolean(handOffProfile.customPoseEngines?.length) &&
+        Boolean(queueTarget.posePhoto?.people.length) &&
+        resolveSlotLook(queueTarget).hasPlate &&
+        planDaySlotPose({
+          slot: queueTarget,
+          dayMood: playedMood,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+          model: shared.model,
+        }).headcount === 1 &&
+        customPoseOffPlate(photoPoseForStill(queueTarget.posePhoto, 1)) !== null;
       const routedStillModel = resolveDayStillModel(shared.model, {
         adultNude: adultNudeStill,
         penetrationDuo,
         handOffs,
+        customPoseOffPlate: customPoseOffPlateStill,
         // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
         clothedDuo:
           !adultNudeStill &&
@@ -2298,14 +2316,15 @@ export function useDayPlannerToolOrchestrationCore() {
         // runs), from the decisions made above.
         const assembled = assembleDayStillPrompt({
           slotPrompt,
-          // Edit 2511: clothed stills only (A/B'd with its pose map). Qwen-Image 2.1 takes no map:
-          // the words lead in every mood (day-still-prompt.ts).
+          // Edit 2511: clothed stills only (A/B'd with its pose map). Qwen-Image 2.1 drops the
+          // planner's own maps (a custom pose's map is attached): the words lead in every mood
+          // (day-still-prompt.ts).
           poseFirst:
             poseModelFamily(stillModel) === 'qwen-image-2.1' ||
             (/qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') &&
               !isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) &&
               !adultStill),
-          // Qwen-Image 2.1 takes no pose map: the line stands on the words (Turbo, 2026-10-17).
+          // Qwen-Image 2.1: the line stands on the words, never naming a map (Turbo, 2026-10-17).
           poseFirstWithoutMap: poseModelFamily(stillModel) === 'qwen-image-2.1',
           camera: dayStillCamera({
             slotId: queueTarget.id,

@@ -16,6 +16,7 @@ import {
   POSE_LIBRARY_MIN_SCORE,
   posturePairWords,
   scorePoseMatch,
+  isCustomPoseKey,
 } from '@/lib/pose/score';
 import { poseLayoutFromKey, recordFaceMatchScore, recordPoseMatchScore } from '@/lib/play/metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
@@ -87,6 +88,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
             guide: expect.keypoints,
             guideAspect: expect.aspect,
             detected: detected.pose,
+            customPose: isCustomPoseKey(expect.poseKey),
           }),
           gesture: false,
           realism: true,

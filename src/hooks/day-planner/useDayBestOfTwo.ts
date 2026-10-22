@@ -19,7 +19,7 @@ import {
   isDayHardPose,
 } from '@/lib/day/best-of-two';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
-import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch } from '@/lib/pose/score';
+import { DEFAULT_MIN_POSE_MATCH, scorePoseMatch, isCustomPoseKey } from '@/lib/pose/score';
 import { realismRankedScore } from '@/lib/still/realism';
 import { fetchCastcutBestOfTwoReport } from '@/lib/castcut/report-client';
 import { dayStillShownImage, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
@@ -202,6 +202,7 @@ export function useDayBestOfTwo(
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
+          customPose: isCustomPoseKey(expectation.poseKey),
         });
         const { checkStillPoseVision } = await import('@/lib/pose/gesture-vision-client');
         const { match, realism } = await checkStillPoseVision({

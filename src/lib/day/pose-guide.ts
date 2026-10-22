@@ -58,6 +58,7 @@ import {
   type NormalizedBody,
   type PoseLibraryEntry,
 } from '@/lib/pose/library';
+import { framePhotoPeople } from '@/lib/pose/photo-pose-fit';
 import { bodyCentreX, mirrorBodies } from '@/lib/pose/starters';
 import {
   loadedPoseReferences,
@@ -6498,12 +6499,15 @@ export function planOpenPoseGuide(input: {
   const reference = photo
     ? null
     : poseReferenceForIntent(input.intent, input.figures.length, input.variant, input.references);
-  const entry: PoseLibraryEntry | null = photo
+  // A photo's people cropped to fill the guide as a reference does; a pose shaped in the joint
+  // editor (or a Day pose) is drawn where it was posed.
+  const placed = photo && photo.source !== 'edited' ? framePhotoPeople(photo) : photo;
+  const entry: PoseLibraryEntry | null = placed
     ? {
         id: 'photo',
         key: poseKey,
-        aspect: photo.aspect,
-        people: photo.people,
+        aspect: placed.aspect,
+        people: placed.people,
         score: 1,
         createdAt: 0,
       }

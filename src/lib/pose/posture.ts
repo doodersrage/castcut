@@ -262,8 +262,14 @@ export function classifyPosture(body: NormalizedBody, aspect: number): PostureRe
   if (foreshortened) {
     // Torso toward the camera (a push-up seen head-on, lying with the head nearest): only the
     // legs can tell, and only a clearly standing pair of legs is read.
-    return feetDrop !== null && feetDrop >= 1.4 && kneeDrop >= 0.6
-      ? read('standing', false, facing, tilt)
+    if (feetDrop !== null && feetDrop >= 1.4 && kneeDrop >= 0.6) {
+      return read('standing', false, facing, tilt);
+    }
+    // Feet well under the hips, knees below them, the torso short: she leans toward the camera
+    // (a deadlift or a bend seen from the front). Seated facing the camera it is the thighs that
+    // shorten, not the torso.
+    return feetDrop !== null && feetDrop >= 0.9 && kneeDrop >= 0.25
+      ? read('bending', false, facing, tilt)
       : read('unknown', false, facing, tilt);
   }
   const nearTilt = tilt > LYING_TILT_DEG - TILT_MARGIN_DEG;
@@ -275,6 +281,7 @@ export function classifyPosture(body: NormalizedBody, aspect: number): PostureRe
       if (feetDrop > 0.25 && feetDrop < 0.75 && angle < 80) {
         return read('crouching', false, facing, tilt);
       }
+      if (isSquat(full, hip, ref)) return read('crouching', !nearTilt, facing, tilt);
     }
     return read('sitting', !nearTilt && kneeDrop < SEATED_KNEE_DROP - DROP_MARGIN, facing, tilt);
   }
@@ -284,7 +291,21 @@ export function classifyPosture(body: NormalizedBody, aspect: number): PostureRe
   // Kneeling: the lowest knee is about as low as the lowest foot (the knee is on the ground).
   const lowestKnee = Math.max(...withKnee.map(leg => leg.knee!.y));
   const shinDrop = (support.ankle!.y - lowestKnee) / ref;
-  if (shinDrop < KNEELING_SHIN_DROP) {
+  // A straight leg standing upright under the hip, its knee above the low one and the leg longer
+  // than that thigh, holds the hips a whole leg off the floor: the low knee is bent toward the
+  // camera, not on the ground (an upright skating crouch read as kneeling). A planted front leg
+  // drawn foreshortened is no longer than the kneeling thigh; knelt on both, the knees are level.
+  const downKnee = withKnee.reduce((a, b) => (b.knee!.y > a.knee!.y ? b : a));
+  const standingLeg = full.some(
+    leg =>
+      leg !== downKnee &&
+      leg.knee!.y < downKnee.knee!.y - 0.1 * ref &&
+      leg.ankle!.y >= support.ankle!.y - 0.1 * ref &&
+      kneeAngleDeg(leg.hip, leg.knee!, leg.ankle!) > 155 &&
+      fromDownDeg(leg.hip, leg.ankle!) < 25 &&
+      dist(leg.hip, leg.ankle!) > 1.15 * dist(downKnee.hip, downKnee.knee!)
+  );
+  if (shinDrop < KNEELING_SHIN_DROP && !standingLeg) {
     return read('kneeling', !nearTilt && shinDrop < KNEELING_SHIN_DROP - DROP_MARGIN, facing, tilt);
   }
   const angle = kneeAngleDeg(support.hip, support.knee!, support.ankle!);
@@ -301,8 +322,66 @@ export function classifyPosture(body: NormalizedBody, aspect: number): PostureRe
     : read('standing', confidentStand && tilt <= 20, facing, tilt);
 }
 
-/** Lying sub-type: on the side (shoulders stacked), front (propped on the forearms) or back. */
-function lyingKind(body: NormalizedBody, aspect: number, ref: number): PostureClass {
+/** A squat's shins tip forward this far from vertical (a chair's stay near upright). */
+const SQUAT_SHIN_DEG = 30;
+/** A squat's knees fold under this (hip–knee–ankle); a seat's stay near a right angle. */
+const SQUAT_KNEE_DEG = 80;
+/** In a squat the hips sit over the feet (balance); on a seat a thigh's length behind them. */
+const SQUAT_HIP_OVER_FEET = 0.45;
+
+/**
+ * Thighs level and knees at hip height read alike on a seat and in a squat; a squat is the one
+ * with the knees folded tight, a shin tipped forward over the toes and the hips over the feet
+ * (CMU squat references: knees 54–70°, shins 34–45°, hips 0.16–0.36 of the body from the feet;
+ * photo seats: knees 84–152°, shins under 25°).
+ */
+function isSquat(
+  legs: Array<{ hip: Point; knee: Point | null; ankle: Point | null }>,
+  hip: Point,
+  ref: number
+): boolean {
+  if (legs.length === 0) return false;
+  const knees = legs.map(leg => kneeAngleDeg(leg.hip, leg.knee!, leg.ankle!));
+  const shins = legs.map(leg => 180 - fromDownDeg(leg.ankle!, leg.knee!));
+  const feetX = legs.reduce((sum, leg) => sum + leg.ankle!.x, 0) / legs.length;
+  return (
+    Math.min(...knees) < SQUAT_KNEE_DEG &&
+    Math.max(...shins) > SQUAT_SHIN_DEG &&
+    Math.abs(hip.x - feetX) < SQUAT_HIP_OVER_FEET * ref
+  );
+}
+
+/** Lying, the nose this far (reference lengths) above the ears is a face turned up. */
+const FACE_UP = 0.08;
+/** …and this far below them a face turned to the floor or the camera. */
+const FACE_DOWN = 0.1;
+/** Shoulders this far apart up the picture are stacked: on the side, not the front. */
+const STACKED_SHOULDERS = 0.3;
+
+/**
+ * Lying sub-type — on the back, side or front (the custom-pose words use it too, so the words
+ * and the pose check read a lying body the same way) — from the cues 2D joints keep, strongest
+ * first:
+ * a knee bent up (only on the back), feet kicked up behind with the knees down (only on the
+ * front), propped on the forearms ahead of the shoulders (front), then which way the face points
+ * (nose above the ears: face up, on the back; below them: on the side or front, told apart by
+ * the shoulders stacked one over the other), and last the shoulder line alone.
+ *
+ * Pose references (CMU lying clips seen from 35° up, COCO photos): the shoulder line alone read
+ * every on-the-side reference as on the back; the face reads 4 of 5 each way.
+ */
+export function readLyingKind(
+  body: NormalizedBody,
+  aspect: number
+): 'lying-back' | 'lying-side' | 'lying-front' {
+  return lyingKind(body, aspect, bodyReferenceLength(body, aspect) || 1);
+}
+
+function lyingKind(
+  body: NormalizedBody,
+  aspect: number,
+  ref: number
+): 'lying-back' | 'lying-side' | 'lying-front' {
   const p = (index: number) => {
     const point = body[index];
     return point ? { x: point.x * aspect, y: point.y } : null;
@@ -310,20 +389,56 @@ function lyingKind(body: NormalizedBody, aspect: number, ref: number): PostureCl
   const rs = p(R_SHOULDER);
   const ls = p(L_SHOULDER);
   const neck = p(NECK);
-  // Propped on the forearms: both elbows under the shoulders and the head held above them
-  // (checked first: seen from the side, a prone body's shoulders stack too).
+  const hip = mean([p(R_HIP), p(L_HIP)]);
+  const legs = (
+    [
+      [p(R_HIP), p(R_KNEE), p(R_ANKLE)],
+      [p(L_HIP), p(L_KNEE), p(L_ANKLE)],
+    ] as const
+  ).flatMap(([h, k, a]) => {
+    const legHip = h ?? hip;
+    return k && a && legHip ? [{ hip: legHip, knee: k, ankle: a }] : [];
+  });
+  // A knee bent up over the hip and the foot: she lies on her back (or reclines on it).
+  if (legs.some(leg => leg.knee.y < Math.min(leg.hip.y, leg.ankle.y) - 0.18 * ref)) {
+    return 'lying-back';
+  }
+  // Knees down by the hips with the feet kicked up behind, over the hips: on her front (on the
+  // side, knees drawn up put the feet only a little higher in the picture).
+  if (
+    legs.length > 0 &&
+    legs.every(leg => leg.knee.y > leg.hip.y - 0.15 * ref) &&
+    legs.some(leg => leg.ankle.y < leg.knee.y - 0.3 * ref && leg.ankle.y < leg.hip.y - 0.2 * ref)
+  ) {
+    return 'lying-front';
+  }
+  // Propped on the forearms: both elbows under the shoulders, at or ahead of them along the body
+  // (reclining on the back puts them behind), and the head held above them (checked before the
+  // shoulders: seen from the side, a prone body's shoulders stack too).
   const elbows = [p(3), p(6)].filter((point): point is Point => point !== null);
   const shoulders = mean([rs, ls]);
   const nose = p(NOSE);
-  if (
-    shoulders &&
-    neck &&
-    nose &&
-    elbows.length === 2 &&
-    elbows.every(elbow => elbow.y > shoulders.y + 0.2 * ref) &&
-    nose.y < neck.y - 0.1 * ref
-  ) {
-    return 'lying-front';
+  if (shoulders && neck && hip && nose && elbows.length === 2) {
+    const torso = dist(neck, hip) || 1;
+    const along = (point: Point) =>
+      ((point.x - neck.x) * (neck.x - hip.x) + (point.y - neck.y) * (neck.y - hip.y)) / torso;
+    if (
+      elbows.every(elbow => elbow.y > shoulders.y + 0.2 * ref && along(elbow) > -0.2 * ref) &&
+      nose.y < neck.y - 0.1 * ref
+    ) {
+      return 'lying-front';
+    }
+  }
+  // The face: the nose against the ears.
+  const earLine = mean([p(16), p(17)]);
+  if (nose && earLine) {
+    const noseUp = (earLine.y - nose.y) / ref;
+    if (noseUp > FACE_UP) return 'lying-back';
+    if (noseUp < -FACE_DOWN) {
+      return rs && ls && Math.abs(rs.y - ls.y) >= STACKED_SHOULDERS * ref
+        ? 'lying-side'
+        : 'lying-front';
+    }
   }
   if (rs && ls && dist(rs, ls) < SIDE_SHOULDER_SHARE * ref) {
     return 'lying-side';

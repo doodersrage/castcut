@@ -325,6 +325,11 @@ export type PoseMatchResult = {
   /** Some guide person's matched body is in another posture: a miss whatever the angles say. */
   postureMiss: boolean;
   /**
+   * A custom pose (joint editor, a photo) whose limbs score under
+   * {@link CUSTOM_POSE_MIN_LIMB_SCORE}: a miss, as a posture miss is. Only with `customPose`.
+   */
+  limbMiss?: boolean;
+  /**
    * No miss called, but a posture read is unsure in another group. The vision posture question
    * (`pose-posture-question.ts`) is asked whenever the lead's still read is unsure.
    */
@@ -407,6 +412,11 @@ export function scorePoseMatch(input: {
   detected: DetectedPose;
   /** Defaults to {@link POSE_SCORE_METHOD}. */
   method?: PoseScoreMethod;
+  /**
+   * The guide is the player's own pose (joint editor, a photo, My poses — {@link isCustomPoseKey}):
+   * its limbs are judged too ({@link CUSTOM_POSE_MIN_LIMB_SCORE}).
+   */
+  customPose?: boolean;
 }): PoseMatchResult {
   const method = input.method ?? POSE_SCORE_METHOD;
   const detectedAspect =
@@ -472,11 +482,18 @@ export function scorePoseMatch(input: {
   // Nobody found: a miss, as before. Somebody found but too little of them read to compare
   // (a dim still, a body mostly out of frame): no verdict — it sits on the gate and passes.
   const anyone = guide.some((_, g) => pick(g) >= 0);
+  // A custom pose is exact (every limb was placed), so its limbs are the check: the posture
+  // verdict alone passed 207 of 216 custom-pose stills, 19 of them wrong (pose bench).
+  const limbMiss =
+    method === 'limb-angle' &&
+    input.customPose === true &&
+    readLimbs.length > 0 &&
+    limbScore < CUSTOM_POSE_MIN_LIMB_SCORE;
   const score =
     method !== 'limb-angle'
       ? jointScore
       : readLimbs.length > 0
-        ? limbVerdictScore(limbScore, postureMiss)
+        ? limbVerdictScore(limbScore, postureMiss || limbMiss)
         : anyone && !postureMiss
           ? LIMB_ANGLE_MIN_POSE_MATCH
           : 0;
@@ -496,10 +513,27 @@ export function scorePoseMatch(input: {
     assignment: guide.map((_, g) => (pick(g) >= 0 ? candidates[pick(g)]!.index : -1)),
     posture,
     postureMiss,
+    ...(input.customPose === true ? { limbMiss } : {}),
     postureUnsure: !postureMiss && posture.some(pair => pair.unsure),
     offLimbs: lead?.off ?? [],
     limbDeltas: lead?.limbs ?? [],
   };
+}
+
+/**
+ * Custom poses (joint editor, "From a photo", My poses): a still whose mean limb score is under
+ * this misses, alongside the posture verdict. Pose bench, 2026-10-21 — 216 custom-pose stills on
+ * Turbo / Edit 2511 / Noct-Q judged by eye (118 right, 72 partly, 26 wrong): the posture verdict
+ * passed 207, catching 7 of 26 wrong and 1 of 72 partly. Mean limb score: right 0.94, partly
+ * 0.77, wrong 0.51; under 0.8 flags 23/26 wrong and 32/72 partly, and 6/118 right. A planned pose
+ * is a sketch of the beat (its limbs vary freely in a right still), so it keeps the posture
+ * verdict alone (calibration below).
+ */
+export const CUSTOM_POSE_MIN_LIMB_SCORE = 0.8;
+
+/** The pose key of a custom pose's guide (`photo:1`, `photo:2` — photoPoseKey). */
+export function isCustomPoseKey(poseKey: string | null | undefined): boolean {
+  return /^photo:\d/.test(poseKey ?? '');
 }
 
 /** Old joint-distance gate: below it a still missed its guide. */
@@ -588,6 +622,10 @@ export function describePoseMatch(result: PoseMatchResult): string {
   const missed = result.gestureCheck?.miss ? result.gestureCheck.missed : null;
   if (missed) {
     return `pose match ${pct}% · missed: ${missed}${heads}`;
+  }
+  if (result.limbMiss) {
+    const off = result.offLimbs.slice(0, 2).join(', ');
+    return `pose match ${pct}% · limbs off the pose${off ? `: ${off}` : ''}${heads}`;
   }
   return `pose match ${pct}%${heads}`;
 }
