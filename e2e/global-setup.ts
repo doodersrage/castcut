@@ -1,5 +1,6 @@
 import { chromium, type FullConfig, type Page } from '@playwright/test';
 import { e2eApiHeaders, e2eCredentials } from './helpers/auth';
+import { e2eDataDir } from './helpers/data-dir';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -57,7 +58,39 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
 
   await context.storageState({ path: storagePath });
   await checkServerRateLimit(page, config.workers);
+  await checkServerDataDir(page);
   await browser.close();
+}
+
+/**
+ * A reused server (a `npm run dev` left running on the port) has the studio's real data dir: the
+ * tests would write their Cast, settings and resets into it, and its data would flow into the
+ * tests (a real Cast and settings where CI has none). Refuse it unless asked to allow it.
+ */
+async function checkServerDataDir(page: Page): Promise<void> {
+  if (process.env.CI || process.env.PROMPT_E2E_ALLOW_DATA_DIR === '1') {
+    return;
+  }
+  const health = await page.request
+    .get('/api/health', { headers: e2eApiHeaders(), timeout: 10_000 })
+    .then(response => (response.ok() ? (response.json() as Promise<unknown>) : null))
+    .catch(() => null);
+  // The studio's own data dir: PROMPT_DATA_DIR from the shell or .env.local (playwright.config).
+  const studioDataDir = process.env.PROMPT_DATA_DIR?.trim();
+  const dataDir = readEnvField(health, 'PROMPT_DATA_DIR');
+  if (
+    !studioDataDir ||
+    !dataDir?.startsWith('/') ||
+    resolve(dataDir) !== resolve(studioDataDir) ||
+    resolve(dataDir) === resolve(e2eDataDir())
+  ) {
+    return;
+  }
+  throw new Error(
+    `The server under test stores data in the studio's data dir (${dataDir}). ` +
+      `Stop it so Playwright starts its own server, start it with PROMPT_DATA_DIR=${e2eDataDir()}, ` +
+      `or set PROMPT_E2E_ALLOW_DATA_DIR=1 to run against that data anyway.`
+  );
 }
 
 /**

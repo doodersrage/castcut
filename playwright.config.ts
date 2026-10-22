@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
 import { e2eApiHeaders } from './e2e/helpers/auth';
+import { e2eDataDir } from './e2e/helpers/data-dir';
 
 function loadEnvLocal(): void {
   const path = resolve(__dirname, '.env.local');
@@ -62,6 +63,8 @@ export default defineConfig({
       // the default 120 requests a minute to one route and gets 429s (an empty navigation,
       // "No Cast lead"…) that look like flaky tests.
       API_RATE_LIMIT_MAX: process.env.API_RATE_LIMIT_MAX ?? '100000',
+      // A local run: its own empty data dir, not .env.local's real one (e2e/helpers/data-dir.ts).
+      ...(process.env.CI ? {} : { PROMPT_DATA_DIR: e2eDataDir() }),
     },
   },
 });

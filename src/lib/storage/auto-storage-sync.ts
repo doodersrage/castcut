@@ -48,6 +48,7 @@ import {
   localSessionStackLooksEmpty,
   mergeArraysById,
   mergeSettingsCache,
+  mergeStartupServerSettings,
   suggestMergeChoice,
   type MergeChoice,
   type StorageNamespaceConflict,
@@ -382,7 +383,7 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
   const gallery = loadComfyGallery();
   if (history.length === 0 && gallery.length === 0) {
     const synced: StorageNamespace[] = [];
-    const localSettings = loadSettingsCache();
+    const settingsBeforePull = loadSettingsCache();
     const serverDeleted = await pullNamespaceFromServer<string[] | { ids?: string[] }>(
       'gallery-deleted-ids'
     );
@@ -431,20 +432,14 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     const settingsPull = await pullNamespaceFromServerResult<SettingsCache>('settings-cache');
     const serverSettings = settingsPull.data;
     if (serverSettings?.shared) {
-      const merged = applyServerSessionStack(
-        {
-          ...localSettings,
-          ...serverSettings,
-          shared: { ...localSettings.shared, ...serverSettings.shared },
-          tools: { ...(serverSettings.tools ?? {}), ...(localSettings.tools ?? {}) },
-        },
-        serverSettings
+      // Settings changed on this page while the pulls ran are kept (mergeStartupServerSettings).
+      saveSettingsCache(
+        mergeStartupServerSettings(settingsBeforePull, loadSettingsCache(), serverSettings)
       );
-      saveSettingsCache(merged);
     } else if (settingsPull.ok) {
       // The server really has no settings yet — seed it. A failed pull must not: this fresh
       // profile's copy has no maps, and pushing it replaced the server's.
-      await syncNamespaceToServer('settings-cache', localSettings);
+      await syncNamespaceToServer('settings-cache', loadSettingsCache());
     }
     if (settingsPull.ok && extrasPull.ok) {
       markSettingsSyncedWithServer();
