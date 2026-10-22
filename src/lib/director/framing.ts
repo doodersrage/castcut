@@ -275,12 +275,12 @@ export function frameDirection(input: {
     { height: camera.height, direction: camera.direction, shot, lens: camera.lens },
     aspect
   );
-  let start: PoseRig3dCamera = {
-    position: picked.position,
-    target: picked.target,
-    fov: picked.fov,
-  };
-  if (still) start = matchStill(first, start, still, aspect);
+  // Her pose read from the still: the still's own camera (the picks above only name it).
+  let start: PoseRig3dCamera = camera.view
+    ? { position: [...camera.view.position], target: [...camera.view.target], fov: camera.view.fov }
+    : { position: picked.position, target: picked.target, fov: picked.fov };
+  // The still's own camera already frames her as the still does.
+  if (still && !camera.view) start = matchStill(first, start, still, aspect);
   const matched = start;
   const framedDistance = v(start.position).distanceTo(v(start.target));
   // Closer shots crop her legs: only the top and the sides must hold.
@@ -292,12 +292,20 @@ export function frameDirection(input: {
     left: MARGIN.side,
     right: 1 - MARGIN.side,
   };
+  // Where the start pose may reach in the picture: the picture itself — or, framed like the
+  // still, as far as the still already has her (a still that crops her head or feet is not
+  // pulled back from at the first frame; the move may not reach further out than she starts).
+  const reach = { top: 0, bottom: 1, left: 0, right: 1 };
   if (still) {
     const first = moveBox([frames[0]!], start, start, shot, aspect);
-    limit.top = Math.max(0, Math.min(limit.top, first.minY - 0.005));
-    limit.bottom = Math.min(1, Math.max(limit.bottom, first.maxY + 0.005));
-    limit.left = Math.max(0, Math.min(limit.left, first.minX - 0.005));
-    limit.right = Math.min(1, Math.max(limit.right, first.maxX + 0.005));
+    reach.top = Math.min(0, first.minY - 0.005);
+    reach.bottom = Math.max(1, first.maxY + 0.005);
+    reach.left = Math.min(0, first.minX - 0.005);
+    reach.right = Math.max(1, first.maxX + 0.005);
+    limit.top = Math.max(reach.top, Math.min(limit.top, first.minY - 0.005));
+    limit.bottom = Math.min(reach.bottom, Math.max(limit.bottom, first.maxY + 0.005));
+    limit.left = Math.max(reach.left, Math.min(limit.left, first.minX - 0.005));
+    limit.right = Math.min(reach.right, Math.max(limit.right, first.maxX + 0.005));
   }
   for (let step = 0; step < 40; step += 1) {
     const end = cameraMoveEnd(start, camera.move, aspect);
@@ -331,7 +339,10 @@ export function frameDirection(input: {
   const last = Math.max(1, frames.length - 1);
   // The first frame that would leave the picture itself (not just its margins).
   const inPicture = (box: ReturnType<typeof pathBox>) =>
-    box.minY >= 0 && (!full || box.maxY <= 1) && box.minX >= 0 && box.maxX <= 1;
+    box.minY >= reach.top &&
+    (!full || box.maxY <= reach.bottom) &&
+    box.minX >= reach.left &&
+    box.maxX <= reach.right;
   let firstOut = frames.length;
   for (let i = 0; i < frames.length; i += 1) {
     const box = pathBox([frames[i]!], () => cameraAt(matched, matchedEnd, i / last), shot, aspect);

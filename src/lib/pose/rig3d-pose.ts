@@ -793,6 +793,88 @@ export type LiftOptions = {
   body?: Rig3dBodyKind;
 };
 
+const ALL_LIMBS: Array<[Side, Limb]> = [
+  ['R', 'arm'],
+  ['L', 'arm'],
+  ['R', 'leg'],
+  ['L', 'leg'],
+];
+const LIMB_POINTS: Record<`${Side}${Limb}`, [number, number]> = {
+  Rarm: [3, 4],
+  Larm: [6, 7],
+  Rleg: [9, 10],
+  Lleg: [12, 13],
+};
+
+/**
+ * Each limb's middle and end joint on its line of sight, at the bone's length from the joint
+ * before (the reading that bends the natural way, nearer the camera first).
+ */
+function placeLimbsOnRays(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  cam: PerspectiveCamera,
+  limbs: Array<[Side, Limb]>
+): void {
+  const origin = cam.position.clone();
+  const P = (i: number) => body[i] ?? null;
+  const ray = (p: Pt) => pictureRay(cam, p);
+  const kind = figure.body;
+  for (const [side, limb] of limbs) {
+    const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
+    const mid2d = P(midIndex);
+    const end2d = P(endIndex);
+    if (!mid2d && !end2d) continue;
+    const [l1, l2] = limbLengths(kind, side, limb);
+    const { root, mid, end } = limbJoints(figure, side, limb);
+    const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
+      const r = ray(p);
+      const ts = rayDepths(origin, r, centre, length);
+      const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
+      // Out of reach: the nearest point on the line of sight, held at the bone's length.
+      return points.map(q => {
+        const v = q.clone().sub(centre);
+        return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
+      });
+    };
+    const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
+    type Option = { m: Vector3; e: Vector3; score: number; excess: number };
+    const options: Option[] = [];
+    for (const m of mids) {
+      const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
+      for (const e of ends) {
+        const trial = cloneFigure(figure);
+        placeLimb(trial, side, limb, m, e, limb === 'leg');
+        // Toward the camera: the nearer pair of joints reads first.
+        const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
+        options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
+      }
+    }
+    options.sort((a, b) => a.excess - b.excess || a.score - b.score);
+    const pick = options[0]!;
+    placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
+  }
+}
+
+/**
+ * Put a lifted figure's arms (or legs) back on the picture's points after its torso was changed
+ * (straightened in depth, say): each joint on its line of sight again, through `camera`.
+ */
+export function refitLimbs(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  aspect: number,
+  camera: PoseRig3dCamera = DEFAULT_CAMERA,
+  limbs: Limb[] = ['arm']
+): void {
+  placeLimbsOnRays(
+    figure,
+    body,
+    makeCamera(camera, aspect),
+    ALL_LIMBS.filter(([, limb]) => limbs.includes(limb))
+  );
+}
+
 /** liftBody at one distance (or its own pick), with the distances worth trying. */
 function liftAtDepth(
   body: NormalizedBody,
@@ -992,45 +1074,7 @@ function liftAtDepth(
   }
 
   // ── Limbs: each joint on its line of sight at the bone's length ──────────────────────
-  const LIMBS: Array<[Side, Limb, number, number]> = [
-    ['R', 'arm', 3, 4],
-    ['L', 'arm', 6, 7],
-    ['R', 'leg', 9, 10],
-    ['L', 'leg', 12, 13],
-  ];
-  for (const [side, limb, midIndex, endIndex] of LIMBS) {
-    const mid2d = P(midIndex);
-    const end2d = P(endIndex);
-    if (!mid2d && !end2d) continue;
-    const [l1, l2] = limbLengths(kind, side, limb);
-    const { root, mid, end } = limbJoints(figure, side, limb);
-    const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
-      const r = ray(p);
-      const ts = rayDepths(origin, r, centre, length);
-      const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
-      // Out of reach: the nearest point on the line of sight, held at the bone's length.
-      return points.map(q => {
-        const v = q.clone().sub(centre);
-        return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
-      });
-    };
-    const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
-    type Option = { m: Vector3; e: Vector3; score: number; excess: number };
-    const options: Option[] = [];
-    for (const m of mids) {
-      const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
-      for (const e of ends) {
-        const trial = cloneFigure(figure);
-        placeLimb(trial, side, limb, m, e, limb === 'leg');
-        // Toward the camera: the nearer pair of joints reads first.
-        const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
-        options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
-      }
-    }
-    options.sort((a, b) => a.excess - b.excess || a.score - b.score);
-    const pick = options[0]!;
-    placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
-  }
+  placeLimbsOnRays(figure, body, cam, ALL_LIMBS);
   // Feet flat under a standing figure: a foot keeps its rest turn relative to the hips' yaw.
   for (const side of ['R', 'L'] as const) {
     const world = figureWorld(figure);
