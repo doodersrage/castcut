@@ -55,10 +55,11 @@ describe('lifting the reference library into the 3D body', () => {
     const wrong = checked.filter(
       ({ ref, figure }) => !expectedPostures(ref.pose)!.includes(classifyPosture(figure))
     );
-    // 96 of 106; the rest are pictures that read either way (a kneel facing the camera).
+    // 100 of 106 (96 before the picture's own posture picked between leg readings); the rest are
+    // pictures that read either way (a kneel facing the camera) or proportions the body lacks.
     assert.ok(checked.length > 100);
     assert.ok(
-      wrong.length <= 13,
+      wrong.length <= 7,
       wrong.map(({ ref, figure }) => `${ref.id}:${classifyPosture(figure)}`).join(' ')
     );
   });

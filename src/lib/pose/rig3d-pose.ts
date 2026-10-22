@@ -21,6 +21,8 @@ import {
   type Rig3dVec3,
 } from '@/lib/pose/rig3d';
 import { RIG3D_SKELETONS, type Rig3dBoneRest } from '@/lib/pose/rig3d-skeleton';
+import { classifyPosture as classifyFlatPosture } from '@/lib/pose/posture';
+import { classifyPosturePoints, type Posture } from '@/lib/pose/rig3d-posture-points';
 
 type Pt = { x: number; y: number };
 export type Side = 'R' | 'L';
@@ -797,6 +799,11 @@ const SEEN_W = 1;
 export type LiftOptions = {
   camera?: PoseRig3dCamera;
   body?: Rig3dBodyKind;
+  /**
+   * The 3D postures the lift should prefer where the picture reads either way (null: none).
+   * Left out, they come from the flat pose's own posture (posture.ts).
+   */
+  postures?: Posture[] | null;
 };
 
 const ALL_LIMBS: Array<[Side, Limb]> = [
@@ -812,6 +819,52 @@ const LIMB_POINTS: Record<`${Side}${Limb}`, [number, number]> = {
   Lleg: [12, 13],
 };
 
+type LimbReading = { m: Vector3; e: Vector3; score: number; excess: number };
+
+/**
+ * The ways one limb's middle and end joint can sit on their lines of sight at the bones' lengths
+ * (each bone toward or away from the camera): the readings that bend the natural way first, then
+ * nearer the camera first. Empty when the picture has neither point.
+ */
+function limbReadings(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  cam: PerspectiveCamera,
+  side: Side,
+  limb: Limb
+): LimbReading[] {
+  const origin = cam.position.clone();
+  const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
+  const mid2d = body[midIndex] ?? null;
+  const end2d = body[endIndex] ?? null;
+  if (!mid2d && !end2d) return [];
+  const [l1, l2] = limbLengths(figure.body, side, limb);
+  const { root, mid, end } = limbJoints(figure, side, limb);
+  const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
+    const r = pictureRay(cam, p);
+    const ts = rayDepths(origin, r, centre, length);
+    const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
+    // Out of reach: the nearest point on the line of sight, held at the bone's length.
+    return points.map(q => {
+      const v = q.clone().sub(centre);
+      return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
+    });
+  };
+  const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
+  const options: LimbReading[] = [];
+  for (const m of mids) {
+    const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
+    for (const e of ends) {
+      const trial = cloneFigure(figure);
+      placeLimb(trial, side, limb, m, e, limb === 'leg');
+      // Toward the camera: the nearer pair of joints reads first.
+      const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
+      options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
+    }
+  }
+  return options.sort((a, b) => a.excess - b.excess || a.score - b.score);
+}
+
 /**
  * Each limb's middle and end joint on its line of sight, at the bone's length from the joint
  * before (the reading that bends the natural way, nearer the camera first).
@@ -822,43 +875,68 @@ function placeLimbsOnRays(
   cam: PerspectiveCamera,
   limbs: Array<[Side, Limb]>
 ): void {
-  const origin = cam.position.clone();
-  const P = (i: number) => body[i] ?? null;
-  const ray = (p: Pt) => pictureRay(cam, p);
-  const kind = figure.body;
   for (const [side, limb] of limbs) {
-    const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
-    const mid2d = P(midIndex);
-    const end2d = P(endIndex);
-    if (!mid2d && !end2d) continue;
-    const [l1, l2] = limbLengths(kind, side, limb);
-    const { root, mid, end } = limbJoints(figure, side, limb);
-    const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
-      const r = ray(p);
-      const ts = rayDepths(origin, r, centre, length);
-      const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
-      // Out of reach: the nearest point on the line of sight, held at the bone's length.
-      return points.map(q => {
-        const v = q.clone().sub(centre);
-        return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
-      });
-    };
-    const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
-    type Option = { m: Vector3; e: Vector3; score: number; excess: number };
-    const options: Option[] = [];
-    for (const m of mids) {
-      const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
-      for (const e of ends) {
-        const trial = cloneFigure(figure);
-        placeLimb(trial, side, limb, m, e, limb === 'leg');
-        // Toward the camera: the nearer pair of joints reads first.
-        const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
-        options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
-      }
+    const pick = limbReadings(figure, body, cam, side, limb)[0];
+    if (pick) placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
+  }
+}
+
+/** The 3D postures a flat pose's posture (posture.ts) may lift into; null: no preference. */
+function liftPostures(body: NormalizedBody, aspect: number): Posture[] | null {
+  switch (classifyFlatPosture(body, aspect).posture) {
+    case 'standing':
+      // (Upright in the picture may still lean toward the camera: a golf putt seen head on.)
+      return ['stand', 'bend'];
+    case 'sitting':
+      return ['seated', 'crouch'];
+    case 'kneeling':
+      return ['kneel'];
+    case 'crouching':
+      return ['crouch', 'seated', 'kneel'];
+    case 'bending':
+      return ['bend', 'crouch'];
+    case 'all-fours':
+      return ['kneel', 'lying', 'bend'];
+    case 'lying-back':
+    case 'lying-side':
+    case 'lying-front':
+      return ['lying'];
+    default:
+      return null;
+  }
+}
+
+/**
+ * Each leg's bones can point toward or away from the camera and look the same in the picture.
+ * Of those readings (both legs together, the natural bends only), take the first whose 3D
+ * posture is one `want` allows (a kneel's shin back along the floor, a stand's legs under
+ * her), else leave the legs as they are. The picture's points do not move.
+ */
+function chooseLegReadings(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  cam: PerspectiveCamera,
+  want: Posture[]
+): void {
+  if (want.includes(classifyPosturePoints(openPoseWorld(figure)))) return;
+  const right = limbReadings(figure, body, cam, 'R', 'leg');
+  const left = limbReadings(figure, body, cam, 'L', 'leg');
+  if (!right.length && !left.length) return;
+  const natural = (options: LimbReading[]) =>
+    options.length ? options.filter(o => o.excess <= options[0]!.excess + 1e-6) : [null];
+  const combos: Array<{ r: LimbReading | null; l: LimbReading | null; score: number }> = [];
+  for (const r of natural(right)) {
+    for (const l of natural(left)) combos.push({ r, l, score: (r?.score ?? 0) + (l?.score ?? 0) });
+  }
+  combos.sort((a, b) => a.score - b.score);
+  for (const { r, l } of combos) {
+    const trial = cloneFigure(figure);
+    if (r) placeLimb(trial, 'R', 'leg', r.m, r.e, true);
+    if (l) placeLimb(trial, 'L', 'leg', l.m, l.e, true);
+    if (want.includes(classifyPosturePoints(openPoseWorld(trial)))) {
+      Object.assign(figure, trial);
+      return;
     }
-    options.sort((a, b) => a.excess - b.excess || a.score - b.score);
-    const pick = options[0]!;
-    placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
   }
 }
 
@@ -886,7 +964,7 @@ function liftAtDepth(
   body: NormalizedBody,
   aspect: number,
   options: LiftOptions & { depth?: number }
-): { figure: PoseRig3dFigure; depths: number[] } {
+): { figure: PoseRig3dFigure; depths: number[]; postureDepths: number[] } {
   const kind = options.body ?? 'female';
   const camera = options.camera ?? DEFAULT_CAMERA;
   const cam = makeCamera(camera, aspect);
@@ -907,7 +985,7 @@ function liftAtDepth(
     const at = neck2d ?? hip2d ?? { x: 0.5, y: 0.5 };
     const t = origin.distanceTo(new Vector3(...camera.target));
     figure.position = origin.clone().add(ray(at).multiplyScalar(t)).toArray() as Rig3dVec3;
-    return { figure, depths: [] };
+    return { figure, depths: [], postureDepths: [] };
   }
 
   // ── Distance: the nearest a bone can be and still reach its length in the picture ─────
@@ -952,6 +1030,10 @@ function liftAtDepth(
     natural,
     ...(fits.length ? [fits[0]!, fits[Math.floor(fits.length * 0.15)]!] : []),
   ];
+  // For a posture these miss: a little farther (a stand's legs nearer full length in the
+  // picture, under her rather than swung along the line of sight; the torso tipped instead),
+  // or nearer.
+  const postureDepths = [1.05, 1.1, 1.15, 1.2, 1.3, 0.9, 0.8].map(f => natural * f);
 
   const hipTarget = origin.clone().add(ray(hip2d).multiplyScalar(depth));
 
@@ -1081,6 +1163,8 @@ function liftAtDepth(
 
   // ── Limbs: each joint on its line of sight at the bone's length ──────────────────────
   placeLimbsOnRays(figure, body, cam, ALL_LIMBS);
+  const want = options.postures === undefined ? liftPostures(body, aspect) : options.postures;
+  if (want) chooseLegReadings(figure, body, cam, want);
   // Feet flat under a standing figure: a foot keeps its rest turn relative to the hips' yaw.
   for (const side of ['R', 'L'] as const) {
     const world = figureWorld(figure);
@@ -1165,7 +1249,7 @@ function liftAtDepth(
       .sort((a, b) => a.cost - b.cost);
     applyHead(fitted[0]!.params);
   }
-  return { figure, depths };
+  return { figure, depths, postureDepths };
 }
 
 /** How much a figure's limbs point along the camera's line of sight (0: all flat to it). */
@@ -1190,6 +1274,12 @@ function depthiness(figure: PoseRig3dFigure, origin: Vector3): number {
 
 /** What a natural reading may cost in fit: a limb swung toward the camera must buy this much. */
 const DEPTHINESS_WEIGHT = 0.02;
+/**
+ * What a 3D posture other than the picture's (posture.ts) costs, in fit: 0.2% of the picture.
+ * Over the references (scripts/pose-3d/lift-check.mts) 0.2% put 100 of 106 in the posture they
+ * are filed under for 0.02% more Director error; 1% put 101 for 0.06% more, a few poses 2% off.
+ */
+const POSTURE_MISS = 0.002;
 
 /**
  * Fit the rig to a flat 18-point pose, seen through `camera`: the figure's size and distance
@@ -1205,22 +1295,31 @@ export function liftBody(
   aspect: number,
   options: LiftOptions = {}
 ): PoseRig3dFigure {
-  const first = liftAtDepth(body, aspect, options);
+  // The picture's own posture (posture.ts) picks between the readings that fit it alike.
+  const postures = options.postures === undefined ? liftPostures(body, aspect) : options.postures;
+  const opts = { ...options, postures };
+  const first = liftAtDepth(body, aspect, opts);
   if (first.depths.length < 2) return first.figure;
   const camera = options.camera ?? DEFAULT_CAMERA;
   const origin = new Vector3(...camera.position);
+  const misses = (figure: PoseRig3dFigure) =>
+    Boolean(postures && !postures.includes(classifyPosturePoints(openPoseWorld(figure))));
   const score = (figure: PoseRig3dFigure) =>
     meanPointError(body, projectFigure(figure, camera, aspect), aspect) +
-    DEPTHINESS_WEIGHT * depthiness(figure, origin);
+    DEPTHINESS_WEIGHT * depthiness(figure, origin) +
+    (misses(figure) ? POSTURE_MISS : 0);
   let best = { figure: first.figure, score: score(first.figure) };
   const tried = new Set([first.depths[0]!.toFixed(3)]);
-  for (const depth of first.depths.slice(1)) {
-    if (tried.has(depth.toFixed(3))) continue;
+  const tryDepth = (depth: number) => {
+    if (tried.has(depth.toFixed(3))) return;
     tried.add(depth.toFixed(3));
-    const { figure } = liftAtDepth(body, aspect, { ...options, depth });
+    const { figure } = liftAtDepth(body, aspect, { ...opts, depth });
     const s = score(figure);
     if (s < best.score) best = { figure, score: s };
-  }
+  };
+  for (const depth of first.depths.slice(1)) tryDepth(depth);
+  // Still the wrong posture: a little farther or nearer may let the legs read it.
+  if (misses(best.figure)) for (const depth of first.postureDepths) tryDepth(depth);
   return best.figure;
 }
 

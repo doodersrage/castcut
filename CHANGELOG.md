@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- 3D pose lift: the picture's own posture (standing, kneeling, lying…) picks which way each leg points in depth, and may move her a little nearer or farther, so a standing picture no longer lifts into a figure "sitting on air" (library: 100 of 106 poses in the posture they are filed under, up from 96; 2D fit about the same)
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
