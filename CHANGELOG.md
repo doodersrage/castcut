@@ -9,6 +9,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.12] - 2026-10-22
+
+- Pose words: the joints decide crouching vs kneeling; custom-pose limb cutoff 0.75
+- Pose bench: eye labels for the rebuilt custom-pose words (rebuild-labels.json)
+- 3D pose editor: the starters (Stand, Sit, Kneel…) open facing the camera.
+- Docs: the pose editor's Camera panel, the slot sheet's Camera row, and which camera wins
+- Camera panel in the 3D pose editor; Camera row on a Day slot / Story beat
+- Pose bench capture: survive a cold dev server's Fast Refresh reload (warm-up reload, re-read Day state, re-queue when nothing was sent); BENCH_DEBUG streams the browser console
+- Camera picks reach the still: one Camera line on Day, Story and Outfit, nothing contradicting it
+- Camera picks: one four-part camera (height, direction, shot, lens) for the 3D pose, slots and beats
+- Pose 3D: a 3D pose editor replaces the wireframe one (still a toggle away)
+- Pose 3D: rig maths — OpenPose projection, IK with joint limits, lifting flat poses
+- Pose 3D: CC0 base bodies for a 3D pose editor (Blender Studio's Human Base Meshes, rigged)
+- Language-model requests wait at most 4 minutes for an answer to start (LLM_REQUEST_TIMEOUT_MS), then fail with a plain reason.
+- Pose words: one posture model for custom poses (lying side, squat, bend knees, strides, held limbs)
+- tsconfig: leave the pose bench's capture script out of the app type check (it imports e2e helpers, like the screenshots script) — main's build failed on TS6307.
+- Pose check: custom poses also miss on their limbs (limb score under 0.8)
+- From a photo: crop the person to fill the pose guide; keep the vision posture read with bystanders
+- Day custom poses: POSE FIRST on Edit 2511, hand off-plate poses to 2.1, no relaxed stance on custom lines
+- Pose bench: measure custom poses and From a photo through Day's real code.
+
 ## [v2.12.11] - 2026-10-21
 
 - npm run screenshots: retake the README screenshots with Playwright, and retake them.
