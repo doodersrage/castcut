@@ -1,23 +1,28 @@
 /**
  * Server: put a seat into the still before Copy moves (motion-seat.ts) — a plain edit on the
  * installed Qwen Rapid AIO checkpoint, as Sketch does. Returns the edited picture's bytes, or null
- * when the checkpoint is missing (the clip then runs on the still as it is).
+ * when the checkpoint is missing (the clip then runs on the still as it is). Out of GPU memory it
+ * frees and tries once more (runHeavyComfyGraph); a second failure throws, and the caller falls back.
  */
 
 import sharp from 'sharp';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
-import { runComfyUtilityGraph, type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
+import type { ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
+import { runHeavyComfyGraph } from '../server/heavy-graph-server';
 import { buildRelightGraph, RELIGHT_SAVE_NODE, relightSize } from '../edit/relight';
 import { pickRelightCheckpoint } from '../edit/relight-server';
 import { seatStillPrompt } from './motion-seat';
 
 export async function seatStill(input: {
   baseUrl: string;
+  comfyUrl?: string;
   still: Uint8Array;
   contentType?: string;
   seat: string;
   signal?: AbortSignal;
   seed?: number;
+  /** Out of GPU memory, about to free and try again. */
+  onRetry?: () => void;
 }): Promise<{ bytes: Uint8Array; contentType: string } | null> {
   const listed = await fetch(`${input.baseUrl}/models/checkpoints`, {
     signal: AbortSignal.timeout(8000),
@@ -33,8 +38,10 @@ export async function seatStill(input: {
     filename: 'castcut-moves-seat.png',
     mimeType: input.contentType || 'image/png',
   });
-  const result = await runComfyUtilityGraph<ComfyImageRef>({
+  const result = await runHeavyComfyGraph<ComfyImageRef>({
     baseUrl: input.baseUrl,
+    comfyUrl: input.comfyUrl,
+    onRetry: input.onRetry,
     label: 'moves-seat',
     signal: input.signal,
     timeoutMs: 10 * 60_000,

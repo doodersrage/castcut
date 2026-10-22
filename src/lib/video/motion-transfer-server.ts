@@ -10,7 +10,12 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import { comfyBaseUrl, type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
-import { requireComfyModels, runHeavyComfyGraph } from '../server/heavy-graph-server';
+import {
+  freeComfyAndSettle,
+  isGpuMemoryError,
+  requireComfyModels,
+  runHeavyComfyGraph,
+} from '../server/heavy-graph-server';
 import type { ClipJobContext } from '../clip/clip-jobs-server';
 import { readClipStream } from '../clip/finish-server';
 import {
@@ -21,7 +26,6 @@ import {
   motionTransferPrompt,
   motionTransferSize,
 } from './motion-transfer';
-import { freeComfyUiMemoryServer } from '../comfyui/free-server';
 import { seatStill } from './motion-seat-server';
 import { filmTempOsDir, resolveFfmpegBinary } from './server-encode';
 
@@ -60,7 +64,7 @@ export async function transferMotion(input: {
   /** The background job's signal and progress (clip/clip-jobs-server.ts). */
   job?: ClipJobContext;
   seed?: number;
-}): Promise<string> {
+}): Promise<{ url: string; note?: string }> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('./shot-fetch');
@@ -109,23 +113,37 @@ export async function transferMotion(input: {
       bytes: new Uint8Array(still.buffer),
       contentType: still.contentType || 'image/png',
     };
+    // Why the seat isn't in the picture after all (the clip still runs, on the still as it is).
+    let seatSkipped: string | null = null;
     if (input.seat) {
       input.job?.progress({ total: 3, done: 0, note: `Putting ${input.seat} into the picture` });
+      // A video model cached from the last clip would sit beside the edit's checkpoint.
+      await freeComfyAndSettle(input.comfyUrl);
       const seated = await seatStill({
         baseUrl,
+        comfyUrl: input.comfyUrl,
         still: reference.bytes,
         contentType: reference.contentType,
         seat: input.seat,
         signal: input.job?.signal,
         seed: input.seed,
+        onRetry: () =>
+          input.job?.progress({
+            note: `Out of GPU memory — freeing it, putting ${input.seat} in again`,
+          }),
       }).catch(error => {
         if (input.job?.signal?.aborted) throw error;
         console.warn('[moves] seat edit failed; using the still as it is:', error);
+        const message = error instanceof Error ? error.message : String(error);
+        seatSkipped = isGpuMemoryError(message)
+          ? 'no GPU memory was free for the seat'
+          : 'the seat edit failed';
         return null;
       });
       if (seated) reference = seated;
+      else seatSkipped ??= "the seat edit isn't available";
       // The edit's checkpoint would sit beside the 14B video model: let it go first.
-      await freeComfyUiMemoryServer(input.comfyUrl).catch(() => false);
+      await freeComfyAndSettle(input.comfyUrl);
     }
     await requireComfyModels(baseUrl, 'Copy moves', [
       { folder: 'diffusion_models', file: MOTION_TRANSFER_MODELS.unet },
@@ -150,7 +168,9 @@ export async function transferMotion(input: {
     input.job?.progress({
       total: input.seat ? 3 : 2,
       done: input.seat ? 2 : 1,
-      note: 'Copying the moves on ComfyUI',
+      note: seatSkipped
+        ? `Copying the moves on ComfyUI, on the still as it is (${seatSkipped})`
+        : 'Copying the moves on ComfyUI',
     });
     const result = await runHeavyComfyGraph<ComfyImageRef>({
       signal: input.job?.signal,
@@ -158,6 +178,8 @@ export async function transferMotion(input: {
       comfyUrl: input.comfyUrl,
       label: 'copy-moves',
       priority: 'queue',
+      onRetry: () =>
+        input.job?.progress({ note: 'Out of GPU memory — freeing it and copying the moves again' }),
       timeoutMs: 30 * 60_000,
       prompt: buildMotionTransferGraph({
         reference: referenceInput.name,
@@ -179,11 +201,12 @@ export async function transferMotion(input: {
     });
     const clip = result.result;
     if (!clip) throw new Error('Copy moves ended without a clip — check the ComfyUI log.');
-    return `/api/comfyui/view?${new URLSearchParams({
+    const url = `/api/comfyui/view?${new URLSearchParams({
       filename: clip.filename,
       subfolder: clip.subfolder ?? '',
       type: clip.type || 'output',
     }).toString()}`;
+    return seatSkipped ? { url, note: `Done, without the seat — ${seatSkipped}` } : { url };
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })

@@ -127,7 +127,13 @@ hair and clothes and lands where Copy moves' clips do.
   isn't already sitting in the still), **Put a wooden chair behind her in the still first** is
   on: a quick edit (the Qwen Rapid AIO checkpoint, a few seconds) puts the chair — a sofa when
   she sits back, or the seat Place names — behind her in the still the clip starts from, and
-  she sits on it. Untick it when the still already has her seat right behind her.
+  she sits on it. When the still already shows a chair, sofa, bench, stool or bed behind or
+  under her, the vision model says so (one quick question per still, asked once a beat sits)
+  and the box starts **off**, so a second seat isn't added; with no vision model it stays on —
+  untick it yourself then. On a busy GPU the edit frees ComfyUI's memory before and after it;
+  if it still runs out of memory the clip goes ahead on the still as it is and the job says
+  *Done, without the seat*. Copy moves itself, out of memory, frees the GPU and tries once more
+  straight away (next in the queue, without stopping anyone's running job).
 - **Place** starts as the slot's place. She leans on whatever the still shows: a beat that
   leans well over (or sits, with the seat edit off) warns you, and one tap — **Add a wall to
   Place** (or a chair) — writes it into Place.

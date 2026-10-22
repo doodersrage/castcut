@@ -23,6 +23,7 @@ import { describePhotoPose } from '@/lib/pose/describe';
 import type { PhotoPose } from '@/lib/pose/types';
 import { detectStillPoseShared } from '@/lib/pose/detect-client';
 import { motionTransferSize } from '@/lib/video/motion-transfer';
+import { stillShowsSeat } from '@/lib/video/motion-seat-client';
 import { ORIGIN, placementOf, toLocal } from '@/lib/director/figure-ops';
 import { frameDirection, readStillFraming, type StillFraming } from '@/lib/director/framing';
 import { DIRECTOR_MOVE_IDS, DIRECTOR_MOVES, type DirectorMoveId } from '@/lib/director/moves';
@@ -195,8 +196,10 @@ function DirectorSheetOpen({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDirection[]>(() => loadDirections(castId));
   const [saveName, setSaveName] = useState('');
-  // Put the seat into the still before Copy moves (it draws the room from the still).
-  const [drawSeat, setDrawSeat] = useState(true);
+  // Put the seat into the still before Copy moves (it draws the room from the still). Unset: on,
+  // unless the vision model sees a seat behind her already (the edit may add a second one).
+  const [drawSeatChoice, setDrawSeat] = useState<boolean | null>(null);
+  const [stillSeat, setStillSeat] = useState<boolean | null>(null);
   // Saved on another device: the list catches up when sync brings them.
   useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
@@ -263,13 +266,27 @@ function DirectorSheetOpen({
   const check = checkDirection(direction);
   const allSupportNeeds = directionSupportNeeds(direction);
   const seatOffer = directionSeat(allSupportNeeds, direction.place);
+  const drawSeat = drawSeatChoice ?? stillSeat !== true;
   const seat = drawSeat ? seatOffer : null;
-  // A seat put into the still covers the sitting beats; leaning still needs Place.
-  const supportNeeds = seat
-    ? allSupportNeeds.filter(note => note.support !== 'sit')
-    : allSupportNeeds;
+  // A seat put into (or already in) the still covers the sitting beats; leaning still needs Place.
+  const supportNeeds =
+    seat || (seatOffer && stillSeat === true)
+      ? allSupportNeeds.filter(note => note.support !== 'sit')
+      : allSupportNeeds;
   const support = supportWarning(supportNeeds, direction.place);
   const seatFix = support ? supportFix(supportNeeds, direction.place, body) : null;
+  // Asked only once a later beat sits; one vision call per still (cached for the session).
+  const wantsSeat = seatOffer !== null;
+  useEffect(() => {
+    if (!wantsSeat) return;
+    let cancelled = false;
+    void stillShowsSeat(stillUrl).then(answer => {
+      if (!cancelled) setStillSeat(answer);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [stillUrl, wantsSeat]);
   const starts = beatStarts(direction);
   const current = beatIndexAt(direction, time);
   const parts = directionParts(direction);
@@ -868,6 +885,12 @@ function DirectorSheetOpen({
                   <span>
                     Put {seatOffer} behind {body === 'male' ? 'him' : 'her'} in the still first, so{' '}
                     {she} sits on it (a quick edit before the clip)
+                    {stillSeat === true ? (
+                      <span className="block" data-testid={`${p}-seat-seen`}>
+                        The picture already shows a seat behind {body === 'male' ? 'him' : 'her'} —
+                        this starts off, so a second one isn’t added.
+                      </span>
+                    ) : null}
                   </span>
                 </label>
               ) : null}

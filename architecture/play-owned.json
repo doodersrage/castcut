@@ -115,6 +115,7 @@
   "src/app/api/clip/realism/route.ts",
   "src/lib/video/motion-seat.ts",
   "src/lib/video/motion-seat-server.ts",
+  "src/lib/video/motion-seat-client.ts",
   "src/lib/video/motion-transfer.ts",
   "src/lib/video/motion-transfer-server.ts",
   "src/lib/audio/lip-sync.ts",

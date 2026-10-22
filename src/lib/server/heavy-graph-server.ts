@@ -20,17 +20,53 @@ export function isGpuMemoryError(message: string): boolean {
   );
 }
 
+/**
+ * ComfyUI applies `/free` between prompts: with nothing running the worker wakes and unloads at
+ * once, but a prompt queued in the same instant can start first. A short pause lets it land.
+ */
+export const COMFY_FREE_SETTLE_MS = 1500;
+
+/** Free ComfyUI's cached models and give the worker a moment to apply it. Never throws. */
+export async function freeComfyAndSettle(
+  comfyUrl?: string,
+  deps: { free?: typeof freeComfyUiMemoryServer; wait?: (ms: number) => Promise<void> } = {}
+): Promise<void> {
+  await (deps.free ?? freeComfyUiMemoryServer)(comfyUrl).catch(() => false);
+  await (deps.wait ?? sleep)(COMFY_FREE_SETTLE_MS);
+}
+
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+export type HeavyGraphDeps = {
+  run?: typeof runComfyUtilityGraph;
+  freeLlm?: () => Promise<unknown>;
+  freeComfy?: typeof freeComfyUiMemoryServer;
+  wait?: (ms: number) => Promise<void>;
+};
+
+/**
+ * The retry runs next (`front`), not at the back of the queue: queued behind other renders, they
+ * loaded their models (and a vision call reloaded the LLM) before it ran, and it ran out of
+ * memory again (live 2026-10-22, Copy moves after a seat edit). Front only jumps waiting
+ * prompts; nothing running is interrupted. `onRetry` reports it (a job's progress note).
+ */
 export async function runHeavyComfyGraph<T>(
-  input: Parameters<typeof runComfyUtilityGraph<T>>[0] & { comfyUrl?: string }
+  input: Parameters<typeof runComfyUtilityGraph<T>>[0] & {
+    comfyUrl?: string;
+    onRetry?: () => void;
+  },
+  deps: HeavyGraphDeps = {}
 ): ReturnType<typeof runComfyUtilityGraph<T>> {
+  const run = deps.run ?? runComfyUtilityGraph;
   try {
-    return await runComfyUtilityGraph<T>(input);
+    return await run<T>(input);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!isGpuMemoryError(message)) throw error;
-    await freeLocalLlmVram().catch(() => undefined);
-    await freeComfyUiMemoryServer(input.comfyUrl).catch(() => false);
-    return runComfyUtilityGraph<T>(input);
+    if (!isGpuMemoryError(message) || input.signal?.aborted) throw error;
+    input.onRetry?.();
+    await (deps.freeLlm ?? freeLocalLlmVram)().catch(() => undefined);
+    await freeComfyAndSettle(input.comfyUrl, { free: deps.freeComfy, wait: deps.wait });
+    return run<T>({ ...input, priority: input.priority === 'check' ? 'check' : 'front' });
   }
 }
 

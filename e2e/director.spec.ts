@@ -59,7 +59,7 @@ function clipJob(status: 'running' | 'completed', url?: string) {
   };
 }
 
-async function openDirector(page: Page) {
+async function openDirector(page: Page, seen: { seat: 'yes' | 'no'; asked: number } | null = null) {
   // No pose read of the still in tests: the Director frames the picked shot.
   await page.route('**/api/pose-detect', route =>
     route.fulfill({
@@ -68,6 +68,19 @@ async function openDirector(page: Page) {
       body: JSON.stringify({ available: false, reason: 'e2e' }),
     })
   );
+  // The vision model's "is a seat already behind her?" (asked once a later beat sits).
+  await page.route('**/api/pose-gesture', route => {
+    if (seen) seen.asked += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        answers: [{ id: 'seat', answer: seen?.seat ?? 'no', confidence: 90 }],
+        realism: null,
+        place: null,
+      }),
+    });
+  });
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },
     characters: cast,
@@ -198,6 +211,26 @@ test('Director: stacks on a phone-width screen', async ({ page }) => {
   // The preview sits above the beats, not beside them.
   expect(beats!.y).toBeGreaterThan(preview!.y + preview!.height - 1);
   await expect(page.getByTestId('day-director-render')).toBeVisible();
+});
+
+test('Director: a still that already shows a seat starts with the seat edit off', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const seen = { seat: 'yes' as const, asked: 0 };
+  await openDirector(page, seen);
+  const d = (id: string) => page.getByTestId(`day-director-${id}`);
+  // Nothing sits yet: nothing asked.
+  expect(seen.asked).toBe(0);
+  await d('preset-sit').click();
+  await expect(d('seat-seen')).toBeVisible();
+  await expect(d('seat')).not.toBeChecked();
+  // The seat in the picture covers the sit: no Place warning.
+  await expect(d('support')).toHaveCount(0);
+  expect(seen.asked).toBe(1);
+  // Still the player's choice.
+  await d('seat').check();
+  await expect(d('seat')).toBeChecked();
 });
 
 test('Phone Day: ⋯ → Make it move has Copy moves and Direct a move', async ({ page }) => {

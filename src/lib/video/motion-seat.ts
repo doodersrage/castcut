@@ -28,3 +28,34 @@ export function seatStillPrompt(seat: string): string {
     'Keep the person, face, expression, pose, body, clothing, shoes, the framing, the light and the rest of the place exactly as they are.',
   ].join(' ');
 }
+
+/**
+ * A still that already shows a seat behind or under her needs no edit — the edit may add a second
+ * one. The vision model's yes/no question (asked through /api/pose-gesture).
+ */
+export const SEAT_SEEN_QUESTION = {
+  id: 'seat',
+  text: 'Is there a chair, armchair, sofa, couch, bench, stool, bed or other seat right behind or under the person, close enough that they could sit straight down onto it?',
+  label: 'a seat behind them',
+} as const;
+
+/** How sure a "yes" must be before the edit is left off. */
+export const SEAT_SEEN_MIN_CONFIDENCE = 60;
+
+/**
+ * The vision model's answer → true (a seat is there: leave the edit off), false (none), or null
+ * (no answer, unsure, or a hesitant yes: keep the edit on, as without the check).
+ */
+export function seatSeenFromAnswers(
+  answers: ReadonlyArray<{
+    id: string;
+    answer: 'yes' | 'no' | 'unsure';
+    confidence: number;
+  }> | null
+): boolean | null {
+  const answer = answers?.find(entry => entry.id === SEAT_SEEN_QUESTION.id);
+  if (!answer) return null;
+  if (answer.answer === 'no') return false;
+  if (answer.answer === 'yes' && answer.confidence >= SEAT_SEEN_MIN_CONFIDENCE) return true;
+  return null;
+}

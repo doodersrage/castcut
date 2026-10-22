@@ -59,12 +59,13 @@ export function clipJobEta(stepSecs: number[], done: number, total: number): num
 
 /**
  * Start `work` as a job; returns it at once, or null when another job is running (the caller
- * answers 409 with {@link runningClipJob}). `work` resolves to the new clip's URL; it should stop
- * soon after `signal` aborts.
+ * answers 409 with {@link runningClipJob}). `work` resolves to the new clip's URL — or `{ url, note }`
+ * when the finished job has something to say ("Done, without the seat — …"); it should stop soon
+ * after `signal` aborts.
  */
 export function startClipJob(
   tool: ClipJobTool,
-  work: (context: ClipJobContext) => Promise<string>,
+  work: (context: ClipJobContext) => Promise<string | { url: string; note?: string }>,
   options: { describeError?: (error: unknown) => Pick<ClipJob, 'error' | 'missing'> } = {}
 ): ClipJob | null {
   if (runningClipJob()) return null;
@@ -104,13 +105,14 @@ export function startClipJob(
     job.etaSec = clipJobEta(entry.stepSecs, job.done, job.total);
   };
   void work({ signal: controller.signal, progress })
-    .then(url => {
+    .then(result => {
       if (job.status !== 'running') return;
+      const { url, note } = typeof result === 'string' ? { url: result, note: undefined } : result;
       Object.assign(job, {
         status: 'completed',
         url,
         done: job.total,
-        note: 'Done',
+        note: note || 'Done',
         etaSec: undefined,
       });
     })
