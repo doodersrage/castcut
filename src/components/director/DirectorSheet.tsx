@@ -29,6 +29,7 @@ import { DIRECTOR_MOVE_IDS, DIRECTOR_MOVES, type DirectorMoveId } from '@/lib/di
 import {
   directionMotionLine,
   directionSupportNeeds,
+  supportFix,
   supportWarning,
 } from '@/lib/director/motion-line';
 import {
@@ -67,6 +68,7 @@ import {
   loadDirections,
   removeDirection,
   saveDirection,
+  subscribeDirections,
   type SavedDirection,
 } from '@/lib/director/store';
 import DirectorPreview from '@/components/director/DirectorPreview';
@@ -160,6 +162,8 @@ function DirectorSheetOpen({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDirection[]>(() => loadDirections(castId));
   const [saveName, setSaveName] = useState('');
+  // Saved on another device: the list catches up when sync brings them.
+  useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
 
   const size = useStillSize(stillUrl);
@@ -203,7 +207,9 @@ function DirectorSheetOpen({
   );
   const length = directionLength(direction);
   const check = checkDirection(direction);
-  const support = supportWarning(directionSupportNeeds(direction), direction.place);
+  const supportNeeds = directionSupportNeeds(direction);
+  const support = supportWarning(supportNeeds, direction.place);
+  const seatFix = support ? supportFix(supportNeeds, direction.place, body) : null;
   const starts = beatStarts(direction);
   const current = beatIndexAt(direction, time);
   const parts = directionParts(direction);
@@ -305,8 +311,7 @@ function DirectorSheetOpen({
       const { renderDrivingVideo } = await import('@/lib/director/render-client');
       const blob = await renderDrivingVideo({
         frames,
-        start: framing.start,
-        end: framing.end,
+        framing,
         body,
         width: video.width,
         height: video.height,
@@ -432,8 +437,7 @@ function DirectorSheetOpen({
               body={body}
               aspect={aspect}
               frames={frames}
-              start={framing.start}
-              end={framing.end}
+              framing={framing}
               time={time}
               stillUrl={stillUrl}
               testId={`${p}-preview`}
@@ -510,8 +514,9 @@ function DirectorSheetOpen({
               className="type-caption max-w-xl text-[var(--text-muted)]"
               data-testid={`${p}-fit-note`}
             >
-              The camera stands a little further back than the still so the whole move stays in
-              frame.
+              {framing.from
+                ? `It starts framed like the still, then the camera eases back as ${she} moves so the whole move stays in frame.`
+                : 'The camera stands a little further back than the still so the whole move stays in frame.'}
             </p>
           ) : null}
         </div>
@@ -805,6 +810,17 @@ function DirectorSheetOpen({
                   {support}
                 </p>
               ) : null}
+              {seatFix ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  title={`Place becomes “${seatFix.place}”, so Copy moves draws it`}
+                  data-testid={`${p}-support-fix`}
+                  onClick={() => update({ ...direction, place: seatFix.place })}
+                >
+                  {seatFix.label}
+                </Button>
+              ) : null}
             </section>
 
             <section className="space-y-1.5" data-testid={`${p}-saved`}>
@@ -861,7 +877,7 @@ function DirectorSheetOpen({
                 </ul>
               ) : (
                 <p className="type-caption text-[var(--text-muted)]">
-                  Saved here for {castName?.trim() || 'this Cast member'}, in this browser.
+                  Saved for {castName?.trim() || 'this Cast member'}, on every device you use.
                 </p>
               )}
             </section>

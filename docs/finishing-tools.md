@@ -32,6 +32,9 @@ yet is left out.
 | **The clip** | Sharpen & smooth clip · Make more realistic · Make it 30 s · Add sound · Use this voice |
 | *(bottom)* | Open in ComfyUI |
 
+The phone's Day board (`/m/day`) has the same menu, *Make it move* included: Copy moves and
+Direct a move open full-width there.
+
 **Story**'s scene menu is one list: the same still and clip tools sit after Edit scene,
 Queue, Animate and Play another.
 
@@ -105,13 +108,22 @@ hair and clothes and lands where Copy moves' clips do.
 - **The timeline** under the preview: tap to jump, drag a beat's right edge to make it longer.
   **Play** loops it; the slider scrubs. Each beat starts where the one before left her, so
   moving a walk earlier carries the rest along.
+- **Feet stay planted** between beats: a foot on the floor before and after a beat stays where
+  it is (her hips travel instead of the foot sliding), and a foot that has further to go takes a
+  step while the other holds her weight. Sitting down from standing keeps both feet put.
 - **Camera**: *Like the still* frames her as the still does — her neck and hips at the same
-  height in the picture — or pick a shot. Height, direction, lens, and an optional slow push in,
-  pull out or pan. The camera then steps back just enough that the whole move stays in frame
-  (it says so under the timeline).
+  height in the picture, the same size — or pick a shot. Height, direction, lens, and an
+  optional slow push in, pull out or pan. When the move needs more room than the still has (a
+  walk toward the camera), the clip still starts framed like the still and the camera eases back
+  just before she would leave the picture (it says so under the timeline). A picked shot steps
+  back from the start instead.
+- **Her pose in the picture** starts her as the still shows her, with her head level.
 - **Place** starts as the slot's place. She sits or leans on whatever the still shows: a beat
-  that sits (or leans well over) warns you — pick a still with a seat, or describe one in Place.
-- **Saved directions** keeps directions by name for this Cast member, in this browser.
+  that sits (or leans well over) warns you, and one tap — **Add a chair to Place** (a sofa when
+  she sits back, a wall to lean on) — writes it into Place so Copy moves draws one.
+- **Saved directions** keeps directions by name for this Cast member. They sync like My poses,
+  so the phone and the desk see the same list (directions an earlier version kept in one browser
+  join it the first time the Director opens there).
 - About **5 seconds** renders in one part (about 3 minutes on a 24 GB card). Longer, up to
   **30 s**, renders in parts, one after the other. **Save driving video** downloads the 3D body
   clip (a Motion-JPEG AVI) instead.

@@ -7,12 +7,13 @@
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3d, PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { RIG3D_VERSION } from '@/lib/pose/rig3d';
-import { DEFAULT_CAMERA, liftBody, projectRig, restFigure } from '@/lib/pose/rig3d-pose';
+import { Quaternion, Vector3 } from 'three';
+import { DEFAULT_CAMERA, liftBody, projectRig, setBoneWorldRotation } from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
 import { groundFigure, placementOf, toLocal, fromLocal, type Placement } from './figure-ops';
-import { buildFigure, BASE, footAt, still, type Channels } from './motion';
+import { buildFigure, BASE, footAt, restOf, still, type Channels } from './motion';
 import { HOLD_SECONDS, newBeatId, POSE_MOVE_SECONDS, type DirectorPoseBeat } from './types';
 
 /** A figure in her own frame: hips over the origin, facing +z, on the floor. */
@@ -39,6 +40,19 @@ export function starterFigure(id: PoseStarterId, kind: Rig3dBodyKind): PoseRig3d
 }
 
 /**
+ * The neck and head upright and facing where her hips face, whatever the chest does. The lift
+ * reads the head from a few face points and often tips it back; resetting the neck and head to
+ * rest under a chest that leans back still tipped it (the real render's first frames looked up).
+ */
+export function levelHead(figure: PoseRig3dFigure, yaw: number): void {
+  const rest = restOf(figure.body).world.quat;
+  const turn = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), yaw);
+  for (const bone of ['neck', 'head']) {
+    setBoneWorldRotation(figure, bone, turn.clone().multiply(rest[bone]!));
+  }
+}
+
+/**
  * Her pose as read from the still, lifted the way it looks: her turn toward the camera is kept,
  * so the returned camera direction (relative to her) is the still's.
  */
@@ -48,10 +62,8 @@ export function stillPoseFigure(
   kind: Rig3dBodyKind
 ): { figure: PoseRig3dFigure; side: 1 | -1; turned: number } {
   const lifted = liftBody(body, aspect, { body: kind });
-  // The lift reads the head from a few face points and often tips it back: keep it level.
-  const rest = restFigure(kind);
-  for (const bone of ['neck', 'head']) lifted.bones[bone] = [...rest.bones[bone]!];
   const at = placementOf(lifted);
+  levelHead(lifted, at.yaw);
   const figure = groundFigure(toLocal(lifted, at));
   // Where the editor's camera stood, seen from her (her facing is +z now).
   const toCamera = Math.atan2(DEFAULT_CAMERA.position[0] - at.x, DEFAULT_CAMERA.position[2] - at.z);

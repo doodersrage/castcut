@@ -209,6 +209,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setPartnerCharacterId,
     partnerTwoWomen,
     leadNoun,
+    slotMedia,
     partnerStandInUrl,
     partnerSentFaceUrl,
     newPartnerStandIn,
@@ -956,6 +957,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
         ) : null}
         <DaySlotBoard
           castName={character?.name}
+          castId={character?.id}
+          leadNoun={leadNoun}
           slots={slots}
           stills={stills}
           activeSlotId={activeSlotId}
@@ -983,6 +986,18 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onPickTwoTake={pickTwoTake}
           onLooksWrong={slot => void looksWrongSlot(slot.id)}
           onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
+          // The same finishing tools as desk (⋯ → Make it move: Copy moves, Direct a move…).
+          mediaTools={{
+            busy: slotMedia.busy,
+            finish: slotMedia.finishSlotClip,
+            realism: slotMedia.realismSlotClip,
+            moves: slotMedia.copyMovesToSlot,
+            dance: slotMedia.danceSlot,
+            lipSync: slotMedia.lipSyncSlot,
+            relight: slotMedia.relightSlot,
+            upscale: slotMedia.upscaleSlot,
+            sketch: slotMedia.applySketchToSlot,
+          }}
         />
         <DayIdeaRow
           dayMood={dayMood}

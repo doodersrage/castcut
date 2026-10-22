@@ -6,8 +6,18 @@
  */
 
 import type { PoseRig3dFigure } from '@/lib/pose/rig3d';
+import type { Side } from '@/lib/pose/rig3d-pose';
 import { moveFrames } from './moves';
-import { ease } from './motion';
+import { ease, SIDES } from './motion';
+import {
+  feetAnchor,
+  footContact,
+  placeFeet,
+  planFeet,
+  shiftFigure,
+  type FeetPlan,
+  type FootPose,
+} from './plant';
 import {
   breathe,
   fromLocal,
@@ -39,6 +49,8 @@ export type TimelineSegment = {
   target?: PoseRig3dFigure;
   /** A move beat's frames, placed (at DIRECTOR_FPS from `start`). */
   frames?: PoseRig3dFigure[];
+  /** Feet on the floor at both ends: planted, or a step (plant.ts). */
+  feet?: FeetPlan;
   /** How she ends. */
   last: PoseRig3dFigure;
 };
@@ -67,16 +79,30 @@ export function buildTimeline(direction: Direction): Timeline {
       at,
     };
     if (beat.kind === 'pose') {
-      const target = fromLocal(beat.figure, at);
+      let target = fromLocal(beat.figure, at);
+      // Set down where a foot on the floor stays put: the hips travel, not the foot.
+      if (last) target = shiftFigure(target, feetAnchor(last, target));
       const from = last ?? target;
-      segments.push({ ...segment, from, target, last: target });
+      const feet = last ? planFeet(last, target) : undefined;
+      segments.push({ ...segment, from, target, last: target, ...(feet ? { feet } : {}) });
       last = target;
     } else {
       const local = moveFrames(beat.move, direction.body, beat.seconds, DIRECTOR_FPS);
       const start = placementOf(local[0]!);
-      const frames = local.map(frame => transformFigure(frame, start, at));
+      let frames = local.map(frame => transformFigure(frame, start, at));
+      if (last) {
+        const shift = feetAnchor(last, frames[0]!);
+        if (shift.x || shift.z) frames = frames.map(frame => shiftFigure(frame, shift));
+      }
       const from = last ?? frames[0]!;
-      segments.push({ ...segment, from, frames, last: frames[frames.length - 1]! });
+      const feet = last ? planFeet(last, frames[0]!) : undefined;
+      segments.push({
+        ...segment,
+        from,
+        frames,
+        last: frames[frames.length - 1]!,
+        ...(feet ? { feet } : {}),
+      });
       last = frames[frames.length - 1]!;
     }
     time += length;
@@ -112,8 +138,10 @@ export function sampleTimeline(timeline: Timeline, t: number): PoseRig3dFigure {
   let figure: PoseRig3dFigure;
   if (segment.beat.kind === 'pose') {
     const span = segment.moveEnd - segment.start;
-    const s = span > 0 ? ease(local / span) : 1;
+    const u = span > 0 ? local / span : 1;
+    const s = ease(u);
     figure = mixFigures(segment.from, segment.target!, s);
+    if (segment.feet && u > 0 && u < 1) figure = placeFeet(figure, segment.feet, u, s);
   } else {
     const frames = segment.frames!;
     const moveLength = (frames.length - 1) / DIRECTOR_FPS;
@@ -122,7 +150,15 @@ export function sampleTimeline(timeline: Timeline, t: number): PoseRig3dFigure {
       figure = moveAt(frames, local);
       const blend = Math.min(BLEND_IN, segment.beat.seconds / 3);
       if (segment.index > 0 && local < blend) {
-        figure = mixFigures(segment.from, figure, ease(local / blend));
+        const into = figure;
+        const s = ease(local / blend);
+        figure = mixFigures(segment.from, into, s);
+        if (segment.feet) {
+          // The planted feet follow the move's own feet as it takes over.
+          const to: Partial<Record<Side, FootPose>> = {};
+          for (const side of SIDES) if (segment.feet[side]) to[side] = footContact(into, side);
+          figure = placeFeet(figure, segment.feet, local / blend, s, to);
+        }
       }
     }
   }

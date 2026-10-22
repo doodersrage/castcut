@@ -4,7 +4,14 @@ import { makeCamera, openPoseWorld, projectPoint } from '@/lib/pose/rig3d-pose';
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3dCamera, PoseRig3dFigure } from '@/lib/pose/rig3d';
 import { moveBeat } from './edit';
-import { cameraAt, cameraMoveEnd, frameDirection, readStillFraming } from './framing';
+import {
+  cameraAt,
+  cameraMoveEnd,
+  frameDirection,
+  framingCameraAt,
+  readStillFraming,
+  type DirectionFraming,
+} from './framing';
 import { poseBeat, standingFigure } from './poses';
 import { directionFrames } from './timeline';
 import { DEFAULT_DIRECTOR_CAMERA, type DirectorCamera, type Direction } from './types';
@@ -23,13 +30,13 @@ function frames(moves: Parameters<typeof moveBeat>[0][]): PoseRig3dFigure[] {
 }
 
 /** The picture-space box of every frame's joints (and head top), camera move included. */
-function box(list: PoseRig3dFigure[], start: PoseRig3dCamera, end: PoseRig3dCamera) {
+function box(list: PoseRig3dFigure[], framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>) {
   let minX = 1;
   let maxX = 0;
   let minY = 1;
   let maxY = 0;
   list.forEach((figure, i) => {
-    const cam = makeCamera(cameraAt(start, end, i / (list.length - 1)), ASPECT);
+    const cam = makeCamera(framingCameraAt(framing, i / (list.length - 1)), ASPECT);
     for (const point of openPoseWorld(figure)) {
       const p = projectPoint(cam, point);
       minX = Math.min(minX, p.x);
@@ -95,10 +102,30 @@ describe('director: framing', () => {
     const still = readStillFraming(STILL_BODY);
     for (const move of ['none', 'push-in', 'pan-left'] as const) {
       const fit = frameDirection({ frames: list, camera: camera({ move }), aspect: ASPECT, still });
-      const b = box(list, fit.start, fit.end);
+      const b = box(list, fit);
       assert.ok(b.minX >= 0 && b.maxX <= 1 && b.minY >= 0 && b.maxY <= 1, `${move}: ${JSON.stringify(b)}`);
       assert.ok(fit.pulledBack > 1.05, `${move}: stepped back`);
     }
+  });
+
+  it('like the still, a move that needs room starts on the still framing and eases back', () => {
+    const list = frames(['walk', 'wave']);
+    const fit = frameDirection({
+      frames: list,
+      camera: camera(),
+      aspect: ASPECT,
+      still: readStillFraming(STILL_BODY),
+    });
+    assert.ok(fit.from, 'starts on the still framing');
+    assert.ok(fit.settle! > 0.1 && fit.settle! < 1, `settles at ${fit.settle}`);
+    // The first frame is framed like the still: her neck and hips where the still has them.
+    const cam = makeCamera(framingCameraAt(fit, 0), ASPECT);
+    const points = openPoseWorld(list[0]!);
+    assert.ok(Math.abs(projectPoint(cam, points[1]!).y - 0.24) < 0.01);
+    const hip = projectPoint(cam, points[8]!.clone().lerp(points[11]!, 0.5));
+    assert.ok(Math.abs(hip.y - 0.5) < 0.01, `hips at ${hip.y}`);
+    // …and by the settle point the camera is on the pulled-back path.
+    assert.deepEqual(framingCameraAt(fit, 1), fit.end);
   });
 
   it('frames the picked shot without a still, from the picked side', () => {
@@ -110,7 +137,7 @@ describe('director: framing', () => {
     });
     // Her right is −x when she faces +z: the camera stands there.
     assert.ok(fit.start.position[0] < -1, `camera at ${fit.start.position}`);
-    const b = box(list, fit.start, fit.end);
+    const b = box(list, fit);
     assert.ok(b.minY >= 0 && b.maxY <= 1);
   });
 

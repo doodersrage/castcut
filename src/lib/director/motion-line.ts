@@ -4,7 +4,8 @@
  */
 
 import type { Rig3dBodyKind } from '@/lib/pose/rig3d';
-import { poseSupport, type PoseSupport } from './figure-ops';
+import { figureWorld } from '@/lib/pose/rig3d-pose';
+import { placementOf, poseSupport, type PoseSupport } from './figure-ops';
 import { DIRECTOR_MOVES } from './moves';
 import type { Direction, DirectorBeat } from './types';
 
@@ -51,7 +52,23 @@ export function directionMotionLine(direction: Direction): string {
   return `${line.slice(0, MAX_LINE - 1).replace(/[,\s]+\S*$/, '')}.`;
 }
 
-export type SupportNote = { beatId: string; index: number; support: Exclude<PoseSupport, null> };
+export type SupportNote = {
+  beatId: string;
+  index: number;
+  support: Exclude<PoseSupport, null>;
+  /** For a seat: sitting back against something (a sofa) or upright (a chair). */
+  reclined?: boolean;
+};
+
+/** Sitting with her shoulders well behind her hips: she needs a back to rest on. */
+function sitsBack(figure: DirectorBeat & { kind: 'pose' }): boolean {
+  const at = placementOf(figure.figure);
+  const world = figureWorld(figure.figure);
+  const neck = world.pos.neck!;
+  // Along her facing: negative is behind her hips.
+  const ahead = (neck.x - at.x) * Math.sin(at.yaw) + (neck.z - at.z) * Math.cos(at.yaw);
+  return ahead < -0.1;
+}
 
 /** Beats where she sits or leans on something (from a pose, or the Sit down move). */
 export function directionSupportNeeds(direction: Direction): SupportNote[] {
@@ -63,14 +80,67 @@ export function directionSupportNeeds(direction: Direction): SupportNote[] {
           ? 'sit'
           : null
         : poseSupport(beat.figure);
-    if (support) notes.push({ beatId: beat.id, index, support });
+    if (!support) return;
+    const reclined = support === 'sit' && beat.kind === 'pose' && sitsBack(beat);
+    notes.push({ beatId: beat.id, index, support, ...(reclined ? { reclined } : {}) });
   });
   return notes;
 }
 
+const SEAT_WORDS =
+  /\b(chairs?|armchairs?|sofas?|couch(es)?|loveseats?|bench(es)?|stools?|seats?|beds?|ottomans?|steps|stairs|ledges?|sill)\b/i;
+const LEAN_WORDS =
+  /\b(walls?|counters?|railings?|rails?|door(way|frame)?s?|tables?|desks?|pillars?|posts?|columns?|fences?|bars?|trees?|cars?)\b/i;
+
+/** Whether Place already has what the beats rest on. */
+function placeHas(notes: SupportNote[], place: string | undefined): boolean {
+  const text = place ?? '';
+  const sits = notes.some(note => note.support === 'sit');
+  const leans = notes.some(note => note.support === 'lean');
+  return (!sits || SEAT_WORDS.test(text)) && (!leans || LEAN_WORDS.test(text));
+}
+
+export type SupportFix = {
+  /** The button: "Add a chair to Place". */
+  label: string;
+  /** Place with the seat (or wall) in it. */
+  place: string;
+};
+
+/**
+ * A one-tap fix for the seat warning: Place gets what she sits or leans on, so Copy moves draws
+ * it — a wooden chair behind her for sitting upright, a sofa when she sits back, a wall beside
+ * her for leaning. Null when nothing is needed or Place already has it.
+ */
+export function supportFix(
+  notes: SupportNote[],
+  place: string | undefined,
+  body: Rig3dBodyKind = 'female'
+): SupportFix | null {
+  if (!notes.length || placeHas(notes, place)) return null;
+  const her = body === 'male' ? 'him' : 'her';
+  const text = place?.trim() ?? '';
+  const sits = notes.filter(note => note.support === 'sit');
+  const leans = notes.some(note => note.support === 'lean');
+  const parts: string[] = [];
+  let label = '';
+  if (sits.length && !SEAT_WORDS.test(text)) {
+    const sofa = sits.some(note => note.reclined);
+    parts.push(sofa ? `a sofa behind ${her}` : `a wooden chair behind ${her}`);
+    label = sofa ? 'a sofa' : 'a chair';
+  }
+  if (leans && !LEAN_WORDS.test(text)) {
+    parts.push(`a wall beside ${her}`);
+    label = label ? `${label} and a wall` : 'a wall';
+  }
+  const thing = parts.join(' and ');
+  const next = text ? `${text.replace(/[.,;\s]+$/, '')}, with ${thing}` : thing;
+  return { label: `Add ${label} to Place`, place: next.slice(0, 300) };
+}
+
 /** What to tell the player about those beats, or null. */
 export function supportWarning(notes: SupportNote[], place: string | undefined): string | null {
-  if (!notes.length) return null;
+  if (!notes.length || placeHas(notes, place)) return null;
   const sits = notes.some(note => note.support === 'sit');
   const leans = notes.some(note => note.support === 'lean');
   const what = sits && leans ? 'sit and lean' : sits ? 'sit' : 'lean';
