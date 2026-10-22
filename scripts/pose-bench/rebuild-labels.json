@@ -1,0 +1,1502 @@
+{
+ "qwen-image-2.1-edit-turbo-8|joints|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|wave-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|wave-3|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "faces the camera, arm up; words say back to camera"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|arms_up-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|jump-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on her left foot, right foot lifted behind, right arm out"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|jump-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on her left foot, right foot lifted behind, right arm out"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sit-4|11": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "seated hands on hips, head a little bowed; knees drawn up, legs not out"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sit-4|22": {
+  "label": "P",
+  "classes": [
+   "head",
+   "legs"
+  ],
+  "words": "ok",
+  "note": "seated hands on hips, head up, knees drawn up"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|perch_edge-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|laptop-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "seated 3/4 back, looks back, legs out to the left"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|laptop-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "seated 3/4 back, looks back, legs out to the left"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sit_floor-2|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "cross-legged ok; right arm reaching down/out missing (still not in words)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sit_floor-2|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "cross-legged ok; right arm reaching down/out missing (still not in words)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|kneel-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "right knee down, left foot planted, right arm held out, hand on hip"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|kneel-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "right knee down, left foot planted, right arm held out, hand on hip"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_lunge-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_lunge-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_stick-3|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands upright, feet together, arms down; target wide-stance forward lean, right elbow out (words: walking mid-stride)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_stick-3|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "upright walking stride, arms down; target wide-stance forward lean, right elbow out (words: walking mid-stride)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie_side-1|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "on her side now, propped on an elbow, top arm raised to the sky; target arms along the ground (\"reaching up and out\" read as skyward)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie_side-1|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "on her side now, propped on an elbow, top arm raised to the sky; target arms along the ground (\"reaching up and out\" read as skyward)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_plank-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_plank-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie_front-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|lie_front-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|crouch-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|crouch-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_squat-5|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "deep squat, right arm reaching down and out"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_squat-5|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "deep squat, right arm reaching down and out"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|bend_pick-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|bend_pick-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_deadlift-2|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "hinge facing camera, but hands on knees/thighs, not hanging to the shins"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "hinge facing camera, but hands on knees/thighs, not hanging to the shins"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_yoga_warrior-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_kick-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_kick-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "one leg knee up, back view, hand on hip; left arm reaching out missing (not in words)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "one leg knee up, back view, hand on hip; left arm reaching out missing (not in words)"
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|look_back-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|joints|look_back-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|wave-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, arm raised, as the photo"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|wave-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, arm raised, as the photo"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|arms_up-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sit-4|11": {
+  "label": "P",
+  "classes": [
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "on a bench head bowed, hands on hips (words) where the photo holds an umbrella at the chest; legs down, not stretched out"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sit-4|22": {
+  "label": "P",
+  "classes": [
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "on a bench head bowed, hands on hips (words) where the photo holds an umbrella at the chest; legs down, not stretched out"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|perch_edge-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_lunge-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "one knee down, hands at face; no second person now"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_lunge-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "one knee down, hands at face; no second person now"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_stick-3|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands straight, feet together, arms down; photo is a skating crouch (words: walking mid-stride)"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_stick-3|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "upright walking stride, arms down; photo is a skating crouch reaching down with the stick"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_plank-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_plank-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_deadlift-2|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "forward bend, hands at the knees; photo is a deep hinge gripping a bar at the floor (words: knees slightly bent)"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "forward bend, hands at the knees; photo is a deep hinge gripping a bar at the floor (words: knees slightly bent)"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_yoga_warrior-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "back view on one leg knee up, hand on hip; photo is a hurdle clearance, arm forward"
+ },
+ "qwen-image-2.1-edit-turbo-8|photo|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "back view on one leg knee up, hand on hip; photo is a hurdle clearance, arm forward"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|wave-3|11": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "side-on/front, faces the camera, arm out level; target back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|wave-3|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "side-on/front, faces the camera, arm out level; target back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|arms_up-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|jump-4|11": {
+  "label": "P",
+  "classes": [
+   "lr-mirror"
+  ],
+  "words": "ok",
+  "note": "on one foot, the other lifted behind, but mirrored: lifted foot and arm out on the right of the picture"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|jump-4|22": {
+  "label": "P",
+  "classes": [
+   "lr-mirror",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "on one foot, lifted foot behind on the wrong side; both arms out"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sit-4|11": {
+  "label": "P",
+  "classes": [
+   "view",
+   "legs"
+  ],
+  "words": "ok",
+  "note": "seated hands on hips, head a little down, but turned side-on with legs out to the side"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sit-4|22": {
+  "label": "P",
+  "classes": [
+   "view",
+   "legs"
+  ],
+  "words": "ok",
+  "note": "seated, side-on, legs out to the side, a hand on the hip"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|perch_edge-1|22": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "leaning back on a hand, legs not crossed"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|laptop-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "seated, back/side to camera, looks back, legs out to the left (no longer mirrored)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|laptop-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "seated, back/side to camera, looks back, legs out to the left (no longer mirrored)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sit_floor-2|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "cross-legged, hands on knees; arm reaching to the ground missing (not in words)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sit_floor-2|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "cross-legged, hands on knees; arm reaching to the ground missing (not in words)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|kneel-2|11": {
+  "label": "P",
+  "classes": [
+   "one-knee"
+  ],
+  "words": "ok",
+  "note": "right arm held out now, but kneels on both knees, no planted foot"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|kneel-2|22": {
+  "label": "P",
+  "classes": [
+   "one-knee",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "kneels upright on both knees; the other hand held out, no hand on hip"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_lunge-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_lunge-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_stick-3|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands upright, a small step, arms down; target wide-stance forward lean, right elbow out (words: walking mid-stride)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_stick-3|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands upright, a small step, arms down; target wide-stance forward lean, right elbow out (words: walking mid-stride)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie-3|11": {
+  "label": "P",
+  "classes": [
+   "lying-orient"
+  ],
+  "words": "ok",
+  "note": "flat on her back, knee(s) up now, but head on the other side"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie-3|22": {
+  "label": "P",
+  "classes": [
+   "lying-orient"
+  ],
+  "words": "ok",
+  "note": "flat on her back, knee(s) up now, but head on the other side"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie_side-1|11": {
+  "label": "W",
+  "classes": [
+   "lying-as-reclining"
+  ],
+  "words": "wrong",
+  "note": "half sitting up propped on an arm, other arm raised to the sky"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie_side-1|22": {
+  "label": "W",
+  "classes": [
+   "lying-as-reclining"
+  ],
+  "words": "wrong",
+  "note": "half sitting up propped on an arm, other arm raised to the sky"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_plank-1|11": {
+  "label": "P",
+  "classes": [
+   "body-line",
+   "view"
+  ],
+  "words": "ok",
+  "note": "face down on her hands, hips/legs on the ground, head toward the camera; not a raised plank side-on"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_plank-1|22": {
+  "label": "P",
+  "classes": [
+   "body-line",
+   "view"
+  ],
+  "words": "ok",
+  "note": "face down on her hands, hips/legs on the ground, head toward the camera; not a raised plank side-on"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie_front-2|11": {
+  "label": "W",
+  "classes": [
+   "lying-type"
+  ],
+  "words": "ok",
+  "note": "on her back, arms and legs up; words say on her front"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|lie_front-2|22": {
+  "label": "W",
+  "classes": [
+   "lying-type"
+  ],
+  "words": "ok",
+  "note": "on her back, arms and legs up; words say on her front"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|crouch-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|crouch-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_squat-5|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "ok",
+  "note": "deep squat now (not sitting), but hands down between the knees, arm not reaching out"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_squat-5|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "ok",
+  "note": "deep squat now (not sitting), but hands down between the knees, arm not reaching out"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|bend_pick-1|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "view"
+  ],
+  "words": "ok",
+  "note": "shallow bend, hands at knees, three-quarters to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|bend_pick-1|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth"
+  ],
+  "words": "ok",
+  "note": "shallow bend side-on, hands at knees; target back level"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_deadlift-2|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "slight bend, hands on knees"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "ok",
+  "note": "slight bend, hands on knees"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_yoga_warrior-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_kick-4|11": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "arm overhead; foot kicked up behind, not out to the side"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_kick-4|22": {
+  "label": "P",
+  "classes": [
+   "legs",
+   "one-leg"
+  ],
+  "words": "ok",
+  "note": "arm overhead; both feet down, legs crossed"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "view",
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "front/side view, one knee up, hand on hip; target back view, left arm reaching out (not in words)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "view",
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "front/side view, one knee up, hand on hip; target back view, left arm reaching out (not in words)"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|look_back-1|11": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "side-on looking at the camera; target back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|joints|look_back-1|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "side-on looking at the camera; target back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|wave-3|11": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "three-quarter front, arm out level; photo walks away, back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|wave-3|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "three-quarter front, arm out level; photo walks away, back to camera"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|arms_up-1|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "ok",
+  "note": "one arm up, the other bent at the head"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sit-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on a bench, legs out crossed, head bowed (side-on, as in the baseline)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sit-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on a bench, legs out crossed, head bowed (side-on, as in the baseline)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|perch_edge-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_lunge-2|11": {
+  "label": "W",
+  "classes": [
+   "posture-misread"
+  ],
+  "words": "wrong",
+  "note": "sits on a chair, legs apart, hands at face; photo kneels on one knee (words now: crouching low, legs apart)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_lunge-2|22": {
+  "label": "W",
+  "classes": [
+   "posture-misread"
+  ],
+  "words": "wrong",
+  "note": "wide low squat, hands at face; photo kneels on one knee (words: crouching low, legs apart)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_stick-3|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands/walks upright, arms down; photo is a skating crouch (words: walking mid-stride)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_stick-3|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "legs",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "stands/walks upright, arms down; photo is a skating crouch (words: walking mid-stride)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_plank-1|11": {
+  "label": "P",
+  "classes": [
+   "body-line",
+   "view"
+  ],
+  "words": "ok",
+  "note": "face down propped on her hands, hips on the ground, head to camera; not a raised plank"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_plank-1|22": {
+  "label": "P",
+  "classes": [
+   "body-line",
+   "view"
+  ],
+  "words": "ok",
+  "note": "face down propped on her hands, hips on the ground, head to camera; not a raised plank"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_deadlift-2|11": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "slight bend, hands on knees; photo deep hinge at the bar (words: knees slightly bent)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "bend-depth",
+   "arm"
+  ],
+  "words": "wrong",
+  "note": "slight bend, hands on knees; photo deep hinge at the bar (words: knees slightly bent)"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_yoga_warrior-1|22": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "wide straddle, front knee barely bent"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "view",
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "front view, one knee up, hand on hip; photo hurdle clearance from behind, arm forward"
+ },
+ "qwen-image-edit-2511-lightning-8|photo|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "view",
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "front view, one knee up, hand on hip; photo hurdle clearance from behind, arm forward"
+ },
+ "qwen-image-2.1-edit-noct|joints|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|wave-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|wave-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|arms_up-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|jump-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on her left foot, right foot lifted behind, right arm out"
+ },
+ "qwen-image-2.1-edit-noct|joints|jump-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on her left foot, right foot lifted behind, right arm out"
+ },
+ "qwen-image-2.1-edit-noct|joints|sit-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sit-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|perch_edge-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|laptop-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|laptop-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sit_floor-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "cross-legged, right hand down to the ground (map; words leave the arm out)"
+ },
+ "qwen-image-2.1-edit-noct|joints|sit_floor-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "cross-legged, right hand down to the ground (map; words leave the arm out)"
+ },
+ "qwen-image-2.1-edit-noct|joints|kneel-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|kneel-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_lunge-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_lunge-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_stick-3|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "ok",
+  "note": "wide-stance lean toward camera, but arms both down, no elbow out"
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_stick-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "wide-stance lean, right elbow out hand on hip, left arm down"
+ },
+ "qwen-image-2.1-edit-noct|joints|lie-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|lie-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|lie_side-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "on her side, arms along the ground"
+ },
+ "qwen-image-2.1-edit-noct|joints|lie_side-1|22": {
+  "label": "W",
+  "classes": [
+   "lying-orient",
+   "lying-type"
+  ],
+  "words": "wrong",
+  "note": "on her back, head on the other side, arm raised to the sky (\"reaching up and out\")"
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_plank-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_plank-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|lie_front-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|lie_front-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|crouch-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|crouch-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_squat-5|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_squat-5|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|bend_pick-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|bend_pick-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_deadlift-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "hinge facing the camera, knees bent, arms hanging"
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "deep hinge but rear to camera, looking back"
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_yoga_warrior-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_kick-4|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_kick-4|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "back view, one leg knee up, hand on hip; left arm reaching out missing (not in words)"
+ },
+ "qwen-image-2.1-edit-noct|joints|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "incomplete",
+  "note": "back view, one leg knee up, hand on hip; left arm reaching out missing (not in words)"
+ },
+ "qwen-image-2.1-edit-noct|joints|look_back-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, head turned to profile"
+ },
+ "qwen-image-2.1-edit-noct|joints|look_back-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, head turned to profile"
+ },
+ "qwen-image-2.1-edit-noct|photo|hands_hips-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|hands_hips-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|wave-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, arm raised, fills the frame now"
+ },
+ "qwen-image-2.1-edit-noct|photo|wave-3|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "back view, arm raised, fills the frame now"
+ },
+ "qwen-image-2.1-edit-noct|photo|hands_behind_head-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|hands_behind_head-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|arms_up-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|arms_up-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sit-4|11": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "on a bench, head bowed, hands in front; legs straight down, not stretched out forward"
+ },
+ "qwen-image-2.1-edit-noct|photo|sit-4|22": {
+  "label": "P",
+  "classes": [
+   "legs"
+  ],
+  "words": "ok",
+  "note": "on a bench, head bowed, hands in front; legs straight down, not stretched out forward"
+ },
+ "qwen-image-2.1-edit-noct|photo|perch_edge-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|perch_edge-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_lunge-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "one knee down, hands at face (map won over \"crouching low\"); no second person"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_lunge-2|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "one knee down, hands at face (map won over \"crouching low\"); no second person"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_stick-3|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "wide-stance lean, knees bent, elbow out, other arm down"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_stick-3|22": {
+  "label": "P",
+  "classes": [
+   "arm"
+  ],
+  "words": "ok",
+  "note": "wide-stance lean, but both hands on the thighs"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_plank-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_plank-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_deadlift-2|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": "deep hinge facing camera, arms hanging to the shins"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_deadlift-2|22": {
+  "label": "P",
+  "classes": [
+   "view"
+  ],
+  "words": "ok",
+  "note": "hinge but rear three-quarters to camera, looking back"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_yoga_warrior-1|11": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_yoga_warrior-1|22": {
+  "label": "R",
+  "classes": [],
+  "words": "-",
+  "note": ""
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_hurdle-3|11": {
+  "label": "P",
+  "classes": [
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "back view on one leg knee up, hand on hip; photo hurdle clearance, arm forward; no second hurdler now"
+ },
+ "qwen-image-2.1-edit-noct|photo|sport_hurdle-3|22": {
+  "label": "P",
+  "classes": [
+   "arm",
+   "airborne"
+  ],
+  "words": "incomplete",
+  "note": "back view on one leg knee up, hand on hip; photo hurdle clearance, arm forward; no second hurdler now"
+ }
+}
