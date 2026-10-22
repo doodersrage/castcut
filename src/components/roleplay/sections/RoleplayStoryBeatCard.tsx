@@ -11,6 +11,9 @@ import ShotCardMenu, {
 } from '@/components/ui/ShotCardMenu';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
 import SketchSheet from '@/components/day-planner/SketchSheet';
+import dynamic from 'next/dynamic';
+import { getCharacter } from '@/lib/character/os';
+import { dayPartnerNoun } from '@/lib/day/partner';
 import { continueClipActionLabel } from '@/lib/video/clip-mode';
 import { loadEngineSettings } from '@/lib/engine/settings';
 import {
@@ -49,6 +52,11 @@ import {
   beatPreviewUrl,
   isBusyStatus,
 } from '@/components/roleplay/roleplay-story-helpers';
+
+// Three.js and the pose body load only when the Director opens.
+const DirectorSheet = dynamic(() => import('@/components/director/DirectorSheet'), {
+  ssr: false,
+});
 
 type Props = {
   beat: RoleplayStoryBeat;
@@ -113,6 +121,7 @@ export function RoleplayStoryBeatCard({
   const [extendNote, setExtendNote] = useState<string | null>(null);
   const [extendSheetOpen, setExtendSheetOpen] = useState(false);
   const [mediaSheet, setMediaSheet] = useState<SlotMediaSheetKind | null>(null);
+  const [directing, setDirecting] = useState(false);
   const [mediaNote, setMediaNote] = useState<string | null>(null);
   const jobProgress = useClipJobProgress('story');
   const [sketchOpen, setSketchOpen] = useState(false);
@@ -376,6 +385,18 @@ export function RoleplayStoryBeatCard({
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
                   disabled={busy || media.busy !== null}
+                  title="Pose a few beats on the 3D body (or pick ready-made moves): the scene's person acts them out."
+                  data-testid="story-beat-director"
+                  onClick={() => setDirecting(true)}
+                >
+                  Direct a move…
+                </button>
+              ) : null}
+              {media && stillTools ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
                   data-testid="story-beat-dance"
                   onClick={() => setMediaSheet('dance')}
                 >
@@ -540,6 +561,19 @@ export function RoleplayStoryBeatCard({
                 )
               }
               testId="story-sketch-sheet"
+            />
+          ) : null}
+          {media && directing ? (
+            <StoryDirector
+              beat={beat}
+              busy={media.busy !== null}
+              onClose={() => setDirecting(false)}
+              onRender={(video, options) =>
+                runMedia(
+                  media.moves(beat, video, options),
+                  'Done — the clip now has the directed moves.'
+                )
+              }
             />
           ) : null}
           {media ? (
@@ -746,5 +780,33 @@ export function RoleplayStoryBeatCard({
         />
       ) : null}
     </li>
+  );
+}
+
+/** The Director on a Story scene's still, for the scene's Cast member. */
+function StoryDirector({
+  beat,
+  busy,
+  onClose,
+  onRender,
+}: {
+  beat: RoleplayStoryBeat;
+  busy: boolean;
+  onClose: () => void;
+  onRender: (video: Blob, options: { motion: string; place?: string }) => void;
+}) {
+  const cast = beat.castId ? getCharacter(beat.castId) : undefined;
+  return (
+    <DirectorSheet
+      open
+      stillUrl={beat.imageUrl?.trim() || ''}
+      castId={beat.castId}
+      castName={cast?.name}
+      body={dayPartnerNoun(cast ?? {}) === 'man' ? 'male' : 'female'}
+      busy={busy}
+      onClose={onClose}
+      onRender={onRender}
+      testId="story-director"
+    />
   );
 }

@@ -45,10 +45,16 @@ import { DayTwoTakesPick } from '@/components/day-planner/DaySameSeedRedo';
 import FixAreaSessionChip from '@/components/fix-area/FixAreaSessionChip';
 import SlotMediaSheet, { type SlotMediaSheetKind } from '@/components/day-planner/SlotMediaSheet';
 import SketchSheet from '@/components/day-planner/SketchSheet';
+import dynamic from 'next/dynamic';
 import {
   DAY_SLOT_MEDIA_BUSY,
   type DaySlotMediaTool,
 } from '@/hooks/day-planner/useDaySlotMediaTools';
+
+// Three.js and the pose body load only when the Director opens.
+const DirectorSheet = dynamic(() => import('@/components/director/DirectorSheet'), {
+  ssr: false,
+});
 
 export type DaySlotBoardProps = {
   slots: DaySlot[];
@@ -86,6 +92,9 @@ export type DaySlotBoardProps = {
   qualityLedger?: SlotQualityLedger;
   /** The Cast's name, for the "Looks like …" mark on finished stills. */
   castName?: string;
+  /** The Cast's id and who they are, for the Director (saved directions, the body). */
+  castId?: string;
+  leadNoun?: 'woman' | 'man' | 'person';
   /** "Redo pose misses once" marks by slot id ("Redone for the pose"). */
   poseRedoMarks?: Record<string, string>;
   /** Animate clip checks by slot id (Auto-review). */
@@ -107,7 +116,7 @@ export type DaySlotBoardProps = {
     moves: (
       slot: DaySlot,
       video: Blob,
-      options: { motion?: string; keepSound?: boolean }
+      options: { motion?: string; keepSound?: boolean; place?: string }
     ) => Promise<string | null>;
     lipSync: (slot: DaySlot, audio: Blob, audio2?: Blob | null) => Promise<string | null>;
     dance: (
@@ -168,6 +177,8 @@ export default function DaySlotBoard({
   onQueueSlot,
   qualityLedger,
   castName,
+  castId,
+  leadNoun,
   poseRedoMarks,
   clipChecks,
   onPickTwoTake,
@@ -181,6 +192,7 @@ export default function DaySlotBoard({
   const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
   const jobProgress = useClipJobProgress('day');
   const [sketchFor, setSketchFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
+  const [directorFor, setDirectorFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
   const runMedia = async (
     slot: DaySlot,
     tool: DaySlotMediaTool,
@@ -512,6 +524,18 @@ export default function DaySlotBoard({
                     onClick={() => setMediaSheet({ slot, kind: 'moves' })}
                   >
                     Copy moves from a video…
+                  </button>
+                ) : null}
+                {mediaTools && stillTools ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={mediaTools.busy !== null}
+                    title="Pose a few beats on the 3D body (or pick ready-made moves): this still’s person acts them out."
+                    data-testid={`day-progress-director-${slot.id}`}
+                    onClick={() => setDirectorFor({ slot, stillUrl: doneThumb })}
+                  >
+                    Direct a move…
                   </button>
                 ) : null}
                 {mediaTools && stillTools ? (
@@ -989,6 +1013,23 @@ export default function DaySlotBoard({
             if (slot) void runMedia(slot, 'sketch', () => mediaTools.sketch(slot, url));
           }}
           testId="day-sketch-sheet"
+        />
+      ) : null}
+      {mediaTools && directorFor ? (
+        <DirectorSheet
+          open
+          stillUrl={directorFor.stillUrl}
+          castId={castId}
+          castName={castName}
+          body={leadNoun === 'man' ? 'male' : 'female'}
+          place={directorFor.slot.location}
+          busy={mediaTools.busy !== null}
+          onClose={() => setDirectorFor(null)}
+          onRender={(video, options) => {
+            const slot = directorFor.slot;
+            void runMedia(slot, 'moves', () => mediaTools.moves(slot, video, options));
+          }}
+          testId="day-director"
         />
       ) : null}
       {mediaTools ? (

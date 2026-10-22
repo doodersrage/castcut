@@ -9,6 +9,7 @@ are in the [Gallery](#gallery) too.
 | [Sharpen & smooth](#sharpen-smooth) | A clip | 3 min | — |
 | [Make more realistic](#realism) | A clip | A few min per 5 s | — |
 | [Copy moves from a video](#copy-moves) | A still | 5 min for 5 s | A video of one person |
+| [Direct a move](#director) | A still | 3 min for 5 s | A few beats, posed or picked |
 | [Dance to music](#dance) | A still | 10 min for 6 s | A song |
 | [Lip-sync to a recording](#lip-sync) | A still | 7 min for 5 s | Your voice or an audio file |
 | [Relight](#relight) | A still | 1 min | A light |
@@ -27,7 +28,7 @@ yet is left out.
 | *(top)* | Edit slot · Open full size |
 | **Redo** | Requeue · new seed · Looks wrong · redo · Retry · Queue this slot only · Reroll plan |
 | **Touch up the still** | Fix an area… · Sketch over this still… · Relight… · Upscale to 4K |
-| **Make it move** | Animate · Copy moves from a video… · Dance to music… · Lip-sync to a recording… |
+| **Make it move** | Animate · Copy moves from a video… · Direct a move… · Dance to music… · Lip-sync to a recording… |
 | **The clip** | Sharpen & smooth clip · Make more realistic · Make it 30 s · Add sound · Use this voice |
 | *(bottom)* | Open in ComfyUI |
 
@@ -37,7 +38,9 @@ Queue, Animate and Play another.
 ## In the Gallery { #gallery }
 
 Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth** and
-**Make more realistic**. The new clip is kept next to the original. One clip job runs at a time.
+**Make more realistic**. A finished still's **⋯** → **Make it move** has
+[**Direct a move…**](#director). The new clip is kept next to the original. One clip job runs
+at a time.
 
 These two — and Copy moves, Dance to music, Lip-sync and Upscale to 4K — run in the background. The **jobs tray** shows how far along a job is (Make more realistic
 counts its parts and gives the time left) with a **Cancel** button, which also stops the work in
@@ -82,6 +85,41 @@ body, hands and face.
 - Frame it like the still: full body to full body, head and shoulders to head and shoulders.
 - Up to **30 s**, 80 MB. Tick **Keep the video's sound** for talking or music.
 - The background comes from the still.
+
+---
+
+## Direct a move { #director }
+
+No video to copy? Direct one. **Direct a move…** opens the Director on the still: line up a few
+**beats** for the Cast member, check them on the 3D body, then **Render**. The Director films the
+3D body doing it and sends that through [Copy moves](#copy-moves), so the clip keeps her face,
+hair and clothes and lands where Copy moves' clips do.
+
+- **Start from** her pose in the picture (read from the still) or Stand, Sit, Kneel, Lie down,
+  Walk. **Pose…** on a beat opens the [3D pose editor](guide-day.md#the-pose-editor).
+- **Add a pose…** adds a pose she moves into: it opens where the last beat left her, pose it and
+  **Use this pose**. **Move in** is how long she takes to get there; **Hold** how long she stays.
+- **Ready-made moves**: Walk forward (small steps), Turn around, Sit down, Stand up, Wave, Reach
+  up, Look over shoulder, Nod, Shrug, Bow. **Length** stretches or squeezes a move. Or pick a
+  ready-made direction (*Wave, then turn away*, *Walk up and wave*, …) after the start pose.
+- **The timeline** under the preview: tap to jump, drag a beat's right edge to make it longer.
+  **Play** loops it; the slider scrubs. Each beat starts where the one before left her, so
+  moving a walk earlier carries the rest along.
+- **Camera**: *Like the still* frames her as the still does — her neck and hips at the same
+  height in the picture — or pick a shot. Height, direction, lens, and an optional slow push in,
+  pull out or pan. The camera then steps back just enough that the whole move stays in frame
+  (it says so under the timeline).
+- **Place** starts as the slot's place. She sits or leans on whatever the still shows: a beat
+  that sits (or leans well over) warns you — pick a still with a seat, or describe one in Place.
+- **Saved directions** keeps directions by name for this Cast member, in this browser.
+- About **5 seconds** renders in one part (about 3 minutes on a 24 GB card). Longer, up to
+  **30 s**, renders in parts, one after the other. **Save driving video** downloads the 3D body
+  clip (a Motion-JPEG AVI) instead.
+
+!!! tip
+    Keep the camera close to how the still was shot: the background and the camera come from the
+    still, the Director only gives the moves. A full-body still suits walks and turns; a waist-up
+    still suits waves, shrugs and nods.
 
 ---
 

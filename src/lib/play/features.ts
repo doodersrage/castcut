@@ -38,6 +38,8 @@ import { PLAY_POSE_TARGET_GROUPS } from './pose-targets';
 import { loadLocalObservability } from '../server/local-observability';
 import { loadOnboardingState } from '../app/onboarding-store';
 import { registerGalleryClipTool } from '../gallery/clip-tools';
+import { registerGalleryStillTool } from '../gallery/still-tools';
+import { openDirector } from '../director/open-event';
 import { registerCommandActions } from '../app/command-actions';
 import { PLAY_APP_COMMAND_ACTIONS } from './command-actions';
 
@@ -163,4 +165,20 @@ registerGalleryClipTool({
   busyText: 'Making the clip more realistic…',
   keepKind: 'realism',
   job: 'realism',
+});
+
+// Gallery ⋯ → Make it move → Direct a move…: the Director on any finished still.
+registerGalleryStillTool({
+  id: 'director',
+  label: 'Direct a move…',
+  title:
+    'Pose a few beats on the 3D body (or pick ready-made moves): the still’s person acts them out.',
+  run: ({ entry, stillUrl }) =>
+    openDirector({
+      entryId: entry.id,
+      stillUrl,
+      prompt: entry.prompt,
+      characterId: entry.characterId,
+      tool: entry.tool,
+    }),
 });

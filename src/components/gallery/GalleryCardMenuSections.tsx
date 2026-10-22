@@ -7,5 +7,6 @@ export { GalleryEditSection } from '@/components/gallery/GalleryCardMenuEditSect
 export { GalleryQueueSection } from '@/components/gallery/GalleryCardMenuQueueSection';
 export { GalleryEnhanceSection } from '@/components/gallery/GalleryCardMenuEnhanceSection';
 export { GalleryClipSection } from '@/components/gallery/GalleryCardMenuClipSection';
+export { GalleryStillSection } from '@/components/gallery/GalleryCardMenuStillSection';
 export { GalleryLineageSection } from '@/components/gallery/GalleryCardMenuLineageSection';
 export { GalleryManageSection } from '@/components/gallery/GalleryCardMenuManageSection';

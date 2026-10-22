@@ -1036,6 +1036,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           ) : null}
           <DaySlotBoard
             castName={character?.name}
+            castId={character?.id}
+            leadNoun={leadNoun}
             slots={slots}
             stills={stills}
             activeSlotId={activeSlotId}

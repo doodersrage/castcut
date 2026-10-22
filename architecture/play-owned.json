@@ -142,5 +142,22 @@
   "src/lib/pose/rig3d-skeleton.ts",
   "src/lib/pose/rig3d-three.ts",
   "src/lib/pose/rig3d-render.ts",
-  "src/lib/pose/rig3d-camera.ts"
+  "src/lib/pose/rig3d-camera.ts",
+  "src/components/director/DirectorGalleryHost.tsx",
+  "src/components/director/DirectorPreview.tsx",
+  "src/components/director/DirectorSheet.tsx",
+  "src/lib/director/avi.ts",
+  "src/lib/director/edit.ts",
+  "src/lib/director/figure-ops.ts",
+  "src/lib/director/framing.ts",
+  "src/lib/director/motion-line.ts",
+  "src/lib/director/motion.ts",
+  "src/lib/director/moves.ts",
+  "src/lib/director/open-event.ts",
+  "src/lib/director/poses.ts",
+  "src/lib/director/render-client.ts",
+  "src/lib/director/stage-three.ts",
+  "src/lib/director/store.ts",
+  "src/lib/director/timeline.ts",
+  "src/lib/director/types.ts"
 ]
