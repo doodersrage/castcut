@@ -454,9 +454,30 @@ test.describe('Day standing picture', () => {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ promptId: 'prompt-e2e-day-retry', clientId: 'e2e' }),
+        body: JSON.stringify({
+          ok: true,
+          promptId: 'prompt-e2e-day-retry',
+          clientId: 'e2e',
+          comfyUrl: 'http://127.0.0.1:8188',
+        }),
       });
     });
+    // CI has no ComfyUI: the queue's graph preview gets a plain graph, object_info says so.
+    await page.route('**/api/comfyui/preview**', route =>
+      route.fulfill({
+        json: {
+          ok: true,
+          workflowSource: 'minimal',
+          replacements: { positive: 1, negative: 0, params: {} },
+          workflowJson: JSON.stringify({
+            '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'model.safetensors' } },
+          }),
+        },
+      })
+    );
+    await page.route('**/api/comfyui/object-info**', route =>
+      route.fulfill({ status: 502, json: { error: 'e2e: no ComfyUI' } })
+    );
 
     // Desk: it failed — said on Day's status strip, with Try again.
     await seed({ promptId: 'prompt-e2e-day-gone', failed: true, at: now });
