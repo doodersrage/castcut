@@ -3,11 +3,9 @@
 import {
   getWorkflowTokenValue,
   setWorkflowTokenValue,
-  workflowFileDisplayName,
   workflowFileSourceFilename,
   WORKFLOW_TOKEN_FIELDS,
 } from '@/lib/comfyui/workflow-files';
-import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
 import type { WorkflowNodeMapping } from '@/lib/workflow/node-mapper';
@@ -54,8 +52,6 @@ type Props = Pick<
 };
 
 export function ComfyWorkflowEditPanel({
-  file,
-  displayName,
   placeholderTokens,
   editingName,
   setEditingName,

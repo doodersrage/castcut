@@ -7,6 +7,7 @@ import {
   clearAllGalleryFilters,
   type ActiveFilterChip,
 } from '@/components/gallery/gallery-filters-shared';
+import { Button } from '@/components/ui/Button';
 
 export type GalleryFiltersActiveChipsProps = {
   chips: ActiveFilterChip[];
@@ -32,17 +33,18 @@ export default function GalleryFiltersActiveChips({
     >
       <span className="type-caption text-[var(--text-muted)]">Active</span>
       {chips.map(chip => (
-        <button
+        <Button
+          variant="tint"
           key={chip.key}
           type="button"
           onClick={chip.clear}
-          className="inline-flex items-center gap-1 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-1 text-2xs font-medium text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           {chip.label}
           <span aria-hidden className="text-[var(--accent-text)]">
             ×
           </span>
-        </button>
+        </Button>
       ))}
       <button
         type="button"

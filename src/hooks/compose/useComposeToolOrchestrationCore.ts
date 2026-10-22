@@ -8,46 +8,22 @@ import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import {
-  isComposeCapableModel,
-  isBooguEditModel,
-  isFluxKleinModel,
-  isQwenEditModel,
-  isZImageModel,
-} from '@/lib/model/denoise-defaults';
+import { isComposeCapableModel } from '@/lib/model/denoise-defaults';
 import { normalizeTurboEditStrength } from '@/lib/engine/turbo-edit-strength';
 import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import {
   buildComposeInstruction,
-  COMPOSE_DEFAULT_MODEL,
   composeDefaultModel,
-  COMPOSE_MODIFY_TEMPLATE_GROUPS,
-  COMPOSE_TRANSFER_TEMPLATE_GROUPS,
-  isAggressiveComposeInstruction,
   type ComposeMode,
-  type ComposeStarterTemplate,
 } from '@/lib/prompt/compose-prompt';
-import {
-  DEFAULT_COMPOSE_IDENTITY_LOCK_STRENGTH,
-  formatComposeIdentityLockHint,
-  formatKleinEnhancerComposeHint,
-  formatKleinEnhancerIdentityHint,
-  normalizeComposeIdentityKind,
-  normalizeComposeIdentityLockStrength,
-} from '@/lib/prompt/compose-identity-lock';
-import { createDefaultRegionalSlots } from '@/lib/prompt/regional-prompt-slots';
-import { regionalSlotsQueueExtras } from '@/components/RegionalEditPanel';
+import { normalizeComposeIdentityKind } from '@/lib/prompt/compose-identity-lock';
 import { sharedPatchFromGalleryHandoff } from '@/lib/gallery/handoff';
 import {
   isolateSubjectOnWhite,
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
   normalizeIsolateSubject,
 } from '@/lib/edit/isolate-subject';
-import {
-  CLOUD_COMPOSE_TRANSFER_BLOCKED,
-  cloudComposeBlocksTransfer,
-  cloudComposeSendsOnlyImage1,
-} from '@/lib/cloud/cloud-compose-refs';
+import { cloudComposeSendsOnlyImage1 } from '@/lib/cloud/cloud-compose-refs';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { loadEngineSettings } from '@/lib/engine/settings';
 import { DEFAULT_IMAGE_COMPOSE_TOOL_CACHE } from '@/lib/settings/cache';

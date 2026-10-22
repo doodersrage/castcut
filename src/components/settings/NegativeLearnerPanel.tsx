@@ -13,6 +13,7 @@ import {
   type NegativeSuggestion,
 } from '@/lib/prompt/negative-learner';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { Button } from '@/components/ui/Button';
 
 export default function NegativeLearnerPanel() {
   const [items, setItems] = useState<NegativeSuggestion[]>([]);
@@ -81,33 +82,37 @@ export default function NegativeLearnerPanel() {
               <span className="text-sm text-[var(--tint-danger-text)]">
                 {item.token} · {item.count}×
               </span>
-              <button
+              <Button
+                variant="tint"
+                tone="warning"
                 type="button"
                 onClick={() => {
                   addAvoidedToken(item.token);
                   setStatus(`Added “${item.token}” to avoided tokens.`);
                 }}
-                className="rounded-full border border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] px-2.5 py-0.5 text-xs text-[var(--tint-warning-text)] transition hover:border-[var(--tint-warning-border)]"
+                className="rounded-full px-2.5 py-0.5 text-xs transition"
               >
                 Avoid
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="tint"
                 type="button"
                 onClick={() => appendToNegativeProfile(item.token)}
-                className="rounded-full border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2.5 py-0.5 text-xs text-[var(--accent-text)] transition hover:border-[var(--accent-border)]"
+                className="rounded-full px-2.5 py-0.5 text-xs transition"
               >
                 To negative
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="quiet"
                 type="button"
                 onClick={() => {
                   dismissNegativeSuggestion(item.token);
                   refresh();
                 }}
-                className="rounded-full border border-[var(--border-default)]/60 px-2.5 py-0.5 text-xs text-[var(--text-muted)] transition hover:border-[var(--border-default)] hover:text-[var(--text-primary)]"
+                className="rounded-full border border-[var(--border-default)]/60 px-2.5 py-0.5 text-xs transition hover:border-[var(--border-default)]"
               >
                 Dismiss
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

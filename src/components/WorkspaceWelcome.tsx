@@ -80,8 +80,10 @@ export default function WorkspaceWelcome() {
     markOnboardingSetWorkspace();
     noteWelcomeShownMetric();
     setPhase(null);
+    // Full page loads on purpose: the whole shell (nav, tools) re-reads the new workspace mode.
     if (goal === 'image') {
       saveWorkspaceMode('simple');
+
       window.location.assign(FIRST_RUN_GENERATE_HREF);
       return;
     }
@@ -90,6 +92,7 @@ export default function WorkspaceWelcome() {
       window.location.assign(startStarterPlayFilm().href);
       return;
     }
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign('/play');
   }
 

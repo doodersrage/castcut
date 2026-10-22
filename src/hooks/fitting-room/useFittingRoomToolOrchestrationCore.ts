@@ -1,47 +1,17 @@
 'use client';
 
-import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
-import FittingCompareSection from '@/components/fitting/FittingCompareSection';
-import FittingActionRow from '@/components/fitting/FittingActionRow';
-import FittingPlateSection from '@/components/fitting/FittingPlateSection';
-import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
-import SharedToolControls from '@/components/SharedToolControls';
-import ToolSetupBanner from '@/components/ToolSetupBanner';
-import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
-import { FieldError } from '@/components/ui/Field';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { useFittingRoomQueue } from '@/hooks/useFittingRoomQueue';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
-import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { useToolPageDescription } from '@/hooks/useToolPageDescription';
 import { parseCharacterHints } from '@/lib/character/hints';
-import {
-  activeLook,
-  applyCharacterRecord,
-  characterFromShared,
-  getCharacter,
-  upsertCharacter,
-} from '@/lib/character/os';
+import { getCharacter } from '@/lib/character/os';
 import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
-import {
-  fetchClothingLabels,
-  fetchClothingSelectOptions,
-  getCachedClothingLabel,
-} from '@/lib/wardrobe/clothing-catalog-client';
-import {
-  buildFittingSwipeDeck,
-  fittingSwipeIndex,
-  fittingSwipeNeighbor,
-  resolveFittingPlateFromCharacter,
-} from '@/lib/fitting/room';
+import { buildFittingSwipeDeck, fittingSwipeIndex } from '@/lib/fitting/room';
 import {
   countInFlightFittingKitPreviews,
   fittingKitPreviewQueueParams,
@@ -69,22 +39,11 @@ import {
   ISOLATE_QUEUE_BLOCKED_MESSAGE,
   loadImageBlobFromUrls,
 } from '@/lib/edit/isolate-subject';
-import {
-  applyLookPackToFittingState,
-  loadLookPack,
-  lookPackDayHref,
-  lookPackRoleplayHref,
-  saveLookPack,
-} from '@/lib/look/pack';
-import { bumpPlayCampaignStep } from '@/lib/play/campaign';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { getReformatTargetModel } from '@/lib/edit/reformat-target';
-import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
 import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting/clothing-options';
 
-const ACCENT = 'rose' as const;
 const TOOL_ID = 'fitting' as const;
 
 export function useFittingRoomToolOrchestrationCore() {

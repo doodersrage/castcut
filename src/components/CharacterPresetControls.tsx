@@ -22,6 +22,7 @@ import {
 } from '@/lib/character/options-ui';
 import type { CharacterToolCache } from '@/lib/settings/cache';
 import { SelectInput, TextInput } from '@/components/ui/Field';
+import { Button } from '@/components/ui/Button';
 
 function ClothingCatalogSelect({
   label,
@@ -336,13 +337,14 @@ export default function CharacterPresetControls({
         ))}
 
         {activeCount > 0 && (
-          <button
+          <Button
+            variant="quiet"
             type="button"
             onClick={() => onChange(clearCharacterPresetPatch())}
-            className="text-xs font-medium text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline"
+            className="text-xs font-medium hover:text-[var(--text-secondary)] hover:underline"
           >
             Clear all presets
-          </button>
+          </Button>
         )}
       </div>
     </details>

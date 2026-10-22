@@ -364,14 +364,15 @@ export default function LoraStackSessionPicker({
                     >
                       {preset.name} · {preset.loraIds.length}
                     </ChipButton>
-                    <button
+                    <Button
+                      variant="quiet"
                       type="button"
                       aria-label={`Delete saved stack ${preset.name}`}
                       onClick={() => savePresets(deleteLoraStackPreset(presets, preset.id))}
-                      className="text-2xs text-[var(--text-muted)] hover:text-[var(--accent-text)]"
+                      className="text-2xs hover:text-[var(--accent-text)]"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>

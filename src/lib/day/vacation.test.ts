@@ -17,7 +17,6 @@ import {
   pickDayVacationScenePair,
   suggestiveUnlockPoseClass,
   vacationPoseClassFromBeat,
-  vacationStanceDirective,
 } from './vacation';
 
 const NON_STAND_POSE_RE =

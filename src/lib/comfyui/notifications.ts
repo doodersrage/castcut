@@ -41,6 +41,8 @@ export function notifyComfyJobComplete(entry: ComfyGalleryEntry): void {
     });
     notification.onclick = () => {
       window.focus();
+      // Plain lib code with no router; a system-notification click may land on any page.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = '/gallery';
     };
   } catch {

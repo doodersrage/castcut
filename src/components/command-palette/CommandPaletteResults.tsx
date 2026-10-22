@@ -1,6 +1,7 @@
 import BrandStudioIllustration from '@/components/BrandStudioIllustration';
 import { isNavFavorite, toggleNavFavorite } from '@/lib/app/nav-favorites';
 import type { CommandItem } from '@/components/command-palette/types';
+import { Button } from '@/components/ui/Button';
 
 type CommandPaletteResultsProps = {
   filtered: CommandItem[];
@@ -58,18 +59,19 @@ export default function CommandPaletteResults({
                   <span className="shrink-0 text-xs text-[var(--text-muted)]">{item.group}</span>
                 </button>
                 {item.href ? (
-                  <button
+                  <Button
+                    variant="quiet"
                     type="button"
                     aria-label={favorited ? 'Unpin from sidebar' : 'Pin to sidebar'}
                     title={favorited ? 'Unpin' : 'Pin'}
-                    className="shrink-0 rounded-[var(--radius-md)] px-2 py-2 text-sm text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                    className="shrink-0 rounded-[var(--radius-md)] px-2 py-2 text-sm transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                     onClick={event => {
                       event.stopPropagation();
                       onSetFavorites(toggleNavFavorite(item.href!));
                     }}
                   >
                     {favorited ? '★' : '☆'}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </li>

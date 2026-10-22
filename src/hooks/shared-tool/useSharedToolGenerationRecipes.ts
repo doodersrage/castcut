@@ -1,16 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import {
-  normalizeModelSamplerPresetTier,
-  type ModelSamplerOverrideFields,
-  type ModelSamplerPresetTier,
-} from '@/lib/model/sampler-defaults';
+import { normalizeModelSamplerPresetTier } from '@/lib/model/sampler-defaults';
 import {
   normalizeResolutionOrientation,
   normalizeResolutionSizeTier,
-  type ResolutionOrientation,
-  type ResolutionSizeTier,
 } from '@/lib/model/resolution-defaults';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { loadSettingsCache } from '@/lib/settings/cache';

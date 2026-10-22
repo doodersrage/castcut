@@ -8,6 +8,7 @@ import { LORA_FAMILY_LABELS } from '@/lib/lora/family-detect';
 import { loraChangesFaceAt } from '@/lib/lora/check';
 import type { LoraUsageStats } from '@/lib/lora/library-tools';
 import LoraFaceCheckSection from '@/components/settings/LoraFaceCheckSection';
+import { Button } from '@/components/ui/Button';
 
 type LoraLibraryEntryRowProps = {
   entry: LoraLibraryEntry;
@@ -99,24 +100,26 @@ export default function LoraLibraryEntryRow({
           ) : null}
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="quiet"
             type="button"
             onClick={() => onMove(index, -1)}
             disabled={index === 0}
             aria-label="Move LoRA up"
-            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-xs text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
+            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
           >
             ↑
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="quiet"
             type="button"
             onClick={() => onMove(index, 1)}
             disabled={index === entryCount - 1}
             aria-label="Move LoRA down"
-            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-xs text-[var(--text-muted)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
+            className="rounded-lg border border-[var(--border-default)] px-2 py-1 text-xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border-default)] disabled:hover:text-[var(--text-muted)]"
           >
             ↓
-          </button>
+          </Button>
         </div>
       </div>
       <label className="space-y-1 text-xs text-[var(--text-muted)]">
@@ -249,13 +252,14 @@ export default function LoraLibraryEntryRow({
         <code className="text-xs text-[var(--accent-text)]">
           {entry.id.trim() ? `{{LORA_${entry.id.trim()}}}` : '{{LORA_<id>}}'}
         </code>
-        <button
+        <Button
+          variant="quiet"
           type="button"
           onClick={() => onRemove(index)}
-          className="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-muted)] transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--tint-danger-text)]"
+          className="rounded-lg border border-[var(--border-default)] px-3 py-1.5 text-xs transition hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--tint-danger-text)]"
         >
           Remove
-        </button>
+        </Button>
       </div>
     </li>
   );

@@ -2,21 +2,15 @@
 
 import type { DiffusersCheckpointOption } from '@/components/DiffusersCheckpointSelector';
 import { useComfyWorkflowSelection } from '@/hooks/useComfyWorkflowSelection';
-import {
-  getComfyModelDefinition,
-  COMFY_IMAGE_MODELS,
-  type ComfyImageModel,
-} from '@/lib/comfy-models/client';
+import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
 import {
   modelsSupportedByAvailableWorkflows,
   resolveWorkflowForModelSelection,
   suggestWorkflowMapForFiles,
-  supportedModelsFilterHint,
 } from '@/lib/model/workflow-map';
 import {
   filterModelsForQueueTool,
   isSceneGenerationModel,
-  resolvePreferredImg2imgModel,
   shouldUseSceneGenerationModel,
   toolIgnoresSystemWorkflowSnap,
 } from '@/lib/queue/tool-model';
@@ -27,29 +21,16 @@ import {
 } from '@/lib/model/denoise-defaults';
 import type { ModelSamplerPresetTier } from '@/lib/model/sampler-defaults';
 import type { ResolutionSizeTier } from '@/lib/model/resolution-defaults';
-import {
-  formatQueueQualityProfileHint,
-  type QueueQualityProfile,
-} from '@/lib/queue/quality-profile';
+import { type QueueQualityProfile } from '@/lib/queue/quality-profile';
 import type { SharedToolSettings } from '@/lib/settings/cache';
-import {
-  DEFAULT_VIDEO_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveSharedSettings,
-} from '@/lib/settings/cache';
+import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import {
   describeSystemWorkflowChoice,
   isSystemWorkflowSupportedModel,
   listSystemWorkflowSupportedModels,
-  resolveSystemWorkflowFallbackModel,
   shouldLimitSystemWorkflowPicker,
-  usesSystemWorkflowPath,
 } from '@/lib/workflow/system-workflow-runtime';
-import { readCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
-import { scanAndAdaptSystemWorkflowInventory } from '@/lib/comfyui/runtime-for-model';
 import type { ComfyWorkflowFile } from '@/lib/comfyui/workflow-files';
-import { loadComfyWorkflowFiles } from '@/lib/comfyui/workflow-files';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { isBrowserStorageReady, whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import { resolveModelStackFamily } from '@/lib/workflow/stack-fingerprint';
@@ -59,12 +40,6 @@ import {
   resolveLoraIdsForModelSelection,
 } from '@/lib/model/lora-map';
 import type { SessionLoraStrengthOverrides } from '@/lib/lora/stack';
-import {
-  DIFFUSERS_DEFAULT_MODEL,
-  resolveStudioModelForDiffusersAsset,
-} from '@/lib/engine/diffusers-defaults';
-import { SUGGESTED_MODEL_CHECKPOINT_MAP } from '@/lib/model/checkpoint-map';
-import { isCloudEngine } from '@/lib/engine/capabilities';
 import {
   useCallback,
   useEffect,

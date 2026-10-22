@@ -32,7 +32,6 @@ type InpaintResultSectionProps = Pick<
 
 export default function InpaintResultSection({
   shared,
-  toolSettings,
   updateShared,
   updateToolSettings,
   previewUrl,

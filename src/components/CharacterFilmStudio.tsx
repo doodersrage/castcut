@@ -262,7 +262,8 @@ export default function CharacterFilmStudio({
             return (
               <li key={item.entryId} className="ui-list-row items-center gap-3">
                 {gallery && galleryEntryHeroPreviewUrl(gallery) ? (
-                  <button
+                  <Button
+                    variant="plain"
                     type="button"
                     className="shrink-0 cursor-zoom-in border-0 bg-transparent p-0"
                     aria-label={`Open shot ${index + 1} in lightbox`}
@@ -273,7 +274,7 @@ export default function CharacterFilmStudio({
                       entry={gallery}
                       className="h-12 w-12 rounded-[var(--radius-sm)] object-cover"
                     />
-                  </button>
+                  </Button>
                 ) : (
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--bg-muted)] type-caption">
                     {index + 1}

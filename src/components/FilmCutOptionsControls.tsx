@@ -472,14 +472,15 @@ export default function FilmCutOptionsControls({
               {hasBed ? 'Score it again' : 'Score this film'}
             </Button>
           ) : null}
-          <button
+          <Button
+            variant="quiet"
             type="button"
-            className="type-caption text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+            className="type-caption hover:underline"
             onClick={() => setLinkOpen(open => !open)}
             data-testid={`${testIdPrefix}-audio-bed-link`}
           >
             {linkOpen ? 'Hide link' : 'Use a link'}
-          </button>
+          </Button>
         </ToolActionRow>
         {linkOpen ? (
           <input

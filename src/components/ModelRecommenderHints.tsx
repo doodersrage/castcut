@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { recommendModels, type ModelRecommendation } from '@/lib/model/recommender';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
+import { Button } from '@/components/ui/Button';
 
 type ModelRecommenderHintsProps = {
   text: string;
@@ -87,15 +88,16 @@ export default function ModelRecommenderHints({
           const active = item.model === currentModel;
           return (
             <li key={item.model} className="flex flex-wrap items-center gap-2 text-xs">
-              <button
+              <Button
+                variant="tint"
                 type="button"
                 disabled={active}
                 onClick={() => onApplyModel(item.model as ComfyImageModel)}
-                className="rounded-full border border-[var(--accent-border)] bg-[var(--bg-base)]/40 px-2.5 py-0.5 text-[var(--accent-text)] transition hover:border-[var(--accent-border)] disabled:cursor-default disabled:opacity-60"
+                className="rounded-full bg-[var(--bg-base)]/40 px-2.5 py-0.5 transition disabled:cursor-default disabled:opacity-60"
               >
                 {def.label}
                 {active ? ' · current' : ''}
-              </button>
+              </Button>
               <span className="text-[var(--text-muted)]">{item.reason}</span>
             </li>
           );

@@ -429,23 +429,6 @@ function propHead(prop: string): string {
 }
 
 /**
- * The listed props the first moment does not already show go into it, in front of her, as the
- * LLM described them — whatever the event, nothing she touches later is new to the picture.
- */
-function setOutListedProps(moments: DayEventMoment[], props: ReadonlyArray<string>): void {
-  const first = moments[0];
-  if (!first) return;
-  const beat = first.beat.toLowerCase();
-  const missing = props
-    .filter(prop => !beat.includes(propHead(prop)))
-    .map(prop => prop.replace(/^(?:the)\s+/i, 'a '));
-  if (missing.length === 0) return;
-  const list =
-    missing.length > 1 ? `${missing.slice(0, -1).join(', ')} and ${missing.at(-1)}` : missing[0];
-  moments[0] = { ...first, beat: `${first.beat}, with ${list} within reach in front of her` };
-}
-
-/**
  * Everything she picks up later is already beside her in the first moment. Later moments are
  * edits of the first, so a prop the first picture lacks appeared in her hand from nowhere (the
  * user's beach event: a shell, sunglasses and a bottle materialised mid-clip).

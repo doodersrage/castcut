@@ -186,6 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    // Full reload on purpose: drop every bit of the signed-out user's client state.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = '/login';
   }, []);
 

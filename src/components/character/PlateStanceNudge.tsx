@@ -18,6 +18,7 @@ import {
   plateStanceNudge,
   withDismissedPlateKey,
 } from '@/lib/plate/stance';
+import { Button } from '@/components/ui/Button';
 
 /** Per-viewer convenience: plates whose stance note this browser dismissed. */
 const DISMISSED_KEY = 'plate-stance-nudge-dismissed';
@@ -99,16 +100,17 @@ export default function PlateStanceNudge({
       >
         Prepare plate →
       </Link>
-      <button
+      <Button
+        variant="quiet"
         type="button"
         aria-label="Dismiss the plate note"
         title="Hide this note for this plate"
-        className="text-[var(--text-muted)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+        className="transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         data-testid="plate-stance-nudge-dismiss"
         onClick={() => dismissPlate(key)}
       >
         ✕
-      </button>
+      </Button>
     </p>
   );
 }

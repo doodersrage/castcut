@@ -2,7 +2,7 @@
 
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { type MouseEvent } from 'react';
-import { Spinner } from '@/components/ui/Button';
+import { Button, Spinner } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import MotionMedia from '@/components/ui/MotionMedia';
 import { isHtmlVideoViewUrl } from '@/lib/comfyui/outputs';
@@ -119,7 +119,8 @@ export function RoleplayStillFrame({
       ) : null}
 
       {clickable && !playHtmlVideo ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           onClick={onOpen}
           className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"

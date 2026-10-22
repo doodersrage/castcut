@@ -1,18 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo } from 'react';
 import { STUDIO_BACKUP_LAST_EXPORT_KEY } from '@/lib/storage/studio-backup-meta';
-import {
-  readBrowserString,
-  whenBrowserStorageReady,
-  writeBrowserString,
-} from '@/lib/storage/browser-storage';
-import { useComfyUiSettings } from '@/hooks/useComfyUiSettings';
+import { writeBrowserString } from '@/lib/storage/browser-storage';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
 import {
   DEFAULT_COMFYUI_SETTINGS,
-  loadComfyUiSettings,
   mergeLoraLibraryIntoCustomTokens,
   placeholderTokensFromSettings,
   resetComfyUiSettings,
@@ -27,69 +20,15 @@ import {
 } from '@/lib/model/checkpoint-map';
 import { formatModelUpscaleMap } from '@/lib/model/upscale-map';
 import { formatModelControlNetMap } from '@/lib/model/controlnet-map';
-import { formatModelLoraMap } from '@/lib/model/lora-map';
 import {
   formatInventorySyncMessage,
   syncLoaderMapsFromInventory,
 } from '@/lib/workflow/loader-map-inventory-sync';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
-import {
-  DEFAULT_SHARED_SETTINGS,
-  loadSettingsCache,
-  saveSharedSettingsNow,
-  SETTINGS_CACHE_UPDATED_EVENT,
-  type SharedToolSettings,
-} from '@/lib/settings/cache';
-import {
-  DEFAULT_SCHEDULED_BATCH,
-  loadScheduledBatchConfig,
-  type ScheduledBatchConfig,
-} from '@/lib/batch/scheduled-batch';
-import {
-  fetchScheduledBatchServerStatus,
-  pushScheduledBatchProfile,
-  type ScheduledBatchServerStatus,
-} from '@/lib/batch/scheduled-batch-profile-sync';
-import {
-  DEFAULT_WEBHOOK_SETTINGS,
-  loadWebhookSettings,
-  type WebhookSettings,
-} from '@/lib/settings/webhook-settings';
-import { AVOIDED_TOKENS_UPDATED_EVENT, exportAvoidedTokenList } from '@/lib/prompt/avoided-tokens';
-import {
-  WEBHOOK_LOG_UPDATED_EVENT,
-  loadWebhookLog,
-  type WebhookLogEntry,
-} from '@/lib/server/webhook-log';
-import {
-  isComfyNotificationSupported,
-  requestComfyNotificationPermission,
-} from '@/lib/comfyui/notifications';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { requestComfyNotificationPermission } from '@/lib/comfyui/notifications';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import {
-  normalizeSettingsTab,
-  settingsTabHref,
-  settingsTabsForWorkspaceMode,
-  isSimpleSettingsTab,
-  settingsViewFromSearchParams,
-  type SettingsTab,
-} from '@/lib/settings/nav';
-import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { useSettingsPageDescriptionRich } from '@/hooks/useToolPageDescription';
-import {
-  comfyUiSectionRequiresFullSettings,
-  normalizeComfyUiSettingsSection,
-  settingsComfyUiSectionHref,
-  type ComfyUiSettingsSectionId,
-} from '@/lib/settings/comfyui-nav';
-import {
-  COMFYUI_SECTION_ELEMENT_IDS,
-  PLAYBOOK_SECTION_CHECKLISTS,
-  serverEnvFieldValue,
-  formatModelWorkflowMap,
-  isHealthResponse,
-  type HealthResponse,
-} from '@/components/settings/tabs/settings-tool-shared';
+import { isHealthResponse } from '@/components/settings/tabs/settings-tool-shared';
 import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/app/onboarding-hooks';
 import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
 import { resolveQueueParams } from '@/lib/queue/params-settings';
@@ -100,97 +39,29 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestrationCore) {
   const {
-    mounted,
     settings,
     updateSettings,
-    workspaceMode,
-    urlView,
-    userShowAllSettings,
-    setUserShowAllSettings,
-    showAllSettings,
     tab,
-    setTab,
-    comfyUiSection,
-    setComfyUiSection,
     sharedSettings,
-    setSharedSettings,
-    sharedMounted,
-    modelWorkflowMapText,
-    setModelWorkflowMapText,
-    modelCheckpointMapText,
     setModelCheckpointMapText,
-    modelVaeMapText,
     setModelVaeMapText,
-    modelRefinerMapText,
     setModelRefinerMapText,
-    modelUpscaleMapText,
     setModelUpscaleMapText,
-    modelControlNetMapText,
     setModelControlNetMapText,
-    modelLoraMapText,
-    setModelLoraMapText,
-    loaderMapMergeHint,
     setLoaderMapMergeHint,
-    ipAdapterUploadStatus,
-    setIpAdapterUploadStatus,
-    ipAdapterUploading,
-    setIpAdapterUploading,
-    health,
     setHealth,
-    loading,
     setLoading,
-    healBusy,
     setHealBusy,
-    healProgress,
     setHealProgress,
-    status,
     setStatus,
-    workflowHealthRefresh,
     setWorkflowHealthRefresh,
-    workflowError,
     setWorkflowError,
-    notificationPermission,
     setNotificationPermission,
     previewPrompt,
-    setPreviewPrompt,
-    previewLoading,
     setPreviewLoading,
-    previewError,
     setPreviewError,
-    workflowPreview,
     setWorkflowPreview,
-    webhookSettings,
-    setWebhookSettings,
-    scheduledBatch,
-    setScheduledBatch,
-    serverScheduledBatchStatus,
-    setServerScheduledBatchStatus,
-    avoidedTokens,
-    setAvoidedTokens,
-    avoidedTokenDraft,
-    setAvoidedTokenDraft,
-    avoidancePreviewPrompt,
-    setAvoidancePreviewPrompt,
-    avoidancePreview,
-    setAvoidancePreview,
-    webhookLog,
-    setWebhookLog,
-    webhookEventFilter,
-    setWebhookEventFilter,
-    expandedWebhookLogId,
-    setExpandedWebhookLogId,
-    backupReminder,
     setBackupReminder,
-    visibleSettingsTabs,
-    slimSettings,
-    description,
-    guidedFixHint,
-    setGuidedFixHint,
-    scrollToComfyUiSection,
-    handleTabChange,
-    handleComfyUiSectionJump,
-    reloadBrowserSettingsState,
-    softSyncSharedSettings,
     updateSharedSettings,
   } = ctx;
 
@@ -216,6 +87,11 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     sharedSettings.modelRefinerMap,
     sharedSettings.modelVaeMap,
     updateSharedSettings,
+    setLoaderMapMergeHint,
+    setModelCheckpointMapText,
+    setModelRefinerMapText,
+    setModelVaeMapText,
+    setStatus,
   ]);
 
   const syncLoaderMapsFromComfyInventory = useCallback(async () => {
@@ -256,6 +132,13 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     sharedSettings.modelUpscaleMap,
     sharedSettings.modelVaeMap,
     updateSharedSettings,
+    setLoaderMapMergeHint,
+    setModelCheckpointMapText,
+    setModelControlNetMapText,
+    setModelUpscaleMapText,
+    setModelVaeMapText,
+    setStatus,
+    setWorkflowHealthRefresh,
   ]);
 
   const workflowValidation = useMemo(() => {
@@ -298,7 +181,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setLoading(false);
     }
-  }, [settings.apiUrl, settings.useServerDefaults]);
+  }, [settings.apiUrl, settings.useServerDefaults, setHealth, setLoading, setStatus]);
 
   const handleHealAndReady = useCallback(async () => {
     setHealBusy(true);
@@ -346,7 +229,21 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setHealBusy(false);
     }
-  }, [refreshHealth, settings.apiUrl, settings.useServerDefaults, updateSharedSettings]);
+  }, [
+    refreshHealth,
+    settings.apiUrl,
+    settings.useServerDefaults,
+    updateSharedSettings,
+    setHealBusy,
+    setHealProgress,
+    setModelCheckpointMapText,
+    setModelControlNetMapText,
+    setModelRefinerMapText,
+    setModelUpscaleMapText,
+    setModelVaeMapText,
+    setStatus,
+    setWorkflowHealthRefresh,
+  ]);
 
   useEffect(() => {
     // The LLM tab needs the health snapshot too: opened directly, its Test button stayed
@@ -359,17 +256,20 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     });
   }, [refreshHealth, tab]);
 
-  const handleImport = useCallback(async (file: File) => {
-    try {
-      const raw = await file.text();
-      const { importStudioBackup, parseStudioBackupFile } =
-        await import('@/lib/storage/studio-backup');
-      importStudioBackup(parseStudioBackupFile(raw));
-      setStatus('Backup imported. Reload the page to apply all settings.');
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Import failed.');
-    }
-  }, []);
+  const handleImport = useCallback(
+    async (file: File) => {
+      try {
+        const raw = await file.text();
+        const { importStudioBackup, parseStudioBackupFile } =
+          await import('@/lib/storage/studio-backup');
+        importStudioBackup(parseStudioBackupFile(raw));
+        setStatus('Backup imported. Reload the page to apply all settings.');
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : 'Import failed.');
+      }
+    },
+    [setStatus]
+  );
 
   const handleExportBackup = useCallback(() => {
     void import('@/lib/storage/studio-backup').then(({ downloadStudioBackup }) => {
@@ -378,7 +278,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
       setBackupReminder(null);
       setStatus('Studio backup downloaded.');
     });
-  }, []);
+  }, [setBackupReminder, setStatus]);
 
   const handleSaveComfySettings = useCallback(() => {
     if (!settings.useServerDefaults && settings.workflowJson?.trim()) {
@@ -396,7 +296,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     setWorkflowError(null);
     setStatus('ComfyUI settings saved.');
     void refreshHealth();
-  }, [refreshHealth, settings]);
+  }, [refreshHealth, settings, setStatus, setWorkflowError]);
 
   const handleImportWorkflow = useCallback(
     async (file: File) => {
@@ -420,7 +320,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
         setStatus(err instanceof Error ? err.message : 'Workflow import failed.');
       }
     },
-    [settings, updateSettings]
+    [settings, updateSettings, setStatus, setWorkflowError]
   );
 
   const handleResetComfySettings = useCallback(async () => {
@@ -439,7 +339,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     setWorkflowError(null);
     setStatus('ComfyUI settings reset to server defaults.');
     void refreshHealth();
-  }, [refreshHealth, updateSettings]);
+  }, [refreshHealth, updateSettings, setStatus, setWorkflowError]);
 
   const handleEnableNotifications = useCallback(async () => {
     const permission = await requestComfyNotificationPermission();
@@ -450,7 +350,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } else if (permission === 'denied') {
       setStatus('Notifications blocked in browser settings.');
     }
-  }, [updateSettings]);
+  }, [updateSettings, setNotificationPermission, setStatus]);
 
   const updateQueueParam = useCallback(
     (key: 'seed' | 'width' | 'height' | 'cfg' | 'steps', value: string) => {
@@ -507,7 +407,14 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setPreviewLoading(false);
     }
-  }, [previewPrompt, settings, sharedSettings.model]);
+  }, [
+    previewPrompt,
+    settings,
+    sharedSettings.model,
+    setPreviewError,
+    setPreviewLoading,
+    setWorkflowPreview,
+  ]);
   return {
     applySuggestedLoaderMaps,
     syncLoaderMapsFromComfyInventory,

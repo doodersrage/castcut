@@ -37,7 +37,6 @@ export function useGalleryPanelOrchestrationPart2(
     removeEntries,
     toggleFavorite,
     setFavorites,
-    setReviewRatings,
     setReviewRating,
     refreshPending,
     activeJobs,

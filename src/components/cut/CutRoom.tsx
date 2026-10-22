@@ -698,13 +698,14 @@ export default function CutRoom() {
                           : 'rendering… it joins the film when ready.'}
                       </span>
                       {extra.status === 'failed' ? (
-                        <button
+                        <Button
+                          variant="quiet"
                           type="button"
-                          className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                          className="text-2xs hover:underline"
                           onClick={() => vm.removeAdded(extra.key)}
                         >
                           Remove
-                        </button>
+                        </Button>
                       ) : null}
                     </li>
                   );
@@ -729,13 +730,14 @@ export default function CutRoom() {
                           ? 'did not render — the shot stays as it was.'
                           : 'rendering… it takes the shot’s place when ready.'}
                       </span>
-                      <button
+                      <Button
+                        variant="quiet"
                         type="button"
-                        className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                        className="text-2xs hover:underline"
                         onClick={() => vm.removeAdded(extra.key)}
                       >
                         {extra.status === 'failed' ? 'Remove' : 'Forget'}
-                      </button>
+                      </Button>
                     </li>
                   ) : null
                 )}
@@ -793,14 +795,15 @@ export default function CutRoom() {
                         onChange={event => vm.setText(shot.key, event.target.value)}
                       />
                     ) : null}
-                    <button
+                    <Button
+                      variant="quiet"
                       type="button"
-                      className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                      className="text-2xs hover:underline"
                       data-testid={`cut-remove-${shot.key}`}
                       onClick={() => vm.removeAdded(shot.key)}
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
                 );
               }}

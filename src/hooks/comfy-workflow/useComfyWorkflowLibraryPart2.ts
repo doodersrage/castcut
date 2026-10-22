@@ -1,40 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { prepareWorkflowJsonImport } from '@/lib/workflow/import';
-import type { CustomWorkflowToken } from '@/lib/comfyui/config';
-import { validateWorkflowJson, type WorkflowPlaceholderTokens } from '@/lib/comfyui/config';
+import { useCallback } from 'react';
+import { type WorkflowPlaceholderTokens } from '@/lib/comfyui/config';
 import {
   deleteComfyWorkflowFile,
-  getWorkflowTokenValue,
   loadComfyWorkflowFiles,
-  setWorkflowTokenValue,
   upsertComfyWorkflowFile,
-  workflowFileNameFromPath,
-  type ComfyWorkflowFile,
 } from '@/lib/comfyui/workflow-files';
-import {
-  clearSelectedWorkflowFileIfDeleted,
-  getSelectedWorkflowFileId,
-  setSelectedWorkflowFileId,
-} from '@/lib/comfyui/runtime';
-import {
-  addPresetsToPack,
-  applyWorkflowPresetPackToLibrary,
-  exportWorkflowPresetPack,
-  importWorkflowPresetPack,
-  loadWorkflowPresetPacks,
-  upsertWorkflowPresetPack,
-  workflowFileToPreset,
-  type WorkflowPresetPack,
-} from '@/lib/workflow/preset-packs';
-import { suggestWorkflowNodeMappings } from '@/lib/workflow/node-mapper';
-import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow/apply-bindings';
-import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import { markOnboardingSystemWorkflowsEnabled } from '@/lib/app/onboarding-hooks';
+import { clearSelectedWorkflowFileIfDeleted } from '@/lib/comfyui/runtime';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { resolveQueueParams } from '@/lib/queue/params-settings';
-import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui/settings';
 import {
   buildControlNetWorkflowScaffold,
   buildIdentityWorkflowScaffold,
@@ -43,21 +18,12 @@ import {
 } from '@/lib/workflow/scaffold';
 import { ensureFaceDetailerLibraryPin } from '@/lib/face/detailer-setup';
 import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
-import { inspectWorkflowGraphJson } from '@/lib/workflow/graph-inspect';
-import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
-import { assignWorkflowToInferredModels } from '@/lib/model/workflow-map';
 import {
   optimizeWorkflowForQueue,
   suggestedOptimizedWorkflowName,
 } from '@/lib/workflow/queue-optimizer';
-import {
-  optimizeAllWorkflowsInLibrary,
-  optimizeWorkflowFileInLibrary,
-} from '@/lib/workflow/library-batch';
+import { optimizeAllWorkflowsInLibrary } from '@/lib/workflow/library-batch';
 import { diffWorkflowNodes } from '@/lib/workflow/diff';
-import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow/health-audit';
-import { downloadText } from '@/lib/storage/download-text';
-import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 export type UseComfyWorkflowLibraryOptions = {
@@ -69,46 +35,18 @@ import type { ComfyWorkflowLibraryCore } from '@/hooks/comfy-workflow/useComfyWo
 
 export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
   const {
-    setBindingPreview,
-    setPresetPacks,
     setOptimizePreviewSummary,
     setImportNotice,
     placeholderTokens,
-    files,
-    serverFiles,
-    selectedId,
     newName,
     setNewName,
     editingId,
     editingName,
-    setEditingName,
     editingJson,
-    setEditingJson,
-    editingTokens,
-    editError,
-    setEditError,
-    importError,
-    importErrorDetail,
-    importNotice,
-    optimizePreviewSummary,
-    presetPacks,
-    packName,
-    setPackName,
-    activePackId,
-    setActivePackId,
-    bindingPreview,
-    editingValidation,
-    editingNodeMappings,
-    editingGraphInspect,
     refresh,
-    selectFile,
     startEdit,
-    persistEditingTokens,
     assignInferredModels,
-    importFile,
     cancelEdit,
-    saveEdit,
-    createBlank,
     onStatus,
   } = ctx;
 
@@ -144,7 +82,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     onStatus?.(
       `Created ${result.category} scaffold for ${model} · assigned to model map. ${result.notes[0] ?? ''}`.trim()
     );
-  }, [assignInferredModels, newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [assignInferredModels, newName, onStatus, placeholderTokens, refresh, startEdit, setNewName]);
 
   const createControlNetScaffold = useCallback(() => {
     const result = buildControlNetWorkflowScaffold({
@@ -167,7 +105,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     setNewName('');
     startEdit(saved);
     onStatus?.(`Created ControlNet scaffold. ${result.notes[0] ?? ''}`.trim());
-  }, [newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [newName, onStatus, placeholderTokens, refresh, startEdit, setNewName]);
 
   const createFaceDetailerScaffold = useCallback(() => {
     void (async () => {
@@ -186,7 +124,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       }
       onStatus?.(result.message);
     })();
-  }, [onStatus, refresh, startEdit]);
+  }, [onStatus, refresh, startEdit, setNewName]);
 
   const createIdentityScaffold = useCallback(
     (kind: 'instantid' | 'pulid') => {
@@ -201,7 +139,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       startEdit(saved);
       onStatus?.(`Created ${label} BYO scaffold. ${result.notes[0] ?? ''}`.trim());
     },
-    [newName, onStatus, refresh, startEdit]
+    [newName, onStatus, refresh, startEdit, setNewName]
   );
 
   const cloneAndBindWorkflow = useCallback(() => {
@@ -242,7 +180,16 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     onStatus?.(
       `Cloned workflow with ${result.bindingChanges} binding${result.bindingChanges === 1 ? '' : 's'} applied · assigned to ${model}.`
     );
-  }, [assignInferredModels, editingJson, newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [
+    assignInferredModels,
+    editingJson,
+    newName,
+    onStatus,
+    placeholderTokens,
+    refresh,
+    startEdit,
+    setNewName,
+  ]);
 
   const previewOptimizeCopy = useCallback(() => {
     const sourceJson = editingJson.trim();
@@ -282,7 +229,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     setOptimizePreviewSummary(
       `Preview: ${result.bindingChanges.length} binding(s), ${added} node(s) added, ${modified} node(s) modified, ${result.audit.warnings.length} review note(s).`
     );
-  }, [editingJson, onStatus, placeholderTokens]);
+  }, [editingJson, onStatus, placeholderTokens, setOptimizePreviewSummary]);
 
   const optimizeAndSaveCopy = useCallback(() => {
     const sourceJson = editingJson.trim();
@@ -347,6 +294,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     placeholderTokens,
     refresh,
     startEdit,
+    setNewName,
   ]);
 
   const optimizeAllInLibrary = useCallback(() => {
@@ -413,7 +361,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       setImportNotice(summary);
       onStatus?.(summary);
     },
-    [onStatus, refresh]
+    [onStatus, refresh, setImportNotice]
   );
 
   return {

@@ -122,13 +122,14 @@ export default function CutGeneratePanel({
                     ? 'picture done, animating… it joins the film when ready.'
                     : 'rendering… it joins the film when ready.'}
               </span>
-              <button
+              <Button
+                variant="quiet"
                 type="button"
-                className="text-2xs text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+                className="text-2xs hover:underline"
                 onClick={() => onRemove(extra.key)}
               >
                 {extra.status === 'failed' ? 'Remove' : 'Cancel'}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

@@ -80,17 +80,10 @@ import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
 import { parseCharacterHints } from '@/lib/character/hints';
-import {
-  assembleAndStampFilm,
-  downloadFilmBlob,
-  stampAssembledFilm,
-} from '@/lib/film/character-film-assemble-lazy';
-import { filmDownloadFilename } from '@/lib/film/character-film';
 import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import {
   activeLook,
   applyCharacterRecord,
-  applyCharacterRecordFresh,
   castLoraSessionIds,
   characterFromPartnerStandIn,
   characterHomeHref,
@@ -101,7 +94,6 @@ import {
   subscribeCharacters,
   upsertCharacter,
 } from '@/lib/character/os';
-import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
 import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
 import {
   fetchClothingLabels,
@@ -123,7 +115,6 @@ import {
   resolveRoleplaySetting,
 } from '@/lib/story/roleplay';
 import {
-  buildDaySlotMotionSubject,
   dayBeatOmitsGarmentPackshot,
   dayMoodReplacesKeepOutfit,
   dayQueueBlockReason,
@@ -147,7 +138,6 @@ import {
   daySlotDefaultLabel,
   clearDaySlotLine,
   dayStillShownImage,
-  restorePreviousDayTake,
   type DaySlotStill,
   DAY_EVERYDAY_POSE_IDENTITY_LOCK_CAP,
   DAY_EVERYDAY_POSE_DENOISE,
@@ -313,18 +303,8 @@ import {
   filterWardrobeSelectOptions,
   normalizeWardrobeCategoryFilter,
 } from '@/lib/wardrobe/catalog-ui';
-import {
-  applyLookPackToDaySlots,
-  loadLookPack,
-  lookPackNotes,
-  lookPackRoleplayHref,
-  saveLookPack,
-} from '@/lib/look/pack';
-import {
-  bumpPlayCampaignStep,
-  completePlayCampaign,
-  resolvePlayLoopEntryCharacterId,
-} from '@/lib/play/campaign';
+import { applyLookPackToDaySlots, loadLookPack, lookPackNotes } from '@/lib/look/pack';
+import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 import { castFaceQueueParamsBase, syncSharedIdentityToCast } from '@/lib/look/outfit-plate';
 import { resolveDaySlotLook } from '@/lib/day/slot-look';
 import {
@@ -341,14 +321,7 @@ import {
 import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
-import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import {
-  DEFAULT_VIDEO_TOOL_CACHE,
-  loadSettingsCache,
-  loadToolSettings,
-  saveSharedSettings,
-} from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 const TOOL_ID = 'day' as const;

@@ -41,7 +41,6 @@ export default function ProfileSecurityPanel() {
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [totpSetup, setTotpSetup] = useState<{ secret: string; uri: string } | null>(null);
   const [totpCode, setTotpCode] = useState('');
-  const [shortcutsJson, setShortcutsJson] = useState('');
   const [shortcutBindings, setShortcutBindings] = useState(DEFAULT_KEYBOARD_SHORTCUTS);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -61,7 +60,6 @@ export default function ProfileSecurityPanel() {
     setSessions(sessionsData.sessions ?? []);
     setCurrentSessionId(sessionsData.currentSessionId ?? null);
     setTotpEnabled(Boolean(totpData.enabled));
-    setShortcutsJson(JSON.stringify(loadKeyboardShortcuts(), null, 2));
     setShortcutBindings(loadKeyboardShortcuts());
   }, []);
 
@@ -333,7 +331,6 @@ export default function ProfileSecurityPanel() {
                 variant="secondary"
                 onClick={() => {
                   saveKeyboardShortcuts(shortcutBindings);
-                  setShortcutsJson(JSON.stringify(shortcutBindings, null, 2));
                   setStatus('Shortcuts saved.');
                 }}
               >
@@ -343,7 +340,6 @@ export default function ProfileSecurityPanel() {
                 variant="ghost"
                 onClick={() => {
                   setShortcutBindings(DEFAULT_KEYBOARD_SHORTCUTS);
-                  setShortcutsJson(JSON.stringify(DEFAULT_KEYBOARD_SHORTCUTS, null, 2));
                 }}
               >
                 Reset defaults

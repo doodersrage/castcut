@@ -168,7 +168,8 @@ export default function FilmWatchPlayer({
           <img src={shot.url} alt={shot.title} className="h-full w-full object-contain" />
         ) : null}
         {onOpenShot && shot && !htmlVideo ? (
-          <button
+          <Button
+            variant="plain"
             type="button"
             className="absolute inset-0 z-[1] cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]"
             aria-label={`Open ${shot.title} larger`}

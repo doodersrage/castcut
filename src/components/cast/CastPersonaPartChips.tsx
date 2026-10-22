@@ -7,6 +7,7 @@ import {
   ROLEPLAY_ARCHETYPE_FEATURED_IDS,
   ROLEPLAY_ARCHETYPES,
 } from '@/lib/story/roleplay';
+import { Button } from '@/components/ui/Button';
 
 type CastPersonaPartChipsProps = {
   personaId: string;
@@ -69,10 +70,11 @@ export default function CastPersonaPartChips({
     <div className="space-y-2" data-testid={testIdPrefix}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="type-caption text-[var(--text-muted)]">Part (optional)</p>
-        <button
+        <Button
+          variant="quiet"
           type="button"
           disabled={disabled}
-          className="type-caption text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline disabled:opacity-50"
+          className="type-caption hover:text-[var(--text-secondary)] hover:underline disabled:opacity-50"
           data-testid={`${testIdPrefix}-toggle-all`}
           onClick={() => {
             setShowAll(open => !open);
@@ -82,7 +84,7 @@ export default function CastPersonaPartChips({
           }}
         >
           {showAll ? 'Show fewer' : `Show all (${ROLEPLAY_ARCHETYPES.length})`}
-        </button>
+        </Button>
       </div>
       {showAll ? (
         <TextInput

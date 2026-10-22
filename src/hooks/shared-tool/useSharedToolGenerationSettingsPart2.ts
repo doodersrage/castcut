@@ -2,22 +2,19 @@
 
 import { useEffect } from 'react';
 import {
-  normalizeModelSamplerPresetTier,
   type ModelSamplerOverrideFields,
   type ModelSamplerPresetTier,
 } from '@/lib/model/sampler-defaults';
 import {
-  normalizeResolutionOrientation,
-  normalizeResolutionSizeTier,
   type ResolutionOrientation,
   type ResolutionSizeTier,
 } from '@/lib/model/resolution-defaults';
-import { normalizeAnatomyGuardMode, type AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
+import { type AnatomyGuardMode } from '@/lib/adult/anatomy-guard';
 import {
   normalizeQueueQualityProfile,
   type QueueQualityProfile,
 } from '@/lib/queue/quality-profile';
-import { normalizeRenderRealismMode, type RenderRealismMode } from '@/lib/engine/render-realism';
+import { type RenderRealismMode } from '@/lib/engine/render-realism';
 import {
   loadSettingsCache,
   saveSessionLoraSelectionNow,

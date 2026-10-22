@@ -137,7 +137,7 @@ export function renderMaskEditorFrame(input: {
   overlayCanvas: HTMLCanvasElement;
   image: CanvasImageSource;
 }): void {
-  const { displayCanvas, exportMaskCanvas, previewMaskCanvas, overlayCanvas, image } = input;
+  const { displayCanvas, previewMaskCanvas, overlayCanvas, image } = input;
   const width = displayCanvas.width;
   const height = displayCanvas.height;
   const displayCtx = displayCanvas.getContext('2d');

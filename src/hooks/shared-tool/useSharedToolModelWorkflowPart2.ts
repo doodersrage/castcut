@@ -123,7 +123,7 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
       },
       { notify: false }
     );
-  }, []);
+  }, [setShowAllModelsOverride]);
 
   useEffect(() => {
     if (!storageReady) {
@@ -263,7 +263,7 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
       cancelled = true;
       cancelIdle?.();
     };
-  }, [shared.useSystemWorkflows, shared.model, storageReady]);
+  }, [shared.useSystemWorkflows, shared.model, storageReady, setInventoryTick]);
 
   const videoInitKey =
     toolId === 'video'
@@ -375,6 +375,7 @@ export function useSharedToolModelWorkflowPart2(ctx: SharedToolModelWorkflowCore
     shared.autoSelectWorkflowForModel,
     storageReady,
     workflowSelection.mounted,
+    workflowManualOverrideRef,
   ]);
 
   return {

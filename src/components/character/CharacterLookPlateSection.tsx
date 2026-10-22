@@ -328,7 +328,8 @@ export default function CharacterLookPlateSection({
       {hasPlate ? (
         <div className="flex flex-wrap items-start gap-4">
           {previewUrl ? (
-            <button
+            <Button
+              variant="plain"
               type="button"
               className="block shrink-0 cursor-zoom-in border-0 bg-transparent p-0"
               data-testid="cast-look-plate-preview"
@@ -346,7 +347,7 @@ export default function CharacterLookPlateSection({
                 alt="Look plate"
                 className="max-h-64 max-w-[16rem] rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
               />
-            </button>
+            </Button>
           ) : null}
           <div className="min-w-[12rem] flex-1 space-y-3">
             <PlateCheckLine plate={plate} />

@@ -166,7 +166,8 @@ function WardrobeKitBrowserDialog({
               const selected = selectedId === kit.id;
               const label = formatWardrobeKitLabel(kit.label);
               return (
-                <button
+                <Button
+                  variant="plain"
                   key={kit.id}
                   type="button"
                   disabled={disabled}
@@ -213,7 +214,7 @@ function WardrobeKitBrowserDialog({
                   >
                     {label}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>

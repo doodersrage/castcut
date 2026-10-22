@@ -376,7 +376,8 @@ export default function MobileCaptureTool() {
           <p className="type-caption text-[var(--text-muted)]">Recent plates</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {plates.map(plate => (
-              <button
+              <Button
+                variant="plain"
                 key={plate.id}
                 type="button"
                 className={`min-w-[4.5rem] shrink-0 overflow-hidden rounded-xl border ${
@@ -395,7 +396,7 @@ export default function MobileCaptureTool() {
                   alt={plate.name}
                   className="h-16 w-full object-cover"
                 />
-              </button>
+              </Button>
             ))}
           </div>
         </div>

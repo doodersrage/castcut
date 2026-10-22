@@ -7,6 +7,7 @@ import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose/references';
 import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import type { NormalizedBody } from '@/lib/pose/library';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Real-world reference poses (pose-references.ts) as small figures, grouped by Day pose in Day's
@@ -78,7 +79,8 @@ const ReferencePoseTiles = memo(function ReferencePoseTiles({
           <p className="type-caption text-[var(--text-muted)]">{poseLayoutLabel(pose)}</p>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
             {list.map(reference => (
-              <button
+              <Button
+                variant="plain"
                 key={reference.id}
                 type="button"
                 title={`${poseLayoutLabel(pose)}${reference.draft ? ' (draft)' : ''} — ${poseReferenceCreditLine(reference)}`}
@@ -106,7 +108,7 @@ const ReferencePoseTiles = memo(function ReferencePoseTiles({
                 <span className="text-3xs leading-tight text-[var(--text-secondary)]">
                   {reference.variant}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -159,7 +161,8 @@ const DayPoseTiles = memo(function DayPoseTiles({ testIdPrefix }: { testIdPrefix
               const figure = dayPoseFigure(id);
               const label = poseLayoutLabel(id);
               return (
-                <button
+                <Button
+                  variant="plain"
                   key={id}
                   type="button"
                   title={label}
@@ -187,7 +190,7 @@ const DayPoseTiles = memo(function DayPoseTiles({ testIdPrefix }: { testIdPrefix
                   <span className="line-clamp-2 min-h-[2lh] text-3xs leading-tight text-[var(--text-secondary)]">
                     {label}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
