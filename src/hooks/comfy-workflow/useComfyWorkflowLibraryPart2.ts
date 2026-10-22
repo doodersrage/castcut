@@ -82,7 +82,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     onStatus?.(
       `Created ${result.category} scaffold for ${model} · assigned to model map. ${result.notes[0] ?? ''}`.trim()
     );
-  }, [assignInferredModels, newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [assignInferredModels, newName, onStatus, placeholderTokens, refresh, startEdit, setNewName]);
 
   const createControlNetScaffold = useCallback(() => {
     const result = buildControlNetWorkflowScaffold({
@@ -105,7 +105,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     setNewName('');
     startEdit(saved);
     onStatus?.(`Created ControlNet scaffold. ${result.notes[0] ?? ''}`.trim());
-  }, [newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [newName, onStatus, placeholderTokens, refresh, startEdit, setNewName]);
 
   const createFaceDetailerScaffold = useCallback(() => {
     void (async () => {
@@ -124,7 +124,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       }
       onStatus?.(result.message);
     })();
-  }, [onStatus, refresh, startEdit]);
+  }, [onStatus, refresh, startEdit, setNewName]);
 
   const createIdentityScaffold = useCallback(
     (kind: 'instantid' | 'pulid') => {
@@ -139,7 +139,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       startEdit(saved);
       onStatus?.(`Created ${label} BYO scaffold. ${result.notes[0] ?? ''}`.trim());
     },
-    [newName, onStatus, refresh, startEdit]
+    [newName, onStatus, refresh, startEdit, setNewName]
   );
 
   const cloneAndBindWorkflow = useCallback(() => {
@@ -180,7 +180,16 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     onStatus?.(
       `Cloned workflow with ${result.bindingChanges} binding${result.bindingChanges === 1 ? '' : 's'} applied · assigned to ${model}.`
     );
-  }, [assignInferredModels, editingJson, newName, onStatus, placeholderTokens, refresh, startEdit]);
+  }, [
+    assignInferredModels,
+    editingJson,
+    newName,
+    onStatus,
+    placeholderTokens,
+    refresh,
+    startEdit,
+    setNewName,
+  ]);
 
   const previewOptimizeCopy = useCallback(() => {
     const sourceJson = editingJson.trim();
@@ -220,7 +229,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     setOptimizePreviewSummary(
       `Preview: ${result.bindingChanges.length} binding(s), ${added} node(s) added, ${modified} node(s) modified, ${result.audit.warnings.length} review note(s).`
     );
-  }, [editingJson, onStatus, placeholderTokens]);
+  }, [editingJson, onStatus, placeholderTokens, setOptimizePreviewSummary]);
 
   const optimizeAndSaveCopy = useCallback(() => {
     const sourceJson = editingJson.trim();
@@ -285,6 +294,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
     placeholderTokens,
     refresh,
     startEdit,
+    setNewName,
   ]);
 
   const optimizeAllInLibrary = useCallback(() => {
@@ -351,7 +361,7 @@ export function useComfyWorkflowLibraryPart2(ctx: ComfyWorkflowLibraryCore) {
       setImportNotice(summary);
       onStatus?.(summary);
     },
-    [onStatus, refresh]
+    [onStatus, refresh, setImportNotice]
   );
 
   return {

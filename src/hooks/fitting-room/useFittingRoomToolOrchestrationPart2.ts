@@ -273,6 +273,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     toolSettings.customGarmentDescription,
     toolSettings.customGarmentImageFilename,
     toolSettings.customGarmentImageUrl,
+    setSaveStatus,
   ]);
 
   const applySavedCustomGarment = useCallback(
@@ -301,7 +302,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       updateShared({ lockedWardrobeId: undefined });
       setSaveStatus(`Using saved “${entry.label}”.`);
     },
-    [updateShared, updateToolSettings]
+    [updateShared, updateToolSettings, setSaveStatus]
   );
 
   const removeSavedCustomGarment = useCallback((garmentId: string) => {
@@ -443,7 +444,16 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         scheduleAfterCommit(() => setSaveStatus('Applied Moodboard look pack.'));
       }
     }
-  }, [applyReference, mounted, shared.activeCharacterId, updateShared, updateToolSettings]);
+  }, [
+    applyReference,
+    mounted,
+    shared.activeCharacterId,
+    updateShared,
+    updateToolSettings,
+    deepLinkHandled,
+    setError,
+    setSaveStatus,
+  ]);
 
   // The plate belongs to another Cast — stamped on it, or the Cast changed while Outfit was open.
   // Loose Lana picked over Tomas's plate kept trying clothes on Tomas (UI review 2026-10-08):
@@ -611,7 +621,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     return () => {
       cancelled = true;
     };
-  }, [clothingGender, wardrobeOptionsKey]);
+  }, [clothingGender, wardrobeOptionsKey, setWardrobeLoadedKey, setWardrobeOptions]);
 
   useEffect(() => {
     const id = shared.lockedWardrobeId?.trim();
@@ -634,7 +644,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     return () => {
       cancelled = true;
     };
-  }, [shared.lockedWardrobeId]);
+  }, [shared.lockedWardrobeId, setLockedWardrobeLabel]);
 
   useEffect(() => {
     if (!referenceImageUrl) {
@@ -645,7 +655,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       return;
     }
     scheduleAfterCommit(() => setReferencePreviewUrl(cacheBustIdentityMediaUrl(referenceImageUrl)));
-  }, [referenceImageUrl]);
+  }, [referenceImageUrl, setReferencePreviewUrl]);
 
   const selectKit = useCallback(
     (wardrobeId: string) => {
@@ -736,12 +746,19 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     if (first) {
       updateShared({ lockedWardrobeId: first });
     }
-  }, [shared.lockedWardrobeId, swipeDeck, updateShared, wardrobeCategoryFilter, wardrobeReady]);
+  }, [
+    shared.lockedWardrobeId,
+    swipeDeck,
+    updateShared,
+    wardrobeCategoryFilter,
+    wardrobeReady,
+    prevCategoryFilterRef,
+  ]);
 
   const skipKit = useCallback(() => {
     swipeKit(1);
     setSaveStatus('Skipped to next kit.');
-  }, [swipeKit]);
+  }, [swipeKit, setSaveStatus]);
 
   /** Pass this try-on — remove from compare; does not advance the kit deck. */
   const dismissTryOn = useCallback(
@@ -753,7 +770,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       setCompareTryOns(current => current.filter(item => item.promptId !== id));
       setSaveStatus('Passed this try-on.');
     },
-    [setCompareTryOns]
+    [setCompareTryOns, setSaveStatus]
   );
 
   /**
@@ -779,7 +796,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       );
       setSaveStatus('Fixed area applied — the original stays in the Gallery.');
     },
-    [setCompareTryOns]
+    [setCompareTryOns, setSaveStatus]
   );
 
   /** Requeue the same kit (or current BYO) from a compare card / lightbox. */
@@ -830,7 +847,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
       ...applyCharacterRecord(getCharacter(base.id) ?? base),
     });
     setSaveStatus(`Saved kit on ${base.name}.`);
-  }, [character?.hints, character?.name, character?.notes, shared]);
+  }, [character?.hints, character?.name, character?.notes, shared, setError, setSaveStatus]);
   return {
     busy,
     compareTryOns,

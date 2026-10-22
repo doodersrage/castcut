@@ -29,7 +29,7 @@ export default function WildcardListsEditor({
   onChange,
   focusClassName = '',
 }: WildcardListsEditorProps) {
-  const custom = lists ?? {};
+  const custom = useMemo(() => lists ?? {}, [lists]);
   const names = useMemo(() => Object.keys(custom).sort((a, b) => a.localeCompare(b)), [custom]);
   const [selected, setSelected] = useState(names[0] ?? '');
   const [draftName, setDraftName] = useState('');

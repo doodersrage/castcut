@@ -265,7 +265,15 @@ export function usePromptResultComfyUiBatchQueue(
         });
       }
     },
-    [config.hints, config.model, config.tool, trackComfyUiJob, saveHistory, historySaved]
+    [
+      config.hints,
+      config.model,
+      config.tool,
+      trackComfyUiJob,
+      saveHistory,
+      historySaved,
+      setComfyUiStatus,
+    ]
   );
   return { sendBatchComfyUi };
 }

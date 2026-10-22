@@ -281,7 +281,7 @@ export function useRoleplayFilmActions(input: {
         setAssemblingFilm(false);
       }
     },
-    [filmCutOptions, input.bioName, input.storyRef, input.toolSettings]
+    [filmCutOptions, input.bioName, input.sendComfyUiRef, input.storyRef, input.toolSettings]
   );
 
   const saveFilmToCast = useCallback(() => {

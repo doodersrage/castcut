@@ -355,6 +355,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       toolSettings.dayMood,
       toolSettings.intimateMix,
       updateToolSettings,
+      setBusy,
+      setError,
     ]
   );
 
@@ -388,7 +390,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       return wide;
     },
-    [actions.sendComfyUi, shared.activeCharacterId, shared.model, stillsRef, updateToolSettings]
+    [
+      actions.sendComfyUi,
+      shared.activeCharacterId,
+      shared.model,
+      stillsRef,
+      updateToolSettings,
+      setFilmStatus,
+    ]
   );
 
   const animateSlot = useCallback(
@@ -684,6 +693,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       toolSettings.dayEvent,
       toolSettings.dayMood,
       updateToolSettings,
+      setActiveSlotId,
+      setBusy,
+      setError,
+      setFilmStatus,
     ]
   );
 
@@ -715,7 +728,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setBusy(false);
     }
-  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
+  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood, setBusy, setError]);
 
   /**
    * Dub (day-dub.ts): every spoken line (and reply) translated, then each talking clip made
@@ -787,7 +800,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         setBusy(false);
       }
     },
-    [animateSlot, slots, stillsRef, updateToolSettings]
+    [animateSlot, slots, stillsRef, updateToolSettings, setBusy, setError]
   );
 
   /** Close-ups of a slot's still (a face close-up and a detail), cut in right after it. */
@@ -864,6 +877,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       slots,
       stillsRef,
       updateToolSettings,
+      setBusy,
+      setError,
+      setFilmStatus,
     ]
   );
 
@@ -1062,10 +1078,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       slots,
       toolSettings,
       wideAngleUrl,
-      shared.activeCharacterId,
       stillsRef,
-      updateToolSettings,
       wideStillUrl,
+      assembledFilmRef,
+      recordDayNarration,
+      setAssemblingFilm,
+      setError,
+      setFilmNeedsCast,
+      setFilmStatus,
     ]
   );
 
@@ -1128,7 +1148,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         lengthSeconds,
       };
     },
-    [character, shared.model, stillsRef, toolSettings.dayMood]
+    [character, shared.activeCharacterId, shared.model, stillsRef, toolSettings.dayMood]
   );
 
   // "Open this Day again" (Cast → Seasons) set the Day it replaced aside — offer it back.
@@ -1192,7 +1212,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setPosterBusy(false);
     }
-  }, [activeSlotId, character, filmCutOptions, slots]);
+  }, [activeSlotId, character, filmCutOptions, slots, setError, setFilmStatus, stillsRef]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {
@@ -1240,7 +1260,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setError(null);
       setFilmStatus(`Saved ${next.name} to Cast and stamped ${film.filename}.`);
     })();
-  }, [character, setError, setFilmNeedsCast, setFilmStatus]);
+  }, [character, setError, setFilmNeedsCast, setFilmStatus, assembledFilmRef]);
 
   const goRoleplay = useCallback(() => {
     const gate = canEnterPlayStep('roleplay', {

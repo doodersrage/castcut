@@ -56,7 +56,7 @@ export function useComfyWorkflowLibraryPart3(
     setPresetPacks(loadWorkflowPresetPacks());
     setPackName('');
     onStatus?.(`Created preset pack “${name}”.`);
-  }, [onStatus, packName]);
+  }, [onStatus, packName, setPackName, setPresetPacks]);
 
   const importPresetPackFile = useCallback(
     (file: File) => {
@@ -73,7 +73,7 @@ export function useComfyWorkflowLibraryPart3(
         }
       });
     },
-    [onStatus, refresh]
+    [onStatus, refresh, setPresetPacks]
   );
 
   const addSelectedWorkflowToPack = useCallback(() => {
@@ -86,7 +86,7 @@ export function useComfyWorkflowLibraryPart3(
     onStatus?.(
       updated ? `Added “${file.name}” to pack “${updated.name}”.` : 'Could not update pack.'
     );
-  }, [activePackId, files, onStatus, selectedId]);
+  }, [activePackId, files, onStatus, selectedId, setPresetPacks]);
 
   const saveCurrentSettingsToPack = useCallback(() => {
     const comfySettings = loadComfyUiSettings();
@@ -114,7 +114,7 @@ export function useComfyWorkflowLibraryPart3(
         ? `Saved current ComfyUI settings snapshot to “${updated.name}”.`
         : 'Could not update pack.'
     );
-  }, [activePackId, onStatus]);
+  }, [activePackId, onStatus, setPresetPacks]);
 
   const installPresetPack = useCallback(
     (pack: WorkflowPresetPack) => {
@@ -155,7 +155,14 @@ export function useComfyWorkflowLibraryPart3(
     setEditingJson(applied.json);
     setBindingPreview(summarizeBindingChanges(applied.changes));
     onStatus?.(`Applied ${applied.changes.length} binding(s). Review and save.`);
-  }, [editingJson, editingNodeMappings, onStatus, placeholderTokens]);
+  }, [
+    editingJson,
+    editingNodeMappings,
+    onStatus,
+    placeholderTokens,
+    setBindingPreview,
+    setEditingJson,
+  ]);
 
   return {
     createNewPack,

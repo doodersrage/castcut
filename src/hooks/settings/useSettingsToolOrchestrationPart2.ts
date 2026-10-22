@@ -87,6 +87,11 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     sharedSettings.modelRefinerMap,
     sharedSettings.modelVaeMap,
     updateSharedSettings,
+    setLoaderMapMergeHint,
+    setModelCheckpointMapText,
+    setModelRefinerMapText,
+    setModelVaeMapText,
+    setStatus,
   ]);
 
   const syncLoaderMapsFromComfyInventory = useCallback(async () => {
@@ -127,6 +132,13 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     sharedSettings.modelUpscaleMap,
     sharedSettings.modelVaeMap,
     updateSharedSettings,
+    setLoaderMapMergeHint,
+    setModelCheckpointMapText,
+    setModelControlNetMapText,
+    setModelUpscaleMapText,
+    setModelVaeMapText,
+    setStatus,
+    setWorkflowHealthRefresh,
   ]);
 
   const workflowValidation = useMemo(() => {
@@ -169,7 +181,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setLoading(false);
     }
-  }, [settings.apiUrl, settings.useServerDefaults]);
+  }, [settings.apiUrl, settings.useServerDefaults, setHealth, setLoading, setStatus]);
 
   const handleHealAndReady = useCallback(async () => {
     setHealBusy(true);
@@ -217,7 +229,21 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setHealBusy(false);
     }
-  }, [refreshHealth, settings.apiUrl, settings.useServerDefaults, updateSharedSettings]);
+  }, [
+    refreshHealth,
+    settings.apiUrl,
+    settings.useServerDefaults,
+    updateSharedSettings,
+    setHealBusy,
+    setHealProgress,
+    setModelCheckpointMapText,
+    setModelControlNetMapText,
+    setModelRefinerMapText,
+    setModelUpscaleMapText,
+    setModelVaeMapText,
+    setStatus,
+    setWorkflowHealthRefresh,
+  ]);
 
   useEffect(() => {
     // The LLM tab needs the health snapshot too: opened directly, its Test button stayed
@@ -230,17 +256,20 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     });
   }, [refreshHealth, tab]);
 
-  const handleImport = useCallback(async (file: File) => {
-    try {
-      const raw = await file.text();
-      const { importStudioBackup, parseStudioBackupFile } =
-        await import('@/lib/storage/studio-backup');
-      importStudioBackup(parseStudioBackupFile(raw));
-      setStatus('Backup imported. Reload the page to apply all settings.');
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Import failed.');
-    }
-  }, []);
+  const handleImport = useCallback(
+    async (file: File) => {
+      try {
+        const raw = await file.text();
+        const { importStudioBackup, parseStudioBackupFile } =
+          await import('@/lib/storage/studio-backup');
+        importStudioBackup(parseStudioBackupFile(raw));
+        setStatus('Backup imported. Reload the page to apply all settings.');
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : 'Import failed.');
+      }
+    },
+    [setStatus]
+  );
 
   const handleExportBackup = useCallback(() => {
     void import('@/lib/storage/studio-backup').then(({ downloadStudioBackup }) => {
@@ -249,7 +278,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
       setBackupReminder(null);
       setStatus('Studio backup downloaded.');
     });
-  }, []);
+  }, [setBackupReminder, setStatus]);
 
   const handleSaveComfySettings = useCallback(() => {
     if (!settings.useServerDefaults && settings.workflowJson?.trim()) {
@@ -267,7 +296,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     setWorkflowError(null);
     setStatus('ComfyUI settings saved.');
     void refreshHealth();
-  }, [refreshHealth, settings]);
+  }, [refreshHealth, settings, setStatus, setWorkflowError]);
 
   const handleImportWorkflow = useCallback(
     async (file: File) => {
@@ -291,7 +320,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
         setStatus(err instanceof Error ? err.message : 'Workflow import failed.');
       }
     },
-    [settings, updateSettings]
+    [settings, updateSettings, setStatus, setWorkflowError]
   );
 
   const handleResetComfySettings = useCallback(async () => {
@@ -310,7 +339,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     setWorkflowError(null);
     setStatus('ComfyUI settings reset to server defaults.');
     void refreshHealth();
-  }, [refreshHealth, updateSettings]);
+  }, [refreshHealth, updateSettings, setStatus, setWorkflowError]);
 
   const handleEnableNotifications = useCallback(async () => {
     const permission = await requestComfyNotificationPermission();
@@ -321,7 +350,7 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } else if (permission === 'denied') {
       setStatus('Notifications blocked in browser settings.');
     }
-  }, [updateSettings]);
+  }, [updateSettings, setNotificationPermission, setStatus]);
 
   const updateQueueParam = useCallback(
     (key: 'seed' | 'width' | 'height' | 'cfg' | 'steps', value: string) => {
@@ -378,7 +407,14 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     } finally {
       setPreviewLoading(false);
     }
-  }, [previewPrompt, settings, sharedSettings.model]);
+  }, [
+    previewPrompt,
+    settings,
+    sharedSettings.model,
+    setPreviewError,
+    setPreviewLoading,
+    setWorkflowPreview,
+  ]);
   return {
     applySuggestedLoaderMaps,
     syncLoaderMapsFromComfyInventory,
