@@ -77,7 +77,8 @@ async function openDirector(page: Page) {
   await dismissBlockingOverlays(page);
   await page.getByTestId('day-progress-menu-morning').first().click();
   await page.getByTestId('day-progress-director-morning').click();
-  await expect(page.getByTestId('day-director')).toBeVisible();
+  // The Director (three.js) is a lazy chunk: a cold dev server compiles it on first open.
+  await expect(page.getByTestId('day-director')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-director-preview')).toHaveAttribute('data-ready', 'true', {
     timeout: 60_000,
   });
