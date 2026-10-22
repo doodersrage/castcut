@@ -12,8 +12,11 @@
 import { PerspectiveCamera, Quaternion, Vector3, Matrix4 } from 'three';
 import type { NormalizedBody } from '@/lib/pose/library';
 import {
+  RIG3D_SEGMENTS,
   RIG3D_VERSION,
+  type Rig3dSegment,
   type PoseRig3d,
+  type Rig3dProportions,
   type PoseRig3dCamera,
   type PoseRig3dFigure,
   type Rig3dBodyKind,
@@ -52,6 +55,13 @@ export function limbChain(side: Side, limb: Limb): [string, string, string] {
 const TWIST_LIMIT: Record<Limb, number> = {
   arm: (100 * Math.PI) / 180,
   leg: (55 * Math.PI) / 180,
+};
+// How far past its limit a limb may stay turned before the lift settles it (settleLimbTwist):
+// a thigh turned 65°, an upper arm 122°. Past that the hip or shoulder skin wrings into a lump
+// (stand-2's thigh showed one at 77°; less slack only cost 2D fit — scripts/pose-3d/lift-check.mts).
+const SETTLE_SLACK: Record<Limb, number> = {
+  arm: (22 * Math.PI) / 180,
+  leg: (10 * Math.PI) / 180,
 };
 const FLEX_DIRECTION: Record<Limb, Vector3> = {
   // At rest, a forearm bends forward and a shin backward.
@@ -198,7 +208,23 @@ export function restFigure(kind: Rig3dBodyKind, position?: Rig3dVec3): PoseRig3d
 export function cloneFigure(figure: PoseRig3dFigure): PoseRig3dFigure {
   const bones: Record<string, Rig3dQuat> = {};
   for (const [name, q] of Object.entries(figure.bones)) bones[name] = [q[0], q[1], q[2], q[3]];
-  return { body: figure.body, position: [...figure.position], bones };
+  return {
+    body: figure.body,
+    position: [...figure.position],
+    bones,
+    ...(figure.scale ? { scale: { ...figure.scale } } : {}),
+  };
+}
+
+/**
+ * How long a bone is drawn, as a share of the base body's: its segment's (rig3d.ts
+ * `PoseRig3dFigure.scale`), else 1. Only the limb bones have one.
+ */
+export function boneScale(figure: PoseRig3dFigure, bone: string): number {
+  const scale = figure.scale;
+  if (!scale) return 1;
+  const segment = bone.slice(0, -2) as keyof Rig3dProportions;
+  return (bone.endsWith('_L') || bone.endsWith('_R') ? scale[segment] : undefined) ?? 1;
 }
 
 export function cloneRig(rig: PoseRig3d): PoseRig3d {
@@ -232,7 +258,10 @@ export function figureWorld(figure: PoseRig3dFigure): FigureWorld {
     } else {
       const pq = quat[bone.parent]!;
       quat[bone.name] = pq.clone().multiply(q);
-      pos[bone.name] = new Vector3(...bone.p).applyQuaternion(pq).add(pos[bone.parent]!);
+      pos[bone.name] = new Vector3(...bone.p)
+        .multiplyScalar(boneScale(figure, bone.parent))
+        .applyQuaternion(pq)
+        .add(pos[bone.parent]!);
     }
   }
   return { pos, quat };
@@ -425,6 +454,113 @@ export function limbTwistExcess(figure: PoseRig3dFigure, side: Side, limb: Limb)
   return Math.max(0, Math.abs(twistAngle(figure, limbChain(side, limb)[0])) - TWIST_LIMIT[limb]);
 }
 
+/**
+ * A limb turned past its twist limit (no reading of the picture bends it the natural way: a hip
+ * or shoulder wrung into a lump), settled: within the limit (and a little slack), bent the natural
+ * way, swung as little as it takes, its elbow (knee) and hand (foot) as near where they should be
+ * as that allows.
+ */
+export function settleLimbTwist(
+  figure: PoseRig3dFigure,
+  side: Side,
+  limb: Limb,
+  /** How far the middle and the end joint are from where they should be (default: from now). */
+  miss?: { mid: (point: Vector3) => number; end: (point: Vector3) => number },
+  /**
+   * Search the natural poses even within the limit (a limb locked straight against the picture's
+   * bend), keeping the limb as it is unless one lands nearer.
+   */
+  force = false
+): void {
+  const [upper, lower, tip] = limbChain(side, limb);
+  const twist = twistAngle(figure, upper);
+  const limit = force ? TWIST_LIMIT[limb] : TWIST_LIMIT[limb] + SETTLE_SLACK[limb];
+  if (!force && Math.abs(twist) <= limit) return;
+  const sk = info(figure.body);
+  const world = figureWorld(figure);
+  const tipWorldQ = world.quat[tip]!.clone();
+  const root = world.pos[upper]!.clone();
+  const mid0 = world.pos[lower]!.clone();
+  const end0 = world.pos[tip]!.clone();
+  const cost = miss ?? {
+    mid: (point: Vector3) => point.distanceTo(mid0),
+    end: (point: Vector3) => point.distanceTo(end0),
+  };
+  const [l1, l2] = limbLengths(figure, side, limb);
+  const upperQ = world.quat[upper]!;
+  const d0 = sk.dirLocal.get(upper)!.clone().applyQuaternion(upperQ);
+  const hinge0 = sk.hingeLocal.get(upper)!.clone().applyQuaternion(upperQ);
+  const a1 = hinge0
+    .clone()
+    .sub(d0.clone().multiplyScalar(hinge0.dot(d0)))
+    .normalize();
+  const a2 = d0.clone().cross(a1);
+  const deg = Math.PI / 180;
+  const MAX_BEND = 150 * deg;
+  type Pick = { swing1: number; swing2: number; t: number; bend: number; cost: number };
+  let best: Pick | null = null;
+  const swingQ = (swing1: number, swing2: number) =>
+    new Quaternion()
+      .setFromAxisAngle(a2, swing2)
+      .multiply(new Quaternion().setFromAxisAngle(a1, swing1));
+  const e = new Vector3();
+  const end = new Vector3();
+  // Swing (two ways), twist and bend on a grid around `centre` (the whole range without one).
+  const search = (centre: Pick | null, step: number) => {
+    const swings = centre ? [-1, 0, 1] : [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+    const tSteps = centre ? [-1, 0, 1] : [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+    const tStep = (limit / 4) * (step / (10 * deg));
+    for (const i of swings) {
+      for (const j of swings) {
+        const swing1 = (centre?.swing1 ?? 0) + i * step;
+        const swing2 = (centre?.swing2 ?? 0) + j * step;
+        const swing = swingQ(swing1, swing2);
+        const d = d0.clone().applyQuaternion(swing);
+        const m = root.clone().addScaledVector(d, l1);
+        const base = cost.mid(m) + 0.002 * (Math.abs(swing1) + Math.abs(swing2));
+        if (best && base > best.cost) continue;
+        for (const k of tSteps) {
+          const t = Math.max(-limit, Math.min(limit, (centre?.t ?? 0) + k * tStep));
+          const hinge = hinge0
+            .clone()
+            .applyAxisAngle(d0, t - twist)
+            .applyQuaternion(swing);
+          const bends = centre
+            ? [-1, 0, 1].map(b => centre.bend + b * step)
+            : Array.from({ length: 16 }, (_, b) => b * step);
+          for (const raw of bends) {
+            const bend = Math.max(0, Math.min(MAX_BEND, raw));
+            e.copy(d).applyAxisAngle(hinge, bend);
+            end.copy(m).addScaledVector(e, l2);
+            const c = base + cost.end(end);
+            if (!best || c < best.cost - 1e-9) best = { swing1, swing2, t, bend, cost: c };
+          }
+        }
+      }
+    }
+  };
+  search(null, 10 * deg);
+  for (const step of [5, 2.5, 1.25]) search(best, step * deg);
+  const pick = best as Pick | null;
+  if (!pick) return;
+  if (force && pick.cost >= cost.mid(mid0) + cost.end(end0)) return;
+  const swing = swingQ(pick.swing1, pick.swing2);
+  // The upper bone swung, and turned on its own axis to the twist picked; the lower bent.
+  const upperWorld = swing
+    .clone()
+    .multiply(upperQ)
+    .multiply(new Quaternion().setFromAxisAngle(sk.dirLocal.get(upper)!, pick.t - twist));
+  setWorldQ(figure, world, upper, upperWorld);
+  const after = figureWorld(figure);
+  const d = sk.dirLocal.get(upper)!.clone().applyQuaternion(after.quat[upper]!);
+  const hinge = sk.hingeLocal.get(upper)!.clone().applyQuaternion(after.quat[upper]!);
+  const want = d.clone().applyAxisAngle(hinge, pick.bend);
+  const current = sk.dirLocal.get(lower)!.clone().applyQuaternion(after.quat[lower]!);
+  const turn = new Quaternion().setFromUnitVectors(current, want);
+  setWorldQ(figure, after, lower, turn.multiply(after.quat[lower]!));
+  if (limb === 'leg') setWorldQ(figure, figureWorld(figure), tip, tipWorldQ);
+}
+
 function frameQuat(a1: Vector3, a2: Vector3, b1: Vector3, b2: Vector3): Quaternion {
   // The rotation taking the orthonormal frame (a1, a2, a1×a2) onto (b1, b2, b1×b2).
   const a3 = a1.clone().cross(a2);
@@ -433,6 +569,13 @@ function frameQuat(a1: Vector3, a2: Vector3, b1: Vector3, b2: Vector3): Quaterni
   const B = new Matrix4().makeBasis(b1, b2, b3);
   return new Quaternion().setFromRotationMatrix(B.multiply(A.transpose()));
 }
+
+// A limb bent the wrong way by less than this is read as straight (picture noise on a straight
+// leg or arm), locked at most LOCK_PAST past straight, rather than turned round to bend it.
+const NEAR_STRAIGHT = (20 * Math.PI) / 180;
+const LOCK_PAST = (3 * Math.PI) / 180;
+/** What a locked reading counts as, in twist excess, when readings are ranked. */
+const LOCKED_EXCESS = 1e-3;
 
 /**
  * Put a limb's middle joint at `mid` and its end at `end` (both world points, at the bones'
@@ -446,21 +589,36 @@ export function placeLimb(
   limb: Limb,
   mid: Vector3,
   end: Vector3,
-  keepEnd = false
-): void {
+  keepEnd = false,
+  /** Read a limb bent a hair the wrong way as straight (lifting a picture's points). */
+  nearStraight = false
+): boolean {
   const sk = info(figure.body);
   const [upper, lower, tip] = limbChain(side, limb);
   let world = figureWorld(figure);
   const endWorldQ = world.quat[tip]!.clone();
   const root = world.pos[upper]!;
   const d = mid.clone().sub(root).normalize();
-  const e = end.clone().sub(mid).normalize();
+  let e = end.clone().sub(mid).normalize();
+  // The hinge where it is now, square to the new direction.
+  const hinge = sk.hingeLocal.get(upper)!.clone().applyQuaternion(world.quat[upper]!);
+  hinge.sub(d.clone().multiplyScalar(hinge.dot(d)));
+  if (hinge.length() < 1e-6) hinge.copy(new Vector3(1, 0, 0).cross(d));
+  hinge.normalize();
   let n = d.clone().cross(e);
+  const bend = d.angleTo(e);
+  let locked = false;
   if (n.length() < 1e-3) {
-    // Straight: keep the hinge where it is, square to the new direction.
-    n = sk.hingeLocal.get(upper)!.clone().applyQuaternion(world.quat[upper]!);
-    n.sub(d.clone().multiplyScalar(n.dot(d)));
-    if (n.length() < 1e-6) n = new Vector3(1, 0, 0).cross(d);
+    // Straight: keep the hinge where it is.
+    n = hinge.clone();
+  } else if (nearStraight && n.dot(hinge) < 0 && bend < NEAR_STRAIGHT) {
+    // Nearly straight but bent a hair the wrong way (a standing leg read from the picture): the
+    // natural bend would turn the whole thigh (upper arm) round — the hip or shoulder twisted
+    // into a lump. Keep the hinge and let the joint lock straight, at most a few degrees past.
+    n = hinge.clone();
+    locked = true;
+    const past = Math.min(bend, LOCK_PAST);
+    e = d.clone().applyAxisAngle(hinge, -past).normalize();
   }
   n.normalize();
   const dirL = sk.dirLocal.get(upper)!;
@@ -475,6 +633,7 @@ export function placeLimb(
     world = figureWorld(figure);
     setWorldQ(figure, world, tip, endWorldQ);
   }
+  return locked;
 }
 
 /** The limb's joints in world space: root, middle, end. */
@@ -484,10 +643,13 @@ export function limbJoints(figure: PoseRig3dFigure, side: Side, limb: Limb, worl
   return { root: w.pos[upper]!.clone(), mid: w.pos[lower]!.clone(), end: w.pos[tip]!.clone() };
 }
 
-function limbLengths(kind: Rig3dBodyKind, side: Side, limb: Limb): [number, number] {
-  const sk = info(kind);
+function boneLength(figure: PoseRig3dFigure, bone: string): number {
+  return info(figure.body).length.get(bone)! * boneScale(figure, bone);
+}
+
+function limbLengths(figure: PoseRig3dFigure, side: Side, limb: Limb): [number, number] {
   const [upper, lower] = limbChain(side, limb);
-  return [sk.length.get(upper)!, sk.length.get(lower)!];
+  return [boneLength(figure, upper), boneLength(figure, lower)];
 }
 
 /**
@@ -502,7 +664,7 @@ export function solveLimbIK(
   target: Vector3,
   hint?: Vector3
 ): void {
-  const [l1, l2] = limbLengths(figure.body, side, limb);
+  const [l1, l2] = limbLengths(figure, side, limb);
   const joints = limbJoints(figure, side, limb);
   const S = joints.root;
   let to = target.clone().sub(S);
@@ -620,7 +782,13 @@ export function mirrorFigure(figure: PoseRig3dFigure, about = 0): PoseRig3dFigur
     bones[MIRROR_NAME(name)] = [q[0], -q[1], -q[2], q[3]];
   }
   const [x, y, z] = figure.position;
-  return { body: figure.body, position: [2 * about - x, y, z], bones };
+  return {
+    body: figure.body,
+    position: [2 * about - x, y, z],
+    bones,
+    // Left and right alike: nothing to swap.
+    ...(figure.scale ? { scale: { ...figure.scale } } : {}),
+  };
 }
 
 export function mirrorRig(rig: PoseRig3d): PoseRig3d {
@@ -667,7 +835,7 @@ export function flipLimbDepth(
 ): boolean {
   const cam = makeCamera(camera, aspect);
   const origin = cam.position.clone();
-  const [l1, l2] = limbLengths(figure.body, side, limb);
+  const [l1, l2] = limbLengths(figure, side, limb);
   const { root, mid, end } = limbJoints(figure, side, limb);
   const depth = (p: Vector3) => p.distanceTo(origin);
   const midRay = mid.clone().sub(origin).normalize();
@@ -804,6 +972,8 @@ export type LiftOptions = {
    * Left out, they come from the flat pose's own posture (posture.ts).
    */
   postures?: Posture[] | null;
+  /** False: keep the base body's proportions (no per-figure segment lengths). */
+  proportions?: boolean;
 };
 
 const ALL_LIMBS: Array<[Side, Limb]> = [
@@ -838,7 +1008,7 @@ function limbReadings(
   const mid2d = body[midIndex] ?? null;
   const end2d = body[endIndex] ?? null;
   if (!mid2d && !end2d) return [];
-  const [l1, l2] = limbLengths(figure.body, side, limb);
+  const [l1, l2] = limbLengths(figure, side, limb);
   const { root, mid, end } = limbJoints(figure, side, limb);
   const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
     const r = pictureRay(cam, p);
@@ -856,10 +1026,12 @@ function limbReadings(
     const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
     for (const e of ends) {
       const trial = cloneFigure(figure);
-      placeLimb(trial, side, limb, m, e, limb === 'leg');
+      const locked = placeLimb(trial, side, limb, m, e, limb === 'leg', true);
       // Toward the camera: the nearer pair of joints reads first.
       const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
-      options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
+      // A reading locked straight against its bend comes after every one that bends naturally.
+      const excess = limbTwistExcess(trial, side, limb) + (locked ? LOCKED_EXCESS : 0);
+      options.push({ m, e, score, excess });
     }
   }
   return options.sort((a, b) => a.excess - b.excess || a.score - b.score);
@@ -877,8 +1049,39 @@ function placeLimbsOnRays(
 ): void {
   for (const [side, limb] of limbs) {
     const pick = limbReadings(figure, body, cam, side, limb)[0];
-    if (pick) placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
+    if (pick) placeReading(figure, body, cam, side, limb, pick);
   }
+}
+
+/**
+ * A reading placed; one that no natural bend reaches is settled within the twist limit, its end
+ * as near the picture's point as the limit allows.
+ */
+function placeReading(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  cam: PerspectiveCamera,
+  side: Side,
+  limb: Limb,
+  pick: LimbReading
+): void {
+  const locked = placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg', true);
+  if (pick.excess <= 0 && !locked) return;
+  const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
+  const off = (point: Vector3, index: number, reading: Vector3) => {
+    const want = body[index];
+    if (!want) return 0.02 * point.distanceTo(reading);
+    const p = projectPoint(cam, point);
+    return Math.hypot((p.x - want.x) * cam.aspect, p.y - want.y) + 0.01 * point.distanceTo(reading);
+  };
+  const miss = {
+    mid: (point: Vector3) => off(point, midIndex, pick.m),
+    end: (point: Vector3) => off(point, endIndex, pick.e),
+  };
+  // Locked straight: a natural bend with the limb swung a little may land nearer the picture.
+  if (locked) settleLimbTwist(figure, side, limb, miss, true);
+  // (A swing changes how much of the turn reads as twist: settled again until it holds.)
+  for (let pass = 0; pass < 3; pass += 1) settleLimbTwist(figure, side, limb, miss);
 }
 
 /** The 3D postures a flat pose's posture (posture.ts) may lift into; null: no preference. */
@@ -931,8 +1134,8 @@ function chooseLegReadings(
   combos.sort((a, b) => a.score - b.score);
   for (const { r, l } of combos) {
     const trial = cloneFigure(figure);
-    if (r) placeLimb(trial, 'R', 'leg', r.m, r.e, true);
-    if (l) placeLimb(trial, 'L', 'leg', l.m, l.e, true);
+    if (r) placeReading(trial, body, cam, 'R', 'leg', r);
+    if (l) placeReading(trial, body, cam, 'L', 'leg', l);
     if (want.includes(classifyPosturePoints(openPoseWorld(trial)))) {
       Object.assign(figure, trial);
       return;
@@ -959,11 +1162,95 @@ export function refitLimbs(
   );
 }
 
+// Which picture points each segment runs between, right and left.
+const SEGMENT_POINTS: Record<Rig3dSegment, Array<[number, number]>> = {
+  upperarm: [
+    [2, 3],
+    [5, 6],
+  ],
+  forearm: [
+    [3, 4],
+    [6, 7],
+  ],
+  thigh: [
+    [8, 9],
+    [11, 12],
+  ],
+  shin: [
+    [9, 10],
+    [12, 13],
+  ],
+};
+/**
+ * How far a lift may make a segment longer or shorter than the base body's, either way: a little
+ * for any picture, more where the base body's lengths cannot read the picture's posture.
+ */
+const PROPORTION_STRETCH = 0.1;
+const POSTURE_STRETCH = 0.15;
+/** How far the two bones of one limb may differ in scale (an upper arm long, its forearm short). */
+const LIMB_SPREAD = 0.1;
+const LIMB_SEGMENTS: Array<[Rig3dSegment, Rig3dSegment]> = [
+  ['upperarm', 'forearm'],
+  ['thigh', 'shin'],
+];
+
+/**
+ * Her own proportions as the picture shows them, for a figure `depth` metres from the camera:
+ * each segment as long as the longer of its two sides would be lying square to the camera (the
+ * less foreshortened side is the better measure), within `stretch` of the base body's, and the
+ * two bones of a limb within 10% of each other. Undefined when every segment is the base body's.
+ */
+export function fitProportions(
+  body: NormalizedBody,
+  aspect: number,
+  depth: number,
+  options: { camera?: PoseRig3dCamera; body?: Rig3dBodyKind; stretch?: number } = {}
+): Rig3dProportions | undefined {
+  const cam = makeCamera(options.camera ?? DEFAULT_CAMERA, aspect);
+  const rest = openPoseWorld(restFigure(options.body ?? 'female'));
+  const stretch = options.stretch ?? PROPORTION_STRETCH;
+  const log: Partial<Record<Rig3dSegment, number>> = {};
+  for (const segment of RIG3D_SEGMENTS) {
+    let ratio = 0;
+    for (const [a, b] of SEGMENT_POINTS[segment]) {
+      const pa = body[a];
+      const pb = body[b];
+      if (!pa || !pb) continue;
+      const angle = pictureRay(cam, pa).angleTo(pictureRay(cam, pb));
+      ratio = Math.max(ratio, (2 * depth * Math.sin(angle / 2)) / rest[a]!.distanceTo(rest[b]!));
+    }
+    if (ratio) log[segment] = Math.log(Math.min(1 + stretch, Math.max(1 - stretch, ratio)));
+  }
+  // One limb's bones pulled toward each other until they are within LIMB_SPREAD.
+  for (const [upper, lower] of LIMB_SEGMENTS) {
+    const u = log[upper];
+    const l = log[lower];
+    if (u === undefined || l === undefined) continue;
+    const gap = u - l;
+    const excess = Math.abs(gap) - Math.log(1 + LIMB_SPREAD);
+    if (excess <= 0) continue;
+    log[upper] = u - (Math.sign(gap) * excess) / 2;
+    log[lower] = l + (Math.sign(gap) * excess) / 2;
+  }
+  const scale: Rig3dProportions = {};
+  for (const segment of RIG3D_SEGMENTS) {
+    const s = Math.exp(log[segment] ?? 0);
+    if (Math.abs(s - 1) > 0.01) scale[segment] = Math.round(s * 1000) / 1000;
+  }
+  return Object.keys(scale).length ? scale : undefined;
+}
+
+/** How far proportions are from the base body's (0: the same). */
+function proportionsOff(scale: Rig3dProportions | undefined): number {
+  if (!scale) return 0;
+  return RIG3D_SEGMENTS.reduce((sum, segment) => sum + Math.abs(Math.log(scale[segment] ?? 1)), 0);
+}
+
 /** liftBody at one distance (or its own pick), with the distances worth trying. */
 function liftAtDepth(
   body: NormalizedBody,
   aspect: number,
-  options: LiftOptions & { depth?: number }
+  options: LiftOptions & { depth?: number; scale?: Rig3dProportions }
 ): { figure: PoseRig3dFigure; depths: number[]; postureDepths: number[] } {
   const kind = options.body ?? 'female';
   const camera = options.camera ?? DEFAULT_CAMERA;
@@ -971,6 +1258,7 @@ function liftAtDepth(
   const origin = cam.position.clone();
   const sk = info(kind);
   const figure = restFigure(kind);
+  if (options.scale) figure.scale = { ...options.scale };
   const P = (i: number) => body[i] ?? null;
   const ray = (p: Pt) => pictureRay(cam, p);
 
@@ -1280,6 +1568,12 @@ const DEPTHINESS_WEIGHT = 0.02;
  * are filed under for 0.02% more Director error; 1% put 101 for 0.06% more, a few poses 2% off.
  */
 const POSTURE_MISS = 0.002;
+/**
+ * What proportions other than the base body's cost, in fit, per unit of log-length off (a thigh
+ * 15% short is 0.16): her own lengths must buy a closer fit, less limb along the line of sight or
+ * the picture's posture.
+ */
+const PROPORTION_WEIGHT = 0.005;
 
 /**
  * Fit the rig to a flat 18-point pose, seen through `camera`: the figure's size and distance
@@ -1307,19 +1601,33 @@ export function liftBody(
   const score = (figure: PoseRig3dFigure) =>
     meanPointError(body, projectFigure(figure, camera, aspect), aspect) +
     DEPTHINESS_WEIGHT * depthiness(figure, origin) +
-    (misses(figure) ? POSTURE_MISS : 0);
+    (misses(figure) ? POSTURE_MISS : 0) +
+    PROPORTION_WEIGHT * proportionsOff(figure.scale);
   let best = { figure: first.figure, score: score(first.figure) };
-  const tried = new Set([first.depths[0]!.toFixed(3)]);
-  const tryDepth = (depth: number) => {
-    if (tried.has(depth.toFixed(3))) return;
-    tried.add(depth.toFixed(3));
-    const { figure } = liftAtDepth(body, aspect, { ...opts, depth });
+  const tried = new Set<string>();
+  const tryLift = (depth: number, scale?: Rig3dProportions) => {
+    const key = `${depth.toFixed(3)} ${JSON.stringify(scale ?? {})}`;
+    if (tried.has(key)) return;
+    tried.add(key);
+    const { figure } = liftAtDepth(body, aspect, { ...opts, depth, ...(scale ? { scale } : {}) });
     const s = score(figure);
     if (s < best.score) best = { figure, score: s };
   };
-  for (const depth of first.depths.slice(1)) tryDepth(depth);
-  // Still the wrong posture: a little farther or nearer may let the legs read it.
-  if (misses(best.figure)) for (const depth of first.postureDepths) tryDepth(depth);
+  // Each distance with the base body's proportions, and with her own as the picture shows them
+  // at that distance (limbs that need not swing toward the camera to look their length).
+  const tryDepth = (depth: number, stretch?: number) => {
+    tryLift(depth);
+    if (options.proportions === false) return;
+    const scale = fitProportions(body, aspect, depth, { camera, body: options.body, stretch });
+    if (scale) tryLift(depth, scale);
+  };
+  tried.add(`${first.depths[0]!.toFixed(3)} {}`);
+  for (const depth of first.depths) tryDepth(depth);
+  // Still the wrong posture: a little farther or nearer may let the legs read it, and her own
+  // proportions may stray further.
+  if (misses(best.figure)) {
+    for (const depth of [...first.depths, ...first.postureDepths]) tryDepth(depth, POSTURE_STRETCH);
+  }
   return best.figure;
 }
 

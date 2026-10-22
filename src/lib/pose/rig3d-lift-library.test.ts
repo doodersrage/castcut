@@ -3,7 +3,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import type { NormalizedBody } from './library';
-import { DEFAULT_CAMERA, liftBody, openPoseWorld, projectFigure } from './rig3d-pose';
+import {
+  DEFAULT_CAMERA,
+  liftBody,
+  limbTwistExcess,
+  openPoseWorld,
+  projectFigure,
+} from './rig3d-pose';
 import { classifyPosture, expectedPostures } from './rig3d-posture';
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -48,6 +54,22 @@ describe('lifting the reference library into the 3D body', () => {
     // Before: 18° on average, 31 of 51 past 15° (the torso's keypoints sat too far apart).
     assert.ok(mean < 11, `mean lean ${mean.toFixed(1)}°`);
     assert.ok(leans.filter(v => v > 15).length <= 12, `${leans.filter(v => v > 15).length} past 15°`);
+  });
+
+  it('no hip or shoulder is wrung far past its twist limit (a lump in the skin)', () => {
+    const wrung: string[] = [];
+    for (const { ref, figure } of lifted) {
+      for (const side of ['R', 'L'] as const) {
+        for (const limb of ['arm', 'leg'] as const) {
+          if (limbTwistExcess(figure, side, limb) > (30 * Math.PI) / 180) {
+            wrung.push(`${ref.id}:${side}${limb}`);
+          }
+        }
+      }
+    }
+    // Before: 83 limbs (a standing still's thigh turned 188° to bend a straight knee 5° the
+    // natural way); none now.
+    assert.ok(wrung.length <= 3, wrung.join(' '));
   });
 
   it('the posture is the one the reference is filed under (sit, kneel, lie, bend…)', () => {

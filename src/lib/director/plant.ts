@@ -163,12 +163,14 @@ export function placeFeet(
     sides.map(side => [side, plannedFoot(plan[side]!, u, s, to?.[side])])
   ) as Partial<Record<Side, FootPose>>;
   const rest = restOf(out.body);
-  const reach = rest.legLength * 0.985;
   let world = figureWorld(out);
   let drop = 0;
   for (const side of sides) {
     const hip = world.pos[`thigh_${side}`]!;
     const ankle = feet[side]!.ankle;
+    // Her own leg's length (the base body's, unless the still gave her her own proportions).
+    const knee = world.pos[`shin_${side}`]!;
+    const reach = (hip.distanceTo(knee) + knee.distanceTo(world.pos[`foot_${side}`]!)) * 0.985;
     const across = flat(hip, ankle);
     const up = Math.sqrt(Math.max(0, reach * reach - across * across));
     drop = Math.max(drop, hip.y - ankle.y - up);

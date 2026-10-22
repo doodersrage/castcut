@@ -24,6 +24,7 @@ import {
   projectFigure,
   projectPoint,
   figureWorld,
+  limbTwistExcess,
 } from '../../src/lib/pose/rig3d-pose';
 import type { NormalizedBody } from '../../src/lib/pose/library';
 import type { PoseRig3dCamera, PoseRig3dFigure } from '../../src/lib/pose/rig3d';
@@ -119,7 +120,22 @@ type Row = {
   lean: number;
   /** How much the limbs point along the line of sight (0 flat to the picture, 1 straight at it). */
   depthiness: number;
+  /** Limbs turned well past their twist limit (a hip or shoulder wrung into a lump): editor, Director. */
+  twisted: [number, number];
+  /** Her own segment lengths, where the lift fitted them (rig3d.ts `scale`). */
+  scale: PoseRig3dFigure['scale'] | null;
 };
+
+// Past the limit by more than this (a thigh turned 85°+, an upper arm 130°+): a visible lump.
+const TWIST_SLACK = (30 * Math.PI) / 180;
+const twistedLimbs = (figure: PoseRig3dFigure) =>
+  (['R', 'L'] as const).reduce(
+    (n, side) =>
+      n +
+      (['arm', 'leg'] as const).filter(limb => limbTwistExcess(figure, side, limb) > TWIST_SLACK)
+        .length,
+    0
+  );
 
 const rows: Row[] = [];
 const drawings = new Map<
@@ -169,6 +185,7 @@ for (const c of cases) {
   // Director: "Her pose in the picture".
   let director: Row['director'] = null;
   let directorPts: NormalizedBody | null = null;
+  let directorTwisted = 0;
   const still = readStillFraming(c.body);
   if (c.body[1]) {
     const { figure: start, side, turned, view } = stillPoseFigure(c.body, c.aspect, 'female');
@@ -183,6 +200,7 @@ for (const c of cases) {
     // The preview's first frame: the still's framing, when the move eases back from it.
     directorPts = projectFigure(start, framingCameraAt(framing, 0), c.aspect);
     director = compare(c.body, directorPts, c.aspect);
+    directorTwisted = twistedLimbs(start);
   }
   rows.push({
     id: c.id,
@@ -194,6 +212,8 @@ for (const c of cases) {
     postureOk: expected ? expected.includes(posture) : null,
     lean,
     depthiness,
+    twisted: [twistedLimbs(figure), directorTwisted],
+    scale: figure.scale ?? null,
   });
   if (sheetDir) {
     drawings.set(c.id, {
@@ -256,6 +276,17 @@ console.log(`posture: ${summary.posture.ok}/${summary.posture.checked} as filed`
 const standing = refRows.filter(r => r.expected?.[0] === 'stand');
 console.log(
   `standing poses: spine leans in depth ${mean(standing.map(r => Math.abs(r.lean))).toFixed(1)}° on average, ${standing.filter(r => Math.abs(r.lean) > 15).length}/${standing.length} over 15°; limbs along the line of sight ${(mean(refRows.map(r => r.depthiness)) * 100).toFixed(1)}%`
+);
+console.log(
+  `limbs twisted 30°+ past their limit: editor ${refRows.reduce((s, r) => s + r.twisted[0], 0)}, director ${refRows.reduce((s, r) => s + r.twisted[1], 0)} (${refRows
+    .filter(r => r.twisted[1])
+    .map(r => r.id)
+    .join(' ')})`
+);
+const scaled = refRows.filter(r => r.scale);
+const stretch = scaled.flatMap(r => Object.values(r.scale!).map(v => Math.abs(v - 1)));
+console.log(
+  `own proportions: ${scaled.length}/${refRows.length} figures, segments off by ${(mean(stretch) * 100).toFixed(1)}% on average`
 );
 console.log(`  wrong: ${summary.posture.wrong.join(' ')}`);
 for (const s of summary.starters) console.log(`  ${s}`);

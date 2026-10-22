@@ -43,7 +43,8 @@ export function standingFigure(kind: Rig3dBodyKind): PoseRig3dFigure {
 /** A starter lifted into the body, facing the camera, settled. */
 export function starterFigure(id: PoseStarterId, kind: Rig3dBodyKind): PoseRig3dFigure {
   if (id === 'stand') return standingFigure(kind);
-  const figure = liftBody(poseStarterBody(id), 2 / 3, { body: kind });
+  // (A starter is drawn for the base body: her own proportions are a still's.)
+  const figure = liftBody(poseStarterBody(id), 2 / 3, { body: kind, proportions: false });
   faceCamera(figure, DEFAULT_CAMERA);
   return settle(figure);
 }
