@@ -375,9 +375,14 @@ function DirectorSheetOpen({
 
   const footer = (
     <div className="flex flex-wrap items-center justify-end gap-2 px-4 pb-4 pt-2 md:px-5">
-      <p className="type-caption mr-auto text-[var(--text-muted)]" data-testid={`${p}-summary`}>
-        {fmt(length)} · {parts === 1 ? 'one part' : `${parts} parts`} · about {minutes} min on
-        ComfyUI
+      <p
+        className="type-caption mr-auto text-[var(--text-muted)]"
+        role="status"
+        data-testid={`${p}-summary`}
+      >
+        {rendering
+          ? `Filming the moves… ${rendering.done} of ${rendering.total} frames`
+          : `${fmt(length)} · ${parts === 1 ? 'one part' : `${parts} parts`} · about ${minutes} min on ComfyUI`}
       </p>
       <Button
         size="sm"
@@ -422,7 +427,7 @@ function DirectorSheetOpen({
         bodyClassName="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 md:flex-row md:gap-6 md:overflow-hidden md:p-5"
       >
         <div className="flex min-w-0 flex-col items-center gap-2 max-md:shrink-0 md:min-h-0 md:flex-1">
-          <div className="flex h-[min(44dvh,420px)] w-full justify-center gap-2 md:h-[min(62vh,620px)]">
+          <div className="h-[min(44dvh,420px)] w-full md:h-[min(62vh,620px)]">
             <DirectorPreview
               body={body}
               aspect={aspect}
@@ -430,16 +435,8 @@ function DirectorSheetOpen({
               start={framing.start}
               end={framing.end}
               time={time}
+              stillUrl={stillUrl}
               testId={`${p}-preview`}
-            />
-            {/* The still beside it: what she should look like in frame. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={stillUrl}
-              alt="The still"
-              className="hidden h-full w-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain lg:block"
-              style={{ aspectRatio: String(aspect) }}
-              data-testid={`${p}-still`}
             />
           </div>
           <div className="flex w-full max-w-xl items-center gap-2">
@@ -582,7 +579,7 @@ function DirectorSheetOpen({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="min-w-0 flex-1 justify-start truncate font-medium"
+                        className="min-w-0 flex-1 !justify-start truncate text-left font-medium"
                         title="Show this beat"
                         onClick={() => {
                           setPlaying(false);

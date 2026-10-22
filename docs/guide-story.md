@@ -29,7 +29,7 @@ Grouped in the order a scene is worked on, like Day's:
 | *(top)* | Edit scene · Pose… · Open full size |
 | **Redo** | Queue still · Play another still · Play another clip |
 | **Touch up the still** | Fix an area… · Sketch over this still… · Relight… · Upscale to 4K · Add close-ups |
-| **Make it move** | Animate still (or Text to video) · Copy moves from a video… · Dance to music… · Lip-sync to a recording… |
+| **Make it move** | Animate still (or Text to video) · Copy moves from a video… · Direct a move… · Dance to music… · Lip-sync to a recording… |
 | **The clip** | Extend clip (or Continue) · Sharpen & smooth clip · **Make more realistic** · Make it 30 s · Add sound · Use this voice |
 | *(bottom)* | Copy prompt · Open in ComfyUI |
 

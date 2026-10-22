@@ -116,7 +116,7 @@ Each card's **⋯** menu is grouped in the order you work on a shot:
 | --- | --- |
 | **Redo** | Requeue · new seed, Looks wrong · redo, Retry, Queue this slot only, Reroll plan |
 | **Touch up the still** | Fix an area, Sketch, Relight, Upscale to 4K |
-| **Make it move** | Animate, Copy moves, Dance to music, Lip-sync |
+| **Make it move** | Animate, Copy moves, Direct a move, Dance to music, Lip-sync |
 | **The clip** | Sharpen & smooth, Make more realistic, Make it 30 s, Add sound, Use this voice |
 
 Edit slot and Open full size sit at the top, Open in ComfyUI at the bottom. A group with

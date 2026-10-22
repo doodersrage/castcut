@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { mixFigures } from '@/lib/director/figure-ops';
 import { cameraAt } from '@/lib/director/framing';
@@ -15,6 +15,8 @@ type Props = {
   end: PoseRig3dCamera;
   /** Seconds from the start. */
   time: number;
+  /** The still, shown small in a corner to compare with. */
+  stillUrl?: string;
   testId: string;
 };
 
@@ -27,20 +29,47 @@ function figureAt(frames: PoseRig3dFigure[], time: number): PoseRig3dFigure {
 }
 
 /** The direction played on the 3D stage, framed as the driving video will be. */
-export default function DirectorPreview({ body, aspect, frames, start, end, time, testId }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null);
+export default function DirectorPreview({
+  body,
+  aspect,
+  frames,
+  start,
+  end,
+  time,
+  stillUrl,
+  testId,
+}: Props) {
+  const areaRef = useRef<HTMLDivElement>(null);
+  const aspectRef = useRef(aspect);
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<DirectorStage | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const drawRef = useRef<() => void>(() => {});
 
+  // The picture box: as large as the area allows at the video's shape.
+  useEffect(() => {
+    aspectRef.current = aspect;
+    const area = areaRef.current;
+    if (!area) return;
+    const fit = () => {
+      const a = aspectRef.current;
+      const w = Math.max(1, area.clientWidth);
+      const h = Math.max(1, area.clientHeight);
+      const width = Math.floor(Math.min(w, h * a));
+      setBox({ width, height: Math.floor(width / a) });
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [aspect]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    const host = hostRef.current;
-    if (!canvas || !host) return;
+    if (!canvas) return;
     let cancelled = false;
-    let observer: ResizeObserver | null = null;
     createDirectorStage(canvas, body)
       .then(stage => {
         if (cancelled) {
@@ -48,15 +77,6 @@ export default function DirectorPreview({ body, aspect, frames, start, end, time
           return;
         }
         stageRef.current = stage;
-        const fit = () => {
-          const width = Math.max(1, host.clientWidth);
-          const height = Math.max(1, host.clientHeight);
-          stage.setSize(width, height, Math.min(2, window.devicePixelRatio || 1));
-          drawRef.current();
-        };
-        fit();
-        observer = new ResizeObserver(fit);
-        observer.observe(host);
         setReady(true);
       })
       .catch(() => {
@@ -64,11 +84,16 @@ export default function DirectorPreview({ body, aspect, frames, start, end, time
       });
     return () => {
       cancelled = true;
-      observer?.disconnect();
       stageRef.current?.dispose();
       stageRef.current = null;
     };
   }, [body]);
+
+  useEffect(() => {
+    if (ready && box) {
+      stageRef.current?.setSize(box.width, box.height, Math.min(2, window.devicePixelRatio || 1));
+    }
+  }, [ready, box]);
 
   // Every render: the latest frames, camera and time, drawn now and on a resize.
   useEffect(() => {
@@ -85,24 +110,36 @@ export default function DirectorPreview({ body, aspect, frames, start, end, time
   });
 
   return (
-    <div
-      ref={hostRef}
-      className="relative max-h-full w-auto max-w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]"
-      style={{ aspectRatio: String(aspect), '--director-aspect': String(aspect) } as CSSProperties}
-      data-testid={testId}
-      data-ready={ready ? 'true' : 'false'}
-    >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
-      {!ready && !failed ? (
-        <p className="type-caption pointer-events-none absolute inset-x-0 top-2 text-center text-[var(--text-muted)]">
-          Loading the 3D body…
-        </p>
-      ) : null}
-      {failed ? (
-        <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-[var(--text-secondary)]">
-          The 3D view could not start here.
-        </p>
-      ) : null}
+    <div ref={areaRef} className="flex h-full w-full min-w-0 items-center justify-center">
+      <div
+        className="relative overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]"
+        style={box ? { width: box.width, height: box.height } : { visibility: 'hidden' }}
+        data-testid={testId}
+        data-ready={ready ? 'true' : 'false'}
+      >
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
+        {stillUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={stillUrl}
+            alt="The still"
+            title="The still: she should fill the frame the same way"
+            className="pointer-events-none absolute bottom-2 right-2 w-[24%] rounded border border-[var(--border-subtle)] bg-[var(--bg-base)] object-contain opacity-90 shadow"
+            style={{ aspectRatio: String(aspect) }}
+            data-testid={`${testId}-still`}
+          />
+        ) : null}
+        {!ready && !failed ? (
+          <p className="type-caption pointer-events-none absolute inset-x-0 top-2 text-center text-[var(--text-muted)]">
+            Loading the 3D body…
+          </p>
+        ) : null}
+        {failed ? (
+          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-[var(--text-secondary)]">
+            The 3D view could not start here.
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

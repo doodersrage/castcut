@@ -258,16 +258,30 @@ export function frameDirection(input: {
   const framedDistance = v(start.position).distanceTo(v(start.target));
   // Closer shots crop her legs: only the top and the sides must hold.
   const full = shot === 'full';
+  // A still framed tighter than the margins: her start pose may fill it the same way.
+  const limit = {
+    top: MARGIN.top,
+    bottom: 1 - MARGIN.bottom,
+    left: MARGIN.side,
+    right: 1 - MARGIN.side,
+  };
+  if (still) {
+    const first = moveBox([frames[0]!], start, start, shot, aspect);
+    limit.top = Math.max(0, Math.min(limit.top, first.minY - 0.005));
+    limit.bottom = Math.min(1, Math.max(limit.bottom, first.maxY + 0.005));
+    limit.left = Math.max(0, Math.min(limit.left, first.minX - 0.005));
+    limit.right = Math.min(1, Math.max(limit.right, first.maxX + 0.005));
+  }
   for (let step = 0; step < 40; step += 1) {
     const end = cameraMoveEnd(start, camera.move, aspect);
     const box = moveBox(frames, start, end, shot, aspect);
-    const overTop = MARGIN.top - box.minY;
-    const overBottom = full ? box.maxY - (1 - MARGIN.bottom) : 0;
-    const overLeft = MARGIN.side - box.minX;
-    const overRight = box.maxX - (1 - MARGIN.side);
+    const overTop = limit.top - box.minY;
+    const overBottom = full ? box.maxY - limit.bottom : 0;
+    const overLeft = limit.left - box.minX;
+    const overRight = box.maxX - limit.right;
     if (Math.max(overTop, overBottom, overLeft, overRight) <= 1e-3) break;
-    const wide = (box.maxX - box.minX) / (1 - 2 * MARGIN.side);
-    const tall = full ? (box.maxY - box.minY) / (1 - MARGIN.top - MARGIN.bottom) : 0;
+    const wide = (box.maxX - box.minX) / (limit.right - limit.left);
+    const tall = full ? (box.maxY - box.minY) / (limit.bottom - limit.top) : 0;
     if (wide > 1 || tall > 1) {
       start = dolly(start, Math.min(1.6, Math.max(wide, tall)) * 1.01);
       continue;

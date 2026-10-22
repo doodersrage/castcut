@@ -78,6 +78,18 @@ describe('director: framing', () => {
     assert.ok(fit.pulledBack < 1.05, 'a nod fits as it is');
   });
 
+  it('a still framed tighter than the margins: a small move keeps its framing', () => {
+    const tight = STILL_BODY.map(p => (p ? { x: p.x, y: 0.03 + (p.y - 0.24) * 1.25 + 0.2 } : null));
+    const list = frames(['nod']);
+    const fit = frameDirection({
+      frames: list,
+      camera: camera(),
+      aspect: ASPECT,
+      still: readStillFraming(tight),
+    });
+    assert.ok(fit.pulledBack < 1.05, `pulled back ${fit.pulledBack}`);
+  });
+
   it('pulls back so a walk toward the camera with a push-in stays in frame', () => {
     const list = frames(['walk', 'wave']);
     const still = readStillFraming(STILL_BODY);
