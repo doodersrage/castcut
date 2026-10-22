@@ -39,9 +39,10 @@ export default function CommandPaletteResults({
                 data-active={index === activeIndex ? 'true' : 'false'}
                 className="ui-command-item flex w-full items-center gap-1 px-2"
               >
-                <button
+                <Button
+                  variant="row"
                   type="button"
-                  className="flex min-w-0 flex-1 items-center justify-between rounded-[var(--radius-md)] px-2 py-2.5 text-left text-sm text-[var(--text-primary)] transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="flex min-w-0 flex-1 items-center justify-between rounded-[var(--radius-md)] px-2 py-2.5 text-sm text-[var(--text-primary)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   onMouseEnter={() => onSetActiveIndex(index)}
                   onClick={() => onRunItem(item)}
                 >
@@ -57,7 +58,7 @@ export default function CommandPaletteResults({
                     ) : null}
                   </span>
                   <span className="shrink-0 text-xs text-[var(--text-muted)]">{item.group}</span>
-                </button>
+                </Button>
                 {item.href ? (
                   <Button
                     variant="quiet"

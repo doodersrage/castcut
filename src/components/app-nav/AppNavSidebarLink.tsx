@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { resolveAppNavLinkHref } from '@/lib/gallery/session-state';
@@ -58,7 +59,8 @@ export function AppNavSidebarLink({
         {link.label}
       </Link>
       {onToggleFavorite ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           aria-label={favorited ? `Unpin ${link.label}` : `Pin ${link.label}`}
           title={favorited ? 'Unpin' : 'Pin'}
@@ -74,7 +76,7 @@ export function AppNavSidebarLink({
           }}
         >
           {favorited ? '★' : '☆'}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

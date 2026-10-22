@@ -463,6 +463,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
         setPlateUploading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- persistApply is rebuilt each render and reads only `character`
     [character]
   );
 
@@ -744,6 +745,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
       cutShotCount: character.filmCut?.items.filter(item => item.included).length ?? 0,
       storyBeatCount: storyId ? (getRoleplayLibrarySession(storyId)?.beatCount ?? 0) : 0,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stillEntries / settingsTick recount the Day and Story state read from storage
   }, [character, hasLookPlate, stillEntries, filmEntries, settingsTick]);
 
   return {

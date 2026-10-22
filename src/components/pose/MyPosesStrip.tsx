@@ -80,7 +80,8 @@ export default function MyPosesStrip({
                   {entry.name}
                 </span>
               </Button>
-              <button
+              <Button
+                variant="plain"
                 type="button"
                 aria-label={`Remove ${entry.name} from My poses`}
                 disabled={disabled}
@@ -88,7 +89,7 @@ export default function MyPosesStrip({
                 onClick={() => removeMyPose(entry.id)}
               >
                 ×
-              </button>
+              </Button>
             </div>
           );
         })}

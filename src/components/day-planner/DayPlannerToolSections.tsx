@@ -507,6 +507,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           }
         : null,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilds the lightbox when the stills land
   }, [fixAreaTargetForSlot, progressLightbox, progressLightboxSlotIds, queueSlot, slots, stills]);
 
   // A deep link that lands with a plan to edit opens the first slot's sheet.

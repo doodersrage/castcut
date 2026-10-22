@@ -179,9 +179,14 @@ export function ToolEngineSheet({
             </p>
             {description ? <p className="tool-engine-sheet-desc">{description}</p> : null}
           </div>
-          <button type="button" className="tool-engine-sheet-done" onClick={onClose}>
+          <Button
+            variant="plain"
+            type="button"
+            className="tool-engine-sheet-done"
+            onClick={onClose}
+          >
             Done
-          </button>
+          </Button>
         </div>
         <div className="tool-engine-sheet-body ui-sidebar-dense">{children}</div>
       </div>

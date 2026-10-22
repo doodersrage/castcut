@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import type { SystemTrayAssetJob, SystemTrayPrimary } from '@/hooks/useSystemTrayState';
 import { settingsComfyUiSectionHref } from '@/lib/settings/comfyui-nav';
+import { Button } from '@/components/ui/Button';
 import UiIcon from '@/components/ui/UiIcon';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import { GalleryTrayRow } from '@/components/system-tray/GalleryTrayRow';
@@ -76,13 +77,14 @@ export function SystemTrayActivityCard({
       data-compact={serverOnly ? 'true' : undefined}
     >
       <div className="flex w-full items-stretch">
-        <button
+        <Button
+          variant="row"
           type="button"
           aria-expanded={expanded}
           aria-controls={panelId}
           data-testid="system-tray-toggle"
           onClick={() => setExpanded(value => !value)}
-          className={`flex min-w-0 flex-1 items-start gap-3 px-3.5 ${serverOnly ? 'py-2' : 'py-3'} ${expanded ? '' : 'max-md:px-2'} text-left max-md:gap-2 max-md:py-2 transition hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
+          className={`flex min-w-0 flex-1 items-start gap-3 px-3.5 ${serverOnly ? 'py-2' : 'py-3'} ${expanded ? '' : 'max-md:px-2'} max-md:gap-2 max-md:py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
         >
           <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center max-md:h-7 max-md:w-7 justify-center rounded-xl border border-[var(--accent-border)] bg-gradient-to-br from-[var(--accent-muted)] to-[var(--tint-info-bg)] text-[var(--accent-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
             {/* Phones, collapsed: the count stands in for the icon (every kind of job). */}
@@ -160,10 +162,11 @@ export function SystemTrayActivityCard({
           >
             ▾
           </span>
-        </button>
+        </Button>
 
         {primary.kind === 'gallery' ? (
-          <button
+          <Button
+            variant="row"
             type="button"
             disabled={cancellingGalleryIds.has(primary.entry.id)}
             aria-label="Cancel generation job"
@@ -171,20 +174,21 @@ export function SystemTrayActivityCard({
             onClick={() => cancelGalleryJob(primary.entry)}
             // Phones: the collapsed pill is only the count — a Cancel beside it doubled its width
             // over the page. Open the pill to cancel.
-            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50`}
+            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-center text-2xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {cancellingGalleryIds.has(primary.entry.id) ? '…' : 'Cancel'}
-          </button>
+          </Button>
         ) : primary.kind === 'asset' ? (
-          <button
+          <Button
+            variant="row"
             type="button"
             aria-label="Cancel download"
             data-testid="system-tray-cancel-primary-asset"
             onClick={() => cancelAssetJob(primary.job.id)}
-            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
+            className={`${expanded ? '' : 'max-md:hidden '}shrink-0 border-l border-[var(--border-subtle)] px-3 text-center text-2xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]`}
           >
             Cancel
-          </button>
+          </Button>
         ) : null}
       </div>
 

@@ -118,15 +118,16 @@ export default function NegativeLearnerPanel() {
         </ul>
       )}
       {status ? <p className="mt-3 text-xs text-[var(--tint-success-text)]">{status}</p> : null}
-      <button
+      <Button
+        variant="underline"
         type="button"
-        className="mt-3 text-xs text-[var(--text-muted)] underline underline-offset-2"
+        className="mt-3 text-xs text-[var(--text-muted)] underline"
         onClick={() => {
           setItems(loadNegativeSuggestions().filter(entry => !entry.dismissed));
         }}
       >
         Show all learned tokens
-      </button>
+      </Button>
     </ToolSection>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { useSystemTrayState } from '@/hooks/useSystemTrayState';
@@ -44,7 +45,8 @@ export default function ActiveJobsChip({
   const title = `${count} active job${count === 1 ? '' : 's'}${etaLabel ? `, done in ${etaLabel}` : ''}`;
   if (trayToggle) {
     return (
-      <button
+      <Button
+        variant="outline"
         type="button"
         data-testid="active-jobs-chip"
         title={`${title} — show jobs`}
@@ -52,7 +54,7 @@ export default function ActiveJobsChip({
           openSystemTrayPanel(trayToggle === 'bottom' ? 'bottom' : 'top');
           onClick?.();
         }}
-        className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
+        className={`inline-flex items-center gap-2 rounded-[var(--radius-lg)] border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-2xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${className}`}
       >
         <span
           className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-text)]"
@@ -60,7 +62,7 @@ export default function ActiveJobsChip({
         />
         {count} {count === 1 ? 'job' : 'jobs'}
         {etaLabel ? <span className="text-[var(--text-muted)]">· {etaLabel}</span> : null}
-      </button>
+      </Button>
     );
   }
 

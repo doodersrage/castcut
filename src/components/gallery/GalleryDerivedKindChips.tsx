@@ -4,6 +4,7 @@ import {
   galleryDerivedKindChipLabel,
   GALLERY_DERIVED_KIND_FILTERS,
 } from '@/lib/gallery/derived-kind';
+import { Button } from '@/components/ui/Button';
 import type { ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import type { Dispatch, SetStateAction } from 'react';
 
@@ -26,7 +27,9 @@ export default function GalleryDerivedKindChips({
               ? 'Lineage filter: showing derived outputs'
               : `Lineage filter: ${filter.derivedKind} only`}
         </span>
-        <button
+        <Button
+          variant="outline"
+          tone="accent"
           type="button"
           onClick={() =>
             setFilter(previous => ({
@@ -36,10 +39,10 @@ export default function GalleryDerivedKindChips({
               derivedKind: undefined,
             }))
           }
-          className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-2xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
+          className="rounded-lg px-2 py-0.5 text-2xs text-inherit transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
         >
           Clear lineage filter
-        </button>
+        </Button>
       </div>
     );
   }
@@ -47,8 +50,10 @@ export default function GalleryDerivedKindChips({
   return (
     <div className="flex flex-wrap gap-2">
       {GALLERY_DERIVED_KIND_FILTERS.map(kind => (
-        <button
+        <Button
           key={kind}
+          variant="chip"
+          selected={filter.derivedKind === kind}
           type="button"
           data-testid={`gallery-derived-kind-${kind}`}
           onClick={() =>
@@ -57,14 +62,12 @@ export default function GalleryDerivedKindChips({
               derivedKind: previous.derivedKind === kind ? undefined : kind,
             }))
           }
-          className={`rounded-full border px-2.5 py-0.5 text-2xs transition ${
-            filter.derivedKind === kind
-              ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-              : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/40 text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
+          className={`rounded-full px-2.5 py-0.5 text-2xs transition ${
+            filter.derivedKind === kind ? '' : 'bg-[var(--bg-base)]/40'
           }`}
         >
           {galleryDerivedKindChipLabel(kind)}
-        </button>
+        </Button>
       ))}
     </div>
   );

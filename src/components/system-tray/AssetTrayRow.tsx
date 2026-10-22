@@ -1,6 +1,7 @@
 'use client';
 
 import type { SystemTrayAssetJob } from '@/hooks/useSystemTrayState';
+import { Button } from '@/components/ui/Button';
 import { TrayProgressBar } from '@/components/system-tray/TrayProgressBar';
 import { assetStatusLabel } from '@/components/system-tray/system-tray-helpers';
 
@@ -19,13 +20,14 @@ export function AssetTrayRow({
           <p className="truncate text-sm text-[var(--text-primary)]">{job.label}</p>
           <p className="mt-1 type-caption text-[var(--text-tertiary)]">{assetStatusLabel(job)}</p>
         </div>
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={() => onCancel(job.id)}
-          className="shrink-0 rounded-lg border border-[var(--border-subtle)] px-2 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="shrink-0 rounded-lg border-[var(--border-subtle)] px-2 py-1 text-2xs text-[var(--text-secondary)] transition hover:border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Cancel
-        </button>
+        </Button>
       </div>
       {job.status === 'downloading' || job.status === 'verifying' ? (
         <div className="mt-2">

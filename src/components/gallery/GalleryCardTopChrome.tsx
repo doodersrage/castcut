@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge';
 import type { AestheticScoreResult } from '@/lib/vision/aesthetic-score';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
@@ -156,7 +157,8 @@ export function GalleryCardTopChrome({
             />
           </label>
         ) : null}
-        <button
+        <Button
+          variant="plain"
           type="button"
           onClick={onToggleFavorite}
           title={entry.favorite ? 'Remove favorite' : 'Add favorite'}
@@ -167,7 +169,7 @@ export function GalleryCardTopChrome({
           }`}
         >
           {entry.favorite ? '★' : '☆'}
-        </button>
+        </Button>
       </div>
     </div>
   );

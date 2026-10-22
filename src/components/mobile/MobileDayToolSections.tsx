@@ -482,6 +482,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           }
         : null,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilds the lightbox when the stills land
   }, [fixAreaTargetForSlot, progressLightbox, progressLightboxSlotIds, queueSlot, slots, stills]);
 
   useEffect(() => {

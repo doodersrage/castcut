@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import type { SharedToolSettings } from '@/lib/settings/cache';
@@ -133,14 +134,15 @@ export default function LlmModelDefaultsPanel({
           <span>2 · wild</span>
         </div>
         {typeof tempOverride === 'number' ? (
-          <button
+          <Button
+            variant="underline"
             type="button"
             disabled={!sharedMounted}
             onClick={() => updateSharedSettings({ sessionLlmTemperature: undefined })}
-            className="text-xs text-[var(--accent-text)] hover:underline disabled:opacity-50"
+            className="text-xs text-[var(--accent-text)] underline-offset-auto disabled:opacity-50"
           >
             Reset temperature to server default
-          </button>
+          </Button>
         ) : null}
       </div>
 

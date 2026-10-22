@@ -116,9 +116,10 @@ export default function ProfileSecurityPanel() {
               <span>
                 {key.label} · {key.prefix}…
               </span>
-              <button
+              <Button
+                variant="danger-text"
                 type="button"
-                className="text-xs text-[var(--tint-danger-text)]"
+                className="text-xs"
                 onClick={() =>
                   void fetch('/api/auth/api-keys', {
                     method: 'DELETE',
@@ -128,7 +129,7 @@ export default function ProfileSecurityPanel() {
                 }
               >
                 Revoke
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -168,9 +169,10 @@ export default function ProfileSecurityPanel() {
                 {session.id === currentSessionId ? ' · current' : ''}
               </p>
               {session.id !== currentSessionId ? (
-                <button
+                <Button
+                  variant="danger-text"
                   type="button"
-                  className="mt-1 text-xs text-[var(--tint-danger-text)]"
+                  className="mt-1 text-xs"
                   onClick={() =>
                     void fetch('/api/auth/sessions', {
                       method: 'DELETE',
@@ -180,19 +182,20 @@ export default function ProfileSecurityPanel() {
                   }
                 >
                   Revoke
-                </button>
+                </Button>
               ) : null}
             </li>
           ))}
         </ul>
         {sessions.length > VISIBLE_SESSIONS ? (
-          <button
+          <Button
+            variant="underline"
             type="button"
-            className="mt-2 text-sm text-[var(--text-secondary)] underline-offset-2 hover:underline"
+            className="mt-2 text-sm text-[var(--text-secondary)]"
             onClick={() => setShowAllSessions(open => !open)}
           >
             {showAllSessions ? 'Show recent only' : `Show all ${sessions.length}`}
-          </button>
+          </Button>
         ) : null}
       </ToolSection>
 

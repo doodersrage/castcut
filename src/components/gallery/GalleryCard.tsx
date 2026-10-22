@@ -173,6 +173,7 @@ export default function GalleryCard({
 
   const heuristicScore = useMemo(
     () => scoreGalleryEntryHeuristic(entry),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the score reads only these fields; entry is a new object on every gallery save
     [entry.id, entry.status, entry.favorite, entry.reviewRating, entry.prompt.length]
   );
   const cachedScore = useMemo((): AestheticScoreResult | null => {

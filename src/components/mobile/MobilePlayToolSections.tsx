@@ -561,13 +561,14 @@ export default function MobilePlayToolSections({ description: _description, ...v
           {scenes.length > 0 ? (
             <div className="grid gap-2">
               {scenes.map(scene => (
-                <button
+                <Button
+                  variant="outline"
                   key={scene.id}
                   type="button"
                   disabled={playingId !== null || busy}
                   onClick={() => void playScene(scene)}
                   data-testid="story-scene-card"
-                  className="flex items-start gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left transition hover:border-[var(--accent-border)] disabled:opacity-50"
+                  className="flex items-start gap-3 rounded-2xl border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-3 text-left text-inherit transition hover:border-[var(--accent-border)] disabled:opacity-50"
                 >
                   <span className="block min-w-0 flex-1">
                     <span className="block text-sm font-medium">{scene.title}</span>
@@ -583,7 +584,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
                   {/* At the side, in a fixed box: the text keeps its width and the card its
                       height whether or not it has a figure. */}
                   <StoryScenePoseFigure pose={scenePoses.get(scene.id)} />
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { CollapsibleSection } from '@/components/ui/ToolPageShell';
 import type { SettingsComfyConnectionPanelProps } from '@/components/settings/panels/settings-comfy-connection-types';
 
@@ -68,13 +69,14 @@ export function SettingsComfyConnectionCustomTokensSection({
                   placeholder="flux1-dev.safetensors"
                   className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-muted)] px-3 py-2 text-sm text-[var(--text-primary)]"
                 />
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   onClick={() => removeCustomToken(index)}
-                  className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)]"
+                  className="rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:border-[var(--tint-danger-border)] hover:text-[var(--tint-danger-text)]"
                 >
                   Remove
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

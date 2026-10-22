@@ -246,13 +246,14 @@ export function SettingsOverviewSetupSection({
       {slimSettings && onShowAllSettings ? (
         <p className="mt-3 type-caption text-[var(--text-muted)]">
           Looking for automation, users, or sync?{' '}
-          <button
+          <Button
+            variant="underline"
             type="button"
             onClick={onShowAllSettings}
-            className="text-[var(--accent-text)] underline-offset-2 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="text-[var(--accent-text)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             Show all settings
-          </button>
+          </Button>
           .
         </p>
       ) : null}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import GalleryExperimentPanel from '@/components/gallery/GalleryExperimentPanel';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/useGalleryPanelActions';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
@@ -103,15 +104,17 @@ export default function GalleryPanelBulkSection({
       {filter.characterId ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2 text-xs text-[var(--accent-text)]">
           <span>Character filter: this cast member only</span>
-          <button
+          <Button
+            variant="outline"
+            tone="accent"
             type="button"
             onClick={() =>
               setFilter(previous => ({ ...previous, characterId: undefined, lookId: undefined }))
             }
-            className="rounded-lg border border-[var(--accent-border)] px-2 py-0.5 text-2xs transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
+            className="rounded-lg px-2 py-0.5 text-2xs text-inherit transition hover:border-[var(--accent-border)] hover:text-[var(--accent-text)]"
           >
             Clear
-          </button>
+          </Button>
         </div>
       ) : null}
     </>

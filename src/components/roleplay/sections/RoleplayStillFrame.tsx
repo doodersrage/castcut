@@ -186,7 +186,8 @@ export function RoleplayStillFrame({
 
       {canPage ? (
         <>
-          <button
+          <Button
+            variant="plain"
             type="button"
             className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute left-1.5 top-1/2 z-20 -translate-y-1/2`}
             aria-label={canPageClips ? 'Previous clip version' : 'Previous still version'}
@@ -201,8 +202,9 @@ export function RoleplayStillFrame({
             }}
           >
             <UiIcon name="chevronLeft" size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="plain"
             type="button"
             className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute right-1.5 top-1/2 z-20 -translate-y-1/2`}
             aria-label={canPageClips ? 'Next clip version' : 'Next still version'}
@@ -217,7 +219,7 @@ export function RoleplayStillFrame({
             }}
           >
             <UiIcon name="chevronRight" size={14} />
-          </button>
+          </Button>
           <p className="pointer-events-none absolute left-1.5 top-1.5 z-20 rounded-full bg-[var(--bg-base)]/75 px-2 py-0.5 type-caption text-[var(--text-secondary)] backdrop-blur-sm">
             {pageIndex + 1} / {pageCount}
           </p>
@@ -225,7 +227,8 @@ export function RoleplayStillFrame({
       ) : null}
 
       {canRetry ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute right-1.5 top-1.5 z-20`}
           aria-label="Play another still with a new seed"
@@ -236,11 +239,12 @@ export function RoleplayStillFrame({
           }}
         >
           <UiIcon name="retry" size={14} />
-        </button>
+        </Button>
       ) : null}
 
       {motionClip && canRetryClip ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           className={`${ROLEPLAY_OVERLAY_BTN_CLASS} absolute right-1.5 top-1.5 z-20`}
           aria-label="Play another clip with a new seed"
@@ -251,7 +255,7 @@ export function RoleplayStillFrame({
           }}
         >
           <UiIcon name="retry" size={14} />
-        </button>
+        </Button>
       ) : null}
     </div>
   );

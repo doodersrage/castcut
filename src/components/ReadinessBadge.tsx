@@ -97,6 +97,7 @@ export default function ReadinessBadge(props: {
           props.onResult?.(fallback);
         });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-check when the prompt fields change, not on a new onResult
   }, [props.prompt, props.hints, props.model, props.detail, props.negativePrompt]);
 
   async function runAutoFix() {

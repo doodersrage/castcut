@@ -155,21 +155,23 @@ export default function CharacterMediaSection({
           {[{ id: '', label: 'All looks', count: entries.length }, ...lookChips].map(chip => {
             const selected = (lookFilter ?? '') === chip.id;
             return (
-              <button
+              <Button
+                variant="chip"
+                selected={selected}
                 key={chip.id || 'all'}
                 type="button"
                 aria-pressed={selected}
                 data-testid={`cast-media-look-${chip.id || 'all'}`}
                 onClick={() => setLookFilter(chip.id && !selected ? chip.id : null)}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-2 py-0.5 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
+                className={`inline-flex items-center gap-1.5 rounded-xl px-2 py-0.5 text-2xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                   selected
-                    ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                    : 'border-[var(--border-subtle)] bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
+                    ? ''
+                    : 'bg-[var(--bg-muted)] text-[var(--text-secondary)] hover:border-[var(--accent-border)]'
                 }`}
               >
                 {chip.label}
                 <span className="text-[var(--text-muted)]">{chip.count}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

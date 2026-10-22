@@ -410,34 +410,38 @@ export default function HomeDashboard() {
                     </p>
                   </div>
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex translate-y-1 gap-1 bg-gradient-to-t from-[var(--bg-base)] via-[var(--bg-base)]/80 to-transparent p-2 pt-8 opacity-0 transition duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => void requeueComfyJobFromEntry(entry)}
                     >
                       Re-queue
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startRefineFromGalleryEntry(entry)}
                     >
                       Refine
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startRoleplayFromGalleryEntry(entry)}
                     >
                       Story
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
                       type="button"
-                      className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      className="rounded-md border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       onClick={() => startPromptEditorFromGalleryEntry(entry)}
                     >
                       Edit
-                    </button>
+                    </Button>
                     <AppRouteLink
                       href={hintsHref}
                       className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-3xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"

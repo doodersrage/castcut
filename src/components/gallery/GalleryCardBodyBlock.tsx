@@ -249,13 +249,14 @@ export default function GalleryCardBodyBlock({
             >
               {entry.parentGalleryEntryId && onShowParent ? (
                 <>
-                  <button
+                  <Button
+                    variant="underline"
                     type="button"
                     onClick={onShowParent}
-                    className="text-[var(--accent-text)] underline decoration-[var(--accent-border)] underline-offset-2 transition hover:text-[var(--accent-text)]"
+                    className="text-[var(--accent-text)] underline decoration-[var(--accent-border)] transition hover:text-[var(--accent-text)]"
                   >
                     {derivedLabel ?? 'View source'}
-                  </button>
+                  </Button>
                   {' · '}
                 </>
               ) : null}
@@ -403,18 +404,16 @@ export default function GalleryCardBodyBlock({
         >
           <span className="text-2xs text-[var(--text-muted)]">Rate</span>
           {[1, 2, 3, 4, 5].map(rating => (
-            <button
+            <Button
               key={rating}
+              variant="chip"
+              selected={entry.reviewRating === rating}
               type="button"
               onClick={() => onReviewRating(rating as ComfyGalleryEntry['reviewRating'])}
-              className={`min-h-8 min-w-8 rounded-lg border text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
-                entry.reviewRating === rating
-                  ? 'border-[var(--accent-border)] bg-[var(--accent-muted)] text-[var(--accent-text)]'
-                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-default)] hover:text-[var(--text-primary)]'
-              }`}
+              className="min-h-8 min-w-8 rounded-lg text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             >
               {rating}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}

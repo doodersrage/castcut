@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useState } from 'react';
 import { ChipButton, FieldLabel } from '@/components/ui/Field';
 import {
@@ -87,9 +88,10 @@ export default function ModelSamplerHints({
 
       {onOverridesChange ? (
         <div className="mt-3 border-t border-[var(--tint-info-border)] pt-3">
-          <button
+          <Button
+            variant="row"
             type="button"
-            className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-1 py-1 text-left text-xs font-medium text-[var(--tint-info-text)] transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-1 py-1 text-xs font-medium text-[var(--tint-info-text)] transition hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             aria-expanded={overridesOpen}
             onClick={() => setOverridesOpen(open => !open)}
           >
@@ -104,7 +106,7 @@ export default function ModelSamplerHints({
             <span className="text-[var(--tint-info-text)]/60" aria-hidden>
               {overridesOpen ? '−' : '+'}
             </span>
-          </button>
+          </Button>
           {overridesOpen ? (
             <div className="mt-2 space-y-2">
               <p className="type-caption text-[var(--text-muted)]">
@@ -138,13 +140,14 @@ export default function ModelSamplerHints({
                 </p>
               ) : null}
               {overridesActive ? (
-                <button
+                <Button
+                  variant="quiet"
                   type="button"
                   onClick={resetOverrides}
-                  className="text-xs text-[var(--tint-info-text)]/80 transition hover:text-[var(--tint-info-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="text-xs text-[var(--tint-info-text)]/80 underline-offset-auto transition hover:text-[var(--tint-info-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                 >
                   Reset overrides
-                </button>
+                </Button>
               ) : null}
             </div>
           ) : null}
