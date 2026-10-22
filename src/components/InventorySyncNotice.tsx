@@ -36,6 +36,9 @@ export default function InventorySyncNotice() {
   } | null>(null);
 
   useEffect(() => {
+    // Browser tests: no settings changed from whatever GPU the test machine has, and no notice
+    // over the page (it covered the phone cut-film button on a machine with ComfyUI running).
+    if (process.env.NEXT_PUBLIC_PLAYWRIGHT === '1') return;
     let done = false;
     return subscribeSharedHealth(data => {
       if (done) return;

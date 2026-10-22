@@ -3951,6 +3951,7 @@ test('Film mode opens at Play; All tools switches to Studio', async ({ page }) =
 });
 
 test('play campaign empty cast offers create character CTA', async ({ page }) => {
+  await ensureFilmWorkspace(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'play');
@@ -4044,6 +4045,7 @@ test('mobile More menu is drawn and its links can be tapped', async ({ page }) =
 });
 
 test('completed campaign offers Cast watch and cut-another Day CTAs', async ({ page }) => {
+  await ensureFilmWorkspace(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'play');
@@ -4180,6 +4182,7 @@ test('play habit nudge appears after a day-old cut', async ({ page }) => {
   // Play metrics sync: another test's newer cut on the shared e2e server would replace this one.
   await isolateServerStorage(page);
   const dayAgo = Date.now() - 1000 * 60 * 60 * 25;
+  await ensureFilmWorkspace(page);
   await page.addInitScript(() => {
     try {
       localStorage.setItem('comfy-workspace-mode-v1', 'play');
