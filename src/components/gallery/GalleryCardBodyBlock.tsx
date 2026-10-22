@@ -7,6 +7,7 @@ import GalleryCardMenu from '@/components/gallery/GalleryCardMenu';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { isHtmlVideoViewUrl } from '@/lib/comfyui/outputs';
+import { Button } from '@/components/ui/Button';
 
 export type GalleryCardBodyBlockProps = {
   entry: ComfyGalleryEntry;
@@ -154,13 +155,14 @@ export default function GalleryCardBodyBlock({
       }`}
     >
       {pickMode && pickable && onPick ? (
-        <button
+        <Button
+          variant="tint"
           type="button"
           onClick={onPick}
-          className="w-full rounded-xl border border-[var(--accent-border)] bg-[var(--accent-muted)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="w-full rounded-xl px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           {pickLabel}
-        </button>
+        </Button>
       ) : pickMode && !pickable ? (
         <p className="type-caption text-[var(--text-muted)]">
           Only completed still images can be selected here.
@@ -325,7 +327,8 @@ export default function GalleryCardBodyBlock({
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {imageUrls.slice(1, 5).map((url, thumbIndex) =>
             stripMediaKinds[thumbIndex + 1] === 'video' && isHtmlVideoViewUrl(url) ? (
-              <button
+              <Button
+                variant="plain"
                 key={url}
                 type="button"
                 onClick={() => onOpenImage(thumbIndex + 1)}
@@ -343,10 +346,11 @@ export default function GalleryCardBodyBlock({
                   preload="metadata"
                   className="h-9 w-9 object-cover"
                 />
-              </button>
+              </Button>
             ) : stripMediaKinds[thumbIndex + 1] === 'audio' ||
               stripMediaKinds[thumbIndex + 1] === 'mesh' ? (
-              <button
+              <Button
+                variant="plain"
                 key={url}
                 type="button"
                 onClick={() => onOpenImage(thumbIndex + 1)}
@@ -354,9 +358,10 @@ export default function GalleryCardBodyBlock({
                 aria-label={`Open ${stripMediaKinds[thumbIndex + 1] === 'audio' ? 'audio' : '3D'} ${thumbIndex + 2}`}
               >
                 {stripMediaKinds[thumbIndex + 1] === 'audio' ? 'Audio' : '3D'}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
+                variant="plain"
                 key={url}
                 type="button"
                 onClick={() => onOpenImage(thumbIndex + 1)}
@@ -374,7 +379,7 @@ export default function GalleryCardBodyBlock({
                   decoding="async"
                   className="h-9 w-9 object-cover"
                 />
-              </button>
+              </Button>
             )
           )}
         </div>

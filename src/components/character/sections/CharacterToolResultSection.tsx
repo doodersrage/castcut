@@ -22,7 +22,6 @@ export function CharacterToolResultSection(vm: CharacterToolViewModel) {
     result,
     copied,
     sceneMode,
-    accent,
     actions,
     selectedModel,
     inferredSport,
@@ -30,7 +29,6 @@ export function CharacterToolResultSection(vm: CharacterToolViewModel) {
     copyOutput,
     exportBatch,
     batchPrompts,
-    soloBatchCount,
   } = vm;
 
   return (

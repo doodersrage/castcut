@@ -2221,6 +2221,56 @@ html[data-theme='light'] .ui-input:active:not(:disabled) {
     background: var(--bg-hover);
     color: var(--text-primary);
   }
+
+  /* Button variant="quiet": a muted text action ("Clear", "Reset", "Use these"). Brightens on
+     hover; size, underline (hover:underline), border and padding come from the caller's
+     utilities. A text-colour utility on the button beats this hover too (utilities layer), so
+     pass hover:text-… alongside one. */
+  .ui-btn-quiet {
+    color: var(--text-muted);
+    text-underline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    .ui-btn-quiet:hover {
+      color: var(--text-primary);
+    }
+  }
+
+  /* Button variant="tint" tone=…: a small tinted chip action ("Fix all", "Use suggestion").
+     Border, fill and text from the tone (accent by default); radius, padding and size from the
+     caller's utilities. */
+  .ui-btn-tint {
+    border: 1px solid var(--accent-border);
+    background: var(--accent-muted);
+    color: var(--accent-text);
+  }
+
+  .ui-btn-tint[data-tone='info'] {
+    border-color: var(--tint-info-border);
+    background: var(--tint-info-bg);
+    color: var(--tint-info-text);
+  }
+
+  .ui-btn-tint[data-tone='success'] {
+    border-color: var(--tint-success-border);
+    background: var(--tint-success-bg);
+    color: var(--tint-success-text);
+  }
+
+  .ui-btn-tint[data-tone='warning'] {
+    border-color: var(--tint-warning-border);
+    background: var(--tint-warning-bg);
+    color: var(--tint-warning-text);
+  }
+
+  .ui-btn-tint[data-tone='danger'] {
+    border-color: var(--tint-danger-border);
+    background: var(--tint-danger-bg);
+    color: var(--tint-danger-text);
+  }
+
+  /* Button variant="plain" has no rule on purpose: the caller's className is its whole look. */
 }
 
 /* ─── Chips & toggles ───────────────────────────────────────────────────── */

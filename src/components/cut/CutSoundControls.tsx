@@ -72,15 +72,16 @@ export default function CutSoundControls({
     <div className="grid gap-2">
       {hasBed ? (
         <>
-          <button
+          <Button
+            variant="quiet"
             type="button"
-            className="justify-self-start type-caption text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
+            className="justify-self-start type-caption hover:underline"
             aria-expanded={shapeOpen}
             onClick={() => setShapeOpen(open => !open)}
             data-testid={`${testIdPrefix}-music-shape-toggle`}
           >
             {shapeOpen ? '▾' : '▸'} Music start &amp; fades
-          </button>
+          </Button>
           {shapeOpen ? (
             <div className="grid gap-2">
               {seconds(

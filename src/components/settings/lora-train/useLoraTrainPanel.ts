@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadComfyUiSettings, saveComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   buildLoraTrainValidationPrompt,
-  createTrainJob,
   normalizeLoraTrainTrainerPrefs,
   normalizeTrainJobs,
   registerTrainJobLora,

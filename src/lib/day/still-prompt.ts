@@ -122,6 +122,12 @@ export type DayStillPromptFacts = {
    */
   poseFirstWithoutMap?: boolean;
   /**
+   * The plain posture the player picked in the slot's pose picker (`sit`, `kneel`, `walk` …; a
+   * body pose, not a layout). Said in words when the engine drops the planner's map
+   * (`poseFirstWithoutMap`): there the map was the only place the pick lived.
+   */
+  pickedPosture?: string | null;
+  /**
    * A custom pose (joint editor, a photo, My poses, a pose pack) in words — `describePhotoPose`.
    * Sent as the recipe's Pose: sentence, or the brief's first line.
    */
@@ -440,7 +446,10 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
   const posedBase = !customPose
     ? recipeCue
       ? groundedPoseSentence(
-          withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey),
+          withPickedPostureCue(
+            withRecipePoseCue(basePrompt, drawnLayout, facts.pose?.poseKey),
+            facts.poseFirstWithoutMap ? facts.pickedPosture : null
+          ),
           facts.adult ? null : facts.setting
         )
       : facts.sportActionCue && !recipe && figures === 1
@@ -549,6 +558,34 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
 }
 
 /** The recipe's "Pose: …" sentence with its floor said as the Setting's ground (withSceneGround). */
+/**
+ * A picked plain posture in words, for a one-person recipe on an engine that drops the planner's
+ * map (Qwen-Image 2.1). The pick was drawn on the map only, so "Sit" with a beat that names no
+ * posture came out standing (camera bench, 2026-10-22: a sit pick stood on Turbo; with
+ * "Pose: seated, knees bent" she sat on the bench). Standing is the default and says nothing.
+ */
+const PICKED_POSTURE_CUES: Record<string, string> = {
+  walk: 'walking mid-step, one foot ahead of the other',
+  run: 'running mid-stride, one foot off the ground',
+  sit: 'seated, knees bent',
+  crouch: 'crouching low, knees deeply bent',
+  kneel: 'kneeling on the ground',
+  reach: 'reaching up high with one arm',
+  lean: 'leaning with her shoulder and hip against something solid beside her',
+  lie: 'lying on the back, whole body horizontal',
+  jump: 'in mid-air, both feet off the ground, knees tucked up',
+};
+
+export function withPickedPostureCue(prompt: string, posture: string | null | undefined): string {
+  const cue = posture ? PICKED_POSTURE_CUES[posture] : undefined;
+  if (!cue || /\bPose: /.test(prompt)) return prompt;
+  const sentence = `Pose: ${cue}. `;
+  if (prompt.includes(' Place: ')) return prompt.replace(' Place: ', ` ${sentence}Place: `);
+  return prompt.includes(' Moment: ')
+    ? prompt.replace(' Moment: ', ` ${sentence}Moment: `)
+    : prompt;
+}
+
 function groundedPoseSentence(prompt: string, setting: string | null | undefined): string {
   if (!setting?.trim()) return prompt;
   return prompt.replace(/\bPose: [^\n]*?\.(?= |$)/m, sentence =>

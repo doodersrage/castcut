@@ -467,7 +467,8 @@ export default function FixAreaDialog({
                 </span>
                 {candidate.state.status === 'ready' ? (
                   <>
-                    <button
+                    <Button
+                      variant="plain"
                       type="button"
                       className={`block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
                         compared?.promptId === candidate.promptId
@@ -488,7 +489,7 @@ export default function FixAreaDialog({
                           showArea={showArea}
                         />
                       </Frame>
-                    </button>
+                    </Button>
                     <Button
                       size="sm"
                       variant="primary"

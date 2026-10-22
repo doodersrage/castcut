@@ -14,6 +14,7 @@ import {
   upsertGallerySavedView,
   type GallerySavedView,
 } from '@/lib/gallery/saved-views';
+import { Button } from '@/components/ui/Button';
 
 export type GalleryFiltersSavedViewsProps = {
   savedViews: GallerySavedView[];
@@ -52,14 +53,15 @@ export default function GalleryFiltersSavedViews({
             {view.name}
           </button>
           {!lean ? (
-            <button
+            <Button
+              variant="quiet"
               type="button"
               onClick={() => onDeleteView(view.id)}
-              className="rounded-xl px-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--tint-danger-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+              className="rounded-xl px-1 text-xs transition hover:text-[var(--tint-danger-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               aria-label={`Delete saved view ${view.name}`}
             >
               ×
-            </button>
+            </Button>
           ) : null}
         </span>
       ))}

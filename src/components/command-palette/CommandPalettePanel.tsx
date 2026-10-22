@@ -4,6 +4,7 @@ import BrandMark from '@/components/BrandMark';
 import CommandPaletteResults from '@/components/command-palette/CommandPaletteResults';
 import type { CommandItem } from '@/components/command-palette/types';
 import { isLeanWorkspaceMode, loadWorkspaceMode } from '@/lib/app/workspace-mode';
+import { Button } from '@/components/ui/Button';
 
 type CommandPalettePanelProps = {
   query: string;
@@ -93,7 +94,8 @@ export default function CommandPalettePanel({
           ) : null}
         </div>
       </div>
-      <button
+      <Button
+        variant="plain"
         type="button"
         aria-label="Close command palette"
         className="absolute inset-0 z-0"

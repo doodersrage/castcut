@@ -183,13 +183,14 @@ export default function GalleryComparePanel({
             images.
           </p>
         </div>
-        <button
+        <Button
+          variant="quiet"
           type="button"
           onClick={onClose}
-          className="rounded-[var(--radius-md)] px-2 py-1 text-xs text-[var(--text-muted)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-[var(--radius-md)] px-2 py-1 text-xs transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           Close
-        </button>
+        </Button>
       </div>
       {entries.length >= 2 ? (
         <div className="flex flex-wrap gap-2">
@@ -299,7 +300,8 @@ export default function GalleryComparePanel({
                       entry={entry}
                       className="aspect-square w-full object-cover transition hover:opacity-95"
                     />
-                    <button
+                    <Button
+                      variant="plain"
                       type="button"
                       onClick={() => onOpenPreview(entry)}
                       className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"

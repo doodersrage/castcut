@@ -9,6 +9,7 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
+import { Button } from '@/components/ui/Button';
 
 export default function CutGalleryPicker({
   open,
@@ -44,7 +45,8 @@ export default function CutGalleryPicker({
             });
             return (
               <li key={entry.id}>
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   className="group relative block aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-sm)] bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
                   title={`Add this ${clip ? 'clip' : 'still'} to the cut`}
@@ -68,7 +70,7 @@ export default function CutGalleryPicker({
                   <span className="absolute right-1 top-1 rounded-full bg-[var(--accent)] px-1.5 text-xs text-[var(--on-accent)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:opacity-100">
                     +
                   </span>
-                </button>
+                </Button>
               </li>
             );
           })}

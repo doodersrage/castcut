@@ -8,7 +8,7 @@ import {
   isCloudMultiRefEditModel,
 } from '@/lib/cloud/cloud-compose-refs';
 import { isCloudEngine } from '@/lib/engine/capabilities';
-import { isBooguEditModel, isFluxKleinModel, isZImageModel } from '@/lib/model/denoise-defaults';
+import { isBooguEditModel, isFluxKleinModel } from '@/lib/model/denoise-defaults';
 import { normalizeTurboEditStrength } from '@/lib/engine/turbo-edit-strength';
 import { Z_IMAGE_COMPOSE_PROMPT_ONLY_WARNING } from '@/lib/prompt/compose-prompt';
 import {
@@ -45,7 +45,6 @@ type Props = Pick<
 
 export function ComposeToolIdentityMaskSection({
   shared,
-  toolSettings,
   updateShared,
   updateToolSettings,
   maskPreviewUrl,
@@ -60,7 +59,6 @@ export function ComposeToolIdentityMaskSection({
   identityLockHint,
   regionalSlots,
   fig1Preview,
-  booguEditModel,
   zImageModel,
 }: Props) {
   const cloudEngine = isCloudEngine(shared.inferenceEngine);

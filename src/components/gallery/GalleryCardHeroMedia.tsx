@@ -2,6 +2,7 @@
 
 import GalleryKindPreview from '@/components/ui/GalleryKindPreview';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
+import { Button } from '@/components/ui/Button';
 
 type Props = {
   entry: ComfyGalleryEntry;
@@ -47,7 +48,8 @@ export function GalleryCardHeroMedia({
   onPrefetchImage,
 }: Props) {
   return (
-    <button
+    <Button
+      variant="plain"
       type="button"
       onClick={() => {
         if (pickMode && pickable && onPick) {
@@ -141,6 +143,6 @@ export function GalleryCardHeroMedia({
           3D
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }

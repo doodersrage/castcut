@@ -2,11 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
-import {
-  COMFY_ASSET_KIND_LABELS,
-  COMFY_ASSET_KIND_ORDER,
-  type ComfyAssetKind,
-} from '@/lib/comfyui/comfy-asset-kinds';
+import { COMFY_ASSET_KIND_LABELS, COMFY_ASSET_KIND_ORDER } from '@/lib/comfyui/comfy-asset-kinds';
 import type { ComfyModelAssetsViewModel } from '@/components/settings/comfy-model-assets/useComfyModelAssets';
 
 type Props = Pick<

@@ -380,7 +380,8 @@ export default function FittingCompareSection({
                   const label = tryOn.wardrobeLabel || tryOn.wardrobeId || 'Try-on';
                   const on = tryOn.promptId === picked?.promptId;
                   return (
-                    <button
+                    <Button
+                      variant="plain"
                       key={tryOn.promptId}
                       type="button"
                       aria-pressed={on}
@@ -409,7 +410,7 @@ export default function FittingCompareSection({
                       ) : (
                         <span className="block h-20 w-14 rounded bg-[var(--bg-muted)]" />
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

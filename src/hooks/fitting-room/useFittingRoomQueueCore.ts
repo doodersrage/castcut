@@ -60,17 +60,8 @@ import {
   loadWardrobeGarmentThumbManifest,
 } from '@/lib/wardrobe/garment-thumbs';
 import {
-  countInFlightFittingKitPreviews,
-  FITTING_KIT_PREVIEW_CONCURRENCY,
-  FITTING_KIT_PREVIEW_HEIGHT,
-  FITTING_KIT_PREVIEW_MAX,
-  FITTING_KIT_PREVIEW_PROMPT_VERSION,
-  FITTING_KIT_PREVIEW_WIDTH,
-  fittingKitsNeedingPreview,
-  getFittingKitPreview,
   mergeFittingKitPreviewsFromGallery,
   normalizeFittingKitPreviews,
-  upsertFittingKitPreview,
   type FittingKitPreview,
 } from '@/lib/fitting/kit-previews';
 import { rememberDraftFields } from '@/lib/app/remember-draft-fields';

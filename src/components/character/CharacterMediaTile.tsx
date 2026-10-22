@@ -10,6 +10,7 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
+import { Button } from '@/components/ui/Button';
 
 export default function CharacterMediaTile({
   entry,
@@ -44,7 +45,8 @@ export default function CharacterMediaTile({
     <li>
       <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]">
         {canOpen ? (
-          <button
+          <Button
+            variant="plain"
             type="button"
             className="block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left"
             data-testid="cast-media-open"
@@ -52,7 +54,7 @@ export default function CharacterMediaTile({
             onClick={onOpen}
           >
             <GalleryEntryPreview entry={entry} className="aspect-square w-full object-cover" />
-          </button>
+          </Button>
         ) : previewSrc ? (
           <GalleryEntryPreview entry={entry} className="aspect-square w-full object-cover" />
         ) : (

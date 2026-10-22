@@ -13,7 +13,6 @@ import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { ToolSection, accentFocusClass } from '@/components/ui/ToolPageShell';
 import { FieldLabel } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
 
 export type ScheduledBatchPanelProps = {
   scheduledBatch: ScheduledBatchConfig;

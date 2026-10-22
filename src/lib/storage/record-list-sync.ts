@@ -91,7 +91,8 @@ export function mergeStoryLists<S extends Timed>(
 
 /**
  * The other user-made lists in studio-extras, merged the same way (2026-10-17): saved outfits,
- * saved shoes, My poses, My pose packs, dress plates and the workflow library. Each list's own
+ * saved shoes, My poses, My pose packs, dress plates and the workflow library, and the
+ * Director's saved directions. Each list's own
  * write stamps `updatedAt` on entries it changed and records a deletion time for entries it
  * dropped (stampListChanges, record-tombstones.ts); a write that comes from sync does neither.
  */
@@ -116,6 +117,12 @@ export const RECORD_LISTS: readonly RecordListSpec[] = [
   { field: 'myPosePacks', idOf: e => str(e.id), sameAs: e => str(e.name).toLowerCase() },
   { field: 'dressPlates', idOf: e => str(e.key) },
   { field: 'comfyWorkflowFiles', idOf: e => str(e.id) },
+  // The Director's saved directions: one name per Cast member.
+  {
+    field: 'directorDirections',
+    idOf: e => str(e.id),
+    sameAs: e => `${str(e.castId)}\n${str(e.name).toLowerCase()}`,
+  },
 ];
 
 /** The RECORD_LISTS entry for a studio-extras field. */

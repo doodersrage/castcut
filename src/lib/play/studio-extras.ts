@@ -20,6 +20,7 @@ import {
 import { loadPlayMetrics, savePlayMetrics, type PlayMetrics } from './metrics';
 import { loadMyPosePacks, replaceMyPosePacks } from '../pose/my-pose-packs';
 import type { PosePack } from '../day/pose-packs';
+import { loadAllDirections, replaceDirections } from '../director/store';
 
 export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
   collect: () => ({
@@ -29,6 +30,8 @@ export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
     dressPlates: loadDressPlates(),
     /** "My packs" — Day slot poses saved as a pose pack. */
     myPosePacks: loadMyPosePacks(),
+    /** The Director's saved directions (every Cast member). */
+    directorDirections: loadAllDirections(),
   }),
   apply: (payload: StudioExtrasPayload) => {
     const fittingSavedGarments = payload.fittingSavedGarments as SavedFittingGarment[] | undefined;
@@ -43,6 +46,9 @@ export const PLAY_STUDIO_EXTRAS_SECTION: StudioExtrasSection = {
     const myPosePacks = payload.myPosePacks as PosePack[] | undefined;
     if (myPosePacks) {
       replaceMyPosePacks(myPosePacks);
+    }
+    if (Array.isArray(payload.directorDirections)) {
+      replaceDirections(payload.directorDirections);
     }
     const playMetrics = payload.playMetrics as PlayMetrics | undefined;
     if (playMetrics) {

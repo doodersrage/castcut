@@ -4,36 +4,17 @@ import { focusSettingsElement } from '@/lib/settings/focus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { STUDIO_BACKUP_LAST_EXPORT_KEY } from '@/lib/storage/studio-backup-meta';
-import {
-  readBrowserString,
-  whenBrowserStorageReady,
-  writeBrowserString,
-} from '@/lib/storage/browser-storage';
+import { readBrowserString, whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import { useComfyUiSettings } from '@/hooks/useComfyUiSettings';
-import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
-import {
-  DEFAULT_COMFYUI_SETTINGS,
-  loadComfyUiSettings,
-  mergeLoraLibraryIntoCustomTokens,
-  placeholderTokensFromSettings,
-  resetComfyUiSettings,
-  saveComfyUiSettings,
-} from '@/lib/comfyui/settings';
+import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import {
   formatModelCheckpointMap,
   formatModelVaeMap,
   formatModelRefinerMap,
-  mergeSuggestedLoaderMaps,
-  formatSuggestedLoaderMergeMessage,
 } from '@/lib/model/checkpoint-map';
 import { formatModelUpscaleMap } from '@/lib/model/upscale-map';
 import { formatModelControlNetMap } from '@/lib/model/controlnet-map';
 import { formatModelLoraMap } from '@/lib/model/lora-map';
-import {
-  formatInventorySyncMessage,
-  syncLoaderMapsFromInventory,
-} from '@/lib/workflow/loader-map-inventory-sync';
-import { fetchComfyObjectInfoCached } from '@/lib/comfyui/object-info-cache';
 import {
   DEFAULT_SHARED_SETTINGS,
   loadSettingsCache,
@@ -48,7 +29,6 @@ import {
 } from '@/lib/batch/scheduled-batch';
 import {
   fetchScheduledBatchServerStatus,
-  pushScheduledBatchProfile,
   type ScheduledBatchServerStatus,
 } from '@/lib/batch/scheduled-batch-profile-sync';
 import {
@@ -62,10 +42,7 @@ import {
   loadWebhookLog,
   type WebhookLogEntry,
 } from '@/lib/server/webhook-log';
-import {
-  isComfyNotificationSupported,
-  requestComfyNotificationPermission,
-} from '@/lib/comfyui/notifications';
+import { isComfyNotificationSupported } from '@/lib/comfyui/notifications';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   normalizeSettingsTab,
@@ -86,14 +63,10 @@ import {
 import {
   COMFYUI_SECTION_ELEMENT_IDS,
   PLAYBOOK_SECTION_CHECKLISTS,
-  serverEnvFieldValue,
   formatModelWorkflowMap,
   type HealthResponse,
 } from '@/components/settings/tabs/settings-tool-shared';
-import { markOnboardingComfyHealthOk, markOnboardingLlmHealthOk } from '@/lib/app/onboarding-hooks';
 import { fetchWorkflowPreview } from '@/lib/comfyui/requeue';
-import { resolveQueueParams } from '@/lib/queue/params-settings';
-import { runHealAndReady, readAdaptedLoaderMapTexts } from '@/lib/app/first-run-setup';
 
 export function useSettingsToolOrchestrationCore() {
   const { mounted, settings, updateSettings } = useComfyUiSettings();

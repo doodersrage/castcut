@@ -8,6 +8,7 @@ import { choosePhoneView } from '@/lib/app/phone-view';
 import BrandMark from '@/components/BrandMark';
 import ActiveJobsChip from '@/components/ActiveJobsChip';
 import { AppNavSidebarContent } from '@/components/app-nav/AppNavSidebarContent';
+import { Button } from '@/components/ui/Button';
 
 export default function AppNav() {
   const pathname = usePathname();
@@ -57,7 +58,8 @@ export default function AppNav() {
       </header>
 
       {mobileOpen ? (
-        <button
+        <Button
+          variant="plain"
           type="button"
           aria-label="Close navigation overlay"
           className="ui-overlay fixed inset-0 z-40 lg:hidden"

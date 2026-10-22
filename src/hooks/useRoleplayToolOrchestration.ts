@@ -24,7 +24,6 @@ import { roleplayLookPlateFieldsFromCharacter } from '@/lib/fitting/room';
 import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import {
-  ROLEPLAY_ARCHETYPES,
   formatRoleplayStoryProgress,
   resolveRoleplayToneAndContent,
   type RoleplayScene,

@@ -54,14 +54,7 @@ import { dayPartnerNoun } from '@/lib/day/partner';
 import { applyCutShotEdits, cutPosterPick, type KeyedShot } from '@/lib/film/cut-plan';
 import { bringBackSetAsideDayPatch, dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { dayPosterSubtitle, loadPlaySeriesStore, nextDayFilmTitleCard } from '@/lib/play/series';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { parseCharacterHints } from '@/lib/character/hints';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   assembleAndStampFilm,
   downloadFilmBlob,
@@ -76,28 +69,15 @@ import {
   upsertCharacter,
 } from '@/lib/character/os';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
-import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import {
-  fetchClothingLabels,
-  fetchClothingSelectOptions,
-  getCachedClothingLabel,
-} from '@/lib/wardrobe/clothing-catalog-client';
-import {
-  COMFYUI_GALLERY_UPDATED_EVENT,
-  galleryEntryPrimaryViewUrl,
-  loadComfyGallery,
-} from '@/lib/gallery/comfyui-gallery';
-import {
-  buildDaySlotPrompt,
   dayStillShownImage,
   dayStillsBelongToCharacter,
   dayStillsCachePatch,
   dayWatchPlaylist,
   diversifyDaySlotScenes,
   ensureDaySlotsMatchMood,
-  mergeDaySlotStills,
   normalizeDaySlotStills,
-  normalizeDaySlots,
   upsertDaySlotStill,
   daySlotDefaultLabel,
   type DaySlot,
@@ -115,17 +95,7 @@ import {
   normalizeDayClipExtraSeconds,
 } from '@/lib/day/clip-length';
 import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
-import {
-  countWardrobeOptionsForFilter,
-  filterWardrobeSelectOptions,
-  normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe/catalog-ui';
-import {
-  applyLookPackToDaySlots,
-  loadLookPack,
-  lookPackNotes,
-  saveLookPack,
-} from '@/lib/look/pack';
+import { loadLookPack, saveLookPack } from '@/lib/look/pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play/campaign';
 import { loadPlayMetrics } from '@/lib/play/metrics';
 import { canEnterPlayStep, resolvePlayStepHref } from '@/lib/play/step-machine';
@@ -137,10 +107,6 @@ import { dayToolHref, dayToolPathname, toMobileStudioHref } from '@/lib/app/mobi
 import { markComfyQueueIntent } from '@/lib/comfyui/comfy-setup-intent';
 import { planAppBurst } from '@/lib/comfyui/comfy-model-turn';
 import { buildDemoDayStills } from '@/lib/film/welcome-sample-film';
-import { getReformatTargetModel } from '@/lib/edit/reformat-target';
-import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
-import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
-import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import { syncSharedIdentityToCast, withCastFaceQueueParams } from '@/lib/look/outfit-plate';
@@ -164,9 +130,6 @@ import {
 } from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
-const TOOL_ID = 'day' as const;
-type ClothingOption = { value: string; label: string; group?: string };
-
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { filmResolutionForCutOptions } from '@/lib/video/resolution';
 
@@ -179,52 +142,32 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     setFilmNeedsCast,
     stillsRef,
     assembledFilmRef,
-    buildSlotPrompt,
     mounted,
     shared,
     toolSettings,
     updateShared,
     updateToolSettings,
-    output,
-    setOutput,
-    copied,
-    setCopied,
-    error,
     setError,
     setFilmGuideHref,
-    busy,
     activeSlotId,
     setActiveSlotId,
-    wardrobeLabels,
     assemblingFilm,
-    filmStatus,
     filmCutOptions,
     setFilmCutOptions,
-    filmNeedsCast,
     slots,
     stills,
     watchPlaylist,
     activeSlot,
     character,
-    selectedModel,
-    plate,
-    hasPlate,
     isolatePending,
     isolateSubject,
-    wardrobeOptions,
-    wardrobeReady,
-    wardrobeCategoryFilter,
-    filteredWardrobeOptions,
-    wardrobeKitCount,
     actions,
     updateSlot,
     latestSlotsRef,
-    wardrobeLabelFor,
     queueSlot,
     queueEventMoment,
     queueEventEnding,
     resolveSlotStillModel,
-    leanChrome,
   } = ctx;
 
   const [firstCutCelebrate, setFirstCutCelebrate] = useState(false);
@@ -412,6 +355,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       toolSettings.dayMood,
       toolSettings.intimateMix,
       updateToolSettings,
+      setBusy,
+      setError,
     ]
   );
 
@@ -445,7 +390,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       return wide;
     },
-    [actions.sendComfyUi, shared.activeCharacterId, shared.model, stillsRef, updateToolSettings]
+    [
+      actions.sendComfyUi,
+      shared.activeCharacterId,
+      shared.model,
+      stillsRef,
+      updateToolSettings,
+      setFilmStatus,
+    ]
   );
 
   const animateSlot = useCallback(
@@ -741,6 +693,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       toolSettings.dayEvent,
       toolSettings.dayMood,
       updateToolSettings,
+      setActiveSlotId,
+      setBusy,
+      setError,
+      setFilmStatus,
     ]
   );
 
@@ -772,7 +728,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setBusy(false);
     }
-  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood]);
+  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood, setBusy, setError]);
 
   /**
    * Dub (day-dub.ts): every spoken line (and reply) translated, then each talking clip made
@@ -844,7 +800,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         setBusy(false);
       }
     },
-    [animateSlot, slots, stillsRef, updateToolSettings]
+    [animateSlot, slots, stillsRef, updateToolSettings, setBusy, setError]
   );
 
   /** Close-ups of a slot's still (a face close-up and a detail), cut in right after it. */
@@ -921,6 +877,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       slots,
       stillsRef,
       updateToolSettings,
+      setBusy,
+      setError,
+      setFilmStatus,
     ]
   );
 
@@ -1119,10 +1078,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       slots,
       toolSettings,
       wideAngleUrl,
-      shared.activeCharacterId,
       stillsRef,
-      updateToolSettings,
       wideStillUrl,
+      assembledFilmRef,
+      recordDayNarration,
+      setAssemblingFilm,
+      setError,
+      setFilmNeedsCast,
+      setFilmStatus,
     ]
   );
 
@@ -1185,7 +1148,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         lengthSeconds,
       };
     },
-    [character, shared.model, stillsRef, toolSettings.dayMood]
+    [character, shared.activeCharacterId, shared.model, stillsRef, toolSettings.dayMood]
   );
 
   // "Open this Day again" (Cast → Seasons) set the Day it replaced aside — offer it back.
@@ -1249,7 +1212,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     } finally {
       setPosterBusy(false);
     }
-  }, [activeSlotId, character, filmCutOptions, slots]);
+  }, [activeSlotId, character, filmCutOptions, slots, setError, setFilmStatus, stillsRef]);
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {
@@ -1297,7 +1260,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setError(null);
       setFilmStatus(`Saved ${next.name} to Cast and stamped ${film.filename}.`);
     })();
-  }, [character, setError, setFilmNeedsCast, setFilmStatus]);
+  }, [character, setError, setFilmNeedsCast, setFilmStatus, assembledFilmRef]);
 
   const goRoleplay = useCallback(() => {
     const gate = canEnterPlayStep('roleplay', {

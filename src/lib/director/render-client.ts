@@ -5,9 +5,9 @@
  * JPEG, and wrapped in a Motion-JPEG AVI (avi.ts) for Copy moves.
  */
 
-import type { PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { mjpegAvi } from './avi';
-import { cameraAt } from './framing';
+import { framingCameraAt, type DirectionFraming } from './framing';
 import { createDirectorStage } from './stage-three';
 import { DIRECTOR_FPS } from './types';
 
@@ -26,8 +26,8 @@ function jpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 
 export async function renderDrivingVideo(input: {
   frames: PoseRig3dFigure[];
-  start: PoseRig3dCamera;
-  end: PoseRig3dCamera;
+  /** The camera (framing.ts frameDirection). */
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>;
   body: Rig3dBodyKind;
   width: number;
   height: number;
@@ -44,7 +44,7 @@ export async function renderDrivingVideo(input: {
     const last = Math.max(1, input.frames.length - 1);
     for (let i = 0; i < input.frames.length; i += 1) {
       if (input.signal?.aborted) throw new DOMException('Stopped.', 'AbortError');
-      stage.draw(input.frames[i]!, cameraAt(input.start, input.end, i / last));
+      stage.draw(input.frames[i]!, framingCameraAt(input.framing, i / last));
       shots.push(await jpeg(canvas));
       input.onProgress?.(i + 1, input.frames.length);
     }

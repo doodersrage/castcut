@@ -190,7 +190,8 @@ export default function FilmCutShotList({
                 ⠿<span className="mt-0.5 text-3xs">{index + 1}</span>
               </span>
               {onPick ? (
-                <button
+                <Button
+                  variant="plain"
                   type="button"
                   className="shrink-0 rounded-[var(--radius-sm)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
                   title="Show this shot in the monitor"
@@ -199,7 +200,7 @@ export default function FilmCutShotList({
                   onClick={() => onPick(shot.key)}
                 >
                   <ShotThumb shot={shot} />
-                </button>
+                </Button>
               ) : (
                 <ShotThumb shot={shot} />
               )}

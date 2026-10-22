@@ -229,14 +229,15 @@ export default function QueueRecipesPanel({
                 >
                   Restore
                 </Button>
-                <button
+                <Button
+                  variant="quiet"
                   type="button"
-                  className="shrink-0 rounded-md px-1.5 py-1 text-3xs text-[var(--text-muted)] transition hover:bg-[var(--bg-muted)]/80 hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                  className="shrink-0 rounded-md px-1.5 py-1 text-3xs transition hover:bg-[var(--bg-muted)]/80 hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                   onClick={() => handleDeleteSession(recipe.id)}
                   aria-label={`Delete ${recipe.label}`}
                 >
                   ✕
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

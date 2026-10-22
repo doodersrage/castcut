@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { LinkProps } from 'next/link';
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode, Ref } from 'react';
 
 type ButtonVariant =
   | 'primary'
@@ -16,10 +16,19 @@ type ButtonVariant =
   /** Tiny action over a picture (gallery card hover row); see `tone`. */
   | 'overlay'
   /** 32 px square icon-only button (↑ ↓ ✕); give it an aria-label. */
-  | 'icon';
+  | 'icon'
+  /** Muted text action ("Clear", "Reset", "Use these"); size, underline and padding from className. */
+  | 'quiet'
+  /** Small tinted chip action; colours from `tone` (accent by default), shape and size from className. */
+  | 'tint'
+  /**
+   * No chrome of its own: a picture you click to open, a full-bleed hit area over media, a
+   * backdrop, a selectable picture tile. className carries the whole look; children are not wrapped.
+   */
+  | 'plain';
 type ButtonSize = 'default' | 'sm';
-/** Colour of an `overlay` button. */
-type ButtonTone = 'default' | 'strong' | 'success' | 'warning' | 'accent';
+/** Colour of an `overlay` or `tint` button (`strong` is overlay-only, `info` / `danger` tint-only). */
+type ButtonTone = 'default' | 'strong' | 'success' | 'warning' | 'accent' | 'info' | 'danger';
 
 type LoadingProps = {
   loading?: boolean;
@@ -30,10 +39,12 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   LoadingProps & {
     variant?: ButtonVariant;
     size?: ButtonSize;
-    /** Colour of an `overlay` button (ignored by the other variants). */
+    /** Colour of an `overlay` or `tint` button (ignored by the other variants). */
     tone?: ButtonTone;
     fullWidth?: boolean;
-    children: ReactNode;
+    children?: ReactNode;
+    /** React 19: a ref is a plain prop, passed through to the <button>. */
+    ref?: Ref<HTMLButtonElement>;
   };
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -47,7 +58,13 @@ const variantClasses: Record<ButtonVariant, string> = {
   pill: 'ui-btn-pill',
   overlay: 'ui-btn-overlay',
   icon: 'ui-btn-icon',
+  quiet: 'ui-btn-quiet',
+  tint: 'ui-btn-tint',
+  plain: 'ui-btn-plain',
 };
+
+/** Variants whose children render as given (no label <span>), so a flex / grid className lays them out. */
+const UNWRAPPED_VARIANTS = new Set<ButtonVariant>(['quiet', 'tint', 'plain']);
 
 /** The small variants carry their own size (and sit in the components layer, so utilities win). */
 const SIZED_VARIANTS = new Set<ButtonVariant>([
@@ -134,9 +151,13 @@ export function Button({
       className={buttonClassName({ variant, size, fullWidth, className })}
       {...props}
     >
-      <ButtonContent loading={loading} loadingLabel={loadingLabel}>
-        {children}
-      </ButtonContent>
+      {UNWRAPPED_VARIANTS.has(variant) && !loading ? (
+        children
+      ) : (
+        <ButtonContent loading={loading} loadingLabel={loadingLabel}>
+          {children}
+        </ButtonContent>
+      )}
     </button>
   );
 }

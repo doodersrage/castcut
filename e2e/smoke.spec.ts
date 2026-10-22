@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { seedGalleryFixture } from './helpers/gallery';
-import { gotoStable, openComfyUiSettingsTab, revealFullSettings } from './helpers/navigation';
+import {
+  gotoStable,
+  openComfyUiSettingsTab,
+  pageMain,
+  revealFullSettings,
+} from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 
 test.beforeEach(async ({ page }) => {
@@ -48,7 +53,7 @@ test('settings: ComfyUI connection loads; Heal & ready is on Overview', async ({
   await expect(connection.getByTestId('heal-and-ready')).toHaveCount(0);
   await gotoStable(page, '/settings?tab=overview');
   await expect(
-    page.getByTestId('settings-get-set-up').getByTestId('heal-and-ready')
+    pageMain(page).getByTestId('settings-get-set-up').getByTestId('heal-and-ready')
   ).toBeVisible({ timeout: 30_000 });
 });
 
@@ -196,15 +201,12 @@ test('settings looks for ComfyUI at the usual addresses when it is not answering
 
 test('settings shows what changed from defaults and resets it', async ({ page }) => {
   await gotoStable(page, '/settings?tab=data&focus=settings-changed-defaults');
-  const panel = page.locator('#settings-changed-defaults');
+  const panel = pageMain(page).locator('#settings-changed-defaults');
   await expect(panel).toBeVisible({ timeout: 20_000 });
   // Change one preference in the prompt-quality section, then see it listed and reset it.
   await gotoStable(page, '/settings?tab=comfyui&section=prompt-quality&focus=settings-klein-enhancer');
-  const toggle = page.getByTestId('settings-klein-enhancer');
-  // While the lazily loaded Settings page hydrates, a second, still-loading copy of the panel
-  // (its checkbox disabled) can be in the DOM for a moment — 1 run in 3 on a busy server. Wait
-  // for the one copy before using it.
-  await expect(toggle).toHaveCount(1, { timeout: 20_000 });
+  // The server's streamed copy of the tab (checkbox disabled) can sit hidden outside <main>.
+  const toggle = pageMain(page).getByTestId('settings-klein-enhancer');
   await expect(toggle).toBeEnabled({ timeout: 20_000 });
   if (await toggle.isChecked()) {
     await toggle.uncheck();
@@ -257,7 +259,9 @@ test('settings workflow health panel loads', async ({ page }) => {
   await expect(page.locator('#settings-comfyui-workflow-library').first()).toBeVisible({
     timeout: 45_000,
   });
-  await expect(page.getByText(/Workflow library health/i)).toBeVisible({ timeout: 30_000 });
+  await expect(pageMain(page).getByText(/Workflow library health/i)).toBeVisible({
+    timeout: 30_000,
+  });
 });
 
 test('gallery selection bar documents bulk upscale actions', async ({ page }) => {
@@ -329,9 +333,9 @@ test('settings server storage says when this browser last synced', async ({ page
   const line = page.getByTestId('sync-status-line');
   if (!health.storage?.enabled) {
     // No server storage (CI runs without PROMPT_DATA_DIR): nothing to sync, no line.
-    // Scoped to the page: a second, transient copy outside <main> was caught in CI once.
+      // Scoped to the page: the server's streamed copy of the tab can sit hidden outside <main>.
     await expect(
-      page.getByRole('main').getByText('Status: disabled (browser database only)')
+      pageMain(page).getByText('Status: disabled (browser database only)')
     ).toBeVisible({
       timeout: 30_000,
     });

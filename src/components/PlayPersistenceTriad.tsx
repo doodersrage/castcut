@@ -7,11 +7,7 @@ import { playEffectiveProgressLabel } from '@/lib/play/campaign';
 import { useEffect, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { loadLookPack } from '@/lib/look/pack';
-import {
-  loadPlayCampaignState,
-  PLAY_CAMPAIGN_UPDATED_EVENT,
-  playCampaignProgressLabel,
-} from '@/lib/play/campaign';
+import { loadPlayCampaignState, PLAY_CAMPAIGN_UPDATED_EVENT } from '@/lib/play/campaign';
 import { activeLook, getCharacter } from '@/lib/character/os';
 import { lookPacksOf } from '@/lib/play/cast';
 import { loadSettingsCache } from '@/lib/settings/cache';

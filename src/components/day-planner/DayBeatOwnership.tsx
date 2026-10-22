@@ -1,6 +1,7 @@
 'use client';
 
 import { dayBeatIsTyped, restoreDayBeatPatch, type DaySlot } from '@/lib/day/planner';
+import { Button } from '@/components/ui/Button';
 
 /**
  * Beside a slot's Beat field: "Your words" when the beat is the player's (it reaches the prompt as
@@ -22,9 +23,10 @@ export function DayBeatOwnership({
       >
         Your words
       </span>
-      <button
+      <Button
+        variant="quiet"
         type="button"
-        className="text-2xs text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-primary)]"
+        className="text-2xs underline"
         data-testid="day-beat-restore"
         onClick={event => {
           // Inside the field's <label>: keep the click from focusing the text area.
@@ -33,7 +35,7 @@ export function DayBeatOwnership({
         }}
       >
         {slot.sceneHintsDay ? "Use Day's scene" : 'Clear'}
-      </button>
+      </Button>
     </span>
   );
 }

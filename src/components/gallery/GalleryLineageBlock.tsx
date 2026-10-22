@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { GalleryLineageGroup } from '@/lib/gallery/lineage-groups';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { buildGalleryLineageTimeline } from '@/lib/gallery/lineage-timeline';
+import { Button } from '@/components/ui/Button';
 
 type GalleryLineageBlockProps = {
   group: GalleryLineageGroup;
@@ -42,13 +43,14 @@ export default function GalleryLineageBlock({
         <p className="text-3xs font-medium uppercase tracking-wide text-[var(--accent-text)]">
           Lineage · {group.derivatives.length + 1} outputs
         </p>
-        <button
+        <Button
+          variant="tint"
           type="button"
           onClick={onToggle}
-          className="rounded-lg border border-[var(--accent-border)] bg-[var(--accent-muted)] px-2 py-0.6 text-3xs font-medium text-[var(--accent-text)] transition hover:border-[var(--accent-border)] hover:bg-[var(--accent-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          className="rounded-lg px-2 py-0.6 text-3xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
         >
           {collapsed ? 'Expand' : 'Collapse'}
-        </button>
+        </Button>
       </div>
       {timeline.length > 0 ? (
         <ol

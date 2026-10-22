@@ -6,6 +6,7 @@ import { EngineHealthChipBadge } from '@/components/EngineHealth';
 import { engineSummary, formatEngineSummary } from '@/lib/engine/summary';
 import { SETTINGS_CACHE_UPDATED_EVENT, loadSettingsCache } from '@/lib/settings/cache';
 import { toolEffectiveModel } from '@/lib/app/tool-effective-model';
+import { Button } from '@/components/ui/Button';
 
 function subscribeSettings(onChange: () => void): () => void {
   window.addEventListener(SETTINGS_CACHE_UPDATED_EVENT, onChange);
@@ -153,7 +154,8 @@ export function ToolEngineSheet({
   }
   return createPortal(
     <div className="tool-engine-sheet-root">
-      <button
+      <Button
+        variant="plain"
         type="button"
         aria-label="Close Engine"
         className="tool-engine-sheet-backdrop"

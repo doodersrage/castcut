@@ -6,57 +6,24 @@ import type { CustomWorkflowToken } from '@/lib/comfyui/config';
 import { validateWorkflowJson, type WorkflowPlaceholderTokens } from '@/lib/comfyui/config';
 import {
   COMFY_WORKFLOW_FILES_UPDATED_EVENT,
-  deleteComfyWorkflowFile,
   getWorkflowTokenValue,
   loadComfyWorkflowFiles,
-  setWorkflowTokenValue,
   upsertComfyWorkflowFile,
   workflowFileNameFromPath,
   type ComfyWorkflowFile,
 } from '@/lib/comfyui/workflow-files';
-import {
-  clearSelectedWorkflowFileIfDeleted,
-  getSelectedWorkflowFileId,
-  setSelectedWorkflowFileId,
-} from '@/lib/comfyui/runtime';
-import {
-  addPresetsToPack,
-  applyWorkflowPresetPackToLibrary,
-  exportWorkflowPresetPack,
-  importWorkflowPresetPack,
-  loadWorkflowPresetPacks,
-  upsertWorkflowPresetPack,
-  workflowFileToPreset,
-  type WorkflowPresetPack,
-} from '@/lib/workflow/preset-packs';
+import { getSelectedWorkflowFileId, setSelectedWorkflowFileId } from '@/lib/comfyui/runtime';
+import { loadWorkflowPresetPacks, type WorkflowPresetPack } from '@/lib/workflow/preset-packs';
 import { suggestWorkflowNodeMappings } from '@/lib/workflow/node-mapper';
-import { applyWorkflowNodeBindings, summarizeBindingChanges } from '@/lib/workflow/apply-bindings';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { markOnboardingSystemWorkflowsEnabled } from '@/lib/app/onboarding-hooks';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
-import { resolveQueueParams } from '@/lib/queue/params-settings';
-import { loadComfyUiSettings, syncLightningLoraLibraryEntry } from '@/lib/comfyui/settings';
-import {
-  buildControlNetWorkflowScaffold,
-  buildFaceDetailerWorkflowScaffold,
-  buildIdentityWorkflowScaffold,
-  scaffoldWorkflowForModel,
-  suggestedScaffoldName,
-} from '@/lib/workflow/scaffold';
+import { syncLightningLoraLibraryEntry } from '@/lib/comfyui/settings';
 import { inspectWorkflowGraphJson } from '@/lib/workflow/graph-inspect';
 import { inferModelsFromWorkflowLabel } from '@/lib/workflow/category-defaults';
 import { assignWorkflowToInferredModels } from '@/lib/model/workflow-map';
-import {
-  optimizeWorkflowForQueue,
-  suggestedOptimizedWorkflowName,
-} from '@/lib/workflow/queue-optimizer';
-import {
-  optimizeAllWorkflowsInLibrary,
-  optimizeWorkflowFileInLibrary,
-} from '@/lib/workflow/library-batch';
-import { diffWorkflowNodes } from '@/lib/workflow/diff';
+import { optimizeWorkflowFileInLibrary } from '@/lib/workflow/library-batch';
 import { WORKFLOW_HEALTH_SELECT_EVENT } from '@/lib/workflow/health-audit';
-import { downloadText } from '@/lib/storage/download-text';
 import type { ServerWorkflowOption } from '@/hooks/useComfyWorkflowSelection';
 
 export type UseComfyWorkflowLibraryOptions = {

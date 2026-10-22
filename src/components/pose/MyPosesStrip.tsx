@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import PoseBodiesSvg from '@/components/pose/PoseBodiesSvg';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import { loadMyPoses, removeMyPose, subscribeMyPoses, type MyPose } from '@/lib/pose/my-poses';
+import { Button } from '@/components/ui/Button';
 
 function useMyPoses(): MyPose[] {
   const json = useSyncExternalStore(
@@ -46,7 +47,8 @@ export default function MyPosesStrip({
               key={entry.id}
               className="relative shrink-0 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40"
             >
-              <button
+              <Button
+                variant="plain"
                 type="button"
                 disabled={disabled}
                 className="block space-y-0.5 p-1.5 text-left"
@@ -77,7 +79,7 @@ export default function MyPosesStrip({
                 <span className="block max-w-[4.5rem] truncate type-caption text-[var(--text-secondary)]">
                   {entry.name}
                 </span>
-              </button>
+              </Button>
               <button
                 type="button"
                 aria-label={`Remove ${entry.name} from My poses`}

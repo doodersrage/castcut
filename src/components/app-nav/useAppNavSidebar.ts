@@ -17,7 +17,7 @@ import { PLUGIN_MANIFEST_UPDATED_EVENT } from '@/lib/plugin/manifest';
 import { NSFW_GENERATOR_NAV_LINK } from '@/lib/adult/nsfw-generator-nav';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isNavFavorite, loadNavFavorites, toggleNavFavorite } from '@/lib/app/nav-favorites';
+import { loadNavFavorites, toggleNavFavorite } from '@/lib/app/nav-favorites';
 import {
   loadExpandedNavGroups,
   saveExpandedNavGroups,
@@ -268,6 +268,8 @@ export function useAppNavSidebar() {
   async function endImpersonation() {
     await fetch('/api/auth/impersonate', { method: 'DELETE' });
     await refresh();
+    // Full reload on purpose: the session switched users, so nothing client-side may survive.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = '/settings?tab=users';
   }
 

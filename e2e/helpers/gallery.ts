@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { replaceGalleryIdb } from './idb';
+import { putAppKv, replaceGalleryIdb } from './idb';
 
 const FIXTURE = {
   id: 'e2e-gallery-fixture',
@@ -46,6 +46,36 @@ export async function ensureStudioWorkspace(page: Page): Promise<void> {
     } catch {
       // ignore
     }
+  });
+}
+
+/**
+ * Film (the Play workspace) chosen, stored the way the app stores it. The mode lives in
+ * IndexedDB as well as localStorage: after `ensureStudioWorkspace` and a page load (the
+ * beforeEach's /queue), IndexedDB holds "studio", and once storage loaded it overrode a
+ * localStorage-only "play" — the Film kiosk swapped to the Studio sidebar mid-test (on the next
+ * window focus, so mostly under a parallel run). Call before the first Film navigation.
+ */
+export async function ensureFilmWorkspace(page: Page): Promise<void> {
+  // A static page: no app code runs there, so no settings flush lands on top of the write.
+  await page.goto('/manifest.json');
+  await putAppKv(page, {
+    'comfy-workspace-mode-v1': 'play',
+    'comfy-workspace-mode-chosen-v1': '1',
+  });
+  // Runs after ensureStudioWorkspace's script on every load, so Film wins there too.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('comfy-workspace-mode-v1', 'play');
+      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+      // The server reads the mode from this cookie: "/" sends Film to Play.
+      document.cookie = 'comfy-workspace-mode-v1=play; Path=/; Max-Age=31536000; SameSite=Lax';
+    } catch {
+      // ignore
+    }
+  });
+  await page.evaluate(() => {
+    document.cookie = 'comfy-workspace-mode-v1=play; Path=/; Max-Age=31536000; SameSite=Lax';
   });
 }
 

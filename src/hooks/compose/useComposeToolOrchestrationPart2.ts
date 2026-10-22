@@ -43,10 +43,7 @@ export function useComposeToolOrchestrationPart2(ctx: ComposeToolOrchestrationCo
     showMaskEditor,
     handoffQueueParams,
     output,
-    setOutput,
-    error,
     setError,
-    copied,
     setCopied,
     isolating,
     instruction,
@@ -205,6 +202,8 @@ export function useComposeToolOrchestrationPart2(ctx: ComposeToolOrchestrationCo
     output,
     shared.inferenceEngine,
     slots,
+    autoIsolateAttemptedRef,
+    setError,
   ]);
 
   const applyTemplate = useCallback(
@@ -225,7 +224,7 @@ export function useComposeToolOrchestrationPart2(ctx: ComposeToolOrchestrationCo
     } catch {
       setError('Could not copy to clipboard.');
     }
-  }, [output]);
+  }, [output, setCopied, setError]);
 
   const templateGroups =
     mode === 'transfer' ? COMPOSE_TRANSFER_TEMPLATE_GROUPS : COMPOSE_MODIFY_TEMPLATE_GROUPS;

@@ -234,13 +234,15 @@ export default function GalleryExperimentBlock({
               Re-queue seeds
             </Button>
           ) : null}
-          <button
+          <Button
+            variant="tint"
+            tone="info"
             type="button"
             onClick={onToggle}
-            className="rounded-lg border border-[var(--tint-info-border)] bg-[var(--tint-info-bg)] px-2 py-0.5 text-3xs font-medium text-[var(--tint-info-text)] backdrop-blur-sm transition hover:border-[var(--tint-info-border)] hover:bg-[var(--tint-info-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+            className="rounded-lg px-2 py-0.5 text-3xs font-medium backdrop-blur-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
           >
             {collapsed ? 'Expand' : 'Collapse'}
-          </button>
+          </Button>
         </div>
       </div>
       <GalleryExperimentCardGrid

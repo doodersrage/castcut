@@ -7,6 +7,7 @@ import {
   featureInApp,
   type AppFeatureId,
 } from '@/lib/auth/features';
+import { Button } from '@/components/ui/Button';
 
 export default function FeaturePicker({
   value,
@@ -37,22 +38,26 @@ export default function FeaturePicker({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <Button
+          variant="tint"
+          tone="success"
           type="button"
           disabled={disabled || allAllowed}
           onClick={() => setBlocked([])}
-          className="rounded-full border border-[var(--tint-success-border)] bg-[var(--tint-success-bg)] px-3 py-1 text-xs text-[var(--tint-success-text)] transition hover:border-[var(--tint-success-border)] hover:bg-[var(--tint-success-bg)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full px-3 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-40"
         >
           Allow all
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="tint"
+          tone="danger"
           type="button"
           disabled={disabled || allBlocked}
           onClick={() => setBlocked([...ALL_FEATURE_IDS])}
-          className="rounded-full border border-[var(--tint-danger-border)] bg-[var(--tint-danger-bg)] px-3 py-1 text-xs text-[var(--tint-danger-text)] transition hover:border-[var(--tint-danger-border)] hover:bg-[var(--tint-danger-bg)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-full px-3 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-40"
         >
           Block all
-        </button>
+        </Button>
         <span className="type-caption text-[var(--text-muted)]">
           {allowedCount} of {ALL_FEATURE_IDS.length} sections allowed
         </span>

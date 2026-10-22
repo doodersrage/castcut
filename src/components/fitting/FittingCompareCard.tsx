@@ -50,7 +50,8 @@ export default function FittingCompareCard({
     >
       {tryOn.imageUrl ? (
         <div className={tryOn.backImageUrl ? 'mb-2 grid grid-cols-2 gap-1' : 'mb-2'}>
-          <button
+          <Button
+            variant="plain"
             type="button"
             className="block w-full cursor-zoom-in rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
             aria-label={`View ${name} larger`}
@@ -59,9 +60,10 @@ export default function FittingCompareCard({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={tryOn.imageUrl} alt={name} className="h-28 w-full rounded object-cover" />
-          </button>
+          </Button>
           {tryOn.backImageUrl ? (
-            <button
+            <Button
+              variant="plain"
               type="button"
               className="block w-full cursor-zoom-in rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
               aria-label={`View the back of ${name} larger`}
@@ -74,7 +76,7 @@ export default function FittingCompareCard({
                 alt={`${name} — back`}
                 className="h-28 w-full rounded object-cover"
               />
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}

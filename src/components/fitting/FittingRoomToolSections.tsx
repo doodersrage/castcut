@@ -40,7 +40,6 @@ type Props = ViewModel & { description: string };
 
 export default function FittingRoomToolSections({ description, ...vm }: Props) {
   const {
-    mounted,
     shared,
     toolSettings,
     updateShared,

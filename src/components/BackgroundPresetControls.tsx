@@ -17,6 +17,7 @@ import {
 } from '@/lib/scene/background-options';
 import type { BackgroundToolCache } from '@/lib/settings/cache';
 import { SelectInput, TextInput } from '@/components/ui/Field';
+import { Button } from '@/components/ui/Button';
 
 function BackgroundSelect({
   label,
@@ -250,13 +251,14 @@ export default function BackgroundPresetControls({
         <MaterialSection settings={settings} presetOptions={presetOptions} onChange={onChange} />
 
         {activeCount > 0 && (
-          <button
+          <Button
+            variant="quiet"
             type="button"
             onClick={() => onChange(clearBackgroundPresetPatch())}
-            className="text-xs font-medium text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline"
+            className="text-xs font-medium hover:text-[var(--text-secondary)] hover:underline"
           >
             Clear all presets
-          </button>
+          </Button>
         )}
       </div>
     </details>

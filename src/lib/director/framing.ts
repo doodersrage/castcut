@@ -191,13 +191,22 @@ function moveBox(
   shot: CameraShot,
   aspect: number
 ) {
+  return pathBox(frames, s => cameraAt(start, end, s), shot, aspect);
+}
+
+function pathBox(
+  frames: PoseRig3dFigure[],
+  cameraAtS: (s: number) => PoseRig3dCamera,
+  shot: CameraShot,
+  aspect: number
+) {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
   const last = Math.max(1, frames.length - 1);
   frames.forEach((figure, i) => {
-    const cam = makeCamera(cameraAt(start, end, i / last), aspect);
+    const cam = makeCamera(cameraAtS(i / last), aspect);
     for (const point of shotPoints(figure, shot)) {
       const p = projectPoint(cam, point);
       minX = Math.min(minX, p.x);
@@ -216,7 +225,24 @@ export type DirectionFraming = {
   shot: CameraShot;
   /** How much further back than the still's framing the camera stands (1 = the same). */
   pulledBack: number;
+  /**
+   * Like the still, when the move needs more room than the still has: the clip starts on the
+   * still's own framing (she is the size she is in the still) and the camera eases back onto
+   * start → end by `settle` (0–1 of the clip), just before the first frame that would not fit.
+   */
+  from?: PoseRig3dCamera;
+  settle?: number;
 };
+
+/** The driving video's camera at `s` (0–1 of the clip). */
+export function framingCameraAt(
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>,
+  s: number
+): PoseRig3dCamera {
+  const path = cameraAt(framing.start, framing.end, s);
+  if (!framing.from) return path;
+  return cameraAt(framing.from, path, Math.min(1, s / Math.max(1e-3, framing.settle ?? 1)));
+}
 
 /**
  * The driving video's camera for these frames: the picked height, side and lens about her start
@@ -255,6 +281,7 @@ export function frameDirection(input: {
     fov: picked.fov,
   };
   if (still) start = matchStill(first, start, still, aspect);
+  const matched = start;
   const framedDistance = v(start.position).distanceTo(v(start.target));
   // Closer shots crop her legs: only the top and the sides must hold.
   const full = shot === 'full';
@@ -292,10 +319,40 @@ export function frameDirection(input: {
     start = shift(start, up.multiplyScalar(-dy * height).add(right.multiplyScalar(dx * width)));
   }
   const end = cameraMoveEnd(start, camera.move, aspect);
-  return {
+  const out: DirectionFraming = {
     start,
     end,
     shot,
     pulledBack: v(start.position).distanceTo(v(start.target)) / Math.max(1e-6, framedDistance),
   };
+  if (!still || v(start.position).distanceTo(v(matched.position)) < 1e-3) return out;
+  // Start on the still's framing; ease back only as the move needs it.
+  const matchedEnd = cameraMoveEnd(matched, camera.move, aspect);
+  const last = Math.max(1, frames.length - 1);
+  // The first frame that would leave the picture itself (not just its margins).
+  const inPicture = (box: ReturnType<typeof pathBox>) =>
+    box.minY >= 0 && (!full || box.maxY <= 1) && box.minX >= 0 && box.maxX <= 1;
+  let firstOut = frames.length;
+  for (let i = 0; i < frames.length; i += 1) {
+    const box = pathBox([frames[i]!], () => cameraAt(matched, matchedEnd, i / last), shot, aspect);
+    if (!inPicture(box)) {
+      firstOut = i;
+      break;
+    }
+  }
+  // She stays in the picture (if not inside its margins) at the still's framing: keep it.
+  if (firstOut === frames.length) {
+    return { start: matched, end: matchedEnd, shot, pulledBack: 1 };
+  }
+  // Moving the camera takes time: it is back by the frame before the one that needs it.
+  let settle = Math.max(0.12, (firstOut - 1) / last);
+  for (let tries = 0; tries < 8 && settle >= 0.05; tries += 1) {
+    const framing = { ...out, from: matched, settle };
+    const stays = frames.every((frame, i) =>
+      inPicture(pathBox([frame], () => framingCameraAt(framing, i / last), shot, aspect))
+    );
+    if (stays) return framing;
+    settle *= 0.7;
+  }
+  return out;
 }

@@ -163,7 +163,8 @@ export default function CastReferenceSheetSection({
               return (
                 <li key={view.id} className="space-y-1" data-testid={`cast-reference-${view.id}`}>
                   {made ? (
-                    <button
+                    <Button
+                      variant="plain"
                       type="button"
                       className="block w-full cursor-zoom-in rounded-[var(--radius-sm)] border-0 bg-transparent p-0 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
                       aria-label={`Open the ${view.label.toLowerCase()} view full size`}
@@ -192,7 +193,7 @@ export default function CastReferenceSheetSection({
                         loading="lazy"
                         className="aspect-[3/4] w-full rounded-[var(--radius-sm)] object-cover"
                       />
-                    </button>
+                    </Button>
                   ) : (
                     <div className="aspect-[3/4] w-full rounded-[var(--radius-sm)] bg-[var(--bg-subtle)]" />
                   )}
