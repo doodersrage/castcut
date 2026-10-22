@@ -130,12 +130,32 @@ export const QWEN_IMAGE_21_NOCT_UNET = 'NoctQ_V4_int8_convrot.safetensors';
  * hand that 25 kept. About 36 s a still on a 24 GB card.
  */
 export const QWEN_IMAGE_21_NOCT_PASS = { steps: 35, shift: 3 } as const;
+/**
+ * Noct-Q Fast: the same model file in 8 steps on er_sde + linear_quadratic, no shift. Measured on
+ * Day graphs (sit, look back, lie on side, three of the player's stills, 2026-10-21): poses held
+ * like the 35-step pass, softer detail, about 6 s a still instead of 36. Plain euler at 8 steps
+ * was blurrier.
+ */
+export const QWEN_IMAGE_21_NOCT_FAST_MODEL = 'qwen-image-2.1-edit-noct-fast-8';
+export const QWEN_IMAGE_21_NOCT_FAST_PASS = {
+  steps: 8,
+  samplerName: 'er_sde',
+  scheduler: 'linear_quadratic',
+} as const;
 
+/** Noct-Q, either pass (the 35-step one or Fast): its file, its duos, its install check. */
 export function isQwenImage21NoctModel(model: string | null | undefined): boolean {
+  const id = String(model ?? '')
+    .trim()
+    .toLowerCase();
+  return id === QWEN_IMAGE_21_NOCT_MODEL || id === QWEN_IMAGE_21_NOCT_FAST_MODEL;
+}
+
+export function isQwenImage21NoctFastModel(model: string | null | undefined): boolean {
   return (
     String(model ?? '')
       .trim()
-      .toLowerCase() === QWEN_IMAGE_21_NOCT_MODEL
+      .toLowerCase() === QWEN_IMAGE_21_NOCT_FAST_MODEL
   );
 }
 
@@ -1051,6 +1071,9 @@ export function convertQwenEditWorkflowToImage21(
     fullUnet?: string;
     /** The sampling shift (ModelSamplingAuraFlow) instead of 2.1's own 0.69 — the full pass only. */
     shift?: number;
+    /** The full pass's sampler and scheduler (default euler / simple) — Noct-Q Fast. */
+    samplerName?: string;
+    scheduler?: string;
     /**
      * The player's own Qwen-Image 2.1 LoRAs (their LoRA stack, 2.1 family only), chained onto the
      * model in order. Nothing else adds a LoRA here — the source graph's LoRAs are 20B and drop.
@@ -1280,8 +1303,8 @@ export function convertQwenEditWorkflowToImage21(
     latent_image: [latent, 0],
     steps: options.steps ?? 30,
     cfg: 1,
-    sampler_name: 'euler',
-    scheduler: 'simple',
+    sampler_name: options.samplerName || 'euler',
+    scheduler: options.scheduler || 'simple',
     denoise: 1,
   };
   if (options.fourStep) {

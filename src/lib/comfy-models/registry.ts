@@ -408,6 +408,20 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
   },
   {
+    id: 'qwen-image-2.1-edit-noct-fast-8',
+    label: 'Qwen-Image 2.1 Noct-Q Fast (8-step, uncensored)',
+    category: 'qwen',
+    comfyNode: 'TextEncodeQwenImage21',
+    comfyClass: 'QwenImage21',
+    description:
+      'Noct-Q V4 in 8 steps (er_sde, linear_quadratic, cfg 1) — the same model file as Noct-Q, about 6 s a still instead of 36. Poses hold like the full pass; detail is softer. For quick drafts and rerolls; switch to Noct-Q for keepers. Qwen Research License (not for commercial use).',
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'NoctQ_V4_int8_convrot.safetensors',
+    vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
     id: 'qwen-image-2.1-edit-pruna-8',
     label: 'Qwen-Image 2.1 Pruna (8-step)',
     category: 'qwen',

@@ -100,7 +100,7 @@ describe('installedComfyModels: Qwen-Image 2.1 fast engines need their own file'
     } as never)!;
     assert.deepEqual(
       [...noct.keys()].filter(id => id.startsWith('qwen-image-2.1')),
-      ['qwen-image-2.1-edit-noct']
+      ['qwen-image-2.1-edit-noct', 'qwen-image-2.1-edit-noct-fast-8']
     );
   });
   it('each fast engine shows once its LoRA / paired file is there (any folder)', () => {

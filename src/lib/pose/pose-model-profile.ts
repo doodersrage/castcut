@@ -250,9 +250,11 @@ export function poseProfileForModel(model: string | null | undefined): PoseModel
   const profile = POSE_MODEL_PROFILES[poseModelFamily(model)];
   // Noct-Q renders two-person sex poses itself — the reason to pick it (no Rapid NSFW hand-off).
   if (
-    String(model ?? '')
-      .trim()
-      .toLowerCase() === 'qwen-image-2.1-edit-noct'
+    /^qwen-image-2\.1-edit-noct(?:-fast-8)?$/.test(
+      String(model ?? '')
+        .trim()
+        .toLowerCase()
+    )
   ) {
     return { ...profile, penetrationEngine: undefined };
   }

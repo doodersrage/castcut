@@ -41,6 +41,11 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-text-encoder',
     'qwen-image-2.1-vae',
   ],
+  'qwen-image-2.1-edit-noct-fast-8': [
+    'qwen-image-2.1-noct-q-v4',
+    'qwen-image-2.1-text-encoder',
+    'qwen-image-2.1-vae',
+  ],
   'qwen-image-2.1-edit-lightning-4': [
     'qwen-image-2.1-bf16',
     'qwen-image-2.1-text-encoder',

@@ -411,6 +411,12 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     samplerName: 'euler',
     scheduler: 'simple',
   }),
+  'qwen-image-2.1-edit-noct-fast-8': fixedSamplerPresets({
+    steps: 8,
+    cfg: 1,
+    samplerName: 'er_sde',
+    scheduler: 'linear_quadratic',
+  }),
   'qwen-image-2.1-edit-lightning-4': fixedSamplerPresets({
     steps: 4,
     ...QWEN_LIGHTNING_SAMPLER,

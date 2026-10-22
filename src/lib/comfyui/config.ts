@@ -16,6 +16,7 @@ import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../engine/h3-rendere
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from '../clip/wan-clip-canvas';
 import {
   convertQwenEditWorkflowToImage21,
+  QWEN_IMAGE_21_NOCT_FAST_PASS,
   QWEN_IMAGE_21_NOCT_PASS,
   QWEN_IMAGE_21_NOCT_UNET,
   qwenImage21Steps,
@@ -347,8 +348,11 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21EightStep?: boolean | 'turbo';
   /** Turbo from its own int8 checkpoint (installed) instead of the 2.1 base + Turbo LoRA. */
   qwenImage21TurboCheckpoint?: boolean;
-  /** Noct-Q: the full pass on its own model file, steps and shift (QWEN_IMAGE_21_NOCT_PASS). */
-  qwenImage21Noct?: boolean;
+  /**
+   * Noct-Q: the full pass on its own model file, steps and shift (QWEN_IMAGE_21_NOCT_PASS);
+   * 'fast' = 8 steps on er_sde (QWEN_IMAGE_21_NOCT_FAST_PASS).
+   */
+  qwenImage21Noct?: boolean | 'fast';
   /**
    * Render on 2.1 even where the converter would keep the still on Rapid's model (sex-pose duos,
    * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
@@ -1450,8 +1454,8 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
     qwenImage21TurboCheckpoint?: boolean;
-    /** Noct-Q: the full pass on its own model file, steps and shift. */
-    qwenImage21Noct?: boolean;
+    /** Noct-Q: the full pass on its own model file, steps and shift; 'fast' = 8 steps. */
+    qwenImage21Noct?: boolean | 'fast';
     qwenImage21KeepEngine?: boolean;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
@@ -1914,8 +1918,14 @@ export function injectPromptsWithFallbacks(
   if (options?.qwenRenderer === 'qwen-image-2.1') {
     const width = Number(input.params?.width);
     const height = Number(input.params?.height);
+    const noctFast = options.qwenImage21Noct === 'fast';
+    const noct = options.qwenImage21Noct === true;
     const converted = convertQwenEditWorkflowToImage21(injected.workflow, {
-      steps: qwenImage21Steps(options.qualityProfile),
+      steps: noctFast
+        ? QWEN_IMAGE_21_NOCT_FAST_PASS.steps
+        : noct
+          ? QWEN_IMAGE_21_NOCT_PASS.steps
+          : qwenImage21Steps(options.qualityProfile),
       // Fun ControlNet Union pose control made duo anatomy worse at 0.6–1.0 (live A/B
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
@@ -1923,11 +1933,12 @@ export function injectPromptsWithFallbacks(
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
-      ...(options.qwenImage21Noct
+      ...(noct || noctFast ? { fullUnet: QWEN_IMAGE_21_NOCT_UNET } : {}),
+      ...(noct ? { shift: QWEN_IMAGE_21_NOCT_PASS.shift } : {}),
+      ...(noctFast
         ? {
-            fullUnet: QWEN_IMAGE_21_NOCT_UNET,
-            steps: QWEN_IMAGE_21_NOCT_PASS.steps,
-            shift: QWEN_IMAGE_21_NOCT_PASS.shift,
+            samplerName: QWEN_IMAGE_21_NOCT_FAST_PASS.samplerName,
+            scheduler: QWEN_IMAGE_21_NOCT_FAST_PASS.scheduler,
           }
         : {}),
       keepEngine: options.qwenImage21KeepEngine === true,
@@ -2190,8 +2201,8 @@ export function stripEmptyComfyUiRuntime(
   if (runtime.qwenImage21KeepEngine === true) {
     result.qwenImage21KeepEngine = true;
   }
-  if (runtime.qwenImage21Noct === true) {
-    result.qwenImage21Noct = true;
+  if (runtime.qwenImage21Noct === true || runtime.qwenImage21Noct === 'fast') {
+    result.qwenImage21Noct = runtime.qwenImage21Noct;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;

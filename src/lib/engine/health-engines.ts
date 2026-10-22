@@ -51,7 +51,7 @@ export const ENGINE_HEALTH_ENGINES: readonly EngineHealthEngine[] = [
     label: '2.1 Noct-Q',
     model: 'qwen-image-2.1-edit-noct',
     kind: 'still',
-    aliases: [],
+    aliases: ['qwen-image-2.1-edit-noct-fast-8'],
   },
   {
     id: 'qwen-21-pruna',

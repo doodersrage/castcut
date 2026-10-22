@@ -69,6 +69,7 @@ const QWEN_EDIT_MODELS = [
   'qwen-image-2.1-edit-pruna-8',
   'qwen-image-2.1-edit-turbo-8',
   'qwen-image-2.1-edit-noct',
+  'qwen-image-2.1-edit-noct-fast-8',
   'qwen-image-edit',
   'qwen-image-edit-2511',
   'qwen-image-edit-2511-lightning-4',
@@ -194,7 +195,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_bf16.safetensors',
     bytes: 14230280616,
     // Noct-Q loads its own full model instead.
-    modelIds: QWEN_EDIT_MODELS.filter(id => id !== 'qwen-image-2.1-edit-noct'),
+    modelIds: QWEN_EDIT_MODELS.filter(id => !id.startsWith('qwen-image-2.1-edit-noct')),
   },
   {
     id: 'qwen-image-2.1-text-encoder',
@@ -241,7 +242,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     url: 'https://huggingface.co/Noctaluna/Noct-Q-Uncensored-Qwen-Image-2.1/resolve/main/NoctQ_V4_int8_convrot.safetensors',
     bytes: 7256784368,
     sha256: '4d92d5538253ab36e6a73b056cce5f697950f4303cb9e6686a3198d0ea13f9e8',
-    modelIds: ['qwen-image-2.1-edit-noct'],
+    modelIds: ['qwen-image-2.1-edit-noct', 'qwen-image-2.1-edit-noct-fast-8'],
     notes:
       'Noct-Q engine: a full Qwen-Image 2.1 merge (Noctaluna). Uses the 2.1 text encoder and VAE. Adult content; non-commercial use only.',
   },
