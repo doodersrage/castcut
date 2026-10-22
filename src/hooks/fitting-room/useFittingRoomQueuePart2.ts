@@ -56,6 +56,15 @@ export function useFittingRoomQueuePart2(
   core: FittingRoomQueueCore,
   standIn: Pick<KeeperStandInApi, 'queueStandIn'>
 ) {
+  // Pulled off `input` so callbacks list (and call) the setters themselves, not the whole input.
+  const {
+    setError,
+    setSaveStatus,
+    updateShared,
+    updateToolSettings,
+    setContinueDayHref,
+    swipeKit,
+  } = input;
   const { previewStatus, setPreviewStatus, previewQueueBusyRef, kitPreviewsRef, queueTryOn } = core;
   const { queueStandIn } = standIn;
 
@@ -81,7 +90,7 @@ export function useFittingRoomQueuePart2(
 
       try {
         if (!input.previewModel) {
-          input.setError(
+          setError(
             'Install Boogu Edit Turbo or Qwen Edit Lightning 4 for fast kit previews. Queue try-on still uses your sidebar model.'
           );
           return false;
@@ -131,7 +140,7 @@ export function useFittingRoomQueuePart2(
           promptVersion: FITTING_KIT_PREVIEW_PROMPT_VERSION,
         });
         kitPreviewsRef.current = next;
-        input.updateToolSettings({ kitPreviews: next });
+        updateToolSettings({ kitPreviews: next });
         return Boolean(promptId);
       } catch {
         const next = upsertFittingKitPreview(kitPreviewsRef.current, {
@@ -141,7 +150,7 @@ export function useFittingRoomQueuePart2(
           updatedAt: Date.now(),
         });
         kitPreviewsRef.current = next;
-        input.updateToolSettings({ kitPreviews: next });
+        updateToolSettings({ kitPreviews: next });
         return false;
       }
     },
@@ -155,13 +164,13 @@ export function useFittingRoomQueuePart2(
       input.previewQueueResolveOptions,
       input.referenceImageFilename,
       input.referenceImageUrl,
-      input.setError,
+      setError,
       input.shared.activeCharacterId,
       input.shared.activeLookId,
       input.shared.identityKind,
       input.shared.ipAdapterStrength,
       input.toolSettings.referenceIsolated,
-      input.updateToolSettings,
+      updateToolSettings,
       kitPreviewsRef,
     ]
   );
@@ -259,7 +268,7 @@ export function useFittingRoomQueuePart2(
       const lookId = input.shared.activeLookId ?? input.character?.activeLookId;
       const entryId = tryOn.galleryEntryId?.trim();
       if (!characterId || !lookId || !entryId) {
-        input.setError('Pick a Cast character with a look before keeping a try-on.');
+        setError('Pick a Cast character with a look before keeping a try-on.');
         return null;
       }
       let updated = toggleLookKeeper(characterId, lookId, entryId);
@@ -286,7 +295,7 @@ export function useFittingRoomQueuePart2(
         const lockAfter = activeLook(updated).lockedWardrobeId?.trim() || undefined;
         if (lockAfter !== lockBefore) {
           // The session's outfit lock is the active look's.
-          input.updateShared({ lockedWardrobeId: lockAfter });
+          updateShared({ lockedWardrobeId: lockAfter });
         }
       }
       // The Wardrobe on Cast home has it now, with this try-on as its picture — not only once a
@@ -355,7 +364,7 @@ export function useFittingRoomQueuePart2(
       let dayKit = input.shared.lockedWardrobeId?.trim() || undefined;
       if (keptNow && wardrobeId && dayKit !== wardrobeId) {
         dayKit = wardrobeId;
-        input.updateShared({ lockedWardrobeId: wardrobeId });
+        updateShared({ lockedWardrobeId: wardrobeId });
       }
       const daySettings = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
       const handed = dayAfterOutfitHandoff(daySettings, {
@@ -392,7 +401,7 @@ export function useFittingRoomQueuePart2(
         characterId,
         wardrobeId: wardrobeId || nextPack.wardrobeId,
       });
-      input.setContinueDayHref(dayHref);
+      setContinueDayHref(dayHref);
       bumpPlayCampaignStep({ characterId, stepId: 'day', lookPackId: undefined });
       void import('@/lib/server/local-observability').then(({ noteKeepTryOnMetric }) => {
         noteKeepTryOnMetric();
@@ -403,26 +412,27 @@ export function useFittingRoomQueuePart2(
         : keptNow && tryOn.dressPlateKey
           ? ' Day and Story start from this dressed plate.'
           : '';
-      input.setSaveStatus(
+      setSaveStatus(
         `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day wears it in every slot` +
           (keptOwn > 0
             ? ` (${keptOwn} slot${keptOwn === 1 ? ' keeps its' : 's keep their'} own outfit).`
             : '.') +
           sharedPlate
       );
-      input.setError(null);
+      setError(null);
       return dayHref;
     },
     [
       input.character?.activeLookId,
-      input.setContinueDayHref,
-      input.setError,
-      input.setSaveStatus,
+      setContinueDayHref,
+      setError,
+      setSaveStatus,
       input.shared.activeCharacterId,
       input.shared.activeLookId,
       input.shared.lockedWardrobeId,
+      input.shared.model,
       input.toolSettings,
-      input.updateShared,
+      updateShared,
       queueStandIn,
     ]
   );
@@ -430,9 +440,9 @@ export function useFittingRoomQueuePart2(
   const queueTryOnAndSwipe = useCallback(async () => {
     const ok = await queueTryOn();
     if (ok) {
-      input.swipeKit(1);
+      swipeKit(1);
     }
-  }, [input.swipeKit, queueTryOn]);
+  }, [swipeKit, queueTryOn]);
 
   return {
     queueKitPreview,

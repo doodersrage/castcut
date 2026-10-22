@@ -57,6 +57,7 @@ import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
 import { scanStillWithVision } from '@/lib/vision/still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision/scan-still';
 
+import type { SharedToolSettings } from '@/lib/settings/cache';
 import type { FittingRoomToolOrchestrationCore } from '@/hooks/fitting-room/useFittingRoomToolOrchestrationCore';
 
 export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchestrationCore) {
@@ -532,7 +533,7 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
         installed,
         lastApplied: toolSettings.defaultEngineApplied,
       });
-      if (next) updateShared({ model: next as typeof shared.model });
+      if (next) updateShared({ model: next as SharedToolSettings['model'] });
       if (best && best !== toolSettings.defaultEngineApplied) {
         updateToolSettings({ defaultEngineApplied: best });
       }

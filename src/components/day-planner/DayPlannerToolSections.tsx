@@ -250,6 +250,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     dressPlateStatus,
     dressPlatePreviewUrl,
     redoDressPlate,
+    keeperStandIn,
+    makeStandingPicture,
     poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
@@ -697,6 +699,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               dressPlateStatus={dressPlateStatus}
               dressPlatePreviewUrl={dressPlatePreviewUrl}
               onRedoDressPlate={redoDressPlate}
+              keeperStandIn={keeperStandIn}
+              onMakeStandingPicture={makeStandingPicture}
               onOpenDressPlate={url =>
                 setProgressLightbox({ images: [url], index: 0, title: 'Dressed plate' })
               }

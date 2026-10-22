@@ -2,6 +2,8 @@
 
 import type { PoseGuidePreview } from '@/lib/pose/guide-status';
 import { Button } from '@/components/ui/Button';
+import FittingKeeperStandInNote from '@/components/fitting/FittingKeeperStandInNote';
+import type { KeeperStandInStatus } from '@/lib/fitting/keeper-stand-in';
 
 type DayStatusStripProps = {
   statusLine: string;
@@ -17,6 +19,9 @@ type DayStatusStripProps = {
   onRedoDressPlate?: () => void;
   /** Open the dressed plate large (the page's lightbox). */
   onOpenDressPlate?: (url: string) => void;
+  /** A posed Keep's standing picture (Day's plate once ready): rendering, ready, failed. */
+  keeperStandIn?: KeeperStandInStatus | null;
+  onMakeStandingPicture?: () => Promise<boolean>;
   className?: string;
 };
 
@@ -32,6 +37,8 @@ export default function DayStatusStrip({
   dressPlatePreviewUrl = null,
   onRedoDressPlate,
   onOpenDressPlate,
+  keeperStandIn = null,
+  onMakeStandingPicture,
   className = '',
 }: DayStatusStripProps) {
   return (
@@ -40,6 +47,14 @@ export default function DayStatusStrip({
       <p className="sr-only" data-testid="day-status-line">
         {statusLine}
       </p>
+      {keeperStandIn && onMakeStandingPicture ? (
+        <FittingKeeperStandInNote
+          place="day"
+          className="mt-1"
+          status={keeperStandIn}
+          onMake={onMakeStandingPicture}
+        />
+      ) : null}
       {dressPlateStatus ? (
         // An extra render nobody asked for by name: say so while it runs, where Queue was pressed.
         <p
