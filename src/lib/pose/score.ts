@@ -493,7 +493,7 @@ export function scorePoseMatch(input: {
     method !== 'limb-angle'
       ? jointScore
       : readLimbs.length > 0
-        ? limbVerdictScore(limbScore, postureMiss || limbMiss)
+        ? limbVerdictScore(limbScore, postureMiss || limbMiss, limbMiss && !postureMiss)
         : anyone && !postureMiss
           ? LIMB_ANGLE_MIN_POSE_MATCH
           : 0;
@@ -576,15 +576,39 @@ export const LIMB_ANGLE_MIN_POSE_MATCH = 0.5;
 export const DEFAULT_MIN_POSE_MATCH =
   POSE_SCORE_METHOD === 'limb-angle' ? LIMB_ANGLE_MIN_POSE_MATCH : JOINT_DISTANCE_MIN_POSE_MATCH;
 
-/** Top of the miss band (a miss never scores above this). */
+/** Top of the miss band for a posture or gesture miss (one never scores above this). */
 export const POSE_MISS_SCORE_CAP = Math.round(LIMB_ANGLE_MIN_POSE_MATCH * 0.8 * 100) / 100;
 
-/** Limb score (0–1) and verdict → the one 0–1 pose score consumers compare with the gate. */
-export function limbVerdictScore(limbScore: number, miss: boolean): number {
+/**
+ * Top of a custom pose's limb-only miss (right posture, limbs under
+ * {@link CUSTOM_POSE_MIN_LIMB_SCORE}): just under the gate, so it still misses. Scaled into the
+ * posture-miss band, a still a little off the bar (limbs 0.74) showed "30%" next to stills in the
+ * wrong posture; now it sits just under the line, as far under as its limbs are under the bar.
+ */
+export const LIMB_MISS_SCORE_TOP = Math.round((LIMB_ANGLE_MIN_POSE_MATCH - 0.01) * 100) / 100;
+
+/**
+ * Limb score (0–1) and verdict → the one 0–1 pose score consumers compare with the gate.
+ * `limbsOnly`: the miss is a custom pose's limb score alone (the posture held).
+ */
+export function limbVerdictScore(limbScore: number, miss: boolean, limbsOnly = false): number {
   const limb = Math.max(0, Math.min(1, limbScore));
-  return miss
-    ? limb * POSE_MISS_SCORE_CAP
-    : LIMB_ANGLE_MIN_POSE_MATCH + (1 - LIMB_ANGLE_MIN_POSE_MATCH) * limb;
+  if (!miss) return LIMB_ANGLE_MIN_POSE_MATCH + (1 - LIMB_ANGLE_MIN_POSE_MATCH) * limb;
+  return limbsOnly
+    ? LIMB_MISS_SCORE_TOP * Math.min(1, limb / CUSTOM_POSE_MIN_LIMB_SCORE)
+    : limb * POSE_MISS_SCORE_CAP;
+}
+
+/**
+ * A custom pose's limb-only miss for the miss panel: the limb score, the bar it fell under and
+ * the limbs that are off. Null for a hit or a posture / gesture miss (those say their own why).
+ */
+export function limbMissWords(
+  result:
+    Pick<PoseMatchResult, 'limbMiss' | 'postureMiss' | 'limbScore' | 'offLimbs'> | null | undefined
+): { score: number; needed: number; off: string[] } | null {
+  if (!result?.limbMiss || result.postureMiss) return null;
+  return { score: result.limbScore, needed: CUSTOM_POSE_MIN_LIMB_SCORE, off: [...result.offLimbs] };
 }
 
 /**
@@ -626,8 +650,11 @@ export function describePoseMatch(result: PoseMatchResult): string {
     return `pose match ${pct}% · missed: ${missed}${heads}`;
   }
   if (result.limbMiss) {
-    const off = result.offLimbs.slice(0, 2).join(', ');
-    return `pose match ${pct}% · limbs off the pose${off ? `: ${off}` : ''}${heads}`;
+    // Right posture, limbs under the custom-pose bar: say how close, and which limbs are off.
+    const off = result.offLimbs.slice(0, 3).join(', ');
+    const limbs = Math.round(result.limbScore * 100);
+    const needed = Math.round(CUSTOM_POSE_MIN_LIMB_SCORE * 100);
+    return `pose match ${pct}% · limbs ${limbs}% of the pose, ${needed}% needed${off ? ` · off: ${off}` : ''}${heads}`;
   }
   return `pose match ${pct}%${heads}`;
 }

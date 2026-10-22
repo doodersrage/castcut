@@ -14,7 +14,9 @@ export default function PoseMissPanel({
   view: PoseMissView;
   testId?: string;
 }) {
-  const detail = formatPoseLimbMisses(view.misses, 3);
+  const limbs = view.limbs;
+  // A limb-only miss names the limbs the pose check found off when the coaching read has none.
+  const detail = formatPoseLimbMisses(view.misses, 3) || (limbs?.off.slice(0, 3).join(', ') ?? '');
   return (
     <div className="flex items-start gap-3" data-testid={testId}>
       <PoseBodiesSvg
@@ -28,8 +30,10 @@ export default function PoseMissPanel({
         ]}
       />
       <div className="min-w-0 space-y-1 type-caption text-[var(--text-muted)]">
-        <p className="text-[var(--text-secondary)]">
-          Last still missed the pose ({Math.round(view.score * 100)}% match).
+        <p className="text-[var(--text-secondary)]" data-testid={`${testId}-summary`}>
+          {limbs
+            ? `Last still held the posture, but its limbs match ${Math.round(limbs.score * 100)}% of the pose — a custom pose needs ${Math.round(limbs.needed * 100)}%.`
+            : `Last still missed the pose (${Math.round(view.score * 100)}% match).`}
         </p>
         {view.gesture ? (
           <p className="text-[var(--text-secondary)]" data-testid={`${testId}-gesture`}>

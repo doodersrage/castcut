@@ -22,6 +22,7 @@ import {
   describePoseMatch,
   POSE_LIBRARY_MIN_SCORE,
   POSE_MISMATCH_NUDGE,
+  limbMissWords,
   posturePairWords,
   guidePostureContradictsWords,
   scorePoseMatch,
@@ -355,6 +356,7 @@ export function useDaySlotQualityGate(
                 still: ordered,
                 stillAspect: detectedAspect,
                 posture: posturePairWords(poseMatch),
+                limbs: limbMissWords(poseMatch),
                 gesture: gestureMissWords(poseMatch),
               })
             : null;

@@ -696,6 +696,10 @@ HEADCOUNT_MIN_PROMINENCE = 0.3
 LIMB_ANGLE_MIN_POSE_MATCH = 0.5
 JOINT_DISTANCE_MIN_POSE_MATCH = 0.6
 POSE_MISS_SCORE_CAP = _js_round(LIMB_ANGLE_MIN_POSE_MATCH * 0.8 * 100) / 100
+# A custom pose (joint editor, a photo): limbs under this miss (score.ts CUSTOM_POSE_MIN_LIMB_SCORE).
+CUSTOM_POSE_MIN_LIMB_SCORE = 0.75
+# A limb-only miss tops out just under the gate, in proportion to its limbs (LIMB_MISS_SCORE_TOP).
+LIMB_MISS_SCORE_TOP = _js_round((LIMB_ANGLE_MIN_POSE_MATCH - 0.01) * 100) / 100
 
 
 def _parse_body(raw, width, height, normalized):
@@ -851,15 +855,20 @@ def count_prominent_people(detected):
     )
 
 
-def limb_verdict_score(limb_score, miss):
+def limb_verdict_score(limb_score, miss, limbs_only=False):
     limb = max(0.0, min(1.0, limb_score))
-    if miss:
-        return limb * POSE_MISS_SCORE_CAP
-    return LIMB_ANGLE_MIN_POSE_MATCH + (1 - LIMB_ANGLE_MIN_POSE_MATCH) * limb
+    if not miss:
+        return LIMB_ANGLE_MIN_POSE_MATCH + (1 - LIMB_ANGLE_MIN_POSE_MATCH) * limb
+    if limbs_only:
+        return LIMB_MISS_SCORE_TOP * min(1.0, limb / CUSTOM_POSE_MIN_LIMB_SCORE)
+    return limb * POSE_MISS_SCORE_CAP
 
 
-def score_pose_match(guide_people, guide_aspect, detected, method="limb-angle"):
-    """Port of `scorePoseMatch`: the same PoseMatchResult shape (camelCase keys)."""
+def score_pose_match(guide_people, guide_aspect, detected, method="limb-angle", custom_pose=False):
+    """Port of `scorePoseMatch`: the same PoseMatchResult shape (camelCase keys).
+
+    `custom_pose`: the guide is a custom pose (joint editor, a photo) — its limbs are the check
+    too, under CUSTOM_POSE_MIN_LIMB_SCORE a miss (`limbMiss`)."""
     canvas = detected["canvas"]
     detected_aspect = (
         canvas["width"] / canvas["height"]
@@ -940,16 +949,24 @@ def score_pose_match(guide_people, guide_aspect, detected, method="limb-angle"):
             total += value
         limb_score = total / len(read_limbs)
     anyone = any(pick(g) >= 0 for g in range(len(guide)))
+    limb_miss = (
+        method == "limb-angle"
+        and custom_pose is True
+        and len(read_limbs) > 0
+        and limb_score < CUSTOM_POSE_MIN_LIMB_SCORE
+    )
     if method != "limb-angle":
         score = joint_score
     elif read_limbs:
-        score = limb_verdict_score(limb_score, posture_miss)
+        score = limb_verdict_score(
+            limb_score, posture_miss or limb_miss, limb_miss and not posture_miss
+        )
     elif anyone and not posture_miss:
         score = LIMB_ANGLE_MIN_POSE_MATCH
     else:
         score = 0.0
     lead = limb[0][pick(0)] if guide and pick(0) >= 0 else None
-    return {
+    result = {
         "score": _round2(score),
         "method": method,
         "jointScore": _round2(joint_score),
@@ -970,6 +987,9 @@ def score_pose_match(guide_people, guide_aspect, detected, method="limb-angle"):
         "offLimbs": lead["off"] if lead else [],
         "limbDeltas": lead["limbs"] if lead else [],
     }
+    if custom_pose is True:
+        result["limbMiss"] = limb_miss
+    return result
 
 
 def parse_guide(raw):

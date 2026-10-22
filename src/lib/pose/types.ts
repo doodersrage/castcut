@@ -66,6 +66,11 @@ export type PhotoPosture = {
   posture: VisionPostureClass;
   /** What the body rests on ("a sofa", "the floor"); absent when standing. */
   support?: string;
+  /**
+   * What each hand holds ("an umbrella"), as the model saw it; absent for an empty hand. The
+   * model's sides are not trusted (it mirrors them), so the words never name the hand.
+   */
+  held?: { right?: string; left?: string };
 };
 
 export type VisionPostureClass =

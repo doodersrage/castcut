@@ -48,7 +48,7 @@ export async function readVisionPosture(input: {
       systemPrompt: VISION_POSTURE_SYSTEM_PROMPT,
       textPrompt: VISION_POSTURE_PROMPT,
       imageDataUrl: `data:${type};base64,${bytes.toString('base64')}`,
-      maxTokens: 80,
+      maxTokens: 140,
       temperature: 0,
       model,
       endpoint: resolveRequestLlmEndpoint(input.llm),

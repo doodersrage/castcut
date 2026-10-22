@@ -4,6 +4,7 @@ import { describePhotoPose, describePoseFigure } from './describe';
 import type { NormalizedBody } from './library';
 import { fitPhotoPoseToHeadcount } from './photo-pose-fit';
 import {
+  heldObjectWords,
   normalizePhotoPosture,
   parseVisionPosture,
   visionPostureDecides,
@@ -80,6 +81,36 @@ describe('vision posture read', () => {
     assert.deepEqual(parseVisionPosture('{"posture": "sitting", "support": "nothing"}'), {
       posture: 'sitting',
     });
+  });
+
+  it('reads what each hand holds, and nothing for a hand resting on the body', () => {
+    assert.deepEqual(
+      parseVisionPosture(
+        '{"posture": "sitting", "support": "a bench", "right_hand": "umbrella", "left_hand": "an umbrella"}'
+      ),
+      {
+        posture: 'sitting',
+        support: 'a bench',
+        held: { right: 'an umbrella', left: 'an umbrella' },
+      }
+    );
+    assert.deepEqual(
+      parseVisionPosture('{"posture": "standing", "right_hand": "her hip", "left_hand": "a phone"}'),
+      { posture: 'standing', held: { left: 'a phone' } }
+    );
+    // An old reply with no hands, or empty ones: no held key at all.
+    assert.deepEqual(
+      parseVisionPosture('{"posture": "sitting", "right_hand": "nothing", "left_hand": "none"}'),
+      { posture: 'sitting' }
+    );
+    assert.deepEqual(
+      normalizePhotoPosture({ posture: 'sitting', held: { right: 'umbrella', left: 7 } }),
+      { posture: 'sitting', held: { right: 'an umbrella' } }
+    );
+    assert.equal(heldObjectWords({ right: 'an umbrella', left: 'an umbrella' }), 'holding an umbrella in both hands');
+    assert.equal(heldObjectWords({ left: 'a phone' }), 'holding a phone');
+    assert.equal(heldObjectWords({ right: 'a cup', left: 'a phone' }), 'holding a cup and a phone');
+    assert.equal(heldObjectWords(undefined), null);
   });
 
   it('decides only supported postures; an upright one stays the joints’ call', () => {

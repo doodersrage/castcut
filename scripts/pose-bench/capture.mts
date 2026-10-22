@@ -47,6 +47,13 @@ const outDir = arg('--out')!;
 const captureDir = arg('--capture')!;
 const photosDir = arg('--photos');
 const baseURL = arg('--base', 'http://127.0.0.1:47963')!;
+/** "Pick the best engine per pose" on (BENCH_BEST_ENGINE=1); off by default, as before. */
+const BEST_ENGINE = process.env.BENCH_BEST_ENGINE === '1';
+const BENCH_ENGINES = [
+  'qwen-image-2.1-edit-turbo-8',
+  'qwen-image-edit-2511-lightning-8',
+  'qwen-image-2.1-edit-noct',
+];
 if (!engine || !ids.length || !outDir || !captureDir) {
   console.error(
     'usage: capture.mts --engine M --mode joints|photo --ids a,b --out DIR --capture DIR'
@@ -171,13 +178,15 @@ const dayTool = {
   dayMood: 'everyday',
   intimateMix: 'solo',
   allowCompanions: false,
-  // Quality off: no face finish / redo / review / best-of-two / engine hand-off.
+  // Quality off: no face finish / redo / review / best-of-two; engine hand-off off unless
+  // BENCH_BEST_ENGINE=1 ("Pick the best engine per pose": Edit 2511's off-plate custom poses go
+  // to Noct-Q / Turbo, customPoseOffPlate; the pose report card may swap an engine too).
   identityBoost: false,
   faceFinish: false,
   autoReviewStills: false,
   redoPoseMisses: false,
   bestOfTwoHardPoses: false,
-  bestEnginePerPose: false,
+  bestEnginePerPose: BEST_ENGINE,
   // Dressed in the plate's own dress (stored below as this outfit's Day dress plate).
   customGarmentImageFilename: PLATE,
   customGarmentImageUrl: PLATE_URL,
@@ -193,17 +202,26 @@ const dressKey = dayDressPlateRequestKey({
   footwear: normalizeFootwear(FOOTWEAR),
   footwearImage: { imageUrl: undefined, imageFilename: undefined },
 });
-const dressPlates = [
-  {
-    key: dressKey,
-    filename: PLATE,
-    imageUrl: PLATE_URL,
-    at: now,
-    shoesChecked: 99,
-    engine: 'qwen-image-edit-2511-lightning-8',
-    updatedAt: now,
-  },
-];
+// With the hand-off on, a still can render on another engine: the same dressed plate is stored
+// under every bench engine's key, so none renders a plate of its own.
+const plateEngines = BEST_ENGINE ? [...new Set([engine, ...BENCH_ENGINES])] : [engine];
+const dressPlates = plateEngines.map(model => ({
+  key: dayDressPlateRequestKey({
+    model,
+    plate: castPlate,
+    clothing: { imageUrl: PLATE_URL, imageFilename: PLATE },
+    clothingLabel: GARMENT_DESCRIPTION,
+    clothingDescription: GARMENT_DESCRIPTION,
+    footwear: normalizeFootwear(FOOTWEAR),
+    footwearImage: { imageUrl: undefined, imageFilename: undefined },
+  }),
+  filename: PLATE,
+  imageUrl: PLATE_URL,
+  at: now,
+  shoesChecked: 99,
+  engine: 'qwen-image-edit-2511-lightning-8',
+  updatedAt: now,
+}));
 
 function capturedFiles(): string[] {
   return readdirSync(captureDir)
@@ -361,7 +379,10 @@ console.log('queueing', ids.length, 'slots on', engine);
 // prompt has gone out 90 s after the click, reload Day and click Queue day again (up to 3 times).
 let comfySends = 0;
 page.on('request', request => {
-  if (request.method() === 'POST' && /\/api\/comfyui(\/upload)?$/.test(new URL(request.url()).pathname))
+  if (
+    request.method() === 'POST' &&
+    /\/api\/comfyui(\/upload)?$/.test(new URL(request.url()).pathname)
+  )
     comfySends += 1;
 });
 for (let attempt = 1; ; attempt += 1) {
@@ -372,7 +393,9 @@ for (let attempt = 1; ; attempt += 1) {
     sent = comfySends > 0;
   }
   if (sent || attempt >= 3) break;
-  console.log(`nothing sent ${attempt * 90}s after Queue day (a dev reload?) — reloading Day and queueing again`);
+  console.log(
+    `nothing sent ${attempt * 90}s after Queue day (a dev reload?) — reloading Day and queueing again`
+  );
   await page.reload({ waitUntil: 'domcontentloaded' });
   await queueAll.waitFor({ timeout: 180_000 });
   await page.waitForTimeout(6000);
@@ -447,7 +470,11 @@ const rows = ids.map((id, index) => {
 });
 writeFileSync(
   join(outDir, 'capture.json'),
-  JSON.stringify({ engine, mode, dressKey, rows, notes, captured: graphs.size, stills }, null, 1)
+  JSON.stringify(
+    { engine, mode, dressKey, bestEngine: BEST_ENGINE, rows, notes, captured: graphs.size, stills },
+    null,
+    1
+  )
 );
 console.log(
   'captured',

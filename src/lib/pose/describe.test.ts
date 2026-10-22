@@ -277,4 +277,52 @@ describe('head chips in words', () => {
       named
     );
   });
+
+  describe('limbs the pose bench saw dropped', () => {
+    const refs = (
+      JSON.parse(
+        readFileSync(join(process.cwd(), 'public', 'pose-references.json'), 'utf8')
+      ) as { references: Array<{ id: string; aspect: number; people: NormalizedBody[] }> }
+    ).references;
+    const words = (id: string, options: Parameters<typeof describePoseFigure>[1] = {}) => {
+      const ref = refs.find(r => r.id === id)!;
+      return describePoseFigure(ref.people[0]!, { aspect: ref.aspect, ...options }).text;
+    };
+
+    it('names an arm held away from her body ahead of a hand on the hip', () => {
+      // The reaching arm (its forearm drawn folded back) and the arm out to the side.
+      assert.match(words('sit_floor-2'), /her right arm \(on the left of the picture\) reaching down and out/);
+      const hurdle = words('sport_hurdle-3');
+      assert.match(hurdle, /her left arm stretched out to the side/);
+      // Within the cap (the picture sides are put in after it).
+      const capped = hurdle.replace(/ \(on the (?:left|right) of the picture\)/g, '');
+      assert.ok(capped.split(/\s+/).length <= POSE_WORDS_SOLO_MAX, hurdle);
+      // A hand behind the head (elbow up and out, hand folded back) is not an arm held out.
+      assert.doesNotMatch(words('hands_behind_head-1'), /held out/);
+    });
+
+    it('says a lying arm against her body and the floor, never "up"', () => {
+      assert.equal(
+        words('lie_side-1'),
+        'lying on her side, her right arm stretched out along the floor above her head'
+      );
+      assert.match(words('lie_front-2'), /^lying on her front, both arms stretched out along the floor above her head/);
+      for (const id of ['lie_side-1', 'lie_front-2', 'lie-3', 'lie_side-2', 'lie_side-5']) {
+        assert.doesNotMatch(words(id), /\bup and out\b|raised overhead/, id);
+      }
+      // A plank's arms are its support, said once.
+      assert.equal(words('sport_plank-1'), 'in a plank, face down on straight arms');
+    });
+
+    it('says what a photo’s hands hold instead of guessing where they rest', () => {
+      assert.match(words('sit-4'), /both hands on hips/);
+      const holding = words('sit-4', {
+        posture: { posture: 'sitting', support: 'a bench', held: { right: 'an umbrella', left: 'an umbrella' } },
+      });
+      assert.match(holding, /holding an umbrella in both hands/);
+      assert.doesNotMatch(holding, /\bhips?\b/);
+      // Nothing held (or no vision read): the joints' hands as before.
+      assert.match(words('sit-4', { posture: { posture: 'sitting', support: 'a bench' } }), /hands on hips/);
+    });
+  });
 });

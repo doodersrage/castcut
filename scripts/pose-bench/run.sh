@@ -16,7 +16,9 @@
 #
 # Env: COMFY_URL (default http://127.0.0.1:8188), BENCH_PORT (47963), PROXY_PORT (47964),
 # SEEDS (11,22), ENV_LOCAL (a .env.local to link for the LLM / vision model; default the main
-# checkout's when this is a worktree). ComfyUI's queue is shared: only our own jobs are waited on.
+# checkout's when this is a worktree), BENCH_BEST_ENGINE=1 (Day's "Pick the best engine per pose"
+# on — Edit 2511's off-plate custom poses hand off to Noct-Q / Turbo; default off). ComfyUI's
+# queue is shared: only our own jobs are waited on.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$ROOT"

@@ -14,6 +14,7 @@ import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/p
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_LIBRARY_MIN_SCORE,
+  limbMissWords,
   posturePairWords,
   scorePoseMatch,
   isCustomPoseKey,
@@ -115,6 +116,7 @@ export function useStoryPoseCheck(options: UseRoleplayBeatQueueOptions): {
               still: ordered,
               stillAspect: width > 0 && height > 0 ? width / height : expect.aspect,
               posture: posturePairWords(match),
+              limbs: limbMissWords(match),
             })
           : null;
         if (

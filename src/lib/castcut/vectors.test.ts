@@ -25,6 +25,7 @@ type PoseCase = {
   guide: { aspect: number; people: NormalizedBody[] };
   openpose: unknown;
   method?: 'limb-angle' | 'joint-distance';
+  customPose?: boolean;
   expected: unknown;
 };
 
@@ -67,6 +68,7 @@ describe('castcut shared vectors — pose check', () => {
             guideAspect: entry.guide.aspect,
             detected,
             ...(entry.method ? { method: entry.method } : {}),
+            ...(entry.customPose ? { customPose: true } : {}),
           })
         : null;
       // Through JSON, as the vectors were written (undefined keys dropped).

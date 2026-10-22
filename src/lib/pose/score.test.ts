@@ -22,6 +22,8 @@ import {
   DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
   isCustomPoseKey,
+  limbMissWords,
+  limbVerdictScore,
   parseOpenPoseJson,
   scoreBodyMatch,
   scorePoseMatch,
@@ -155,7 +157,23 @@ describe('pose-score matching', () => {
     const custom = scorePoseMatch({ ...input, customPose: true });
     assert.equal(custom.limbMiss, true);
     assert.ok(custom.score < DEFAULT_MIN_POSE_MATCH);
-    assert.match(describePoseMatch(custom), /limbs off the pose/);
+    // Shown proportionally: just under the line by as much as the limbs are under the bar,
+    // with the limb score, the bar and the limbs off said — not dropped into the posture band.
+    assert.ok(
+      Math.abs(custom.score - limbVerdictScore(custom.limbScore, true, true)) < 0.006,
+      `score ${custom.score}`
+    );
+    assert.ok(custom.score > limbVerdictScore(custom.limbScore, true), 'above a posture miss');
+    assert.match(
+      describePoseMatch(custom),
+      new RegExp(`limbs ${Math.round(custom.limbScore * 100)}% of the pose, 75% needed · off: `)
+    );
+    assert.deepEqual(limbMissWords(custom), {
+      score: custom.limbScore,
+      needed: CUSTOM_POSE_MIN_LIMB_SCORE,
+      off: custom.offLimbs,
+    });
+    assert.equal(limbMissWords(planned), null);
     // The same pose held still passes.
     const held = scorePoseMatch({ ...input, detected: detectedFrom([armsUp('up', 0.6)]), customPose: true });
     assert.equal(held.limbMiss, false);

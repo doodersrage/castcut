@@ -119,6 +119,13 @@ function fault(ref: Ref, said: string): string | null {
   }
   if (ref.id === 'sit_floor-2') checks.push(need(/\bher right arm\b/, 'the reaching right arm'));
   if (ref.id === 'kneel-2') checks.push(need(/\bher right arm\b/, 'the right arm held out'));
+  if (ref.id === 'sport_hurdle-3') {
+    checks.push(need(/\bher left arm\b[^,]*\bout\b/, 'the left arm held out to the side'));
+  }
+  // Lying, an arm is said against her body and the floor: "up" was drawn raised to the sky.
+  if (/^(?:lie|lie_side|lie_front)-\d$/.test(ref.id)) {
+    checks.push(ban(/\barm (?:reaching up|raised overhead)|\barms raised (?:up|overhead)/, 'a lying arm said "up"'));
+  }
   if (ref.id === 'sport_stick-3') checks.push(ban(/\bkneel/, 'a standing crouch read kneeling'));
   const found = checks.filter((check): check is string => check !== null);
   return found.length ? found.join('; ') : null;
@@ -131,8 +138,6 @@ function fault(ref: Ref, said: string): string | null {
 const EXCEPTIONS: Record<string, string> = {
   'kneel-5':
     'COCO kneel whose right leg folds out sideways at hip height (knee 0.18 of the body below the hip, the left leg straight and planted): no knee is near the floor in 2D; reads as a squat',
-  'sit_floor-2':
-    'the right arm is annotated folded back on itself (elbow angle 3°, the hand by the shoulder) — the reach the bench saw is not in the joints; the left hand rests on the floor by the knee',
   'lie_side-3':
     'CMU on-the-side clip with the face turned up (nose above the ear): reads as on her back — the 2D cue that tells the other nine apart points the wrong way here',
   'sport_deadlift-1':

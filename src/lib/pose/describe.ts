@@ -41,6 +41,7 @@ import {
 import { bodyCentreX, readPoseStance } from '@/lib/pose/starters';
 import { withSceneGround } from '@/lib/scene/surface';
 import {
+  heldObjectWords,
   visionPostureDecides,
   visionPostureStance,
   type PhotoPosture,
@@ -347,7 +348,8 @@ export function describePoseFigure(
     | 'held'
     | 'reach-down'
     | 'hang'
-    | 'floor';
+    | 'floor'
+    | LyingArm;
   const arms: Array<{ side: 'right' | 'left'; pose: ArmPose }> = [];
   if (upright || lying || gravity) {
     for (const [armSide, si, ei, wi, hi] of [
@@ -396,6 +398,15 @@ export function describePoseFigure(
           (along(elbow) > along(shoulder) + unit * 0.2 && sideOut(elbow) > sideOut(shoulder)))
       ) {
         pose = 'head';
+      } else if (lying) {
+        // Lying, "up" in her body's frame is along the floor: "reaching up and out" on lie_side-1
+        // was drawn as an arm raised to the sky (Turbo and Edit 2511, the pose bench), "both
+        // arms raised overhead" on lie_front-2 as arms and legs up on her back (Edit 2511). Her
+        // arms are said against her body and the floor instead.
+        pose =
+          nose && dist(wrist, nose) < unit * 0.3
+            ? 'face'
+            : lyingArm({ shoulder, wrist, ownHip, unit, along, across });
       } else if (raised && !nearHead) {
         pose = Math.abs(across(wrist) - across(shoulder)) > unit * 0.6 ? 'upout' : 'overhead';
       } else if (nose && dist(wrist, nose) < unit * 0.3) {
@@ -453,6 +464,18 @@ export function describePoseFigure(
       whose: readAs,
     });
   }
+  // A photo's hand holding something (the vision read): say the thing, not where the joints put
+  // the hand — sit-4's umbrella held at the chest read "both hands on hips" (the pose bench).
+  const held = heldObjectWords(options.posture?.held);
+  if (held) {
+    for (let i = arms.length - 1; i >= 0; i -= 1) {
+      if (HAND_PLACES.has(arms[i]!.pose)) arms.splice(i, 1);
+    }
+    facts.push({ text: held, weight: 6.6 });
+  }
+  const lyingSide = /^lying on (?:her|his) side\b/.test(stance);
+  // A plank's arms are its support, already said ("face down on straight arms").
+  if (/^in a (?:side )?plank\b/.test(stance)) arms.length = 0;
   const armFact = (pose: ArmPose, both: string, one: (s: string) => string, weight: number) => {
     const hits = arms.filter(arm => arm.pose === pose);
     if (hits.length === 2) facts.push({ text: both, weight: weight + 0.5 });
@@ -477,16 +500,47 @@ export function describePoseFigure(
     'out',
     'arms stretched out to the sides',
     s => `${readAs} ${s} arm stretched out to the side`,
-    6
+    6.3
   );
-  // Any arm held away from her body is said: an arm left out of the words was left out of the
-  // picture (an arm held out on kneel-2, one reaching to the ground on sit_floor-2).
-  armFact('held', 'both arms held out', s => `${readAs} ${s} arm held out`, 6.2);
+  // Any arm held away from her body is said, ahead of a hand on the hip or a knee: an arm left
+  // out of the words was left out of the picture (an arm held out on kneel-2, one reaching to
+  // the ground on sit_floor-2, hurdle-3's arm out to the side dropped for "hand on her hip" by
+  // the word budget — never drawn on any engine, the pose bench).
+  armFact('held', 'both arms held out', s => `${readAs} ${s} arm held out`, 6.3);
   armFact(
     'reach-down',
     'both arms reaching down and out',
     s => `${readAs} ${s} arm reaching down and out`,
-    5.5
+    6.1
+  );
+  armFact(
+    'lie-past-head',
+    `both arms stretched out along the floor above ${readAs} head`,
+    s => `${readAs} ${s} arm stretched out along the floor above ${readAs} head`,
+    7
+  );
+  armFact(
+    'lie-raised',
+    'both arms raised up in the air',
+    s => `${readAs} ${s} arm raised up in the air`,
+    7
+  );
+  armFact(
+    'lie-out',
+    lyingSide
+      ? `both hands down on the floor in front of ${readAs} chest`
+      : 'both arms out along the floor',
+    s =>
+      lyingSide
+        ? `${readAs} ${s} hand down on the floor in front of ${readAs} chest`
+        : `${readAs} ${s} arm out along the floor beside ${readAs === 'his' ? 'him' : 'her'}`,
+    5
+  );
+  armFact(
+    'lie-hip',
+    `both hands resting on ${readAs} hips`,
+    s => `${readAs} ${s} hand resting on ${readAs} hip`,
+    4.5
   );
   if (arms.filter(arm => arm.pose === 'hang').length === 2) {
     facts.push({ text: 'arms hanging down', weight: 4.5 });
@@ -792,6 +846,9 @@ function withPictureSides(text: string, body: NormalizedBody, aspect: number): s
   );
 }
 
+/** Arm reads that only say where a hand rests — a held thing replaces them. */
+const HAND_PLACES = new Set<string>(['hip', 'knee', 'face', 'crossed', 'lie-hip']);
+
 /** Torso tilted this far from upright: the arms are read in the picture's frame. */
 const GRAVITY_TILT_DEG = 35;
 /** A foot this far (reference lengths) above the other is off the floor. */
@@ -890,16 +947,59 @@ function heldArm(
   input: { ref: number; gravity: boolean; body: Pt[]; ground: number | null }
 ): 'held' | 'reach-down' | 'hang' | 'floor' | null {
   const { ref, gravity } = input;
-  const reach = dist(shoulder, wrist);
   const angle = fromDownDeg(shoulder, wrist);
   if (gravity && angle < 30) {
     return input.ground !== null && input.ground - wrist.y < 0.4 * ref ? 'floor' : 'hang';
   }
+  // The arm's far end: the wrist, or — the forearm folded back toward the shoulder — the elbow,
+  // when it is the part held away (sit_floor-2's arm reaching down to the ground, its wrist
+  // drawn folded back: never said on any engine, the pose bench).
+  const folded =
+    elbow != null &&
+    dist(shoulder, wrist) < 0.5 * ref &&
+    dist(shoulder, elbow) >= 0.5 * ref &&
+    dist(shoulder, elbow) > dist(shoulder, wrist);
+  const end = folded ? elbow : wrist;
+  const reach = dist(shoulder, end);
   if (reach < 0.5 * ref) return null;
-  if (angle >= 55) return 'held';
-  const straight = !elbow || jointAngle(shoulder, elbow, wrist) > 140;
-  const clear = input.body.every(point => dist(wrist, point) > 0.35 * ref);
-  return angle >= 40 && straight && clear ? 'reach-down' : null;
+  const endAngle = folded ? fromDownDeg(shoulder, end) : angle;
+  // A folded arm with the elbow up and out is a hand behind the head or a guard, not held out.
+  if (folded && endAngle >= 55) return null;
+  if (endAngle >= 55) return 'held';
+  const straight = folded || !elbow || jointAngle(shoulder, elbow, wrist) > 140;
+  const clear = input.body.every(point => dist(end, point) > 0.35 * ref);
+  // Down and out: 40° off straight down, or 30° when the hand is clearly out past the shoulder.
+  const outPastShoulder = Math.abs(end.x - shoulder.x) > 0.3 * ref;
+  return (endAngle >= 40 || (endAngle >= 30 && outPastShoulder)) && straight && clear
+    ? 'reach-down'
+    : null;
+}
+
+type LyingArm = 'lie-past-head' | 'lie-raised' | 'lie-out' | 'lie-hip';
+
+/**
+ * A lying figure's arm, against her body and the floor — never "up", which the engines drew as
+ * an arm raised to the sky (lie_side-1, Turbo and Edit 2511, the pose bench): stretched out along
+ * the floor past her head, raised in the air (the hand well above the shoulder in the picture
+ * and not along her body), a hand resting on her hip, or out on the floor away from her body.
+ * Null: an arm along her side.
+ */
+function lyingArm(input: {
+  shoulder: Pt;
+  wrist: Pt;
+  ownHip: Pt;
+  unit: number;
+  along: (p: Pt) => number;
+  across: (p: Pt) => number;
+}): LyingArm | null {
+  const { shoulder, wrist, ownHip, unit, along, across } = input;
+  const pastHead = along(wrist) - along(shoulder);
+  const rise = shoulder.y - wrist.y;
+  if (rise > unit * 0.45 && rise > Math.abs(pastHead)) return 'lie-raised';
+  if (pastHead > unit * 0.3) return 'lie-past-head';
+  if (dist(wrist, ownHip) < unit * 0.35) return 'lie-hip';
+  if (Math.abs(across(wrist)) - Math.abs(across(shoulder)) > unit * 0.35) return 'lie-out';
+  return null;
 }
 
 /**

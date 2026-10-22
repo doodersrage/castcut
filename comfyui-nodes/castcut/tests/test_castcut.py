@@ -111,7 +111,11 @@ class PoseScoreVectors(unittest.TestCase):
                     for body in case["guide"]["people"]
                 ]
                 actual = castcut.score_pose_match(
-                    guide, case["guide"]["aspect"], detected, case.get("method", "limb-angle")
+                    guide,
+                    case["guide"]["aspect"],
+                    detected,
+                    case.get("method", "limb-angle"),
+                    custom_pose=case.get("customPose") is True,
                 )
                 assert_close(self, case["expected"], actual)
                 exact += same(case["expected"], actual)

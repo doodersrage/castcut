@@ -27,6 +27,7 @@ import type { RealismVerdict } from '@/lib/still/realism';
 import {
   DEFAULT_MIN_POSE_MATCH,
   POSE_MISMATCH_NUDGE,
+  limbMissWords,
   posturePairWords,
   scorePoseMatch,
   guidePostureContradictsWords,
@@ -320,6 +321,7 @@ export function useDayPoseMissRedo(
                 still: match.assignment.map(index => detected.pose.people[index]),
                 stillAspect: width > 0 && height > 0 ? width / height : expectation.aspect,
                 posture: posturePairWords(match),
+                limbs: limbMissWords(match),
                 gesture: gestureMissed,
               })
             : null;

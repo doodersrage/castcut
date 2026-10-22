@@ -8,6 +8,7 @@ import {
   DEFAULT_MIN_POSE_MATCH,
   describePoseMatch,
   limbVerdictScore,
+  LIMB_MISS_SCORE_TOP,
   POSE_MISS_SCORE_CAP,
   posturePairWords,
   scorePoseMatch,
@@ -116,6 +117,13 @@ describe('pose check verdict', () => {
     assert.equal(limbVerdictScore(0, false), DEFAULT_MIN_POSE_MATCH);
     assert.ok(limbVerdictScore(1, true) <= POSE_MISS_SCORE_CAP);
     assert.ok(POSE_MISS_SCORE_CAP < DEFAULT_MIN_POSE_MATCH);
+    // A custom pose's limb-only miss sits just under the gate, in proportion to its limbs —
+    // never on or over it (which stills pass is unchanged).
+    assert.equal(limbVerdictScore(0.74, true, true), LIMB_MISS_SCORE_TOP * (0.74 / 0.75));
+    assert.ok(Math.round(limbVerdictScore(0.7499, true, true) * 100) / 100 < DEFAULT_MIN_POSE_MATCH);
+    assert.ok(limbVerdictScore(0.74, true, true) > 0.45);
+    assert.ok(limbVerdictScore(0.38, true, true) < 0.26);
+    assert.equal(limbVerdictScore(0, true, true), 0);
   });
 
   it('puts the posture first in the miss view', () => {

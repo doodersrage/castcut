@@ -527,6 +527,11 @@ export type PoseMissView = {
   misses: PoseLimbMiss[];
   /** The beat's gesture the still dropped ("holding the cup"), when the gesture check missed. */
   gesture?: string;
+  /**
+   * A custom pose's limb-only miss (`limbMissWords` in score.ts): the limb score, the bar it
+   * fell under and the limbs that are off — the posture held.
+   */
+  limbs?: { score: number; needed: number; off: string[] };
 };
 
 function torsoAnchors(body: NormalizedBody, aspect: number): { neck: Pt; hips: Pt } | null {
@@ -585,6 +590,8 @@ export function buildPoseMissView(input: {
   posture?: { guide: string; still: string } | null;
   /** The gesture the still dropped (`gestureCheck.missed` in pose-score.ts). */
   gesture?: string | null;
+  /** A custom pose's limb-only miss (`limbMissWords` in pose-score.ts). */
+  limbs?: { score: number; needed: number; off: string[] } | null;
 }): PoseMissView | null {
   const guide = input.guide[0];
   const still = input.still[0];
@@ -614,6 +621,7 @@ export function buildPoseMissView(input: {
         ]
       : limbMisses,
     ...(input.gesture ? { gesture: input.gesture } : {}),
+    ...(input.limbs ? { limbs: input.limbs } : {}),
   };
 }
 

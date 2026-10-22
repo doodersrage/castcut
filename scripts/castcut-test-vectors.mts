@@ -20,7 +20,11 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { synthesizeStickSkeleton } from '../src/lib/day/pose-guide';
-import { compositeThroughMask, repairSubjectMask, type MaskRgb } from '../src/lib/edit/isolate-mask';
+import {
+  compositeThroughMask,
+  repairSubjectMask,
+  type MaskRgb,
+} from '../src/lib/edit/isolate-mask';
 import { stickToOpenPoseKeypoints } from '../src/lib/pose/guide-openpose';
 import type { NormalizedBody } from '../src/lib/pose/library';
 import { parseOpenPoseJson, scorePoseMatch } from '../src/lib/pose/score';
@@ -36,6 +40,8 @@ type PoseCase = {
   /** The DWPose frame as the node receives it (POSE_KEYPOINT / openpose_json). */
   openpose: unknown;
   method?: 'limb-angle' | 'joint-distance';
+  /** Scored as a custom pose (its limbs under CUSTOM_POSE_MIN_LIMB_SCORE miss). */
+  customPose?: boolean;
   expected: ReturnType<typeof scorePoseMatch> | null;
 };
 
@@ -195,6 +201,31 @@ function syntheticPoseCases(): Array<Omit<PoseCase, 'expected'>> {
         1024,
         768
       ),
+    },
+    // Custom poses: the limbs are the check too (a limb-only miss sits just under the gate).
+    {
+      id: 'synthetic:custom-arms-up-vs-down',
+      guide: { aspect: 512 / 768, people: [figure('stand', ['up', 'up'])] },
+      openpose: frame([jitter(figure('stand'), 0.008)]),
+      customPose: true,
+    },
+    {
+      id: 'synthetic:custom-arms-up-out-vs-down',
+      guide: { aspect: 512 / 768, people: [figure('walk', ['up', 'out'])] },
+      openpose: frame([jitter(figure('stand'), 0.008)]),
+      customPose: true,
+    },
+    {
+      id: 'synthetic:custom-held',
+      guide: { aspect: 512 / 768, people: [figure('walk', ['up', 'down'])] },
+      openpose: frame([jitter(figure('walk', ['up', 'down']), 0.008)]),
+      customPose: true,
+    },
+    {
+      id: 'synthetic:custom-posture-miss',
+      guide: { aspect: 512 / 768, people: [figure('lie')] },
+      openpose: frame([jitter(figure('sit'), 0.008)]),
+      customPose: true,
     },
     {
       id: 'synthetic:joint-distance-method',
@@ -403,6 +434,7 @@ function expectPose(input: Omit<PoseCase, 'expected'>): PoseCase {
           guideAspect: input.guide.aspect,
           detected,
           ...(input.method ? { method: input.method } : {}),
+          ...(input.customPose ? { customPose: true } : {}),
         })
       : null,
   };

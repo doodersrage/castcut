@@ -184,6 +184,21 @@ describe('what the still got wrong', () => {
     assert.ok(view);
     assert.equal(view.imageUrl, '/still.png');
     assert.ok(view.misses.length >= 2);
+    assert.equal(view.limbs, undefined);
+    // A custom pose's limb-only miss carries its limb score, the bar and the limbs off.
+    const limbs = { score: 0.72, needed: 0.75, off: ['left arm', 'right leg'] };
+    assert.deepEqual(
+      buildPoseMissView({
+        imageUrl: '/still.png',
+        score: 0.47,
+        guide: [armsUp.body],
+        guideAspect: armsUp.aspect,
+        still: [standing.body],
+        stillAspect: standing.aspect,
+        limbs,
+      })?.limbs,
+      limbs
+    );
     assert.equal(
       buildPoseMissView({
         imageUrl: '/x',
