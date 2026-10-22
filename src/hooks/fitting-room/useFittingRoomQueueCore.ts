@@ -1,5 +1,7 @@
 'use client';
 
+import { cameraChoiceLine, withoutConflictingFraming } from '@/lib/pose/camera-shot';
+import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
 import { tryOnMarksLine } from '@/lib/cast/marks';
 import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
@@ -409,8 +411,16 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         const builtPrompt = buildPrompt(footwearImage);
         const posePronoun: 'he' | 'she' =
           dayPartnerNoun(input.character ?? {}) === 'man' ? 'he' : 'she';
+        // The camera the pose was posed through in the 3D editor (its Camera panel, or where the
+        // view was turned): said in words, as on Day. A closer shot than full body drops the
+        // "whole body" framing words.
+        const poseCamera = poseGuideFilename ? photoPoseCameraChoice(customPose) : null;
+        const cameraLine = poseCamera
+          ? cameraChoiceLine(poseCamera, { who: posePronoun === 'he' ? 'him' : 'her' })
+          : '';
+        const closerShot = Boolean(poseCamera && poseCamera.shot !== 'full');
         // A limb drawn near the edge of the pose map needs a wider frame than the plate's.
-        const framing = poseFramingLine(customPose?.people[0], posePronoun);
+        const framing = closerShot ? '' : poseFramingLine(customPose?.people[0], posePronoun);
         const prompt =
           poseGuideFilename && customPose?.people[0]
             ? [
@@ -426,13 +436,22 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   })
                 ),
                 framing,
+                cameraLine,
                 withFittingCustomPose(
-                  framing
-                    ? builtPrompt.replace(
-                        'single full-body or three-quarter fashion still',
-                        'single full-body fashion still'
+                  closerShot
+                    ? withoutConflictingFraming(
+                        builtPrompt.replace(
+                          'single full-body or three-quarter fashion still',
+                          'single fashion still'
+                        ),
+                        poseCamera
                       )
-                    : builtPrompt
+                    : framing
+                      ? builtPrompt.replace(
+                          'single full-body or three-quarter fashion still',
+                          'single full-body fashion still'
+                        )
+                      : builtPrompt
                 ),
               ]
                 .filter(Boolean)

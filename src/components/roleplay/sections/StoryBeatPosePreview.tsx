@@ -10,7 +10,7 @@ import {
   sceneTextFromStoryPoseInput,
   type PoseGuideBuildOptions,
 } from '@/lib/day/pose-guide';
-import { mergePickedPose } from '@/lib/day/slot-pose';
+import { mergePickedPose, pickedStillCamera } from '@/lib/day/slot-pose';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose/guide-prompt';
 import {
   isRoleplayAdultContent,
@@ -93,7 +93,8 @@ export default function StoryBeatPosePreview({
         : composed
           ? { photoPose: composed }
           : {}),
-      ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
+      // A custom 3D pose's own camera, else the beat's Camera row.
+      ...(pickedStillCamera(beat) ? { camera: pickedStillCamera(beat)!.choice } : {}),
       ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
       ...(beat.poseLook ? { look: beat.poseLook } : {}),
       ...(modelPlainPostureBase(model) ? { plainPostureBase: modelPlainPostureBase(model) } : {}),

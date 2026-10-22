@@ -201,6 +201,7 @@ import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut/nodes
 import {
   dayClothedGuideContradictsBeat,
   daySlotPoseLayout,
+  pickedStillCamera,
   planDaySlotPose,
   plannedDaySlotPoseKey,
 } from '@/lib/day/slot-pose';
@@ -2333,6 +2334,8 @@ export function useDayPlannerToolOrchestrationCore() {
             adult: adultStill,
             people: slotPartner ? 2 : 1,
           }),
+          // The player's camera (a custom 3D pose's own, else the slot's Camera row) replaces it.
+          pickedCamera: pickedStillCamera(queueTarget)?.choice ?? null,
           beat: queueTarget.sceneHints,
           beatTyped: dayBeatIsTyped(queueTarget),
           setting: queueTarget.location,

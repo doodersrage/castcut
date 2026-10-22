@@ -48,6 +48,11 @@ import { resolveRoleplaySetting } from '@/lib/story/roleplay';
 import { beatFitsSetting, fitBeatToSetting, withSceneGround } from '@/lib/scene/surface';
 import { withDayWeather } from '@/lib/day/weather';
 import type { PoseLeadPosition } from '@/lib/pose/guide-openpose';
+import {
+  cameraChoiceLine,
+  withoutConflictingFraming,
+  type PoseCameraChoice,
+} from '@/lib/pose/camera-shot';
 import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
 import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/wardrobe/footwear';
 import { reinforceIntimateStillPrompt } from '@/lib/adult/intimate-prompt-clarify';
@@ -131,6 +136,12 @@ export type DayStillPromptFacts = {
   /** A camera angle for this slot (dayStillCamera) — Day's stills were all eye level. */
   camera?: DayStillCamera | null;
   /**
+   * The camera the player picked (dayStillPickedCamera: a custom 3D pose's own camera, else the
+   * slot's Camera row). Its line replaces the one Day would pick (`camera`, the brief's own
+   * "camera: …" framing) and the framing words that would fight it.
+   */
+  pickedCamera?: PoseCameraChoice | null;
+  /**
    * The engine wants the layout's cue after the sport ACTION sentence (pose-model-profile:
    * sportActionCue) — the long sport brief has none of its own.
    */
@@ -148,6 +159,33 @@ const DAY_STILL_CAMERA_LINES: Record<DayStillCamera, string> = {
   low: 'Camera: a low angle from about knee height, looking slightly up at her — her whole body in frame.',
   high: 'Camera: a slightly high angle from above eye level, looking down at her — her whole body in frame.',
 };
+
+/**
+ * The picked camera line in a Day prompt: after the recipe's "Day photo: …." sentence (where
+ * Day's own camera line goes), else in place of the brief's "camera: …" framing (what follows
+ * its first " — " or ";" stays: the mood's locks), else first. Framing words elsewhere that
+ * would fight a closer shot come out (camera-shot.ts withoutConflictingFraming).
+ */
+export function withPickedCameraLine(
+  prompt: string,
+  choice: PoseCameraChoice | null | undefined,
+  who: 'her' | 'him' | 'them' = 'her'
+): string {
+  const line = cameraChoiceLine(choice, { who });
+  if (!line) return prompt;
+  let out: string;
+  if (/Day photo: [^\n]*?\./.test(prompt)) {
+    out = prompt.replace(/(Day photo: [^\n]*?\.)/, `$1 ${line}`);
+  } else if (/^camera: [^\n]*$/m.test(prompt)) {
+    out = prompt.replace(/^camera: ([^\n]*)$/m, (_match, rest: string) => {
+      const cut = rest.search(/ — |; /);
+      return cut >= 0 ? `${line.replace(/\.$/, '')}${rest.slice(cut)}` : line;
+    });
+  } else {
+    out = `${line}\n${prompt}`;
+  }
+  return withoutConflictingFraming(out, choice);
+}
 
 const DAY_SLOT_ORDER = [
   'morning',
@@ -413,6 +451,8 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
     : recipe
       ? withCustomPoseSentence(basePrompt, customPose)
       : basePrompt;
+  // The player's camera wins over the one Day would pick for this slot.
+  const pickedCameraLine = cameraChoiceLine(facts.pickedCamera);
   const prompt = [
     customPose && !recipe ? customPoseFirstLine(customPose) : '',
     // The picked footwear replaces the automatic "shoes that suit the outfit" line.
@@ -420,9 +460,22 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
       line => !(facts.footwear && /^She wears shoes that suit/.test(line))
     ),
     withFootwearLine(
-      facts.camera && recipe && !facts.adult && figures === 1
-        ? posedBase.replace(/(Day photo: [^\n]*?\.)/, `$1 ${DAY_STILL_CAMERA_LINES[facts.camera]}`)
-        : posedBase,
+      pickedCameraLine
+        ? withPickedCameraLine(
+            posedBase,
+            facts.pickedCamera,
+            figures >= 2 || facts.partner
+              ? 'them'
+              : facts.leadNoun === 'man' && !swapLead
+                ? 'him'
+                : 'her'
+          )
+        : facts.camera && recipe && !facts.adult && figures === 1
+          ? posedBase.replace(
+              /(Day photo: [^\n]*?\.)/,
+              `$1 ${DAY_STILL_CAMERA_LINES[facts.camera]}`
+            )
+          : posedBase,
       // Shoes on auto: the recipe prompts named none and the Cast plate is barefoot, so she went
       // barefoot outdoors — name a pair that suits the outfit and the place (dayAutoFootwear).
       facts.footwear ||
@@ -486,8 +539,9 @@ export function assembleDayStillPrompt(facts: DayStillPromptFacts): AssembledDay
             (!facts.adult || wordsOnly)
           ? dayPoseFirstLine(prompt, { withoutMap: facts.poseFirstWithoutMap })
           : '';
+  const joined = poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt;
   return {
-    prompt: poseFirstLine ? `${poseFirstLine}\n${prompt}` : prompt,
+    prompt: pickedCameraLine ? withoutConflictingFraming(joined, facts.pickedCamera) : joined,
     cued: Boolean(poseCueLine || duoWords),
     swapLead,
     recipe: isRapidDuoRecipePrompt(prompt),

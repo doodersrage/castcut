@@ -1,3 +1,9 @@
+import {
+  pickedCameraLineIn,
+  promptHasPickedCamera,
+  withoutConflictingFraming,
+  type PoseCameraChoice,
+} from '@/lib/pose/camera-shot';
 import { POSE_MODEL_PROFILES } from '../pose/pose-model-profile';
 import { MAX_INPUT_IMAGE_FILENAMES } from '../workflow/load-image-bindings';
 import { beatLiesDown } from '../prompt/beat-text';
@@ -608,11 +614,27 @@ function withGroundSlide(prompt: string): string {
  * kneels on both seeds, legs cross, hips sway), none worse. Body wording ("weight on one leg") made
  * the kneel stand up instead, so the line names the camera and the moment only.
  */
+/** The shot size a picked camera line names (its other fields don't change the framing words). */
+function readPickedCameraShot(prompt: string): PoseCameraChoice {
+  const line = pickedCameraLineIn(prompt) ?? '';
+  return /knees-up shot/.test(line)
+    ? { shot: 'knees' }
+    : /waist-up shot/.test(line)
+      ? { shot: 'waist' }
+      : /head-and-shoulders/.test(line)
+        ? { shot: 'head' }
+        : {};
+}
+
 export const QWEN_IMAGE_21_CANDID_LINE =
   'Photographed candidly by a friend from a three-quarter angle, slightly off-centre in the frame, a real moment between poses, relaxed and unposed - not a fashion lineup, not facing the camera square on.';
 
 function withCandidStill(prompt: string, customPose = false): string {
   if (!/\sSCENE: /.test(prompt) || /\btwo people\b|\bpartner\b/i.test(prompt)) return prompt;
+  // The player picked the camera (camera-shot.ts): its line is the camera. A three-quarter
+  // "not square on" candid camera would argue with a front or back view, and "full body in frame"
+  // with a waist-up shot; the relaxed stance stays (it is about her, not the lens).
+  const picked = promptHasPickedCamera(prompt);
   let out = prompt
     .replace('Keep facial identity and camera framing.', 'Keep facial identity.')
     .replace(/,? with defined posture\b/g, '');
@@ -630,6 +652,7 @@ function withCandidStill(prompt: string, customPose = false): string {
   // kneel, a hurdle, a kick — and the three-quarter candid camera fights a back view.
   if (customPose) return out;
   out = withRelaxedPoseFirst(out);
+  if (picked) return withoutConflictingFraming(out, readPickedCameraShot(out));
   return out.includes(QWEN_IMAGE_21_CANDID_LINE)
     ? out
     : out.replace(/(\s)SCENE: /, `$1${QWEN_IMAGE_21_CANDID_LINE} SCENE: `);

@@ -89,7 +89,8 @@ import {
   KLEIN_FACE_REFERENCE_LINE,
   shouldAppendKleinFaceReference,
 } from '@/lib/engine/klein-face-reference';
-import { mergePickedPose, storyPoseSceneText } from '@/lib/day/slot-pose';
+import { mergePickedPose, pickedStillCamera, storyPoseSceneText } from '@/lib/day/slot-pose';
+import { cameraChoiceLine } from '@/lib/pose/camera-shot';
 import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '@/lib/play/metrics';
 import { notePoseTakeQueued } from '@/lib/pose/outcome-stats';
 import {
@@ -685,6 +686,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             : null;
         // Checked against what the still is drawn from, not just the card (storyPoseSceneText).
         const poseText = storyPoseSceneText(beat.blurb, options?.stillText ?? beat.stillBrief);
+        const storyCamera = pickedStillCamera(beat);
         const writtenPose = mergePickedPose(beat.poseLayout, beat.pose, poseText);
         // A pose that is none of the named layouts, described limb by limb by the writer and
         // composed into a skeleton — drawn exactly, like a pose from a photo.
@@ -726,7 +728,8 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             : composedPose
               ? { photoPose: composedPose }
               : {}),
-          ...(beat.poseCamera ? { camera: beat.poseCamera } : {}),
+          // A custom 3D pose's own camera, else the beat's Camera row (pickedStillCamera).
+          ...(storyCamera ? { camera: storyCamera.choice } : {}),
           ...(beat.poseLead ? { leadSide: beat.poseLead } : {}),
           ...(beat.poseLook ? { look: beat.poseLook } : {}),
           aspect,
@@ -784,7 +787,14 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             ? poseLayoutCueLine(drawnLayout, poseBuild.figureCount)
             : '') || postureCueLine(poseBuild.poseKey);
         return {
-          cueLine: [cueLine, poseLookLine(beat.poseLook, poseBuild.figureCount)]
+          cueLine: [
+            cueLine,
+            poseLookLine(beat.poseLook, poseBuild.figureCount),
+            // The picked camera in words (the guide's own angle line steps aside for it).
+            cameraChoiceLine(storyCamera?.choice, {
+              who: poseBuild.figureCount > 1 ? 'them' : leadIsMan() ? 'him' : 'her',
+            }),
+          ]
             .filter(Boolean)
             .join('\n'),
           poseFirstLine: customPose

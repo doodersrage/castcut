@@ -1,3 +1,4 @@
+import { promptHasPickedCamera } from '@/lib/pose/camera-shot';
 import {
   INPAINT_STRENGTH_DENOISE,
   isBooguEditModel,
@@ -100,6 +101,8 @@ const STRIP_PREFIXES = [
 ].sort((a, b) => b.length - a.length);
 
 const STRIP_CLOSERS = [
+  'Everything else stays the same — pose, lighting, wardrobe, and background.',
+  'Keep facial identity.',
   'Everything else stays the same — pose, framing, lighting, wardrobe, and background.',
   'The requested change is required — do not return an unchanged photo.',
   'Keep face, pose, clothes, lighting, and background.',
@@ -268,7 +271,31 @@ function wrapZImage(text: string, strength: TurboEditStrength): string {
   return `${opener} ${text} ${closer}`;
 }
 
+/**
+ * The closers that hold the frame, said without it when the prompt picks its own camera
+ * (camera-shot.ts): "keep … camera framing" pinned Image 1's straight-on framing against it.
+ */
+const FRAME_FREE_CLOSER: Record<string, string> = {
+  'Keep facial identity and camera framing.': 'Keep facial identity.',
+  'Keep facial identity and framing.': 'Keep facial identity.',
+  'Everything else stays the same — pose, framing, lighting, wardrobe, and background.':
+    'Everything else stays the same — pose, lighting, wardrobe, and background.',
+};
+
 export function applyTurboEditStrengthToPrompt(
+  prompt: string,
+  model?: string | null,
+  strength?: unknown
+): string {
+  const wrapped = applyTurboEditStrengthWrap(prompt, model, strength);
+  if (!promptHasPickedCamera(prompt)) return wrapped;
+  for (const [closer, free] of Object.entries(FRAME_FREE_CLOSER)) {
+    if (wrapped.endsWith(closer)) return `${wrapped.slice(0, -closer.length)}${free}`;
+  }
+  return wrapped;
+}
+
+function applyTurboEditStrengthWrap(
   prompt: string,
   model?: string | null,
   strength?: unknown
