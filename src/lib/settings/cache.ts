@@ -586,6 +586,11 @@ export type SharedToolSettings = {
   renderRealismMode?: RenderRealismMode;
   /** Day / Story Image 3 pose-guide art: OpenPose keypoints (default) or OpenPose + hands. */
   poseGuideStyle?: PoseGuideStylePreference;
+  /**
+   * Qwen-Image 2.1 engines: a one-person custom pose (joint editor, a photo) also drives the Fun
+   * ControlNet Union — more poses come out right, 2.5–3× the render time. Off by default.
+   */
+  qwenImage21PoseControl?: boolean;
   /** Auto-adjust prompts to reduce mutations and extra limbs on queue. */
   anatomyGuardMode?: AnatomyGuardMode;
   /** When true (default), patch EmptyLatentImage and loader nodes directly at queue time. */
@@ -1215,6 +1220,7 @@ export const DEFAULT_SHARED_SETTINGS: SharedToolSettings = {
   modelResolutionSizeTier: DEFAULT_RESOLUTION_SIZE_TIER,
   renderRealismMode: DEFAULT_RENDER_REALISM_MODE,
   poseGuideStyle: DEFAULT_POSE_GUIDE_STYLE,
+  qwenImage21PoseControl: false,
   anatomyGuardMode: DEFAULT_ANATOMY_GUARD_MODE,
   directWorkflowPatching: true,
   syncWorkflowLoadersToModel: false,

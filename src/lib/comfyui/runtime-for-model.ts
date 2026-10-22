@@ -529,6 +529,10 @@ export function resolveRuntimeForQueue(
           qwenRenderer: 'qwen-image-2.1' as const,
           // "Pick the best engine per pose" off: no still leaves the picked engine.
           ...(appFlag('render.keepPickedEngine') ? { qwenImage21KeepEngine: true as const } : {}),
+          // Settings → Stronger pose control: the Union on solo custom poses (when installed).
+          ...(shared.qwenImage21PoseControl === true
+            ? { qwenImage21PoseControl: true as const }
+            : {}),
           // Noct-Q: its own file and pass; its sex-pose duos are why it's picked, so they stay.
           ...(isQwenImage21NoctModel(model)
             ? {

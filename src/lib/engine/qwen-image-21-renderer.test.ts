@@ -39,6 +39,8 @@ import {
   QWEN_IMAGE_21_NOCT_FAST_PASS,
   QWEN_IMAGE_21_NOCT_PASS,
   QWEN_IMAGE_21_NOCT_UNET,
+  QWEN_IMAGE_21_SOLO_POSE_CONTROL,
+  qwenImage21PoseControlAvailable,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -227,6 +229,78 @@ describe('Qwen-Image 2.1: pose ControlNet for two-person maps', () => {
   it('leaves the ControlNet out without the nodes', () => {
     const workflow = convertQwenEditWorkflowToImage21(duoGraph(), { poseControl: false }).workflow as Nodes;
     assert.ok(!Object.values(workflow).some(node => node.class_type === 'QwenImage21UnionApply'));
+  });
+
+  it('applies the Union after the Noct-Q shift, not on the cache', () => {
+    const workflow = convertQwenEditWorkflowToImage21(duoGraph(), { poseControl: {}, shift: 3 })
+      .workflow as Nodes;
+    const apply = Object.values(workflow).find(node => node.class_type === 'QwenImage21UnionApply')!;
+    const upstream = workflow[(apply.inputs.model as [string, number])[0]];
+    assert.equal(upstream.class_type, 'ModelSamplingAuraFlow');
+    assert.equal(upstream.inputs.shift, 3);
+  });
+});
+
+describe('Qwen-Image 2.1: stronger pose control on solo custom poses', () => {
+  const soloGraph = (guide: string) => ({
+    '4': {
+      class_type: 'TextEncodeQwenImageEditPlus',
+      inputs: { prompt: 'POSE FIRST: she kicks high. SCENE: a park. Keep her face from <image1>; pose map <image2>.', image1: ['900', 0], image2: ['904', 0] },
+    },
+    '8': { class_type: 'KSampler', inputs: { positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-dress-plate-1.png' } },
+    '904': { class_type: 'LoadImage', inputs: { image: guide } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 960, height: 1280 } },
+  });
+  type Nodes = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+  const union = (workflow: Nodes) =>
+    Object.values(workflow).find(node => node.class_type === 'QwenImage21UnionApply');
+
+  it('drives the Union with the player map at 0.5 until 60%, and keeps the map as a reference', () => {
+    const workflow = convertQwenEditWorkflowToImage21(soloGraph('day-pose-guide-kick-photo-ab12.png'), {
+      soloPoseControl: QWEN_IMAGE_21_SOLO_POSE_CONTROL,
+      eightStep: true,
+      eightStepTurbo: true,
+    }).workflow as Nodes;
+    const apply = union(workflow)!;
+    assert.deepEqual(apply.inputs.control_image, ['904', 0]);
+    assert.equal(apply.inputs.strength, 0.5);
+    assert.equal(apply.inputs.end_percent, 0.6);
+    const guider = Object.values(workflow).find(node => node.class_type === 'BasicGuider')!;
+    assert.equal(workflow[(guider.inputs.model as [string, number])[0]].class_type, 'QwenImage21UnionApply');
+    const encode = Object.values(workflow).find(node => node.class_type === 'TextEncodeQwenImage21')!;
+    assert.deepEqual(encode.inputs['images.image_2'], ['904', 0]);
+  });
+
+  it('sits after the Noct-Q shift', () => {
+    const workflow = convertQwenEditWorkflowToImage21(soloGraph('day-pose-guide-kick-photo-ab12.png'), {
+      soloPoseControl: {},
+      shift: 3,
+    }).workflow as Nodes;
+    const apply = union(workflow)!;
+    assert.equal(workflow[(apply.inputs.model as [string, number])[0]].class_type, 'ModelSamplingAuraFlow');
+  });
+
+  it('leaves planned poses and the setting off alone', () => {
+    const planned = convertQwenEditWorkflowToImage21(soloGraph('day-pose-guide-kick-7c9821.png'), {
+      soloPoseControl: {},
+    }).workflow as Nodes;
+    assert.equal(union(planned), undefined);
+    const off = convertQwenEditWorkflowToImage21(soloGraph('day-pose-guide-kick-photo-ab12.png'), {
+      soloPoseControl: false,
+    }).workflow as Nodes;
+    assert.equal(union(off), undefined);
+  });
+
+  it('is available only with the nodes and the file both listed', () => {
+    const nodeTypes = ['QwenImage21UnionApply', 'QwenImage21UnionLoader'];
+    const controlNets = ['qwen/Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors'];
+    assert.equal(qwenImage21PoseControlAvailable({ nodeTypes, controlNets }), true);
+    assert.equal(qwenImage21PoseControlAvailable({ nodeTypes, controlNets: [] }), false);
+    assert.equal(qwenImage21PoseControlAvailable({ nodeTypes: [], controlNets }), false);
+    assert.equal(qwenImage21PoseControlAvailable({ nodeTypes: null, controlNets: null }), false);
   });
 });
 

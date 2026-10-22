@@ -442,6 +442,7 @@ function injectPromptsIntoWorkflow(
     availableClips?: string[] | null;
     availableLoras?: string[] | null;
     availableFaceRestoreModels?: string[] | null;
+    availableControlNets?: string[] | null;
     supportsNeuralUpscaleTileSize?: boolean;
     availableNodeTypes?: Iterable<string> | null;
     webpSaveAdapters?: import('../workflow/save-format').WebpSaveAdapter[] | null;
@@ -559,6 +560,7 @@ function injectPromptsIntoWorkflow(
       availableClips: enrichInventory?.availableClips,
       availableLoras: enrichInventory?.availableLoras,
       availableFaceRestoreModels: enrichInventory?.availableFaceRestoreModels,
+      availableControlNets: enrichInventory?.availableControlNets,
       qualityProfile: runtime?.queueQualityProfile,
       loraLibrary: runtime?.loraLibrary,
       availableNodeTypes: enrichInventory?.availableNodeTypes,
@@ -568,6 +570,7 @@ function injectPromptsIntoWorkflow(
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
       qwenImage21KeepEngine: runtime?.qwenImage21KeepEngine,
+      qwenImage21PoseControl: runtime?.qwenImage21PoseControl,
       qwenImage21Noct: runtime?.qwenImage21Noct,
       qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
         enrichInventory?.availableUnets,
@@ -659,6 +662,7 @@ export async function queuePromptToComfyUi(
             availableClips: objectInfo?.models.clips,
             availableLoras: objectInfo?.models.loras,
             availableFaceRestoreModels: objectInfo?.models.faceRestoreModels,
+            availableControlNets: objectInfo?.models.controlNets,
             supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
             availableNodeTypes: objectInfo?.nodeTypes,
             webpSaveAdapters: objectInfo?.webpSaveAdapters,
@@ -804,6 +808,7 @@ export async function queuePromptToComfyUi(
           availableClips: objectInfo?.models.clips,
           availableLoras: objectInfo?.models.loras,
           availableFaceRestoreModels: objectInfo?.models.faceRestoreModels,
+          availableControlNets: objectInfo?.models.controlNets,
           supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
           availableNodeTypes: objectInfo?.nodeTypes,
           webpSaveAdapters: objectInfo?.webpSaveAdapters,

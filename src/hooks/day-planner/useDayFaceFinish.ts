@@ -47,7 +47,12 @@ const FINISHER_LABEL = {
 
 export function useDayFaceFinish(
   ctx: DayPlannerToolOrchestrationCore,
-  checksGate?: DayChecksGate | null
+  checksGate?: DayChecksGate | null,
+  /** A pass that runs first (the shot cut, useDayShotReframe): its stills wait for it. */
+  before?: {
+    holdsStill: (still: { imageUrl?: string; promptId?: string }) => boolean;
+    tick: number;
+  }
 ) {
   const { busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
   const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
@@ -103,6 +108,7 @@ export function useDayFaceFinish(
         // Two takes: finish the one the player keeps, once picked.
         !dayTwoTakesPending(still) &&
         !handledRef.current.has(stillKey(still)) &&
+        !before?.holdsStill(still) &&
         !faceFinishAwaitsChecks(checksGate, slot.id, stillKey(still))
       );
     });
@@ -241,6 +247,7 @@ export function useDayFaceFinish(
       }
     })();
   }, [
+    before,
     busy,
     character,
     checksGate,

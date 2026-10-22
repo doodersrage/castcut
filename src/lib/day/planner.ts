@@ -483,6 +483,11 @@ export type DaySlotStill = {
    */
   finishedUrl?: string;
   finishedFor?: string;
+  /**
+   * A picked waist-up / close-up shot cut from the take (pose/shot-reframe.ts). Shown through
+   * `finishedUrl` like a face finish; while `finishedUrl` is this cut the face is not finished yet.
+   */
+  framedUrl?: string;
   /** What the queue-time prompt check fixed / found on this take (still-prompt-audit). */
   promptCheck?: StillPromptCheck;
   /** The beat this take was rendered for (rerollBeatKey form) — a re-render of it is a re-roll. */
@@ -4613,6 +4618,7 @@ export function normalizeDaySlotStills(
         : {}),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
+      ...(readText(still.framedUrl, 2048) ? { framedUrl: readText(still.framedUrl, 2048) } : {}),
       ...(Array.isArray(still.angles)
         ? {
             angles: still.angles
@@ -5088,7 +5094,11 @@ export function restoreDayBeatPatch(
  */
 export function dayStillIsFaceFinished(still: DaySlotStill | null | undefined): boolean {
   return Boolean(
-    still?.finishedUrl?.trim() && still.finishedFor && still.finishedFor === still.promptId
+    still?.finishedUrl?.trim() &&
+    still.finishedFor &&
+    still.finishedFor === still.promptId &&
+    // The shot cut shows through finishedUrl too; its face is not finished yet.
+    still.finishedUrl.trim() !== still.framedUrl?.trim()
   );
 }
 

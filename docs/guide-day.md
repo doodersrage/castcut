@@ -89,6 +89,14 @@ line; on Outfit a custom pose's camera is said in words. A pose
 made elsewhere (a Day pose, a real pose, My poses, *From a photo*) opens as the body read from
 its points; check a foreshortened limb and flip it if it reads the wrong way.
 
+**Waist up** and **Head & shoulders** on the Qwen-Image 2.1 engines are cut from the still:
+2.1 draws a close pick thigh-up at best, whatever the prompt says, so once a Day take lands it is
+cropped around her face to the shot and enlarged back to the still's size (a second or two, no
+re-render), and that is what the slot shows — Face finish, the pose check and the other checks
+look at the cut. A take with no face to find (her back to the camera), a lying pose, a
+two-person still or one already that close is kept as rendered; the Advanced drawer's status
+line says why. (Story and Outfit stills are not cut yet.)
+
 **Wireframe editor** (top of the panel) switches to the flat stick-figure editor — it still has
 the Quick positions, Copy a side, Fit to her picture and the start outline — and the choice is
 remembered; **3D editor** switches back. Without WebGL the wireframe editor opens by itself.

@@ -18,6 +18,7 @@ import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayP
 import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
 import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate';
 import { useDayFaceFinish } from '@/hooks/day-planner/useDayFaceFinish';
+import { useDayShotReframe } from '@/hooks/day-planner/useDayShotReframe';
 import { useDayPoseMissRedo } from '@/hooks/day-planner/useDayPoseMissRedo';
 import { useDayBestOfTwo } from '@/hooks/day-planner/useDayBestOfTwo';
 import { useDayTwoTakesOrder } from '@/hooks/day-planner/useDayTwoTakesOrder';
@@ -97,11 +98,23 @@ export function useDayPlannerToolOrchestration() {
     }),
     []
   );
-  const faceFinish = useDayFaceFinish(core, checksGate);
+  // A picked waist-up / close-up shot is cut from the take first (shot-reframe.ts): Face finish
+  // and every check below look at the cut.
+  const shotReframe = useDayShotReframe(core);
+  const { holdsStillForReframe, shotReframeTick } = shotReframe;
+  const reframeHold = useMemo(
+    () => ({ holdsStill: holdsStillForReframe, tick: shotReframeTick }),
+    [holdsStillForReframe, shotReframeTick]
+  );
+  const faceFinish = useDayFaceFinish(core, checksGate, reframeHold);
   const { holdsStillForFaceFinish, faceFinishTick } = faceFinish;
   const faceFinishHold = useMemo(
-    () => ({ holdsStill: holdsStillForFaceFinish, tick: faceFinishTick }),
-    [faceFinishTick, holdsStillForFaceFinish]
+    () => ({
+      holdsStill: (still: { imageUrl?: string; promptId?: string }) =>
+        holdsStillForReframe(still) || holdsStillForFaceFinish(still),
+      tick: faceFinishTick + shotReframeTick,
+    }),
+    [faceFinishTick, holdsStillForFaceFinish, holdsStillForReframe, shotReframeTick]
   );
   // Always on (not an Auto-review switch): adult stills are held until they read as adults.
   const adultGate = useDayAdultGate(core);
@@ -446,7 +459,8 @@ export function useDayPlannerToolOrchestration() {
     },
     bestOfTwoStatus: bestOfTwo.bestOfTwoStatus,
     twoTakesOrderStatus: twoTakesOrder.twoTakesOrderStatus,
-    faceFinishStatus: faceFinish.faceFinishStatus,
+    // The shot cut speaks through the same line (it runs before Face finish).
+    faceFinishStatus: faceFinish.faceFinishStatus ?? shotReframe.shotReframeStatus,
     afterChecksStatus: afterChecks.afterChecksStatus,
     checkMarks: core.toolSettings.checkMarks !== false,
     // What the Cast partner wears on two-person stills (their kept outfit from Outfit).

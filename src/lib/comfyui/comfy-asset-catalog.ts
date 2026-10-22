@@ -257,6 +257,25 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     notes: 'Only needed without the Turbo int8 checkpoint (with the 2.1 base).',
   },
   {
+    id: 'qwen-image-2.1-fun-controlnet-union',
+    label: 'Qwen-Image 2.1 Fun ControlNet Union (pose control, Qwen Research License)',
+    kind: 'controlnet',
+    filename: 'Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors',
+    url: 'https://huggingface.co/t8star/Qwen-Image-2.1-Fun-Controlnet-Union-Comfy/resolve/main/Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors',
+    bytes: 7550980272,
+    sha256: 'b3f0f3a54a4b12e0e0fbd4c5f0d68785360f775ab9186641c4f28a7817e29711',
+    modelIds: [
+      'qwen-image-2.1-edit-turbo-8',
+      'qwen-image-2.1-edit-pruna-8',
+      'qwen-image-2.1-edit-lightning-4',
+      'qwen-image-2.1-edit',
+      'qwen-image-2.1-edit-noct',
+      'qwen-image-2.1-edit-noct-fast-8',
+    ],
+    notes:
+      'Optional — Settings → Prompt quality → Stronger pose control (slower). Needs the T8 Comfyui-Qwen-Image-2.1-Fun-Controlnet-Union-T8 nodes. Non-commercial use only.',
+  },
+  {
     id: 'qwen-image-vae',
     label: 'Qwen Image VAE',
     kind: 'vae',

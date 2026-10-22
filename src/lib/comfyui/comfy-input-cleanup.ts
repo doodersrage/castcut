@@ -55,6 +55,7 @@ export const APP_INPUT_PREFIXES = [
   'roleplay-last-frame',
   'roleplay-photo',
   'roleplay-ref',
+  'shot-reframe',
   'story-garment',
   'story-nude-face',
   'story-pose-guide',
