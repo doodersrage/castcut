@@ -40,6 +40,7 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 | --- | --- |
 | **Setting · Beat** | Where she is and what she does |
 | **Pose** | The pose the beat matched — **Change pose**, **Try another**, **From a photo…**, **Edit joints** (the pose editor, below) |
+| **Camera** | **Height** (low, eye level, high, overhead), **Direction** (front, three-quarter, side, back — from where she faces), **Shot** (full body, knees up, waist up, head & shoulders) and **Lens** (wide, normal, long). Each is *auto* until you pick it: auto keeps the camera Day picks for the slot. A pose posed in the 3D editor brings its own camera, and the row says **From the pose** |
 | **Clothing** | This slot's outfit and shoes |
 | **Line** | What she says in the clip — *Suggest a line* writes one |
 | **Narration** | Voice-over heard over the shot in the film — *Suggest a narration* writes one |
@@ -58,10 +59,15 @@ picture's own frame.
 | Move the whole figure | Drag the white ring at the hips |
 | Turn one part | Click it (a forearm, the chest, the head…) for rotation rings; drag a ring, or the outer white one to turn it freely. Click empty space, or **Done**, to finish. Clicking the hips turns the whole figure |
 | Look around | Drag empty space to orbit, scroll or pinch to zoom, right-drag or two fingers to pan. On a phone one finger orbits unless it starts on a ball |
-| Frame it | **Front**, **Side**, **Back**, **Top** jump the camera there |
+| Frame it | **Camera**: drag **Height** (low → overhead) and pick a **Direction**, **Shot** and **Lens** |
 
 The camera *is* the picture: the pose map for the still is the body seen from where you look,
-so a **Side** view makes a side-on pose. **Toward or away from the camera** flips a limb to the
+so a **Side** view makes a side-on pose. **Direction** is hers — *Front* faces her even when she
+is turned. **Shot** frames the picture on her (full body, knees up, waist up, head and
+shoulders); what falls outside the frame is left out of the pose map, and the words don't
+describe legs the picture doesn't show. **Lens** changes the perspective (wide, normal, long)
+and keeps the shot size. Orbiting or zooming by hand is fine too: the panel then shows what the
+view reads as. **Toward or away from the camera** flips a limb to the
 other side of the picture plane without changing the picture — the one thing a flat pose
 cannot say. **Mirror**, **Reset**, **Undo** / **Redo** (Ctrl+Z), **Start from** (Stand, Sit,
 Kneel, Lie down, Walk, **More poses…**, **Real poses…**), a partner (**Add partner**, *Lead* /
@@ -69,7 +75,17 @@ Kneel, Lie down, Walk, **More poses…**, **Real poses…**), a partner (**Add p
 work as before.
 
 Saving keeps the 18 skeleton points every Day tool reads — the pose map, the words, the pose
-check — and the 3D body alongside, so reopening the editor puts the body back exactly. A pose
+check — and the 3D body and its camera alongside, so reopening the editor puts the body back
+exactly.
+
+**The camera reaches the still.** The still's prompt gets one line from it — *"Camera: a low
+angle looking up at her, three-quarter view, waist-up shot, legs out of frame, wide-angle
+lens."* — in place of the camera Day would pick for that slot, and the framing words that
+would argue with it ("full body in frame", Qwen-Image 2.1's candid three-quarter camera, an
+edit's "keep the camera framing") are left out. Which camera wins: a custom pose's own camera
+(posed in the 3D editor), then the slot's **Camera** row, then Day's own. A pose with no camera
+of its own opens in the editor through the slot's Camera row. Story scenes take the same row and
+line; on Outfit a custom pose's camera is said in words. A pose
 made elsewhere (a Day pose, a real pose, My poses, *From a photo*) opens as the body read from
 its points; check a foreshortened limb and flip it if it reads the wrong way.
 
