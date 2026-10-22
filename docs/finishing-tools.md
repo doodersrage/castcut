@@ -117,7 +117,8 @@ hair and clothes and lands where Copy moves' clips do.
   walk toward the camera), the clip still starts framed like the still and the camera eases back
   just before she would leave the picture (it says so under the timeline). A picked shot steps
   back from the start instead.
-- **Her pose in the picture** starts her as the still shows her, with her head level.
+- **Her pose in the picture** starts her as the still shows her, standing straight with her head
+  level (a photo can't show a lean toward or away from the camera, so none is guessed).
 - **Place** starts as the slot's place. She sits or leans on whatever the still shows: a beat
   that sits (or leans well over) warns you, and one tap — **Add a chair to Place** (a sofa when
   she sits back, a wall to lean on) — writes it into Place so Copy moves draws one.

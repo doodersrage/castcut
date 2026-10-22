@@ -327,26 +327,31 @@ export function frameDirection(input: {
   };
   if (!still || v(start.position).distanceTo(v(matched.position)) < 1e-3) return out;
   // Start on the still's framing; ease back only as the move needs it.
-  const fits = (box: ReturnType<typeof pathBox>) =>
-    box.minY >= limit.top - 1e-3 &&
-    (!full || box.maxY <= limit.bottom + 1e-3) &&
-    box.minX >= limit.left - 1e-3 &&
-    box.maxX <= limit.right + 1e-3;
   const matchedEnd = cameraMoveEnd(matched, camera.move, aspect);
   const last = Math.max(1, frames.length - 1);
+  // The first frame that would leave the picture itself (not just its margins).
+  const inPicture = (box: ReturnType<typeof pathBox>) =>
+    box.minY >= 0 && (!full || box.maxY <= 1) && box.minX >= 0 && box.maxX <= 1;
   let firstOut = frames.length;
   for (let i = 0; i < frames.length; i += 1) {
     const box = pathBox([frames[i]!], () => cameraAt(matched, matchedEnd, i / last), shot, aspect);
-    if (!fits(box)) {
+    if (!inPicture(box)) {
       firstOut = i;
       break;
     }
+  }
+  // She stays in the picture (if not inside its margins) at the still's framing: keep it.
+  if (firstOut === frames.length) {
+    return { start: matched, end: matchedEnd, shot, pulledBack: 1 };
   }
   // Moving the camera takes time: it is back by the frame before the one that needs it.
   let settle = Math.max(0.12, (firstOut - 1) / last);
   for (let tries = 0; tries < 8 && settle >= 0.05; tries += 1) {
     const framing = { ...out, from: matched, settle };
-    if (fits(pathBox(frames, s => framingCameraAt(framing, s), shot, aspect))) return framing;
+    const stays = frames.every((frame, i) =>
+      inPicture(pathBox([frame], () => framingCameraAt(framing, i / last), shot, aspect))
+    );
+    if (stays) return framing;
     settle *= 0.7;
   }
   return out;

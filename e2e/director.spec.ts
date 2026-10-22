@@ -227,9 +227,13 @@ test('Phone Day: ⋯ → Make it move has Copy moves and Direct a move', async (
   await menu.click();
   const moves = page.getByTestId('day-progress-moves-morning');
   await expect(moves).toBeVisible();
-  const item = await moves.boundingBox();
-  expect(item!.x).toBeGreaterThanOrEqual(0);
-  expect(item!.x + item!.width).toBeLessThanOrEqual(390);
+  // Inside the screen once the menu has opened (it animates in).
+  await expect
+    .poll(async () => {
+      const item = await moves.boundingBox();
+      return item && item.x >= 0 && item.x + item.width <= 390;
+    })
+    .toBe(true);
   await moves.click();
   const sheet = page.getByTestId('slot-media-sheet');
   await expect(sheet).toBeVisible();

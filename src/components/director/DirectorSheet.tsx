@@ -96,23 +96,31 @@ export type DirectorSheetProps = {
   testId?: string;
 };
 
-/** A still's size, read from the picture itself. */
+/**
+ * A still's size, read from the picture itself. A load that fails (a busy ComfyUI drops the
+ * request) is tried again a few times; null until it loads, or when it never does.
+ */
 function useStillSize(url: string): { width: number; height: number } | null {
   const [size, setSize] = useState<{ url: string; width: number; height: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const image = new Image();
-    image.onload = () => {
-      if (!cancelled && image.naturalWidth && image.naturalHeight) {
-        setSize({ url, width: image.naturalWidth, height: image.naturalHeight });
-      }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = (attempt: number) => {
+      const image = new Image();
+      image.onload = () => {
+        if (!cancelled && image.naturalWidth && image.naturalHeight) {
+          setSize({ url, width: image.naturalWidth, height: image.naturalHeight });
+        }
+      };
+      image.onerror = () => {
+        if (!cancelled && attempt < 3) timer = setTimeout(() => load(attempt + 1), 1500 * attempt);
+      };
+      image.src = url;
     };
-    image.onerror = () => {
-      if (!cancelled) setSize({ url, width: 9, height: 16 });
-    };
-    image.src = url;
+    load(1);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [url]);
   return size?.url === url ? size : null;
@@ -166,16 +174,23 @@ function DirectorSheetOpen({
   useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
 
-  const size = useStillSize(stillUrl);
-  const video = size ? motionTransferSize(size.width, size.height) : { width: 464, height: 832 };
-  const aspect = video.width / video.height;
+  const loaded = useStillSize(stillUrl);
 
   // Her pose in the still (DWPose on ComfyUI): the framing to match, and a start pose.
   const [detected, setDetected] = useState<{
     framing: StillFraming | null;
     pose: { body: NormalizedBody; aspect: number } | null;
+    /** The still's size as the pose read saw it. */
+    size?: { width: number; height: number };
     state: 'reading' | 'done' | 'failed';
   }>({ framing: null, pose: null, state: 'reading' });
+  // The video takes the still's shape (Copy moves renders at it): from the picture, else from
+  // the pose read; 9:16 only when neither has it.
+  const size = loaded ?? detected.size ?? null;
+  const video = size ? motionTransferSize(size.width, size.height) : { width: 464, height: 832 };
+  const aspect = video.width / video.height;
+  // Not the still's shape yet: wait for it rather than film the wrong one.
+  const sizing = !size && detected.state === 'reading';
   useEffect(() => {
     let cancelled = false;
     detectStillPoseShared(stillUrl)
@@ -184,6 +199,9 @@ function DirectorSheetOpen({
         const lead = result.available ? result.pose.people[0] : undefined;
         const canvas = result.available ? result.pose.canvas : null;
         setDetected({
+          ...(canvas?.width && canvas.height
+            ? { size: { width: canvas.width, height: canvas.height } }
+            : {}),
           framing: readStillFraming(lead),
           pose:
             lead && canvas
@@ -301,7 +319,7 @@ function DirectorSheetOpen({
   };
 
   const render = async (use: 'copy' | 'download') => {
-    if (check.errors.length || rendering) return;
+    if (check.errors.length || rendering || sizing) return;
     setError(null);
     setPlaying(false);
     const controller = new AbortController();
@@ -392,7 +410,7 @@ function DirectorSheetOpen({
       <Button
         size="sm"
         variant="ghost"
-        disabled={Boolean(check.errors.length) || rendering !== null}
+        disabled={Boolean(check.errors.length) || rendering !== null || sizing}
         title="Save the driving video (the 3D body) to look at or use elsewhere"
         data-testid={`${p}-download`}
         onClick={() => void render('download')}
@@ -405,7 +423,7 @@ function DirectorSheetOpen({
       <Button
         size="sm"
         variant="primary"
-        disabled={Boolean(check.errors.length) || busy}
+        disabled={Boolean(check.errors.length) || busy || sizing}
         loading={rendering !== null}
         loadingLabel={rendering ? `Filming ${rendering.done}/${rendering.total}…` : undefined}
         title={busy ? 'Another clip job is running — one at a time.' : undefined}

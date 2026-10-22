@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { Vector3 } from 'three';
+import { Quaternion, Vector3 } from 'three';
 import type { PoseRig3dFigure } from '@/lib/pose/rig3d';
-import { figureWorld, restFigure } from '@/lib/pose/rig3d-pose';
+import {
+  DEFAULT_CAMERA,
+  figureWorld,
+  restFigure,
+  setBoneWorldRotation,
+} from '@/lib/pose/rig3d-pose';
 import { moveBeat } from './edit';
 import { restOf } from './motion';
 import { feetAnchor, footContact, planFeet } from './plant';
-import { levelHead, poseBeat, standingFigure, starterFigure } from './poses';
+import { levelHead, poseBeat, standingFigure, starterFigure, straightenInDepth } from './poses';
 import { directionFrames } from './timeline';
 import { DEFAULT_DIRECTOR_CAMERA, type Direction } from './types';
 
@@ -119,5 +124,27 @@ describe('director: planted feet', () => {
     );
     assert.ok(Math.abs(forward.y) < 1e-3, `looks level (${forward.y})`);
     assert.ok(Math.abs(Math.atan2(forward.x, forward.z) - 0.4) < 1e-3, `faces ${JSON.stringify(forward)}`);
+  });
+  it('a still read as leaning toward or away from the camera stands straight', () => {
+    const lean = (degrees: number) => {
+      const figure = standingFigure(body);
+      const world = figureWorld(figure);
+      const tip = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), (degrees * Math.PI) / 180);
+      setBoneWorldRotation(figure, 'spine', tip.multiply(world.quat.spine!));
+      return figure;
+    };
+    const depth = (figure: PoseRig3dFigure) => {
+      const w = figureWorld(figure);
+      return w.pos.neck!.z - w.pos.hips!.z;
+    };
+    const back = lean(-18);
+    assert.ok(depth(back) < -0.08, `leans back first (${depth(back)})`);
+    straightenInDepth(back, DEFAULT_CAMERA);
+    assert.ok(Math.abs(depth(back)) < 0.01, `straight (${depth(back)})`);
+    // A bend over is a real pose: it stays.
+    const bow = lean(45);
+    const before = depth(bow);
+    straightenInDepth(bow, DEFAULT_CAMERA);
+    assert.equal(depth(bow), before);
   });
 });
