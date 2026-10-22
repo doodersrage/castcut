@@ -134,3 +134,23 @@ export function keeperStandInLine(state: KeeperStandInState | null | undefined):
       return null;
   }
 }
+
+/**
+ * The same, short, for Day's status strip (where Day says what it starts from): Keep jumps to
+ * Day, so the standing render is usually still running there — and its failure needs a retry
+ * there, not only back on Outfit.
+ */
+export function keeperStandInDayLine(state: KeeperStandInState | null | undefined): string | null {
+  switch (state) {
+    case 'rendering':
+      return 'Rendering her standing in the kept outfit — Day uses the posed Keep until it is ready.';
+    case 'ready':
+      return 'Day starts from her standing picture in the kept outfit.';
+    case 'failed':
+      return "Her standing picture didn't render — Day uses the posed Keep.";
+    case 'offer':
+      return 'The kept outfit is posed, and Day starts from that pose — make a standing picture.';
+    default:
+      return null;
+  }
+}

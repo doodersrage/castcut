@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   galleryEntryIsPosedTryOn,
   keeperStandInEntry,
+  keeperStandInDayLine,
   keeperStandInLine,
   keeperStandInStatus,
   latestKeeperEntry,
@@ -118,6 +119,18 @@ describe('keeperStandInLine', () => {
     assert.equal(keeperStandInLine(null), null);
     for (const state of ['offer', 'rendering', 'ready', 'failed'] as const) {
       assert.ok(keeperStandInLine(state));
+    }
+  });
+});
+
+describe('keeperStandInDayLine', () => {
+  it('says something short on Day for every state but not-needed', () => {
+    assert.equal(keeperStandInDayLine('not-needed'), null);
+    assert.equal(keeperStandInDayLine(undefined), null);
+    for (const state of ['offer', 'rendering', 'ready', 'failed'] as const) {
+      const line = keeperStandInDayLine(state);
+      assert.ok(line && line.length <= 100, `${state}: ${line}`);
+      assert.doesNotMatch(line, /Story/);
     }
   });
 });

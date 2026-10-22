@@ -383,6 +383,109 @@ test("outfit: a posed Keep offers her standing picture, then shows it for Day an
   await expect(note.getByTestId('fitting-keeper-standing-picture')).toBeVisible();
 });
 
+test.describe('Day standing picture', () => {
+  // The gallery service worker answers view URLs itself, out of page.route's reach.
+  test.use({ serviceWorkers: 'block' });
+
+  test("Day: a posed Keep's standing picture says where it is, and a failed one tries again", async ({
+    page,
+  }) => {
+    test.setTimeout(150_000);
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64'
+    );
+    const now = Date.now();
+    const posedKeep = {
+      id: 'e2e-day-posed-keep',
+      promptId: 'prompt-e2e-day-posed-keep',
+      prompt:
+        'POSE FIRST: she is sitting on a chair, exactly as the pose map in Image 3 shows.\nPOSE: Image 3 is a pose map (a skeleton, not a person) — the body takes exactly that stance.',
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      characterId: 'e2e-day-standing',
+      tool: 'fitting',
+      queuedAt: now,
+      completedAt: now,
+      images: [{ filename: 'e2e-day-posed-keep.png', subfolder: '', type: 'output' }],
+    };
+    const seed = (standIn: Record<string, unknown>) =>
+      seedSettingsCacheOnNextLoad(page, {
+        shared: { activeCharacterId: 'e2e-day-standing' },
+        characters: {
+          version: 1,
+          characters: [
+            {
+              id: 'e2e-day-standing',
+              name: 'Standing',
+              version: 1,
+              updatedAt: Date.now(),
+              descriptor: 'a woman',
+              activeLookId: 'look-1',
+              looks: [
+                {
+                  id: 'look-1',
+                  name: 'Main',
+                  createdAt: 1,
+                  keeperEntryIds: [posedKeep.id],
+                  keeperStandIns: { [posedKeep.id]: standIn },
+                },
+              ],
+            },
+          ],
+          removedIds: [],
+        },
+      });
+    // Try again re-renders from the kept picture: its fetch, the upload and the queue are stubbed.
+    await page.route('**/api/comfyui/view**', route =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: png })
+    );
+    await page.route('**/api/comfyui/upload**', route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ name: 'outfit-standing.png', subfolder: '', type: 'input' }),
+      })
+    );
+    const queued: string[] = [];
+    await page.route('**/api/comfyui', route => {
+      if (route.request().method() !== 'POST') return route.continue();
+      queued.push(String((route.request().postDataJSON() as { prompt?: unknown }).prompt ?? ''));
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ promptId: 'prompt-e2e-day-retry', clientId: 'e2e' }),
+      });
+    });
+
+    // Desk: it failed — said on Day's status strip, with Try again.
+    await seed({ promptId: 'prompt-e2e-day-gone', failed: true, at: now });
+    await gotoStable(page, '/day');
+    await replaceGalleryIdb(page, [posedKeep]);
+    await page.reload();
+    await dismissBlockingOverlays(page);
+    const note = page.getByTestId('day-keeper-standing');
+    await expect(note).toHaveAttribute('data-state', 'failed', { timeout: 30_000 });
+    await expect(note).toContainText("didn't render");
+    await note.getByTestId('day-keeper-standing-make').click();
+    // The queue's own checks (workflow preflight, a busy shared ComfyUI) come first.
+    await expect(note).toHaveAttribute('data-state', 'rendering', { timeout: 60_000 });
+    await expect(note).toContainText('Rendering her standing');
+    expect(queued.length).toBe(1);
+
+    // Phone board: the same line while it renders.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seed({ promptId: 'prompt-e2e-day-running', at: now });
+    await gotoStable(page, '/day');
+    await replaceGalleryIdb(page, [posedKeep]);
+    await page.reload();
+    await dismissBlockingOverlays(page);
+    await expect(note).toHaveAttribute('data-state', 'rendering', { timeout: 30_000 });
+    await expect(note).toBeVisible();
+    await expect(note.getByTestId('day-keeper-standing-make')).toHaveCount(0);
+  });
+});
+
 test('outfit stage: a try-on in flight shows its rendering placeholder', async ({ page }) => {
   const done =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

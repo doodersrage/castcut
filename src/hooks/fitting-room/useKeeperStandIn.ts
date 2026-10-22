@@ -55,9 +55,10 @@ export type QueueKeeperStandInInput = {
 /**
  * A posed Keep's standing picture (fitting/keeper-stand-in.ts): queued at Keep (or with one tap
  * for a posed Keep from before), followed in the gallery — it is an ordinary ComfyUI job, so a
- * reload or another page loses nothing — and recorded on the look when it lands.
+ * reload or another page loses nothing — and recorded on the look when it lands. Outfit and Day
+ * both use it: Keep jumps to Day while the render runs, so Day says where it is (and retries it).
  */
-export function useKeeperStandIn(input: FittingRoomQueueInput) {
+export function useKeeperStandIn(input: Pick<FittingRoomQueueInput, 'shared' | 'actions'>) {
   const characters = useSyncExternalStore(
     subscribeCharacters,
     getCharactersSnapshot,

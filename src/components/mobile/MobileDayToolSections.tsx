@@ -231,6 +231,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     dressPlateStatus,
     dressPlatePreviewUrl,
     redoDressPlate,
+    keeperStandIn,
+    makeStandingPicture,
     poseGuidePreviews,
     wardrobeOptions,
     wardrobeReady,
@@ -638,6 +640,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             dressPlateStatus={dressPlateStatus}
             dressPlatePreviewUrl={dressPlatePreviewUrl}
             onRedoDressPlate={redoDressPlate}
+            keeperStandIn={keeperStandIn}
+            onMakeStandingPicture={makeStandingPicture}
             onOpenDressPlate={url =>
               setProgressLightbox({ images: [url], index: 0, title: 'Dressed plate' })
             }
