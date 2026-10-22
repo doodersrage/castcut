@@ -1,5 +1,6 @@
 'use client';
 
+import { useLatestRef } from '@/hooks/useLatestRef';
 import {
   castPlacePhotoFor,
   withPlacePhotoInAdultPrompt,
@@ -697,11 +698,12 @@ export function useDayPlannerToolOrchestrationCore() {
         );
       }
     }
+    // deepLinkHandled makes this run once; settings are listed only to read them current.
   }, [
     mounted,
     shared.activeCharacterId,
-    toolSettings.notes,
-    toolSettings.slots,
+    shared.lockedWardrobeId,
+    toolSettings,
     updateShared,
     updateToolSettings,
   ]);
@@ -1253,6 +1255,9 @@ export function useDayPlannerToolOrchestrationCore() {
     [actions, character, shared, toolSettings.dayEvent, updateToolSettings]
   );
 
+  // The vision calls (partner plate, slot checks) read the current settings without making queueSlot (which
+  // the adult gate's auto-queue effect lists) change on every shared-settings write.
+  const sharedRef = useLatestRef(shared);
   const queueSlot = useCallback(
     async (
       slot: DaySlot,
@@ -1583,7 +1588,7 @@ export function useDayPlannerToolOrchestrationCore() {
               {
                 sendComfyUi: actions.sendComfyUi,
                 // Shoes picked: the plate's feet are checked and fixed once (footwear-check.ts).
-                visionShared: shared,
+                visionShared: sharedRef.current,
                 onShoePass: () => {
                   setDressPlateStatus({ text: DRESS_PLATE_SHOE_PASS_STATUS, busy: true });
                   pushSystemTrayMessage({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
@@ -2814,7 +2819,7 @@ export function useDayPlannerToolOrchestrationCore() {
                     characterId: partnerCharacter.id,
                     lookId: activeLook(partnerCharacter)?.id,
                   },
-                  { sendComfyUi: actions.sendComfyUi, visionShared: shared }
+                  { sendComfyUi: actions.sendComfyUi, visionShared: sharedRef.current }
                 );
                 partnerBody = { filename: entry.filename, imageUrl: entry.imageUrl };
               } catch {
@@ -3330,6 +3335,7 @@ export function useDayPlannerToolOrchestrationCore() {
       intimateEnabled,
       shared.lockedLocation,
       shared.model,
+      sharedRef,
       updateShared,
       updateToolSettings,
       wardrobeLabelFor,
