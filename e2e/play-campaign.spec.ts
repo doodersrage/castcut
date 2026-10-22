@@ -1342,8 +1342,12 @@ test('outfit pose from a photo: reads the pose and selects it', async ({ page })
   await page
     .getByTestId('outfit-pose-photo-input')
     .setInputFiles({ name: 'pose-plate.png', mimeType: 'image/png', buffer: png });
+  // The read loads its code on demand (library-import, the upload helpers): on a dev server still
+  // serving the page's first load that chunk alone took ~5 s (trace, 2026-10-22) while both API
+  // calls are stubbed and answer at once — the 5 s default timed out about every other run.
   await expect(page.getByTestId('outfit-pose-photo-status')).toContainText(
-    'Using the pose from your photo.'
+    'Using the pose from your photo.',
+    { timeout: 20_000 }
   );
   await expect(page.getByTestId('outfit-pose-photo')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('outfit-pose-custom')).toHaveAttribute('aria-checked', 'false');
