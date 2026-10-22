@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.17] - 2026-10-22
+
 - Director: a still that already shows a seat behind or under her (the vision model is asked once per still) starts with *Put a wooden chair behind her* off, so the edit doesn't add a second one; with no vision model it stays on as before
 - Copy moves: the seat edit frees ComfyUI before and after it and, out of GPU memory, falls back to the still as it is (*Done, without the seat — …*) instead of failing; an out-of-memory clip pass (Copy moves, Lip-sync, Finish…) retries next in the queue after the free — queued at the back, other renders reloaded their models first and it ran out again
 - Story and Outfit camera picks: **Waist up** and **Head & shoulders** on Qwen-Image 2.1 are now cut from the still around her face, as on Day — a Story scene's Camera row (the pose check and marks check look at the cut; the scene card says when a still was kept as rendered and why) and an Outfit custom pose's camera (the back view stays full length). A try-on posed closer than full body no longer gets a shoe pass (her feet are out of frame)
