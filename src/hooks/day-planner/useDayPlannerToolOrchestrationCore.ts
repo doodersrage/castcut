@@ -191,6 +191,7 @@ import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut/nodes
 import {
   dayClothedGuideContradictsBeat,
   daySlotPoseLayout,
+  daySlotPoseOverride,
   pickedStillCamera,
   planDaySlotPose,
   plannedDaySlotPoseKey,
@@ -2300,6 +2301,8 @@ export function useDayPlannerToolOrchestrationCore() {
               !adultStill),
           // Qwen-Image 2.1: the line stands on the words, never naming a map (Turbo, 2026-10-17).
           poseFirstWithoutMap: poseModelFamily(stillModel) === 'qwen-image-2.1',
+          // The slot's picked plain posture: 2.1 drops the map it was drawn on.
+          pickedPosture: daySlotPoseOverride(queueTarget.poseLayout)?.body ?? null,
           camera: dayStillCamera({
             slotId: queueTarget.id,
             model: stillModel,

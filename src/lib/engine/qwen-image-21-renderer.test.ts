@@ -1166,3 +1166,36 @@ describe('Qwen-Image 2.1 multi-reference cfg guard', () => {
     assert.equal(nodes.find(n => n.class_type === 'KSampler')!.inputs.cfg, 1);
   });
 });
+
+describe('withCameraFirst (a picked camera leads the 2.1 prompt)', () => {
+  const still = (camera: string) =>
+    `Keep facial likeness only: POSE FIRST: she sits on the park bench, knees bent. SCENE: she is in the park. OUTFIT (mandatory): she wears a pink dress — exactly the outfit and shoes she has on in <image1>, unchanged. FOOTWEAR (mandatory): on her feet she wears pink pumps — exactly these, on both feet. Day photo: One woman alone. ${camera} She wears the outfit.`;
+
+  it('puts the pick and its framing before POSE FIRST', async () => {
+    const { withCameraFirst } = await import('./qwen-image-21-renderer');
+    const out = withCameraFirst(still('Camera: a high angle from above looking down at her.'));
+    assert.match(
+      out,
+      /only: CAMERA FIRST: a high angle from above looking down at her — the camera is above her head height, tilted down — we look down on her\. POSE FIRST: /
+    );
+    assert.match(out, /FOOTWEAR \(mandatory\)/);
+    assert.equal(withCameraFirst(out), out);
+  });
+
+  it('a shot that leaves the feet out drops the footwear line', async () => {
+    const { withCameraFirst } = await import('./qwen-image-21-renderer');
+    const out = withCameraFirst(still('Camera: waist-up shot, legs out of frame.'));
+    assert.match(out, /CAMERA FIRST: waist-up shot, legs out of frame — she is framed from the waist up/);
+    assert.doesNotMatch(out, /FOOTWEAR/);
+    assert.match(out, /exactly the outfit she has on/);
+    assert.match(out, /Day photo: One woman alone\./);
+  });
+
+  it('leaves Day’s own camera, two-person stills and no-camera prompts alone', async () => {
+    const { withCameraFirst } = await import('./qwen-image-21-renderer');
+    const own = still('Camera: a wide shot from a few metres away — her whole body small in the frame.');
+    assert.equal(withCameraFirst(own), own);
+    const duo = `${still('Camera: three-quarter view.')} The two people stand together.`;
+    assert.equal(withCameraFirst(duo), duo);
+  });
+});

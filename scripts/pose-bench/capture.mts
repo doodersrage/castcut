@@ -14,9 +14,14 @@
  *   photo  — each slot's pose is read through the slot sheet's "From a photo" button: the
  *            original photo is uploaded, /api/pose-detect runs DWPose + the vision posture
  *            read, and the PhotoPose the app stores is recorded.
+ *   camera — each slot picks one of Day's own poses and a Camera row pick: ids are
+ *            `<pose>~<camera>` — pose a Day pose id (stand, sit, walk, look_back, arms_up …),
+ *            camera one of CAMERA_PICKS below (low, high, three_quarter, back, waist, closeup,
+ *            auto). The camera bench (camera-bench.sh).
  *
- *   node --import tsx scripts/pose-bench/capture.mts --engine <model> --mode joints|photo \
+ *   node --import tsx scripts/pose-bench/capture.mts --engine <model> --mode joints|photo|camera \
  *     --ids a,b,c --out <dir> --capture <proxy capture dir> [--photos <dir>] [--base URL]
+ *     [--shared '{"poseGuideStyle":"openpose-hands"}']   (extra shared settings, e.g. guide style)
  *
  * Writes <out>/capture.json: per slot the target id, the stored pose, the captured graph and
  * the Day state (still prompt id, notes).
@@ -41,7 +46,29 @@ const arg = (flag: string, fallback?: string) => {
   return index > 0 ? process.argv[index + 1]! : fallback;
 };
 const engine = arg('--engine')!;
-const mode = arg('--mode', 'joints') as 'joints' | 'photo';
+const mode = arg('--mode', 'joints') as 'joints' | 'photo' | 'camera';
+const extraShared = JSON.parse(arg('--shared', '{}')!) as Record<string, unknown>;
+/** Camera mode: a beat that states each Day pose (set PICKED_ONLY=1 to keep the neutral beats). */
+const POSE_BEATS: Record<string, string> = process.env.PICKED_ONLY
+  ? {}
+  : {
+      stand: 'stands on the plaza enjoying the sun',
+      sit: 'sits on a park bench',
+      kneel: 'kneels on the grass',
+      walk: 'walks across the plaza',
+      arms_up: 'stretches both arms straight up over her head',
+      look_back: 'looks back over her shoulder',
+    };
+/** The camera bench's picks, as the slot's Camera row stores them (camera-shot.ts). */
+export const CAMERA_PICKS: Record<string, Record<string, string> | null> = {
+  auto: null,
+  low: { height: 'low' },
+  high: { height: 'high' },
+  three_quarter: { direction: 'three-quarter' },
+  back: { direction: 'back' },
+  waist: { shot: 'waist' },
+  closeup: { shot: 'head' },
+};
 const ids = arg('--ids')!.split(',').filter(Boolean);
 const outDir = arg('--out')!;
 const captureDir = arg('--capture')!;
@@ -149,6 +176,21 @@ const slots = ids.map((id, index) => {
     const ref = refs.get(id);
     if (!ref) throw new Error(`no reference ${id}`);
     slot.posePhoto = { aspect: ref.aspect, people: ref.people, source: 'edited' };
+  }
+  if (mode === 'camera') {
+    const [pose, camera] = id.split('~');
+    if (!pose || !camera || !(camera in CAMERA_PICKS)) throw new Error(`bad camera id ${id}`);
+    slot.poseLayout = pose;
+    // The beat says the pose too: on Qwen-Image 2.1 a solo planned map is dropped, and a picked
+    // plain posture (sit, kneel, walk) has no Pose: words of its own — with a neutral beat the
+    // still stands (camera bench, 2026-10-22).
+    // Distinct per slot (identical beats are rewritten by Day's scene diversifier).
+    if (POSE_BEATS[pose]) {
+      slot.sceneHints = `${POSE_BEATS[pose]} and ${BEATS[index]}`;
+      slot.sceneHintsTyped = slot.sceneHints;
+    }
+    const pick = CAMERA_PICKS[camera];
+    if (pick) slot.poseCamera = pick;
   }
   return slot;
 });
@@ -304,7 +346,7 @@ await page.route('**/api/version', route =>
 await page.goto('/manifest.json');
 await putAppKv(page, { 'dress-plates': dressPlates });
 await seedSettingsCacheOnNextLoad(page, {
-  shared: { activeCharacterId: NORA, model: engine },
+  shared: { activeCharacterId: NORA, model: engine, ...extraShared },
   tools: { day: dayTool },
   characters,
 });
@@ -361,7 +403,10 @@ console.log('queueing', ids.length, 'slots on', engine);
 // prompt has gone out 90 s after the click, reload Day and click Queue day again (up to 3 times).
 let comfySends = 0;
 page.on('request', request => {
-  if (request.method() === 'POST' && /\/api\/comfyui(\/upload)?$/.test(new URL(request.url()).pathname))
+  if (
+    request.method() === 'POST' &&
+    /\/api\/comfyui(\/upload)?$/.test(new URL(request.url()).pathname)
+  )
     comfySends += 1;
 });
 for (let attempt = 1; ; attempt += 1) {
@@ -372,7 +417,9 @@ for (let attempt = 1; ; attempt += 1) {
     sent = comfySends > 0;
   }
   if (sent || attempt >= 3) break;
-  console.log(`nothing sent ${attempt * 90}s after Queue day (a dev reload?) — reloading Day and queueing again`);
+  console.log(
+    `nothing sent ${attempt * 90}s after Queue day (a dev reload?) — reloading Day and queueing again`
+  );
   await page.reload({ waitUntil: 'domcontentloaded' });
   await queueAll.waitFor({ timeout: 180_000 });
   await page.waitForTimeout(6000);
