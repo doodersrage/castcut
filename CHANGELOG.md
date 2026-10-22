@@ -9,6 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.13] - 2026-10-22
+
+- Director: keep the head level when starting from her pose in the still
+- Director: docs, e2e (Day, phone width, Gallery), preview fitted to the video's shape
+- Director: pose a Cast member through beats on the 3D body and render it through Copy moves
+- Noct-Q Fast engine: Noct-Q in 8 steps on er_sde + linear_quadratic (~6 s a still)
+
 ## [v2.12.12] - 2026-10-22
 
 - Pose words: the joints decide crouching vs kneeling; custom-pose limb cutoff 0.75
