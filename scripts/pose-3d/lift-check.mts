@@ -115,6 +115,10 @@ type Row = {
   posture: Posture;
   expected: Posture[] | null;
   postureOk: boolean | null;
+  /** The spine's lean toward (+) or away from (−) the camera, degrees. */
+  lean: number;
+  /** How much the limbs point along the line of sight (0 flat to the picture, 1 straight at it). */
+  depthiness: number;
 };
 
 const rows: Row[] = [];
@@ -137,6 +141,30 @@ for (const c of cases) {
   const editorView = projectFigure(figure, rig.camera, c.aspect);
   const editor = compare(c.body, editorView, c.aspect);
   const posture = classifyPosture(figure);
+  const world = openPoseWorld(figure);
+  const eye = new Vector3(...rig.camera.position);
+  const hipMid = world[8]!.clone().add(world[11]!).multiplyScalar(0.5);
+  const toEye = eye.clone().sub(hipMid).setY(0).normalize();
+  const spine = world[1]!.clone().sub(hipMid);
+  const lean = (Math.atan2(spine.dot(toEye), spine.y) * 180) / Math.PI;
+  const LIMB_PAIRS: Array<[number, number]> = [
+    [2, 3],
+    [3, 4],
+    [5, 6],
+    [6, 7],
+    [8, 9],
+    [9, 10],
+    [11, 12],
+    [12, 13],
+  ];
+  const depthiness =
+    LIMB_PAIRS.reduce(
+      (s, [a, b]) =>
+        s +
+        Math.abs(world[a]!.distanceTo(eye) - world[b]!.distanceTo(eye)) /
+          Math.max(1e-6, world[a]!.distanceTo(world[b]!)),
+      0
+    ) / LIMB_PAIRS.length;
   const expected = expectedPostures(c.pose);
   // Director: "Her pose in the picture".
   let director: Row['director'] = null;
@@ -164,6 +192,8 @@ for (const c of cases) {
     posture,
     expected,
     postureOk: expected ? expected.includes(posture) : null,
+    lean,
+    depthiness,
   });
   if (sheetDir) {
     drawings.set(c.id, {
@@ -223,6 +253,10 @@ console.log(
   `director view: mean ${pct(summary.director.mean)}, mean worst joint ${pct(summary.director.meanWorst)}, ${summary.director.matching}/${summary.director.of} under ${pct(MATCH)}`
 );
 console.log(`posture: ${summary.posture.ok}/${summary.posture.checked} as filed`);
+const standing = refRows.filter(r => r.expected?.[0] === 'stand');
+console.log(
+  `standing poses: spine leans in depth ${mean(standing.map(r => Math.abs(r.lean))).toFixed(1)}° on average, ${standing.filter(r => Math.abs(r.lean) > 15).length}/${standing.length} over 15°; limbs along the line of sight ${(mean(refRows.map(r => r.depthiness)) * 100).toFixed(1)}%`
+);
 console.log(`  wrong: ${summary.posture.wrong.join(' ')}`);
 for (const s of summary.starters) console.log(`  ${s}`);
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify({ summary, rows }, null, 1));

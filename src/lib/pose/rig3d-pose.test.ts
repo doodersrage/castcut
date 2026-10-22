@@ -112,8 +112,9 @@ describe('lifting flat poses into the rig', () => {
     }
     all /= solo.length;
     body /= solo.length;
-    // Measured 2026-10-21: 0.78% of the picture height over all points, 0.35% over the body
-    // joints (scripts/pose-3d/lift-report.mts prints the breakdown).
+    // Measured 2026-10-22: 0.87% of the picture height over all points, 0.38% over the body
+    // joints (scripts/pose-3d/lift-report.mts prints the breakdown; the head now turns to show
+    // the face points the picture shows, at a little cost in where they land).
     assert.ok(all < 0.012, `mean error ${all}`);
     assert.ok(body < 0.006, `body mean error ${body}`);
   });

@@ -49,7 +49,7 @@ describe('Director: her pose in the picture', () => {
       sum += error;
       if (error > 0.03) off.push(`${ref.id} ${(error * 100).toFixed(1)}%`);
     }
-    // Measured 2026-10-22: 0.79% of the picture height on average, 270 of 273 within 3%. Before
+    // Measured 2026-10-22: 0.63% of the picture height on average, 272 of 273 within 3%. Before
     // (the still's direction rounded to front / three-quarter / side, the head set level, the
     // camera pulled back from a still that crops her) it was 8.75%, 92 of 273.
     assert.ok(sum / solo.length < 0.012, `mean ${sum / solo.length}`);
