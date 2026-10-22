@@ -30,6 +30,7 @@ import {
   cameraChoiceSummary,
 } from '@/lib/pose/camera-shot';
 import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
+import { pickedPostures } from '@/lib/pose/rig3d-posture-points';
 import { fitPhotoPoseToHeadcount } from '@/lib/pose/photo-pose-fit';
 import {
   POSE_REFERENCE_SOURCE_WORDS,
@@ -252,6 +253,7 @@ export default function PosePreview({
       <PoseEditor
         rig3d={picks.posePhoto?.rig3d}
         initialCamera={picks.poseCamera}
+        postures={pickedPostures({ poseLayout: drawnId, posePhoto: picks.posePhoto })}
         bodies={editorPlan.bodies}
         aspect={openPose.canvas.width / openPose.canvas.height}
         testIdPrefix={testIdPrefix}

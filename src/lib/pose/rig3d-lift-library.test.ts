@@ -11,6 +11,7 @@ import {
   projectFigure,
 } from './rig3d-pose';
 import { classifyPosture, expectedPostures } from './rig3d-posture';
+import { posturesForPose } from './rig3d-posture-points';
 
 const ROOT = join(__dirname, '..', '..', '..');
 
@@ -77,12 +78,36 @@ describe('lifting the reference library into the 3D body', () => {
     const wrong = checked.filter(
       ({ ref, figure }) => !expectedPostures(ref.pose)!.includes(classifyPosture(figure))
     );
-    // 100 of 106 (96 before the picture's own posture picked between leg readings); the rest are
+    // 101 of 106 (96 before the picture's own posture picked between leg readings); the rest are
     // pictures that read either way (a kneel facing the camera) or proportions the body lacks.
     assert.ok(checked.length > 100);
     assert.ok(
-      wrong.length <= 7,
+      wrong.length <= 6,
       wrong.map(({ ref, figure }) => `${ref.id}:${classifyPosture(figure)}`).join(' ')
     );
+  });
+
+  it('lifted as the pose it is filed under, it takes that posture (as the editor and Director do)', () => {
+    const wrong: string[] = [];
+    let wrung = 0;
+    let filed = 0;
+    for (const ref of refs) {
+      const postures = posturesForPose(ref.pose);
+      if (!postures) continue;
+      filed += 1;
+      const figure = liftBody(ref.people[0]!, ref.aspect, { postures });
+      const posture = classifyPosture(figure);
+      if (!postures.includes(posture)) wrong.push(`${ref.id}:${posture}`);
+      for (const side of ['R', 'L'] as const) {
+        for (const limb of ['arm', 'leg'] as const) {
+          if (limbTwistExcess(figure, side, limb) > (30 * Math.PI) / 180) wrung += 1;
+        }
+      }
+    }
+    // 103 of 106 (100 from the flat pose's own posture): left are a kneel whose picture has one
+    // thigh twice the other's length, a sumo deadlift read as a seat and a deadlift's lockout.
+    assert.ok(filed > 100);
+    assert.ok(wrong.length <= 3, wrong.join(' '));
+    assert.equal(wrung, 0);
   });
 });

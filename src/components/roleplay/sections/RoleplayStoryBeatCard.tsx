@@ -47,6 +47,7 @@ import {
 } from '@/lib/story/roleplay-pose-check';
 import { STORY_MIN_FACE_MATCH, STORY_FACE_MATCH_WARN_BELOW } from '@/lib/face/match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
+import { pickedPostures } from '@/lib/pose/rig3d-posture-points';
 import {
   beatMotionUrl,
   beatPreviewUrl,
@@ -812,6 +813,7 @@ function StoryDirector({
       castId={beat.castId}
       castName={cast?.name}
       body={dayPartnerNoun(cast ?? {}) === 'man' ? 'male' : 'female'}
+      postures={pickedPostures(beat)}
       busy={busy}
       onClose={onClose}
       onRender={onRender}

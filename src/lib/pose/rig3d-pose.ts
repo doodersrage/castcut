@@ -1569,6 +1569,19 @@ const DEPTHINESS_WEIGHT = 0.02;
  */
 const POSTURE_MISS = 0.002;
 /**
+ * The same for a posture known from outside the picture (a pose filed or picked by name): 1% of
+ * the picture, and a reading in it counts only while its points stay within 3% of the picture's
+ * on average (what lift-check counts as the same pose). Over the references 1% put 103 of 106 in
+ * the posture they are filed under; 3% put a sumo deadlift's legs 13% off to bend her over.
+ */
+const KNOWN_POSTURE_MISS = 0.01;
+const KNOWN_POSTURE_ERROR = 0.03;
+/**
+ * The last resort for a known posture no reading meets: segments up to 25% off the base body's
+ * (a wide lens draws near limbs long and far ones short), kept only for a figure in it.
+ */
+const LAST_RESORT_STRETCH = 0.25;
+/**
  * What proportions other than the base body's cost, in fit, per unit of log-length off (a thigh
  * 15% short is 0.16): her own lengths must buy a closer fit, less limb along the line of sight or
  * the picture's posture.
@@ -1589,7 +1602,9 @@ export function liftBody(
   aspect: number,
   options: LiftOptions = {}
 ): PoseRig3dFigure {
-  // The picture's own posture (posture.ts) picks between the readings that fit it alike.
+  // The picture's own posture (posture.ts) picks between the readings that fit it alike; a
+  // posture known from outside the picture (the pose it was filed or picked as) is held to harder.
+  const known = Boolean(options.postures);
   const postures = options.postures === undefined ? liftPostures(body, aspect) : options.postures;
   const opts = { ...options, postures };
   const first = liftAtDepth(body, aspect, opts);
@@ -1598,20 +1613,37 @@ export function liftBody(
   const origin = new Vector3(...camera.position);
   const misses = (figure: PoseRig3dFigure) =>
     Boolean(postures && !postures.includes(classifyPosturePoints(openPoseWorld(figure))));
-  const score = (figure: PoseRig3dFigure) =>
-    meanPointError(body, projectFigure(figure, camera, aspect), aspect) +
-    DEPTHINESS_WEIGHT * depthiness(figure, origin) +
-    (misses(figure) ? POSTURE_MISS : 0) +
-    PROPORTION_WEIGHT * proportionsOff(figure.scale);
-  let best = { figure: first.figure, score: score(first.figure) };
+  const fitError = (figure: PoseRig3dFigure) =>
+    meanPointError(body, projectFigure(figure, camera, aspect), aspect);
+  const rate = (figure: PoseRig3dFigure) => {
+    const missed = misses(figure);
+    const error = fitError(figure);
+    return {
+      // A known posture held: in it, and still close to the picture.
+      held: !known || (!missed && error <= KNOWN_POSTURE_ERROR),
+      score:
+        error +
+        DEPTHINESS_WEIGHT * depthiness(figure, origin) +
+        (known
+          ? missed || error > KNOWN_POSTURE_ERROR
+            ? KNOWN_POSTURE_MISS
+            : 0
+          : missed
+            ? POSTURE_MISS
+            : 0) +
+        PROPORTION_WEIGHT * proportionsOff(figure.scale),
+    };
+  };
+  let best = { figure: first.figure, ...rate(first.figure) };
   const tried = new Set<string>();
-  const tryLift = (depth: number, scale?: Rig3dProportions) => {
+  const tryLift = (depth: number, scale?: Rig3dProportions, onlyHeld = false) => {
     const key = `${depth.toFixed(3)} ${JSON.stringify(scale ?? {})}`;
     if (tried.has(key)) return;
     tried.add(key);
     const { figure } = liftAtDepth(body, aspect, { ...opts, depth, ...(scale ? { scale } : {}) });
-    const s = score(figure);
-    if (s < best.score) best = { figure, score: s };
+    const r = rate(figure);
+    if (onlyHeld && !r.held) return;
+    if (r.score < best.score) best = { figure, ...r };
   };
   // Each distance with the base body's proportions, and with her own as the picture shows them
   // at that distance (limbs that need not swing toward the camera to look their length).
@@ -1625,8 +1657,20 @@ export function liftBody(
   for (const depth of first.depths) tryDepth(depth);
   // Still the wrong posture: a little farther or nearer may let the legs read it, and her own
   // proportions may stray further.
-  if (misses(best.figure)) {
+  if (!best.held || misses(best.figure)) {
     for (const depth of [...first.depths, ...first.postureDepths]) tryDepth(depth, POSTURE_STRETCH);
+  }
+  // A posture known from outside and still not held: her proportions may stray further yet, only
+  // for a figure in that posture that still draws the picture's points.
+  if (!best.held && options.proportions !== false) {
+    for (const depth of [...first.depths, ...first.postureDepths]) {
+      const scale = fitProportions(body, aspect, depth, {
+        camera,
+        body: options.body,
+        stretch: LAST_RESORT_STRETCH,
+      });
+      if (scale) tryLift(depth, scale, true);
+    }
   }
   return best.figure;
 }
@@ -1644,16 +1688,26 @@ function meanPointError(a: NormalizedBody, b: NormalizedBody, aspect: number): n
   return count ? sum / count : 0;
 }
 
-/** A rig for flat bodies (lead first), all seen through one camera. */
+/**
+ * A rig for flat bodies (lead first), all seen through one camera. `postures`, per body: the
+ * postures known from outside the picture (the pose it was filed or picked as, the vision
+ * model's read), which the lift targets instead of reading them from the flat pose.
+ */
 export function liftBodies(
   bodies: NormalizedBody[],
   aspect: number,
   kinds: Rig3dBodyKind[] = [],
-  camera: PoseRig3dCamera = DEFAULT_CAMERA
+  camera: PoseRig3dCamera = DEFAULT_CAMERA,
+  options: { postures?: Array<Posture[] | undefined> } = {}
 ): PoseRig3d {
-  const figures = bodies.map((body, index) =>
-    liftBody(body, aspect, { camera, body: kinds[index] ?? (index === 0 ? 'female' : 'male') })
-  );
+  const figures = bodies.map((body, index) => {
+    const postures = options.postures?.[index];
+    return liftBody(body, aspect, {
+      camera,
+      body: kinds[index] ?? (index === 0 ? 'female' : 'male'),
+      ...(postures ? { postures } : {}),
+    });
+  });
   return { version: RIG3D_VERSION, camera: aimAtFigures(camera, figures), figures };
 }
 

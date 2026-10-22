@@ -6,7 +6,8 @@
 
 import { Color, Scene, WebGLRenderer } from 'three';
 import type { PhotoPose } from '@/lib/pose/types';
-import { liftBodies, makeCamera, rigProjectionError } from '@/lib/pose/rig3d-pose';
+import { DEFAULT_CAMERA, liftBodies, makeCamera, rigProjectionError } from '@/lib/pose/rig3d-pose';
+import { posturesForVision } from '@/lib/pose/rig3d-posture-points';
 import type { PoseRig3d } from '@/lib/pose/rig3d';
 import {
   addStudioLights,
@@ -22,7 +23,9 @@ export function rigForPose(pose: PhotoPose): PoseRig3d {
   if (pose.rig3d && rigProjectionError(pose.rig3d, pose.people, pose.aspect) < 0.01) {
     return pose.rig3d;
   }
-  return liftBodies(pose.people, pose.aspect);
+  // The lead's posture as the vision model read it from the photo, when it did.
+  const postures = posturesForVision(pose.posture?.posture);
+  return liftBodies(pose.people, pose.aspect, [], DEFAULT_CAMERA, { postures: [postures] });
 }
 
 /**

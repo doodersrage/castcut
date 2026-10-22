@@ -19,6 +19,7 @@ import {
   setBoneWorldRotation,
 } from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
+import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
 import { groundFigure, placementOf, toLocal, fromLocal, type Placement } from './figure-ops';
@@ -122,10 +123,13 @@ function straightenOnce(figure: PoseRig3dFigure, camera: PoseRig3dCamera, first:
 export function stillPoseFigure(
   body: NormalizedBody,
   aspect: number,
-  kind: Rig3dBodyKind
+  kind: Rig3dBodyKind,
+  /** Her posture when it is known from outside the joints (the pose she was picked in). */
+  postures?: Posture[]
 ): { figure: PoseRig3dFigure; side: 1 | -1; turned: number; view: PoseRig3dCamera } {
-  const lifted = liftBody(body, aspect, { body: kind });
-  straightenInDepth(lifted, DEFAULT_CAMERA);
+  const lifted = liftBody(body, aspect, { body: kind, ...(postures ? { postures } : {}) });
+  // (A pose known to be bent over or down keeps the lean the lift found for it.)
+  if (!postures || postures.includes('stand')) straightenInDepth(lifted, DEFAULT_CAMERA);
   // The arms back where the still has them (straightening swung them with the chest).
   refitLimbs(lifted, body, aspect, DEFAULT_CAMERA, ['arm']);
   // Not looking up, but otherwise the head as the still has it (levelHead turned it away).

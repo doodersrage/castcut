@@ -11,7 +11,10 @@
  * Writes a JSON summary and, with --sheet DIR, SVG contact sheets (source | editor view | the
  * figure from its side | Director preview) of the worst poses.
  *
- *   node --import tsx scripts/pose-3d/lift-check.mts [--sheet DIR] [--worst 40] [--json FILE]
+ * Each pose is lifted toward the posture it is filed under, as the app does for a pose it knows
+ * by name; --flat lifts from the flat pose alone (posture.ts), as for a photo.
+ *
+ *   node --import tsx scripts/pose-3d/lift-check.mts [--sheet DIR] [--worst 40] [--json FILE] [--flat]
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -33,6 +36,7 @@ import { stillPoseFigure } from '../../src/lib/director/poses';
 import { frameDirection, framingCameraAt, readStillFraming } from '../../src/lib/director/framing';
 import { DEFAULT_DIRECTOR_CAMERA } from '../../src/lib/director/types';
 import { classifyPosture, expectedPostures, type Posture } from '../../src/lib/pose/rig3d-posture';
+import { posturesForPose } from '../../src/lib/pose/rig3d-posture-points';
 
 const ROOT = new URL('../..', import.meta.url).pathname;
 const arg = (name: string) => {
@@ -43,6 +47,7 @@ const sheetDir = arg('--sheet');
 const worstCount = Number(arg('--worst') ?? 40);
 const jsonOut = arg('--json');
 const only = arg('--only');
+const flat = process.argv.includes('--flat');
 
 type Case = { id: string; pose: string; aspect: number; body: NormalizedBody };
 const refs = JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
@@ -152,7 +157,10 @@ const drawings = new Map<
 >();
 
 for (const c of cases) {
-  const rig = liftBodies([c.body], c.aspect, ['female']);
+  // As the app lifts a pose it knows by name (the editor's reference / Day pose pickers, the
+  // Director): toward the posture it is filed under. --flat: from the flat pose's own posture.
+  const known = flat ? undefined : posturesForPose(c.pose);
+  const rig = liftBodies([c.body], c.aspect, ['female'], DEFAULT_CAMERA, { postures: [known] });
   const figure = rig.figures[0]!;
   const editorView = projectFigure(figure, rig.camera, c.aspect);
   const editor = compare(c.body, editorView, c.aspect);
@@ -188,7 +196,12 @@ for (const c of cases) {
   let directorTwisted = 0;
   const still = readStillFraming(c.body);
   if (c.body[1]) {
-    const { figure: start, side, turned, view } = stillPoseFigure(c.body, c.aspect, 'female');
+    const {
+      figure: start,
+      side,
+      turned,
+      view,
+    } = stillPoseFigure(c.body, c.aspect, 'female', known);
     const facing =
       turned < 22.5 ? 'front' : turned < 65 ? 'three-quarter' : turned < 125 ? 'side' : 'back';
     const framing = frameDirection({

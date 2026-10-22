@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import type { NormalizedBody } from '@/lib/pose/library';
 import { projectFigure } from '@/lib/pose/rig3d-pose';
+import { classifyPosture } from '@/lib/pose/rig3d-posture';
 import { frameDirection, framingCameraAt, readStillFraming } from './framing';
 import { stillPoseFigure } from './poses';
 import { DEFAULT_DIRECTOR_CAMERA, normalizeDirectorCamera } from './types';
@@ -54,6 +55,26 @@ describe('Director: her pose in the picture', () => {
     // camera pulled back from a still that crops her) it was 8.75%, 92 of 273.
     assert.ok(sum / solo.length < 0.012, `mean ${sum / solo.length}`);
     assert.ok(off.length <= solo.length * 0.03, `off: ${off.join(', ')}`);
+  });
+
+  it('a still whose posture is known (the slot’s picked pose) starts her in it', () => {
+    const refs = JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
+      references: Array<{ id: string; aspect: number; people: NormalizedBody[] }>;
+    };
+    // The flat pose reads as a seat; the slot picked a kneel.
+    const ref = refs.references.find(r => r.id === 'kneel-4')!;
+    const body = ref.people[0]!;
+    const guessed = stillPoseFigure(body, ref.aspect, 'female').figure;
+    const known = stillPoseFigure(body, ref.aspect, 'female', ['kneel']).figure;
+    assert.equal(classifyPosture(guessed), 'seated');
+    assert.equal(classifyPosture(known), 'kneel');
+    // A bend over keeps the lean the lift found (not straightened in depth like a stand).
+    const deadlift = refs.references.find(r => r.id === 'sport_deadlift-1')!;
+    const bent = stillPoseFigure(deadlift.people[0]!, deadlift.aspect, 'female', [
+      'bend',
+      'crouch',
+    ]).figure;
+    assert.equal(classifyPosture(bent), 'bend');
   });
 
   it('the still’s camera survives storage', () => {
