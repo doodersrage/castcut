@@ -209,6 +209,8 @@ export default function UsersAdminUserFormPanel({
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ userId: selectedUser.id }),
                 }).then(() => {
+                  // Full reload on purpose: the session is now the impersonated user.
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                   window.location.href = '/';
                 });
               }}
