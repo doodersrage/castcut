@@ -60,7 +60,7 @@ for group, items in groups.items():
     extra = 1 if a.guides else 0
     sheet = Image.new('RGB', ((len(col_keys) + extra) * cw + 160, len(row_keys) * (ch + 22) + 24), 'white')
     d = ImageDraw.Draw(sheet)
-    d.text((4, 4), group, fill='black', font=font)
+    d.text((4, 4), str(group), fill='black', font=font)
     for c, (col, seed) in enumerate(col_keys):
         d.text((160 + (c + extra) * cw + 4, 4), f'{col} s{seed}', fill='black', font=font)
     for ri, rk in enumerate(row_keys):
