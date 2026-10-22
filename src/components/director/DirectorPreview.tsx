@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { mixFigures } from '@/lib/director/figure-ops';
-import { cameraAt } from '@/lib/director/framing';
+import { framingCameraAt, type DirectionFraming } from '@/lib/director/framing';
 import { createDirectorStage, type DirectorStage } from '@/lib/director/stage-three';
 import { DIRECTOR_FPS } from '@/lib/director/types';
 
@@ -11,8 +11,8 @@ type Props = {
   body: Rig3dBodyKind;
   aspect: number;
   frames: PoseRig3dFigure[];
-  start: PoseRig3dCamera;
-  end: PoseRig3dCamera;
+  /** The driving video's camera (frameDirection). */
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>;
   /** Seconds from the start. */
   time: number;
   /** The still, shown small in a corner to compare with. */
@@ -33,8 +33,7 @@ export default function DirectorPreview({
   body,
   aspect,
   frames,
-  start,
-  end,
+  framing,
   time,
   stillUrl,
   testId,
@@ -103,7 +102,7 @@ export default function DirectorPreview({
       const last = Math.max(1, frames.length - 1);
       stage.draw(
         figureAt(frames, time),
-        cameraAt(start, end, Math.min(1, (time * DIRECTOR_FPS) / last))
+        framingCameraAt(framing, Math.min(1, (time * DIRECTOR_FPS) / last))
       );
     };
     drawRef.current();

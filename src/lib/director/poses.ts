@@ -7,12 +7,19 @@
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3d, PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { RIG3D_VERSION } from '@/lib/pose/rig3d';
-import { DEFAULT_CAMERA, liftBody, projectRig, restFigure } from '@/lib/pose/rig3d-pose';
+import { Quaternion, Vector3 } from 'three';
+import {
+  DEFAULT_CAMERA,
+  figureWorld,
+  liftBody,
+  projectRig,
+  setBoneWorldRotation,
+} from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
 import { groundFigure, placementOf, toLocal, fromLocal, type Placement } from './figure-ops';
-import { buildFigure, BASE, footAt, still, type Channels } from './motion';
+import { buildFigure, BASE, footAt, restOf, still, type Channels } from './motion';
 import { HOLD_SECONDS, newBeatId, POSE_MOVE_SECONDS, type DirectorPoseBeat } from './types';
 
 /** A figure in her own frame: hips over the origin, facing +z, on the floor. */
@@ -39,6 +46,52 @@ export function starterFigure(id: PoseStarterId, kind: Rig3dBodyKind): PoseRig3d
 }
 
 /**
+ * The neck and head upright and facing where her hips face, whatever the chest does. The lift
+ * reads the head from a few face points and often tips it back; resetting the neck and head to
+ * rest under a chest that leans back still tipped it (the real render's first frames looked up).
+ */
+export function levelHead(figure: PoseRig3dFigure, yaw: number): void {
+  const rest = restOf(figure.body).world.quat;
+  const turn = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), yaw);
+  for (const bone of ['neck', 'head']) {
+    setBoneWorldRotation(figure, bone, turn.clone().multiply(rest[bone]!));
+  }
+}
+
+/**
+ * Standing in the still: her back set straight along the camera's line of sight. A photo cannot
+ * show how far she leans toward or away from the camera, and the lift often guessed a lean back
+ * of 15–20° — shorter in the picture than she is, so she grew as the first move straightened
+ * her (and the face looked up). Leans across the picture stay; a bend over (more than 35°) too.
+ */
+export function straightenInDepth(figure: PoseRig3dFigure, camera: PoseRig3dCamera): void {
+  // The spine turns about its own joint, a little above the hips: twice gets it straight.
+  for (let pass = 0; pass < 3; pass += 1) {
+    if (!straightenOnce(figure, camera, pass === 0)) return;
+  }
+}
+
+function straightenOnce(figure: PoseRig3dFigure, camera: PoseRig3dCamera, first: boolean) {
+  const world = figureWorld(figure);
+  const restHips = restOf(figure.body).world.pos.hips!.y;
+  if (world.pos.hips!.y < restHips * 0.75) return false;
+  const up = new Vector3(0, 1, 0);
+  const depth = new Vector3(...camera.position).sub(world.pos.hips!).setY(0);
+  if (depth.lengthSq() < 1e-6) return false;
+  depth.normalize();
+  const spine = world.pos.neck!.clone().sub(world.pos.hips!);
+  const angle = Math.atan2(spine.dot(depth), spine.dot(up));
+  if (Math.abs(angle) < (first ? 3 : 0.2) * (Math.PI / 180)) return false;
+  if (first && Math.abs(angle) > (35 * Math.PI) / 180) return false;
+  // Turn the spine (and everything above it) about the picture's horizontal axis.
+  const axis = up.clone().cross(depth).normalize();
+  const turn = new Quaternion().setFromAxisAngle(axis, angle);
+  if (spine.clone().applyQuaternion(turn).dot(depth) ** 2 > spine.dot(depth) ** 2) turn.invert();
+  setBoneWorldRotation(figure, 'spine', turn.multiply(world.quat.spine!));
+  return true;
+}
+
+/**
  * Her pose as read from the still, lifted the way it looks: her turn toward the camera is kept,
  * so the returned camera direction (relative to her) is the still's.
  */
@@ -48,10 +101,9 @@ export function stillPoseFigure(
   kind: Rig3dBodyKind
 ): { figure: PoseRig3dFigure; side: 1 | -1; turned: number } {
   const lifted = liftBody(body, aspect, { body: kind });
-  // The lift reads the head from a few face points and often tips it back: keep it level.
-  const rest = restFigure(kind);
-  for (const bone of ['neck', 'head']) lifted.bones[bone] = [...rest.bones[bone]!];
+  straightenInDepth(lifted, DEFAULT_CAMERA);
   const at = placementOf(lifted);
+  levelHead(lifted, at.yaw);
   const figure = groundFigure(toLocal(lifted, at));
   // Where the editor's camera stood, seen from her (her facing is +z now).
   const toCamera = Math.atan2(DEFAULT_CAMERA.position[0] - at.x, DEFAULT_CAMERA.position[2] - at.z);

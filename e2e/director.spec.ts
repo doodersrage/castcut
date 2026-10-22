@@ -158,9 +158,14 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   await expect(d('support')).toContainText('make sure Place mentions a seat');
   await d('place').fill('');
   await expect(d('support')).toContainText('pick a still with a seat, or describe one in Place');
-  await d('place').fill('bright kitchen with a wooden chair');
-  await d('beat-3-remove').click();
+  await d('place').fill('bright kitchen');
+  // One tap puts a seat in Place (Copy moves draws it) and the warning goes.
+  await expect(d('support-fix')).toHaveText('Add a chair to Place');
+  await d('support-fix').click();
+  await expect(d('place')).toHaveValue('bright kitchen, with a wooden chair behind her');
   await expect(d('support')).toHaveCount(0);
+  await expect(d('support-fix')).toHaveCount(0);
+  await d('beat-3-remove').click();
 
   await d('render').click();
   await expect(page.getByTestId('day-director')).toBeHidden({ timeout: 60_000 });
@@ -173,7 +178,7 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   expect(body).toContain('AVI ');
   expect(body).toContain('/icon.svg');
   expect(body).toContain('short dark hair');
-  expect(body).toContain('bright kitchen with a wooden chair');
+  expect(body).toContain('bright kitchen, with a wooden chair behind her');
   expect(body).toContain('waves with her right hand, then turns around');
 });
 
@@ -188,6 +193,74 @@ test('Director: stacks on a phone-width screen', async ({ page }) => {
   // The preview sits above the beats, not beside them.
   expect(beats!.y).toBeGreaterThan(preview!.y + preview!.height - 1);
   await expect(page.getByTestId('day-director-render')).toBeVisible();
+});
+
+test('Phone Day: ⋯ → Make it move has Copy moves and Direct a move', async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/api/pose-detect', route =>
+    route.fulfill({ json: { available: false, reason: 'e2e' } })
+  );
+  let posted = '';
+  await page.route('**/api/clip/moves', route => {
+    posted = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({ json: { job: clipJob('running') } });
+  });
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({ json: { job: clipJob('completed', '/e2e-directed.mp4') } })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay() },
+  });
+  await gotoStable(page, '/m/day');
+  await dismissBlockingOverlays(page);
+  const noSideScroll = async () =>
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    ).toBeLessThanOrEqual(1);
+
+  // Copy moves: the same sheet as desk, inside the phone's width.
+  const menu = page.getByTestId('day-progress-menu-morning').first();
+  await expect(menu).toBeVisible({ timeout: 30_000 });
+  await menu.click();
+  const moves = page.getByTestId('day-progress-moves-morning');
+  await expect(moves).toBeVisible();
+  // Inside the screen once the menu has opened (it animates in).
+  await expect
+    .poll(async () => {
+      const item = await moves.boundingBox();
+      return item && item.x >= 0 && item.x + item.width <= 390;
+    })
+    .toBe(true);
+  await moves.click();
+  const sheet = page.getByTestId('slot-media-sheet');
+  await expect(sheet).toBeVisible();
+  expect((await sheet.boundingBox())!.width).toBeLessThanOrEqual(390);
+  await expect(page.getByTestId('slot-media-sheet-video')).toBeAttached();
+  await noSideScroll();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+
+  // Direct a move: the Director, stacked, and Render starts Copy moves on the slot.
+  await page.getByTestId('day-progress-menu-morning').first().click();
+  await page.getByTestId('day-progress-director-morning').click();
+  await expect(page.getByTestId('day-director')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('day-director-preview')).toHaveAttribute('data-ready', 'true', {
+    timeout: 60_000,
+  });
+  expect((await page.getByTestId('day-director').boundingBox())!.width).toBeLessThanOrEqual(390);
+  await page.getByTestId('day-director-preset-wave-turn').click();
+  await expect(page.getByTestId('day-director-beat-2')).toContainText('Turn around');
+  await page.getByTestId('day-director-render').click();
+  await expect(page.getByTestId('day-director')).toBeHidden({ timeout: 60_000 });
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'copied moves',
+    { timeout: 30_000 }
+  );
+  expect(posted).toContain('AVI ');
+  expect(posted).toContain('waves with her right hand, then turns around');
 });
 
 test('Director: a Gallery still opens it from ⋯ → Make it move', async ({ page }) => {

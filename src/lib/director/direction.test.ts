@@ -12,10 +12,16 @@ import {
   shiftBeat,
 } from './edit';
 import { poseSupport } from './figure-ops';
-import { directionMotionLine, directionSupportNeeds, supportWarning } from './motion-line';
+import {
+  directionMotionLine,
+  directionSupportNeeds,
+  supportFix,
+  supportWarning,
+} from './motion-line';
 import { DIRECTOR_MOVES } from './moves';
 import { poseBeat, standingFigure, starterFigure } from './poses';
-import { normalizeDirectionStore, withSavedDirection } from './store';
+import { migrateDirectionStore, normalizeDirectionList, withSavedDirection } from './store';
+import { mergeRecordList, recordListSpec } from '@/lib/storage/record-list-sync';
 import {
   checkDirection,
   DEFAULT_DIRECTOR_CAMERA,
@@ -141,6 +147,30 @@ describe('director: words', () => {
     assert.match(supportWarning(notes, '')!, /pick a still with a seat, or describe one in Place/);
     assert.match(supportWarning(notes, 'a kitchen')!, /make sure Place mentions a seat/);
     assert.equal(supportWarning(directionSupportNeeds(direction([start(), moveBeat('wave')])), ''), null);
+    // Place that already has a seat needs no warning.
+    assert.equal(supportWarning(notes, 'a kitchen with a wooden chair'), null);
+  });
+
+  it('offers a one-tap seat: a chair, a sofa when she sits back, a wall to lean on', () => {
+    const d = direction([start(), moveBeat('sit')]);
+    const notes = directionSupportNeeds(d);
+    assert.deepEqual(supportFix(notes, ''), {
+      label: 'Add a chair to Place',
+      place: 'a wooden chair behind her',
+    });
+    const fix = supportFix(notes, 'a bright kitchen.', 'male')!;
+    assert.equal(fix.place, 'a bright kitchen, with a wooden chair behind him');
+    // The fixed Place silences the warning and needs no further fix.
+    assert.equal(supportWarning(notes, fix.place), null);
+    assert.equal(supportFix(notes, fix.place), null);
+    assert.equal(supportFix([], ''), null);
+    const reclined = [{ beatId: 'b', index: 1, support: 'sit' as const, reclined: true }];
+    assert.equal(supportFix(reclined, '')!.place, 'a sofa behind her');
+    const lean = [{ beatId: 'b', index: 1, support: 'lean' as const }];
+    assert.deepEqual(supportFix(lean, 'a hallway'), {
+      label: 'Add a wall to Place',
+      place: 'a hallway, with a wall beside her',
+    });
   });
 });
 
@@ -159,13 +189,66 @@ describe('director: video and saving', () => {
 
   it('keeps saved directions per Cast, newest first, one per name', () => {
     const d = direction([start(), moveBeat('wave')]);
-    let list = withSavedDirection([], 'Hello', d, 1);
-    list = withSavedDirection(list, 'Bye', d, 2);
-    list = withSavedDirection(list, 'hello', d, 3);
-    assert.deepEqual(list.map(e => e.name), ['hello', 'Bye']);
-    const store = normalizeDirectionStore({ cast1: list, cast2: [{ name: 'broken' }], junk: 4 });
-    assert.deepEqual(Object.keys(store), ['cast1']);
-    assert.equal(store.cast1!.length, 2);
-    assert.deepEqual(normalizeDirectionStore([1, 2]), {});
+    let list = withSavedDirection([], 'cast1', 'Hello', d, 1);
+    list = withSavedDirection(list, 'cast1', 'Bye', d, 2);
+    list = withSavedDirection(list, 'cast2', 'Hello', d, 3);
+    const first = list.find(e => e.castId === 'cast1' && e.name === 'Hello')!;
+    list = withSavedDirection(list, 'cast1', 'hello', d, 4);
+    assert.deepEqual(
+      list.map(e => [e.castId, e.name]),
+      [
+        ['cast1', 'hello'],
+        ['cast1', 'Bye'],
+        ['cast2', 'Hello'],
+      ]
+    );
+    // Saved again under its name: the same entry, so another device sees an edit.
+    assert.equal(list[0]!.id, first.id);
+    assert.equal(withSavedDirection([], null, 'x', d, 1)[0]!.castId, '_');
+    const clean = normalizeDirectionList([...list, { name: 'broken' }, 4]);
+    assert.equal(clean.length, 3);
+    assert.deepEqual(normalizeDirectionList({ a: 1 }), []);
+  });
+
+  it('moves the browser-only store into the synced list once', () => {
+    const d = direction([start(), moveBeat('wave')]);
+    const v1 = {
+      cast1: [{ id: 'a', name: 'Wave', direction: d, savedAt: 10 }],
+      _: [{ id: 'b', name: 'Bow', direction: d, savedAt: 20 }, { name: 'broken' }],
+      junk: 4,
+    };
+    const list = migrateDirectionStore(v1);
+    assert.deepEqual(
+      list.map(e => [e.id, e.castId, e.name, e.updatedAt]),
+      [
+        ['b', '_', 'Bow', 20],
+        ['a', 'cast1', 'Wave', 10],
+      ]
+    );
+    assert.deepEqual(migrateDirectionStore([1, 2]), []);
+    assert.deepEqual(migrateDirectionStore(null), []);
+  });
+
+  it('merges across devices like My poses: newest copy wins, deletions travel', () => {
+    const d = direction([start(), moveBeat('wave')]);
+    const spec = recordListSpec('directorDirections');
+    const phone = withSavedDirection([], 'cast1', 'Wave', d, 10);
+    const desk = withSavedDirection([], 'cast1', 'Turn', d, 20);
+    const both = mergeRecordList(spec, desk, phone, undefined);
+    assert.deepEqual(
+      both.map(e => e.name),
+      ['Turn', 'Wave']
+    );
+    const gone = mergeRecordList(spec, both, [], { [phone[0]!.id]: 30 });
+    assert.deepEqual(
+      gone.map(e => e.name),
+      ['Turn']
+    );
+    // The same name for the same Cast member saved on two devices: one, the newest.
+    const again = withSavedDirection([], 'cast1', 'turn', d, 40);
+    assert.deepEqual(
+      mergeRecordList(spec, desk, again, undefined).map(e => e.name),
+      ['turn']
+    );
   });
 });

@@ -29,6 +29,7 @@ import { DIRECTOR_MOVE_IDS, DIRECTOR_MOVES, type DirectorMoveId } from '@/lib/di
 import {
   directionMotionLine,
   directionSupportNeeds,
+  supportFix,
   supportWarning,
 } from '@/lib/director/motion-line';
 import {
@@ -67,6 +68,7 @@ import {
   loadDirections,
   removeDirection,
   saveDirection,
+  subscribeDirections,
   type SavedDirection,
 } from '@/lib/director/store';
 import DirectorPreview from '@/components/director/DirectorPreview';
@@ -94,23 +96,31 @@ export type DirectorSheetProps = {
   testId?: string;
 };
 
-/** A still's size, read from the picture itself. */
+/**
+ * A still's size, read from the picture itself. A load that fails (a busy ComfyUI drops the
+ * request) is tried again a few times; null until it loads, or when it never does.
+ */
 function useStillSize(url: string): { width: number; height: number } | null {
   const [size, setSize] = useState<{ url: string; width: number; height: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const image = new Image();
-    image.onload = () => {
-      if (!cancelled && image.naturalWidth && image.naturalHeight) {
-        setSize({ url, width: image.naturalWidth, height: image.naturalHeight });
-      }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = (attempt: number) => {
+      const image = new Image();
+      image.onload = () => {
+        if (!cancelled && image.naturalWidth && image.naturalHeight) {
+          setSize({ url, width: image.naturalWidth, height: image.naturalHeight });
+        }
+      };
+      image.onerror = () => {
+        if (!cancelled && attempt < 3) timer = setTimeout(() => load(attempt + 1), 1500 * attempt);
+      };
+      image.src = url;
     };
-    image.onerror = () => {
-      if (!cancelled) setSize({ url, width: 9, height: 16 });
-    };
-    image.src = url;
+    load(1);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [url]);
   return size?.url === url ? size : null;
@@ -160,18 +170,27 @@ function DirectorSheetOpen({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDirection[]>(() => loadDirections(castId));
   const [saveName, setSaveName] = useState('');
+  // Saved on another device: the list catches up when sync brings them.
+  useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
 
-  const size = useStillSize(stillUrl);
-  const video = size ? motionTransferSize(size.width, size.height) : { width: 464, height: 832 };
-  const aspect = video.width / video.height;
+  const loaded = useStillSize(stillUrl);
 
   // Her pose in the still (DWPose on ComfyUI): the framing to match, and a start pose.
   const [detected, setDetected] = useState<{
     framing: StillFraming | null;
     pose: { body: NormalizedBody; aspect: number } | null;
+    /** The still's size as the pose read saw it. */
+    size?: { width: number; height: number };
     state: 'reading' | 'done' | 'failed';
   }>({ framing: null, pose: null, state: 'reading' });
+  // The video takes the still's shape (Copy moves renders at it): from the picture, else from
+  // the pose read; 9:16 only when neither has it.
+  const size = loaded ?? detected.size ?? null;
+  const video = size ? motionTransferSize(size.width, size.height) : { width: 464, height: 832 };
+  const aspect = video.width / video.height;
+  // Not the still's shape yet: wait for it rather than film the wrong one.
+  const sizing = !size && detected.state === 'reading';
   useEffect(() => {
     let cancelled = false;
     detectStillPoseShared(stillUrl)
@@ -180,6 +199,9 @@ function DirectorSheetOpen({
         const lead = result.available ? result.pose.people[0] : undefined;
         const canvas = result.available ? result.pose.canvas : null;
         setDetected({
+          ...(canvas?.width && canvas.height
+            ? { size: { width: canvas.width, height: canvas.height } }
+            : {}),
           framing: readStillFraming(lead),
           pose:
             lead && canvas
@@ -203,7 +225,9 @@ function DirectorSheetOpen({
   );
   const length = directionLength(direction);
   const check = checkDirection(direction);
-  const support = supportWarning(directionSupportNeeds(direction), direction.place);
+  const supportNeeds = directionSupportNeeds(direction);
+  const support = supportWarning(supportNeeds, direction.place);
+  const seatFix = support ? supportFix(supportNeeds, direction.place, body) : null;
   const starts = beatStarts(direction);
   const current = beatIndexAt(direction, time);
   const parts = directionParts(direction);
@@ -295,7 +319,7 @@ function DirectorSheetOpen({
   };
 
   const render = async (use: 'copy' | 'download') => {
-    if (check.errors.length || rendering) return;
+    if (check.errors.length || rendering || sizing) return;
     setError(null);
     setPlaying(false);
     const controller = new AbortController();
@@ -305,8 +329,7 @@ function DirectorSheetOpen({
       const { renderDrivingVideo } = await import('@/lib/director/render-client');
       const blob = await renderDrivingVideo({
         frames,
-        start: framing.start,
-        end: framing.end,
+        framing,
         body,
         width: video.width,
         height: video.height,
@@ -387,7 +410,7 @@ function DirectorSheetOpen({
       <Button
         size="sm"
         variant="ghost"
-        disabled={Boolean(check.errors.length) || rendering !== null}
+        disabled={Boolean(check.errors.length) || rendering !== null || sizing}
         title="Save the driving video (the 3D body) to look at or use elsewhere"
         data-testid={`${p}-download`}
         onClick={() => void render('download')}
@@ -400,7 +423,7 @@ function DirectorSheetOpen({
       <Button
         size="sm"
         variant="primary"
-        disabled={Boolean(check.errors.length) || busy}
+        disabled={Boolean(check.errors.length) || busy || sizing}
         loading={rendering !== null}
         loadingLabel={rendering ? `Filming ${rendering.done}/${rendering.total}…` : undefined}
         title={busy ? 'Another clip job is running — one at a time.' : undefined}
@@ -432,8 +455,7 @@ function DirectorSheetOpen({
               body={body}
               aspect={aspect}
               frames={frames}
-              start={framing.start}
-              end={framing.end}
+              framing={framing}
               time={time}
               stillUrl={stillUrl}
               testId={`${p}-preview`}
@@ -510,8 +532,9 @@ function DirectorSheetOpen({
               className="type-caption max-w-xl text-[var(--text-muted)]"
               data-testid={`${p}-fit-note`}
             >
-              The camera stands a little further back than the still so the whole move stays in
-              frame.
+              {framing.from
+                ? `It starts framed like the still, then the camera eases back as ${she} moves so the whole move stays in frame.`
+                : 'The camera stands a little further back than the still so the whole move stays in frame.'}
             </p>
           ) : null}
         </div>
@@ -805,6 +828,17 @@ function DirectorSheetOpen({
                   {support}
                 </p>
               ) : null}
+              {seatFix ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  title={`Place becomes “${seatFix.place}”, so Copy moves draws it`}
+                  data-testid={`${p}-support-fix`}
+                  onClick={() => update({ ...direction, place: seatFix.place })}
+                >
+                  {seatFix.label}
+                </Button>
+              ) : null}
             </section>
 
             <section className="space-y-1.5" data-testid={`${p}-saved`}>
@@ -861,7 +895,7 @@ function DirectorSheetOpen({
                 </ul>
               ) : (
                 <p className="type-caption text-[var(--text-muted)]">
-                  Saved here for {castName?.trim() || 'this Cast member'}, in this browser.
+                  Saved for {castName?.trim() || 'this Cast member'}, on every device you use.
                 </p>
               )}
             </section>

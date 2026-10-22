@@ -154,6 +154,7 @@
   "src/lib/director/motion.ts",
   "src/lib/director/moves.ts",
   "src/lib/director/open-event.ts",
+  "src/lib/director/plant.ts",
   "src/lib/director/poses.ts",
   "src/lib/director/render-client.ts",
   "src/lib/director/stage-three.ts",
