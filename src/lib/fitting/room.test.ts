@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFittingBackViewPrompt,
+  fittingBackViewIsSeated,
   buildFittingStandingPlatePrompt,
   buildFittingCompareLightboxState,
   buildFittingFeetPassPrompt,
@@ -508,6 +509,41 @@ describe('Outfit front and back', () => {
       buildFittingBackViewPrompt({ pose: { fromFront: true, map: true } }),
       /seen from the front .* pose map .* from the front/
     );
+  });
+
+  it('a seated back view sits her on a seat with her legs going away, never facing the camera', () => {
+    const seated = buildFittingBackViewPrompt({
+      subject: 'she',
+      pose: { words: 'seated, her back to the camera, her left hand on her hip' },
+    });
+    assert.match(seated, /She sits on a plain low stool, her hips resting on its seat/);
+    assert.match(seated, /her knees point away from the camera/);
+    assert.match(seated, /never her knees, shins or the toes of her shoes facing the camera/);
+    const his = buildFittingBackViewPrompt({ subject: 'he', pose: { words: 'seated' } });
+    assert.match(his, /He sits on a plain low stool, his hips resting on its seat/);
+    assert.doesNotMatch(his, /\bher\b/);
+    // Standing, kneeling, squatting, floor sitting, and a pose that faced away (its other side
+    // is the front) get no seat.
+    for (const words of [
+      'standing',
+      'kneeling',
+      'squatting low, feet flat',
+      'sitting on the floor, legs out',
+    ]) {
+      assert.doesNotMatch(buildFittingBackViewPrompt({ pose: { words } }), /stool/);
+    }
+    assert.doesNotMatch(
+      buildFittingBackViewPrompt({ pose: { words: 'seated', fromFront: true } }),
+      /stool/
+    );
+  });
+
+  it('fittingBackViewIsSeated: a seat, not the floor', () => {
+    assert.equal(fittingBackViewIsSeated('seated, her back to the camera'), true);
+    assert.equal(fittingBackViewIsSeated('sitting on a chair'), true);
+    assert.equal(fittingBackViewIsSeated('sitting on the floor, knees up'), false);
+    assert.equal(fittingBackViewIsSeated('kneeling'), false);
+    assert.equal(fittingBackViewIsSeated(undefined), false);
   });
 
   it('buildFittingStandingPlatePrompt: the same outfit, standing front on', () => {

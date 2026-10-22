@@ -827,6 +827,30 @@ const FLAT_SHOES_RE =
   /\b(?:sneakers?|trainers?|running shoes?|flats|ballet|loafers?|slip-ons?|plimsolls?|espadrilles?|flip[- ]?flops?|slides?|moccasins?|boat shoes?)\b/i;
 
 /**
+ * True when a back view of this pose (its words seen from behind, customPoseWords) is seated on
+ * a seat. Its back view goes without the turned pose map: mirrored, the map keeps her knees where
+ * the front had them and the model drew the front of her legs again — knees, shins and the toes
+ * of her heels facing the camera under a bare back (sit-2 on Noct-Q, 2026-10-22: 0/1 with the
+ * map, 0/1 with the map's legs cut off; words alone sat her on a stool from behind 2 of 3, her
+ * calves and heels toward the camera 3 of 3). Kneeling and arms-up keep their map (live, 4/4).
+ * Floor sitting is left as it was (not measured).
+ */
+export function fittingBackViewIsSeated(words: string | null | undefined): boolean {
+  return /^(?:seated|sitting(?! on the floor))\b/i.test(words?.trim() ?? '');
+}
+
+/** A seated back view's seat and legs, seen from behind (fittingBackViewIsSeated). */
+function backViewSeatedLine(pronouns: {
+  subject: string;
+  possessive: string;
+  object: string;
+}): string {
+  const { subject, possessive, object } = pronouns;
+  const Subject = subject[0]!.toUpperCase() + subject.slice(1);
+  return `${Subject} sits on a plain low stool, ${possessive} hips resting on its seat, the stool mostly hidden under ${object}. Seen from behind, ${possessive} knees point away from the camera; we see the backs of ${possessive} calves and the heels of ${possessive} shoes — never ${possessive} knees, shins or the toes of ${possessive} shoes facing the camera.`;
+}
+
+/**
  * The back view's shoe sentence. Heeled shoes keep their heel shape (stilettos came back as block
  * heels 4/4 without it, 0/4 with it); flat shoes are told they are flat — the heel sentence on
  * sneakers drew kitten heels (user report, 2026-10-08).
@@ -864,6 +888,9 @@ export function buildFittingBackViewPrompt(input: {
     return [
       `Edit Image 1: the same person in exactly the same outfit and shoes, holding exactly the same pose as in Image 1, ${side}.`,
       words ? `The pose: ${words}.` : '',
+      !input.pose.fromFront && fittingBackViewIsSeated(words)
+        ? backViewSeatedLine({ subject: input.subject === 'he' ? 'he' : 'she', possessive, object })
+        : '',
       input.pose.map
         ? `Image 2 is a pose map (a skeleton, not a person) of that pose ${input.pose.fromFront ? 'from the front' : 'from behind'}: the body takes exactly that stance.`
         : '',

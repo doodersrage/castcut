@@ -36,6 +36,7 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import {
   buildFittingBackViewPrompt,
+  fittingBackViewIsSeated,
   buildFittingFeetPassPrompt,
   buildFittingOutfitPrompt,
   clipFittingGarmentLabel,
@@ -135,6 +136,8 @@ async function backViewPoseGuide(
   const fromFront = bodyFacesAway(pose.people[0]);
   const turned = photoPoseSeenFromBehind(pose);
   const words = customPoseWords({ photo: turned, lead: subject });
+  // Seated from behind: words only — the turned map drew the front of her legs again (room.ts).
+  if (!fromFront && fittingBackViewIsSeated(words)) return { words, fromFront };
   try {
     const build = await buildDayPoseGuide('afternoon', 'custom pose', model, {
       photoPose: turned,
