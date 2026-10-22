@@ -17,6 +17,12 @@ What each part of Castcut needs in ComfyUI. Install them from **Settings → Com
 | **Qwen-Image 2.1 Noct-Q** (uncensored) | 7.3 GB | Adult two-person stills: the pair actually connect where Turbo poses them side by side, and they stay on it (no Rapid hand-off). Noctaluna's full 2.1 merge (V4 int8, non-commercial licence), same text encoder and VAE as 2.1. 35 steps, ~25–35 s a still. Clothed stills about level with Turbo |
 | **Qwen-Image 2.1 Noct-Q Fast** (8-step, uncensored) | same file | Noct-Q in 8 steps (er_sde, linear_quadratic): ~6 s a still. Poses hold like the full pass, detail is softer — use it for drafts and rerolls, switch to Noct-Q for keepers. Shows as installed whenever Noct-Q is |
 
+*Optional, any Qwen-Image 2.1 engine:* **Qwen-Image 2.1 Fun ControlNet Union** (7.6 GB, models/controlnet, plus the T8
+`Comfyui-Qwen-Image-2.1-Fun-Controlnet-Union-T8` node pack) for **Settings → ComfyUI → Prompt quality →
+Stronger pose control (slower)**. With it on, a one-person pose you made (joint editor or a photo)
+also steers the render: about 7 in 10 hard poses right instead of 5 in 10, at 2.5–3× the render
+time. Off by default; without the file the setting says so and stills render as before.
+
 ## Clips
 
 | What | Models | Size |

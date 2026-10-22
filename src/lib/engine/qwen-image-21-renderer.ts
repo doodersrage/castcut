@@ -36,6 +36,36 @@ export type QwenRenderer = 'rapid' | 'qwen-image-2.1';
 export const QWEN_IMAGE_21_POSE_CONTROLNET =
   'Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors';
 export const QWEN_IMAGE_21_POSE_CONTROL_NODE = 'QwenImage21UnionApply';
+export const QWEN_IMAGE_21_POSE_CONTROL_LOADER = 'QwenImage21UnionLoader';
+
+/**
+ * Settings → "Stronger pose control (slower)": the Union on a one-person custom pose's own map
+ * (joint editor, a photo). Pose bench, 2026-10-22 — Turbo, hard custom poses, the player's map
+ * kept as a reference as today plus the Union at 0.5 until 60% of the steps: right pose 46% →
+ * 71%; strength 0.3 → 8/14, 0.4 → 9/14, 0.5 → 11/14; no anatomy faults. 2.5–3× the render time
+ * (about +20 s Turbo, +60 s Noct-Q), so it is opt-in.
+ */
+export const QWEN_IMAGE_21_SOLO_POSE_CONTROL = { strength: 0.5, endPercent: 0.6 } as const;
+
+function baseName(name: string): string {
+  return name.replace(/\\/g, '/').split('/').pop()?.toLowerCase() ?? '';
+}
+
+/**
+ * The Union can run: ComfyUI has the T8 Union nodes and the Union file in models/controlnet.
+ * Unknown (no inventory read) is "no": a graph naming a missing file fails at ComfyUI.
+ */
+export function qwenImage21PoseControlAvailable(inventory: {
+  nodeTypes?: Iterable<string> | null;
+  controlNets?: readonly string[] | null;
+}): boolean {
+  if (!inventory.nodeTypes || !inventory.controlNets) return false;
+  const types = new Set(inventory.nodeTypes);
+  if (!types.has(QWEN_IMAGE_21_POSE_CONTROL_NODE) || !types.has(QWEN_IMAGE_21_POSE_CONTROL_LOADER))
+    return false;
+  const want = QWEN_IMAGE_21_POSE_CONTROLNET.toLowerCase();
+  return inventory.controlNets.some(name => baseName(name) === want);
+}
 /** T8 "Qwen-Image-2.1 Fun-Acc PDD 4 Step" sampler and its paired file (models/loras). */
 export const QWEN_IMAGE_21_FOUR_STEP_NODE = 'T8QwenImage21FunAccPDD4Step';
 export const QWEN_IMAGE_21_FOUR_STEP_FILE = 'Qwen-Image-2.1-Fun-Acc-4Step-PDD-T8.safetensors';
@@ -1106,6 +1136,11 @@ export function convertQwenEditWorkflowToImage21(
      */
     poseControl?: { strength?: number; endPercent?: number } | false;
     /**
+     * The Union on a one-person custom pose's own map (kept as a reference too) — Settings →
+     * "Stronger pose control". Ignored on any still that is not one person on a player's map.
+     */
+    soloPoseControl?: { strength?: number; endPercent?: number } | false;
+    /**
      * Alibaba PAI Fun-Acc PDD 4-step (T8 node): four steps instead of 30. Needs the
      * T8QwenImage21FunAccPDD4Step node and its paired model file in models/loras.
      */
@@ -1282,22 +1317,42 @@ export function convertQwenEditWorkflowToImage21(
     else kept.push({ from: slot, ref });
   }
   const poseMap = dropped.length ? encoder.inputs[`image${dropped[0]}`] : undefined;
-  if (options.poseControl && isRef(poseMap)) {
-    const union = add({
-      class_type: 'QwenImage21UnionLoader',
+  // A one-person still on the player's own map: that map, kept as a reference, also drives the
+  // Union when the player asked for stronger pose control.
+  const soloPoseMap = soloAttached
+    ? kept.find(entry => isPlayerPoseGuide(sourceFilename(workflow, entry.ref)))?.ref
+    : undefined;
+  const union =
+    options.poseControl && isRef(poseMap)
+      ? {
+          map: poseMap,
+          strength: options.poseControl.strength ?? 0.8,
+          end: options.poseControl.endPercent ?? 1,
+        }
+      : options.soloPoseControl && soloPoseMap
+        ? {
+            map: soloPoseMap,
+            strength: options.soloPoseControl.strength ?? QWEN_IMAGE_21_SOLO_POSE_CONTROL.strength,
+            end: options.soloPoseControl.endPercent ?? QWEN_IMAGE_21_SOLO_POSE_CONTROL.endPercent,
+          }
+        : null;
+  if (union) {
+    const loader = add({
+      class_type: QWEN_IMAGE_21_POSE_CONTROL_LOADER,
       inputs: { union_model: QWEN_IMAGE_21_POSE_CONTROLNET },
     });
     const apply = add({
-      class_type: 'QwenImage21UnionApply',
+      class_type: QWEN_IMAGE_21_POSE_CONTROL_NODE,
       inputs: {
-        model: [cache, 0],
-        union_patch: [union, 0],
+        // After the shift (Noct-Q's ModelSamplingAuraFlow): on the cache it was bypassed.
+        model: samplerModel,
+        union_patch: [loader, 0],
         vae: [vae, 0],
-        control_image: poseMap,
+        control_image: union.map,
         control_mode: 'Pose',
-        strength: options.poseControl.strength ?? 0.8,
+        strength: union.strength,
         start_percent: 0,
-        end_percent: options.poseControl.endPercent ?? 1,
+        end_percent: union.end,
       },
     });
     samplerModel = [apply, 0];

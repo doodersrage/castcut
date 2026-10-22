@@ -244,6 +244,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       availableVaes: inventoryModels?.vaes,
       availableClips: inventoryModels?.clips,
       availableLoras: inventoryModels?.loras,
+      availableControlNets: inventoryModels?.controlNets,
       qualityProfile: runtime?.queueQualityProfile,
       // The browser forwards its session-filtered library on the runtime; the server has no
       // LoRA settings of its own, so without this previews were built with no LoRAs at all.
@@ -256,6 +257,7 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       qwenImage21FourStep: runtime?.qwenImage21FourStep,
       qwenImage21EightStep: runtime?.qwenImage21EightStep,
       qwenImage21KeepEngine: runtime?.qwenImage21KeepEngine,
+      qwenImage21PoseControl: runtime?.qwenImage21PoseControl,
       qwenImage21Noct: runtime?.qwenImage21Noct,
       qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
         inventoryModels?.unets,

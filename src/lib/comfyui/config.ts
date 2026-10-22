@@ -19,6 +19,8 @@ import {
   QWEN_IMAGE_21_NOCT_FAST_PASS,
   QWEN_IMAGE_21_NOCT_PASS,
   QWEN_IMAGE_21_NOCT_UNET,
+  QWEN_IMAGE_21_SOLO_POSE_CONTROL,
+  qwenImage21PoseControlAvailable,
   qwenImage21Steps,
 } from '../engine/qwen-image-21-renderer';
 import {
@@ -358,6 +360,11 @@ export type ComfyUiRuntimeConfig = {
    * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
    */
   qwenImage21KeepEngine?: boolean;
+  /**
+   * Settings → "Stronger pose control (slower)": a one-person custom pose also drives the Fun
+   * ControlNet Union (only when ComfyUI has its nodes and file).
+   */
+  qwenImage21PoseControl?: boolean;
   /** WAN clip graphs render on LTX-2.5 instead (ltx25-renderer.ts). */
   videoRenderer?: 'ltx-2.5' | 'minimax-h3';
   /** Model id used for queue-time workflow optimize / graph enrich heuristics. */
@@ -1457,6 +1464,9 @@ export function injectPromptsWithFallbacks(
     /** Noct-Q: the full pass on its own model file, steps and shift; 'fast' = 8 steps. */
     qwenImage21Noct?: boolean | 'fast';
     qwenImage21KeepEngine?: boolean;
+    qwenImage21PoseControl?: boolean;
+    /** models/controlnet listing — the Union file for qwenImage21PoseControl. */
+    availableControlNets?: string[] | null;
     /** Swap the WAN clip graph onto LTX-2.5 (when ComfyUI has its nodes). */
     videoRenderer?: 'ltx-2.5' | 'minimax-h3';
     kleinEnhancerIdentityPreset?: import('../engine/klein-enhancer-workflow-patch').KleinEnhancerIdentityPreset;
@@ -1929,6 +1939,15 @@ export function injectPromptsWithFallbacks(
       // Fun ControlNet Union pose control made duo anatomy worse at 0.6–1.0 (live A/B
       // 2026-10-01: extra genitals, merged and role-swapped bodies) — off until a fix lands.
       poseControl: false,
+      // Solo custom poses (Settings → Stronger pose control): only when the Union can load.
+      soloPoseControl:
+        options.qwenImage21PoseControl === true &&
+        qwenImage21PoseControlAvailable({
+          nodeTypes: options.availableNodeTypes ? [...options.availableNodeTypes] : null,
+          controlNets: options.availableControlNets,
+        })
+          ? QWEN_IMAGE_21_SOLO_POSE_CONTROL
+          : false,
       fourStep: options.qwenImage21FourStep === true,
       eightStep: Boolean(options.qwenImage21EightStep),
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
@@ -2200,6 +2219,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21KeepEngine === true) {
     result.qwenImage21KeepEngine = true;
+  }
+  if (runtime.qwenImage21PoseControl === true) {
+    result.qwenImage21PoseControl = true;
   }
   if (runtime.qwenImage21Noct === true || runtime.qwenImage21Noct === 'fast') {
     result.qwenImage21Noct = runtime.qwenImage21Noct;

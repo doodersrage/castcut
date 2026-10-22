@@ -39,6 +39,7 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'seedLlmWithIngredients', label: 'Seed the LLM with ingredients', area: LLM },
   { key: 'renderRealismMode', label: 'Prompt style', area: PROMPT },
   { key: 'poseGuideStyle', label: 'Pose guide style', area: PROMPT },
+  { key: 'qwenImage21PoseControl', label: 'Stronger pose control', area: PROMPT },
   { key: 'anatomyGuardMode', label: 'Anatomy guard', area: PROMPT },
   { key: 'kleinEnhancerEnabled', label: 'Klein Enhancer', area: PROMPT },
   { key: 'galleryBackupCopies', label: 'Gallery backups', area: DATA },

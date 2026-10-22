@@ -9,6 +9,7 @@ import { clearPoseLibrary, poseLibraryCount, subscribePoseLibrary } from '@/lib/
 import { POSE_IMPORT_GROUPS, POSE_IMPORT_LAYOUTS } from '@/lib/pose/import-layouts';
 import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import VramAutoThresholdNote from '@/components/settings/VramAutoThresholdNote';
+import StrongerPoseControlSetting from '@/components/settings/StrongerPoseControlSetting';
 import GpuMatchCard from '@/components/settings/GpuMatchCard';
 import KleinEnhancerStatus, {
   kleinEnhancerInstalled,
@@ -324,6 +325,11 @@ export default function SettingsPromptQualityPanel({
             {POSE_GUIDE_STYLE_OPTIONS.find(option => option.id === poseGuideStyle)?.description}
           </p>
           <PoseLibraryControl />
+          <StrongerPoseControlSetting
+            checked={sharedSettings.qwenImage21PoseControl === true}
+            disabled={!sharedMounted}
+            onChange={next => updateSharedSettings({ qwenImage21PoseControl: next })}
+          />
         </div>
         <AnatomyGuardHints
           mode={sharedSettings.anatomyGuardMode ?? 'standard'}
