@@ -3,7 +3,9 @@ import { describe, it } from 'node:test';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import {
+  dayLeadBodyPlate,
   dayNudeNeedsAutoFaceCrop,
+  dayPlatesShareAPicture,
   dayPlateIsolatePending,
   dayPlateSourceKey,
   isClothingOnlyDayGarment,
@@ -437,5 +439,81 @@ describe('Day plate pose / garment reinforce', () => {
       }),
       { imageUrl: 'https://example.com/byo.png', source: 'custom' }
     );
+  });
+});
+
+describe('dayLeadBodyPlate (duo stills carried her whole body twice, 2026-10-22)', () => {
+  const keep = {
+    filename: 'Castcut_05727_.png',
+    imageUrl: '/api/comfy/view?filename=Castcut_05727_.png&type=output',
+    isolated: false,
+    isolateSubject: true,
+    source: 'keeper' as const,
+  };
+
+  it('drops the plate when Image 1 is already that full plate (2.1 starts from the plate)', () => {
+    assert.equal(dayLeadBodyPlate({ candidate: keep, imageOne: keep, imageOneIsFaceCrop: false }), null);
+  });
+
+  it('drops any second full-body picture of her when Image 1 is not a face crop', () => {
+    const castPlate = { filename: 'cast-plate-prepared-8f95.png', source: 'cast' as const };
+    assert.equal(
+      dayLeadBodyPlate({ candidate: keep, imageOne: castPlate, imageOneIsFaceCrop: false }),
+      null
+    );
+  });
+
+  it('keeps the plate next to a face crop', () => {
+    const face = { filename: 'day-vacation-face-day-acspik-cutout-8b8bc07438d5fbf5.png' };
+    assert.equal(dayLeadBodyPlate({ candidate: keep, imageOne: face, imageOneIsFaceCrop: true }), keep);
+  });
+
+  it('drops the plate when the "face crop" is the same picture (a face crop that failed)', () => {
+    assert.equal(
+      dayLeadBodyPlate({
+        candidate: { filename: 'cast-plate-abc.png' },
+        imageOne: { filename: 'cast-plate-abc.png' },
+        imageOneIsFaceCrop: true,
+      }),
+      null
+    );
+  });
+
+  it('returns null without a plate', () => {
+    assert.equal(dayLeadBodyPlate({ candidate: null, imageOne: keep, imageOneIsFaceCrop: true }), null);
+    assert.equal(
+      dayLeadBodyPlate({ candidate: { filename: ' ' }, imageOne: keep, imageOneIsFaceCrop: true }),
+      null
+    );
+  });
+});
+
+describe('dayPlatesShareAPicture', () => {
+  it('matches a filename against a view URL of the same file', () => {
+    assert.equal(
+      dayPlatesShareAPicture(
+        { filename: 'Castcut_05727_.png' },
+        { imageUrl: 'http://127.0.0.1:8188/view?filename=Castcut_05727_.png&type=output' }
+      ),
+      true
+    );
+  });
+
+  it('matches an isolated copy through its original', () => {
+    assert.equal(
+      dayPlatesShareAPicture(
+        { imageUrl: '/api/files/keep-cutout.png', originalFilename: 'Castcut_05727_.png' },
+        { filename: 'outputs/Castcut_05727_.png' }
+      ),
+      true
+    );
+  });
+
+  it('tells different pictures apart', () => {
+    assert.equal(
+      dayPlatesShareAPicture({ filename: 'Castcut_05727_.png' }, { filename: 'Castcut_05728_.png' }),
+      false
+    );
+    assert.equal(dayPlatesShareAPicture(null, { filename: 'a.png' }), false);
   });
 });

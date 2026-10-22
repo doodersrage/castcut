@@ -156,6 +156,7 @@ import {
 } from '@/lib/day/planner';
 import {
   castFaceDuplicatesBodyPlate,
+  dayLeadBodyPlate,
   isClothingOnlyDayGarment,
   resolveDayCastPlate,
   resolveDayFaceOnlyPlate,
@@ -2663,6 +2664,8 @@ export function useDayPlannerToolOrchestrationCore() {
           extraUrls[4] = undefined;
           extraFilenames[4] = roomAsImage5.filename;
         }
+        // Image 1 of this still (the queue may cut it out on white; it is the same picture).
+        const imageOnePlate = omitGarment ? identityPlate : (identityPlate ?? slotQueuePlate);
         // A nude one-person still on Qwen-Image 2.1: the Cast's undressed plate as Image 2 carries
         // her body (day-still-prompt.ts withNudeBodyPlateLine). Not face-down beats — those go to
         // Rapid, where the plate's latent kept its underwear.
@@ -2675,10 +2678,14 @@ export function useDayPlannerToolOrchestrationCore() {
           !extraFilenames[1]?.trim() &&
           !extraUrls[1] &&
           !isFaceDownNudeSolo(finalized, true)
-            ? resolveDayQueueIdentityPlate({
-                character: lookCharacter,
-                displayPlate: lookPlate,
-                preferCastPlate: true,
+            ? dayLeadBodyPlate({
+                candidate: resolveDayQueueIdentityPlate({
+                  character: lookCharacter,
+                  displayPlate: lookPlate,
+                  preferCastPlate: true,
+                }),
+                imageOne: imageOnePlate,
+                imageOneIsFaceCrop: faceOnlyIdentity,
               })
             : null;
         const nudeBodyAttached = Boolean(
@@ -2701,10 +2708,15 @@ export function useDayPlannerToolOrchestrationCore() {
           !thirdPerson &&
           poseProfileForModel(stillModel).family === 'qwen-image-2.1'
         ) {
-          const plate = resolveDayQueueIdentityPlate({
-            character: lookCharacter,
-            displayPlate: lookPlate,
-            preferCastPlate: true,
+          // Not when Image 1 is already that whole plate (no face crop): her body twice.
+          const plate = dayLeadBodyPlate({
+            candidate: resolveDayQueueIdentityPlate({
+              character: lookCharacter,
+              displayPlate: lookPlate,
+              preferCastPlate: true,
+            }),
+            imageOne: imageOnePlate,
+            imageOneIsFaceCrop: faceOnlyIdentity,
           });
           const plateUrl = plate?.imageUrl?.trim();
           const plateFile = plate?.filename?.trim();
@@ -2720,6 +2732,8 @@ export function useDayPlannerToolOrchestrationCore() {
         // A clothed two-person still on Qwen-Image 2.1: the lead's dressed plate (or an Outfit
         // Keep, already dressed) as Image 3 carries her body and outfit next to the two faces
         // (day-still-prompt.ts withDuoLeadBodyLine).
+        // Only next to a face crop: on 2.1 Image 1 is the full dressed plate / Keep (still-plan.ts),
+        // and the same picture again as Image 3 put her whole body in the graph twice.
         const duoBodySource =
           !adultStill &&
           Boolean(partnerFace) &&
@@ -2727,7 +2741,11 @@ export function useDayPlannerToolOrchestrationCore() {
           poseProfileForModel(stillModel).family === 'qwen-image-2.1' &&
           !extraFilenames[3]?.trim() &&
           !extraUrls[3]
-            ? (dressedPlate ?? (lookPlate?.source === 'keeper' ? lookPlate : null))
+            ? dayLeadBodyPlate({
+                candidate: dressedPlate ?? (lookPlate?.source === 'keeper' ? lookPlate : null),
+                imageOne: imageOnePlate,
+                imageOneIsFaceCrop: faceOnlyIdentity,
+              })
             : null;
         const duoBodyUrl = duoBodySource?.imageUrl?.trim();
         const duoBodyFile = duoBodySource?.filename?.trim();
@@ -2821,11 +2839,10 @@ export function useDayPlannerToolOrchestrationCore() {
         const hasExtras =
           extraUrls.some((url, index) => index > 0 && Boolean(url)) ||
           extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
-        const queueImagePlate = omitGarment ? identityPlate : (identityPlate ?? slotQueuePlate);
         // Image 1 meant as a face crop, and the clothing image, checked against their roles
         // (cached per picture: the same crop goes out with every still of the Day).
         const plainReferenceNote = await checkStillReferences({
-          face: faceOnlyIdentity ? queueImagePlate : null,
+          face: faceOnlyIdentity ? imageOnePlate : null,
           clothing:
             !partnerFace && !nudeBodyAttached && extraFilenames[1]?.trim()
               ? { filename: extraFilenames[1] }
@@ -2836,10 +2853,10 @@ export function useDayPlannerToolOrchestrationCore() {
         if (plainReferenceNote) referenceNotes.push(plainReferenceNote);
         const queueOptions = !lookHasPlate
           ? undefined
-          : queueImagePlate?.filename?.trim() || queueImagePlate?.imageUrl?.trim()
+          : imageOnePlate?.filename?.trim() || imageOnePlate?.imageUrl?.trim()
             ? {
-                inputImageFilename: queueImagePlate?.filename?.trim() || undefined,
-                inputImageUrl: queueImagePlate?.imageUrl?.trim() || undefined,
+                inputImageFilename: imageOnePlate?.filename?.trim() || undefined,
+                inputImageUrl: imageOnePlate?.imageUrl?.trim() || undefined,
                 ...(hasExtras
                   ? {
                       ...(extraUrls.some(url => Boolean(url)) ? { inputImageUrls: extraUrls } : {}),

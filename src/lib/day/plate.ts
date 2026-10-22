@@ -221,6 +221,62 @@ export function castFaceDuplicatesBodyPlate(
   return false;
 }
 
+/** The file a plate reference names: a bare filename, or the `filename=` / last segment of a URL. */
+function platePictureName(ref: string | undefined): string {
+  const value = ref?.trim() ?? '';
+  if (!value) return '';
+  if (/^(?:https?:|data:|blob:|\/)/i.test(value) || value.includes('?')) {
+    if (/^(?:data|blob):/i.test(value)) return value.toLowerCase();
+    try {
+      const url = new URL(value, 'http://local');
+      const named = url.searchParams.get('filename')?.trim();
+      const leaf = named || url.pathname.split('/').pop() || '';
+      return decodeURIComponent(leaf).toLowerCase();
+    } catch {
+      return value.toLowerCase();
+    }
+  }
+  return (value.split(/[/\\]/).pop() ?? '').toLowerCase();
+}
+
+/**
+ * True when two plates are the same picture — by file, URL, or the original an isolated
+ * (cut-out) copy was made from. The queue cuts Image 1 out on white, so its name differs
+ * from the plate's while the person in it is the same.
+ */
+export function dayPlatesShareAPicture(
+  a: FittingPlate | null | undefined,
+  b: FittingPlate | null | undefined
+): boolean {
+  if (!a || !b) return false;
+  const names = (plate: FittingPlate) =>
+    [plate.filename, plate.imageUrl, plate.originalFilename, plate.originalUrl]
+      .map(platePictureName)
+      .filter(Boolean);
+  const seen = new Set(names(a));
+  return names(b).some(name => seen.has(name));
+}
+
+/**
+ * The lead's body plate as an extra picture on a Qwen-Image 2.1 still (a duo's third image, a
+ * nude solo's second), or null when it would only repeat her. It belongs next to a face crop;
+ * since 2.1 started every clothed still from the full plate (day/still-plan.ts, 2026-10-20)
+ * Image 1 already is that plate, and duo graphs carried her whole body twice — a cut-out copy
+ * as Image 1 and the same picture again as Image 3 (user report 2026-10-22). A nude still whose
+ * face crop failed starts from the whole Cast plate the same way.
+ */
+export function dayLeadBodyPlate<T extends FittingPlate>(input: {
+  candidate: T | null | undefined;
+  imageOne: FittingPlate | null | undefined;
+  imageOneIsFaceCrop: boolean;
+}): T | null {
+  const plate = input.candidate ?? null;
+  if (!plate || !(plate.filename?.trim() || plate.imageUrl?.trim())) return null;
+  if (!input.imageOneIsFaceCrop) return null;
+  if (dayPlatesShareAPicture(plate, input.imageOne)) return null;
+  return plate;
+}
+
 /**
  * True when nude Day should auto-crop a face window from the Cast body plate
  * (no distinct face lock, or face lock is the same lingerie file).
