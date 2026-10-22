@@ -17,12 +17,26 @@ export type Rig3dQuat = [number, number, number, number];
 /** The base body a figure uses (public/pose-3d/body-*.glb). */
 export type Rig3dBodyKind = 'female' | 'male';
 
+/** The limb bones whose length a figure may have its own of (left and right alike). */
+export const RIG3D_SEGMENTS = ['upperarm', 'forearm', 'thigh', 'shin'] as const;
+export type Rig3dSegment = (typeof RIG3D_SEGMENTS)[number];
+/** Each segment's length as a share of the base body's (1: as built; missing: 1). */
+export type Rig3dProportions = Partial<Record<Rig3dSegment, number>>;
+/** How far a figure's proportions may stray from the base body's, either way. */
+export const RIG3D_SCALE_RANGE: [number, number] = [0.8, 1.25];
+
 export type PoseRig3dFigure = {
   body: Rig3dBodyKind;
   /** The hips bone's position in world space, metres (y up). */
   position: Rig3dVec3;
   /** Each bone's local rotation (x, y, z, w), by bone name; the hips' carries the figure's turn. */
   bones: Record<string, Rig3dQuat>;
+  /**
+   * Her own proportions, where the picture shows them other than the base body's (a lift fits
+   * them so a limb need not swing toward the camera to look as long as it does). Missing: the
+   * base body's. Older readers ignore it (and draw the base body's lengths).
+   */
+  scale?: Rig3dProportions;
 };
 
 export type PoseRig3dCamera = {
@@ -80,7 +94,22 @@ function figure(raw: unknown): PoseRig3dFigure | null {
     const q = quat(value);
     if (BONE_NAME.test(name) && q) bones[name] = q;
   }
-  return Object.keys(bones).length ? { body, position, bones } : null;
+  if (!Object.keys(bones).length) return null;
+  const scale = normalizeProportions(record.scale);
+  return { body, position, bones, ...(scale ? { scale } : {}) };
+}
+
+/** Stored proportions, each within range; undefined when none differs from the base body's. */
+export function normalizeProportions(raw: unknown): Rig3dProportions | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const record = raw as Record<string, unknown>;
+  const out: Rig3dProportions = {};
+  for (const segment of RIG3D_SEGMENTS) {
+    const value = record[segment];
+    if (!finite(value) || Math.abs(value - 1) < 1e-4) continue;
+    out[segment] = Math.min(RIG3D_SCALE_RANGE[1], Math.max(RIG3D_SCALE_RANGE[0], value));
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** A stored rig, checked field by field; undefined when it is not one this version reads. */

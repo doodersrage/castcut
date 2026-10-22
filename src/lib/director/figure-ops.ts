@@ -5,7 +5,12 @@
  */
 
 import { Quaternion, Vector3 } from 'three';
-import type { PoseRig3dFigure, Rig3dQuat } from '@/lib/pose/rig3d';
+import {
+  RIG3D_SEGMENTS,
+  type PoseRig3dFigure,
+  type Rig3dProportions,
+  type Rig3dQuat,
+} from '@/lib/pose/rig3d';
 import { cloneFigure, figureWorld, openPoseWorld, type FigureWorld } from '@/lib/pose/rig3d-pose';
 import { restOf } from './motion';
 
@@ -92,9 +97,26 @@ function slerpQ(a: Rig3dQuat, b: Rig3dQuat, s: number): Rig3dQuat {
   return [q.x, q.y, q.z, q.w];
 }
 
+/** Between two figures' proportions (her own from the still, easing to the body's own). */
+function mixProportions(
+  a: PoseRig3dFigure,
+  b: PoseRig3dFigure,
+  s: number
+): Rig3dProportions | undefined {
+  if (!a.scale && !b.scale) return undefined;
+  const out: Rig3dProportions = {};
+  for (const segment of RIG3D_SEGMENTS) {
+    const value =
+      (a.scale?.[segment] ?? 1) + ((b.scale?.[segment] ?? 1) - (a.scale?.[segment] ?? 1)) * s;
+    if (Math.abs(value - 1) > 1e-4) out[segment] = value;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 /**
- * Between two figures: every bone slerped, the hips moved in a straight line; then lifted or
- * lowered so the feet stay on the floor as they were at the ends (no sinking mid-way).
+ * Between two figures: every bone slerped, the hips moved in a straight line, the proportions
+ * eased; then lifted or lowered so the feet stay on the floor as they were at the ends (no
+ * sinking mid-way).
  */
 export function mixFigures(a: PoseRig3dFigure, b: PoseRig3dFigure, s: number): PoseRig3dFigure {
   if (s <= 0) return cloneFigure(a);
@@ -109,6 +131,9 @@ export function mixFigures(a: PoseRig3dFigure, b: PoseRig3dFigure, s: number): P
     number,
     number,
   ];
+  const scale = mixProportions(a, b, s);
+  if (scale) out.scale = scale;
+  else delete out.scale;
   const want = floorGap(a) + (floorGap(b) - floorGap(a)) * s;
   out.position[1] += want - floorGap(out);
   return out;
