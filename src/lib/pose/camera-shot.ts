@@ -244,9 +244,11 @@ const PICKED_CAMERA_LINE_RE = (() => {
       escapeRe(phrase).replace(/\b(?:her|him|his|them|their)\b/g, '(?:her|him|his|them|their)')
     )
     .join('|');
-  // Ends at its full stop, or where a brief's camera line goes on (" — never …").
+  // Ends at its full stop, or where a brief's camera line goes on (" — never …"), or where the
+  // queue's appended cues follow it once its stop was taken (prompt-prep's appendUniqueCsv turns
+  // "…legs out of frame." at the end of a Story prompt into "…legs out of frame, clean …").
   return new RegExp(
-    `Camera: (?:${alternation})(?:, (?:${alternation}))*(?:\\.|(?= —|;|\\n|$))`,
+    `Camera: (?:${alternation})(?:, (?:${alternation}))*(?:\\.|(?= —|;|, |\\n|$))`,
     'i'
   );
 })();

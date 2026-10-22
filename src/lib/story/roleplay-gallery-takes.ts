@@ -542,7 +542,8 @@ export function mergeRoleplayStoryStills(
         const { imageUrl: _hidden, adultHold: _was, ...rest } = take;
         return { ...rest, stillStatus: heldStatus, ...(adultHold ? { adultHold } : {}) };
       }
-      const imageUrl = match.imageUrl?.trim() || take.imageUrl;
+      // A shot cut from the take (useStoryShotReframe) stays shown over the rendered still.
+      const imageUrl = take.framedUrl?.trim() || match.imageUrl?.trim() || take.imageUrl;
       const stillStatus = stillStatusFromGallery(match.status);
       if (take.imageUrl === imageUrl && take.stillStatus === stillStatus && !take.adultHold) {
         return take;

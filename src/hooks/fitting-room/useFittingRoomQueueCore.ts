@@ -4,6 +4,11 @@ import { cameraChoiceLine, withoutConflictingFraming } from '@/lib/pose/camera-s
 import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
 import { tryOnMarksLine } from '@/lib/cast/marks';
 import { useFittingMarksCheck } from '@/hooks/fitting-room/useFittingMarksCheck';
+import {
+  reframeTakeToShot,
+  shotReframeDoneWords,
+  takeWantsShotReframe,
+} from '@/lib/pose/shot-reframe-client';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { repairStillPrompt, stillPromptIssuesLine } from '@/lib/still/prompt-audit';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
@@ -570,28 +575,30 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             hasShoeImage: Boolean(footwearImage) || hasShoePicture,
             installed: cachedInstalledModelCheck(input.shared.modelCheckpointMap),
           });
-          const feetPass = feetPlan
-            ? {
-                shoeWords: normalizeFootwear(input.toolSettings.footwear),
-                ...(footwearImage && garmentExtras?.inputImageFilenames?.[1]
-                  ? {
-                      imagePlacement: footwearImage,
-                      shoeImageFilename: garmentExtras.inputImageFilenames[1],
-                    }
-                  : {}),
-                ...(hasShoePicture
-                  ? {
-                      shoePicture: {
-                        imageUrl: footwearRef.imageUrl?.trim() || undefined,
-                        imageFilename: footwearRef.imageFilename?.trim() || undefined,
-                      },
-                    }
-                  : {}),
-                subject: posePronoun,
-                model: feetPlan.model,
-                whenUnchecked: feetPlan.whenUnchecked,
-              }
-            : null;
+          // A closer pose camera (knees up and in) leaves her feet out of frame: no shoe pass.
+          const feetPass =
+            feetPlan && !closerShot
+              ? {
+                  shoeWords: normalizeFootwear(input.toolSettings.footwear),
+                  ...(footwearImage && garmentExtras?.inputImageFilenames?.[1]
+                    ? {
+                        imagePlacement: footwearImage,
+                        shoeImageFilename: garmentExtras.inputImageFilenames[1],
+                      }
+                    : {}),
+                  ...(hasShoePicture
+                    ? {
+                        shoePicture: {
+                          imageUrl: footwearRef.imageUrl?.trim() || undefined,
+                          imageFilename: footwearRef.imageFilename?.trim() || undefined,
+                        },
+                      }
+                    : {}),
+                  subject: posePronoun,
+                  model: feetPlan.model,
+                  whenUnchecked: feetPlan.whenUnchecked,
+                }
+              : null;
           // Rendered in the custom pose (its map went out with it).
           const posedRender = Boolean(poseGuideFilename && customPose?.people[0]);
           const backPose = posedRender ? fittingBackViewPose(customPose) : undefined;
@@ -891,6 +898,37 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     sharedRef.current = input.shared;
   }, [input.shared]);
 
+  /**
+   * A try-on whose pose camera picked a closer shot, cut to it (useDayShotReframe's pass): the
+   * card shows the cut. Resolves with the front the chain goes on from (the cut, or as rendered).
+   */
+  const { setSaveStatus } = input;
+  const cutTryOnToShot = useCallback(
+    async (promptId: string, imageUrl: string): Promise<string> => {
+      setSaveStatus('Framing the try-on to the picked shot…');
+      try {
+        const result = await reframeTakeToShot({ imageUrl, promptId });
+        if (!result.available) {
+          setSaveStatus(`Try-on kept as rendered — ${result.reason}`);
+          return imageUrl;
+        }
+        setCompareTryOns(current =>
+          current.map(item =>
+            item.promptId === promptId && item.imageUrl === imageUrl
+              ? { ...item, imageUrl: result.imageUrl }
+              : item
+          )
+        );
+        setSaveStatus(`Try-on framed ${shotReframeDoneWords(result.shot)}.`);
+        return result.imageUrl;
+      } catch (error) {
+        setSaveStatus(`Try-on kept as rendered — ${shortErrorText(error)}`);
+        return imageUrl;
+      }
+    },
+    [setSaveStatus]
+  );
+
   useEffect(() => {
     const syncGallery = () => {
       const pending = pendingTryOnRef.current;
@@ -970,19 +1008,30 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
             // try-on → (feet pass) → back view. Cleared above first: a reload while the next
             // pass is being staged keeps the card in Compare and nothing half-done in flight.
             const step = fittingNextChainStep(pending);
-            // A front that no feet pass follows is final: her marks are checked on it.
-            if (!backOf && step !== 'feet-pass') {
-              checkTryOnMarksRef.current({
-                promptId: replaces || pending.promptId,
-                imageUrl,
-                outfit: pending.wardrobeLabel || '',
-              });
-            }
-            if (step) {
-              void queueChainPassRef.current(step, pending, {
-                imageUrl,
-                galleryEntryId: entry.id,
-              });
+            const continueChain = (frontUrl: string) => {
+              // A front that no feet pass follows is final: her marks are checked on it.
+              if (!backOf && step !== 'feet-pass') {
+                checkTryOnMarksRef.current({
+                  promptId: replaces || pending.promptId,
+                  imageUrl: frontUrl,
+                  outfit: pending.wardrobeLabel || '',
+                });
+              }
+              if (step) {
+                // The back view starts from the rendered front, not a cut: it is drawn full
+                // length from its own back pose, and the whole outfit is what it must keep.
+                void queueChainPassRef.current(step, pending, {
+                  imageUrl,
+                  galleryEntryId: entry.id,
+                });
+              }
+            };
+            if (!backOf && !replaces && takeWantsShotReframe(pending)) {
+              // A Waist up / Head & shoulders pose camera: cut from the try-on around her face
+              // first (as on Day, shot-reframe.ts) — the marks check looks at the cut.
+              void cutTryOnToShot(pending.promptId, imageUrl).then(continueChain);
+            } else {
+              continueChain(imageUrl);
             }
           }
         }
@@ -1012,7 +1061,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, syncGallery);
     syncGallery();
     return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, syncGallery);
-  }, [input.setSaveStatus, input.updateToolSettings]);
+  }, [cutTryOnToShot, input.setSaveStatus, input.updateToolSettings]);
 
   return {
     busy,

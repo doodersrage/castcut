@@ -459,6 +459,24 @@ describe("roleplayStillQueueResultPatch and roleplayClipQueueResultPatch", () =>
 });
 
 describe("mergeRoleplayStoryStills", () => {
+  it("keeps a take's shot cut (framedUrl) shown over the gallery's still", () => {
+    const cut = "/api/comfyui/view?filename=Castcut-reframe_00001_.png&subfolder=&type=output";
+    const story = [
+      beat({
+        promptId: "s1",
+        imageUrl: cut,
+        stillStatus: "completed",
+        stillTakes: [{ promptId: "s1", stillStatus: "completed", imageUrl: cut, framedUrl: cut }],
+        stillTakeIndex: 0,
+      }),
+    ];
+    const result = mergeRoleplayStoryStills(story, [
+      { promptId: "s1", status: "completed", imageUrl: "/api/gallery/media/abc" },
+    ]);
+    assert.equal(result.changed, false);
+    assert.equal(result.story[0]!.imageUrl, cut);
+  });
+
   it("updates only the beats whose take promptId matches a gallery entry, and reports changed", () => {
     const story = [
       beat({ id: "b1", stillTakes: [{ promptId: "s1", stillStatus: "queued" }] }),

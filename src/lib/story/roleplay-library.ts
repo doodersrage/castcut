@@ -222,6 +222,11 @@ function normalizeStoryBeat(value: unknown): RoleplayStoryBeat | null {
       };
     }
   }
+  if (record.shotCut && typeof record.shotCut === 'object') {
+    const cut = record.shotCut as Record<string, unknown>;
+    const promptId = readString(cut.promptId, 160);
+    if (promptId) beat.shotCut = { promptId, note: readString(cut.note, 300) };
+  }
   if (record.stillTakePinned === true) {
     beat.stillTakePinned = true;
   }
