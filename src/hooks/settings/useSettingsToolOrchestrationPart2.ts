@@ -145,7 +145,12 @@ export function useSettingsToolOrchestrationPart2(ctx: SettingsToolOrchestration
     if (!settings.workflowJson?.trim()) {
       return null;
     }
-    return validateWorkflowJson(settings.workflowJson, placeholderTokensFromSettings(settings));
+    // Only the positive/negative tokens are configurable; the rest are fixed defaults.
+    const tokens = placeholderTokensFromSettings({
+      positiveToken: settings.positiveToken,
+      negativeToken: settings.negativeToken,
+    });
+    return validateWorkflowJson(settings.workflowJson, tokens);
   }, [settings.workflowJson, settings.positiveToken, settings.negativeToken]);
 
   const refreshHealth = useCallback(async () => {

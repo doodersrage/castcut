@@ -270,7 +270,7 @@ export function usePromptResultComfyUiQueueSingle(
           : undefined;
 
         const queueParams = await buildQueueSingleParams({
-          config,
+          config: { tool: config.tool },
           options,
           queueModel,
           effectiveTool,
@@ -373,7 +373,7 @@ export function usePromptResultComfyUiQueueSingle(
         handleQueueFailure({
           err,
           prompt,
-          config,
+          config: { model: config.model, tool: config.tool },
           failedQueueSnapshot,
           setComfyUiStatus,
           resetIdentityRelocateAttempt: () => {
@@ -384,7 +384,20 @@ export function usePromptResultComfyUiQueueSingle(
         queueInFlightRef.current = false;
       }
     },
-    [config.model, config.tool, config.hints, saveHistory, trackComfyUiJob, historySaved]
+    [
+      config.model,
+      config.tool,
+      config.hints,
+      saveHistory,
+      trackComfyUiJob,
+      historySaved,
+      // Refs and state setters from the preview tracker — stable, listed for the linter.
+      previewGenerationRef,
+      identityRelocateAttemptRef,
+      setComfyUiStatus,
+      setComfyUiJob,
+      setComfyUiPreviewUrl,
+    ]
   );
   useEffect(() => {
     sendComfyUiRef.current = sendComfyUi;

@@ -87,7 +87,7 @@ export function useRoleplayBeatQueuePart2(
     autoQueue,
     setError,
   } = options;
-  const { roleplayCharacterQueueFields } = core;
+  const { roleplayCharacterQueueFields, castRef } = core;
 
   const autoClipQueuedRef = useRef(new Set<string>());
   const queueBeatMotionRef = useRef<
@@ -282,14 +282,14 @@ export function useRoleplayBeatQueuePart2(
         const lead = leadIsMan() ? 'man' : 'woman';
         prompt = conversation
           ? conversationClipPrompt({
-              line: pronounceForCast(spokenLine, shared.activeCharacterId),
-              reply: replyLine && pronounceForCast(replyLine, shared.activeCharacterId),
+              line: pronounceForCast(spokenLine, castRef.current.activeCharacterId),
+              reply: replyLine && pronounceForCast(replyLine, castRef.current.activeCharacterId),
               tone: latest.lineTone,
               lead,
               partner: conversationPartnerNoun(stillText, lead),
             })
           : talkingClipPrompt({
-              line: pronounceForCast(spokenLine, shared.activeCharacterId),
+              line: pronounceForCast(spokenLine, castRef.current.activeCharacterId),
               speaker: leadIsMan() ? 'He' : 'She',
               tone: latest.lineTone,
             });
@@ -365,7 +365,7 @@ export function useRoleplayBeatQueuePart2(
           framing !== 'close' &&
           (stillBody?.posture ?? (stillWordsSeated(stillText) ? 'seated' : null)) === 'seated';
         prompt = talkingClipPrompt({
-          line: pronounceForCast(spokenLine, shared.activeCharacterId),
+          line: pronounceForCast(spokenLine, castRef.current.activeCharacterId),
           speaker: leadIsMan() ? 'He' : 'She',
           tone: latest.lineTone,
           framing,
@@ -463,6 +463,7 @@ export function useRoleplayBeatQueuePart2(
       storyRef,
       toolSettings.setting,
       updateToolSettings,
+      castRef,
     ]
   );
 
