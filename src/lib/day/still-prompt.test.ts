@@ -459,3 +459,41 @@ describe('POSE FIRST for custom poses (2.1 and Edit 2511)', () => {
   });
 });
 
+describe('a picked plain posture on an engine that drops the map (Qwen-Image 2.1)', () => {
+  // A neutral beat: the pick lived only on the map 2.1 drops, and "Sit" came out standing
+  // (camera bench, 2026-10-22).
+  const NEUTRAL =
+    'Edit Image 1: Day photo: One woman alone. She wears the outfit from the second image. Moment: takes a quiet moment for herself. Place: a sunny city park. Keep her face from the first image. Match her body to the third image (pose map).';
+  const sit = (over: Partial<DayStillPromptFacts> = {}) =>
+    assembleDayStillPrompt(
+      facts({
+        slotPrompt: NEUTRAL,
+        beat: 'takes a quiet moment for herself',
+        setting: 'a sunny city park',
+        pose: { layout: null, poseKey: 'sit:1', figures: 1 },
+        cueLayouts: new Set(),
+        poseFirst: true,
+        poseFirstWithoutMap: true,
+        pickedPosture: 'sit',
+        ...over,
+      })
+    ).prompt;
+
+  it('says the pick as the Pose: sentence, and POSE FIRST leads with it', () => {
+    const prompt = sit();
+    assert.match(prompt, /Pose: seated, knees bent/);
+    assert.match(prompt, /^POSE FIRST: seated, knees bent/);
+  });
+
+  it('not when the map rides along (Edit 2511), for standing, or when a Pose: cue is there', () => {
+    assert.doesNotMatch(sit({ poseFirstWithoutMap: false }), /Pose: seated/);
+    assert.doesNotMatch(sit({ pickedPosture: 'stand' }), /Pose: /);
+    assert.doesNotMatch(sit({ pickedPosture: null }), /Pose: /);
+    const jump = sit({
+      pickedPosture: 'jump',
+      pose: { layout: null, poseKey: 'jump:1', figures: 1 },
+    });
+    assert.equal(jump.match(/Pose: /g)?.length, 1);
+  });
+});
+
