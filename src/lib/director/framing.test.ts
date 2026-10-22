@@ -9,6 +9,7 @@ import {
   cameraMoveEnd,
   frameDirection,
   framingCameraAt,
+  MOVE_SAFE,
   readStillFraming,
   type DirectionFraming,
 } from './framing';
@@ -30,13 +31,17 @@ function frames(moves: Parameters<typeof moveBeat>[0][]): PoseRig3dFigure[] {
 }
 
 /** The picture-space box of every frame's joints (and head top), camera move included. */
-function box(list: PoseRig3dFigure[], framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>) {
+function box(
+  list: PoseRig3dFigure[],
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>,
+  aspect = ASPECT
+) {
   let minX = 1;
   let maxX = 0;
   let minY = 1;
   let maxY = 0;
   list.forEach((figure, i) => {
-    const cam = makeCamera(framingCameraAt(framing, i / (list.length - 1)), ASPECT);
+    const cam = makeCamera(framingCameraAt(framing, i / (list.length - 1)), aspect);
     for (const point of openPoseWorld(figure)) {
       const p = projectPoint(cam, point);
       minX = Math.min(minX, p.x);
@@ -105,6 +110,33 @@ describe('director: framing', () => {
       const b = box(list, fit);
       assert.ok(b.minX >= 0 && b.maxX <= 1 && b.minY >= 0 && b.maxY <= 1, `${move}: ${JSON.stringify(b)}`);
       assert.ok(fit.pulledBack > 1.05, `${move}: stepped back`);
+    }
+  });
+
+  it('a walk toward the camera keeps her feet inside the safe frame, starting like the still', () => {
+    // Copy moves scales her to the still at the first frame, then follows the video: the first
+    // frame must be the still's framing, and the feet must stay clear of the bottom edge.
+    // The day-dress test still: she stands with room below her feet.
+    const body: NormalizedBody = Array.from({ length: 18 }, () => null);
+    body[1] = { x: 0.498, y: 0.25 };
+    body[8] = { x: 0.438, y: 0.47 };
+    body[11] = { x: 0.567, y: 0.47 };
+    body[10] = { x: 0.487, y: 0.857 };
+    body[13] = { x: 0.543, y: 0.856 };
+    const still = readStillFraming(body);
+    const aspect = 3 / 4;
+    for (const moves of [['walk'], ['walk', 'walk'], ['walk', 'walk', 'walk']] as const) {
+      for (const move of ['none', 'push-in'] as const) {
+        const list = frames([...moves]);
+        const fit = frameDirection({ frames: list, camera: camera({ move }), aspect, still });
+        const label = `${moves.join('+')} ${move}`;
+        assert.ok(fit.from, `${label}: starts on the still framing`);
+        const cam = makeCamera(framingCameraAt(fit, 0), aspect);
+        assert.ok(Math.abs(projectPoint(cam, openPoseWorld(list[0]!)[1]!).y - 0.25) < 0.01, label);
+        const b = box(list, fit, aspect);
+        assert.ok(b.maxY <= 1 - MOVE_SAFE.bottom + 0.005, `${label}: feet at ${b.maxY}`);
+        assert.ok(b.minY >= MOVE_SAFE.top - 0.005, `${label}: head at ${b.minY}`);
+      }
     }
   });
 

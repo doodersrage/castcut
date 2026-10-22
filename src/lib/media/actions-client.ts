@@ -30,6 +30,8 @@ export function copyMovesForm(input: {
   look: string;
   place?: string;
   motion?: string;
+  /** A seat to put into the still first (the Director, when she sits down). */
+  seat?: string;
   keepSound?: boolean;
 }): FormData {
   const form = new FormData();
@@ -38,6 +40,7 @@ export function copyMovesForm(input: {
   form.set('look', input.look);
   if (input.place) form.set('place', input.place);
   if (input.motion) form.set('motion', input.motion);
+  if (input.seat) form.set('seat', input.seat);
   if (input.keepSound) form.set('keepSound', 'true');
   return form;
 }

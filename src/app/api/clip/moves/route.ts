@@ -4,6 +4,7 @@ import { isAuthEnabled } from '@/lib/auth/store';
 import { transferMotion } from '@/lib/video/motion-transfer-server';
 import { ClipJobBusyError } from '@/lib/clip/clip-jobs';
 import { describeClipJobError, runningClipJob, startClipJob } from '@/lib/clip/clip-jobs-server';
+import { cleanSeat } from '@/lib/video/motion-seat';
 
 export const runtime = 'nodejs';
 
@@ -18,8 +19,9 @@ const text = (value: FormDataEntryValue | null, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 /**
- * POST multipart { video (file), stillUrl, look, place?, motion?, keepSound?, comfyUrl? } →
- * { url }: the still's person doing the video's moves (Wan Animate 2).
+ * POST multipart { video (file), stillUrl, look, place?, motion?, seat?, keepSound?, comfyUrl? } →
+ * { url }: the still's person doing the video's moves (Wan Animate 2). `seat` ("a wooden chair")
+ * is edited into the still first, for a move that sits down.
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
         look: text(form.get('look'), 600),
         place: text(form.get('place'), 300) || undefined,
         motion: text(form.get('motion'), 300) || undefined,
+        seat: cleanSeat(form.get('seat')) ?? undefined,
         keepSound: text(form.get('keepSound'), 8) === 'true',
         comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
         requestOrigin: new URL(request.url).origin,

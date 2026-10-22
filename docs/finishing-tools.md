@@ -115,13 +115,22 @@ hair and clothes and lands where Copy moves' clips do.
   height in the picture, the same size — or pick a shot. Height, direction, lens, and an
   optional slow push in, pull out or pan. When the move needs more room than the still has (a
   walk toward the camera), the clip still starts framed like the still and the camera eases back
-  just before she would leave the picture (it says so under the timeline). A picked shot steps
-  back from the start instead.
+  before she would come too close to the edge (it says so under the timeline). Copy moves sizes
+  her to the still at the first frame and then follows the video, so the first frame always
+  matches the still, and the whole move keeps a little room under her feet (her shoes and the
+  model's own drift reach a bit past the 3D body's). A picked shot steps back from the start
+  instead.
 - **Her pose in the picture** starts her as the still shows her, standing straight with her head
   level (a photo can't show a lean toward or away from the camera, so none is guessed).
-- **Place** starts as the slot's place. She sits or leans on whatever the still shows: a beat
-  that sits (or leans well over) warns you, and one tap — **Add a chair to Place** (a sofa when
-  she sits back, a wall to lean on) — writes it into Place so Copy moves draws one.
+- **A seat to sit on**: Copy moves draws the room from the still, not from words — a chair
+  only named in Place was not drawn and she sat on air. So when a beat sits down (and she
+  isn't already sitting in the still), **Put a wooden chair behind her in the still first** is
+  on: a quick edit (the Qwen Rapid AIO checkpoint, a few seconds) puts the chair — a sofa when
+  she sits back, or the seat Place names — behind her in the still the clip starts from, and
+  she sits on it. Untick it when the still already has her seat right behind her.
+- **Place** starts as the slot's place. She leans on whatever the still shows: a beat that
+  leans well over (or sits, with the seat edit off) warns you, and one tap — **Add a wall to
+  Place** (or a chair) — writes it into Place.
 - **Saved directions** keeps directions by name for this Cast member. They sync like My poses,
   so the phone and the desk see the same list (directions an earlier version kept in one browser
   join it the first time the Director opens there).

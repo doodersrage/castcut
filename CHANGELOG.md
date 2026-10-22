@@ -9,6 +9,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Director: a beat that sits down puts a seat into the still first (Copy moves draws the room from the still; a chair only named in Place left her sitting on air) — a wooden chair, a sofa when she sits back, or the seat Place names; one checkbox, on by default
+- Director: a walk toward the camera keeps her feet clear of the bottom edge (a safe frame for the whole move), and the clip always starts on the still's framing (a first frame further back made Copy moves scale her up and walk her out of the picture)
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
