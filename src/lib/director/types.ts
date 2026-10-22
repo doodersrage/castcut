@@ -15,7 +15,7 @@ import {
   type CameraLens,
   type CameraShot,
 } from '@/lib/pose/camera-shot';
-import type { PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { normalizePoseRig3d, RIG3D_VERSION } from '@/lib/pose/rig3d';
 import { poseSupport } from './figure-ops';
 import { clampMoveSeconds, DIRECTOR_MOVES, isDirectorMoveId, type DirectorMoveId } from './moves';
@@ -84,6 +84,12 @@ export type DirectorCamera = {
   shot: CameraShot | 'picture';
   lens: CameraLens;
   move: DirectorCameraMove;
+  /**
+   * The still's own camera, in her frame, when the start is her pose read from the still: the
+   * figure is seen exactly as the still saw it (direction and height above only name it). Any
+   * other camera pick drops it.
+   */
+  view?: PoseRig3dCamera;
 };
 
 export const DEFAULT_DIRECTOR_CAMERA: DirectorCamera = {
@@ -156,9 +162,25 @@ function pick<T extends string>(raw: unknown, allowed: readonly T[], fallback: T
     : fallback;
 }
 
+function normalizeViewCamera(raw: unknown): PoseRig3dCamera | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const vec = (v: unknown) =>
+    Array.isArray(v) && v.length === 3 && v.every(n => typeof n === 'number' && Number.isFinite(n))
+      ? ([v[0], v[1], v[2]] as [number, number, number])
+      : null;
+  const position = vec(r.position);
+  const target = vec(r.target);
+  const fov = r.fov;
+  if (!position || !target || typeof fov !== 'number' || !(fov >= 5 && fov <= 120))
+    return undefined;
+  return { position, target, fov };
+}
+
 export function normalizeDirectorCamera(raw: unknown): DirectorCamera {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_DIRECTOR_CAMERA;
+  const view = normalizeViewCamera(r.view);
   return {
     height: pick(r.height, CAMERA_HEIGHTS, d.height),
     direction: pick(r.direction, CAMERA_DIRECTIONS, d.direction),
@@ -166,6 +188,7 @@ export function normalizeDirectorCamera(raw: unknown): DirectorCamera {
     shot: pick(r.shot, [...CAMERA_SHOTS, 'picture'] as const, d.shot),
     lens: pick(r.lens, CAMERA_LENSES, d.lens),
     move: pick(r.move, DIRECTOR_CAMERA_MOVES, d.move),
+    ...(view ? { view } : {}),
   };
 }
 

@@ -136,6 +136,25 @@ function startDirection(body: Rig3dBodyKind, place?: string): Direction {
   };
 }
 
+/** The direction starting from her pose as the still shows it, seen through the still's camera. */
+function directionFromStill(
+  direction: Direction,
+  pose: { body: NormalizedBody; aspect: number },
+  body: Rig3dBodyKind
+): Direction {
+  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body);
+  const start = {
+    ...poseBeat('Her pose in the picture', figure, { first: true }),
+    hold: direction.beats[0]!.hold,
+  };
+  const facing: CameraDirection =
+    turned < 22.5 ? 'front' : turned < 65 ? 'three-quarter' : turned < 125 ? 'side' : 'back';
+  return {
+    ...replaceBeat(direction, 0, start),
+    camera: { ...direction.camera, direction: facing, side, shot: 'picture', height: 'eye', view },
+  };
+}
+
 function beatLabel(beat: DirectorBeat): string {
   return beat.kind === 'move' ? DIRECTOR_MOVES[beat.move].label : beat.name;
 }
@@ -173,6 +192,9 @@ function DirectorSheetOpen({
   // Saved on another device: the list catches up when sync brings them.
   useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
+  // Anything the player does keeps the start they chose; until then, her pose in the still is
+  // the start once it has been read (a standing figure beside a seated still looked wrong).
+  const touched = useRef(false);
 
   const loaded = useStillSize(stillUrl);
 
@@ -209,6 +231,12 @@ function DirectorSheetOpen({
               : null,
           state: 'done',
         });
+        if (lead && canvas && !touched.current) {
+          const pose = { body: lead, aspect: canvas.width / Math.max(1, canvas.height) };
+          setDirection(current =>
+            touched.current ? current : directionFromStill(current, pose, body)
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setDetected({ framing: null, pose: null, state: 'failed' });
@@ -216,7 +244,7 @@ function DirectorSheetOpen({
     return () => {
       cancelled = true;
     };
-  }, [stillUrl]);
+  }, [stillUrl, body]);
 
   const frames = useMemo(() => directionFrames(direction), [direction]);
   const framing = useMemo(
@@ -252,11 +280,16 @@ function DirectorSheetOpen({
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const update = (next: Direction) => {
+    touched.current = true;
     setDirection(next);
     setTime(t => Math.min(t, directionLength(next)));
   };
-  const setCamera = (patch: Partial<DirectorCamera>) =>
-    update({ ...direction, camera: { ...direction.camera, ...patch } });
+  const setCamera = (patch: Partial<DirectorCamera>) => {
+    // A camera pick other than a move replaces the still's own camera.
+    const { view, ...rest } = direction.camera;
+    const keepView = view && Object.keys(patch).every(key => key === 'move');
+    update({ ...direction, camera: { ...rest, ...(keepView ? { view } : {}), ...patch } });
+  };
 
   const startFrom = (id: PoseStarterId) => {
     const label = POSE_STARTERS.find(starter => starter.id === id)?.label ?? 'Stand';
@@ -264,25 +297,11 @@ function DirectorSheetOpen({
       ...poseBeat(label, starterFigure(id, body), { first: true }),
       hold: direction.beats[0]!.hold,
     };
-    update(replaceBeat(direction, 0, start));
+    const { view: _still, ...camera } = direction.camera;
+    update({ ...replaceBeat(direction, 0, start), camera });
   };
   const startFromStill = () => {
-    if (!detected.pose) return;
-    const { figure, side, turned } = stillPoseFigure(
-      detected.pose.body,
-      detected.pose.aspect,
-      body
-    );
-    const start = {
-      ...poseBeat('Her pose in the picture', figure, { first: true }),
-      hold: direction.beats[0]!.hold,
-    };
-    const facing: CameraDirection =
-      turned < 22.5 ? 'front' : turned < 65 ? 'three-quarter' : turned < 125 ? 'side' : 'back';
-    update({
-      ...replaceBeat(direction, 0, start),
-      camera: { ...direction.camera, direction: facing, side, shot: 'picture' },
-    });
+    if (detected.pose) update(directionFromStill(direction, detected.pose, body));
   };
 
   const addPose = () => {

@@ -134,19 +134,21 @@ function info(kind: Rig3dBodyKind): SkeletonInfo {
   const hipsQInv = restWorldQ.get('hips')!.clone().invert();
   const hipsP = restWorldP.get('hips')!;
   // Where a pose detector puts the shoulders and hips, measured against the one-person reference
-  // poses (standing, facing the camera): the shoulders on top of the shoulder rather than at the
-  // joint centre, the hips a little outside and below the joints. With the joint centres the
-  // torso came out 15% short, and lifting bent every limb toward the camera to make up for it.
+  // poses (standing, facing the camera): the shoulders a little above the joint centre, the hips
+  // a little outside and above the joints. With the joint centres the torso came out 15% short,
+  // and lifting bent every limb toward the camera to make up for it; with the shoulders 5 cm up
+  // and the hips 1 cm down it came out long, and standing figures leaned back 18° on average
+  // (scripts/pose-3d/lift-check.mts). Now 2 cm and 1 cm up: about 8°.
   const hipPoint = (side: Side) => {
     const joint = restWorldP.get(`thigh_${side}`)!.clone();
     joint.x += side === 'L' ? 0.017 : -0.017;
-    joint.y -= 0.01;
+    joint.y += 0.01;
     return joint.sub(hipsP).applyQuaternion(hipsQInv);
   };
   const shoulderPoint = (side: Side) => {
     const joint = restWorldP.get(`upperarm_${side}`)!.clone();
     joint.x *= 0.94;
-    joint.y += 0.05;
+    joint.y += 0.02;
     const clavicle = `clavicle_${side}`;
     return joint
       .sub(restWorldP.get(clavicle)!)
@@ -787,11 +789,97 @@ const midpoint = (a: Pt | null | undefined, b: Pt | null | undefined): Pt | null
 // torso upright and unbent where the picture cannot tell.
 const LIFT_DEPTH_QUANTILE = 0.3;
 const LIFT_W = 0.02;
+// How firmly the head fit shows or hides the nose and ears as the picture does. At 0.2, 136 face
+// points over the 273 references came out shown / hidden the other way — 26 heads turned away
+// from the camera where the picture shows a face; at 1, 17 (and no head turned away but one).
+const SEEN_W = 1;
 
 export type LiftOptions = {
   camera?: PoseRig3dCamera;
   body?: Rig3dBodyKind;
 };
+
+const ALL_LIMBS: Array<[Side, Limb]> = [
+  ['R', 'arm'],
+  ['L', 'arm'],
+  ['R', 'leg'],
+  ['L', 'leg'],
+];
+const LIMB_POINTS: Record<`${Side}${Limb}`, [number, number]> = {
+  Rarm: [3, 4],
+  Larm: [6, 7],
+  Rleg: [9, 10],
+  Lleg: [12, 13],
+};
+
+/**
+ * Each limb's middle and end joint on its line of sight, at the bone's length from the joint
+ * before (the reading that bends the natural way, nearer the camera first).
+ */
+function placeLimbsOnRays(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  cam: PerspectiveCamera,
+  limbs: Array<[Side, Limb]>
+): void {
+  const origin = cam.position.clone();
+  const P = (i: number) => body[i] ?? null;
+  const ray = (p: Pt) => pictureRay(cam, p);
+  const kind = figure.body;
+  for (const [side, limb] of limbs) {
+    const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
+    const mid2d = P(midIndex);
+    const end2d = P(endIndex);
+    if (!mid2d && !end2d) continue;
+    const [l1, l2] = limbLengths(kind, side, limb);
+    const { root, mid, end } = limbJoints(figure, side, limb);
+    const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
+      const r = ray(p);
+      const ts = rayDepths(origin, r, centre, length);
+      const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
+      // Out of reach: the nearest point on the line of sight, held at the bone's length.
+      return points.map(q => {
+        const v = q.clone().sub(centre);
+        return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
+      });
+    };
+    const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
+    type Option = { m: Vector3; e: Vector3; score: number; excess: number };
+    const options: Option[] = [];
+    for (const m of mids) {
+      const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
+      for (const e of ends) {
+        const trial = cloneFigure(figure);
+        placeLimb(trial, side, limb, m, e, limb === 'leg');
+        // Toward the camera: the nearer pair of joints reads first.
+        const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
+        options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
+      }
+    }
+    options.sort((a, b) => a.excess - b.excess || a.score - b.score);
+    const pick = options[0]!;
+    placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
+  }
+}
+
+/**
+ * Put a lifted figure's arms (or legs) back on the picture's points after its torso was changed
+ * (straightened in depth, say): each joint on its line of sight again, through `camera`.
+ */
+export function refitLimbs(
+  figure: PoseRig3dFigure,
+  body: NormalizedBody,
+  aspect: number,
+  camera: PoseRig3dCamera = DEFAULT_CAMERA,
+  limbs: Limb[] = ['arm']
+): void {
+  placeLimbsOnRays(
+    figure,
+    body,
+    makeCamera(camera, aspect),
+    ALL_LIMBS.filter(([, limb]) => limbs.includes(limb))
+  );
+}
 
 /** liftBody at one distance (or its own pick), with the distances worth trying. */
 function liftAtDepth(
@@ -992,45 +1080,7 @@ function liftAtDepth(
   }
 
   // ── Limbs: each joint on its line of sight at the bone's length ──────────────────────
-  const LIMBS: Array<[Side, Limb, number, number]> = [
-    ['R', 'arm', 3, 4],
-    ['L', 'arm', 6, 7],
-    ['R', 'leg', 9, 10],
-    ['L', 'leg', 12, 13],
-  ];
-  for (const [side, limb, midIndex, endIndex] of LIMBS) {
-    const mid2d = P(midIndex);
-    const end2d = P(endIndex);
-    if (!mid2d && !end2d) continue;
-    const [l1, l2] = limbLengths(kind, side, limb);
-    const { root, mid, end } = limbJoints(figure, side, limb);
-    const onRay = (p: Pt, centre: Vector3, length: number, fallback: Vector3) => {
-      const r = ray(p);
-      const ts = rayDepths(origin, r, centre, length);
-      const points = ts.map(t => origin.clone().add(r.clone().multiplyScalar(t)));
-      // Out of reach: the nearest point on the line of sight, held at the bone's length.
-      return points.map(q => {
-        const v = q.clone().sub(centre);
-        return v.length() > 1e-6 ? centre.clone().add(v.setLength(length)) : fallback.clone();
-      });
-    };
-    const mids = mid2d ? onRay(mid2d, root, l1, mid) : [mid];
-    type Option = { m: Vector3; e: Vector3; score: number; excess: number };
-    const options: Option[] = [];
-    for (const m of mids) {
-      const ends = end2d ? onRay(end2d, m, l2, end) : [m.clone().add(end.clone().sub(mid))];
-      for (const e of ends) {
-        const trial = cloneFigure(figure);
-        placeLimb(trial, side, limb, m, e, limb === 'leg');
-        // Toward the camera: the nearer pair of joints reads first.
-        const score = m.distanceTo(origin) + 0.5 * e.distanceTo(origin);
-        options.push({ m, e, score, excess: limbTwistExcess(trial, side, limb) });
-      }
-    }
-    options.sort((a, b) => a.excess - b.excess || a.score - b.score);
-    const pick = options[0]!;
-    placeLimb(figure, side, limb, pick.m, pick.e, limb === 'leg');
-  }
+  placeLimbsOnRays(figure, body, cam, ALL_LIMBS);
   // Feet flat under a standing figure: a foot keeps its rest turn relative to the hips' yaw.
   for (const side of ['R', 'L'] as const) {
     const world = figureWorld(figure);
@@ -1085,11 +1135,12 @@ function liftAtDepth(
       // The face turned toward the camera exactly when the picture shows a nose.
       const toCamera = origin.clone().sub(world.pos.head!).normalize();
       const facing = face.forward.dot(toCamera);
-      out.push(nose ? Math.min(0, facing - 0.1) * 0.2 : Math.max(0, facing + 0.1) * 0.2);
+      // (Firmly: a face turned away where the picture shows one reads as the wrong way round.)
+      out.push(nose ? Math.min(0, facing - 0.1) * SEEN_W : Math.max(0, facing + 0.1) * SEEN_W);
       // And each ear shown or hidden as the picture has it (projectFigure's thresholds).
       const side = face.left.dot(toCamera);
-      out.push(P(16) ? Math.max(0, side - 0.5) * 0.2 : Math.min(0, side - 0.7) * 0.2);
-      out.push(P(17) ? Math.min(0, side + 0.5) * 0.2 : Math.max(0, side + 0.7) * 0.2);
+      out.push(P(16) ? Math.max(0, side - 0.5) * SEEN_W : Math.min(0, side - 0.7) * SEEN_W);
+      out.push(P(17) ? Math.min(0, side + 0.5) * SEEN_W : Math.max(0, side + 0.7) * SEEN_W);
       // A neck turns so far: past ~80° either way (and a nod or tilt past its range) costs.
       const beyond = (value: number, limit: number) => Math.max(0, Math.abs(value) - limit);
       out.push(
@@ -1103,6 +1154,8 @@ function liftAtDepth(
       [0, 0, 0],
       [0.8, 0, 0],
       [-0.8, 0, 0],
+      [1.4, 0, 0],
+      [-1.4, 0, 0],
     ];
     const fitted = starts
       .map(start => {
