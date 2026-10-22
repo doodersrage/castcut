@@ -7,7 +7,7 @@
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3d, PoseRig3dCamera, PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { RIG3D_VERSION } from '@/lib/pose/rig3d';
-import { DEFAULT_CAMERA, liftBody, projectRig } from '@/lib/pose/rig3d-pose';
+import { DEFAULT_CAMERA, liftBody, projectRig, restFigure } from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
@@ -48,6 +48,9 @@ export function stillPoseFigure(
   kind: Rig3dBodyKind
 ): { figure: PoseRig3dFigure; side: 1 | -1; turned: number } {
   const lifted = liftBody(body, aspect, { body: kind });
+  // The lift reads the head from a few face points and often tips it back: keep it level.
+  const rest = restFigure(kind);
+  for (const bone of ['neck', 'head']) lifted.bones[bone] = [...rest.bones[bone]!];
   const at = placementOf(lifted);
   const figure = groundFigure(toLocal(lifted, at));
   // Where the editor's camera stood, seen from her (her facing is +z now).
