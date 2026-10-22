@@ -18,6 +18,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Settings → Prompt quality → **Stronger pose control (slower)** (off by default): on the Qwen-Image 2.1 engines a one-person pose you made (joint editor or a photo) also steers the render through the Fun ControlNet Union (0.5 until 60% of the steps) — about 7 in 10 hard poses right instead of 5 in 10, at 2.5–3× the render time. Says so and stays out of the graph when ComfyUI lacks the Union nodes or file; the file is in Settings → Models
 - Qwen-Image 2.1 converter: the Fun ControlNet Union is applied after Noct-Q's sampling shift, not before it (it bypassed the shift = 3)
 
+## [v2.12.15] - 2026-10-22
+
+- Next.js 16.4.2: fixes the critical image-optimizer advisory (GHSA-2464-fhr4-w9xw) and a Server Actions DoS
+- Pose 3D lift: standing figures stand upright in depth; the head faces the way the picture shows
+- Director: the mannequin starts in her pose from the still, seen through the still's camera
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
