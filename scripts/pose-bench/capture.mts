@@ -25,6 +25,10 @@
  *
  * Writes <out>/capture.json: per slot the target id, the stored pose, the captured graph and
  * the Day state (still prompt id, notes).
+ *
+ * BENCH_RENDER=1 with the app pointed straight at ComfyUI (no proxy): the stills render for real
+ * and <out>/render.json records Day's stills once each has landed and its after-passes ran (the
+ * shot cut of a waist-up / close-up pick, framedUrl).
  */
 import {
   existsSync,
@@ -443,6 +447,41 @@ for (let attempt = 1; ; attempt += 1) {
   await page.waitForTimeout(6000);
 }
 const want = ids.length;
+// BENCH_RENDER=1 (the app pointed at the real ComfyUI, no proxy): the stills render for real.
+// Waits until every target slot's take has landed and its after-passes (the shot cut for a
+// waist-up / close-up pick) have had a minute, then records Day's stills and stops.
+if (process.env.BENCH_RENDER) {
+  const landed = new Map<string, number>();
+  for (let i = 0; i < 1800; i += 1) {
+    await page.waitForTimeout(1000);
+    if (i % 5 !== 4) continue;
+    const state = await readDayState(page);
+    const stillsNow = (state?.stills ?? []) as Array<{
+      slotId: string;
+      status?: string;
+      framedUrl?: string;
+    }>;
+    for (const slotId of slotIds.slice(0, want)) {
+      const still = stillsNow.find(entry => entry.slotId === slotId);
+      if (still?.status === 'completed' && !landed.has(slotId)) landed.set(slotId, i);
+    }
+    const settled = slotIds.slice(0, want).filter(slotId => {
+      const still = stillsNow.find(entry => entry.slotId === slotId);
+      return still?.framedUrl || (landed.has(slotId) && i - landed.get(slotId)! > 60);
+    });
+    if (i % 60 === 59) console.log(`… ${landed.size}/${want} landed, ${settled.length} settled`);
+    if (settled.length >= want) break;
+  }
+  await page.screenshot({ path: join(outDir, 'page.png'), fullPage: false });
+  const state = await readDayState(page);
+  writeFileSync(
+    join(outDir, 'render.json'),
+    JSON.stringify({ engine, mode, ids, slotIds, stills: state?.stills ?? [] }, null, 1)
+  );
+  console.log('rendered', JSON.stringify(state?.stills ?? []).slice(0, 2000));
+  await browser.close();
+  process.exit(0);
+}
 const capturedIds = () =>
   new Set(
     capturedFiles().map(name =>

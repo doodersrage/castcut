@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Day camera picks: **Waist up** and **Head & shoulders** on Qwen-Image 2.1 (Turbo-8, Noct-Q…) now give a waist-up / head-and-shoulders still — the take is cut around her face to the shot and enlarged back to its size (1–6 s, no re-render; `/api/shot-reframe`), and Face finish and the checks look at the cut. 2.1 drew these picks thigh-up at best whatever the prompt said (camera bench: words, a square canvas or a cropped plate reference got no closer); 24 of 24 bench stills cut right on both engines, and the pose check passes every cut still (legs out of frame are not a miss)
+- Settings → Prompt quality → **Stronger pose control (slower)** (off by default): on the Qwen-Image 2.1 engines a one-person pose you made (joint editor or a photo) also steers the render through the Fun ControlNet Union (0.5 until 60% of the steps) — about 7 in 10 hard poses right instead of 5 in 10, at 2.5–3× the render time. Says so and stays out of the graph when ComfyUI lacks the Union nodes or file; the file is in Settings → Models
+- Qwen-Image 2.1 converter: the Fun ControlNet Union is applied after Noct-Q's sampling shift, not before it (it bypassed the shift = 3)
+
 ## [v2.12.14] - 2026-10-22
 
 - Day duo stills on Qwen-Image 2.1 (Turbo-8, Pruna-8, Fun-Acc 4, Noct-Q, Noct-Q Fast): her full-body plate no longer goes into the graph twice (cut-out as Image 1 and the same picture again as Image 3); the extra body plate only rides next to a face crop
