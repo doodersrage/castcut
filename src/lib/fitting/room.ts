@@ -26,6 +26,16 @@ export type FittingCompareTryOn = {
   backImageUrl?: string;
   backPromptId?: string;
   backGalleryEntryId?: string;
+  /**
+   * Rendered in a custom pose (Pose → Custom). Its picture shows that pose, so Keep also renders
+   * her standing in the same outfit (keeper-stand-in.ts): Day and Story start from that one.
+   */
+  posed?: boolean;
+  /**
+   * A posed try-on's dressed-plate key as if it had been rendered standing (what
+   * {@link dressPlateKey} would have been): the standing picture Keep renders is stored under it.
+   */
+  standingDressPlateKey?: string;
 };
 
 /**
@@ -62,7 +72,17 @@ export type FittingPendingTryOn = FittingCompareTryOn & {
    * Front and back was on when the try-on was queued: once the front is final (after the feet
    * pass, when there is one) a back view is rendered from it.
    */
-  backView?: { subject: 'she' | 'he'; shoeWords?: string };
+  backView?: {
+    subject: 'she' | 'he';
+    shoeWords?: string;
+    /**
+     * The custom pose the try-on was rendered in (lead only, no 3D rig — back-pose.ts): the back
+     * view keeps that pose, seen from behind, instead of standing.
+     */
+    pose?: import('@/lib/pose/types').PhotoPose;
+    /** The pose's camera picked a closer shot than full body: the back view keeps it. */
+    closerShot?: boolean;
+  };
   /** This job is the back view for the Compare card with this prompt id. */
   backOfPromptId?: string;
 };
@@ -825,14 +845,61 @@ export function buildFittingBackViewPrompt(input: {
   subject?: 'she' | 'he';
   /** The picked shoes in words: without them stilettos came back as block heels 4/4; with, 0/4. */
   shoeWords?: string;
+  /**
+   * The try-on's custom pose: the back view keeps it. `words` is the pose as seen from behind
+   * (customPoseWords of the turned pose); `map` when a pose map of it rides as Image 2;
+   * `fromFront` when the pose already faced away, so its other side is her front.
+   */
+  pose?: { words?: string; map?: boolean; fromFront?: boolean; closerShot?: boolean } | null;
 }): string {
   const possessive = input.subject === 'he' ? 'his' : 'her';
+  const object = input.subject === 'he' ? 'him' : 'her';
   const shoes = input.shoeWords?.trim();
+  const shoeLine = shoes ? backViewShoeLine(shoes, possessive) : '';
+  if (input.pose) {
+    const words = input.pose.words?.trim().replace(/[.\s]+$/, '') ?? '';
+    const side = input.pose.fromFront
+      ? `seen from the front — the camera has gone around to face ${object}, ${possessive} face and the front of the outfit visible`
+      : `seen from directly behind — a back view: the camera has gone around behind ${object}, so we see ${possessive} back, the back of ${possessive} head and hair and the back of the outfit`;
+    return [
+      `Edit Image 1: the same person in exactly the same outfit and shoes, holding exactly the same pose as in Image 1, ${side}.`,
+      words ? `The pose: ${words}.` : '',
+      input.pose.map
+        ? `Image 2 is a pose map (a skeleton, not a person) of that pose ${input.pose.fromFront ? 'from the front' : 'from behind'}: the body takes exactly that stance.`
+        : '',
+      input.pose.closerShot ? 'The same framing as Image 1.' : 'Full body head to feet in frame.',
+      'Same body, same proportions, same light and same plain background as Image 1. One person.',
+      shoeLine,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
   return [
     'Edit Image 1: the same person in exactly the same outfit and shoes, seen from directly behind — a back view, standing, full body head to feet,',
     `${possessive} hair and the back of the outfit and the shoes visible.`,
     'Same body, same proportions, same light and same plain background as Image 1. One person.',
-    shoes ? backViewShoeLine(shoes, possessive) : '',
+    shoeLine,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * Keep of a posed try-on: the same outfit with her standing — the picture Day and Story start
+ * from (a sitting or arms-up Keep as Image 1 held that pose into their stills). An edit of the
+ * kept picture, so the outfit stays the one she kept. Words alone stood her up (sitting,
+ * kneeling: live on Qwen-Image 2.1 Turbo and Noct-Q, 2026-10-22) — no pose map.
+ */
+export function buildFittingStandingPlatePrompt(input: {
+  subject?: 'she' | 'he';
+  shoeWords?: string;
+}): string {
+  const possessive = input.subject === 'he' ? 'his' : 'her';
+  const shoes = input.shoeWords?.trim();
+  return [
+    `Edit Image 1: the same person in exactly the same outfit and shoes, now standing up straight on both feet, facing the camera — a plain front view, full body head to feet, ${possessive} arms relaxed down at ${possessive} sides, feet a little apart, looking at the camera.`,
+    'Change only the pose: the face, hair, body, every part of the outfit and the shoes stay exactly as in Image 1. Plain light studio background, even light. One person.',
+    shoes ? `On ${possessive} feet: ${shoes}, exactly as in Image 1.` : '',
   ]
     .filter(Boolean)
     .join(' ');

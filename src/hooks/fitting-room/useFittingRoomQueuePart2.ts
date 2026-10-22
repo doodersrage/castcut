@@ -7,7 +7,14 @@ import {
 } from '@/lib/fitting/outfit-handoff';
 import { recordCastOutfitWorn } from '@/lib/cast/wardrobe';
 import { useCallback, useEffect } from 'react';
-import { activeLook, looksOf, setLookKeptOutfit, toggleLookKeeper } from '@/lib/character/os';
+import {
+  activeLook,
+  looksOf,
+  setLookKeeperStandIn,
+  setLookKeptOutfit,
+  toggleLookKeeper,
+} from '@/lib/character/os';
+import { footwearIsBarefoot, normalizeFootwear } from '@/lib/wardrobe/footwear';
 import { dayAfterOutfitHandoff } from '@/lib/day/outfit-scope';
 import { getCachedClothingLabel } from '@/lib/wardrobe/clothing-catalog-client';
 import { buildFittingKitPreviewPrompt, type FittingCompareTryOn } from '@/lib/fitting/room';
@@ -42,9 +49,15 @@ import type {
   FittingRoomQueueCore,
   FittingRoomQueueInput,
 } from '@/hooks/fitting-room/useFittingRoomQueueCore';
+import type { KeeperStandInApi } from '@/hooks/fitting-room/useKeeperStandIn';
 
-export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: FittingRoomQueueCore) {
+export function useFittingRoomQueuePart2(
+  input: FittingRoomQueueInput,
+  core: FittingRoomQueueCore,
+  standIn: Pick<KeeperStandInApi, 'queueStandIn'>
+) {
   const { previewStatus, setPreviewStatus, previewQueueBusyRef, kitPreviewsRef, queueTryOn } = core;
+  const { queueStandIn } = standIn;
 
   const queueKitPreview = useCallback(
     async (wardrobeId: string, wardrobeLabel: string) => {
@@ -299,6 +312,24 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
           registerDressPlateFromImage(plate, imageUrl)
         );
       }
+      // A posed try-on stays her kept still, and she is also rendered standing in it: Day and
+      // Story start from that picture once it lands (the posed one held its pose into their
+      // stills). Un-kept: its standing picture goes with it.
+      const standingLookId = updated ? activeLook(updated).id : lookId;
+      const renderStanding = Boolean(keptNow && tryOn.posed && tryOn.imageUrl?.trim());
+      if (renderStanding) {
+        const shoes = input.toolSettings.footwear?.trim();
+        void queueStandIn({
+          characterId,
+          lookId: standingLookId,
+          keeperEntryId: entryId,
+          imageUrl: tryOn.imageUrl!.trim(),
+          ...(shoes && !footwearIsBarefoot(shoes) ? { shoeWords: normalizeFootwear(shoes) } : {}),
+          ...(tryOn.standingDressPlateKey ? { dressPlateKey: tryOn.standingDressPlateKey } : {}),
+        });
+      } else if (!keptNow) {
+        setLookKeeperStandIn(characterId, standingLookId, entryId, null);
+      }
       const existing = loadLookPack();
       const nextPack = {
         version: 1 as const,
@@ -367,8 +398,11 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
         noteKeepTryOnMetric();
       });
       const keptOwn = handed.outfitHandoffKept?.slotIds.length ?? 0;
-      const sharedPlate =
-        keptNow && tryOn.dressPlateKey ? ' Day and Story start from this dressed plate.' : '';
+      const sharedPlate = renderStanding
+        ? ' Rendering her standing in it for Day and Story (they use this posed picture until then).'
+        : keptNow && tryOn.dressPlateKey
+          ? ' Day and Story start from this dressed plate.'
+          : '';
       input.setSaveStatus(
         `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day wears it in every slot` +
           (keptOwn > 0
@@ -389,6 +423,7 @@ export function useFittingRoomQueuePart2(input: FittingRoomQueueInput, core: Fit
       input.shared.lockedWardrobeId,
       input.toolSettings,
       input.updateShared,
+      queueStandIn,
     ]
   );
 

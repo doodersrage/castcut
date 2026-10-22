@@ -18,6 +18,7 @@ import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSe
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import OutfitPoseSection from '@/components/fitting/OutfitPoseSection';
 import FittingStatusStrip from '@/components/fitting/FittingStatusStrip';
+import FittingKeeperStandInNote from '@/components/fitting/FittingKeeperStandInNote';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
@@ -99,6 +100,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     fillKitPreviews,
     keepTryOn,
     queueTryOnAndSwipe,
+    keeperStandIn,
+    makeStandingPicture,
     skipKit,
     saveKitToCast,
     goRoleplay,
@@ -332,6 +335,11 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
             {saveStatus && !pending ? (
               <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p>
             ) : null}
+            <FittingKeeperStandInNote
+              status={keeperStandIn}
+              busy={busy}
+              onMake={makeStandingPicture}
+            />
             {error ? <FieldError>{error}</FieldError> : null}
           </div>
 

@@ -73,7 +73,11 @@ function withoutLocalFiles(character: CharacterRecord): CharacterRecord {
   };
   return {
     ...strip(character),
-    looks: character.looks?.map(look => ({ ...strip(look), keeperEntryIds: undefined })),
+    looks: character.looks?.map(look => ({
+      ...strip(look),
+      keeperEntryIds: undefined,
+      keeperStandIns: undefined,
+    })),
     filmCut: undefined,
     biblePicture: undefined,
   };

@@ -19,6 +19,11 @@ import {
 import { buildDayPoseGuide } from '@/lib/day/pose-guide';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import { customPoseWords } from '@/lib/pose/describe';
+import {
+  bodyFacesAway,
+  fittingBackViewPose,
+  photoPoseSeenFromBehind,
+} from '@/lib/fitting/back-pose';
 import { poseFirstLine, poseFramingLine } from '@/lib/pose/starters';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -72,6 +77,7 @@ import type { FittingToolCache } from '@/lib/play/settings';
 import type { WorkflowParamValues } from '@/lib/comfyui/config';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { ComfyImageModel } from '@/lib/comfy-models/client';
+import type { PhotoPose } from '@/lib/pose/types';
 
 const TOOL_ID = 'fitting' as const;
 
@@ -114,6 +120,36 @@ async function feetPassShoeImage(
   return own && feetPass.imagePlacement
     ? { filename: own, placement: feetPass.imagePlacement }
     : null;
+}
+
+/**
+ * The back view of a posed try-on: the pose turned to be seen from behind (back-pose.ts), in
+ * words and as a pose map uploaded for the pass. No map (it could not be drawn or staged): the
+ * words still carry the pose.
+ */
+async function backViewPoseGuide(
+  pose: PhotoPose,
+  model: string,
+  subject: 'she' | 'he'
+): Promise<{ words: string; filename?: string; fromFront: boolean }> {
+  const fromFront = bodyFacesAway(pose.people[0]);
+  const turned = photoPoseSeenFromBehind(pose);
+  const words = customPoseWords({ photo: turned, lead: subject });
+  try {
+    const build = await buildDayPoseGuide('afternoon', 'custom pose', model, {
+      photoPose: turned,
+      forcePeople: 1,
+    });
+    const uploaded = await resolveQueueInputImage({
+      file: build.file,
+      filename: build.file.name,
+      model,
+    });
+    return { words, fromFront, filename: uploaded?.filename?.trim() || undefined };
+  } catch (error) {
+    console.warn('Outfit back view: the turned pose map could not be attached:', error);
+    return { words, fromFront };
+  }
 }
 
 /** Image 1 plate, Image 2 garment (or empty), Image 3 the custom pose guide. */
@@ -556,39 +592,48 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                 whenUnchecked: feetPlan.whenUnchecked,
               }
             : null;
+          // Rendered in the custom pose (its map went out with it).
+          const posedRender = Boolean(poseGuideFilename && customPose?.people[0]);
+          const backPose = posedRender ? fittingBackViewPose(customPose) : undefined;
           const pending: FittingPendingTryOn = {
             promptId: promptId.trim(),
             wardrobeId: hasCustomGarment ? 'custom-garment' : wardrobeIdForQueue?.trim() || '',
             wardrobeLabel: hasCustomGarment
               ? clipFittingGarmentLabel(garmentDescription || 'Uploaded clothing')
               : input.lockedWardrobeLabel,
-            // What it was rendered with, for Keep (a posed try-on is no base plate).
-            ...(!customPose?.people.length &&
-            (hasCustomGarment
-              ? Boolean(input.toolSettings.customGarmentImageFilename?.trim())
-              : Boolean(wardrobeIdForQueue?.trim()))
+            // What it was rendered with, for Keep. A posed try-on is no base plate: its key is
+            // kept for the standing picture its Keep renders (keeper-stand-in.ts).
+            ...(posedRender ? { posed: true } : {}),
+            ...((
+              hasCustomGarment
+                ? Boolean(input.toolSettings.customGarmentImageFilename?.trim())
+                : Boolean(wardrobeIdForQueue?.trim())
+            )
               ? {
-                  dressPlateKey: dayDressPlateRequestKey({
-                    model: input.shared.model,
-                    plate: {
-                      filename: input.referenceImageFilename,
-                      imageUrl: input.referenceImageUrl,
-                    },
-                    clothing: hasCustomGarment
-                      ? { imageFilename: input.toolSettings.customGarmentImageFilename?.trim() }
-                      : null,
-                    clothingKey: hasCustomGarment ? undefined : `kit:${wardrobeIdForQueue?.trim()}`,
-                    clothingLabel: '',
-                    clothingDescription: hasCustomGarment
-                      ? input.toolSettings.customGarmentDescription
-                      : undefined,
-                    footwear: normalizeFootwear(input.toolSettings.footwear),
-                    footwearImage: {
-                      imageUrl: input.toolSettings.footwearImageUrl,
-                      imageFilename: input.toolSettings.footwearImageFilename,
-                    },
-                    subject: 'she',
-                  }),
+                  [posedRender ? 'standingDressPlateKey' : 'dressPlateKey']:
+                    dayDressPlateRequestKey({
+                      model: input.shared.model,
+                      plate: {
+                        filename: input.referenceImageFilename,
+                        imageUrl: input.referenceImageUrl,
+                      },
+                      clothing: hasCustomGarment
+                        ? { imageFilename: input.toolSettings.customGarmentImageFilename?.trim() }
+                        : null,
+                      clothingKey: hasCustomGarment
+                        ? undefined
+                        : `kit:${wardrobeIdForQueue?.trim()}`,
+                      clothingLabel: '',
+                      clothingDescription: hasCustomGarment
+                        ? input.toolSettings.customGarmentDescription
+                        : undefined,
+                      footwear: normalizeFootwear(input.toolSettings.footwear),
+                      footwearImage: {
+                        imageUrl: input.toolSettings.footwearImageUrl,
+                        imageFilename: input.toolSettings.footwearImageFilename,
+                      },
+                      subject: 'she',
+                    }),
                 }
               : {}),
             ...(feetPass ? { feetPass } : {}),
@@ -600,6 +645,10 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                     ...(normalizeFootwear(input.toolSettings.footwear) &&
                     !/barefoot|bare feet/i.test(input.toolSettings.footwear ?? '')
                       ? { shoeWords: normalizeFootwear(input.toolSettings.footwear) }
+                      : {}),
+                    // Posed: the back view keeps the pose, seen from behind (back-pose.ts).
+                    ...(posedRender && backPose
+                      ? { pose: backPose, ...(closerShot ? { closerShot: true } : {}) }
                       : {}),
                   },
                 }
@@ -735,6 +784,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         }
         const shoe = feetPass ? await feetPassShoeImage(feetPass, passModel) : null;
         const shoeImage = shoe?.filename;
+        // A posed try-on's back view keeps the pose, seen from behind: its words, and its map
+        // (the try-on's own map turned around) the way the try-on took it.
+        const backPose = backView?.pose?.people[0]
+          ? await backViewPoseGuide(backView.pose, passModel, backView.subject)
+          : null;
         const prompt = feetPass
           ? buildFittingFeetPassPrompt({
               shoeWords: feetPass.shoeWords,
@@ -744,6 +798,14 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           : buildFittingBackViewPrompt({
               subject: backView?.subject,
               shoeWords: backView?.shoeWords,
+              pose: backPose
+                ? {
+                    words: backPose.words,
+                    map: Boolean(backPose.filename),
+                    fromFront: backPose.fromFront,
+                    closerShot: backView?.closerShot === true,
+                  }
+                : null,
             });
         const queueOptions = buildRoleplayQueueStillOptions({
           photoMode: true,
@@ -764,6 +826,9 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
           turboEditStrength: 'balanced' as const,
           ...withCastIdentityQueueFields(input.character, input.shared.ipAdapterStrength ?? 0.75),
           ...(shoeImage ? { inputImageFilenames: ['', shoeImage] } : {}),
+          ...(backPose?.filename
+            ? { inputImageFilenames: withPoseGuideSlot([], backPose.filename) }
+            : {}),
           ...(feetPass && passModel !== input.shared.model
             ? { queueModel: passModel as ComfyImageModel }
             : {}),
@@ -895,6 +960,10 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   imageUrl,
                   galleryEntryId: entry.id,
                   ...(pending.dressPlateKey ? { dressPlateKey: pending.dressPlateKey } : {}),
+                  ...(pending.posed ? { posed: true } : {}),
+                  ...(pending.standingDressPlateKey
+                    ? { standingDressPlateKey: pending.standingDressPlateKey }
+                    : {}),
                 })
               );
             }

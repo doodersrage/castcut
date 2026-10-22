@@ -65,6 +65,21 @@ describe('resolveDayPlate', () => {
     assert.match(plate?.imageUrl ?? '', /keep-b/);
   });
 
+  it("uses a posed Keep's standing picture once it landed, the posed one until then", () => {
+    const character = characterWithKeepers(['keep-a']);
+    character.looks![0]!.keeperStandIns = { 'keep-a': { promptId: 'prompt-stand-a', at: 2 } };
+    const rendering = { ...galleryStill('stand-a'), status: 'running' as const, images: [] };
+    const before = resolveDayPlate({ character, gallery: [galleryStill('keep-a'), rendering] });
+    assert.match(before?.imageUrl ?? '', /keep-a/);
+    const after = resolveDayPlate({
+      character,
+      gallery: [galleryStill('keep-a'), galleryStill('stand-a')],
+    });
+    assert.equal(after?.source, 'keeper');
+    assert.match(after?.imageUrl ?? '', /stand-a/);
+    assert.equal(after?.filename, 'stand-a.png');
+  });
+
   it('falls back to Cast plate when keepers are missing from gallery', () => {
     const character = characterWithKeepers(['missing']);
     const plate = resolveDayPlate({ character, gallery: [] });

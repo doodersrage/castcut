@@ -310,6 +310,79 @@ test('outfit front and back: a try-on card shows its front and its back view', a
   );
 });
 
+test("outfit: a posed Keep offers her standing picture, then shows it for Day and Story", async ({
+  page,
+}) => {
+  const png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const now = Date.now();
+  const still = (id: string, prompt: string) => ({
+    id,
+    promptId: `prompt-${id}`,
+    prompt,
+    comfyUrl: 'http://127.0.0.1:8188',
+    status: 'completed',
+    characterId: 'e2e-standing',
+    tool: 'fitting',
+    queuedAt: now,
+    completedAt: now,
+    images: [{ filename: `${id}.png`, subfolder: '', type: 'output' }],
+  });
+  const look = (standIns?: Record<string, unknown>) => ({
+    id: 'look-1',
+    name: 'Main',
+    createdAt: 1,
+    keeperEntryIds: ['e2e-posed-keep'],
+    ...(standIns ? { keeperStandIns: standIns } : {}),
+  });
+  const seed = (standIns?: Record<string, unknown>) =>
+    seedSettingsCacheOnNextLoad(page, {
+      shared: { activeCharacterId: 'e2e-standing' },
+      characters: {
+        version: 1,
+        characters: [
+          {
+            id: 'e2e-standing',
+            name: 'Standing',
+            version: 1,
+            updatedAt: Date.now(),
+            descriptor: 'a woman',
+            activeLookId: 'look-1',
+            looks: [look(standIns)],
+          },
+        ],
+        removedIds: [],
+      },
+      tools: { fitting: { compareTryOns: [] } },
+    });
+  const posedPrompt =
+    'POSE FIRST: she is sitting on a chair, exactly as the pose map in Image 3 shows.\nPOSE: Image 3 is a pose map (a skeleton, not a person) — the body takes exactly that stance.';
+  await seed();
+  await gotoStable(page, '/fitting');
+  await replaceGalleryIdb(page, [still('e2e-posed-keep', posedPrompt)]);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  // A posed Keep from before: one tap offered, nothing rendered on its own.
+  const note = page.getByTestId('fitting-keeper-standing');
+  await expect(note).toHaveAttribute('data-state', 'offer', { timeout: 30_000 });
+  await expect(note.getByTestId('fitting-keeper-standing-make')).toHaveText(
+    'Make a standing picture'
+  );
+
+  // Its standing picture landed: shown, and said to be what Day and Story use.
+  await seed({ 'e2e-posed-keep': { promptId: 'prompt-e2e-standing', at: now } });
+  await gotoStable(page, '/fitting');
+  await replaceGalleryIdb(page, [
+    still('e2e-posed-keep', posedPrompt),
+    { ...still('e2e-standing', 'Edit Image 1: standing.'), imageUrl: png },
+  ]);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(note).toHaveAttribute('data-state', 'ready', { timeout: 30_000 });
+  await expect(note).toContainText('Day and Story start from her standing picture');
+  await expect(note.getByTestId('fitting-keeper-standing-picture')).toBeVisible();
+});
+
 test('outfit stage: a try-on in flight shows its rendering placeholder', async ({ page }) => {
   const done =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

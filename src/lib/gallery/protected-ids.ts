@@ -132,6 +132,13 @@ export function collectCastKeeperEntryIds(characters: CharacterRecord[]): Set<st
           ids.add(id);
         }
       }
+      // A posed Keep's standing picture is Day and Story's plate (fitting/keeper-stand-in.ts).
+      for (const standIn of Object.values(look.keeperStandIns ?? {})) {
+        const id = standIn?.entryId?.trim();
+        if (id) {
+          ids.add(id);
+        }
+      }
     }
   }
   return ids;

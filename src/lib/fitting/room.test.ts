@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFittingBackViewPrompt,
+  buildFittingStandingPlatePrompt,
   buildFittingCompareLightboxState,
   buildFittingFeetPassPrompt,
   buildFittingGarmentPackshotExtractPrompt,
@@ -486,6 +487,36 @@ describe('Outfit front and back', () => {
     assert.match(his, /, his hair and the back of the outfit/);
     assert.doesNotMatch(his, /\bher\b/);
     assert.match(buildFittingBackViewPrompt({}), /, her hair/);
+  });
+
+  it("a posed try-on's back view keeps the pose, seen from behind, never standing", () => {
+    const posed = buildFittingBackViewPrompt({
+      subject: 'she',
+      shoeWords: 'red stiletto pumps',
+      pose: { words: 'sitting on a chair, her back to the camera.', map: true },
+    });
+    assert.match(posed, /holding exactly the same pose as in Image 1, seen from directly behind/);
+    assert.match(posed, /The pose: sitting on a chair, her back to the camera\. /);
+    assert.match(posed, /Image 2 is a pose map .* from behind/);
+    assert.match(posed, /thin stiletto stays a thin stiletto/);
+    assert.doesNotMatch(posed, /standing/);
+    const wordsOnly = buildFittingBackViewPrompt({ subject: 'he', pose: { words: 'kneeling' } });
+    assert.doesNotMatch(wordsOnly, /pose map/);
+    assert.doesNotMatch(wordsOnly, /\bher\b/);
+    // A pose that already faced away: its other side is her front.
+    assert.match(
+      buildFittingBackViewPrompt({ pose: { fromFront: true, map: true } }),
+      /seen from the front .* pose map .* from the front/
+    );
+  });
+
+  it('buildFittingStandingPlatePrompt: the same outfit, standing front on', () => {
+    const prompt = buildFittingStandingPlatePrompt({ subject: 'she', shoeWords: 'pink pumps' });
+    assert.match(prompt, /^Edit Image 1: the same person in exactly the same outfit and shoes/);
+    assert.match(prompt, /standing up straight .* facing the camera .* full body head to feet/);
+    assert.match(prompt, /On her feet: pink pumps, exactly as in Image 1\./);
+    assert.doesNotMatch(prompt, /pose map/);
+    assert.doesNotMatch(buildFittingStandingPlatePrompt({ subject: 'he' }), /\bher\b/);
   });
 
   it('fittingNextChainStep: try-on → feet pass → back view → done', () => {
