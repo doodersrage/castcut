@@ -646,6 +646,58 @@ function readPickedCameraShot(prompt: string): PoseCameraChoice {
         : {};
 }
 
+/**
+ * A picked camera, said first and in plain framing words. Mid-prompt (after the outfit and
+ * footwear lines) the Camera line was mostly ignored — camera bench, 6 Day poses, 2026-10-22:
+ * Noct-Q took a low angle 1/6 and a three-quarter view 1/6, Turbo the three-quarter view 0/6, and
+ * neither moved in for a waist-up or close-up shot (0/24; the footwear line asks for both feet).
+ * As a CAMERA FIRST line, with the footwear line dropped when the shot leaves the feet out (two
+ * seeds, the second through the real Day page): low 24/24 and three-quarter 22/24 on both
+ * engines, back views and high angles held, every pose kept; shot picks came in to about
+ * thigh-up — closer, not yet waist-up.
+ */
+const CAMERA_FIRST_FRAMING: Array<[RegExp, string]> = [
+  [/\blow angle\b/, 'the camera is low, near the ground, tilted up at her — we look up at her'],
+  [/\bhigh angle\b/, 'the camera is above her head height, tilted down — we look down on her'],
+  [/\bdirectly overhead\b/, 'the camera is straight above her, looking down'],
+  [
+    /\bthree-quarter view\b/,
+    'her body is turned about 45 degrees from the camera, one shoulder nearer than the other',
+  ],
+  [/\bside view\b/, 'we see her from the side, in profile'],
+  [/\bfrom behind\b/, 'the camera is behind her — we see her back'],
+  [/\bknees-up shot\b/, 'she is framed from the knees up; her feet are out of the picture'],
+  [
+    /\bwaist-up shot\b/,
+    'she is framed from the waist up; her legs and feet are out of the picture',
+  ],
+  [
+    /\bhead-and-shoulders close-up\b/,
+    'a close portrait: her head and shoulders fill the frame, nothing below her chest shows',
+  ],
+];
+
+export function withCameraFirst(prompt: string): string {
+  if (!/\sSCENE: /.test(prompt) || /\btwo people\b|\bpartner\b/i.test(prompt)) return prompt;
+  if (prompt.includes('CAMERA FIRST: ')) return prompt;
+  const line = pickedCameraLineIn(prompt);
+  if (!line) return prompt;
+  const picked = line.replace(/^Camera: /, '').replace(/\.$/, '');
+  const framing = CAMERA_FIRST_FRAMING.filter(([re]) => re.test(picked)).map(([, words]) => words);
+  if (!framing.length) return prompt;
+  const lead = `CAMERA FIRST: ${picked} — ${framing.join('; ')}. `;
+  const at = /POSE FIRST: |SCENE: /.exec(prompt);
+  if (!at) return prompt;
+  let out = `${prompt.slice(0, at.index)}${lead}${prompt.slice(at.index)}`;
+  // A shot that leaves the feet out: no line that asks for both feet.
+  if (/\b(?:knees-up|waist-up) shot\b|\bhead-and-shoulders close-up\b/.test(picked)) {
+    out = out
+      .replace(/\s*FOOTWEAR \(mandatory\):[^\n]*?\.(?=\s|$)/, '')
+      .replace('the outfit and shoes she has on', 'the outfit she has on');
+  }
+  return out;
+}
+
 export const QWEN_IMAGE_21_CANDID_LINE =
   'Photographed candidly by a friend from a three-quarter angle, slightly off-centre in the frame, a real moment between poses, relaxed and unposed - not a fashion lineup, not facing the camera square on.';
 
@@ -1265,9 +1317,11 @@ export function convertQwenEditWorkflowToImage21(
         withTwoPersonFaces(
           withoutDroppedReferences(
             withProfilePromptFixes(
-              withNaturalPoses(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
-                customPose: referenceFiles.some(isPlayerPoseGuide),
-              }),
+              withCameraFirst(
+                withNaturalPoses(toQwenImage21Prompt(String(encoder.inputs.prompt ?? '')), {
+                  customPose: referenceFiles.some(isPlayerPoseGuide),
+                })
+              ),
               {
                 namePartnerOutfit: profile.namePartnerOutfit,
                 dressWhenNoOutfit: profile.dressWhenNoOutfit && !nudeStill,
