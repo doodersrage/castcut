@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AthleticSport } from '@/lib/scene/athletic-sport-profiles';
-import type { ComfyImageModel } from '@/lib/comfy-models/client';
 import { resolveModelForQueueTool } from '@/lib/queue/tool-model';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,

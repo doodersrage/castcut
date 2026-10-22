@@ -1,88 +1,13 @@
 'use client';
 
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
-import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
+import { useCallback, useMemo } from 'react';
 import { fittingQueueBlockReason } from '@/lib/fitting/room';
-import FittingCompareSection from '@/components/fitting/FittingCompareSection';
-import FittingActionRow from '@/components/fitting/FittingActionRow';
-import FittingPlateSection from '@/components/fitting/FittingPlateSection';
-import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
-import SharedToolControls from '@/components/SharedToolControls';
-import ToolSetupBanner from '@/components/ToolSetupBanner';
-import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
-import { FieldError } from '@/components/ui/Field';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
-import { useCachedSettings } from '@/hooks/useCachedSettings';
-import { useFittingRoomQueue } from '@/hooks/useFittingRoomQueue';
-import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
-import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { useToolPageDescription } from '@/hooks/useToolPageDescription';
-import { parseCharacterHints } from '@/lib/character/hints';
-import {
-  activeLook,
-  applyCharacterRecord,
-  characterFromShared,
-  getCharacter,
-  upsertCharacter,
-} from '@/lib/character/os';
-import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
-import {
-  fetchClothingLabels,
-  fetchClothingSelectOptions,
-  getCachedClothingLabel,
-} from '@/lib/wardrobe/clothing-catalog-client';
-import {
-  buildFittingSwipeDeck,
-  fittingSwipeIndex,
-  fittingSwipeNeighbor,
-  resolveFittingDeckWardrobeId,
-  resolveFittingPlateFromCharacter,
-} from '@/lib/fitting/room';
-import {
-  countInFlightFittingKitPreviews,
-  fittingKitPreviewQueueParams,
-  fittingKitPreviewQueueResolveOptions,
-  getFittingKitPreview,
-  normalizeFittingKitPreviews,
-  resolveFittingKitPreviewModel,
-} from '@/lib/fitting/kit-previews';
-import {
-  countWardrobeOptionsForFilter,
-  filterWardrobeSelectOptions,
-  normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe/catalog-ui';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
-import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { cacheBustIdentityMediaUrl, isIdentityMediaUrl } from '@/lib/gallery/media-client';
-import {
-  collectIsolateSourceUrls,
-  isolateSubjectOnWhite,
-  ISOLATE_QUEUE_BLOCKED_MESSAGE,
-  loadImageBlobFromUrls,
-} from '@/lib/edit/isolate-subject';
-import {
-  applyLookPackToFittingState,
-  loadLookPack,
-  lookPackDayHref,
-  lookPackRoleplayHref,
-  saveLookPack,
-} from '@/lib/look/pack';
+import { applyCharacterRecord } from '@/lib/character/os';
+import { loadLookPack, lookPackDayHref, lookPackRoleplayHref, saveLookPack } from '@/lib/look/pack';
 import { bumpPlayCampaignStep } from '@/lib/play/campaign';
-import { resolveQueueInputImage } from '@/lib/queue/input-image';
-import { getReformatTargetModel } from '@/lib/edit/reformat-target';
-import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
-import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
-import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting/clothing-options';
-
-const ACCENT = 'rose' as const;
-const TOOL_ID = 'fitting' as const;
+import { type FittingClothingOption } from '@/lib/fitting/clothing-options';
 
 import type { FittingRoomToolOrchestrationCore } from '@/hooks/fitting-room/useFittingRoomToolOrchestrationCore';
 import type { useFittingRoomToolOrchestrationPart2 } from '@/hooks/fitting-room/useFittingRoomToolOrchestrationPart2';
@@ -91,89 +16,20 @@ export function useFittingRoomToolOrchestrationPart3(
   ctx: FittingRoomToolOrchestrationCore & ReturnType<typeof useFittingRoomToolOrchestrationPart2>
 ) {
   const {
-    mounted,
     shared,
     toolSettings,
-    updateShared,
-    updateToolSettings,
     router,
-    output,
-    setOutput,
-    copied,
-    setCopied,
     error,
-    setError,
     referenceUploading,
-    setReferenceUploading,
-    isolateStatus,
-    setIsolateStatus,
-    referencePreviewUrl,
-    setReferencePreviewUrl,
-    lockedWardrobeLabel,
-    setLockedWardrobeLabel,
-    saveStatus,
-    setSaveStatus,
-    continueDayHref,
-    setContinueDayHref,
     isolateSubject,
-    isolateGenRef,
-    autoKitPreviews,
-    kitPreviews,
-    referenceImageFilename,
-    referenceImageUrl,
-    referenceOriginalFilename,
-    referenceOriginalUrl,
     hasReference,
     character,
-    selectedModel,
-    clothingGender,
-    wardrobeReady,
-    wardrobeCategoryFilter,
-    wardrobeOptions,
-    setWardrobeOptions,
-    wardrobeLoadedKey,
-    setWardrobeLoadedKey,
-    wardrobeOptionsKey,
-    wardrobeKitCount,
     filteredWardrobeOptions,
-    prevCategoryFilterRef,
-    swipeDeck,
-    activeSwipeKit,
-    deckSelectionId,
-    deckSelectionIndex,
-    activeThumbRef,
-    activeLookId,
-    previewModel,
-    previewModelLabel,
-    previewQueueParams,
-    previewQueueResolveOptions,
-    completedPreviewCount,
-    inFlightPreviewCount,
-    deepLinkHandled,
-    clearReferencePreview,
-    actions,
-    applyReference,
-    leanChrome,
     busy,
-    compareTryOns,
-    previewStatus,
-    queueTryOn,
-    fillKitPreviews,
-    keepTryOn,
-    queueTryOnAndSwipe,
-    clearReference,
     garmentUploading,
-    applyCustomGarment,
-    applyFootwearPhoto,
-    clearCustomGarment,
-    clearKit,
-    selectKit,
-    swipeKit,
-    skipKit,
     dismissTryOn,
     applyFixedTryOn,
     requeueTryOn,
-    saveKitToCast,
   } = ctx;
 
   const goRoleplay = useCallback(() => {

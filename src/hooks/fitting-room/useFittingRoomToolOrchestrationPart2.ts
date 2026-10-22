@@ -2,50 +2,21 @@
 
 import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
-import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import FittingCharacterSection from '@/components/fitting/FittingCharacterSection';
-import FittingCompareSection from '@/components/fitting/FittingCompareSection';
-import FittingActionRow from '@/components/fitting/FittingActionRow';
-import FittingPlateSection from '@/components/fitting/FittingPlateSection';
-import FittingWardrobeKitSection from '@/components/fitting/FittingWardrobeKitSection';
-import SharedToolControls from '@/components/SharedToolControls';
-import ToolSetupBanner from '@/components/ToolSetupBanner';
-import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
-import { FieldError } from '@/components/ui/Field';
-import { ToolBadge, ToolLayout } from '@/components/ui/ToolPageShell';
-import { useCachedSettings } from '@/hooks/useCachedSettings';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFittingRoomQueue } from '@/hooks/useFittingRoomQueue';
-import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
-import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
 import { useGalleryHandoff } from '@/hooks/useGalleryHandoff';
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
-import { useSeedToolDraft } from '@/hooks/useSeedToolDraft';
-import { useToolPageDescription } from '@/hooks/useToolPageDescription';
-import { parseCharacterHints } from '@/lib/character/hints';
 import {
   activeLook,
   applyCharacterRecord,
-  applyCharacterRecordFresh,
   characterFromShared,
   getCharacter,
   upsertCharacter,
 } from '@/lib/character/os';
-import { subjectGenderToClothingGender } from '@/lib/wardrobe/clothing-gender';
 import {
   fetchClothingLabels,
   fetchClothingSelectOptions,
   getCachedClothingLabel,
 } from '@/lib/wardrobe/clothing-catalog-client';
-import {
-  countInFlightFittingKitPreviews,
-  fittingKitPreviewQueueParams,
-  fittingKitPreviewQueueResolveOptions,
-  getFittingKitPreview,
-  normalizeFittingKitPreviews,
-  resolveFittingKitPreviewModel,
-} from '@/lib/fitting/kit-previews';
 import { applyCustomGarmentUpload } from '@/lib/fitting/custom-garment-apply';
 import { fetchInstalledModelCheck } from '@/lib/wardrobe/footwear-check-client';
 import {
@@ -53,36 +24,21 @@ import {
   SETTINGS_SYNCED_WITH_SERVER_EVENT,
 } from '@/lib/settings/push-flush';
 import {
-  buildFittingSwipeDeck,
   fittingBestDefaultEngine,
   fittingDefaultEngineSwitch,
-  fittingSwipeIndex,
   fittingSwipeNeighbor,
-  resolveFittingDeckWardrobeId,
   resolveFittingPlateFromCharacter,
 } from '@/lib/fitting/room';
-import {
-  countWardrobeOptionsForFilter,
-  filterWardrobeSelectOptions,
-  normalizeWardrobeCategoryFilter,
-} from '@/lib/wardrobe/catalog-ui';
-import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { cacheBustIdentityMediaUrl } from '@/lib/gallery/media-client';
-import {
-  collectIsolateSourceUrls,
-  ISOLATE_QUEUE_BLOCKED_MESSAGE,
-} from '@/lib/edit/isolate-subject';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
 import {
   applyLookPackToFittingState,
   loadLookPack,
-  lookPackDayHref,
   lookPackNotesForCharacter,
   fittingNotesBelongToCharacter,
   fittingNotesCachePatch,
   shouldRetainFittingNotesForLookPack,
-  lookPackRoleplayHref,
-  saveLookPack,
 } from '@/lib/look/pack';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -95,17 +51,11 @@ import {
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
 } from '@/lib/fitting/saved-garments';
-import { bumpPlayCampaignStep, resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
-import { getReformatTargetModel } from '@/lib/edit/reformat-target';
+import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { loadSettingsCache, saveSharedSettings } from '@/lib/settings/cache';
-import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
-import { EMPTY_WARDROBE_OPTIONS, type FittingClothingOption } from '@/lib/fitting/clothing-options';
 import { scanStillWithVision } from '@/lib/vision/still-scan-client';
 import { resolveStillFileForVisionScan } from '@/lib/vision/scan-still';
-
-const ACCENT = 'rose' as const;
-const TOOL_ID = 'fitting' as const;
 
 import type { FittingRoomToolOrchestrationCore } from '@/hooks/fitting-room/useFittingRoomToolOrchestrationCore';
 
@@ -116,24 +66,13 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     toolSettings,
     updateShared,
     updateToolSettings,
-    router,
-    output,
     setOutput,
-    copied,
     setCopied,
-    error,
     setError,
-    referenceUploading,
-    setReferenceUploading,
-    isolateStatus,
-    setIsolateStatus,
-    referencePreviewUrl,
     setReferencePreviewUrl,
     lockedWardrobeLabel,
     setLockedWardrobeLabel,
-    saveStatus,
     setSaveStatus,
-    continueDayHref,
     setContinueDayHref,
     isolateSubject,
     isolateGenRef,
@@ -141,39 +80,26 @@ export function useFittingRoomToolOrchestrationPart2(ctx: FittingRoomToolOrchest
     kitPreviews,
     referenceImageFilename,
     referenceImageUrl,
-    referenceOriginalFilename,
-    referenceOriginalUrl,
     hasReference,
     character,
-    selectedModel,
     clothingGender,
     wardrobeReady,
     wardrobeCategoryFilter,
-    wardrobeOptions,
     setWardrobeOptions,
-    wardrobeLoadedKey,
     setWardrobeLoadedKey,
     wardrobeOptionsKey,
-    wardrobeKitCount,
-    filteredWardrobeOptions,
     prevCategoryFilterRef,
     swipeDeck,
-    activeSwipeKit,
     deckSelectionId,
-    deckSelectionIndex,
-    activeThumbRef,
     activeLookId,
     previewModel,
-    previewModelLabel,
     previewQueueParams,
     previewQueueResolveOptions,
-    completedPreviewCount,
     inFlightPreviewCount,
     deepLinkHandled,
     clearReferencePreview,
     actions,
     applyReference,
-    leanChrome,
   } = ctx;
 
   const clearReference = useCallback(() => {
