@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { dismissBlockingOverlays } from './overlays';
 
 /** Navigate with retries for transient next-dev / Fast Refresh aborts. */
@@ -144,4 +144,32 @@ export async function openComfyUiSettingsTab(page: Page): Promise<void> {
   }
 
   await expect(page.locator(requiredSelector).first()).toBeVisible({ timeout: 45_000 });
+}
+
+/**
+ * The page itself, for locators on a server-streamed page (Settings: each tab is a next/dynamic
+ * chunk). Under load the client renders a tab before the server's streamed copy of it arrives;
+ * that copy then sits in a hidden `<div id="S:0">` on <body>, outside <main>, until React's
+ * reveal script removes it a moment later. A page-wide locator sees both copies (a strict-mode
+ * violation, or the hidden one); the copy users see is the one in <main>.
+ */
+export function pageMain(page: Page): Locator {
+  return page.getByRole('main');
+}
+
+/**
+ * Wait until React has hydrated this element (its props are attached), so a click runs the
+ * app's handler. Before that, a click on server HTML only does what the browser does: a link
+ * navigates with a full page load and skips its onClick.
+ */
+export async function waitForHydrated(locator: Locator, timeout = 30_000): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        locator.evaluate(element =>
+          Object.keys(element).some(key => key.startsWith('__reactProps$'))
+        ),
+      { timeout }
+    )
+    .toBe(true);
 }
