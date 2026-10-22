@@ -97,7 +97,7 @@ describe('applyPosePackToSlots', () => {
 
   it('replaces earlier pose picks (photo, camera) on the slot', () => {
     const slots = sixSlots();
-    slots[0] = { ...slots[0]!, posePhoto: duoPhoto, poseCamera: 'side', poseVariant: 4 };
+    slots[0] = { ...slots[0]!, posePhoto: duoPhoto, poseCamera: { direction: 'side' }, poseVariant: 4 };
     const result = applyPosePackToSlots(slots, fitness);
     assert.equal(result.slots[0]!.posePhoto, undefined);
     assert.equal(result.slots[0]!.poseCamera, undefined);
@@ -191,12 +191,16 @@ describe('clearPosePackFromSlots / activePosePack', () => {
 describe('posePackFromSlots / normalizePosePack', () => {
   it('saves the posed slots in order with their picks, skipping unposed ones', () => {
     const slots = sixSlots();
-    slots[0] = { ...slots[0]!, poseLayout: 'walk', poseVariant: 3, poseCamera: 'low' };
+    slots[0] = { ...slots[0]!, poseLayout: 'walk', poseVariant: 3, poseCamera: { height: 'low', shot: 'waist' } };
     slots[2] = { ...slots[2]!, posePhoto: duoPhoto, poseLead: 'right' };
     const pack = posePackFromSlots(slots, '  Gym day  ', 'mine-1', 5)!;
     assert.equal(pack.name, 'Gym day');
     assert.equal(pack.mine, true);
-    assert.deepEqual(pack.entries[0], { layout: 'walk', variant: 3, camera: 'low' });
+    assert.deepEqual(pack.entries[0], {
+      layout: 'walk',
+      variant: 3,
+      camera: { height: 'low', shot: 'waist' },
+    });
     assert.equal(pack.entries[1]!.photo?.people.length, 2);
     assert.equal(pack.entries[1]!.lead, 'right');
     assert.equal(pack.entries.length, 2);

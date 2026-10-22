@@ -38,6 +38,33 @@ import {
   vacationStanceDirective,
 } from '@/lib/day/vacation';
 import { clarifyIntimateImageLanguage } from '@/lib/adult/intimate-prompt-clarify';
+import { cameraChoiceIsSet, type PoseCameraChoice } from '@/lib/pose/camera-shot';
+import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
+import type { PhotoPose } from '@/lib/pose/types';
+
+/** The camera a still is taken with, and whose pick it is. */
+export type PickedStillCamera = {
+  choice: PoseCameraChoice;
+  /** `pose`: the custom 3D pose's own camera; `slot`: the slot / beat's Camera row. */
+  from: 'pose' | 'slot';
+};
+
+/**
+ * The camera a slot's (or beat's) still is taken with. A custom pose posed in the 3D editor was
+ * projected through its own camera — the pose map is that view — so its camera wins (the one
+ * picked in the editor's Camera panel, else read from where it was orbited to). Otherwise the
+ * Camera row's pick; null when it is all Auto (Day keeps the camera it infers).
+ */
+export function pickedStillCamera(input: {
+  posePhoto?: PhotoPose | null;
+  poseCamera?: PoseCameraChoice | null;
+}): PickedStillCamera | null {
+  const fromPose = photoPoseCameraChoice(input.posePhoto);
+  if (fromPose) return { choice: fromPose, from: 'pose' };
+  return cameraChoiceIsSet(input.poseCamera)
+    ? { choice: { ...input.poseCamera! }, from: 'slot' }
+    : null;
+}
 import { stripNegatedClauses } from '@/lib/prompt/negated-clauses';
 import { mergeAvoidedPoseLayouts } from '@/lib/pose/guide-prompt';
 
@@ -197,6 +224,7 @@ export function planDaySlotPose(input: {
     ? { ...(override.layout ? {} : beatSpec), ...override }
     : beatSpec;
   const variant = (input.slot.poseVariant ?? 0) + (input.retryVariant ?? 0);
+  const camera = pickedStillCamera(input.slot);
   const avoidLayouts = mergeAvoidedPoseLayouts(input.weakLayouts, input.model);
 
   return {
@@ -215,7 +243,7 @@ export function planDaySlotPose(input: {
         ? { plainPostureBase: poseProfileForModel(input.model).plainPostureBase }
         : {}),
       ...(input.slot.posePhoto ? { photoPose: input.slot.posePhoto } : {}),
-      ...(input.slot.poseCamera ? { camera: input.slot.poseCamera } : {}),
+      ...(camera ? { camera: camera.choice } : {}),
       ...(input.slot.poseLead ? { leadSide: input.slot.poseLead } : {}),
       ...(input.slot.poseLook ? { look: input.slot.poseLook } : {}),
     },

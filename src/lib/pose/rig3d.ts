@@ -7,6 +7,8 @@
  * Shared (not Play): My poses and the pose types normalise it.
  */
 
+import { normalizeFullCameraChoice, type FullCameraChoice } from '@/lib/pose/camera-shot';
+
 export const RIG3D_VERSION = 1;
 
 export type Rig3dVec3 = [number, number, number];
@@ -28,6 +30,13 @@ export type PoseRig3dCamera = {
   target: Rig3dVec3;
   /** Vertical field of view, degrees. */
   fov: number;
+  /**
+   * What the camera was picked as in the editor's Camera panel (height, direction, shot, lens),
+   * so the words never have to be read back from the numbers. Gone as soon as the camera is
+   * orbited or zoomed by hand: then the words come from the numbers (pose/rig3d-camera.ts).
+   * Older readers ignore it.
+   */
+  choice?: FullCameraChoice;
 };
 
 export type PoseRig3d = {
@@ -87,9 +96,10 @@ export function normalizePoseRig3d(raw: unknown, people?: number): PoseRig3d | u
   const target = vec3(cam?.target);
   const fov = cam?.fov;
   if (!position || !target || !finite(fov) || fov < 5 || fov > 120) return undefined;
+  const choice = normalizeFullCameraChoice(cam?.choice);
   return {
     version: RIG3D_VERSION,
     figures: figures as PoseRig3dFigure[],
-    camera: { position, target, fov },
+    camera: { position, target, fov, ...(choice ? { choice } : {}) },
   };
 }

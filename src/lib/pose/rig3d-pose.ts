@@ -205,6 +205,7 @@ export function cloneRig(rig: PoseRig3d): PoseRig3d {
       position: [...rig.camera.position],
       target: [...rig.camera.target],
       fov: rig.camera.fov,
+      ...(rig.camera.choice ? { choice: { ...rig.camera.choice } } : {}),
     },
   };
 }
@@ -335,7 +336,7 @@ const round4 = (v: number) => Math.round(v * 1e4) / 1e4;
 
 /**
  * The figure as OpenPose would read it from this camera: the 18 points on the picture, with the
- * face points a detector would not see left out (the nose and eyes of a head turned away, the
+ * joints outside the picture and the face points a detector would not see left out (the nose and eyes of a head turned away, the
  * ear on the far side of a head in profile), as the reference poses have them.
  */
 export function projectFigure(
@@ -360,7 +361,11 @@ export function projectFigure(
   };
   return points.map((point, index) => {
     if (!visible(index)) return null;
+    // Out of the picture (a closer shot crops the legs, a turned camera loses a hand): left out,
+    // as a detector would — the pose map draws only what the still frames.
+    if (point.clone().sub(cam.position).dot(cam.getWorldDirection(new Vector3())) <= 0) return null;
     const p = projectPoint(cam, point);
+    if (p.x < -0.005 || p.x > 1.005 || p.y < -0.005 || p.y > 1.005) return null;
     return { x: round4(p.x), y: round4(p.y) };
   });
 }

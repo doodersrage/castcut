@@ -36,8 +36,15 @@ import {
   type OpenPosePerson,
   type PoseCameraAngle,
   type PoseFacing,
+  type PoseFraming,
   type PoseLeadPosition,
 } from '@/lib/pose/guide-openpose';
+import {
+  cameraChoiceSetsAngle,
+  normalizePoseCameraChoice,
+  type CameraShot,
+  type PoseCameraChoice,
+} from '@/lib/pose/camera-shot';
 import {
   isOpenPoseStyle,
   normalizePoseGuideStylePreference,
@@ -6318,17 +6325,16 @@ export type PoseGuideBuildOptions = SceneStickOptions & {
   references?: readonly PoseReference[];
   /** A pose read from the player's own photo — drawn exactly (OpenPose styles only). */
   photoPose?: PhotoPose | null;
-  /** Camera the player picked; `front` drops any inferred angle. Unset = inferred. */
+  /**
+   * Camera the player picked (pose/camera-shot.ts). A height or direction drops the inferred
+   * angle (the picked line says it instead); a shot size crops a drawn solo figure to match.
+   * Unset = inferred.
+   */
   camera?: PoseCameraChoice | null;
 };
 
-export type PoseCameraChoice = 'front' | 'side' | 'overhead' | 'low';
-export const POSE_CAMERA_CHOICES: readonly PoseCameraChoice[] = [
-  'front',
-  'side',
-  'overhead',
-  'low',
-];
+export type { PoseCameraChoice };
+export { normalizePoseCameraChoice };
 
 /** Pose-library key for a photo pose (its stats are logged as the `photo` layout). */
 export function photoPoseKey(people: number): string {
@@ -6403,19 +6409,29 @@ export function normalizePhotoPose(raw: unknown): PhotoPose | undefined {
   };
 }
 
-export function normalizePoseCameraChoice(raw: unknown): PoseCameraChoice | undefined {
-  return typeof raw === 'string' && (POSE_CAMERA_CHOICES as readonly string[]).includes(raw)
-    ? (raw as PoseCameraChoice)
-    : undefined;
-}
-
-/** Camera line for the prompt: the player's pick wins over the one the skeleton implies. */
+/**
+ * The angle the guide's own camera line names. A player's pick that sets the height or the
+ * direction wins: its own line (cameraChoiceLine) says where the camera is, so the inferred one
+ * is dropped rather than contradict it. A pick of only the shot or lens keeps the inferred angle.
+ */
 export function resolvePoseCamera(
   inferred: PoseCameraAngle | null,
   choice: PoseCameraChoice | null | undefined
 ): PoseCameraAngle | null {
-  if (!choice) return inferred;
-  return choice === 'front' ? null : choice;
+  return cameraChoiceSetsAngle(choice) ? null : inferred;
+}
+
+/** The guide framing a picked shot size draws (a solo drawn figure is cropped to it). */
+export function poseFramingForShot(shot: CameraShot | null | undefined): PoseFraming | null {
+  return shot === 'full'
+    ? 'full'
+    : shot === 'knees'
+      ? 'three-quarter'
+      : shot === 'waist'
+        ? 'waist-up'
+        : shot === 'head'
+          ? 'close-up'
+          : null;
 }
 
 async function canvasToPoseGuideFile(
@@ -6480,6 +6496,8 @@ export function planOpenPoseGuide(input: {
   references?: readonly PoseReference[];
   /** Two people: the side the lead stands on (a reference pose is mirrored to match). */
   leadSide?: 'left' | 'right';
+  /** A shot size the player picked: wins over the one the beat names. */
+  framing?: PoseFraming | null;
 }): {
   canvas: { width: number; height: number };
   people: OpenPosePerson[];
@@ -6529,7 +6547,7 @@ export function planOpenPoseGuide(input: {
     // Portrait guides keep the authored placement; square/landscape ones frame the people.
     const framed =
       input.figures.length === 1
-        ? poseFramingRegion(input.figures[0]!, resolvePoseFraming(input.sceneText))
+        ? poseFramingRegion(input.figures[0]!, input.framing ?? resolvePoseFraming(input.sceneText))
         : null;
     const portrait = Math.abs(size.width / size.height - WIDTH / HEIGHT) < 0.02;
     const region = framed ?? (portrait ? null : poseFiguresRegion(input.figures));
@@ -6631,6 +6649,7 @@ export function resolveSceneGuidePlan(
     photoPose: photo,
     references: options?.openPose === false ? [] : options?.references,
     leadSide: options?.leadSide,
+    framing: poseFramingForShot(options?.camera?.shot),
   });
   return {
     intent,

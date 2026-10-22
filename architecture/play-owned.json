@@ -141,5 +141,6 @@
   "src/lib/pose/rig3d-pose.ts",
   "src/lib/pose/rig3d-skeleton.ts",
   "src/lib/pose/rig3d-three.ts",
-  "src/lib/pose/rig3d-render.ts"
+  "src/lib/pose/rig3d-render.ts",
+  "src/lib/pose/rig3d-camera.ts"
 ]

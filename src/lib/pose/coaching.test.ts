@@ -226,13 +226,23 @@ describe('photo pose, camera and lead side', () => {
     const text = 'lying on her side on the picnic blanket, head propped on one hand';
     const inferred = resolveSceneGuidePlan(text, 0, { forcePeople: 1 }).openPose.camera;
     assert.notEqual(inferred, null);
+    // A picked height or direction says where the camera is in its own line: no inferred angle.
     assert.equal(
-      resolveSceneGuidePlan(text, 0, { forcePeople: 1, camera: 'front' }).openPose.camera,
+      resolveSceneGuidePlan(text, 0, {
+        forcePeople: 1,
+        camera: { height: 'eye', direction: 'front' },
+      }).openPose.camera,
       null
     );
     assert.equal(
-      resolveSceneGuidePlan(text, 0, { forcePeople: 1, camera: 'low' }).openPose.camera,
-      'low'
+      resolveSceneGuidePlan(text, 0, { forcePeople: 1, camera: { height: 'low' } }).openPose.camera,
+      null
+    );
+    // A shot size alone keeps the inferred angle.
+    assert.equal(
+      resolveSceneGuidePlan(text, 0, { forcePeople: 1, camera: { shot: 'waist' } }).openPose
+        .camera,
+      inferred
     );
     assert.match(POSE_GUIDE_CAMERA_LINES.low, /low angle/i);
     assert.match(
@@ -260,24 +270,25 @@ describe('photo pose, camera and lead side', () => {
     assert.equal(normalizePhotoPose({ aspect: 0, people: [] }), undefined);
     assert.equal(normalizePhotoPose({ aspect: 1, people: 'x' }), undefined);
     assert.equal(normalizePoseCameraChoice('fisheye'), undefined);
-    assert.equal(normalizePoseCameraChoice('side'), 'side');
+    // The older single picks still read, as what they meant.
+    assert.deepEqual(normalizePoseCameraChoice('side'), { height: 'eye', direction: 'side' });
 
     const [slot] = normalizeDaySlots([
       {
         id: 'morning',
         label: 'Morning',
         posePhoto: photo,
-        poseCamera: 'overhead',
+        poseCamera: 'overhead' as never, // a single pick saved before the four-part camera
         poseLead: 'right',
       },
     ]);
     assert.deepEqual(slot?.posePhoto, photo);
-    assert.equal(slot?.poseCamera, 'overhead');
+    assert.deepEqual(slot?.poseCamera, { height: 'overhead' });
     assert.equal(slot?.poseLead, 'right');
 
     const plan = planDaySlotPose({ slot: slot!, dayMood: 'everyday' });
     assert.deepEqual(plan.options.photoPose, photo);
-    assert.equal(plan.options.camera, 'overhead');
+    assert.deepEqual(plan.options.camera, { height: 'overhead' });
     assert.equal(plan.options.leadSide, 'right');
 
     const beat = normalizeRoleplayLibrarySnapshot({
@@ -294,7 +305,7 @@ describe('photo pose, camera and lead side', () => {
       ],
     })?.story?.[0];
     assert.deepEqual(beat?.posePhoto, photo);
-    assert.equal(beat?.poseCamera, 'low');
+    assert.deepEqual(beat?.poseCamera, { height: 'low' });
     assert.equal(beat?.poseLead, 'left');
   });
 });
