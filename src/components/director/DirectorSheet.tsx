@@ -28,6 +28,7 @@ import { frameDirection, readStillFraming, type StillFraming } from '@/lib/direc
 import { DIRECTOR_MOVE_IDS, DIRECTOR_MOVES, type DirectorMoveId } from '@/lib/director/moves';
 import {
   directionMotionLine,
+  directionSeat,
   directionSupportNeeds,
   supportFix,
   supportWarning,
@@ -77,7 +78,12 @@ const PoseJointEditor3D = dynamic(() => import('@/components/pose/PoseJointEdito
   ssr: false,
 });
 
-export type DirectorRenderOptions = { motion: string; place?: string };
+export type DirectorRenderOptions = {
+  motion: string;
+  place?: string;
+  /** A seat Copy moves puts into the still first ("a wooden chair"), when she sits down. */
+  seat?: string;
+};
 
 export type DirectorSheetProps = {
   open: boolean;
@@ -189,6 +195,8 @@ function DirectorSheetOpen({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedDirection[]>(() => loadDirections(castId));
   const [saveName, setSaveName] = useState('');
+  // Put the seat into the still before Copy moves (it draws the room from the still).
+  const [drawSeat, setDrawSeat] = useState(true);
   // Saved on another device: the list catches up when sync brings them.
   useEffect(() => subscribeDirections(() => setSaved(loadDirections(castId))), [castId]);
   const abortRef = useRef<AbortController | null>(null);
@@ -253,7 +261,13 @@ function DirectorSheetOpen({
   );
   const length = directionLength(direction);
   const check = checkDirection(direction);
-  const supportNeeds = directionSupportNeeds(direction);
+  const allSupportNeeds = directionSupportNeeds(direction);
+  const seatOffer = directionSeat(allSupportNeeds, direction.place);
+  const seat = drawSeat ? seatOffer : null;
+  // A seat put into the still covers the sitting beats; leaning still needs Place.
+  const supportNeeds = seat
+    ? allSupportNeeds.filter(note => note.support !== 'sit')
+    : allSupportNeeds;
   const support = supportWarning(supportNeeds, direction.place);
   const seatFix = support ? supportFix(supportNeeds, direction.place, body) : null;
   const starts = beatStarts(direction);
@@ -366,8 +380,9 @@ function DirectorSheetOpen({
         return;
       }
       onRender(blob, {
-        motion: directionMotionLine(direction),
+        motion: directionMotionLine(direction, seat),
         ...(direction.place?.trim() ? { place: direction.place.trim() } : {}),
+        ...(seat ? { seat } : {}),
       });
       onClose();
     } catch (cause) {
@@ -838,6 +853,24 @@ function DirectorSheetOpen({
                 }
                 data-testid={`${p}-place`}
               />
+              {seatOffer ? (
+                <label
+                  className="type-caption flex items-start gap-2 text-[var(--text-muted)]"
+                  title="Copy moves draws the room from the still, so a seat only named in Place is not drawn"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={drawSeat}
+                    onChange={event => setDrawSeat(event.target.checked)}
+                    data-testid={`${p}-seat`}
+                  />
+                  <span>
+                    Put {seatOffer} behind {body === 'male' ? 'him' : 'her'} in the still first, so{' '}
+                    {she} sits on it (a quick edit before the clip)
+                  </span>
+                </label>
+              ) : null}
               {support ? (
                 <p
                   className="type-caption text-[var(--tint-warning-text,var(--text-muted))]"

@@ -54,6 +54,7 @@ export default function DirectorGalleryHost() {
             look: (cast?.descriptor || cast?.hints || request.prompt || '').trim().slice(0, 600),
             place: options.place,
             motion: options.motion,
+            seat: options.seat,
           }),
           keep: {
             kind: 'moves',

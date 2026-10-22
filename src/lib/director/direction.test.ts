@@ -14,11 +14,13 @@ import {
 import { poseSupport } from './figure-ops';
 import {
   directionMotionLine,
+  directionSeat,
   directionSupportNeeds,
   supportFix,
   supportWarning,
 } from './motion-line';
 import { DIRECTOR_MOVES } from './moves';
+import { cleanSeat, seatStillPrompt, theSeat } from '@/lib/video/motion-seat';
 import { poseBeat, standingFigure, starterFigure } from './poses';
 import { migrateDirectionStore, normalizeDirectionList, withSavedDirection } from './store';
 import { mergeRecordList, recordListSpec } from '@/lib/storage/record-list-sync';
@@ -171,6 +173,44 @@ describe('director: words', () => {
       label: 'Add a wall to Place',
       place: 'a hallway, with a wall beside her',
     });
+  });
+});
+
+describe('director: a seat put into the still', () => {
+  it('offers a seat when a later beat sits, not when she already sits in the still', () => {
+    const sits = directionSupportNeeds(direction([start(), moveBeat('wave'), moveBeat('sit')]));
+    assert.equal(directionSeat(sits, ''), 'a wooden chair');
+    assert.equal(directionSeat(sits, 'a bright kitchen'), 'a wooden chair');
+    // The seat Place names.
+    assert.equal(directionSeat(sits, 'a living room with two armchairs'), 'an armchair');
+    assert.equal(directionSeat(sits, 'a park, benches'), 'a bench');
+    assert.equal(directionSeat(sits, 'old stone steps'), 'some steps');
+    const reclined = [{ beatId: 'b', index: 1, support: 'sit' as const, reclined: true }];
+    assert.equal(directionSeat(reclined, ''), 'a sofa');
+    // Sitting from the start: the still has her seat.
+    const seated = [{ beatId: 'a', index: 0, support: 'sit' as const }, ...sits];
+    assert.equal(directionSeat(seated, ''), null);
+    assert.equal(directionSeat(directionSupportNeeds(direction([start(), moveBeat('wave')])), ''), null);
+    assert.equal(directionSeat([{ beatId: 'b', index: 1, support: 'lean' as const }], ''), null);
+  });
+
+  it('says on what she sits in the motion line', () => {
+    const d = direction([start(), moveBeat('sit')]);
+    assert.match(directionMotionLine(d, 'a wooden chair'), /sits down on the wooden chair behind her\.$/);
+    assert.doesNotMatch(directionMotionLine(d), /chair/);
+    const him = { ...d, body: 'male' as const };
+    assert.match(directionMotionLine(him, 'a sofa'), /A man stands, then sits down on the sofa behind him\.$/);
+  });
+
+  it('cleans the seat field and words the edit', () => {
+    assert.equal(cleanSeat('  a wooden\n chair '), 'a wooden chair');
+    assert.equal(cleanSeat(''), null);
+    assert.equal(cleanSeat(3), null);
+    assert.ok(cleanSeat('x'.repeat(200))!.length <= 80);
+    assert.equal(theSeat('a wooden chair'), 'the wooden chair');
+    assert.equal(theSeat('an armchair'), 'the armchair');
+    assert.match(seatStillPrompt('a wooden chair'), /^Add a wooden chair standing on the floor directly behind the person, centered/);
+    assert.match(seatStillPrompt('a sofa'), /Keep the person, face/);
   });
 });
 

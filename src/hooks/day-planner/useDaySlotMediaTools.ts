@@ -196,7 +196,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     (
       slot: DaySlot,
       video: Blob,
-      options: { motion?: string; keepSound?: boolean; place?: string } = {}
+      options: { motion?: string; keepSound?: boolean; place?: string; seat?: string } = {}
     ) =>
       slotJob(slot, 'moves', still => {
         const stillUrl = shownStill(still);
@@ -207,6 +207,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
             look: (character?.descriptor || character?.hints || '').trim(),
             place: options.place?.trim() || slot.location?.trim() || undefined,
             motion: options.motion?.trim() || undefined,
+            seat: options.seat?.trim() || undefined,
             keepSound: options.keepSound,
           }),
           source: stillUrl,

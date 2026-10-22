@@ -8,6 +8,7 @@ import { figureWorld } from '@/lib/pose/rig3d-pose';
 import { placementOf, poseSupport, type PoseSupport } from './figure-ops';
 import { DIRECTOR_MOVES } from './moves';
 import type { Direction, DirectorBeat } from './types';
+import { theSeat } from '@/lib/video/motion-seat';
 
 /** Copy moves keeps 300 characters of it. */
 const MAX_LINE = 300;
@@ -37,11 +38,23 @@ function beatPhrase(beat: DirectorBeat, index: number): string {
   return words ? `moves into a new pose — ${words}` : 'moves into a new pose';
 }
 
-/** "A woman stands, then waves with her right hand, then turns around." */
-export function directionMotionLine(direction: Direction): string {
+/**
+ * "A woman stands, then waves with her right hand, then turns around." With a seat put into the
+ * still, the beats that sit say on what ("sits down on the wooden chair behind her").
+ */
+export function directionMotionLine(direction: Direction, seat?: string | null): string {
   const phrases: string[] = [];
+  const sitting = seat
+    ? new Set(
+        directionSupportNeeds(direction)
+          .filter(n => n.support === 'sit')
+          .map(n => n.index)
+      )
+    : null;
   direction.beats.forEach((beat, index) => {
-    const phrase = beatPhrase(beat, index);
+    let phrase = beatPhrase(beat, index);
+    if (seat && sitting?.has(index))
+      phrase = `${phrase} on ${theSeat(seat)} behind ${direction.body === 'male' ? 'him' : 'her'}`;
     // A held start then the same again reads once.
     if (phrases[phrases.length - 1] !== phrase) phrases.push(phrase);
   });
@@ -136,6 +149,32 @@ export function supportFix(
   const thing = parts.join(' and ');
   const next = text ? `${text.replace(/[.,;\s]+$/, '')}, with ${thing}` : thing;
   return { label: `Add ${label} to Place`, place: next.slice(0, 300) };
+}
+
+/** "chairs" → "chair", "couches" → "couch"; steps and stairs stay as they are. */
+function singular(word: string): string {
+  const lower = word.toLowerCase();
+  if (lower === 'steps' || lower === 'stairs') return lower;
+  if (/(ch|sh|x|s)es$/.test(lower)) return lower.slice(0, -2);
+  return lower.replace(/s$/, '');
+}
+
+/**
+ * The seat Copy moves puts into the still before she sits down (video/motion-seat.ts): Wan Animate
+ * draws the room from the still, so a seat only named in Place is not drawn and she sits on air.
+ * Null when no beat after the start sits, or when she already sits in the still (it has a seat).
+ * The seat Place names, else a wooden chair (a sofa when she sits back).
+ */
+export function directionSeat(notes: SupportNote[], place: string | undefined): string | null {
+  const sits = notes.filter(note => note.support === 'sit');
+  if (!sits.length || sits.some(note => note.index === 0)) return null;
+  const named = (place ?? '').match(SEAT_WORDS)?.[0];
+  if (named) {
+    const word = singular(named);
+    if (word === 'steps' || word === 'stairs') return `some ${word}`;
+    return `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${word}`;
+  }
+  return sits.some(note => note.reclined) ? 'a sofa' : 'a wooden chair';
 }
 
 /** What to tell the player about those beats, or null. */

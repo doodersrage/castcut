@@ -52,6 +52,14 @@ export function readStillFraming(body: NormalizedBody | null | undefined): Still
 /** Margins the whole move must stay inside (0–1 of the picture). */
 const MARGIN = { side: 0.03, top: 0.03, bottom: 0.02 };
 
+/**
+ * How far inside the picture the move must stay once it is under way, even when the still has
+ * her closer to the edge. Copy moves (Wan Animate) scales her to the still at the first frame and
+ * then follows the driving video, but draws her shoes below the mannequin's toes and drifts a
+ * little: a walk toward the camera whose toes reached the bottom edge came out with her feet cut.
+ */
+export const MOVE_SAFE = { top: 0.02, bottom: 0.05, side: 0.01 };
+
 /** The points a shot keeps in frame, for one figure (cf. rig3d-camera's shotPoints). */
 function shotPoints(figure: PoseRig3dFigure, shot: CameraShot): Vector3[] {
   const world = figureWorld(figure);
@@ -292,16 +300,21 @@ export function frameDirection(input: {
     left: MARGIN.side,
     right: 1 - MARGIN.side,
   };
-  // Where the start pose may reach in the picture: the picture itself — or, framed like the
-  // still, as far as the still already has her (a still that crops her head or feet is not
+  // Where the move may reach in the picture: inside its safe frame (MOVE_SAFE) — or, framed like
+  // the still, as far as the still already has her (a still that crops her head or feet is not
   // pulled back from at the first frame; the move may not reach further out than she starts).
-  const reach = { top: 0, bottom: 1, left: 0, right: 1 };
+  const reach = {
+    top: MOVE_SAFE.top,
+    bottom: 1 - MOVE_SAFE.bottom,
+    left: MOVE_SAFE.side,
+    right: 1 - MOVE_SAFE.side,
+  };
   if (still) {
     const first = moveBox([frames[0]!], start, start, shot, aspect);
-    reach.top = Math.min(0, first.minY - 0.005);
-    reach.bottom = Math.max(1, first.maxY + 0.005);
-    reach.left = Math.min(0, first.minX - 0.005);
-    reach.right = Math.max(1, first.maxX + 0.005);
+    reach.top = Math.min(reach.top, first.minY - 0.005);
+    reach.bottom = Math.max(reach.bottom, first.maxY + 0.005);
+    reach.left = Math.min(reach.left, first.minX - 0.005);
+    reach.right = Math.max(reach.right, first.maxX + 0.005);
     limit.top = Math.max(reach.top, Math.min(limit.top, first.minY - 0.005));
     limit.bottom = Math.min(reach.bottom, Math.max(limit.bottom, first.maxY + 0.005));
     limit.left = Math.max(reach.left, Math.min(limit.left, first.minX - 0.005));
@@ -337,12 +350,17 @@ export function frameDirection(input: {
   // Start on the still's framing; ease back only as the move needs it.
   const matchedEnd = cameraMoveEnd(matched, camera.move, aspect);
   const last = Math.max(1, frames.length - 1);
-  // The first frame that would leave the picture itself (not just its margins).
-  const inPicture = (box: ReturnType<typeof pathBox>) =>
-    box.minY >= reach.top &&
-    (!full || box.maxY <= reach.bottom) &&
-    box.minX >= reach.left &&
-    box.maxX <= reach.right;
+  // How far a frame reaches past the safe frame (0 inside it).
+  const over = (box: ReturnType<typeof pathBox>) =>
+    Math.max(
+      0,
+      reach.top - box.minY,
+      full ? box.maxY - reach.bottom : 0,
+      reach.left - box.minX,
+      box.maxX - reach.right
+    );
+  // The first frame that would leave the safe frame (not just the margins).
+  const inPicture = (box: ReturnType<typeof pathBox>) => over(box) <= 0;
   let firstOut = frames.length;
   for (let i = 0; i < frames.length; i += 1) {
     const box = pathBox([frames[i]!], () => cameraAt(matched, matchedEnd, i / last), shot, aspect);
@@ -357,13 +375,22 @@ export function frameDirection(input: {
   }
   // Moving the camera takes time: it is back by the frame before the one that needs it.
   let settle = Math.max(0.12, (firstOut - 1) / last);
+  let best: { framing: DirectionFraming; over: number } | null = null;
   for (let tries = 0; tries < 8 && settle >= 0.05; tries += 1) {
     const framing = { ...out, from: matched, settle };
-    const stays = frames.every((frame, i) =>
-      inPicture(pathBox([frame], () => framingCameraAt(framing, i / last), shot, aspect))
-    );
-    if (stays) return framing;
+    let worst = 0;
+    frames.forEach((frame, i) => {
+      worst = Math.max(
+        worst,
+        over(pathBox([frame], () => framingCameraAt(framing, i / last), shot, aspect))
+      );
+    });
+    if (worst <= 0) return framing;
+    if (!best || worst < best.over) best = { framing, over: worst };
     settle *= 0.7;
   }
-  return out;
+  // Still start on the still's framing, easing back as fast as it may: a first frame further back
+  // than the still is worse — Copy moves scales her back up to the still there, and the whole move
+  // with her, so she comes out bigger than the driving video has her and walks out of the picture.
+  return best?.framing ?? out;
 }

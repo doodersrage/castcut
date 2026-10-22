@@ -10,6 +10,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 - 3D pose lift: the picture's own posture (standing, kneeling, lying…) picks which way each leg points in depth, and may move her a little nearer or farther, so a standing picture no longer lifts into a figure "sitting on air" (library: 100 of 106 poses in the posture they are filed under, up from 96; 2D fit about the same)
+- Director: a beat that sits down puts a seat into the still first (Copy moves draws the room from the still; a chair only named in Place left her sitting on air) — a wooden chair, a sofa when she sits back, or the seat Place names; one checkbox, on by default
+- Director: a walk toward the camera keeps her feet clear of the bottom edge (a safe frame for the whole move), and the clip always starts on the still's framing (a first frame further back made Copy moves scale her up and walk her out of the picture)
 
 ## [v2.12.14] - 2026-10-22
 

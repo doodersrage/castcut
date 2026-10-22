@@ -219,7 +219,7 @@ export function useStoryBeatMediaTools({
     (
       beat: RoleplayStoryBeat,
       video: Blob,
-      options: { motion?: string; keepSound?: boolean; place?: string }
+      options: { motion?: string; keepSound?: boolean; place?: string; seat?: string }
     ) =>
       sceneJob(beat, 'moves', latest => {
         const stillUrl = needStill(latest);
@@ -234,6 +234,7 @@ export function useStoryBeatMediaTools({
               loadSettingsCache().tools.roleplay?.setting?.trim() ||
               undefined,
             motion: options.motion?.trim() || undefined,
+            seat: options.seat?.trim() || undefined,
             keepSound: options.keepSound,
           }),
           source: stillUrl,

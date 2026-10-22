@@ -793,7 +793,7 @@ function StoryDirector({
   beat: RoleplayStoryBeat;
   busy: boolean;
   onClose: () => void;
-  onRender: (video: Blob, options: { motion: string; place?: string }) => void;
+  onRender: (video: Blob, options: { motion: string; place?: string; seat?: string }) => void;
 }) {
   const cast = beat.castId ? getCharacter(beat.castId) : undefined;
   return (

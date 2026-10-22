@@ -153,9 +153,13 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   await d('beat-3-remove').click();
   await expect(d('beat-3')).toHaveCount(0);
 
-  // A sit warns about the seat (Place starts as the slot's place).
+  // A sit puts a seat into the still first (on by default): nothing to warn about.
   await expect(d('place')).toHaveValue('bright kitchen');
   await d('move-sit').click();
+  await expect(d('seat')).toBeChecked();
+  await expect(d('support')).toHaveCount(0);
+  // Without it, a sit warns about the seat (Place starts as the slot's place).
+  await d('seat').uncheck();
   await expect(d('support')).toContainText('make sure Place mentions a seat');
   await d('place').fill('');
   await expect(d('support')).toContainText('pick a still with a seat, or describe one in Place');
