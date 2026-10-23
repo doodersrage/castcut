@@ -131,6 +131,8 @@ export type DaySlotBoardProps = {
     /** Keep a picture drawn in the Sketch sheet as the slot's still. */
     sketch: (slot: DaySlot, url: string) => Promise<string | null>;
   };
+  /** Whose clip jobs the cards follow ('day'; Scene's board: 'scene'). */
+  clipJobFeature?: string;
 };
 
 const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
@@ -187,12 +189,13 @@ export default function DaySlotBoard({
   onLooksWrong,
   onFixArea,
   mediaTools,
+  clipJobFeature = 'day',
 }: DaySlotBoardProps) {
   const [mediaSheet, setMediaSheet] = useState<{ slot: DaySlot; kind: SlotMediaSheetKind } | null>(
     null
   );
   const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
-  const jobProgress = useClipJobProgress('day');
+  const jobProgress = useClipJobProgress(clipJobFeature);
   const [sketchFor, setSketchFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
   const [directorFor, setDirectorFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
   const runMedia = async (
@@ -280,17 +283,20 @@ export default function DaySlotBoard({
     <>
       <ol
         className={
-          compact
-            ? 'grid grid-cols-2 gap-2'
-            : // Phones: a swipe row (a card plus a peek of the next) instead of a ~1,200 px
-              // column that pushed the plan off the screen. Grid from sm up.
-              `max-sm:-mx-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:px-1 max-sm:pb-1 max-sm:[&>li]:w-[78%] max-sm:[&>li]:shrink-0 max-sm:[&>li]:snap-start ${
-                slots.length === 2
-                  ? 'gap-2 sm:grid sm:grid-cols-2'
-                  : slots.length === 3 || slots.length === 6
-                    ? 'gap-2 sm:grid sm:grid-cols-3'
-                    : 'gap-2 sm:grid sm:grid-cols-4'
-              }`
+          slots.length === 1
+            ? // Scene's board: its one shot, full width.
+              'grid grid-cols-1 gap-2'
+            : compact
+              ? 'grid grid-cols-2 gap-2'
+              : // Phones: a swipe row (a card plus a peek of the next) instead of a ~1,200 px
+                // column that pushed the plan off the screen. Grid from sm up.
+                `max-sm:-mx-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:px-1 max-sm:pb-1 max-sm:[&>li]:w-[78%] max-sm:[&>li]:shrink-0 max-sm:[&>li]:snap-start ${
+                  slots.length === 2
+                    ? 'gap-2 sm:grid sm:grid-cols-2'
+                    : slots.length === 3 || slots.length === 6
+                      ? 'gap-2 sm:grid sm:grid-cols-3'
+                      : 'gap-2 sm:grid sm:grid-cols-4'
+                }`
         }
         data-testid="day-progress"
         aria-label="Day slots"

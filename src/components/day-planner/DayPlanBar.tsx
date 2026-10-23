@@ -49,6 +49,10 @@ export type DayPlanBarProps = {
   onAdvancedToggle: () => void;
   advancedId: string;
   className?: string;
+  /** The Stills (Day length) control — Scene has one shot, so it leaves it out. */
+  showLength?: boolean;
+  /** The bar's test id (Scene: its own). */
+  testId?: string;
 };
 
 const isHeatMood = (id: DayMoodSetting) => id === 'suggestive' || isDayAdultMood(id);
@@ -120,6 +124,8 @@ export default function DayPlanBar({
   onAdvancedToggle,
   advancedId,
   className = '',
+  showLength = true,
+  testId = 'day-plan-bar',
 }: DayPlanBarProps) {
   // Intimate · Playful (the 'raunchy' flavor) is Intimate in the picker with Playful on.
   const picked = dayPickerMood(normalizeDayMood(dayMood));
@@ -160,32 +166,34 @@ export default function DayPlanBar({
   const group = 'flex items-center gap-x-2';
 
   return (
-    <div className={className} data-testid="day-plan-bar">
+    <div className={className} data-testid={testId}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2">
-        <div className={group} role="group" aria-label="Day length" data-testid="day-length">
-          <span className={groupLabel}>Stills</span>
-          <div className="ui-segmented">
-            {DAY_LENGTHS.map(length => (
-              <button
-                key={length}
-                type="button"
-                className="ui-segmented-item"
-                aria-pressed={dayLength === length}
-                data-active={dayLength === length ? 'true' : 'false'}
-                disabled={busy}
-                data-testid={`day-length-${length}`}
-                title={
-                  length > 4
-                    ? `${length} stills — adds late-morning / late-night slots`
-                    : `${length} stills`
-                }
-                onClick={() => onDayLengthChange(length)}
-              >
-                {length}
-              </button>
-            ))}
+        {showLength ? (
+          <div className={group} role="group" aria-label="Day length" data-testid="day-length">
+            <span className={groupLabel}>Stills</span>
+            <div className="ui-segmented">
+              {DAY_LENGTHS.map(length => (
+                <button
+                  key={length}
+                  type="button"
+                  className="ui-segmented-item"
+                  aria-pressed={dayLength === length}
+                  data-active={dayLength === length ? 'true' : 'false'}
+                  disabled={busy}
+                  data-testid={`day-length-${length}`}
+                  title={
+                    length > 4
+                      ? `${length} stills — adds late-morning / late-night slots`
+                      : `${length} stills`
+                  }
+                  onClick={() => onDayLengthChange(length)}
+                >
+                  {length}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
         <label className={group}>
           <span className={groupLabel}>Mood</span>
           <SelectInput

@@ -46,6 +46,11 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
         description: 'What happens next, scene by scene',
       },
       {
+        href: '/scene',
+        label: 'Scene',
+        description: 'One shot, exactly as you want it (optional)',
+      },
+      {
         href: '/cut',
         label: 'Cut',
         description: 'Put the shots together into the film',

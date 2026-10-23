@@ -36,6 +36,7 @@ import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DaySetupChip from '@/components/day-planner/DaySetupChip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DaySlotSheet from '@/components/day-planner/DaySlotSheet';
+import { useDayOpenAsScene } from '@/hooks/day-planner/useDayOpenAsScene';
 import DayOutfitRow, { dayClothingView } from '@/components/day-planner/DayOutfitRow';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import UploadButton from '@/components/ui/UploadButton';
@@ -302,6 +303,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     chooseDayLook,
     selectDayWardrobe,
   } = vm;
+  // Open as Scene (slot sheet): this shot on its own on the Scene page (day/scenes.ts).
+  const openAsScene = useDayOpenAsScene({ character, toolSettings, slots, stills, setError });
 
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
@@ -1417,6 +1420,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         onQueueSlot={() => void queueSlot(activeSlot)}
         onAnimateSlot={() => setAnimateTarget(activeSlot)}
         onAddCloseUps={() => void addCloseUps(activeSlot.id)}
+        onOpenAsScene={openAsScene ? () => openAsScene(activeSlot.id) : undefined}
         compact
       />
       <SideSheet

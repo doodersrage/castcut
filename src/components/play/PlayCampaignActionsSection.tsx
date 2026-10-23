@@ -181,6 +181,17 @@ export default function PlayCampaignActionsSection({
             Cast roster
           </ButtonLink>
         ) : null}
+        {/* Optional, outside the steps: one shot exactly as wanted (day/scenes.ts). */}
+        {characterId ? (
+          <ButtonLink
+            href={mapHref(`/scene?character=${encodeURIComponent(characterId)}`)}
+            size="sm"
+            variant="ghost"
+            data-testid="play-campaign-open-scene"
+          >
+            One scene
+          </ButtonLink>
+        ) : null}
       </div>
     </div>
   );

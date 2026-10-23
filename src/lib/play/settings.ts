@@ -295,6 +295,17 @@ export const DEFAULT_DAY_TOOL_CACHE: DayToolCache = {
   bestEnginePerPose: true,
 };
 
+/**
+ * Scene (/scene): one shot at a time, on Day's engine — Day's working fields for the open scene
+ * plus every Cast's saved scenes (day/scenes.ts). Day's quality defaults, its own plan.
+ */
+export type SceneToolCache = import('../day/scenes').SceneToolCache;
+
+export const DEFAULT_SCENE_TOOL_CACHE: SceneToolCache = {
+  ...DEFAULT_DAY_TOOL_CACHE,
+  scenes: [],
+};
+
 export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {
   tiles: [],
   templateId: 'scene-blend',
@@ -306,6 +317,7 @@ declare module '../settings/cache' {
     roleplay?: RoleplayToolCache;
     fitting?: FittingToolCache;
     day?: DayToolCache;
+    scene?: SceneToolCache;
     moodboard?: MoodboardToolCache;
     cut?: CutToolCache;
   }

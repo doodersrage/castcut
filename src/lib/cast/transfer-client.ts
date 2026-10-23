@@ -35,7 +35,8 @@ import {
   upsertRoleplayLibrarySession,
 } from '../story/roleplay-library';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '../play/settings';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '../play/settings';
+import { castFileScenes, normalizeSavedScenes, placeImportedScenes } from '../day/scenes';
 
 /** The Cast's own picture: its face lock, else its reference photo. */
 export function castPictureUrl(character: CharacterRecord): string {
@@ -234,6 +235,10 @@ export async function exportCast(
   const dayOwner = day.stillsCharacterId?.trim() || activeId;
   const plan =
     dayOwner === character.id ? castFileDay(day) : castFileDay(day.parkedDays?.[character.id]);
+  const scenes = castFileScenes(
+    normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes),
+    character.id
+  );
   const activeUrl = lookPictureUrl(activeLook(character)) || castPictureUrl(character);
   const picture = await pictureAt(activeUrl, `${slugCharacterName(character.name) || 'cast'}.png`);
   const looks = await otherLookPictures(character);
@@ -250,6 +255,7 @@ export async function exportCast(
       sheetPictures: sheets.pictures,
       stories: story ? [story] : [],
       day: plan,
+      scenes,
     }),
     filename: castFileName(character.name),
     pictureMissing:
@@ -291,6 +297,8 @@ export type CastImportResult = {
   renamed: boolean;
   stories: number;
   dayPlan: boolean;
+  /** Scenes added under the Cast (their shots; takes are rendered again here). */
+  scenes: number;
   /** The picture could not be set up as the plate (ComfyUI unreachable, …). */
   pictureError?: string;
 };
@@ -343,6 +351,15 @@ export async function importCastFile(file: File): Promise<CastImportResult> {
       },
     });
   }
+  const importedScenes = placeImportedScenes(parsed.scenes ?? [], character.id);
+  if (importedScenes.length) {
+    // Saved under the Cast: they list on Scene when the Cast is picked there.
+    const sceneTool = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
+    saveToolSettings('scene', {
+      ...sceneTool,
+      scenes: normalizeSavedScenes([...(sceneTool.scenes ?? []), ...importedScenes]),
+    });
+  }
   let pictureError: string | undefined = outfits.error ?? stills.error ?? sheets.error;
   let finalCharacter = character;
   if (parsed.picture || parsed.lookPictures?.length) {
@@ -372,6 +389,7 @@ export async function importCastFile(file: File): Promise<CastImportResult> {
     renamed: placed.renamed || placed.character.name !== parsed.character.name,
     stories: placed.stories.length,
     dayPlan: Boolean(parsed.day),
+    scenes: importedScenes.length,
     ...(pictureError ? { pictureError } : {}),
   };
 }

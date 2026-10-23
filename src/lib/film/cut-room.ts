@@ -1,8 +1,8 @@
 /**
- * Cut — the film's own step (/cut): the shots of this Day and of the current Story in one
- * list, cut into one film. Each shot's key carries its source ("day:morning",
- * "story:<beat>@<at>") so the shot list's edits (order, leave-outs, captions, holds) stay put
- * across sources and visits. Pure.
+ * Cut — the film's own step (/cut): the shots of this Day, of the current Story and the Cast's
+ * kept Scene takes in one list, cut into one film. Each shot's key carries its source
+ * ("day:morning", "story:<beat>@<at>", "scenes:<scene id>") so the shot list's edits (order,
+ * leave-outs, captions, holds) stay put across sources and visits. Pure.
  */
 
 import {
@@ -17,12 +17,20 @@ import type { KeyedShot } from './cut-plan';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import type { CutBridgeStatus } from '../video/cut-bridge';
 
-export type CutSource = 'day' | 'story';
+export type CutSource = 'day' | 'story' | 'scenes';
 
 export const CUT_SOURCES: { id: CutSource; label: string; href: string }[] = [
   { id: 'day', label: 'Day', href: '/day' },
   { id: 'story', label: 'Story', href: '/story' },
+  // The Cast's scenes (day/scenes.ts): each scene's kept take, its clip when it has one.
+  { id: 'scenes', label: 'Scenes', href: '/scene' },
 ];
+
+/** A source's own name for `?from=` (Day / Story / Scene pages link here with it). */
+export function cutSourceFromParam(value: string | null | undefined): CutSource | null {
+  const id = (value ?? '').trim();
+  return id === 'day' || id === 'story' || id === 'scenes' ? id : null;
+}
 
 /**
  * Shots added in Cut itself: a still or clip from the Gallery, a text card, or a copy of another
@@ -133,7 +141,7 @@ export function splitCutRoomKey(key: string): { source: CutSource | 'added'; key
   const at = key.indexOf(':');
   const prefix = at > 0 ? key.slice(0, at) : '';
   if (prefix === 'x') return { source: 'added', key };
-  return prefix === 'day' || prefix === 'story'
+  return prefix === 'day' || prefix === 'story' || prefix === 'scenes'
     ? { source: prefix, key: key.slice(at + 1) }
     : { source: 'day', key };
 }
@@ -218,9 +226,14 @@ export function cutExtraShots(
 export type CutRoomInput = {
   day?: { slots?: DaySlot[]; stills?: DaySlotStill[] | null } | null;
   story?: RoleplayStoryBeat[] | null;
+  /** The Cast's kept scene takes (sceneCutShots), keyed by scene id. */
+  scenes?: KeyedShot[] | null;
 };
 
-/** Each source's shots, keys prefixed — Day's in slot order, then Story's in scene order. */
+/**
+ * Each source's shots, keys prefixed — Day's in slot order, then Story's in scene order, then
+ * the Cast's scenes in the order they were made.
+ */
 export function cutRoomSourceShots(input: CutRoomInput): Record<CutSource, KeyedShot[]> {
   const day = input.day
     ? (dayWatchPlaylist(input.day.stills ?? [], input.day.slots) as KeyedShot[])
@@ -229,6 +242,7 @@ export function cutRoomSourceShots(input: CutRoomInput): Record<CutSource, Keyed
   return {
     day: day.map(shot => ({ ...shot, key: cutRoomKey('day', shot.key) })),
     story: story.map(shot => ({ ...shot, key: cutRoomKey('story', shot.key) })),
+    scenes: (input.scenes ?? []).map(shot => ({ ...shot, key: cutRoomKey('scenes', shot.key) })),
   };
 }
 
@@ -254,8 +268,8 @@ export function cutRoomShots(
   ];
 }
 
-/** Where a film cut from these sources is recorded (cut-recipe source). */
+/** Where a film cut from these sources is recorded (cut-recipe source); Scenes are the Cast's. */
 export function cutRoomRecipeSource(sources: CutSource[]): 'day' | 'story' | 'cast' {
-  if (sources.length === 1) return sources[0]!;
+  if (sources.length === 1 && sources[0] !== 'scenes') return sources[0]!;
   return 'cast';
 }

@@ -72,6 +72,15 @@ export default function CharacterHomeActionRow({
           <Button
             size="sm"
             variant="secondary"
+            data-testid="character-home-scene"
+            title="One shot, exactly as you want it — optional, outside the film's steps"
+            onClick={() => go(`/scene?character=${character.id}`)}
+          >
+            Scene
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             data-testid="character-home-story"
             onClick={continueRoleplay}
           >

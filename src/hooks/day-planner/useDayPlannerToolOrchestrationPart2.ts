@@ -31,6 +31,7 @@ import {
 } from '@/lib/video/ltx25-renderer';
 import { castVoiceSampleFor } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
+import { swapSceneForCast, type SceneToolCache } from '@/lib/day/scenes';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { nextDayThread, planTomorrowSlots } from '@/lib/day/thread';
 import {
@@ -135,6 +136,7 @@ import { filmResolutionForCutOptions } from '@/lib/video/resolution';
 
 export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestrationCore) {
   const {
+    sceneMode,
     router,
     setBusy,
     setAssemblingFilm,
@@ -193,7 +195,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     const prevId = prevCharacterIdRef.current;
     const clearStills = () => {
       // Park this Day under the Cast it belongs to; the active Cast's parked Day comes back.
-      const swapped = swapDayForCast(toolSettings, owner, nextId);
+      // Scene: the open scene is saved and the Cast's newest scene opens (day/scenes.ts).
+      const swapped = sceneMode
+        ? swapSceneForCast(toolSettings as SceneToolCache, nextId)
+        : swapDayForCast(toolSettings, owner, nextId);
       stillsRef.current = swapped.stills ?? [];
       updateToolSettings({
         ...swapped,
@@ -238,6 +243,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   }, [
     assembledFilmRef,
     mounted,
+    sceneMode,
     setFilmStatus,
     shared.activeCharacterId,
     stillsRef,

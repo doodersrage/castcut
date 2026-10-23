@@ -28,26 +28,14 @@ import { activeDayEvent } from '@/lib/day/event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
-import SideSheet from '@/components/ui/SideSheet';
 import {
   CollapsibleSection,
   ToolActionRow,
   ToolLayout,
   ToolSection,
 } from '@/components/ui/ToolPageShell';
-import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
-import {
-  countWardrobeOptionsForFilter,
-  normalizeWardrobeCategoryFilter,
-  wardrobeCategoryFilterOptions,
-} from '@/lib/wardrobe/catalog-ui';
-import {
-  buildWardrobeKitPickerDeck,
-  resolveWardrobeGarmentThumbUrl,
-} from '@/lib/wardrobe/garment-thumbs';
-import { fittingSwipeNeighbor } from '@/lib/fitting/room';
 import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
@@ -74,20 +62,23 @@ import {
 } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
-import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
 } from '@/components/day-planner/DayAdvancedDrawer';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import DayPartnerRow from '@/components/day-planner/DayPartnerRow';
 import DayPlanBar, { DayMoodHints } from '@/components/day-planner/DayPlanBar';
-import DayPlateSection from '@/components/day-planner/DayPlateSection';
 import DayPlayPhaseStrip from '@/components/day-planner/DayPlayPhaseStrip';
 import DayRemixMenu from '@/components/day-planner/DayRemixMenu';
 import DaySeriesPanel from '@/components/day-planner/DaySeriesPanel';
 import DaySetupChip from '@/components/day-planner/DaySetupChip';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DaySlotSheet from '@/components/day-planner/DaySlotSheet';
+import { useDayOpenAsScene } from '@/hooks/day-planner/useDayOpenAsScene';
+import DayClothingPicker, {
+  type DayClothingPickerVm,
+} from '@/components/day-planner/DayClothingPicker';
+import DaySetupSheet, { type DaySetupSheetVm } from '@/components/day-planner/DaySetupSheet';
 import DayOutfitRow, { dayClothingView } from '@/components/day-planner/DayOutfitRow';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
@@ -102,7 +93,6 @@ import {
 import { deriveDayPhase } from '@/lib/play/step-machine';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
-import { followCastOutfitInSessions } from '@/lib/cast/plate-switch';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
   ssr: false,
@@ -323,6 +313,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     chooseDayLook,
     selectDayWardrobe,
   } = vm;
+  // Open as Scene (slot sheet): this shot on its own on the Scene page (day/scenes.ts).
+  const openAsScene = useDayOpenAsScene({ character, toolSettings, slots, stills, setError });
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
@@ -339,10 +331,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const quality = useDayQualityPreset({ shared, updateShared, toolSettings, updateToolSettings });
-  const wardrobeKitDeck = useMemo(
-    () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
-    [activeSlot.wardrobeId, filteredWardrobeOptions]
-  );
   const slotTotal = slots.length || 4;
   const completedClipCount = useMemo(
     () =>
@@ -569,71 +557,55 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     />
   );
 
-  // The Clothing picker for this slot (its own kit) or, from the Look & clothing row, for the
-  // whole Day (the session's outfit lock). The photo and the shoes are the Day's either way.
-  const clothingPicker = (scope: 'slot' | 'day' = 'slot') => {
-    const dayScope = scope === 'day';
-    const selectedKitId = dayScope ? shared.lockedWardrobeId : activeSlot.wardrobeId;
-    const selectKit = (wardrobeId: string | undefined) =>
-      dayScope ? selectDayWardrobe(wardrobeId) : selectSlotWardrobe(activeSlot.id, wardrobeId);
-    return (
-      <div data-testid={dayScope ? 'day-outfit-clothing' : 'day-clothing'}>
-        <ClothingPicker
-          accent={ACCENT}
-          busy={busy}
-          testIdPrefix="day"
-          garment={{
-            uploading: garmentUploading,
-            scanStatus: garmentScanStatus,
-            imageUrl: toolSettings.customGarmentImageUrl,
-            imageFilename: toolSettings.customGarmentImageFilename,
-            description: toolSettings.customGarmentDescription,
-            onApply: applyCustomGarment,
-            onClear: clearCustomGarment,
-            onRescan: rescanCustomGarment,
-            onSave: saveCurrentCustomGarment,
-            onApplySaved: applySavedCustomGarment,
-            onRemoveSaved: removeSavedCustomGarment,
-            onDescriptionChange: value => updateToolSettings({ customGarmentDescription: value }),
-          }}
-          footwear={{
-            value: toolSettings.footwear,
-            imageUrl: toolSettings.footwearImageUrl,
-            imageFilename: toolSettings.footwearImageFilename,
-            onChange: patch => updateToolSettings(patch),
-            onApplyPhoto: applyFootwearPhoto,
-          }}
-          kits={wardrobeKitDeck}
-          kitsReady={wardrobeReady}
-          selectedKitId={selectedKitId}
-          kitPickerTestId={dayScope ? 'day-outfit-kit-picker' : 'day-wardrobe-kit-picker'}
-          onSelectKit={wardrobeId => selectKit(wardrobeId)}
-          onSwipeKit={delta => {
-            const next = fittingSwipeNeighbor(wardrobeKitDeck, selectedKitId, delta);
-            if (next) {
-              selectKit(next.id);
-            }
-          }}
-          onClearKit={() => selectKit(undefined)}
-          resolveKitThumb={kit => ({ url: resolveWardrobeGarmentThumbUrl(kit.id) })}
-          category={{
-            value: wardrobeCategoryFilter,
-            options: wardrobeCategoryFilterOptions().map(option => ({
-              value: option.value,
-              label: wardrobeReady
-                ? `${option.label} (${countWardrobeOptionsForFilter(wardrobeOptions, option.value)})`
-                : option.label,
-            })),
-            onChange: value =>
-              updateToolSettings({
-                wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
-              }),
-          }}
-          onError={message => setError(message)}
-        />
-      </div>
-    );
+  const clothingVm: DayClothingPickerVm = {
+    shared,
+    toolSettings,
+    updateToolSettings,
+    busy,
+    activeSlot,
+    filteredWardrobeOptions,
+    wardrobeOptions,
+    wardrobeReady,
+    wardrobeCategoryFilter,
+    garmentUploading,
+    garmentScanStatus,
+    applyCustomGarment,
+    applyFootwearPhoto,
+    clearCustomGarment,
+    rescanCustomGarment,
+    saveCurrentCustomGarment,
+    applySavedCustomGarment,
+    removeSavedCustomGarment,
+    selectSlotWardrobe,
+    selectDayWardrobe,
+    setError,
   };
+  const setupVm: DaySetupSheetVm = {
+    character,
+    hasPlate,
+    shared,
+    updateShared,
+    setError,
+    plate,
+    platePreviewUrl,
+    activeSlot,
+    busy,
+    isolateSubject,
+    isolateBusy,
+    isolateStatus,
+    isolatePending,
+    setIsolateSubject,
+    uploadCastPlate,
+    makeCastPlate,
+    makePlateStatus,
+    plateUploading,
+    plateUploadError,
+  };
+  // The Clothing picker for this slot (its own kit) or, from the Look & clothing row, for the
+  // whole Day (the session's outfit lock) — DayClothingPicker, shared with Scene.
+  const clothingPicker = (scope: 'slot' | 'day' = 'slot') => (
+    <DayClothingPicker vm={clothingVm} scope={scope} accent={ACCENT} />
+  );
 
   return (
     <>
@@ -1525,51 +1497,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         onAnimateSlot={() => setAnimateTarget(activeSlot)}
         groupOptions={partnerOptions.filter(option => option.id !== partnerCharacterId)}
         onAddCloseUps={() => void addCloseUps(activeSlot.id)}
+        onOpenAsScene={openAsScene ? () => openAsScene(activeSlot.id) : undefined}
       />
-      <SideSheet
-        open={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        title="Setup"
-        description={
-          hasPlate
-            ? `${character?.name?.trim() || 'Cast'} · plate ready`
-            : 'Character and plate for identity.'
-        }
-        testId="day-setup-sheet"
-      >
-        <div data-testid="day-character" className="day-character-section space-y-4">
-          <CharacterOsPicker
-            onCastChange={followCastOutfitInSessions}
-            shared={shared}
-            hints={character?.hints}
-            onApply={patch => {
-              try {
-                updateShared(patch);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Could not apply that character.');
-              }
-            }}
-          />
-          <DayPlateSection
-            plate={plate}
-            platePreviewUrl={platePreviewUrl}
-            characterId={shared.activeCharacterId}
-            lookId={activeSlot.lookId}
-            lockedWardrobeId={activeSlot.wardrobeId || shared.lockedWardrobeId}
-            busy={busy}
-            isolateSubject={isolateSubject}
-            isolateBusy={isolateBusy}
-            isolateStatus={isolateStatus}
-            isolatePending={isolatePending}
-            onIsolateSubjectChange={setIsolateSubject}
-            onUploadPlate={file => void uploadCastPlate(file)}
-            onMakePlate={() => void makeCastPlate()}
-            makePlateStatus={makePlateStatus}
-            uploading={plateUploading}
-            uploadError={plateUploadError}
-          />
-        </div>
-      </SideSheet>
+      <DaySetupSheet vm={setupVm} open={setupOpen} onClose={() => setSetupOpen(false)} />
       <ImageLightbox
         state={progressLightbox}
         onClose={() => {
