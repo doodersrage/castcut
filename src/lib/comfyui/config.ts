@@ -352,7 +352,7 @@ export type ComfyUiRuntimeConfig = {
   qwenImage21TurboCheckpoint?: boolean;
   /**
    * Noct-Q: the full pass on its own model file, steps and shift (QWEN_IMAGE_21_NOCT_PASS);
-   * 'fast' = 8 steps on er_sde (QWEN_IMAGE_21_NOCT_FAST_PASS).
+   * 'fast' = the same pass in 12 steps (QWEN_IMAGE_21_NOCT_FAST_PASS).
    */
   qwenImage21Noct?: boolean | 'fast';
   /**
@@ -1461,7 +1461,7 @@ export function injectPromptsWithFallbacks(
     qwenImage21FourStep?: boolean;
     qwenImage21EightStep?: boolean | 'turbo';
     qwenImage21TurboCheckpoint?: boolean;
-    /** Noct-Q: the full pass on its own model file, steps and shift; 'fast' = 8 steps. */
+    /** Noct-Q: the full pass on its own model file, steps and shift; 'fast' = 12 steps. */
     qwenImage21Noct?: boolean | 'fast';
     qwenImage21KeepEngine?: boolean;
     qwenImage21PoseControl?: boolean;
@@ -1954,12 +1954,7 @@ export function injectPromptsWithFallbacks(
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
       ...(noct || noctFast ? { fullUnet: QWEN_IMAGE_21_NOCT_UNET } : {}),
       ...(noct ? { shift: QWEN_IMAGE_21_NOCT_PASS.shift } : {}),
-      ...(noctFast
-        ? {
-            samplerName: QWEN_IMAGE_21_NOCT_FAST_PASS.samplerName,
-            scheduler: QWEN_IMAGE_21_NOCT_FAST_PASS.scheduler,
-          }
-        : {}),
+      ...(noctFast ? { shift: QWEN_IMAGE_21_NOCT_FAST_PASS.shift } : {}),
       keepEngine: options.qwenImage21KeepEngine === true,
       qualityProfile: options.qualityProfile ?? null,
       userLoras: qwenImage21UserLoras(options.loraLibrary),

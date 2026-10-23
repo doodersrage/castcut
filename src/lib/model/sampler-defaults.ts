@@ -411,11 +411,12 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     samplerName: 'euler',
     scheduler: 'simple',
   }),
+  // Noct-Q Fast: the same pass in 12 steps (QWEN_IMAGE_21_NOCT_FAST_PASS; the id keeps its "-8").
   'qwen-image-2.1-edit-noct-fast-8': fixedSamplerPresets({
-    steps: 8,
+    steps: 12,
     cfg: 1,
-    samplerName: 'er_sde',
-    scheduler: 'linear_quadratic',
+    samplerName: 'euler',
+    scheduler: 'simple',
   }),
   'qwen-image-2.1-edit-lightning-4': fixedSamplerPresets({
     steps: 4,

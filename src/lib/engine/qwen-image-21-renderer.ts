@@ -162,17 +162,20 @@ export const QWEN_IMAGE_21_NOCT_UNET = 'NoctQ_V4_int8_convrot.safetensors';
  */
 export const QWEN_IMAGE_21_NOCT_PASS = { steps: 35, shift: 3 } as const;
 /**
- * Noct-Q Fast: the same model file in 8 steps on er_sde + linear_quadratic, no shift. Measured on
- * Day graphs (sit, look back, lie on side, three of the player's stills, 2026-10-21): poses held
- * like the 35-step pass, softer detail, about 6 s a still instead of 36. Plain euler at 8 steps
- * was blurrier.
+ * Noct-Q Fast: the same model file and pass (euler / simple, shift 3) in 12 steps. Noct-Q is not
+ * step-distilled, so the shift is what keeps a short pass on the full pass's picture.
+ * The first Fast (8 steps on er_sde + linear_quadratic, no shift) looked half rendered: flat
+ * washed-out light, airbrushed skin, a bare plaza for the park, and on duos her face and hair
+ * drifted from the plate (dark-haired in one). A/B on the same Noct-Q Day graphs (2026-10-23:
+ * 6 solos + 2 sex duos x seeds 11 / 22 on the dress plate, against the 35-step pass): shift 3
+ * at 12 steps matched the 35-step stills nearly frame for frame (same face, freckles, park, pose)
+ * at about half the time; 10 steps drew a second man's head on a straddle duo, 8 steps were
+ * softer still. Pruna's 8-step LoRA on Noct-Q came close too but squashed his face on a duo and
+ * needs a second file; the Turbo LoRA moved her face off the plate.
+ * The id keeps its "-8" so saved settings still pick it.
  */
 export const QWEN_IMAGE_21_NOCT_FAST_MODEL = 'qwen-image-2.1-edit-noct-fast-8';
-export const QWEN_IMAGE_21_NOCT_FAST_PASS = {
-  steps: 8,
-  samplerName: 'er_sde',
-  scheduler: 'linear_quadratic',
-} as const;
+export const QWEN_IMAGE_21_NOCT_FAST_PASS = { steps: 12, shift: 3 } as const;
 
 /** Noct-Q, either pass (the 35-step one or Fast): its file, its duos, its install check. */
 export function isQwenImage21NoctModel(model: string | null | undefined): boolean {
@@ -1200,9 +1203,6 @@ export function convertQwenEditWorkflowToImage21(
     fullUnet?: string;
     /** The sampling shift (ModelSamplingAuraFlow) instead of 2.1's own 0.69 — the full pass only. */
     shift?: number;
-    /** The full pass's sampler and scheduler (default euler / simple) — Noct-Q Fast. */
-    samplerName?: string;
-    scheduler?: string;
     /**
      * The player's own Qwen-Image 2.1 LoRAs (their LoRA stack, 2.1 family only), chained onto the
      * model in order. Nothing else adds a LoRA here — the source graph's LoRAs are 20B and drop.
@@ -1462,8 +1462,8 @@ export function convertQwenEditWorkflowToImage21(
     latent_image: [latent, 0],
     steps: options.steps ?? 30,
     cfg: 1,
-    sampler_name: options.samplerName || 'euler',
-    scheduler: options.scheduler || 'simple',
+    sampler_name: 'euler',
+    scheduler: 'simple',
     denoise: 1,
   };
   if (options.fourStep) {
