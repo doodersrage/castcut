@@ -112,7 +112,7 @@ export default function InventorySyncNotice() {
       <div
         role="status"
         data-testid="gpu-match-notice"
-        className="fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)] left-4 right-4 sm:right-auto z-50 max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated,var(--bg-base))] px-3 py-2 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-surface)] lg:left-[calc(var(--sidebar-width)+1rem)]"
+        className="fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+var(--page-action-bar-height,0px)+0.75rem)] left-4 right-4 sm:right-auto z-50 max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated,var(--bg-base))] px-3 py-2 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-surface)] lg:left-[calc(var(--sidebar-width)+1rem)]"
       >
         <p>Matched settings to your GPU: {gpuMatched.label}.</p>
         <p className="type-caption mt-1 flex gap-3">
@@ -139,7 +139,7 @@ export default function InventorySyncNotice() {
     <div
       role="status"
       data-testid="inventory-sync-notice"
-      className="fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)] left-4 right-4 sm:right-auto z-50 max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated,var(--bg-base))] px-3 py-2 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-surface)] lg:left-[calc(var(--sidebar-width)+1rem)]"
+      className="fixed bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+var(--page-action-bar-height,0px)+0.75rem)] left-4 right-4 sm:right-auto z-50 max-w-sm rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated,var(--bg-base))] px-3 py-2 text-sm text-[var(--text-secondary)] shadow-[var(--shadow-surface)] lg:left-[calc(var(--sidebar-width)+1rem)]"
     >
       <p>{message}</p>
       <p className="type-caption mt-1 flex gap-3">

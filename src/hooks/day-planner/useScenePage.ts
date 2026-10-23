@@ -16,6 +16,7 @@ import {
   normalizeSavedScenes,
   openScenePatch,
   recordSceneFromWorking,
+  recordSceneJobs,
   removeSceneTake,
   sceneSlotAt,
   scenesForCast,
@@ -72,8 +73,15 @@ export function useScenePage(vm: DayEngineView) {
   useEffect(() => {
     if (!mounted || !active) return;
     const next = recordSceneFromWorking(active, cache);
-    if (next !== active) write({ scenes: upsertScene(scenes, next) });
-  }, [active, cache, mounted, scenes, write]);
+    // The jobs it queues, by id: the Queue page labels them "Scene" (their prompt says Day).
+    const jobLog = recordSceneJobs(cache.jobLog, still, active.name);
+    if (next !== active || jobLog !== cache.jobLog) {
+      write({
+        ...(next !== active ? { scenes: upsertScene(scenes, next) } : {}),
+        ...(jobLog !== cache.jobLog ? { jobLog } : {}),
+      });
+    }
+  }, [active, cache, mounted, scenes, still, write]);
 
   const newScene = useCallback(() => {
     if (!castId) return;

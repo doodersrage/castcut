@@ -30,12 +30,15 @@ function pickedVideoModel(): string {
 export default function ClipEngineNote({
   twoPersonAdultPossible,
   day = false,
+  dayLabel = 'Day clips on',
   story = false,
 }: {
   /** The day / story can hold two-person adult stills (their clips render on WAN). */
   twoPersonAdultPossible: boolean;
   /** Day: its clips are LTX-2.5 unless the player picks WAN here (Video `dayClips`). */
   day?: boolean;
+  /** The day choice's label (Scene: its clips follow the same choice as Day's). */
+  dayLabel?: string;
   /** Story: its clips follow Video → Model unless the player picks MiniMax-H3 (`storyClips`). */
   story?: boolean;
 }) {
@@ -90,7 +93,7 @@ export default function ClipEngineNote({
   ) : null;
   const dayChoice = day ? (
     <label className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
-      Day clips on
+      {dayLabel}
       <select
         className="ui-input !w-auto min-w-0 max-w-full !py-0.5"
         value={dayClips}

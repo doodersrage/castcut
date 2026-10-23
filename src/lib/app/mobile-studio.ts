@@ -16,23 +16,23 @@ export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'day', href: '/m/day', label: 'Day', hint: 'Plan the Day' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Try clothes on' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'What happens next' },
-  { id: 'cut', href: '/m/cut', label: 'Cut', hint: 'Put the film together' },
   { id: 'scene', href: '/m/scene', label: 'Scene', hint: 'One shot, exactly as you want it' },
+  { id: 'cut', href: '/m/cut', label: 'Cut', hint: 'Put the film together' },
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Everything you’ve made' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'What’s rendering' },
 ];
 
 /**
- * Primary dock tabs — the same four as the desktop Film dock (Film, Day, Outfit, Story); Cast,
- * Gallery and Queue live under More on both. The phone had seven tabs to the desk's four
- * (UI audit 2026-10-11).
+ * Primary dock tabs — the same as the desktop Film dock (Film, Day, Outfit, Story, Scene, Cut:
+ * the shots, then the cut); Cast, Gallery and Queue live under More on both.
  */
 export const MOBILE_STUDIO_PRIMARY_TAB_IDS: MobileStudioTabId[] = [
   'film',
   'day',
   'fitting',
   'story',
+  'scene',
   'cut',
 ];
 

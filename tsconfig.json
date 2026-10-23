@@ -45,6 +45,7 @@
     "playwright.config.ts",
     // Playwright side, like the config: it imports the e2e helpers.
     "scripts/screenshots.mts",
+    "scripts/scene-real-render.mts",
     "scripts/pose-bench/capture.mts",
     "scripts/pose-bench/pose-pictures.mts",
     "scripts/pose-bench/ground-sit-redo.mts",

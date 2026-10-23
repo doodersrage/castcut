@@ -4706,22 +4706,31 @@ export function upsertDaySlotStill(
   stills: DaySlotStill[] | null | undefined,
   patch: DaySlotStill
 ): DaySlotStill[] {
-  const next = normalizeDaySlotStills(stills).map(still =>
-    still.slotId === patch.slotId
-      ? {
-          ...still,
-          ...patch,
-          slotId: patch.slotId,
-          promptId: 'promptId' in patch ? patch.promptId?.trim() || undefined : still.promptId,
-          imageUrl: 'imageUrl' in patch ? patch.imageUrl?.trim() || undefined : still.imageUrl,
-          status: patch.status ?? still.status,
-          clipPromptId:
-            'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : still.clipPromptId,
-          clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : still.clipUrl,
-          clipStatus: 'clipStatus' in patch ? patch.clipStatus : still.clipStatus,
-        }
-      : still
-  );
+  const next = normalizeDaySlotStills(stills).map(still => {
+    if (still.slotId !== patch.slotId) return still;
+    const promptId = 'promptId' in patch ? patch.promptId?.trim() || undefined : still.promptId;
+    // A take's cut to its camera shot is that take's: a new take on the slot drops it (kept, a
+    // Scene take put back on the card showed the last take's picture).
+    const framedUrl =
+      'framedUrl' in patch
+        ? patch.framedUrl
+        : promptId !== still.promptId
+          ? undefined
+          : still.framedUrl;
+    return {
+      ...still,
+      ...patch,
+      slotId: patch.slotId,
+      promptId,
+      framedUrl,
+      imageUrl: 'imageUrl' in patch ? patch.imageUrl?.trim() || undefined : still.imageUrl,
+      status: patch.status ?? still.status,
+      clipPromptId:
+        'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : still.clipPromptId,
+      clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : still.clipUrl,
+      clipStatus: 'clipStatus' in patch ? patch.clipStatus : still.clipStatus,
+    };
+  });
   return next;
 }
 
@@ -5117,6 +5126,17 @@ export function dayStillIsFaceFinished(still: DaySlotStill | null | undefined): 
     // The shot cut shows through finishedUrl too; its face is not finished yet.
     still.finishedUrl.trim() !== still.framedUrl?.trim()
   );
+}
+
+/**
+ * This take is already cut to its camera shot (shot-reframe): its frame is this take's — a still
+ * keeps an older take's `framedUrl` until the next cut, so the frame alone says nothing.
+ */
+export function dayStillHasItsFrame(
+  still: Pick<DaySlotStill, 'promptId' | 'framedUrl' | 'finishedFor'> | null | undefined
+): boolean {
+  const promptId = still?.promptId?.trim();
+  return Boolean(promptId && still?.framedUrl?.trim() && still.finishedFor === promptId);
 }
 
 /** The image a still shows: its face finish when that belongs to this take, else the take. */

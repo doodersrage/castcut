@@ -291,29 +291,310 @@ test('Open as Scene from a Day slot copies its shot and take', async ({ page }) 
   await expect(page.getByTestId('scene-take')).toHaveCount(1);
 });
 
-test('phone: the Scene page fits the width', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+/** Horizontal overflow (px) of the page, and what sticks out (outside any scrolling strip). */
+async function horizontalOverflow(page: Page): Promise<{ over: number; wide: string[] }> {
+  return page.evaluate(() => {
+    const over = document.documentElement.scrollWidth - window.innerWidth;
+    const wide = [...document.querySelectorAll<HTMLElement>('body *')]
+      .filter(el => {
+        const box = el.getBoundingClientRect();
+        if (!box.width || box.right <= window.innerWidth + 1) return false;
+        for (let p = el.parentElement; p; p = p.parentElement) {
+          if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowX)) return false;
+        }
+        return true;
+      })
+      .slice(0, 8)
+      .map(el => `${el.tagName}[${el.dataset.testid ?? ''}] →${Math.round(el.getBoundingClientRect().right)}`);
+    return { over, wide };
+  });
+}
+
+/** Visible controls in `selector` smaller than 44 × 44 px (a phone tap target). */
+async function smallTapTargets(page: Page, selector: string): Promise<string[]> {
+  return page.evaluate(root => {
+    const scope = document.querySelector(root);
+    if (!scope) return [`no ${root}`];
+    const controls: HTMLElement[] = [
+      ...scope.querySelectorAll<HTMLElement>(
+        'button, a[href], select, input:not([type=hidden]):not(.sr-only), textarea, [role=radio]'
+      ),
+    ];
+    return controls
+      // A checkbox is tapped through its label.
+      .map(el => (el.matches('input') && el.closest('label')) || el)
+      .filter(el => {
+        const box = el.getBoundingClientRect();
+        if (!box.width || !box.height || getComputedStyle(el).visibility === 'hidden') return false;
+        return box.height < 44 || box.width < 44;
+      })
+      .map(el => {
+        const box = el.getBoundingClientRect();
+        const name = (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 24);
+        return `${el.tagName}[${el.dataset.testid ?? ''}] "${name}" ${Math.round(box.width)}×${Math.round(box.height)}`;
+      });
+  }, selector);
+}
+
+for (const [width, height] of [
+  [360, 780],
+  [390, 844],
+  [430, 932],
+  [844, 390],
+] as const) {
+  test(`phone ${width}×${height}: its own layout — fits, 44 px targets, sheets, Queue in reach`, async ({
+    browser,
+  }) => {
+    // A phone: touch, mobile viewport.
+    const context = await browser.newContext({
+      viewport: { width, height },
+      isMobile: true,
+      hasTouch: true,
+      storageState: undefined,
+    });
+    const page = await context.newPage();
+    await isolateServerStorage(page);
+    await ensureAuthenticated(page);
+    await stubComfyQueue(page);
+    await seedSettingsCacheOnNextLoad(page, {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { scene: sceneWithTakes() },
+    });
+    await gotoStable(page, `/m/scene?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    await expect(page.getByTestId('scene-phone')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+    // Not the desk page in the phone shell.
+    await expect(page.getByTestId('scene-plan-bar')).toHaveCount(0);
+    await expect(page.getByTestId('scene-shot-summary')).toBeVisible();
+
+    const { over, wide } = await horizontalOverflow(page);
+    expect(over, wide.join('\n')).toBeLessThanOrEqual(1);
+    // Scene's own controls (the shell and the get-started card are other pages' too).
+    for (const root of [
+      '[data-testid="scene-list"]',
+      '[data-testid="scene-shot"]',
+      '[data-testid="scene-take-list"]',
+      '[data-testid="scene-shot-summary"]',
+      '[data-testid="scene-move"]',
+      '[data-testid="scene-action-bar"]',
+    ]) {
+      expect(await smallTapTargets(page, root), root).toEqual([]);
+    }
+    // The takes: one swipeable strip.
+    const strip = await page
+      .getByTestId('scene-take-list')
+      .evaluate(el => getComputedStyle(el).overflowX);
+    expect(strip).toBe('auto');
+    await shot(page, `scene-phone-${width}`);
+
+    // Queue a take stays in reach while the page scrolls.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const bar = await page.getByTestId('scene-action-bar').boundingBox();
+    expect(bar).not.toBeNull();
+    expect(bar!.y + bar!.height).toBeLessThanOrEqual(height + 1);
+    await expect(page.getByTestId('scene-queue-take')).toHaveText('Another take');
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    // Each sheet opens as a phone sheet and fits.
+    const sheets: Array<[string, string]> = [
+      ['scene-edit-shot', 'scene-shot-sheet'],
+      ['scene-edit-mood', 'scene-mood-sheet'],
+      ['scene-edit-engine', 'scene-engine-sheet'],
+      ['scene-send-day', 'scene-send-day-sheet'],
+    ];
+    for (const [opener, sheet] of sheets) {
+      await page.getByTestId(opener).tap();
+      const dialog = page.getByTestId(sheet);
+      await expect(dialog).toBeVisible({ timeout: 30_000 });
+      const box = await dialog.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(-1);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+      expect((await horizontalOverflow(page)).over).toBeLessThanOrEqual(1);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+    }
+    // The shot sheet holds Day's slot editor; Queue from it too.
+    await page.getByTestId('scene-action-edit').tap();
+    await expect(page.getByTestId('scene-shot-sheet')).toBeVisible();
+    await expect(page.getByTestId('day-slot-location')).toHaveValue('small kitchen');
+    await page.keyboard.press('Escape');
+
+    // Make it move from the kept take: Animate and Copy moves open their sheets.
+    await page.getByTestId('scene-take-keep-0').tap();
+    await expect(page.getByTestId('scene-take').nth(0)).toHaveAttribute('data-kept', 'true');
+    await page.getByTestId('scene-animate').tap();
+    await expect(page.getByTestId('day-animate-sheet')).toBeVisible({ timeout: 30_000 });
+    await page.keyboard.press('Escape');
+    await page.getByTestId('scene-copy-moves').tap();
+    await expect(page.getByTestId('slot-media-sheet')).toBeVisible({ timeout: 30_000 });
+    await page.keyboard.press('Escape');
+    await context.close();
+  });
+}
+
+test('queue: the Scene page’s jobs are labelled Scene, not Day', async ({ page }) => {
+  const scene = sceneWithTakes();
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },
     characters: cast,
-    tools: { scene: sceneWithTakes() },
+    tools: {
+      scene: {
+        ...scene,
+        stills: [{ slotId: 'evening', promptId: 'e2e-scene-live', status: 'running' }],
+        // A take dropped from the scene: still Scene's job.
+        jobLog: [{ promptId: 'e2e-scene-dropped', scene: 'Kitchen', kind: 'still' }],
+      },
+    },
   });
-  await gotoStable(page, `/m/scene?character=${CAST}`);
-  await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('scene-shot')).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId('scene-take')).toHaveCount(2);
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - window.innerWidth
-  );
-  if (overflow > 1) {
-    const wide = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('body *')]
-        .filter(el => el.getBoundingClientRect().right > window.innerWidth + 1)
-        .slice(0, 12)
-        .map(el => `${el.tagName}.${el.className}`.slice(0, 160) + ' ' + (el.dataset.testid ?? '') + ' ' + Math.round(el.getBoundingClientRect().right))
+  await page.addInitScript(cast => {
+    const now = Date.now();
+    window.localStorage.setItem('comfy-prompt-characters-v1', JSON.stringify(cast));
+    const base = {
+      comfyUrl: 'http://127.0.0.1:8188',
+      // Queued like a Day still: the edit pipeline, a Day still's prompt.
+      tool: 'image-prompt',
+      prompt: 'Edit instruction for a Day still: stirring risotto',
+      characterId: 'e2e-scene',
+      model: 'qwen-e2e',
+      images: [],
+    };
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        { ...base, id: 'e2e-scene-live', promptId: 'e2e-scene-live', status: 'running', queuedAt: now - 20_000 },
+        { ...base, id: 'e2e-scene-dropped', promptId: 'e2e-scene-dropped', status: 'pending', queuePosition: 1, queuedAt: now - 10_000 },
+      ])
     );
-    console.log(wide.join('\n'));
-  }
-  expect(overflow).toBeLessThanOrEqual(1);
-  await shot(page, 'scene-phone');
+  }, cast);
+  await gotoStable(page, '/queue');
+  await dismissBlockingOverlays(page);
+  const batch = page.getByTestId('queue-batch');
+  await expect(batch).toContainText('Scene · 2 jobs', { timeout: 30_000 });
+  await expect(batch.getByText('Scene · Kitchen · Scene Cast').first()).toBeVisible();
+  await expect(batch.getByRole('link', { name: 'Open in Scene' }).first()).toHaveAttribute(
+    'href',
+    `/scene?character=${CAST}`
+  );
+  await expect(page.getByText(/^Day · /)).toHaveCount(0);
 });
+
+test('Make it move: the clip engine choice (Day’s), its requirements, and Animate renders on it', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { ...sceneWithTakes(), dayMood: 'intimate', intimateMix: 'duo' } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  // Only once a take is kept (Make it move starts from it).
+  await expect(page.getByTestId('scene-clip-engine')).toHaveCount(0);
+  await page.getByTestId('scene-take-keep-1').click();
+  const block = page.getByTestId('scene-clip-engine');
+  await expect(block).toBeVisible();
+  await expect(block).toContainText('Animate clips on');
+  await expect(page.getByTestId('scene-clip-engine-hint')).toContainText('Wan Animate');
+  // Day's own setting: what Day's Animate uses, so Scene's too.
+  await page.getByTestId('clip-engine-day').selectOption('wan');
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<string>(resolve => {
+              const request = indexedDB.open('comfy-prompt-studio-v1');
+              request.onsuccess = () => {
+                const get = request.result
+                  .transaction('kv', 'readonly')
+                  .objectStore('kv')
+                  .get('comfy-prompt-tool-settings-tools-v1');
+                get.onsuccess = () => resolve(String(get.result?.value?.tools?.video?.dayClips ?? ''));
+              };
+            })
+        ),
+      { timeout: 15_000 }
+    )
+    .toBe('wan');
+  await page.getByTestId('scene-animate').click();
+  await expect(page.getByTestId('day-animate-sheet')).toBeVisible({ timeout: 30_000 });
+  const before = queued.length;
+  await page.getByTestId('day-animate-submit').click();
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(before);
+  const body = queued.at(-1)!;
+  // The clip renders on WAN (the engine picked), not LTX-2.5.
+  const model = (JSON.parse(body) as { model?: string }).model ?? '';
+  expect(model).toMatch(/^wan-video/);
+  await shot(page, 'scene-desk-clip-engine');
+});
+
+for (const phone of [false, true]) {
+  test(`${phone ? 'phone' : 'desk'}: a take with a clip opens the clip in the lightbox, a still-only take the still`, async ({
+    page,
+  }) => {
+    if (phone) await page.setViewportSize({ width: 390, height: 844 });
+    const clip = '/e2e-scene-clip.mp4';
+    await page.route(`**${clip}`, route =>
+      route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(16) })
+    );
+    const seeded = sceneWithTakes();
+    const scene = seeded.scenes[0]!;
+    await seedSettingsCacheOnNextLoad(page, {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...seeded,
+          scenes: [
+            {
+              ...scene,
+              keptTakeId: 'take-2',
+              takes: [scene.takes[0], { ...scene.takes[1], clipUrl: clip, clipPromptId: 'clip-2' }],
+            },
+          ],
+          stills: [
+            {
+              slotId: 'evening',
+              promptId: 'take-2',
+              imageUrl: '/icon.svg?take=2',
+              status: 'completed',
+              clipUrl: clip,
+              clipPromptId: 'clip-2',
+              clipStatus: 'completed',
+            },
+          ],
+        },
+      },
+    });
+    await gotoStable(page, `${phone ? '/m/scene' : '/scene'}?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+    const lightbox = page.getByTestId('image-lightbox');
+    // What the lightbox shows (its Open original link is the slide's own file).
+    const shown = lightbox.getByRole('link', { name: 'Open original' });
+
+    // The card: its clip (as on Day).
+    await page.getByTestId('day-slot-select-evening').click();
+    await expect(lightbox).toBeVisible({ timeout: 30_000 });
+    await expect(shown).toHaveAttribute('href', clip);
+    await page.keyboard.press('Escape');
+    await expect(lightbox).toHaveCount(0);
+
+    // The kept take in Make it move: its clip.
+    await page.getByTestId('scene-kept-open').click();
+    await expect(shown).toHaveAttribute('href', clip);
+    await page.keyboard.press('Escape');
+    await expect(lightbox).toHaveCount(0);
+
+    // A still-only take on the card opens the still.
+    await page.getByTestId('scene-take-show-0').click();
+    await expect(page.getByTestId('scene-take').nth(0)).toHaveAttribute('data-on-card', 'true');
+    await page.getByTestId('day-slot-select-evening').click();
+    await expect(lightbox).toBeVisible({ timeout: 30_000 });
+    await expect(shown).toHaveAttribute('href', /take=1/);
+  });
+}

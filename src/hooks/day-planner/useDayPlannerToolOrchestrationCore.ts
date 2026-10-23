@@ -331,7 +331,7 @@ import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
-import { sceneSlotOf } from '@/lib/day/scenes';
+import { sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
@@ -368,10 +368,18 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       ? storedToolSettings
       : { ...storedToolSettings, dayMood: flavor };
   }, [storedToolSettings]);
+  // A scene is one slot: Day's helpers below hand back a whole Day's slots (sceneSlotsPatch).
+  const sceneSlotsRef = useRef(storedToolSettings.slots);
+  sceneSlotsRef.current = storedToolSettings.slots;
   const updateToolSettings = useCallback(
-    (partial: Parameters<typeof storeToolSettings>[0]) =>
-      storeToolSettings(migrateDayMoodFields(partial)),
-    [storeToolSettings]
+    (partial: Parameters<typeof storeToolSettings>[0]) => {
+      const patch =
+        sceneMode && partial.slots
+          ? { ...partial, slots: sceneSlotsPatch(partial.slots, sceneSlotsRef.current) }
+          : partial;
+      storeToolSettings(migrateDayMoodFields(patch));
+    },
+    [sceneMode, storeToolSettings]
   );
   useEngineWarmUp({ mounted, model: shared.model });
 

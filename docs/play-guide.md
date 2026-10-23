@@ -23,7 +23,7 @@ Jump to: [When to use Play](#when-to-use-play) · [Step-by-step](#step-by-step) 
 
 Switch modes from **Profile → Appearance**. Play slimmed chrome hides draft-preview noise and optional Story until you cut your first film.
 
-First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise). Every goal opens in Film; **Studio** (Profile → Appearance) adds control, with your film kept at the top of its sidebar. The welcome says up front whether ComfyUI is ready. On a phone, use **Mobile Studio** (`/m`) — the same Film · Day · Outfit · Story tabs as the desk, with Look, Cast, Gallery and Queue under More.
+First launch asks **What do you want to make?** (Character / Scene·Film / Image / Surprise). Every goal opens in Film; **Studio** (Profile → Appearance) adds control, with your film kept at the top of its sidebar. The welcome says up front whether ComfyUI is ready. On a phone, use **Mobile Studio** (`/m`) — the same Film · Day · Outfit · Story · Scene · Cut tabs as the desk, with Cast, Gallery and Queue under More.
 
 !!! tip "First film in minutes"
     **Make a starter film** seeds a Cast lead, skips Look/Outfit, opens Day with **auto-queue**, and lands you on Cut. If Comfy is offline, tap **Use demo stills** to practice the cut. Welcome shows a sample morning→night reel so you know what you're making.

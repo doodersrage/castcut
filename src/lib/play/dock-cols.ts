@@ -5,6 +5,7 @@ const PHONE_COLS: Record<number, string> = {
   4: 'grid-cols-4',
   5: 'grid-cols-5',
   6: 'grid-cols-6',
+  7: 'grid-cols-7',
 };
 const WIDE_COLS: Record<number, string> = {
   2: 'sm:grid-cols-2',
@@ -19,8 +20,9 @@ const WIDE_COLS: Record<number, string> = {
  * row is the tabs alone — counting More there left an empty column and the tabs off center.
  */
 export function dockGridColsClass(primaryCount: number, hasMore: boolean): string {
-  const clamp = (count: number) => Math.min(6, Math.max(2, count));
-  const phone = clamp(primaryCount + (hasMore ? 1 : 0));
-  const wide = clamp(primaryCount);
+  const clamp = (count: number, max: number) => Math.min(max, Math.max(2, count));
+  // Film, Day, Outfit, Story, Scene, Cut + More: seven on a phone.
+  const phone = clamp(primaryCount + (hasMore ? 1 : 0), 7);
+  const wide = clamp(primaryCount, 6);
   return `${PHONE_COLS[phone]} ${WIDE_COLS[wide]}`;
 }

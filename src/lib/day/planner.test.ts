@@ -208,6 +208,31 @@ describe('day-planner', () => {
     assert.equal(slots[0]?.sceneHints, 'quiet breakfast ');
   });
 
+  it('upsertDaySlotStill drops the last take\'s shot cut when a new take is queued', () => {
+    const cut = '/view?filename=reframe-1.png';
+    const before = [
+      {
+        slotId: 'morning' as const,
+        promptId: 'old',
+        status: 'completed' as const,
+        imageUrl: cut,
+        framedUrl: cut,
+        finishedUrl: cut,
+        finishedFor: 'old',
+      },
+    ];
+    const queued = upsertDaySlotStill(before, {
+      slotId: 'morning',
+      promptId: 'new',
+      status: 'queued',
+      imageUrl: undefined,
+    });
+    assert.equal(queued[0]?.framedUrl, undefined);
+    // The same take keeps it (a status or clip update).
+    const same = upsertDaySlotStill(before, { slotId: 'morning', clipPromptId: 'c1' });
+    assert.equal(same[0]?.framedUrl, cut);
+  });
+
   it('upsertDaySlotStill clears imageUrl when re-queued', () => {
     const queued = upsertDaySlotStill(
       [

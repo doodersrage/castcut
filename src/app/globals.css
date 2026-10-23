@@ -3652,3 +3652,35 @@ button.ui-badge:disabled {
   line-height: 1.45;
   color: var(--text-muted);
 }
+
+/*
+ * Phone tap targets (`<html data-phone-targets>`, set by the phone pages that ask for it — Scene,
+ * /m/scene): every control at least 44 px, on the page and in the sheets it opens (they are
+ * portalled to <body>, so a class on the page would not reach them). Day's shared editors keep
+ * their compact desk sizes everywhere else. Not the pose editor's SVG joints.
+ */
+@media (max-width: 900px) {
+  html[data-phone-targets]
+    :is(button, select, summary, [role='radio'], [role='tab'], a[href]):not(svg *) {
+    min-height: 2.75rem !important;
+  }
+  html[data-phone-targets] :is(button, summary, [role='radio'], [role='tab']):not(svg *) {
+    min-width: 2.75rem;
+  }
+  html[data-phone-targets] a[href]:not(svg *) {
+    display: inline-flex;
+    align-items: center;
+  }
+  html[data-phone-targets] label:has(> input:is([type='checkbox'], [type='radio'], .sr-only)) {
+    min-height: 2.75rem;
+    align-items: center;
+  }
+  html[data-phone-targets] summary {
+    display: flex;
+    align-items: center;
+  }
+  /* Sliders (the Director's scrubber, a beat's hold) and file pickers: a full-height hit area. */
+  html[data-phone-targets] input:is([type='range'], [type='file'], [type='number']) {
+    min-height: 2.75rem;
+  }
+}

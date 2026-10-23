@@ -11,22 +11,26 @@ import {
   parseCastFileScenes,
   placeImportedScenes,
   recordSceneFromWorking,
+  recordSceneJobs,
+  SCENE_JOB_LOG_LIMIT,
   removeSceneTake,
   SCENE_TAKE_LIMIT,
   sceneCutShots,
   sceneFromDaySlot,
   sceneSlotAt,
   sceneSlotOf,
+  sceneSlotsPatch,
   scenesForCast,
   sceneWorkingPatch,
   sendSceneToDayPatch,
   swapSceneForCast,
+  takeAsStill,
   type SavedScene,
   type SceneToolCache,
 } from './scenes';
 import { activeCutSources, cutRoomShots, cutRoomSourceShots, splitCutRoomKey } from '../film/cut-room';
 import { buildCastFile, parseCastFile } from '../cast/transfer';
-import type { DaySlot, DaySlotStill } from './planner';
+import { ensureDaySlotsMatchMood, type DaySlot, type DaySlotStill } from './planner';
 import type { DayToolCache } from '../play/settings';
 
 const kitchen = (overrides: Partial<Parameters<typeof createScene>[0]> = {}): SavedScene =>
@@ -253,6 +257,80 @@ describe('scenes: the open scene follows the engine', () => {
     const toNobody = swapSceneForCast({ ...cache, ...toTomas }, 'ines', 60);
     assert.equal(toNobody.activeSceneId, undefined);
     assert.deepEqual(toNobody.stills, []);
+  });
+
+  it('coming back to a Cast opens the scene they had open, not their newest', () => {
+    const a = kitchen();
+    const b = createScene({ castId: 'nora', name: 'Rooftop', id: 'scene-b', now: 20 });
+    const t = createScene({ castId: 'tomas', name: 'Scene 1', id: 'scene-t', now: 5 });
+    let cache: SceneToolCache = { scenes: [a, b, t], ...sceneWorkingPatch(b) };
+    // Nora opens her first scene (Rooftop is the newer one), then the page goes to Tomas.
+    cache = { ...cache, ...openScenePatch(cache, 'scene-a', 30) };
+    assert.equal(cache.openByCast?.nora, 'scene-a');
+    cache = { ...cache, ...swapSceneForCast(cache, 'tomas', 40) };
+    assert.equal(cache.activeSceneId, 'scene-t');
+    cache = { ...cache, ...swapSceneForCast(cache, 'nora', 50) };
+    assert.equal(cache.activeSceneId, 'scene-a');
+    // Deleted meanwhile: their newest instead.
+    const gone = { ...cache, scenes: cache.scenes?.filter(scene => scene.id !== 'scene-a') };
+    assert.equal(swapSceneForCast({ ...gone, activeSceneId: 'scene-t' }, 'nora', 60).activeSceneId, 'scene-b');
+  });
+
+  it('a take cut to its close shot goes back on the card as the cut (not the full frame)', () => {
+    const cut = '/view?filename=reframe-1.png';
+    const scene = recordSceneFromWorking(kitchen(), {
+      slots: [kitchen().slot],
+      stills: [done('p1', { imageUrl: cut, finishedUrl: cut, finishedFor: 'p1', framedUrl: cut })],
+    });
+    const take = scene.takes[0]!;
+    assert.equal(take.framedUrl, cut);
+    assert.deepEqual(normalizeSavedScenes([scene])[0]?.takes[0], take);
+    const still = takeAsStill('evening', take);
+    // Day's gallery sync keeps a still's own finish (else it puts the gallery's full frame back
+    // and the reframe runs again); the reframe skips a still with its frame.
+    assert.equal(still.imageUrl, cut);
+    assert.equal(still.finishedUrl, cut);
+    assert.equal(still.finishedFor, 'p1');
+    assert.equal(still.framedUrl, cut);
+    // Face-finished after the cut: the card shows the finish, over the cut.
+    const finished = takeAsStill('evening', { ...take, imageUrl: '/view?filename=face.png' });
+    assert.equal(finished.imageUrl, cut);
+    assert.equal(finished.finishedUrl, '/view?filename=face.png');
+    // A still keeps an older take's frame until the next cut: not this take's.
+    const stale = recordSceneFromWorking(kitchen(), {
+      slots: [kitchen().slot],
+      stills: [done('p2', { framedUrl: cut, finishedUrl: cut, finishedFor: 'p1' })],
+    });
+    assert.equal(stale.takes[0]?.framedUrl, undefined);
+  });
+
+  it('the engine writes one slot: a Day helper\'s whole Day keeps only the scene\'s', () => {
+    const scene: DaySlot = { id: 'night', label: 'Night', location: 'rooftop terrace' };
+    // Day's mood fit normalizes a single slot to a whole Day (inferDayLength → four).
+    const aligned = ensureDaySlotsMatchMood([scene], { dayMood: 'intimate', intimateMix: 'duo' });
+    assert.equal(aligned.slots.length, 4);
+    const kept = sceneSlotsPatch(aligned.slots, [scene]);
+    assert.deepEqual(
+      kept.map(slot => slot.id),
+      ['night']
+    );
+    // A time-of-day move (one slot) goes through as it is.
+    assert.deepEqual(sceneSlotsPatch([{ id: 'morning', label: 'Morning' }], [scene])[0]?.id, 'morning');
+  });
+
+  it('logs the jobs it queues by id, once each, bounded', () => {
+    const first = recordSceneJobs(undefined, { promptId: 'p1' }, 'Kitchen');
+    assert.deepEqual(first, [{ promptId: 'p1', scene: 'Kitchen', kind: 'still' }]);
+    const same = recordSceneJobs(first, { promptId: 'p1' }, 'Kitchen');
+    assert.equal(same, first);
+    const clip = recordSceneJobs(first, { promptId: 'p1', clipPromptId: 'c1' }, 'Kitchen');
+    assert.deepEqual(clip.at(-1), { promptId: 'c1', scene: 'Kitchen', kind: 'clip' });
+    let log = clip;
+    for (let n = 0; n < SCENE_JOB_LOG_LIMIT + 5; n += 1) {
+      log = recordSceneJobs(log, { promptId: `x${n}` }, 'Kitchen');
+    }
+    assert.equal(log.length, SCENE_JOB_LOG_LIMIT);
+    assert.equal(log.at(-1)?.promptId, `x${SCENE_JOB_LOG_LIMIT + 4}`);
   });
 });
 
