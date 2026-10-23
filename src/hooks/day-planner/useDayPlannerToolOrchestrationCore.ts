@@ -740,6 +740,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           dayMood: toolSettings.dayMood,
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
+          keepSettings: sceneMode,
         });
         updateToolSettings({
           slots: moodAligned.slots,
@@ -758,6 +759,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     // deepLinkHandled makes this run once; settings are listed only to read them current.
   }, [
     mounted,
+    sceneMode,
     shared.activeCharacterId,
     shared.lockedWardrobeId,
     toolSettings,
@@ -1419,6 +1421,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           dayMood: toolSettings.dayMood,
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
+          // A scene's Setting is the player's: a blank beat is filled under it, never rerolled.
+          keepSettings: sceneMode,
         });
         if (moodAligned.changed) {
           workingSlots = moodAligned.slots;
@@ -1453,10 +1457,12 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         queueTarget = dayStillSceneSlot(queueTarget, sceneContext);
         const redraw = dayStillSceneRedraw(queueTarget, {
           ...sceneContext,
+          // A scene's Setting is the player's: only its beat is drawn again.
           pairedScenes:
-            Boolean(dayThemeOf(toolSettings.dayMood)) ||
-            normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
-            normalizeDayMood(toolSettings.dayMood) === 'sport',
+            !sceneMode &&
+            (Boolean(dayThemeOf(toolSettings.dayMood)) ||
+              normalizeDayMood(toolSettings.dayMood) === 'vacation' ||
+              normalizeDayMood(toolSettings.dayMood) === 'sport'),
         });
         if (redraw) {
           const redrawn = diversifyDaySlotScenes(
@@ -3379,6 +3385,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       actions,
       buildSlotPrompt,
       character,
+      sceneMode,
       isolatePending,
       isolateSubject,
       leanChrome,
@@ -3608,6 +3615,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       dayMood: mood,
       intimateMix: mix,
       allowCompanions,
+      keepSettings: sceneMode,
     });
     // A theme dresses from its own pool: kits picked under another mood (a suit on a Cosplay
     // day, overalls on Date night) are dropped so the queue picks a fitting one.
@@ -3820,8 +3828,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         );
       const allowCompanions = mix !== 'solo';
       const aligned = isDayAdultMood(rawMood)
-        ? ensureDaySlotsMatchMood(slots, { dayMood: rawMood, intimateMix: mix, allowCompanions })
-        : alignDaySlotsToPeople(slots, { dayMood: rawMood, people: mix });
+        ? ensureDaySlotsMatchMood(slots, {
+            dayMood: rawMood,
+            intimateMix: mix,
+            allowCompanions,
+            keepSettings: sceneMode,
+          })
+        : alignDaySlotsToPeople(slots, { dayMood: rawMood, people: mix, keepSettings: sceneMode });
       updateToolSettings({
         intimateMix: mix,
         allowCompanions,
@@ -3842,6 +3855,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         dayMood: mood,
         intimateMix: mix,
         allowCompanions: toolSettings.allowCompanions === true,
+        keepSettings: sceneMode,
       });
       updateToolSettings({
         intimateMix: mix,

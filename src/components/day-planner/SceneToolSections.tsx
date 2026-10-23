@@ -82,6 +82,7 @@ export default function SceneToolSections({ vm, page }: Props) {
     active,
     slot,
     inFlight,
+    rendering,
     kept,
     note,
     newScene,
@@ -154,7 +155,7 @@ export default function SceneToolSections({ vm, page }: Props) {
             <Button
               size="sm"
               variant={castScenes.length ? 'secondary' : 'primary'}
-              disabled={!character || inFlight}
+              disabled={!character || rendering}
               data-testid="scene-new"
               onClick={newScene}
             >
@@ -410,7 +411,13 @@ export default function SceneToolSections({ vm, page }: Props) {
                   title="Render this shot (Day's still engine, its checks and finishes)"
                   onClick={() => void queueSlot(slot, { byPlayer: true })}
                 >
-                  {inFlight ? 'Rendering…' : takeCount > 0 ? 'Another take' : 'Queue a take'}
+                  {rendering
+                    ? 'Rendering…'
+                    : inFlight
+                      ? 'Checking…'
+                      : takeCount > 0
+                        ? 'Another take'
+                        : 'Queue a take'}
                 </Button>
               </ToolActionRow>
               {renderOffline ? (

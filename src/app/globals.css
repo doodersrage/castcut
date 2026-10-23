@@ -675,6 +675,14 @@ section:has(details[open] > .ui-menu-panel),
   background: var(--bg-base);
 }
 
+/* The phone studio's (/m/*) header, dock and pinned action bars: opaque in both themes — the
+   muted tone laid over the page colour (--bg-muted alone is translucent, and scrolled text showed
+   through the dock and header). */
+:root .ui-phone-bar {
+  background-color: var(--bg-base);
+  background-image: linear-gradient(var(--bg-muted), var(--bg-muted));
+}
+
 /* Virtualized rows are translated (each its own stacking context) — lift the row whose
    menu is open so the next row does not paint over the panel. */
 [data-index]:has(details[open]) {

@@ -99,7 +99,10 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       className="flex min-h-dvh flex-col bg-[var(--bg-base)] text-[var(--text-primary)]"
       data-accent={accent}
     >
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-muted)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header
+        data-testid="mobile-studio-header"
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] ui-phone-bar px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+      >
         <div className="flex min-w-0 items-center gap-2">
           <BrandMark size={28} />
           <div className="min-w-0">
@@ -136,9 +139,10 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       <nav
         ref={dockRef}
         aria-label="Film"
+        data-testid="mobile-studio-dock"
         // While the More menu is open the bar goes above the floating job pill (z-90), which
         // otherwise covers the menu's items.
-        className="fixed inset-x-0 bottom-0 z-40 has-[details[open]]:z-[95] border-t border-[var(--border-subtle)] bg-[var(--bg-muted)] pb-[env(safe-area-inset-bottom)]"
+        className="fixed inset-x-0 bottom-0 z-40 has-[details[open]]:z-[95] border-t border-[var(--border-subtle)] ui-phone-bar pb-[env(safe-area-inset-bottom)]"
       >
         {/* The More menu sits beside the scrolling tab list, not inside it: overflow-x on the
             list also clips vertically, and the menu (which opens upward) was never drawn. */}

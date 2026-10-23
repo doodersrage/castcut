@@ -18,6 +18,8 @@ import {
   recordSceneFromWorking,
   recordSceneJobs,
   removeSceneTake,
+  resolveSceneChecks,
+  sceneCardBusy,
   sceneSlotAt,
   scenesForCast,
   swapSceneForCast,
@@ -28,6 +30,8 @@ import {
   type SceneToolCache,
 } from '@/lib/day/scenes';
 import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/scene-links';
+import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { daySlotsForScene } from '@/lib/day/scenes';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -48,7 +52,10 @@ export function useScenePage(vm: DayEngineView) {
     scenes.find(scene => scene.id === cache.activeSceneId && scene.castId === castId) ?? null;
   const slot = slots[0]!;
   const still = stills.find(entry => entry.slotId === slot.id);
-  const inFlight = still?.status === 'queued' || still?.status === 'running';
+  // A take rendering keeps this scene open (its job lands on the card); one only at the adult
+  // check does not — it goes with its scene and its verdict follows it (resolveSceneChecks).
+  const { rendering, checking } = sceneCardBusy(still);
+  const inFlight = rendering || checking;
   const stillPromptId = still?.promptId;
   const [note, setNote] = useState<string | null>(null);
 
@@ -83,8 +90,44 @@ export function useScenePage(vm: DayEngineView) {
     }
   }, [active, cache, mounted, scenes, still, write]);
 
+  // Takes left at the adult check on other scenes: settled from the gallery as verdicts land.
+  const settleChecks = useCallback(
+    (list: SavedScene[]): SavedScene[] => {
+      if (!list.some(scene => scene.checkingTakeIds?.length)) return list;
+      const gallery = loadComfyGallery().map(entry => ({
+        promptId: entry.promptId,
+        status: entry.status,
+        imageUrl: galleryEntryPrimaryViewUrl(entry),
+        adultCheck: entry.adultCheck,
+      }));
+      let changed = false;
+      const next = list.map(scene => {
+        if (scene.id === cache.activeSceneId) return scene;
+        const settled = resolveSceneChecks(scene, gallery);
+        if (settled !== scene) changed = true;
+        return settled;
+      });
+      return changed ? next : list;
+    },
+    [cache.activeSceneId]
+  );
+  useEffect(() => {
+    if (!mounted) return;
+    const settle = () => {
+      const next = settleChecks(scenes);
+      if (next !== scenes) write({ scenes: next });
+    };
+    settle();
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
+    return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
+  }, [mounted, scenes, settleChecks, write]);
+
   const newScene = useCallback(() => {
     if (!castId) return;
+    if (rendering) {
+      setNote('A take is rendering — start a new scene when it lands.');
+      return;
+    }
     // A new scene starts from the page's mood and people (the shot itself empty).
     const scene = createScene({
       castId,
@@ -92,20 +135,23 @@ export function useScenePage(vm: DayEngineView) {
       mood: cache as Record<string, unknown>,
     });
     write(addScenePatch({ ...cache, scenes }, scene));
-    setNote(null);
-  }, [cache, castId, scenes, write]);
+    setNote(checking ? 'The last take is still being checked — it lands in its own scene.' : null);
+  }, [cache, castId, checking, rendering, scenes, write]);
 
   const openScene = useCallback(
     (sceneId: string) => {
-      if (inFlight) {
+      if (rendering) {
         setNote('A take is rendering — open another scene when it lands.');
         return;
       }
-      const patch = openScenePatch({ ...cache, scenes }, sceneId);
+      // Verdicts that landed are settled first: a take still waiting goes back on the card.
+      const patch = openScenePatch({ ...cache, scenes: settleChecks(scenes) }, sceneId);
       if (patch) write(patch);
-      setNote(null);
+      setNote(
+        checking ? 'The last take is still being checked — it lands in its own scene.' : null
+      );
     },
-    [cache, inFlight, scenes, write]
+    [cache, checking, rendering, scenes, settleChecks, write]
   );
 
   const renameScene = useCallback(
@@ -142,13 +188,17 @@ export function useScenePage(vm: DayEngineView) {
     (take: SceneTake): boolean => {
       if (stillPromptId && stillPromptId === take.promptId) return true;
       if (inFlight) {
-        setNote('A take is rendering — wait for it to land first.');
+        setNote(
+          rendering
+            ? 'A take is rendering — wait for it to land first.'
+            : 'Checking the take — wait for its check to finish first.'
+        );
         return false;
       }
       write({ stills: [takeAsStill(slot.id, take)] });
       return true;
     },
-    [inFlight, slot.id, stillPromptId, write]
+    [inFlight, rendering, slot.id, stillPromptId, write]
   );
 
   const keepTake = useCallback(
@@ -221,6 +271,8 @@ export function useScenePage(vm: DayEngineView) {
     slot,
     still,
     inFlight,
+    rendering,
+    checking,
     kept: keptTakeOf(active),
     note,
     setNote,

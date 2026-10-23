@@ -151,6 +151,7 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
     active,
     slot,
     inFlight,
+    rendering,
     kept,
     note,
     newScene,
@@ -189,7 +190,13 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
   const shotValue =
     [slot.location?.trim(), slot.sceneHints?.trim()].filter(Boolean).join(' · ') ||
     'Set the place and what happens';
-  const queueLabel = inFlight ? 'Rendering…' : takeCount > 0 ? 'Another take' : 'Queue a take';
+  const queueLabel = rendering
+    ? 'Rendering…'
+    : inFlight
+      ? 'Checking…'
+      : takeCount > 0
+        ? 'Another take'
+        : 'Queue a take';
   const openShot = () => setSheet('shot');
 
   return (
@@ -246,7 +253,7 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
           <Button
             variant={castScenes.length ? 'secondary' : 'primary'}
             className="!min-h-11 shrink-0"
-            disabled={!character || inFlight}
+            disabled={!character || rendering}
             data-testid="scene-new"
             onClick={newScene}
           >
@@ -491,7 +498,7 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
         // In reach while the page scrolls: above the Film dock (its height is published).
         <div
           ref={actionBarRef}
-          className="sticky z-20 -mx-4 flex gap-2 border-t border-[var(--border-subtle)] bg-[var(--bg-base)]/95 px-4 py-2 backdrop-blur"
+          className="sticky z-20 -mx-4 flex gap-2 border-t border-[var(--border-subtle)] ui-phone-bar px-4 py-2"
           style={{ bottom: 'calc(var(--bottom-dock-height, 0px) + 0px)' }}
           data-testid="scene-action-bar"
         >

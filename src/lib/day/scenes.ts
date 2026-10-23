@@ -67,6 +67,13 @@ export type SavedScene = {
   keptTakeId?: string;
   /** "Open as Scene": the Day slot it was copied from. */
   fromDaySlot?: DaySlotId;
+  /**
+   * Takes that had rendered but were still at the adult check when another scene was opened
+   * (their prompt ids). The verdict lands on their gallery entry: a pass adds the take here
+   * ({@link resolveSceneChecks}), a withheld one is dropped; one not yet checked goes back on the
+   * card when the scene opens again, and is checked there.
+   */
+  checkingTakeIds?: string[];
   createdAt: number;
   updatedAt: number;
 };
@@ -239,6 +246,14 @@ function moodFieldsOf(
   return out;
 }
 
+/** Take prompt ids awaiting the adult check: clean, one each, at most two (a take and its pair). */
+function checkingIdsField(value: unknown): Pick<SavedScene, 'checkingTakeIds'> {
+  const ids = [
+    ...new Set((Array.isArray(value) ? value : []).map(id => text(id, 160)).filter(Boolean)),
+  ].slice(-2);
+  return ids.length ? { checkingTakeIds: ids } : {};
+}
+
 /** A stored scene read back (an older or hand-edited copy cleaned), or null when it isn't one. */
 export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -263,6 +278,7 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
     ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
       ? { fromDaySlot: scene.fromDaySlot }
       : {}),
+    ...checkingIdsField(scene.checkingTakeIds),
     createdAt,
     updatedAt: time(scene.updatedAt, createdAt),
   };
@@ -386,10 +402,27 @@ export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
  */
 export function sceneWorkingPatch(scene: SavedScene): Partial<SceneToolCache> {
   const shown = keptTakeOf(scene) ?? scene.takes.at(-1);
+  // A take left at the adult check comes back on the card, held, and is checked there.
+  const [checking, checkingPair] = scene.checkingTakeIds ?? [];
+  const stills: DaySlotStill[] = checking
+    ? [
+        {
+          slotId: scene.slot.id,
+          promptId: checking,
+          status: 'running',
+          adultHold: 'checking',
+          ...(checkingPair
+            ? { twoTakes: { promptId: checkingPair, status: 'running', adultHold: 'checking' } }
+            : {}),
+        },
+      ]
+    : shown
+      ? [takeAsStill(scene.slot.id, shown)]
+      : [];
   const patch: Partial<SceneToolCache> = {
     activeSceneId: scene.id,
     slots: [scene.slot],
-    stills: shown ? [takeAsStill(scene.slot.id, shown)] : [],
+    stills,
     stillsCharacterId: scene.castId,
     partnerStandIn: undefined,
     partnerSentFace: undefined,
@@ -543,8 +576,94 @@ export function scenesWithWorking(cache: SceneToolCache, now = Date.now()): Save
   const scenes = cache.scenes ?? [];
   const active = scenes.find(scene => scene.id === cache.activeSceneId);
   if (!active) return null;
-  const recorded = recordSceneFromWorking(active, cache, now);
+  let recorded = recordSceneFromWorking(active, cache, now);
+  // A take still at the adult check goes with its scene (resolveSceneChecks adds it on a pass).
+  const checking = checkingTakeIdsOf(
+    normalizeDaySlotStills(cache.stills).find(still => still.slotId === recorded.slot.id)
+  );
+  if (checking.length) {
+    recorded = {
+      ...recorded,
+      ...checkingIdsField([...(recorded.checkingTakeIds ?? []), ...checking]),
+    };
+  }
   return recorded === active ? null : upsertScene(scenes, recorded);
+}
+
+/** The card's takes the adult check holds now (rendered, not yet passed or withheld). */
+export function checkingTakeIdsOf(still: DaySlotStill | undefined): string[] {
+  if (!still) return [];
+  return [
+    still.adultHold === 'checking' ? still.promptId?.trim() : '',
+    still.twoTakes?.adultHold === 'checking' ? still.twoTakes.promptId.trim() : '',
+  ].filter((id): id is string => Boolean(id));
+}
+
+/**
+ * The card is busy: a take (or its pair) is rendering, or is held at the adult check. `rendering`
+ * blocks opening another scene (the job's take would land on the wrong one); `checking` alone
+ * does not — the take goes with its scene ({@link scenesWithWorking}).
+ */
+export function sceneCardBusy(still: DaySlotStill | undefined): {
+  rendering: boolean;
+  checking: boolean;
+} {
+  const live = (status: string | undefined) => status === 'queued' || status === 'running';
+  const rendering =
+    (live(still?.status) && still?.adultHold !== 'checking') ||
+    (live(still?.twoTakes?.status) && still?.twoTakes?.adultHold !== 'checking');
+  return { rendering: Boolean(rendering), checking: checkingTakeIdsOf(still).length > 0 };
+}
+
+/** What the gallery says of a take: enough to settle its adult check. */
+export type SceneCheckGalleryEntry = {
+  promptId?: string;
+  status?: string;
+  imageUrl?: string | null;
+  adultCheck?: { state?: string } | null;
+};
+
+/**
+ * A scene's takes that were left at the adult check, settled from the gallery: a passed (or
+ * unchecked) take with its picture is added to the scene, a withheld, failed or missing one is
+ * dropped, one still waiting stays. Each verdict goes to the scene whose take it is (by prompt
+ * id) — never the open one. The same object when nothing settled.
+ */
+export function resolveSceneChecks(
+  scene: SavedScene,
+  gallery: ReadonlyArray<SceneCheckGalleryEntry>,
+  now = Date.now()
+): SavedScene {
+  const ids = scene.checkingTakeIds ?? [];
+  if (!ids.length) return scene;
+  let takes = scene.takes;
+  const waiting: string[] = [];
+  for (const id of ids) {
+    const entry = gallery.find(item => item.promptId?.trim() === id);
+    const state = entry?.adultCheck?.state;
+    // Not settled yet: still rendering, or its check not done (a pass or a withhold settles it).
+    if (
+      entry &&
+      entry.status !== 'error' &&
+      (entry.status !== 'completed' || state === 'pending')
+    ) {
+      waiting.push(id);
+      continue;
+    }
+    const imageUrl = storableUrl(entry?.imageUrl);
+    const passed = entry?.status === 'completed' && state !== 'withheld' && imageUrl;
+    if (passed && !takes.some(take => take.id === id)) {
+      takes = [...takes, { id, promptId: id, imageUrl, at: now }];
+    }
+  }
+  if (waiting.length === ids.length) return scene;
+  const { checkingTakeIds: _ids, ...rest } = scene;
+  return {
+    ...rest,
+    ...checkingIdsField(waiting),
+    takes: takes === scene.takes ? takes : boundedTakes(takes, scene.keptTakeId),
+    updatedAt: now,
+  };
 }
 
 /**
@@ -562,10 +681,21 @@ export function swapSceneForCast(
   // The scene they had open last, else their newest.
   const last = cache.openByCast?.[nextCast];
   const next = mine.find(scene => scene.id === last) ?? mine[0];
+  const scenes = next ? withOpenedScene(saved, next) : saved;
   return {
-    ...(saved !== cache.scenes ? { scenes: saved } : {}),
+    ...(scenes !== cache.scenes ? { scenes } : {}),
     ...(next ? { ...sceneWorkingPatch(next), openByCast: openFor(cache, next) } : NO_SCENE_PATCH),
   };
+}
+
+/**
+ * The scene list as `scene` opens: its takes left at the adult check go back on the card
+ * (sceneWorkingPatch), so they come off its list (same list when it had none).
+ */
+function withOpenedScene(scenes: SavedScene[], scene: SavedScene): SavedScene[] {
+  if (!scene.checkingTakeIds) return scenes;
+  const { checkingTakeIds: _ids, ...opened } = scene;
+  return upsertScene(scenes, opened);
 }
 
 /** Open another of the Cast's scenes: the open one saved first. */
@@ -577,8 +707,9 @@ export function openScenePatch(
   const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
   const scene = saved.find(entry => entry.id === sceneId);
   if (!scene) return null;
+  const scenes = withOpenedScene(saved, scene);
   return {
-    ...(saved !== cache.scenes ? { scenes: saved } : {}),
+    ...(scenes !== cache.scenes ? { scenes } : {}),
     ...sceneWorkingPatch(scene),
     openByCast: openFor(cache, scene),
   };
@@ -613,7 +744,7 @@ export function deleteScenePatch(cache: SceneToolCache, sceneId: string): Partia
   if (cache.activeSceneId !== sceneId) return { scenes };
   const next = target ? scenesForCast(scenes, target.castId)[0] : undefined;
   return {
-    scenes,
+    scenes: next ? withOpenedScene(scenes, next) : scenes,
     ...(next ? { ...sceneWorkingPatch(next), openByCast: openFor(cache, next) } : NO_SCENE_PATCH),
   };
 }

@@ -14,7 +14,9 @@ import {
   recordSceneJobs,
   SCENE_JOB_LOG_LIMIT,
   removeSceneTake,
+  resolveSceneChecks,
   SCENE_TAKE_LIMIT,
+  sceneCardBusy,
   sceneCutShots,
   sceneFromDaySlot,
   sceneSlotAt,
@@ -30,7 +32,12 @@ import {
 } from './scenes';
 import { activeCutSources, cutRoomShots, cutRoomSourceShots, splitCutRoomKey } from '../film/cut-room';
 import { buildCastFile, parseCastFile } from '../cast/transfer';
-import { ensureDaySlotsMatchMood, type DaySlot, type DaySlotStill } from './planner';
+import {
+  alignDaySlotsToPeople,
+  ensureDaySlotsMatchMood,
+  type DaySlot,
+  type DaySlotStill,
+} from './planner';
 import type { DayToolCache } from '../play/settings';
 
 const kitchen = (overrides: Partial<Parameters<typeof createScene>[0]> = {}): SavedScene =>
@@ -316,6 +323,135 @@ describe('scenes: the open scene follows the engine', () => {
     );
     // A time-of-day move (one slot) goes through as it is.
     assert.deepEqual(sceneSlotsPatch([{ id: 'morning', label: 'Morning' }], [scene])[0]?.id, 'morning');
+  });
+
+  it('mood fit keeps the scene\'s own Setting: a blank beat is filled under it (Day rerolls both)', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+    const typed = 'my grandmother\'s sunlit attic studio';
+    const blank: DaySlot = { id: 'night', label: 'Night', location: typed };
+    const cases = [
+      { dayMood: 'intimate', intimateMix: 'duo' as const },
+      { dayMood: 'intimate', intimateMix: 'solo' as const },
+      { dayMood: 'suggestive', intimateMix: 'solo' as const },
+      { dayMood: 'date-night', intimateMix: 'solo' as const },
+      { dayMood: 'cosplay', intimateMix: 'solo' as const },
+    ];
+    for (const options of cases) {
+      const scene = sceneSlotsPatch(
+        ensureDaySlotsMatchMood([blank], { ...options, keepSettings: true, random }).slots,
+        [blank]
+      )[0]!;
+      assert.equal(scene.location, typed, `${options.dayMood}: the Setting stays`);
+      assert.ok(scene.sceneHints?.trim(), `${options.dayMood}: the blank beat is filled`);
+      // Settled: a second fit leaves it be (no beat rerolled on every Queue).
+      const again = ensureDaySlotsMatchMood([scene], { ...options, keepSettings: true, random });
+      assert.deepEqual(sceneSlotsPatch(again.slots, [scene])[0], scene, `${options.dayMood}: stable`);
+      // Day unchanged: a stale slot draws a new Setting with its beat.
+      const day = ensureDaySlotsMatchMood([blank], { ...options, random }).slots.find(
+        slot => slot.id === 'night'
+      )!;
+      assert.notEqual(day.location, typed, `${options.dayMood}: Day rerolls the Setting`);
+    }
+    // A Setting Day would call a leftover (a Vacation pier under Suggestive) is still the scene's.
+    const pier: DaySlot = {
+      id: 'afternoon',
+      label: 'Afternoon',
+      location: 'old fishing pier',
+      sceneHints: 'stirring risotto at the stove',
+    };
+    const fitted = ensureDaySlotsMatchMood([pier], {
+      dayMood: 'suggestive',
+      keepSettings: true,
+      random,
+    }).slots.find(slot => slot.id === 'afternoon')!;
+    assert.equal(fitted.location, 'old fishing pier');
+    assert.notEqual(fitted.sceneHints, pier.sceneHints);
+    // People on a themed scene: the beat changes, the Setting stays.
+    const duoBeat = ensureDaySlotsMatchMood([{ id: 'night', label: 'Night' }], {
+      dayMood: 'date-night',
+      intimateMix: 'duo',
+      allowCompanions: true,
+      random,
+    }).slots.find(slot => slot.id === 'night')!;
+    const themed = { ...duoBeat, location: typed };
+    const solo = alignDaySlotsToPeople([themed], {
+      dayMood: 'date-night',
+      people: 'solo',
+      keepSettings: true,
+      random,
+    }).slots.find(slot => slot.id === 'night')!;
+    assert.equal(solo.location, typed);
+  });
+
+  it('a take at the adult check goes with its scene: switching is not blocked by it', () => {
+    const a = kitchen();
+    const b = createScene({ castId: 'nora', name: 'Scene 2', id: 'scene-b', now: 20 });
+    const checking = done('p-check', {
+      status: 'running',
+      imageUrl: undefined,
+      adultHold: 'checking',
+    });
+    assert.deepEqual(sceneCardBusy(checking), { rendering: false, checking: true });
+    assert.deepEqual(sceneCardBusy({ ...checking, adultHold: undefined }), {
+      rendering: true,
+      checking: false,
+    });
+    // Its pair still rendering keeps the scene open.
+    assert.equal(
+      sceneCardBusy({ ...checking, twoTakes: { promptId: 'p-2', status: 'running' } }).rendering,
+      true
+    );
+    const cache: SceneToolCache = { scenes: [a, b], ...sceneWorkingPatch(a), stills: [checking] };
+    const toB = openScenePatch(cache, 'scene-b', 30)!;
+    assert.equal(toB.activeSceneId, 'scene-b');
+    assert.deepEqual(toB.stills, []);
+    const savedA = toB.scenes!.find(scene => scene.id === 'scene-a')!;
+    assert.deepEqual(savedA.checkingTakeIds, ['p-check']);
+    assert.deepEqual(savedA.takes, []);
+    assert.equal(toB.scenes!.find(scene => scene.id === 'scene-b')!.checkingTakeIds, undefined);
+    // Stored and read back.
+    assert.deepEqual(normalizeSavedScenes(toB.scenes)[0]?.checkingTakeIds, ['p-check']);
+
+    // The verdict lands on its own scene by prompt id: a pass adds the take to A, never to B.
+    const passed = resolveSceneChecks(savedA, [
+      { promptId: 'p-other', status: 'completed', imageUrl: '/view?filename=other.png' },
+      {
+        promptId: 'p-check',
+        status: 'completed',
+        imageUrl: '/view?filename=p-check.png',
+        adultCheck: { state: 'passed' },
+      },
+    ], 40);
+    assert.deepEqual(passed.takes.map(take => take.id), ['p-check']);
+    assert.equal(passed.checkingTakeIds, undefined);
+    // Still waiting: unchanged (same object). Withheld or gone: dropped, no take.
+    const pending = {
+      promptId: 'p-check',
+      status: 'completed',
+      imageUrl: '/view?filename=p-check.png',
+      adultCheck: { state: 'pending' },
+    };
+    assert.equal(resolveSceneChecks(savedA, [pending]), savedA);
+    const withheld = resolveSceneChecks(savedA, [
+      { ...pending, adultCheck: { state: 'withheld' } },
+    ]);
+    assert.deepEqual(withheld.takes, []);
+    assert.equal(withheld.checkingTakeIds, undefined);
+    assert.equal(resolveSceneChecks(savedA, []).checkingTakeIds, undefined);
+
+    // Opened again before its verdict: the take is back on the card, held, and off the list.
+    const backToA = openScenePatch({ ...cache, ...toB }, 'scene-a', 50)!;
+    assert.deepEqual(backToA.stills, [
+      { slotId: 'evening', promptId: 'p-check', status: 'running', adultHold: 'checking' },
+    ]);
+    assert.equal(
+      backToA.scenes!.find(scene => scene.id === 'scene-a')!.checkingTakeIds,
+      undefined
+    );
   });
 
   it('logs the jobs it queues by id, once each, bounded', () => {

@@ -267,6 +267,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           dayMood: toolSettings.dayMood,
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
+          keepSettings: sceneMode,
         });
         const diversified = diversifyDaySlotScenes(moodAligned.slots, {
           forceLocations: false,
@@ -351,6 +352,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     [
       latestSlotsRef,
       queueEventEnding,
+      sceneMode,
       queueEventMoment,
       queueSlot,
       resolveSlotStillModel,

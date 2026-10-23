@@ -18,6 +18,16 @@ import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-clie
 import { dayPlayedMood } from '@/lib/day/still-prompt';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 
+/** The slot's card still holds `promptId` (its take, or the second of two takes). */
+function takeOnCard(
+  stills: ReadonlyArray<{ slotId: string; promptId?: string; twoTakes?: { promptId: string } }>,
+  slotId: string,
+  promptId: string
+): boolean {
+  const still = stills.find(entry => entry.slotId === slotId);
+  return still?.promptId?.trim() === promptId || still?.twoTakes?.promptId.trim() === promptId;
+}
+
 /**
  * The adult-appearance gate on Day (adult-appearance-gate.ts): every Suggestive / Intimate /
  * Raunchy still is held (`adultHold: 'checking'`) until the vision model says all people shown
@@ -31,13 +41,26 @@ import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
  * Suggestive.
  */
 export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
-  const { busy, intimateEnabled, mounted, queueSlot, shared, slots, stills, toolSettings } = ctx;
+  const {
+    busy,
+    intimateEnabled,
+    mounted,
+    queueSlot,
+    shared,
+    slots,
+    stills,
+    stillsRef,
+    toolSettings,
+  } = ctx;
   const [adultGateStatus, setAdultGateStatus] = useState<string | null>(null);
   const runningRef = useRef(false);
   /** Prompt ids already decided this session (a re-render never asks twice). */
   const decidedRef = useRef<Set<string>>(new Set());
-  /** Slots waiting for the queue to be free to requeue, and what the requeue is for. */
-  const requeueRef = useRef<Map<string, 'age' | 'bare'>>(new Map());
+  /**
+   * Slots waiting for the queue to be free to requeue: what the requeue is for, and the take it
+   * redoes (a slot whose card moved on — the Scene page opened another scene — is not redone).
+   */
+  const requeueRef = useRef<Map<string, { cause: 'age' | 'bare'; promptId: string }>>(new Map());
   const [tick, setTick] = useState(0);
   // The mood the Day plays as: Suggestive must stay clothed.
   const clothed = dayMoodMustStayClothed(dayPlayedMood(toolSettings.dayMood, intimateEnabled));
@@ -108,8 +131,11 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           setAdultGateStatus(null);
           return;
         }
-        if (decision.verdict === 'requeue') {
-          requeueRef.current.set(target.slotId, cause);
+        // The take left the card while it was checked (the Scene page opened another scene):
+        // the verdict is on its gallery entry, and nothing on the card now is redone for it.
+        const onCard = takeOnCard(stillsRef.current, target.slotId, promptId);
+        if (decision.verdict === 'requeue' && onCard) {
+          requeueRef.current.set(target.slotId, { cause, promptId });
           pushSystemTrayMessage({
             text: `${label}: ${cause === 'bare' ? CLOTHED_GATE_REQUEUE_MESSAGE : ADULT_GATE_REQUEUE_MESSAGE}`,
             tone: 'warning',
@@ -132,15 +158,18 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
         setTick(value => value + 1);
       }
     })();
-  }, [clothed, mounted, shared, slots, stills, tick]);
+  }, [clothed, mounted, shared, slots, stills, stillsRef, tick]);
 
   // The one requeue, once the Day queue is free (never overlaps a Queue-all submit).
   useEffect(() => {
     if (!mounted || busy || requeueRef.current.size === 0) return;
-    const [slotId, cause] = [...requeueRef.current.entries()][0]!;
+    const [slotId, { cause, promptId }] = [...requeueRef.current.entries()][0]!;
     requeueRef.current.delete(slotId);
     const slot = slots.find(entry => entry.id === slotId);
-    if (!slot) return;
+    if (!slot || !takeOnCard(stillsRef.current, slotId, promptId)) {
+      setAdultGateStatus(null);
+      return;
+    }
     void queueSlot(
       slot,
       cause === 'bare' ? { coverageLine: true } : { strongAgeLine: true }
@@ -148,7 +177,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
       setAdultGateStatus(null);
       setTick(value => value + 1);
     });
-  }, [busy, mounted, queueSlot, slots, tick]);
+  }, [busy, mounted, queueSlot, slots, stillsRef, tick]);
 
   return { adultGateStatus };
 }

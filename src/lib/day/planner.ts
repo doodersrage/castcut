@@ -3070,11 +3070,18 @@ export function ensureDaySlotsMatchMood(
     dayMood: DayMood | string | null | undefined;
     intimateMix?: DayIntimateMix | string | null;
     allowCompanions?: boolean;
+    /**
+     * The Scene page: a slot's Setting is the player's own and is never judged or replaced — a
+     * slot that no longer fits gets a new beat (a blank one is filled) under the same Setting.
+     * Day leaves it off (a stale Setting rerolls with its beat).
+     */
+    keepSettings?: boolean;
     random?: () => number;
   }
 ): { slots: DaySlot[]; changed: boolean } {
   const dayMood = normalizeDayMood(options.dayMood);
   const theme = dayThemeOf(options.dayMood);
+  const keepSettings = options.keepSettings === true;
   // Themes (Date night, Cosplay…) are Everyday underneath: their board fits when its beats come
   // from the theme; plain Everyday rerolls a themed board left over from a theme.
   const themed = Boolean(theme) || dayMood === 'everyday';
@@ -3085,7 +3092,7 @@ export function ensureDaySlotsMatchMood(
   const normalized = normalizeDaySlots(slots);
   const stale = normalized.map(slot => {
     const beat = slot.sceneHints?.trim() || '';
-    const setting = slot.location?.trim() || '';
+    const setting = keepSettings ? '' : slot.location?.trim() || '';
     // The player's own words (typed, or an imported script) are never swapped for Day's: a
     // mood check rerolled typed beats silently (sport venues 2026-09-29, script import).
     if (dayBeatIsTyped(slot)) return false;
@@ -3099,7 +3106,7 @@ export function ensureDaySlotsMatchMood(
       );
     }
     return !daySlotMatchesAdultMix({
-      slot,
+      slot: keepSettings ? { ...slot, location: undefined } : slot,
       dayMood,
       intimateMix: mix,
       allowCompanions: options.allowCompanions === true,
@@ -3111,7 +3118,13 @@ export function ensureDaySlotsMatchMood(
   // Reroll only the slots that no longer fit: one stale slot used to reroll the whole board,
   // throwing away every beat and setting the player had typed into the others.
   const cleared = normalized.map((slot, index) =>
-    stale[index] ? { ...slot, location: undefined, sceneHints: undefined } : slot
+    stale[index]
+      ? {
+          ...slot,
+          ...(keepSettings && slot.location?.trim() ? {} : { location: undefined }),
+          sceneHints: undefined,
+        }
+      : slot
   );
   const rerolled = diversifyDaySlotScenes(cleared, {
     fillBeats: true,
@@ -3324,6 +3337,8 @@ export function alignDaySlotsToPeople(
   options: {
     dayMood: DayMood | string | null | undefined;
     people: DayIntimateMix;
+    /** The Scene page: the Setting stays (see ensureDaySlotsMatchMood). */
+    keepSettings?: boolean;
     random?: () => number;
   }
 ): { slots: DaySlot[]; changed: boolean } {
@@ -3343,7 +3358,8 @@ export function alignDaySlotsToPeople(
       resolveDayPoseHeadcount({ haystack: beat, beat, dayMood, allowCompanions: true }) >= 2;
     if (two === wantTwo) return slot;
     stale = true;
-    return { ...slot, sceneHints: undefined, ...(theme ? { location: undefined } : {}) };
+    const dropSetting = theme && !(options.keepSettings && slot.location?.trim());
+    return { ...slot, sceneHints: undefined, ...(dropSetting ? { location: undefined } : {}) };
   });
   if (!stale) {
     return { slots: normalized, changed: false };

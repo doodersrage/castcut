@@ -310,6 +310,22 @@ async function horizontalOverflow(page: Page): Promise<{ over: number; wide: str
   });
 }
 
+/** Of these bars, the ones whose own background lets what is behind them show (alpha < 1). */
+async function translucentBars(page: Page, testIds: string[]): Promise<string[]> {
+  return page.evaluate(
+    ids =>
+      ids.flatMap(id => {
+        const el = document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+        if (!el) return [`no ${id}`];
+        const color = getComputedStyle(el).backgroundColor;
+        const parts = (color.match(/\(([^)]*)\)/)?.[1] ?? '').split(/[\s,/]+/).filter(Boolean);
+        const alpha = parts.length > 3 ? Number(parts[3]) : color.startsWith('rgb') ? 1 : 0;
+        return alpha >= 1 ? [] : [`${id}: ${color}`];
+      }),
+    testIds
+  );
+}
+
 /** Visible controls in `selector` smaller than 44 × 44 px (a phone tap target). */
 async function smallTapTargets(page: Page, selector: string): Promise<string[]> {
   return page.evaluate(root => {
@@ -381,6 +397,16 @@ for (const [width, height] of [
       '[data-testid="scene-action-bar"]',
     ]) {
       expect(await smallTapTargets(page, root), root).toEqual([]);
+    }
+    // The header, the Film dock and the pinned Queue bar are opaque: scrolled text never shows
+    // through them (light and dark).
+    for (const theme of ['dark', 'light'] as const) {
+      await page.emulateMedia({ colorScheme: theme });
+      await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe(theme);
+      expect(
+        await translucentBars(page, ['mobile-studio-header', 'mobile-studio-dock', 'scene-action-bar']),
+        theme
+      ).toEqual([]);
     }
     // The takes: one swipeable strip.
     const strip = await page
@@ -598,3 +624,181 @@ for (const phone of [false, true]) {
     await expect(shown).toHaveAttribute('href', /take=1/);
   });
 }
+
+test('phone: every /m page has an opaque header and Film dock, dark and light', async ({ browser }) => {
+  for (const colorScheme of ['dark', 'light'] as const) {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      colorScheme,
+    });
+    const page = await context.newPage();
+    await isolateServerStorage(page);
+    await ensureAuthenticated(page);
+    await stubComfyQueue(page);
+    await seedSettingsCacheOnNextLoad(page, {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { scene: sceneWithTakes() },
+    });
+    for (const path of ['/m', '/m/film', '/m/day', '/m/scene', '/m/story', '/m/fitting', '/m/cut', '/m/gallery', '/m/queue']) {
+      await gotoStable(page, `${path}?character=${CAST}`);
+      await dismissBlockingOverlays(page);
+      await expect(page.getByTestId('mobile-studio-dock')).toBeVisible({ timeout: 60_000 });
+      expect(
+        await translucentBars(page, ['mobile-studio-header', 'mobile-studio-dock']),
+        `${path} ${colorScheme}`
+      ).toEqual([]);
+    }
+    await context.close();
+  }
+});
+
+/** The Scene page seeded with two scenes of the Cast, Kitchen open. */
+function twoScenes(stills: Array<Record<string, unknown>>) {
+  const seeded = sceneWithTakes();
+  return {
+    ...seeded,
+    scenes: [
+      ...seeded.scenes,
+      {
+        id: 'scene-roof',
+        castId: CAST,
+        name: 'Rooftop',
+        slot: { id: 'night', label: 'Night', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+        dayMood: 'everyday',
+        takes: [],
+        createdAt: 3,
+        updatedAt: 3,
+      },
+    ],
+    stills,
+  };
+}
+
+test('a take at the adult check: another scene opens, and the verdict lands on its own scene', async ({
+  page,
+}) => {
+  await stubComfyQueue(page);
+  // The vision model's answer waits until the other scene is open.
+  let answer: () => void = () => {};
+  const answered = new Promise<void>(resolve => {
+    answer = resolve;
+  });
+  let asked = 0;
+  await page.route('**/api/adult-check', async route => {
+    asked += 1;
+    await answered;
+    await route.fulfill({
+      json: { available: true, reply: { answer: 'yes', confidence: 97, youngestAge: 32, people: 1 } },
+    });
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: twoScenes([{ slotId: 'evening', promptId: 'e2e-checking', status: 'running' }]),
+    },
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        {
+          id: 'e2e-checking',
+          promptId: 'e2e-checking',
+          comfyUrl: 'http://127.0.0.1:8188',
+          tool: 'image-prompt',
+          prompt: 'Edit instruction for a Day still: stirring risotto',
+          characterId: 'e2e-scene',
+          model: 'qwen-e2e',
+          status: 'completed',
+          queuedAt: Date.now() - 20_000,
+          images: [{ filename: 'e2e-checking.png', subfolder: '', type: 'output' }],
+          adultCheck: { state: 'pending', at: Date.now() - 5_000 },
+        },
+      ])
+    );
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  // Checking, not rendering.
+  await expect(page.getByTestId('scene-queue-take')).toHaveText('Checking…', { timeout: 30_000 });
+  await expect.poll(() => asked, { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect(page.getByTestId('scene-new')).toBeEnabled();
+
+  // Another scene opens while the take is checked.
+  await page.getByTestId('scene-list-item-scene-roof').click();
+  await expect(page.getByTestId('scene-name')).toHaveValue('Rooftop');
+  await expect(page.getByTestId('scene-note')).toContainText('being checked');
+  await expect(page.getByTestId('scene-note')).not.toContainText('rendering');
+  await expect(page.getByTestId('scene-take')).toHaveCount(0);
+
+  // The verdict: the take joins Kitchen, not the open Rooftop.
+  answer();
+  await expect(page.getByTestId('scene-list-item-scene-e2e')).toContainText('3 takes', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('scene-list-item-scene-roof')).toContainText('No takes yet');
+  await expect(page.getByTestId('scene-take')).toHaveCount(0);
+  await shot(page, 'scene-check-switched');
+  await page.getByTestId('scene-list-item-scene-e2e').click();
+  await expect(page.getByTestId('scene-name')).toHaveValue('Kitchen');
+  await expect(page.getByTestId('scene-take')).toHaveCount(3);
+});
+
+test('a take still rendering keeps its scene open (its job lands there)', async ({ page }) => {
+  await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: twoScenes([{ slotId: 'evening', promptId: 'e2e-rendering', status: 'running' }]) },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-queue-take')).toHaveText('Rendering…', { timeout: 60_000 });
+  await expect(page.getByTestId('scene-new')).toBeDisabled();
+  await page.getByTestId('scene-list-item-scene-roof').click();
+  await expect(page.getByTestId('scene-note')).toContainText('A take is rendering');
+  await expect(page.getByTestId('scene-name')).toHaveValue('Kitchen');
+});
+
+test('mood fit never replaces the scene’s own Setting (a blank beat is filled under it)', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  const setting = 'my grandmother’s sunlit attic studio';
+  const seeded = sceneWithTakes();
+  const slot = { id: 'evening', label: 'Evening', location: setting };
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...seeded,
+        scenes: [{ ...seeded.scenes[0]!, slot }],
+        slots: [slot],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-slot-location')).toHaveValue(setting, { timeout: 60_000 });
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue('');
+
+  // A theme's mood fit: Day rerolls a blank-beat slot's Setting with its beat; a scene's stays.
+  await page.getByTestId('day-mood').selectOption('date-night');
+  await expect(page.getByTestId('day-mood')).toHaveValue('date-night');
+  await expect(page.getByTestId('day-slot-beat')).not.toHaveValue('', { timeout: 15_000 });
+  await expect(page.getByTestId('day-slot-location')).toHaveValue(setting);
+  await page.getByTestId('day-mood').selectOption('everyday');
+  await expect(page.getByTestId('day-slot-location')).toHaveValue(setting);
+
+  // Queue: its fit and beat draw keep the Setting too.
+  await page.getByTestId('scene-queue-take').click();
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(promptOf(queued[0]!)).toContain('attic studio');
+  await expect(page.getByTestId('day-slot-location')).toHaveValue(setting);
+});
