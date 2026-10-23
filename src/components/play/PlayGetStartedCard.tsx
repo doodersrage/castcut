@@ -27,6 +27,7 @@ export default function PlayGetStartedCard({
   hasPlate,
   characterId,
   mobile = false,
+  scene = false,
   onOpenSetup,
 }: {
   tool?: 'day' | 'outfit';
@@ -34,6 +35,8 @@ export default function PlayGetStartedCard({
   hasPlate: boolean;
   characterId?: string | null;
   mobile?: boolean;
+  /** The Scene page (Day's engine on one shot): its own words, Day's behaviour. */
+  scene?: boolean;
   /** Day: opens the Setup sheet (Cast lead and plate). */
   onOpenSetup?: () => void;
 }) {
@@ -56,11 +59,17 @@ export default function PlayGetStartedCard({
       {!hasCharacter ? (
         <>
           <p className="type-heading">
-            {tool === 'day' ? 'Day needs a Cast lead' : 'Outfit needs a Cast lead'}
+            {tool === 'day'
+              ? scene
+                ? 'Scene needs a Cast lead'
+                : 'Day needs a Cast lead'
+              : 'Outfit needs a Cast lead'}
           </p>
           <p className="type-caption mt-1 text-[var(--text-secondary)]">
             {tool === 'day'
-              ? 'Pick the character this day follows — or let a starter film create one and plan the day for you.'
+              ? scene
+                ? 'Pick the character this scene is of — scenes are kept per Cast. Or let a starter film create one.'
+                : 'Pick the character this day follows — or let a starter film create one and plan the day for you.'
               : 'Try-ons dress a Cast lead and are saved to them — pick one, or let a starter film create one.'}
           </p>
         </>
@@ -68,8 +77,8 @@ export default function PlayGetStartedCard({
         <>
           <p className="type-heading">Add a plate for this Cast</p>
           <p className="type-caption mt-1 text-[var(--text-secondary)]">
-            Day stills keep the face and outfit from a plate — Keep a try-on in Outfit, or pick a
-            look plate in Setup.
+            {scene ? 'Scene takes' : 'Day stills'} keep the face and outfit from a plate — Keep a
+            try-on in Outfit, or pick a look plate in Setup.
           </p>
         </>
       )}

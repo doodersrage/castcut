@@ -209,6 +209,7 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
         />
       </div>
       <PlayGetStartedCard
+        scene
         hasCharacter={Boolean(character)}
         hasPlate={hasPlate}
         characterId={character?.id}

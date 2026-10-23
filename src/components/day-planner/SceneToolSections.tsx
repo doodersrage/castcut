@@ -120,6 +120,7 @@ export default function SceneToolSections({ vm, page }: Props) {
         sidebar={engineControls}
       >
         <PlayGetStartedCard
+          scene
           hasCharacter={Boolean(character)}
           hasPlate={hasPlate}
           characterId={character?.id}
