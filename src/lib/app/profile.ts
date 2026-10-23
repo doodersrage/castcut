@@ -16,6 +16,7 @@ export const APP_HAS_PLAY = APP_PROFILE === 'castcut';
 const PLAY_ROUTE_PREFIXES = [
   '/play',
   '/day',
+  '/scene',
   '/story',
   '/cut',
   '/roleplay',

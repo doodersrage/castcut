@@ -26,7 +26,7 @@ import { useCutRoom } from '@/hooks/useCutRoom';
 import { useCommandActions } from '@/hooks/useCommandActions';
 import { PLAY_COMMAND_ACTION_IDS } from '@/lib/play/command-actions';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
-import { CUT_SOURCES, splitCutRoomKey } from '@/lib/film/cut-room';
+import { CUT_SOURCES, cutSourceFromParam, splitCutRoomKey } from '@/lib/film/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
 import {
   applyCutShotEdits,
@@ -47,7 +47,13 @@ export default function CutRoom() {
   const [exportError, setExportError] = useState<string | null>(null);
   const titleCard =
     vm.options.titles === true
-      ? { title: vm.sources.includes('day') ? vm.dayCast?.name || 'Day' : vm.storyName }
+      ? {
+          title: vm.sources.includes('day')
+            ? vm.dayCast?.name || 'Day'
+            : vm.sources.includes('story')
+              ? vm.storyName
+              : vm.sceneCast?.name || 'Scenes',
+        }
       : null;
   // The monitor: the cut rebuilt a moment after each edit, the playhead kept.
   const preview = useCutPreview({
@@ -234,8 +240,8 @@ export default function CutRoom() {
   useEffect(() => {
     if (!mounted || arrived.current) return;
     arrived.current = true;
-    const from = new URLSearchParams(window.location.search).get('from');
-    if (from === 'day' || from === 'story') pickOnly(from);
+    const from = cutSourceFromParam(new URLSearchParams(window.location.search).get('from'));
+    if (from) pickOnly(from);
   }, [mounted, pickOnly]);
   // Command palette: "Cut the film" cuts here (elsewhere it opens Cut) — the button's own handler.
   useCommandActions([
@@ -771,7 +777,13 @@ export default function CutRoom() {
                 vm.sources.length > 1
                   ? shot => {
                       const { source } = splitCutRoomKey(shot.key);
-                      return source === 'day' ? 'Day' : source === 'story' ? 'Story' : 'Added';
+                      return source === 'day'
+                        ? 'Day'
+                        : source === 'story'
+                          ? 'Story'
+                          : source === 'scenes'
+                            ? 'Scene'
+                            : 'Added';
                     }
                   : undefined
               }

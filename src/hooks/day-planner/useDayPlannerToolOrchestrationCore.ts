@@ -330,12 +330,20 @@ import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import { sceneSlotOf } from '@/lib/day/scenes';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
 
-export function useDayPlannerToolOrchestrationCore() {
+/**
+ * Which page runs Day's engine: Day (its plan of slots), or Scene — one shot at a time, its
+ * working fields in the `scene` settings (day/scenes.ts). Fixed for the hook's lifetime.
+ */
+export type DayEngineVariant = 'day' | 'scene';
+
+export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = 'day') {
+  const sceneMode = variant === 'scene';
   const router = useRouter();
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
@@ -346,7 +354,12 @@ export function useDayPlannerToolOrchestrationCore() {
     toolSettings: storedToolSettings,
     updateShared,
     updateToolSettings: storeToolSettings,
-  } = useCachedSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  } = useCachedSettings(
+    // Scene's settings are a Day's working fields plus its saved scenes (SceneToolCache extends
+    // DayToolCache), so the engine below reads and writes them the same way.
+    (sceneMode ? 'scene' : 'day') as 'day',
+    sceneMode ? DEFAULT_SCENE_TOOL_CACHE : DEFAULT_DAY_TOOL_CACHE
+  );
   // Intimate with Playful on runs as the 'raunchy' flavor everywhere below (the old Raunchy
   // mood's beats and prompt lines, unchanged); writes go back in stored form (mood-flavor.ts).
   const toolSettings = useMemo(() => {
@@ -411,8 +424,12 @@ export function useDayPlannerToolOrchestrationCore() {
   >({});
 
   const slots = useMemo(
-    () => normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
-    [toolSettings.dayLength, toolSettings.slots]
+    () =>
+      // A scene is one slot (its time of day is the slot id).
+      sceneMode
+        ? [sceneSlotOf(toolSettings.slots)]
+        : normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
+    [sceneMode, toolSettings.dayLength, toolSettings.slots]
   );
   // Latest slots for the outfit arc: Queue day runs every slot in one callback, whose `slots`
   // never sees the kit the slot before it just picked.
@@ -437,8 +454,9 @@ export function useDayPlannerToolOrchestrationCore() {
       return still?.status === 'completed' && Boolean(dayStillShownImage(still));
     });
   useEffect(() => {
-    if (fullDay) recordFirstFullDay();
-  }, [fullDay]);
+    // A scene's one still is not a whole Day (Story opens on a Day).
+    if (fullDay && !sceneMode) recordFirstFullDay();
+  }, [fullDay, sceneMode]);
   const activeSlot = slots.find(slot => slot.id === activeSlotId) ?? slots[0]!;
 
   // When a still finishes, jump the editor to the next time-of-day that still needs work.
@@ -3615,6 +3633,10 @@ export function useDayPlannerToolOrchestrationCore() {
   };
 
   return {
+    variant,
+    sceneMode,
+    /** Clip jobs (Copy moves, Sharpen…) are owned per page, so a reload hands each its own. */
+    clipJobFeature: sceneMode ? 'scene' : 'day',
     router,
     setBusy,
     setAssemblingFilm,

@@ -89,7 +89,7 @@ function keptClipPatch(still: DaySlotStill, kept: KeptClip): Partial<DaySlotStil
 }
 
 export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
-  const { character, stillsRef, updateToolSettings } = ctx;
+  const { character, stillsRef, updateToolSettings, clipJobFeature } = ctx;
   const [busy, setBusy] = useState<{ slotId: string; tool: DaySlotMediaTool } | null>(null);
   const busyRef = useRef(false);
 
@@ -137,13 +137,13 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
           tool,
           body,
           keep: dayJobKeep(tool, still, label),
-          owner: { feature: 'day', ref: slot.id },
+          owner: { feature: clipJobFeature, ref: slot.id },
           source,
           label,
         });
         return dayJobPatch(tool, still, kept);
       }),
-    [run]
+    [clipJobFeature, run]
   );
 
   const finishSlotClip = useCallback(
@@ -169,7 +169,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const [orphan, setOrphan] = useState<{ slotId: string; tool: DaySlotMediaTool } | null>(null);
   useEffect(() => {
     const sync = () => {
-      takeKeptClipJobs('day', entry => {
+      takeKeptClipJobs(clipJobFeature, entry => {
         const still = stillsRef.current.find(item => item.slotId === entry.owner?.ref);
         if (!still) return false;
         const from =
@@ -184,13 +184,13 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
         }
         return true;
       });
-      const running = orphanedClipJob('day');
+      const running = orphanedClipJob(clipJobFeature);
       setOrphan(running?.owner ? { slotId: running.owner.ref, tool: running.tool } : null);
     };
     sync();
     window.addEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
     return () => window.removeEventListener(CLIP_JOBS_UPDATED_EVENT, sync);
-  }, [stillsRef, updateToolSettings]);
+  }, [clipJobFeature, stillsRef, updateToolSettings]);
 
   const copyMovesToSlot = useCallback(
     (

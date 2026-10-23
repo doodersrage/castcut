@@ -172,7 +172,8 @@ export function sanitizePreferEditToolModel(
     return undefined;
   }
   const key = (toolKey ?? '').trim();
-  if (key !== 'fitting' && key !== 'day') {
+  // Scene runs Day's engine on one shot (day/scenes.ts).
+  if (key !== 'fitting' && key !== 'day' && key !== 'scene') {
     return id as ComfyImageModel;
   }
   if (isImg2imgCapableModel(id)) {
@@ -212,6 +213,7 @@ const STILL_IMAGE_TOOLS = new Set([
   'promptEditor',
   'refine',
   'roleplay',
+  'scene',
   'topics',
   'variations',
 ]);

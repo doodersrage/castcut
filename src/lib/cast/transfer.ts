@@ -1,16 +1,19 @@
 /**
- * One Cast as a file: its record (looks, bible, Part, locks), its picture, its Story and its Day
- * plan — to back a character up, or move it to another install without a full sync.
+ * One Cast as a file: its record (looks, bible, Part, locks), its picture, its Story, its Day
+ * plan and its Scenes' shots — to back a character up, or move it to another install without a
+ * full sync.
  *
  * The pictures travel as image data (one per look): on another install the record's ComfyUI file
  * names and media URLs point at nothing, so import uploads each again as its look's plate. Stills
- * (Day and Story) stay where they were rendered; the plan and the story text come along.
+ * (Day, Story and Scene takes) stay where they were rendered; the plan, the scenes' shots and the
+ * story text come along.
  */
 import type { ParkedDay } from '../day/cast-park';
 import type { CharacterLookOutfit, CharacterRecord } from '../character/os';
 import type { RoleplayLibrarySession } from '../story/roleplay-library';
 import { restampStoryCast } from '../story/session-guard';
 import type { DayToolCache } from '../play/settings';
+import { parseCastFileScenes, type CastFileScene } from '../day/scenes';
 
 export const CAST_FILE_KIND = 'castcut-cast';
 export const CAST_FILE_VERSION = 1;
@@ -49,6 +52,8 @@ export type CastFile = {
   sheetPictures?: CastFileOutfitPicture[];
   stories: RoleplayLibrarySession[];
   day?: CastFileDay;
+  /** The Cast's scenes (day/scenes.ts): each shot and its mood, not its takes. */
+  scenes?: CastFileScene[];
 };
 
 const DAY_FIELDS = [
@@ -99,6 +104,7 @@ export function buildCastFile(input: {
   sheetPictures?: CastFileOutfitPicture[];
   stories: RoleplayLibrarySession[];
   day?: CastFileDay;
+  scenes?: CastFileScene[];
   now?: number;
 }): CastFile {
   return {
@@ -113,6 +119,7 @@ export function buildCastFile(input: {
     ...(input.sheetPictures?.length ? { sheetPictures: input.sheetPictures } : {}),
     stories: input.stories,
     ...(input.day ? { day: input.day } : {}),
+    ...(input.scenes?.length ? { scenes: input.scenes } : {}),
   };
 }
 
@@ -271,6 +278,7 @@ export function parseCastFile(value: unknown): CastFile | null {
   const outfitPictures = keyedPictures(file.outfitPictures, 'outfit.png');
   const wardrobePictures = keyedPictures(file.wardrobePictures, 'wardrobe.png');
   const sheetPictures = keyedPictures(file.sheetPictures, 'sheet.png');
+  const scenes = parseCastFileScenes(file.scenes);
   return {
     kind: CAST_FILE_KIND,
     version: file.version,
@@ -288,6 +296,7 @@ export function parseCastFile(value: unknown): CastFile | null {
         )
       : [],
     ...(file.day?.slots?.length ? { day: castFileDay(file.day) } : {}),
+    ...(scenes.length ? { scenes } : {}),
   };
 }
 

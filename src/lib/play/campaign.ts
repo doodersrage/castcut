@@ -42,6 +42,7 @@ const PLAY_LOOP_NAV_PATHS = new Set([
   '/moodboard',
   '/fitting',
   '/day',
+  '/scene',
   '/story',
   '/roleplay',
   '/cut',
@@ -49,6 +50,7 @@ const PLAY_LOOP_NAV_PATHS = new Set([
   '/m/moodboard',
   '/m/fitting',
   '/m/day',
+  '/m/scene',
   '/m/story',
   '/m/cut',
 ]);

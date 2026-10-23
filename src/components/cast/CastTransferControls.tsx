@@ -170,6 +170,7 @@ export function CastImportButton() {
                 `${result.character.name} added to the Cast`,
                 result.stories ? 'with its story' : '',
                 result.dayPlan ? 'and its Day plan' : '',
+                result.scenes ? `and ${result.scenes} scene${result.scenes === 1 ? '' : 's'}` : '',
               ].filter(Boolean);
               setNote(
                 `${parts.join(' ')}.${result.renamed ? ' (Renamed: one with that name was already here.)' : ''}${

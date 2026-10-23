@@ -2,7 +2,7 @@ export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
 export type MobileStudioTabId =
-  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'story' | 'cut';
+  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'scene' | 'story' | 'cut';
 
 export type MobileStudioTab = {
   id: MobileStudioTabId;
@@ -17,6 +17,7 @@ export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Try clothes on' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'What happens next' },
   { id: 'cut', href: '/m/cut', label: 'Cut', hint: 'Put the film together' },
+  { id: 'scene', href: '/m/scene', label: 'Scene', hint: 'One shot, exactly as you want it' },
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Everything you’ve made' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'What’s rendering' },
@@ -71,6 +72,9 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
   if (path === '/m/cut' || path.startsWith('/m/cut/')) {
     return 'cut';
   }
+  if (path === '/m/scene' || path.startsWith('/m/scene/')) {
+    return 'scene';
+  }
   if (
     path === '/m/story' ||
     path.startsWith('/m/story/') ||
@@ -112,6 +116,7 @@ export function toMobileStudioHref(href: string): string {
     '/day': '/m/day',
     '/story': '/m/story',
     '/cut': '/m/cut',
+    '/scene': '/m/scene',
     '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
     '/queue': '/m/queue',

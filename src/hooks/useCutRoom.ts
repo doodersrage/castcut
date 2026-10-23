@@ -108,7 +108,12 @@ import {
   previouslyOnShots,
   recordDayFilmEpisode,
 } from '@/lib/play/series';
-import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  DEFAULT_ROLEPLAY_TOOL_CACHE,
+  DEFAULT_SCENE_TOOL_CACHE,
+} from '@/lib/play/settings';
+import { normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
 import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { loadRoleplayLibrary } from '@/lib/story/roleplay-library';
@@ -145,8 +150,10 @@ export function useCutRoom() {
   const cut = useCachedSettings('cut', DEFAULT_CUT_TOOL_CACHE);
   const day = useCachedSettings('day', DEFAULT_DAY_TOOL_CACHE);
   const story = useCachedSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE);
+  // Scenes (day/scenes.ts): the active Cast's kept takes are Cut's third source.
+  const sceneTool = useCachedSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
   const { shared } = cut;
-  const mounted = cut.mounted && day.mounted && story.mounted;
+  const mounted = cut.mounted && day.mounted && story.mounted && sceneTool.mounted;
 
   const actions = usePromptResultActions({
     tool: 'day',
@@ -171,9 +178,19 @@ export function useCutRoom() {
     dayStillsRef.current = dayStills;
   }, [dayStills]);
 
+  const savedScenes = useMemo(
+    () => normalizeSavedScenes(sceneTool.toolSettings.scenes),
+    [sceneTool.toolSettings.scenes]
+  );
+  const sceneCastId = shared.activeCharacterId?.trim() || '';
+  const sceneShots = useMemo(
+    () => sceneCutShots(savedScenes, sceneCastId),
+    [sceneCastId, savedScenes]
+  );
   const bySource = useMemo(
-    () => cutRoomSourceShots({ day: { slots, stills: dayStills }, story: beats }),
-    [beats, dayStills, slots]
+    () =>
+      cutRoomSourceShots({ day: { slots, stills: dayStills }, story: beats, scenes: sceneShots }),
+    [beats, dayStills, sceneShots, slots]
   );
   const sources = useMemo(
     () => activeCutSources(cut.toolSettings.sources, bySource),
@@ -188,7 +205,7 @@ export function useCutRoom() {
   const resolution = filmResolutionForCutOptions(options);
   const added = useMemo(
     () =>
-      cutExtraShots(extras, [...bySource.day, ...bySource.story], extra =>
+      cutExtraShots(extras, [...bySource.day, ...bySource.story, ...bySource.scenes], extra =>
         renderTextCard({ text: extra.text, sub: extra.sub, resolution })
       ),
     [bySource, extras, resolution]
@@ -1190,6 +1207,8 @@ export function useCutRoom() {
     day.toolSettings.stillsCharacterId?.trim() || shared.activeCharacterId?.trim() || ''
   );
   const storyName = storyFilmName(story.toolSettings);
+  // Scenes are the active Cast's.
+  const sceneCast = getCharacter(sceneCastId);
 
   /** Day narration recorded so far over the Day shots (the preview plays those). */
   const previewShots = useMemo(() => {
@@ -1270,11 +1289,15 @@ export function useCutRoom() {
         return;
       }
       const withDay = sources.includes('day');
-      const storyCast = sources.includes('story')
-        ? resolveStoryFilmCast(story.toolSettings, storyName)
-        : undefined;
-      const cast: CharacterRecord | undefined = withDay ? dayCast : storyCast;
-      const name = cast?.name?.trim() || (withDay ? 'day' : storyName);
+      const withStory = sources.includes('story');
+      const storyCast = withStory ? resolveStoryFilmCast(story.toolSettings, storyName) : undefined;
+      // Whose film: the Day's lead, else the Story's Cast, else the Cast the scenes are of.
+      const cast: CharacterRecord | undefined = withDay
+        ? dayCast
+        : withStory
+          ? storyCast
+          : sceneCast;
+      const name = cast?.name?.trim() || (withDay ? 'day' : withStory ? storyName : 'scenes');
       setAssembling(true);
       setError(null);
       setGuideHref(null);
@@ -1465,11 +1488,14 @@ export function useCutRoom() {
           persisted: result.persisted,
         });
         void import('@/lib/server/local-observability').then(({ noteFilmCutSourceMetric }) => {
-          for (const source of sources)
-            noteFilmCutSourceMetric(source === 'day' ? 'day' : 'roleplay');
+          for (const source of sources) {
+            // Scenes are optional, outside the film's steps: not a Play source metric.
+            if (source !== 'scenes') noteFilmCutSourceMetric(source === 'day' ? 'day' : 'roleplay');
+          }
         });
         if (cast) {
           for (const source of sources) {
+            if (source === 'scenes') continue;
             completePlayCampaign({
               characterId: cast.id,
               stepId: source === 'day' ? 'day' : 'roleplay',
@@ -1494,6 +1520,7 @@ export function useCutRoom() {
       dayCast,
       options,
       recordDayNarration,
+      sceneCast,
       shared.activeLookId,
       shared.model,
       shots,
@@ -1519,6 +1546,15 @@ export function useCutRoom() {
           : undefined;
         return { flagged: [], ...checks };
       }
+      if (source === 'scenes') {
+        // The kept take's own checks (its gallery entry).
+        const take = savedScenes.find(scene => scene.id === key);
+        const keptId = take?.takes.find(entry => entry.id === take.keptTakeId)?.promptId;
+        const checks = keptId
+          ? gallery.find(entry => entry.promptId === keptId)?.playChecks
+          : undefined;
+        return { flagged: [], ...checks };
+      }
       const beat = beatByKey.get(key);
       if (!beat) return null;
       const pose = storyPoseMatchLabel(beat, STORY_CHECK_THRESHOLDS.minPose);
@@ -1538,6 +1574,9 @@ export function useCutRoom() {
     setChecking(true);
     const delivery = await checkCutDelivery(picked, shot => {
       const { source, key } = splitCutRoomKey(shot.key);
+      if (source === 'scenes') {
+        return Boolean(savedScenes.find(scene => scene.id === key)?.slot.line?.trim());
+      }
       return source === 'day'
         ? Boolean(slots.find(slot => slot.id === key)?.line?.trim())
         : Boolean(beatByKey.get(key)?.line?.trim());
@@ -1549,7 +1588,7 @@ export function useCutRoom() {
     }
     setProblems(null);
     await cutNow();
-  }, [beats, cutNow, options.shotEdits, shots, slots]);
+  }, [beats, cutNow, options.shotEdits, savedScenes, shots, slots]);
 
   /** The check's answer. Redo sends you to the shots' page (its Retry flagged redoes them). */
   const resolveProblems = useCallback(
@@ -1576,7 +1615,11 @@ export function useCutRoom() {
     () => resolveStoryFilmCast(story.toolSettings, storyName, false)?.id,
     [story.toolSettings, storyName]
   );
-  const filmCastId = sources.includes('day') ? dayCast?.id : storyCastId;
+  const filmCastId = sources.includes('day')
+    ? dayCast?.id
+    : sources.includes('story')
+      ? storyCastId
+      : sceneCast?.id;
   const films = useMemo(
     () =>
       filmCastId
@@ -1647,6 +1690,7 @@ export function useCutRoom() {
     dayCast,
     dayStills,
     storyName,
+    sceneCast,
     dayMood: dayMoodFlavor(day.toolSettings),
     storyTone: story.toolSettings.tone,
     cutFilm,

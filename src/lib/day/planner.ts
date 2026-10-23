@@ -171,7 +171,7 @@ export function daySlotsForLength(length: DayLength | number): DaySlot[] {
   }));
 }
 
-function isDaySlotId(value: unknown): value is DaySlotId {
+export function isDaySlotId(value: unknown): value is DaySlotId {
   return (
     typeof value === 'string' &&
     Object.values(DAY_LENGTH_SLOT_IDS).some(ids => (ids as string[]).includes(value))

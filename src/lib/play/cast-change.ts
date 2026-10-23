@@ -4,6 +4,7 @@
  */
 
 import { swapDayForCast } from '../day/cast-park';
+import { swapSceneForCast } from '../day/scenes';
 import type { ToolSettingsCache } from '../settings/cache';
 
 /**
@@ -24,6 +25,24 @@ export function scrubPlayToolCachesOnCastChange(
         ...next.day,
         // The Day is parked under the Cast it belongs to and the next Cast's comes back.
         ...swapDayForCast(next.day, previousCast, nextCast),
+        referenceIsolated: false,
+        plateIsolateSourceKey: undefined,
+        plateCharacterId: undefined,
+        plateImageUrl: undefined,
+        plateImageFilename: undefined,
+        plateOriginalUrl: undefined,
+        plateOriginalFilename: undefined,
+      },
+    };
+  }
+
+  if (next.scene) {
+    next = {
+      ...next,
+      scene: {
+        ...next.scene,
+        // The open scene is saved under its Cast and the next Cast's newest scene opens.
+        ...swapSceneForCast(next.scene, nextCast),
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
         plateCharacterId: undefined,

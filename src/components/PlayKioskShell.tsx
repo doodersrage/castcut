@@ -51,6 +51,8 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/cut', label: 'Cut', primary: true },
   // Optional and rarely needed now that Day plans the scenes: in More, not the dock.
   { href: '/characters', label: 'Cast', desk: true },
+  // Optional: one shot exactly as wanted (Day's engine on one slot) — More, not a step.
+  { href: '/scene', label: 'Scene' },
   { href: '/gallery', label: 'Gallery', desk: true },
   { href: '/queue', label: 'Queue' },
 ];

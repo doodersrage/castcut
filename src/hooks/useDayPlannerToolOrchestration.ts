@@ -13,7 +13,10 @@ import { useDayPlanHistory } from '@/hooks/day-planner/useDayPlanHistory';
 import type { DayLength, DaySlot } from '@/lib/day/planner';
 import { useDayExtendClip } from '@/hooks/day-planner/useDayExtendClip';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
+import {
+  useDayPlannerToolOrchestrationCore,
+  type DayEngineVariant,
+} from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { useDayPlannerToolOrchestrationPart2 } from '@/hooks/day-planner/useDayPlannerToolOrchestrationPart2';
 import { useDaySeries } from '@/hooks/day-planner/useDaySeries';
 import { useDaySlotQualityGate } from '@/hooks/day-planner/useDaySlotQualityGate';
@@ -62,8 +65,12 @@ import {
   type KeyedShot,
 } from '@/lib/film/cut-plan';
 
-export function useDayPlannerToolOrchestration() {
-  const core = useDayPlannerToolOrchestrationCore();
+/**
+ * Day's engine and everything after a still lands (checks, finishes, takes, clips). Scene runs
+ * the same engine on one shot (`variant: 'scene'`, day/scenes.ts), so a fix here reaches both.
+ */
+export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day') {
+  const core = useDayPlannerToolOrchestrationCore(variant);
   const part2 = useDayPlannerToolOrchestrationPart2(core);
   // Undo / redo for the plan (day-plan-history.ts) — the slot count comes back with the slots.
   const { updateToolSettings: updateDayTool } = core;

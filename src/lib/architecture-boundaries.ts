@@ -15,7 +15,7 @@ export const PLAY_LAYER_RE = new RegExp(
       'components/(?:day-planner|fitting|roleplay|play|story|cast|character|moodboard|cut)/',
       'components/(?:DayPlanner|Fitting|Roleplay|Story|Play|Character|Cast|Film|Moodboard)[A-Za-z]*\\.tsx$',
       'components/mobile/Mobile(?:Day|Fitting|Play|Story|Roleplay|Cast|Character|Film|Look|Moodboard)[A-Za-z]*\\.tsx$',
-      'app/(?:day|fitting|story|play|roleplay|characters|character|moodboard|cut)/',
+      'app/(?:day|scene|fitting|story|play|roleplay|characters|character|moodboard|cut)/',
       // The phone app (/m) is Castcut's: film-first screens. Its route helpers (lib/mobile-*)
       // stay shared — the shell and settings use them.
       'components/mobile/',

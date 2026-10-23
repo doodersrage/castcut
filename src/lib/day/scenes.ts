@@ -1,0 +1,800 @@
+/**
+ * Scenes — "one shot, exactly as you want it": a one-slot Day without Day's planning. Each Cast
+ * keeps a list of scenes; a scene is one shot (setting, beat, pose, camera, look, engine, the
+ * people in it, the mood) and the takes rendered of it, one of them kept.
+ *
+ * The Scene page runs Day's own engine (useDayPlannerToolOrchestration with the `scene` settings
+ * key), so its working fields are a Day's — `slots` (one slot), `stills`, the mood fields. This
+ * module moves a scene in and out of those fields, records the takes that land, and links scenes
+ * with Day (Open as Scene, Send to Day slot) and Cut (the kept takes). Pure.
+ */
+import type { DayToolCache } from '../play/settings';
+import type { KeyedShot } from '../film/cut-plan';
+import { migrateDayMoodFields } from './mood-flavor';
+import {
+  dayStillShownImage,
+  daySlotDefaultLabel,
+  isDaySlotId,
+  normalizeDayIntimateMix,
+  normalizeDaySlots,
+  normalizeDaySlotStills,
+  type DayIntimateMix,
+  type DayMoodSetting,
+  type DaySlot,
+  type DaySlotId,
+  type DaySlotStill,
+} from './planner';
+import { normalizeDayWeather, type DayWeather } from './weather';
+
+/** One render of a scene. */
+export type SceneTake = {
+  /** The take's ComfyUI prompt id (its gallery entry). */
+  id: string;
+  promptId?: string;
+  /** The picture as shown: face-finished or framed when it was. */
+  imageUrl: string;
+  /** The take as rendered, when {@link imageUrl} is a finish of it. */
+  rawUrl?: string;
+  /** Its clip (Animate, Copy moves, the Director), once one landed. */
+  clipUrl?: string;
+  clipPromptId?: string;
+  at: number;
+};
+
+export type SavedScene = {
+  id: string;
+  /** The Cast lead this scene is of. */
+  castId: string;
+  name: string;
+  /** The shot: setting, beat, pose, camera, look, engine, line, group — a Day slot. */
+  slot: DaySlot;
+  dayMood?: DayMoodSetting;
+  intimatePlayful?: boolean;
+  intimateMix?: DayIntimateMix;
+  allowCompanions?: boolean;
+  dayWeather?: DayWeather;
+  /** Cast member who plays the second person (unset: an invented stranger). */
+  partnerCharacterId?: string;
+  /** Oldest first. */
+  takes: SceneTake[];
+  /** The take Cut uses and Make it move starts from. */
+  keptTakeId?: string;
+  /** "Open as Scene": the Day slot it was copied from. */
+  fromDaySlot?: DaySlotId;
+  createdAt: number;
+  updatedAt: number;
+};
+
+/**
+ * The Scene page's settings (`tools.scene`): Day's working fields for the open scene (the engine
+ * reads and writes those), the saved scenes of every Cast, and which one is open.
+ */
+export type SceneToolCache = DayToolCache & {
+  scenes?: SavedScene[];
+  activeSceneId?: string;
+};
+
+/** Takes kept per scene (the kept take always stays). Older ones stay in the Gallery. */
+export const SCENE_TAKE_LIMIT = 24;
+/** Scenes kept per Cast (the oldest untouched go first). */
+export const SCENE_LIMIT_PER_CAST = 60;
+/** A new scene's time of day when nothing says otherwise. */
+export const DEFAULT_SCENE_SLOT_ID: DaySlotId = 'afternoon';
+
+/** The mood fields a scene keeps with its shot (Day's working fields while it is open). */
+const SCENE_MOOD_FIELDS = [
+  'dayMood',
+  'intimatePlayful',
+  'intimateMix',
+  'allowCompanions',
+  'dayWeather',
+  'partnerCharacterId',
+] as const;
+
+type SceneMoodFields = Pick<SavedScene, (typeof SCENE_MOOD_FIELDS)[number]>;
+
+function text(value: unknown, max: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+function time(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/** A picture worth keeping in settings — not an inline data URL (demo stills, previews). */
+function storableUrl(value: unknown): string {
+  const url = text(value, 2048);
+  return url && !url.startsWith('data:') && !url.startsWith('blob:') ? url : '';
+}
+
+/**
+ * The scene's one slot from Day-shaped slots: the first with a real slot id (its time of day),
+ * normalised like a Day slot. Nothing usable → an empty afternoon.
+ */
+export function sceneSlotOf(
+  input: ReadonlyArray<DaySlot | null | undefined> | null | undefined
+): DaySlot {
+  const first = (input ?? []).find(slot => slot && isDaySlotId(slot.id));
+  const id = first?.id ?? DEFAULT_SCENE_SLOT_ID;
+  // Eight slots hold every slot id, so the one slot is normalised exactly as Day does it.
+  const all = normalizeDaySlots(first ? [first] : [], 8);
+  return all.find(slot => slot.id === id) ?? { id, label: daySlotDefaultLabel(id) };
+}
+
+/** The scene slot at another time of day (its plan unchanged). */
+export function sceneSlotAt(slot: DaySlot, id: DaySlotId): DaySlot {
+  if (slot.id === id) return slot;
+  const relabel = !slot.label || slot.label === daySlotDefaultLabel(slot.id);
+  return { ...slot, id, label: relabel ? daySlotDefaultLabel(id) : slot.label };
+}
+
+function normalizeTake(raw: unknown, now: number): SceneTake | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const take = raw as Partial<SceneTake>;
+  const id = text(take.id, 160);
+  const imageUrl = storableUrl(take.imageUrl);
+  if (!id || !imageUrl) return null;
+  const rawUrl = storableUrl(take.rawUrl);
+  const clipUrl = storableUrl(take.clipUrl);
+  const promptId = text(take.promptId, 160);
+  const clipPromptId = text(take.clipPromptId, 160);
+  return {
+    id,
+    ...(promptId ? { promptId } : {}),
+    imageUrl,
+    ...(rawUrl && rawUrl !== imageUrl ? { rawUrl } : {}),
+    ...(clipUrl ? { clipUrl } : {}),
+    ...(clipUrl && clipPromptId ? { clipPromptId } : {}),
+    at: time(take.at, now),
+  };
+}
+
+/** Takes oldest first, one per id, at most {@link SCENE_TAKE_LIMIT} (the kept one stays). */
+function boundedTakes(takes: SceneTake[], keptTakeId: string | undefined): SceneTake[] {
+  const byId = new Map<string, SceneTake>();
+  for (const take of takes) byId.set(take.id, take);
+  const ordered = [...byId.values()].sort((a, b) => a.at - b.at);
+  if (ordered.length <= SCENE_TAKE_LIMIT) return ordered;
+  const kept = ordered.find(take => take.id === keptTakeId);
+  const newest = ordered.filter(take => take !== kept).slice(-(SCENE_TAKE_LIMIT - (kept ? 1 : 0)));
+  return kept ? [...newest, kept].sort((a, b) => a.at - b.at) : newest;
+}
+
+function moodFieldsOf(
+  input: Partial<Record<(typeof SCENE_MOOD_FIELDS)[number], unknown>>
+): SceneMoodFields {
+  // A scene saved while Raunchy was its own mood opens as Intimate with Playful on.
+  const migrated = migrateDayMoodFields({
+    dayMood: typeof input.dayMood === 'string' ? input.dayMood : undefined,
+    intimatePlayful: input.intimatePlayful === true ? true : undefined,
+  });
+  const out: SceneMoodFields = {};
+  if (migrated.dayMood) out.dayMood = migrated.dayMood as DayMoodSetting;
+  if (migrated.intimatePlayful === true) out.intimatePlayful = true;
+  if (input.intimateMix !== undefined) out.intimateMix = normalizeDayIntimateMix(input.intimateMix);
+  if (input.allowCompanions === true) out.allowCompanions = true;
+  const weather = normalizeDayWeather(input.dayWeather);
+  if (weather) out.dayWeather = weather;
+  const partner = text(input.partnerCharacterId, 120);
+  if (partner) out.partnerCharacterId = partner;
+  return out;
+}
+
+/** A stored scene read back (an older or hand-edited copy cleaned), or null when it isn't one. */
+export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const scene = raw as Partial<SavedScene>;
+  const id = text(scene.id, 80);
+  const castId = text(scene.castId, 120);
+  if (!id || !castId) return null;
+  const takes = (Array.isArray(scene.takes) ? scene.takes : [])
+    .map(take => normalizeTake(take, now))
+    .filter((take): take is SceneTake => take !== null);
+  const kept = text(scene.keptTakeId, 160);
+  const keptTakeId = takes.some(take => take.id === kept) ? kept : undefined;
+  const createdAt = time(scene.createdAt, now);
+  return {
+    id,
+    castId,
+    name: text(scene.name, 60) || 'Scene',
+    slot: sceneSlotOf([scene.slot as DaySlot]),
+    ...moodFieldsOf(scene as Record<string, unknown>),
+    takes: boundedTakes(takes, keptTakeId),
+    ...(keptTakeId ? { keptTakeId } : {}),
+    ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
+      ? { fromDaySlot: scene.fromDaySlot }
+      : {}),
+    createdAt,
+    updatedAt: time(scene.updatedAt, createdAt),
+  };
+}
+
+/** Every stored scene, cleaned: one per id, at most {@link SCENE_LIMIT_PER_CAST} per Cast. */
+export function normalizeSavedScenes(input: unknown, now = Date.now()): SavedScene[] {
+  const byId = new Map<string, SavedScene>();
+  for (const raw of Array.isArray(input) ? input : []) {
+    const scene = normalizeSavedScene(raw, now);
+    if (scene) byId.set(scene.id, scene);
+  }
+  const perCast = new Map<string, SavedScene[]>();
+  for (const scene of byId.values()) {
+    perCast.set(scene.castId, [...(perCast.get(scene.castId) ?? []), scene]);
+  }
+  return [...perCast.values()].flatMap(list =>
+    list
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, SCENE_LIMIT_PER_CAST)
+      .sort((a, b) => a.createdAt - b.createdAt)
+  );
+}
+
+/** One Cast's scenes, newest first. */
+export function scenesForCast(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  castId: string
+): SavedScene[] {
+  const id = castId.trim();
+  if (!id) return [];
+  return (scenes ?? [])
+    .filter(scene => scene.castId === id)
+    .sort((a, b) => b.updatedAt - a.updatedAt || b.createdAt - a.createdAt);
+}
+
+/** "Scene 3" — the next free number among the Cast's scenes. */
+export function nextSceneName(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  castId: string
+): string {
+  const taken = new Set(scenesForCast(scenes, castId).map(scene => scene.name));
+  for (let n = 1; n < 1000; n += 1) {
+    if (!taken.has(`Scene ${n}`)) return `Scene ${n}`;
+  }
+  return 'Scene';
+}
+
+/** What a scene shows as in a list: its name, then where and what. */
+export function sceneSummary(scene: SavedScene): string {
+  const where = scene.slot.location?.trim();
+  const what = scene.slot.sceneHints?.trim();
+  return [where, what].filter(Boolean).join(' · ').slice(0, 140);
+}
+
+export function newSceneId(now = Date.now()): string {
+  const random =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
+  return `scene-${now.toString(36)}-${random}`;
+}
+
+/** A new scene for a Cast. */
+export function createScene(input: {
+  castId: string;
+  name: string;
+  id?: string;
+  slot?: DaySlot;
+  mood?: Partial<Record<(typeof SCENE_MOOD_FIELDS)[number], unknown>>;
+  takes?: SceneTake[];
+  fromDaySlot?: DaySlotId;
+  now?: number;
+}): SavedScene {
+  const now = input.now ?? Date.now();
+  return {
+    id: input.id ?? newSceneId(now),
+    castId: input.castId.trim(),
+    name: input.name.trim().slice(0, 60) || 'Scene',
+    slot: sceneSlotOf(input.slot ? [input.slot] : []),
+    ...moodFieldsOf(input.mood ?? {}),
+    takes: boundedTakes(input.takes ?? [], undefined),
+    ...(input.fromDaySlot ? { fromDaySlot: input.fromDaySlot } : {}),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function keptTakeOf(scene: SavedScene | null | undefined): SceneTake | undefined {
+  return scene?.keptTakeId ? scene.takes.find(take => take.id === scene.keptTakeId) : undefined;
+}
+
+/** A take as the slot's still (completed, its clip with it). */
+export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
+  const finished = take.rawUrl && take.imageUrl !== take.rawUrl;
+  return {
+    slotId,
+    ...(take.promptId ? { promptId: take.promptId } : {}),
+    imageUrl: take.rawUrl || take.imageUrl,
+    status: 'completed',
+    ...(finished && take.promptId
+      ? { finishedUrl: take.imageUrl, finishedFor: take.promptId }
+      : {}),
+    ...(take.clipUrl
+      ? {
+          clipUrl: take.clipUrl,
+          clipStatus: 'completed' as const,
+          ...(take.clipPromptId ? { clipPromptId: take.clipPromptId } : {}),
+        }
+      : {}),
+  };
+}
+
+/**
+ * The Day working fields for an open scene: its slot, its mood, and on the board the kept take
+ * (else the newest). The partner's invented face belongs to the last scene, so it goes.
+ */
+export function sceneWorkingPatch(scene: SavedScene): Partial<SceneToolCache> {
+  const shown = keptTakeOf(scene) ?? scene.takes.at(-1);
+  const patch: Partial<SceneToolCache> = {
+    activeSceneId: scene.id,
+    slots: [scene.slot],
+    stills: shown ? [takeAsStill(scene.slot.id, shown)] : [],
+    stillsCharacterId: scene.castId,
+    partnerStandIn: undefined,
+    partnerSentFace: undefined,
+  };
+  for (const field of SCENE_MOOD_FIELDS) {
+    (patch as Record<string, unknown>)[field] = scene[field];
+  }
+  return patch;
+}
+
+/** The working fields with no scene open. */
+export const NO_SCENE_PATCH: Partial<SceneToolCache> = {
+  activeSceneId: undefined,
+  slots: undefined,
+  stills: [],
+  stillsCharacterId: undefined,
+  partnerStandIn: undefined,
+  partnerSentFace: undefined,
+};
+
+/** The takes a slot's still holds now: the shown take, and the second of two takes. */
+function takesOfStill(still: DaySlotStill | undefined, now: number): SceneTake[] {
+  if (!still || still.status !== 'completed' || still.adultHold) return [];
+  const out: SceneTake[] = [];
+  const promptId = still.promptId?.trim();
+  const raw = storableUrl(still.imageUrl);
+  // The shown picture is the finish only while it is this take's (dayStillShownImage).
+  const shown = storableUrl(dayStillShownImage(still));
+  if (promptId && shown) {
+    const clipUrl = still.clipStatus === 'completed' ? storableUrl(still.clipUrl) : '';
+    out.push({
+      id: promptId,
+      promptId,
+      imageUrl: shown,
+      ...(raw && raw !== shown ? { rawUrl: raw } : {}),
+      ...(clipUrl ? { clipUrl } : {}),
+      ...(clipUrl && still.clipPromptId ? { clipPromptId: still.clipPromptId } : {}),
+      at: now,
+    });
+  }
+  const second = still.twoTakes;
+  const secondUrl = storableUrl(second?.imageUrl);
+  if (second?.promptId && secondUrl && second.status === 'completed' && !second.adultHold) {
+    out.push({ id: second.promptId, promptId: second.promptId, imageUrl: secondUrl, at: now });
+  }
+  return out;
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * The open scene with what the Day engine holds now: its slot as edited, its mood, and any take
+ * that landed (a take already listed keeps its place and picks up its finish or clip). The same
+ * object when nothing changed, so a caller can skip the write.
+ */
+export function recordSceneFromWorking(
+  scene: SavedScene,
+  working: Partial<SceneToolCache>,
+  now = Date.now()
+): SavedScene {
+  const slot = sceneSlotOf(working.slots);
+  const mood = moodFieldsOf(working as Record<string, unknown>);
+  const stills = normalizeDaySlotStills(working.stills);
+  const landed = takesOfStill(
+    stills.find(still => still.slotId === slot.id),
+    now
+  );
+  let takes = scene.takes;
+  for (const take of landed) {
+    const index = takes.findIndex(entry => entry.id === take.id);
+    if (index < 0) {
+      takes = [...takes, take];
+    } else {
+      const merged = { ...takes[index]!, ...take, at: takes[index]!.at };
+      // A clip stays with its take when the still moves on to a new one.
+      if (!take.clipUrl && takes[index]!.clipUrl) {
+        merged.clipUrl = takes[index]!.clipUrl;
+        if (takes[index]!.clipPromptId) merged.clipPromptId = takes[index]!.clipPromptId;
+      }
+      if (!sameJson(merged, takes[index])) {
+        takes = takes.map((entry, at) => (at === index ? merged : entry));
+      }
+    }
+  }
+  takes = takes === scene.takes ? takes : boundedTakes(takes, scene.keptTakeId);
+  const moodNow: SceneMoodFields = {};
+  for (const field of SCENE_MOOD_FIELDS) {
+    if (scene[field] !== undefined) (moodNow as Record<string, unknown>)[field] = scene[field];
+  }
+  if (sameJson(slot, scene.slot) && sameJson(mood, moodNow) && takes === scene.takes) {
+    return scene;
+  }
+  const {
+    dayMood: _a,
+    intimatePlayful: _b,
+    intimateMix: _c,
+    allowCompanions: _d,
+    dayWeather: _e,
+    partnerCharacterId: _f,
+    ...rest
+  } = scene;
+  return { ...rest, ...mood, slot, takes, updatedAt: now };
+}
+
+/** Keep `takeId` (Cut uses it, Make it move starts from it); keeping it again lets it go. */
+export function keepSceneTake(scene: SavedScene, takeId: string, now = Date.now()): SavedScene {
+  if (!scene.takes.some(take => take.id === takeId)) return scene;
+  const { keptTakeId: _kept, ...rest } = scene;
+  return scene.keptTakeId === takeId
+    ? { ...rest, updatedAt: now }
+    : { ...rest, keptTakeId: takeId, updatedAt: now };
+}
+
+/** Drop a take from the scene (it stays in the Gallery). */
+export function removeSceneTake(scene: SavedScene, takeId: string, now = Date.now()): SavedScene {
+  if (!scene.takes.some(take => take.id === takeId)) return scene;
+  const { keptTakeId, ...rest } = scene;
+  return {
+    ...rest,
+    takes: scene.takes.filter(take => take.id !== takeId),
+    ...(keptTakeId && keptTakeId !== takeId ? { keptTakeId } : {}),
+    updatedAt: now,
+  };
+}
+
+export function upsertScene(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  scene: SavedScene
+): SavedScene[] {
+  const list = [...(scenes ?? [])];
+  const index = list.findIndex(entry => entry.id === scene.id);
+  if (index < 0) return [...list, scene];
+  list[index] = scene;
+  return list;
+}
+
+export function removeScene(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  id: string
+): SavedScene[] {
+  return (scenes ?? []).filter(scene => scene.id !== id);
+}
+
+/** The open scene, saved with the working fields (same list when nothing changed). */
+export function scenesWithWorking(cache: SceneToolCache, now = Date.now()): SavedScene[] | null {
+  const scenes = cache.scenes ?? [];
+  const active = scenes.find(scene => scene.id === cache.activeSceneId);
+  if (!active) return null;
+  const recorded = recordSceneFromWorking(active, cache, now);
+  return recorded === active ? null : upsertScene(scenes, recorded);
+}
+
+/**
+ * The Scene page after the active Cast changes: the open scene is saved, and the next Cast's
+ * newest scene opens (none: the page waits for New scene). Like Day's swapDayForCast, fields it
+ * does not own (the plate) are the caller's to clear.
+ */
+export function swapSceneForCast(
+  cache: SceneToolCache,
+  nextCast: string,
+  now = Date.now()
+): Partial<SceneToolCache> {
+  const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
+  const next = scenesForCast(saved, nextCast)[0];
+  return {
+    ...(saved !== cache.scenes ? { scenes: saved } : {}),
+    ...(next ? sceneWorkingPatch(next) : NO_SCENE_PATCH),
+  };
+}
+
+/** Open another of the Cast's scenes: the open one saved first. */
+export function openScenePatch(
+  cache: SceneToolCache,
+  sceneId: string,
+  now = Date.now()
+): Partial<SceneToolCache> | null {
+  const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
+  const scene = saved.find(entry => entry.id === sceneId);
+  if (!scene) return null;
+  return { ...(saved !== cache.scenes ? { scenes: saved } : {}), ...sceneWorkingPatch(scene) };
+}
+
+/** Add `scene` and open it (the open one saved first). */
+export function addScenePatch(
+  cache: SceneToolCache,
+  scene: SavedScene,
+  now = Date.now()
+): Partial<SceneToolCache> {
+  const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
+  return {
+    scenes: normalizeSavedScenes(upsertScene(saved, scene), now),
+    ...sceneWorkingPatch(scene),
+  };
+}
+
+/** Delete a scene; when it was open, the Cast's next newest opens (or none). */
+export function deleteScenePatch(cache: SceneToolCache, sceneId: string): Partial<SceneToolCache> {
+  const target = cache.scenes?.find(scene => scene.id === sceneId);
+  const scenes = removeScene(cache.scenes, sceneId);
+  if (cache.activeSceneId !== sceneId) return { scenes };
+  const next = target ? scenesForCast(scenes, target.castId)[0] : undefined;
+  return { scenes, ...(next ? sceneWorkingPatch(next) : NO_SCENE_PATCH) };
+}
+
+/** Day-shaped settings a Day slot is copied from (the live Day, or one parked under a Cast). */
+type DaySource = Pick<
+  DayToolCache,
+  'slots' | 'stills' | 'dayLength' | 'stillsCharacterId' | (typeof SCENE_MOOD_FIELDS)[number]
+>;
+
+/**
+ * "Open as Scene": a new scene from a Day slot — its plan and the Day's mood and partner, and the
+ * slot's finished still as the first take (not kept: the scene's takes are picked on the page).
+ */
+export function sceneFromDaySlot(input: {
+  day: DaySource;
+  slotId: DaySlotId;
+  castId: string;
+  name: string;
+  now?: number;
+  id?: string;
+}): SavedScene | null {
+  const slots = normalizeDaySlots(input.day.slots, input.day.dayLength);
+  const slot = slots.find(entry => entry.id === input.slotId);
+  if (!slot || !input.castId.trim()) return null;
+  const now = input.now ?? Date.now();
+  const still = normalizeDaySlotStills(input.day.stills).find(entry => entry.slotId === slot.id);
+  const owner = input.day.stillsCharacterId?.trim();
+  const takes = !owner || owner === input.castId.trim() ? takesOfStill(still, now) : [];
+  // Day's event / episode wiring belongs to the Day, not to one shot.
+  const { eventMove: _eventMove, sceneHintsDay: _sceneHintsDay, ...shot } = slot;
+  return createScene({
+    castId: input.castId,
+    name: input.name,
+    id: input.id,
+    slot: shot,
+    mood: input.day as Record<string, unknown>,
+    takes,
+    fromDaySlot: slot.id,
+    now,
+  });
+}
+
+/** The scene's shot as a patch on a Day slot (its time-of-day id and label stay the slot's). */
+export function daySlotPatchFromScene(scene: SavedScene): Partial<DaySlot> {
+  const { id: _id, label: _label, ...shot } = scene.slot;
+  // Every field of the shot, unset ones included, so the Day slot ends up exactly as the scene.
+  const keys: Array<keyof DaySlot> = [
+    'wardrobeId',
+    'wardrobeAuto',
+    'location',
+    'sceneHints',
+    'sceneHintsTyped',
+    'poseLayout',
+    'poseVariant',
+    'posePhoto',
+    'poseCamera',
+    'poseLead',
+    'poseLook',
+    'lookId',
+    'engine',
+    'outfitByHand',
+    'line',
+    'lineFullFrame',
+    'lineTone',
+    'replyLine',
+    'thirdCastId',
+    'fourthCastId',
+    'lineLanguage',
+    'lineOriginal',
+    'replyOriginal',
+    'narration',
+  ];
+  const patch: Partial<DaySlot> = {};
+  for (const key of keys)
+    (patch as Record<string, unknown>)[key] = (shot as Record<string, unknown>)[key];
+  return patch;
+}
+
+/**
+ * "Send to Day slot": the scene's shot on one of the Cast's Day slots, and its kept take as that
+ * slot's still (the still it replaces stays as the previous take — "Keep the old take" brings it
+ * back). The Cast's Day is the live one when it is theirs, else the one parked under them.
+ */
+export function sendSceneToDayPatch(
+  day: DayToolCache,
+  scene: SavedScene,
+  slotId: DaySlotId,
+  activeCastId: string,
+  now = Date.now()
+): { patch: Partial<DayToolCache> } | { error: string } {
+  const owner = day.stillsCharacterId?.trim() || activeCastId.trim();
+  const live = owner === scene.castId;
+  const parked = live ? undefined : day.parkedDays?.[scene.castId];
+  if (!live && !parked) {
+    return { error: 'This Cast has no Day yet — open Day with them first, then send the scene.' };
+  }
+  const source = live ? day : parked!;
+  const slots = normalizeDaySlots(source.slots, source.dayLength);
+  if (!slots.some(slot => slot.id === slotId)) {
+    return { error: 'That Day has no such slot.' };
+  }
+  const shot = daySlotPatchFromScene(scene);
+  const nextSlots = slots.map(slot => (slot.id === slotId ? { ...slot, ...shot } : slot));
+  const kept = keptTakeOf(scene);
+  let stills = normalizeDaySlotStills(source.stills, nextSlots);
+  if (kept) {
+    const before = stills.find(still => still.slotId === slotId);
+    const beforeUrl = dayStillShownImage(before);
+    const next: DaySlotStill = {
+      ...takeAsStill(slotId, kept),
+      ...(before?.status === 'completed' && beforeUrl && beforeUrl !== kept.imageUrl
+        ? {
+            previousTake: {
+              imageUrl: beforeUrl,
+              ...(before.promptId ? { promptId: before.promptId } : {}),
+            },
+          }
+        : {}),
+    };
+    stills = [...stills.filter(still => still.slotId !== slotId), next];
+  }
+  const fields = {
+    slots: nextSlots,
+    ...(kept ? { stills } : {}),
+  };
+  if (live) {
+    return {
+      patch: { ...fields, ...(kept ? { stillsCharacterId: scene.castId } : {}) },
+    };
+  }
+  return {
+    patch: {
+      parkedDays: {
+        ...(day.parkedDays ?? {}),
+        [scene.castId]: { ...parked!, ...fields, at: now },
+      },
+    },
+  };
+}
+
+/** The Day slots a scene can be sent to (the Cast's Day: live or parked), for the picker. */
+export function daySlotsForScene(
+  day: DayToolCache,
+  castId: string,
+  activeCastId: string
+): DaySlot[] {
+  const owner = day.stillsCharacterId?.trim() || activeCastId.trim();
+  if (owner === castId) return normalizeDaySlots(day.slots, day.dayLength);
+  const parked = day.parkedDays?.[castId];
+  return parked ? normalizeDaySlots(parked.slots, parked.dayLength) : [];
+}
+
+/**
+ * Cut's Scenes source: each of the Cast's scenes with a kept take, oldest scene first — the kept
+ * take's clip when it has one, else the still. Keys are the scene ids (Cut prefixes them).
+ */
+export function sceneCutShots(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  castId: string,
+  stillHoldSec = 3
+): KeyedShot[] {
+  const id = castId.trim();
+  if (!id) return [];
+  return (scenes ?? [])
+    .filter(scene => scene.castId === id)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .flatMap((scene): KeyedShot[] => {
+      const take = keptTakeOf(scene);
+      if (!take) return [];
+      const caption = scene.slot.sceneHints?.trim() || scene.name;
+      const spoken = scene.slot.line?.trim()
+        ? scene.slot.replyLine?.trim()
+          ? `${scene.slot.line.trim()} — ${scene.slot.replyLine.trim()}`
+          : scene.slot.line.trim()
+        : '';
+      return take.clipUrl
+        ? [
+            {
+              key: scene.id,
+              title: scene.name,
+              caption,
+              url: take.clipUrl,
+              kind: 'clip',
+              thumbUrl: take.imageUrl,
+              entryId: take.clipPromptId || `${scene.id}-clip`,
+              ...(spoken ? { spoken } : {}),
+            },
+          ]
+        : [
+            {
+              key: scene.id,
+              title: scene.name,
+              caption,
+              url: take.imageUrl,
+              kind: 'still',
+              holdSec: stillHoldSec,
+              entryId: take.promptId || scene.id,
+            },
+          ];
+    });
+}
+
+/** The mood fields a Cast file carries with a scene (not the partner: another Cast). */
+const FILE_MOOD_FIELDS = [
+  'dayMood',
+  'intimatePlayful',
+  'intimateMix',
+  'allowCompanions',
+  'dayWeather',
+] as const;
+
+/**
+ * A scene as a Cast file carries it: the shot and its mood, not the takes (they are renders on
+ * this install, like Day's stills) nor the partner (another Cast, maybe not on the other install).
+ */
+export type CastFileScene = Pick<
+  SavedScene,
+  'name' | 'slot' | (typeof FILE_MOOD_FIELDS)[number]
+> & {
+  createdAt?: number;
+};
+
+function fileSceneOf(scene: SavedScene): CastFileScene {
+  const out: CastFileScene = { name: scene.name, slot: scene.slot, createdAt: scene.createdAt };
+  for (const field of FILE_MOOD_FIELDS) {
+    if (scene[field] !== undefined) (out as Record<string, unknown>)[field] = scene[field];
+  }
+  return out;
+}
+
+/** One Cast's scenes for its Cast file, oldest first. */
+export function castFileScenes(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  castId: string
+): CastFileScene[] {
+  return scenesForCast(scenes, castId)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map(fileSceneOf);
+}
+
+/** A Cast file's scenes read back (cleaned; anything that isn't one dropped). */
+export function parseCastFileScenes(input: unknown): CastFileScene[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((raw, index): CastFileScene[] => {
+    if (!raw || typeof raw !== 'object' || !(raw as { slot?: unknown }).slot) return [];
+    const { partnerCharacterId: _partner, ...rest } = raw as Record<string, unknown>;
+    const scene = normalizeSavedScene({ ...rest, id: `file-${index}`, castId: 'file', takes: [] });
+    return scene ? [fileSceneOf(scene)] : [];
+  });
+}
+
+/** An imported Cast's scenes, as this install's: new ids, the Cast's id here, no takes yet. */
+export function placeImportedScenes(
+  fileScenes: ReadonlyArray<CastFileScene>,
+  castId: string,
+  now = Date.now()
+): SavedScene[] {
+  return fileScenes.map((entry, index) =>
+    createScene({
+      castId,
+      name: entry.name,
+      slot: entry.slot,
+      mood: entry as Record<string, unknown>,
+      // Their order kept: made one after another.
+      now: now + index,
+    })
+  );
+}
