@@ -59,7 +59,11 @@ import {
   type Limb,
   type Side,
 } from '@/lib/pose/rig3d-pose';
-import { posturesForPose, type Posture } from '@/lib/pose/rig3d-posture-points';
+import {
+  posturesForPose,
+  posturesForReference,
+  type Posture,
+} from '@/lib/pose/rig3d-posture-points';
 import {
   POSE_STARTERS,
   addPartner,
@@ -486,7 +490,7 @@ export default function PoseJointEditor3D({
       dayPoseWords(reference.pose),
       both,
       false,
-      posturesForPose(reference.pose)
+      posturesForReference(reference)
     );
   };
 
