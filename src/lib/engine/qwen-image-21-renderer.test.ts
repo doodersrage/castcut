@@ -1282,7 +1282,7 @@ describe('withCameraFirst (a picked camera leads the 2.1 prompt)', () => {
   });
 });
 
-describe('Qwen-Image 2.1 Turbo: two-person sex placement first', () => {
+describe('Qwen-Image 2.1 Turbo / Noct-Q: two-person sex placement first', () => {
   const recipe = (placement: string) =>
     `Carry out this change on Image 1. Keep facial likeness only: POSE FIRST: she is the beat on the bed. Explicit sex photo: ${placement} Both are adults — the woman in her late twenties, the man in his thirties. Keep her face from the Image 1; the man has the face from the Image 2.`;
   const graph = (prompt: string) => ({
@@ -1321,6 +1321,24 @@ describe('Qwen-Image 2.1 Turbo: two-person sex placement first', () => {
 
   it('is Turbo only', () => {
     const out = run(recipe(BENT), { eightStep: false });
+    assert.match(out.prompt, /POSE FIRST: she is the beat on the bed\. Explicit sex photo: The woman stands/);
+    assert.deepEqual(out.size, [1104, 1472]);
+  });
+
+  it('on Noct-Q (35 steps), leads a lying / bent placement on the landscape canvas', () => {
+    const NOCT = { fullUnet: QWEN_IMAGE_21_NOCT_UNET, shift: 3, noctDuoPlacement: true };
+    const bent = run(recipe(BENT), NOCT);
+    assert.ok(bent.prompt.startsWith(`POSE FIRST: ${BENT} ${QWEN_IMAGE_21_DUO_BEHIND_GAZE_LINE} Exactly two people`), bent.prompt.slice(0, 400));
+    assert.deepEqual(bent.size, [1472, 1104]);
+    // Upright pairs gained nothing on Noct-Q: the prompt and canvas stay as they were.
+    const lap = run(recipe(LAP), NOCT);
+    assert.match(lap.prompt, /POSE FIRST: she is the beat on the bed\. Explicit sex photo: Side view of the chair/);
+    assert.deepEqual(lap.size, [1104, 1472]);
+  });
+
+  it('leaves Noct-Q Fast as it was', () => {
+    const fast = { fullUnet: QWEN_IMAGE_21_NOCT_UNET, samplerName: 'er_sde', scheduler: 'linear_quadratic' };
+    const out = run(recipe(BENT), fast);
     assert.match(out.prompt, /POSE FIRST: she is the beat on the bed\. Explicit sex photo: The woman stands/);
     assert.deepEqual(out.size, [1104, 1472]);
   });

@@ -1953,7 +1953,7 @@ export function injectPromptsWithFallbacks(
       eightStepTurbo: options.qwenImage21EightStep === 'turbo',
       turboCheckpoint: options.qwenImage21TurboCheckpoint === true,
       ...(noct || noctFast ? { fullUnet: QWEN_IMAGE_21_NOCT_UNET } : {}),
-      ...(noct ? { shift: QWEN_IMAGE_21_NOCT_PASS.shift } : {}),
+      ...(noct ? { shift: QWEN_IMAGE_21_NOCT_PASS.shift, noctDuoPlacement: true } : {}),
       ...(noctFast
         ? {
             samplerName: QWEN_IMAGE_21_NOCT_FAST_PASS.samplerName,
