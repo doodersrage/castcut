@@ -18,6 +18,9 @@
  *            `<pose>~<camera>` — pose a Day pose id (stand, sit, walk, look_back, arms_up …),
  *            camera one of CAMERA_PICKS below (low, high, three_quarter, back, waist, closeup,
  *            auto). The camera bench (camera-bench.sh).
+ *   duo    — Intimate Day, duo mix: each id is a two-person sex layout (DUO_BEATS below), played
+ *            with a stored invented partner face (DUO_PARTNER_FACE, already in ComfyUI's input).
+ *            The intimate duo bench (placement of the two bodies).
  *
  *   node --import tsx scripts/pose-bench/capture.mts --engine <model> --mode joints|photo|camera \
  *     --ids a,b,c --out <dir> --capture <proxy capture dir> [--photos <dir>] [--base URL]
@@ -50,7 +53,7 @@ const arg = (flag: string, fallback?: string) => {
   return index > 0 ? process.argv[index + 1]! : fallback;
 };
 const engine = arg('--engine')!;
-const mode = arg('--mode', 'joints') as 'joints' | 'photo' | 'camera';
+const mode = arg('--mode', 'joints') as 'joints' | 'photo' | 'camera' | 'duo';
 const extraShared = JSON.parse(arg('--shared', '{}')!) as Record<string, unknown>;
 /** Camera mode: a beat that states each Day pose (set PICKED_ONLY=1 to keep the neutral beats). */
 const POSE_BEATS: Record<string, string> = process.env.PICKED_ONLY
@@ -63,6 +66,31 @@ const POSE_BEATS: Record<string, string> = process.env.PICKED_ONLY
       arms_up: 'stretches both arms straight up over her head',
       look_back: 'looks back over her shoulder',
     };
+/** Duo mode: one Intimate beat per two-person layout (Day's own preset wording where it has one). */
+export const DUO_BEATS: Record<string, string> = {
+  missionary: 'missionary on the rumpled bed with morning light through blinds',
+  mating_press: 'mating press on the bed with a partner — both adults fully visible',
+  straddle:
+    'riding her partner cowgirl on the bed, straddling his hips — both adults fully visible',
+  reverse_straddle:
+    'reverse cowgirl on the hotel armchair with a partner seated beneath her hips — both adults fully visible',
+  bent: 'bent over the foot of the bed from behind after dark',
+  prone:
+    'lying face-down on the bed mid-sex with a partner stretched along her back, afternoon light through the blinds',
+  spoon: 'spooning sex in bed as the light fades',
+  standing:
+    'standing sex from behind in the bedroom, partner behind her — both adults fully visible',
+  wall: 'against the bedroom wall mid-sex, night city glow',
+  lift: 'lifted onto a partner mid-sex in the hotel room, legs wrapped around his waist — both adults fully visible',
+  oral: 'she kneels on the bedroom floor giving her partner oral sex — both adults fully visible',
+  kneeling:
+    'kneeling face to face on the bed mid-sex with a partner, bodies pressed together, lamp low',
+  lap: 'sitting on his lap facing him on a kitchen chair mid-sex, arms around his neck — both adults fully visible',
+  scissors:
+    'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible',
+};
+/** Duo mode: the invented partner's stored face (Day's "same stranger all day" stand-in). */
+const DUO_PARTNER_FACE = process.env.DUO_PARTNER_FACE || 'day-partner-man-1790940602335.png';
 /** The camera bench's picks, as the slot's Camera row stores them (camera-shot.ts). */
 export const CAMERA_PICKS: Record<string, Record<string, string> | null> = {
   auto: null,
@@ -178,7 +206,7 @@ const characters = {
 const slots = ids.map((id, index) => {
   const slot: Record<string, unknown> = {
     id: slotIds[index],
-    label: `bench ${id}`,
+    label: mode === 'duo' ? '' : `bench ${id}`,
     location: PLACE,
     sceneHints: BEATS[index],
     sceneHintsTyped: BEATS[index],
@@ -187,6 +215,13 @@ const slots = ids.map((id, index) => {
     const ref = refs.get(id);
     if (!ref) throw new Error(`no reference ${id}`);
     slot.posePhoto = { aspect: ref.aspect, people: ref.people, source: 'edited' };
+  }
+  if (mode === 'duo') {
+    const beat = DUO_BEATS[id];
+    if (!beat) throw new Error(`no duo beat ${id}`);
+    slot.sceneHints = beat;
+    slot.sceneHintsTyped = beat;
+    slot.location = 'a cozy apartment';
   }
   if (mode === 'camera') {
     const [pose, camera] = id.split('~');
@@ -221,9 +256,20 @@ const dayTool = {
   slots,
   stills: [],
   dayLength: length,
-  dayMood: 'everyday',
-  intimateMix: 'solo',
+  dayMood: mode === 'duo' ? 'intimate' : 'everyday',
+  intimateMix: mode === 'duo' ? 'duo' : 'solo',
   allowCompanions: false,
+  ...(mode === 'duo'
+    ? {
+        partnerCharacterId: 'new:man',
+        partnerStandIn: {
+          noun: 'man',
+          look: 'a man in his thirties with short dark hair and light stubble',
+          filename: DUO_PARTNER_FACE,
+          imageUrl: `/api/comfyui/view?filename=${DUO_PARTNER_FACE}&subfolder=&type=input`,
+        },
+      }
+    : {}),
   // Quality off: no face finish / redo / review / best-of-two; engine hand-off off unless
   // BENCH_BEST_ENGINE=1 ("Pick the best engine per pose": Edit 2511's off-plate custom poses go
   // to Noct-Q / Turbo, customPoseOffPlate; the pose report card may swap an engine too).

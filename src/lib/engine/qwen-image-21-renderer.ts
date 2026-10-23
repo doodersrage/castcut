@@ -1031,6 +1031,45 @@ export function isClothedDuoStill(prompt: string, hasDuoPoseMap: boolean): boole
   return hasDuoPoseMap && !isNudePrompt(prompt);
 }
 
+/** The adult duo recipe's body-by-body placement ("Explicit sex photo: <placement> Both are adults"). */
+const DUO_PLACEMENT_RE = /\bExplicit sex photo: (.+?) (?=Both are adults\b)/;
+/** A placement with a body lying or bent over: the pair is wider than tall. */
+const WIDE_DUO_PLACEMENT_RE =
+  /\b(?:lies|lie|lying)\b(?! (?:back )?against)|\bbent forward\b|\bon all fours\b|\bspooning\b/i;
+const FROM_BEHIND_RE = /\bfrom behind\b/i;
+
+export const QWEN_IMAGE_21_DUO_BEHIND_GAZE_LINE =
+  'He looks down at her body, turned toward her, not toward the camera.';
+
+/** The duo recipe's placement, when the prompt is a two-person sex recipe. */
+export function duoSexPlacement(prompt: string): string | null {
+  return DUO_PLACEMENT_RE.exec(prompt)?.[1]?.trim() || null;
+}
+
+/** A two-person sex placement with a body lying or bent over (renders on a landscape canvas). */
+export function isWideDuoPlacement(placement: string | null): boolean {
+  return Boolean(placement && WIDE_DUO_PLACEMENT_RE.test(placement));
+}
+
+/**
+ * Turbo, two-person sex stills: where the bodies go leads the whole prompt. The recipe's placement
+ * sat mid-prompt after the face rules, under a POSE FIRST line that only echoed the beat
+ * ("she is missionary on the bed"); it becomes the POSE FIRST line, said once, ahead of the face
+ * rules. A placement from behind adds his gaze on her: he faced the camera beside her instead.
+ * Duo bench (2026-10-23, 14 layouts, see CHANGELOG): with the landscape canvas for lying / bent
+ * placements, from-behind and lying layouts joined where they stood side by side.
+ */
+export function withDuoPlacementFirst(prompt: string): string {
+  const match = DUO_PLACEMENT_RE.exec(prompt);
+  const placement = match?.[1]?.trim();
+  if (!match || !placement) return prompt;
+  const rest = prompt
+    .replace(match[0], 'Explicit sex photo. ')
+    .replace(/POSE FIRST: [^\n]*?\.\s+(?=Explicit sex photo\.)/, '');
+  const gaze = FROM_BEHIND_RE.test(placement) ? ` ${QWEN_IMAGE_21_DUO_BEHIND_GAZE_LINE}` : '';
+  return `POSE FIRST: ${placement}${gaze} ${rest}`;
+}
+
 function keepsOnEngineModel(workflow: Workflow, encoder: WorkflowNode): boolean {
   const attached = [1, 2, 3]
     .map(slot => encoder.inputs[`image${slot}`])
@@ -1211,9 +1250,15 @@ export function convertQwenEditWorkflowToImage21(
   const lyingSideLine = soloAttached && !lyingBackNude ? lieSideLineFor(sourceText) : null;
   const lyingNude = lyingBackNude || lyingSideLine !== null;
   const bentLine = soloAttached && !lyingNude ? bentSoloLineFor(sourceText) : null;
-  const canvas = lyingNude
-    ? { width: 1472, height: 1104 }
-    : qwenImage21Canvas(requestedWidth, requestedHeight);
+  // Turbo, two people in a sex recipe: the placement leads, and a lying / bent pair gets the
+  // landscape canvas (withDuoPlacementFirst).
+  const turboPass =
+    options.eightStep === true && options.eightStepTurbo === true && options.fourStep !== true;
+  const duoPlacement = turboPass ? duoSexPlacement(sourceText) : null;
+  const canvas =
+    lyingNude || isWideDuoPlacement(duoPlacement)
+      ? { width: 1472, height: 1104 }
+      : qwenImage21Canvas(requestedWidth, requestedHeight);
 
   let next = Math.max(0, ...Object.keys(workflow).map(id => Number(id) || 0)) + 1;
   const add = (node: WorkflowNode) => {
@@ -1370,7 +1415,9 @@ export function convertQwenEditWorkflowToImage21(
       ? withLieBackLine
       : lyingSideLine || bentLine
         ? (text: string) => withLeadLine(text, (lyingSideLine || bentLine) as string)
-        : (text: string) => text)(
+        : duoPlacement
+          ? withDuoPlacementFirst
+          : (text: string) => text)(
       withPhotoRealismTail(
         withTwoPersonFaces(
           withoutDroppedReferences(
