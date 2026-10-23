@@ -1572,7 +1572,8 @@ const POSTURE_MISS = 0.002;
  * The same for a posture known from outside the picture (a pose filed or picked by name): 1% of
  * the picture, and a reading in it counts only while its points stay within 3% of the picture's
  * on average (what lift-check counts as the same pose). Over the references 1% put 103 of 106 in
- * the posture they are filed under; 3% put a sumo deadlift's legs 13% off to bend her over.
+ * the posture they are filed under (106 once two filings went by their photos and a chest over
+ * level thighs read as a squat); 3% put a sumo deadlift's legs 13% off to bend her over.
  */
 const KNOWN_POSTURE_MISS = 0.01;
 const KNOWN_POSTURE_ERROR = 0.03;

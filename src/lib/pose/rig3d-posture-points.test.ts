@@ -4,6 +4,7 @@ import {
   classifyPostureAngles,
   pickedPostures,
   posturesForPose,
+  posturesForReference,
   posturesForVision,
   type PostureAngles,
 } from './rig3d-posture-points';
@@ -25,6 +26,14 @@ describe('postures known from outside the picture', () => {
     assert.deepEqual(posturesForPose('sport_deadlift'), ['bend', 'crouch']);
     assert.equal(posturesForPose('hug'), undefined);
     assert.equal(posturesForPose(undefined), undefined);
+  });
+
+  it('a reference whose photo shows another posture than its filing goes by the photo', () => {
+    assert.deepEqual(posturesForReference({ id: 'sport_deadlift-5', pose: 'sport_deadlift' }), [
+      'stand',
+    ]);
+    assert.ok(posturesForReference({ id: 'kneel-5', pose: 'kneel' })!.includes('seated'));
+    assert.deepEqual(posturesForReference({ id: 'kneel-1', pose: 'kneel' }), ['kneel']);
   });
 
   it("a slot's photo pose goes by the vision model's read, else the picked pose", () => {
@@ -71,6 +80,29 @@ describe('reading a reclined figure', () => {
         angles({ torso: 50, backLean: -50, thigh: [90, 90], knee: [10, 10], hipHeight: 0.05 })
       ),
       'lying'
+    );
+  });
+});
+
+describe('a chair seat or a squat', () => {
+  // Level thighs, shins down, knees at a right angle.
+  const legs = { thigh: [86, 87] as [number, number], shin: [11, 31] as [number, number] };
+  it('upright or leaning a little over the thighs is a seat', () => {
+    for (const lean of [0, 30, 50]) {
+      assert.equal(
+        classifyPostureAngles(
+          angles({ ...legs, torso: lean, backLean: -lean, knee: [75, 96], hipHeight: 0.55 })
+        ),
+        'seated'
+      );
+    }
+  });
+  it('the chest down over the thighs (a sumo deadlift setup) is a squat', () => {
+    assert.equal(
+      classifyPostureAngles(
+        angles({ ...legs, torso: 57, backLean: -57, knee: [75, 96], hipHeight: 0.55 })
+      ),
+      'crouch'
     );
   });
 });

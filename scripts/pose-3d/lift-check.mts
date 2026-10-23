@@ -35,8 +35,8 @@ import { POSE_STARTERS, poseStarterBody } from '../../src/lib/pose/starters';
 import { stillPoseFigure } from '../../src/lib/director/poses';
 import { frameDirection, framingCameraAt, readStillFraming } from '../../src/lib/director/framing';
 import { DEFAULT_DIRECTOR_CAMERA } from '../../src/lib/director/types';
-import { classifyPosture, expectedPostures, type Posture } from '../../src/lib/pose/rig3d-posture';
-import { posturesForPose } from '../../src/lib/pose/rig3d-posture-points';
+import { classifyPosture, type Posture } from '../../src/lib/pose/rig3d-posture';
+import { posturesForReference } from '../../src/lib/pose/rig3d-posture-points';
 
 const ROOT = new URL('../..', import.meta.url).pathname;
 const arg = (name: string) => {
@@ -159,7 +159,7 @@ const drawings = new Map<
 for (const c of cases) {
   // As the app lifts a pose it knows by name (the editor's reference / Day pose pickers, the
   // Director): toward the posture it is filed under. --flat: from the flat pose's own posture.
-  const known = flat ? undefined : posturesForPose(c.pose);
+  const known = flat ? undefined : posturesForReference(c);
   const rig = liftBodies([c.body], c.aspect, ['female'], DEFAULT_CAMERA, { postures: [known] });
   const figure = rig.figures[0]!;
   const editorView = projectFigure(figure, rig.camera, c.aspect);
@@ -189,7 +189,7 @@ for (const c of cases) {
           Math.max(1e-6, world[a]!.distanceTo(world[b]!)),
       0
     ) / LIMB_PAIRS.length;
-  const expected = expectedPostures(c.pose);
+  const expected = posturesForReference(c) ?? null;
   // Director: "Her pose in the picture".
   let director: Row['director'] = null;
   let directorPts: NormalizedBody | null = null;

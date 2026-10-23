@@ -10,8 +10,8 @@ import {
   openPoseWorld,
   projectFigure,
 } from './rig3d-pose';
-import { classifyPosture, expectedPostures } from './rig3d-posture';
-import { posturesForPose } from './rig3d-posture-points';
+import { classifyPosture } from './rig3d-posture';
+import { posturesForReference } from './rig3d-posture-points';
 
 const ROOT = join(__dirname, '..', '..', '..');
 
@@ -42,7 +42,7 @@ describe('lifting the reference library into the 3D body', () => {
   it('a standing figure stands about upright in depth', () => {
     const leans: number[] = [];
     for (const { ref, figure } of lifted) {
-      if (expectedPostures(ref.pose)?.[0] !== 'stand') continue;
+      if (posturesForReference(ref)?.[0] !== 'stand') continue;
       const p = openPoseWorld(figure);
       const hips = p[8]!.clone().add(p[11]!).multiplyScalar(0.5);
       const spine = p[1]!.clone().sub(hips);
@@ -74,12 +74,12 @@ describe('lifting the reference library into the 3D body', () => {
   });
 
   it('the posture is the one the reference is filed under (sit, kneel, lie, bend…)', () => {
-    const checked = lifted.filter(({ ref }) => expectedPostures(ref.pose));
+    const checked = lifted.filter(({ ref }) => posturesForReference(ref));
     const wrong = checked.filter(
-      ({ ref, figure }) => !expectedPostures(ref.pose)!.includes(classifyPosture(figure))
+      ({ ref, figure }) => !posturesForReference(ref)!.includes(classifyPosture(figure))
     );
-    // 101 of 106 (96 before the picture's own posture picked between leg readings); the rest are
-    // pictures that read either way (a kneel facing the camera) or proportions the body lacks.
+    // 103 of 106 (96 before the picture's own posture picked between leg readings); the rest are
+    // pictures that read either way (a kneel facing the camera, a sumo deadlift's setup).
     assert.ok(checked.length > 100);
     assert.ok(
       wrong.length <= 6,
@@ -92,7 +92,7 @@ describe('lifting the reference library into the 3D body', () => {
     let wrung = 0;
     let filed = 0;
     for (const ref of refs) {
-      const postures = posturesForPose(ref.pose);
+      const postures = posturesForReference(ref);
       if (!postures) continue;
       filed += 1;
       const figure = liftBody(ref.people[0]!, ref.aspect, { postures });
@@ -104,10 +104,11 @@ describe('lifting the reference library into the 3D body', () => {
         }
       }
     }
-    // 103 of 106 (100 from the flat pose's own posture): left are a kneel whose picture has one
-    // thigh twice the other's length, a sumo deadlift read as a seat and a deadlift's lockout.
+    // 106 of 106 (103 from the flat pose's own posture). Before, 103: a "kneel" that sits on the
+    // floor and a deadlift's lockout standing (now filed as what their photos show) and a sumo
+    // deadlift's setup read as a seat (a chest over level thighs is a squat now).
     assert.ok(filed > 100);
-    assert.ok(wrong.length <= 3, wrong.join(' '));
+    assert.deepEqual(wrong, []);
     assert.equal(wrung, 0);
   });
 });

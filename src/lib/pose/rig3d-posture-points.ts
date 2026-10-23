@@ -64,6 +64,9 @@ export function postureAnglesOfPoints(p: Vector3[]): PostureAngles {
   };
 }
 
+/** A torso pitched this far forward over level thighs carries her weight over her feet. */
+const SQUAT_PITCH = 55;
+
 export function classifyPostureAngles(a: PostureAngles): Posture {
   // Lying: the body along the floor (a bend over keeps the hips up on straight legs).
   if (a.torso > 60 && a.hipHeight < 0.55) return 'lying';
@@ -78,8 +81,10 @@ export function classifyPostureAngles(a: PostureAngles): Posture {
   if (kneeling) return 'kneel';
   if ((a.torso > 35 && thighMax < 45) || a.torso > 60) return 'bend';
   if (thighMin > 50 && kneeMax > 70 && Math.min(...a.shin) < 45) {
-    // Thighs out in front, shins down: a chair seat, or a squat when the knees fold right up.
-    return Math.min(...a.knee) > 115 ? 'crouch' : 'seated';
+    // Thighs out in front, shins down: a chair seat, or a squat when the knees fold right up
+    // or the chest comes down over the thighs (the weight over the feet, not on a seat: a sumo
+    // deadlift's setup, 57° over its thighs; the sits lean 50° at most).
+    return Math.min(...a.knee) > 115 || a.backLean < -SQUAT_PITCH ? 'crouch' : 'seated';
   }
   if (thighMin > 50) return 'seated';
   if (thighMax > 50 && kneeMax > 60) return a.torso > 35 ? 'bend' : 'seated';
@@ -137,6 +142,27 @@ export function posturesForPose(pose: string | null | undefined): Posture[] | un
     default:
       return undefined;
   }
+}
+
+/**
+ * References whose picture shows another posture than the pose they are filed under, each
+ * looked at against its source photo: the pose whose postures the picture does show.
+ */
+const REFERENCE_SHOWS: Record<string, string> = {
+  // Sitting low on a market floor, the right leg folded flat out to the side and the left knee
+  // forward toward the camera (that thigh drawn half the other's length, foreshortened, not
+  // misplaced): no knee down under the hips.
+  'kneel-5': 'sit_floor',
+  // The lockout: standing straight with the bar at the thighs (torso 9°, knees 177–179°).
+  'sport_deadlift-5': 'stand',
+};
+
+/**
+ * The 3D postures a reference pose may lift into: those of the pose it is filed under, or of
+ * the posture its picture shows where the two differ.
+ */
+export function posturesForReference(ref: { id: string; pose: string }): Posture[] | undefined {
+  return posturesForPose(REFERENCE_SHOWS[ref.id] ?? ref.pose);
 }
 
 /**
