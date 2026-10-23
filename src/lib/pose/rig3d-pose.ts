@@ -1846,19 +1846,57 @@ export function liftBodyWithCamera(
   options: LiftOptions & { search?: CameraSearch } = {}
 ): { figure: PoseRig3dFigure; camera: PoseRig3dCamera } {
   // The same picture again (the editor reopened, the Director's still read again): as before.
-  const key = JSON.stringify([body, aspect, options]);
-  const base = options.camera ?? DEFAULT_CAMERA;
-  const cached = CAMERA_LIFTS.get(key);
-  // (The given camera comes back as itself: callers tell a moved camera by identity.)
-  const copy = (camera: PoseRig3dCamera) => (camera === base ? base : { ...camera });
-  if (cached) return { figure: cloneFigure(cached.figure), camera: copy(cached.camera) };
+  const cached = cachedLiftWithCamera(body, aspect, options);
+  if (cached) return cached;
   const lifted = searchLiftCamera(body, aspect, options);
-  CAMERA_LIFTS.set(key, { figure: cloneFigure(lifted.figure), camera: lifted.camera });
-  if (CAMERA_LIFTS.size > 24) CAMERA_LIFTS.delete(CAMERA_LIFTS.keys().next().value!);
+  rememberLiftWithCamera(body, aspect, options, {
+    ...lifted,
+    moved: lifted.camera !== (options.camera ?? DEFAULT_CAMERA),
+  });
   return lifted;
 }
 
-const CAMERA_LIFTS = new Map<string, { figure: PoseRig3dFigure; camera: PoseRig3dCamera }>();
+/** A camera lift as cached (and as the lift worker sends it back): `moved` off the given camera. */
+export type CameraLift = { figure: PoseRig3dFigure; camera: PoseRig3dCamera; moved: boolean };
+
+const CAMERA_LIFTS = new Map<string, CameraLift>();
+const cameraLiftKey = (body: NormalizedBody, aspect: number, options: object) =>
+  JSON.stringify([body, aspect, options]);
+
+/**
+ * liftBodyWithCamera's answer for this picture when it is already known (lifted before, here or
+ * in the lift worker), else null. The given camera comes back as itself: callers tell a moved
+ * camera by identity.
+ */
+export function cachedLiftWithCamera(
+  body: NormalizedBody,
+  aspect: number,
+  options: LiftOptions & { search?: CameraSearch } = {}
+): { figure: PoseRig3dFigure; camera: PoseRig3dCamera } | null {
+  const cached = CAMERA_LIFTS.get(cameraLiftKey(body, aspect, options));
+  if (!cached) return null;
+  return {
+    figure: cloneFigure(cached.figure),
+    camera: cached.moved ? { ...cached.camera } : (options.camera ?? DEFAULT_CAMERA),
+  };
+}
+
+/** Keep a camera lift for this picture (the lift worker's, read on another thread). */
+export function rememberLiftWithCamera(
+  body: NormalizedBody,
+  aspect: number,
+  options: LiftOptions & { search?: CameraSearch },
+  lift: CameraLift
+): void {
+  const key = cameraLiftKey(body, aspect, options);
+  CAMERA_LIFTS.delete(key);
+  CAMERA_LIFTS.set(key, {
+    figure: cloneFigure(lift.figure),
+    camera: { ...lift.camera },
+    moved: lift.moved,
+  });
+  if (CAMERA_LIFTS.size > 24) CAMERA_LIFTS.delete(CAMERA_LIFTS.keys().next().value!);
+}
 
 function searchLiftCamera(
   body: NormalizedBody,
@@ -1973,6 +2011,30 @@ function meanPointError(a: NormalizedBody, b: NormalizedBody, aspect: number): n
   return count ? sum / count : 0;
 }
 
+/** How liftBodies lifts body `index`: its kind, and its known postures. */
+function bodyLiftOptions(
+  index: number,
+  kinds: Rig3dBodyKind[],
+  postures: Posture[] | undefined
+): LiftOptions {
+  return {
+    body: kinds[index] ?? (index === 0 ? 'female' : 'male'),
+    ...(postures ? { postures } : {}),
+  };
+}
+
+/**
+ * The options liftBodies reads the lead's camera with (liftBodyWithCamera): the same picture with
+ * these options is the same cached lift, here or in the lift worker.
+ */
+export function leadCameraLiftOptions(
+  kinds: Rig3dBodyKind[],
+  camera: PoseRig3dCamera,
+  postures: Posture[] | undefined
+): LiftOptions {
+  return { ...bodyLiftOptions(0, kinds, postures), camera };
+}
+
 /**
  * A rig for flat bodies (lead first), all seen through one camera. `postures`, per body: the
  * postures known from outside the picture (the pose it was filed or picked as, the vision
@@ -1988,23 +2050,25 @@ export function liftBodies(
     /**
      * Read the camera from the picture (liftBodyWithCamera, on the lead): `camera` is then the
      * eye-level camera the estimate starts from and leans toward. Off: seen through `camera`.
+     * 'cached': the estimate only when it is already known (the lift worker read it, or an
+     * earlier lift), else seen through `camera` — fast enough to draw at once.
      */
-    estimateCamera?: boolean;
+    estimateCamera?: boolean | 'cached';
   } = {}
 ): PoseRig3d {
-  const optionsFor = (index: number): LiftOptions => {
-    const postures = options.postures?.[index];
-    return {
-      body: kinds[index] ?? (index === 0 ? 'female' : 'male'),
-      ...(postures ? { postures } : {}),
-    };
-  };
+  const optionsFor = (index: number) => bodyLiftOptions(index, kinds, options.postures?.[index]);
   let view = camera;
   let lead: PoseRig3dFigure | null = null;
   if (options.estimateCamera && bodies[0]) {
-    const estimated = liftBodyWithCamera(bodies[0], aspect, { ...optionsFor(0), camera });
-    view = estimated.camera;
-    lead = estimated.figure;
+    const request = leadCameraLiftOptions(kinds, camera, options.postures?.[0]);
+    const estimated =
+      options.estimateCamera === 'cached'
+        ? cachedLiftWithCamera(bodies[0], aspect, request)
+        : liftBodyWithCamera(bodies[0], aspect, request);
+    if (estimated) {
+      view = estimated.camera;
+      lead = estimated.figure;
+    }
   }
   const figures = bodies.map((body, index) =>
     index === 0 && lead ? lead : liftBody(body, aspect, { ...optionsFor(index), camera: view })
