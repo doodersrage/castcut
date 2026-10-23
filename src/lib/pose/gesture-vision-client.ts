@@ -1,4 +1,5 @@
 import type { NormalizedBody } from './library';
+import { freeComfyUiMemory } from '../comfyui/queue-control';
 import { sharedLlmRequestBody } from '../llm/request-options';
 import {
   applyGestureVerdict,
@@ -122,6 +123,11 @@ import {
   resolveStillFileForVisionScan,
 } from '../vision/scan-still';
 
+/** LM Studio's error when the vision model won't fit beside ComfyUI's models on the GPU. */
+export function visionModelLoadFailed(message: string | undefined): boolean {
+  return /failed to load model/i.test(message ?? '');
+}
+
 /**
  * Ask `/api/pose-gesture` the pose check's yes/no questions about a still, and the realism rating
  * when `realism` is set (one vision call). Null when there is nothing to ask; the fields are null
@@ -133,6 +139,7 @@ export async function askStillGesture(options: {
   realism?: boolean;
   place?: string;
   shared?: VisionShared;
+  comfyUrl?: string;
 }): Promise<{
   answers: GestureAnswer[] | null;
   realism: number | null;
@@ -145,25 +152,38 @@ export async function askStillGesture(options: {
     fallbackName: 'gesture-still.png',
   });
   const { image, mimeType } = await prepareVisionScanImagePayload(still);
-  const response = await fetch('/api/pose-gesture', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({
-      image,
-      mimeType,
-      questions: options.questions,
-      ...(options.realism ? { realism: true } : {}),
-      ...(options.place ? { place: options.place } : {}),
-      ...(options.shared ? sharedLlmRequestBody(options.shared) : {}),
-    }),
+  const body = JSON.stringify({
+    image,
+    mimeType,
+    questions: options.questions,
+    ...(options.realism ? { realism: true } : {}),
+    ...(options.place ? { place: options.place } : {}),
+    ...(options.shared ? sharedLlmRequestBody(options.shared) : {}),
   });
-  const data = await parseVisionScanApiResponse<{
-    answers?: GestureAnswer[] | null;
-    realism?: number | null;
-    place?: PlaceVerdict | null;
-    error?: string;
-  }>(response);
+  const askOnce = async () => {
+    const response = await fetch('/api/pose-gesture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body,
+    });
+    const data = await parseVisionScanApiResponse<{
+      answers?: GestureAnswer[] | null;
+      realism?: number | null;
+      place?: PlaceVerdict | null;
+      error?: string;
+    }>(response);
+    return { response, data };
+  };
+  let { response, data } = await askOnce();
+  // The vision model often can't load while ComfyUI keeps its models on the GPU (LM Studio:
+  // "Failed to load model"), and the check would quietly be skipped. Ask ComfyUI to free memory —
+  // between jobs, never interrupting one — and try once more (as the marks check does).
+  if (!response.ok && visionModelLoadFailed(data.error)) {
+    await freeComfyUiMemory(options.comfyUrl).catch(() => undefined);
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    ({ response, data } = await askOnce());
+  }
   if (!response.ok) {
     throw new Error(data.error ?? 'Gesture check failed.');
   }
