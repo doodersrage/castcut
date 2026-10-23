@@ -8,7 +8,9 @@
  * words that keep her weight on her feet she stood 6/6 (Turbo-8 and Noct-Q, three seeds each,
  * 2026-10-22) — her on-feet crouch then answered "yes" to the ground-sit question 6/6. So when the
  * pose check calls the ground-sit miss (and only that miss), the redo is rendered words-only:
- * no pose map, the pose words replaced by {@link groundSitRedoWords}.
+ * no pose map, the pose words replaced by {@link groundSitRedoWords} — with the guide's facing
+ * ("facing the camera, her face and chest toward the viewer", "her back to the camera"…), which
+ * only the map had said.
  *
  * Its limbs then match the guide loosely (0.51–0.58 against a custom pose's 0.75 bar: a crouch
  * leaning into a turn, not the guide's exact joints), so the redo is judged posture first: a
@@ -16,6 +18,7 @@
  * question decides, and the limbs need only {@link WORDS_ONLY_MIN_LIMB_SCORE}.
  */
 
+import { describePoseFigure } from '@/lib/pose/describe';
 import { groundSitLookalike } from '@/lib/pose/posture-question';
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PostureGroup } from '@/lib/pose/posture';
@@ -43,7 +46,13 @@ export function groundSitRedoFor(
 ): { kind: GroundSitKind; words: string } | null {
   if (match?.groundSitMiss !== true) return null;
   const kind = groundSitLookalike(guide.body, guide.aspect);
-  return kind ? { kind, words: groundSitRedoWords(kind, lead) } : null;
+  if (!kind || !guide.body) return null;
+  // Which way the guide faces: the map said it, the words must now.
+  const facing = describePoseFigure(guide.body, {
+    aspect: guide.aspect,
+    possessive: lead === 'he' ? 'his' : 'her',
+  }).view;
+  return { kind, words: groundSitRedoWords(kind, lead, facing) };
 }
 
 /**

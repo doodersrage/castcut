@@ -19,6 +19,7 @@ import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 import { putAppKv, seedSettingsCacheOnNextLoad } from '../../e2e/helpers/idb';
 import { isolateServerStorage } from '../../e2e/helpers/storage';
+import { signInIfNeeded } from './sign-in.mts';
 import { dayDressPlateRequestKey } from '../../src/lib/day/dress-plate';
 import { normalizeFootwear } from '../../src/lib/wardrobe/footwear';
 
@@ -223,6 +224,7 @@ await context.addInitScript(
   { entries: dressPlates }
 );
 const page = await context.newPage();
+await signInIfNeeded(page);
 const notes: string[] = [];
 page.on('pageerror', error => notes.push(`pageerror: ${String(error).slice(0, 300)}`));
 const prompts: Array<{ at: number; prompt: unknown }> = [];

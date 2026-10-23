@@ -74,8 +74,15 @@ describe('ground-sit redo', () => {
     assert.equal(missed.groundSitMiss, true);
     const redo = groundSitRedoFor(missed, ski);
     assert.equal(redo?.kind, 'off-balance');
-    assert.equal(redo?.words, groundSitRedoWords('off-balance'));
+    assert.equal(redo?.words, groundSitRedoWords('off-balance', 'she', null));
     assert.match(redo!.words, /^in a low ski racer's crouch on both feet/);
+    // The guide's facing goes into the words: the map no longer says it.
+    assert.match(redo!.words, /leaning into a turn, facing the camera, her face and chest toward the viewer, her bottom held high/);
+    // Seen from behind (the skier mirrored): her back to the camera, not "facing the camera".
+    const back = SKI.map(point => (point ? { x: 1 - point.x, y: point.y } : null));
+    const backRedo = groundSitRedoFor({ groundSitMiss: true }, { body: back, aspect: SKI_ASPECT });
+    assert.match(backRedo!.words, /her back to the camera/);
+    assert.doesNotMatch(backRedo!.words, /facing the camera/);
     assert.match(groundSitRedoFor(missed, ski, 'he')!.words, /his bottom held high/);
     // A crouch guide gets crouch words.
     assert.equal(
