@@ -3,6 +3,9 @@ import { describe, it } from 'node:test';
 import {
   buildFittingBackViewPrompt,
   fittingBackViewIsSeated,
+  fittingPoseSitKind,
+  fittingSeatNoun,
+  withFittingSeat,
   buildFittingStandingPlatePrompt,
   buildFittingCompareLightboxState,
   buildFittingFeetPassPrompt,
@@ -516,11 +519,14 @@ describe('Outfit front and back', () => {
       subject: 'she',
       pose: { words: 'seated, her back to the camera, her left hand on her hip' },
     });
-    assert.match(seated, /She sits on a plain low stool, her hips resting on its seat/);
+    assert.match(
+      seated,
+      /She sits on the same stool as in Image 1, her hips resting on its seat; its legs stand on the floor under her/
+    );
     assert.match(seated, /her knees point away from the camera/);
     assert.match(seated, /never her knees, shins or the toes of her shoes facing the camera/);
     const his = buildFittingBackViewPrompt({ subject: 'he', pose: { words: 'seated' } });
-    assert.match(his, /He sits on a plain low stool, his hips resting on its seat/);
+    assert.match(his, /He sits on the same stool as in Image 1, his hips/);
     assert.doesNotMatch(his, /\bher\b/);
     // Standing, kneeling, squatting, floor sitting, and a pose that faced away (its other side
     // is the front) get no seat.
@@ -529,6 +535,7 @@ describe('Outfit front and back', () => {
       'kneeling',
       'squatting low, feet flat',
       'sitting on the floor, legs out',
+      'sitting cross-legged on the floor, her back to the camera',
     ]) {
       assert.doesNotMatch(buildFittingBackViewPrompt({ pose: { words } }), /stool/);
     }
@@ -544,6 +551,44 @@ describe('Outfit front and back', () => {
     assert.equal(fittingBackViewIsSeated('sitting on the floor, knees up'), false);
     assert.equal(fittingBackViewIsSeated('kneeling'), false);
     assert.equal(fittingBackViewIsSeated(undefined), false);
+    assert.equal(fittingBackViewIsSeated('sitting cross-legged on the floor, her back to the camera'), false);
+  });
+
+  it('fittingPoseSitKind / fittingSeatNoun: a seat, the floor, or no sitting', () => {
+    assert.equal(fittingPoseSitKind('seated, leaning toward the camera'), 'seat');
+    assert.equal(fittingPoseSitKind('sitting on a park bench'), 'seat');
+    assert.equal(fittingPoseSitKind('sitting cross-legged on the floor, both hands on hips'), 'floor');
+    assert.equal(fittingPoseSitKind('sitting on the ground'), 'floor');
+    assert.equal(fittingPoseSitKind('sitting on the floor, knees up'), 'floor');
+    assert.equal(fittingPoseSitKind('kneeling'), null);
+    assert.equal(fittingPoseSitKind('squatting low, feet flat'), null);
+    assert.equal(fittingSeatNoun('seated'), 'a low plain light-wood stool');
+    assert.equal(fittingSeatNoun('sitting on a park bench, hands on knees'), 'a park bench');
+    assert.equal(fittingSeatNoun('sitting on the floor'), 'a low plain light-wood stool');
+    const back = buildFittingBackViewPrompt({ pose: { words: 'sitting on a park bench' } });
+    assert.match(back, /sits on the same park bench as in Image 1/);
+  });
+
+  it('withFittingSeat: a seated try-on names its stool early and lets the studio hold it', () => {
+    const prompt = [
+      'POSE FIRST: she is seated, her left hand on her hip, exactly as the pose map in Image 3 shows — hips on a seat, knees bent.',
+      'Edit instruction for an outfit try-on:',
+      'background: clean plain studio / white seamless; no scene from the original photo',
+    ].join('\n');
+    const seated = withFittingSeat(prompt, 'seated, her left hand on her hip');
+    const lines = seated.split('\n');
+    assert.match(lines[0]!, /^POSE FIRST: she is seated on a low plain light-wood stool, her left hand/);
+    assert.match(
+      lines[1]!,
+      /^SEAT: she sits on a low plain light-wood stool, her full weight on it: her bottom rests on its seat, her thighs lie along the seat, her knees bent and her feet on the floor; the stool and its legs clearly visible under her — never standing, never perched against it, never sitting on air\.$/
+    );
+    assert.match(seated, /white seamless, with only the stool she sits on; no scene/);
+    const his = withFittingSeat(prompt.replace('she is', 'he is'), 'seated', 'he');
+    assert.match(his, /SEAT: he sits on a low plain light-wood stool, his full weight .* under him/);
+    // Floor sitting and other poses: unchanged.
+    for (const words of ['sitting cross-legged on the floor', 'kneeling', 'standing', '']) {
+      assert.equal(withFittingSeat(prompt, words), prompt);
+    }
   });
 
   it('buildFittingStandingPlatePrompt: the same outfit, standing front on', () => {
