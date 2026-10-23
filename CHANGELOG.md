@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.22] - 2026-10-23
+
 - Pose check, ground-sit redo: the words-only redo now says which way the guide faces, because without the pose map nothing else did. A front-facing guide adds *facing the camera, her face and chest toward the viewer*; a back, side-on or three-quarter guide adds its own view words (*her back to the camera…*). Before, Noct-Q crouched *sport_ski-5* with her back to the camera in 1 of 10 redos, and its mirrored limbs scored 31% (20% shown). Live on the Day page (*Redo pose misses once*, 10 redos per engine): Noct-Q 10 of 10 redos on her feet and facing the camera, 9 passing (70–78%). The one miss faced the camera, crouched with her hands behind her back, and its limbs scored 37% against the 40% bar. Turbo-8 passed 10 of 10 (72–77%), and *crouch-1* matched 96–99% with no redo. Story, live: a beat posed *sport_ski-5* sat down 6 of 6 times (Turbo-8 ×3, Noct-Q ×3). The card said *sat on the ground for the pose; Retry redoes it without the pose map*, and Retry went out without the map. All 6 stood up and passed (74–82%), and the card said *redone without the pose map*. New harness: `scripts/pose-bench/story-ground-sit.mts`. Both pose-bench page drivers now sign in when the app has auth on
 
 ## [v2.12.21] - 2026-10-23
