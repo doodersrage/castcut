@@ -4,6 +4,8 @@ import type { NormalizedBody } from './library';
 import type { GestureAnswer } from './gesture';
 import {
   applyPostureAnswer,
+  GROUND_SIT_LABEL,
+  groundSitLookalike,
   POSTURE_QUESTION_ID,
   postureQuestion,
   wantsPostureQuestion,
@@ -98,5 +100,105 @@ describe('pose posture question', () => {
     // Confident and the same posture: nothing to ask.
     assert.equal(wantsPostureQuestion(match(STANDING, STANDING)), false);
     assert.equal(wantsPostureQuestion(null), false);
+  });
+});
+
+/** A reference's joints ([x, y] as shares of its canvas). */
+const ref = (points: Array<[number, number] | null>): NormalizedBody =>
+  points.map(p => (p ? { x: p[0], y: p[1] } : null));
+// sport_ski-5 (aspect 0.8758): a carving skier, both feet well to one side of the hips — the
+// flat joints of a seat on the ground with the legs out in front.
+const SKI_ASPECT = 0.8758;
+const SKI = ref([
+  [0.587, 0.186], [0.671, 0.223], [0.539, 0.178], [0.428, 0.301], [0.43, 0.458], [0.803, 0.268],
+  [0.891, 0.426], [0.86, 0.588], [0.501, 0.454], [0.348, 0.709], [0.112, 0.937], [0.663, 0.511],
+  [0.482, 0.637], [0.357, 0.869], [0.575, 0.158], [0.617, 0.167], [0.566, 0.131], [0.705, 0.156],
+]);
+// crouch-2 (aspect 0.889): a deep squat.
+const CROUCH_ASPECT = 0.889;
+const CROUCH = ref([
+  [0.854, 0.192], [0.67, 0.341], [0.47, 0.316], [0.352, 0.579], [0.329, 0.793], [0.861, 0.364],
+  [0.813, 0.675], [0.82, 0.897], [0.442, 0.801], [0.109, 0.771], [0.452, 0.935], [0.603, 0.787],
+  [0.852, 0.65], [0.667, 0.929], [0.825, 0.139], [0.891, 0.145], [0.706, 0.129], null,
+]);
+// sit_floor-2 (aspect 0.7635): sitting cross-legged — reads low like a squat, but it sits.
+const FLOOR_ASPECT = 0.7635;
+const FLOOR_SIT = ref([
+  [0.658, 0.177], [0.655, 0.32], [0.473, 0.272], [0.251, 0.512], [0.421, 0.349], [0.836, 0.369],
+  [0.906, 0.637], [0.836, 0.764], [0.485, 0.648], [0.117, 0.748], [0.625, 0.935], [0.731, 0.667],
+  [0.885, 0.834], [0.375, 0.907], [0.611, 0.129], [0.719, 0.161], null, [0.817, 0.186],
+]);
+
+const sameAs = (guide: NormalizedBody, aspect: number) =>
+  scorePoseMatch({
+    guide: [guide],
+    guideAspect: aspect,
+    detected: { canvas: { width: Math.round(aspect * 1000), height: 1000 }, people: [guide] },
+    customPose: true,
+  });
+
+describe('pose posture question: sat on the ground for a crouch', () => {
+  it('knows the guides a seat on the ground looks like', () => {
+    assert.equal(groundSitLookalike(SKI, SKI_ASPECT), 'off-balance');
+    assert.equal(groundSitLookalike(CROUCH, CROUCH_ASPECT), 'crouch');
+    assert.equal(groundSitLookalike(FLOOR_SIT, FLOOR_ASPECT), null);
+    assert.equal(groundSitLookalike(STANDING, W / H), null);
+    assert.equal(groundSitLookalike(KNEEL, W / H), null);
+    assert.equal(groundSitLookalike(LYING, W / H), null);
+    assert.equal(groundSitLookalike(null, W / H), null);
+  });
+
+  it('asks whether the still is on its feet, even when both reads are confident', () => {
+    // Sat on the grass, the still draws the guide's own joints: a confident match.
+    const result = sameAs(SKI, SKI_ASPECT);
+    assert.equal(result.postureMiss, false);
+    assert.ok(result.score >= DEFAULT_MIN_POSE_MATCH);
+    // Without the guide body the old check asks nothing.
+    assert.equal(postureQuestion(result), null);
+    const question = postureQuestion(result, 'woman', { body: SKI, aspect: SKI_ASPECT });
+    assert.equal(question?.id, POSTURE_QUESTION_ID);
+    assert.equal(question?.label, GROUND_SIT_LABEL);
+    assert.equal(
+      question?.text,
+      'Are her knees bent sharply with her feet under her hips, as in a crouch or squat?'
+    );
+    assert.match(
+      postureQuestion(result, 'man', { body: SKI, aspect: SKI_ASPECT })!.text,
+      /^Are his knees/
+    );
+    const crouch = sameAs(CROUCH, CROUCH_ASPECT);
+    assert.equal(
+      postureQuestion(crouch, 'woman', { body: CROUCH, aspect: CROUCH_ASPECT })?.label,
+      GROUND_SIT_LABEL
+    );
+    // A floor-sit guide keeps the old rule.
+    const floor = sameAs(FLOOR_SIT, FLOOR_ASPECT);
+    assert.notEqual(
+      postureQuestion(floor, 'woman', { body: FLOOR_SIT, aspect: FLOOR_ASPECT })?.label,
+      GROUND_SIT_LABEL
+    );
+  });
+
+  it('a clear "no" is a miss read as sitting; anything else keeps the match', () => {
+    const result = sameAs(SKI, SKI_ASPECT);
+    const question = postureQuestion(result, 'woman', { body: SKI, aspect: SKI_ASPECT });
+    const missed = applyPostureAnswer(result, question, answer('no'));
+    assert.equal(missed.postureMiss, true);
+    assert.ok(missed.score < DEFAULT_MIN_POSE_MATCH);
+    assert.deepEqual(posturePairWords(missed), { guide: 'standing', still: 'sitting' });
+    assert.equal(postureQuestion(missed, 'woman', { body: SKI, aspect: SKI_ASPECT }), null);
+    assert.equal(applyPostureAnswer(result, question, answer('yes')), result);
+    assert.equal(applyPostureAnswer(result, question, answer('no', 60)), result);
+  });
+
+  it('asks nothing of a still that already missed', () => {
+    const result = scorePoseMatch({
+      guide: [SKI],
+      guideAspect: SKI_ASPECT,
+      detected: { canvas: { width: W, height: H }, people: [LYING] },
+      customPose: true,
+    });
+    assert.ok(result.score < DEFAULT_MIN_POSE_MATCH);
+    assert.equal(postureQuestion(result, 'woman', { body: SKI, aspect: SKI_ASPECT }), null);
   });
 });

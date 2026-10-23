@@ -28,6 +28,30 @@
  * pose. Missed: a side-lunge guide (its read isn't confident, so nothing is asked) and a
  * standing guide answered "yes" for a man lying on the grass. The model answers 95 either way,
  * so the confidence bar barely matters.
+ *
+ * Sat on the ground for a crouch (2026-10-22). A crouch and a seat on the ground draw the same
+ * flat joints — hips low, knees bent — and so does a body leaning off its feet, as a carving
+ * skier does (sport_ski-5: both feet well to one side of the hips). Every Qwen-Image 2.1 engine
+ * sat sport_ski-5 down on the grass, legs out in front, and its joints matched the guide (0.98 –
+ * 1.00), both reads a confident "standing": no miss, nothing asked. Union pose control and
+ * "never sitting" words changed nothing. For such a guide ({@link groundSitLookalike}) the
+ * question is asked whatever the still's read, and a clear "no" is a miss read as sitting.
+ * Pose bench (nsfwvision-qwen3-vl-8b-v3), per wording — sat stills caught / on-feet stills
+ * flagged:
+ *
+ *   wording                                                     sat (ski-5)   on its feet
+ *   "up on her feet, bottom off the ground, not sitting?"       22/72         12/12 squats "no"
+ *   "sitting on the ground, bottom resting on the grass?"       11/72 yes     0
+ *   "legs stretched out in front of her, along the ground?"     56/102 yes    5/151 (bends)
+ *   "knees bent sharply with her feet under her hips, as in     99/102 no     ski-1 Turbo 3/3
+ *    a crouch or squat?" (shipped)
+ *
+ * The on-feet stills: crouch-1…5, sport_squat-1…5, kneel-5 (66 asked, Turbo / Noct-Q, none
+ * flagged), sport_ski-1 / -4 and sport_ski-5 rendered on her feet without the map (6/6 "yes"). A
+ * crouch leaning off its feet (sport_ski-1) is a fair "no" to "feet under her hips", so it is not
+ * asked. A floor sit for a crouch guide is "no" too (sit_floor stills 16/16). In the app's
+ * prompt, the pose check now calls 97 of the 102 seated sport_ski-5 stills a miss (6 before),
+ * and no new miss among the other 446 bench stills (posebench3, the lean bench, the crouches).
  */
 
 import {
@@ -36,7 +60,14 @@ import {
   type GestureLead,
   type GestureQuestion,
 } from '@/lib/pose/gesture';
-import { postureWord, type PostureClass } from '@/lib/pose/posture';
+import { describePoseFigure } from '@/lib/pose/describe';
+import type { NormalizedBody } from '@/lib/pose/library';
+import {
+  bodyReferenceLength,
+  classifyPosture,
+  postureWord,
+  type PostureClass,
+} from '@/lib/pose/posture';
 import {
   LIMB_ANGLE_MIN_POSE_MATCH,
   limbVerdictScore,
@@ -91,12 +122,81 @@ export function wantsPostureQuestion(result: PoseMatchResult | null | undefined)
   );
 }
 
-/** The yes/no posture question for a match, or null when it isn't worth asking. */
+/** The on-its-feet question's label: a "no" reads the still as sitting. */
+export const GROUND_SIT_LABEL = 'on the feet';
+
+/** Feet this far (body reference lengths) to one side of the hips: she is off balance. */
+const OFF_BALANCE_FEET = 0.6;
+
+/**
+ * A guide on its feet whose flat joints a seat on the ground matches: a crouch or squat with the
+ * feet under the hips (its words say so — a cross-legged floor sit reads low too, and its words
+ * say sitting), or a body standing off its feet, the feet well to one side of the hips (a
+ * carving skier, sport_ski-5). Null for any other guide — a crouch leaning off its feet too
+ * (sport_ski-1: rendered right, on her feet, but "feet under her hips?" is then a fair "no").
+ */
+export function groundSitLookalike(
+  body: NormalizedBody | null | undefined,
+  aspect: number
+): 'crouch' | 'off-balance' | null {
+  if (!body || !(aspect > 0)) return null;
+  const read = classifyPosture(body, aspect);
+  if (read.posture !== 'crouching' && read.posture !== 'standing') return null;
+  const stance = describePoseFigure(body, { aspect }).stance;
+  const ref = bodyReferenceLength(body, aspect);
+  const hips = [body[8], body[11]].filter(point => point != null);
+  const ankles = [body[10], body[13]].filter(point => point != null);
+  const offBalance =
+    ref > 0 &&
+    hips.length > 0 &&
+    ankles.length === 2 &&
+    Math.abs(
+      (ankles.reduce((sum, point) => sum + point.x, 0) / 2 -
+        hips.reduce((sum, point) => sum + point.x, 0) / hips.length) *
+        aspect
+    ) >=
+      OFF_BALANCE_FEET * ref;
+  if (read.posture === 'crouching') {
+    return /^in a (?:deep )?squat/.test(stance) && !offBalance ? 'crouch' : null;
+  }
+  // Both feet down and standing (a stride or a one-legged pose puts a foot out on its own).
+  if (read.posture !== 'standing' || !/^standing(?:,|$| with)/.test(stance)) return null;
+  return offBalance ? 'off-balance' : null;
+}
+
+/**
+ * The guide is one a seat on the ground looks like ({@link groundSitLookalike}) and the check
+ * hasn't already missed: ask whether the still is on its feet, whatever its own read says.
+ */
+function wantsGroundSitQuestion(
+  result: PoseMatchResult,
+  guide: { body: NormalizedBody | null | undefined; aspect: number }
+): boolean {
+  if (result.method !== 'limb-angle') return false;
+  if (result.postureMiss || result.score < LIMB_ANGLE_MIN_POSE_MATCH) return false;
+  if (!result.posture[0]?.still) return false;
+  return groundSitLookalike(guide.body, guide.aspect) !== null;
+}
+
+/**
+ * The yes/no posture question for a match, or null when it isn't worth asking. With the lead's
+ * `guide` body, a guide a seat on the ground looks like gets the on-its-feet question instead.
+ */
 export function postureQuestion(
   result: PoseMatchResult | null | undefined,
-  lead: GestureLead = 'woman'
+  lead: GestureLead = 'woman',
+  guide?: { body: NormalizedBody | null | undefined; aspect: number }
 ): GestureQuestion | null {
-  if (!result || !wantsPostureQuestion(result)) return null;
+  if (!result) return null;
+  if (guide && wantsGroundSitQuestion(result, guide)) {
+    const p = PRONOUNS[lead];
+    return {
+      id: POSTURE_QUESTION_ID,
+      text: `Are ${p.possessive} knees bent sharply with ${p.possessive} feet under ${p.possessive} hips, as in a crouch or squat?`,
+      label: GROUND_SIT_LABEL,
+    };
+  }
+  if (!wantsPostureQuestion(result)) return null;
   const posture = result.posture[0]!.guide.posture;
   if (posture === 'unknown') return null;
   return {
@@ -123,14 +223,17 @@ export function applyPostureAnswer(
   if (!answer || answer.answer !== 'no' || answer.confidence < noConfidence || !lead?.still) {
     return result;
   }
+  const groundSit = question.label === GROUND_SIT_LABEL;
   const posture = result.posture.map((pair, index) =>
     index === 0
       ? {
           ...pair,
-          // The keypoints' guess stands for the still's posture only when it differs from the
-          // guide's; otherwise all that is known is "not that".
-          still:
-            pair.still && pair.still.group !== pair.guide.group
+          // Not on its feet before a crouch: sat on the ground. Otherwise the keypoints' guess
+          // stands for the still's posture only when it differs from the guide's; else all that
+          // is known is "not that".
+          still: groundSit
+            ? { ...pair.still!, posture: 'sitting' as const, group: 'seated' as const }
+            : pair.still && pair.still.group !== pair.guide.group
               ? pair.still
               : { ...pair.still!, posture: 'unknown' as const, group: 'unknown' as const },
           mismatch: true,
