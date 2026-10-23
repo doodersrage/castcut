@@ -88,6 +88,7 @@
   "src/lib/pose/kept-intimate-client.ts",
   "src/lib/pose/kept-intimate.ts",
   "src/lib/pose/limb-presets.ts",
+  "src/lib/pose/ground-sit-redo.ts",
   "src/lib/pose/posture-question.ts",
   "src/lib/pose/starters.ts",
   "src/lib/pose/pose-engine-report-blended.ts",

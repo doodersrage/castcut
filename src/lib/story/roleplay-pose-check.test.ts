@@ -36,6 +36,28 @@ describe('storyPoseMatchLabel', () => {
   });
 });
 
+describe('storyPoseMatchLabel: sat on the ground', () => {
+  it('says Retry drops the pose map, and says so on the redo', () => {
+    const match = { imageUrl: '/img/s.png', score: 0.39, expectedPeople: 1, detectedPeople: 1 };
+    const beat = { id: 's', at: 1, imageUrl: '/img/s.png', promptId: 'p1' };
+    const sat = storyPoseMatchLabel({ ...beat, poseMatch: { ...match, groundSit: true } }, 0.5);
+    assert.equal(sat?.miss, true);
+    assert.match(sat!.text, /sat on the ground for the pose; Retry redoes it without the pose map/);
+    const expect = { promptId: 'p2', keypoints: [], aspect: 1, style: 'openpose', poseKey: 'photo:1' };
+    const redone = storyPoseMatchLabel(
+      {
+        ...beat,
+        promptId: 'p2',
+        poseMatch: { ...match, score: 0.78 },
+        poseGuideExpect: { ...expect, wordsOnly: 'in a deep crouch' } as never,
+      },
+      0.5
+    );
+    assert.equal(redone?.miss, false);
+    assert.match(redone!.text, /redone without the pose map/);
+  });
+});
+
 describe('storyRealismLabel', () => {
   it('flags the shown still when it looked computer-made, and only that still', () => {
     const beat = {

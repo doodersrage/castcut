@@ -155,6 +155,15 @@ questions the beat is turned into ("Is she holding a mug?") — in the same visi
 panel then says *Missed: holding the mug*. Both need a vision model. If the pack is missing, the review
 line says `Pose check off: DWPose not installed…` and everything else keeps working.
 
+A crouch, a squat or a body leaning off its feet (the carving skier *sport_ski-5*) draws the same
+flat joints as a seat on the ground, so for those guides the vision model is asked whether her
+knees are bent with her feet under her hips. A clear "no" means she sat on the ground. That miss
+alone is redone **without the pose map**: on Qwen-Image 2.1 the map itself sat her down, and crouch
+words that keep her weight on her feet stood her up. The card reads *Redone without the pose map —
+she sat on the ground*. The redo is judged posture first: on her feet (the same question) passes it,
+and since the words don't draw the guide's exact joints, a custom pose's limbs need only 40% there
+instead of 75%. On Story the miss line says so, and **Retry** goes out the same way.
+
 Each score is also logged per guide style, and **Film loop → Pose match by guide** shows the
 average and miss rate for OpenPose, OpenPose + hands and Legacy. Run a few Days in each style
 and switch to the one with the higher match.

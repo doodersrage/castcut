@@ -84,6 +84,7 @@ import {
 } from '@/lib/wardrobe/garment-thumbs';
 import { buildStoryPoseGuide, photoPoseForStill } from '@/lib/day/pose-guide';
 import { customPoseFirstLine, customPoseWords } from '@/lib/pose/describe';
+import { groundSitRedoFor } from '@/lib/pose/ground-sit-redo';
 import { mergeAvoidedPoseLayouts, modelPlainPostureBase } from '@/lib/pose/guide-prompt';
 import {
   KLEIN_FACE_REFERENCE_LINE,
@@ -1139,12 +1140,42 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
             : undefined;
         const afterPoseMiss =
           retry && Boolean(lastMatch && lastMatch.score < DEFAULT_MIN_POSE_MATCH);
-        const poseGuide = await resolvePoseGuideForBeat(latest, {
-          variant: retry ? roleplayStillTakes(latest).length : 0,
-          afterPoseMiss,
-        });
+        // She sat on the ground for a crouch / off-balance guide (the map sat her down): the
+        // retry goes out words-only — no map, crouch words — judged against the guide it missed.
+        // A words-only take retried again stays words-only.
+        const lastExpect =
+          latest.poseGuideExpect && latest.poseGuideExpect.promptId === latest.promptId
+            ? latest.poseGuideExpect
+            : undefined;
+        const wordsOnly = retry
+          ? lastMatch?.groundSit && lastExpect
+            ? (groundSitRedoFor(
+                { groundSitMiss: true },
+                { body: lastExpect.keypoints[0], aspect: lastExpect.aspect },
+                leadIsMan() ? 'he' : 'she'
+              )?.words ?? lastExpect.wordsOnly)
+            : lastExpect?.wordsOnly
+          : undefined;
+        const poseGuide = wordsOnly
+          ? undefined
+          : await resolvePoseGuideForBeat(latest, {
+              variant: retry ? roleplayStillTakes(latest).length : 0,
+              afterPoseMiss,
+            });
         poseGuideUrl = poseGuide?.imageUrl;
-        poseGuideExpectBase = poseGuide?.expect;
+        poseGuideExpectBase =
+          wordsOnly && lastExpect
+            ? {
+                keypoints: lastExpect.keypoints,
+                aspect: lastExpect.aspect,
+                style: lastExpect.style,
+                poseKey: lastExpect.poseKey,
+                wordsOnly,
+              }
+            : poseGuide?.expect;
+        const wordsOnlyLine = wordsOnly
+          ? customPoseFirstLine(wordsOnly, leadIsMan() ? 'he' : 'she')
+          : '';
         // The stored prompt carries the outfit / footwear lines of its first queue — drop them
         // and say what is true now.
         const promptSource = stripOutfitLeadLines(
@@ -1160,7 +1191,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
         const retryFootwear =
           adult || beatOwnsFootwear(latest.blurb) ? '' : normalizeFootwear(toolSettings.footwear);
         const queuePrompt = [
-          poseGuide?.poseFirstLine ?? '',
+          wordsOnlyLine || (poseGuide?.poseFirstLine ?? ''),
           dressPlate && dressAsPlate ? DRESS_PLATE_OUTFIT_LINE : footwearPromptLine(retryFootwear),
           withRoleplayPoseGuidePrompt(
             dressForRating(promptSource, poseGuide?.prompt.headcount),
@@ -1208,7 +1239,7 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           latest,
           stillOpts,
           [
-            poseGuide?.poseFirstLine ?? '',
+            wordsOnlyLine || (poseGuide?.poseFirstLine ?? ''),
             poseGuide?.cueLine ?? '',
             afterPoseMiss && poseGuide ? `QUALITY FIX: ${POSE_MISMATCH_NUDGE}` : '',
           ]
@@ -1294,7 +1325,11 @@ export function useRoleplayBeatQueueCore(options: UseRoleplayBeatQueueOptions) {
           ...roleplayStillQueueResultPatch(after, promptId),
           promptCheck,
           referenceNote,
-          ...(poseGuideUrl ? { poseGuideUrl } : {}),
+          ...(poseGuideUrl
+            ? { poseGuideUrl }
+            : poseGuideExpectBase?.wordsOnly
+              ? { poseGuideUrl: undefined }
+              : {}),
           ...(poseGuideExpectBase && promptId
             ? { poseGuideExpect: { ...poseGuideExpectBase, promptId } }
             : {}),
