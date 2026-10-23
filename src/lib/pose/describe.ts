@@ -881,6 +881,14 @@ function kneeWords(kneeAngles: number[]): string {
  * A bend in words, with the knees as they are: "legs straight" on a deadlift's bent knees
  * (sport_deadlift-2, the pose bench) gave shallow straight-legged bends on every engine. Null
  * keeps the stance reader's words (a lean to one side is not a bend).
+ *
+ * Tried per engine and not kept (pose bench, 2026-10-22, seeds 11/22, Turbo / Noct-Q / Noct-Q
+ * Fast / Pruna / Fun-Acc / Edit 2511): "hands hanging down by her shins" for a toward-the-camera
+ * bend's "arms hanging down" — no engine better, Noct-Q turned her back on deadlift-2 (0.90 →
+ * 0.50) and Pruna stood up on bend_pick-4 (0.95 → 0.46); "feet wide apart, knees bent, facing
+ * the camera and leaning well forward from the hips" for a standing "leaning toward the camera"
+ * (sport_stick-3, sport_ski-5) — no engine better, Noct-Q and Noct-Q Fast folded right over on
+ * stick-3 (0.94 → 0.43), Turbo once (photo 0.89 → 0.48).
  */
 function bendStance(input: {
   tilt: number;
