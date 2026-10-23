@@ -54,6 +54,7 @@ import {
   setFittingCompareTryOnBackImage,
   shouldFollowFittingPending,
   withFittingCustomPose,
+  withFittingSeat,
   type FittingCompareTryOn,
   type FittingPendingTryOn,
   type FittingSwipeKit,
@@ -458,7 +459,16 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         const closerShot = Boolean(poseCamera && poseCamera.shot !== 'full');
         // A limb drawn near the edge of the pose map needs a wider frame than the plate's.
         const framing = closerShot ? '' : poseFramingLine(customPose?.people[0], posePronoun);
-        const prompt =
+        // Stance first, then the limb facts that make it this pose (pose-describe.ts).
+        const poseWords =
+          poseGuideFilename && customPose?.people[0]
+            ? customPose.words?.trim() ||
+              customPoseWords({
+                photo: { ...customPose, people: customPose.people.slice(0, 1) },
+                lead: posePronoun,
+              })
+            : '';
+        const posedPrompt =
           poseGuideFilename && customPose?.people[0]
             ? [
                 poseFirstLine(
@@ -466,11 +476,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                   posePronoun,
                   customPose.aspect,
                   customPose.words,
-                  // Stance first, then the limb facts that make it this pose (pose-describe.ts).
-                  customPoseWords({
-                    photo: { ...customPose, people: customPose.people.slice(0, 1) },
-                    lead: posePronoun,
-                  })
+                  poseWords
                 ),
                 framing,
                 cameraLine,
@@ -493,7 +499,11 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
               ]
                 .filter(Boolean)
                 .join('\n')
-            : builtPrompt;
+            : null;
+        // Seated on a seat: the seat itself, said and allowed in the studio (room.ts).
+        const prompt = posedPrompt
+          ? withFittingSeat(posedPrompt, poseWords, posePronoun)
+          : builtPrompt;
         const drafted = await input.actions.finalizePrompt(
           prompt,
           input.character?.name || 'Fitting'

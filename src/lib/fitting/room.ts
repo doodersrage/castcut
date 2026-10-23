@@ -833,21 +833,99 @@ const FLAT_SHOES_RE =
  * of her heels facing the camera under a bare back (sit-2 on Noct-Q, 2026-10-22: 0/1 with the
  * map, 0/1 with the map's legs cut off; words alone sat her on a stool from behind 2 of 3, her
  * calves and heels toward the camera 3 of 3). Kneeling and arms-up keep their map (live, 4/4).
- * Floor sitting is left as it was (not measured).
+ * Floor sitting is not a seat.
  */
 export function fittingBackViewIsSeated(words: string | null | undefined): boolean {
-  return /^(?:seated|sitting(?! on the floor))\b/i.test(words?.trim() ?? '');
+  return fittingPoseSitKind(words) === 'seat';
 }
 
-/** A seated back view's seat and legs, seen from behind (fittingBackViewIsSeated). */
-function backViewSeatedLine(pronouns: {
-  subject: string;
-  possessive: string;
-  object: string;
-}): string {
+/** Where the hips rest in the stance's first clause: a seat, or the ground itself. */
+const GROUND_SIT_RE = /\b(?:floor|ground|grass|sand|beach|rug|carpet|mat|blanket|lawn)\b/i;
+
+/**
+ * How a custom pose sits, from its words (customPoseWords, front or back): `seat` on a stool,
+ * chair or bench ("seated …", "sitting on a sofa"), `floor` on the ground ("sitting cross-legged
+ * on the floor", "sitting on the floor, knees up"), null when not sitting.
+ */
+export function fittingPoseSitKind(words: string | null | undefined): 'seat' | 'floor' | null {
+  const text = words?.trim() ?? '';
+  if (!/^(?:seated|sitting)\b/i.test(text)) return null;
+  const stance = text.split(/[,;—]/)[0] ?? '';
+  return GROUND_SIT_RE.test(stance) ? 'floor' : 'seat';
+}
+
+/**
+ * The seat a seated try-on sits on: the one the pose names ("sitting on a bench"), else a low
+ * stool — no chair back to hide her back in the back view, and low so she sits rather than
+ * perches (a plain stool drew a tall bar stool she leaned on, Turbo 2 of 8).
+ */
+const FITTING_STOOL = 'a low plain light-wood stool';
+
+export function fittingSeatNoun(words: string | null | undefined): string {
+  const named = /^sitting on ((?:an?|the) [^,;—]+)/i.exec(words?.trim() ?? '')?.[1]?.trim();
+  return named && !GROUND_SIT_RE.test(named) ? named : FITTING_STOOL;
+}
+
+/** "stool" for the default seat, the named seat's own noun phrase otherwise. */
+function seatThing(seat: string): string {
+  return seat === FITTING_STOOL ? 'stool' : seat.replace(/^(?:an?|the) /i, '');
+}
+
+/**
+ * A seated custom-pose try-on: the seat named in the POSE FIRST line and in a SEAT line right
+ * after it, and the plain studio told it holds that seat. The pose map and "hips on a seat" alone
+ * drew her sitting on air or standing — sit-2, 4 seeds, 2026-10-22: Turbo-8 0 of 4 on a seat (3
+ * on air, 1 standing), Noct-Q 0 of 4 (all on air); with these lines Turbo 8 of 8, Noct-Q 4 of 4,
+ * Noct-Q Fast 8 of 8 on a visible stool. Saying only "a stool" drew a tall bar stool Turbo
+ * perched against (2 of 8); low, with her thighs along the seat, it sat her 8 of 8.
+ * Floor sitting and every other pose: the prompt as it was.
+ */
+export function withFittingSeat(
+  prompt: string,
+  words: string | null | undefined,
+  pronoun: 'she' | 'he' = 'she'
+): string {
+  if (fittingPoseSitKind(words) !== 'seat') return prompt;
+  const seat = fittingSeatNoun(words);
+  const thing = seatThing(seat);
+  const possessive = pronoun === 'he' ? 'his' : 'her';
+  const object = pronoun === 'he' ? 'him' : 'her';
+  const line = `SEAT: ${pronoun} sits on ${seat}, ${possessive} full weight on it: ${possessive} bottom rests on its seat, ${possessive} thighs lie along the seat, ${possessive} knees bent and ${possessive} feet on the floor; the ${thing} and its legs clearly visible under ${object} — never standing, never perched against it, never sitting on air.`;
+  const lines = prompt.split('\n');
+  const first = lines.findIndex(text => text.startsWith('POSE FIRST:'));
+  if (first >= 0) {
+    lines[first] = lines[first]!.replace(
+      new RegExp(`^POSE FIRST: ${pronoun} is (seated|sitting)\\b(?! on)`),
+      `POSE FIRST: ${pronoun} is $1 on ${seat}`
+    );
+  }
+  lines.splice(first >= 0 ? first + 1 : 0, 0, line);
+  return lines
+    .join('\n')
+    .replace(
+      /\bbackground: clean plain studio \/ white seamless;/,
+      `background: clean plain studio / white seamless, with only the ${thing} ${pronoun} sits on;`
+    );
+}
+
+/**
+ * A seated back view's seat and legs, seen from behind (fittingBackViewIsSeated). The same seat
+ * as the front, by name, its legs said to show: "a plain low stool, mostly hidden under her"
+ * drew no seat — a half-squat — 7 of 8 from a front on a stool (Turbo-8 and Noct-Q, 4 seeds each,
+ * 2026-10-22); "the same stool as in Image 1 … its legs clearly visible" 8 of 8.
+ */
+function backViewSeatedLine(
+  pronouns: {
+    subject: string;
+    possessive: string;
+    object: string;
+  },
+  words: string
+): string {
   const { subject, possessive, object } = pronouns;
   const Subject = subject[0]!.toUpperCase() + subject.slice(1);
-  return `${Subject} sits on a plain low stool, ${possessive} hips resting on its seat, the stool mostly hidden under ${object}. Seen from behind, ${possessive} knees point away from the camera; we see the backs of ${possessive} calves and the heels of ${possessive} shoes — never ${possessive} knees, shins or the toes of ${possessive} shoes facing the camera.`;
+  const thing = seatThing(fittingSeatNoun(words));
+  return `${Subject} sits on the same ${thing} as in Image 1, ${possessive} hips resting on its seat; its legs stand on the floor under ${object}, clearly visible below ${possessive} hips and between ${possessive} legs — never sitting on air, never squatting. Seen from behind, ${possessive} knees point away from the camera; we see the backs of ${possessive} calves and the heels of ${possessive} shoes — never ${possessive} knees, shins or the toes of ${possessive} shoes facing the camera.`;
 }
 
 /**
@@ -889,7 +967,10 @@ export function buildFittingBackViewPrompt(input: {
       `Edit Image 1: the same person in exactly the same outfit and shoes, holding exactly the same pose as in Image 1, ${side}.`,
       words ? `The pose: ${words}.` : '',
       !input.pose.fromFront && fittingBackViewIsSeated(words)
-        ? backViewSeatedLine({ subject: input.subject === 'he' ? 'he' : 'she', possessive, object })
+        ? backViewSeatedLine(
+            { subject: input.subject === 'he' ? 'he' : 'she', possessive, object },
+            words
+          )
         : '',
       input.pose.map
         ? `Image 2 is a pose map (a skeleton, not a person) of that pose ${input.pose.fromFront ? 'from the front' : 'from behind'}: the body takes exactly that stance.`
