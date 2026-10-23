@@ -143,6 +143,8 @@
   "src/components/pose/PoseJointEditor3D.tsx",
   "src/components/pose/pose-3d-scene.ts",
   "src/lib/pose/rig3d-pose.ts",
+  "src/lib/pose/rig3d-lift-async.ts",
+  "src/lib/pose/rig3d-lift.worker.ts",
   "src/lib/pose/rig3d-skeleton.ts",
   "src/lib/pose/rig3d-three.ts",
   "src/lib/pose/rig3d-render.ts",

@@ -41,6 +41,8 @@ import {
   figureFromEditor,
   poseBeat,
   starterFigure,
+  readStillCamera,
+  stillCameraKnown,
   stillPoseFigure,
 } from '@/lib/director/poses';
 import {
@@ -150,14 +152,23 @@ function startDirection(body: Rig3dBodyKind, place?: string): Direction {
   };
 }
 
-/** The direction starting from her pose as the still shows it, seen through the still's camera. */
+/**
+ * The direction starting from her pose as the still shows it, seen through the still's camera
+ * when it is read already (readStillCamera), else at eye level until it is.
+ */
 function directionFromStill(
   direction: Direction,
   pose: { body: NormalizedBody; aspect: number },
   body: Rig3dBodyKind,
   postures?: Posture[]
 ): Direction {
-  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body, postures);
+  const { figure, side, turned, view } = stillPoseFigure(
+    pose.body,
+    pose.aspect,
+    body,
+    postures,
+    'known'
+  );
   const start = {
     ...poseBeat('Her pose in the picture', figure, { first: true }),
     hold: direction.beats[0]!.hold,
@@ -215,6 +226,12 @@ function DirectorSheetOpen({
   // Anything the player does keeps the start they chose; until then, her pose in the still is
   // the start once it has been read (a standing figure beside a seated still looked wrong).
   const touched = useRef(false);
+  // Bumped by every change the player makes: a start from the still that waited on the still's
+  // camera applies only if nothing changed meanwhile.
+  const changes = useRef(0);
+  // A render started: what it films is what was shown, so a camera read landing later is not
+  // swapped in under it.
+  const filming = useRef(false);
   // Her posture as the slot or beat picked it (fixed while the sheet is open).
   const [knownPostures] = useState(postures);
 
@@ -237,6 +254,7 @@ function DirectorSheetOpen({
   const sizing = !size && detected.state === 'reading';
   useEffect(() => {
     let cancelled = false;
+    const reading = new AbortController();
     detectStillPoseShared(stillUrl)
       .then(result => {
         if (cancelled) return;
@@ -255,9 +273,22 @@ function DirectorSheetOpen({
         });
         if (lead && canvas && !touched.current) {
           const pose = { body: lead, aspect: canvas.width / Math.max(1, canvas.height) };
-          setDirection(current =>
-            touched.current ? current : directionFromStill(current, pose, body, knownPostures)
-          );
+          // At once (eye level unless the still's camera is read already), then through the
+          // still's camera when the lift worker has read it — unless the player moved on.
+          const fromStill = () =>
+            setDirection(current =>
+              touched.current ? current : directionFromStill(current, pose, body, knownPostures)
+            );
+          fromStill();
+          if (!stillCameraKnown(pose.body, pose.aspect, body, knownPostures)) {
+            void readStillCamera(pose.body, pose.aspect, body, knownPostures, reading.signal)
+              .then(() => {
+                if (!cancelled && !touched.current && !filming.current) fromStill();
+              })
+              .catch(() => {
+                // Eye level stays: the read camera is a refinement.
+              });
+          }
         }
       })
       .catch(() => {
@@ -265,6 +296,7 @@ function DirectorSheetOpen({
       });
     return () => {
       cancelled = true;
+      reading.abort();
     };
   }, [stillUrl, body, knownPostures]);
 
@@ -323,6 +355,7 @@ function DirectorSheetOpen({
 
   const update = (next: Direction) => {
     touched.current = true;
+    changes.current += 1;
     setDirection(next);
     setTime(t => Math.min(t, directionLength(next)));
   };
@@ -343,7 +376,22 @@ function DirectorSheetOpen({
     update({ ...replaceBeat(direction, 0, start), camera });
   };
   const startFromStill = () => {
-    if (detected.pose) update(directionFromStill(direction, detected.pose, body, knownPostures));
+    const pose = detected.pose;
+    if (!pose) return;
+    if (stillCameraKnown(pose.body, pose.aspect, body, knownPostures)) {
+      update(directionFromStill(direction, pose, body, knownPostures));
+      return;
+    }
+    // The still's camera is still being read (the lift worker): start from it once it is, unless
+    // the player does something else first.
+    touched.current = true;
+    const at = changes.current;
+    void readStillCamera(pose.body, pose.aspect, body, knownPostures)
+      .catch(() => undefined)
+      .then(() => {
+        if (changes.current !== at || filming.current) return;
+        update(directionFromStill(direction, pose, body, knownPostures));
+      });
   };
 
   const addPose = () => {
@@ -385,6 +433,7 @@ function DirectorSheetOpen({
     setPlaying(false);
     const controller = new AbortController();
     abortRef.current = controller;
+    filming.current = true;
     setRendering({ done: 0, total: frames.length });
     try {
       const { renderDrivingVideo } = await import('@/lib/director/render-client');
@@ -404,6 +453,7 @@ function DirectorSheetOpen({
         link.download = 'castcut-direction.avi';
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        filming.current = false;
         setRendering(null);
         return;
       }
@@ -417,6 +467,7 @@ function DirectorSheetOpen({
       if (!controller.signal.aborted) {
         setError(cause instanceof Error ? cause.message : 'Could not film the direction.');
       }
+      filming.current = false;
       setRendering(null);
     }
   };

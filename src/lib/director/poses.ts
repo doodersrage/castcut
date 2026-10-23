@@ -15,12 +15,14 @@ import {
   DEFAULT_CAMERA,
   figureWorld,
   liftBody,
+  cachedLiftWithCamera,
   liftBodyWithCamera,
   projectFigure,
   projectRig,
   setBoneWorldRotation,
 } from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
+import { liftBodyWithCameraAsync } from '@/lib/pose/rig3d-lift-async';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
@@ -117,26 +119,65 @@ function straightenOnce(figure: PoseRig3dFigure, camera: PoseRig3dCamera, first:
   return true;
 }
 
+const stillLiftOptions = (kind: Rig3dBodyKind, postures?: Posture[]) => ({
+  body: kind,
+  ...(postures ? { postures } : {}),
+});
+
+/** Whether the still's camera is read already (stillPoseFigure with 'known' gives it). */
+export function stillCameraKnown(
+  body: NormalizedBody,
+  aspect: number,
+  kind: Rig3dBodyKind,
+  postures?: Posture[]
+): boolean {
+  return cachedLiftWithCamera(body, aspect, stillLiftOptions(kind, postures)) !== null;
+}
+
+/**
+ * Read the still's camera off the page's thread (the lift worker): once it resolves,
+ * stillPoseFigure with 'known' sees the still through it. Aborted, it never settles.
+ */
+export async function readStillCamera(
+  body: NormalizedBody,
+  aspect: number,
+  kind: Rig3dBodyKind,
+  postures?: Posture[],
+  signal?: AbortSignal
+): Promise<void> {
+  await liftBodyWithCameraAsync(body, aspect, stillLiftOptions(kind, postures), signal);
+}
+
 /**
  * Her pose as read from the still, lifted the way it looks: her turn toward the camera is kept,
  * so the returned camera direction (relative to her) is the still's — and `view` is the still's
  * camera itself, in her frame, so the Director shows her as the still does.
+ *
+ * `camera`: 'read' reads the still's camera here (~0.3 s, cached per still); 'known' uses it
+ * when it is read already (readStillCamera), else eye level — quick enough to draw at once.
  */
 export function stillPoseFigure(
   body: NormalizedBody,
   aspect: number,
   kind: Rig3dBodyKind,
   /** Her posture when it is known from outside the joints (the pose she was picked in). */
-  postures?: Posture[]
+  postures?: Posture[],
+  camera: 'read' | 'known' = 'read'
 ): {
   figure: PoseRig3dFigure;
   side: 1 | -1;
   turned: number;
   view: PoseRig3dCamera;
 } {
-  const options = { body: kind, ...(postures ? { postures } : {}) };
+  const options = stillLiftOptions(kind, postures);
   // Lifted through the camera the still reads as taken with (from above, below, or eye level).
-  const estimated = liftBodyWithCamera(body, aspect, options);
+  const estimated =
+    camera === 'read'
+      ? liftBodyWithCamera(body, aspect, options)
+      : (cachedLiftWithCamera(body, aspect, options) ?? {
+          figure: liftBody(body, aspect, { ...options, camera: DEFAULT_CAMERA }),
+          camera: DEFAULT_CAMERA,
+        });
   const { error, ...read } = posedFromLift(
     body,
     aspect,

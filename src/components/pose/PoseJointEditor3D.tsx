@@ -59,6 +59,7 @@ import {
   type Limb,
   type Side,
 } from '@/lib/pose/rig3d-pose';
+import { liftBodiesAsync, liftBodiesKnown } from '@/lib/pose/rig3d-lift-async';
 import {
   posturesForPose,
   posturesForReference,
@@ -178,29 +179,37 @@ export default function PoseJointEditor3D({
     [leadKind, partnerKind]
   );
 
-  // What the editor opened with: the saved rig when it still draws these points, else a lift.
-  const [opened] = useState(() => {
-    const restored =
-      rig3d && rigProjectionError(rig3d, initialBodies, safeAspect) < RESTORE_TOLERANCE;
-    if (restored) return { rig: cloneRig(rig3d), restored: true, reframed: false };
-    const lifted = liftBodies(
-      initialBodies,
-      safeAspect,
-      kinds(initialBodies.length),
-      DEFAULT_CAMERA,
-      // Seen through the camera the picture reads as taken with (from above, below, eye level).
-      { postures: [postures], estimateCamera: true }
-    );
-    if (!cameraChoiceIsSet(initialCamera)) return { rig: lifted, restored: false, reframed: false };
+  // A lift as the editor opens with it: through the slot's camera when it picked one.
+  const framedOpen = (lifted: PoseRig3d) => {
+    if (!cameraChoiceIsSet(initialCamera)) return { rig: lifted, reframed: false };
     const choice = { ...DEFAULT_CAMERA_CHOICE, ...initialCamera };
     return {
       rig: { ...lifted, camera: cameraForChoice(lifted, choice, safeAspect) },
-      restored: false,
       reframed: true,
     };
+  };
+  // What the editor opened with: the saved rig when it still draws these points, else a lift.
+  // Seen through the camera the picture reads as taken with (from above, below, eye level) when
+  // that is known already; else at eye level at once, and the read camera swapped in when the
+  // lift worker has it (below).
+  const [opened] = useState(() => {
+    const restored =
+      rig3d && rigProjectionError(rig3d, initialBodies, safeAspect) < RESTORE_TOLERANCE;
+    if (restored) return { rig: cloneRig(rig3d), restored: true, reframed: false, reading: false };
+    const lift = [initialBodies, safeAspect, kinds(initialBodies.length), DEFAULT_CAMERA] as const;
+    const reading = !liftBodiesKnown(...lift, [postures]);
+    const lifted = liftBodies(...lift, { postures: [postures], estimateCamera: 'cached' });
+    return { ...framedOpen(lifted), restored: false, reading };
   });
   const [rig, setRig] = useState<PoseRig3d>(opened.rig);
   const latest = useRef<PoseRig3d>(opened.rig);
+  // Reset goes back to this: the opening rig, with the read camera once it lands.
+  const openedRig = useRef<PoseRig3d>(opened.rig);
+  // Bumped by every change to the rig (the player's or a swap): a camera read that lands after
+  // one is too late — it never overwrites what the player did.
+  const revision = useRef(0);
+  // The camera read still on its way (a pose picked while one was out cancels it).
+  const reading = useRef<AbortController | null>(null);
   // The pose (not only the camera) changed since it opened: the output is the projection.
   const [edited, setEdited] = useState(false);
   const editedRef = useRef(false);
@@ -244,6 +253,7 @@ export default function PoseJointEditor3D({
     setRedoable(future.current.length);
   };
   const checkpoint = () => {
+    revision.current += 1;
     history.current.push(snapshot());
     if (history.current.length > 100) history.current.shift();
     future.current = [];
@@ -270,6 +280,7 @@ export default function PoseJointEditor3D({
 
   /** Replace the whole rig from outside the scene (undo, start from, partner…). */
   const replaceRig = (next: PoseRig3d, options: { keepCamera?: boolean } = {}) => {
+    revision.current += 1;
     latest.current = cloneRig(next);
     sceneRef.current?.setRig(latest.current, options);
     if (sceneRef.current) latest.current = sceneRef.current.getRig();
@@ -283,6 +294,7 @@ export default function PoseJointEditor3D({
     try {
       scene = new PoseScene(host, latest.current, safeAspect, {
         onBegin: () => {
+          revision.current += 1;
           history.current.push(snapshot());
           if (history.current.length > 100) history.current.shift();
           future.current = [];
@@ -290,6 +302,7 @@ export default function PoseJointEditor3D({
           setSavedNote(null);
         },
         onChange: (next, what) => {
+          revision.current += 1;
           latest.current = next;
           if (what === 'pose') {
             markEdited(true);
@@ -357,7 +370,55 @@ export default function PoseJointEditor3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Read the camera off the page's thread (the lift worker) and swap in `make`'s rig when it
+   * lands — unless the rig changed since (the player's edit, an undo, another pick). The last
+   * read out is cancelled.
+   */
+  const readCameraLater = (
+    lift: (signal: AbortSignal) => Promise<PoseRig3d>,
+    make: (lifted: PoseRig3d) => PoseRig3d
+  ) => {
+    reading.current?.abort();
+    const controller = new AbortController();
+    reading.current = controller;
+    const at = revision.current;
+    lift(controller.signal)
+      .then(lifted => {
+        if (controller.signal.aborted || revision.current !== at) return;
+        reading.current = null;
+        replaceRig(make(lifted));
+      })
+      .catch(() => {
+        // The quick lift stays: the read is a refinement.
+      });
+    return controller;
+  };
+  useEffect(() => {
+    if (!opened.reading) return;
+    const controller = readCameraLater(
+      signal =>
+        liftBodiesAsync(
+          initialBodies,
+          safeAspect,
+          kinds(initialBodies.length),
+          DEFAULT_CAMERA,
+          { postures: [postures] },
+          signal
+        ),
+      lifted => {
+        const next = framedOpen(lifted).rig;
+        openedRig.current = next;
+        return next;
+      }
+    );
+    return () => controller.abort();
+    // Once, as it opens (the inputs are the ones it opened with).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const restore = useCallback((shot: Snapshot) => {
+    revision.current += 1;
     latest.current = cloneRig(shot.rig);
     sceneRef.current?.setRig(latest.current);
     setRig(latest.current);
@@ -450,22 +511,45 @@ export default function PoseJointEditor3D({
     leadPostures?: Posture[]
   ) => {
     checkpoint();
+    reading.current?.abort();
     const current = latest.current;
+    const bodyKinds = kinds(bodies.length, current);
     // A pose picked by name lifts toward the posture it is filed under.
-    // (A starter is drawn at eye level; a reference or Day pose may be a photo from above.)
-    const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA, {
+    // (A starter is drawn at eye level; a reference or Day pose may be a photo from above: its
+    // camera is read off the page's thread and swapped in when it lands, unless known already.)
+    const lifted = liftBodies(bodies, safeAspect, bodyKinds, DEFAULT_CAMERA, {
       postures: [leadPostures],
-      estimateCamera: !facingFront,
+      estimateCamera: facingFront ? false : 'cached',
     });
     // A starter faces you; the lift alone read it as turned (see faceCamera).
     if (facingFront) {
       for (const figure of lifted.figures) faceCamera(figure, lifted.camera);
     }
-    const figures = both ? lifted.figures : [lifted.figures[0]!, ...current.figures.slice(1)];
-    const next = { ...lifted, figures };
-    // A picked camera stays picked: the new pose is framed the same way.
-    const choice = current.camera.choice;
-    replaceRig(choice ? { ...next, camera: cameraForChoice(next, choice, safeAspect) } : next);
+    const place = (lift: PoseRig3d) => {
+      const figures = both ? lift.figures : [lift.figures[0]!, ...current.figures.slice(1)];
+      const next = { ...lift, figures };
+      // A picked camera stays picked: the new pose is framed the same way.
+      const choice = current.camera.choice;
+      return choice ? { ...next, camera: cameraForChoice(next, choice, safeAspect) } : next;
+    };
+    replaceRig(place(lifted));
+    if (
+      !facingFront &&
+      !liftBodiesKnown(bodies, safeAspect, bodyKinds, DEFAULT_CAMERA, [leadPostures])
+    ) {
+      readCameraLater(
+        signal =>
+          liftBodiesAsync(
+            bodies,
+            safeAspect,
+            bodyKinds,
+            DEFAULT_CAMERA,
+            { postures: [leadPostures] },
+            signal
+          ),
+        place
+      );
+    }
     markEdited(true);
     setWordsBoth(nextWords);
     setSavedNote(null);
@@ -552,7 +636,7 @@ export default function PoseJointEditor3D({
   };
   const reset = () => {
     checkpoint();
-    replaceRig(opened.rig);
+    replaceRig(openedRig.current);
     markEdited(false);
     setViewChanged(false);
     setWordsBoth(initialWords?.trim() || null);
