@@ -4,7 +4,7 @@ import RenderOfflineBanner from '@/components/RenderOfflineBanner';
 import { isPlayStoryLocked } from '@/lib/play/step-machine';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import BrandMark from '@/components/BrandMark';
 import ReportBugLink from '@/components/ReportBugLink';
@@ -29,10 +29,17 @@ import { loadSettingsCache } from '@/lib/settings/cache';
 import { chooseDeskView } from '@/lib/app/phone-view';
 import { accentForPath } from '@/lib/app/tool-theme';
 
-function deskBridgeHref(): string {
-  const characterId =
-    typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
-  return resolvePlayLoopNavHref('/play', characterId);
+function readActiveCast(): string {
+  return loadSettingsCache().shared.activeCharacterId?.trim() || '';
+}
+
+function subscribeCastChanges(onChange: () => void): () => void {
+  window.addEventListener('storage', onChange);
+  window.addEventListener('focus', onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener('focus', onChange);
+  };
 }
 
 export default function MobileStudioShell({ children }: { children: ReactNode }) {
@@ -79,9 +86,11 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
     [tabs]
   );
 
-  const deskHref = deskBridgeHref();
-  const activeCharacterId =
-    typeof window !== 'undefined' ? loadSettingsCache().shared.activeCharacterId?.trim() || '' : '';
+  // The server renders without the browser's settings: read the active Cast through the store's
+  // server snapshot (''), or the Desk and tab links hydrated with other hrefs than the server's
+  // (a hydration mismatch on every /m page). Re-read on each render (a Cast change navigates).
+  const activeCharacterId = useSyncExternalStore(subscribeCastChanges, readActiveCast, () => '');
+  const deskHref = resolvePlayLoopNavHref('/play', activeCharacterId);
   const hint = MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Cast → Day → Cut';
   const moreActive = moreTabs.some(entry => entry.id === tab);
 
@@ -133,13 +142,13 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
       >
         {/* The More menu sits beside the scrolling tab list, not inside it: overflow-x on the
             list also clips vertically, and the menu (which opens upward) was never drawn. */}
-        <div className="mx-auto flex max-w-lg gap-0.5 px-2 py-2">
+        <div className="mx-auto flex max-w-lg gap-0.5 px-1.5 py-1.5">
           <ul className="flex min-w-0 flex-[6_1_0%] gap-0.5 overflow-x-auto">
             {primaryTabs.map(entry => {
               const active = entry.id === tab;
               const href = resolvePlayLoopNavHref(entry.href, activeCharacterId);
               return (
-                <li key={entry.id} className="min-w-[3.25rem] flex-1">
+                <li key={entry.id} className="min-w-11 flex-1">
                   <Link
                     href={href}
                     onClick={event =>
@@ -148,7 +157,8 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                     data-active={active ? 'true' : 'false'}
                     data-testid={`mobile-tab-${entry.id}`}
                     className={[
-                      'flex flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
+                      // 44 px tall; six tabs and More across a 360 px phone.
+                      'flex min-h-11 flex-col items-center justify-center rounded-[var(--radius-md)] px-0.5 py-1 text-center transition',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                       active
                         ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
@@ -162,13 +172,13 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
             })}
           </ul>
           {/* Always shown — it also holds Report a bug. */}
-          <div className="min-w-[3.25rem] flex-[1_1_0%]">
+          <div className="min-w-11 flex-[1_1_0%]">
             <details className="relative">
               <summary
                 data-active={moreActive ? 'true' : 'false'}
                 data-testid="mobile-tab-more"
                 className={[
-                  'flex list-none flex-col items-center rounded-[var(--radius-md)] px-1.5 py-2 text-center transition',
+                  'flex min-h-11 list-none flex-col items-center justify-center rounded-[var(--radius-md)] px-0.5 py-1 text-center transition',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                   moreActive
                     ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
@@ -193,14 +203,14 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
                         )
                       }
                       data-testid={`mobile-tab-${entry.id}`}
-                      className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      className="flex min-h-11 items-center px-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
                     >
                       {entry.label}
                     </Link>
                   );
                 })}
                 <div className="my-1 border-t border-[var(--border-subtle)]" />
-                <ReportBugLink className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]" />
+                <ReportBugLink className="flex min-h-11 items-center px-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]" />
               </div>
             </details>
           </div>

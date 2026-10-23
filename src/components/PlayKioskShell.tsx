@@ -47,12 +47,12 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/day', label: 'Day', primary: true },
   { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
+  // One shot exactly as wanted (Day's engine on one slot): shots → Cut, so before Cut.
+  { href: '/scene', label: 'Scene', primary: true },
   // The film's own step: put the shots together (cut-room.ts).
   { href: '/cut', label: 'Cut', primary: true },
   // Optional and rarely needed now that Day plans the scenes: in More, not the dock.
   { href: '/characters', label: 'Cast', desk: true },
-  // Optional: one shot exactly as wanted (Day's engine on one slot) — More, not a step.
-  { href: '/scene', label: 'Scene' },
   { href: '/gallery', label: 'Gallery', desk: true },
   { href: '/queue', label: 'Queue' },
 ];
@@ -266,14 +266,15 @@ export default function PlayKioskShell() {
                   href={href}
                   data-active={active ? 'true' : 'false'}
                   className={[
-                    'flex flex-col items-center rounded-[var(--radius-md)] px-1 py-2 text-center transition',
+                    // 44 px tall (a tap target); seven across a 360 px phone, so the label is small there.
+                    'flex min-h-11 flex-col items-center justify-center rounded-[var(--radius-md)] px-0.5 py-1 text-center transition',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                     active
                       ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
                       : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]',
                   ].join(' ')}
                 >
-                  <span className="text-sm font-medium">{entry.label}</span>
+                  <span className="text-xs font-medium min-[400px]:text-sm">{entry.label}</span>
                 </Link>
               </li>
             );
@@ -284,7 +285,7 @@ export default function PlayKioskShell() {
                 type="button"
                 data-active={moreActive ? 'true' : 'false'}
                 className={[
-                  'flex w-full flex-col items-center rounded-[var(--radius-md)] px-1 py-2 text-center transition',
+                  'flex min-h-11 w-full flex-col items-center justify-center rounded-[var(--radius-md)] px-0.5 py-1 text-center transition',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]',
                   moreActive
                     ? 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
@@ -292,7 +293,7 @@ export default function PlayKioskShell() {
                 ].join(' ')}
                 onClick={() => moreMenu.current?.open()}
               >
-                <span className="text-sm font-medium">More</span>
+                <span className="text-xs font-medium min-[400px]:text-sm">More</span>
               </button>
             </li>
           ) : null}

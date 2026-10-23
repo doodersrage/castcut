@@ -49,6 +49,54 @@ describe('what a queue job is', () => {
     assert.equal(describeQueueJob({ promptId: 'c-e' }, index).label, 'Day · Evening · clip');
   });
 
+  it('names Scene jobs "Scene" — not Day, though they are queued like Day stills', () => {
+    const sceneIndex = playJobLabeller(
+      buildPlayJobIndex({
+        daySlots: slots,
+        dayStills: [...stills, { slotId: 'night', promptId: 's-sent', status: 'completed' }],
+        scene: {
+          jobLog: [
+            { promptId: 's-old', scene: 'Dropped take', kind: 'still' },
+            { promptId: 's-clip', scene: 'Kitchen', kind: 'clip' },
+          ],
+          activeSceneId: 'k',
+          scenes: [
+            {
+              id: 'k',
+              castId: 'c1',
+              name: 'Kitchen',
+              slot: { id: 'evening', label: 'Evening' },
+              takes: [{ id: 's-sent', promptId: 's-sent', imageUrl: '/a.png', at: 1 }],
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+          stills: [{ slotId: 'evening', promptId: 's-live', status: 'running' }],
+        },
+      })
+    );
+    const live = describeQueueJob(
+      { promptId: 's-live', tool: 'image-prompt', characterId: 'c1', prompt: 'Edit instruction for a Day still' },
+      sceneIndex,
+      'Robin'
+    );
+    assert.equal(live.label, 'Scene · Kitchen · Robin');
+    assert.equal(live.href, '/scene?character=c1');
+    assert.equal(live.openLabel, 'Open in Scene');
+    assert.equal(live.source, 'scene');
+    // A take sent to a Day slot was still rendered on Scene; a dropped take is in the log.
+    assert.equal(describeQueueJob({ promptId: 's-sent' }, sceneIndex).label, 'Scene · Kitchen');
+    assert.equal(describeQueueJob({ promptId: 's-old' }, sceneIndex).label, 'Scene · Dropped take');
+    assert.equal(describeQueueJob({ promptId: 's-clip' }, sceneIndex).label, 'Scene · Kitchen · clip');
+    // Day's own jobs stay Day's.
+    assert.equal(describeQueueJob({ promptId: 'p-e' }, sceneIndex).label, 'Day · Evening');
+    const groups = groupQueueJobs(
+      [entry({ id: 'a', promptId: 's-live', queuedAt: 1 }), entry({ id: 'b', promptId: 's-old', queuedAt: 2 })],
+      job => describeQueueJob(job, sceneIndex).source
+    );
+    assert.equal(groups[0]?.batchLabel, 'Scene · 2 jobs');
+  });
+
   it('names Story beats, retries and clips', () => {
     assert.equal(describeQueueJob({ promptId: 'p-b1-1' }, index).label, 'Story · beat 1 “The letter”');
     assert.equal(

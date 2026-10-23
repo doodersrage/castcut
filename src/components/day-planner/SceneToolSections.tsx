@@ -1,58 +1,33 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useId, useRef, useState } from 'react';
-import SharedToolControls from '@/components/SharedToolControls';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
 } from '@/components/day-planner/DayAdvancedDrawer';
-import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
-import DayClothingPicker, {
-  type DayClothingPickerVm,
-} from '@/components/day-planner/DayClothingPicker';
-import { dayClothingView } from '@/components/day-planner/DayOutfitRow';
 import DayPartnerRow from '@/components/day-planner/DayPartnerRow';
 import DayPlanBar, { DayMoodHints } from '@/components/day-planner/DayPlanBar';
 import DaySetupChip from '@/components/day-planner/DaySetupChip';
-import DaySetupSheet, { type DaySetupSheetVm } from '@/components/day-planner/DaySetupSheet';
-import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import DaySlotEditor from '@/components/day-planner/DaySlotEditor';
 import DayStatusStrip from '@/components/day-planner/DayStatusStrip';
-import SlotMediaSheet from '@/components/day-planner/SlotMediaSheet';
+import {
+  SceneKeptPreview,
+  SceneTakeCard,
+  SceneTakeList,
+} from '@/components/day-planner/SceneTakes';
+import { SCENE_ACCENT, useSceneToolViews } from '@/components/day-planner/useSceneToolViews';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
-import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
-import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
-import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { DAY_PARTS, dayPartOf } from '@/lib/day/parts';
-import { dayQualityPresetLabel } from '@/lib/day/quality-preset';
-import { dayStillShownImage, isDayAdultMood, type DaySlotId } from '@/lib/day/planner';
+import { isDayAdultMood, type DaySlotId } from '@/lib/day/planner';
 import { sceneSummary } from '@/lib/day/scenes';
-import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
-import { useRenderBackend } from '@/lib/engine/render-backend-status';
-import { pickedPostures } from '@/lib/pose/rig3d-posture-points';
 
-const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
-  ssr: false,
-  loading: () => null,
-});
-const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), {
-  ssr: false,
-  loading: () => null,
-});
-// Three.js and the pose body load only when the Director opens.
-const DirectorSheet = dynamic(() => import('@/components/director/DirectorSheet'), {
-  ssr: false,
-});
-
-const ACCENT = 'teal' as const;
-const TOOL_ID = 'day' as const;
+const ACCENT = SCENE_ACCENT;
 const PART_LABELS: Record<(typeof DAY_PARTS)[number], string> = {
   morning: 'Morning',
   afternoon: 'Afternoon',
@@ -63,8 +38,6 @@ const PART_LABELS: Record<(typeof DAY_PARTS)[number], string> = {
 type Props = {
   vm: ReturnType<typeof useDayPlannerToolOrchestration>;
   page: ReturnType<typeof useScenePage>;
-  /** Phone (/m/scene): the compact pose preview and board card. */
-  compact?: boolean;
 };
 
 /**
@@ -73,21 +46,18 @@ type Props = {
  * people), its takes (render several, keep the best), and Make it move from the kept take
  * (Animate, Copy moves, the Director). Day's engine renders it, so it is Day's still pipeline.
  */
-export default function SceneToolSections({ vm, page, compact = false }: Props) {
+export default function SceneToolSections({ vm, page }: Props) {
+  const views = useSceneToolViews(vm, page);
   const {
     shared,
     toolSettings,
-    updateShared,
     updateToolSettings,
     error,
     busy,
     character,
     hasPlate,
-    plate,
-    platePreviewUrl,
     stills,
     slots,
-    activeSlot,
     dayMood,
     setDayMood,
     setIntimatePlayful,
@@ -101,102 +71,16 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
     allowCompanions,
     partnerCharacterId,
     partnerOptions,
-    setPartnerCharacterId,
-    partnerTwoWomen,
-    partnerStandInUrl,
-    partnerSentFaceUrl,
-    partnerOutfit,
-    newPartnerStandIn,
-    keepPartnerAsCast,
     queueBlockReason,
-    poseGuideLine,
-    poseGuidePreviews,
-    dressPlateStatus,
-    dressPlatePreviewUrl,
-    redoDressPlate,
-    keeperStandIn,
-    makeStandingPicture,
     updateSlot,
     queueSlot,
-    animateSlot,
-    previewSlotClip,
-    poseMissViews,
-    slotMedia,
-    qualityLedger,
-    poseRedoMarks,
-    clipChecks,
-    pickTwoTake,
-    looksWrongSlot,
-    fixAreaTargetForSlot,
-    redoSlotSameSeed,
-    keepPreviousTake,
-    dropPreviousTake,
-    rerollActiveSlotScene,
-    addVoiceToSlot,
-    voicingSlotId,
-    extendSlotClip,
-    extendRequestFor,
-    extending,
-    extendResult,
-    wardrobeLabelFor,
     faceFinish,
-    setFaceFinish,
     autoReviewStills,
-    setAutoReviewStills,
-    redoPoseMisses,
-    setRedoPoseMisses,
-    bestOfTwoHardPoses,
-    setBestOfTwoHardPoses,
-    twoTakesIntimate,
-    setTwoTakesIntimate,
-    bestEnginePerPose,
-    setBestEnginePerPose,
-    posePriority,
-    setPosePriority,
-    identityBoost,
-    setIdentityBoost,
-    checkMarks,
-    setCheckMarks,
-    widescreenFilm,
-    setWidescreenFilm,
-    faceFinishStatus,
-    afterChecksStatus,
-    qualityStatus,
-    poseRedoStatus,
-    bestOfTwoStatus,
-    twoTakesOrderStatus,
-    filteredWardrobeOptions,
-    wardrobeOptions,
-    wardrobeReady,
-    wardrobeCategoryFilter,
-    garmentUploading,
-    garmentScanStatus,
-    applyCustomGarment,
-    applyFootwearPhoto,
-    clearCustomGarment,
-    rescanCustomGarment,
-    saveCurrentCustomGarment,
-    applySavedCustomGarment,
-    removeSavedCustomGarment,
-    selectSlotWardrobe,
-    selectDayWardrobe,
-    setError,
-    isolateSubject,
-    isolateBusy,
-    isolateStatus,
-    isolatePending,
-    setIsolateSubject,
-    uploadCastPlate,
-    makeCastPlate,
-    makePlateStatus,
-    plateUploading,
-    plateUploadError,
   } = vm;
   const {
     castScenes,
     active,
     slot,
-    still,
     inFlight,
     kept,
     note,
@@ -205,116 +89,19 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
     renameScene,
     deleteScene,
     setTimeOfDay,
-    showTake,
-    keepTake,
-    removeTake,
-    keptOnCard,
     daySlots,
     refreshDaySlots,
     sendToDay,
   } = page;
-  const renderOffline = useRenderBackend().state === 'offline';
-  const queueBlocked = Boolean(queueBlockReason) || renderOffline;
-  const quality = useDayQualityPreset({ shared, updateShared, toolSettings, updateToolSettings });
-  const [setupOpen, setSetupOpen] = useState(false);
+  const { renderOffline, queueBlocked, quality, mediaBusy, engineControls } = views;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedId = useId();
-  const [animateOpen, setAnimateOpen] = useState(false);
-  const [movesOpen, setMovesOpen] = useState(false);
-  const [directorOpen, setDirectorOpen] = useState(false);
-  const [moveNote, setMoveNote] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
-  const [fixAreaTarget, setFixAreaTarget] = useState<FixAreaTarget | null>(null);
   const [sendSlotId, setSendSlotId] = useState<DaySlotId | ''>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
-  const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
-  const clothingView = dayClothingView({
-    dayKitId: shared.lockedWardrobeId,
-    slotKitId: slot.wardrobeId,
-    photoUrl: hasCustomGarment ? toolSettings.customGarmentImageUrl : null,
-    footwear: toolSettings.footwear,
-    footwearImageUrl: toolSettings.footwearImageUrl,
-    labelFor: wardrobeLabelFor,
-  });
-  const clothingVm: DayClothingPickerVm = {
-    shared,
-    toolSettings,
-    updateToolSettings,
-    busy,
-    activeSlot,
-    filteredWardrobeOptions,
-    wardrobeOptions,
-    wardrobeReady,
-    wardrobeCategoryFilter,
-    garmentUploading,
-    garmentScanStatus,
-    applyCustomGarment,
-    applyFootwearPhoto,
-    clearCustomGarment,
-    rescanCustomGarment,
-    saveCurrentCustomGarment,
-    applySavedCustomGarment,
-    removeSavedCustomGarment,
-    selectSlotWardrobe,
-    selectDayWardrobe,
-    setError,
-  };
-  const setupVm: DaySetupSheetVm = {
-    character,
-    hasPlate,
-    shared,
-    updateShared,
-    setError,
-    plate,
-    platePreviewUrl,
-    activeSlot,
-    busy,
-    isolateSubject,
-    isolateBusy,
-    isolateStatus,
-    isolatePending,
-    setIsolateSubject,
-    uploadCastPlate,
-    makeCastPlate,
-    makePlateStatus,
-    plateUploading,
-    plateUploadError,
-  };
-  const shownTake = dayStillShownImage(still);
-  const keptClip = kept?.clipUrl?.trim() || '';
-  const mediaBusy = slotMedia.busy !== null;
   const takeCount = active?.takes.length ?? 0;
   const timeOfDay = dayPartOf(slot.id);
   const scenesInOrder = [...castScenes].sort((a, b) => a.createdAt - b.createdAt);
-  // Make it move: the job runs in the background (the jobs tray follows it); the clip lands on
-  // the kept take.
-  const runMove = async (work: () => Promise<string | null>) => {
-    setMoveNote('Working on ComfyUI — a few minutes. The jobs tray follows it.');
-    const failed = await work();
-    setMoveNote(failed ?? 'Done — the clip is on the kept take.');
-  };
-
-  const engineControls = (
-    <SharedToolControls
-      shared={shared}
-      onModelChange={model => updateShared({ model })}
-      onDetailChange={detail => updateShared({ detail })}
-      onWorkflowPresetChange={id => updateShared({ selectedWorkflowFileId: id })}
-      showWardrobeOption={false}
-      seedLlmWithIngredients={false}
-      autoFixRules={shared.autoFixRules !== false}
-      onAutoFixRulesChange={value => updateShared({ autoFixRules: value })}
-      toolId={TOOL_ID}
-      qualitySetBy={{
-        label: dayQualityPresetLabel(quality.preset),
-        hint: 'Change it in the bar above the shot; Good / Best by hand under Advanced.',
-      }}
-      preferEditModels={hasPlate}
-      onSharedSettingsChange={updateShared}
-      variant="roleplay"
-    />
-  );
 
   return (
     <>
@@ -326,7 +113,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
           <DaySetupChip
             character={character}
             hasPlate={hasPlate}
-            onClick={() => setSetupOpen(true)}
+            onClick={() => views.setSetupOpen(true)}
           />
         }
         sidebarPersistKey="scene"
@@ -336,7 +123,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
           hasCharacter={Boolean(character)}
           hasPlate={hasPlate}
           characterId={character?.id}
-          onOpenSetup={() => setSetupOpen(true)}
+          onOpenSetup={() => views.setSetupOpen(true)}
         />
         <ToolSection data-testid="scene-list">
           <div className="flex flex-wrap items-center gap-2">
@@ -502,27 +289,27 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   people={people}
                   partnerId={partnerCharacterId}
                   partnerOptions={partnerOptions}
-                  onPartnerChange={setPartnerCharacterId}
-                  partnerTwoWomen={partnerTwoWomen}
+                  onPartnerChange={vm.setPartnerCharacterId}
+                  partnerTwoWomen={vm.partnerTwoWomen}
                   leadNoun={leadNoun}
-                  partnerStandInUrl={partnerStandInUrl}
-                  partnerSentFaceUrl={partnerSentFaceUrl}
-                  partnerOutfit={partnerOutfit}
-                  onNewPartnerStandIn={newPartnerStandIn}
-                  onKeepPartnerAsCast={keepPartnerAsCast}
+                  partnerStandInUrl={vm.partnerStandInUrl}
+                  partnerSentFaceUrl={vm.partnerSentFaceUrl}
+                  partnerOutfit={vm.partnerOutfit}
+                  onNewPartnerStandIn={vm.newPartnerStandIn}
+                  onKeepPartnerAsCast={vm.keepPartnerAsCast}
                 />
                 <DayQualityStatusLines
                   faceFinish={faceFinish}
                   autoReviewStills={autoReviewStills}
-                  redoPoseMisses={redoPoseMisses}
-                  bestOfTwoHardPoses={bestOfTwoHardPoses}
-                  faceFinishStatus={faceFinishStatus}
-                  afterChecksStatus={afterChecksStatus}
-                  qualityStatus={qualityStatus}
-                  poseRedoStatus={poseRedoStatus}
-                  bestOfTwoStatus={bestOfTwoStatus}
-                  twoTakesIntimate={twoTakesIntimate}
-                  twoTakesOrderStatus={twoTakesOrderStatus}
+                  redoPoseMisses={vm.redoPoseMisses}
+                  bestOfTwoHardPoses={vm.bestOfTwoHardPoses}
+                  faceFinishStatus={vm.faceFinishStatus}
+                  afterChecksStatus={vm.afterChecksStatus}
+                  qualityStatus={vm.qualityStatus}
+                  poseRedoStatus={vm.poseRedoStatus}
+                  bestOfTwoStatus={vm.bestOfTwoStatus}
+                  twoTakesIntimate={vm.twoTakesIntimate}
+                  twoTakesOrderStatus={vm.twoTakesOrderStatus}
                 />
               </div>
               {advancedOpen ? (
@@ -532,26 +319,26 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   busy={busy}
                   renderQuality={quality.renderQuality}
                   onRenderQualityChange={quality.setRenderQuality}
-                  posePriority={posePriority}
-                  onPosePriorityChange={setPosePriority}
-                  identityBoost={identityBoost}
-                  onIdentityBoostChange={setIdentityBoost}
+                  posePriority={vm.posePriority}
+                  onPosePriorityChange={vm.setPosePriority}
+                  identityBoost={vm.identityBoost}
+                  onIdentityBoostChange={vm.setIdentityBoost}
                   faceFinish={faceFinish}
-                  onFaceFinishChange={setFaceFinish}
-                  checkMarks={checkMarks}
-                  onCheckMarksChange={setCheckMarks}
-                  widescreenFilm={widescreenFilm}
-                  onWidescreenFilmChange={setWidescreenFilm}
+                  onFaceFinishChange={vm.setFaceFinish}
+                  checkMarks={vm.checkMarks}
+                  onCheckMarksChange={vm.setCheckMarks}
+                  widescreenFilm={vm.widescreenFilm}
+                  onWidescreenFilmChange={vm.setWidescreenFilm}
                   autoReviewStills={autoReviewStills}
-                  onAutoReviewStillsChange={setAutoReviewStills}
-                  redoPoseMisses={redoPoseMisses}
-                  onRedoPoseMissesChange={setRedoPoseMisses}
-                  bestOfTwoHardPoses={bestOfTwoHardPoses}
-                  onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
-                  twoTakesIntimate={twoTakesIntimate}
-                  onTwoTakesIntimateChange={setTwoTakesIntimate}
-                  bestEnginePerPose={bestEnginePerPose}
-                  onBestEnginePerPoseChange={setBestEnginePerPose}
+                  onAutoReviewStillsChange={vm.setAutoReviewStills}
+                  redoPoseMisses={vm.redoPoseMisses}
+                  onRedoPoseMissesChange={vm.setRedoPoseMisses}
+                  bestOfTwoHardPoses={vm.bestOfTwoHardPoses}
+                  onBestOfTwoHardPosesChange={vm.setBestOfTwoHardPoses}
+                  twoTakesIntimate={vm.twoTakesIntimate}
+                  onTwoTakesIntimateChange={vm.setTwoTakesIntimate}
+                  bestEnginePerPose={vm.bestEnginePerPose}
+                  onBestEnginePerPoseChange={vm.setBestEnginePerPose}
                   slots={slots}
                   dayMood={dayMood}
                   intimateEnabled={intimateEnabled}
@@ -577,20 +364,17 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   intimateMix={intimateMix}
                   allowCompanions={allowCompanions}
                   model={shared.model}
-                  poseMiss={poseMissViews[slot.id]}
-                  plateUrl={platePreviewUrl || plate?.imageUrl}
+                  poseMiss={vm.poseMissViews[slot.id]}
+                  plateUrl={vm.platePreviewUrl || vm.plate?.imageUrl}
                   updateSlot={updateSlot}
-                  clothingSummary={clothingView.slot.summary}
-                  clothingThumbs={clothingView.slot.thumbs}
-                  renderClothingPicker={() => (
-                    <DayClothingPicker vm={clothingVm} scope="slot" accent={ACCENT} />
-                  )}
+                  clothingSummary={views.clothingView.slot.summary}
+                  clothingThumbs={views.clothingView.slot.thumbs}
+                  renderClothingPicker={views.renderClothingPicker}
                   clothingTitle={`Clothing · ${active.name}`}
-                  onRedoSameSeed={() => void redoSlotSameSeed(slot.id)}
-                  onKeepOldTake={() => keepPreviousTake(slot.id)}
-                  onKeepNewTake={() => dropPreviousTake(slot.id)}
-                  onPickTwoTake={keep => pickTwoTake(slot.id, keep)}
-                  compact={compact}
+                  onRedoSameSeed={() => void vm.redoSlotSameSeed(slot.id)}
+                  onKeepOldTake={() => vm.keepPreviousTake(slot.id)}
+                  onKeepNewTake={() => vm.dropPreviousTake(slot.id)}
+                  onPickTwoTake={keep => vm.pickTwoTake(slot.id, keep)}
                   groupOptions={partnerOptions.filter(option => option.id !== partnerCharacterId)}
                 />
               </div>
@@ -605,16 +389,16 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                 className="mb-2"
                 statusLine={`${active.name} · ${takeCount} take${takeCount === 1 ? '' : 's'}${kept ? ' · one kept' : ''}`}
                 queueBlockReason={character && hasPlate ? queueBlockReason : null}
-                poseGuideLine={poseGuideLine}
-                dressPlateStatus={dressPlateStatus}
-                dressPlatePreviewUrl={dressPlatePreviewUrl}
-                onRedoDressPlate={redoDressPlate}
-                keeperStandIn={keeperStandIn}
-                onMakeStandingPicture={makeStandingPicture}
+                poseGuideLine={vm.poseGuideLine}
+                dressPlateStatus={vm.dressPlateStatus}
+                dressPlatePreviewUrl={vm.dressPlatePreviewUrl}
+                onRedoDressPlate={vm.redoDressPlate}
+                keeperStandIn={vm.keeperStandIn}
+                onMakeStandingPicture={vm.makeStandingPicture}
                 onOpenDressPlate={url =>
-                  setLightbox({ images: [url], index: 0, title: 'Dressed plate' })
+                  views.setLightbox({ images: [url], index: 0, title: 'Dressed plate' })
                 }
-                poseGuidePreviews={poseGuidePreviews}
+                poseGuidePreviews={vm.poseGuidePreviews}
               />
               <ToolActionRow className="mb-3">
                 <Button
@@ -634,111 +418,15 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                 </p>
               ) : null}
               {/* The take on the card: live render preview, checks and the ⋯ tools (Day's board). */}
-              <DaySlotBoard
-                castName={character?.name}
-                castId={character?.id}
-                leadNoun={leadNoun}
-                slots={slots}
-                stills={stills}
-                activeSlotId={slot.id}
-                busy={busy}
-                queueBlocked={queueBlocked}
-                compact={compact}
-                clipJobFeature="scene"
-                onSelectSlot={() => undefined}
-                onEditSlot={() =>
+              <SceneTakeCard
+                vm={vm}
+                page={page}
+                views={views}
+                onEditShot={() =>
                   editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }
-                onOpenStill={() =>
-                  shownTake
-                    ? setLightbox({ images: [shownTake], index: 0, title: active.name })
-                    : undefined
-                }
-                onRetrySlot={entry => void queueSlot(entry, { byPlayer: true })}
-                onAnimateSlot={() => setAnimateOpen(true)}
-                onAddVoice={addVoiceToSlot}
-                voicingSlotId={voicingSlotId}
-                onExtendClip={extendSlotClip}
-                extendRequestFor={extendRequestFor}
-                extending={extending}
-                extendResult={extendResult}
-                onQueueSlot={entry => void queueSlot(entry, { byPlayer: true })}
-                onRerollSlot={entry => rerollActiveSlotScene({ slotId: entry.id })}
-                qualityLedger={qualityLedger}
-                poseRedoMarks={poseRedoMarks}
-                clipChecks={clipChecks}
-                onPickTwoTake={pickTwoTake}
-                onLooksWrong={entry => void looksWrongSlot(entry.id)}
-                onFixArea={entry => setFixAreaTarget(fixAreaTargetForSlot(entry.id))}
-                mediaTools={{
-                  busy: slotMedia.busy,
-                  finish: slotMedia.finishSlotClip,
-                  realism: slotMedia.realismSlotClip,
-                  moves: slotMedia.copyMovesToSlot,
-                  dance: slotMedia.danceSlot,
-                  lipSync: slotMedia.lipSyncSlot,
-                  relight: slotMedia.relightSlot,
-                  upscale: slotMedia.upscaleSlot,
-                  sketch: slotMedia.applySketchToSlot,
-                }}
               />
-              {active.takes.length > 0 ? (
-                <ol className="mt-3 flex flex-wrap gap-2" data-testid="scene-take-list">
-                  {active.takes.map((take, index) => {
-                    const isKept = take.id === active.keptTakeId;
-                    const onCard = Boolean(still?.promptId && still.promptId === take.promptId);
-                    return (
-                      <li
-                        key={take.id}
-                        className={`relative w-24 overflow-hidden rounded-[var(--radius-md)] border ${
-                          isKept ? 'border-[var(--accent-border)]' : 'border-[var(--border-subtle)]'
-                        }`}
-                        data-testid="scene-take"
-                        data-take={take.id}
-                        data-kept={isKept ? 'true' : 'false'}
-                        data-on-card={onCard ? 'true' : 'false'}
-                      >
-                        <button
-                          type="button"
-                          className="ui-btn-ghost block w-full !p-0"
-                          title={onCard ? 'On the card' : 'Show this take on the card'}
-                          data-testid={`scene-take-show-${index}`}
-                          onClick={() => showTake(take)}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URL */}
-                          <img
-                            src={take.imageUrl}
-                            alt={`Take ${index + 1}`}
-                            className="aspect-[3/4] w-full object-cover"
-                          />
-                        </button>
-                        <div className="flex items-center justify-between gap-1 px-1 py-0.5">
-                          <button
-                            type="button"
-                            className="ui-text-link type-caption"
-                            aria-pressed={isKept}
-                            data-testid={`scene-take-keep-${index}`}
-                            title={isKept ? 'Kept — tap to let it go' : 'Keep this take'}
-                            onClick={() => keepTake(take.id)}
-                          >
-                            {isKept ? '★ Kept' : '☆ Keep'}
-                          </button>
-                          <button
-                            type="button"
-                            className="ui-text-link type-caption"
-                            aria-label={`Remove take ${index + 1}`}
-                            title="Remove from the scene (it stays in the Gallery)"
-                            data-testid={`scene-take-remove-${index}`}
-                            onClick={() => removeTake(take.id)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : null}
+              <SceneTakeList page={page} />
               <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="scene-send-day">
                 <SelectInput
                   value={sendSlotId}
@@ -778,33 +466,8 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
               description="From the kept take: animate it, copy moves from a video, or direct the moves on the 3D body."
             >
               {kept ? (
-                <div className="mb-3 flex flex-wrap items-start gap-3" data-testid="scene-kept">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URL */}
-                  <img
-                    src={kept.imageUrl}
-                    alt="Kept take"
-                    className="h-32 w-24 rounded-[var(--radius-md)] object-cover"
-                  />
-                  {keptClip ? (
-                    clipUrlIsVideo(keptClip, { promptId: kept.clipPromptId }) ? (
-                      <video
-                        src={keptClip}
-                        controls
-                        loop
-                        playsInline
-                        className="h-32 rounded-[var(--radius-md)]"
-                        data-testid="scene-kept-clip"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element -- animated clip
-                      <img
-                        src={keptClip}
-                        alt="Kept take's clip"
-                        className="h-32 rounded-[var(--radius-md)]"
-                        data-testid="scene-kept-clip"
-                      />
-                    )
-                  ) : null}
+                <div className="mb-3">
+                  <SceneKeptPreview take={kept} views={views} />
                 </div>
               ) : (
                 <p
@@ -821,7 +484,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   disabled={!kept || busy || renderOffline || mediaBusy}
                   data-testid="scene-animate"
                   onClick={() => {
-                    if (keptOnCard()) setAnimateOpen(true);
+                    views.openMove('animate');
                   }}
                 >
                   Animate
@@ -833,7 +496,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   data-testid="scene-copy-moves"
                   title="Film yourself (or pick a video): the kept take's person does the same moves."
                   onClick={() => {
-                    if (keptOnCard()) setMovesOpen(true);
+                    views.openMove('moves');
                   }}
                 >
                   Copy moves…
@@ -845,7 +508,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   data-testid="scene-director"
                   title="Pose a few beats on the 3D body (or pick ready-made moves): the kept take's person acts them out."
                   onClick={() => {
-                    if (keptOnCard()) setDirectorOpen(true);
+                    views.openMove('director');
                   }}
                 >
                   Direct a move…
@@ -859,12 +522,13 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
                   Cut →
                 </ButtonLink>
               </ToolActionRow>
-              {moveNote ? (
+              {views.clipEngine ? <div className="mt-3">{views.clipEngine}</div> : null}
+              {views.moveNote ? (
                 <p
                   className="type-caption mt-2 text-[var(--text-muted)]"
                   data-testid="scene-move-note"
                 >
-                  {moveNote}
+                  {views.moveNote}
                 </p>
               ) : null}
             </ToolSection>
@@ -881,60 +545,7 @@ export default function SceneToolSections({ vm, page, compact = false }: Props) 
         ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
       </ToolLayout>
-      <DayAnimateSheet
-        key={animateOpen ? slot.id : 'none'}
-        slot={animateOpen ? slot : null}
-        preview={previewSlotClip}
-        initialExtraSeconds={toolSettings.dayClipExtraSeconds}
-        busy={busy}
-        onClose={() => setAnimateOpen(false)}
-        onAnimate={(target, direction, extraSeconds) => {
-          setAnimateOpen(false);
-          if (extraSeconds !== (toolSettings.dayClipExtraSeconds ?? 0)) {
-            updateToolSettings({ dayClipExtraSeconds: extraSeconds });
-          }
-          void animateSlot(target, { direction, extraSeconds });
-        }}
-      />
-      <SlotMediaSheet
-        kind={movesOpen ? 'moves' : null}
-        onClose={() => setMovesOpen(false)}
-        onMoves={(video, options) => {
-          setMovesOpen(false);
-          void runMove(() => slotMedia.copyMovesToSlot(slot, video, options));
-        }}
-        onLipSync={() => undefined}
-        onRelight={() => undefined}
-      />
-      {directorOpen && kept ? (
-        <DirectorSheet
-          open
-          stillUrl={kept.imageUrl}
-          castId={character?.id}
-          castName={character?.name}
-          body={leadNoun === 'man' ? 'male' : 'female'}
-          place={slot.location}
-          postures={pickedPostures(slot)}
-          busy={mediaBusy}
-          onClose={() => setDirectorOpen(false)}
-          onRender={(video, options) => {
-            setDirectorOpen(false);
-            void runMove(() => slotMedia.copyMovesToSlot(slot, video, options));
-          }}
-          testId="scene-director-sheet"
-        />
-      ) : null}
-      <DaySetupSheet vm={setupVm} open={setupOpen} onClose={() => setSetupOpen(false)} />
-      <ImageLightbox
-        state={lightbox}
-        onClose={() => setLightbox(null)}
-        onIndexChange={index =>
-          setLightbox(previous => (previous ? { ...previous, index } : previous))
-        }
-      />
-      {fixAreaTarget ? (
-        <FixAreaDialog target={fixAreaTarget} onClose={() => setFixAreaTarget(null)} />
-      ) : null}
+      {views.sheets}
     </>
   );
 }

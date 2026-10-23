@@ -9,5 +9,7 @@ describe('Film dock columns', () => {
     // Before the first film (no Story).
     assert.equal(dockGridColsClass(3, true), 'grid-cols-4 sm:grid-cols-3');
     assert.equal(dockGridColsClass(4, false), 'grid-cols-4 sm:grid-cols-4');
+    // Film, Day, Outfit, Story, Scene, Cut + More: seven columns on a phone, six from sm up.
+    assert.equal(dockGridColsClass(6, true), 'grid-cols-7 sm:grid-cols-6');
   });
 });

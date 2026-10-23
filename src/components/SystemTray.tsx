@@ -182,7 +182,8 @@ export default function SystemTray() {
       className={`pointer-events-none fixed right-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col ui-tray-stack transition-[bottom] duration-200 ${
         anchor === 'top' && expanded
           ? 'top-[calc(4.75rem+env(safe-area-inset-top))] max-h-[calc(100dvh-6rem)] overflow-y-auto'
-          : 'bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+0.75rem)]'
+          : // Above a page's sticky action bar too (Scene on a phone: --page-action-bar-height).
+            'bottom-[calc(max(var(--bottom-dock-height,0px),env(safe-area-inset-bottom),0.25rem)+var(--page-action-bar-height,0px)+0.75rem)]'
       }`}
       data-testid="system-tray"
       aria-live="polite"

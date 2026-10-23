@@ -4,6 +4,7 @@
  */
 
 import type { DaySlot, DaySlotStill } from '../day/planner';
+import type { SavedScene, SceneJob } from '../day/scenes';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import { galleryToolHrefForEntry } from '../gallery/tool-href';
 import type { QueueJobDescriber, QueueJobLabeller } from '../queue/job-context';
@@ -11,6 +12,7 @@ import { loadSettingsCache, saveToolSettings } from '../settings/cache';
 
 export type PlayJobRef =
   | { tool: 'day'; slotLabel: string; kind: 'still' | 'clip' }
+  | { tool: 'scene'; name: string; kind: 'still' | 'clip' }
   | { tool: 'story'; index: number; title: string; kind: 'still' | 'clip'; retry: boolean };
 
 /** Prompt id → the Day slot / Story beat it renders. */
@@ -20,6 +22,13 @@ export function buildPlayJobIndex(input: {
   daySlots?: DaySlot[];
   dayStills?: DaySlotStill[];
   story?: RoleplayStoryBeat[];
+  /** Scene (day/scenes.ts): the jobs it queued, its scenes' takes and the take on its card. */
+  scene?: {
+    jobLog?: SceneJob[];
+    scenes?: SavedScene[];
+    activeSceneId?: string;
+    stills?: DaySlotStill[];
+  };
 }): PlayJobIndex {
   const index: PlayJobIndex = new Map();
   const labels = new Map((input.daySlots ?? []).map(slot => [slot.id, slot.label]));
@@ -68,6 +77,27 @@ export function buildPlayJobIndex(input: {
       });
     }
   });
+  // Scene after Day: a scene's take sent to a Day slot was still rendered on Scene.
+  const scene = input.scene;
+  const sceneRef = (id: string | undefined, name: string, kind: 'still' | 'clip') => {
+    const key = id?.trim();
+    if (key) index.set(key, { tool: 'scene', name, kind });
+  };
+  for (const job of scene?.jobLog ?? []) sceneRef(job.promptId, job.scene, job.kind);
+  for (const saved of scene?.scenes ?? []) {
+    for (const take of saved.takes ?? []) {
+      sceneRef(take.promptId, saved.name, 'still');
+      sceneRef(take.clipPromptId, saved.name, 'clip');
+    }
+  }
+  const open = scene?.scenes?.find(entry => entry.id === scene.activeSceneId);
+  if (open) {
+    for (const still of scene?.stills ?? []) {
+      sceneRef(still.promptId, open.name, 'still');
+      sceneRef(still.twoTakes?.promptId, open.name, 'still');
+      sceneRef(still.clipPromptId, open.name, 'clip');
+    }
+  }
   return index;
 }
 
@@ -78,9 +108,19 @@ export function playJobLabeller(index: PlayJobIndex): QueueJobLabeller {
     if (!ref) return null;
     const cast = castName?.trim();
     const href = galleryToolHrefForEntry({
-      tool: ref.tool === 'day' ? 'day' : 'roleplay',
+      tool: ref.tool === 'story' ? 'roleplay' : ref.tool,
       characterId: entry.characterId,
     });
+    if (ref.tool === 'scene') {
+      return {
+        label: ['Scene', ref.name, ref.kind === 'clip' ? 'clip' : null, cast]
+          .filter(Boolean)
+          .join(' · '),
+        href,
+        openLabel: 'Open in Scene',
+        source: 'scene',
+      };
+    }
     if (ref.tool === 'day') {
       return {
         label: ['Day', ref.slotLabel, ref.kind === 'clip' ? 'clip' : null, cast]
@@ -161,6 +201,7 @@ export const PLAY_QUEUE_JOB_DESCRIBER: QueueJobDescriber = {
         daySlots: tools.day?.slots,
         dayStills: tools.day?.stills,
         story: tools.roleplay?.story,
+        scene: tools.scene,
       })
     );
   },

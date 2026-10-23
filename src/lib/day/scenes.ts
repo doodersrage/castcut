@@ -12,6 +12,7 @@ import type { DayToolCache } from '../play/settings';
 import type { KeyedShot } from '../film/cut-plan';
 import { migrateDayMoodFields } from './mood-flavor';
 import {
+  dayStillHasItsFrame,
   dayStillShownImage,
   daySlotDefaultLabel,
   isDaySlotId,
@@ -35,6 +36,11 @@ export type SceneTake = {
   imageUrl: string;
   /** The take as rendered, when {@link imageUrl} is a finish of it. */
   rawUrl?: string;
+  /**
+   * The take cut to the picked camera shot (a close shot: shot-reframe), when {@link imageUrl}
+   * is that cut. Back on the card it stays the cut — not the gallery's full frame, not cut again.
+   */
+  framedUrl?: string;
   /** Its clip (Animate, Copy moves, the Director), once one landed. */
   clipUrl?: string;
   clipPromptId?: string;
@@ -72,7 +78,43 @@ export type SavedScene = {
 export type SceneToolCache = DayToolCache & {
   scenes?: SavedScene[];
   activeSceneId?: string;
+  /** The scene each Cast had open last (it opens again when the page comes back to them). */
+  openByCast?: Record<string, string>;
+  /**
+   * The jobs the Scene page queued (newest last, at most {@link SCENE_JOB_LOG_LIMIT}): the Queue
+   * page labels them "Scene" by id — a scene still is queued like a Day still, and its prompt
+   * text says "Day". Kept after a take is dropped or its scene deleted.
+   */
+  jobLog?: SceneJob[];
 };
+
+/** A job the Scene page queued: its take or its clip, and the scene's name then. */
+export type SceneJob = { promptId: string; scene: string; kind: 'still' | 'clip' };
+
+export const SCENE_JOB_LOG_LIMIT = 200;
+
+/**
+ * The job log with the card's still and clip jobs added (same array when there is nothing new).
+ */
+export function recordSceneJobs(
+  log: ReadonlyArray<SceneJob> | undefined,
+  still: Pick<DaySlotStill, 'promptId' | 'clipPromptId' | 'twoTakes'> | undefined,
+  sceneName: string
+): SceneJob[] {
+  const list = Array.isArray(log) ? (log as SceneJob[]) : [];
+  const known = new Set(list.map(job => job.promptId));
+  const added: SceneJob[] = [];
+  const add = (id: string | undefined, kind: SceneJob['kind']) => {
+    const promptId = id?.trim();
+    if (!promptId || known.has(promptId)) return;
+    known.add(promptId);
+    added.push({ promptId, scene: sceneName.slice(0, 60) || 'Scene', kind });
+  };
+  add(still?.promptId, 'still');
+  add(still?.twoTakes?.promptId, 'still');
+  add(still?.clipPromptId, 'clip');
+  return added.length ? [...list, ...added].slice(-SCENE_JOB_LOG_LIMIT) : list;
+}
 
 /** Takes kept per scene (the kept take always stays). Older ones stay in the Gallery. */
 export const SCENE_TAKE_LIMIT = 24;
@@ -121,6 +163,21 @@ export function sceneSlotOf(
   return all.find(slot => slot.id === id) ?? { id, label: daySlotDefaultLabel(id) };
 }
 
+/**
+ * What the Scene engine writes as its slots: one. Day's helpers (mood fit, beat fill) normalize to
+ * a whole Day — a single slot came back as four, and the scene's shot turned into the first of
+ * them (Intimate on a scene with no beat replaced its setting with a morning's). From a longer
+ * list, the slot with the scene's time of day is kept.
+ */
+export function sceneSlotsPatch(
+  next: ReadonlyArray<DaySlot>,
+  current: ReadonlyArray<DaySlot | null | undefined> | null | undefined
+): DaySlot[] {
+  if (next.length <= 1) return [...next];
+  const id = sceneSlotOf(current).id;
+  return [next.find(slot => slot.id === id) ?? sceneSlotOf(next)];
+}
+
 /** The scene slot at another time of day (its plan unchanged). */
 export function sceneSlotAt(slot: DaySlot, id: DaySlotId): DaySlot {
   if (slot.id === id) return slot;
@@ -135,6 +192,7 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
   const imageUrl = storableUrl(take.imageUrl);
   if (!id || !imageUrl) return null;
   const rawUrl = storableUrl(take.rawUrl);
+  const framedUrl = storableUrl(take.framedUrl);
   const clipUrl = storableUrl(take.clipUrl);
   const promptId = text(take.promptId, 160);
   const clipPromptId = text(take.clipPromptId, 160);
@@ -143,6 +201,7 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
     ...(promptId ? { promptId } : {}),
     imageUrl,
     ...(rawUrl && rawUrl !== imageUrl ? { rawUrl } : {}),
+    ...(framedUrl ? { framedUrl } : {}),
     ...(clipUrl ? { clipUrl } : {}),
     ...(clipUrl && clipPromptId ? { clipPromptId } : {}),
     at: time(take.at, now),
@@ -298,15 +357,19 @@ export function keptTakeOf(scene: SavedScene | null | undefined): SceneTake | un
 
 /** A take as the slot's still (completed, its clip with it). */
 export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
-  const finished = take.rawUrl && take.imageUrl !== take.rawUrl;
+  // Shown as cut to its camera shot: the card keeps the cut (Day's gallery sync keeps a still's
+  // own finish, and the reframe does not run again on a still that has its frame).
+  const framed = Boolean(take.framedUrl && take.promptId);
+  const finished = (take.rawUrl && take.imageUrl !== take.rawUrl) || framed;
   return {
     slotId,
     ...(take.promptId ? { promptId: take.promptId } : {}),
-    imageUrl: take.rawUrl || take.imageUrl,
+    imageUrl: framed ? (take.framedUrl ?? take.imageUrl) : take.rawUrl || take.imageUrl,
     status: 'completed',
     ...(finished && take.promptId
       ? { finishedUrl: take.imageUrl, finishedFor: take.promptId }
       : {}),
+    ...(framed ? { framedUrl: take.framedUrl } : {}),
     ...(take.clipUrl
       ? {
           clipUrl: take.clipUrl,
@@ -357,11 +420,14 @@ function takesOfStill(still: DaySlotStill | undefined, now: number): SceneTake[]
   const shown = storableUrl(dayStillShownImage(still));
   if (promptId && shown) {
     const clipUrl = still.clipStatus === 'completed' ? storableUrl(still.clipUrl) : '';
+    // Its own cut only: a still keeps an older take's frame until the next cut.
+    const framed = dayStillHasItsFrame(still) ? storableUrl(still.framedUrl) : '';
     out.push({
       id: promptId,
       promptId,
       imageUrl: shown,
       ...(raw && raw !== shown ? { rawUrl: raw } : {}),
+      ...(framed ? { framedUrl: framed } : {}),
       ...(clipUrl ? { clipUrl } : {}),
       ...(clipUrl && still.clipPromptId ? { clipPromptId: still.clipPromptId } : {}),
       at: now,
@@ -492,10 +558,13 @@ export function swapSceneForCast(
   now = Date.now()
 ): Partial<SceneToolCache> {
   const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
-  const next = scenesForCast(saved, nextCast)[0];
+  const mine = scenesForCast(saved, nextCast);
+  // The scene they had open last, else their newest.
+  const last = cache.openByCast?.[nextCast];
+  const next = mine.find(scene => scene.id === last) ?? mine[0];
   return {
     ...(saved !== cache.scenes ? { scenes: saved } : {}),
-    ...(next ? sceneWorkingPatch(next) : NO_SCENE_PATCH),
+    ...(next ? { ...sceneWorkingPatch(next), openByCast: openFor(cache, next) } : NO_SCENE_PATCH),
   };
 }
 
@@ -508,7 +577,11 @@ export function openScenePatch(
   const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
   const scene = saved.find(entry => entry.id === sceneId);
   if (!scene) return null;
-  return { ...(saved !== cache.scenes ? { scenes: saved } : {}), ...sceneWorkingPatch(scene) };
+  return {
+    ...(saved !== cache.scenes ? { scenes: saved } : {}),
+    ...sceneWorkingPatch(scene),
+    openByCast: openFor(cache, scene),
+  };
 }
 
 /** Add `scene` and open it (the open one saved first). */
@@ -521,7 +594,16 @@ export function addScenePatch(
   return {
     scenes: normalizeSavedScenes(upsertScene(saved, scene), now),
     ...sceneWorkingPatch(scene),
+    openByCast: openFor(cache, scene),
   };
+}
+
+/** The open-scene map with `scene` as its Cast's open one. */
+function openFor(
+  cache: Pick<SceneToolCache, 'openByCast'>,
+  scene: Pick<SavedScene, 'id' | 'castId'>
+): Record<string, string> {
+  return { ...(cache.openByCast ?? {}), [scene.castId]: scene.id };
 }
 
 /** Delete a scene; when it was open, the Cast's next newest opens (or none). */
@@ -530,7 +612,10 @@ export function deleteScenePatch(cache: SceneToolCache, sceneId: string): Partia
   const scenes = removeScene(cache.scenes, sceneId);
   if (cache.activeSceneId !== sceneId) return { scenes };
   const next = target ? scenesForCast(scenes, target.castId)[0] : undefined;
-  return { scenes, ...(next ? sceneWorkingPatch(next) : NO_SCENE_PATCH) };
+  return {
+    scenes,
+    ...(next ? { ...sceneWorkingPatch(next), openByCast: openFor(cache, next) } : NO_SCENE_PATCH),
+  };
 }
 
 /** Day-shaped settings a Day slot is copied from (the live Day, or one parked under a Cast). */

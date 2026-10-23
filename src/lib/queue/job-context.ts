@@ -100,7 +100,14 @@ export function groupQueueJobs<
   return groups.map(group => {
     if (group.entries.length < 2) return group;
     const source = sourceOf(group.entries[0]!);
-    const name = source === 'day' ? 'Day' : source === 'story' ? 'Story' : galleryToolLabel(source);
+    const name =
+      source === 'day'
+        ? 'Day'
+        : source === 'scene'
+          ? 'Scene'
+          : source === 'story'
+            ? 'Story'
+            : galleryToolLabel(source);
     return { ...group, batchLabel: `${name} · ${group.entries.length} jobs` };
   });
 }

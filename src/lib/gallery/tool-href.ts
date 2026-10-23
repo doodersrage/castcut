@@ -16,6 +16,7 @@ const TOOL_HREF: Record<string, string> = {
   fantasy: '/fantasy',
   roleplay: '/story',
   day: '/day',
+  scene: '/scene',
   fitting: '/fitting',
   moodboard: '/moodboard',
   refine: '/refine',
@@ -50,6 +51,7 @@ const TOOL_LABEL: Record<string, string> = {
   fantasy: 'Fantasy',
   roleplay: 'Story',
   day: 'Day',
+  scene: 'Scene',
   fitting: 'Outfit',
   moodboard: 'Look',
   refine: 'Refine',
@@ -82,7 +84,7 @@ export function galleryToolHref(tool?: string): string {
 }
 
 /** Play tools that open on a Cast (`?character=`). */
-const CAST_TOOLS = new Set(['day', 'fitting', 'moodboard', 'roleplay']);
+const CAST_TOOLS = new Set(['day', 'scene', 'fitting', 'moodboard', 'roleplay']);
 
 /** Route for an entry — Play tools open on the entry's Cast when it has one. */
 export function galleryToolHrefForEntry(entry: { tool?: string; characterId?: string }): string {

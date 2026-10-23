@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
-import { dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
+import { dayStillHasItsFrame, dayStillsCachePatch, upsertDaySlotStill } from '@/lib/day/planner';
 import { dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
   reframeTakeToShot,
@@ -21,8 +21,16 @@ function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';
 }
 
-/** The take's queued prompt asks for a shot a cut makes. */
-const wantsReframe = takeWantsShotReframe;
+/**
+ * The take's queued prompt asks for a shot a cut makes, and it is not that cut already (a Scene
+ * take put back on the card carries its frame — cut again it was a cut of a cut).
+ */
+const wantsReframe = (still: {
+  promptId?: string;
+  framedUrl?: string;
+  finishedUrl?: string;
+  finishedFor?: string;
+}) => !dayStillHasItsFrame(still) && takeWantsShotReframe(still);
 
 export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
   const { mounted, shared, slots, stills, stillsRef, updateToolSettings } = ctx;
@@ -104,11 +112,14 @@ export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
   }, [mounted, shared.activeCharacterId, slots, stills, stillsRef, tick, updateToolSettings]);
 
   /** Face finish and the checks wait for this: the still is about to be cut to its shot. */
-  const holdsStill = useCallback((still: { imageUrl?: string; promptId?: string }) => {
-    const key = stillKey(still);
-    if (pendingRef.current.has(key)) return true;
-    return baselinedRef.current && !handledRef.current.has(key) && wantsReframe(still);
-  }, []);
+  const holdsStill = useCallback(
+    (still: { imageUrl?: string; promptId?: string; framedUrl?: string; finishedFor?: string }) => {
+      const key = stillKey(still);
+      if (pendingRef.current.has(key)) return true;
+      return baselinedRef.current && !handledRef.current.has(key) && wantsReframe(still);
+    },
+    []
+  );
 
   return { shotReframeStatus: status, shotReframeTick: tick, holdsStillForReframe: holdsStill };
 }
