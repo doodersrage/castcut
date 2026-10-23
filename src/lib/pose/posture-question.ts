@@ -52,6 +52,22 @@
  * asked. A floor sit for a crouch guide is "no" too (sit_floor stills 16/16). In the app's
  * prompt, the pose check now calls 97 of the 102 seated sport_ski-5 stills a miss (6 before),
  * and no new miss among the other 446 bench stills (posebench3, the lean bench, the crouches).
+ *
+ * Rechecked 2026-10-23 after a live Noct-Q Day take sat on the ground beside a kerb and passed
+ * at 100%: the question was never answered (LM Studio "Failed to load model" on both tries while
+ * the next slot rendered — `retryOnVisionLoadFailure` in gesture-vision-client.ts now waits out
+ * a render); asked, it says "no" 95 on that still. On every ground-sit still since (313 asked:
+ * 102 bench + 65 live seated sport_ski-5, 36 crouch, 36 squat, 6 kneel-5, 13 live crouch-1, 55
+ * live on-feet redos) it caught 98/102 bench and 65/65 live seated, with no false alarm. A second
+ * question in the same call made it worse, not better — it pulls the crouch answer to "yes":
+ *
+ *   + "bottom resting on the ground or on something (a kerb, step, ledge or seat)?" yes = miss
+ *       seated caught 68/102 bench (65/65 live), no false alarm
+ *   + "sitting on the ground or on a kerb, step or ledge, her bottom resting on it?" yes = miss
+ *       seated caught 75/102 bench, 13 crouch-1 / crouch-2 / crouch-4 flagged
+ *
+ * A gesture question beside it ("holding a cup up to drink?") changed no answer (60 live stills).
+ * The 4 bench stills it passes are skier-like half-crouches leaning on the poles.
  */
 
 import {

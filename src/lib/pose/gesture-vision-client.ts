@@ -129,6 +129,42 @@ export function visionModelLoadFailed(message: string | undefined): boolean {
 }
 
 /**
+ * Waits before each retry of a vision call the model couldn't load for. ComfyUI frees memory
+ * only between jobs, so while a Day render is running one 4 s wait was not enough: a live Noct-Q
+ * run (2026-10-23) skipped the pose check on a still sat on the ground for sport_ski-5 — both
+ * tries "Failed to load model" — and passed it at 100% (the question answers "no" 95 on it once
+ * asked). The tries now span about one render (~40 s).
+ */
+export const VISION_LOAD_RETRY_WAITS_MS: readonly number[] = [4000, 12000, 25000];
+
+/**
+ * Ask once and, while LM Studio says "Failed to load model" (the vision model won't fit beside
+ * ComfyUI's models on the GPU), ask ComfyUI to free memory — between jobs, never interrupting
+ * one — wait and try again, per {@link VISION_LOAD_RETRY_WAITS_MS}. Any other reply is returned
+ * as is. A skipped check never calls a miss, so a check the model never answered passes.
+ */
+export async function retryOnVisionLoadFailure<
+  T extends { response: { ok: boolean }; data: { error?: string } },
+>(
+  askOnce: () => Promise<T>,
+  options: {
+    free: () => Promise<void>;
+    waits?: readonly number[];
+    sleep?: (ms: number) => Promise<void>;
+  }
+): Promise<T> {
+  const sleep = options.sleep ?? (ms => new Promise<void>(resolve => setTimeout(resolve, ms)));
+  let reply = await askOnce();
+  for (const wait of options.waits ?? VISION_LOAD_RETRY_WAITS_MS) {
+    if (reply.response.ok || !visionModelLoadFailed(reply.data.error)) break;
+    await options.free();
+    await sleep(wait);
+    reply = await askOnce();
+  }
+  return reply;
+}
+
+/**
  * Ask `/api/pose-gesture` the pose check's yes/no questions about a still, and the realism rating
  * when `realism` is set (one vision call). Null when there is nothing to ask; the fields are null
  * when no vision model is set up; rejects on transport errors (callers skip the check then).
@@ -175,15 +211,11 @@ export async function askStillGesture(options: {
     }>(response);
     return { response, data };
   };
-  let { response, data } = await askOnce();
-  // The vision model often can't load while ComfyUI keeps its models on the GPU (LM Studio:
-  // "Failed to load model"), and the check would quietly be skipped. Ask ComfyUI to free memory —
-  // between jobs, never interrupting one — and try once more (as the marks check does).
-  if (!response.ok && visionModelLoadFailed(data.error)) {
-    await freeComfyUiMemory(options.comfyUrl).catch(() => undefined);
-    await new Promise(resolve => setTimeout(resolve, 4000));
-    ({ response, data } = await askOnce());
-  }
+  const { response, data } = await retryOnVisionLoadFailure(askOnce, {
+    free: async () => {
+      await freeComfyUiMemory(options.comfyUrl).catch(() => undefined);
+    },
+  });
   if (!response.ok) {
     throw new Error(data.error ?? 'Gesture check failed.');
   }
