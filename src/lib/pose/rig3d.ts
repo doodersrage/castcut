@@ -51,6 +51,13 @@ export type PoseRig3dCamera = {
    * Older readers ignore it.
    */
   choice?: FullCameraChoice;
+  /**
+   * Read from the picture by the lift (liftBodyWithCamera), not set by the player: the view is
+   * swung so the figure fits the photo, but the height and lens are a fitting aid, not a
+   * measurement — the camera words treat it as eye level with the normal lens. Gone, like
+   * `choice`, once the camera is orbited, zoomed or picked by hand. Older rigs have none.
+   */
+  estimated?: true;
 };
 
 export type PoseRig3d = {
@@ -129,6 +136,12 @@ export function normalizePoseRig3d(raw: unknown, people?: number): PoseRig3d | u
   return {
     version: RIG3D_VERSION,
     figures: figures as PoseRig3dFigure[],
-    camera: { position, target, fov, ...(choice ? { choice } : {}) },
+    camera: {
+      position,
+      target,
+      fov,
+      ...(choice ? { choice } : {}),
+      ...(cam?.estimated === true ? { estimated: true as const } : {}),
+    },
   };
 }

@@ -25,7 +25,10 @@ export function rigForPose(pose: PhotoPose): PoseRig3d {
   }
   // The lead's posture as the vision model read it from the photo, when it did.
   const postures = posturesForVision(pose.posture?.posture);
-  return liftBodies(pose.people, pose.aspect, [], DEFAULT_CAMERA, { postures: [postures] });
+  return liftBodies(pose.people, pose.aspect, [], DEFAULT_CAMERA, {
+    postures: [postures],
+    estimateCamera: true,
+  });
 }
 
 /**

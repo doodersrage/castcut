@@ -24,6 +24,7 @@ import {
   type Rig3dVec3,
 } from '@/lib/pose/rig3d';
 import { RIG3D_SKELETONS, type Rig3dBoneRest } from '@/lib/pose/rig3d-skeleton';
+import type { CameraHeight } from '@/lib/pose/camera-shot';
 import { classifyPosture as classifyFlatPosture } from '@/lib/pose/posture';
 import { classifyPosturePoints, type Posture } from '@/lib/pose/rig3d-posture-points';
 
@@ -236,6 +237,7 @@ export function cloneRig(rig: PoseRig3d): PoseRig3d {
       target: [...rig.camera.target],
       fov: rig.camera.fov,
       ...(rig.camera.choice ? { choice: { ...rig.camera.choice } } : {}),
+      ...(rig.camera.estimated ? { estimated: true as const } : {}),
     },
   };
 }
@@ -1603,13 +1605,35 @@ export function liftBody(
   aspect: number,
   options: LiftOptions = {}
 ): PoseRig3dFigure {
+  return liftRated(body, aspect, options).figure;
+}
+
+/** A lift's figure and what it cost, as liftBody weighs fit, depth, posture and proportions. */
+type RatedLift = {
+  figure: PoseRig3dFigure;
+  score: number;
+  held: boolean;
+  error: number;
+  missed: boolean;
+  depth: number;
+};
+
+/**
+ * `quick`: the distances the picture suggests, with the base body's and her own proportions,
+ * but no further search for a posture missed — a first look, for ranking cameras.
+ */
+function liftRated(
+  body: NormalizedBody,
+  aspect: number,
+  options: LiftOptions = {},
+  quick = false
+): RatedLift {
   // The picture's own posture (posture.ts) picks between the readings that fit it alike; a
   // posture known from outside the picture (the pose it was filed or picked as) is held to harder.
   const known = Boolean(options.postures);
   const postures = options.postures === undefined ? liftPostures(body, aspect) : options.postures;
   const opts = { ...options, postures };
   const first = liftAtDepth(body, aspect, opts);
-  if (first.depths.length < 2) return first.figure;
   const camera = options.camera ?? DEFAULT_CAMERA;
   const origin = new Vector3(...camera.position);
   const misses = (figure: PoseRig3dFigure) =>
@@ -1619,12 +1643,16 @@ export function liftBody(
   const rate = (figure: PoseRig3dFigure) => {
     const missed = misses(figure);
     const error = fitError(figure);
+    const depth = depthiness(figure, origin);
     return {
+      missed,
+      depth,
       // A known posture held: in it, and still close to the picture.
       held: !known || (!missed && error <= KNOWN_POSTURE_ERROR),
+      error,
       score:
         error +
-        DEPTHINESS_WEIGHT * depthiness(figure, origin) +
+        DEPTHINESS_WEIGHT * depth +
         (known
           ? missed || error > KNOWN_POSTURE_ERROR
             ? KNOWN_POSTURE_MISS
@@ -1636,6 +1664,7 @@ export function liftBody(
     };
   };
   let best = { figure: first.figure, ...rate(first.figure) };
+  if (first.depths.length < 2) return best;
   const tried = new Set<string>();
   const tryLift = (depth: number, scale?: Rig3dProportions, onlyHeld = false) => {
     const key = `${depth.toFixed(3)} ${JSON.stringify(scale ?? {})}`;
@@ -1656,6 +1685,7 @@ export function liftBody(
   };
   tried.add(`${first.depths[0]!.toFixed(3)} {}`);
   for (const depth of first.depths) tryDepth(depth);
+  if (quick) return best;
   // Still the wrong posture: a little farther or nearer may let the legs read it, and her own
   // proportions may stray further.
   if (!best.held || misses(best.figure)) {
@@ -1673,7 +1703,261 @@ export function liftBody(
       if (scale) tryLift(depth, scale, true);
     }
   }
-  return best.figure;
+  return best;
+}
+
+/**
+ * The height a camera elevation reads as in the Camera pick's words (camera-shot.ts): below
+ * −8° low, from 15° high, from 62° overhead, else eye level.
+ */
+export function heightOfElevation(elevation: number): CameraHeight {
+  return elevation < -8 ? 'low' : elevation < 15 ? 'eye' : elevation < 62 ? 'high' : 'overhead';
+}
+
+/** How far above the horizontal a camera looks down at its target (negative: up), degrees. */
+export function cameraElevation(camera: PoseRig3dCamera): number {
+  const toCamera = new Vector3(...camera.position).sub(new Vector3(...camera.target));
+  if (toCamera.lengthSq() < 1e-12) return 0;
+  return (Math.asin(Math.max(-1, Math.min(1, toCamera.normalize().y))) * 180) / Math.PI;
+}
+
+/**
+ * The same camera swung up or down about its target to `elevation` degrees (its way round kept),
+ * with field of view `fov`: nearer for a wider lens, so the figure still fills the picture.
+ */
+export function orbitCamera(
+  camera: PoseRig3dCamera,
+  elevation: number,
+  fov = camera.fov
+): PoseRig3dCamera {
+  const target = new Vector3(...camera.target);
+  const toCamera = new Vector3(...camera.position).sub(target);
+  const flat = new Vector3(toCamera.x, 0, toCamera.z);
+  if (flat.lengthSq() < 1e-12) flat.set(0, 0, 1);
+  flat.normalize();
+  const distance =
+    toCamera.length() *
+    (Math.tan(((camera.fov / 2) * Math.PI) / 180) / Math.tan(((fov / 2) * Math.PI) / 180));
+  const e = (elevation * Math.PI) / 180;
+  const position = target
+    .clone()
+    .add(flat.multiplyScalar(Math.cos(e) * distance))
+    .add(new Vector3(0, Math.sin(e) * distance, 0));
+  return {
+    position: position.toArray() as Rig3dVec3,
+    target: target.toArray() as Rig3dVec3,
+    fov,
+  };
+}
+
+export type CameraSearch = {
+  /** The range of camera elevations to try, degrees (its lowest and highest bound the search). */
+  elevations?: number[];
+  /** The heights looked through first, degrees; the search goes on only if one beats the given. */
+  coarse?: number[];
+  /** How far about the best coarse height to look next, degrees. */
+  step?: number;
+  /** Fields of view to try, degrees (the given camera's own is always tried). */
+  fovs?: number[];
+  /** What a camera costs, in fit, for each 30° it looks from above or below the given one's. */
+  elevationWeight?: number;
+  /** What a field of view costs, in fit, per doubling of it away from the given one's. */
+  fovWeight?: number;
+  /** Degrees each side of the best elevation to try once the coarse search is done (0: none). */
+  refine?: number;
+  /**
+   * What a camera costs, in fit, for reading as another height than the given one's (low, eye,
+   * high: the words a still's camera is described with) — a word must be earned.
+   */
+  heightWeight?: number;
+  /** How many cameras whose first look misses the posture may be searched in full. */
+  finalists?: number;
+};
+
+export const CAMERA_SEARCH: Required<CameraSearch> = {
+  elevations: [-20, 45],
+  coarse: [-10, 10, 25, 40],
+  step: 10,
+  fovs: [50],
+  elevationWeight: 0.008,
+  fovWeight: 0.004,
+  refine: 5,
+  heightWeight: 0.004,
+  finalists: 3,
+};
+/**
+ * Choosing between cameras, the picture's points count double, limbs along the line of sight
+ * for less than within one camera's lift (every limb square to an eye-level camera is no sign
+ * the camera was at eye level), and her own proportions for more (the base body's lengths
+ * reading the picture is the sign the camera is right). Tuned on the references and on figures
+ * posed on the floor and seen from known heights (−15°…45°): read through the right camera, a
+ * figure standing, kneeling or seated holds her back about upright.
+ */
+const CAMERA_ERROR_WEIGHT = 2;
+const CAMERA_DEPTHINESS_WEIGHT = 0.005;
+const CAMERA_PROPORTION_WEIGHT = 0.015;
+const CAMERA_UPRIGHT_WEIGHT = 0.01;
+const UPRIGHT: ReadonlySet<Posture> = new Set(['stand', 'kneel', 'seated']);
+/** A back held off upright by a figure standing, kneeling or seated: (degrees / 30)². */
+function uprightOff(figure: PoseRig3dFigure): number {
+  const points = openPoseWorld(figure);
+  if (!UPRIGHT.has(classifyPosturePoints(points))) return 0;
+  const hipMid = points[8]!.clone().add(points[11]!).multiplyScalar(0.5);
+  const spine = points[1]!.clone().sub(hipMid);
+  if (spine.lengthSq() < 1e-9) return 0;
+  return (spine.angleTo(new Vector3(0, 1, 0)) / (Math.PI / 6)) ** 2;
+}
+/** How far above her lowest joint (the floor she is on) a camera must stand, metres. */
+const CAMERA_ABOVE_FLOOR = 0.3;
+function cameraBelowFloor(figure: PoseRig3dFigure, camera: PoseRig3dCamera): boolean {
+  const lowest = Math.min(...openPoseWorld(figure).map(point => point.y));
+  return camera.position[1] < lowest + CAMERA_ABOVE_FLOOR;
+}
+
+/** A limb turned this far past its twist limit is a hip or shoulder wrung into a lump. */
+const WRUNG_PAST = (30 * Math.PI) / 180;
+function wrungLimbs(figure: PoseRig3dFigure): number {
+  return ALL_LIMBS.filter(([side, limb]) => limbTwistExcess(figure, side, limb) > WRUNG_PAST)
+    .length;
+}
+
+/**
+ * Lift a flat pose and estimate the camera it was seen through, together: the camera swung up
+ * or down about its target (−20°…45°, then ±5° about the best) with the normal and a wider
+ * lens, the body lifted through each, and the camera kept whose lift draws the picture's points
+ * closest with the base body's proportions, her back upright if she stands, kneels or sits,
+ * and few limbs along the line of sight — less what each step away from the given (eye-level)
+ * camera costs, more for one that changes the height's word, so an ordinary photo keeps the
+ * eye-level camera. Another camera must keep her in the posture and free of the twists the
+ * given one's lift has, and stand above the floor she is on. A picture shot from above and
+ * close (kneel-4) no longer needs a long arm and short legs to read.
+ *
+ * Measured on the references (lift-check.mts) the camera moves for about 4 in 10, mostly 5–10°;
+ * on the mocap references, the only ones whose camera is known, it reads the height a little
+ * closer than eye level does — a fitting aid more than a measurement. liftBodies marks such a
+ * camera `estimated`, and the camera words read it as eye level with the normal lens.
+ *
+ * Coarse to fine, with a first look (no posture search) at each camera: about 7× a plain lift
+ * (~280 ms against ~40 ms over the references, in Node), and the same picture again is cached.
+ */
+export function liftBodyWithCamera(
+  body: NormalizedBody,
+  aspect: number,
+  options: LiftOptions & { search?: CameraSearch } = {}
+): { figure: PoseRig3dFigure; camera: PoseRig3dCamera } {
+  // The same picture again (the editor reopened, the Director's still read again): as before.
+  const key = JSON.stringify([body, aspect, options]);
+  const base = options.camera ?? DEFAULT_CAMERA;
+  const cached = CAMERA_LIFTS.get(key);
+  // (The given camera comes back as itself: callers tell a moved camera by identity.)
+  const copy = (camera: PoseRig3dCamera) => (camera === base ? base : { ...camera });
+  if (cached) return { figure: cloneFigure(cached.figure), camera: copy(cached.camera) };
+  const lifted = searchLiftCamera(body, aspect, options);
+  CAMERA_LIFTS.set(key, { figure: cloneFigure(lifted.figure), camera: lifted.camera });
+  if (CAMERA_LIFTS.size > 24) CAMERA_LIFTS.delete(CAMERA_LIFTS.keys().next().value!);
+  return lifted;
+}
+
+const CAMERA_LIFTS = new Map<string, { figure: PoseRig3dFigure; camera: PoseRig3dCamera }>();
+
+function searchLiftCamera(
+  body: NormalizedBody,
+  aspect: number,
+  options: LiftOptions & { search?: CameraSearch }
+): { figure: PoseRig3dFigure; camera: PoseRig3dCamera } {
+  const base = options.camera ?? DEFAULT_CAMERA;
+  const search = { ...CAMERA_SEARCH, ...options.search };
+  const baseElevation = cameraElevation(base);
+  const baseHeight = heightOfElevation(baseElevation);
+  const cost = (camera: PoseRig3dCamera) =>
+    search.elevationWeight * ((cameraElevation(camera) - baseElevation) / 30) ** 2 +
+    search.fovWeight * Math.abs(Math.log2(camera.fov / base.fov)) +
+    (heightOfElevation(cameraElevation(camera)) === baseHeight ? 0 : search.heightWeight);
+  type Pick = {
+    figure: PoseRig3dFigure;
+    camera: PoseRig3dCamera;
+    total: number;
+    /** The total before a posture missed: a first look at one distance often misses one. */
+    hopeful: number;
+    missed: boolean;
+    wrung: number;
+  };
+  // What a lift through a camera costs, all told; null for a camera below the floor she is on
+  // (a photo of her sitting on the floor is not taken from below it, nor a full-length one from
+  // far off and low).
+  const rate = (camera: PoseRig3dCamera, quick: boolean): Pick | null => {
+    const rated = liftRated(body, aspect, { ...options, camera }, quick);
+    if (camera !== base && cameraBelowFloor(rated.figure, camera)) return null;
+    const off = proportionsOff(rated.figure.scale);
+    const missCost =
+      rated.score - rated.error - DEPTHINESS_WEIGHT * rated.depth - PROPORTION_WEIGHT * off;
+    const total =
+      rated.score +
+      (CAMERA_ERROR_WEIGHT - 1) * rated.error +
+      (CAMERA_DEPTHINESS_WEIGHT - DEPTHINESS_WEIGHT) * rated.depth +
+      (CAMERA_PROPORTION_WEIGHT - PROPORTION_WEIGHT) * off +
+      CAMERA_UPRIGHT_WEIGHT * uprightOff(rated.figure) +
+      cost(camera);
+    return {
+      figure: rated.figure,
+      camera,
+      total,
+      hopeful: total - Math.max(0, missCost),
+      missed: rated.missed || !rated.held,
+      wrung: wrungLimbs(rated.figure),
+    };
+  };
+  const given = rate(base, false)!;
+  let best = given;
+  // Too little of the body to read a camera from: the given one.
+  const torso = Boolean((body[1] || (body[2] && body[5])) && (body[8] || body[11]));
+  if (!torso) return { figure: given.figure, camera: base };
+  // Another camera wins only by costing less — never by losing the posture or adding a twist
+  // the given camera's lift does without.
+  const consider = (pick: Pick | null) => {
+    if (!pick || (pick.missed && !given.missed) || pick.wrung > given.wrung) return;
+    if (pick.total < best.total) best = pick;
+  };
+  // A first look through every camera: the distances the picture suggests, no posture search.
+  // Where it holds the posture, that is the full lift already (the search only runs for a
+  // posture missed); where it misses, the most hopeful few are lifted in full.
+  const keyOf = (camera: PoseRig3dCamera) =>
+    `${cameraElevation(camera).toFixed(2)} ${camera.fov.toFixed(2)}`;
+  const seen = new Set([keyOf(base)]);
+  let searches = 0;
+  const look = (camera: PoseRig3dCamera) => {
+    const key = keyOf(camera);
+    if (seen.has(key)) return;
+    seen.add(key);
+    // No fit is better than a perfect one: a camera whose cost alone loses is not looked through.
+    if (cost(camera) >= best.total) return;
+    const glance = rate(camera, true);
+    if (!glance) return;
+    if (!glance.missed) return consider(glance);
+    if (glance.hopeful >= best.total || searches >= search.finalists) return;
+    searches += 1;
+    consider(rate(camera, false));
+  };
+  // Coarse first: a few heights through each lens. Unless
+  // one of them beats the given camera, stop there (most photos); else the heights and lenses
+  // about the best, then a step either way.
+  const at = (elevation: number, fov = base.fov) =>
+    orbitCamera(base, Math.max(lowest, Math.min(highest, elevation)), fov);
+  const lowest = Math.min(...search.elevations);
+  const highest = Math.max(...search.elevations);
+  for (const fov of [base.fov, ...search.fovs]) {
+    for (const elevation of [baseElevation, ...search.coarse]) look(at(elevation, fov));
+  }
+  if (best === given) return { figure: given.figure, camera: base };
+  for (const step of [-search.step, search.step]) {
+    look(at(cameraElevation(best.camera) + step, best.camera.fov));
+  }
+  for (const fov of [base.fov, ...search.fovs]) look(at(cameraElevation(best.camera), fov));
+  if (search.refine > 0) {
+    const elevation = cameraElevation(best.camera);
+    for (const step of [-search.refine, search.refine]) look(at(elevation + step, best.camera.fov));
+  }
+  return { figure: best.figure, camera: best.camera };
 }
 
 function meanPointError(a: NormalizedBody, b: NormalizedBody, aspect: number): number {
@@ -1699,17 +1983,39 @@ export function liftBodies(
   aspect: number,
   kinds: Rig3dBodyKind[] = [],
   camera: PoseRig3dCamera = DEFAULT_CAMERA,
-  options: { postures?: Array<Posture[] | undefined> } = {}
+  options: {
+    postures?: Array<Posture[] | undefined>;
+    /**
+     * Read the camera from the picture (liftBodyWithCamera, on the lead): `camera` is then the
+     * eye-level camera the estimate starts from and leans toward. Off: seen through `camera`.
+     */
+    estimateCamera?: boolean;
+  } = {}
 ): PoseRig3d {
-  const figures = bodies.map((body, index) => {
+  const optionsFor = (index: number): LiftOptions => {
     const postures = options.postures?.[index];
-    return liftBody(body, aspect, {
-      camera,
+    return {
       body: kinds[index] ?? (index === 0 ? 'female' : 'male'),
       ...(postures ? { postures } : {}),
-    });
-  });
-  return { version: RIG3D_VERSION, camera: aimAtFigures(camera, figures), figures };
+    };
+  };
+  let view = camera;
+  let lead: PoseRig3dFigure | null = null;
+  if (options.estimateCamera && bodies[0]) {
+    const estimated = liftBodyWithCamera(bodies[0], aspect, { ...optionsFor(0), camera });
+    view = estimated.camera;
+    lead = estimated.figure;
+  }
+  const figures = bodies.map((body, index) =>
+    index === 0 && lead ? lead : liftBody(body, aspect, { ...optionsFor(index), camera: view })
+  );
+  const aimed = aimAtFigures(view, figures);
+  // A camera the lift read (not the one it was given) is marked so: its height is no pick.
+  return {
+    version: RIG3D_VERSION,
+    camera: view === camera ? aimed : { ...aimed, estimated: true },
+    figures,
+  };
 }
 
 /**
@@ -1719,6 +2025,8 @@ export function liftBodies(
 export function aimAtFigures(camera: PoseRig3dCamera, figures: PoseRig3dFigure[]): PoseRig3dCamera {
   const position = new Vector3(...camera.position);
   const direction = new Vector3(...camera.target).sub(position).normalize();
+  // The same view: a camera read from the picture stays marked as read.
+  const read = camera.estimated ? { estimated: true as const } : {};
   if (!figures.length)
     return { ...camera, position: [...camera.position], target: [...camera.target] };
   const centre = figures
@@ -1733,5 +2041,6 @@ export function aimAtFigures(camera: PoseRig3dCamera, figures: PoseRig3dFigure[]
     position: [...camera.position],
     target: position.add(direction.multiplyScalar(distance)).toArray() as Rig3dVec3,
     fov: camera.fov,
+    ...read,
   };
 }
