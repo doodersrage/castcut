@@ -156,7 +156,12 @@ function directionFromStill(
   body: Rig3dBodyKind,
   postures?: Posture[]
 ): Direction {
-  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body, postures);
+  const { figure, side, turned, view, height } = stillPoseFigure(
+    pose.body,
+    pose.aspect,
+    body,
+    postures
+  );
   const start = {
     ...poseBeat('Her pose in the picture', figure, { first: true }),
     hold: direction.beats[0]!.hold,
@@ -165,7 +170,7 @@ function directionFromStill(
     turned < 22.5 ? 'front' : turned < 65 ? 'three-quarter' : turned < 125 ? 'side' : 'back';
   return {
     ...replaceBeat(direction, 0, start),
-    camera: { ...direction.camera, direction: facing, side, shot: 'picture', height: 'eye', view },
+    camera: { ...direction.camera, direction: facing, side, shot: 'picture', height, view },
   };
 }
 

@@ -14,7 +14,11 @@
  * Each pose is lifted toward the posture it is filed under, as the app does for a pose it knows
  * by name; --flat lifts from the flat pose alone (posture.ts), as for a photo.
  *
+ * The camera is read from each picture as the app reads it (liftBodyWithCamera: from above,
+ * below or eye level); --fixed-camera lifts every pose through the eye-level camera instead.
+ *
  *   node --import tsx scripts/pose-3d/lift-check.mts [--sheet DIR] [--worst 40] [--json FILE] [--flat]
+ *     [--fixed-camera] [--only id,id] [--sort camera]
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,6 +32,7 @@ import {
   projectPoint,
   figureWorld,
   limbTwistExcess,
+  cameraElevation,
 } from '../../src/lib/pose/rig3d-pose';
 import type { NormalizedBody } from '../../src/lib/pose/library';
 import type { PoseRig3dCamera, PoseRig3dFigure } from '../../src/lib/pose/rig3d';
@@ -48,11 +53,34 @@ const worstCount = Number(arg('--worst') ?? 40);
 const jsonOut = arg('--json');
 const only = arg('--only');
 const flat = process.argv.includes('--flat');
+const fixedCamera = process.argv.includes('--fixed-camera');
+const sortBy = arg('--sort');
 
 type Case = { id: string; pose: string; aspect: number; body: NormalizedBody };
 const refs = JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
-  references: Array<{ id: string; pose: string; aspect: number; people: NormalizedBody[] }>;
+  references: Array<{
+    id: string;
+    pose: string;
+    aspect: number;
+    people: NormalizedBody[];
+    source?: string;
+  }>;
 };
+// The CMU mocap references were drawn through a known camera (scripts/pose-refs/mocap.py): 8°
+// above her, higher for the floor poses — the only references whose camera height is known.
+const MOCAP_ELEVATION: Record<string, number> = {
+  lie: 35,
+  lie_side: 35,
+  lie_front: 35,
+  lounge_elbows: 25,
+  sport_yoga_dog: 15,
+  sport_swim: 25,
+};
+const mocapElevation = new Map(
+  refs.references
+    .filter(ref => ref.source === 'cmu-mocap')
+    .map(ref => [ref.id, MOCAP_ELEVATION[ref.pose] ?? 8])
+);
 let cases: Case[] = [
   ...refs.references
     .filter(ref => ref.people.length === 1)
@@ -129,6 +157,8 @@ type Row = {
   twisted: [number, number];
   /** Her own segment lengths, where the lift fitted them (rig3d.ts `scale`). */
   scale: PoseRig3dFigure['scale'] | null;
+  /** The camera the picture was read as taken with: elevation (degrees) and field of view. */
+  camera: { elevation: number; fov: number };
 };
 
 // Past the limit by more than this (a thigh turned 85°+, an upper arm 130°+): a visible lump.
@@ -160,7 +190,10 @@ for (const c of cases) {
   // As the app lifts a pose it knows by name (the editor's reference / Day pose pickers, the
   // Director): toward the posture it is filed under. --flat: from the flat pose's own posture.
   const known = flat ? undefined : posturesForReference(c);
-  const rig = liftBodies([c.body], c.aspect, ['female'], DEFAULT_CAMERA, { postures: [known] });
+  const rig = liftBodies([c.body], c.aspect, ['female'], DEFAULT_CAMERA, {
+    postures: [known],
+    estimateCamera: !fixedCamera,
+  });
   const figure = rig.figures[0]!;
   const editorView = projectFigure(figure, rig.camera, c.aspect);
   const editor = compare(c.body, editorView, c.aspect);
@@ -227,6 +260,7 @@ for (const c of cases) {
     depthiness,
     twisted: [twistedLimbs(figure), directorTwisted],
     scale: figure.scale ?? null,
+    camera: { elevation: cameraElevation(rig.camera), fov: rig.camera.fov },
   });
   if (sheetDir) {
     drawings.set(c.id, {
@@ -298,9 +332,37 @@ console.log(
 );
 const scaled = refRows.filter(r => r.scale);
 const stretch = scaled.flatMap(r => Object.values(r.scale!).map(v => Math.abs(v - 1)));
-console.log(
-  `own proportions: ${scaled.length}/${refRows.length} figures, segments off by ${(mean(stretch) * 100).toFixed(1)}% on average`
+const allStretch = refRows.flatMap(r =>
+  (['upperarm', 'forearm', 'thigh', 'shin'] as const).map(k => Math.abs((r.scale?.[k] ?? 1) - 1))
 );
+const over10 = refRows.filter(r =>
+  Object.values(r.scale ?? {}).some(v => Math.abs(v - 1) > 0.1 + 1e-9)
+);
+console.log(
+  `own proportions: ${scaled.length}/${refRows.length} figures, segments off by ${(mean(stretch) * 100).toFixed(1)}% on average (${(mean(allStretch) * 100).toFixed(2)}% over every figure); ${over10.length} need a segment more than 10% off`
+);
+const moved = refRows.filter(
+  r =>
+    Math.abs(r.camera.elevation - cameraElevation(DEFAULT_CAMERA)) > 0.5 ||
+    r.camera.fov !== DEFAULT_CAMERA.fov
+);
+console.log(
+  `camera read off eye level: ${moved.length}/${refRows.length} (${moved
+    .map(
+      r =>
+        `${r.id}:${r.camera.elevation.toFixed(0)}°${r.camera.fov !== DEFAULT_CAMERA.fov ? `/${r.camera.fov}` : ''}`
+    )
+    .join(' ')})`
+);
+const mocap = refRows.filter(r => mocapElevation.has(r.id));
+const heightWord = (e: number) => (e < -8 ? 'low' : e < 15 ? 'eye' : 'high');
+console.log(
+  `camera vs the mocap references' own (${mocap.length}): off by ${mean(mocap.map(r => Math.abs(r.camera.elevation - mocapElevation.get(r.id)!))).toFixed(1)}° on average (eye level: ${mean(mocap.map(r => Math.abs(cameraElevation(DEFAULT_CAMERA) - mocapElevation.get(r.id)!))).toFixed(1)}°); height word right ${mocap.filter(r => heightWord(r.camera.elevation) === heightWord(mocapElevation.get(r.id)!)).length}/${mocap.length}`
+);
+for (const r of refRows.filter(r => r.id === 'kneel-4'))
+  console.log(
+    `  kneel-4: worst joint editor ${pct(r.editor.worst)} director ${r.director ? pct(r.director.worst) : '-'}, scale ${JSON.stringify(r.scale ?? {})}`
+  );
 console.log(`  wrong: ${summary.posture.wrong.join(' ')}`);
 for (const s of summary.starters) console.log(`  ${s}`);
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify({ summary, rows }, null, 1));
@@ -344,7 +406,12 @@ if (sheetDir) {
   mkdirSync(sheetDir, { recursive: true });
   const score = (r: Row) =>
     (r.postureOk === false ? 1 : 0) + (r.director?.mean ?? 0) * 10 + r.editor.mean * 10;
-  const pick = only ? rows : [...rows].sort((a, b) => score(b) - score(a)).slice(0, worstCount);
+  const cameraMove = (r: Row) => Math.abs(r.camera.elevation - cameraElevation(DEFAULT_CAMERA));
+  const pick = only
+    ? rows
+    : [...rows]
+        .sort((a, b) => (sortBy === 'camera' ? cameraMove(b) - cameraMove(a) : score(b) - score(a)))
+        .slice(0, worstCount);
   const H = 220;
   const perRow = 2;
   const blocks = pick.map(r => {
@@ -361,7 +428,7 @@ if (sheetDir) {
       svg += `</g><text x="3" y="${H - 4}" font-size="10" fill="#555">${panel.label}</text></g>`;
       x += cell + 4;
     }
-    const title = `${r.id}  ed ${pct(r.editor.mean)}  dir ${r.director ? pct(r.director.mean) : '-'}  ${r.posture}${r.expected ? ` (want ${r.expected.join('/')})` : ''}`;
+    const title = `${r.id}  cam ${r.camera.elevation.toFixed(0)}°  ed ${pct(r.editor.mean)}  dir ${r.director ? pct(r.director.mean) : '-'}  ${r.posture}${r.expected ? ` (want ${r.expected.join('/')})` : ''}`;
     return {
       width: x,
       svg: `<text x="0" y="11" font-size="11" font-family="sans-serif">${title}</text>${svg}`,

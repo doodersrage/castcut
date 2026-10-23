@@ -11,7 +11,9 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import type { PhotoPose } from '@/lib/pose/types';
 import type { PoseRig3d, PoseRig3dCamera, PoseRig3dFigure, Rig3dVec3 } from '@/lib/pose/rig3d';
 import {
+  cameraElevation,
   figureWorld,
+  heightOfElevation,
   makeCamera,
   openPoseWorld,
   projectPoint,
@@ -234,14 +236,17 @@ function inFrame(point: { x: number; y: number }): boolean {
  * A camera read as a pick, from its numbers (orbited or zoomed by hand): how high it looks from,
  * which way round the lead it stands, how much of her the picture holds, and the lens.
  */
+/** How high a camera looks from, as a pick (the lift's estimate of a photo's camera, say). */
+export function cameraHeightOf(camera: PoseRig3dCamera): CameraHeight {
+  return heightOfElevation(cameraElevation(camera));
+}
+
 export function readCameraChoice(rig: PoseRig3d, aspect: number): FullCameraChoice {
   const camera = rig.camera;
   const toCamera = new Vector3(...camera.position).sub(new Vector3(...camera.target));
   if (toCamera.lengthSq() < 1e-9) toCamera.set(0, 0, 1);
   toCamera.normalize();
-  const elevation = deg(Math.asin(Math.max(-1, Math.min(1, toCamera.y))));
-  const height: CameraHeight =
-    elevation < -8 ? 'low' : elevation < 15 ? 'eye' : elevation < 62 ? 'high' : 'overhead';
+  const height = cameraHeightOf(camera);
   const lead = rig.figures[0];
   let direction: CameraDirection = 'front';
   let shot: CameraShot = 'full';

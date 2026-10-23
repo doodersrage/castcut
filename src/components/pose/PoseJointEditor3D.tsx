@@ -188,7 +188,8 @@ export default function PoseJointEditor3D({
       safeAspect,
       kinds(initialBodies.length),
       DEFAULT_CAMERA,
-      { postures: [postures] }
+      // Seen through the camera the picture reads as taken with (from above, below, eye level).
+      { postures: [postures], estimateCamera: true }
     );
     if (!cameraChoiceIsSet(initialCamera)) return { rig: lifted, restored: false, reframed: false };
     const choice = { ...DEFAULT_CAMERA_CHOICE, ...initialCamera };
@@ -451,8 +452,10 @@ export default function PoseJointEditor3D({
     checkpoint();
     const current = latest.current;
     // A pose picked by name lifts toward the posture it is filed under.
+    // (A starter is drawn at eye level; a reference or Day pose may be a photo from above.)
     const lifted = liftBodies(bodies, safeAspect, kinds(bodies.length, current), DEFAULT_CAMERA, {
       postures: [leadPostures],
+      estimateCamera: !facingFront,
     });
     // A starter faces you; the lift alone read it as turned (see faceCamera).
     if (facingFront) {

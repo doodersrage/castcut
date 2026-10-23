@@ -15,10 +15,13 @@ import {
   DEFAULT_CAMERA,
   figureWorld,
   liftBody,
+  liftBodyWithCamera,
+  projectFigure,
   projectRig,
   setBoneWorldRotation,
 } from '@/lib/pose/rig3d-pose';
-import { faceCamera } from '@/lib/pose/rig3d-camera';
+import { cameraHeightOf, faceCamera } from '@/lib/pose/rig3d-camera';
+import type { CameraHeight } from '@/lib/pose/camera-shot';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
@@ -126,12 +129,65 @@ export function stillPoseFigure(
   kind: Rig3dBodyKind,
   /** Her posture when it is known from outside the joints (the pose she was picked in). */
   postures?: Posture[]
-): { figure: PoseRig3dFigure; side: 1 | -1; turned: number; view: PoseRig3dCamera } {
-  const lifted = liftBody(body, aspect, { body: kind, ...(postures ? { postures } : {}) });
+): {
+  figure: PoseRig3dFigure;
+  side: 1 | -1;
+  turned: number;
+  view: PoseRig3dCamera;
+  /** How high the still's camera looks from, as the Director's Height pick. */
+  height: CameraHeight;
+} {
+  const options = { body: kind, ...(postures ? { postures } : {}) };
+  // Lifted through the camera the still reads as taken with (from above, below, or eye level).
+  const estimated = liftBodyWithCamera(body, aspect, options);
+  const { error, ...read } = posedFromLift(
+    body,
+    aspect,
+    estimated.figure,
+    estimated.camera,
+    postures
+  );
+  if (estimated.camera === DEFAULT_CAMERA) return read;
+  // Straightened, she may no longer draw the still through that camera (a lean that read a
+  // stride from below): then the eye-level camera, when it draws her clearly closer.
+  const { error: levelError, ...level } = posedFromLift(
+    body,
+    aspect,
+    liftBody(body, aspect, { ...options, camera: DEFAULT_CAMERA }),
+    DEFAULT_CAMERA,
+    postures
+  );
+  return levelError + STILL_CAMERA_SLACK < error ? level : read;
+}
+
+/** How much closer the eye-level camera must draw her before it wins over the still's own. */
+const STILL_CAMERA_SLACK = 0.003;
+
+function pictureError(a: NormalizedBody, b: NormalizedBody, aspect: number): number {
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < 14; i += 1) {
+    const p = a[i];
+    const q = b[i];
+    if (!p || !q) continue;
+    sum += Math.hypot((p.x - q.x) * aspect, p.y - q.y);
+    count += 1;
+  }
+  return count ? sum / count : 0;
+}
+
+/** A lifted figure as the Director starts from it: straightened, on the floor, with its camera. */
+function posedFromLift(
+  body: NormalizedBody,
+  aspect: number,
+  lifted: PoseRig3dFigure,
+  camera: PoseRig3dCamera,
+  postures: Posture[] | undefined
+) {
   // (A pose known to be bent over or down keeps the lean the lift found for it.)
-  if (!postures || postures.includes('stand')) straightenInDepth(lifted, DEFAULT_CAMERA);
+  if (!postures || postures.includes('stand')) straightenInDepth(lifted, camera);
   // The arms back where the still has them (straightening swung them with the chest).
-  refitLimbs(lifted, body, aspect, DEFAULT_CAMERA, ['arm']);
+  refitLimbs(lifted, body, aspect, camera, ['arm']);
   // Not looking up, but otherwise the head as the still has it (levelHead turned it away).
   untipHead(lifted);
   const at = placementOf(lifted);
@@ -148,16 +204,23 @@ export function stillPoseFigure(
   // Aimed at her (same picture): framing dollies and shifts about the target.
   const view = aimAtFigures(
     {
-      position: inFrame(DEFAULT_CAMERA.position),
-      target: inFrame(DEFAULT_CAMERA.target),
-      fov: DEFAULT_CAMERA.fov,
+      position: inFrame(camera.position),
+      target: inFrame(camera.target),
+      fov: camera.fov,
     },
     [figure]
   );
-  // Where the editor's camera stood, seen from her (her facing is +z now).
-  const toCamera = Math.atan2(DEFAULT_CAMERA.position[0] - at.x, DEFAULT_CAMERA.position[2] - at.z);
+  // Where the still's camera stood, seen from her (her facing is +z now).
+  const toCamera = Math.atan2(camera.position[0] - at.x, camera.position[2] - at.z);
   const turned = Math.atan2(Math.sin(toCamera - at.yaw), Math.cos(toCamera - at.yaw));
-  return { figure, side: turned < 0 ? -1 : 1, turned: Math.abs((turned * 180) / Math.PI), view };
+  return {
+    figure,
+    side: (turned < 0 ? -1 : 1) as 1 | -1,
+    turned: Math.abs((turned * 180) / Math.PI),
+    view,
+    height: cameraHeightOf(camera),
+    error: pictureError(body, projectFigure(figure, view, aspect), aspect),
+  };
 }
 
 export function poseBeat(
