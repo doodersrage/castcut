@@ -398,6 +398,22 @@ for (const [width, height] of [
     ]) {
       expect(await smallTapTargets(page, root), root).toEqual([]);
     }
+    // Each summary row reads label | value | ›: the label starts inside the card, left-aligned
+    // (a long value used to centre the row and push "Shot" off the left edge at 360 px).
+    const clipped = await page
+      .locator('[data-testid="scene-shot-summary"] button')
+      .evaluateAll(rows =>
+        rows.flatMap(row => {
+          const box = row.getBoundingClientRect();
+          const label = row.querySelector('span');
+          if (!label) return [];
+          const lb = label.getBoundingClientRect();
+          return lb.left < box.left - 0.5 || lb.left > box.left + 24
+            ? [`${label.textContent}: label at ${Math.round(lb.left)}, row at ${Math.round(box.left)}`]
+            : [];
+        })
+      );
+    expect(clipped).toEqual([]);
     // The header, the Film dock and the pinned Queue bar are opaque: scrolled text never shows
     // through them (light and dark).
     for (const theme of ['dark', 'light'] as const) {

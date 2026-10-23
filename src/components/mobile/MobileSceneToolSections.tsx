@@ -93,8 +93,10 @@ function SummaryRow({
 }) {
   return (
     <Button
-      variant="ghost"
-      className="flex !min-h-12 w-full items-center justify-start gap-3 !rounded-none border-t border-[var(--border-subtle)] px-3 py-2 text-left font-normal first:border-t-0"
+      // `plain`: no label wrapper, so the row's own flex lays out label | value | › (ghost wrapped
+      // them in one centred span, and a long value pushed the label off the left at 360 px).
+      variant="plain"
+      className="flex !min-h-12 w-full items-center justify-start gap-3 !rounded-none border-t border-[var(--border-subtle)] px-3 py-2 text-left font-normal first:border-t-0 hover:bg-[var(--bg-muted)] disabled:opacity-50"
       data-testid={testId}
       disabled={disabled}
       onClick={onOpen}
