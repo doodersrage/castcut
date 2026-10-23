@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { groundSitRedoWords } from '../pose/ground-sit-words';
 import { describe, it } from 'node:test';
 import {
   clampQwenImage21MultiReferenceCfg,
@@ -882,6 +883,9 @@ describe('2.1 across-the-table duos', () => {
       withNaturalPoses(solo),
       `Edit <image1>: POSE FIRST: seated across from the window. ${QWEN_IMAGE_21_CANDID_LINE} SCENE: cafe.`
     );
+    // A words-only ground-sit redo (its map dropped) goes out as its words: no candid line.
+    const groundSit = `Edit <image1>: POSE FIRST: she is ${groundSitRedoWords('off-balance')}. SCENE: park.`;
+    assert.equal(withNaturalPoses(groundSit), groundSit);
   });
 });
 

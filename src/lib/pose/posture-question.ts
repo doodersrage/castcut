@@ -245,6 +245,7 @@ export function applyPostureAnswer(
     ...result,
     posture,
     postureMiss: true,
+    ...(groundSit ? { groundSitMiss: true } : {}),
     postureUnsure: false,
     score: Math.round(limbVerdictScore(result.limbScore, true) * 100) / 100,
   };

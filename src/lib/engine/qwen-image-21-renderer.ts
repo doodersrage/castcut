@@ -4,6 +4,7 @@ import {
   withoutConflictingFraming,
   type PoseCameraChoice,
 } from '@/lib/pose/camera-shot';
+import { isGroundSitRedoPrompt } from '../pose/ground-sit-words';
 import { POSE_MODEL_PROFILES } from '../pose/pose-model-profile';
 import { MAX_INPUT_IMAGE_FILENAMES } from '../workflow/load-image-bindings';
 import { beatLiesDown } from '../prompt/beat-text';
@@ -752,7 +753,9 @@ function withCandidStill(prompt: string, customPose = false): string {
   // and its map is attached. The relaxed stance stood up 8 of 24 of them in the pose bench
   // (2026-10-21) — "face down, body raised on straight arms, standing relaxed…" on a plank, a
   // kneel, a hurdle, a kick — and the three-quarter candid camera fights a back view.
-  if (customPose) return out;
+  // A words-only ground-sit redo (ground-sit-redo.ts) is a custom pose with its map dropped: its
+  // words are the pose, stood up 6/6 as sent with no candid line.
+  if (customPose || isGroundSitRedoPrompt(out)) return out;
   out = withRelaxedPoseFirst(out);
   if (picked) return withoutConflictingFraming(out, readPickedCameraShot(out));
   return out.includes(QWEN_IMAGE_21_CANDID_LINE)

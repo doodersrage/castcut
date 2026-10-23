@@ -188,6 +188,7 @@ import {
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
 import { buildDayPoseGuide, isPenetrationLayout, photoPoseForStill } from '@/lib/day/pose-guide';
 import { customPoseWords } from '@/lib/pose/describe';
+import { GROUND_SIT_REDO_MARK } from '@/lib/pose/ground-sit-words';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day/two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut/nodes';
@@ -382,6 +383,13 @@ export function useDayPlannerToolOrchestrationCore() {
   const poseVariantRef = useRef<Partial<Record<DaySlotId, number>>>({});
   /** What each slot's last Image 3 guide asked for, so the gate can score the still against it. */
   const poseGuideExpectRef = useRef<Partial<Record<DaySlotId, DayPoseGuideExpectation>>>({});
+  /**
+   * One-shot words-only redo per slot (ground-sit-redo.ts): the next queue of that slot sends no
+   * pose map, says the pose in these words, and keeps the guide it missed to judge the redo by.
+   */
+  const wordsOnlyRedoRef = useRef<
+    Partial<Record<DaySlotId, { words: string; expectation: DayPoseGuideExpectation }>>
+  >({});
 
   const slots = useMemo(
     () => normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
@@ -2065,6 +2073,15 @@ export function useDayPlannerToolOrchestrationCore() {
         let poseExpectation: DayPoseGuideExpectation | undefined;
         // A custom pose in words (pose-describe.ts) — set once its guide is drawn.
         let customPose = '';
+        // She sat on the ground for a crouch with the map: this redo goes out words-only — no
+        // map, the crouch words in its place — judged against the guide it missed.
+        const wordsOnlyRedo = wordsOnlyRedoRef.current[queueTarget.id];
+        delete wordsOnlyRedoRef.current[queueTarget.id];
+        if (wordsOnlyRedo) {
+          skipPoseGuideImage = true;
+          customPose = wordsOnlyRedo.words;
+          poseExpectation = { ...wordsOnlyRedo.expectation, wordsOnly: wordsOnlyRedo.words };
+        }
         // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
         const kleinSpoonRecipe = kleinSpoonRecipeApplies({
           model: stillModel,
@@ -2236,7 +2253,7 @@ export function useDayPlannerToolOrchestrationCore() {
           }
         }
 
-        if (poseGuideFilename && poseExpectation) {
+        if ((poseGuideFilename || wordsOnlyRedo) && poseExpectation) {
           poseGuideExpectRef.current[queueTarget.id] = poseExpectation;
         } else {
           delete poseGuideExpectRef.current[queueTarget.id];
@@ -2258,13 +2275,15 @@ export function useDayPlannerToolOrchestrationCore() {
                 : skipPoseGuideImage
                   ? {
                       state: 'skipped' as const,
-                      reason: kleinSpoonRecipe
-                        ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
-                        : spoonNoGuide
-                          ? 'Spooning, face-down or against a wall: the drawing fought the words (pose from text)'
-                          : walkingDuoNoGuide
-                            ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
-                            : 'Lightning identity path keeps Image 1 whole (stance from text)',
+                      reason: wordsOnlyRedo
+                        ? `${GROUND_SIT_REDO_MARK} (pose from text)`
+                        : kleinSpoonRecipe
+                          ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
+                          : spoonNoGuide
+                            ? 'Spooning, face-down or against a wall: the drawing fought the words (pose from text)'
+                            : walkingDuoNoGuide
+                              ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
+                              : 'Lightning identity path keeps Image 1 whole (stance from text)',
                     }
                   : {
                       state: 'failed' as const,
@@ -3535,6 +3554,7 @@ export function useDayPlannerToolOrchestrationCore() {
     stillsRef,
     assembledFilmRef,
     rerollNudgeRef,
+    wordsOnlyRedoRef,
     poseVariantRef,
     poseGuideExpectRef,
     buildSlotPrompt,
@@ -3819,6 +3839,11 @@ export type DayPoseGuideExpectation = {
   cued?: boolean;
   /** The slot's beat as queued — the gesture check's questions come from it (pose-gesture.ts). */
   beat?: string;
+  /**
+   * A words-only ground-sit redo: its pose words. Queued without this guide (the map sat her on
+   * the ground) and judged against it posture first (ground-sit-redo.ts judgeWordsOnlyRedo).
+   */
+  wordsOnly?: string;
 };
 
 /** Image 1 sizes by URL — the plate rarely changes within a Day, so probe once. */

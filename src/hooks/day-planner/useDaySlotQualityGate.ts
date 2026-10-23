@@ -15,6 +15,7 @@ import {
   recordSlotReviewOutcome,
 } from '@/lib/play/metrics';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
+import { groundSitLineFor, groundSitRedoFor, judgeWordsOnlyRedo } from '@/lib/pose/ground-sit-redo';
 import { detectStillPose } from '@/lib/pose/detect-client';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose/library';
 import {
@@ -91,7 +92,7 @@ export function useDaySlotQualityGate(
   }
 ) {
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
-  const { poseGuideExpectRef, poseVariantRef } = ctx;
+  const { poseGuideExpectRef, poseVariantRef, wordsOnlyRedoRef } = ctx;
   const { plate, toolSettings, wardrobeLabelFor, stillsRef, updateToolSettings } = ctx;
   const { leadNoun } = ctx;
 
@@ -226,8 +227,10 @@ export function useDaySlotQualityGate(
                 guide: expectation.keypoints,
                 guideAspect: expectation.aspect,
                 detected: detected.pose,
-                customPose: isCustomPoseKey(expectation.poseKey),
+                customPose: isCustomPoseKey(expectation.poseKey) && !expectation.wordsOnly,
               });
+              // A words-only ground-sit redo: on her feet first, its limbs on a looser bar.
+              if (expectation.wordsOnly) poseMatch = judgeWordsOnlyRedo(poseMatch);
               // Keypoints can't read the posture against a clear guide, or the beat has a
               // visible action (the cup at the mouth, the phone up): one vision call asks both.
               if (poseMatch.score >= DEFAULT_MIN_POSE_MATCH) {
@@ -487,10 +490,24 @@ export function useDaySlotQualityGate(
             `${target.label} needs a look: ${decision.reasons.join(', ')}. Redo it by hand — then redo the moments after it too.`
           );
         } else {
+          // She sat on the ground for a crouch / off-balance guide: the reroll goes out without
+          // the map, in crouch words (ground-sit-redo.ts) — and a words-only take rerolled for
+          // anything else stays words-only (the map would sit her down again).
+          const groundSit =
+            decision.poseMiss && poseMatch && expectation
+              ? groundSitRedoFor(poseMatch, {
+                  body: expectation.keypoints[0],
+                  aspect: expectation.aspect,
+                })
+              : null;
+          const wordsOnly = groundSit?.words ?? expectation?.wordsOnly;
+          if (wordsOnly && expectation) {
+            wordsOnlyRedoRef.current[target.id] = { words: wordsOnly, expectation };
+          }
           const nudge = [
             slotRerollNudge(report.flags),
-            decision.poseMiss ? POSE_MISMATCH_NUDGE : '',
-            decision.poseMiss ? poseLimbNudge : '',
+            decision.poseMiss && !groundSit ? POSE_MISMATCH_NUDGE : '',
+            decision.poseMiss && !groundSit ? poseLimbNudge : '',
             decision.faceMiss ? FACE_MISMATCH_NUDGE : '',
           ]
             .filter(Boolean)
@@ -504,7 +521,14 @@ export function useDaySlotQualityGate(
           if (!onlyPoseMiss) {
             poseVariantRef.current[target.id] = (poseVariantRef.current[target.id] ?? 0) + 1;
           }
-          setQualityStatus(`Requeueing ${target.label}: ${decision.reasons.join(', ')}.`);
+          setQualityStatus(
+            groundSit
+              ? groundSitLineFor(
+                  `Requeueing ${target.label} without the pose map — she sat on the ground (${decision.reasons.join(', ')}).`,
+                  leadNoun
+                )
+              : `Requeueing ${target.label}: ${decision.reasons.join(', ')}.`
+          );
           await queueSlot(target);
         }
       } catch (error) {
@@ -526,6 +550,7 @@ export function useDaySlotQualityGate(
     plate,
     poseGuideExpectRef,
     poseVariantRef,
+    wordsOnlyRedoRef,
     queueSlot,
     rerollNudgeRef,
     shared,

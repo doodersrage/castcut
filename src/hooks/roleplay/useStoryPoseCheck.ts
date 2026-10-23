@@ -10,6 +10,8 @@ import {
 } from '@/lib/story/roleplay';
 import { nextStoryPoseCheck, storyPoseMatchMissed } from '@/lib/story/roleplay-pose-check';
 import { detectStillPose } from '@/lib/pose/detect-client';
+import { groundSitRedoFor, judgeWordsOnlyRedo } from '@/lib/pose/ground-sit-redo';
+import type { PoseMatchResult } from '@/lib/pose/score';
 import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
 import { bodyIsUsable, savePoseLibraryEntry, type NormalizedBody } from '@/lib/pose/library';
 import {
@@ -97,12 +99,15 @@ export function useStoryPoseCheck(
           guide: expect.keypoints,
           guideAspect: expect.aspect,
           detected: detected.pose,
-          match: scorePoseMatch({
-            guide: expect.keypoints,
-            guideAspect: expect.aspect,
-            detected: detected.pose,
-            customPose: isCustomPoseKey(expect.poseKey),
-          }),
+          match: wordsOnlyJudged(
+            scorePoseMatch({
+              guide: expect.keypoints,
+              guideAspect: expect.aspect,
+              detected: detected.pose,
+              customPose: isCustomPoseKey(expect.poseKey) && !expect.wordsOnly,
+            }),
+            Boolean(expect.wordsOnly)
+          ),
           gesture: false,
           realism: true,
           // Read at check time: the effect doesn't rerun on every settings change.
@@ -114,6 +119,10 @@ export function useStoryPoseCheck(
           vision.realism ??
           (await checkStillRealism({ imageUrl: shownUrl, shared: loadSettingsCache().shared }));
         const miss = storyPoseMatchMissed(match, DEFAULT_MIN_POSE_MATCH);
+        // Sat on the ground for a crouch / off-balance guide: its Retry drops the pose map.
+        const groundSit =
+          miss &&
+          groundSitRedoFor(match, { body: expect.keypoints[0], aspect: expect.aspect }) !== null;
         recordPoseMatchScore(expect.style, match.score, miss, poseLayoutFromKey(expect.poseKey), {
           cued: expect.cued === true,
         });
@@ -194,6 +203,7 @@ export function useStoryPoseCheck(
             detectedPeople: match.detectedPeople,
             ...(match.extraPeople > 0 ? { extraPeople: match.extraPeople } : {}),
             ...(missView ? { missView } : {}),
+            ...(groundSit ? { groundSit: true } : {}),
           },
           ...(faceMatch ? { faceMatch } : {}),
           ...(realismVerdict ? { realism: { imageUrl, rating: realismVerdict.rating } } : {}),
@@ -237,4 +247,9 @@ export function useStoryPoseCheck(
   ]);
 
   return { poseCheckOff };
+}
+
+/** A words-only ground-sit redo is judged on her feet first, its limbs on a looser bar. */
+function wordsOnlyJudged(match: PoseMatchResult, wordsOnly: boolean): PoseMatchResult {
+  return wordsOnly ? judgeWordsOnlyRedo(match) : match;
 }

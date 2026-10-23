@@ -34,6 +34,11 @@ export type StoryPoseGuideExpect = {
   poseKey: string;
   /** The prompt also spelled the pose out in words. */
   cued?: boolean;
+  /**
+   * A words-only ground-sit redo's pose words: queued without this guide (its map sat her on the
+   * ground) and judged against it posture first (ground-sit-redo.ts).
+   */
+  wordsOnly?: string;
 };
 
 /** Measured face match of a solo still against the Story reference photo. */
@@ -71,6 +76,11 @@ export type StoryPoseMatch = {
   extraPeople?: number;
   /** On a miss: the still's lead laid over the guide's, and the limbs that differ. */
   missView?: PoseMissView;
+  /**
+   * The miss is a seat on the ground for a crouch / off-balance guide: its Retry goes out
+   * without the pose map (ground-sit-redo.ts).
+   */
+  groundSit?: boolean;
 };
 
 /**
@@ -147,10 +157,20 @@ export function storyPoseMatchLabel(
     match.detectedPeople !== match.expectedPeople
       ? ` · ${match.detectedPeople} of ${match.expectedPeople} people found`
       : '';
+  const expect = beat.poseGuideExpect;
+  const wordsOnly = Boolean(expect?.wordsOnly && expect.promptId === beat.promptId);
+  if (miss && match.groundSit) {
+    return {
+      text: `Pose match ${pct}%${heads} — sat on the ground for the pose; Retry redoes it without the pose map.`,
+      miss,
+    };
+  }
   return {
     text: miss
       ? `Pose match ${pct}%${heads} — the still didn't follow its guide; Retry draws a new variant.`
-      : `Pose match ${pct}%${heads}`,
+      : wordsOnly
+        ? `Pose match ${pct}%${heads} · redone without the pose map, after a seat on the ground`
+        : `Pose match ${pct}%${heads}`,
     miss,
   };
 }

@@ -13,7 +13,9 @@ import {
   poseRedoMark,
   poseRedoTakeId,
   type PoseRedoLedger,
+  type PoseRedoReason,
 } from '@/lib/day/pose-redo';
+import { groundSitLineFor, groundSitRedoFor, judgeWordsOnlyRedo } from '@/lib/pose/ground-sit-redo';
 import { detectStillPose } from '@/lib/pose/detect-client';
 import {
   buildPoseMissView,
@@ -68,7 +70,7 @@ export function useDayPoseMissRedo(
 ) {
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
   const { bestOfTwoHardPoses } = ctx;
-  const { poseGuideExpectRef, rerollNudgeRef, slots, stills } = ctx;
+  const { poseGuideExpectRef, rerollNudgeRef, slots, stills, wordsOnlyRedoRef } = ctx;
   const { leadNoun, shared } = ctx;
   const dayEventActive = Boolean(activeDayEvent(ctx.toolSettings.dayEvent, slots));
   const active = redoPoseMisses && !autoReviewStills;
@@ -197,12 +199,12 @@ export function useDayPoseMissRedo(
     runningRef.current = true;
 
     /** Queue the redo the decision asked for, with its nudge. */
-    const redoFor = async (reason: 'pose' | 'realism', nudge: string, message: string) => {
+    const redoFor = async (reason: PoseRedoReason, nudge: string, message: string) => {
       // One event: the moments after this one were made from it — a redo here (moment 1, mid
       // Animate) left clip 1 no longer matching moment 2 (2026-10-12). Say so; the player redoes it.
       if (dayEventActive) {
         setStatus(
-          `${target.label}: ${reason === 'pose' ? 'the pose missed' : 'it looked computer-made'} — on an event Day, redo it by hand (and the moments after it).`
+          `${target.label}: ${reason === 'realism' ? 'it looked computer-made' : reason === 'ground-sit' ? 'she sat on the ground for the pose' : 'the pose missed'} — on an event Day, redo it by hand (and the moments after it).`
         );
         return;
       }
@@ -267,8 +269,10 @@ export function useDayPoseMissRedo(
           guide: expectation.keypoints,
           guideAspect: expectation.aspect,
           detected: detected.pose,
-          customPose: isCustomPoseKey(expectation.poseKey),
+          customPose: isCustomPoseKey(expectation.poseKey) && !expectation.wordsOnly,
         });
+        // A words-only ground-sit redo: on her feet first, its limbs on a looser bar.
+        if (expectation.wordsOnly) match = judgeWordsOnlyRedo(match);
         // Posture unread or the beat has an action: one vision call checks both, and rates how
         // real the still looks.
         let realism: RealismVerdict | null = null;
@@ -335,7 +339,12 @@ export function useDayPoseMissRedo(
         if (!decision.redo) {
           setStatus(
             !missView
-              ? `${target.label} pose matched (${pct}%).`
+              ? expectation.wordsOnly
+                ? groundSitLineFor(
+                    `${target.label} pose matched without the pose map (${pct}%) — on her feet this time.`,
+                    leadNoun
+                  )
+                : `${target.label} pose matched (${pct}%).`
               : `${target.label} missed the pose again (${pct}%${gestureMissed ? `, missed: ${gestureMissed}` : ''}) — redone once already; retry it or pick another pose.`
           );
           return;
@@ -345,6 +354,27 @@ export function useDayPoseMissRedo(
             'realism',
             '',
             `Redoing ${target.label}: it looked computer-made (${realism?.rating}/10).`
+          );
+          return;
+        }
+        // She sat on the ground for a crouch / off-balance guide: the map is what sat her down
+        // (every Qwen-Image 2.1 engine, with or without stronger pose control), so the redo goes
+        // out without it, in crouch words that keep her on her feet (ground-sit-redo.ts).
+        const groundSit = groundSitRedoFor(match, {
+          body: expectation.keypoints[0],
+          aspect: expectation.aspect,
+        });
+        if (groundSit && !dayEventActive) {
+          wordsOnlyRedoRef.current[target.id] = { words: groundSit.words, expectation };
+        }
+        if (groundSit) {
+          await redoFor(
+            'ground-sit',
+            '',
+            groundSitLineFor(
+              `Redoing ${target.label} without the pose map — she sat on the ground (${pct}% match).`,
+              leadNoun
+            )
           );
           return;
         }
@@ -390,6 +420,7 @@ export function useDayPoseMissRedo(
     leadNoun,
     mounted,
     poseGuideExpectRef,
+    wordsOnlyRedoRef,
     queueBlockReason,
     queueSlot,
     rerollNudgeRef,
@@ -402,7 +433,7 @@ export function useDayPoseMissRedo(
   const poseRedoMarks: Record<string, string> = {};
   for (const still of stills) {
     const mark = poseRedoMark(ledger, still.slotId, poseRedoTakeId(still));
-    if (mark) poseRedoMarks[still.slotId] = mark;
+    if (mark) poseRedoMarks[still.slotId] = groundSitLineFor(mark, leadNoun);
   }
 
   return {

@@ -325,10 +325,18 @@ export type PoseMatchResult = {
   /** Some guide person's matched body is in another posture: a miss whatever the angles say. */
   postureMiss: boolean;
   /**
+   * The posture miss is the vision model's "not on her feet" before a crouch / off-balance guide
+   * (`posture-question.ts` groundSitLookalike): she sat on the ground. Its redo drops the pose
+   * map (`ground-sit-redo.ts`).
+   */
+  groundSitMiss?: boolean;
+  /**
    * A custom pose (joint editor, a photo) whose limbs score under
    * {@link CUSTOM_POSE_MIN_LIMB_SCORE}: a miss, as a posture miss is. Only with `customPose`.
    */
   limbMiss?: boolean;
+  /** The limb bar `limbMiss` was judged on, when not {@link CUSTOM_POSE_MIN_LIMB_SCORE}. */
+  limbBar?: number;
   /**
    * No miss called, but a posture read is unsure in another group. The vision posture question
    * (`pose-posture-question.ts`) is asked whenever the lead's still read is unsure.
@@ -605,10 +613,16 @@ export function limbVerdictScore(limbScore: number, miss: boolean, limbsOnly = f
  */
 export function limbMissWords(
   result:
-    Pick<PoseMatchResult, 'limbMiss' | 'postureMiss' | 'limbScore' | 'offLimbs'> | null | undefined
+    | Pick<PoseMatchResult, 'limbMiss' | 'limbBar' | 'postureMiss' | 'limbScore' | 'offLimbs'>
+    | null
+    | undefined
 ): { score: number; needed: number; off: string[] } | null {
   if (!result?.limbMiss || result.postureMiss) return null;
-  return { score: result.limbScore, needed: CUSTOM_POSE_MIN_LIMB_SCORE, off: [...result.offLimbs] };
+  return {
+    score: result.limbScore,
+    needed: result.limbBar ?? CUSTOM_POSE_MIN_LIMB_SCORE,
+    off: [...result.offLimbs],
+  };
 }
 
 /**
@@ -653,7 +667,7 @@ export function describePoseMatch(result: PoseMatchResult): string {
     // Right posture, limbs under the custom-pose bar: say how close, and which limbs are off.
     const off = result.offLimbs.slice(0, 3).join(', ');
     const limbs = Math.round(result.limbScore * 100);
-    const needed = Math.round(CUSTOM_POSE_MIN_LIMB_SCORE * 100);
+    const needed = Math.round((result.limbBar ?? CUSTOM_POSE_MIN_LIMB_SCORE) * 100);
     return `pose match ${pct}% · limbs ${limbs}% of the pose, ${needed}% needed${off ? ` · off: ${off}` : ''}${heads}`;
   }
   return `pose match ${pct}%${heads}`;

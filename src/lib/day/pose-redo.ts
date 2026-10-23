@@ -10,10 +10,14 @@
  */
 
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
+import { GROUND_SIT_REDO_MARK, GROUND_SIT_REDOING_MARK } from '@/lib/pose/ground-sit-words';
 import { REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still/realism';
 
-/** What a redo was for. */
-export type PoseRedoReason = 'pose' | 'realism';
+/**
+ * What a redo was for. `ground-sit`: a pose miss where she sat on the ground for a crouch or an
+ * off-balance guide — redone words-only, without the pose map (ground-sit-redo.ts).
+ */
+export type PoseRedoReason = 'pose' | 'realism' | 'ground-sit';
 
 export type PoseRedoEntry = {
   /** The take whose pose missed and was queued again. */
@@ -107,7 +111,14 @@ export function poseRedoMark(ledger: PoseRedoLedger, slotId: string, take: strin
   const entry = ledger[slotId];
   if (!entry || !take) return null;
   const realism = entry.reason === 'realism';
-  if (!entry.redoTake) return realism ? REALISM_REDOING_MARK : 'Redoing for the pose…';
+  const groundSit = entry.reason === 'ground-sit';
+  if (!entry.redoTake) {
+    return realism
+      ? REALISM_REDOING_MARK
+      : groundSit
+        ? GROUND_SIT_REDOING_MARK
+        : 'Redoing for the pose…';
+  }
   if (entry.redoTake !== take) return null;
-  return realism ? REALISM_REDO_MARK : 'Redone for the pose';
+  return realism ? REALISM_REDO_MARK : groundSit ? GROUND_SIT_REDO_MARK : 'Redone for the pose';
 }

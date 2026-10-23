@@ -110,6 +110,19 @@ describe('day pose redo', () => {
     assert.equal(poseRedoMark(done, 'morning', 'p2'), 'Redone — looked computer-made');
   });
 
+  it('says a ground-sit redo went out without the pose map', () => {
+    const ledger: PoseRedoLedger = { morning: { missedTake: 'p1', reason: 'ground-sit' } };
+    assert.equal(
+      poseRedoMark(ledger, 'morning', 'p1'),
+      'Redoing without the pose map — she sat on the ground…'
+    );
+    const done = notePoseRedoTake(ledger, 'morning', 'p2');
+    assert.equal(
+      poseRedoMark(done, 'morning', 'p2'),
+      'Redone without the pose map — she sat on the ground'
+    );
+  });
+
   it('identifies a take by prompt id, else image', () => {
     assert.equal(poseRedoTakeId({ promptId: ' abc ', imageUrl: '/a.png' }), 'abc');
     assert.equal(poseRedoTakeId({ imageUrl: '/a.png' }), '/a.png');
