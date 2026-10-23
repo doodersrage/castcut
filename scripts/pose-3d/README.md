@@ -9,6 +9,7 @@ Blender Studio's **Human Base Meshes** (CC0 — see `public/pose-3d/LICENSE.md`)
 | `landmarks-*.json` | Nose, eyes, ears and joint centres at rest (glTF space), written by `build_rig.py` |
 | `skeleton.mjs` | Writes `src/lib/pose/rig3d-skeleton.ts` from the GLBs and landmarks, so the pose maths runs without WebGL (unit tests, lifting) |
 | `lift-report.mts` | Lifts every one-person reference pose into the rig and projects it back: the round-trip error |
+| `floor-camera-check.mts` | Figures lying (and sitting) on the floor, drawn from 0°…45° above, and the mocap lying references (35°): the camera height the lift reads for each against the true one |
 
 Rebuilding (only when the bodies change):
 
