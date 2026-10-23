@@ -27,8 +27,8 @@ type VisionShared = Pick<
 
 /**
  * The pose check's vision questions for a still whose pose was read, in one call: the posture
- * question when the keypoints can't read the still's posture against a clear guide
- * (`pose-posture-question.ts`), and the beat's gesture questions (only beats with a visible
+ * question when the keypoints can't read the still's posture against a clear guide, or whether
+ * it is on its feet when a seat on the ground looks like its guide (`pose-posture-question.ts`), and the beat's gesture questions (only beats with a visible
  * action; `gesture: false` skips them). Returns the match with both verdicts folded in. Asks
  * nothing for a still that already missed; a failed or unanswered call never calls a miss.
  *
@@ -61,7 +61,10 @@ export async function checkStillPoseVision(input: {
   if (input.shared?.sessionLlmEnabled === false || match.score < DEFAULT_MIN_POSE_MATCH) {
     return { match, gesture: null, realism: null };
   }
-  const posture = postureQuestion(match, input.lead);
+  const posture = postureQuestion(match, input.lead, {
+    body: input.guide[0],
+    aspect: input.guideAspect,
+  });
   const plan = input.gesture === false ? { questions: [], hands: [] } : planGestureCheck(input);
   const questions = [...(posture ? [posture] : []), ...plan.questions];
   const askRealism = input.realism === true;
