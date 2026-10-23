@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.25] - 2026-10-23
+
 - Day moods: Raunchy is now part of Intimate. Intimate has a **Playful** toggle beside People (Solo / Mixed / Duo), on desk and phone: on, the adult beats are the crude sexual comedy Raunchy had (wardrobe fails, slapstick, accidental flashes), with its own mood lines; off, Intimate as before. The Mood list is Everyday, Suggestive, Sport, Vacation, Intimate (plus the themes). Playful is stored as its own setting (`intimatePlayful`) beside the People mix, and it rides with the Day when it is parked under a Cast, kept on an episode or saved in a Cast file. A Day saved as Raunchy (the live Day, Days parked under other Casts, episodes and Cast files) opens as Intimate with Playful on, and Continue as a story still starts Story silly / raunchy from it. Story's own Raunchy rating is unchanged, and Intimate still needs the server's NSFW setting. The planner runs Intimate · Playful exactly as it ran Raunchy: on 30 seeded Suggest day boards (Intimate and Raunchy, Solo / Mixed / Duo, 5 seeds) built for 4 engines (Edit 2511, Rapid AIO NSFW, Qwen-Image 2.1 Turbo, Klein 9B), all 720 slot prompts built by the previous release from a Raunchy or Intimate Day and by this one from Intimate with Playful on or off are byte-identical, and so are the boards. New unit tests compare every Intimate and Raunchy beat (all slots, all mixes) the same way
 
 ## [v2.12.24] - 2026-10-23
