@@ -42,6 +42,10 @@ import {
   QWEN_IMAGE_21_NOCT_UNET,
   QWEN_IMAGE_21_SOLO_POSE_CONTROL,
   qwenImage21PoseControlAvailable,
+  duoSexPlacement,
+  isWideDuoPlacement,
+  withDuoPlacementFirst,
+  QWEN_IMAGE_21_DUO_BEHIND_GAZE_LINE,
 } from './qwen-image-21-renderer';
 
 /** The shape of a live Rapid AIO Day still (two faces + pose map, ReferenceLatent chain). */
@@ -1275,5 +1279,58 @@ describe('withCameraFirst (a picked camera leads the 2.1 prompt)', () => {
     assert.equal(withCameraFirst(own), own);
     const duo = `${still('Camera: three-quarter view.')} The two people stand together.`;
     assert.equal(withCameraFirst(duo), duo);
+  });
+});
+
+describe('Qwen-Image 2.1 Turbo: two-person sex placement first', () => {
+  const recipe = (placement: string) =>
+    `Carry out this change on Image 1. Keep facial likeness only: POSE FIRST: she is the beat on the bed. Explicit sex photo: ${placement} Both are adults — the woman in her late twenties, the man in his thirties. Keep her face from the Image 1; the man has the face from the Image 2.`;
+  const graph = (prompt: string) => ({
+    '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt, image1: ['900', 0], image2: ['904', 0] } },
+    '8': { class_type: 'KSampler', inputs: { seed: 7, positive: ['4', 0], latent_image: ['906', 0] } },
+    '9': { class_type: 'VAEDecode', inputs: { samples: ['8', 0] } },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+    '900': { class_type: 'LoadImage', inputs: { image: 'day-nude-face-1.png' } },
+    '904': { class_type: 'LoadImage', inputs: { image: 'day-partner-man-1.png' } },
+    '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1104, height: 1472 } },
+  });
+  const run = (prompt: string, options: Parameters<typeof convertQwenEditWorkflowToImage21>[1]) => {
+    const nodes = Object.values(convertQwenEditWorkflowToImage21(graph(prompt), { keepEngine: true, ...options }).workflow) as Array<{ class_type: string; inputs: Record<string, unknown> }>;
+    const latent = nodes.find(n => n.class_type === 'EmptyLatentImage')!.inputs;
+    return { size: [latent.width, latent.height], prompt: String(nodes.find(n => n.class_type === 'TextEncodeQwenImage21')!.inputs.prompt) };
+  };
+  const TURBO = { eightStep: true, eightStepTurbo: true };
+  const BENT = 'The woman stands bent forward over the bed edge, hands braced on it, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.';
+  const LAP = 'Side view of the chair. The man sits in it; the woman sits on his lap facing him, chest to chest, riding his penis.';
+
+  it('leads with the placement, said once, and his gaze on her from behind', () => {
+    const out = run(recipe(BENT), TURBO);
+    assert.ok(out.prompt.startsWith(`POSE FIRST: ${BENT} ${QWEN_IMAGE_21_DUO_BEHIND_GAZE_LINE} Exactly two people`), out.prompt.slice(0, 400));
+    assert.equal(out.prompt.split('hips pushed back').length, 2);
+    assert.doesNotMatch(out.prompt, /she is the beat on the bed/);
+    assert.match(out.prompt, /Explicit sex photo\. Both are adults/);
+    assert.deepEqual(out.size, [1472, 1104]);
+  });
+
+  it('keeps an upright pair on the portrait canvas, with no gaze line', () => {
+    const out = run(recipe(LAP), TURBO);
+    assert.ok(out.prompt.startsWith(`POSE FIRST: ${LAP} Exactly two people`), out.prompt.slice(0, 300));
+    assert.doesNotMatch(out.prompt, /looks down at her body/);
+    assert.deepEqual(out.size, [1104, 1472]);
+  });
+
+  it('is Turbo only', () => {
+    const out = run(recipe(BENT), { eightStep: false });
+    assert.match(out.prompt, /POSE FIRST: she is the beat on the bed\. Explicit sex photo: The woman stands/);
+    assert.deepEqual(out.size, [1104, 1472]);
+  });
+
+  it('reads lying and bent placements as wide', () => {
+    assert.equal(duoSexPlacement(recipe(LAP)), LAP);
+    assert.equal(duoSexPlacement('Day photo: a walk.'), null);
+    assert.equal(isWideDuoPlacement('The woman lies flat on her stomach on the bed'), true);
+    assert.equal(isWideDuoPlacement('The woman is on all fours on the floor'), true);
+    assert.equal(isWideDuoPlacement('The woman leans her back against the wall'), false);
+    assert.equal(withDuoPlacementFirst('Day photo: a walk.'), 'Day photo: a walk.');
   });
 });
