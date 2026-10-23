@@ -48,6 +48,7 @@
     "scripts/pose-bench/capture.mts",
     "scripts/pose-bench/pose-pictures.mts",
     "scripts/pose-bench/ground-sit-redo.mts",
+    "scripts/pose-bench/story-ground-sit.mts",
     "e2e/**/*",
     "node_modules",
     "_to_delete/**/*",

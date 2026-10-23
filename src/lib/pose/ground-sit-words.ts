@@ -11,12 +11,24 @@ export const GROUND_SIT_REDO_TAIL = 'held high off the ground, never sitting';
 /**
  * The pose words for the words-only redo. Off balance: the wording that stood sport_ski-5 up 6/6
  * (sheet D, "N1"); a crouch: the same weight-on-her-feet ending.
+ *
+ * `facing`: which way the guide faces, as `describePoseFigure` says it (its `view`; null is a
+ * body facing the camera). Without the map nothing else says it: Noct-Q crouched sport_ski-5
+ * (front-facing) with her back to the camera 1 time in 10, and its mirrored limbs scored 0.31.
  */
-export function groundSitRedoWords(kind: GroundSitKind, lead: 'she' | 'he' = 'she'): string {
+export function groundSitRedoWords(
+  kind: GroundSitKind,
+  lead: 'she' | 'he' = 'she',
+  facing?: string | null
+): string {
   const possessive = lead === 'he' ? 'his' : 'her';
+  const view =
+    facing === undefined
+      ? ''
+      : `, ${facing ?? `facing the camera, ${possessive} face and chest toward the viewer`}`;
   return kind === 'off-balance'
-    ? `in a low ski racer's crouch on both feet, knees bent, leaning into a turn, ${possessive} bottom ${GROUND_SIT_REDO_TAIL}`
-    : `in a deep crouch on both feet, knees bent, ${possessive} bottom ${GROUND_SIT_REDO_TAIL}`;
+    ? `in a low ski racer's crouch on both feet, knees bent, leaning into a turn${view}, ${possessive} bottom ${GROUND_SIT_REDO_TAIL}`
+    : `in a deep crouch on both feet, knees bent${view}, ${possessive} bottom ${GROUND_SIT_REDO_TAIL}`;
 }
 
 /** A prompt written for a words-only ground-sit redo (its POSE FIRST / Pose: words). */
