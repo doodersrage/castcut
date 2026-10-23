@@ -25,7 +25,7 @@ import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 /** Skip cache→React reloads briefly after local edits so typing is not clobbered. */
 const LOCAL_EDIT_REFRESH_GUARD_MS = 500;
 /** Mood/mix chip flips must win disk races (HMR remount / soft-advance Day handoff). */
-const DAY_MOOD_FLUSH_KEYS = new Set(['dayMood', 'intimateMix']);
+const DAY_MOOD_FLUSH_KEYS = new Set(['dayMood', 'intimateMix', 'intimatePlayful']);
 
 function toolPersistNeedsSyncFlush(partial: Record<string, unknown>): boolean {
   return Object.keys(partial).some(key => DAY_MOOD_FLUSH_KEYS.has(key));

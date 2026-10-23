@@ -132,6 +132,9 @@ import {
   nextDaySlotToEdit,
   normalizeDayIntimateMix,
   normalizeDayMood,
+  dayMoodFlavor,
+  dayMoodWithPlayful,
+  migrateDayMoodFields,
   normalizeDaySlotStills,
   normalizeDaySlots,
   promoteDayStillsToSoftPassChildren,
@@ -337,9 +340,25 @@ export function useDayPlannerToolOrchestrationCore() {
   const workspaceMode = useWorkspaceMode();
   const leanChrome = isLeanWorkspaceMode(workspaceMode);
   const intimateEnabled = useNsfwGeneratorEnabled();
-  const { mounted, shared, toolSettings, updateShared, updateToolSettings } = useCachedSettings(
-    'day',
-    DEFAULT_DAY_TOOL_CACHE
+  const {
+    mounted,
+    shared,
+    toolSettings: storedToolSettings,
+    updateShared,
+    updateToolSettings: storeToolSettings,
+  } = useCachedSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  // Intimate with Playful on runs as the 'raunchy' flavor everywhere below (the old Raunchy
+  // mood's beats and prompt lines, unchanged); writes go back in stored form (mood-flavor.ts).
+  const toolSettings = useMemo(() => {
+    const flavor = dayMoodFlavor(storedToolSettings);
+    return flavor === storedToolSettings.dayMood
+      ? storedToolSettings
+      : { ...storedToolSettings, dayMood: flavor };
+  }, [storedToolSettings]);
+  const updateToolSettings = useCallback(
+    (partial: Parameters<typeof storeToolSettings>[0]) =>
+      storeToolSettings(migrateDayMoodFields(partial)),
+    [storeToolSettings]
   );
   useEngineWarmUp({ mounted, model: shared.model });
 
@@ -3545,6 +3564,56 @@ export function useDayPlannerToolOrchestrationCore() {
     renderOffline,
   });
 
+  // One mood change, flavors included: Intimate and Intimate · Playful are different beat pools,
+  // so flipping Playful re-aligns the board exactly as switching Intimate ↔ Raunchy did.
+  const applyDayMood = (next: import('@/lib/day/planner').DayMoodSetting) => {
+    const theme = dayThemeOf(next);
+    const mood: import('@/lib/day/planner').DayMoodSetting =
+      theme?.id ?? (isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next));
+    const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
+    // Date night / Night out beats need a second person — turn companions on with them.
+    const allowCompanions = theme?.companions ? true : toolSettings.allowCompanions === true;
+    // Another mood is another Day: an event (clothed, one chain) is left, not carried into it.
+    const whole =
+      mood === normalizeDayMood(toolSettings.dayMood)
+        ? { slots, leaves: false }
+        : slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
+    const aligned = ensureDaySlotsMatchMood(whole.slots, {
+      dayMood: mood,
+      intimateMix: mix,
+      allowCompanions,
+    });
+    // A theme dresses from its own pool: kits picked under another mood (a suit on a Cosplay
+    // day, overalls on Date night) are dropped so the queue picks a fitting one.
+    const baseSlots = aligned.changed ? aligned.slots : whole.slots;
+    const redressed = theme
+      ? baseSlots.map(slot =>
+          slot.wardrobeId &&
+          !(theme.eveningKitOnly && dayOutfitBlock(slot.id, theme.id) !== 'evening') &&
+          !theme.kitRe.test(wardrobeLabelFor(slot.wardrobeId) ?? '')
+            ? { ...slot, wardrobeId: undefined }
+            : slot
+        )
+      : baseSlots;
+    const kitsChanged = redressed.some((slot, index) => slot !== baseSlots[index]);
+    updateToolSettings({
+      dayMood: mood,
+      // Intimate ↔ Intimate · Playful: the toggle is part of the mood ('raunchy' flavor is
+      // written back as Intimate + Playful on).
+      ...(isDayAdultMood(mood) ? { intimatePlayful: mood === 'raunchy' } : {}),
+      ...(theme?.companions && toolSettings.allowCompanions !== true
+        ? {
+            allowCompanions: true,
+            ...(normalizeDayIntimateMix(toolSettings.intimateMix) === 'solo'
+              ? { intimateMix: 'mixed' as const }
+              : {}),
+          }
+        : {}),
+      ...(aligned.changed || kitsChanged || whole.leaves ? { slots: redressed } : {}),
+      ...(whole.leaves ? { dayEvent: undefined } : {}),
+    });
+  };
+
   return {
     router,
     setBusy,
@@ -3635,51 +3704,15 @@ export function useDayPlannerToolOrchestrationCore() {
       normalizeDayMood(
         isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
       )) as import('@/lib/day/planner').DayMoodSetting,
-    setDayMood: (next: import('@/lib/day/planner').DayMoodSetting) => {
-      const theme = dayThemeOf(next);
-      const mood: import('@/lib/day/planner').DayMoodSetting =
-        theme?.id ??
-        (isDayAdultMood(next) && !intimateEnabled ? 'everyday' : normalizeDayMood(next));
-      const mix = normalizeDayIntimateMix(toolSettings.intimateMix);
-      // Date night / Night out beats need a second person — turn companions on with them.
-      const allowCompanions = theme?.companions ? true : toolSettings.allowCompanions === true;
-      // Another mood is another Day: an event (clothed, one chain) is left, not carried into it.
-      const whole =
-        mood === normalizeDayMood(toolSettings.dayMood)
-          ? { slots, leaves: false }
-          : slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
-      const aligned = ensureDaySlotsMatchMood(whole.slots, {
-        dayMood: mood,
-        intimateMix: mix,
-        allowCompanions,
-      });
-      // A theme dresses from its own pool: kits picked under another mood (a suit on a Cosplay
-      // day, overalls on Date night) are dropped so the queue picks a fitting one.
-      const baseSlots = aligned.changed ? aligned.slots : whole.slots;
-      const redressed = theme
-        ? baseSlots.map(slot =>
-            slot.wardrobeId &&
-            !(theme.eveningKitOnly && dayOutfitBlock(slot.id, theme.id) !== 'evening') &&
-            !theme.kitRe.test(wardrobeLabelFor(slot.wardrobeId) ?? '')
-              ? { ...slot, wardrobeId: undefined }
-              : slot
-          )
-        : baseSlots;
-      const kitsChanged = redressed.some((slot, index) => slot !== baseSlots[index]);
-      updateToolSettings({
-        dayMood: mood,
-        ...(theme?.companions && toolSettings.allowCompanions !== true
-          ? {
-              allowCompanions: true,
-              ...(normalizeDayIntimateMix(toolSettings.intimateMix) === 'solo'
-                ? { intimateMix: 'mixed' as const }
-                : {}),
-            }
-          : {}),
-        ...(aligned.changed || kitsChanged || whole.leaves ? { slots: redressed } : {}),
-        ...(whole.leaves ? { dayEvent: undefined } : {}),
-      });
-    },
+    // The picker's Intimate keeps the Playful toggle as it was last set.
+    setDayMood: (next: import('@/lib/day/planner').DayMoodSetting) =>
+      applyDayMood(
+        next === 'intimate'
+          ? dayMoodWithPlayful('intimate', storedToolSettings.intimatePlayful === true)
+          : next
+      ),
+    intimatePlayful: normalizeDayMood(toolSettings.dayMood) === 'raunchy',
+    setIntimatePlayful: (next: boolean) => applyDayMood(next ? 'raunchy' : 'intimate'),
     intimateEnabled,
     partnerCharacterId:
       toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== character?.id

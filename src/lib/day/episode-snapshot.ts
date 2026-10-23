@@ -59,6 +59,7 @@ export function dayEpisodeSnapshot(day: Partial<DayToolCache>): EpisodeDay | und
     ...(day.dayMood !== undefined ? { dayMood: day.dayMood } : {}),
     ...(day.dayWeather !== undefined ? { dayWeather: day.dayWeather } : {}),
     ...(day.intimateMix !== undefined ? { intimateMix: day.intimateMix } : {}),
+    ...(day.intimatePlayful !== undefined ? { intimatePlayful: day.intimatePlayful } : {}),
     ...(day.allowCompanions !== undefined ? { allowCompanions: day.allowCompanions } : {}),
   };
 }
@@ -77,6 +78,7 @@ const PARK_FIELDS = [
   'dayMood',
   'dayWeather',
   'intimateMix',
+  'intimatePlayful',
   'allowCompanions',
   'dayThread',
   'dayEvent',

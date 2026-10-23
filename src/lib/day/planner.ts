@@ -178,10 +178,18 @@ function isDaySlotId(value: unknown): value is DaySlotId {
   );
 }
 
-/** Session heat for Day stills — everyday by default; intimate/raunchy are NSFW-gated. */
+/**
+ * Session heat for Day stills — everyday by default; intimate is NSFW-gated. `'raunchy'` is not a
+ * mood you pick: it is the beat flavor of **Intimate with Playful on** (crude sexual comedy). The
+ * planner keys on it exactly as it did when Raunchy was its own mood; storage keeps
+ * `dayMood: 'intimate'` + `intimatePlayful: true` (see {@link dayMoodFlavor}).
+ */
 export type DayMood = 'everyday' | 'suggestive' | 'sport' | 'vacation' | 'intimate' | 'raunchy';
 
-export const DAY_MOOD_OPTIONS: Array<{ id: DayMood; label: string; hint: string }> = [
+/** The moods in the picker (Raunchy is Intimate's Playful toggle now). */
+export type DayPickerMood = Exclude<DayMood, 'raunchy'>;
+
+export const DAY_MOOD_OPTIONS: Array<{ id: DayPickerMood; label: string; hint: string }> = [
   { id: 'everyday', label: 'Everyday', hint: 'Normal day-in-the-life stills' },
   { id: 'suggestive', label: 'Suggestive', hint: 'Clothed heat — lingerie, unzip, charged poses' },
   {
@@ -195,12 +203,11 @@ export const DAY_MOOD_OPTIONS: Array<{ id: DayMood; label: string; hint: string 
     hint: 'Travel-day poses — hotel, pool, market, balcony',
   },
   { id: 'intimate', label: 'Intimate', hint: 'Adult sex beats — NSFW flag required' },
-  {
-    id: 'raunchy',
-    label: 'Raunchy',
-    hint: 'Crude sexual comedy — wardrobe fails & slapstick — NSFW flag required',
-  },
 ];
+
+/** Intimate's Playful toggle: the crude-comedy beats (once the Raunchy mood). */
+export const DAY_INTIMATE_PLAYFUL_LABEL = 'Playful';
+export const DAY_INTIMATE_PLAYFUL_HINT = 'Crude sexual comedy — wardrobe fails & slapstick';
 
 /** Stored Day mood: a base mood or a theme built on Everyday (see day-themes.ts). */
 export type DayMoodSetting = DayMood | DayTheme;
@@ -218,6 +225,16 @@ export function normalizeDayMood(value: unknown): DayMood {
   }
   return 'everyday';
 }
+
+// Intimate · Playful (the old Raunchy mood): stored form ↔ planner flavor. Kept in its own small
+// module so Story's bundle (story-seed.ts) can read it without the planner.
+export {
+  dayMoodFlavor,
+  dayMoodWithPlayful,
+  dayPickerMood,
+  migrateDayMoodFields,
+  type DayMoodFields,
+} from './mood-flavor';
 
 /** Intimate + raunchy need the NSFW generator env flag. */
 export function isDayAdultMood(mood: DayMood | string | null | undefined): boolean {

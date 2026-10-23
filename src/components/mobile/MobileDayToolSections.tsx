@@ -204,6 +204,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
     plateUploadError,
     dayMood,
     setDayMood,
+    setIntimatePlayful,
     partnerCharacterId,
     partnerOptions,
     setPartnerCharacterId,
@@ -834,6 +835,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onDayLengthChange={setDayLength}
           dayMood={dayMood}
           onDayMoodChange={setDayMood}
+          onIntimatePlayfulChange={setIntimatePlayful}
           intimateEnabled={intimateEnabled}
           people={people}
           onPeopleChange={setPeople}

@@ -5129,3 +5129,91 @@ test('Story opens once a whole Day has rendered, before any cut', async ({ page 
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toHaveCount(0);
 });
+
+test('day Intimate · Playful: a Raunchy Day opens as Intimate with Playful on, the toggle flips and sticks', async ({
+  page,
+}) => {
+  await reportIntimateOn(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-playful' },
+    characters: {
+      version: 1,
+      characters: [
+        { id: 'e2e-playful', name: 'Playful', version: 1, updatedAt: Date.now(), descriptor: 'a woman' },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: 'e2e-playful',
+        // Saved before Raunchy became Intimate's Playful toggle.
+        dayMood: 'raunchy',
+        intimateMix: 'duo',
+        allowCompanions: true,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'bedroom', sceneHints: 'in bed together' },
+          { id: 'afternoon', label: 'Afternoon', location: 'shower', sceneHints: 'together' },
+          { id: 'evening', label: 'Evening', location: 'sofa', sceneHints: 'together' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'together' },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+
+  const mood = page.getByTestId('day-mood');
+  await expect(mood).toHaveValue('intimate', { timeout: 30_000 });
+  // One adult mood in the list: no Raunchy entry.
+  await expect(page.getByTestId('day-mood-intimate')).toHaveCount(1);
+  await expect(page.getByTestId('day-mood-raunchy')).toHaveCount(0);
+  const playful = page.getByTestId('day-intimate-playful');
+  await expect(playful).toHaveAttribute('aria-pressed', 'true');
+  await expect(playful).toHaveAttribute('title', /wardrobe fails & slapstick/);
+  await expect(page.getByTestId('day-mood-hint').first()).toContainText('Intimate · Playful duo');
+
+  // Off: plain Intimate, saved as Intimate + Playful off (the old 'raunchy' is gone).
+  await playful.click();
+  await expect(playful).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('day-mood-hint').first()).toContainText(
+    'Intimate duo — every still is a partner scene.'
+  );
+  // Saved to Day's tool settings in IndexedDB (a reload would re-run the seed script).
+  const storedDay = () =>
+    page.evaluate(
+      () =>
+        new Promise<{ dayMood?: string; intimatePlayful?: boolean }>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => resolve({});
+          request.onsuccess = () => {
+            const get = request.result
+              .transaction('kv')
+              .objectStore('kv')
+              .get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              const day = get.result?.value?.tools?.day;
+              resolve({ dayMood: day?.dayMood, intimatePlayful: day?.intimatePlayful });
+            };
+            get.onerror = () => resolve({});
+          };
+        })
+    );
+  await expect.poll(storedDay, { timeout: 15_000 }).toEqual({ dayMood: 'intimate', intimatePlayful: false });
+
+  // On again, then away and back: Playful is only shown on Intimate, and is remembered.
+  await page.getByTestId('day-intimate-playful').click();
+  await expect(page.getByTestId('day-intimate-playful')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(storedDay, { timeout: 15_000 }).toEqual({ dayMood: 'intimate', intimatePlayful: true });
+  await page.getByTestId('day-mood').selectOption('everyday');
+  await expect(page.getByTestId('day-intimate-playful')).toHaveCount(0);
+  await page.getByTestId('day-mood').selectOption('intimate');
+  await expect(page.getByTestId('day-intimate-playful')).toHaveAttribute('aria-pressed', 'true');
+
+  // Phone: the same toggle beside People.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId('day-intimate-playful').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-intimate-playful').first()).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+});

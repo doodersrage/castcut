@@ -15,6 +15,7 @@ export type ParkedDay = Pick<
   | 'dayMood'
   | 'dayWeather'
   | 'intimateMix'
+  | 'intimatePlayful'
   | 'allowCompanions'
   | 'dayThread'
   | 'dayEvent'
@@ -30,6 +31,7 @@ const PARKED_FIELDS = [
   'dayMood',
   'dayWeather',
   'intimateMix',
+  'intimatePlayful',
   'allowCompanions',
   'dayThread',
   'dayEvent',

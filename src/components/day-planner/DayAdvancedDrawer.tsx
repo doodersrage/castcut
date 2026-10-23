@@ -128,7 +128,7 @@ export type DayAdvancedDrawerProps = DayQualitySwitches & {
   notes: string;
   onNotesChange: (next: string) => void;
   /**
-   * Two takes for intimate stills (day-two-takes.ts) — shown only on an Intimate / Raunchy Day;
+   * Two takes for intimate stills (day-two-takes.ts) — shown only on an Intimate Day;
    * separate from the Quality preset and off by default.
    */
   twoTakesIntimate?: boolean;
@@ -334,7 +334,7 @@ export default function DayAdvancedDrawer({
               checked={twoTakesIntimate}
               disabled={busy}
               data-testid="day-two-takes-intimate"
-              title="Each Intimate / Raunchy still is queued twice back to back — the same words, two seeds. When both land the card shows them side by side: keep the one that looks right, the other stays beside it. Not part of the Quality preset."
+              title="Each Intimate still (Playful too) is queued twice back to back — the same words, two seeds. When both land the card shows them side by side: keep the one that looks right, the other stays beside it. Not part of the Quality preset."
               onChange={onTwoTakesIntimateChange}
             >
               Two takes, you pick

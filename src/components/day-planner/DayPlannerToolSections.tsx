@@ -224,6 +224,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     makePlateStatus,
     dayMood,
     setDayMood,
+    setIntimatePlayful,
     partnerCharacterId,
     partnerOptions,
     setPartnerCharacterId,
@@ -910,6 +911,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onDayLengthChange={setDayLength}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
+            onIntimatePlayfulChange={setIntimatePlayful}
             intimateEnabled={intimateEnabled}
             people={people}
             onPeopleChange={setPeople}

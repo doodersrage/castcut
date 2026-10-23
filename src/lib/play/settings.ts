@@ -212,8 +212,13 @@ export type DayToolCache = {
   partnerSentFace?: { partnerId: string; filename: string; url: string };
   /** Weather / season on every setting (unset: whatever the setting says). */
   dayWeather?: import('../day/weather').DayWeather;
-  /** Solo / duo / mixed beat filter when dayMood is intimate or raunchy. */
+  /** Solo / duo / mixed beat filter when dayMood is intimate. */
   intimateMix?: import('../day/planner').DayIntimateMix;
+  /**
+   * Intimate's Playful toggle: crude sexual comedy (wardrobe fails, slapstick) — what the old
+   * Raunchy mood was. Read the mood through dayMoodFlavor (planner.ts).
+   */
+  intimatePlayful?: boolean;
   /** True when {@link plateImageUrl} is the isolated cutout for {@link plateIsolateSourceKey}. */
   referenceIsolated?: boolean;
   /** Fingerprint of the source plate the isolate override was built from. */

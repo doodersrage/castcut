@@ -11,9 +11,12 @@ import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day/themes';
 import { DAY_WEATHER_OPTIONS } from '@/lib/day/weather';
 import type { DayPartnerNoun } from '@/lib/day/partner';
 import {
+  DAY_INTIMATE_PLAYFUL_HINT,
+  DAY_INTIMATE_PLAYFUL_LABEL,
   DAY_LENGTHS,
   DAY_MOOD_OPTIONS,
   DEFAULT_DAY_LENGTH,
+  dayPickerMood,
   isDayAdultMood,
   normalizeDayMood,
   type DayIntimateMix,
@@ -25,9 +28,12 @@ export type DayPlanBarProps = {
   busy?: boolean;
   dayLength?: DayLength;
   onDayLengthChange: (next: DayLength) => void;
+  /** The mood flavor: `'raunchy'` shows as Intimate with Playful on. */
   dayMood: DayMoodSetting;
   onDayMoodChange: (next: DayMoodSetting) => void;
-  /** When false, Intimate / Raunchy are hidden (NSFW generator env off). */
+  /** Intimate's Playful toggle (crude sexual comedy — once the Raunchy mood). */
+  onIntimatePlayfulChange?: (next: boolean) => void;
+  /** When false, Intimate is hidden (NSFW generator env off). */
   intimateEnabled: boolean;
   people: DayIntimateMix;
   onPeopleChange: (next: DayIntimateMix) => void;
@@ -73,10 +79,10 @@ export function DayMoodHints({
                 : 'Intimate mixed — solo and partner beats.'
             : mood === 'raunchy'
               ? mix === 'solo'
-                ? 'Raunchy solo — wardrobe fails as the setup; crude self-touch is the punchline.'
+                ? 'Intimate · Playful solo — wardrobe fails as the setup; crude self-touch is the punchline.'
                 : mix === 'duo'
-                  ? 'Raunchy duo — slapstick sex and partner comedy.'
-                  : 'Raunchy mixed — wardrobe fails and slapstick sex.'
+                  ? 'Intimate · Playful duo — slapstick sex and partner comedy.'
+                  : 'Intimate · Playful mixed — wardrobe fails and slapstick sex.'
               : null;
   return (
     <>
@@ -100,6 +106,7 @@ export default function DayPlanBar({
   onDayLengthChange,
   dayMood,
   onDayMoodChange,
+  onIntimatePlayfulChange,
   intimateEnabled,
   people,
   onPeopleChange,
@@ -114,9 +121,13 @@ export default function DayPlanBar({
   advancedId,
   className = '',
 }: DayPlanBarProps) {
-  const mood = normalizeDayMood(dayMood);
+  // Intimate · Playful (the 'raunchy' flavor) is Intimate in the picker with Playful on.
+  const picked = dayPickerMood(normalizeDayMood(dayMood));
+  const mood = picked.mood;
   // Themes (Date night, Night out…) sit between the clothed moods and the adult ones.
   const activeMood: DayMoodSetting = dayThemeOf(dayMood)?.id ?? mood;
+  const showPlayful =
+    activeMood === 'intimate' && intimateEnabled && Boolean(onIntimatePlayfulChange);
   const kindOptions = [
     ...DAY_MOOD_OPTIONS.filter(option => !isHeatMood(option.id)),
     ...DAY_THEME_OPTIONS,
@@ -185,7 +196,7 @@ export default function DayPlanBar({
             title={
               intimateEnabled
                 ? undefined
-                : 'Intimate and Raunchy are off on this install — an admin turns them on in the server’s settings.'
+                : 'Intimate is off on this install — an admin turns it on in the server’s settings.'
             }
             className="!w-auto"
             onChange={event => onDayMoodChange(event.target.value as DayMoodSetting)}
@@ -242,6 +253,24 @@ export default function DayPlanBar({
             ))}
           </div>
         </div>
+        {showPlayful ? (
+          <div className={group} data-testid="day-intimate-playful-group">
+            <div className="ui-segmented">
+              <button
+                type="button"
+                className="ui-segmented-item"
+                aria-pressed={picked.playful}
+                data-active={picked.playful ? 'true' : 'false'}
+                disabled={busy}
+                data-testid="day-intimate-playful"
+                title={DAY_INTIMATE_PLAYFUL_HINT}
+                onClick={() => onIntimatePlayfulChange?.(!picked.playful)}
+              >
+                {DAY_INTIMATE_PLAYFUL_LABEL}
+              </button>
+            </div>
+          </div>
+        ) : null}
         <label className={group}>
           <span className={groupLabel}>Weather</span>
           <SelectInput

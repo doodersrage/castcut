@@ -6,6 +6,7 @@
  */
 
 import { realKitId } from '../fitting/outfit-handoff';
+import { dayMoodFlavor } from './mood-flavor';
 import type { DaySlot, DaySlotStill } from './planner';
 import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from '../story/roleplay';
 import type { DayToolCache, RoleplayToolCache } from '../play/settings';
@@ -13,7 +14,7 @@ import type { DayToolCache, RoleplayToolCache } from '../play/settings';
 /** One Cast's Day: the live Day when it owns it, else the Day parked under it. */
 export type CastDayPlan = Pick<
   DayToolCache,
-  'slots' | 'stills' | 'dayMood' | 'dayWeather' | 'intimateMix'
+  'slots' | 'stills' | 'dayMood' | 'dayWeather' | 'intimateMix' | 'intimatePlayful'
 > & {
   /** The live Day (BYO clothing / footwear live only there; a parked Day has none). */
   live: boolean;
@@ -39,6 +40,7 @@ export function castDayPlan(
       dayMood: day.dayMood,
       dayWeather: day.dayWeather,
       intimateMix: day.intimateMix,
+      intimatePlayful: day.intimatePlayful,
     };
   }
   const parked = day.parkedDays?.[id];
@@ -50,6 +52,7 @@ export function castDayPlan(
     dayMood: parked.dayMood,
     dayWeather: parked.dayWeather,
     intimateMix: parked.intimateMix,
+    intimatePlayful: parked.intimatePlayful,
   };
 }
 
@@ -141,7 +144,9 @@ export function storySeedFromDay(input: {
   const seed: DayStorySeed = {};
   const setting = storySettingFromDaySlot(slot, plan.dayWeather);
   if (setting) seed.setting = setting;
-  const mood = typeof plan.dayMood === 'string' ? plan.dayMood.trim().toLowerCase() : '';
+  // Intimate with Playful on seeds Story as the old Raunchy mood did (silly / raunchy).
+  const flavor = dayMoodFlavor(plan);
+  const mood = typeof flavor === 'string' ? flavor.trim().toLowerCase() : '';
   const story = MOOD_TO_STORY[mood || 'everyday'];
   if (story) {
     seed.tone = story.tone;

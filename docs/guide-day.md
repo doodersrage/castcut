@@ -19,7 +19,12 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 | **Suggestive** | Lingerie, loungewear — always clothed |
 | **Sport** | 23 sports, mid-action, the right kit and shoes |
 | **Vacation** | Hotel, pool, market, rooftop |
-| **Intimate / Raunchy** | Adult scenes, solo or with a partner — needs the server's adult setting |
+| **Intimate** | Adult scenes, solo or with a partner — needs the server's adult setting |
+
+**Playful** — shown next to People when the mood is Intimate. On, the adult beats turn into crude
+sexual comedy: wardrobe fails, slapstick, accidental flashes (what used to be the Raunchy mood — a
+Day saved as Raunchy opens as Intimate with Playful on). Continue as a story then starts Story
+silly / raunchy.
 
 **People** — Solo, Mixed or Duo. Duo adds a partner (another Cast member, or one made up).
 

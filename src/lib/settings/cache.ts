@@ -70,6 +70,7 @@ import {
 import { loadOnboardingState } from '../app/onboarding-store';
 import { scheduleAfterCommit } from '../batch/schedule-after-commit';
 import { dropDeadToolSettingsFields } from './dead-settings';
+import { migrateStoredDayMood } from './day-mood-migration';
 import { pruneStoredDeadCollapsibleIds } from '../app/collapsible-persist';
 
 export const SETTINGS_CACHE_KEY = 'comfy-prompt-tool-settings-v1';
@@ -1508,14 +1509,20 @@ export function migrateLegacyToolSettings(tools: ToolSettingsCache): {
   // Fields no code reads any more (see dead-settings): dropped on load, and the load saves the
   // cleaned copy once. Every other tool and field is kept exactly as stored.
   const live = dropDeadToolSettingsFields(tools);
-  const legacy = live.tools as LegacyToolSettingsCache;
+  // Day's Raunchy mood is Intimate with Playful on now (mood-flavor.ts) — the live Day and the
+  // Days parked under other Casts.
+  const storedDay = (live.tools as Record<string, unknown>).day;
+  const day = migrateStoredDayMood(storedDay);
+  const dayChanged = day !== storedDay;
+  const liveTools = dayChanged ? ({ ...live.tools, day } as ToolSettingsCache) : live.tools;
+  const legacy = liveTools as LegacyToolSettingsCache;
   const { randomScene, duo, compose, ...rest } = legacy;
 
   if (!randomScene && !duo && !compose) {
-    return { tools: live.tools, changed: live.dropped.length > 0 };
+    return { tools: liveTools, changed: live.dropped.length > 0 || dayChanged };
   }
 
-  let changed = false;
+  let changed = dayChanged;
   let character = { ...(rest.character ?? {}) } as CharacterToolCache;
   let generate = { ...(rest.generate ?? {}) } as GenerateToolCache;
 

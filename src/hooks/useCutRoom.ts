@@ -77,6 +77,7 @@ import {
 import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { applyDayNarration } from '@/lib/day/narration';
 import { dayThemeOf } from '@/lib/day/themes';
+import { dayMoodFlavor } from '@/lib/day/mood-flavor';
 import { dayPartnerNoun } from '@/lib/day/partner';
 import {
   dayStillShownImage,
@@ -1004,7 +1005,7 @@ export function useCutRoom() {
             clipPromptId: still ? (still.clipRenderPromptId ?? still.clipPromptId) : undefined,
             scene: slot?.sceneHints?.trim() || still?.beatKey?.trim() || shot.caption || shot.title,
             setting: slot?.location,
-            heat: still ? spokenLineHeat(day.toolSettings.dayMood) : 'clean',
+            heat: still ? spokenLineHeat(dayMoodFlavor(day.toolSettings)) : 'clean',
             extendBySec: bySec,
             lead:
               getCharacter(
@@ -1429,7 +1430,7 @@ export function useCutRoom() {
             characterName: cast.name,
             filename: result.filename,
             galleryEntryId: result.entryId,
-            theme: dayThemeOf(day.toolSettings.dayMood)?.label,
+            theme: dayThemeOf(dayMoodFlavor(day.toolSettings))?.label,
             posterUrl:
               slots
                 .map(slot =>
@@ -1646,7 +1647,7 @@ export function useCutRoom() {
     dayCast,
     dayStills,
     storyName,
-    dayMood: day.toolSettings.dayMood,
+    dayMood: dayMoodFlavor(day.toolSettings),
     storyTone: story.toolSettings.tone,
     cutFilm,
     assembling,

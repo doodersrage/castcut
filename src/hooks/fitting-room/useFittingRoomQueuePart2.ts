@@ -41,7 +41,7 @@ import {
   saveLookPack,
 } from '@/lib/look/pack';
 import { bumpPlayCampaignStep } from '@/lib/play/campaign';
-import { ensureDaySlotsMatchMood } from '@/lib/day/planner';
+import { dayMoodFlavor, ensureDaySlotsMatchMood } from '@/lib/day/planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
 import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
@@ -377,7 +377,7 @@ export function useFittingRoomQueuePart2(
       const moodAligned = ensureDaySlotsMatchMood(
         applyLookPackToDaySlots(handed.slots, nextPack, { wardrobe: false }),
         {
-          dayMood: daySettings.dayMood,
+          dayMood: dayMoodFlavor(daySettings),
           intimateMix: daySettings.intimateMix,
           allowCompanions: daySettings.allowCompanions === true,
         }

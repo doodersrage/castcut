@@ -18,7 +18,13 @@ export const CAST_FILE_VERSION = 1;
 /** The Day fields a Cast file carries: the plan, not the stills. */
 export type CastFileDay = Pick<
   DayToolCache,
-  'slots' | 'dayLength' | 'dayMood' | 'dayWeather' | 'intimateMix' | 'allowCompanions'
+  | 'slots'
+  | 'dayLength'
+  | 'dayMood'
+  | 'dayWeather'
+  | 'intimateMix'
+  | 'intimatePlayful'
+  | 'allowCompanions'
 >;
 
 export type CastFileLookPicture = { lookId: string; name: string; dataUrl: string };
@@ -51,6 +57,7 @@ const DAY_FIELDS = [
   'dayMood',
   'dayWeather',
   'intimateMix',
+  'intimatePlayful',
   'allowCompanions',
 ] as const;
 
