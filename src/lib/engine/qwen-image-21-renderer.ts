@@ -1058,6 +1058,10 @@ export function isWideDuoPlacement(placement: string | null): boolean {
  * rules. A placement from behind adds his gaze on her: he faced the camera beside her instead.
  * Duo bench (2026-10-23, 14 layouts, see CHANGELOG): with the landscape canvas for lying / bent
  * placements, from-behind and lying layouts joined where they stood side by side.
+ * Noct-Q (35 steps), same bench: the 7 lying / bent layouts × 4 seeds right 5/28 → 16/28, wrong
+ * 2 → 0 (bent over and standing from behind 0/8 → 8/8). The 7 upright layouts gained nothing and
+ * lost a little (oral 1/2 drew a gap, scissors lost the room for a plain backdrop 2/2), so on
+ * Noct-Q only lying / bent placements take it.
  */
 export function withDuoPlacementFirst(prompt: string): string {
   const match = DUO_PLACEMENT_RE.exec(prompt);
@@ -1200,6 +1204,12 @@ export function convertQwenEditWorkflowToImage21(
     fullUnet?: string;
     /** The sampling shift (ModelSamplingAuraFlow) instead of 2.1's own 0.69 — the full pass only. */
     shift?: number;
+    /**
+     * Noct-Q's 35-step pass: a two-person sex placement with a body lying or bent over leads the
+     * prompt on the landscape canvas, as on Turbo (withDuoPlacementFirst); upright ones stay as
+     * they are. Not Noct-Q Fast (not benched on a settled pass).
+     */
+    noctDuoPlacement?: boolean;
     /** The full pass's sampler and scheduler (default euler / simple) — Noct-Q Fast. */
     samplerName?: string;
     scheduler?: string;
@@ -1251,10 +1261,19 @@ export function convertQwenEditWorkflowToImage21(
   const lyingNude = lyingBackNude || lyingSideLine !== null;
   const bentLine = soloAttached && !lyingNude ? bentSoloLineFor(sourceText) : null;
   // Turbo, two people in a sex recipe: the placement leads, and a lying / bent pair gets the
-  // landscape canvas (withDuoPlacementFirst).
+  // landscape canvas (withDuoPlacementFirst). Noct-Q (35 steps): lying / bent pairs only — its
+  // upright pairs gained nothing (see withDuoPlacementFirst).
   const turboPass =
     options.eightStep === true && options.eightStepTurbo === true && options.fourStep !== true;
-  const duoPlacement = turboPass ? duoSexPlacement(sourceText) : null;
+  const noctPlacement =
+    options.noctDuoPlacement === true && options.fourStep !== true && options.eightStep !== true
+      ? duoSexPlacement(sourceText)
+      : null;
+  const duoPlacement = turboPass
+    ? duoSexPlacement(sourceText)
+    : isWideDuoPlacement(noctPlacement)
+      ? noctPlacement
+      : null;
   const canvas =
     lyingNude || isWideDuoPlacement(duoPlacement)
       ? { width: 1472, height: 1104 }
