@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
 import type { Rig3dBodyKind } from '@/lib/pose/rig3d';
+import { cameraHeightOf } from '@/lib/pose/rig3d-camera';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import type { NormalizedBody } from '@/lib/pose/library';
 import {
@@ -156,12 +157,7 @@ function directionFromStill(
   body: Rig3dBodyKind,
   postures?: Posture[]
 ): Direction {
-  const { figure, side, turned, view, height } = stillPoseFigure(
-    pose.body,
-    pose.aspect,
-    body,
-    postures
-  );
+  const { figure, side, turned, view } = stillPoseFigure(pose.body, pose.aspect, body, postures);
   const start = {
     ...poseBeat('Her pose in the picture', figure, { first: true }),
     hold: direction.beats[0]!.hold,
@@ -170,7 +166,7 @@ function directionFromStill(
     turned < 22.5 ? 'front' : turned < 65 ? 'three-quarter' : turned < 125 ? 'side' : 'back';
   return {
     ...replaceBeat(direction, 0, start),
-    camera: { ...direction.camera, direction: facing, side, shot: 'picture', height, view },
+    camera: { ...direction.camera, direction: facing, side, shot: 'picture', height: 'eye', view },
   };
 }
 
@@ -458,6 +454,8 @@ function DirectorSheetOpen({
   };
 
   const pickedShot = direction.camera.shot;
+  // How high the still's own camera reads, while her start is seen through it.
+  const stillHeight = direction.camera.view ? cameraHeightOf(direction.camera.view) : null;
   const sideView =
     direction.camera.direction === 'three-quarter' || direction.camera.direction === 'side';
   const minutes = Math.max(2, Math.round(parts * 2.5));
@@ -829,6 +827,18 @@ function DirectorSheetOpen({
                 onPick={height => setCamera({ height })}
                 testId={`${p}-height`}
               />
+              {stillHeight && stillHeight !== 'eye' ? (
+                // The still's own camera, as the lift read it: shown, not picked (a fitting aid,
+                // not a measurement) — the Height row is still what a pick sets.
+                <p
+                  className="type-caption text-[var(--text-muted)]"
+                  data-testid={`${p}-still-height`}
+                >
+                  Seen through the still&apos;s own camera, which reads as{' '}
+                  {stillHeight === 'low' ? 'from below' : 'from above'} — pick a height to use one
+                  of your own.
+                </p>
+              ) : null}
               <ChipRow
                 label="Direction"
                 options={CAMERA_DIRECTIONS}

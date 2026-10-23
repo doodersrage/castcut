@@ -3,11 +3,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import type { NormalizedBody } from './library';
-import type { PoseRig3dFigure } from './rig3d';
-import { photoPoseCameraChoice } from './rig3d-camera';
+import { normalizePoseRig3d, type PoseRig3d, type PoseRig3dFigure } from './rig3d';
+import { cameraForChoice, photoPoseCameraChoice } from './rig3d-camera';
 import {
   DEFAULT_CAMERA,
   cameraElevation,
+  cloneRig,
   figureWorld,
   liftBodies,
   liftBodyWithCamera,
@@ -81,14 +82,43 @@ describe('the camera a picture was taken with, read during the lift', () => {
     });
     assert.ok(cameraElevation(read.camera) >= 10, `${cameraElevation(read.camera)}°`);
     assert.ok(largestOff(read.figures[0]!) <= 0.1, JSON.stringify(read.figures[0]!.scale));
-    // The pose saved from the editor names that camera: a still taken from above.
-    const saved = (rig: typeof read) => ({
+    // Marked as read from the picture, it stays marked through storage and a clone.
+    assert.equal(read.camera.estimated, true);
+    assert.equal(level.camera.estimated, undefined);
+    assert.equal(normalizePoseRig3d(JSON.parse(JSON.stringify(read)))?.camera.estimated, true);
+    assert.equal(cloneRig(read).camera.estimated, true);
+  });
+
+  it("a camera read from the picture does not change the still's camera words", () => {
+    const refs = JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
+      references: Array<{ id: string; pose: string; aspect: number; people: NormalizedBody[] }>;
+    };
+    const ref = refs.references.find(r => r.id === 'kneel-4')!;
+    const read = liftBodies(ref.people, ref.aspect, ['female'], DEFAULT_CAMERA, {
+      postures: [posturesForReference(ref)],
+      estimateCamera: true,
+    });
+    const saved = (rig: PoseRig3d) => ({
       aspect: ref.aspect,
       people: projectRig(rig, ref.aspect),
       source: 'edited' as const,
       rig3d: rig,
     });
-    assert.equal(photoPoseCameraChoice(saved(read))?.height, 'high');
-    assert.equal(photoPoseCameraChoice(saved(level))?.height, 'eye');
+    // Saved from the editor as the lift opened it: described at eye level, the normal lens.
+    const words = photoPoseCameraChoice(saved(read));
+    assert.equal(words?.height, 'eye');
+    assert.equal(words?.lens, 'normal');
+    // The same numbers without the mark (an older rig, or one orbited there by hand): from
+    // the numbers, as before.
+    const { estimated: _read, ...byHand } = read.camera;
+    assert.equal(photoPoseCameraChoice(saved({ ...read, camera: byHand }))?.height, 'high');
+    // Picked in the Camera panel: the pick, and the mark is gone.
+    const picked = cameraForChoice(
+      read,
+      { height: 'high', direction: 'front', shot: 'full', lens: 'normal' },
+      ref.aspect
+    );
+    assert.equal(picked.estimated, undefined);
+    assert.equal(photoPoseCameraChoice(saved({ ...read, camera: picked }))?.height, 'high');
   });
 });

@@ -307,6 +307,7 @@ export class PoseScene {
       target: [...camera.target],
       fov: camera.fov,
       ...(camera.choice ? { choice: { ...camera.choice } } : {}),
+      ...(camera.estimated ? { estimated: true as const } : {}),
     };
     this.applyCameraFromRig();
     this.events.onChange(this.getRig(), 'camera');
@@ -426,8 +427,10 @@ export class PoseScene {
   }
 
   private applyCameraFromRig(): void {
-    // The pick the camera was set from stays with it; only a hand orbit or zoom drops it.
+    // The pick the camera was set from (or its mark as read from the picture) stays with it;
+    // only a hand orbit or zoom drops it.
     const choice = this.rig.camera.choice;
+    const estimated = this.rig.camera.estimated;
     const posed = makeCamera(this.rig.camera, this.aspect);
     this.camera.position.copy(posed.position);
     this.camera.fov = this.rig.camera.fov;
@@ -438,6 +441,7 @@ export class PoseScene {
     this.ready = true;
     this.syncCameraToRig();
     if (choice) this.rig.camera.choice = { ...choice };
+    if (estimated) this.rig.camera.estimated = true;
     this.updateHandles();
     this.requestRender();
   }

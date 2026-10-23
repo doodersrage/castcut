@@ -20,8 +20,7 @@ import {
   projectRig,
   setBoneWorldRotation,
 } from '@/lib/pose/rig3d-pose';
-import { cameraHeightOf, faceCamera } from '@/lib/pose/rig3d-camera';
-import type { CameraHeight } from '@/lib/pose/camera-shot';
+import { faceCamera } from '@/lib/pose/rig3d-camera';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
 import type { PhotoPose } from '@/lib/pose/types';
@@ -134,8 +133,6 @@ export function stillPoseFigure(
   side: 1 | -1;
   turned: number;
   view: PoseRig3dCamera;
-  /** How high the still's camera looks from, as the Director's Height pick. */
-  height: CameraHeight;
 } {
   const options = { body: kind, ...(postures ? { postures } : {}) };
   // Lifted through the camera the still reads as taken with (from above, below, or eye level).
@@ -218,7 +215,6 @@ function posedFromLift(
     side: (turned < 0 ? -1 : 1) as 1 | -1,
     turned: Math.abs((turned * 180) / Math.PI),
     view,
-    height: cameraHeightOf(camera),
     error: pictureError(body, projectFigure(figure, view, aspect), aspect),
   };
 }

@@ -206,7 +206,10 @@ export function cameraForChoice(
   aspect: number
 ): PoseRig3dCamera {
   const lead = rig.figures[0];
-  if (!lead) return { ...rig.camera, choice: { ...choice } };
+  if (!lead) {
+    const { estimated: _read, ...camera } = rig.camera;
+    return { ...camera, choice: { ...choice } };
+  }
   const forward = figureFacing(lead);
   const left = figureLeft(forward);
   // Keep the side of her the camera is on now (a three-quarter view from her left stays there).
@@ -246,7 +249,10 @@ export function readCameraChoice(rig: PoseRig3d, aspect: number): FullCameraChoi
   const toCamera = new Vector3(...camera.position).sub(new Vector3(...camera.target));
   if (toCamera.lengthSq() < 1e-9) toCamera.set(0, 0, 1);
   toCamera.normalize();
-  const height = cameraHeightOf(camera);
+  // A camera the lift read from the picture names no height or lens: it is a fitting aid, not a
+  // measurement (lift-check: on the mocap references it reads the height's word no better than
+  // eye level), so the still is described as taken at eye level with the normal lens.
+  const height = camera.estimated ? 'eye' : cameraHeightOf(camera);
   const lead = rig.figures[0];
   let direction: CameraDirection = 'front';
   let shot: CameraShot = 'full';
@@ -264,7 +270,13 @@ export function readCameraChoice(rig: PoseRig3d, aspect: number): FullCameraChoi
     const seen = (...indices: number[]) => indices.some(index => inFrame(points[index]!));
     shot = seen(10, 13) ? 'full' : seen(9, 12) ? 'knees' : seen(8, 11) ? 'waist' : 'head';
   }
-  const lens: CameraLens = camera.fov >= 45 ? 'wide' : camera.fov <= 20 ? 'long' : 'normal';
+  const lens: CameraLens = camera.estimated
+    ? 'normal'
+    : camera.fov >= 45
+      ? 'wide'
+      : camera.fov <= 20
+        ? 'long'
+        : 'normal';
   return { height, direction, shot, lens };
 }
 
