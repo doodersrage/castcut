@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.26] - 2026-10-23
+
 - **Scene** (`/scene`, phone `/m/scene`): one shot, exactly as you want it — an optional page, not a step of the film (reach it from Play's **One scene**, the Cast page's **Scene** button or the Film menu). A scene is a Day slot on its own: Day's slot editor (setting, beat, line, pose with the 3D editor and Camera row, look, engine, clothing, group) and Day's still engine run it, so every Day still fix applies to it. Each Cast keeps a list of scenes; render as many **takes** as you like and keep the best (★); **Make it move** animates, copies moves or directs the kept take. **Open as Scene** in a Day slot's sheet copies that slot (and its finished still, as a first take) into a new scene; **Send to Day slot** puts a scene's shot and kept take on a slot of the Cast's Day. Cut gets a third source, **Scenes** — each scene's kept take, its clip when it has one. Intimate is gated exactly as on Day. Scenes sync with settings, follow Cast switches, and Cast files carry their shots (not the takes). Day's slot sheet, clothing picker and Setup sheet are now shared components (DaySlotEditor, DayClothingPicker, DaySetupSheet); Day itself is unchanged. [Guide](docs/guide-scene.md)
 
 ## [v2.12.25] - 2026-10-23
