@@ -1175,18 +1175,18 @@ describe('Qwen-Image 2.1 Noct-Q', () => {
     assert.equal(plain.some(n => n.class_type === 'ModelSamplingAuraFlow'), false);
   });
 
-  it('Fast: the same file in 8 steps on er_sde + linear_quadratic, no shift', () => {
+  it('Fast: the same file and pass in 12 steps, shift 3 kept', () => {
     const w = convert({
       fullUnet: QWEN_IMAGE_21_NOCT_UNET,
       steps: QWEN_IMAGE_21_NOCT_FAST_PASS.steps,
-      samplerName: QWEN_IMAGE_21_NOCT_FAST_PASS.samplerName,
-      scheduler: QWEN_IMAGE_21_NOCT_FAST_PASS.scheduler,
+      shift: QWEN_IMAGE_21_NOCT_FAST_PASS.shift,
     });
     const all = Object.values(w);
     assert.equal(all.find(n => n.class_type === 'UNETLoader')!.inputs.unet_name, QWEN_IMAGE_21_NOCT_UNET);
-    assert.equal(all.some(n => n.class_type === 'ModelSamplingAuraFlow'), false);
+    assert.equal(all.find(n => n.class_type === 'ModelSamplingAuraFlow')!.inputs.shift, 3);
+    assert.equal(all.some(n => n.class_type === 'LoraLoaderModelOnly'), false);
     const ks = w['8']!.inputs;
-    assert.deepEqual([ks.steps, ks.cfg, ks.sampler_name, ks.scheduler], [8, 1, 'er_sde', 'linear_quadratic']);
+    assert.deepEqual([ks.steps, ks.cfg, ks.sampler_name, ks.scheduler], [12, 1, 'euler', 'simple']);
   });
 
   it('is told apart from the other 2.1 engines', () => {
