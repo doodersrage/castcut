@@ -1807,6 +1807,96 @@ function uprightOff(figure: PoseRig3dFigure): number {
   if (spine.lengthSq() < 1e-9) return 0;
   return (spine.angleTo(new Vector3(0, 1, 0)) / (Math.PI / 6)) ** 2;
 }
+/**
+ * A figure lying on the floor tells the camera's height by how she lies on it (an eye-level
+ * camera read every mocap lying reference, shot from 35° above, at eye level): read through the
+ * right camera her back or her legs lie along the floor, and her lengths drawn on the floor match
+ * the base body's. Tuned on figures lying on their back, front and side (a knee up, propped on
+ * the elbows) seen from 0°…45° above and on the mocap lying references (scripts/pose-3d/
+ * floor-camera-check.mts): from 15°…45° off by 5–15° (eye level: 11–39°), the mocap ones 4.5°
+ * (33°); one seen from the floor itself (0°) now reads from about 15° above.
+ */
+const CAMERA_FLAT_WEIGHT = 0.2;
+const CAMERA_FLOOR_WEIGHT = 0.1;
+/**
+ * What a camera read from her lying on the floor may cost in fit against the given camera's:
+ * 0.2% of the picture on average, 2% at the worst joint (the floor must not buy a limb off).
+ */
+const LYING_ERROR_SLACK = 0.002;
+const LYING_WORST_SLACK = 0.02;
+/** Picture segments drawn on the floor: shoulders, hips, each limb's two bones. */
+const FLOOR_SEGMENTS: Array<[number, number]> = [
+  [2, 5],
+  [8, 11],
+  [2, 3],
+  [3, 4],
+  [5, 6],
+  [6, 7],
+  [8, 9],
+  [9, 10],
+  [11, 12],
+  [12, 13],
+];
+const REST_POINTS: Partial<Record<Rig3dBodyKind, Vector3[]>> = {};
+/**
+ * How far a figure lying on the floor, lifted through `camera`, is from lying on it (0 for a
+ * figure not lying), the two cues weighted:
+ *
+ *  - flat: the flatter of her back (neck to hips) and her legs (hips to ankles) tipped off level,
+ *    (degrees / 30)² — one of them lies along the floor even propped on the elbows or a knee up;
+ *  - floor: each picture point's line of sight met with the level floor through her hips, and how
+ *    far the lengths that draws (shoulders, hips, limbs) stray from the base body's beyond one
+ *    scale for all, in log-length, the closest 70% (a knee up or an arm off the floor reads long).
+ *    Through too low a camera the lengths along the line of sight come out long against those
+ *    across it; a camera level with her (her points above its horizon never meet the floor) is
+ *    the worst, 1.
+ */
+function lyingOff(
+  body: NormalizedBody,
+  aspect: number,
+  camera: PoseRig3dCamera,
+  figure: PoseRig3dFigure
+): number {
+  const points = openPoseWorld(figure);
+  if (classifyPosturePoints(points) !== 'lying') return 0;
+  const hipMid = points[8]!.clone().add(points[11]!).multiplyScalar(0.5);
+  const tilt = (v: Vector3) =>
+    v.lengthSq() < 1e-9 ? 0 : Math.abs(Math.asin(Math.max(-1, Math.min(1, v.y / v.length()))));
+  const back = tilt(points[1]!.clone().sub(hipMid));
+  const legs = tilt(points[10]!.clone().add(points[13]!).multiplyScalar(0.5).sub(hipMid));
+  const flat = (Math.min(back, legs) / (Math.PI / 6)) ** 2;
+
+  const rest = (REST_POINTS[figure.body] ??= openPoseWorld(restFigure(figure.body)));
+  const cam = makeCamera(camera, aspect);
+  const origin = cam.position;
+  const onFloor = (i: number): Vector3 | null => {
+    const ray = pictureRay(cam, body[i]!);
+    if (ray.y > -1e-3 || origin.y - hipMid.y < 0.05) return null;
+    return origin.clone().add(ray.multiplyScalar((hipMid.y - origin.y) / ray.y));
+  };
+  const logs: number[] = [];
+  let floor = -1;
+  for (const [a, b] of FLOOR_SEGMENTS) {
+    if (!body[a] || !body[b]) continue;
+    const pa = onFloor(a);
+    const pb = onFloor(b);
+    if (!pa || !pb) {
+      floor = 1;
+      break;
+    }
+    logs.push(Math.log(Math.max(1e-6, pa.distanceTo(pb)) / rest[a]!.distanceTo(rest[b]!)));
+  }
+  if (floor < 0) {
+    if (logs.length < 4) floor = 0;
+    else {
+      const median = [...logs].sort((x, y) => x - y)[Math.floor(logs.length / 2)]!;
+      const spread = logs.map(v => Math.abs(v - median)).sort((x, y) => x - y);
+      const keep = Math.ceil(spread.length * 0.7);
+      floor = Math.min(1, spread.slice(0, keep).reduce((sum, v) => sum + v, 0) / keep);
+    }
+  }
+  return CAMERA_FLAT_WEIGHT * flat + CAMERA_FLOOR_WEIGHT * floor;
+}
 /** How far above her lowest joint (the floor she is on) a camera must stand, metres. */
 const CAMERA_ABOVE_FLOOR = 0.3;
 function cameraBelowFloor(figure: PoseRig3dFigure, camera: PoseRig3dCamera): boolean {
@@ -1826,6 +1916,7 @@ function wrungLimbs(figure: PoseRig3dFigure): number {
  * or down about its target (−20°…45°, then ±5° about the best) with the normal and a wider
  * lens, the body lifted through each, and the camera kept whose lift draws the picture's points
  * closest with the base body's proportions, her back upright if she stands, kneels or sits,
+ * her back or legs along the floor and her lengths drawn on it if she lies there (lyingOff),
  * and few limbs along the line of sight — less what each step away from the given (eye-level)
  * camera costs, more for one that changes the height's word, so an ordinary photo keeps the
  * eye-level camera. Another camera must keep her in the posture and free of the twists the
@@ -1833,12 +1924,14 @@ function wrungLimbs(figure: PoseRig3dFigure): number {
  * close (kneel-4) no longer needs a long arm and short legs to read.
  *
  * Measured on the references (lift-check.mts) the camera moves for about 4 in 10, mostly 5–10°;
- * on the mocap references, the only ones whose camera is known, it reads the height a little
- * closer than eye level does — a fitting aid more than a measurement. liftBodies marks such a
- * camera `estimated`, and the camera words read it as eye level with the normal lens.
+ * on the mocap references, the only ones whose camera is known, it reads the height 6° off on
+ * average against eye level's 14° (lying on the floor, 3.5° against 33°) — a fitting aid more
+ * than a measurement. liftBodies marks such a camera `estimated`, and the camera words read it
+ * as eye level with the normal lens.
  *
  * Coarse to fine, with a first look (no posture search) at each camera: about 7× a plain lift
- * (~280 ms against ~40 ms over the references, in Node), and the same picture again is cached.
+ * (~280 ms against ~40 ms over the references, in Node; ~550 ms for a figure lying on the floor,
+ * whose search more often goes past the first look), and the same picture again is cached.
  */
 export function liftBodyWithCamera(
   body: NormalizedBody,
@@ -1919,6 +2012,11 @@ function searchLiftCamera(
     hopeful: number;
     missed: boolean;
     wrung: number;
+    /** How far off the picture's points are drawn: on average, and the worst (if lying). */
+    error: number;
+    worst: number;
+    /** What lying on the floor counted for (lyingOff), 0 for a figure not lying. */
+    lying: number;
   };
   // What a lift through a camera costs, all told; null for a camera below the floor she is on
   // (a photo of her sitting on the floor is not taken from below it, nor a full-length one from
@@ -1927,6 +2025,7 @@ function searchLiftCamera(
     const rated = liftRated(body, aspect, { ...options, camera }, quick);
     if (camera !== base && cameraBelowFloor(rated.figure, camera)) return null;
     const off = proportionsOff(rated.figure.scale);
+    const lying = lyingOff(body, aspect, camera, rated.figure);
     const missCost =
       rated.score - rated.error - DEPTHINESS_WEIGHT * rated.depth - PROPORTION_WEIGHT * off;
     const total =
@@ -1935,6 +2034,7 @@ function searchLiftCamera(
       (CAMERA_DEPTHINESS_WEIGHT - DEPTHINESS_WEIGHT) * rated.depth +
       (CAMERA_PROPORTION_WEIGHT - PROPORTION_WEIGHT) * off +
       CAMERA_UPRIGHT_WEIGHT * uprightOff(rated.figure) +
+      lying +
       cost(camera);
     return {
       figure: rated.figure,
@@ -1943,6 +2043,10 @@ function searchLiftCamera(
       hopeful: total - Math.max(0, missCost),
       missed: rated.missed || !rated.held,
       wrung: wrungLimbs(rated.figure),
+      error: rated.error,
+      worst:
+        lying > 0 ? worstPointError(body, projectFigure(rated.figure, camera, aspect), aspect) : 0,
+      lying,
     };
   };
   const given = rate(base, false)!;
@@ -1952,8 +2056,17 @@ function searchLiftCamera(
   if (!torso) return { figure: given.figure, camera: base };
   // Another camera wins only by costing less — never by losing the posture or adding a twist
   // the given camera's lift does without.
+  // Nor, by her lying on the floor, at the cost of drawing the picture's points worse than the
+  // closest camera looked through yet: on the floor, a camera must win on fit as before.
+  let closest = given.error;
+  let closestWorst = given.lying ? given.worst : Infinity;
   const consider = (pick: Pick | null) => {
     if (!pick || (pick.missed && !given.missed) || pick.wrung > given.wrung) return;
+    const close =
+      pick.error <= closest + LYING_ERROR_SLACK && pick.worst <= closestWorst + LYING_WORST_SLACK;
+    closest = Math.min(closest, pick.error);
+    if (pick.lying) closestWorst = Math.min(closestWorst, pick.worst);
+    if (pick.lying && !close && pick.total - pick.lying >= best.total - best.lying) return;
     if (pick.total < best.total) best = pick;
   };
   // A first look through every camera: the distances the picture suggests, no posture search.
@@ -1996,6 +2109,17 @@ function searchLiftCamera(
     for (const step of [-search.refine, search.refine]) look(at(elevation + step, best.camera.fov));
   }
   return { figure: best.figure, camera: best.camera };
+}
+
+function worstPointError(a: NormalizedBody, b: NormalizedBody, aspect: number): number {
+  let worst = 0;
+  for (let i = 0; i < 14; i += 1) {
+    const p = a[i];
+    const q = b[i];
+    if (!p || !q) continue;
+    worst = Math.max(worst, Math.hypot((p.x - q.x) * aspect, p.y - q.y));
+  }
+  return worst;
 }
 
 function meanPointError(a: NormalizedBody, b: NormalizedBody, aspect: number): number {

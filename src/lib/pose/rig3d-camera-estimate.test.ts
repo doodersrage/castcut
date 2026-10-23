@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Quaternion, Vector3 } from 'three';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
@@ -15,6 +16,7 @@ import {
   orbitCamera,
   projectFigure,
   projectRig,
+  restFigure,
   turnFigure,
 } from './rig3d-pose';
 import { posturesForReference, type Posture } from './rig3d-posture-points';
@@ -64,6 +66,38 @@ describe('the camera a picture was taken with, read during the lift', () => {
       // (Held toward eye level: an ordinary photo must not drift.)
       assert.ok(elevation >= 10 && elevation <= 45, `${elevation}°`);
     }
+  });
+
+  it('a figure lying on the floor seen from above is read from above', () => {
+    // Laid on her back, a little turned from lying straight away from the camera.
+    const lying = (turn: number) => {
+      const figure = restFigure('female');
+      const onBack = new Quaternion()
+        .setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2)
+        .multiply(new Quaternion(...figure.bones.hips!));
+      figure.bones.hips = [onBack.x, onBack.y, onBack.z, onBack.w];
+      turnFigure(figure, ((turn - 40) * Math.PI) / 180);
+      return figure;
+    };
+    for (const [turn, elevation] of [
+      [110, 30],
+      [155, 45],
+    ] as const) {
+      const { camera } = liftBodyWithCamera(seenFrom(lying(turn), elevation), ASPECT, {
+        postures: ['lying'],
+      });
+      const read = cameraElevation(camera);
+      assert.ok(Math.abs(read - elevation) <= 10, `${turn}° round, ${elevation}° above: ${read}°`);
+    }
+    // A mocap reference drawn through a camera 35° above (scripts/pose-refs/mocap.py).
+    const refs = JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
+      references: Array<{ id: string; pose: string; aspect: number; people: NormalizedBody[] }>;
+    };
+    const ref = refs.references.find(r => r.id === 'lie-1')!;
+    const { camera } = liftBodyWithCamera(ref.people[0]!, ref.aspect, {
+      postures: posturesForReference(ref),
+    });
+    assert.ok(cameraElevation(camera) >= 20, `${cameraElevation(camera)}°`);
   });
 
   it('a kneel photographed from above and close needs no long arm and short legs', () => {
