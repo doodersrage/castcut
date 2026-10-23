@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.24] - 2026-10-23
+
 - Qwen-Image 2.1 Turbo, adult two-person stills: the two bodies are placed together more often. Before, Turbo often stood or knelt him beside her facing the camera, with a gap between them, on lying and from-behind layouts. Now the recipe's own placement (where each body goes) leads the prompt as its POSE FIRST line, ahead of the face rules, said once. A placement with a body lying or bent over renders on the landscape canvas (1472×1104) instead of portrait. A from-behind placement adds *He looks down at her body, turned toward her, not toward the camera*. Applies to Day and Story duos on Turbo only, at no extra render time (~9 s a still either way). Duo bench, 14 Intimate layouts captured from the Day page (`scripts/pose-bench/capture.mts --mode duo`), placement judged by eye. On the 7 lying / bent layouts (missionary, mating press, cowgirl, prone, spooning, bent over, standing from behind) × 4 seeds, right 4 of 28 → 21 of 28, wrong 3 → 0. Spooning, bent over and standing from behind were right 12 of 12, from 0. Mating press still kneels him beside her. The 7 upright layouts were unchanged (lap, lift, wall and scissors still part right), and there was no new identity bleed or extra limbs. Also tried, not shipped: the two-person map through the Fun ControlNet Union (0.5 until 60%) changed placement little, opened gaps on prone and spooning, and took 35–50 s a still against ~10 s. Contact words computed from the guide's two skeletons, and placement words alone on the portrait canvas, changed nothing. Dropping her body photo changed nothing either. A gaze line on every layout broke oral 2 of 2
 
 ## [v2.12.23] - 2026-10-23
