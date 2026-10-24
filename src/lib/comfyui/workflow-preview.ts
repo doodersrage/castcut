@@ -1,5 +1,6 @@
 import { resolveComfyUiConfig } from './client';
 import { qwenImage21TurboCheckpointFor } from '../engine/qwen-image-21-renderer';
+import { fibo2InventoryFrom } from '../engine/fibo2-renderer';
 import { resolveActiveLoraStack } from '../lora/stack';
 import {
   injectPromptsWithFallbacks,
@@ -259,6 +260,8 @@ export function previewWorkflowInjection(input: WorkflowPreviewInput): WorkflowP
       qwenImage21KeepEngine: runtime?.qwenImage21KeepEngine,
       qwenImage21PoseControl: runtime?.qwenImage21PoseControl,
       qwenImage21Noct: runtime?.qwenImage21Noct,
+      fibo2: runtime?.fibo2,
+      fibo2Inventory: fibo2InventoryFrom(inventoryModels, input.inventory?.nodeTypes),
       qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
         inventoryModels?.unets,
         runtime?.qwenImage21TurboCheckpoint

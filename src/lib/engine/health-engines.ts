@@ -54,6 +54,14 @@ export const ENGINE_HEALTH_ENGINES: readonly EngineHealthEngine[] = [
     aliases: ['qwen-image-2.1-edit-noct-fast-8'],
   },
   {
+    id: 'fibo-2',
+    label: 'Fibo 2.0',
+    model: 'fibo-2-edit-turbo',
+    kind: 'still',
+    // The health graph is the queued one (preview runs the same Fibo swap and route pick).
+    aliases: [],
+  },
+  {
     id: 'qwen-21-pruna',
     label: '2.1 Pruna',
     model: 'qwen-image-2.1-edit-pruna-8',

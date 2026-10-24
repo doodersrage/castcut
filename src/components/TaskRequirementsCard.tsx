@@ -226,6 +226,23 @@ export default function TaskRequirementsCard({
           {rootHint ? ` — ${rootHint}` : ''}
         </p>
       ) : null}
+      {missing.nodePacks.some(pack => pack.url) ? (
+        <p className="mt-1 type-caption text-[var(--text-muted)]">
+          {missing.nodePacks
+            .filter(pack => pack.url)
+            .map(pack => (
+              <a
+                key={pack.label}
+                href={pack.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mr-2 underline"
+              >
+                {pack.label}
+              </a>
+            ))}
+        </p>
+      ) : null}
       {progress != null ? (
         <div className="mt-2" data-testid={`${testId}-progress`}>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-muted)]">

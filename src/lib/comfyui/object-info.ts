@@ -5,6 +5,7 @@ import type { ComfyUiRuntimeConfig } from './config';
 import { fetchComfyModelFilenames } from './models';
 import { readStringNameList } from './features';
 import { discoverWebpSaveAdapters, type WebpSaveAdapter } from '../workflow/save-format';
+import { FIBO2_UNET_RE } from '../engine/fibo2-renderer';
 
 export type ComfyUiModelLists = {
   checkpoints: string[];
@@ -22,6 +23,13 @@ export type ComfyUiModelLists = {
   embeddings?: string[];
   /** ReActor face restore models (CodeFormer / GFPGAN) — the talking-clip face pass. */
   faceRestoreModels?: string[];
+  /** Fibo 2.0 Edit Turbo files the ComfyUI-Fibo2 loader lists (only with the pack). */
+  fibo2Unets?: string[];
+  /**
+   * Of those, the ones whose safetensors metadata marks the pack's converted format (read on the
+   * server, `/view_metadata`). Missing: not read.
+   */
+  fibo2PackUnets?: string[];
 };
 
 function readNodeInputOptions(
@@ -117,7 +125,42 @@ export function parseComfyObjectInfoModelLists(
       name => name !== 'none'
     ),
     embeddings: [],
+    fibo2Unets: readNodeInputOptions(objectInfo, 'Fibo2DiffusionModelLoader', 'model_name').filter(
+      name => FIBO2_UNET_RE.test(name)
+    ),
   };
+}
+
+/**
+ * The Fibo files whose metadata says they are ComfyUI-Fibo2's converted checkpoint. Comfy-Org's
+ * repackage for the built-in route carries the same filename upstream but no such metadata, and
+ * the pack refuses it. Null when ComfyUI does not answer.
+ */
+async function readFibo2PackUnets(baseUrl: string, files: string[]): Promise<string[] | null> {
+  try {
+    const verdicts = await Promise.all(
+      files.map(async file => {
+        const res = await fetch(
+          `${baseUrl}/view_metadata/diffusion_models?filename=${encodeURIComponent(file)}`,
+          {
+            cache: 'no-store',
+            signal: AbortSignal.timeout(OBJECT_INFO_FETCH_TIMEOUT_MS),
+            redirect: 'manual',
+          }
+        );
+        // 404: no metadata at all (Comfy-Org's file).
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const meta = (await res.json()) as Record<string, unknown>;
+        return meta.fibo2_native_format === '1' && meta.fibo2_component === 'diffusion_model'
+          ? file
+          : null;
+      })
+    );
+    return verdicts.filter((file): file is string => file !== null);
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchComfyObjectInfoModelLists(
@@ -192,6 +235,10 @@ function cloneObjectInfoPayload(payload: ComfyObjectInfoPayload): ComfyObjectInf
       clipVisions: [...(payload.models.clipVisions ?? [])],
       faceRestoreModels: [...(payload.models.faceRestoreModels ?? [])],
       embeddings: [...(payload.models.embeddings ?? [])],
+      ...(payload.models.fibo2Unets ? { fibo2Unets: [...payload.models.fibo2Unets] } : {}),
+      ...(payload.models.fibo2PackUnets
+        ? { fibo2PackUnets: [...payload.models.fibo2PackUnets] }
+        : {}),
     },
     nodeTypes: new Set(payload.nodeTypes),
     supportsNeuralUpscaleTileSize: payload.supportsNeuralUpscaleTileSize,
@@ -251,6 +298,10 @@ export async function fetchComfyObjectInfoPayload(
   const embeddings = await embeddingsPromise;
   if (embeddings.length > 0) {
     models.embeddings = embeddings;
+  }
+  if (models.fibo2Unets?.length) {
+    const verified = await readFibo2PackUnets(baseUrl, models.fibo2Unets);
+    if (verified) models.fibo2PackUnets = verified;
   }
   const payload: ComfyObjectInfoPayload = {
     models,

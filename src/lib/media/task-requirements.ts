@@ -6,6 +6,7 @@
  */
 
 import { getCatalogAsset } from '@/lib/comfyui/comfy-asset-catalog';
+import { FIBO2_PACK_NODES, FIBO2_PACK_URL, isFibo2Model } from '@/lib/engine/fibo2-renderer';
 
 /** The smallest file set that runs each model (all-in-one checkpoints are one file). */
 const MODEL_ASSETS: Record<string, string[]> = {
@@ -60,6 +61,14 @@ const MODEL_ASSETS: Record<string, string[]> = {
     'qwen-image-2.1-pruna-8step',
     'qwen-rapid-aio-nsfw-checkpoint',
   ],
+  // Fibo 2.0 Edit Turbo: its own model, encoder and VAE; rides the Rapid NSFW graph like 2.1
+  // (recipes, and the sex-pose duo still that stays on Rapid).
+  'fibo-2-edit-turbo': [
+    'fibo2-edit-turbo-nodepack',
+    'fibo2-qwen3vl-4b-int8',
+    'flux2-vae',
+    'qwen-rapid-aio-nsfw-checkpoint',
+  ],
   // The Turbo checkpoint alone (7.3 GB) — the base + Turbo LoRA route still runs when installed.
   'qwen-image-2.1-edit-turbo-8': [
     'qwen-image-2.1-turbo-int8',
@@ -80,9 +89,19 @@ const NODE_PACKS = {
     label: 'Qwen-Image 2.1 Fun-Acc 4-step sampler (T8)',
     nodeTypes: ['T8QwenImage21FunAccPDD4Step'],
   },
+  fibo2: {
+    label: 'ComfyUI-Fibo2 (Fibo 2.0 Edit Turbo)',
+    nodeTypes: Object.values(FIBO2_PACK_NODES),
+    url: FIBO2_PACK_URL,
+  },
 } as const;
 
-export type TaskNodePack = { label: string; nodeTypes: readonly string[] };
+export type TaskNodePack = {
+  label: string;
+  nodeTypes: readonly string[];
+  /** Where the pack lives, when ComfyUI Manager may not know it. */
+  url?: string;
+};
 
 export type TaskRequirements = {
   /** Catalog asset ids (see comfy-asset-catalog), de-duplicated, in order of need. */
@@ -130,6 +149,10 @@ export function taskRequirements(input: TaskRequirementInput): TaskRequirements 
   };
   const model = input.model?.trim() ?? '';
   addModel(model, 'stills');
+  if (isFibo2Model(model)) {
+    nodePacks.push(NODE_PACKS.fibo2);
+    reasons.push('Fibo 2.0 nodes');
+  }
   if (model.startsWith('qwen-image-2.1') && model.endsWith('lightning-4')) {
     nodePacks.push(NODE_PACKS.qwenImage21FourStep);
     reasons.push('4-step sampler');

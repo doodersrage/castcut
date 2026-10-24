@@ -418,6 +418,13 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     samplerName: 'euler',
     scheduler: 'simple',
   }),
+  // Fibo 2.0 Edit Turbo: the converter sets Bria's 4-step Euler pass at CFG 1 (FIBO2_STEPS).
+  'fibo-2-edit-turbo': fixedSamplerPresets({
+    steps: 4,
+    cfg: 1,
+    samplerName: 'euler',
+    scheduler: 'simple',
+  }),
   'qwen-image-2.1-edit-lightning-4': fixedSamplerPresets({
     steps: 4,
     ...QWEN_LIGHTNING_SAMPLER,

@@ -110,7 +110,11 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
-import { resolveAdultNudePlateQueueModel, resolveDayStillModel } from '@/lib/queue/tool-model';
+import {
+  clothedOnlyHandOffNote,
+  resolveAdultNudePlateQueueModel,
+  resolveDayStillModel,
+} from '@/lib/queue/tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import {
   STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP,
@@ -3336,7 +3340,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           redoReason: options?.looksWrong && promptId ? 'looks-wrong' : undefined,
           adultHold: undefined,
           adultGated: adultSafeguards ? true : undefined,
-          engineNote: poseEngineSwap?.reason,
+          engineNote: poseEngineSwap?.reason ?? clothedOnlyHandOffNote(shared.model, stillModel),
           referenceNote: referenceNotes.length > 0 ? referenceNotes.join(' ') : undefined,
         });
         stillsRef.current = nextStills;

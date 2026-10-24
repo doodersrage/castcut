@@ -3,6 +3,7 @@ import {
   clampQwenImage21MultiReferenceCfg,
   qwenImage21TurboCheckpointFor,
 } from '../engine/qwen-image-21-renderer';
+import { fibo2InventoryFrom } from '../engine/fibo2-renderer';
 import path from 'node:path';
 import {
   type ComfyUiRuntimeConfig,
@@ -446,6 +447,7 @@ function injectPromptsIntoWorkflow(
     supportsNeuralUpscaleTileSize?: boolean;
     availableNodeTypes?: Iterable<string> | null;
     webpSaveAdapters?: import('../workflow/save-format').WebpSaveAdapter[] | null;
+    fibo2Inventory?: import('../engine/fibo2-renderer').Fibo2Inventory | null;
   }
 ) {
   const { params, loaders, customTokens } = resolveQueueInjectionContext({
@@ -572,6 +574,8 @@ function injectPromptsIntoWorkflow(
       qwenImage21KeepEngine: runtime?.qwenImage21KeepEngine,
       qwenImage21PoseControl: runtime?.qwenImage21PoseControl,
       qwenImage21Noct: runtime?.qwenImage21Noct,
+      fibo2: runtime?.fibo2,
+      fibo2Inventory: enrichInventory?.fibo2Inventory,
       qwenImage21TurboCheckpoint: qwenImage21TurboCheckpointFor(
         enrichInventory?.availableUnets,
         runtime?.qwenImage21TurboCheckpoint
@@ -666,6 +670,7 @@ export async function queuePromptToComfyUi(
             supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
             availableNodeTypes: objectInfo?.nodeTypes,
             webpSaveAdapters: objectInfo?.webpSaveAdapters,
+            fibo2Inventory: fibo2InventoryFrom(objectInfo?.models, objectInfo?.nodeTypes),
           });
           const unresolved = findUnresolvedLoaderPlaceholders(injected.workflow);
           if (unresolved.length > 0) {
@@ -812,6 +817,7 @@ export async function queuePromptToComfyUi(
           supportsNeuralUpscaleTileSize: objectInfo?.supportsNeuralUpscaleTileSize,
           availableNodeTypes: objectInfo?.nodeTypes,
           webpSaveAdapters: objectInfo?.webpSaveAdapters,
+          fibo2Inventory: fibo2InventoryFrom(objectInfo?.models, objectInfo?.nodeTypes),
         }
       );
       activePromptBody = {

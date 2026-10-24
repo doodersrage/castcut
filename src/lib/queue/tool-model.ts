@@ -101,7 +101,9 @@ export function resolveTxt2iModel(current?: string | null): ComfyImageModel {
  * entry, and its 2512 counterpart is usually not installed), else the text-to-image counterpart.
  */
 export function cutGenerateModel(current?: string | null): ComfyImageModel {
-  if (current?.trim().toLowerCase().startsWith('qwen-image-2.1')) return DEFAULT_EDIT_ENGINE;
+  const id = current?.trim().toLowerCase() ?? '';
+  // Fibo 2.0 Edit Turbo needs a picture to edit too (its encode takes at least one).
+  if (id.startsWith('qwen-image-2.1') || id === 'fibo-2-edit-turbo') return DEFAULT_EDIT_ENGINE;
   return resolveTxt2iModel(current);
 }
 
@@ -414,8 +416,14 @@ export function resolveRapidAioEditModel(options?: {
  */
 export function resolveAdultNudePlateQueueModel(
   model: ComfyImageModel | string,
-  options?: { adultNude?: boolean }
+  options?: { adultNude?: boolean; installed?: (modelId: string) => boolean }
 ): ComfyImageModel {
+  // A clothed-only engine's nude still queues on its adult engine (Story's nude plates).
+  const adultEngine = clothedOnlyAdultEngine(model, {
+    adultNude: options?.adultNude === true,
+    installed: options?.installed,
+  });
+  if (adultEngine) return resolveAdultNudePlateQueueModel(adultEngine, options);
   // An engine that rides another graph (Qwen-Image 2.1) keeps its own id — the queue maps it.
   if (poseProfileForModel(String(model)).graphBaseModel) return model;
   const resolved = resolveModelForQueueTool(model, 'image-prompt');
@@ -435,6 +443,31 @@ export function resolveAdultNudePlateQueueModel(
 /** Edit/img2img counterpart for a T2I preset (e.g. 2512 Lightning → Edit-2511 Lightning). */
 export function resolveEditCounterpartForImg2img(model: ComfyImageModel | string): ComfyImageModel {
   return inferEditCounterpart(normalizeModel(model));
+}
+
+/**
+ * The engine a clothed-only engine's nude still renders on (first installed of its
+ * `adultEngines`, else the last — Rapid AIO NSFW, which its graph is built on). Null otherwise.
+ */
+export function clothedOnlyAdultEngine(
+  model: ComfyImageModel | string,
+  options: { adultNude: boolean; installed?: (modelId: string) => boolean }
+): ComfyImageModel | null {
+  const profile = poseProfileForModel(String(model));
+  if (!options.adultNude || !profile.clothedOnly || !profile.adultEngines?.length) return null;
+  return (profile.adultEngines.find(id => COMFY_MODEL_IDS.has(id) && options.installed?.(id)) ??
+    profile.adultEngines[profile.adultEngines.length - 1]) as ComfyImageModel;
+}
+
+/** The card line for a nude still moved off a clothed-only engine. */
+export function clothedOnlyHandOffNote(
+  picked: string | null | undefined,
+  rendered: string | null | undefined
+): string | undefined {
+  if (!picked || !rendered || picked === rendered) return undefined;
+  if (!poseProfileForModel(picked).clothedOnly) return undefined;
+  const name = (id: string) => getComfyModelDefinition(id)?.label?.replace(/\s*\(.*\)$/, '') ?? id;
+  return `Rendered on ${name(rendered)} — ${name(picked)} doesn't do nude stills`;
 }
 
 /**
@@ -462,6 +495,10 @@ export function resolveDayStillModel(
   }
 ): ComfyImageModel {
   const picked = normalizeModel(model);
+  // A clothed-only engine (Fibo 2.0) never renders a nude still: the adult engine does, hand-offs
+  // on or off, and that engine's own hand-offs apply (2.1 Turbo's sex-pose duo → Rapid NSFW).
+  const clothedOnlyEngine = clothedOnlyAdultEngine(picked, options);
+  if (clothedOnlyEngine) return resolveDayStillModel(clothedOnlyEngine, options);
   if (options.handOffs === false) return picked;
   // Qwen-Image 2.1 hands penetration duos to Rapid AIO NSFW — the whole still, so it gets Rapid's
   // two-person pose map and recipe (2.1 sat her beside him on lap / kneeling beats, 0/8).

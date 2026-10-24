@@ -1,6 +1,10 @@
 import { PROFILE_LIMITS, QWEN_T2I_DISTILLED_LIMITS } from './limits';
 import type { ComfyImageModelDefinition } from './types';
 
+/** Bria Fibo 2.0 Edit Turbo (engine/fibo2-renderer.ts) — what the bench found, in the picker. */
+const FIBO2_DESCRIPTION =
+  "Bria Fibo 2.0 Edit Turbo — Bria's 4-step instruction editor (ComfyUI-Fibo2 nodes, 16 GB bf16). Same Cast recipes as Qwen-Image 2.1, about 17 s a still. Optional: on the pose bench it held fewer custom poses than 2.1 Turbo or Noct-Q (75% vs 83% / 93% from joints, 67% vs 75% / 79% from a photo) and redder hair than the plate. Clothed only — it covers nude stills up, so those render on 2.1 Turbo (or Rapid AIO NSFW). CC BY-NC 4.0 (not for commercial use).";
+
 export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
   // Stable Diffusion 1.x / 2.x
   {
@@ -420,6 +424,19 @@ export const COMFY_IMAGE_MODELS: ComfyImageModelDefinition[] = [
     limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
     unetHint: 'NoctQ_V4_int8_convrot.safetensors',
     vaeHint: 'qwen_image_2.1_vae_bf16.safetensors',
+  },
+  {
+    id: 'fibo-2-edit-turbo',
+    label: 'Bria Fibo 2.0 Edit Turbo',
+    category: 'qwen',
+    comfyNode: 'Fibo2EditConditioning',
+    comfyClass: 'Fibo2',
+    description: FIBO2_DESCRIPTION,
+    profile: 'qwen_edit_instruction',
+    referenceTokenLimit: 512,
+    limitsByDetail: PROFILE_LIMITS.qwen_edit_instruction,
+    unetHint: 'fibo2_edit_turbo_bf16.safetensors',
+    vaeHint: 'flux2-vae.safetensors',
   },
   {
     id: 'qwen-image-2.1-edit-pruna-8',
