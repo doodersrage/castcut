@@ -9,6 +9,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.29] - 2026-10-24
+
 - Scene on a phone: the shot summary's rows read label | value | › again — a long value no longer centres the row and pushes "Shot" off the left edge at 360–390 px
 - Scene: while a take was at the adult check, opening another scene was refused with _A take is rendering_. The page now says **Checking…** (not Rendering…) and lets you open another scene or start a new one: the take goes with its own scene, and the check's verdict lands there by its job id (a pass adds the take to that scene, a withheld one is dropped). A take not yet checked goes back on the card when its scene opens again. A take that is really rendering still keeps its scene open. Day's adult check no longer redoes a slot whose card moved on to another take while it was checked.
 - Scene: Day's mood fit could replace a scene's Setting. Changing the mood (a theme, Intimate, People) or queueing with a blank beat rerolled the setting along with the beat. On the Scene page the Setting is now never judged or replaced: a blank or unfitting beat gets a new beat under the same Setting. Day is unchanged.
