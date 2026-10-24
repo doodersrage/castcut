@@ -9,6 +9,7 @@ import { isMobileStudioPath } from '@/lib/app/mobile-studio';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import type { WorkspaceMode } from '@/lib/app/workspace-mode';
 import InventorySyncNotice from '@/components/InventorySyncNotice';
+import ComfyPictureKeeper from '@/components/ComfyPictureKeeper';
 // Nearly every route renders ToolLayout. Loaded here it ships once in the shared chunk; when the
 // last shell import of it went away (sidebar theme control), Turbopack copied it into ~22 route
 // chunks — +228 KB gzip across the build and the size-limit CI failure.
@@ -118,6 +119,7 @@ export default function AppShell({ children, kiosk }: { children: ReactNode; kio
           only pushed the page down 43 px. */}
       {!mobileStudio && !kioskOn ? <MobileStudioOfferBanner /> : null}
       <InventorySyncNotice />
+      <ComfyPictureKeeper />
       {kioskOn ? (
         <div className={kiosk?.contentClassName}>
           <div className="px-4">
