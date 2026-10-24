@@ -483,6 +483,12 @@ export type DaySlotStill = {
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
   /**
+   * Longer dialogue picked in the Animate sheet: when the clip `forClip` names lands, it is
+   * continued to about `targetSec` in parts, one line each (useDayExtendClip). Animate again,
+   * or a failed / different clip, drops it.
+   */
+  pendingDialogue?: import('./clip-length').DayPendingDialogue;
+  /**
    * Close-ups of the same moment (film-angles.ts): a face close-up and a detail shot, cut in
    * right after this slot's shot. `for` is the image they were made from.
    */
@@ -4629,6 +4635,32 @@ function readFixHistory(value: unknown): Pick<DaySlotStill, 'fixHistory'> {
   return history.length > 0 ? { fixHistory: history.slice(-DAY_FIX_HISTORY_MAX) } : {};
 }
 
+/** Pending longer dialogue: a target, up to 8 parts' lines (the extend job's cap), its clip. */
+function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogue'> {
+  const record = value as {
+    targetSec?: unknown;
+    lines?: unknown;
+    tones?: unknown;
+    forClip?: unknown;
+  } | null;
+  const targetSec = Number(record?.targetSec);
+  const forClip = readText(record?.forClip, 160);
+  if (!Array.isArray(record?.lines) || !forClip || !(targetSec >= 5 && targetSec <= 60)) return {};
+  const lines = record.lines.slice(0, 8).map(line => readText(line, 120));
+  if (!lines.length) return {};
+  const tones = Array.isArray(record.tones)
+    ? record.tones.slice(0, 8).map(tone => readText(tone, 40))
+    : [];
+  return {
+    pendingDialogue: {
+      targetSec,
+      lines,
+      ...(tones.some(Boolean) ? { tones } : {}),
+      forClip,
+    },
+  };
+}
+
 /** Only a usable end pose is kept — no `endPose: undefined` key on every still. */
 function withEndPose(value: unknown): Pick<DaySlotStill, 'endPose'> {
   const endPose = normalizeDayEndPose(value);
@@ -4660,6 +4692,7 @@ export function normalizeDaySlotStills(
       clipUrl: readText(still.clipUrl, 2048) || undefined,
       clipStatus: readClipStatus(still.clipStatus),
       ...(readText(still.extendJobId, 80) ? { extendJobId: readText(still.extendJobId, 80) } : {}),
+      ...readPendingDialogue(still.pendingDialogue),
       ...(readText(still.clipRenderPromptId, 160)
         ? { clipRenderPromptId: readText(still.clipRenderPromptId, 160) }
         : {}),

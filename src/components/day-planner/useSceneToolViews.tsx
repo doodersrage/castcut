@@ -7,6 +7,7 @@ import SharedToolControls from '@/components/SharedToolControls';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayEndPoseControl from '@/components/day-planner/DayEndPoseControl';
 import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
+import { dayAnimateOptions, dayAnimateSettingsPatch } from '@/lib/day/clip-length';
 import DayClothingPicker, {
   type DayClothingPickerVm,
 } from '@/components/day-planner/DayClothingPicker';
@@ -237,14 +238,14 @@ export function useSceneToolViews(vm: Vm, page: Page) {
         slot={animateOpen ? slot : null}
         preview={vm.previewSlotClip}
         initialExtraSeconds={toolSettings.dayClipExtraSeconds}
+        initialTalkTotalSeconds={toolSettings.dayTalkTotalSeconds}
         busy={vm.busy}
         onClose={() => setAnimateOpen(false)}
-        onAnimate={(target, direction, extraSeconds) => {
+        onAnimate={(target, choice) => {
           setAnimateOpen(false);
-          if (extraSeconds !== (toolSettings.dayClipExtraSeconds ?? 0)) {
-            updateToolSettings({ dayClipExtraSeconds: extraSeconds });
-          }
-          void vm.animateSlot(target, { direction, extraSeconds });
+          const remember = dayAnimateSettingsPatch(choice, toolSettings);
+          if (remember) updateToolSettings(remember);
+          void vm.animateSlot(target, dayAnimateOptions(choice));
         }}
       />
       <SlotMediaSheet

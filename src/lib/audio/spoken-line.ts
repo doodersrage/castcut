@@ -28,6 +28,11 @@ export type SpokenLineRequest = {
   /** Write the other person's answer to this line (two-person conversations). */
   replyTo?: string;
   /**
+   * What the lead already said in this clip, in order: write the next line, in the same voice
+   * (Animate's longer dialogue — one line per extra part).
+   */
+  continues?: string[];
+  /**
    * 'narration': the film's voice-over over this shot (DaySlot.narration) — heard, not said on
    * screen; `avoid` is then the narration so far, to follow on from.
    */
@@ -163,12 +168,18 @@ export function buildSpokenLineMessages(input: SpokenLineRequest) {
   const who = input.name?.trim() || (input.lead === 'man' ? 'he' : 'she');
   const heat = input.heat ?? 'clean';
   const replyTo = input.replyTo?.trim();
+  const said = replyTo ? [] : spokenLineSoFar(input.continues);
   const lines = [
     replyTo
       ? `Write FOUR different lines the other person in the scene could say back to ${input.name?.trim() || (input.lead === 'man' ? 'him' : 'her')}, answering: "${replyTo.slice(0, 160)}" — one per line, numbered 1-4.`
-      : `Write FOUR different lines ${who} could say out loud, to ${spokenLineListener(input.scene)}, in a ~5 second video clip — one per line, numbered 1-4: ${CANDIDATE_INTENTS[heat]}.`,
+      : said.length
+        ? `Write FOUR different lines ${who} could say NEXT, out loud, to ${spokenLineListener(input.scene)}, in the next ~5 seconds of the same video clip — one per line, numbered 1-4: ${CANDIDATE_INTENTS[heat]}.`
+        : `Write FOUR different lines ${who} could say out loud, to ${spokenLineListener(input.scene)}, in a ~5 second video clip — one per line, numbered 1-4: ${CANDIDATE_INTENTS[heat]}.`,
     `- ${heat === 'clean' ? 3 : 2} to ${SPOKEN_LINE_MAX_WORDS - 2} words each, first person.`,
     '- It must fit exactly what is happening right now.',
+    said.length
+      ? `- It carries on from what ${who} just said, in the same voice and train of thought — the next thing said, not a new topic. Never repeat or reword a line already said.`
+      : '',
     ...GROUNDED_RULES,
     ...HEAT_RULES[heat],
     GROUNDED_EXAMPLES[heat] ?? '',
@@ -183,6 +194,7 @@ export function buildSpokenLineMessages(input: SpokenLineRequest) {
     input.personality?.trim()
       ? `Personality (tone only, not the topic): ${input.personality.trim().slice(0, 300)}`
       : '',
+    said.length ? `Said so far, in order: ${said.map(line => `"${line}"`).join(' / ')}` : '',
     input.avoid?.length ? `Do not repeat: ${input.avoid.slice(0, 6).join(' | ')}` : '',
   ]
     .filter(Boolean)
@@ -191,6 +203,14 @@ export function buildSpokenLineMessages(input: SpokenLineRequest) {
     { role: 'system' as const, content: lines.join('\n') },
     { role: 'user' as const, content: user },
   ];
+}
+
+/** The lines said so far (Animate's longer dialogue): tidied, the last eight. */
+function spokenLineSoFar(lines: string[] | undefined): string[] {
+  return (lines ?? [])
+    .map(line => normalizeSpokenLine(line))
+    .filter(Boolean)
+    .slice(-8);
 }
 
 const STOCK_WORDS = /\b(perfect|perfectly|light|glow|glows|flicker|vibes?|magic)\b/i;

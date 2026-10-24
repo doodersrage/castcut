@@ -18,7 +18,7 @@ export function activeCastHasVoice(): boolean {
 export function suggestLineForActiveCast(
   input: Pick<
     SpokenLineRequest,
-    'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo' | 'kind'
+    'scene' | 'setting' | 'when' | 'heat' | 'avoid' | 'replyTo' | 'kind' | 'continues'
   >,
   options?: { castId?: string | null; story?: boolean }
 ): Promise<string> {

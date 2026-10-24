@@ -12,8 +12,9 @@ const text = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 /**
- * POST { scene, setting?, when?, name?, personality?, lead?, heat?, avoid?, replyTo?, kind? } →
- * { line }. kind 'narration': the film's voice-over over the shot.
+ * POST { scene, setting?, when?, name?, personality?, lead?, heat?, avoid?, replyTo?, continues?,
+ * kind? } → { line }. kind 'narration': the film's voice-over over the shot; `continues`: the
+ * lines already said in the clip, in order — the next one follows them.
  */
 export async function POST(request: Request) {
   try {
@@ -37,6 +38,12 @@ export async function POST(request: Request) {
               .filter((entry): entry is string => typeof entry === 'string')
               .map(entry => entry.slice(0, 160))
               .slice(0, 6)
+          : undefined,
+        continues: Array.isArray(body.continues)
+          ? body.continues
+              .filter((entry): entry is string => typeof entry === 'string')
+              .map(entry => entry.slice(0, 160))
+              .slice(0, 8)
           : undefined,
       },
       parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0])

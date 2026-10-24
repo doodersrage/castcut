@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  dayAnimateOptions,
+  dayAnimateSettingsPatch,
   dayClipFrames,
   dayClipSeconds,
+  dayTalkExtendBySec,
+  dayTalkExtraParts,
+  dayTalkTotalOut,
+  DAY_TALK_OVERLAP_SECONDS,
+  DAY_TALK_PART_SECONDS,
   normalizeDayClipExtraSeconds,
+  normalizeDayTalkTotalSeconds,
+  pendingDialogueStep,
 } from './clip-length';
+import { extendSegmentCount } from '../clip/extend';
+import { normalizeDaySlotStills, upsertDaySlotStill } from './planner';
 import { H3_MODEL_ID } from '../engine/h3-renderer';
 import { LTX25_MODEL_ID } from '../video/ltx25-renderer';
 
@@ -31,5 +42,126 @@ describe('day clip length', () => {
     assert.ok(Math.abs(dayClipSeconds(128, LTX25_MODEL_ID) - 8) < 0.1);
     // H3's shortest trained length is ~5 s, so the 4 s default comes out longer there.
     assert.ok(dayClipSeconds(64, H3_MODEL_ID) >= 5);
+  });
+});
+
+describe('talking clip dialogue length', () => {
+  const first = dayClipSeconds(dayClipFrames({ speaking: true, conversation: false }), LTX25_MODEL_ID);
+
+  it('offers 5 (the first clip alone) to 30 s, 5 by default', () => {
+    assert.ok(Math.abs(first - 5) < 0.1);
+    assert.equal(normalizeDayTalkTotalSeconds(undefined), 5);
+    assert.equal(normalizeDayTalkTotalSeconds('20'), 20);
+    assert.equal(normalizeDayTalkTotalSeconds(25), 5);
+    assert.equal(dayTalkExtraParts(first, 5), 0);
+  });
+
+  it('counts extension parts to land nearest each length, each about 4.3 s', () => {
+    const parts = [10, 15, 20, 30].map(total => dayTalkExtraParts(first, total));
+    assert.deepEqual(parts, [1, 2, 3, 6]);
+    for (const [index, total] of [10, 15, 20, 30].entries()) {
+      // Within about half a part of the picked length.
+      const out = dayTalkTotalOut(first, parts[index]!);
+      assert.ok(Math.abs(out - total) <= 2.2, `${total} → ${out}`);
+    }
+  });
+
+  it('asks the job for exactly one part per line, whatever the first clip measures', () => {
+    for (const parts of [1, 2, 3, 6]) {
+      const by = dayTalkExtendBySec(parts);
+      assert.ok(by >= 2 && by <= 30);
+      for (const clipSec of [4.9, 5.04, 5.3]) {
+        const count = extendSegmentCount({
+          currentSec: clipSec,
+          targetSec: clipSec + by,
+          segmentSec: DAY_TALK_PART_SECONDS,
+          overlapSec: DAY_TALK_OVERLAP_SECONDS,
+        });
+        assert.equal(count, parts);
+      }
+    }
+  });
+
+  it('a talking total queues the default clip and keeps the lines for after it lands', () => {
+    assert.deepEqual(
+      dayAnimateOptions({ extraSeconds: 4, talkTotalSeconds: 15, lines: ['Hi', ' "so" ', ''] }),
+      { extraSeconds: 0, dialogue: { targetSec: 15, lines: ['Hi', 'so', ''] } }
+    );
+    assert.deepEqual(dayAnimateOptions({ extraSeconds: 2, talkTotalSeconds: 5, lines: [] }), {
+      extraSeconds: 0,
+    });
+    // Motion clips are as before.
+    assert.deepEqual(dayAnimateOptions({ extraSeconds: 4, direction: 'waves' }), {
+      direction: 'waves',
+      extraSeconds: 4,
+    });
+  });
+
+  it('remembers the talking total apart from the extra seconds', () => {
+    assert.deepEqual(
+      dayAnimateSettingsPatch({ extraSeconds: 0, talkTotalSeconds: 20 }, { dayClipExtraSeconds: 4 }),
+      { dayTalkTotalSeconds: 20 }
+    );
+    assert.equal(
+      dayAnimateSettingsPatch({ extraSeconds: 0, talkTotalSeconds: 5 }, { dayClipExtraSeconds: 4 }),
+      null
+    );
+    assert.deepEqual(dayAnimateSettingsPatch({ extraSeconds: 6 }, { dayTalkTotalSeconds: 30 }), {
+      dayClipExtraSeconds: 6,
+    });
+  });
+});
+
+describe('pending dialogue on a slot still', () => {
+  const pending = { targetSec: 15, lines: ['Then this.', ''], tones: ['whisper', ''], forClip: 'job-1' };
+
+  it('survives normalizing the stills, and a bad one is dropped', () => {
+    const [still] = normalizeDaySlotStills([
+      { slotId: 'morning', clipPromptId: 'job-1', clipStatus: 'queued', pendingDialogue: pending },
+    ]);
+    assert.deepEqual(still?.pendingDialogue, pending);
+    const [bad] = normalizeDaySlotStills([
+      {
+        slotId: 'morning',
+        pendingDialogue: { targetSec: 'x', lines: 'nope' } as unknown as typeof pending,
+      },
+    ]);
+    assert.equal(bad && 'pendingDialogue' in bad, false);
+  });
+
+  it('a new Animate without one clears it', () => {
+    const stills = normalizeDaySlotStills([
+      { slotId: 'morning', clipPromptId: 'job-1', pendingDialogue: pending },
+    ]);
+    const next = upsertDaySlotStill(stills, {
+      slotId: 'morning',
+      clipPromptId: 'job-2',
+      pendingDialogue: undefined,
+    });
+    assert.equal(normalizeDaySlotStills(next)[0]?.pendingDialogue, undefined);
+  });
+
+  it('starts when its own clip lands, waits while it renders, drops on a failed or other clip', () => {
+    const base = { clipPromptId: 'job-1', pendingDialogue: pending };
+    assert.equal(pendingDialogueStep({ clipPromptId: 'job-1' }), 'none');
+    assert.equal(pendingDialogueStep({ ...base, clipStatus: 'queued' }), 'wait');
+    assert.equal(pendingDialogueStep({ ...base, clipStatus: 'completed' }), 'wait');
+    assert.equal(pendingDialogueStep({ ...base, clipStatus: 'completed', clipUrl: '/c.mp4' }), 'start');
+    assert.equal(pendingDialogueStep({ ...base, clipStatus: 'error' }), 'drop');
+    assert.equal(
+      pendingDialogueStep({ ...base, clipPromptId: 'job-2', clipStatus: 'completed', clipUrl: '/c' }),
+      'drop'
+    );
+    // A voiced copy replaced the clip: still the clip it was queued with.
+    assert.equal(
+      pendingDialogueStep({
+        ...base,
+        clipPromptId: 'kept-copy',
+        clipRenderPromptId: 'job-1',
+        clipStatus: 'completed',
+        clipUrl: '/c.mp4',
+      }),
+      'start'
+    );
   });
 });

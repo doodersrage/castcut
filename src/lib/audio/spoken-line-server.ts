@@ -28,7 +28,11 @@ export async function suggestSpokenLine(
       endpoint: resolveRequestLlmEndpoint(llm),
       usageContext: { route: 'spoken-line' },
     });
-    const line = pickSpokenLine(reply, input);
+    // A next line never says one already said.
+    const line = pickSpokenLine(reply, {
+      ...input,
+      avoid: [...(input.avoid ?? []), ...(input.continues ?? [])],
+    });
     if (line) return line;
   }
   throw new Error(

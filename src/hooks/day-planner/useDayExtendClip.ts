@@ -14,12 +14,15 @@ import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/p
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import { spokenLineHeat } from '@/lib/audio/spoken-line';
+import { dayTalkExtendBySec, pendingDialogueStep } from '@/lib/day/clip-length';
 
 /**
  * Day "Make it 30 s": the slot's finished clip grows to about 30 seconds in chained segments
  * (clip-extend-server.ts). The job id is kept on the slot's still, so leaving the page or
  * reloading picks the job up again; the long MP4 is kept in the Gallery and replaces the slot's
- * clip (the short one stays in the Gallery too). One clip at a time; a few minutes.
+ * clip (the short one stays in the Gallery too). One clip at a time; a few minutes. Longer
+ * dialogue picked in the Animate sheet (DaySlotStill.pendingDialogue) starts here once its first
+ * clip lands.
  */
 /** Which clip a still shows: its clip job (stable across URL rewrites), else the URL. */
 function clipIdentity(still: DaySlotStill): string {
@@ -56,9 +59,10 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
     (slotId: string, patch: Partial<DaySlotStill>) => {
       const latest = stillsRef.current.find(entry => entry.slotId === slotId);
       if (!latest) return;
-      updateToolSettings({
-        stills: upsertDaySlotStill(stillsRef.current, { ...latest, ...patch }),
-      });
+      const next = upsertDaySlotStill(stillsRef.current, { ...latest, ...patch });
+      // At once, so a patch right after this one (or the pending-dialogue effect) sees it.
+      stillsRef.current = next;
+      updateToolSettings({ stills: next });
     },
     [stillsRef, updateToolSettings]
   );
@@ -107,7 +111,11 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
   );
 
   const extendSlotClip = useCallback(
-    async (slot: DaySlot, choice?: ClipExtendChoice): Promise<string | null> => {
+    async (
+      slot: DaySlot,
+      choice?: ClipExtendChoice,
+      length?: Pick<ClipExtendRequest, 'targetSec' | 'extendBySec'> & { label?: string }
+    ): Promise<string | null> => {
       const request = extendRequestFor(slot);
       if (!request) return 'This slot has no finished clip.';
       if (watchingRef.current) return 'Already making a clip longer — one at a time.';
@@ -121,6 +129,8 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
             lines: choice?.lines,
             tones: choice?.tones,
             lead: leadIsMan ? 'man' : 'woman',
+            targetSec: length?.targetSec,
+            extendBySec: length?.extendBySec,
           },
           sharedLlmRequestBody(loadSettingsCache().shared)
         );
@@ -130,7 +140,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
           slot.id,
           job.id,
           still ? clipIdentity(still) : request.clipUrl,
-          `Make it 30 s · ${slot.label}`
+          `${length?.label ?? 'Make it 30 s'} · ${slot.label}`
         );
       } catch (error) {
         return error instanceof Error ? error.message : 'Could not make the clip longer.';
@@ -154,6 +164,59 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
     }, 0);
     return () => clearTimeout(timer);
   }, [finishJob, stills]);
+
+  // Longer dialogue from the Animate sheet: once the clip it was queued with lands, continue it
+  // in parts, one line each; a failed or replaced clip drops it. One extension at a time — a
+  // slot waiting behind another job starts when that one is done (the stills change then).
+  const { slots } = ctx;
+  const dialogueRef = useRef(false);
+  // Bumped when a dialogue job ends, so a slot waiting behind it is looked at again.
+  const [dialogueTick, setDialogueTick] = useState(0);
+  useEffect(() => {
+    if (watchingRef.current || dialogueRef.current) return;
+    if (
+      !stills.some(
+        still => pendingDialogueStep(still) === 'start' || pendingDialogueStep(still) === 'drop'
+      )
+    ) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (watchingRef.current || dialogueRef.current) return;
+      for (const still of stillsRef.current) {
+        const step = pendingDialogueStep(still);
+        if (step === 'drop') patchStill(still.slotId, { pendingDialogue: undefined });
+        const slot = slots.find(entry => entry.id === still.slotId);
+        if (step !== 'start' || !still.pendingDialogue || !slot) continue;
+        const { slotId } = still;
+        const { lines, tones, targetSec } = still.pendingDialogue;
+        // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
+        patchStill(slotId, { pendingDialogue: undefined });
+        dialogueRef.current = true;
+        void extendSlotClip(
+          slot,
+          { lines, tones },
+          {
+            // Exactly one part per line, whatever the server measures the first clip at.
+            extendBySec: dayTalkExtendBySec(lines.length),
+            label: `Dialogue, about ${targetSec} s`,
+          }
+        )
+          .then(error =>
+            setExtendResult({
+              slotId,
+              text: error ?? `Done — the dialogue clip is now about ${targetSec} seconds.`,
+            })
+          )
+          .finally(() => {
+            dialogueRef.current = false;
+            setDialogueTick(tick => tick + 1);
+          });
+        return;
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [dialogueTick, extendSlotClip, patchStill, slots, stills, stillsRef]);
 
   return { extendSlotClip, extendRequestFor, extending, extendResult };
 }

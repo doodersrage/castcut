@@ -6,6 +6,7 @@ import {
   pickSpokenLine,
   spokenLineHeat,
   parseNarrationLine,
+  SPOKEN_LINE_MAX_WORDS,
 } from './spoken-line';
 import { parseRoleplayScenes } from '../story/roleplay';
 import { clipUrlIsAnimatedImage, clipUrlIsVideo } from '../clip/media-kind';
@@ -46,6 +47,22 @@ describe('suggested spoken lines', () => {
     assert.equal(spokenLineHeat('sultry'), 'sensual');
     assert.equal(spokenLineHeat('explicit'), 'explicit');
     assert.equal(spokenLineHeat('everyday'), 'clean');
+  });
+
+  it('writes the next line after what was already said, in the same voice, no repeats', () => {
+    const [system, user] = buildSpokenLineMessages({
+      scene: 'stirring a pot of soup',
+      name: 'Nora',
+      continues: ['Okay, taste this.', ' "Too much salt?" ', ''],
+    });
+    assert.match(system!.content, /lines Nora could say NEXT/);
+    assert.match(system!.content, /same voice[\s\S]*Never repeat or reword/);
+    assert.match(system!.content, new RegExp(`to ${SPOKEN_LINE_MAX_WORDS - 2} words`));
+    assert.match(user!.content, /Said so far, in order: "Okay, taste this\." \/ "Too much salt\?"$/m);
+    // Without it, the prompt is as before.
+    const plain = buildSpokenLineMessages({ scene: 'stirring a pot of soup', name: 'Nora' });
+    assert.doesNotMatch(plain[0]!.content, /NEXT|same voice/);
+    assert.doesNotMatch(plain[1]!.content, /Said so far/);
   });
 
   it("keeps the Story writer's line as a suggestion on the scene", () => {

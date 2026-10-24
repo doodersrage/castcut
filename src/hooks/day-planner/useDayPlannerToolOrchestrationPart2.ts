@@ -94,7 +94,9 @@ import {
   dayClipFrames,
   dayClipSeconds,
   normalizeDayClipExtraSeconds,
+  type DayPendingDialogue,
 } from '@/lib/day/clip-length';
+import { spokenLineHeat } from '@/lib/audio/spoken-line';
 import { adultAgeLineIn, isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
 import { loadLookPack, saveLookPack } from '@/lib/look/pack';
 import { bumpPlayCampaignStep, completePlayCampaign } from '@/lib/play/campaign';
@@ -411,7 +413,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const animateSlot = useCallback(
     async (
       slot: DaySlot,
-      options?: { manageBusy?: boolean; direction?: string; extraSeconds?: number }
+      options?: {
+        manageBusy?: boolean;
+        direction?: string;
+        extraSeconds?: number;
+        /** Longer dialogue (Animate sheet): continued in parts once this clip lands. */
+        dialogue?: Pick<DayPendingDialogue, 'targetSec' | 'lines'>;
+      }
     ) => {
       const manageBusy = options?.manageBusy !== false;
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
@@ -658,11 +666,29 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
         });
+        // Longer dialogue: only a one-person talking clip on LTX-2.5 lip-syncs its extension
+        // parts. Kept on the still for this clip job; a new Animate replaces or clears it.
+        const dialogue =
+          options?.dialogue?.lines.length &&
+          speaking &&
+          !conversation &&
+          isLtx25Model(videoModel) &&
+          typeof promptId === 'string'
+            ? {
+                targetSec: options.dialogue.targetSec,
+                lines: options.dialogue.lines,
+                ...(slot.lineTone && slot.lineTone !== 'natural'
+                  ? { tones: options.dialogue.lines.map(() => slot.lineTone as string) }
+                  : {}),
+                forClip: promptId,
+              }
+            : undefined;
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           clipPromptId: typeof promptId === 'string' ? promptId : undefined,
           clipStatus: promptId ? 'queued' : 'error',
           clipUrl: undefined,
+          pendingDialogue: dialogue,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -678,6 +704,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           clipStatus: 'error',
+          pendingDialogue: undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
@@ -1125,6 +1152,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const lengthSeconds = DAY_CLIP_EXTRA_SECONDS.map(extraSeconds =>
         dayClipSeconds(dayClipFrames({ speaking, conversation, extraSeconds }), engine)
       );
+      // Longer dialogue (extension parts that each say a line): one speaker on LTX-2.5, and not a
+      // clip pinned to a last frame (an end pose / an event's next moment) — parts would run on
+      // past it.
+      const longDialogue =
+        talking &&
+        !conversation &&
+        !activeDayEndPose(still) &&
+        !activeDayEvent(toolSettings.dayEvent, slots);
+      const manLead = dayPartnerNoun(character ?? {}) === 'man';
       const prompt = talking
         ? inSpokenLanguage(
             talkingClipPrompt({
@@ -1140,7 +1176,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             characterName: character?.name,
             dayMood: toolSettings.dayMood,
             stillPrompt: parentEntry?.prompt,
-            manLead: dayPartnerNoun(character ?? {}) === 'man',
+            manLead,
             durationSec: 4 + normalizeDayClipExtraSeconds(extraSeconds),
           });
       return {
@@ -1154,9 +1190,30 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         prompt,
         defaultDirection: defaultDayClipDirection(slot, character?.name),
         lengthSeconds,
+        ...(longDialogue
+          ? {
+              talkLength: {
+                firstSec: lengthSeconds[0] ?? 5,
+                lead: manLead ? ('man' as const) : ('woman' as const),
+                scene: slot.sceneHints?.trim() || still?.beatKey?.trim() || slot.label,
+                setting: slot.location,
+                when: slot.label,
+                heat: spokenLineHeat(toolSettings.dayMood),
+                castId: character?.id,
+              },
+            }
+          : {}),
       };
     },
-    [character, shared.activeCharacterId, shared.model, stillsRef, toolSettings.dayMood]
+    [
+      character,
+      shared.activeCharacterId,
+      shared.model,
+      slots,
+      stillsRef,
+      toolSettings.dayEvent,
+      toolSettings.dayMood,
+    ]
   );
 
   // "Open this Day again" (Cast → Seasons) set the Day it replaced aside — offer it back.

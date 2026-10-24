@@ -8,6 +8,7 @@ import DaySetAsideBanner from '@/components/day-planner/DaySetAsideBanner';
 import DayPlanUndo from '@/components/day-planner/DayPlanUndo';
 import type { DaySlot } from '@/lib/day/planner';
 import DayAnimateSheet from '@/components/day-planner/DayAnimateSheet';
+import { dayAnimateOptions, dayAnimateSettingsPatch } from '@/lib/day/clip-length';
 import { dayContinuityLocks } from '@/lib/day/continuity-locks';
 import { useDayCutReadiness, useDayPlannerBatchPlan } from '@/hooks/useDayPlannerShotIdentity';
 import CutReadinessNotes from '@/components/CutReadinessNotes';
@@ -614,14 +615,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         slot={animateTarget}
         preview={previewSlotClip}
         initialExtraSeconds={toolSettings.dayClipExtraSeconds}
+        initialTalkTotalSeconds={toolSettings.dayTalkTotalSeconds}
         busy={busy}
         onClose={() => setAnimateTarget(null)}
-        onAnimate={(slot, direction, extraSeconds) => {
+        onAnimate={(slot, choice) => {
           setAnimateTarget(null);
-          if (extraSeconds !== (toolSettings.dayClipExtraSeconds ?? 0)) {
-            updateToolSettings({ dayClipExtraSeconds: extraSeconds });
-          }
-          void animateSlot(slot, { direction, extraSeconds });
+          const remember = dayAnimateSettingsPatch(choice, toolSettings);
+          if (remember) updateToolSettings(remember);
+          void animateSlot(slot, dayAnimateOptions(choice));
         }}
       />
       <CutProblemsDialog
