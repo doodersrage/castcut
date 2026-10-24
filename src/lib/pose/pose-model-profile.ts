@@ -240,6 +240,8 @@ export function poseModelFamily(model: string | null | undefined): PoseModelFami
     .toLowerCase();
   if (!id) return 'generic';
   if (id.startsWith('qwen-image-2.1')) return 'qwen-image-2.1';
+  // Fibo 2.0 Edit Turbo rides 2.1's path whole (fibo2-renderer.ts): its recipes, maps and graph.
+  if (id === 'fibo-2-edit-turbo') return 'qwen-image-2.1';
   if (id.startsWith('qwen-rapid-aio-')) return 'rapid-aio';
   if (id.includes('qwen-image-edit-2511')) return 'qwen-edit-2511';
   if (id.includes('flux-2-klein')) return 'klein';

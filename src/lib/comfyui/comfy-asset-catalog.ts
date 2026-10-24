@@ -589,6 +589,32 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     notes: 'DualCLIPLoader clip_name2 for FLUX.1-dev.',
   },
 
+  // ── Bria Fibo 2.0 Edit Turbo (still engine, ComfyUI-Fibo2 nodes) ──────
+  {
+    id: 'fibo2-edit-turbo-nodepack',
+    label: 'Fibo 2.0 Edit Turbo (bf16, converted for ComfyUI-Fibo2, CC BY-NC 4.0)',
+    kind: 'unet',
+    // Saved under its own name: Comfy-Org's repackage (for ComfyUI's built-in Fibo support) has
+    // the same upstream name and another layout, which the node pack refuses.
+    filename: 'fibo2_edit_turbo_nodepack_bf16.safetensors',
+    url: 'https://huggingface.co/theunlikely/Fibo-2.0-edit-turbo-ComfyUI/resolve/main/diffusion_models/fibo2_edit_turbo_bf16.safetensors',
+    bytes: 16254771202,
+    sha256: '7a539f0d27e872d485ff7cf82ea0641441f0b306aed64282800d02535285dbea',
+    modelIds: ['fibo-2-edit-turbo'],
+    notes:
+      'Fibo 2.0 engine. Needs the ComfyUI-Fibo2 custom nodes (https://github.com/drphero/ComfyUI-Fibo2). Uses the FLUX.2 VAE and the Qwen3-VL 4B text encoder. Non-commercial use only (Bria).',
+  },
+  {
+    id: 'fibo2-qwen3vl-4b-int8',
+    label: 'Fibo 2.0 text encoder (Qwen3-VL 4B int8)',
+    kind: 'clip',
+    filename: 'qwen3vl_4b_int8_convrot.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Fibo-2.0/resolve/main/text_encoders/qwen3vl_4b_int8_convrot.safetensors',
+    bytes: 4858559240,
+    sha256: '32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c',
+    modelIds: ['fibo-2-edit-turbo'],
+  },
+
   // ── FLUX.2 / Klein ────────────────────────────────────────────────
   {
     id: 'flux2-vae',
@@ -597,7 +623,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'flux2-vae.safetensors',
     url: 'https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors',
     bytes: 336213556,
-    modelIds: [...KLEIN_MODELS],
+    modelIds: [...KLEIN_MODELS, 'fibo-2-edit-turbo'],
   },
   {
     id: 'flux2-klein-4b',

@@ -26,6 +26,8 @@ export const MODEL_FAMILY_GROUPS: readonly (readonly ComfyImageModel[])[] = [
     'qwen-image-2.1-edit-turbo-8',
     'qwen-image-2.1-edit-noct',
     'qwen-image-2.1-edit-noct-fast-8',
+    // Rides the same Rapid AIO graph as 2.1, then its own model (fibo2-renderer.ts).
+    'fibo-2-edit-turbo',
   ],
   ['qwen-image-edit-2511', 'qwen-image-edit-2511-lightning-4', 'qwen-image-edit-2511-lightning-8'],
   ['qwen-rapid-aio-edit', 'qwen-rapid-aio-edit-nsfw', 'qwen-rapid-aio-sfw', 'qwen-rapid-aio-nsfw'],

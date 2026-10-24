@@ -17,6 +17,7 @@ import {
   QWEN_IMAGE_21_TURBO_UNET,
   qwenImage21FastSampler,
 } from '../engine/qwen-image-21-renderer';
+import { fibo2InventoryFrom, isFibo2Model, pickFibo2Files } from '../engine/fibo2-renderer';
 import { matchInventoryFilename } from '../workflow/loader-map-inventory-sync';
 import { resolveLoaderFilenamesForModel, type ModelCheckpointMap } from './checkpoint-map';
 import { precisionHintFromFilename } from './loader-precision';
@@ -71,6 +72,13 @@ export function installedComfyModels(
   }
   const installed = new Map<string, string>();
   for (const entry of catalog) {
+    // Fibo: the pack's loader lists its converted file (or ComfyUI has the built-in node type),
+    // with the Qwen3-VL 4B encoder and the FLUX.2 VAE (fibo2-renderer: pickFibo2Files).
+    if (isFibo2Model(entry.id)) {
+      const files = pickFibo2Files(fibo2InventoryFrom(models) ?? {});
+      if (files) installed.set(entry.id, files.unet);
+      continue;
+    }
     if (isQwenImage21Model(entry.id)) {
       const match = qwenImage21InstalledFile(entry.id, files, models);
       if (match) installed.set(entry.id, match);

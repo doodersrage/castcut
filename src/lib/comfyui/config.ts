@@ -13,9 +13,16 @@ import {
   LTX25_AMBIENCE_NODES,
 } from '../video/ltx25-renderer';
 import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../engine/h3-renderer';
+import {
+  convertImage21WorkflowToFibo2,
+  fibo2RendersStill,
+  hasQwenImage21TurboLoraRoute,
+  pickFibo2Files,
+} from '../engine/fibo2-renderer';
 import { sizeWanClipFromStill, WAN_CLIP_CANVAS_NODES } from '../clip/wan-clip-canvas';
 import {
   convertQwenEditWorkflowToImage21,
+  hasQwenImage21TurboCheckpoint,
   QWEN_IMAGE_21_NOCT_FAST_PASS,
   QWEN_IMAGE_21_NOCT_PASS,
   QWEN_IMAGE_21_NOCT_UNET,
@@ -355,6 +362,11 @@ export type ComfyUiRuntimeConfig = {
    * 'fast' = the same pass in 12 steps (QWEN_IMAGE_21_NOCT_FAST_PASS).
    */
   qwenImage21Noct?: boolean | 'fast';
+  /**
+   * Bria Fibo 2.0 Edit Turbo: the 2.1 graph's model, encoder and sampler swapped for Fibo's
+   * (fibo2-renderer.ts) — with qwenRenderer 'qwen-image-2.1'.
+   */
+  fibo2?: boolean;
   /**
    * Render on 2.1 even where the converter would keep the still on Rapid's model (sex-pose duos,
    * face-down nude solos): "Pick the best engine per pose" is off, so the picked engine renders.
@@ -1463,6 +1475,9 @@ export function injectPromptsWithFallbacks(
     qwenImage21TurboCheckpoint?: boolean;
     /** Noct-Q: the full pass on its own model file, steps and shift; 'fast' = 12 steps. */
     qwenImage21Noct?: boolean | 'fast';
+    /** Fibo 2.0 Edit Turbo on the 2.1 graph (fibo2-renderer.ts), and what ComfyUI has for it. */
+    fibo2?: boolean;
+    fibo2Inventory?: import('../engine/fibo2-renderer').Fibo2Inventory | null;
     qwenImage21KeepEngine?: boolean;
     qwenImage21PoseControl?: boolean;
     /** models/controlnet listing — the Union file for qwenImage21PoseControl. */
@@ -1925,7 +1940,48 @@ export function injectPromptsWithFallbacks(
     };
   }
 
-  if (options?.qwenRenderer === 'qwen-image-2.1') {
+  if (options?.qwenRenderer === 'qwen-image-2.1' && options.fibo2 === true) {
+    // Fibo 2.0 Edit Turbo: the 2.1 pass as Turbo runs it (recipes, dropped maps, canvas, the
+    // sex-pose duo hand-off), then Fibo's model, encoder and sampler on that graph.
+    const width = Number(input.params?.width);
+    const height = Number(input.params?.height);
+    const fallbackSize = width > 0 && height > 0 ? { width, height } : undefined;
+    const image21 = convertQwenEditWorkflowToImage21(injected.workflow, {
+      eightStep: true,
+      eightStepTurbo: true,
+      keepEngine: options.qwenImage21KeepEngine === true,
+      qualityProfile: options.qualityProfile ?? null,
+      ...(fallbackSize ? { fallbackSize } : {}),
+    });
+    if (image21.converted && fibo2RendersStill(image21.workflow)) {
+      const fibo = convertImage21WorkflowToFibo2(image21.workflow, {
+        files: options.fibo2Inventory ? pickFibo2Files(options.fibo2Inventory) : null,
+        ...(fallbackSize ? { fallbackSize } : {}),
+      });
+      if (fibo.converted) injected = { ...injected, workflow: fibo.workflow };
+    } else if (image21.converted) {
+      // A nude still: Fibo covers her up (fibo2RendersStill). It renders on 2.1 Turbo when this
+      // ComfyUI has Turbo, else stays on the Rapid AIO NSFW graph it was built on.
+      const turboCheckpoint = hasQwenImage21TurboCheckpoint({ unets: options.availableUnets });
+      if (
+        turboCheckpoint ||
+        hasQwenImage21TurboLoraRoute({
+          unets: options.availableUnets,
+          loras: options.availableLoras,
+        })
+      ) {
+        const turbo = convertQwenEditWorkflowToImage21(injected.workflow, {
+          eightStep: true,
+          eightStepTurbo: true,
+          turboCheckpoint,
+          keepEngine: options.qwenImage21KeepEngine === true,
+          qualityProfile: options.qualityProfile ?? null,
+          ...(fallbackSize ? { fallbackSize } : {}),
+        });
+        if (turbo.converted) injected = { ...injected, workflow: turbo.workflow };
+      }
+    }
+  } else if (options?.qwenRenderer === 'qwen-image-2.1') {
     const width = Number(input.params?.width);
     const height = Number(input.params?.height);
     const noctFast = options.qwenImage21Noct === 'fast';
@@ -2220,6 +2276,9 @@ export function stripEmptyComfyUiRuntime(
   }
   if (runtime.qwenImage21Noct === true || runtime.qwenImage21Noct === 'fast') {
     result.qwenImage21Noct = runtime.qwenImage21Noct;
+  }
+  if (runtime.fibo2 === true) {
+    result.fibo2 = true;
   }
   if (runtime.videoRenderer === 'ltx-2.5' || runtime.videoRenderer === 'minimax-h3') {
     result.videoRenderer = runtime.videoRenderer;

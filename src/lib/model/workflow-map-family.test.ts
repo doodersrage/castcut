@@ -19,6 +19,7 @@ describe("modelsInSameFamily", () => {
       "qwen-image-2.1-edit-turbo-8",
       "qwen-image-2.1-edit-noct",
       "qwen-image-2.1-edit-noct-fast-8",
+      "fibo-2-edit-turbo",
     ]);
   });
 

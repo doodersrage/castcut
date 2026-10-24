@@ -2,6 +2,7 @@
 
 import { appFlag } from '../app/flags';
 import { isH3Model } from '../engine/h3-renderer';
+import { isFibo2Model } from '../engine/fibo2-renderer';
 import { isLtx25Model } from '../video/ltx25-renderer';
 import { poseModelFamily } from '../pose/pose-model-profile';
 import {
@@ -540,6 +541,8 @@ export function resolveRuntimeForQueue(
                 qwenImage21KeepEngine: true as const,
               }
             : {}),
+          // Fibo 2.0 Edit Turbo: the 2.1 graph, then Fibo's model and sampler (fibo2-renderer.ts).
+          ...(isFibo2Model(model) ? { fibo2: true as const } : {}),
           ...(qwenImage21FastSampler(model) === 'fun-acc-4'
             ? { qwenImage21FourStep: true as const }
             : {}),

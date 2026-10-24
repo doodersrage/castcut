@@ -101,7 +101,9 @@ export function resolveTxt2iModel(current?: string | null): ComfyImageModel {
  * entry, and its 2512 counterpart is usually not installed), else the text-to-image counterpart.
  */
 export function cutGenerateModel(current?: string | null): ComfyImageModel {
-  if (current?.trim().toLowerCase().startsWith('qwen-image-2.1')) return DEFAULT_EDIT_ENGINE;
+  const id = current?.trim().toLowerCase() ?? '';
+  // Fibo 2.0 Edit Turbo needs a picture to edit too (its encode takes at least one).
+  if (id.startsWith('qwen-image-2.1') || id === 'fibo-2-edit-turbo') return DEFAULT_EDIT_ENGINE;
   return resolveTxt2iModel(current);
 }
 
