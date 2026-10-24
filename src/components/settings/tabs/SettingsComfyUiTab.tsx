@@ -19,6 +19,7 @@ import SettingsSamplerMemoryPanel from '@/components/settings/panels/SettingsSam
 import SettingsComfyInputFolderPanel from '@/components/settings/panels/SettingsComfyInputFolderPanel';
 import SettingsComfyEditorImportPanel from '@/components/settings/panels/SettingsComfyEditorImportPanel';
 import SettingsCastcutNodesPanel from '@/components/settings/panels/SettingsCastcutNodesPanel';
+import SettingsComfySetupPanel from '@/components/settings/panels/SettingsComfySetupPanel';
 import { validateWorkflowJson, type CustomWorkflowToken } from '@/lib/comfyui/config';
 import { placeholderTokensFromSettings } from '@/lib/comfyui/settings';
 import type { ComfyUiSettings } from '@/lib/comfyui/settings';
@@ -181,6 +182,8 @@ export default function SettingsComfyUiTab({
           ) : null}
         </div>
       ) : null}
+      <SettingsComfySetupPanel comfyUrl={settings.apiUrl} setStatus={setStatus} />
+
       <SettingsInferenceEnginePanel
         sharedSettings={sharedSettings}
         updateSharedSettings={updateSharedSettings}

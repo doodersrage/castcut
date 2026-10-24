@@ -2,6 +2,7 @@
  * Server-only: probe ComfyUI (object_info) and the local ffmpeg for Play's optional checks.
  */
 
+import { managerInstalledNames } from '../comfyui/node-pack-catalog';
 import { probeFilmScore } from '../film/score-server';
 import { isLlmEnabled } from '@/lib/llm/client';
 import { detectVisionModel } from '@/lib/vision/model-auto';
@@ -100,15 +101,8 @@ async function getJson(url: string): Promise<unknown | null> {
 export function installedCheckPacks(
   payload: unknown
 ): { faceAnalysis: boolean; controlnetAux: boolean } | null {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
-  const enabled = new Set<string>();
-  for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
-    const entry = (value ?? {}) as { enabled?: unknown; cnr_id?: unknown; aux_id?: unknown };
-    if (entry.enabled === false) continue;
-    for (const name of [key, entry.cnr_id, entry.aux_id]) {
-      if (typeof name === 'string' && name) enabled.add(name.toLowerCase().split('/').pop()!);
-    }
-  }
+  const enabled = managerInstalledNames(payload);
+  if (!enabled) return null;
   return {
     faceAnalysis: enabled.has('comfyui_faceanalysis'),
     controlnetAux: enabled.has('comfyui_controlnet_aux'),

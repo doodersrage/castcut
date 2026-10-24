@@ -76,17 +76,20 @@ describe("settings-comfyui-nav", () => {
     assert.equal(comfyUiSectionRequiresFullSettings(null), false);
   });
 
-  it("lists inference engine before ComfyUI connection", () => {
+  it("lists Switching ComfyUI first, then inference engine before ComfyUI connection", () => {
     const full = comfyUiSectionsForEssentials(false);
-    assert.equal(full[0]?.id, "inference-engine");
-    assert.equal(full[1]?.id, "connection");
+    // A new install starts at the assistant (its panel tops the tab).
+    assert.equal(full[0]?.id, "comfy-setup");
+    assert.equal(full[1]?.id, "inference-engine");
+    assert.equal(full[2]?.id, "connection");
     const essentials = comfyUiSectionsForEssentials(true);
     assert.deepEqual(
       essentials.map((section) => section.id),
       COMFYUI_ESSENTIAL_SECTION_IDS,
     );
-    assert.equal(COMFYUI_ESSENTIAL_SECTION_IDS[0], "inference-engine");
-    assert.equal(COMFYUI_ESSENTIAL_SECTION_IDS[1], "connection");
+    assert.equal(COMFYUI_ESSENTIAL_SECTION_IDS[0], "comfy-setup");
+    assert.equal(COMFYUI_ESSENTIAL_SECTION_IDS[1], "inference-engine");
+    assert.equal(COMFYUI_ESSENTIAL_SECTION_IDS[2], "connection");
   });
 
   it("limits jump-nav sections in essentials mode", () => {

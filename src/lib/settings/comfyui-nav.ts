@@ -1,5 +1,6 @@
 import { APP_HAS_PLAY } from '@/lib/app/profile';
 export type ComfyUiSettingsSectionId =
+  | 'comfy-setup'
   | 'workflow-map'
   | 'model-assets'
   | 'workflow-patching'
@@ -22,6 +23,27 @@ export type ComfyUiSettingsSection = {
 };
 
 export const COMFYUI_SETTINGS_SECTIONS: ComfyUiSettingsSection[] = [
+  {
+    id: 'comfy-setup',
+    label: 'Switching ComfyUI',
+    keywords: [
+      'new install',
+      'switch',
+      'switching',
+      'setup',
+      'set up',
+      'move',
+      'pictures',
+      'models folder',
+      'comfyui_root',
+      'downloads',
+      'node packs',
+      'not loading',
+      'insightface',
+      'desktop',
+      'portable',
+    ],
+  },
   {
     id: 'inference-engine',
     label: APP_HAS_PLAY ? 'Generate & Video engine' : 'Inference engine',
@@ -196,6 +218,7 @@ export function normalizeComfyUiSettingsSection(
 
 /** ComfyUI sections shown when Settings is in essentials / slim mode. */
 export const COMFYUI_ESSENTIAL_SECTION_IDS: ComfyUiSettingsSectionId[] = [
+  'comfy-setup',
   'inference-engine',
   'connection',
   'castcut-nodes',

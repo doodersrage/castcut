@@ -5,6 +5,7 @@ import {
   COMFY_ASSET_KIND_LABELS,
   COMFY_ASSET_KIND_ORDER,
 } from './comfy-asset-kinds';
+import { savedComfyRoot } from './install-store-server';
 
 export type { ComfyAssetKind };
 export { COMFY_ASSET_KIND_LABELS, COMFY_ASSET_KIND_ORDER };
@@ -34,6 +35,13 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
 };
 
 export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {
+  // The folder the player chose in the Switching ComfyUI assistant wins: after a switch
+  // COMFYUI_ROOT still names the old install, and downloads landed where the new one never looks.
+  // (Only for the real environment — a test's own env asks about that env alone.)
+  if (env === process.env) {
+    const saved = savedComfyRoot();
+    if (saved) return path.resolve(saved);
+  }
   const raw = env.COMFYUI_ROOT?.trim();
   if (!raw) {
     return null;

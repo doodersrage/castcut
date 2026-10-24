@@ -4,6 +4,7 @@ import type { ComfyUiSettingsSectionId } from '@/lib/settings/comfyui-nav';
 export const SETTINGS_TOOL_ACCENT = 'neutral' as const;
 
 export const COMFYUI_SECTION_ELEMENT_IDS: Record<ComfyUiSettingsSectionId, string> = {
+  'comfy-setup': 'settings-comfyui-comfy-setup',
   'workflow-map': 'settings-comfyui-workflow-map',
   'model-assets': 'settings-comfyui-model-assets',
   'workflow-patching': 'settings-comfyui-workflow-patching',

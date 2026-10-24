@@ -3,6 +3,8 @@
  * The server fills it from ComfyUI object_info and the local ffmpeg; the UI renders it.
  */
 
+import { insightFaceInstallCommand } from '../comfyui/node-pack-catalog';
+
 export type PlayCheckReadiness = {
   ready: boolean;
   /** Short status for the UI ("DWPreprocessor", "missing FaceEmbedDistance"). */
@@ -56,26 +58,8 @@ export const FACE_ANALYSIS_PACK = {
  * Manager, the pack is there but its nodes never show up. The fix is the Python package, in the
  * Python ComfyUI runs on.
  */
-export function insightFaceInstallCommand(
-  system?: {
-    os?: string | null;
-    embeddedPython?: boolean;
-  } | null
-): { command: string; note: string } {
-  const windows = /^nt$|win/i.test(system?.os ?? '');
-  if (system?.embeddedPython) {
-    return {
-      command: 'python_embeded\\python.exe -m pip install insightface onnxruntime',
-      note: 'Run it in the ComfyUI_windows_portable folder, then restart ComfyUI. If insightface fails to build, install the prebuilt insightface wheel for your Python version (see the ComfyUI_FaceAnalysis README).',
-    };
-  }
-  return {
-    command: 'python -m pip install insightface onnxruntime',
-    note: windows
-      ? "Run it with the Python ComfyUI uses (its venv's python.exe), then restart ComfyUI. insightface needs the Visual C++ Build Tools, or a prebuilt wheel for your Python version (see the ComfyUI_FaceAnalysis README)."
-      : 'Run it with the Python ComfyUI uses (e.g. ComfyUI/venv/bin/python), then restart ComfyUI. insightface builds from source on some systems and then needs a C++ compiler and the Python headers (build-essential / python3-dev).',
-  };
-}
+// One copy, shared with the Switching ComfyUI assistant (comfyui/node-pack-catalog.ts).
+export { insightFaceInstallCommand };
 
 /** Build readiness from which nodes ComfyUI reported and what ffmpeg can do. */
 export function buildPlayChecksReadiness(input: {
