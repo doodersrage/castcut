@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.31] - 2026-10-24
+
+- Scene: no re-render on switching scenes; clothing and plate per scene
+- Real 3D for real poses: captured, drawn and estimated
+- Keep the app's own copy of ComfyUI input pictures
+
 ## [v2.12.30] - 2026-10-24
 
 - **Bria Fibo 2.0 Edit Turbo** is a new optional still engine (Day, Story, Outfit and Scene pick it like the 2.1 engines; it shows as installed only when ComfyUI has the [ComfyUI-Fibo2](https://github.com/drphero/ComfyUI-Fibo2) nodes, their converted checkpoint, the Qwen3-VL 4B encoder and the FLUX.2 VAE — the requirements card lists the node pack with its link). It rides Qwen-Image 2.1's path: the same recipes, prompt fixes, dropped maps and canvas, then Fibo's model and 4-step sampler, the references named `<image_1>`, `<image_2>`… and a player's pose map named as a stick figure to follow. Which file the nodes get is read from its metadata: Comfy-Org's repackage carries the same name and the nodes refuse it. On a ComfyUI with its own Fibo 2.0 support and no node pack, the built-in `TextEncodeFibo2` route is used (not yet run here). Pose bench on the same Day graphs and seeds as the last one, judged by eye: custom joints right 75% (Turbo 83%, Noct-Q 93%, Edit 2511 62%), from a photo 67% (75% / 79% / 62%); it beat the better of Turbo and Noct-Q on no pose, so "Pick the best engine per pose" does not use it. Anatomy was clean in all 72 stills; the face is close to the plate, the hair redder. About 17 s a still (29 s with two references). It does not draw nude stills — on six Day Intimate beats it kept briefs on every solo and a bra and briefs on every duo and softened the sex placements — so a nude still picked on Fibo renders on 2.1 Turbo, else on Rapid AIO NSFW. Bria's licence is non-commercial (CC BY-NC 4.0).
