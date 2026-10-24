@@ -9,7 +9,10 @@ import { suggestLineForActiveCast } from '@/lib/audio/spoken-line-context';
 import type { SpokenLineHeat } from '@/lib/audio/spoken-line';
 import {
   DAY_CLIP_EXTRA_SECONDS,
+  DAY_H3_CARRY_ON_BEAT,
   DAY_TALK_TOTAL_SECONDS,
+  dayH3ExtraParts,
+  dayH3TotalOut,
   dayTalkExtraParts,
   dayTalkTotalOut,
   normalizeDayClipExtraSeconds,
@@ -43,6 +46,11 @@ export type DayClipPreview = {
     heat?: SpokenLineHeat;
     castId?: string;
   };
+  /**
+   * MiniMax-H3 (not pinned to a last frame): Length is the total — the first clip at H3's own
+   * ~5 s, then H3 parts that carry it on (past ~5 s H3 cuts to a new shot).
+   */
+  chainLength?: { firstSec: number };
 };
 
 /**
@@ -85,8 +93,13 @@ export default function DayAnimateSheet({
   if (!slot || !initial) return null;
   const edited = direction.trim() && direction.trim() !== initial.defaultDirection.trim();
   const talk = initial.talkLength;
-  const current = preview(slot, edited ? direction : undefined, talk ? 0 : extraSeconds);
-  const parts = talk ? dayTalkExtraParts(talk.firstSec, talkTotal) : 0;
+  const chain = talk ? undefined : initial.chainLength;
+  const current = preview(slot, edited ? direction : undefined, talk || chain ? 0 : extraSeconds);
+  const parts = talk
+    ? dayTalkExtraParts(talk.firstSec, talkTotal)
+    : chain
+      ? dayH3ExtraParts(chain.firstSec, talkTotal)
+      : 0;
   const pronoun = talk?.lead === 'man' ? 'he' : 'she';
 
   // Drafts the empty lines one after another, each following the slot's line and those before it.
@@ -114,7 +127,10 @@ export default function DayAnimateSheet({
         setLines([...next]);
       }
     } catch (error) {
-      setWriteError(error instanceof Error ? error.message : 'Could not write the lines.');
+      const written = next.some(line => line.trim());
+      setWriteError(
+        `${error instanceof Error ? error.message : 'Could not write the lines.'}${written ? ' The lines written so far are kept — press Write the rest again.' : ''}`
+      );
     } finally {
       setWriting(false);
     }
@@ -129,10 +145,18 @@ export default function DayAnimateSheet({
             talkTotalSeconds: talkTotal,
             lines: Array.from({ length: parts }, (_, index) => lines[index] ?? ''),
           }
-        : {
-            direction: edited && !current.talking ? direction : undefined,
-            extraSeconds,
-          }
+        : chain
+          ? {
+              direction: edited && !current.talking ? direction : undefined,
+              extraSeconds: 0,
+              talkTotalSeconds: talkTotal,
+              lines: Array.from({ length: parts }, () => ''),
+              beats: Array.from({ length: parts }, () => DAY_H3_CARRY_ON_BEAT),
+            }
+          : {
+              direction: edited && !current.talking ? direction : undefined,
+              extraSeconds,
+            }
     );
 
   return (
@@ -252,6 +276,32 @@ export default function DayAnimateSheet({
                 {writeError ? <FieldError>{writeError}</FieldError> : null}
               </div>
             </>
+          ) : null}
+        </div>
+      ) : chain ? (
+        <div className="space-y-1" data-testid="day-animate-length">
+          <span className="type-caption block text-[var(--text-muted)]">Length</span>
+          <SegmentedControl
+            aria-label="Clip length"
+            value={String(talkTotal)}
+            onChange={value => setTalkTotal(normalizeDayTalkTotalSeconds(value))}
+            options={DAY_TALK_TOTAL_SECONDS.map(total => ({
+              value: String(total),
+              label:
+                total === DAY_TALK_TOTAL_SECONDS[0]
+                  ? `${formatSeconds(chain.firstSec)} (default)`
+                  : `${total} s`,
+              testId: `day-animate-chain-${total}`,
+            }))}
+          />
+          {parts > 0 ? (
+            <p className="type-caption text-[var(--text-muted)]" data-testid="day-animate-chain">
+              About {formatSeconds(dayH3TotalOut(chain.firstSec, parts))}: MiniMax-H3 makes one ~5 s
+              shot at a time, so this is the first clip, then {parts} more part
+              {parts === 1 ? '' : 's'}, each starting where the last one ends, with the place’s
+              sound. They render after the first clip lands — about 2½ minutes a part — and come
+              back as one clip (the short one stays in the Gallery).
+            </p>
           ) : null}
         </div>
       ) : (

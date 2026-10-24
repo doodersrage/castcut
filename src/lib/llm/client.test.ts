@@ -142,6 +142,13 @@ describe('transient LLM failures', () => {
     assert.equal(isTransientLlmFailure(400, '{"error":"failed to decode, ret = 1"}'), true);
     assert.equal(isTransientLlmFailure(503, 'Service Unavailable'), true);
     assert.equal(isTransientLlmFailure(429, 'busy'), true);
+    // LM Studio while its model crashes or reloads.
+    assert.equal(isTransientLlmFailure(400, '{"error":"terminated"}'), true);
+    assert.equal(
+      isTransientLlmFailure(400, 'Failed to load model "m". Error: Engine protocol runtime llama-server for x exited before becoming healthy.'),
+      true
+    );
+    assert.equal(isTransientLlmFailure(400, 'Context size has been exceeded.'), false);
     assert.equal(isTransientLlmFailure(400, '{"error":"model not found"}'), false);
     assert.equal(isTransientLlmFailure(401, 'unauthorized'), false);
   });

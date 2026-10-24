@@ -87,6 +87,19 @@ describe('Make it 30 s', () => {
     assert.doesNotMatch(buildExtendBeatsMessages({ scene: 'x', count: 2 })[0]!.content, /follow that/);
   });
 
+  it('a talking clip’s beats keep the speaker in place, never moving toward the camera', () => {
+    const [system] = buildExtendBeatsMessages({ scene: 'x', count: 3, heat: 'sensual', talking: true });
+    assert.match(system!.content, /never stepping, leaning or moving toward it/);
+    assert.doesNotMatch(system!.content, /moving a little|kisses/);
+    const beats = fallbackExtendBeats(4, 'explicit', { speaker: 'He' });
+    assert.equal(beats.length, 4);
+    for (const beat of beats) assert.match(beat, /^He /);
+    assert.doesNotMatch(beats.join(' '), /toward the camera|closer|They /);
+    const part = extendSegmentPrompt('She nods.', 'kitchen', { line: 'Then we go.' });
+    assert.match(part, /stays exactly where she is, the same distance from the camera/);
+    assert.doesNotMatch(extendSegmentPrompt('She nods.', 'kitchen'), /same distance/);
+  });
+
   it('a part with a line says it while doing its beat; without one it stays wordless', () => {
     const talking = extendSegmentPrompt('She picks up her keys.', 'kitchen', { line: 'Wait — where are my keys?' });
     assert.match(talking, /As she does, she says clearly, "Wait — where are my keys\?" — her lips move/);

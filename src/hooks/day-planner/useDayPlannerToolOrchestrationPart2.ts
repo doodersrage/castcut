@@ -417,8 +417,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         manageBusy?: boolean;
         direction?: string;
         extraSeconds?: number;
-        /** Longer dialogue (Animate sheet): continued in parts once this clip lands. */
-        dialogue?: Pick<DayPendingDialogue, 'targetSec' | 'lines'>;
+        /**
+         * Longer (Animate sheet): continued in parts once this clip lands — LTX dialogue, or
+         * MiniMax-H3 parts (H3 cuts to a new shot past its own ~5 s).
+         */
+        dialogue?: Pick<DayPendingDialogue, 'targetSec' | 'lines' | 'beats'>;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -666,20 +669,23 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           characterId: shared.activeCharacterId,
           lookId: shared.activeLookId ?? character?.activeLookId,
         });
-        // Longer dialogue: only a one-person talking clip on LTX-2.5 lip-syncs its extension
-        // parts. Kept on the still for this clip job; a new Animate replaces or clears it.
-        const dialogue =
-          options?.dialogue?.lines.length &&
-          speaking &&
+        // Longer: a one-person talking clip on LTX-2.5 lip-syncs its extension parts; a
+        // MiniMax-H3 clip not pinned to a last frame grows in H3 parts. Kept on the still for this
+        // clip job; a new Animate replaces or clears it.
+        const growsInParts =
           !conversation &&
-          isLtx25Model(videoModel) &&
-          typeof promptId === 'string'
+          ((speaking && isLtx25Model(videoModel)) || (isH3Model(videoModel) && !endImageFilename));
+        const dialogue =
+          options?.dialogue?.lines.length && growsInParts && typeof promptId === 'string'
             ? {
                 targetSec: options.dialogue.targetSec,
                 lines: options.dialogue.lines,
-                ...(slot.lineTone && slot.lineTone !== 'natural'
+                ...(slot.lineTone &&
+                slot.lineTone !== 'natural' &&
+                options.dialogue.lines.some(Boolean)
                   ? { tones: options.dialogue.lines.map(() => slot.lineTone as string) }
                   : {}),
+                ...(options.dialogue.beats?.length ? { beats: options.dialogue.beats } : {}),
                 forClip: promptId,
               }
             : undefined;
@@ -1155,11 +1161,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       // Longer dialogue (extension parts that each say a line): one speaker on LTX-2.5, and not a
       // clip pinned to a last frame (an end pose / an event's next moment) — parts would run on
       // past it.
-      const longDialogue =
-        talking &&
-        !conversation &&
-        !activeDayEndPose(still) &&
-        !activeDayEvent(toolSettings.dayEvent, slots);
+      const pinned = Boolean(
+        activeDayEndPose(still) || activeDayEvent(toolSettings.dayEvent, slots)
+      );
+      const longDialogue = talking && !conversation && !pinned;
+      // MiniMax-H3 past its own ~5 s cuts to a new shot: a longer H3 clip is the first clip
+      // then H3 parts (not when pinned to a last frame — the parts would run on past it).
+      const h3Chain = isH3Model(engine) && !conversation && !pinned;
       const manLead = dayPartnerNoun(character ?? {}) === 'man';
       const prompt = talking
         ? inSpokenLanguage(
@@ -1185,8 +1193,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ? 'LTX-2.5'
           : (getComfyModelDefinition(engine)?.label ?? engine),
         talking,
-        // MiniMax-H3 renders a longer clip with no spoken line silent (h3RendersSound).
-        silentWhenLong: isH3Model(engine) && !talking,
+        // MiniMax-H3 renders a longer clip with no spoken line silent (h3RendersSound) — only
+        // still offered when pinned to a last frame; otherwise H3 grows in parts with sound.
+        silentWhenLong: isH3Model(engine) && !spokenLine && !h3Chain,
+        ...(h3Chain ? { chainLength: { firstSec: lengthSeconds[0] ?? 5 } } : {}),
         prompt,
         defaultDirection: defaultDayClipDirection(slot, character?.name),
         lengthSeconds,

@@ -6,7 +6,11 @@ import {
   H3_FILES,
   h3FrameCount,
   H3_LONG_TALK_TAIL,
+  H3_PART_FRAMES,
+  h3PartPrompt,
   H3_STEPS,
+  isH3ClipGraph,
+  patchH3ReplayGraph,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -142,5 +146,52 @@ describe('H3 camera words', async () => {
     );
     assert.equal(event, 'She walks on. The end.');
     assert.doesNotMatch(event + intimate, /zoom|push-in|close-up/i);
+  });
+
+  it('replays a long silent clip as one ~5 s part with sound, from the last frame', () => {
+    const graph = wanClipGraph();
+    graph['901']!.inputs.length = 160;
+    const { workflow } = convertVideoWorkflowToH3(graph, { speech: false, endImage: 'end.png' });
+    assert.equal(isH3ClipGraph(workflow), true);
+    assert.equal(isH3ClipGraph(wanClipGraph()), false);
+    const part = patchH3ReplayGraph(workflow, {
+      lastFrame: 'last.png',
+      prompt: 'part prompt',
+      seed: 42,
+      prefix: 'Castcut-extend',
+    });
+    assert.ok(part);
+    const nodes = Object.values(part.graph);
+    const h3 = nodes.find(node => node.class_type === 'MiniMaxH3ImageToVideo')!.inputs!;
+    assert.equal(h3.length, H3_PART_FRAMES);
+    assert.equal(h3.prompt, 'part prompt');
+    assert.equal(h3.last_frame, undefined);
+    const loaders = nodes.filter(node => node.class_type === 'LoadImage');
+    assert.deepEqual(loaders.map(node => node.inputs!.image), ['last.png']);
+    const create = nodes.find(node => node.class_type === 'CreateVideo')!.inputs!;
+    const audio = part.graph[(create.audio as [string, number])[0]]!;
+    assert.equal(audio.class_type, 'VAEDecodeAudio');
+    const vae = part.graph[(audio.inputs!.vae as [string, number])[0]]!;
+    assert.equal(vae.inputs!.vae_name, H3_FILES.audioVae);
+    assert.equal(nodes.find(node => node.class_type === 'RandomNoise')!.inputs!.noise_seed, 42);
+    assert.equal(part.graph[part.saveNode]!.inputs!.filename_prefix, 'Castcut-extend');
+    // The source graph is left alone.
+    assert.equal(
+      Object.values(workflow).find(node => node.class_type === 'MiniMaxH3ImageToVideo')!.inputs!
+        .length,
+      243
+    );
+  });
+
+  it('a part carries the clip’s action on without its line, with the place’s sound', () => {
+    const clip = `10s clip, one continuous shot. Action: she waves. She says clearly, "See you soon." Camera: one fixed wide shot on a tripod. ${H3_LONG_TALK_TAIL}`;
+    const part = h3PartPrompt(clip, { beat: 'She keeps waving.', place: 'a sunny park.' });
+    assert.match(part, /^5s clip, carrying straight on from the first frame\. She keeps waving\./);
+    assert.match(part, /Action: she waves\./);
+    assert.doesNotMatch(part, /See you soon|10s clip|stays quiet/);
+    assert.match(part, /Sound: the natural sound of the sunny park/);
+    const said = h3PartPrompt(clip, { beat: 'He nods.', line: 'Then we go.', speaker: 'He' });
+    assert.match(said, /He says, "Then we go\." — his lips move/);
+    assert.match(said, /under the voice/);
   });
 });

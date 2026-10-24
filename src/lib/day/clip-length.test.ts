@@ -5,6 +5,10 @@ import {
   dayAnimateSettingsPatch,
   dayClipFrames,
   dayClipSeconds,
+  DAY_H3_CARRY_ON_BEAT,
+  DAY_H3_PART_GAIN,
+  dayH3ExtraParts,
+  dayH3TotalOut,
   dayTalkExtendBySec,
   dayTalkExtraParts,
   dayTalkTotalOut,
@@ -161,6 +165,57 @@ describe('pending dialogue on a slot still', () => {
         clipStatus: 'completed',
         clipUrl: '/c.mp4',
       }),
+      'start'
+    );
+  });
+
+  it('grows a MiniMax-H3 clip in ~5 s parts to land near each total', () => {
+    const first = dayClipSeconds(dayClipFrames({ speaking: false, conversation: false }), H3_MODEL_ID);
+    assert.equal(dayH3ExtraParts(first, 5), 0);
+    assert.deepEqual(
+      [10, 15, 20, 30].map(total => dayH3ExtraParts(first, total)),
+      [1, 2, 3, 5]
+    );
+    for (const total of [10, 15, 20, 30]) {
+      assert.ok(Math.abs(dayH3TotalOut(first, dayH3ExtraParts(first, total)) - total) < 2.6);
+    }
+    // The server makes exactly one part per beat (extendBySec asks for no more).
+    for (const parts of [1, 2, 3, 5]) {
+      const needed = extendSegmentCount({
+        currentSec: first,
+        targetSec: first + dayTalkExtendBySec(parts),
+        segmentSec: DAY_H3_PART_GAIN + 1 / 24,
+        overlapSec: 1 / 24,
+      });
+      assert.ok(needed <= parts);
+    }
+  });
+
+  it('queues wordless H3 parts with their beats and keeps the direction', () => {
+    const beats = [DAY_H3_CARRY_ON_BEAT, DAY_H3_CARRY_ON_BEAT];
+    assert.deepEqual(
+      dayAnimateOptions({
+        direction: 'she jogs on',
+        extraSeconds: 0,
+        talkTotalSeconds: 15,
+        lines: ['', ''],
+        beats,
+      }),
+      {
+        direction: 'she jogs on',
+        extraSeconds: 0,
+        dialogue: { targetSec: 15, lines: ['', ''], beats },
+      }
+    );
+    const pending = { targetSec: 15, lines: ['', ''], beats, forClip: 'job-9' };
+    const [still] = normalizeDaySlotStills([
+      { slotId: 'morning', clipPromptId: 'job-9', clipStatus: 'queued', pendingDialogue: pending },
+    ]);
+    // Kept through a reload while the first clip renders, beats and all.
+    assert.deepEqual(still?.pendingDialogue, pending);
+    assert.equal(pendingDialogueStep(still!), 'wait');
+    assert.equal(
+      pendingDialogueStep({ ...still!, clipStatus: 'completed', clipUrl: '/c.mp4' }),
       'start'
     );
   });

@@ -1,11 +1,11 @@
-import { h3FrameCount, isH3Model } from '../engine/h3-renderer';
+import { h3FrameCount, H3_PART_FRAMES, isH3Model } from '../engine/h3-renderer';
 import {
   isLtx25Model,
   LTX25_FPS,
   ltx25FrameCount,
   normalizeSpokenLine,
 } from '../video/ltx25-renderer';
-import { CLIP_EXTEND_MAX_SEGMENTS } from '../clip/extend';
+import { CLIP_EXTEND_MAX_SEGMENTS, WAN_EXTEND_BLEND_FRAMES } from '../clip/extend';
 import type { DaySlotStill } from './planner';
 
 /** Day clips are queued at WAN's rate; LTX-2.5 and MiniMax-H3 convert frames/fps to seconds. */
@@ -81,12 +81,41 @@ export function dayTalkExtendBySec(parts: number): number {
   return Math.round((Math.max(1, parts) - 0.5) * PART_GAIN * 100) / 100;
 }
 
-/** A talking clip queued to grow into longer dialogue once it lands (DaySlotStill.pendingDialogue). */
+/**
+ * MiniMax-H3 past its own shot (~5.2 s) cuts to a new one (H3_PART_FRAMES), so on H3 the Length
+ * is a total too: the first clip at H3's length, then H3 parts (extend-server.ts replays its
+ * graph from each part's last frame). A part starts on the last one's final frame (dropped) and
+ * blends WAN_EXTEND_BLEND_FRAMES, so each adds this much.
+ */
+export const DAY_H3_PART_GAIN = (H3_PART_FRAMES - 1 - WAN_EXTEND_BLEND_FRAMES) / 24;
+
+/** What each H3 part is told: the clip's own action carries on (its prompt follows). */
+export const DAY_H3_CARRY_ON_BEAT =
+  'The same moment carries straight on, the same action continuing smoothly.';
+
+/** Extra H3 parts after a first clip of `firstSec` for a total (0 at the default). */
+export function dayH3ExtraParts(firstSec: number, totalSec: number): number {
+  if (normalizeDayTalkTotalSeconds(totalSec) <= DAY_TALK_TOTAL_SECONDS[0]) return 0;
+  const parts = Math.round(Math.max(0, totalSec - firstSec) / DAY_H3_PART_GAIN);
+  return Math.min(CLIP_EXTEND_MAX_SEGMENTS, Math.max(1, parts));
+}
+
+/** About how long an H3 clip comes out with `parts` extra parts. */
+export function dayH3TotalOut(firstSec: number, parts: number): number {
+  return firstSec + Math.max(0, parts) * DAY_H3_PART_GAIN;
+}
+
+/**
+ * A clip queued to grow once it lands (DaySlotStill.pendingDialogue): longer dialogue on LTX-2.5,
+ * or a longer MiniMax-H3 clip in wordless parts.
+ */
 export type DayPendingDialogue = {
   targetSec: number;
   /** One line per extra part ('' = that part is wordless). */
   lines: string[];
   tones?: string[];
+  /** What happens in each part (unset: written from the scene). */
+  beats?: string[];
   /** The clip job it waits for. */
   forClip?: string;
 };
@@ -118,10 +147,12 @@ export function pendingDialogueStep(
 export type DayAnimateChoice = {
   direction?: string;
   extraSeconds: DayClipExtraSeconds;
-  /** Set for a one-person talking clip on LTX-2.5 (the Length picked was a total). */
+  /** Set when the Length picked was a total: one-person LTX-2.5 talk, or MiniMax-H3. */
   talkTotalSeconds?: DayTalkTotalSeconds;
   /** The lines for the extra parts, in order ('' = wordless). */
   lines?: string[];
+  /** What happens in each extra part (H3: the clip's action carries on). */
+  beats?: string[];
 };
 
 /** The Length pick to remember for the next Animate, or null when it has not changed. */
@@ -146,13 +177,23 @@ export function dayAnimateSettingsPatch(
 export function dayAnimateOptions(choice: DayAnimateChoice): {
   direction?: string;
   extraSeconds: number;
-  dialogue?: { targetSec: number; lines: string[] };
+  dialogue?: { targetSec: number; lines: string[]; beats?: string[] };
 } {
   if (choice.talkTotalSeconds === undefined) {
     return { direction: choice.direction, extraSeconds: choice.extraSeconds };
   }
   const lines = (choice.lines ?? []).slice(0, CLIP_EXTEND_MAX_SEGMENTS).map(normalizeSpokenLine);
+  const beats = choice.beats?.slice(0, lines.length);
+  const direction = choice.direction ? { direction: choice.direction } : {};
   return choice.talkTotalSeconds > DAY_TALK_TOTAL_SECONDS[0] && lines.length
-    ? { extraSeconds: 0, dialogue: { targetSec: choice.talkTotalSeconds, lines } }
-    : { extraSeconds: 0 };
+    ? {
+        ...direction,
+        extraSeconds: 0,
+        dialogue: {
+          targetSec: choice.talkTotalSeconds,
+          lines,
+          ...(beats?.length ? { beats } : {}),
+        },
+      }
+    : { ...direction, extraSeconds: 0 };
 }

@@ -36,6 +36,23 @@ const BEAT_HEAT: Record<SpokenLineHeat, string> = {
     'An explicit scene between consenting adults: the same act continues — rhythm, touches, kisses, expressions change; no new position, no new people.',
 };
 
+/**
+ * A talking clip's parts: one person speaking to the camera the whole time. Live (2026-10-24, a
+ * 30 s dialogue): beats like "moving a little" / "looks toward the camera" each nudged her
+ * forward, and since every part starts from the last one's frames, by the end she was talking
+ * into the lens — so she stays put, and only her hands, head and face move.
+ */
+const TALK_BEATS =
+  'One person is talking to the camera the whole time. Each beat is a small gesture made where they are — a nod, a hand gesture, a smile, a tilt of the head, a glance aside and back. They stay exactly where they are, at the same distance from the camera: never stepping, leaning or moving toward it, never sitting down or standing up.';
+
+const TALK_HEAT: Record<SpokenLineHeat, string> = {
+  clean: 'Everyday, natural gestures.',
+  flirty: 'Playful and flirty is fine in the looks and smiles; nothing explicit.',
+  sensual:
+    'Warm and teasing in the looks, smiles and small touches (hair, collar); one person only.',
+  explicit: 'Bold and teasing in the looks, smiles and small touches; one person only.',
+};
+
 /** Ask the LLM for `count` beats that carry the clip on from `scene`. */
 export function buildExtendBeatsMessages(input: {
   scene: string;
@@ -44,14 +61,19 @@ export function buildExtendBeatsMessages(input: {
   heat?: SpokenLineHeat;
   /** Where the player wants it to go ("she finishes her coffee and heads out"). */
   direction?: string;
+  /** Every part says a line: a talking clip, so the speaker stays put. */
+  talking?: boolean;
 }) {
   const direction = input.direction?.trim();
+  const heat = input.heat ?? 'clean';
   const system = [
     `Continue a short video shot. Write ${input.count} beats, numbered 1-${input.count}, one per line.`,
     'Each beat is what happens in the next 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.',
     'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips, nobody leaves the frame or the room.',
-    'Small, believable steps — a gesture, a look, picking something up, moving a little — that add up to a tiny story.',
-    BEAT_HEAT[input.heat ?? 'clean'],
+    input.talking
+      ? TALK_BEATS
+      : 'Small, believable steps — a gesture, a look, picking something up, moving a little — that add up to a tiny story.',
+    input.talking ? TALK_HEAT[heat] : BEAT_HEAT[heat],
     direction
       ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
       : '',
@@ -90,7 +112,23 @@ export function parseExtendBeats(reply: string | null | undefined): string[] {
 }
 
 /** Beats when the LLM is off or says nothing usable: the shot carries on, gently. */
-export function fallbackExtendBeats(count: number, heat: SpokenLineHeat = 'clean'): string[] {
+export function fallbackExtendBeats(
+  count: number,
+  heat: SpokenLineHeat = 'clean',
+  /** A talking clip's parts: gestures in place (see TALK_BEATS). */
+  talking?: { speaker?: 'She' | 'He' }
+): string[] {
+  if (talking) {
+    const who = talking.speaker ?? 'She';
+    const her = who === 'He' ? 'his' : 'her';
+    const steps = [
+      `${who} keeps talking where ${who === 'He' ? 'he' : 'she'} is, with a small nod and a hand gesture.`,
+      `${who} smiles and tilts ${her} head a little, staying exactly where ${who === 'He' ? 'he' : 'she'} is.`,
+      `${who} glances aside for a moment, then back at the camera.`,
+      `${who} gestures with one hand as ${who === 'He' ? 'he' : 'she'} talks, the same distance from the camera.`,
+    ];
+    return Array.from({ length: count }, (_, index) => steps[index % steps.length]!);
+  }
   const steps =
     heat === 'sensual' || heat === 'explicit'
       ? [
@@ -232,7 +270,7 @@ export type ClipExtendRequest = {
 export async function requestClipExtendPlan(
   input: ClipExtendRequest,
   llmBody?: Record<string, unknown>
-): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' }> {
+): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' | 'h3' }> {
   const response = await fetch('/api/clip/extend', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -240,7 +278,7 @@ export async function requestClipExtendPlan(
     body: JSON.stringify({ ...input, ...llmBody, plan: true }),
   });
   const body = (await response.json().catch(() => ({}))) as {
-    plan?: { total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' };
+    plan?: { total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' | 'h3' };
     error?: string;
   };
   if (!response.ok || !body.plan) throw new Error(body.error ?? 'Could not plan the extension.');

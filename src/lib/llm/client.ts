@@ -131,7 +131,14 @@ export const LLM_TRANSIENT_RETRY_MS: readonly number[] = [1500, 5000];
  */
 export function isTransientLlmFailure(status: number, body: string): boolean {
   if (status === 429 || status >= 500) return true;
-  return status === 400 && /failed to decode|kv cache|no slot|slot unavailable/i.test(body);
+  // LM Studio answers 400 while its model crashes or reloads mid-request ("terminated",
+  // "Failed to load model", "exited before becoming healthy"); a moment later it answers again.
+  return (
+    status === 400 &&
+    /failed to decode|kv cache|no slot|slot unavailable|terminated|failed to load model|exited before becoming healthy|model is (still )?loading/i.test(
+      body
+    )
+  );
 }
 
 export function llmErrorDetail(body: string): string {

@@ -46,6 +46,13 @@ export const H3_LONG_SIDE = 1024;
 const H3_FPS = 24;
 /** Frame counts sit on a 17k+5 grid; 124 (~5 s) is the shortest trained length. */
 const H3_MIN_FRAMES = 124;
+/**
+ * H3's own shot length. Past it H3 does not carry the shot on, it starts a new one: a 10 s
+ * running-away clip (243 frames, 2026-10-24) hard-cut at frame ~120 to a front-on face close-up,
+ * though the prompt said one continuous shot. Longer clips are chained parts of this length
+ * (patchH3ReplayGraph, clip/extend-server.ts).
+ */
+export const H3_PART_FRAMES = H3_MIN_FRAMES;
 const H3_MAX_FRAMES = 362;
 
 export function isH3Model(model: string | null | undefined): boolean {
@@ -234,4 +241,95 @@ export function convertVideoWorkflowToH3(
     delete next['5'];
   }
   return { workflow: next, converted: true };
+}
+
+/** A graph rendered by MiniMax-H3 (its history replays as "Make it 30 s" parts). */
+export function isH3ClipGraph(graph: Record<string, WorkflowNode | undefined>): boolean {
+  return Object.values(graph).some(node => node?.class_type === H3_REQUIRED_NODE);
+}
+
+/**
+ * A part's prompt from the clip's own: the part's beat first, the clip's spoken line taken out
+ * (only the first clip says it — a part says its own `line`, if any), the "Ns clip" length set
+ * to the part's, and the place's sound named (said positively — H3 has no negative prompt).
+ */
+export function h3PartPrompt(
+  clipPrompt: string,
+  part: { beat: string; place?: string; line?: string; speaker?: 'She' | 'He' }
+): string {
+  const place = part.place
+    ?.trim()
+    .replace(/[.\s]+$/, '')
+    .replace(/^(a|an|the)\s+/i, '');
+  const own = clipPrompt
+    .replace(H3_LONG_TALK_TAIL, ' ')
+    // Sentences that quote a spoken line.
+    .replace(/[^.!?]*["“][^"”]+["”][^.!?]*[.!?]?/g, ' ')
+    .replace(/^\s*\d+(?:\.\d+)?s clip,?\s*/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .replace(/^[a-z]/, letter => letter.toUpperCase());
+  const line = part.line?.trim().replace(/["“”]/g, '');
+  const who = part.speaker ?? 'She';
+  return h3CameraWords(
+    [
+      `5s clip, carrying straight on from the first frame. ${part.beat.trim()}`,
+      own,
+      line
+        ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
+        : '',
+      `Sound: the natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and the small sounds of what is happening${line ? ', under the voice' : ''}.`,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+/**
+ * The clip's H3 graph replayed as one part: it starts on `lastFrame` (no last frame pinned),
+ * runs H3's own shot length, renders sound, and says `prompt`. Null when it is not an H3 graph.
+ */
+export function patchH3ReplayGraph(
+  source: Record<string, WorkflowNode | undefined>,
+  input: { lastFrame: string; prompt: string; seed: number; prefix: string }
+): { graph: Workflow; saveNode: string } | null {
+  const graph = JSON.parse(JSON.stringify(source)) as Workflow;
+  const entries = Object.entries(graph);
+  const h3 = entries.find(([, node]) => node?.class_type === H3_REQUIRED_NODE)?.[1];
+  const firstRef = h3?.inputs?.first_frame;
+  const firstId = isRef(firstRef) ? firstRef[0] : undefined;
+  const loader = firstId ? graph[firstId] : undefined;
+  const sampler = entries.find(([, node]) => node?.class_type === 'SamplerCustomAdvanced');
+  const create = entries.find(([, node]) => node?.class_type === 'CreateVideo')?.[1];
+  const save = entries.find(([, node]) => node?.class_type === 'SaveVideo');
+  if (!h3?.inputs || !loader?.inputs || loader.class_type !== 'LoadImage') return null;
+  if (!sampler || !create?.inputs || !save?.[1].inputs) return null;
+  loader.inputs.image = input.lastFrame;
+  const lastRef = h3.inputs.last_frame;
+  delete h3.inputs.last_frame;
+  if (isRef(lastRef) && lastRef[0] !== firstId) delete graph[lastRef[0]];
+  h3.inputs.length = H3_PART_FRAMES;
+  h3.inputs.prompt = input.prompt;
+  for (const [, node] of entries) {
+    if (node?.class_type === 'RandomNoise' && node.inputs) {
+      node.inputs.noise_seed = input.seed % 2 ** 32;
+    }
+  }
+  // A long clip with no line rendered silent (h3RendersSound); a part at H3's own length has sound.
+  if (!isRef(create.inputs.audio)) {
+    let vaeId = entries.find(
+      ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
+    )?.[0];
+    if (!vaeId) {
+      vaeId = 'h3audiovae';
+      graph[vaeId] = { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.audioVae } };
+    }
+    graph.h3audio = {
+      class_type: 'VAEDecodeAudio',
+      inputs: { samples: [sampler[0], 0], vae: [vaeId, 0] },
+    };
+    create.inputs.audio = ['h3audio', 0];
+  }
+  save[1].inputs.filename_prefix = input.prefix;
+  return { graph, saveNode: save[0] };
 }

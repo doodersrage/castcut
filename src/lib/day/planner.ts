@@ -4641,6 +4641,7 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
     targetSec?: unknown;
     lines?: unknown;
     tones?: unknown;
+    beats?: unknown;
     forClip?: unknown;
   } | null;
   const targetSec = Number(record?.targetSec);
@@ -4651,11 +4652,15 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
   const tones = Array.isArray(record.tones)
     ? record.tones.slice(0, 8).map(tone => readText(tone, 40))
     : [];
+  const beats = Array.isArray(record.beats)
+    ? record.beats.slice(0, 8).map(beat => readText(beat, 240))
+    : [];
   return {
     pendingDialogue: {
       targetSec,
       lines,
       ...(tones.some(Boolean) ? { tones } : {}),
+      ...(beats.some(Boolean) ? { beats } : {}),
       forClip,
     },
   };

@@ -189,23 +189,27 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const slot = slots.find(entry => entry.id === still.slotId);
         if (step !== 'start' || !still.pendingDialogue || !slot) continue;
         const { slotId } = still;
-        const { lines, tones, targetSec } = still.pendingDialogue;
+        const { lines, tones, beats, targetSec } = still.pendingDialogue;
+        // Wordless parts: a MiniMax-H3 clip grown past its own ~5 s shot.
+        const spoken = lines.some(line => line.trim());
         // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
         patchStill(slotId, { pendingDialogue: undefined });
         dialogueRef.current = true;
         void extendSlotClip(
           slot,
-          { lines, tones },
+          { lines, tones, beats },
           {
             // Exactly one part per line, whatever the server measures the first clip at.
             extendBySec: dayTalkExtendBySec(lines.length),
-            label: `Dialogue, about ${targetSec} s`,
+            label: spoken ? `Dialogue, about ${targetSec} s` : `About ${targetSec} s`,
           }
         )
           .then(error =>
             setExtendResult({
               slotId,
-              text: error ?? `Done — the dialogue clip is now about ${targetSec} seconds.`,
+              text:
+                error ??
+                `Done — the ${spoken ? 'dialogue ' : ''}clip is now about ${targetSec} seconds.`,
             })
           )
           .finally(() => {

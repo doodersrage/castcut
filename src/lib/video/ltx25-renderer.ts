@@ -1448,6 +1448,10 @@ export function extendSegmentPrompt(
     line
       ? `As ${who === 'He' ? 'he' : 'she'} does, ${who === 'He' ? 'he' : 'she'} ${spokenLineVerb(speech?.tone, who)} "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
       : '',
+    // Talking parts drifted toward the lens part by part (live 2026-10-24, 30 s dialogue).
+    line
+      ? `${who} stays exactly where ${who === 'He' ? 'he' : 'she'} is, the same distance from the camera, and does not step or lean toward it.`
+      : '',
     setting
       ? `The place stays the same (${setting}), with the same light; one continuous shot.`
       : 'Same place and light as the first frames; one continuous shot.',
@@ -1485,9 +1489,10 @@ export function buildLtx25ExtendGraph(input: {
     '3': {
       class_type: 'CLIPTextEncode',
       inputs: {
+        // Each part starts from the last one's frames, so a small push-in per part adds up.
         text: input.speaks
-          ? 'cut, scene change'
-          : 'talking, speech, words, singing, cut, scene change',
+          ? 'cut, scene change, close-up, zoom in, push in, walking toward the camera'
+          : 'talking, speech, words, singing, cut, scene change, close-up, zoom in, push in',
         clip: ['9', 0],
       },
     },

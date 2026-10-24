@@ -45,7 +45,7 @@ export default function ClipExtendSheet({
   // A line per part (LTX clips lip-sync; WAN clips cannot).
   const [lines, setLines] = useState<string[]>([]);
   const [tones, setTones] = useState<string[]>([]);
-  const [engine, setEngine] = useState<'ltx' | 'wan' | null>(null);
+  const [engine, setEngine] = useState<'ltx' | 'wan' | 'h3' | null>(null);
   const [partSec, setPartSec] = useState(4.3);
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +78,10 @@ export default function ClipExtendSheet({
     onStart({
       direction: direction.trim() || undefined,
       beats: kept.length ? kept : undefined,
-      lines: engine === 'ltx' && keptLines.some(Boolean) ? keptLines : undefined,
-      tones: engine === 'ltx' && keptTones.some(Boolean) ? keptTones : undefined,
+      lines:
+        (engine === 'ltx' || engine === 'h3') && keptLines.some(Boolean) ? keptLines : undefined,
+      tones:
+        (engine === 'ltx' || engine === 'h3') && keptTones.some(Boolean) ? keptTones : undefined,
     });
     onClose();
   };
@@ -139,7 +141,9 @@ export default function ClipExtendSheet({
             {beats.length
               ? engine === 'wan'
                 ? `About ${partSec} s each — edit any line. This clip renders on WAN, which cannot move lips to words, so its parts stay wordless.`
-                : `About ${partSec} s each — edit any line, and give a part something to say if you like.`
+                : engine === 'h3'
+                  ? `About ${partSec} s each on MiniMax-H3, each starting where the last one ends, with the place’s sound — edit any line, and give a part something to say if you like.`
+                  : `About ${partSec} s each — edit any line, and give a part something to say if you like.`
               : 'Or start now and they are written for you.'}
           </span>
         </div>
@@ -165,7 +169,7 @@ export default function ClipExtendSheet({
                     }
                     data-testid={`${testId}-beat-${index}`}
                   />
-                  {engine === 'ltx' ? (
+                  {engine === 'ltx' || engine === 'h3' ? (
                     // The line and how it's said side by side, so the tone is there from the start.
                     <div className="flex flex-wrap items-center gap-2">
                       <TextInput

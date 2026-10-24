@@ -44,6 +44,12 @@ import {
   LTX25_FPS,
   normalizeSpokenLineTone,
 } from '../video/ltx25-renderer';
+import {
+  h3PartPrompt,
+  H3_PART_FRAMES,
+  isH3ClipGraph,
+  patchH3ReplayGraph,
+} from '../engine/h3-renderer';
 import { chatCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
@@ -200,12 +206,15 @@ async function writeBeats(input: {
   count: number;
   heat: SpokenLineHeat;
   direction?: string;
+  /** A talking clip: who speaks (the beats keep them in place). */
+  talking?: { speaker: 'She' | 'He' };
   llm?: LlmRequestOptions;
 }): Promise<string[]> {
+  const fallback = (count: number) => fallbackExtendBeats(count, input.heat, input.talking);
   if (resolveRequestLlmEnabled(input.llm)) {
     try {
       const reply = await chatCompletion({
-        messages: buildExtendBeatsMessages(input),
+        messages: buildExtendBeatsMessages({ ...input, talking: Boolean(input.talking) }),
         maxTokens: 60 * input.count,
         temperature: 0.8,
         model: resolveRequestLlmModel(input.llm),
@@ -215,19 +224,21 @@ async function writeBeats(input: {
       const beats = parseExtendBeats(reply);
       if (beats.length >= input.count) return beats.slice(0, input.count);
       if (beats.length) {
-        return [...beats, ...fallbackExtendBeats(input.count - beats.length, input.heat)];
+        return [...beats, ...fallback(input.count - beats.length)];
       }
     } catch {
       // The fallback below keeps the shot going.
     }
   }
-  return fallbackExtendBeats(input.count, input.heat);
+  return fallback(input.count);
 }
+
+type Graph = Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
 
 async function readHistoryGraph(
   baseUrl: string,
   promptId: string | undefined
-): Promise<Record<string, { class_type?: string; inputs?: Record<string, unknown> }> | null> {
+): Promise<Graph | null> {
   if (!promptId?.trim()) return null;
   try {
     const response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId.trim())}`);
@@ -297,20 +308,36 @@ async function resolveBeats(input: ClipExtendInput, count: number): Promise<stri
     count: count - given.length,
     heat: input.heat ?? 'clean',
     direction: input.direction,
+    // Dialogue parts (a line each): the speaker stays where they are.
+    ...(input.lines?.some(line => line.trim())
+      ? { talking: { speaker: input.lead === 'man' ? ('He' as const) : ('She' as const) } }
+      : {}),
     llm: input.llm,
   });
   return [...given, ...written];
+}
+
+export type ClipExtendEngine = 'ltx' | 'wan' | 'h3';
+
+/** Which engine renders the parts: the clip's own WAN or H3 graph replayed, else LTX-2.5. */
+function partEngine(history: Graph | null): ClipExtendEngine {
+  if (history && isWanClipGraph(history)) return 'wan';
+  if (history && isH3ClipGraph(history)) return 'h3';
+  return 'ltx';
 }
 
 /** How many parts the clip needs (the player's beats can ask for more, up to the cap). */
 function partCount(
   input: ClipExtendInput,
   clipSec: number,
-  wan: boolean,
+  engine: ClipExtendEngine,
   wanSegmentSec: number
 ): { total: number; partSec: number } {
-  const segmentSec = wan ? wanSegmentSec : 121 / 24;
-  const overlapSec = (wan ? 1 : LTX25_EXTEND_OVERLAP) / 24;
+  // WAN parts last as long as the clip did; H3 ones its own shot (~5.2 s); LTX ones 121 frames.
+  const segmentSec =
+    engine === 'wan' ? wanSegmentSec : engine === 'h3' ? H3_PART_FRAMES / 24 : 121 / 24;
+  // WAN and H3 parts start on the previous last frame (dropped); LTX's overlap is blended.
+  const overlapSec = (engine === 'ltx' ? LTX25_EXTEND_OVERLAP : 1) / 24;
   const needed = extendSegmentCount({
     currentSec: clipSec,
     targetSec:
@@ -328,7 +355,7 @@ function partCount(
 /** The parts and the beats for them, nothing rendered ("Write the beats"). */
 export async function planClipExtend(
   input: ClipExtendInput
-): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' }> {
+): Promise<{ total: number; beats: string[]; partSec: number; engine: ClipExtendEngine }> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
@@ -349,13 +376,13 @@ export async function planClipExtend(
       height: original.height & ~1,
     });
     const history = await readHistoryGraph(comfyBaseUrl(input.comfyUrl), input.clipPromptId);
-    const wan = Boolean(history && isWanClipGraph(history));
-    const { total, partSec } = partCount(input, clip.frames / 24, wan, clip.frames / 24);
+    const engine = partEngine(history);
+    const { total, partSec } = partCount(input, clip.frames / 24, engine, clip.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     return {
       total,
       partSec,
-      engine: wan ? ('wan' as const) : ('ltx' as const),
+      engine,
       beats: await resolveBeats({ ...input, beats: [] }, total),
     };
   } finally {
@@ -408,14 +435,15 @@ export async function extendClip(
     const reference = await frameStats(at('reference.png'));
     const referenceDetail = await frameDetail(at('reference.png'));
     const history = await readHistoryGraph(baseUrl, input.clipPromptId);
-    const wan = history && isWanClipGraph(history) ? history : null;
-    // WAN segments last as long as the clip did; LTX ones 121 frames (5 s).
-    const { total } = partCount(input, first.frames / 24, Boolean(wan), first.frames / 24);
+    const engine = partEngine(history);
+    const wan = engine === 'wan' ? history : null;
+    const h3 = engine === 'h3' ? history : null;
+    const { total } = partCount(input, first.frames / 24, engine, first.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
     const beats = await resolveBeats(input, total);
     let restoreFace: string | undefined;
-    if (!wan) {
+    if (engine === 'ltx') {
       const reactor = await resolveComfyNode(baseUrl, [LTX25_FACE_RESTORE_NODE]);
       const models = restoreModelOptions(reactor?.info);
       restoreFace =
@@ -463,7 +491,25 @@ export async function extendClip(
       const prefix = 'Castcut-extend';
       let prompt: Record<string, unknown>;
       let saveNode: string | undefined;
-      if (wan) {
+      if (h3) {
+        const clipPrompt = Object.values(h3).find(
+          node => node?.class_type === 'MiniMaxH3ImageToVideo'
+        )?.inputs?.prompt;
+        const patched = patchH3ReplayGraph(h3, {
+          lastFrame: lastFrame.name,
+          prompt: h3PartPrompt(typeof clipPrompt === 'string' ? clipPrompt : '', {
+            beat: beats[k]!,
+            place: input.setting,
+            line: input.lines?.[k],
+            speaker: input.lead === 'man' ? 'He' : 'She',
+          }),
+          seed: seed + k * 7,
+          prefix,
+        });
+        if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
+        prompt = patched.graph;
+        saveNode = patched.saveNode;
+      } else if (wan) {
         const patched = patchWanReplayGraph(wan, {
           lastFrame: lastFrame.name,
           // The clip's own prompt follows; WAN pushed in a little every hop without this.
@@ -540,18 +586,20 @@ export async function extendClip(
         .then(() => frameStats(at(`mid${k}.png`)))
         .then(stats => colorMatchFilter(colorMatchGains(reference, stats)))
         .catch(() => undefined);
-      // A WAN segment starts on the previous last frame: drop it; LTX keeps its overlap to blend.
+      // A WAN or H3 segment starts on the previous last frame: drop it; LTX keeps its overlap to
+      // blend.
+      const fromLastFrame = engine !== 'ltx';
       const piece = await normalizePiece(
         ffmpeg,
         at(`seg${k}.bin`),
         at(`piece${k + 1}.mp4`),
         size,
-        wan ? 1 : 0,
+        fromLastFrame ? 1 : 0,
         segMatch
       );
       pieces.push(at(`piece${k + 1}.mp4`));
       lengths.push(piece.frames);
-      overlaps.push(wan ? WAN_EXTEND_BLEND_FRAMES : LTX25_EXTEND_OVERLAP);
+      overlaps.push(fromLastFrame ? WAN_EXTEND_BLEND_FRAMES : LTX25_EXTEND_OVERLAP);
       onProgress({ done: k + 1 });
     }
     const filter = extendStitchFilter(lengths, overlaps);
