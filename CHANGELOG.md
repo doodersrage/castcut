@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.34] - 2026-10-24
+
+- Animate: talking clips up to 30 s of dialogue
+- Switching ComfyUI: a new install set up in one place
+
 ## [v2.12.33] - 2026-10-24
 
 - Keep a copy of every ComfyUI picture the browser's data uses
