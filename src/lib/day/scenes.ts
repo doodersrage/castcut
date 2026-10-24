@@ -61,6 +61,12 @@ export type SavedScene = {
   dayWeather?: DayWeather;
   /** Cast member who plays the second person (unset: an invented stranger). */
   partnerCharacterId?: string;
+  /**
+   * What she wears in this scene and the plate it is made from (Day's page-wide fields, kept per
+   * scene so switching scenes switches them: user request 2026-10-24). Missing: a scene saved
+   * before it was kept — opening it keeps what is on the page, which it then records.
+   */
+  outfit?: SceneOutfit;
   /** Oldest first. */
   takes: SceneTake[];
   /** The take Cut uses and Make it move starts from. */
@@ -141,6 +147,46 @@ const SCENE_MOOD_FIELDS = [
 ] as const;
 
 type SceneMoodFields = Pick<SavedScene, (typeof SCENE_MOOD_FIELDS)[number]>;
+
+/**
+ * Day's page-wide clothing and plate fields a scene keeps: the clothing photo and its words, the
+ * shoes, and the plate (the Cast picture stills are made from). The outfit kit is the slot's own.
+ */
+export const SCENE_OUTFIT_FIELDS = [
+  'customGarmentImageUrl',
+  'customGarmentImageFilename',
+  'customGarmentDescription',
+  'footwear',
+  'footwearImageUrl',
+  'footwearImageFilename',
+  'plateImageUrl',
+  'plateImageFilename',
+  'plateOriginalUrl',
+  'plateOriginalFilename',
+  'plateCharacterId',
+  'plateIsolateSourceKey',
+] as const;
+
+export type SceneOutfit = Partial<Record<(typeof SCENE_OUTFIT_FIELDS)[number], string>>;
+
+const OUTFIT_URL_FIELDS = new Set<string>([
+  'customGarmentImageUrl',
+  'footwearImageUrl',
+  'plateImageUrl',
+  'plateOriginalUrl',
+]);
+
+/** The outfit fields of Day's working settings (or a stored scene's), cleaned. */
+export function sceneOutfitOf(input: Record<string, unknown> | null | undefined): SceneOutfit {
+  const out: SceneOutfit = {};
+  for (const field of SCENE_OUTFIT_FIELDS) {
+    const value = OUTFIT_URL_FIELDS.has(field)
+      ? storableUrl(input?.[field])
+      : text(input?.[field], field === 'customGarmentDescription' ? 2000 : 400);
+    if (value) out[field] = value;
+  }
+  return out;
+}
 
 function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -273,6 +319,9 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
     name: text(scene.name, 60) || 'Scene',
     slot: sceneSlotOf([scene.slot as DaySlot]),
     ...moodFieldsOf(scene as Record<string, unknown>),
+    ...(scene.outfit && typeof scene.outfit === 'object'
+      ? { outfit: sceneOutfitOf(scene.outfit as Record<string, unknown>) }
+      : {}),
     takes: boundedTakes(takes, keptTakeId),
     ...(keptTakeId ? { keptTakeId } : {}),
     ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
@@ -349,6 +398,8 @@ export function createScene(input: {
   id?: string;
   slot?: DaySlot;
   mood?: Partial<Record<(typeof SCENE_MOOD_FIELDS)[number], unknown>>;
+  /** What she wears and the plate (a new scene starts dressed as the page is). */
+  outfit?: Record<string, unknown>;
   takes?: SceneTake[];
   fromDaySlot?: DaySlotId;
   now?: number;
@@ -360,6 +411,7 @@ export function createScene(input: {
     name: input.name.trim().slice(0, 60) || 'Scene',
     slot: sceneSlotOf(input.slot ? [input.slot] : []),
     ...moodFieldsOf(input.mood ?? {}),
+    ...(input.outfit ? { outfit: sceneOutfitOf(input.outfit) } : {}),
     takes: boundedTakes(input.takes ?? [], undefined),
     ...(input.fromDaySlot ? { fromDaySlot: input.fromDaySlot } : {}),
     createdAt: now,
@@ -379,7 +431,7 @@ export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
   const finished = (take.rawUrl && take.imageUrl !== take.rawUrl) || framed;
   return {
     slotId,
-    ...(take.promptId ? { promptId: take.promptId } : {}),
+    ...(take.promptId ? { promptId: take.promptId, restoredFor: take.promptId } : {}),
     imageUrl: framed ? (take.framedUrl ?? take.imageUrl) : take.rawUrl || take.imageUrl,
     status: 'completed',
     ...(finished && take.promptId
@@ -429,6 +481,12 @@ export function sceneWorkingPatch(scene: SavedScene): Partial<SceneToolCache> {
   };
   for (const field of SCENE_MOOD_FIELDS) {
     (patch as Record<string, unknown>)[field] = scene[field];
+  }
+  // Dressed as the scene was, on its plate (an older scene that never kept it: as the page is).
+  if (scene.outfit) {
+    for (const field of SCENE_OUTFIT_FIELDS) {
+      (patch as Record<string, unknown>)[field] = scene.outfit[field];
+    }
   }
   return patch;
 }
@@ -517,7 +575,15 @@ export function recordSceneFromWorking(
   for (const field of SCENE_MOOD_FIELDS) {
     if (scene[field] !== undefined) (moodNow as Record<string, unknown>)[field] = scene[field];
   }
-  if (sameJson(slot, scene.slot) && sameJson(mood, moodNow) && takes === scene.takes) {
+  // What she wears and the plate, as the page has them now.
+  const outfit = sceneOutfitOf(working as Record<string, unknown>);
+  if (
+    sameJson(slot, scene.slot) &&
+    sameJson(mood, moodNow) &&
+    // (Nothing worn but the defaults is the same as an older scene's none recorded.)
+    sameJson(outfit, scene.outfit ?? {}) &&
+    takes === scene.takes
+  ) {
     return scene;
   }
   const {
@@ -529,7 +595,7 @@ export function recordSceneFromWorking(
     partnerCharacterId: _f,
     ...rest
   } = scene;
-  return { ...rest, ...mood, slot, takes, updatedAt: now };
+  return { ...rest, ...mood, outfit, slot, takes, updatedAt: now };
 }
 
 /** Keep `takeId` (Cut uses it, Make it move starts from it); keeping it again lets it go. */
@@ -782,6 +848,8 @@ export function sceneFromDaySlot(input: {
     id: input.id,
     slot: shot,
     mood: input.day as Record<string, unknown>,
+    // Dressed as the Day is, on its plate.
+    outfit: input.day as Record<string, unknown>,
     takes,
     fromDaySlot: slot.id,
     now,
@@ -966,13 +1034,27 @@ export type CastFileScene = Pick<
   'name' | 'slot' | (typeof FILE_MOOD_FIELDS)[number]
 > & {
   createdAt?: number;
+  /** The clothing and shoes (not the plate: it names this install's Cast). */
+  outfit?: SceneOutfit;
 };
+
+/** The outfit fields a Cast file carries: clothing and shoes, not the plate. */
+function fileOutfitOf(outfit: SceneOutfit | undefined): SceneOutfit | undefined {
+  if (!outfit) return undefined;
+  const out: SceneOutfit = {};
+  for (const field of SCENE_OUTFIT_FIELDS) {
+    if (!field.startsWith('plate') && outfit[field]) out[field] = outfit[field];
+  }
+  return out;
+}
 
 function fileSceneOf(scene: SavedScene): CastFileScene {
   const out: CastFileScene = { name: scene.name, slot: scene.slot, createdAt: scene.createdAt };
   for (const field of FILE_MOOD_FIELDS) {
     if (scene[field] !== undefined) (out as Record<string, unknown>)[field] = scene[field];
   }
+  const outfit = fileOutfitOf(scene.outfit);
+  if (outfit) out.outfit = outfit;
   return out;
 }
 
@@ -1009,6 +1091,7 @@ export function placeImportedScenes(
       name: entry.name,
       slot: entry.slot,
       mood: entry as Record<string, unknown>,
+      ...(entry.outfit ? { outfit: fileOutfitOf(sceneOutfitOf(entry.outfit)) } : {}),
       // Their order kept: made one after another.
       now: now + index,
     })

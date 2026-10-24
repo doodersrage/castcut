@@ -1,4 +1,5 @@
 import { describe, it } from 'node:test';
+import { isRestoredTake, normalizeDaySlotStills } from './planner';
 import assert from 'node:assert/strict';
 import {
   addScenePatch,
@@ -6,6 +7,7 @@ import {
   createScene,
   deleteScenePatch,
   keepSceneTake,
+  normalizeSavedScene,
   normalizeSavedScenes,
   openScenePatch,
   parseCastFileScenes,
@@ -218,12 +220,86 @@ describe('scenes: the open scene follows the engine', () => {
       {
         slotId: 'evening',
         promptId: 'p1',
+        restoredFor: 'p1',
         imageUrl: '/1.png',
         status: 'completed',
         finishedUrl: '/1-done.png',
         finishedFor: 'p1',
       },
     ]);
+  });
+
+  it('keeps what she wears and the plate per scene (user request 2026-10-24)', () => {
+    const dress = {
+      customGarmentImageUrl: '/view?filename=red-dress.png&type=input',
+      customGarmentImageFilename: 'red-dress.png',
+      customGarmentDescription: 'a red wrap dress',
+      footwear: 'white sneakers',
+      plateImageFilename: 'cast-plate-a.png',
+      plateCharacterId: 'nora',
+    };
+    // A new scene starts dressed as the page is; opening it puts that back.
+    const a = kitchen({ outfit: dress });
+    assert.deepEqual(a.outfit, dress);
+    const opened = sceneWorkingPatch(a);
+    assert.equal(opened.customGarmentImageFilename, 'red-dress.png');
+    assert.equal(opened.footwear, 'white sneakers');
+    assert.equal(opened.plateImageFilename, 'cast-plate-a.png');
+    // A scene in the default outfit clears the last scene's clothing photo.
+    const b = kitchen({ id: 'scene-b', outfit: {} });
+    const backToB = sceneWorkingPatch(b);
+    assert.ok('customGarmentImageFilename' in backToB);
+    assert.equal(backToB.customGarmentImageFilename, undefined);
+    // A change on the page is recorded on the open scene.
+    const changed = recordSceneFromWorking(a, {
+      ...sceneWorkingPatch(a),
+      footwear: 'black heels',
+    } as SceneToolCache);
+    assert.equal(changed.outfit?.footwear, 'black heels');
+    assert.equal(changed.outfit?.customGarmentImageFilename, 'red-dress.png');
+  });
+
+  it('an older scene that never kept its outfit opens dressed as the page is, then keeps it', () => {
+    const { outfit: _none, ...old } = kitchen();
+    const patch = sceneWorkingPatch(old as SavedScene);
+    assert.equal('customGarmentImageFilename' in patch, false);
+    assert.equal('plateImageFilename' in patch, false);
+    const recorded = recordSceneFromWorking(old as SavedScene, {
+      ...patch,
+      customGarmentImageFilename: 'blue-jeans.png',
+    } as SceneToolCache);
+    assert.equal(recorded.outfit?.customGarmentImageFilename, 'blue-jeans.png');
+    // And it survives a save.
+    assert.deepEqual(normalizeSavedScene(JSON.parse(JSON.stringify(recorded)))?.outfit, recorded.outfit);
+  });
+
+  it('a Cast file carries the scene’s clothing but not its plate (it names this install’s Cast)', () => {
+    const a = kitchen({
+      outfit: { customGarmentImageFilename: 'red-dress.png', plateImageFilename: 'cast-plate-a.png' },
+    });
+    const [file] = castFileScenes([a], 'nora');
+    assert.deepEqual(file!.outfit, { customGarmentImageFilename: 'red-dress.png' });
+    const [placed] = placeImportedScenes([file!], 'nora-2');
+    assert.equal(placed!.outfit?.customGarmentImageFilename, 'red-dress.png');
+    assert.equal(placed!.outfit?.plateImageFilename, undefined);
+  });
+
+  it('a take put back on the card is marked restored, so the after-landing passes skip it', () => {
+    // Switching scenes re-rendered: the pose redo read the other scene's old take as just landed
+    // (user report 2026-10-24).
+    const scene = {
+      ...kitchen(),
+      takes: [{ id: 'p1', promptId: 'p1', imageUrl: '/1.png', at: 1 }],
+      keptTakeId: 'p1',
+    };
+    const [still] = sceneWorkingPatch(scene).stills!;
+    assert.equal(isRestoredTake(still), true);
+    // Kept through saving, and gone as soon as the card renders a new take.
+    assert.equal(
+      isRestoredTake(normalizeDaySlotStills([still!]).find(entry => entry.slotId === still!.slotId)),
+      true
+    );
+    assert.equal(isRestoredTake({ ...still!, promptId: 'p2' }), false);
   });
 
   it('new / open / delete save the open scene first', () => {

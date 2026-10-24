@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestoredTake } from '@/lib/day/planner';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import {
@@ -104,6 +105,8 @@ export function useDayFaceFinish(
       return (
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
+        // A take put back from a saved scene had its passes when it landed.
+        !isRestoredTake(still) &&
         !dayStillIsFaceFinished(still) &&
         // Two takes: finish the one the player keeps, once picked.
         !dayTwoTakesPending(still) &&

@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestoredTake } from '@/lib/day/planner';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import {
@@ -165,6 +166,8 @@ export function useDaySlotQualityGate(
       return (
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
+        // A take put back from a saved scene had its passes when it landed.
+        !isRestoredTake(still) &&
         reviewedRef.current[slot.id] !== still.imageUrl &&
         !faceFinish?.holdsStill(still) &&
         // Two takes: the player picks (and has judged the pick) — no automatic reroll.

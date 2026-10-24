@@ -128,11 +128,13 @@ export function useScenePage(vm: DayEngineView) {
       setNote('A take is rendering — start a new scene when it lands.');
       return;
     }
-    // A new scene starts from the page's mood and people (the shot itself empty).
+    // A new scene starts from the page's mood, people and outfit (the shot itself empty).
     const scene = createScene({
       castId,
       name: nextSceneName(scenes, castId),
       mood: cache as Record<string, unknown>,
+      // Dressed as the page is now, on the same plate.
+      outfit: cache as Record<string, unknown>,
     });
     write(addScenePatch({ ...cache, scenes }, scene));
     setNote(checking ? 'The last take is still being checked — it lands in its own scene.' : null);

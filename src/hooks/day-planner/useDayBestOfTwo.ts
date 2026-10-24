@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestoredTake } from '@/lib/day/planner';
 import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
@@ -119,6 +120,8 @@ export function useDayBestOfTwo(
       return (
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
+        // A take put back from a saved scene had its passes when it landed.
+        !isRestoredTake(still) &&
         checkedRef.current[slot.id] !== bestOfTwoTakeId(still) &&
         !faceFinish?.holdsStill(still) &&
         // Two takes: the player picks — never paired by pose score.

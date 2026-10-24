@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestoredTake } from '@/lib/day/planner';
 import { activeDayEvent } from '@/lib/day/event';
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
@@ -128,7 +129,8 @@ export function useDayPoseMissRedo(
       if (still.status === 'completed' && still.imageUrl) {
         const take = poseRedoTakeId(still);
         next = notePoseRedoTake(next, still.slotId, take);
-        if (!active) checkedRef.current[still.slotId] = take;
+        // A take put back from a saved scene was checked when it landed: seen, never redone.
+        if (!active || isRestoredTake(still)) checkedRef.current[still.slotId] = take;
       }
     }
     if (next !== ledgerRef.current) {

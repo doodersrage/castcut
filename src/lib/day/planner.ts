@@ -467,6 +467,13 @@ export type DayTwoTake = {
 export type DaySlotStill = {
   slotId: DaySlotId;
   promptId?: string;
+  /**
+   * Put back on the card from a saved scene (scenes.ts `takeAsStill`), for this prompt id: an
+   * earlier take, not one that just landed — the after-landing passes (pose redo, quality gate,
+   * best of two, face finish, adult check…) leave it alone (`isRestoredTake`). A new render has
+   * a new prompt id, so it no longer matches (user report 2026-10-24: switching scenes re-rendered).
+   */
+  restoredFor?: string;
   imageUrl?: string;
   status?: DaySlotStillStatus;
   /** Optional I2V clip for this slot (motion reel). */
@@ -4628,6 +4635,13 @@ function withEndPose(value: unknown): Pick<DaySlotStill, 'endPose'> {
   return endPose ? { endPose } : {};
 }
 
+/** A take put back from a saved scene, not one that landed now (see `DaySlotStill.restoredFor`). */
+export function isRestoredTake(
+  still: Pick<DaySlotStill, 'promptId' | 'restoredFor'> | null | undefined
+): boolean {
+  return Boolean(still?.restoredFor && still.restoredFor === still.promptId);
+}
+
 export function normalizeDaySlotStills(
   input?: DaySlotStill[] | null,
   slots?: Array<Pick<DaySlot, 'id'>> | null
@@ -4651,6 +4665,9 @@ export function normalizeDaySlotStills(
         : {}),
       finishedUrl: readText(still.finishedUrl, 2048) || undefined,
       finishedFor: readText(still.finishedFor, 160) || undefined,
+      ...(readText(still.restoredFor, 160)
+        ? { restoredFor: readText(still.restoredFor, 160) }
+        : {}),
       ...(readText(still.framedUrl, 2048) ? { framedUrl: readText(still.framedUrl, 2048) } : {}),
       ...(Array.isArray(still.angles)
         ? {
