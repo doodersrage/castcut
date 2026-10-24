@@ -191,6 +191,52 @@ describe('Fibo 2.0 files and install check', () => {
   });
 });
 
+describe('Fibo 2.0 nude stills are recorded on the engine that renders them', () => {
+  it('Day routes them to 2.1 Turbo (else Rapid NSFW), hand-offs on or off, with a card note', async () => {
+    const { resolveDayStillModel, resolveAdultNudePlateQueueModel, clothedOnlyHandOffNote } =
+      await import('../queue/tool-model');
+    const all = () => true;
+    const turbo = 'qwen-image-2.1-edit-turbo-8';
+    for (const handOffs of [true, false]) {
+      assert.equal(
+        resolveDayStillModel(FIBO2_MODEL_ID, { adultNude: true, handOffs, installed: all }),
+        turbo
+      );
+      assert.equal(
+        resolveDayStillModel(FIBO2_MODEL_ID, { adultNude: false, handOffs, installed: all }),
+        FIBO2_MODEL_ID
+      );
+    }
+    // Turbo's own hand-off still applies: a sex-pose duo goes on to Rapid NSFW.
+    assert.equal(
+      resolveDayStillModel(FIBO2_MODEL_ID, {
+        adultNude: true,
+        penetrationDuo: true,
+        handOffs: true,
+        installed: all,
+      }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    const rapidOnly = (id: string) => id === 'qwen-rapid-aio-edit-nsfw';
+    assert.equal(
+      resolveDayStillModel(FIBO2_MODEL_ID, { adultNude: true, installed: rapidOnly }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    // Story's nude plate (no inventory): Rapid NSFW, which Fibo's graph is built on.
+    assert.equal(
+      resolveAdultNudePlateQueueModel(FIBO2_MODEL_ID, { adultNude: true }),
+      'qwen-rapid-aio-edit-nsfw'
+    );
+    assert.equal(resolveAdultNudePlateQueueModel(FIBO2_MODEL_ID, { adultNude: false }), FIBO2_MODEL_ID);
+    assert.equal(
+      clothedOnlyHandOffNote(FIBO2_MODEL_ID, turbo),
+      "Rendered on Qwen-Image 2.1 Turbo — Bria Fibo 2.0 Edit Turbo doesn't do nude stills"
+    );
+    assert.equal(clothedOnlyHandOffNote(FIBO2_MODEL_ID, FIBO2_MODEL_ID), undefined);
+    assert.equal(clothedOnlyHandOffNote(turbo, 'qwen-rapid-aio-edit-nsfw'), undefined);
+  });
+});
+
 describe('Fibo 2.0 on the queue', () => {
   it('the runtime rides 2.1 with the Fibo flag', async () => {
     const { resolveRuntimeForQueue } = await import('../comfyui/runtime-for-model');

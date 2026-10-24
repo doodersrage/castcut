@@ -114,6 +114,14 @@ export type PoseModelProfile = {
    */
   customPoseEngines?: readonly string[];
   /**
+   * The engine does not draw nude stills (Fibo 2.0: briefs and bras kept on, sex placements
+   * softened). Its adult nude stills always render on the first installed engine in
+   * `adultEngines` (the last one when nothing is known), whatever "Pick the best engine per
+   * pose" says — and the still is recorded under that engine.
+   */
+  clothedOnly?: boolean;
+  adultEngines?: readonly string[];
+  /**
    * The Cast is dressed once (clothing + shoes on the look plate, day-dress-plate.ts) and clothed
    * stills use that plate:
    * - `plate`: as Image 1, the starting image (Edit 2511 — it re-poses a full plate from the
@@ -259,6 +267,17 @@ export function poseProfileForModel(model: string | null | undefined): PoseModel
     )
   ) {
     return { ...profile, penetrationEngine: undefined };
+  }
+  if (
+    String(model ?? '')
+      .trim()
+      .toLowerCase() === 'fibo-2-edit-turbo'
+  ) {
+    return {
+      ...profile,
+      clothedOnly: true,
+      adultEngines: ['qwen-image-2.1-edit-turbo-8', 'qwen-rapid-aio-edit-nsfw'],
+    };
   }
   return profile;
 }
