@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v2.12.33] - 2026-10-24
+
+- Keep a copy of every ComfyUI picture the browser's data uses
+
 ## [v2.12.32] - 2026-10-24
 
 - Requirements card: re-check ComfyUI's node types, not just its files
