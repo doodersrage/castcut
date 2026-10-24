@@ -200,6 +200,69 @@ function fitCamera(
  * framed so the shot's part of every figure fills the picture. The pick rides along on the
  * camera (`choice`) so the words never have to be read back from the numbers.
  */
+/**
+ * Where the camera stands round the lead now, degrees: 0 in front of her, positive toward her
+ * left, ±180 behind (the azimuth a camera pick and a motion-capture view are given in).
+ */
+export function cameraAzimuthAround(rig: PoseRig3d): number {
+  const lead = rig.figures[0];
+  if (!lead) return 0;
+  const forward = figureFacing(lead);
+  const left = figureLeft(forward);
+  const toCamera = new Vector3(...rig.camera.position).sub(new Vector3(...rig.camera.target));
+  toCamera.y = 0;
+  if (toCamera.lengthSq() < 1e-9) return 0;
+  return (Math.atan2(toCamera.dot(left), toCamera.dot(forward)) * 180) / Math.PI;
+}
+
+/**
+ * A rig lifted from a flat picture, turned (the camera orbited or the figure spun) this many
+ * degrees from the view it was read in; null when it was not lifted (posed in 3D).
+ */
+export function turnedFromLiftedView(rig: PoseRig3d): number | null {
+  if (!rig.liftedFrom) return null;
+  const turn = cameraAzimuthAround(rig) - rig.liftedFrom.azimuthDeg;
+  return Math.abs(Math.atan2(Math.sin(rad(turn)), Math.cos(rad(turn))) * (180 / Math.PI));
+}
+
+/** The rig marked as lifted from the view its camera has now (see `PoseRig3d.liftedFrom`). */
+export function markLiftedView(rig: PoseRig3d, options: { estimated?: boolean } = {}): PoseRig3d {
+  return {
+    ...rig,
+    liftedFrom: {
+      azimuthDeg: Math.round(cameraAzimuthAround(rig) * 10) / 10,
+      ...(options.estimated ? { estimated: true as const } : {}),
+    },
+  };
+}
+
+/**
+ * The camera standing `azimuthDeg` round the lead and `elevationDeg` up (a motion-capture
+ * reference's own view), framing every figure whole through the normal lens.
+ */
+export function cameraFromView(
+  rig: PoseRig3d,
+  view: { azimuthDeg: number; elevationDeg: number },
+  aspect: number,
+  fov = CAMERA_LENS_FOV.normal
+): PoseRig3dCamera {
+  const lead = rig.figures[0];
+  if (!lead) return { ...rig.camera };
+  const forward = figureFacing(lead);
+  const left = figureLeft(forward);
+  const az = rad(view.azimuthDeg);
+  const el = rad(view.elevationDeg);
+  const toCamera = forward
+    .clone()
+    .multiplyScalar(Math.cos(az))
+    .add(left.clone().multiplyScalar(Math.sin(az)))
+    .multiplyScalar(Math.cos(el))
+    .add(new Vector3(0, Math.sin(el), 0))
+    .normalize();
+  const points = rig.figures.flatMap(figure => shotPoints(figure, 'full'));
+  return fitCamera(points, toCamera, fov, aspect);
+}
+
 export function cameraForChoice(
   rig: PoseRig3d,
   choice: FullCameraChoice,

@@ -239,6 +239,7 @@ export function cloneRig(rig: PoseRig3d): PoseRig3d {
       ...(rig.camera.choice ? { choice: { ...rig.camera.choice } } : {}),
       ...(rig.camera.estimated ? { estimated: true as const } : {}),
     },
+    ...(rig.liftedFrom ? { liftedFrom: { ...rig.liftedFrom } } : {}),
   };
 }
 
@@ -374,6 +375,41 @@ const round4 = (v: number) => Math.round(v * 1e4) / 1e4;
  * joints outside the picture and the face points a detector would not see left out (the nose and eyes of a head turned away, the
  * ear on the far side of a head in profile), as the reference poses have them.
  */
+/**
+ * The line of sight from `eye` to `point` passes through the capsule a–b (radius `radius`) well
+ * before it reaches the point: the point is behind that volume.
+ */
+function segmentHidesPoint(
+  eye: Vector3,
+  point: Vector3,
+  a: Vector3,
+  b: Vector3,
+  radius: number
+): boolean {
+  const dir = point.clone().sub(eye);
+  const length = dir.length();
+  if (length < 1e-6) return false;
+  dir.divideScalar(length);
+  const ab = b.clone().sub(a);
+  const abLen2 = ab.lengthSq();
+  // Closest approach between the ray and the segment (alternating clamps, as in the harvest).
+  let s = 0.5;
+  let t = 0;
+  for (let i = 0; i < 6; i += 1) {
+    const onSegment = a.clone().add(ab.clone().multiplyScalar(s));
+    t = Math.max(0, onSegment.sub(eye).dot(dir));
+    const onRay = eye.clone().add(dir.clone().multiplyScalar(t));
+    s = abLen2 > 1e-12 ? Math.max(0, Math.min(1, onRay.sub(a).dot(ab) / abLen2)) : 0;
+  }
+  const gap = eye
+    .clone()
+    .add(dir.clone().multiplyScalar(t))
+    .distanceTo(a.clone().add(ab.clone().multiplyScalar(s)));
+  if (gap >= radius) return false;
+  const entry = t - Math.sqrt(radius * radius - gap * gap);
+  return entry < length - radius * 0.85;
+}
+
 export function projectFigure(
   figure: PoseRig3dFigure,
   camera: PoseRig3dCamera,
@@ -386,7 +422,23 @@ export function projectFigure(
   const toCamera = cam.position.clone().sub(world.pos.head!).normalize();
   const facing = face.forward.dot(toCamera);
   const leftSide = face.left.dot(toCamera);
+  // Her own torso in the way (bent over, seen from behind): the head is behind her back, and a
+  // face drawn there reads as facing the camera (reference-sources.ts hides it the same way).
+  const neck = points[2]!.clone().add(points[5]!).multiplyScalar(0.5);
+  const hips = points[8]!.clone().add(points[11]!).multiplyScalar(0.5);
+  const torsoRadius = Math.max(0.1, 0.42 * points[2]!.distanceTo(points[5]!));
+  // The torso, the pelvis and the thighs (seen from behind at hip height, her seat).
+  const blockers: Array<[Vector3, Vector3, number]> = [
+    [neck, hips, torsoRadius],
+    [points[8]!, points[11]!, Math.max(0.1, 0.6 * points[8]!.distanceTo(points[11]!))],
+    [points[8]!, points[9]!, 0.075],
+    [points[11]!, points[12]!, 0.075],
+  ];
+  const behindTorso = (point: Vector3) =>
+    blockers.some(([a, b, r]) => segmentHidesPoint(cam.position, point, a, b, r));
+  const headHidden = behindTorso(face.nose) && behindTorso(face.earR) && behindTorso(face.earL);
   const visible = (index: number) => {
+    if (headHidden && (index === 0 || index >= 14)) return false;
     if (index === 0) return facing > -0.05;
     if (index === 14) return facing > -0.05 && leftSide < 0.8;
     if (index === 15) return facing > -0.05 && leftSide > -0.8;
@@ -1600,6 +1652,174 @@ const PROPORTION_WEIGHT = 0.005;
  * without swinging limbs along the line of sight wins. Projecting the result through the same
  * camera gives the points back, within what the body's proportions allow.
  */
+/**
+ * A figure posed to known 3D joints (COCO-18, metres, in the rig's own frame and size — a
+ * motion-capture reference's, rig3d-world.ts), not lifted from a picture: nothing is guessed. The
+ * torso is fitted to the neck, shoulders and hips (the hips' midpoint lands on theirs), each limb
+ * points where its bones point, the head looks where the face does. Limb lengths stay the rig's
+ * (with `scale`), so a joint sits along its bone's true direction rather than exactly on it.
+ */
+export function figureFromWorldJoints(
+  joints: ReadonlyArray<Vector3 | null>,
+  kind: Rig3dBodyKind = 'female',
+  scale?: Rig3dProportions
+): PoseRig3dFigure {
+  const sk = info(kind);
+  const figure = restFigure(kind);
+  if (scale) figure.scale = { ...scale };
+  const J = (i: number) => joints[i] ?? null;
+  const rh = J(8);
+  const lh = J(11);
+  if (!rh || !lh) return figure;
+  const hipTarget = rh.clone().add(lh).multiplyScalar(0.5);
+
+  // ── Torso: the hips' turn and lean and the spine's bend, to the joints themselves ──────
+  const restHips = new Quaternion(...sk.byName.get('hips')!.q);
+  const restSpine = new Quaternion(...sk.byName.get('spine')!.q);
+  const restChest = new Quaternion(...sk.byName.get('chest')!.q);
+  const applyTorso = (params: number[]) => {
+    const [yaw, pitch, roll, bendPitch, bendRoll, bendYaw] = params as [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+    ];
+    figure.bones.hips = euler(yaw, pitch, roll).multiply(restHips).toArray() as Rig3dQuat;
+    const bend = euler(bendYaw / 2, bendPitch / 2, bendRoll / 2);
+    figure.bones.spine = restSpine.clone().multiply(bend).toArray() as Rig3dQuat;
+    figure.bones.chest = restChest.clone().multiply(bend).toArray() as Rig3dQuat;
+    figure.position = [0, 0, 0];
+    const at = openPoseWorld(figure);
+    const hipMid = at[8]!.clone().add(at[11]!).multiplyScalar(0.5);
+    figure.position = hipTarget.clone().sub(hipMid).toArray() as Rig3dVec3;
+  };
+  // Directions from the hips' midpoint, so the rig's own lengths do not pull the fit.
+  const torsoResiduals = (params: number[]) => {
+    applyTorso(params);
+    const at = openPoseWorld(figure);
+    const out: number[] = [];
+    const towards = (index: number, weight: number) => {
+      const want = J(index);
+      if (!want) return;
+      const a = at[index]!.clone().sub(hipTarget).normalize();
+      const b = want.clone().sub(hipTarget).normalize();
+      out.push((a.x - b.x) * weight, (a.y - b.y) * weight, (a.z - b.z) * weight);
+    };
+    towards(1, 1);
+    towards(2, 0.7);
+    towards(5, 0.7);
+    towards(8, 1);
+    towards(11, 1);
+    // An even split of the bend between hips and spine where the joints allow either.
+    out.push(params[2]! * LIFT_W, params[4]! * LIFT_W, params[5]! * LIFT_W);
+    return out;
+  };
+  const across = lh.clone().sub(rh);
+  const forward = across.clone().cross(new Vector3(0, 1, 0));
+  const yaw = forward.lengthSq() > 1e-9 ? Math.atan2(forward.x, forward.z) : 0;
+  const starts = [0, 0.6, 1.2, -0.4].flatMap(pitch => [
+    [yaw, pitch, 0, 0, 0, 0],
+    [yaw, pitch / 2, 0, pitch / 2, 0, 0],
+  ]);
+  const best = starts
+    .map(start => {
+      const params = leastSquares(torsoResiduals, start, 60);
+      return { params, cost: torsoResiduals(params).reduce((s, v) => s + v * v, 0) };
+    })
+    .sort((a, b) => a.cost - b.cost)[0]!;
+  applyTorso(best.params);
+
+  // ── Limbs: each bone along its own direction, from the rig's shoulder or hip ──────────
+  const ROOTS: Record<`${Side}${Limb}`, number> = { Rarm: 2, Larm: 5, Rleg: 8, Lleg: 11 };
+  for (const [side, limb] of ALL_LIMBS) {
+    const [midIndex, endIndex] = LIMB_POINTS[`${side}${limb}`];
+    const root3 = J(ROOTS[`${side}${limb}`]);
+    const mid3 = J(midIndex);
+    const end3 = J(endIndex);
+    if (!root3 || !mid3 || !end3) continue;
+    const { root } = limbJoints(figure, side, limb);
+    const mid = root.clone().add(mid3.clone().sub(root3));
+    const end = mid.clone().add(end3.clone().sub(mid3));
+    placeLimb(figure, side, limb, mid, end, limb === 'leg');
+  }
+  // Feet flat under a standing leg, turned with the hips (as the lift sets them).
+  for (const side of ['R', 'L'] as const) {
+    const world = figureWorld(figure);
+    const hipsForward = new Vector3(0, 0, 1).applyQuaternion(world.quat.hips!);
+    const hipsYaw = new Quaternion().setFromAxisAngle(
+      new Vector3(0, 1, 0),
+      Math.atan2(hipsForward.x, hipsForward.z)
+    );
+    const shinDir = sk.dirLocal
+      .get(`shin_${side}`)!
+      .clone()
+      .applyQuaternion(world.quat[`shin_${side}`]!);
+    if (shinDir.y < -0.8) {
+      setWorldQ(
+        figure,
+        world,
+        `foot_${side}`,
+        hipsYaw.multiply(sk.restWorldQ.get(`foot_${side}`)!)
+      );
+    }
+  }
+
+  // ── Head: the neck and head turned so the face and ears sit where the capture's do ────
+  const neck3 = J(1);
+  const face3: Array<[number, 'nose' | 'eyeR' | 'eyeL' | 'earR' | 'earL', number]> = [
+    [0, 'nose', 1],
+    [14, 'eyeR', 0.6],
+    [15, 'eyeL', 0.6],
+    [16, 'earR', 0.8],
+    [17, 'earL', 0.8],
+  ];
+  if (neck3 && face3.some(([index]) => J(index))) {
+    const restNeck = figure.bones.neck!;
+    const restHead = figure.bones.head!;
+    const applyHead = (params: number[]) => {
+      const [yaw, pitch, roll] = params as [number, number, number];
+      figure.bones.neck = new Quaternion(...restNeck)
+        .multiply(euler(yaw * 0.35, pitch * 0.35, roll * 0.35))
+        .toArray() as Rig3dQuat;
+      figure.bones.head = new Quaternion(...restHead)
+        .multiply(euler(yaw * 0.65, pitch * 0.65, roll * 0.65))
+        .toArray() as Rig3dQuat;
+    };
+    const headResiduals = (params: number[]) => {
+      applyHead(params);
+      const world = figureWorld(figure);
+      const face = faceWorld(figure, world);
+      const neckNow = openPoseWorld(figure, world)[1]!;
+      const out: number[] = [];
+      for (const [index, key, weight] of face3) {
+        const want = J(index);
+        if (!want) continue;
+        const a = face[key].clone().sub(neckNow).normalize();
+        const b = want.clone().sub(neck3).normalize();
+        out.push((a.x - b.x) * weight, (a.y - b.y) * weight, (a.z - b.z) * weight);
+      }
+      out.push(params[0]! * 0.004, params[1]! * 0.004, params[2]! * 0.008);
+      return out;
+    };
+    const fitted = [
+      [0, 0, 0],
+      [0, 0.8, 0],
+      [0, -0.8, 0],
+      [0.9, 0, 0],
+      [-0.9, 0, 0],
+    ]
+      .map(start => {
+        const params = leastSquares(headResiduals, start, 40);
+        return { params, cost: headResiduals(params).reduce((s, v) => s + v * v, 0) };
+      })
+      .sort((a, b) => a.cost - b.cost)[0]!;
+    applyHead(fitted.params);
+  }
+  return figure;
+}
+
 export function liftBody(
   body: NormalizedBody,
   aspect: number,

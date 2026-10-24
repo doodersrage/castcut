@@ -4,7 +4,11 @@ import { memo, useMemo, type MouseEvent } from 'react';
 import { POSE_FIGURE_COLORS, PoseFigureShape } from '@/components/pose/PoseBodiesSvg';
 import { dayPoseAsPhotoPose, soloDayPoseGroups } from '@/lib/day/pose-presets';
 import { usePoseReferences } from '@/hooks/usePoseReferences';
-import { poseReferenceCreditLine, type PoseReference } from '@/lib/pose/references';
+import {
+  poseReferenceCreditLine,
+  poseReferenceViewWords,
+  type PoseReference,
+} from '@/lib/pose/references';
 import { poseLayoutLabel } from '@/lib/pose/layout-labels';
 import type { NormalizedBody } from '@/lib/pose/library';
 import { Button } from '@/components/ui/Button';
@@ -17,10 +21,13 @@ export function ReferencePosePicker({
   testIdPrefix,
   twoPeople,
   onPick,
+  only,
 }: {
   testIdPrefix: string;
   twoPeople: boolean;
   onPick: (reference: PoseReference) => void;
+  /** List only these (the Director: poses with their own 3D). */
+  only?: (reference: PoseReference) => boolean;
 }) {
   const references = usePoseReferences();
   const groups = useMemo(() => {
@@ -32,12 +39,13 @@ export function ReferencePosePicker({
     const byPose = new Map<string, PoseReference[]>();
     for (const reference of references) {
       if (reference.people.length > 1 && !twoPeople) continue;
+      if (only && !only(reference)) continue;
       byPose.set(reference.pose, [...(byPose.get(reference.pose) ?? []), reference]);
     }
     return [...byPose.entries()].sort(
       ([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b)
     );
-  }, [references, twoPeople]);
+  }, [references, twoPeople, only]);
   return (
     <div
       className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
@@ -83,8 +91,16 @@ const ReferencePoseTiles = memo(function ReferencePoseTiles({
                 variant="plain"
                 key={reference.id}
                 type="button"
-                title={`${poseLayoutLabel(pose)}${reference.draft ? ' (draft)' : ''} — ${poseReferenceCreditLine(reference)}`}
-                aria-label={`${poseLayoutLabel(pose)}, real pose ${reference.variant}`}
+                title={`${poseLayoutLabel(pose)}${reference.draft ? ' (draft)' : ''}${
+                  reference.world
+                    ? reference.world.estimated
+                      ? ` — 3D estimated from the photo's skeleton (turns well, may be off far round)`
+                      : ` — ${poseReferenceViewWords(reference)} view, true 3D (turns without guessing)`
+                    : ''
+                } — ${poseReferenceCreditLine(reference)}`}
+                aria-label={`${poseLayoutLabel(pose)}, real pose ${reference.variant}${
+                  reference.world ? `, ${poseReferenceViewWords(reference)} view, 3D` : ''
+                }`}
                 data-testid={`${testIdPrefix}-real-pose-${reference.id}`}
                 data-reference-id={reference.id}
                 className="flex flex-col items-center gap-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-muted)] p-1 text-center transition hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
@@ -107,6 +123,9 @@ const ReferencePoseTiles = memo(function ReferencePoseTiles({
                 </svg>
                 <span className="text-3xs leading-tight text-[var(--text-secondary)]">
                   {reference.variant}
+                  {reference.world
+                    ? ` · 3D${reference.world.estimated ? ' est.' : ''}${reference.editorOnly ? ` ${poseReferenceViewWords(reference)}` : ''}`
+                    : ''}
                 </span>
               </Button>
             ))}

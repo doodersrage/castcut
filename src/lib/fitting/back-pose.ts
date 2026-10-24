@@ -10,6 +10,8 @@
 
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PhotoPose } from '@/lib/pose/types';
+import { cameraAzimuthAround, cameraFromView } from '@/lib/pose/rig3d-camera';
+import { cameraElevation, projectRig } from '@/lib/pose/rig3d-pose';
 
 /** COCO-18 nose and eyes: not seen from behind. */
 const FACE_POINTS = [0, 14, 15] as const;
@@ -63,6 +65,32 @@ export function fittingBackViewPose(photo: PhotoPose | null | undefined): PhotoP
     aspect: photo.aspect,
     people: [lead],
     ...(photo.source ? { source: photo.source } : {}),
+    ...(photo.words ? { words: photo.words } : {}),
+    ...(photo.posture ? { posture: photo.posture } : {}),
+  };
+}
+
+/**
+ * A pose made in the 3D editor, seen from the other side of the same body (the camera walked
+ * round her, the lead only): exact where mirroring the flat picture is not — a pose seen from
+ * behind mirrors into a "front" with no face, and a bent figure's far limbs swap wrongly.
+ * Undefined without the rig.
+ */
+export function rigSeenFromOtherSide(photo: PhotoPose | null | undefined): PhotoPose | undefined {
+  const rig = photo?.rig3d;
+  if (!photo || !rig?.figures[0]) return undefined;
+  const lead = { ...rig, figures: [rig.figures[0]] };
+  const camera = cameraFromView(
+    lead,
+    { azimuthDeg: cameraAzimuthAround(lead) + 180, elevationDeg: cameraElevation(lead.camera) },
+    photo.aspect
+  );
+  const people = projectRig({ ...lead, camera }, photo.aspect);
+  if (!people[0] || [8, 11].some(index => !people[0]![index])) return undefined;
+  return {
+    aspect: photo.aspect,
+    people,
+    source: photo.source ?? 'edited',
     ...(photo.words ? { words: photo.words } : {}),
     ...(photo.posture ? { posture: photo.posture } : {}),
   };

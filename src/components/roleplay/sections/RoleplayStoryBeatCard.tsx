@@ -814,6 +814,8 @@ function StoryDirector({
       castName={cast?.name}
       body={dayPartnerNoun(cast ?? {}) === 'man' ? 'male' : 'female'}
       postures={pickedPostures(beat)}
+      pose3d={beat.posePhoto?.rig3d}
+      poseId={beat.posePhoto ? undefined : beat.poseLayout}
       busy={busy}
       onClose={onClose}
       onRender={onRender}

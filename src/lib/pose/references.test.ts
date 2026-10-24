@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -148,7 +149,13 @@ describe('pose reference data file', () => {
         variants.map((_, index) => index + 1),
         pose
       );
-      assert.ok(variants.length <= 5, pose);
+      // Up to five in "Try another"; a motion-capture moment's other views (editor-only) follow.
+      const walked = references.filter(r => r.pose === pose && !r.editorOnly);
+      assert.ok(walked.length <= 5, pose);
+      assert.ok(
+        walked.every(r => r.variant <= walked.length),
+        `${pose}: editor-only views come after the walked variants`
+      );
     }
   });
 
@@ -255,7 +262,10 @@ describe('pose reference data file', () => {
   });
 
   it('stays small enough to load on demand', () => {
-    assert.ok(statSync(DATA_PATH).size < 400_000);
+    // Raw, and as it is served (gzipped): the 3D of the motion-capture, drawn and estimated poses
+    // (2026-10-24) took it from ~276 KB to ~424 KB raw, ~89 KB gzipped.
+    assert.ok(statSync(DATA_PATH).size < 480_000);
+    assert.ok(gzipSync(readFileSync(DATA_PATH)).length < 120_000);
   });
 });
 

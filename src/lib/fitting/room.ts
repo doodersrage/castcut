@@ -80,6 +80,11 @@ export type FittingPendingTryOn = FittingCompareTryOn & {
      * view keeps that pose, seen from behind, instead of standing.
      */
     pose?: import('@/lib/pose/types').PhotoPose;
+    /**
+     * The same pose from the other side, drawn from its 3D rig (back-pose.ts
+     * `rigSeenFromOtherSide`) when it had one: used instead of mirroring `pose`.
+     */
+    otherSide?: import('@/lib/pose/types').PhotoPose;
     /** The pose's camera picked a closer shot than full body: the back view keeps it. */
     closerShot?: boolean;
   };

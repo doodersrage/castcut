@@ -28,6 +28,7 @@ import {
   bodyFacesAway,
   fittingBackViewPose,
   photoPoseSeenFromBehind,
+  rigSeenFromOtherSide,
 } from '@/lib/fitting/back-pose';
 import { poseFirstLine, poseFramingLine } from '@/lib/pose/starters';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
@@ -137,10 +138,12 @@ async function feetPassShoeImage(
 async function backViewPoseGuide(
   pose: PhotoPose,
   model: string,
-  subject: 'she' | 'he'
+  subject: 'she' | 'he',
+  otherSide?: PhotoPose
 ): Promise<{ words: string; filename?: string; fromFront: boolean }> {
   const fromFront = bodyFacesAway(pose.people[0]);
-  const turned = photoPoseSeenFromBehind(pose);
+  // Drawn from the pose's 3D rig when it had one; else the flat picture mirrored.
+  const turned = otherSide?.people[0] ? otherSide : photoPoseSeenFromBehind(pose);
   const words = customPoseWords({ photo: turned, lead: subject });
   // Seated from behind: words only — the turned map drew the front of her legs again (room.ts).
   if (!fromFront && fittingBackViewIsSeated(words)) return { words, fromFront };
@@ -670,7 +673,15 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
                       : {}),
                     // Posed: the back view keeps the pose, seen from behind (back-pose.ts).
                     ...(posedRender && backPose
-                      ? { pose: backPose, ...(closerShot ? { closerShot: true } : {}) }
+                      ? {
+                          pose: backPose,
+                          ...(closerShot ? { closerShot: true } : {}),
+                          // Full body from the rig, the other side exactly (a closer shot keeps
+                          // the mirrored map, framed as the try-on was).
+                          ...(!closerShot && rigSeenFromOtherSide(customPose)
+                            ? { otherSide: rigSeenFromOtherSide(customPose) }
+                            : {}),
+                        }
                       : {}),
                   },
                 }
@@ -811,7 +822,7 @@ export function useFittingRoomQueueCore(input: FittingRoomQueueInput) {
         // A posed try-on's back view keeps the pose, seen from behind: its words, and its map
         // (the try-on's own map turned around) the way the try-on took it.
         const backPose = backView?.pose?.people[0]
-          ? await backViewPoseGuide(backView.pose, passModel, backView.subject)
+          ? await backViewPoseGuide(backView.pose, passModel, backView.subject, backView.otherSide)
           : null;
         const prompt = feetPass
           ? buildFittingFeetPassPrompt({

@@ -5,7 +5,11 @@ import {
   bodySeenFromBehind,
   fittingBackViewPose,
   photoPoseSeenFromBehind,
+  rigSeenFromOtherSide,
 } from '@/lib/fitting/back-pose';
+import { cameraFromView } from '@/lib/pose/rig3d-camera';
+import { projectRig, restFigure, DEFAULT_CAMERA } from '@/lib/pose/rig3d-pose';
+import { RIG3D_VERSION, type PoseRig3d } from '@/lib/pose/rig3d';
 import { customPoseWords } from '@/lib/pose/describe';
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PhotoPose } from '@/lib/pose/types';
@@ -88,5 +92,33 @@ describe('photoPoseSeenFromBehind', () => {
     assert.equal('rig3d' in saved, false);
     assert.equal(fittingBackViewPose(undefined), undefined);
     assert.equal(fittingBackViewPose({ aspect: 1, people: [] }), undefined);
+  });
+});
+
+describe('the other side of a pose made in 3D', () => {
+  const posedFromBehind = (): PhotoPose => {
+    const base: PoseRig3d = {
+      version: RIG3D_VERSION,
+      figures: [restFigure('female')],
+      camera: DEFAULT_CAMERA,
+    };
+    const rig = { ...base, camera: cameraFromView(base, { azimuthDeg: 180, elevationDeg: 0 }, 0.75) };
+    return { aspect: 0.75, people: projectRig(rig, 0.75), source: 'edited', rig3d: rig };
+  };
+
+  it('posed from behind, the other side is her front, face and all (user report 2026-10-24)', () => {
+    const pose = posedFromBehind();
+    assert.equal(pose.people[0]![0], null, 'from behind: no nose');
+    const other = rigSeenFromOtherSide(pose)!;
+    assert.ok(other.people[0]![0], 'the front shows her face');
+    assert.equal(other.people.length, 1);
+    assert.equal(bodyFacesAway(other.people[0]), false);
+    assert.equal('rig3d' in other, false);
+  });
+
+  it('needs the rig: a flat pose has none', () => {
+    const { rig3d: _rig, ...flat } = posedFromBehind();
+    assert.equal(rigSeenFromOtherSide(flat), undefined);
+    assert.equal(rigSeenFromOtherSide(undefined), undefined);
   });
 });

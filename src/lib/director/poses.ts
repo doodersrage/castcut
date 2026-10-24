@@ -1,7 +1,8 @@
 /**
- * Director: start poses and pose beats — a starter (Stand, Sit, Kneel…) or her pose as read from
- * the still, lifted into the 3D body, turned to face the camera (starters) and set on the floor
- * in her own frame; and a pose from the 3D editor turned into a beat.
+ * Director: start poses and pose beats — a starter (Stand, Sit, Kneel…), a real pose from motion
+ * capture (built from its own 3D), or her pose as read from the still (from the 3D pose the
+ * still was posed with when it still matches, else lifted), turned to face the camera
+ * (starters) and set on the floor in her own frame; and a pose from the 3D editor as a beat.
  */
 
 import type { NormalizedBody } from '@/lib/pose/library';
@@ -10,6 +11,7 @@ import { RIG3D_VERSION } from '@/lib/pose/rig3d';
 import { Quaternion, Vector3 } from 'three';
 import {
   aimAtFigures,
+  cloneFigure,
   faceWorld,
   refitLimbs,
   DEFAULT_CAMERA,
@@ -22,6 +24,8 @@ import {
   setBoneWorldRotation,
 } from '@/lib/pose/rig3d-pose';
 import { faceCamera } from '@/lib/pose/rig3d-camera';
+import type { PoseReference, PoseReferenceWorld } from '@/lib/pose/references';
+import { mirrorWorldReference, rigFromWorldReference } from '@/lib/pose/rig3d-world';
 import { liftBodyWithCameraAsync } from '@/lib/pose/rig3d-lift-async';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import { poseStarterBody, type PoseStarterId } from '@/lib/pose/starters';
@@ -52,6 +56,15 @@ export function starterFigure(id: PoseStarterId, kind: Rig3dBodyKind): PoseRig3d
   const figure = liftBody(poseStarterBody(id), 2 / 3, { body: kind, proportions: false });
   faceCamera(figure, DEFAULT_CAMERA);
   return settle(figure);
+}
+
+/**
+ * A motion-capture pose as captured (no lift: its own 3D, rig3d-world.ts), the lead only,
+ * settled in her own frame — a real bend, kneel or stretch to move through.
+ */
+export function realPoseFigure(world: PoseReferenceWorld, kind: Rig3dBodyKind): PoseRig3dFigure {
+  const rig = rigFromWorldReference({ ...world, people: [world.people[0]!] }, 2 / 3, [kind]);
+  return settle(rig.figures[0]!);
 }
 
 /**
@@ -198,6 +211,94 @@ export function stillPoseFigure(
   return levelError + STILL_CAMERA_SLACK < error ? level : read;
 }
 
+/**
+ * Her pose in the still from the 3D pose it was posed with (a custom pose made in the 3D editor),
+ * not lifted from the still: a pose seen from behind or the side keeps its real depth. Only when
+ * the still still shows that pose — the model may have drawn another — measured shape to shape
+ * (position and size aside, the editor's framing is not the still's); else null (lift instead).
+ */
+export function knownStillPoseFigure(
+  rig: PoseRig3d,
+  body: NormalizedBody,
+  aspect: number,
+  kind: Rig3dBodyKind
+): { figure: PoseRig3dFigure; side: 1 | -1; turned: number; view: PoseRig3dCamera } | null {
+  const lead = rig.figures[0];
+  if (!lead || lead.body !== kind) return null;
+  const { error: _error, ...placed } = placedWithCamera(
+    body,
+    aspect,
+    cloneFigure(lead),
+    rig.camera
+  );
+  const shown = projectFigure(placed.figure, placed.view, aspect);
+  return shapeError(body, shown, aspect) <= KNOWN_POSE_SHAPE_ERROR ? placed : null;
+}
+
+/**
+ * Her pose in the still from a real pose's own 3D, when the still was made from one of the pose
+ * it was picked as (a Day slot's or Story beat's "Try another" variant): each of that pose's
+ * references with 3D, as captured and mirrored, measured against the still; the closest that
+ * passes, else null (lift instead).
+ */
+export function referenceStillPoseFigure(
+  references: readonly PoseReference[],
+  poseId: string | null | undefined,
+  body: NormalizedBody,
+  aspect: number,
+  kind: Rig3dBodyKind
+): { figure: PoseRig3dFigure; side: 1 | -1; turned: number; view: PoseRig3dCamera } | null {
+  const id = poseId?.trim();
+  if (!id) return null;
+  let best: { placed: NonNullable<ReturnType<typeof knownStillPoseFigure>>; error: number } | null =
+    null;
+  for (const ref of references) {
+    if (ref.pose !== id || !ref.world) continue;
+    for (const world of [ref.world, mirrorWorldReference(ref.world)]) {
+      const lead = { ...world, people: [world.people[0]!] };
+      const placed = knownStillPoseFigure(
+        rigFromWorldReference(lead, aspect, [kind]),
+        body,
+        aspect,
+        kind
+      );
+      if (!placed) continue;
+      const error = shapeError(body, projectFigure(placed.figure, placed.view, aspect), aspect);
+      if (!best || error < best.error) best = { placed, error };
+    }
+  }
+  return best?.placed ?? null;
+}
+
+/** How far (share of her size) the still's pose may be from the 3D pose's and still be it. */
+export const KNOWN_POSE_SHAPE_ERROR = 0.12;
+
+/**
+ * Mean distance between two bodies' joints once each is centred and scaled to unit size: the
+ * same pose framed differently scores 0.
+ */
+export function shapeError(a: NormalizedBody, b: NormalizedBody, aspect: number): number {
+  const both: Array<[number, number, number, number]> = [];
+  for (let i = 0; i < 14; i += 1) {
+    const p = a[i];
+    const q = b[i];
+    if (p && q) both.push([p.x * aspect, p.y, q.x * aspect, q.y]);
+  }
+  if (both.length < 6) return Infinity;
+  const norm = (pick: 0 | 2) => {
+    const cx = both.reduce((s, v) => s + v[pick]!, 0) / both.length;
+    const cy = both.reduce((s, v) => s + v[pick + 1]!, 0) / both.length;
+    const size =
+      Math.sqrt(
+        both.reduce((s, v) => s + (v[pick]! - cx) ** 2 + (v[pick + 1]! - cy) ** 2, 0) / both.length
+      ) || 1;
+    return both.map(v => [(v[pick]! - cx) / size, (v[pick + 1]! - cy) / size] as const);
+  };
+  const pa = norm(0);
+  const pb = norm(2);
+  return pa.reduce((s, p, i) => s + Math.hypot(p[0] - pb[i]![0], p[1] - pb[i]![1]), 0) / pa.length;
+}
+
 /** How much closer the eye-level camera must draw her before it wins over the still's own. */
 const STILL_CAMERA_SLACK = 0.003;
 
@@ -228,6 +329,16 @@ function posedFromLift(
   refitLimbs(lifted, body, aspect, camera, ['arm']);
   // Not looking up, but otherwise the head as the still has it (levelHead turned it away).
   untipHead(lifted);
+  return placedWithCamera(body, aspect, lifted, camera);
+}
+
+/** A figure and the camera it was seen through, moved into her own frame on the floor. */
+function placedWithCamera(
+  body: NormalizedBody,
+  aspect: number,
+  lifted: PoseRig3dFigure,
+  camera: PoseRig3dCamera
+) {
   const at = placementOf(lifted);
   const local = toLocal(lifted, at);
   const figure = groundFigure(local);

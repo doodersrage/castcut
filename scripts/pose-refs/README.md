@@ -1,6 +1,6 @@
 # Pose references harvester
 
-Builds Castcut's real-world reference poses: for each of Day's named poses (the *Change pose*
+Builds Castcut's real-world reference poses: for each of Day's named poses (the _Change pose_
 list — postures, everyday, two-person and sport layouts; pose packs use the same ids) it finds
 people in that pose in three open sources and keeps 3–5 good, different skeletons:
 
@@ -26,8 +26,8 @@ people in that pose in three open sources and keeps 3–5 good, different skelet
   did not read as the pose is shipped as a `draft` ("Try another" skips it). Contact sheet:
   `<cache>/sheets/drawn-sheet.jpg`.
 
-The app draws them as variants of the pose (variant 0 stays the hand-drawn figure; *Try another*
-walks through the real ones) and lists them under *Real poses…* in the pose editor. See
+The app draws them as variants of the pose (variant 0 stays the hand-drawn figure; _Try another_
+walks through the real ones) and lists them under _Real poses…_ in the pose editor. See
 `src/lib/pose/references.ts` (`source` says where each came from).
 
 **Only skeletons ship** (`public/pose-references.json`, with each item's credit). The
@@ -45,7 +45,25 @@ python3 scripts/pose-refs/mocap.py --pose kneel       # CMU mocap (clips fetched
 python3 scripts/pose-refs/coco.py --pose sit_floor    # COCO keypoints (needs the annotations zip)
 python3 scripts/pose-refs/drawn.py                    # the hand-drawn duos (then runs build.py)
 python3 scripts/pose-refs/build.py                    # rewrite outputs from the four manifests
+python3 scripts/pose-refs/mocap-3d.py                 # then: mocap 3D + front/back views (below)
 ```
+
+### Motion capture and drawings in 3D (`mocap-3d.py`)
+
+A mocap reference ships flat, seen from one side; lifted back into 3D by the pose editor, a
+side-view bend turned round came out with crossed, splayed legs (2026-10-24). `mocap-3d.py`
+reads each shipped mocap reference's own clip and frame again (from its credit line), finds the
+camera view whose projection is the shipped skeleton (mean error under 1.2% of the crop), and
+stores the capture's joints as `world` (metres, the rig's frame — `src/lib/pose/references.ts`
+`PoseReferenceWorld`). The 3D editor and the Director build the figure from them
+(`src/lib/pose/rig3d-world.ts`) instead of lifting. It also adds each one-person moment seen from
+the front and from behind, through the same gate as the harvest (less the near-duplicate rule),
+as `editorOnly` variants: listed under _Real poses…_, skipped by _Try another_. `EXCLUDE_VIEWS`
+holds the views that pass the gate but do not read as the pose from there.
+
+It edits `public/pose-references.json` in place and needs no harvest manifests, only the CMU
+clips (fetched into the cache). The hand-drawn references get their 3D the same way: each one's `drawn.py` scene is built again (matched by title) and checked against the shipped skeleton. **`build.py` does not carry `world` or the extra views** — run
+`mocap-3d.py` again after it. Composed or partnered duos whose view it cannot match stay flat.
 
 `build.py` fills each pose up to five references: photos first, then mocap, then COCO, then the
 drawings, numbering the variants on. `mocap.py` and `coco.py` run every candidate through the photo harvest's own
@@ -92,15 +110,15 @@ DWPose runs on the CPU here (the same two models ComfyUI's DWPreprocessor uses, 
 
 Outputs:
 
-| Where | What |
-| --- | --- |
-| `public/pose-references.json` | skeletons + credits (commit) |
-| `docs/pose-reference-credits.md` | one credit line per reference (commit) |
-| `~/.cache/castcut-pose-refs/manifest.json` | everything kept, with the crop box and joint scores |
-| `~/.cache/castcut-pose-refs/crops/<pose>-<n>.jpg` | the cropped photos (not committed) |
-| `~/.cache/castcut-pose-refs/sheets/sheet-NN.jpg` | contact sheets: crops with skeletons drawn |
-| `~/.cache/castcut-pose-refs/report.txt` | kept / searched / rejected-by-reason per pose |
-| `~/.cache/castcut-pose-refs/log.jsonl` | every candidate and why it was kept or dropped |
+| Where                                             | What                                                |
+| ------------------------------------------------- | --------------------------------------------------- |
+| `public/pose-references.json`                     | skeletons + credits (commit)                        |
+| `docs/pose-reference-credits.md`                  | one credit line per reference (commit)              |
+| `~/.cache/castcut-pose-refs/manifest.json`        | everything kept, with the crop box and joint scores |
+| `~/.cache/castcut-pose-refs/crops/<pose>-<n>.jpg` | the cropped photos (not committed)                  |
+| `~/.cache/castcut-pose-refs/sheets/sheet-NN.jpg`  | contact sheets: crops with skeletons drawn          |
+| `~/.cache/castcut-pose-refs/report.txt`           | kept / searched / rejected-by-reason per pose       |
+| `~/.cache/castcut-pose-refs/log.jsonl`            | every candidate and why it was kept or dropped      |
 
 `POSE_REFS_CACHE` moves the cache. Searches, downloads and vision answers are cached there, so a
 rerun after changing a threshold is quick and asks the services nothing twice.
@@ -128,22 +146,23 @@ Dropped: anything NonCommercial or NoDerivatives, GFDL-only, unknown or missing.
 handful of joint coordinates, not the photo, but every reference is credited anyway (creator,
 licence, link) in the data file, in `docs/pose-reference-credits.md` (linked from Settings →
 About) and under the pose wherever the app draws one.
+
 ## Filters
 
 Cheapest first; each rejection is logged with its reason (`log.jsonl`, `report.txt`):
 
-| Reason | Rule |
-| --- | --- |
-| `title-words` | the title names a child, nudity, or a painting / statue / drawing |
-| `download` | could not fetch or decode, or under 320 px on the short side |
-| `people:N` | DWPose found too few people, or a bystander ≥ 60% of a subject's size; on the crop the app's `countProminentPeople` must count exactly 1 (2 for two-person poses) |
-| `full-body` | neck, shoulders, elbows, wrists, hips, knees and ankles each read at ≥ 0.45; ankles inside the frame (two people read per person: the core joints and ≥ 12 in all) |
-| `person-too-small` | the person spans under 260 px |
-| `posture:…` | `posture-classifier.mts` (the pose check's classes, `pose-posture.ts`) reads a group the pose doesn't allow — `poses.py`, else the group of the app's own figure when that read is confident; athletic and in-air poses skip it |
-| `unlike-drawing` | the pose check's limb-angle match (`pose-limb-score.ts`) against the app's hand-drawn figure is a gesture miss (its defining limbs held elsewhere) or under 0.35 (`min_drawn` per pose) |
-| `near-duplicate` | limb angles ≥ 0.93 like a reference already kept for the pose |
-| `relation:…` | two people without the contact the pose needs (`duoRelation`) |
-| `not-a-photo` / `not-clearly-adult` / `nudity` / `pose-mismatch` | yes/no questions to the vision model; "unsure" rejects |
+| Reason                                                           | Rule                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title-words`                                                    | the title names a child, nudity, or a painting / statue / drawing                                                                                                                                                               |
+| `download`                                                       | could not fetch or decode, or under 320 px on the short side                                                                                                                                                                    |
+| `people:N`                                                       | DWPose found too few people, or a bystander ≥ 60% of a subject's size; on the crop the app's `countProminentPeople` must count exactly 1 (2 for two-person poses)                                                               |
+| `full-body`                                                      | neck, shoulders, elbows, wrists, hips, knees and ankles each read at ≥ 0.45; ankles inside the frame (two people read per person: the core joints and ≥ 12 in all)                                                              |
+| `person-too-small`                                               | the person spans under 260 px                                                                                                                                                                                                   |
+| `posture:…`                                                      | `posture-classifier.mts` (the pose check's classes, `pose-posture.ts`) reads a group the pose doesn't allow — `poses.py`, else the group of the app's own figure when that read is confident; athletic and in-air poses skip it |
+| `unlike-drawing`                                                 | the pose check's limb-angle match (`pose-limb-score.ts`) against the app's hand-drawn figure is a gesture miss (its defining limbs held elsewhere) or under 0.35 (`min_drawn` per pose)                                         |
+| `near-duplicate`                                                 | limb angles ≥ 0.93 like a reference already kept for the pose                                                                                                                                                                   |
+| `relation:…`                                                     | two people without the contact the pose needs (`duoRelation`)                                                                                                                                                                   |
+| `not-a-photo` / `not-clearly-adult` / `nudity` / `pose-mismatch` | yes/no questions to the vision model; "unsure" rejects                                                                                                                                                                          |
 
 The posture classifier is a hook: any module exporting
 `classifyPosture({ people, width, height }) → { posture, group, confident }` (and optionally
@@ -154,3 +173,33 @@ The posture classifier is a hook: any module exporting
 Add it to the app's pose list (`src/lib/pose/layout-labels.ts`), then give it queries, the
 vision question's pose words and (if needed) allowed postures in `poses.py`, and rerun with
 `--pose <id>`.
+
+### Photo and COCO poses in 3D (`lift3d/`)
+
+Photo and COCO references have no capture to read, so their 3D is **estimated** by a small
+2D→3D lifter trained on CMU motion capture alone (free for all uses — no Human3.6M or SMPL, whose
+licences are research-only). It ships as `world` with `estimated: true`; the editor and Director
+treat it like captured 3D, the editor still noting the pose may be off once turned well past
+110° from its photo.
+
+```sh
+python3 scripts/pose-refs/lift3d/fetch.py --per-subject 6 --with-postures   # ~600 clips, ~1 GB
+python3 scripts/pose-refs/lift3d/extract.py                                 # poses → <cache>/lift3d
+COMFY_PY=<ComfyUI>/.venv/bin/python                                         # Torch + GPU
+node --import tsx scripts/pose-refs/lift3d/baseline.mts ~/.cache/castcut-pose-refs/lift3d/baseline.json
+$COMFY_PY scripts/pose-refs/lift3d/train.py          # ~4 min on a GPU
+$COMFY_PY scripts/pose-refs/lift3d/evaluate.py       # against today's lift, on the mocap poses
+$COMFY_PY scripts/pose-refs/lift3d/apply.py          # writes the estimates (--dry-run first)
+$COMFY_PY scripts/pose-refs/lift3d/test_geometry.py
+```
+
+- **Held out:** every clip a shipped mocap reference comes from, and every clip of their people in
+  the per-subject pick (`common.py`); the posture clips (lying, sitting, floor work — 0.1% of poses
+  otherwise) may come from those people, never from those clips. Rare postures are sampled more.
+- **Result (2026-10-24, 47 mocap poses):** 3D error 26.9 → 10.6 cm per joint against the lift it
+  replaces; turned 180°, the picture's error 0.390 → 0.112 (0.315 → 0.108 on people never seen);
+  legs crossed 6 → 0. Lying on a side is its weakest case.
+- **Shipped as the lifter predicts**, short limbs restored to full length in depth
+  (`restore_lengths`: an ambiguous bone is averaged short). Snapping joints onto the picture's
+  points made the 3D worse and is not used. 226 of 237 get 3D; the two-person ones stay flat.
+- After `build.py`, run `mocap-3d.py` and then `apply.py` again.

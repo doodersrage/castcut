@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState, type ComponentProps } from 'react';
 import type PoseJointEditorType from '@/components/pose/PoseJointEditor';
 import type { NormalizedBody } from '@/lib/pose/library';
+import type { PoseReferenceWorld } from '@/lib/pose/references';
 import type { PoseRig3d } from '@/lib/pose/rig3d';
 import type { PoseCameraChoice } from '@/lib/pose/camera-shot';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
@@ -56,6 +57,10 @@ type EditorProps = ComponentProps<typeof PoseJointEditorType> & {
   initialCamera?: PoseCameraChoice;
   /** The lead's posture when known from outside the points (the 3D editor's lift targets it). */
   postures?: Posture[];
+  /** The pose's own 3D (a real pose's capture): the 3D editor opens from it instead of a lift. */
+  world?: PoseReferenceWorld;
+  /** The pose is drawn mirrored (a duo's lead put on the other side): so is its 3D. */
+  worldMirrored?: boolean;
 };
 
 /**
@@ -63,7 +68,14 @@ type EditorProps = ComponentProps<typeof PoseJointEditorType> & {
  * click either way, remembered) or when the browser has no WebGL. Switching hands the pose
  * across as it stands.
  */
-export default function PoseEditor({ rig3d, initialCamera, postures, ...props }: EditorProps) {
+export default function PoseEditor({
+  rig3d,
+  initialCamera,
+  postures,
+  world,
+  worldMirrored,
+  ...props
+}: EditorProps) {
   const [webgl] = useState(webglAvailable);
   const [mode, setMode] = useState<PoseEditorMode>(readMode);
   // The pose as the other editor left it, once the player switches.
@@ -94,6 +106,9 @@ export default function PoseEditor({ rig3d, initialCamera, postures, ...props }:
         rig3d={handoff ? handoff.rig : rig3d}
         initialCamera={initialCamera}
         postures={postures}
+        // Handed back from the wireframe editor, the points may have moved: lift those.
+        world={handoff ? undefined : world}
+        worldMirrored={worldMirrored}
         onUseWireframe={(next, nextWords, rig) => switchTo('wireframe', next, nextWords, rig)}
       />
     );

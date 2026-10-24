@@ -13,7 +13,7 @@
  * stands in for the drawing only on the posture it was harvested for — a phone call drawn
  * seated ("on the phone on the sofa") keeps its drawing rather than borrowing a standing caller.
  *
- * The data file (`public/pose-references.json`, ~250 KB) loads on demand: `loadPoseReferences()`
+ * The data file (`public/pose-references.json`, ~420 KB, ~90 KB gzipped) loads on demand: `loadPoseReferences()`
  * (the pose previews and the guide builders call it), with a synchronous snapshot for the pure
  * planners.
  */
@@ -89,6 +89,36 @@ export type PoseReference = {
    * editor's real poses, but "Try another" skips it.
    */
   draft?: boolean;
+  /**
+   * Another view of a motion-capture moment another reference shows (its back, its front):
+   * listed in the pose editor's real poses, skipped by "Try another" so Day and Story keep their
+   * variants (scripts/pose-refs/mocap-3d.py).
+   */
+  editorOnly?: boolean;
+  /**
+   * The pose's own 3D (motion capture, and Castcut's hand-drawn 3D figures): the editor and the
+   * Director pose the figure from it instead of lifting the flat skeleton.
+   */
+  world?: PoseReferenceWorld;
+};
+
+export type PoseReferenceWorldPoint = readonly [number, number, number];
+
+/**
+ * A reference's joints in 3D: metres, Y up, the floor at y = 0, the lead's hip midpoint at
+ * x = z = 0 and the lead facing +Z (her left +X) — the 3D rig's own frame. `view` is where the
+ * camera stood round the lead for `people` (reference-sources.ts `projectSkeletons`).
+ */
+export type PoseReferenceWorld = {
+  /** COCO-18 per person, lead first; null where the capture has no joint. */
+  people: Array<Array<PoseReferenceWorldPoint | null>>;
+  view: { azimuthDeg: number; elevationDeg: number };
+  /**
+   * Estimated from the flat skeleton by the 3D lifter (a photo or COCO pose — no capture to
+   * read: scripts/pose-refs/lift3d), not captured or drawn in 3D: the likeliest depth for that
+   * view, so turned far from it the editor still says it may be off.
+   */
+  estimated?: true;
 };
 
 /** Where the full credits list lives (also linked from Settings → About). */
@@ -118,6 +148,45 @@ function readBody(raw: unknown): NormalizedBody | null {
   });
   // Neck, shoulders, hips, knees and ankles: a reference is a whole body.
   return [1, 2, 5, 8, 9, 10, 11, 12, 13].every(index => body[index]) ? body : null;
+}
+
+function readWorldPoint(raw: unknown): PoseReferenceWorldPoint | null {
+  return Array.isArray(raw) &&
+    raw.length === 3 &&
+    raw.every(v => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 20)
+    ? [raw[0], raw[1], raw[2]]
+    : null;
+}
+
+/** The 3D, checked: one 18-joint body per person with its core joints, and a view. */
+export function readPoseReferenceWorld(raw: unknown, people: number): PoseReferenceWorld | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const record = raw as {
+    people?: unknown;
+    view?: { azimuthDeg?: unknown; elevationDeg?: unknown };
+  };
+  if (!Array.isArray(record.people) || record.people.length !== people) return null;
+  const bodies = record.people.map(body =>
+    Array.isArray(body) && body.length === 18 ? body.map(readWorldPoint) : null
+  );
+  if (bodies.some(body => !body || ![1, 2, 5, 8, 9, 10, 11, 12, 13].every(i => body[i]))) {
+    return null;
+  }
+  const az = record.view?.azimuthDeg;
+  const el = record.view?.elevationDeg ?? 8;
+  if (
+    typeof az !== 'number' ||
+    !Number.isFinite(az) ||
+    typeof el !== 'number' ||
+    !Number.isFinite(el)
+  ) {
+    return null;
+  }
+  return {
+    people: bodies as Array<Array<PoseReferenceWorldPoint | null>>,
+    view: { azimuthDeg: az, elevationDeg: el },
+    ...((record as { estimated?: unknown }).estimated === true ? { estimated: true as const } : {}),
+  };
 }
 
 /** One data-file entry, checked: licence allowed, credit complete, skeleton whole. */
@@ -173,7 +242,21 @@ export function normalizePoseReference(raw: unknown): PoseReference | null {
     people: people as NormalizedBody[],
     credit,
     ...(record.draft === true ? { draft: true } : {}),
+    ...(record.editorOnly === true ? { editorOnly: true } : {}),
+    ...withWorld(worldFor(source, record.world, people.length)),
   };
+}
+
+/** Captured or drawn 3D for mocap and drawn poses; only estimated 3D for photo and COCO poses. */
+function worldFor(source: string, raw: unknown, people: number): PoseReferenceWorld | null {
+  const world = readPoseReferenceWorld(raw, people);
+  if (!world) return null;
+  const captured = source === 'cmu-mocap' || source === 'drawn';
+  return captured || world.estimated ? world : null;
+}
+
+function withWorld(world: PoseReferenceWorld | null): { world?: PoseReferenceWorld } {
+  return world ? { world } : {};
 }
 
 /** The data file's references, checked (bad entries dropped), in variant order per pose. */
@@ -186,7 +269,7 @@ export function parsePoseReferences(raw: unknown): PoseReference[] {
     .sort((a, b) => a.pose.localeCompare(b.pose) || a.variant - b.variant);
 }
 
-/** The references for one pose and headcount, variant order (drafts left out). */
+/** The references for one pose and headcount, variant order (drafts and editor-only views left out). */
 export function poseReferencesFor(
   references: readonly PoseReference[],
   pose: string | null | undefined,
@@ -199,6 +282,7 @@ export function poseReferencesFor(
     ref =>
       ref.pose === id &&
       !ref.draft &&
+      !ref.editorOnly &&
       ref.people.length === people &&
       (base == null || ref.base === base)
   );
@@ -231,6 +315,22 @@ export function poseReferenceAsLibraryEntry(
     score: 1,
     createdAt: 0,
   };
+}
+
+/** Which way a motion-capture reference was seen, in a word or two; null without its 3D. */
+export function poseReferenceViewWords(ref: Pick<PoseReference, 'world'>): string | null {
+  const az = ref.world?.view.azimuthDeg;
+  if (az == null) return null;
+  const a = Math.abs((((az % 360) + 540) % 360) - 180);
+  return a < 20
+    ? 'front'
+    : a < 65
+      ? 'three-quarter'
+      : a < 115
+        ? 'side'
+        : a < 160
+          ? 'rear three-quarter'
+          : 'back';
 }
 
 /** "CC BY-SA 2.0", "CC0", "Public domain". */

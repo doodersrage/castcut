@@ -15,12 +15,22 @@ import { posturesForReference } from './rig3d-posture-points';
 
 const ROOT = join(__dirname, '..', '..', '..');
 
-type Ref = { id: string; pose: string; aspect: number; people: NormalizedBody[] };
+type Ref = {
+  id: string;
+  pose: string;
+  aspect: number;
+  people: NormalizedBody[];
+  editorOnly?: boolean;
+};
 const refs = (
   JSON.parse(readFileSync(join(ROOT, 'public/pose-references.json'), 'utf8')) as {
     references: Ref[];
   }
-).references.filter(ref => ref.people.length === 1);
+).references.filter(
+  // A motion-capture moment's extra views (editor-only) are never lifted: the editor builds them
+  // from their own 3D (rig3d-world.ts), and Day's Director walks only the regular variants.
+  ref => ref.people.length === 1 && !ref.editorOnly
+);
 const lifted = refs.map(ref => ({ ref, figure: liftBody(ref.people[0]!, ref.aspect) }));
 
 // Measured 2026-10-22 over the 273 one-person references (scripts/pose-3d/lift-check.mts).

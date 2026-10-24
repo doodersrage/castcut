@@ -31,6 +31,8 @@ import {
 } from '@/lib/pose/camera-shot';
 import { photoPoseCameraChoice } from '@/lib/pose/rig3d-camera';
 import { pickedPostures } from '@/lib/pose/rig3d-posture-points';
+import { bodyCentreX } from '@/lib/pose/starters';
+import type { NormalizedBody } from '@/lib/pose/library';
 import { fitPhotoPoseToHeadcount } from '@/lib/pose/photo-pose-fit';
 import {
   POSE_REFERENCE_SOURCE_WORDS,
@@ -83,6 +85,12 @@ const selectClass = 'w-auto! min-w-[8rem] py-1 text-sm';
  * queue, including pose-library and photo poses), its name, and the controls — Change pose,
  * Try another, camera, which side the lead stands on, and a pose read from your own photo.
  */
+/** The lead stands left of the partner in the picture (duos; unknown counts as left). */
+function leadOnLeft(people: readonly NormalizedBody[]): boolean {
+  const [lead, partner] = people.slice(0, 2).map(bodyCentreX);
+  return lead == null || partner == null || lead <= partner;
+}
+
 export default function PosePreview({
   sceneText,
   options,
@@ -186,6 +194,21 @@ export default function PosePreview({
   const reference = openPose.referenceId
     ? (poseReferences.find(ref => ref.id === openPose.referenceId) ?? null)
     : null;
+  // A real pose with its own 3D, not yet edited: the 3D editor opens from that, not a lift.
+  const editorWorld =
+    !picks.posePhoto &&
+    reference?.world &&
+    reference.people.length >= editorPlan.bodies.length &&
+    editorPlan.bodies.length > 0
+      ? {
+          world: reference.world,
+          // The guide put a duo's lead on the picked side: the 3D follows the picture.
+          mirrored:
+            reference.people.length > 1 &&
+            editorPlan.bodies.length > 1 &&
+            leadOnLeft(reference.people) !== leadOnLeft(editorPlan.bodies),
+        }
+      : null;
   const fromPhoto = Boolean(picks.posePhoto);
   const edited = picks.posePhoto?.source === 'edited';
   const name = fromPhoto
@@ -252,6 +275,8 @@ export default function PosePreview({
     return (
       <PoseEditor
         rig3d={picks.posePhoto?.rig3d}
+        world={editorWorld?.world}
+        worldMirrored={editorWorld?.mirrored}
         initialCamera={picks.poseCamera}
         postures={pickedPostures({ poseLayout: drawnId, posePhoto: picks.posePhoto })}
         bodies={editorPlan.bodies}

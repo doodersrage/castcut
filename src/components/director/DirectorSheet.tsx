@@ -5,7 +5,12 @@ import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from '
 import { Button } from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import { ChipButton, FieldError, TextInput } from '@/components/ui/Field';
-import type { Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { PoseRig3d, Rig3dBodyKind } from '@/lib/pose/rig3d';
+import type { PoseReference } from '@/lib/pose/references';
+import { poseLayoutLabel } from '@/lib/pose/layout-labels';
+import { dayPoseWords } from '@/lib/day/pose-presets';
+import { ReferencePosePicker } from '@/components/pose/PosePickers';
+import { usePoseReferences } from '@/hooks/usePoseReferences';
 import { cameraHeightOf } from '@/lib/pose/rig3d-camera';
 import type { Posture } from '@/lib/pose/rig3d-posture-points';
 import type { NormalizedBody } from '@/lib/pose/library';
@@ -39,7 +44,10 @@ import {
 import {
   editorRig,
   figureFromEditor,
+  knownStillPoseFigure,
   poseBeat,
+  referenceStillPoseFigure,
+  realPoseFigure,
   starterFigure,
   readStillCamera,
   stillCameraKnown,
@@ -107,6 +115,16 @@ export type DirectorSheetProps = {
    */
   postures?: Posture[];
   onClose: () => void;
+  /**
+   * The 3D pose the still was posed with (a custom pose made in the 3D editor): her pose in the
+   * picture starts from it while the still still shows it, instead of lifting the still's joints.
+   */
+  pose3d?: PoseRig3d;
+  /**
+   * The pose the still was picked in (a Day slot's or beat's layout): a real pose of it with its
+   * own 3D that the still shows is the start, instead of lifting the still's joints.
+   */
+  poseId?: string;
   /** Start Copy moves with the driving video (a background job). */
   onRender: (video: Blob, options: DirectorRenderOptions) => void;
   testId?: string;
@@ -142,6 +160,10 @@ function useStillSize(url: string): { width: number; height: number } | null {
   return size?.url === url ? size : null;
 }
 
+/** The real poses the Director offers: one-person poses with 3D (captured, drawn or estimated). */
+const hasOwn3d = (reference: PoseReference) =>
+  Boolean(reference.world) && reference.people.length === 1;
+
 function startDirection(body: Rig3dBodyKind, place?: string): Direction {
   return {
     version: 1,
@@ -160,15 +182,15 @@ function directionFromStill(
   direction: Direction,
   pose: { body: NormalizedBody; aspect: number },
   body: Rig3dBodyKind,
-  postures?: Posture[]
+  postures?: Posture[],
+  known?: { pose3d?: PoseRig3d; poseId?: string; references?: readonly PoseReference[] }
 ): Direction {
-  const { figure, side, turned, view } = stillPoseFigure(
-    pose.body,
-    pose.aspect,
-    body,
-    postures,
-    'known'
-  );
+  const { figure, side, turned, view } =
+    (known?.pose3d ? knownStillPoseFigure(known.pose3d, pose.body, pose.aspect, body) : null) ??
+    (known?.references
+      ? referenceStillPoseFigure(known.references, known.poseId, pose.body, pose.aspect, body)
+      : null) ??
+    stillPoseFigure(pose.body, pose.aspect, body, postures, 'known');
   const start = {
     ...poseBeat('Her pose in the picture', figure, { first: true }),
     hold: direction.beats[0]!.hold,
@@ -200,6 +222,8 @@ function DirectorSheetOpen({
   place: initialPlace,
   busy = false,
   postures,
+  pose3d,
+  poseId,
   onClose,
   onRender,
   testId = 'director',
@@ -234,6 +258,18 @@ function DirectorSheetOpen({
   const filming = useRef(false);
   // Her posture as the slot or beat picked it (fixed while the sheet is open).
   const [knownPostures] = useState(postures);
+  // The 3D pose the still was posed with, and the pose it was picked as, likewise; the real
+  // poses with 3D, once loaded, to match the still against.
+  const [knownPose3d] = useState(pose3d);
+  const [knownPoseId] = useState(poseId);
+  const references = usePoseReferences();
+  // (Read by the still's start when it lands: the references may load after the sheet opens.)
+  const knownRef = useRef({ pose3d: knownPose3d, poseId: knownPoseId, references });
+  useEffect(() => {
+    knownRef.current = { pose3d: knownPose3d, poseId: knownPoseId, references };
+  }, [knownPose3d, knownPoseId, references]);
+  // The real-pose picker: open to set the start, or to add a beat.
+  const [realPoses, setRealPoses] = useState<'start' | 'add' | null>(null);
 
   const loaded = useStillSize(stillUrl);
 
@@ -277,7 +313,9 @@ function DirectorSheetOpen({
           // still's camera when the lift worker has read it — unless the player moved on.
           const fromStill = () =>
             setDirection(current =>
-              touched.current ? current : directionFromStill(current, pose, body, knownPostures)
+              touched.current
+                ? current
+                : directionFromStill(current, pose, body, knownPostures, knownRef.current)
             );
           fromStill();
           if (!stillCameraKnown(pose.body, pose.aspect, body, knownPostures)) {
@@ -379,7 +417,7 @@ function DirectorSheetOpen({
     const pose = detected.pose;
     if (!pose) return;
     if (stillCameraKnown(pose.body, pose.aspect, body, knownPostures)) {
-      update(directionFromStill(direction, pose, body, knownPostures));
+      update(directionFromStill(direction, pose, body, knownPostures, knownRef.current));
       return;
     }
     // The still's camera is still being read (the lift worker): start from it once it is, unless
@@ -390,7 +428,7 @@ function DirectorSheetOpen({
       .catch(() => undefined)
       .then(() => {
         if (changes.current !== at || filming.current) return;
-        update(directionFromStill(direction, pose, body, knownPostures));
+        update(directionFromStill(direction, pose, body, knownPostures, knownRef.current));
       });
   };
 
@@ -402,6 +440,25 @@ function DirectorSheetOpen({
     setEditing(next.beats.length - 1);
   };
   const addMove = (move: DirectorMoveId) => update(addBeat(direction, moveBeat(move)));
+  /** A motion-capture pose, as captured: the start, or the next beat. */
+  const pickRealPose = (reference: PoseReference) => {
+    const world = reference.world;
+    if (!world || !realPoses) return;
+    const name = poseLayoutLabel(reference.pose);
+    const words = dayPoseWords(reference.pose).slice(0, 200) || undefined;
+    const figure = realPoseFigure(world, body);
+    if (realPoses === 'start') {
+      const start = {
+        ...poseBeat(name, figure, { first: true, words }),
+        hold: direction.beats[0]!.hold,
+      };
+      const { view: _still, ...camera } = direction.camera;
+      update({ ...replaceBeat(direction, 0, start), camera });
+    } else {
+      update(addBeat(direction, poseBeat(name, figure, { words })));
+    }
+    setRealPoses(null);
+  };
 
   const editingAt =
     editing === null ? null : editing === 0 ? ORIGIN : placementOf(endOfBeats(direction, editing));
@@ -426,6 +483,25 @@ function DirectorSheetOpen({
     }
     setEditing(null);
   };
+
+  const realPosePicker = (
+    <div
+      className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+      data-testid={`${p}-real-poses`}
+    >
+      <p className="type-caption text-[var(--text-muted)]">
+        Real people&rsquo;s poses in 3D — {she} takes the pose from any side. Motion-capture and
+        drawn poses are exact; ones marked &ldquo;est.&rdquo; are read from a photo, so their depth
+        is the likeliest one.
+      </p>
+      <ReferencePosePicker
+        testIdPrefix={`${p}-real`}
+        twoPeople={false}
+        only={hasOwn3d}
+        onPick={pickRealPose}
+      />
+    </div>
+  );
 
   const render = async (use: 'copy' | 'download') => {
     if (check.errors.length || rendering || sizing) return;
@@ -697,7 +773,16 @@ function DirectorSheetOpen({
                     {starter.label}
                   </ChipButton>
                 ))}
+                <ChipButton
+                  active={realPoses === 'start'}
+                  title="A real person's pose in 3D (bend, kneel, sit, reach, stretch…)"
+                  onClick={() => setRealPoses(open => (open === 'start' ? null : 'start'))}
+                  data-testid={`${p}-start-real`}
+                >
+                  A real pose…
+                </ChipButton>
               </div>
+              {realPoses === 'start' ? realPosePicker : null}
             </section>
 
             <section className="space-y-2" data-testid={`${p}-beats`}>
@@ -831,7 +916,17 @@ function DirectorSheetOpen({
                 >
                   + Add a pose…
                 </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-expanded={realPoses === 'add'}
+                  data-testid={`${p}-add-real-pose`}
+                  onClick={() => setRealPoses(open => (open === 'add' ? null : 'add'))}
+                >
+                  + Add a real pose…
+                </Button>
               </div>
+              {realPoses === 'add' ? realPosePicker : null}
               <p className="type-caption text-[var(--text-muted)]">Add a ready-made move</p>
               <div className="flex flex-wrap gap-1.5" data-testid={`${p}-moves`}>
                 {DIRECTOR_MOVE_IDS.map(id => (

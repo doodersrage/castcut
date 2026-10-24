@@ -66,6 +66,17 @@ export type PoseRig3d = {
   figures: PoseRig3dFigure[];
   /** The camera the people were projected through, framed to the picture's aspect. */
   camera: PoseRig3dCamera;
+  /**
+   * Lifted from a flat picture (a photo, a real pose without 3D): where the camera stood round
+   * the lead when it was, degrees (0 in front, positive toward her left). Each bone's depth was
+   * guessed from that view, so turned far from it the figure may be wrong (the editor says so).
+   * Missing: posed in 3D from the start (a starter, a motion-capture pose's own 3D).
+   */
+  liftedFrom?: {
+    azimuthDeg: number;
+    /** Built from estimated 3D (the lifter's), not a bare lift: a likelier read, still one view. */
+    estimated?: true;
+  };
 };
 
 const BONE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,31}$/;
@@ -133,9 +144,20 @@ export function normalizePoseRig3d(raw: unknown, people?: number): PoseRig3d | u
   const fov = cam?.fov;
   if (!position || !target || !finite(fov) || fov < 5 || fov > 120) return undefined;
   const choice = normalizeFullCameraChoice(cam?.choice);
+  const lifted = (record.liftedFrom as { azimuthDeg?: unknown } | undefined)?.azimuthDeg;
   return {
     version: RIG3D_VERSION,
     figures: figures as PoseRig3dFigure[],
+    ...(finite(lifted, 360)
+      ? {
+          liftedFrom: {
+            azimuthDeg: lifted,
+            ...((record.liftedFrom as { estimated?: unknown }).estimated === true
+              ? { estimated: true as const }
+              : {}),
+          },
+        }
+      : {}),
     camera: {
       position,
       target,

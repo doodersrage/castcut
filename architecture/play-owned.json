@@ -150,6 +150,7 @@
   "src/lib/pose/rig3d-render.ts",
   "src/lib/pose/rig3d-camera.ts",
   "src/lib/pose/rig3d-posture.ts",
+  "src/lib/pose/rig3d-world.ts",
   "src/components/director/DirectorGalleryHost.tsx",
   "src/components/director/DirectorPreview.tsx",
   "src/components/director/DirectorSheet.tsx",

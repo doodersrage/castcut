@@ -38,7 +38,14 @@ import {
   type FullCameraChoice,
   type PoseCameraChoice,
 } from '@/lib/pose/camera-shot';
-import { cameraForChoice, faceCamera, rigCameraChoice } from '@/lib/pose/rig3d-camera';
+import {
+  cameraForChoice,
+  faceCamera,
+  markLiftedView,
+  rigCameraChoice,
+  turnedFromLiftedView,
+} from '@/lib/pose/rig3d-camera';
+import { mirrorWorldReference, rigFromWorldReference } from '@/lib/pose/rig3d-world';
 import { dayPoseAsPhotoPose, dayPoseWords } from '@/lib/day/pose-presets';
 import type { PhotoPose } from '@/lib/day/pose-guide';
 import { describePhotoPose } from '@/lib/pose/describe';
@@ -74,6 +81,10 @@ import {
 
 /** A restored rig must still draw the pose it was saved with (it may have been edited since). */
 const RESTORE_TOLERANCE = 0.006;
+/** Turned this far (degrees) from the view a flat pose was read in, the editor says it is a guess. */
+const GUESSED_TURN_DEG = 50;
+/** The same for a pose built from estimated 3D (the lifter's): a likelier read, so turned further. */
+const ESTIMATED_TURN_DEG = 110;
 
 type Snapshot = { rig: PoseRig3d; words: string | null; edited: boolean };
 
@@ -136,6 +147,8 @@ export default function PoseJointEditor3D({
   soloStill = false,
   initialCamera,
   postures,
+  world,
+  worldMirrored = false,
 }: {
   bodies: NormalizedBody[];
   /** The rig this pose was saved with in the 3D editor, if it was. */
@@ -164,6 +177,13 @@ export default function PoseJointEditor3D({
    * pose, the vision model's read of the photo): the lift targets it instead of guessing.
    */
   postures?: Posture[];
+  /**
+   * The pose's own 3D (a real pose from motion capture or a Castcut drawing): with no saved rig,
+   * the editor opens from it — nothing guessed — instead of lifting the points.
+   */
+  world?: PoseReference['world'];
+  /** The points are the pose mirrored (a duo's lead on the other side): so is the 3D. */
+  worldMirrored?: boolean;
 }) {
   const titleId = useId();
   const p = testIdPrefix;
@@ -196,9 +216,24 @@ export default function PoseJointEditor3D({
     const restored =
       rig3d && rigProjectionError(rig3d, initialBodies, safeAspect) < RESTORE_TOLERANCE;
     if (restored) return { rig: cloneRig(rig3d), restored: true, reframed: false, reading: false };
+    if (world && world.people.length >= initialBodies.length) {
+      const own = worldMirrored ? mirrorWorldReference(world) : world;
+      const built = rigFromWorldReference(
+        { ...own, people: own.people.slice(0, initialBodies.length) },
+        safeAspect,
+        kinds(initialBodies.length)
+      );
+      return {
+        ...framedOpen(own.estimated ? markLiftedView(built, { estimated: true }) : built),
+        restored: false,
+        reading: false,
+      };
+    }
     const lift = [initialBodies, safeAspect, kinds(initialBodies.length), DEFAULT_CAMERA] as const;
     const reading = !liftBodiesKnown(...lift, [postures]);
-    const lifted = liftBodies(...lift, { postures: [postures], estimateCamera: 'cached' });
+    const lifted = markLiftedView(
+      liftBodies(...lift, { postures: [postures], estimateCamera: 'cached' })
+    );
     return { ...framedOpen(lifted), restored: false, reading };
   });
   const [rig, setRig] = useState<PoseRig3d>(opened.rig);
@@ -407,7 +442,7 @@ export default function PoseJointEditor3D({
           signal
         ),
       lifted => {
-        const next = framedOpen(lifted).rig;
+        const next = framedOpen(markLiftedView(lifted)).rig;
         openedRig.current = next;
         return next;
       }
@@ -468,6 +503,10 @@ export default function PoseJointEditor3D({
   }, [redo, undo]);
 
   const projected = useMemo(() => projectRig(rig, safeAspect), [rig, safeAspect]);
+  const turn = turnedFromLiftedView(rig);
+  const estimatedPose = rig.liftedFrom?.estimated === true;
+  const guessedTurn =
+    turn != null && turn > (estimatedPose ? ESTIMATED_TURN_DEG : GUESSED_TURN_DEG) ? turn : null;
   // Untouched, the pose is the one it opened with, point for point.
   const changed = edited || viewChanged;
   const outputBodies = changed ? projected : initialBodies;
@@ -517,6 +556,9 @@ export default function PoseJointEditor3D({
     // A pose picked by name lifts toward the posture it is filed under.
     // (A starter is drawn at eye level; a reference or Day pose may be a photo from above: its
     // camera is read off the page's thread and swapped in when it lands, unless known already.)
+    // A starter is drawn in 3D terms (facing front); a Day pose or real pose is a flat picture
+    // whose depth the lift guesses — remembered, so turning far from it is flagged.
+    const marked = (lift: PoseRig3d) => (facingFront ? lift : markLiftedView(lift));
     const lifted = liftBodies(bodies, safeAspect, bodyKinds, DEFAULT_CAMERA, {
       postures: [leadPostures],
       estimateCamera: facingFront ? false : 'cached',
@@ -525,7 +567,8 @@ export default function PoseJointEditor3D({
     if (facingFront) {
       for (const figure of lifted.figures) faceCamera(figure, lifted.camera);
     }
-    const place = (lift: PoseRig3d) => {
+    const place = (raw: PoseRig3d) => {
+      const lift = marked(raw);
       const figures = both ? lift.figures : [lift.figures[0]!, ...current.figures.slice(1)];
       const next = { ...lift, figures };
       // A picked camera stays picked: the new pose is framed the same way.
@@ -569,7 +612,34 @@ export default function PoseJointEditor3D({
       posturesForPose(id)
     );
   };
+  /** A motion-capture pose's own 3D: built as captured, nothing guessed (rig3d-world.ts). */
+  const startFromWorld = (reference: PoseReference, world: NonNullable<PoseReference['world']>) => {
+    checkpoint();
+    reading.current?.abort();
+    const current = latest.current;
+    const both = world.people.length > 1 && allowTwo && !soloStill;
+    const people = both ? world.people : [world.people[0]!];
+    const built = rigFromWorldReference(
+      { ...world, people },
+      safeAspect,
+      kinds(people.length, current)
+    );
+    const figures = both ? built.figures : [built.figures[0]!, ...current.figures.slice(1)];
+    const plain: PoseRig3d = { version: built.version, figures, camera: built.camera };
+    // Estimated 3D remembers the view it was read in, as a lift does (the turn note, softer).
+    const next = world.estimated ? markLiftedView(plain, { estimated: true }) : plain;
+    const choice = current.camera.choice;
+    replaceRig(choice ? { ...next, camera: cameraForChoice(next, choice, safeAspect) } : next);
+    markEdited(true);
+    setWordsBoth(dayPoseWords(reference.pose));
+    setSavedNote(null);
+    sceneRef.current?.select(0);
+  };
   const startFromReference = (reference: PoseReference) => {
+    if (reference.world) {
+      startFromWorld(reference, reference.world);
+      return;
+    }
     const fitted = reference.people.map(body => widenFor(body, reference.aspect, safeAspect));
     const both = fitted.length > 1 && allowTwo && !soloStill;
     startFromBodies(
@@ -781,6 +851,17 @@ export default function PoseJointEditor3D({
                 ? `Turning ${selectedPart}: drag a ring, or click empty space to finish.`
                 : 'Drag a hand or foot — the elbow or knee follows. Click a body part to turn it.')}
           </p>
+          {guessedTurn != null ? (
+            <p
+              className="text-sm text-[var(--warning)]"
+              role="status"
+              data-testid={`${p}-guessed-turn`}
+            >
+              {estimatedPose
+                ? `Turned ${Math.round(guessedTurn)}° from the photo this pose was read from: its 3D is estimated from that one view, so check the arms and legs before you save.`
+                : `Turned ${Math.round(guessedTurn)}° from the picture this pose was read from: the depth of its arms and legs is a guess from that one view, so check them before you save. Real poses marked 3D turn without guessing.`}
+            </p>
+          ) : null}
           <details className="type-caption text-[var(--text-muted)]" data-testid={`${p}-how-to`}>
             <summary className="flex min-h-8 cursor-pointer items-center text-[var(--text-secondary)]">
               How to pose

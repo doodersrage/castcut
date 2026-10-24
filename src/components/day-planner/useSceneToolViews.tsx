@@ -266,6 +266,8 @@ export function useSceneToolViews(vm: Vm, page: Page) {
           body={vm.leadNoun === 'man' ? 'male' : 'female'}
           place={slot.location}
           postures={pickedPostures(slot)}
+          pose3d={slot.posePhoto?.rig3d}
+          poseId={slot.posePhoto ? undefined : slot.poseLayout}
           busy={mediaBusy}
           onClose={() => setDirectorOpen(false)}
           onRender={(video, options) => {

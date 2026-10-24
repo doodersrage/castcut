@@ -1033,6 +1033,8 @@ export default function DaySlotBoard({
           body={leadNoun === 'man' ? 'male' : 'female'}
           place={directorFor.slot.location}
           postures={pickedPostures(directorFor.slot)}
+          pose3d={directorFor.slot.posePhoto?.rig3d}
+          poseId={directorFor.slot.posePhoto ? undefined : directorFor.slot.poseLayout}
           busy={mediaTools.busy !== null}
           onClose={() => setDirectorFor(null)}
           onRender={(video, options) => {
