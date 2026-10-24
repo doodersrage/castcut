@@ -19,6 +19,7 @@ import {
   type CastcutInputDeleteResult,
 } from '../castcut/routes-server';
 import { forgetKnownComfyInputs } from './comfy-input-upload-server';
+import { removeComfyInputCopies } from './input-store-server';
 import { isServerStorageEnabled } from '../storage/server-storage';
 
 /**
@@ -232,5 +233,7 @@ export async function deleteUnreferencedComfyInputs(input: {
       )
     : { deleted: [], freedBytes: 0, skipped: [] };
   forgetKnownComfyInputs(baseUrl);
+  // Nothing names these any more: the app's own copies go too.
+  removeComfyInputCopies(result.deleted.map(filename => ({ filename })));
   return { ...result, refused: new Set(input.names).size - names.length };
 }

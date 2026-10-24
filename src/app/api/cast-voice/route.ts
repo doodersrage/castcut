@@ -88,6 +88,7 @@ export async function POST(request: Request) {
       bytes,
       filename: 'castcut-voice.wav',
       mimeType: 'audio/wav',
+      keepCopy: true,
     });
     return apiJson({ sample: uploaded.name });
   } catch (error) {

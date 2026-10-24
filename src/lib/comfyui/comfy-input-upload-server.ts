@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { contentAddressedInputName } from './comfy-input-name';
+import { keepComfyInputCopy } from './input-store-server';
 
 /**
  * One way into ComfyUI's input folder for server code: the file is named by its content
@@ -122,6 +123,13 @@ export async function uploadComfyInputContent(input: {
   keepName?: boolean;
   timeoutMs?: number;
   fetchImpl?: FetchLike;
+  /**
+   * Keep the app's own copy (input-store-server) — for pictures saved data points at (clothing,
+   * Cast plates, face crops), not a job's scratch files.
+   */
+  keepCopy?: boolean;
+  /** Store folder override (tests). */
+  storeRoot?: string;
 }): Promise<ComfyInputUploadResult> {
   const baseUrl = hostKey(input.baseUrl);
   const fetchImpl = input.fetchImpl ?? fetch;
@@ -142,8 +150,17 @@ export async function uploadComfyInputContent(input: {
         sha256Hex(input.bytes, originalRef ? JSON.stringify(originalRef) : undefined)
       );
 
+  // The app keeps its own copy (input-store-server) so a new ComfyUI install does not lose the
+  // picture. A mask upload's file is made by ComfyUI, so it is kept later from ComfyUI's copy.
+  const keepAppCopy = (savedName: string, subfolder = '', type = 'input') => {
+    if (input.keepCopy && !isMask) {
+      keepComfyInputCopy({ filename: savedName, subfolder, type }, input.bytes, input.storeRoot);
+    }
+  };
+
   if (!input.keepName) {
     if (isKnownInput(baseUrl, name)) {
+      keepAppCopy(name);
       return { name, subfolder: '', type: 'input', reused: true };
     }
     // An image is stored byte for byte, so its size must match too; a mask's result differs.
@@ -151,6 +168,7 @@ export async function uploadComfyInputContent(input: {
       await comfyInputExists(baseUrl, name, isMask ? undefined : input.bytes.byteLength, fetchImpl)
     ) {
       rememberInput(baseUrl, name);
+      keepAppCopy(name);
       return { name, subfolder: '', type: 'input', reused: true };
     }
   }
@@ -184,5 +202,6 @@ export async function uploadComfyInputContent(input: {
   if (!subfolder && !input.keepName) {
     rememberInput(baseUrl, savedName);
   }
+  keepAppCopy(savedName, subfolder, data.type?.trim() || 'input');
   return { name: savedName, subfolder, type: data.type?.trim() || 'input', reused: false };
 }

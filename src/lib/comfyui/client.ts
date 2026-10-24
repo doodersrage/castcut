@@ -45,7 +45,12 @@ import { resolveActiveLoraStack } from '../lora/stack';
 import { fetchComfyObjectInfoPayload } from './object-info';
 import { formatComfyUiQueueValidationError } from './queue-validation-error';
 import { workflowContentHash } from '../workflow/content-hash';
-import { findMissingComfyInputs, missingComfyInputsMessage } from './comfy-input-presence';
+import {
+  comfyInputFilesInGraph,
+  findMissingComfyInputs,
+  missingComfyInputsMessage,
+} from './comfy-input-presence';
+import { captureComfyInputs, restoreComfyInputsFromStore } from './input-store-server';
 
 export type ComfyQueueRequest = {
   prompt: string;
@@ -723,18 +728,32 @@ export async function queuePromptToComfyUi(
     // One ComfyUI only: in a pool the pictures may sit on whichever host the job is routed to.
     const singleHost =
       !poolRouting?.strategy || ['user', 'client', 'env'].includes(poolRouting.strategy);
-    if (promptBody.kind === 'ready' && runPreflight && singleHost) {
-      const missingInputs = await findMissingComfyInputs(
-        config.apiUrl,
-        promptBody.injected.workflow as Record<string, unknown>
-      );
-      if (missingInputs.length > 0) {
+    if (promptBody.kind === 'ready' && runPreflight) {
+      const graph = promptBody.injected.workflow as Record<string, unknown>;
+      const missingInputs = await findMissingComfyInputs(config.apiUrl, graph);
+      // The app keeps its own copy of the pictures it uploads: put missing ones back (a new
+      // ComfyUI install, a cleaned input folder, another host in the pool).
+      const { stillMissing } =
+        missingInputs.length > 0
+          ? await restoreComfyInputsFromStore(config.apiUrl, missingInputs)
+          : { stillMissing: [] };
+      if (stillMissing.length > 0 && singleHost) {
         return {
           ok: false,
-          error: missingComfyInputsMessage(missingInputs),
+          error: missingComfyInputsMessage(stillMissing),
           comfyUrl: config.apiUrl,
         };
       }
+      // Keep copies of the pictures this ComfyUI has that the app has not kept yet.
+      const missingKeys = new Set(
+        missingInputs.map(ref => `${ref.type}/${ref.subfolder}/${ref.filename}`)
+      );
+      void captureComfyInputs(
+        config.apiUrl,
+        comfyInputFilesInGraph(graph).filter(
+          ref => !missingKeys.has(`${ref.type}/${ref.subfolder}/${ref.filename}`)
+        )
+      ).catch(() => {});
     }
 
     const resolvedPromptBody =

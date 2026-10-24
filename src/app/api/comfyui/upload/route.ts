@@ -37,6 +37,8 @@ export async function POST(request: Request) {
         kind: incoming.kind,
         originalRef: incoming.originalRef,
         keepName: incoming.keepName,
+        // Saved data points at these (clothing, Cast plates): the app keeps its own copy.
+        keepCopy: true,
       });
     } catch (error) {
       if (typeof (error as { status?: unknown }).status === 'number') {

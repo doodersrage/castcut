@@ -48,6 +48,8 @@ const extraArgs = process.argv.slice(2);
 // Secrets the server generates on first start (auth/generated-secrets.ts) go to a throwaway
 // folder, not the checkout's .prompt-studio-data.
 const secretsDir = mkdtempSync(join(tmpdir(), 'castcut-test-secrets-'));
+// Same for the app's copies of ComfyUI input pictures (comfyui/input-store-server.ts).
+const inputStoreDir = mkdtempSync(join(tmpdir(), 'castcut-test-inputs-'));
 const result = spawnSync(
   process.execPath,
   [
@@ -58,8 +60,17 @@ const result = spawnSync(
     ...extraArgs,
     ...allTestFiles.map(f => relative(ROOT, f)),
   ],
-  { stdio: 'inherit', cwd: ROOT, env: { ...process.env, CASTCUT_SECRETS_DIR: secretsDir } }
+  {
+    stdio: 'inherit',
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      CASTCUT_SECRETS_DIR: secretsDir,
+      CASTCUT_INPUT_STORE_DIR: inputStoreDir,
+    },
+  }
 );
 rmSync(secretsDir, { recursive: true, force: true });
+rmSync(inputStoreDir, { recursive: true, force: true });
 
 process.exit(result.status ?? 1);

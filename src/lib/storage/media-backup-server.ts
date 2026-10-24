@@ -15,6 +15,11 @@ import { Readable } from 'node:stream';
 import { resolvePromptDataDir } from '../prompt/data-paths';
 import { type ComfyFileRef } from './media-backup-refs';
 import {
+  hasComfyInputCopy,
+  keepComfyInputCopy,
+  readComfyInputCopy,
+} from '../comfyui/input-store-server';
+import {
   TAR_BLOCK,
   readPaxPath,
   readTarHeader,
@@ -149,6 +154,8 @@ export async function* mediaBackupTar(input: {
     } catch {
       bytes = null;
     }
+    // ComfyUI lost it (another install, a cleaned folder): the app's own copy.
+    if (!bytes) bytes = readComfyInputCopy(ref);
     if (!bytes) {
       counts.comfyMissing += 1;
       missing.push(ref.subfolder ? `${ref.subfolder}/${ref.filename}` : ref.filename);
@@ -468,11 +475,19 @@ export async function runMediaRestore(input: {
           const filename = parts.pop();
           if ((type !== 'input' && type !== 'output') || !filename) throw new Error('unsafe path');
           const ref: ComfyFileRef = { type, subfolder: parts.join('/'), filename };
-          if (await comfyHas(fetchImpl, base, ref)) {
+          const has = await comfyHas(fetchImpl, base, ref);
+          if (has && hasComfyInputCopy(ref)) {
             job.skipped += 1;
             continue;
           }
-          await comfyUpload(fetchImpl, base, ref, await readExactly(handle, bodyAt, header.size));
+          const bytes = await readExactly(handle, bodyAt, header.size);
+          // The app keeps its own copy too, so the next ComfyUI switch needs no backup.
+          keepComfyInputCopy(ref, bytes);
+          if (has) {
+            job.skipped += 1;
+            continue;
+          }
+          await comfyUpload(fetchImpl, base, ref, bytes);
           job.comfyUploaded += 1;
         }
       } catch (error) {

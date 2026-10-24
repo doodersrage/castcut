@@ -38,6 +38,20 @@ export async function registerNode(
 
   startServerScheduledBatchLoop();
 
+  // Keep the app's own copies of the ComfyUI pictures saved data names (Cast plates, clothing),
+  // so a switch to another ComfyUI install does not lose them. Once, a minute after start.
+  const inputStoreTimer = setTimeout(() => {
+    void (async () => {
+      const { backfillComfyInputStore } = await import('@/lib/comfyui/input-store-backfill-server');
+      const { getComfyUiBaseUrl } = await import('@/lib/comfyui/client');
+      const outcome = await backfillComfyInputStore({ baseUrl: getComfyUiBaseUrl() });
+      if (outcome.kept > 0) {
+        console.info(`[comfy-inputs] kept ${outcome.kept} of ${outcome.named} saved pictures`);
+      }
+    })().catch(error => console.warn('[comfy-inputs] backfill failed', error));
+  }, 60_000);
+  inputStoreTimer.unref?.();
+
   // The built-in LLM's hooks (llm-local.ts): LLM calls find it, start it on demand.
   await import('@/lib/llm/local-server');
 

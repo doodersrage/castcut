@@ -24,6 +24,11 @@ import {
   sanitizeComfyViewFilename,
   sanitizeComfyViewSubfolder,
 } from '@/lib/server/url-safety';
+import {
+  keepComfyInputCopy,
+  readComfyInputCopy,
+  uploadComfyInputCopy,
+} from '@/lib/comfyui/input-store-server';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -173,21 +178,40 @@ export async function GET(request: Request) {
   viewUrl.searchParams.set('type', type);
 
   try {
-    const response = await fetch(viewUrl.toString(), {
-      signal: AbortSignal.timeout(15000),
-      redirect: 'manual',
-    });
-
-    if (!response.ok) {
-      return apiError(`ComfyUI view returned HTTP ${response.status}`, 502);
+    const storeRef = { filename, subfolder, type };
+    let response: Response | null = null;
+    let fetchError: unknown = null;
+    try {
+      response = await fetch(viewUrl.toString(), {
+        signal: AbortSignal.timeout(15000),
+        redirect: 'manual',
+      });
+    } catch (error) {
+      fetchError = error;
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const contentType = contentTypeForViewBytes(
-      filename,
-      response.headers.get('content-type'),
-      buffer
-    );
+    let buffer: Buffer;
+    let upstreamType: string | null = null;
+    if (response?.ok) {
+      buffer = Buffer.from(await response.arrayBuffer());
+      upstreamType = response.headers.get('content-type');
+      // An upload from before the app kept its own copies: keep one now.
+      if (type === 'input') keepComfyInputCopy(storeRef, new Uint8Array(buffer));
+    } else {
+      // ComfyUI lost it (new install, cleaned folder) or is down: show the app's copy, and put
+      // it back into ComfyUI so the next job can load it.
+      const copy = type === 'temp' ? null : readComfyInputCopy(storeRef);
+      if (!copy) {
+        if (fetchError) throw fetchError;
+        return apiError(`ComfyUI view returned HTTP ${response?.status}`, 502);
+      }
+      buffer = Buffer.from(copy);
+      if (response?.status === 404) {
+        void uploadComfyInputCopy(comfyUrl, storeRef).catch(() => {});
+      }
+    }
+
+    const contentType = contentTypeForViewBytes(filename, upstreamType, buffer);
     const isVideo = isHtmlVideoContentType(contentType);
     const isAnimatedImage = isAnimatedImageBytes(filename, buffer);
     const mediaKind = resolveComfyOutputMediaKind({ filename, format: contentType });
@@ -279,6 +303,15 @@ export async function HEAD(request: Request) {
       redirect: 'manual',
     });
     const headers = new Headers({ 'Cache-Control': 'no-store' });
+    if (response.status === 404 && type !== 'temp') {
+      // The app kept a copy: put it back, and answer as ComfyUI will from now on.
+      const storeRef = { filename, subfolder, type };
+      const copy = readComfyInputCopy(storeRef);
+      if (copy && (await uploadComfyInputCopy(comfyUrl, storeRef))) {
+        headers.set('content-length', String(copy.byteLength));
+        return new NextResponse(null, { status: 200, headers });
+      }
+    }
     for (const name of ['content-length', 'content-type']) {
       const value = response.headers.get(name);
       if (value) headers.set(name, value);
