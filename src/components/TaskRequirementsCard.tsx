@@ -61,8 +61,15 @@ export default function TaskRequirementsCard({
 
   const comfyUrl = () => loadComfyUiSettings().apiUrl?.trim() || '';
 
-  const load = useCallback(async (forceRefresh = false) => {
-    const info = await fetchComfyObjectInfoCached({ comfyUrl: comfyUrl() }).catch(() => null);
+  // `assets`: the file list fresh (a download running); `all`: ComfyUI's node types too.
+  const load = useCallback(async (refresh: false | 'assets' | 'all' = false) => {
+    const forceRefresh = refresh !== false;
+    // A forced check asks ComfyUI again for its node types too: after a node pack loads (installed,
+    // or ComfyUI restarted) the cached list said "missing" for up to ten minutes (2026-10-24).
+    const info = await fetchComfyObjectInfoCached({
+      comfyUrl: comfyUrl(),
+      forceRefresh: refresh === 'all',
+    }).catch(() => null);
     if (!info) {
       // ComfyUI can't be asked: every file read as missing ("This Day needs … qwen-image-edit,
       // vae …" on a first run with ComfyUI off). The offline toast says what is wrong instead.
@@ -115,6 +122,25 @@ export default function TaskRequirementsCard({
     return () => window.removeEventListener(COMFY_ASSET_JOBS_UPDATED_EVENT, onJobs);
   }, [load, requirementsKey]);
 
+  // Back on the tab (ComfyUI may have been fixed meanwhile): check again, at most every 30 s.
+  const lastFocusCheck = useRef(0);
+  useEffect(() => {
+    if (requirementsKey === '|') return;
+    const recheck = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastFocusCheck.current < 30_000) return;
+      lastFocusCheck.current = now;
+      void load('all');
+    };
+    window.addEventListener('focus', recheck);
+    document.addEventListener('visibilitychange', recheck);
+    return () => {
+      window.removeEventListener('focus', recheck);
+      document.removeEventListener('visibilitychange', recheck);
+    };
+  }, [load, requirementsKey]);
+
   const wanted = new Set(requirements.assetIds);
   const activeJobs = jobs.filter(job => wanted.has(job.assetId) && ACTIVE_JOB.has(job.status));
   const failedJobs = jobs.filter(job => wanted.has(job.assetId) && job.status === 'error');
@@ -123,7 +149,7 @@ export default function TaskRequirementsCard({
   useEffect(() => {
     window.clearInterval(pollRef.current);
     if (activeJobs.length === 0) return;
-    pollRef.current = window.setInterval(() => void load(true), 3000);
+    pollRef.current = window.setInterval(() => void load('assets'), 3000);
     return () => window.clearInterval(pollRef.current);
   }, [activeJobs.length, load]);
 
@@ -183,7 +209,7 @@ export default function TaskRequirementsCard({
             : `Node packs: ${data.error || 'install failed'} — install them from ComfyUI Manager.`
         );
       }
-      await load(true);
+      await load('all');
     } catch (err) {
       setStatus(err instanceof Error ? err.message : 'Could not start the downloads.');
     } finally {
@@ -274,6 +300,19 @@ export default function TaskRequirementsCard({
             {pending.length ? 'Download all' : 'Install node packs'}
           </Button>
         ) : null}
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          data-testid={`${testId}-recheck`}
+          title="Ask ComfyUI again (after installing something or restarting it)"
+          onClick={() => {
+            setStatus(null);
+            void load('all');
+          }}
+        >
+          Check again
+        </Button>
         <Button size="sm" variant="ghost" onClick={() => setDismissed(true)}>
           Not now
         </Button>
