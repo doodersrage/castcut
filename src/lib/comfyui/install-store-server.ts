@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolvePromptDataDir } from '../prompt/data-paths';
-import type { ComfyInstallInfo } from './install-info';
+import { comfyRootForModelsDir, type ComfyInstallInfo } from './install-info';
 
 /**
  * What the app remembers about the ComfyUI installs it has talked to (`comfyui-install.json` in
@@ -122,4 +122,29 @@ export function setSavedComfyRoot(root: string | null): void {
   const store = loadComfyInstallStore();
   const { root: _old, ...rest } = store;
   saveStore(root ? { ...rest, root: { path: root, setAt: Date.now() } } : rest);
+}
+
+function isLoopbackKey(baseUrl: string): boolean {
+  try {
+    const host = new URL(baseUrl).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The ComfyUI folder found from the install this app last talked to on this machine: the parent
+ * of the models folder its start-up arguments / model-paths file name (null: none seen, it runs
+ * elsewhere, or that folder is gone). Lets downloads work with COMFYUI_ROOT unset or stale.
+ */
+export function detectedComfyRoot(): string | null {
+  let best: ComfyInstallRecord | undefined;
+  for (const [url, entry] of Object.entries(loadComfyInstallStore().installs)) {
+    const current = entry.current;
+    if (!current?.modelsDir || !isLoopbackKey(url)) continue;
+    if (!best || current.seenAt > best.seenAt) best = current;
+  }
+  const root = comfyRootForModelsDir(best?.modelsDir);
+  return root && fs.existsSync(/* turbopackIgnore: true */ root) ? root : null;
 }

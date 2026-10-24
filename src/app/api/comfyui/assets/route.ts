@@ -12,7 +12,9 @@ import {
   runComfyAssetDownloadJob,
   startComfyAssetDownload,
 } from '@/lib/comfyui/comfy-asset-download';
+import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { getComfyUiRoot, isComfyUiRootConfigured } from '@/lib/comfyui/comfy-asset-paths';
+import { readComfyInstallReport } from '@/lib/comfyui/install-server';
 import { buildComfyAssetStatusRows } from '@/lib/comfyui/comfy-asset-status';
 
 export const runtime = 'nodejs';
@@ -47,6 +49,16 @@ export async function GET(request: Request) {
     inventory = null;
   }
 
+  // COMFYUI_ROOT unset or gone: look at the ComfyUI this app talks to, which names its own models
+  // folder (comfy-asset-paths.ts resolveComfyUiRoot uses what it finds).
+  if (!isComfyUiRootConfigured()) {
+    try {
+      await readComfyInstallReport(getComfyUiBaseUrl(runtime).replace(/\/+$/, ''), fetch, true);
+    } catch {
+      /* not reachable — the hint below says what to do */
+    }
+  }
+
   const status = buildComfyAssetStatusRows({
     inventory,
     modelId,
@@ -55,7 +67,9 @@ export async function GET(request: Request) {
   const rootConfigured = status.rootConfigured && isComfyUiRootConfigured();
   let rootHint: string | undefined;
   if (!rootConfigured) {
-    rootHint = 'Set COMFYUI_ROOT to your ComfyUI install path (same machine as this app).';
+    rootHint =
+      'No ComfyUI folder found. Start ComfyUI on this machine so the app can find its models ' +
+      'folder, or set COMFYUI_ROOT to the folder that holds models/.';
   } else if (!status.rootWritable) {
     rootHint =
       `COMFYUI_ROOT is set but not writable by this process (${status.rootPath}/models). ` +

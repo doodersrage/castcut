@@ -337,7 +337,7 @@ export default function SettingsComfySetupPanel({
             <Step n={2} title="Model downloads go where this ComfyUI looks" done={downloadsOk}>
               <p className="type-caption text-[var(--text-secondary)]">
                 {report.downloads.root
-                  ? `Downloads go to ${report.downloads.root}/models (${report.downloads.source === 'saved' ? 'chosen here' : 'COMFYUI_ROOT'}).`
+                  ? `Downloads go to ${report.downloads.root}/models (${report.downloads.source === 'saved' ? 'chosen here' : report.downloads.source === 'detected' ? 'found from this ComfyUI' : 'COMFYUI_ROOT'}).`
                   : 'Downloads are off: no ComfyUI folder is set.'}{' '}
                 {report.folders?.models
                   ? `This ComfyUI reads models from ${report.folders.models.path}.`

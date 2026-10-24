@@ -161,6 +161,35 @@ describe('the assistant’s memory and jobs', () => {
     assert.equal(getComfyUiRoot(), path.resolve('/opt/old-comfyui'));
   });
 
+  it('falls back to the ComfyUI running on this machine when COMFYUI_ROOT is unset or gone', async () => {
+    const { resolveComfyUiRoot } = await import('./comfy-asset-paths');
+    const store = await import('./install-store-server');
+    const shared = path.join(dataDir, 'ComfyUI-Shared');
+    const kept = path.join(dataDir, 'kept-comfyui');
+    fs.mkdirSync(path.join(shared, 'models'), { recursive: true });
+    fs.mkdirSync(kept, { recursive: true });
+    const record = (modelsDir: string, seenAt: number) => ({
+      identity: modelsDir,
+      seenAt,
+      info: { modelPathFiles: [] },
+      modelsDir,
+    });
+    // Another machine's paths never count, even when they happen to exist here.
+    store.noteComfyInstall('http://192.168.1.9:8188', record(path.join(kept, 'models'), 5));
+    delete process.env.COMFYUI_ROOT;
+    assert.deepEqual(resolveComfyUiRoot(), { root: null, source: 'none' });
+
+    store.noteComfyInstall('http://127.0.0.1:8188', record(path.join(shared, 'models'), 6));
+    assert.deepEqual(resolveComfyUiRoot(), { root: path.resolve(shared), source: 'detected' });
+    // A COMFYUI_ROOT naming a removed install gives way to the one found.
+    process.env.COMFYUI_ROOT = path.join(dataDir, 'removed-comfyui');
+    assert.deepEqual(resolveComfyUiRoot(), { root: path.resolve(shared), source: 'detected' });
+    // One that exists is the operator's choice and wins.
+    process.env.COMFYUI_ROOT = kept;
+    assert.deepEqual(resolveComfyUiRoot(), { root: path.resolve(kept), source: 'env' });
+    delete process.env.COMFYUI_ROOT;
+  });
+
   it('copies the previous install’s folders without overwriting anything', async () => {
     const { comfyInstallJob, startCopyFoldersJob } = await import('./install-server');
     const from = fs.mkdtempSync(path.join(os.tmpdir(), 'old-input-'));

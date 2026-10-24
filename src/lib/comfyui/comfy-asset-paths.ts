@@ -5,7 +5,7 @@ import {
   COMFY_ASSET_KIND_LABELS,
   COMFY_ASSET_KIND_ORDER,
 } from './comfy-asset-kinds';
-import { savedComfyRoot } from './install-store-server';
+import { detectedComfyRoot, savedComfyRoot } from './install-store-server';
 
 export type { ComfyAssetKind };
 export { COMFY_ASSET_KIND_LABELS, COMFY_ASSET_KIND_ORDER };
@@ -34,19 +34,36 @@ const KIND_RELATIVE_DIRS: Record<ComfyAssetKind, string[]> = {
   audioencoder: ['models/audio_encoders'],
 };
 
-export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {
-  // The folder the player chose in the Switching ComfyUI assistant wins: after a switch
-  // COMFYUI_ROOT still names the old install, and downloads landed where the new one never looks.
-  // (Only for the real environment — a test's own env asks about that env alone.)
-  if (env === process.env) {
-    const saved = savedComfyRoot();
-    if (saved) return path.resolve(saved);
-  }
+export type ComfyUiRootSource = 'saved' | 'env' | 'detected' | 'none';
+
+/**
+ * Where model downloads go (`<root>/models/…`), and why. In order: the folder chosen in the
+ * Switching ComfyUI assistant; COMFYUI_ROOT when that folder exists; the folder found from the
+ * ComfyUI running on this machine (its models folder's parent), so an unset or stale
+ * COMFYUI_ROOT — a removed install, or any other layout — still works; else COMFYUI_ROOT as set.
+ */
+export function resolveComfyUiRoot(env: NodeJS.ProcessEnv = process.env): {
+  root: string | null;
+  source: ComfyUiRootSource;
+} {
   const raw = env.COMFYUI_ROOT?.trim();
-  if (!raw) {
-    return null;
+  const envRoot = raw ? path.resolve(raw) : null;
+  // Saved and detected folders belong to the real environment only — a test's own env asks
+  // about that env alone.
+  if (env !== process.env) return { root: envRoot, source: envRoot ? 'env' : 'none' };
+  const saved = savedComfyRoot();
+  if (saved) return { root: path.resolve(saved), source: 'saved' };
+  // COMFYUI_ROOT is an operator path outside this project: keep it out of Turbopack's tracing.
+  if (envRoot && fs.existsSync(/* turbopackIgnore: true */ envRoot)) {
+    return { root: envRoot, source: 'env' };
   }
-  return path.resolve(raw);
+  const detected = detectedComfyRoot();
+  if (detected) return { root: path.resolve(detected), source: 'detected' };
+  return { root: envRoot, source: envRoot ? 'env' : 'none' };
+}
+
+export function getComfyUiRoot(env: NodeJS.ProcessEnv = process.env): string | null {
+  return resolveComfyUiRoot(env).root;
 }
 
 export function isComfyUiRootConfigured(env: NodeJS.ProcessEnv = process.env): boolean {

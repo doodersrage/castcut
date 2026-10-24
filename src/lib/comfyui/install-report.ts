@@ -29,7 +29,7 @@ export type ComfyInstallReport = {
   downloads: {
     /** Where model downloads go now (`<root>/models`), and why. */
     root: string | null;
-    source: 'saved' | 'env' | 'none';
+    source: 'saved' | 'env' | 'detected' | 'none';
     envRoot: string | null;
     /** The folder this ComfyUI reads models from says the root should be this. */
     suggestedRoot?: string;

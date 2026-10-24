@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { getComfyUiRoot } from './comfy-asset-paths';
+import { resolveComfyUiRoot } from './comfy-asset-paths';
 import {
   comfyDeployLabel,
   comfyInputDir,
@@ -14,7 +14,6 @@ import {
 import {
   acknowledgeComfyInstall,
   noteComfyInstall,
-  savedComfyRoot,
   type ComfyInstallRecord,
 } from './install-store-server';
 import { comfyInputStoreRoot, uploadComfyInputCopy } from './input-store-server';
@@ -151,8 +150,7 @@ export async function readComfyInstallReport(
   const url = baseUrl.replace(/\/+$/, '');
   const local = isLoopback(url);
   const envRoot = process.env.COMFYUI_ROOT?.trim() || null;
-  const saved = savedComfyRoot();
-  const root = getComfyUiRoot();
+  let { root, source } = resolveComfyUiRoot();
   const kept = brief ? { files: 0, bytes: 0 } : cachedFolderSize(comfyInputStoreRoot());
   const stats = await getJson(fetchImpl, `${url}/system_stats`);
   const info = parseComfyInstallInfo(stats);
@@ -164,7 +162,7 @@ export async function readComfyInstallReport(
       isNew: false,
       downloads: {
         root,
-        source: saved ? 'saved' : envRoot ? 'env' : 'none',
+        source,
         envRoot,
         matches: null,
       },
@@ -182,6 +180,8 @@ export async function readComfyInstallReport(
     ...(modelsDir ? { modelsDir } : {}),
   };
   const entry = noteComfyInstall(url, record);
+  // Noting this install can be what finds the downloads folder (COMFYUI_ROOT unset or gone).
+  ({ root, source } = resolveComfyUiRoot());
   const suggestedRoot = comfyRootForModelsDir(modelsDir);
   const normalize = (p: string) => path.resolve(p).replace(/[\\/]+$/, '');
   const matches =
@@ -198,7 +198,7 @@ export async function readComfyInstallReport(
       isNew,
       downloads: {
         root,
-        source: saved ? 'saved' : envRoot ? 'env' : 'none',
+        source,
         envRoot,
         ...(suggestedRoot ? { suggestedRoot } : {}),
         matches,
@@ -266,7 +266,7 @@ export async function readComfyInstallReport(
       : {}),
     downloads: {
       root,
-      source: saved ? 'saved' : envRoot ? 'env' : 'none',
+      source,
       envRoot,
       ...(suggestedRoot ? { suggestedRoot } : {}),
       matches,
