@@ -1,4 +1,4 @@
-# Castcut — engineering brief for the roadmap
+# Castcut — implementation plan
 
 > How to carry out [ROADMAP.md](ROADMAP.md) in code. ROADMAP.md is the product direction; this file
 > is the working brief. Work starts Tuesday 27 October 2026, about 7 pm, with the M0 read-only audit.
