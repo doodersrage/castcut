@@ -404,7 +404,7 @@ export function purgeGalleryRestOnly(
       zipCount: 0,
       message:
         kept.length > 0
-          ? `Nothing to purge — ${kept.length} keeper(s) / Cast look plate(s) stay.`
+          ? `Nothing to purge — ${kept.length} keeper(s), Cast look plate(s) and renders in use stay.`
           : 'Gallery is empty.',
     };
   }
@@ -446,7 +446,7 @@ export async function archiveThenPurgeGalleryEntries(
       zipCount: 0,
       message:
         kept.length > 0
-          ? `Nothing to purge — ${kept.length} keeper(s) / Cast look plate(s) stay.`
+          ? `Nothing to purge — ${kept.length} keeper(s), Cast look plate(s) and renders in use stay.`
           : 'Gallery is empty.',
     };
   }

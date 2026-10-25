@@ -30,6 +30,8 @@ import { listSavedIdentityBundles } from '../settings/cache';
 import { registerNavClickFollower, registerNavHrefResolver } from '../app/nav-links';
 import { followCurrentPlayLoopHref } from './loop-nav-click';
 import { registerGalleryKeeperHook } from '../gallery/judgment-hooks';
+import { registerGalleryReferenceSource } from '../gallery/reference-sources';
+import { playGalleryReferences } from './gallery-references';
 import { registerQueueJobDescriber } from '../queue/job-context';
 import { registerCharacterNormalizer, registerStickyCharacterFields } from '../character/os';
 import { normalizeCharacterLookPacks } from './cast';
@@ -116,6 +118,10 @@ registerGalleryKeeperHook(entries => {
     .then(({ learnKeptIntimatePoses }) => learnKeptIntimatePoses(entries))
     .catch(() => {});
 });
+
+// The renders the film uses (Scene takes, Day stills, Story takes, Cut's added shots) keep their
+// stored graph and stay through the Gallery's cap and Archive & purge.
+registerGalleryReferenceSource(playGalleryReferences);
 
 // Nav: Film / Day / Outfit / Story links carry the active Cast, and a click follows the Cast
 // active now.

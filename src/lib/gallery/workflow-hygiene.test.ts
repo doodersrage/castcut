@@ -74,5 +74,44 @@ describe('gallery-workflow-hygiene', () => {
     assert.equal(entries.find(item => item.id === 'old')?.workflowJson, undefined);
     assert.ok(entries.find(item => item.id === 'fav')?.workflowJson);
   });
+
+  // R1b: what the production uses keeps its graph (keepIds = collectGalleryReferencedEntryIds).
+  it('keeps an old graph the production uses', () => {
+    const month = 40 * 24 * 60 * 60 * 1000;
+    const kept = entry({ id: 'kept-take', queuedAt: Date.now() - month, workflowJson: '{"1":{}}' });
+    const loose = entry({ id: 'loose', queuedAt: Date.now() - month, workflowJson: '{"2":{}}' });
+    const { entries, pruned } = pruneStaleGalleryWorkflowJson(
+      [kept, loose],
+      30,
+      Date.now(),
+      new Set(['kept-take'])
+    );
+    assert.equal(pruned, 1);
+    assert.equal(entries[0]?.workflowJson, '{"1":{}}');
+    assert.equal(entries[1]?.workflowJson, undefined);
+  });
+
+  it('leaves graphs the production uses out of the byte budget', () => {
+    const bulky = 'x'.repeat(1000);
+    const used = entry({ id: 'used', queuedAt: 1, workflowJson: bulky });
+    const fav = entry({ id: 'fav', queuedAt: 2, workflowJson: bulky, favorite: true });
+    const loose = entry({ id: 'loose', queuedAt: 3, workflowJson: bulky });
+    // ~2000 bytes each; the budget holds one counted graph, and `used` isn't counted.
+    const { entries, pruned, totalBytes } = enforceGalleryWorkflowByteBudget(
+      [used, fav, loose],
+      2500,
+      new Set(['used'])
+    );
+    assert.equal(pruned, 1);
+    assert.ok(entries.find(item => item.id === 'used')?.workflowJson, 'never stripped');
+    assert.ok(entries.find(item => item.id === 'fav')?.workflowJson);
+    assert.equal(entries.find(item => item.id === 'loose')?.workflowJson, undefined);
+    assert.equal(totalBytes, 2000);
+
+    // Over budget on what the production uses alone: nothing of it is stripped.
+    const alone = enforceGalleryWorkflowByteBudget([used], 10, new Set(['used']));
+    assert.equal(alone.pruned, 0);
+    assert.ok(alone.entries[0]?.workflowJson);
+  });
 });
 

@@ -5,7 +5,8 @@
 >
 > **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
-> and split: **R1a** (stored workflows survive a save) is done; **R1b** is next.
+> and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
+> protected) are done. Next: R2.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -237,7 +238,7 @@ no restart-during-generation e2e.
   (`pruneStaleGalleryWorkflowJson`: older than `galleryWorkflowRetentionDays`, default 30;
   `enforceGalleryWorkflowByteBudget`: oldest first past 8 MB; `gallery/workflow-hygiene.ts`) spare
   neither kept takes nor Cut shots. They were run on the projection, so they rarely found a graph
-  to prune. That is R1b.
+  to prune. Fixed by R1b.
 - **D3 — Cut replaces media silently everywhere.** Cut shots are keyed by source (`scenes:<id>`,
   `day:<slot>`) and resolved live. Keeping a different take, re-rendering a Day slot, or adding a
   clip changes that shot in every occurrence (copies follow the original), in every saved
@@ -288,7 +289,7 @@ Each task is one PR-sized change with a failing test first. Shared code learns a
 through a registration hook.
 
 **R1a — Stored workflows survive a save (fixes the first half of D2).** _Done 2026-10-25,
-uncommitted._
+commit `77cb56ef`._
 
 - `withStoredWorkflows` (`gallery/db-store.ts`) gives an entry that says `hasStoredWorkflow` and
   came without its graph the graph it had. `mergeUserEntriesIntoAll` uses it on every save, and
@@ -301,21 +302,23 @@ uncommitted._
   may still hold recent ones (exact replay falls back to it).
 
 **R1b — Production references protect their Gallery entries (fixes the rest of D2, and G4).**
-_Next. Decide first how much of the 8 MB budget approved takes may use._
+_Done 2026-10-25, uncommitted. Budget rule agreed: what the production uses is exempt._
 
-- Scope: a shared registration point (e.g. `registerGalleryReferenceSource` next to
-  `gallery/protected-ids.ts`) whose results join `collectGalleryProtectedEntryIds`, and that
-  `pruneStaleGalleryWorkflowJson` / `enforceGalleryWorkflowByteBudget` honour. Play registers one
-  source in `play/features.ts`: every Scene take (kept or not), Day slot stills and their clips,
-  Story kept takes, and Cut extras with an `entryId` / `promptId`.
-- Depends on: nothing.
-- Acceptance: a kept Scene take's entry older than the retention keeps `workflowJson`; the byte
-  budget strips unreferenced entries first; the local cap never evicts a referenced entry; with
-  nothing registered (Prompt Studio) behaviour is unchanged.
-- Files: `src/lib/gallery/protected-ids.ts`, `gallery/workflow-hygiene.ts`, `gallery/comfyui-gallery.ts`,
-  `play/features.ts`, a new `play/gallery-references.ts`.
-- Tests: unit tests for the hygiene functions and the Play source; the boundary test stays green;
-  `npm run check:core`.
+- `gallery/reference-sources.ts`: `registerGalleryReferenceSource`. Play registers
+  `play/gallery-references.ts`, which walks Day stills (parked Days too), every Scene take and the
+  card, the open and saved Story beats, and Cut extras and versions. It collects id- and
+  URL-shaped strings.
+- `gallery/protected-ids.ts`: an entry the production uses matches by prompt id, entry id,
+  kept-copy URL or ComfyUI file name (`galleryEntryIsReferenced`), and is protected as
+  `in-production`. So the 5,000-entry local cap and Archive & purge keep it. The purge and cap
+  texts now say "renders still in use stay".
+- `gallery/workflow-hygiene.ts`: `keepIds` — such entries keep their graph past the 30-day rule
+  and don't count against the 8 MB budget. `saveComfyGallery` passes them.
+- Tests: `play/gallery-references.test.ts` (3), `gallery/protected-ids.test.ts` "production
+  references" (2), `gallery/workflow-hygiene.test.ts` (2 more). With no source registered
+  (Prompt Studio) nothing changes.
+- Trade-off: browser storage for approved work is now unbounded (about 50–800 KB per stored
+  graph), bounded in practice by the take caps (24 per scene, 8 per Story beat).
 
 **R2 — The scene cap never drops a scene with takes (fixes D1).**
 
@@ -385,6 +388,6 @@ history (G1); restore-as-merge (G7); U1–U3 verification.
 ## 2.8 Recommended first task
 
 **R1** (approved 2026-10-25). Starting it showed that stored workflows were lost on the next
-save, not after 30 days, so it split into R1a (done) and R1b (next). It only ever keeps more data,
+save, not after 30 days, so it split into R1a and R1b (both done). It only ever keeps more data,
 adds no field and no migration, and has to land before R4 and R5 can promise "see exactly how
 this take was made". If you'd rather start smaller, R2 is a pure one-function fix.

@@ -4,9 +4,13 @@ import type { CharacterRecord } from '../character/os';
 import {
   collectCastPlateMediaTokens,
   galleryEntryMatchesCastPlate,
+  collectGalleryReferencedEntryIds,
+  galleryEntryIsReferenced,
   galleryMediaMatchTokens,
+  galleryReferenceTokens,
   partitionGalleryForArchivePurge,
 } from './protected-ids';
+import { registerGalleryReferenceSource } from './reference-sources';
 
 function character(overrides: Partial<CharacterRecord> = {}): CharacterRecord {
   return {
@@ -120,6 +124,43 @@ describe('partitionGalleryForArchivePurge', () => {
     assert.deepEqual(
       purgeable.map(e => e.id).sort(),
       ['a', 'b']
+    );
+  });
+});
+
+// R1b: renders the production uses (reference-sources.ts) are protected like keepers.
+describe('production references', () => {
+  const take = {
+    ...entry('8a6c1f8e-0000-4000-8000-000000000001', { filename: 'ComfyUI_take_00007_.png' }),
+    promptId: 'prompt-take-1',
+  };
+  const other = { ...entry('8a6c1f8e-0000-4000-8000-000000000002'), promptId: 'prompt-other' };
+
+  it('matches an entry by prompt id, entry id, kept-copy URL or ComfyUI file', () => {
+    const match = (value: string) => galleryEntryIsReferenced(take, galleryReferenceTokens([value]));
+    assert.ok(match('prompt-take-1'));
+    assert.ok(match('8a6c1f8e-0000-4000-8000-000000000001'));
+    assert.ok(match('/api/gallery/media/8a6c1f8e-0000-4000-8000-000000000001?variant=original'));
+    assert.ok(match('/api/comfyui/view?filename=ComfyUI_take_00007_.png&type=output'));
+    assert.ok(!match('prompt-other'));
+    assert.ok(!galleryEntryIsReferenced(take, new Set()));
+  });
+
+  it('protects what a registered source names, and only that', () => {
+    assert.deepEqual([...collectGalleryReferencedEntryIds([take, other])], []);
+    registerGalleryReferenceSource(() => ['prompt-take-1', null, '  ']);
+    registerGalleryReferenceSource(() => {
+      throw new Error('unreadable');
+    });
+    assert.deepEqual([...collectGalleryReferencedEntryIds([take, other])], [take.id]);
+    const { protected: kept, purgeable } = partitionGalleryForArchivePurge([take, other], []);
+    assert.deepEqual(
+      kept.map(item => item.id),
+      [take.id]
+    );
+    assert.deepEqual(
+      purgeable.map(item => item.id),
+      [other.id]
     );
   });
 });

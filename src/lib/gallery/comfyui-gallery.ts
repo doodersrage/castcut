@@ -42,7 +42,7 @@ import { scheduleUserAnalyticsSync } from '../user/analytics-sync';
 import { capGalleryEntriesForLocalStorage } from './cap';
 import { loadCharacters, looksOf } from '../character/os';
 import { galleryEntryMatchesLook } from './look-filter';
-import { collectGalleryProtectedEntryIds } from './protected-ids';
+import { collectGalleryProtectedEntryIds, collectGalleryReferencedEntryIds } from './protected-ids';
 import { rememberGalleryDeletedIds } from './deleted-ids';
 import { galleryEntryCorpus } from '../search/embedding-rank';
 import {
@@ -335,13 +335,18 @@ export function saveComfyGallery(
 
   const shared = loadSettingsCache().shared;
   // The rules below weigh the stored graphs, which the loaded list (the projection) leaves out.
+  // What the production uses keeps its graph and doesn't count against the budget.
+  const inProduction = collectGalleryReferencedEntryIds(entries);
   const { entries: agePruned } = pruneStaleGalleryWorkflowJson(
     withStoredWorkflows(entries),
-    shared.galleryWorkflowRetentionDays ?? 30
+    shared.galleryWorkflowRetentionDays ?? 30,
+    Date.now(),
+    inProduction
   );
   const { entries: pruned } = enforceGalleryWorkflowByteBudget(
     agePruned,
-    shared.galleryWorkflowMaxBytes ?? 8 * 1024 * 1024
+    shared.galleryWorkflowMaxBytes ?? 8 * 1024 * 1024,
+    inProduction
   );
   const protectedIds = collectGalleryProtectedEntryIds(pruned, loadCharacters());
   const { kept, evicted } = capGalleryEntriesForLocalStorage(

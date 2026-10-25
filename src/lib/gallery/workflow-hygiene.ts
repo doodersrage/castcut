@@ -43,11 +43,15 @@ export function galleryWorkflowJsonBytes(entry: Pick<ComfyGalleryEntry, 'workflo
   return json.length * 2;
 }
 
-/** Strip stored workflow JSON from entries older than retentionDays (0 = no-op). */
+/**
+ * Strip stored workflow JSON from entries older than retentionDays (0 = no-op). Entries in
+ * `keepIds` — the ones the production uses (reference-sources.ts) — keep theirs.
+ */
 export function pruneStaleGalleryWorkflowJson(
   entries: ComfyGalleryEntry[],
   retentionDays: number,
-  now = Date.now()
+  now = Date.now(),
+  keepIds?: ReadonlySet<string>
 ): { entries: ComfyGalleryEntry[]; pruned: number } {
   const days = normalizeGalleryWorkflowRetentionDays(retentionDays);
   if (days <= 0) {
@@ -60,7 +64,7 @@ export function pruneStaleGalleryWorkflowJson(
       return entry;
     }
     const stamp = entry.completedAt ?? entry.queuedAt;
-    if (stamp >= cutoff) {
+    if (stamp >= cutoff || keepIds?.has(entry.id)) {
       return entry;
     }
     pruned += 1;
@@ -71,26 +75,30 @@ export function pruneStaleGalleryWorkflowJson(
 
 /**
  * Drop oldest stored graphs until total workflow JSON bytes fit under maxBytes.
- * 0 = unlimited. Favorites are pruned last.
+ * 0 = unlimited. Favorites are pruned last. Entries in `keepIds` (the production uses them)
+ * neither count against the budget nor lose their graph; `totalBytes` is what the budget counts.
  */
 export function enforceGalleryWorkflowByteBudget(
   entries: ComfyGalleryEntry[],
-  maxBytes: number
+  maxBytes: number,
+  keepIds?: ReadonlySet<string>
 ): { entries: ComfyGalleryEntry[]; pruned: number; totalBytes: number } {
   const budget = normalizeGalleryWorkflowMaxBytes(maxBytes);
+  const counted = (entry: ComfyGalleryEntry) =>
+    keepIds?.has(entry.id) ? 0 : galleryWorkflowJsonBytes(entry);
   if (budget <= 0) {
-    const totalBytes = entries.reduce((sum, entry) => sum + galleryWorkflowJsonBytes(entry), 0);
+    const totalBytes = entries.reduce((sum, entry) => sum + counted(entry), 0);
     return { entries, pruned: 0, totalBytes };
   }
 
-  let totalBytes = entries.reduce((sum, entry) => sum + galleryWorkflowJsonBytes(entry), 0);
+  let totalBytes = entries.reduce((sum, entry) => sum + counted(entry), 0);
   if (totalBytes <= budget) {
     return { entries, pruned: 0, totalBytes };
   }
 
   const next = entries.map(entry => ({ ...entry }));
   const candidates = next
-    .map((entry, index) => ({ entry, index, bytes: galleryWorkflowJsonBytes(entry) }))
+    .map((entry, index) => ({ entry, index, bytes: counted(entry) }))
     .filter(item => item.bytes > 0)
     .sort((a, b) => {
       const aFav = a.entry.favorite ? 1 : 0;

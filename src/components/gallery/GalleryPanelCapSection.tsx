@@ -129,7 +129,7 @@ export default function GalleryPanelCapSection({
             if (
               await confirmAction({
                 title: `Delete ${capEvictionPreview.length} at-risk gallery entries?`,
-                body: 'Favorites, ratings, Cast look plates and look keepers stay.',
+                body: 'Favorites, ratings, Cast look plates, look keepers and renders still in use stay.',
                 confirmLabel: 'Delete',
                 tone: 'danger',
               })

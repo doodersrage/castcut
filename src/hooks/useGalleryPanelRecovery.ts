@@ -166,7 +166,7 @@ export function useGalleryPanelRecovery({
     if (purgeable.length === 0) {
       setRequeueStatus(
         kept.length > 0
-          ? `Nothing to purge — ${kept.length} keeper(s) / Cast look plate(s) stay.`
+          ? `Nothing to purge — ${kept.length} keeper(s), Cast look plate(s) and renders in use stay.`
           : 'Gallery is empty.'
       );
       return;
@@ -174,7 +174,7 @@ export function useGalleryPanelRecovery({
     if (
       !(await confirmAction({
         title: `Archive ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'}, then remove them?`,
-        body: `They go into one ZIP on the server, which then downloads. Favorites, 4–5★, Cast look plates and look keepers stay (${kept.length} kept).\n\nIf you already saved the ZIP, use “Purge rest” or “Finish purge” instead.`,
+        body: `They go into one ZIP on the server, which then downloads. Favorites, 4–5★, Cast look plates, look keepers and renders still in use stay (${kept.length} kept).\n\nIf you already saved the ZIP, use “Purge rest” or “Finish purge” instead.`,
         confirmLabel: 'Archive and remove',
         tone: 'danger',
       }))
@@ -205,7 +205,7 @@ export function useGalleryPanelRecovery({
     if (purgeable.length === 0) {
       setRequeueStatus(
         kept.length > 0
-          ? `Nothing to purge — ${kept.length} keeper(s) / Cast look plate(s) stay.`
+          ? `Nothing to purge — ${kept.length} keeper(s), Cast look plate(s) and renders in use stay.`
           : 'Gallery is empty.'
       );
       return;
@@ -213,7 +213,7 @@ export function useGalleryPanelRecovery({
     if (
       !(await confirmAction({
         title: `Remove ${purgeable.length} entr${purgeable.length === 1 ? 'y' : 'ies'} without a new archive?`,
-        body: `Only do this if you already have the ZIP, or are fine losing those files.\n\nFavorites, 4–5★, Cast look plates and look keepers stay (${kept.length} kept).`,
+        body: `Only do this if you already have the ZIP, or are fine losing those files.\n\nFavorites, 4–5★, Cast look plates, look keepers and renders still in use stay (${kept.length} kept).`,
         confirmLabel: 'Remove without archive',
         tone: 'danger',
       }))

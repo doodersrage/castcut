@@ -43,8 +43,8 @@ export default function GalleryCapCleanupWizard({
           </p>
           <p className="type-caption text-[var(--text-secondary)]">
             {evicted.length > 0
-              ? `Local store keeps ${max.toLocaleString()} (${total.toLocaleString()} now). Unrated non-favorites drop first. Favorites, 4–5★, Cast look plates, and look keepers stay.`
-              : `Local store keeps ${max.toLocaleString()} (${total.toLocaleString()} now). Nothing is projected for eviction yet — use Show at-risk to browse unrated non-favorites, or Archive & purge to ZIP then remove everything except keepers and Cast look plates.`}
+              ? `Local store keeps ${max.toLocaleString()} (${total.toLocaleString()} now). Unrated non-favorites drop first. Favorites, 4–5★, Cast look plates, look keepers and renders still in use stay.`
+              : `Local store keeps ${max.toLocaleString()} (${total.toLocaleString()} now). Nothing is projected for eviction yet — use Show at-risk to browse unrated non-favorites, or Archive & purge to ZIP then remove everything except keepers, Cast look plates and renders in use.`}
           </p>
         </div>
         <button type="button" className="ui-btn-ghost ui-btn-sm text-xs" onClick={onClose}>
