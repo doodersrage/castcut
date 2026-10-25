@@ -32,6 +32,7 @@ import {
   persistGalleryCache,
   setGalleryCache,
   clearGalleryDb,
+  withStoredWorkflows,
 } from './db-store';
 import { COMFYUI_GALLERY_KEY, MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
@@ -333,8 +334,9 @@ export function saveComfyGallery(
   }
 
   const shared = loadSettingsCache().shared;
+  // The rules below weigh the stored graphs, which the loaded list (the projection) leaves out.
   const { entries: agePruned } = pruneStaleGalleryWorkflowJson(
-    entries,
+    withStoredWorkflows(entries),
     shared.galleryWorkflowRetentionDays ?? 30
   );
   const { entries: pruned } = enforceGalleryWorkflowByteBudget(

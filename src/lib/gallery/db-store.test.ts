@@ -60,6 +60,7 @@ describe("gallery-db-store", async () => {
     persistGalleryCache,
     clearGalleryDb,
     awaitFullGalleryHydration,
+    withStoredWorkflows,
   } = await import("./db-store");
 
   describe("projectGalleryEntryForList", () => {
@@ -113,6 +114,47 @@ describe("gallery-db-store", async () => {
       notifyGalleryUpdated();
       assert.equal(win.dispatched.length, 1);
       assert.equal(win.dispatched[0]?.type, "comfyui-gallery-updated");
+    });
+  });
+
+  // M0 audit 2026-10-25: every patch saved the projection back, and the stored graph was gone.
+  describe("stored workflows survive a save of the list projection", () => {
+    const graph = '{"1":{"class_type":"KSampler"}}';
+
+    it("keeps the graph when the projection is saved back with one field changed", async () => {
+      installWindowStub();
+      storageState.clear();
+      setGalleryCache([makeEntry({ id: "wf", workflowJson: graph, hasStoredWorkflow: true })]);
+      const projection = getGalleryCache();
+      assert.equal("workflowJson" in projection[0]!, false, "the list itself stays light");
+      setGalleryCache(projection.map(entry => ({ ...entry, favorite: true })));
+      assert.equal(getGalleryEntryById("wf")?.workflowJson, graph);
+      assert.equal(getGalleryEntryById("wf")?.favorite, true);
+      await persistGalleryCache();
+      const persisted = storageState.get("comfyui-gallery-v1") as ComfyGalleryEntry[];
+      assert.equal(persisted.find(entry => entry.id === "wf")?.workflowJson, graph, "and on disk");
+    });
+
+    it("lets a pruned graph go (hasStoredWorkflow false)", () => {
+      setGalleryCache([makeEntry({ id: "pruned", workflowJson: graph, hasStoredWorkflow: true })]);
+      setGalleryCache([makeEntry({ id: "pruned", hasStoredWorkflow: false, workflowJsonOmitted: true })]);
+      assert.equal(getGalleryEntryById("pruned")?.workflowJson, undefined);
+    });
+
+    it("takes a new graph over the stored one", () => {
+      setGalleryCache([makeEntry({ id: "new", workflowJson: graph, hasStoredWorkflow: true })]);
+      setGalleryCache([makeEntry({ id: "new", workflowJson: '{"2":{}}', hasStoredWorkflow: true })]);
+      assert.equal(getGalleryEntryById("new")?.workflowJson, '{"2":{}}');
+    });
+
+    it("withStoredWorkflows gives the pruning rules the graphs (a removed entry has none)", () => {
+      setGalleryCache([makeEntry({ id: "kept", workflowJson: graph, hasStoredWorkflow: true })]);
+      const [kept, gone] = withStoredWorkflows([
+        ...getGalleryCache(),
+        makeEntry({ id: "never-stored", hasStoredWorkflow: true }),
+      ]);
+      assert.equal(kept?.workflowJson, graph);
+      assert.equal(gone?.workflowJson, undefined);
     });
   });
 

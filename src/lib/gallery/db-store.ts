@@ -123,9 +123,34 @@ function filterEntriesForActiveUser(entries: ComfyGalleryEntry[]): ComfyGalleryE
   return entries.filter(entry => !entry.userId || entry.userId === userId);
 }
 
+/**
+ * Callers save the list they loaded — the projection, without `workflowJson` — so a save put the
+ * stored graph back only if it had it, and every status / favorite / rating patch dropped it
+ * while `hasStoredWorkflow` still said it was there (M0 audit, 2026-10-25). An entry that says it
+ * has a graph and came without one gets the graph it had. Pruning drops one on purpose
+ * (workflow-hygiene.ts), and says so with `hasStoredWorkflow: false`.
+ */
+export function withStoredWorkflows(entries: ComfyGalleryEntry[]): ComfyGalleryEntry[] {
+  let stored: Map<string, string> | null = null;
+  return entries.map(entry => {
+    if (entry.workflowJson || entry.hasStoredWorkflow !== true || entry.workflowJsonOmitted) {
+      return entry;
+    }
+    stored ??= new Map(
+      allEntries
+        .filter(full => Boolean(full.workflowJson))
+        .map(full => [full.id, full.workflowJson!] as const)
+    );
+    const workflowJson = stored.get(entry.id);
+    return workflowJson ? { ...entry, workflowJson } : entry;
+  });
+}
+
 function mergeUserEntriesIntoAll(userEntries: ComfyGalleryEntry[]): ComfyGalleryEntry[] {
   const userId = getActiveUserId();
-  const trimmedUser = userEntries.slice(0, MAX_GALLERY_ENTRIES).map(stampEntryUserId);
+  const trimmedUser = withStoredWorkflows(userEntries.slice(0, MAX_GALLERY_ENTRIES)).map(
+    stampEntryUserId
+  );
 
   if (!userId) {
     return trimmedUser;
