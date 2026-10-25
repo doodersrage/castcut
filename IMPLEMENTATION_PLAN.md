@@ -2,6 +2,10 @@
 
 > How to carry out [ROADMAP.md](ROADMAP.md) in code. ROADMAP.md is the product direction; this file
 > is the working brief. Work starts Tuesday 27 October 2026, about 7 pm, with the M0 read-only audit.
+>
+> **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
+> ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
+> and split: **R1a** (stored workflows survive a save) is done; **R1b** is next.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -95,3 +99,292 @@ unrelated roadmap items.
 - New automation must be observable, bounded, and cancellable.
 
 **Start with the read-only audit. Do not implement features yet.**
+
+---
+
+# Part 2 — M0 audit results (2026-10-25)
+
+Read-only audit of `main` at `ddcfd5a0` (v2.12.36, clean tree). No application code was changed. Each
+finding is tagged **Confirmed defect**, **Confirmed gap**, **Improvement** or **Unverified**. Paths
+are relative to the repo root.
+
+## 2.1 Architecture summary
+
+- **App:** Next.js 16 App Router (`src/app`), React 19, TypeScript. Domain logic in `src/lib/<domain>/`
+  (about 45 folders, docs/architecture-boundaries.md "Lib layout"). Huge, mostly pure modules with
+  co-located `*.test.ts`; React hooks in `src/hooks` orchestrate them.
+- **Layers:** _Play_ (Film, Cast, Day, Story, Outfit, Look; plus Scene and Cut through `day/` and
+  `film/`) sits on a _Shared_ core (ComfyUI pipeline, Gallery, storage, auth) that is published as
+  `prompt-studio-core`. Shared code must never import Play; Play plugs in through registration hooks
+  (`registerGalleryKeeperHook`, `registerQueueJobDescriber`, …, wired in `src/lib/play/features.ts`).
+  `src/lib/architecture-boundaries.test.ts` enforces this. **Any M1 change that teaches shared code
+  about Scenes or Cut must use a registration hook.**
+- **Persistence — browser first:** IndexedDB via Dexie (`src/lib/app/db.ts`, db
+  `comfy-prompt-studio-v1`, schema `version(1)`): `galleryEntries` rows and a `kv` table. Almost all
+  production state — Day, Scenes, Story, Cut — lives inside one `settings-cache` blob under
+  `tools.<tool>` (`src/lib/settings/cache.ts`).
+- **Persistence — server copy (optional):** with `PROMPT_DATA_DIR`, SQLite `studio.sqlite` (WAL;
+  `src/lib/sqlite/studio-db.ts`, has `schema_version` + `migrateSchema`). Namespaces `settings-cache`,
+  `prompt-history`, `comfy-gallery`, `gallery-deleted-ids` and `studio-extras` sync both ways by
+  debounced push and startup pull (`src/lib/storage/sync.ts`, `auto-storage-sync.ts`, `merge.ts`).
+- **Media:** ComfyUI outputs are proxied (`/api/comfyui/view`). Completed outputs also get a durable
+  copy under `{data}/gallery-media/{owner}/{entryId}/` (`src/lib/gallery/media-store.ts`), served as
+  `/api/gallery/media/<id>`. Input pictures the browser's data names are copied by
+  `ComfyPictureKeeper` → `/api/comfyui/input-store`.
+- **Generation:** browser-driven. A tool builds the request → `postComfyUiPrompt`
+  (`src/lib/comfyui/queue-request.ts`) → `POST /api/comfyui` → `queuePromptToComfyUi`
+  (`src/lib/comfyui/client.ts`: workflow resolve, inject, optimize, plugin hooks) → ComfyUI `/prompt`.
+  The browser then `registerComfyGalleryJob` + `scheduleComfyGalleryPoll`
+  (`src/lib/gallery/comfyui-gallery-client.ts`) using WebSocket progress and history polling through
+  the engine adapter (`src/lib/engine`). Long server-side GPU passes (clip finish, extend, film
+  assemble) are in-memory background jobs (`src/lib/clip/clip-jobs-server.ts`,
+  `src/lib/video/assemble-jobs.ts`).
+
+## 2.2 Feature inventory vs ROADMAP.md
+
+Legend: ✅ implemented and tested · 🟡 implemented, missing important behaviour · 🟠 partial · ⬜ absent.
+
+| Roadmap area                | State | Evidence                                                                                                                                                                                                                                                         |
+| --------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Several takes per shot      | 🟡    | Scene: `SavedScene.takes` + `keptTakeId` (`src/lib/day/scenes.ts`), capped at `SCENE_TAKE_LIMIT = 24`. Story: still/clip takes capped at 8 (`MAX_ROLEPLAY_*_TAKES`, `story/roleplay.ts`). **Day: one still per slot**, plus a single `previousTake` for best-of-two / two-takes / fix-area (`day/planner.ts` `DaySlotStill`). |
+| Approve / restore a take    | 🟡    | Scene ★ Keep / un-keep / remove (`keepSceneTake`, `removeSceneTake`; `components/day-planner/SceneTakes.tsx`). No rejected / superseded states; restore only within the 24 kept in the list. Removing the kept take has no confirmation or undo.                          |
+| Attempt vs media            | 🟠    | The Gallery entry is the attempt record (status, error, timings); a take is a thin pointer `{id = promptId, imageUrl, rawUrl, framedUrl, clipUrl, clipPromptId, at}`. Failed attempts are not linked to a scene.                                                   |
+| Generation provenance       | 🟡    | `ComfyGalleryEntry` (`gallery/comfyui-gallery-entry.ts`) keeps prompt, negative, model, `queueParams` (seed …), `workflowJson`, `sourceImageUrl`, `controlImageUrls`, LoRA stack, quality profile, engine, `characterId`/`lookId`, timings. **No checksum; no scene/take id on the entry; `workflowJson` is pruned** (see D2). |
+| Queue statuses              | 🟡    | `pending · running · completed · error` only (`gallery/comfyui-gallery-types.ts`). No cancelled / interrupted. Lost jobs → error "Job not found (engine restarted)"; poll timeout → error with "claim orphans" hint. Failure toasts routed by `queue/failure-playbook.ts`. |
+| Safe retry / recovery       | 🟠    | Polls resume after reload (`resumePendingGalleryPolls`); final history reconciliation before timeout; one OOM auto-retry (`queue/oom-retry.ts`). Server clip jobs are forgotten on restart; the browser reports "The server restarted…" (`clip/clip-jobs.ts`). |
+| Safe replacement in Cut     | ⬜    | Cut is a live projection (see D3): changing a kept take silently changes every occurrence and every saved version.                                                                                                                                              |
+| Atomic saves                | ✅    | Dexie transactions; SQLite WAL. The risk is in merge, not in writes (D4).                                                                                                                                                                                         |
+| Schema versioning           | 🟠    | SQLite has `schema_version`; the backup file is versioned (v1–v5). The settings blob has no version: compatibility comes from tolerant normalizers (`normalizeSavedScene`, `normalizeDaySlotStills`, …).                                                            |
+| Backup / restore            | 🟡    | `src/lib/storage/studio-backup.ts` (JSON v5: settings, gallery, extras) + Pictures backup (`storage/media-backup-*`). Restore previews counts and downloads a copy of the current state first (`components/BackupRestoreFlow.tsx`), then **replaces** the state. 4 unit tests; no round-trip test with Scenes/Cut. |
+| Protect referenced assets   | 🟠    | Protected ids = favourites, ≥4★, Cast look keepers and plates (`gallery/protected-ids.ts`). Gallery delete removes `gallery-media` copies unless the **server's** stored JSON links them (`gallery/media-cleanup-server.ts`). Scene takes and Cut shots are not in the protected set. |
+| Missing media               | 🟡    | Delivery check probes each shot (missing file, black frames, missing sound, duplicates, text) before export (`film/delivery-check*.ts`). No relink.                                                                                                              |
+| Character bible / looks     | ✅    | Cast records with looks, plates, outfits and dressed plates (`character/os.ts`, `play/cast.ts`); identity lock; reference checks (`checks/reference-*`).                                                                                                    |
+| Continuity checks           | 🟠    | Deterministic and vision checks exist per still: pose/face scores (`playChecks`), duo-still counts, reference health, scene check (`story/scene-check.ts`), adult gate. No scene-state model and no findings/decisions record.                                    |
+| Script import               | 🟠    | Fountain or outline → up to 8 Day cards (`day/script-import.ts`, tested). No screenplay → Scenes, no reimport reconciliation.                                                                                                                                  |
+| Cut editing                 | 🟡    | Order, trims, holds, framing, transitions, speed / reverse, J/L cuts, lower thirds, PiP, text cards, bridges, generated shots, "Make longer", 12 named versions (`film/cut-room.ts`, `film/cut-plan.ts`, `hooks/useCutRoom.ts`).                               |
+| Audio                       | 🟡    | Music bed, ACE-Step score, narration, talking-clip sound, per-clip volume, sound lane (`film/score*`, `film/narration*`, `components/cut/CutSoundLane.tsx`). No separate dialogue/ambience/SFX tracks.                                                           |
+| Subtitles                   | 🟡    | Cues from lines, SRT out (`video/cut-subtitles.ts`). No caption editing track and no SRT import.                                                                                                                                                              |
+| Export / handoff            | 🟡    | Vertical / square / widescreen encodes; FCPXML 1.9 + CMX 3600 EDL + SRT (`film/nle-export*.ts`); project export (`video/cut-project-export*.ts`); review links (`film/review-store.ts`). A rendered film keeps a `cutRecipe` snapshot of its shots.            |
+| Film Director workspace     | ⬜    | Not started (the existing `director/` is the pose/move tool).                                                                                                                                                                                                  |
+
+## 2.3 Data flow: scene → queue → take → Cut → save / restore
+
+1. **Cast / Scene.** The Scene page (`app/scene/page.tsx` → `components/day-planner/SceneTool`) runs
+   Day's engine (`useDayPlannerToolOrchestration` with the `scene` settings key) plus
+   `hooks/day-planner/useScenePage.ts`. A scene is a `SavedScene` in `settings-cache` →
+   `tools.scene.scenes[]`; its shot is a one-slot Day (`slots`, `stills`).
+2. **Queue.** `queueSlot` (`hooks/day-planner/useDayPlannerToolOrchestrationCore.ts`) →
+   `usePromptResultActions` → `postComfyUiPrompt` → `/api/comfyui` → ComfyUI. The browser registers
+   a Gallery entry keyed by `promptId` and polls it. While a take is rendering, opening another scene
+   is blocked (`sceneCardBusy`); takes held at the adult check travel with their scene
+   (`checkingTakeIds`, `resolveSceneChecks`).
+3. **Output.** The poll writes status, images and timings onto the Gallery entry, and the server
+   writes the durable copy. The Day engine's gallery sync fills the working `DaySlotStill`
+   (`imageUrl`, finishes, framed cut, clip).
+4. **Take.** An effect in `useScenePage` calls `recordSceneFromWorking`, which adds a `SceneTake`
+   (id = `promptId`) to the open scene, oldest first, at most 24 (`boundedTakes` keeps the kept
+   one). Takes are pointers: provenance is reached through `promptId` → Gallery entry.
+5. **Select.** ★ Keep sets `keptTakeId` (`keepSceneTake`). Make it move starts from the kept take;
+   its clip lands as `clipUrl` on the same take.
+6. **Cut.** `useCutRoom` reads `tools.scene` → `sceneCutShots` (one shot per scene with a kept take,
+   its clip if any, keyed `scenes:<sceneId>`), Day's `dayWatchPlaylist` (`day:<slotId>`) and Story's
+   playlist, then applies `tools.cut` edits (`CutShotEdits` keyed by those keys, `extras`,
+   `versions`). **The shot's media is resolved live from the source on every render.**
+7. **Save / sync.** Each change saves the `settings-cache` blob to Dexie and schedules a server
+   push. On conflict `mergeSettingsCache` picks the newer blob and merges `tools` per tool
+   (`{...loser.tools, ...winner.tools}`).
+8. **Backup / restore.** `exportStudioBackup` writes the whole blob, gallery and extras as JSON;
+   media go through the separate Pictures backup. `importStudioBackup` overwrites each store.
+
+## 2.4 Test baseline (2026-10-25, local)
+
+| Check                                              | Result                                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm test` (882 files: unit + desktop target + compose validate) | **pass** — 8,737 tests, 0 fail, 0 skipped, 150 s                 |
+| `npm run lint` (ESLint + client/server import check) | **pass** (892 client files scanned)                                     |
+| `npx tsc --noEmit` (cold, scratch build-info file) | **pass**                                                                  |
+| `npm run build`, `npm run size`                    | **not run locally:** the build writes `.next`, which the pm2 instance serves. CI ran both green on `ddcfd5a0`. |
+| `npm run test:e2e` (31 Playwright specs)           | **not run locally** (starts its own dev server). CI e2e green on `ddcfd5a0`. |
+| `npm run check:core`                               | not run locally; CI `core` job green on `ddcfd5a0`.                       |
+
+**Pre-existing failures:** none on HEAD. One **flaky e2e**:
+`e2e/scene.spec.ts:696` ("a take at the adult check: another scene opens, and the verdict lands on its
+own scene") failed in CI run 40196206947 on a docs-only commit (`8e518eab`) and passed on the
+following runs.
+
+**Coverage gaps that matter for M1:** no test that a kept take survives the scene cap, Gallery cap,
+workflow pruning or Gallery delete; no test of what Cut shows after a kept take changes; no backup →
+restore round trip containing Scenes and Cut; no test of two-device settings merge for `tools.scene`;
+no restart-during-generation e2e.
+
+## 2.5 Findings
+
+### Confirmed defects (code read; each needs a failing test first)
+
+- **D1 — The scene cap can silently delete a scene with a kept take.** `normalizeSavedScenes`
+  keeps the 60 most recently updated scenes per Cast (`SCENE_LIMIT_PER_CAST`) and drops the rest.
+  `addScenePatch` writes its result, and `useScenePage` normalizes on every render and writes lists
+  built from it. The 61st new scene drops the least recently touched one — kept take, Cut shot and
+  all — with no warning. (Its renders stay in the Gallery.)
+- **D2 — Stored workflows were lost on the next Gallery save** (corrected while starting R1,
+  2026-10-25; **fixed by R1a**). `loadComfyGallery()` returns the list projection, without
+  `workflowJson` (`projectGalleryEntryForList`). Every patch helper loads it, changes a field and
+  saves it back, and `setGalleryCache` → `mergeUserEntriesIntoAll` (`gallery/db-store.ts`) replaced
+  the full entries with it. The next IndexedDB write dropped the graph, while `hasStoredWorkflow`
+  stayed `true`. Reproduced with a unit test. On this install's server copy, 273 of 277 entries
+  say `hasStoredWorkflow` and none hold a graph. The server copy never receives graphs (pushes send
+  the projection); that is unchanged. On top of this, the pruning rules
+  (`pruneStaleGalleryWorkflowJson`: older than `galleryWorkflowRetentionDays`, default 30;
+  `enforceGalleryWorkflowByteBudget`: oldest first past 8 MB; `gallery/workflow-hygiene.ts`) spare
+  neither kept takes nor Cut shots. They were run on the projection, so they rarely found a graph
+  to prune. That is R1b.
+- **D3 — Cut replaces media silently everywhere.** Cut shots are keyed by source (`scenes:<id>`,
+  `day:<slot>`) and resolved live. Keeping a different take, re-rendering a Day slot, or adding a
+  clip changes that shot in every occurrence (copies follow the original), in every saved
+  `CutVersion` (versions keep only sources, extras and edits), with the old trims applied to new
+  media of a different length. Un-keeping or removing the take, or deleting the scene, drops the
+  shot. This is the opposite of ROADMAP §4.4.
+- **D4 — Settings merge is whole-tool last-writer-wins.** `mergeSettingsCache`
+  (`storage/merge.ts`) merges `tools` per key: the newer blob's `tools.scene` replaces the other
+  side's entirely, so with two tabs or devices one side's new scenes or takes vanish from the scene
+  list. (`storage/record-list-sync.ts` and `record-tombstones.ts` exist for record-level merges;
+  they are not used for Scenes.)
+- **D5 — Browser-held API keys leave the browser.** `session*ApiKey` / `sessionReplicateApiToken` /
+  `sessionLlmApiKey` are documented as "stored in this browser only" (`settings/cache.ts`), but they
+  are ordinary `shared` settings fields. `exportStudioBackup` writes the whole settings blob, and
+  `syncNamespaceToServer('settings-cache')` pushes it unchanged (`syncPayload` only filters the
+  gallery). No redaction found on either path.
+
+### Confirmed gaps
+
+- **G1** Day keeps one still per slot. Earlier renders are only in the Gallery, with no link back to
+  the slot.
+- **G2** A Gallery entry doesn't record which scene or take it was made for, so takes past the
+  24-take cap (or removed ones) can't be found again from the Scene.
+- **G3** Takes have no rejected / superseded state and no decision timestamp. `playerVerdict` on the
+  Gallery entry is a Day-only start.
+- **G4** Kept takes and Cut shots aren't in the Gallery's protected set (`collectGalleryProtectedEntryIds`),
+  so the 5,000-entry local cap can evict them locally (server keeps them; local provenance lookup
+  fails).
+- **G5** Removing the kept take (`SceneTakes.tsx` ×) has no confirmation or undo. Delete scene
+  confirms but doesn't say the scene is in a Cut.
+- **G6** No cancelled / interrupted status; a timed-out job stays `error` even if ComfyUI finishes it
+  later (unless the user claims orphans).
+- **G7** Restore overwrites; there is no merge-restore and no round-trip test.
+
+### Unverified (check before relying on them)
+
+- **U1** Gallery delete removes media unless the **server** copy links to it
+  (`removeDeletedGalleryEntryMedia`). A take saved in the browser but not yet pushed may lose its
+  media if its entry is deleted in that window. Needs a timing test.
+- **U2** Whether a take's `imageUrl` is normally `/api/gallery/media/<id>` (durable) or a ComfyUI
+  `/view` URL (lost when ComfyUI's output is cleaned). Check stored data.
+- **U3** Behaviour when a job completes while no Scene page is mounted (navigated away): the take
+  should be recorded on the next visit through the gallery sync. Needs an e2e.
+
+## 2.6 Ordered M1 tasks
+
+Each task is one PR-sized change with a failing test first. Shared code learns about Play only
+through a registration hook.
+
+**R1a — Stored workflows survive a save (fixes the first half of D2).** _Done 2026-10-25,
+uncommitted._
+
+- `withStoredWorkflows` (`gallery/db-store.ts`) gives an entry that says `hasStoredWorkflow` and
+  came without its graph the graph it had. `mergeUserEntriesIntoAll` uses it on every save, and
+  `saveComfyGallery` uses it before the pruning rules so they weigh the real graphs. Pruning still
+  drops a graph on purpose (`hasStoredWorkflow: false`).
+- Tests: `gallery/db-store.test.ts` "stored workflows survive a save of the list projection" (4
+  tests; 2 fail on the old code).
+- Effect: graphs are now really kept, so the 8 MB / 30-day rules become the live limits.
+  Workflows lost before this fix can't be recovered from Castcut's data; ComfyUI's own history
+  may still hold recent ones (exact replay falls back to it).
+
+**R1b — Production references protect their Gallery entries (fixes the rest of D2, and G4).**
+_Next. Decide first how much of the 8 MB budget approved takes may use._
+
+- Scope: a shared registration point (e.g. `registerGalleryReferenceSource` next to
+  `gallery/protected-ids.ts`) whose results join `collectGalleryProtectedEntryIds`, and that
+  `pruneStaleGalleryWorkflowJson` / `enforceGalleryWorkflowByteBudget` honour. Play registers one
+  source in `play/features.ts`: every Scene take (kept or not), Day slot stills and their clips,
+  Story kept takes, and Cut extras with an `entryId` / `promptId`.
+- Depends on: nothing.
+- Acceptance: a kept Scene take's entry older than the retention keeps `workflowJson`; the byte
+  budget strips unreferenced entries first; the local cap never evicts a referenced entry; with
+  nothing registered (Prompt Studio) behaviour is unchanged.
+- Files: `src/lib/gallery/protected-ids.ts`, `gallery/workflow-hygiene.ts`, `gallery/comfyui-gallery.ts`,
+  `play/features.ts`, a new `play/gallery-references.ts`.
+- Tests: unit tests for the hygiene functions and the Play source; the boundary test stays green;
+  `npm run check:core`.
+
+**R2 — The scene cap never drops a scene with takes (fixes D1).**
+
+- Scope: `normalizeSavedScenes` drops only scenes with no takes; over the cap it keeps them and the
+  Scene page says so. Pure.
+- Acceptance: 61 scenes, all with takes → none dropped; empty scenes go first, oldest first.
+- Files: `src/lib/day/scenes.ts`, `scenes.test.ts`, a note in `SceneToolSections.tsx`.
+
+**R3 — Strip browser-held keys from backups and the server copy (fixes D5).** _Needs a decision:_
+should a key typed on one device follow the user to others?
+
+- Scope: one list of secret settings fields; `exportStudioBackup` and the `settings-cache` push
+  omit them, and pull/restore/merge keep the local value.
+- Acceptance: a backup with keys set contains none; a server pull doesn't clear a local key.
+- Files: `settings/cache.ts`, `storage/studio-backup.ts`, `storage/sync.ts`, `storage/merge.ts`.
+
+**R4 — Take provenance on the take card (ROADMAP §4.2).**
+
+- Scope: "How this was made" on a Scene take, read from its Gallery entry by `promptId`: prompt,
+  model, seed and params, engine, references, timings, whether the exact graph is still stored.
+  Also stamp the Scene id on the entry at queue time through the existing job-context hook
+  (`queue/job-context.ts`), so G2 can be fixed later. UI over existing data.
+- Depends on: R1 (so the data is still there).
+
+**R5 — Cut pins its media; replacement is explicit (fixes D3, ROADMAP §4.4).**
+
+- Scope: a Cut shot edit records the media it was edited with (`entryId` + URL). When the source's
+  current media differs, the shot shows "New take available": use it here, use it everywhere, or
+  keep the current one. Trims are clamped to the new length on "use". Saved versions keep their
+  pinned media. Shots whose source vanished keep playing their pinned media, with a warning.
+- Depends on: R1. Biggest M1 task — design note first.
+- Tests: `cut-room` / `cut-plan` unit tests; extend `e2e/cut-room.spec.ts`.
+
+**R6 — Record-level merge for `tools.scene` (fixes D4).**
+
+- Scope: merge `scenes` by id (newer `updatedAt` wins per scene, take lists unioned by id), with
+  tombstones for deleted scenes, using `storage/record-list-sync.ts` / `record-tombstones.ts`.
+- Acceptance: two sides each adding a scene → both kept; a delete on one side is not undone by the
+  other.
+
+**R7 — Kept-take safety in the Scene UI (G5).** Confirm or undo removing the kept take; delete
+scene says when the scene is in a Cut.
+
+**R8 — Queue: cancelled / interrupted states and late recovery (G6).** Separate "cancelled" and
+"lost" from "error"; re-check timed-out entries against ComfyUI history on the next resume and
+recover their outputs instead of queueing again.
+
+**R9 — Regression tests for the M1 gate.** Backup → restore round trip with Scenes, Cut and media
+references; reload during a render; ComfyUI restart during a render (mocked engine); the flaky
+`e2e/scene.spec.ts:696` made deterministic.
+
+**Later (M1 tail / M2):** take states rejected / superseded with decision times (G3); Day take
+history (G1); restore-as-merge (G7); U1–U3 verification.
+
+## 2.7 Risks for M1
+
+- **Prompt Studio compatibility:** shared files ship in `prompt-studio-core`. New hooks must be
+  no-ops when Play isn't loaded; run `npm run check:core`.
+- **Settings blob size:** extra fields on takes or Cut edits grow a blob that syncs on every change
+  (keepalive limit 60 KB; larger pushes go as normal requests). Keep pins to ids and URLs.
+- **No settings schema version:** every new field must be optional and survive the normalizers in
+  both directions (old builds keep unknown fields — `character-feature-fields.test.ts` shows the
+  pattern).
+- **Live users:** the app runs from Docker and pm2 on real data. Changes to pruning, caps or merge
+  only ever keep more; nothing in M1 deletes.
+
+## 2.8 Recommended first task
+
+**R1** (approved 2026-10-25). Starting it showed that stored workflows were lost on the next
+save, not after 30 days, so it split into R1a (done) and R1b (next). It only ever keeps more data,
+adds no field and no migration, and has to land before R4 and R5 can promise "see exactly how
+this take was made". If you'd rather start smaller, R2 is a pure one-function fix.
