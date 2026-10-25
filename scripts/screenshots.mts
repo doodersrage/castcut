@@ -21,6 +21,7 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
+import sharp from 'sharp';
 import { seedSettingsCacheOnNextLoad } from '../e2e/helpers/idb';
 import { isolateServerStorage } from '../e2e/helpers/storage';
 import { dismissBlockingOverlays } from '../e2e/helpers/overlays';
@@ -181,12 +182,51 @@ const STORY_TOOL = {
   })),
 };
 
+// One saved scene, three takes on the rooftop, the first kept. The other two takes are the
+// rooftop still mirrored and reframed (served by takeRoute below), so they read as retakes.
+const SCENE_SLOT = DAY_SLOTS[3]!;
+const SCENE_TAKES = [1, 2, 3].map(take => ({
+  id: `demo-take-${take}`,
+  promptId: `demo-take-${take}`,
+  imageUrl: take === 1 ? sample('night') : `${sample('night')}?take=${take}`,
+  at: now - (4 - take) * 60_000,
+}));
+const SCENE_TOOL = {
+  isolateSubject: false,
+  scenes: [
+    {
+      id: 'demo-scene-rooftop',
+      castId: NORA,
+      name: 'Rooftop at dusk',
+      slot: SCENE_SLOT,
+      dayMood: 'everyday',
+      takes: SCENE_TAKES,
+      keptTakeId: SCENE_TAKES[0]!.id,
+      createdAt: now - 3_600_000,
+      updatedAt: now,
+    },
+  ],
+  activeSceneId: 'demo-scene-rooftop',
+  slots: [SCENE_SLOT],
+  stills: [
+    {
+      slotId: SCENE_SLOT.id,
+      promptId: SCENE_TAKES[0]!.promptId,
+      imageUrl: SCENE_TAKES[0]!.imageUrl,
+      status: 'completed',
+    },
+  ],
+  stillsCharacterId: NORA,
+  dayMood: 'everyday',
+};
+
 const SETTINGS = {
   shared: { activeCharacterId: NORA },
   characters: CHARACTERS,
   tools: {
     day: DAY_TOOL,
     roleplay: STORY_TOOL,
+    scene: SCENE_TOOL,
     // Outfit's try-on plate: the pose editor draws the figure over it.
     fitting: { referenceImageUrl: sample('afternoon') },
   },
@@ -248,6 +288,25 @@ async function login(context: BrowserContext): Promise<void> {
   }
 }
 
+/** Scene's retakes: the rooftop still mirrored (take 2), and mirrored a step closer (take 3). */
+async function takeRoute(route: import('@playwright/test').Route): Promise<void> {
+  const take = new URL(route.request().url()).searchParams.get('take');
+  const source = readFileSync(join(root, 'public', sample('night')));
+  let image = sharp(source).flop();
+  if (take === '3') {
+    const { width = 0, height = 0 } = await sharp(source).metadata();
+    image = image
+      .extract({
+        left: Math.round(width * 0.06),
+        top: Math.round(height * 0.04),
+        width: Math.round(width * 0.88),
+        height: Math.round(height * 0.88),
+      })
+      .resize(width, height);
+  }
+  await route.fulfill({ contentType: 'image/webp', body: await image.webp().toBuffer() });
+}
+
 async function openPage(context: BrowserContext, path: string): Promise<Page> {
   const page = await context.newPage();
   // Read-only against the app: the seeded Cast would otherwise send its picture to ComfyUI
@@ -264,6 +323,7 @@ async function openPage(context: BrowserContext, path: string): Promise<Page> {
   await page.route('**/api/version', route =>
     route.fulfill({ json: { updateAvailable: false, currentVersion: '0.0.0' } })
   );
+  await page.route(/\/samples\/day-night\.webp\?take=\d/, takeRoute);
   await page.goto('/manifest.json');
   await seedSettingsCacheOnNextLoad(page, SETTINGS);
   await page.goto(path, { waitUntil: 'domcontentloaded' });
@@ -314,10 +374,11 @@ async function settle(page: Page): Promise<void> {
   for (const notNow of await page.getByRole('button', { name: 'Not now', exact: true }).all()) {
     await notNow.click().catch(() => {});
   }
-  // next dev's own badge, and the jobs chip: the read-only API leaves the seeded Cast's plate
+  // next dev's own badge, the "Matched settings to your GPU" notice, and the jobs chip: the read-only API leaves the seeded Cast's plate
   // check looking "active", which a demo install at rest would not show.
   await page.addStyleTag({
-    content: 'nextjs-portal, [data-testid="active-jobs-chip"] { display: none !important; }',
+    content:
+      'nextjs-portal, [data-testid="active-jobs-chip"], [data-testid="gpu-match-notice"] { display: none !important; }',
   });
   await page.mouse.move(0, 0);
   await page.waitForTimeout(800);
@@ -382,6 +443,30 @@ const SHOTS: Shot[] = [
     take: async context => {
       const page = await openPage(context, `/story?character=${NORA}`);
       await page.getByTestId('story-reel').first().waitFor({ state: 'attached', timeout: 60_000 });
+      return page;
+    },
+  },
+  {
+    name: 'phone-scene',
+    device: PHONE,
+    take: async context => {
+      const page = await openPage(context, `/m/scene?character=${NORA}`);
+      await page.getByTestId('scene-phone').waitFor({ timeout: 60_000 });
+      await page.getByTestId('scene-takes').waitFor({ timeout: 60_000 });
+      return page;
+    },
+    // The scene's name, the take on the card and the strip of takes (★ Kept).
+    frame: page => scrollToTestId(page, 'scene-name', 80),
+  },
+  {
+    name: 'cut',
+    device: DESK,
+    take: async context => {
+      const page = await openPage(context, `/cut?from=day&character=${NORA}`);
+      await page.getByTestId('cut-shot-list').waitFor({ timeout: 60_000 });
+      // Day and Story mixed into one cut.
+      const story = page.getByTestId('cut-source-story');
+      if ((await story.getAttribute('aria-checked')) !== 'true') await story.click();
       return page;
     },
   },

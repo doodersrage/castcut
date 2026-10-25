@@ -1,6 +1,6 @@
 # Castcut
 
-**Local character films with ComfyUI.** Cast → Outfit → Day → (Story) → **Cut**.
+**Local character films with ComfyUI.** Cast → Outfit → Day → (Story · Scene) → **Cut**.
 
 Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut). The classic prompt and image tools, without the film loop, live on as [**Prompt Studio**](https://github.com/doodersrage/prompt-studio), built on the shared core package [`prompt-studio-core`](https://www.npmjs.com/package/prompt-studio-core).
 
@@ -16,11 +16,14 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 2. **Outfit** — dress her: a kit, your own photo, or shoes you pick.
 3. **Day** — plan 2–8 moments from morning to night; each becomes a still, then a clip. Give a moment a **line** and she says it, lip-synced, in her voice.
 4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own.
-5. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day and Story, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
+5. **Scene** *(optional)* — one shot, exactly as you want it: setting, beat, line, pose and camera. Render takes, ★ keep the best, then make it move.
+6. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day, Story and Scenes, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
 
-**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Make more realistic** (WAN 2.2 low-noise re-render), **Copy moves from a video** (Wan Animate 2), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
+**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Make more realistic** (WAN 2.2 low-noise re-render), **Copy moves from a video** (Wan Animate 2), **Direct a move** (pose her through a few beats on a 3D body, then render it), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
 
 **Consistency:** one face (the Cast plate), one dressed plate per outfit, and the Cast's own places — set a photo of a real room and stills set there are built around it.
+
+**Poses and camera:** a 3D pose editor (drag a hand or foot, start from Stand / Sit / Kneel / Lie down / Walk, or a real pose read from a photo) and one Camera row — height, direction, shot, lens — on every Day slot, Story beat and Scene. A pose check redoes a still that missed the pose.
 
 **Docs:** [doodersrage.github.io/castcut](https://doodersrage.github.io/castcut/) — [Install](https://doodersrage.github.io/castcut/install/) · [Your first film](https://doodersrage.github.io/castcut/first-film/) · [Models](https://doodersrage.github.io/castcut/models/) · [Finishing tools](https://doodersrage.github.io/castcut/finishing-tools/)
 
@@ -34,13 +37,17 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI) — details in [doc
 | --- | --- |
 | ![Film: pick a Cast lead and start a film](docs/screenshots/film.png) | ![Day: four stills of one character from morning to night, ready to cut](docs/screenshots/day.png) |
 | **Film** — pick or create a Cast lead; Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
-| ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Pose editor: a figure fitted over the Cast's picture](docs/screenshots/pose-editor.png) |
-| **Story** — pick what happens next; each scene becomes a still (and a clip). | **Pose editor** — drag joints, quick positions, the Cast's picture behind the figure. |
-| ![Cast page: the Bible tab's Appearance traits for one character](docs/screenshots/cast.png) | |
-| **Cast** — the Bible tab's Appearance: sex, ethnicity, age, height, body and hair, used in every picture. | |
+| ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Cut: Day and Story mixed into one cut, with the monitor and options](docs/screenshots/cut.png) |
+| **Story** — pick what happens next; each scene becomes a still (and a clip). | **Cut** — mix Day, Story and Scenes; watch it, set the shape, music and titles, then cut. |
+| ![Cast page: the Bible tab's Appearance traits for one character](docs/screenshots/cast.png) | ![3D pose editor: a figure over the Cast's picture, with the Camera panel](docs/screenshots/pose-editor.png) |
+| **Cast** — the Bible tab's Appearance: sex, ethnicity, age, height, body and hair, used in every picture. | **3D pose editor** — drag a hand or foot, start from a quick pose, set the camera. |
 
-<p align="center"><img src="docs/screenshots/phone-day.png" alt="Day on a phone: the same stills and Cut film" width="260"></p>
-<p align="center"><b>Mobile Studio</b> (<code>/m</code>) — the same film loop on a phone.</p>
+<p align="center">
+  <img src="docs/screenshots/phone-day.png" alt="Day on a phone: the same stills and Cut film" width="260">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/phone-scene.png" alt="Scene on a phone: the kept take on the card and a strip of takes" width="260">
+</p>
+<p align="center"><b>Mobile Studio</b> (<code>/m</code>) — the same film loop on a phone: Day, and a Scene with its takes.</p>
 
 ## Quick start
 
@@ -70,6 +77,8 @@ Docker: `cd docker && cp .env.example .env && docker compose up -d --build` — 
 | **Outfit** | `/fitting` | Clothing, shoes, try-ons, the dressed plate |
 | **Day** | `/day` | The day plan, stills, clips, Cut film |
 | **Story** | `/story` | Scene-by-scene stories with stills and clips |
+| **Scene** | `/scene` | One shot as you want it — takes, keep the best, make it move |
+| **Cut** | `/cut` | Put the film together: order, trim, music, titles, export |
 | **Gallery** | `/gallery` | Everything rendered — filters by Cast, look, checks |
 | **Queue** | `/queue` | What ComfyUI is doing |
 | **Video · Compose · Refine · Inpaint** | | Single-shot tools under More |
@@ -82,9 +91,9 @@ The classic prompt and image tools (Generate, Format, Pet, Fantasy, Topics, Vari
 
 | Job | Engines |
 | --- | --- |
-| **Stills** | Qwen-Image-Edit 2511, Qwen Rapid AIO (SFW / NSFW), Qwen-Image 2.1, FLUX.2 Klein |
+| **Stills** | Qwen-Image 2.1 Turbo (default), Qwen-Image 2.1 Noct-Q / Noct-Q Fast, Qwen-Image-Edit 2511, Qwen Rapid AIO (SFW / NSFW), Bria Fibo 2.0 Edit Turbo, FLUX.2 Klein |
 | **Clips** | LTX-2.5 (talking clips, sound), WAN 2.2 Rapid AIO, MiniMax-H3 |
-| **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2, Wan-Dancer, InfiniteTalk, Qwen-Edit Relight |
+| **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2 (Copy moves, the Director), Wan-Dancer, InfiniteTalk, Qwen-Edit Relight |
 | **Music** | ACE-Step 1.5 |
 | **Language / vision** | Built-in llama.cpp, LM Studio, Ollama, or a hosted provider |
 
