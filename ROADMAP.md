@@ -1,563 +1,707 @@
-# Castcut — product and engineering roadmap
+# Castcut — complete product and engineering roadmap
 
 **Start:** Tuesday 27 October 2026, about 7 pm.
-**First session:** M0 — the code-level audit (section 13): the Scene take model, Queue
-persistence, the Cut clip representation, and the backup / restore path. Output: a list of exact
-files and functions to change, then small, independently testable GitHub issues.
+**First session:** Phase 0 — the code audit (section 3): the Scene take model, Queue persistence,
+the Cut clip representation, and the backup / restore path. Output: a feature inventory, a data-flow
+map, a test baseline, and small, implementation-ready GitHub issues.
 
 ---
 
-Castcut already has more of the advanced foundation than a generic roadmap would assume. The
-README documents multi-take Scene generation, the Director and 3D pose editor, camera controls,
-multiple generation engines, sound and finishing tools, and a Cut workflow that combines Day,
-Story and Scene content. Recent commits show active work on pose accuracy, real-render testing,
-mobile usability and generation reliability.
-
-So the next cycle should make these capabilities behave like one coherent filmmaking system
-rather than add a large number of disconnected pages.
-
-The plan below covers product requirements, data contracts, implementation tasks, dependencies,
-testing and release gates.
-
-## 1. Define the product outcome first
-
-The target is a creator who can:
-
-1. Develop a character, look, world and story.
-2. Plan scenes and individual shots.
-3. Generate multiple candidate takes using local or optional cloud engines.
-4. Check visual continuity and approve the best take.
-5. Assemble and revise a film without losing prior work.
-6. Finish audio, subtitles and titles.
-7. Export the film and reopen the project with its production history intact.
+This roadmap brings the feature-gap analysis, competitor positioning, architecture
+recommendations, implementation sequence, testing strategy and release criteria into one plan for
+[Castcut](https://github.com/doodersrage/castcut).
+
+The goal: make Castcut a dependable local-first AI filmmaking and production workbench — develop
+characters, plan scenes and shots, generate consistent material, review takes, assemble a film and
+deliver it, without losing the creative decisions and assets along the way.
+
+The strategic choice is to build a better filmmaking workflow, not another AI video generator.
+Castcut's opportunity is to connect character development, repeatable production, local ComfyUI
+generation, continuity and editorial control in one coherent application.
+
+| Stage                         | What it means                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **1. Plan the production**    | Characters, looks, outfits, locations, props, story beats, scripts and shot lists become a reusable production bible.       |
+| **2. Produce the shots**      | Plan shots, set references, generate several takes, track jobs, keep the exact settings and assets used.                    |
+| **3. Review and assemble**    | Compare takes, flag continuity issues, approve media, build the cut, add dialogue, music, sound effects and subtitles.      |
+| **4. Finish and deliver**     | Export dependable deliverables, package project assets, restore backups, hand the project to other tools when needed.        |
+
+This is a product and engineering roadmap, not yet a verified file-by-file code audit. The phases
+are designed around Castcut's described workflow and must be reconciled against the repository
+before implementation begins.
+
+## 1. Product vision and competitive positioning
+
+### What Castcut should become
+
+A complete production lifecycle:
+
+- **Develop** — characters, identities, looks, outfits, locations, props and project references.
+- **Plan** — scripts or story ideas into scenes, shots and coverage requirements.
+- **Generate** — several takes on local or configured engines.
+- **Maintain continuity** — which character, outfit, location, props and story state belong in
+  each shot.
+- **Review** — compare takes, inspect failures, flag issues, approve the right material.
+- **Edit** — assemble approved media into a film with audio, subtitles and timing.
+- **Deliver** — export the finished work and keep a portable, recoverable project.
+
+### What competitors do better — and how Castcut can respond
+
+| Competitor / category                      | Established strength                                      | Castcut's opportunity                                                                                 |
+| ------------------------------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Runway                                     | Integrated AI video generation and creative tools         | Shots, takes, references and revisions as part of a persistent production workflow                    |
+| Katalist                                   | Script-to-storyboard and visual pre-production            | Connect planning directly to generation jobs, selected takes and the final cut                        |
+| ComfyUI                                    | Fine-grained workflow and model control                   | Approachable production-level controls without hiding advanced workflows                              |
+| Traditional NLEs (e.g. DaVinci Resolve)    | Mature timeline editing, audio, finishing and delivery    | Focus on AI-specific provenance and continuity, with useful finishing tools and reliable handoff       |
+| Character-consistency workflows and tools  | Reference images, identity control, reusable characters   | Character definitions and references as first-class project data, not scattered prompt notes          |
+
+Strategic comparisons only — not a claim that every competitor has every listed feature, or that
+Castcut lacks all of them. Verify competitor features and Castcut's implementation before treating
+this as a definitive gap assessment.
+
+### Product principles
+
+1. **Local-first, where practical.** Local generation without the production living in a cloud
+   service.
+2. **Non-destructive.** Never silently overwrite or destroy an approved take.
+3. **Reproducible.** Every generation keeps the settings, workflow, references and engine info
+   needed to understand it.
+4. **Continuity-aware.** Character and scene consistency are part of production, not an
+   afterthought.
+5. **Progressively complex.** Beginners get a guided workflow; experienced users keep the detailed
+   settings.
+6. **Recoverable.** A restart, failed job or restored backup must not erase creative work.
+7. **Interoperable.** Export usable media and project information; don't trap everything in
+   Castcut.
+
+## 2. The roadmap at a glance
 
-The main measure of success is how reliably a creator can finish a film, not how many generation
-tools the app contains.
+Planning ranges for one developer with coding assistance, assuming the existing app is a usable
+foundation. Not commitments; some work overlaps.
+
+| Phase     | Time      | Name                            | Priority      | Scope                                                                                         |
+| --------- | --------- | ------------------------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| 0         | 3–5 days  | Code audit and foundations      | **Start here** | Map existing features, data models, generation pipeline, storage, tests, backup behaviour     |
+| 1         | 1–2 weeks | Production reliability          | P0            | Immutable takes, provenance, safe retries, recoverable jobs, dependable persistence           |
+| 2         | 2–4 weeks | Production bible and continuity | P1            | Structured character and location references, scene state, continuity checks and review       |
+| 3         | 2–4 weeks | Script-to-shot planning         | P1            | Script import, scene breakdown, editable shot lists, coverage, reference linking              |
+| 4         | 2–4 weeks | Editing, audio and delivery     | P1            | Reliable Cut editing, audio tracks, subtitles, export profiles, portable handoff              |
+| 5         | 1–3 weeks | Film Director workspace         | P2            | Production overview, guided next actions, controlled orchestration of existing tools          |
+| Hardening | 1–2 weeks | Release readiness               | Required      | Integration tests, migration compatibility, backup restore, performance, documentation        |
+
+Roughly 9–19 weeks in all, depending on the audit, existing test coverage, the current data
+architecture and how much editing functionality already exists.
+
+## 3. Phase 0 — Code audit and foundations (first milestone)
+
+**Goal:** establish what works, what is incomplete, and where new features integrate. Don't start
+by building a new architecture — establish the current one.
+
+### 3.1 Audit the existing application
+
+Document the current implementation of:
+
+- Cast, character identities, looks and outfits.
+- Story, Day, Scene and Cut.
+- The Director and its pose / camera tools.
+- Gallery and media storage.
+- Queue and generation engine adapters.
+- ComfyUI workflows, prompt construction and reference handling.
+- Audio, finishing and export.
+- Project persistence, configuration, backup and restore.
+- Tests, error reporting, logging and release packaging.
 
-Three product-level metrics:
+Classify each: complete and tested · implemented but missing important behaviour · partially
+implemented · planned but absent · unclear or untested.
 
-- **Completion rate** — the share of started projects that reach a successful film export.
-- **Recovery rate** — the share of interrupted or failed jobs users can continue from without
-  losing approved work.
-- **Revision cost** — the number of manual steps needed to replace a shot while keeping its
-  surrounding edit and references.
-
-Measure baselines before changing anything, or there is no way to tell whether the roadmap helps.
-
-## 2. Priority order
-
-| Priority | Area                                                                                                         |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| **P0**   | Production data integrity — protect takes, references, jobs, edits and existing projects; set the contracts later work depends on |
-| **P0**   | Take revisions and recovery — repeatable, reviewable, safe-to-revise generation; extend Scene's take selection |
-| **P1**   | Continuity and quality assurance — turn plates, outfit references, pose checks and scene info into actionable checks |
-| **P1**   | Script and shot planning — a structured planning layer from story intent to Scene generation and Cut assembly |
-| **P1**   | Editorial finishing and delivery — editing reliability, audio, interchange, portable project archives       |
-| **P2**   | Director production orchestration — a guided end-to-end workflow over planning, generation, review, finishing |
-
-Ordered by dependency, not visual appeal. A Director dashboard is worth little if it can't
-reliably keep the takes and edits it orchestrates.
-
-## 3. Workstream A — Production data and asset integrity (P0, do first)
-
-**Objective:** every generated asset, shot decision and editorial change has a reliable identity
-and history.
-
-### A1. Audit the existing data model
-
-Trace how the app stores today:
-
-- Cast records, appearance traits, face plates and voices.
-- Outfits, dressed plates and location references.
-- Day slots, Story beats and Scene records.
-- Still and video takes, including framed or processed variants.
-- Queue jobs, ComfyUI workflow inputs and output files.
-- Cut clips, trims, titles, audio and export settings.
-- Backup and restore.
-
-Build a feature matrix with three states — `existing`, `partial`, `missing`. Every proposed
-feature links to the existing code or names the new module it needs.
-
-### A2. Canonical asset references
-
-One generated image can have several related files: original, cropped frame, refined image,
-video, thumbnail, perhaps a derived audio track. They shouldn't be treated as unrelated.
-
-Proposed logical contract (not a claim about existing types — adapt to the current persistence
-model; don't add a duplicate registry if one exists):
-
-```ts
-type AssetRecord = {
-  id: string;
-  projectId: string;
-  kind: 'image' | 'video' | 'audio' | 'document';
-  role: 'source' | 'derived' | 'thumbnail' | 'export';
-  storagePath: string;
-  mimeType: string;
-  byteSize: number;
-  checksum?: string;
-  parentAssetId?: string;
-  createdAt: string;
-  metadata: Record<string, unknown>;
-};
-```
-
-Tasks:
+### 3.2 Map the important data flows
 
-1. Define a canonical asset identifier.
-2. Record relationships between source and derived media.
-3. Validate that an asset exists before a take or edit references it.
-4. Tell an unavailable file apart from a deliberately deleted one.
-5. Stop cleanup jobs removing media still referenced by approved takes or film edits.
-6. Make backup and restore keep those relationships.
+Trace one complete workflow through the source:
 
-**Done when:** restoring a project into a clean data directory keeps its approved takes,
-reference links and edit composition — or reports clearly what couldn't be restored.
+1. Create or select a character.
+2. Create a scene and prepare a generation request.
+3. Submit work to the Queue.
+4. Receive a generated image or video.
+5. Save the output and its metadata.
+6. Review and select a take.
+7. Add the selected take to Cut.
+8. Save, restart, reopen and restore the project.
 
-### A3. Compatibility and migration rules
+Record the files, functions, tables or serialized models, and events at each step.
 
-- Give new persisted records explicit schema versions.
-- Idempotent migrations for older project data.
-- Back up affected data before destructive migrations.
-- Test opening and saving existing projects with the new code.
-- Rollback or recovery if a migration fails.
+### 3.3 Establish baseline tests
 
-Don't force Day, Story and Scene into a new schema just to unify their interfaces — use adapters
-or linked records.
+Before substantial changes, verify:
 
-## 4. Workstream B — Shot and take lifecycle (P0, first user-visible feature)
+- A new project can be created and reopened.
+- Existing projects load without data loss.
+- A generation can succeed and fail without corrupting the project.
+- A selected take survives a restart.
+- Cut keeps its media references.
+- Backup and restore work with real project assets.
+- Missing models and an unavailable ComfyUI give useful errors.
 
-Scene already has a take strip and Keep. Extend that into one persistent lifecycle across the app.
+### Deliverables
 
-### B1. Shot lifecycle
+- Architecture and data-flow document.
+- Feature inventory and gap list.
+- Data model diagram.
+- Test baseline and known-defects list.
+- Ordered, implementation-ready GitHub issues.
 
-```mermaid
-stateDiagram-v2
-  [*] --> Planned
-  Planned --> Ready
-  Ready --> Queued
-  Queued --> Generating
-  Generating --> Review
-  Generating --> Failed
-  Failed --> Queued: Retry
-  Review --> Approved
-  Review --> Rejected
-  Rejected --> Planned: Revise
-  Approved --> Superseded: Replace
-  Superseded --> Approved: Restore
-```
-
-A logical state machine, not necessarily a literal enum on every current record. A take's status
-and a shot's status stay distinct: a shot can be approved while other candidate takes are still
-under review.
-
-### B2. Immutable take provenance
-
-Each successful take keeps:
-
-| Field                      | Purpose                                                    |
-| -------------------------- | ---------------------------------------------------------- |
-| Shot ID                    | The creative decision being rendered                       |
-| Take ID                    | This particular result                                     |
-| Prompt and negative prompt | The generation instructions                                |
-| Model and version          | The engine and model used                                  |
-| Workflow snapshot          | The relevant ComfyUI graph or engine configuration         |
-| Seed and parameters        | What's needed to reproduce it, where supported             |
-| Reference asset IDs        | Character, outfit, location, pose and image inputs         |
-| Output asset IDs           | Stills, video, audio and derived frames                    |
-| Job ID and timestamps      | Diagnosis and provenance                                   |
-| User decision              | Selected, rejected or restored                             |
-
-Keep credentials separate — never in workflow snapshots or project exports.
-
-### B3. Take comparison and restoration
-
-In small steps:
-
-1. Persist each successful take on its own.
-2. A selected-take pointer on the shot (or its existing equivalent).
-3. A comparison view for two or more candidate takes.
-4. Keep, Reject, Restore and Generate another take.
-5. Update Cut references when the user explicitly picks a replacement.
-6. Keep the old edit and take if the replacement fails.
-7. A project history entry for important changes.
-
-The comparison view: synchronized playback for video, side-by-side stills, and the settings that
-differ between takes.
-
-### B4. Non-destructive revisions
+**Exit criterion:** every major workflow has a known implementation location and a way to test it.
 
-When replacing a shot already used in Cut, ask whether to:
+## 4. Phase 1 — Production reliability and take history (P0)
 
-- Replace this occurrence only.
-- Replace every linked occurrence of the shot.
-- Keep the new take as a candidate without changing the film.
-
-No implicit global replacement — a shot may appear several times with different trims or roles.
+Build this before more sophisticated automation. The pipeline must be dependable before Castcut
+scales to larger projects.
 
-**Done when:** a user can generate, compare, approve, replace and restore a take after
-restarting Castcut, without losing prior media or changing unrelated edit decisions.
+### 4.1 First-class take management
 
-## 5. Workstream C — Continuity and production bible (P1, major differentiator)
+Each generated result is a distinct take. Required:
 
-The ingredients exist: Cast appearance, outfit plates, location references, the 3D pose editor,
-camera settings, pose checks. Next, one system that checks shots against production intent.
+- Several takes for a shot or scene.
+- Compare takes without losing earlier results.
+- Mark a take selected, rejected, approved or superseded.
+- Restore an earlier take.
+- See generation settings and source references.
+- See why a generation failed.
+- Tell a generation attempt apart from the media it produced.
 
-### C1. Structured production bible
-
-Extend existing records where practical. Cover:
-
-- Characters and approved visual references.
-- Outfits and the scenes each is valid in.
-- Locations and important set details.
-- Props and their visual references.
-- Character relationships and story state.
-- Scene chronology, time of day, environmental conditions.
-- Approved camera and composition requirements.
-- Audio and voice assignments.
-
-Each item gets a stable ID and optional versions. A new character plate must not silently change
-the reference attached to every previously approved shot.
-
-### C2. State across scenes
-
-A deliberately simple first version:
-
-```ts
-type SceneState = {
-  sceneId: string;
-  characterStates: Array<{
-    characterId: string;
-    outfitId?: string;
-    position?: string;
-    injuries?: string[];
-    carriedPropIds?: string[];
-    emotionalBeat?: string;
-  }>;
-  locationId?: string;
-  timeOfDay?: string;
-  continuityNotes: string[];
-  basedOnSceneIds: string[];
-};
-```
-
-Position and emotion can start as human-readable values before anything more formal.
-
-### C3. A layered continuity engine
-
-1. **Deterministic validation** — missing references, invalid files, wrong output dimensions,
-   absent audio, mismatched shot metadata. Definite pass / fail.
-2. **Visual similarity** — compare a frame with approved face, outfit or location references.
-   Calibrate thresholds on representative examples; one threshold won't fit every model, pose or
-   light.
-3. **Semantic review** — a vision-language model looks for missing props, wardrobe
-   inconsistencies, wrong scene details, composition issues. Suggestions with evidence, not facts.
-4. **Human approval** — accept a discrepancy, amend a rule, ask for another take, or approve an
-   exception; keep the decision and its reason.
-
-### C4. Actionable findings
-
-Each finding carries:
-
-- The rule or requirement checked.
-- The shot and asset under review.
-- The evidence.
-- Severity and confidence, where they apply.
-- A suggested fix.
-- The user's decision and when it was made.
-
-Don't block renders on an uncertain AI result. Only explicit hard requirements stop a shot being
-marked production-ready.
-
-### C5. Validate before trusting it
-
-A small, hand-reviewed test set with known cases: right identity, changed hairstyle, wrong outfit,
-missing prop, wrong framing, and a deliberately valid lighting change. Measure false positives and
-false negatives separately — a checker that keeps flagging good shots loses the creator's trust.
-
-**Done when:** a creator can see why a shot failed a continuity check, correct or override it,
-and the result stays attached to the take.
+A new generation creates a new take or attempt record; it never overwrites the selected result.
 
-## 6. Workstream D — Screenplay and shot planning (P1, new capability)
+### 4.2 Generation provenance
 
-Not a replacement for Story. A structured planning layer that turns a script into a reviewable
-list of scenes and shots, connected to Scene and Cut.
+Every generation keeps, where applicable:
 
-### D1. First release scope
+| Information                        | Why it matters                                     |
+| ---------------------------------- | -------------------------------------------------- |
+| Project, scene, shot and take IDs  | Connect the output to the production               |
+| Prompt and negative prompt         | Explain the creative intent                        |
+| Model and version                  | Reproduce or diagnose the result                   |
+| Workflow snapshot or version       | Preserve the actual generation process             |
+| Seed and generation parameters     | Reproduce or compare results where supported       |
+| Reference asset IDs                | Character, style, pose and image conditioning      |
+| Engine and job IDs                 | Connect outputs to the generation service          |
+| Start / end timestamps and status  | Diagnose slow or failed jobs                       |
+| Output asset IDs and checksums     | Identify the exact media                           |
+| User decision and timestamp        | Approval and revision history                      |
 
-Fountain and plain-text screenplays first; defer Final Draft until the basics are proven. Support:
+Secrets and credentials are stored separately and never exported with provenance.
 
-- Scene headings and locations.
-- Action and description.
-- Character cues and dialogue.
-- Parentheticals.
-- Scene order and links back to the source text.
-- User corrections where parsing is unsure.
+### 4.3 Reliable Queue behaviour
 
-Parsing and AI interpretation are separate steps — the original script is kept even when the AI
-misreads a character or scene.
+Normalize job statuses (adapting names to the existing implementation):
+`Waiting → Preparing → Running → Finalizing → Succeeded`, plus Failed, Cancelled, and
+recoverable / interrupted where appropriate.
 
-### D2. Screenplay pipeline
+Useful diagnostics for: missing models or workflow nodes · invalid workflows · missing reference
+images · engine connection failures · resource exhaustion · unreadable output files · disk-space
+or write failures · jobs that generate but fail to persist metadata.
 
-```mermaid
-flowchart TD
-  A[Import screenplay] --> B[Parse script structure]
-  B --> C[Review scene outline]
-  C --> D[Identify characters and locations]
-  D --> E[Suggest shot breakdown]
-  E --> F[Review and edit shot list]
-  F --> G[Check references and coverage]
-  G --> H[Create or link Scene records]
-  H --> I[Generate candidate takes]
-  I --> J[Review continuity]
-  J --> K[Select takes for Cut]
-```
+Retries must be safe: if the engine produced an output before the client lost its connection,
+check whether it can be recovered before starting another generation.
 
-Tasks:
+### 4.4 Safe replacement in Cut
 
-1. Screenplay import and preview.
-2. Parse scenes and dialogue into a normalized internal form.
-3. Resolve character and location names to existing Cast and location records.
-4. Ask the user about unknown names instead of silently creating duplicates.
-5. An editable shot list: shot type, framing, action, dialogue, intended duration.
-6. Mark suggested content as AI-generated until the user approves it.
-7. Connect each approved shot to Scene.
-8. Pass selected takes to Cut without losing their script and scene links.
+When a take is replaced, show the scope:
 
-### D3. Coverage planning
+- Replace this clip occurrence.
+- Replace all linked occurrences.
+- Keep the current clip; the new take is only a candidate.
 
-Help decide what to generate, without imposing a style. A dialogue scene might suggest an
-establishing or wide shot, a medium two-shot, a close-up per speaker, a reaction shot, and an
-insert of a significant prop if the script calls for one. The creator can accept, delete or
-rearrange; completeness follows the scene's needs, not a fixed checklist.
+Keep trims, timing and other editorial decisions wherever possible. Never silently change every
+occurrence of an asset.
 
-### D4. Protect work through script revisions
+### 4.5 Recovery and persistence
 
-Match scenes and passages on stable IDs and source fingerprints; show a reconciliation screen when
-matching is ambiguous. Never silently delete a shot or approved take because a line left the
-script — flag it and let the creator keep, relink or archive.
+Implement or verify:
 
-**Done when:** a user can import a screenplay, edit its scene and shot plan, generate selected
-shots, revise the script, and keep approved work with clear links to the source.
+- Atomic saves (or equivalent protection against partial writes).
+- Safe handling of interrupted writes.
+- Recovery of interrupted jobs.
+- Backup verification and restore tests.
+- Clear handling of missing media.
+- Schema versioning and migrations.
+- Protection against deleting referenced assets.
 
-## 7. Workstream E — Cut, audio and editorial reliability (P1, extend the editor)
+### Acceptance criteria
 
-Cut already orders, trims, frames, and adds music, subtitles, narration, titles and export. Make
-those safer and more predictable first — not a full NLE rebuild.
+- A failed job cannot erase an approved take.
+- A previous take can be restored after generating a replacement.
+- Provenance survives a restart.
+- A Cut containing approved media reopens intact.
+- Queue failures have actionable explanations.
+- Retries don't silently create duplicate approved work.
+- Existing project data migrates without losing relationships.
 
-### E1. Editorial data model
+**Milestone: Castcut Production Reliability 1.0** — the first substantial release.
 
-An edit is a sequence of clip instances referencing source assets or takes; one take can appear
-several times with different trims. A clip carries:
+## 5. Phase 2 — Production bible and continuity (P1)
 
-- Source take or asset ID.
-- Timeline position and source in / out points.
-- Track and order.
-- Playback speed, where supported.
-- Framing and transform.
-- Audio gain and fades.
-- Transition, if supported.
-- A stable identity for undo / redo and revision tracking.
+One of Castcut's strongest potential differentiators. The production bible is the structured
+source of truth for the film; it connects what Castcut already manages rather than adding a
+second, competing character or scene system.
 
-Use the existing Cut model where it already does this. The key is separating generated media from
-the editorial decisions about it.
+### 5.1 Character profiles
 
-### E2. Editing safety first
+A persistent profile with:
 
-In order:
+- Name, description and role.
+- Approved identity / reference images.
+- Distinguishing facial and physical traits.
+- Hair, skin and other appearance attributes.
+- Default style and visual references.
+- Voice or dialogue references, if supported.
+- Related looks and outfits.
+- Notes on what must stay consistent.
 
-1. Reliable save and restore of the current edit.
-2. Undo / redo for reorder, trim, delete and replace.
-3. Explicit confirmation before removing referenced media.
-4. Shot replacement that keeps trims and other edit decisions.
-5. Clear unsaved-changes and failed-save indicators.
-6. Recovery after a browser or app crash.
+References can be marked preferred, approved or deprecated.
 
-Undo / redo works on edit commands or snapshots of edit state, never copies of video files.
+### 5.2 Looks and outfits
 
-### E3. Audio as separate tracks
+Separate the character's identity from the appearance used in a given context. Support:
 
-Toward dialogue, narration, music, ambience and effects on their own tracks. First: placement,
-trim, gain, fade in / out, mute / solo, waveforms. Later: automation curves, richer mixing, sync
-aids.
+- Reusable outfits and looks.
+- Front, side and rear references when available.
+- Colour and material notes.
+- Accessories.
+- Outfit continuity across shots.
+- Explicit outfit changes tied to story chronology.
+- Outfit- or scene-specific reference images.
 
-Validate:
+Don't duplicate the character every time the outfit changes.
 
-- Missing or mismatched audio files.
-- Unexpected silence.
-- Clipping and export loudness.
-- Subtitle timing and encoding.
-- Sample rate and channel compatibility.
+### 5.3 Locations, props and visual style
 
-Loudness and true-peak checks are warnings with configurable targets — no single broadcast
-standard forced on everyone.
+Reusable reference records for locations and sets, recurring props, important environmental
+details, lighting and colour palette, camera and composition conventions, and recurring motifs —
+linkable to shots and scenes, with clear rules for required versus merely helpful references.
 
-### E4. Export profiles and handoff
+### 5.4 Scene state and chronology
 
-Named profiles (social vertical, square, widescreen, editor handoff), each with resolution, aspect
-ratio, frame rate, codec, audio configuration and subtitle behaviour, validated before rendering.
+Track the story's state at each point:
 
-For external editors:
+- Characters present.
+- Positions, when relevant.
+- Current outfit.
+- Props carried or used.
+- Injuries or physical changes.
+- Emotional or narrative beat.
+- Location and time of day.
+- Story chronology.
+- Continuity notes and dependencies on earlier scenes.
 
-1. A media manifest and portable asset package.
-2. An editable timeline interchange format the chosen editors support.
-3. A round-trip test that exports, imports and checks clip timing and media links.
-4. Optionally, markers, titles and audio tracks.
+Scene state is user-editable. Chronological order is not assumed to match the final edit order.
 
-**Done when:** replacing a shot or changing a trim doesn't damage other clips, saved edits survive
-a restart, and export validation catches missing media and incompatible settings before the
-expensive render.
+### 5.5 Continuity checking
 
-## 8. Workstream F — Queue reliability and generation orchestration
+In layers, not one AI model:
 
-Overlaps the take lifecycle but has its own acceptance criteria, since Castcut depends on external
-engines, models and local hardware.
+| Layer                     | What it does                                                                                                                  | Role             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1 — Deterministic checks  | Missing required references, absent media, incompatible dimensions, broken links, invalid files, incomplete metadata          | Automate first   |
+| 2 — Visual similarity     | Compare identity, outfit or location references against outputs with image embeddings or similarity models                   | Advisory         |
+| 3 — Semantic review       | Vision-language models flag prop changes, wardrobe mismatches, missing characters, composition or scene-state deviations      | Human review     |
+| 4 — User approval         | Accept, dismiss, override or annotate a finding; keep the decision and evidence                                                | Final authority  |
 
-### F1. Standard job status and errors
+Each finding carries: the rule checked · the affected shot and asset · severity and confidence ·
+supporting evidence · a suggested correction · the user's decision and timestamp.
 
-One job model over every engine: Waiting · Preparing · Running · Finalizing output · Succeeded ·
-Failed · Cancelled. Keep the engine's own error for diagnosis beside a plain explanation.
-Distinguish recoverable failures, missing prerequisites, resource exhaustion and invalid inputs.
+Only objectively required checks block readiness by default. Uncertain model findings don't stop
+production unless the user configures that.
 
-### F2. Safe retries
+### Acceptance criteria
 
-Before retrying:
+- A character reference is reused across scenes without duplicating the character.
+- Outfit changes can be represented explicitly.
+- A shot can name its required references and scene-state constraints.
+- Continuity findings can be reviewed, dismissed and tracked.
+- The system is tested against a hand-reviewed set of correct and incorrect examples.
+- False positives and false negatives are measured before continuity becomes a hard gate.
 
-- Check whether the previous run produced a valid output.
-- Check whether the engine is still working on it.
-- Reuse the original inputs and reference IDs.
-- Don't create duplicate approved takes.
-- Record each attempt separately.
+## 6. Phase 3 — Screenplay-to-shot planning (P1)
 
-A timed-out request doesn't mean the generation never happened — some engines finish after the
-client stops waiting.
+Shorten the path from an idea or script to an actionable production plan.
 
-### F3. Prerequisite and resource checks
+### 6.1 Script import
 
-Before queueing, validate the model, workflow, custom nodes, reference assets and destination
-storage. Where the information is reliable, estimate memory and warn about likely GPU exhaustion.
-Useful diagnostics first; multi-GPU scheduling and cross-machine routing wait until the job
-lifecycle is solid.
+Plain text and Fountain first, before proprietary screenplay formats. Identify scene headings,
+action and description, character cues, dialogue, parentheticals, transitions and other supported
+elements. Keep the original text and structure; parsing is editable, and unsupported constructs
+are reported, not silently dropped.
 
-### F4. Test interrupted production
+### 6.2 Scene breakdown
 
-Repeatable tests for:
+Per scene, the user resolves: character names to Cast records · locations to reusable location
+references · props and required assets · time of day and chronology · continuity constraints ·
+dialogue and action requirements. Unknown names and locations are confirmed, never silently
+duplicated.
 
-- ComfyUI restarting mid-job.
-- Castcut restarting with jobs queued.
-- A model disappearing after a project is opened.
-- Output succeeding but metadata persistence failing.
-- The disk filling up.
-- A retry giving a different result from the original attempt.
+### 6.3 Shot-list generation
 
-**Done when:** jobs never silently overwrite good outputs, failures are understandable, and
-recoverable work resumes without rebuilding the production.
+An editable proposed shot list: shot number and scene · purpose · framing (wide, medium,
+close-up, insert…) · camera angle and movement · character and prop requirements · dialogue or
+action covered · approximate duration · reference assets · priority and status.
 
-## 9. Workstream G — The Film Director workspace (P2, after the foundations)
+AI shot lists are drafts — users reorder, split, combine, edit and approve.
 
-Castcut's Director already means directing motion with poses and camera. Keep that meaning; the
-production-level orchestration is a separate **Film Director** workspace. It coordinates the film;
-it is not another generation engine.
+### 6.4 Coverage tracking
 
-### G1. Production overview
+A coverage view of what's addressed, e.g.: a dialogue exchange lacks a reaction shot · a key prop
+has no insert · a scene needs an establishing shot · an important action has no approved take ·
+a scene has generated but no approved material. Suggestions, unless the production marks a
+requirement mandatory.
 
-Illustrative layout (not a current screen):
+### 6.5 Integrate with existing Castcut concepts
 
-```
-Film production                                   In progress
-─────────────────────────────────────────────────────────────
-  12 planned shots   7 approved   2 generating   3 need review
+Don't replace Story with a second planning system:
 
-Next actions
-  Scene 1 · Establishing shot      Approved · ready for Cut
-  Scene 2 · Dialogue close-up      Generation in progress
-  Scene 3 · Reaction shot          Continuity warning
-```
+- Story keeps its narrative purpose.
+- Screenplay scenes link to existing Scene records.
+- Planned shots link to their generated takes.
+- Approved takes feed Cut.
+- Stable IDs survive script edits and reimports.
 
-### G2. Guided actions
+Reimport gets a reconciliation screen; approved shots are never silently orphaned or deleted.
 
-- Resolve missing character, outfit or location references.
-- Generate missing coverage.
-- Review failed jobs and retry the eligible ones.
-- Review continuity findings.
-- Approve takes.
-- Send approved shots to Cut.
-- Run the final delivery checklist.
+### Acceptance criteria
 
-Each action calls existing functionality through defined interfaces — no copies of the Scene
-renderer, Queue or Cut logic in the Director page.
+- A screenplay imports and parses into editable scenes.
+- Names and locations resolve to existing records.
+- A proposed shot list can be edited and linked to production scenes.
+- Source text changes don't silently destroy approved shots.
+- Coverage is reviewable separately for generated versus approved shots.
 
-### G3. Automation, gradually
+## 7. Phase 4 — Editing, audio and delivery (P1)
 
-Recommendations with explicit approval first. Later, narrowly scoped automation (e.g. three
-candidate stills for each approved shot plan), with limits on concurrent jobs, GPU memory,
-retries and generation cost where it applies, and pause / cancel controls.
+A dependable path from selected takes to a finished deliverable, scoped by what Cut already does.
 
-**Done when:** the workspace finds missing work, starts existing operations and tracks
-completion, without bypassing take history, review or editing.
+### 7.1 Editorial data model
 
-## 10. Milestones and release gates
+A clip occurrence is separate from its media. An edit clip references: the source asset or
+selected take · timeline position and duration · source in / out · track and order · playback
+speed · supported transforms · audio gain and fades · transition settings, if supported. One take
+can be reused in several places without duplicating the media.
 
-Estimates assume one developer with coding assistance and reuse of existing modules; they are not
-from a code-level estimate.
+### 7.2 Core editing reliability
 
-| Milestone        | Work                                                                 | Estimate  |
-| ---------------- | -------------------------------------------------------------------- | --------- |
-| M0 — Discovery   | Code map, feature inventory, test baseline, data contracts           | 3–5 days  |
-| M1 — Reliability | Take provenance, history, selection, recovery, safe retry            | 1–2 weeks |
-| M2 — Continuity  | Production bible links, scene state, checks, findings UI             | 2–4 weeks |
-| M3 — Planning    | Script import, scene parsing, editable shot list, coverage           | 2–4 weeks |
-| M4 — Finishing   | Edit-state safety, audio, export and archives                        | 2–4 weeks |
-| M5 — Director    | Production overview, orchestration, guided actions                   | 1–3 weeks |
-| Hardening        | Compatibility, usability, performance, recovery, release validation  | 1–2 weeks |
+- Reliable save and reopen.
+- Clear unsaved-changes indication.
+- Undo / redo for important operations.
+- Crash recovery or restoration of recent edit state.
+- Safe deletion of clips that share media.
+- Take replacement that keeps trims where possible.
+- Missing-media warnings and relinking.
+- Stable ordering and timing after edits.
 
-About 9–19 weeks in all, with some overlap. A roadmap estimate, not a commitment.
+No elaborate effects or compositing first — a few reliable operations beat a broad interface that
+loses work.
 
-Release gates:
+### 7.3 Audio and dialogue
 
-- **M0:** a written inventory of existing and missing functionality.
-- **M1:** automated tests proving take restoration and failure recovery.
-- **M2:** a reviewed continuity test set with measured false-positive and false-negative rates.
-- **M3:** a real screenplay imported, edited, rendered and assembled without losing source links.
-- **M4:** a film reopened, edited, exported and handed off with media relationships intact.
-- **M5:** the Director workspace coordinates the whole workflow without duplicating engine or
-  editing logic.
-- **Hardening:** existing projects still work, backup restore succeeds, critical end-to-end tests
-  pass.
+Separate tracks for dialogue, narration / voice-over, music, ambience and sound effects. First
+controls: trim and move · gain · fade in / out · mute and solo · waveforms · basic sync · audio
+replacement and relinking. Advanced mixing, automation and routing later.
 
-## 11. Testing strategy
+### 7.4 Subtitles and accessibility
 
-- **Unit and contract tests** — migrations, state transitions, take selection, provenance,
-  continuity rules, script parsing, edit commands; no generation models.
-- **End-to-end tests** — the existing Playwright setup with isolated data: create a shot, pick a
-  take, restore a version, assemble a Cut, recover after a simulated restart.
-- **Real-engine tests** — a separate, small suite against a real ComfyUI: representative still
-  and video generation, output persistence, recovery from real engine errors.
+Editable caption tracks · timing adjustment · SRT import and export · character / dialogue
+association · encoding validation · checks for missing or overlapping captions. Automatic
+transcription, if added, is assistive and editable.
 
-Reuse the existing real-render harnesses where they already cover the behaviour; don't add an
-overlapping suite.
+### 7.5 Export profiles
 
-## 12. Deliberately deferred
+Presets for widescreen film, vertical social, square social, preview / review copies,
+high-quality masters, and handoff to external editors — exposing the important settings without
+requiring codec knowledge.
 
-- A full replacement for a professional NLE.
-- Automatic full-film generation with no user review.
-- 3D set reconstruction.
-- Multi-user cloud collaboration and real-time shared editing.
-- Automatic multi-GPU scheduling across arbitrary remote machines.
-- A universal continuity model promising perfect identity and prop consistency.
-- A plugin marketplace for cinematic workflows.
+### 7.6 Export validation
 
-## 13. First release: Castcut Production Reliability 1.0
+Before export: missing or offline media · invalid clip references · unexpected dimensions or
+frame rates · absent audio when required · silence, clipping or loudness issues where measurable ·
+subtitle timing and encoding · output path, free space and write permissions. A clear report of
+what was checked and what remains.
 
-Five tightly related improvements:
+### 7.7 Portable delivery
 
-1. A dependable take history with explicit selection and restoration.
-2. Complete generation provenance and reference tracking.
-3. Safe replacement of a shot already used in Cut.
-4. Better queue failure diagnostics and recovery.
-5. Automated tests proving approved work survives restart and restore.
+A package can include: project metadata · selected media and dependencies · optional source
+takes · a media manifest · master and preview exports · subtitles and audio · version and
+compatibility info. A clear choice between a lightweight project package and a full
+self-contained archive. For interoperability, investigate interchange formats the target editors
+support, and test round trips before promising compatibility.
 
-**Next action (Tuesday):** a code-level audit of the Scene take model, Queue persistence, the Cut
-clip representation and the backup / restore path. It produces the exact files and functions to
-change, then small, independently testable GitHub issues — so nothing already in Castcut gets
-built twice, and the roadmap runs one pull request at a time.
+### Acceptance criteria
+
+- An edit can be saved, reopened, modified and exported without losing structure.
+- Replacing a source take doesn't silently destroy clip timing.
+- Missing media is reported and can be relinked.
+- Audio and subtitles survive export per the chosen profile.
+- A portable package restores in another location or machine, subject to documented dependencies.
+
+## 8. Phase 5 — Film Director workspace and orchestration (P2)
+
+After the underlying systems are dependable. The existing **Director** keeps its pose and camera
+role; the production dashboard is called **Film Director** (or Production Workspace) to avoid
+confusion.
+
+### 8.1 Production overview
+
+One place to see: scenes and shots · shots planned, queued, generating and awaiting review ·
+approved and rejected takes · failed or blocked jobs · continuity findings · shots lacking
+coverage · Cut readiness and export status. All counts derive from the production records — no
+second, hand-maintained status system.
+
+### 8.2 Guided next actions
+
+"What should I do next?" — resolve a missing character reference · retry a recoverable generation
+· review three new takes · fix a continuity issue · generate a missing coverage shot · replace a
+rejected take · resolve an offline clip before export. Each action opens the existing tool rather
+than recreating it.
+
+### 8.3 Controlled orchestration
+
+Once stable, optional automation to: prepare jobs for a shot list · queue eligible shots · wait
+for completion · route outputs to review · run deterministic validations · pause for approval ·
+resume after decisions. With job and concurrency limits, cancel, pause / resume and transparent
+progress. It never approves creative decisions by default, and users can inspect what it intends
+before a large batch.
+
+### Acceptance criteria
+
+- The workspace reflects actual production state.
+- Guided actions use the existing Queue, Scene, continuity and Cut systems.
+- Pausing or cancelling orchestration doesn't corrupt work.
+- A restart leaves no ambiguous or duplicate jobs.
+- Automated operations are visible, auditable and bounded.
+
+## 9. Cross-cutting engineering requirements
+
+### 9.1 Data architecture
+
+Logical concepts — reuse existing entities where they already serve; no duplicate tables just
+because the roadmap uses new names.
+
+| Concept           | Responsibility                                        |
+| ----------------- | ----------------------------------------------------- |
+| Project           | Project configuration and root ownership              |
+| ProductionScene   | Production context, chronology and required elements  |
+| Shot              | A planned, producible camera unit                     |
+| Take              | One candidate result for a shot                       |
+| GenerationJob     | An execution attempt and its status                   |
+| AssetReference    | A stored file and its metadata                        |
+| SceneState        | Character, outfit, prop and story-state information   |
+| ContinuityFinding | A reviewable potential inconsistency                  |
+| FilmEdit          | An edit or timeline version                           |
+| EditClip          | A clip occurrence on the timeline                     |
+| ShotReference     | A link to a required or optional source asset         |
+
+Stable identifiers and explicit relationships; filenames and display names are never the only
+source of truth.
+
+### 9.2 Asset management
+
+Each stored asset has: asset and project ID · media type and role · storage path or reference ·
+MIME type and size · checksum · parent / derivation link · creation time · dimensions, duration,
+frame rate or audio properties as relevant · relationships to scenes, shots, takes and edits.
+Originals stay distinct from thumbnails, previews, derived files and exports.
+
+### 9.3 Migrations and compatibility
+
+- Version the project schema.
+- Explicit, testable migrations.
+- Preserve existing projects.
+- Test clean installs and upgrades.
+- Define handling of unsupported future project versions.
+- Clear recovery steps when a migration fails.
+
+### 9.4 Performance and resource management
+
+Visibility into resource limits without unreliable promises: queue concurrency controls · model
+and workflow readiness checks · disk-space warnings · memory and GPU usage where available ·
+thumbnail and preview caching · lazy loading of large galleries · cancellation and cleanup of
+abandoned work · app responsiveness kept separate from generation progress.
+
+### 9.5 Security and privacy
+
+- Secrets stay out of project exports.
+- No credentials or private tokens in logs.
+- Remote-engine connections are explicit.
+- Imported files and workflow configurations are validated.
+- No executing arbitrary imported content without safeguards.
+- Backup locations and included assets are clear.
+- Document what leaves the machine when remote services are used.
+
+## 10. Testing strategy
+
+Testing grows with the features, not at the end.
+
+- **Unit tests** — state transitions, migrations, asset metadata, provenance capture, parsers,
+  continuity rules, edit commands.
+- **Integration tests** — Queue-to-engine interactions, output persistence, interrupted jobs,
+  backup / restore, asset references, Cut updates.
+- **End-to-end tests** — create a project, generate or simulate a take, select it, assemble an
+  edit, restart, reopen, verify.
+- **Real-engine tests** — a small, controlled suite against ComfyUI and supported engines; mocks or
+  fixtures for most CI runs to avoid model downloads and GPU cost.
+
+### Minimum regression scenarios (every major release)
+
+- App restart during generation.
+- Engine disconnect during a job.
+- Output produced but metadata persistence failing.
+- Missing model or invalid workflow.
+- Disk-full or write-permission failure.
+- Multiple takes for the same shot.
+- Restoring a superseded take.
+- Replacing a take already used in Cut.
+- Deleting or moving a referenced asset.
+- Backup restoration with media.
+- Opening projects from the previous supported version.
+- Cancelling a batch while jobs are active.
+
+Reuse the existing harnesses (Playwright e2e, real-render scripts) rather than adding overlapping
+systems.
+
+## 11. GitHub issue backlog (39 items)
+
+Initial issue groups. Phase 0 splits each into issues matching Castcut's actual files and
+conventions.
+
+### M0 · Foundations
+
+- [ ] Inventory current features and identify incomplete workflows
+- [ ] Map Scene → Queue → asset persistence → Cut data flow
+- [ ] Document project schema, storage and migration behaviour
+- [ ] Establish baseline unit, integration and end-to-end tests
+- [ ] Verify backup and restore with a representative project
+
+### M1 · Reliability
+
+- [ ] Persist immutable take history and selected-take state
+- [ ] Capture generation provenance and reference asset IDs
+- [ ] Normalize queue statuses and error diagnostics
+- [ ] Implement safe retry and interrupted-job recovery
+- [ ] Add safe take replacement behaviour in Cut
+- [ ] Add regression tests for restart, restore and failure paths
+
+### M2 · Continuity
+
+- [ ] Define reusable character, look and outfit references
+- [ ] Link locations and props to production scenes and shots
+- [ ] Add editable scene-state and chronology records
+- [ ] Implement deterministic production-readiness checks
+- [ ] Add continuity findings, evidence and user decisions
+- [ ] Build a reviewed continuity evaluation dataset
+
+### M3 · Planning
+
+- [ ] Add plain-text and Fountain script import
+- [ ] Parse screenplay scenes, characters, dialogue and action
+- [ ] Resolve imported names to existing production records
+- [ ] Generate and edit a proposed shot list
+- [ ] Add shot coverage and production-readiness views
+- [ ] Implement safe script reimport reconciliation
+
+### M4 · Finishing
+
+- [ ] Verify and harden Cut persistence and edit recovery
+- [ ] Add non-destructive clip source replacement
+- [ ] Implement core audio-track operations
+- [ ] Add editable subtitles and subtitle interchange
+- [ ] Implement export profiles and preflight validation
+- [ ] Add portable project packaging and restore tests
+
+### M5 · Orchestration
+
+- [ ] Build Film Director production overview
+- [ ] Add guided next-action recommendations
+- [ ] Implement bounded batch preparation and queueing
+- [ ] Add pause, cancellation and restart-safe orchestration
+- [ ] Audit automation for duplicate work and unsafe approvals
+
+### Release hardening
+
+- [ ] Complete critical end-to-end regression coverage
+- [ ] Verify schema upgrades from supported prior versions
+- [ ] Test backup recovery and portable project restoration
+- [ ] Review logging, secrets, resource handling and errors
+- [ ] Update user documentation and release notes
+
+## 12. Milestones and release gates
+
+| Milestone          | Release gate                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| M0 — Foundations   | Feature inventory, architecture map, baseline tests and known defects documented                |
+| M1 — Reliability   | Take history, safe restoration, provenance and failure recovery pass regression tests           |
+| M2 — Continuity    | References and scene state connected; reviewed continuity cases have measured results           |
+| M3 — Planning      | Script import, editing, shot linkage and reimport preserve approved work                        |
+| M4 — Finishing     | An edit can be reopened, changed, exported and packaged for restoration                         |
+| M5 — Orchestration | Production actions are auditable, bounded, cancellable, and don't duplicate existing logic       |
+| Hardening          | Critical end-to-end tests, upgrade compatibility, backup restoration and release docs pass      |
+
+Don't release a milestone because its screens exist. Release it when its core workflow survives
+realistic failure and recovery.
+
+## 13. What waits until later
+
+- Fully autonomous filmmaking.
+- Automatic approval of generated creative material.
+- A general-purpose node editor competing with ComfyUI.
+- A professional-grade NLE built from scratch.
+- A marketplace of workflows, models and plugins.
+- Cloud collaboration and team permissions before the data model is stable.
+- Expensive continuity AI not measured against reviewed examples.
+- Every screenplay format and editing interchange format.
+- A custom generation engine duplicating ComfyUI.
+
+## 14. Success metrics
+
+| Metric                                             | What it tells you                                |
+| -------------------------------------------------- | ------------------------------------------------ |
+| Approved takes lost after failure                  | Target zero                                      |
+| Successful recovery of interrupted jobs            | Whether the Queue is trustworthy                 |
+| Generations with complete provenance               | Whether results are explainable and reproducible |
+| Time from script import to editable shot list      | Whether planning saves work                      |
+| Time from generation completion to take approval   | Whether review UX is efficient                   |
+| Continuity false-positive and false-negative rates | Whether continuity checks are useful             |
+| Projects restored successfully from backup         | Whether projects are portable and recoverable    |
+| Exports that pass preflight and reopen correctly   | Whether delivery is reliable                     |
+| Critical end-to-end regression failures            | Whether new work breaks existing workflows       |
+
+Set thresholds after a baseline. For AI checks, measure accuracy on a representative,
+human-reviewed dataset rather than inventing targets.
+
+## 15. The first 30 days
+
+| Week | Focus                                    | Work                                                                                                                                       |
+| ---- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Audit and prove the current workflow     | Trace the data model, Queue, take persistence, Cut references and backup / restore; find the real missing behaviours and test them         |
+| 2    | Take history and provenance              | Keep every generation attempt, record source references and settings, let users select or restore earlier results                          |
+| 3    | Harden Queue and Cut integration         | Retry diagnostics, interrupted-job recovery, safe replacement, keeping existing edit decisions                                             |
+| 4    | Test, stabilize, prepare the next phase  | Failure and restore scenarios, fix regressions, document the workflow, define the continuity data model without building the whole engine |
+
+A target sequence, not a promise. If the audit finds structural problems in persistence or
+editing, fix those first.
+
+## 16. Definition of success
+
+A user can:
+
+1. Create a character and define its approved visual references.
+2. Plan a scene and a set of shots.
+3. Generate several candidate takes locally.
+4. See exactly how each take was produced.
+5. Compare, reject, approve and restore takes without losing work.
+6. Track the character's outfit, props, location and scene state across shots.
+7. Assemble approved takes into a film with editable audio and subtitles.
+8. Export the result and package the project.
+9. Restart the app or restore a backup without losing the production's relationships or
+   decisions.
+
+End-to-end reliability matters more than the longest feature list.
+
+**Start with Castcut Production Reliability 1.0:** audit the Scene / take model, Queue
+persistence, the Cut clip representation and the backup / restore path, then turn the findings
+into small, testable GitHub issues. Once the pipeline is trustworthy, screenplay planning,
+continuity, finishing and orchestration build on a sound foundation.
