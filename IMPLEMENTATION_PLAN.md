@@ -212,6 +212,10 @@ Legend: ✅ implemented and tested · 🟡 implemented, missing important behavi
 `e2e/scene.spec.ts:696` ("a take at the adult check: another scene opens, and the verdict lands on its
 own scene") failed in CI run 40196206947 on a docs-only commit (`8e518eab`) and passed on the
 following runs.
+**Fixed 2026-10-25:** it was a real app bug. After a reload, a take's saved "checking" hold came
+back before the Gallery had loaded. The adult gate then found no entry and never looked again,
+so the take stayed "Checking…" (9 of 20 local runs failed). `useDayAdultGate` now retries on the
+next Gallery update: 20 of 20 pass.
 
 **Coverage gaps that matter for M1:** no test that a kept take survives the scene cap, Gallery cap,
 workflow pruning or Gallery delete; no test of what Cut shows after a kept take changes; no backup →
@@ -393,7 +397,7 @@ scene says when the scene is in a Cut.
 "lost" from "error"; re-check timed-out entries against ComfyUI history on the next resume and
 recover their outputs instead of queueing again.
 
-**R9 — Regression tests for the M1 gate.** Backup → restore round trip with Scenes, Cut and media
+**R9 — Regression tests for the M1 gate.** (The flaky adult-check test is fixed, 2026-10-25.) Backup → restore round trip with Scenes, Cut and media
 references; reload during a render; ComfyUI restart during a render (mocked engine); the flaky
 `e2e/scene.spec.ts:696` made deterministic.
 

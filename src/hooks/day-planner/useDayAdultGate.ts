@@ -14,6 +14,7 @@ import {
   loadComfyGallery,
   setGalleryAdultCheck,
 } from '@/lib/gallery/comfyui-gallery';
+import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-client';
 import { dayPlayedMood } from '@/lib/day/still-prompt';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
@@ -62,6 +63,23 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
    */
   const requeueRef = useRef<Map<string, { cause: 'age' | 'bare'; promptId: string }>>(new Map());
   const [tick, setTick] = useState(0);
+  /**
+   * A take is held but its gallery entry isn't there (or not finished) yet — after a reload the
+   * card's hold is restored before the Gallery has loaded. Nothing on the card changes when the
+   * entry arrives, so the next gallery update looks again (2026-10-25: such a take stayed
+   * "Checking…" for good; e2e scene.spec "a take at the adult check" failed 9 runs in 20).
+   */
+  const waitingForEntryRef = useRef(false);
+  useEffect(() => {
+    if (!mounted) return;
+    const retry = () => {
+      if (!waitingForEntryRef.current) return;
+      waitingForEntryRef.current = false;
+      setTick(value => value + 1);
+    };
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, retry);
+    return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, retry);
+  }, [mounted]);
   // The mood the Day plays as: Suggestive must stay clothed.
   const clothed = dayMoodMustStayClothed(dayPlayedMood(toolSettings.dayMood, intimateEnabled));
 
@@ -81,7 +99,11 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
     const promptId = target.promptId;
     const entry = loadComfyGallery().find(galleryEntry => galleryEntry.promptId === promptId);
     const imageUrl = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
-    if (!entry || entry.status !== 'completed' || !imageUrl) return;
+    if (!entry || entry.status !== 'completed' || !imageUrl) {
+      waitingForEntryRef.current = true;
+      return;
+    }
+    waitingForEntryRef.current = false;
     runningRef.current = true;
     const label = slots.find(slot => slot.id === target.slotId)?.label ?? 'A still';
     setAdultGateStatus(`Checking ${label}…`);
