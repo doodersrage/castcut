@@ -17,6 +17,8 @@ import {
   looksOf,
   forgetCharacterRecord,
   renameLook,
+  setLookPlateDeprecated,
+  setLookPreferredKeeper,
   subscribeCharacters,
   toggleLookKeeper,
 } from '@/lib/character/os';
@@ -412,6 +414,15 @@ export function useCharacterHomeOrchestration(characterId: string) {
     );
   };
 
+  /** Keepers → "Use for Day and Story" (M2 C6); again = back to the newest keeper. */
+  const preferKeeper = (entryId: string) => {
+    if (!character || !currentLook) {
+      return;
+    }
+    const preferred = currentLook.preferredKeeperId === entryId;
+    persistApply(setLookPreferredKeeper(character.id, currentLook.id, preferred ? null : entryId));
+  };
+
   const removeFromCharacter = (entry: ComfyGalleryEntry) => {
     if (currentLook && keepers.some(keeper => keeper.id === entry.id)) {
       toggleKeeper(entry.id);
@@ -604,6 +615,20 @@ export function useCharacterHomeOrchestration(characterId: string) {
     applyPlateChange(next, `Earlier plate restored on “${lookLabel(character, target.id)}”.`);
   };
 
+  /** Earlier plates → Don't offer again / Offer again (M2 C6). */
+  const deprecateActivePlate = (replacedAt: number, deprecated: boolean) => {
+    if (!character) {
+      return;
+    }
+    const target = activeLook(character);
+    const next = setLookPlateDeprecated(character.id, target.id, replacedAt, deprecated);
+    if (next) {
+      setPlateStatus(
+        deprecated ? 'That plate won’t be offered again.' : 'That plate is offered again.'
+      );
+    }
+  };
+
   const removeActivePlate = async () => {
     if (!character || looks.length < 2) {
       return;
@@ -778,6 +803,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     removeActivePlate,
     renameActivePlate,
     restoreActivePlate,
+    deprecateActivePlate,
     newLookFromCurrent,
     prepareLookPlate,
     undoLookPlatePrepare,
@@ -801,6 +827,7 @@ export function useCharacterHomeOrchestration(characterId: string) {
     extendReel,
     animateStill,
     toggleKeeper,
+    preferKeeper,
     removeFromCharacter,
     downloadLookPackFile,
     lookPackFittingHref,

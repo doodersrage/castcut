@@ -143,6 +143,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
               : null
           }
           onRestorePlate={props.restoreActivePlate}
+          onDeprecatePlate={props.deprecateActivePlate}
         />
       ) : null}
       {props.homeTab === 'overview' ? (
@@ -210,6 +211,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
             continueRoleplay={props.continueRoleplay}
             animateStill={props.animateStill}
             toggleKeeper={props.toggleKeeper}
+            preferKeeper={props.preferKeeper}
             removeFromCharacter={props.removeFromCharacter}
             continueClipActionLabel={props.continueClipActionLabel}
             loadEngineSettings={props.loadEngineSettings}

@@ -64,6 +64,8 @@ export type CharacterLookPlateSectionProps = {
   /** The active look's earlier plates, newest first. */
   plateHistory?: CharacterLookPlateRecord[];
   onRestorePlate?: (replacedAt: number) => void;
+  /** Earlier plates → "Don't offer again" / "Offer again" (M2 C6). */
+  onDeprecatePlate?: (replacedAt: number, deprecated: boolean) => void;
   /** The likeness guard read the active plate as someone else (look-plate-guard.ts). */
   plateDrift?: { face: number; against: string; noFace?: boolean } | null;
 };
@@ -72,10 +74,13 @@ function EarlierPlates({
   history,
   disabled,
   onRestore,
+  onDeprecate,
 }: {
   history: CharacterLookPlateRecord[];
   disabled: boolean;
   onRestore: (replacedAt: number) => void;
+  /** "Don't offer again" / "Offer again" (M2 C6). */
+  onDeprecate?: (replacedAt: number, deprecated: boolean) => void;
 }) {
   return (
     <details className="mt-3" data-testid="cast-look-plate-history">
@@ -94,7 +99,12 @@ function EarlierPlates({
             timeStyle: 'short',
           });
           return (
-            <div key={entry.replacedAt} className="flex w-24 flex-col items-center gap-1">
+            <div
+              key={entry.replacedAt}
+              className={`flex w-24 flex-col items-center gap-1 ${entry.deprecated ? 'opacity-50' : ''}`}
+              data-testid="cast-look-plate-earlier"
+              data-deprecated={entry.deprecated ? 'true' : 'false'}
+            >
               {url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -105,16 +115,37 @@ function EarlierPlates({
               ) : (
                 <div className="h-32 w-24 rounded-[var(--radius-sm)] border border-dashed border-[var(--border-subtle)]" />
               )}
-              <span className="type-caption text-center text-[var(--text-muted)]">{when}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={disabled}
-                data-testid="cast-look-plate-restore"
-                onClick={() => onRestore(entry.replacedAt)}
-              >
-                Restore
-              </Button>
+              <span className="type-caption text-center text-[var(--text-muted)]">
+                {entry.deprecated ? 'Not offered' : when}
+              </span>
+              {entry.deprecated ? null : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={disabled}
+                  data-testid="cast-look-plate-restore"
+                  onClick={() => onRestore(entry.replacedAt)}
+                >
+                  Restore
+                </Button>
+              )}
+              {onDeprecate ? (
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  className="text-2xs hover:underline"
+                  disabled={disabled}
+                  data-testid="cast-look-plate-deprecate"
+                  title={
+                    entry.deprecated
+                      ? 'Offer this plate again'
+                      : "This plate is wrong: don't offer it as a plate again"
+                  }
+                  onClick={() => onDeprecate(entry.replacedAt, !entry.deprecated)}
+                >
+                  {entry.deprecated ? 'Offer again' : "Don't offer again"}
+                </Button>
+              ) : null}
             </div>
           );
         })}
@@ -237,8 +268,11 @@ export default function CharacterLookPlateSection({
   onRenamePlate,
   plateHistory = [],
   onRestorePlate,
+  onDeprecatePlate,
   plateDrift = null,
 }: CharacterLookPlateSectionProps) {
+  // The likeness guard offers the newest earlier plate not marked "don't offer again" (M2 C6).
+  const offered = plateHistory.filter(entry => !entry.deprecated);
   const [lightbox, setLightbox] = useState<ImageLightboxState | null>(null);
   const [generateStatus, setGenerateStatus] = useState<string | null>(null);
   // Day / Outfit's "Prepare plate →" lands on #looks; the section mounts after the Cast store
@@ -492,13 +526,13 @@ export default function CharacterLookPlateSection({
             ? 'This plate shows no face — likely from behind.'
             : `This plate doesn't look like the Cast — ${Math.round(plateDrift.face * 100)}% match with ${plateDrift.against}.`}{' '}
           Every still of this look starts from it.{' '}
-          {plateHistory.length > 0 && onRestorePlate ? (
+          {offered.length > 0 && onRestorePlate ? (
             <button
               type="button"
               className="ui-text-link"
               disabled={uploading}
               data-testid="cast-look-plate-drift-restore"
-              onClick={() => onRestorePlate(plateHistory[0]!.replacedAt)}
+              onClick={() => onRestorePlate(offered[0]!.replacedAt)}
             >
               Put back the earlier plate
             </button>
@@ -508,7 +542,12 @@ export default function CharacterLookPlateSection({
         </p>
       ) : null}
       {plateHistory.length > 0 && onRestorePlate ? (
-        <EarlierPlates history={plateHistory} disabled={uploading} onRestore={onRestorePlate} />
+        <EarlierPlates
+          history={plateHistory}
+          disabled={uploading}
+          onRestore={onRestorePlate}
+          onDeprecate={onDeprecatePlate}
+        />
       ) : null}
       {plate?.isolated === true ? (
         <p className="type-caption mt-2 text-[var(--text-muted)]">Background cut out.</p>

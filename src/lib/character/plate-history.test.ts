@@ -7,7 +7,10 @@ import {
   getCharacter,
   looksOf,
   MAX_LOOK_PLATE_HISTORY,
+  offeredLookPlates,
   restoreLookPlate,
+  setLookPlateDeprecated,
+  setLookPreferredKeeper,
   upsertCharacter,
   type CharacterRecord,
 } from './os';
@@ -114,6 +117,87 @@ describe('look plate history', () => {
         activeLook(getCharacter(blank.id)!).plateHistory?.length,
         MAX_LOOK_PLATE_HISTORY
       );
+    });
+  });
+});
+
+// M2 C6: a plate you know is wrong stops being offered; a keeper can be picked for Day.
+describe('reference status', () => {
+  it("marks an earlier plate don't-offer-again, and back", () => {
+    withMockLocalStorage(() => {
+      const record = createBlankCharacter('Nora');
+      upsertCharacter(record);
+      setPlate(record.id, 'one');
+      setPlate(record.id, 'two');
+      const after = setPlate(record.id, 'three');
+      const look = activeLook(after);
+      const [newest, older] = look.plateHistory!;
+      assert.ok(newest && older);
+      setLookPlateDeprecated(record.id, look.id, newest.replacedAt, true);
+      const marked = activeLook(getCharacter(record.id)!);
+      assert.equal(marked.plateHistory![0]!.deprecated, true);
+      assert.deepEqual(
+        offeredLookPlates(marked).map(entry => entry.replacedAt),
+        [older.replacedAt]
+      );
+      setLookPlateDeprecated(record.id, look.id, newest.replacedAt, false);
+      assert.equal('deprecated' in activeLook(getCharacter(record.id)!).plateHistory![0]!, false);
+    });
+  });
+
+  it('picks a keeper for Day and Story (only a keeper), and lets it go', () => {
+    withMockLocalStorage(() => {
+      const record = createBlankCharacter('Nora');
+      upsertCharacter(record);
+      const look = activeLook(getCharacter(record.id)!);
+      upsertCharacter({
+        ...getCharacter(record.id)!,
+        looks: looksOf(getCharacter(record.id)!).map(entry =>
+          entry.id === look.id ? { ...entry, keeperEntryIds: ['k1', 'k2'] } : entry
+        ),
+      });
+      setLookPreferredKeeper(record.id, look.id, 'k1');
+      assert.equal(activeLook(getCharacter(record.id)!).preferredKeeperId, 'k1');
+      setLookPreferredKeeper(record.id, look.id, 'not-a-keeper');
+      assert.equal(activeLook(getCharacter(record.id)!).preferredKeeperId, 'k1');
+      setLookPreferredKeeper(record.id, look.id, null);
+      assert.equal(activeLook(getCharacter(record.id)!).preferredKeeperId, undefined);
+    });
+  });
+
+  it("an appearance-only save keeps the look's own fields (and the plate's, while it stays)", () => {
+    withMockLocalStorage(() => {
+      const record = createBlankCharacter('Nora');
+      upsertCharacter(record);
+      const before = setPlate(record.id, 'one');
+      const look = activeLook(before);
+      upsertCharacter({
+        ...before,
+        looks: looksOf(before).map(entry =>
+          entry.id === look.id
+            ? {
+                ...entry,
+                keeperEntryIds: ['k1'],
+                preferredKeeperId: 'k1',
+                lookNotes: 'warm dusk light',
+                referenceSheet: [{ id: 'side' as const, label: 'Side', url: '/side.png', at: 1 }],
+              }
+            : entry
+        ),
+      });
+      // No `looks`: an appearance-only save of the same plate.
+      const { looks: _looks, ...appearance } = getCharacter(record.id)!;
+      upsertCharacter({ ...appearance, descriptor: 'short dark hair' } as CharacterRecord);
+      const kept = activeLook(getCharacter(record.id)!);
+      assert.equal(kept.preferredKeeperId, 'k1');
+      assert.equal(kept.lookNotes, 'warm dusk light');
+      assert.equal(kept.referenceSheet?.length, 1);
+      // Another plate: the sheet was of the old one, so it goes; the look's own fields stay.
+      const { looks: _again, ...current } = getCharacter(record.id)!;
+      upsertCharacter({ ...current, reference: plate('two') } as CharacterRecord);
+      const replaced = activeLook(getCharacter(record.id)!);
+      assert.equal(replaced.referenceSheet, undefined);
+      assert.equal(replaced.lookNotes, 'warm dusk light');
     });
   });
 });

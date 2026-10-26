@@ -276,6 +276,11 @@ export type CharacterLook = {
   keeperStandIns?: Record<string, CharacterKeeperStandIn>;
   /** Plates this look had before, newest first (Cast home → Looks → Earlier plates). */
   plateHistory?: CharacterLookPlateRecord[];
+  /**
+   * The keeper Day and Story build their plate from (M2 C6, "Use for Day and Story"); unset =
+   * the newest finished keeper (day/plate.ts).
+   */
+  preferredKeeperId?: string;
   /** Side, back and expression renders of this look's plate (cast-reference-sheet.ts). */
   referenceSheet?: ReferenceSheetView[];
   /**
@@ -303,6 +308,11 @@ export type CharacterLookPlateRecord = {
   ipAdapter?: CharacterRecord['ipAdapter'];
   plateStance?: PlateStance;
   replacedAt: number;
+  /**
+   * "Don't offer again" (M2 C6): a plate you know is wrong — no Restore, and the likeness
+   * guard's "use the earlier plate" skips it.
+   */
+  deprecated?: boolean;
 };
 
 /** Earlier plates kept per look. */
@@ -352,7 +362,8 @@ export function withLookPlateHistory(
       ...(old.reference ? { reference: old.reference } : {}),
       ...(old.ipAdapter ? { ipAdapter: old.ipAdapter } : {}),
       ...(old.plateStance ? { plateStance: old.plateStance } : {}),
-      replacedAt: now,
+      // It names the plate (Restore, Don't offer again): never the same as the one before it.
+      replacedAt: Math.max(now, (history?.[0]?.replacedAt ?? 0) + 1),
     };
     const kept = [entry, ...(history ?? [])].filter(
       (item, index, all) =>
@@ -392,6 +403,61 @@ export function restoreLookPlate(
   upsertCharacter({
     ...character,
     looks: looks.map(entry => (entry.id === lookId ? restored : entry)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
+}
+
+/** Mark an earlier plate "don't offer again" (or offer it again) — M2 C6. */
+export function setLookPlateDeprecated(
+  characterId: string,
+  lookId: string,
+  replacedAt: number,
+  deprecated: boolean
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  if (!character) return character;
+  const looks = looksOf(character);
+  const look = looks.find(entry => entry.id === lookId);
+  if (!look?.plateHistory?.some(entry => entry.replacedAt === replacedAt)) return character;
+  const plateHistory = look.plateHistory.map(entry => {
+    if (entry.replacedAt !== replacedAt) return entry;
+    const { deprecated: _was, ...rest } = entry;
+    return deprecated ? { ...rest, deprecated: true } : rest;
+  });
+  upsertCharacter({
+    ...character,
+    looks: looks.map(entry => (entry.id === lookId ? { ...look, plateHistory } : entry)),
+    updatedAt: Date.now(),
+  });
+  return getCharacter(characterId);
+}
+
+/** The earlier plates still offered (not marked don't use), newest first. */
+export function offeredLookPlates(
+  look: Pick<CharacterLook, 'plateHistory'> | null | undefined
+): CharacterLookPlateRecord[] {
+  return (look?.plateHistory ?? []).filter(entry => !entry.deprecated);
+}
+
+/** "Use for Day and Story": the keeper Day and Story build their plate from (null = newest). */
+export function setLookPreferredKeeper(
+  characterId: string,
+  lookId: string,
+  keeperId: string | null
+): CharacterRecord | undefined {
+  const character = getCharacter(characterId);
+  if (!character) return character;
+  const looks = looksOf(character);
+  const look = looks.find(entry => entry.id === lookId);
+  if (!look) return character;
+  const id = keeperId?.trim();
+  if (id && !look.keeperEntryIds?.includes(id)) return character;
+  const { preferredKeeperId: _was, ...rest } = look;
+  const next: CharacterLook = id ? { ...rest, preferredKeeperId: id } : rest;
+  upsertCharacter({
+    ...character,
+    looks: looks.map(entry => (entry.id === lookId ? next : entry)),
     updatedAt: Date.now(),
   });
   return getCharacter(characterId);
@@ -1167,14 +1233,23 @@ function mergeCharacterUpdate(prev: CharacterRecord, incoming: CharacterRecord):
 
   const looks = looksOf(prev);
   const current = looks.find(look => look.id === prev.activeLookId) ?? looks[0]!;
+  const appearance = lookFromAppearance(incoming, current.name, current.id, current.createdAt);
+  // Read off the plate it shows: kept while that plate stays (2026-10-26: they were dropped on
+  // every appearance-only save, with the keeper stand-ins and the look's notes).
+  const samePlate = lookPlateKey(appearance) === lookPlateKey(current);
   const nextLook = {
-    ...lookFromAppearance(incoming, current.name, current.id, current.createdAt),
+    ...appearance,
     keeperEntryIds: current.keeperEntryIds,
     // Keyed to the plate it was read from: a replaced plate makes it stale, not wrong.
     ...(current.plateStance ? { plateStance: current.plateStance } : {}),
     // Only when set — an extra undefined key would differ in strict deep-equal checks.
     ...(current.keptOutfit ? { keptOutfit: current.keptOutfit } : {}),
     ...(current.plateHistory ? { plateHistory: current.plateHistory } : {}),
+    ...(current.preferredKeeperId ? { preferredKeeperId: current.preferredKeeperId } : {}),
+    ...(current.keeperStandIns ? { keeperStandIns: current.keeperStandIns } : {}),
+    ...(current.lookNotes ? { lookNotes: current.lookNotes } : {}),
+    ...(samePlate && current.referenceSheet ? { referenceSheet: current.referenceSheet } : {}),
+    ...(samePlate && current.plateCheck ? { plateCheck: current.plateCheck } : {}),
   };
   const nextLooks = looks.some(look => look.id === nextLook.id)
     ? looks.map(look => (look.id === nextLook.id ? nextLook : look))

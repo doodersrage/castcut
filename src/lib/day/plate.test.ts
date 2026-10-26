@@ -55,6 +55,20 @@ function galleryStill(id: string): ComfyGalleryEntry {
 }
 
 describe('resolveDayPlate', () => {
+  // M2 C6: "Use for Day and Story" picks the keeper.
+  it('uses the keeper picked for Day and Story, else the newest', () => {
+    const character = characterWithKeepers(['keep-a', 'keep-b', 'keep-c']);
+    character.looks![0]!.preferredKeeperId = 'keep-a';
+    const gallery = [galleryStill('keep-a'), galleryStill('keep-b'), galleryStill('keep-c')];
+    assert.match(resolveDayPlate({ character, gallery })?.imageUrl ?? '', /keep-a/);
+    // Not finished: the newest finished one.
+    const unfinished = [{ ...galleryStill('keep-a'), status: 'running' as const }, ...gallery.slice(1)];
+    assert.match(resolveDayPlate({ character, gallery: unfinished })?.imageUrl ?? '', /keep-c/);
+    // No longer a keeper: ignored.
+    character.looks![0]!.preferredKeeperId = 'not-a-keeper';
+    assert.match(resolveDayPlate({ character, gallery })?.imageUrl ?? '', /keep-c/);
+  });
+
   it('prefers the latest Outfit keeper for display', () => {
     const character = characterWithKeepers(['keep-a', 'keep-b']);
     const plate = resolveDayPlate({

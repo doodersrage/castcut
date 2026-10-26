@@ -44,6 +44,7 @@ type CharacterMediaSectionProps = Pick<
   | 'continueRoleplay'
   | 'animateStill'
   | 'toggleKeeper'
+  | 'preferKeeper'
   | 'removeFromCharacter'
   | 'continueClipActionLabel'
   | 'loadEngineSettings'
@@ -68,6 +69,7 @@ export default function CharacterMediaSection({
   continueRoleplay,
   animateStill,
   toggleKeeper,
+  preferKeeper,
   removeFromCharacter,
   continueClipActionLabel,
   loadEngineSettings,
@@ -287,6 +289,8 @@ export default function CharacterMediaSection({
               kept={keepers.some(keeper => keeper.id === entry.id)}
               onOpen={galleryEntryHeroPreviewUrl(entry) ? () => openEntry(entry.id) : undefined}
               onToggleKeeper={currentLook ? () => toggleKeeper(entry.id) : undefined}
+              preferred={currentLook?.preferredKeeperId === entry.id}
+              onPreferKeeper={currentLook ? () => preferKeeper(entry.id) : undefined}
               onAnimateStill={
                 !isGalleryClipEntry({
                   ...entry,

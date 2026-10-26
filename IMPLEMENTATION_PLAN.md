@@ -10,8 +10,8 @@
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
-> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C5** are
-> done; next: **C6**.
+> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
+> done. **M2 is complete.** Next: plan M3 (screenplay-to-shot planning).
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -606,11 +606,24 @@ field of its own.
   nothing becomes a gate.
 - Tests: `checks/check-quality.test.ts` (2) and `e2e/check-quality.spec.ts`.
 
-**C6 — Reference status.**
+**C6 — Reference status.** _Done 2026-10-26, the small version agreed._
 
-- Scope: mark a look plate, earlier plate or keeper as **preferred** or **deprecated**. A
-  deprecated picture is never offered as a face lock or plate. Lowest priority: the likeness
-  guard already catches the worst case.
+- Earlier plates → **Don't offer again** / **Offer again** (`CharacterLookPlateRecord.deprecated`,
+  `setLookPlateDeprecated`, `offeredLookPlates` in `character/os.ts`). A marked plate has no
+  Restore, and the likeness guard's "Put back the earlier plate" offers the newest unmarked one
+  (`CharacterLookPlateSection.tsx`).
+- Keepers → **Use for Day** / **Day uses this** (`CharacterLook.preferredKeeperId`,
+  `setLookPreferredKeeper`). Day and Story build their plate from it, else from the newest
+  finished keeper as before (`day/plate.ts`). It sits on its own line on the media tile, because
+  the one-line caption hid it (caught by the e2e).
+- Fixed on the way, both in `character/os.ts`:
+  - An appearance-only Cast save rebuilt the active look from five fields, dropping its keeper
+    stand-ins, look notes, reference sheet and plate check. Now the look's own fields are kept,
+    and the plate's (reference sheet, plate check) while the plate stays.
+  - Two plates replaced in the same millisecond got the same `replacedAt`, which is the id
+    Restore uses. It's now always later than the newest earlier plate's.
+- Tests: `character/plate-history.test.ts` (3), `day/plate.test.ts` (1),
+  `e2e/cast-reference-status.spec.ts` (2).
 
 **Not planned for M2:** reusable place records beyond home / work, and injuries / story-state
 fields. They're worth doing once C3 shows which shot state people actually need.

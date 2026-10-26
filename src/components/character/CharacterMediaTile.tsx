@@ -18,6 +18,8 @@ export default function CharacterMediaTile({
   kept,
   onOpen,
   onToggleKeeper,
+  preferred = false,
+  onPreferKeeper,
   onAnimateStill,
   onRemoveFromCharacter,
   characterName,
@@ -27,6 +29,9 @@ export default function CharacterMediaTile({
   kept?: boolean;
   onOpen?: () => void;
   onToggleKeeper?: () => void;
+  /** Day and Story build their plate from this keeper (M2 C6). */
+  preferred?: boolean;
+  onPreferKeeper?: () => void;
   onAnimateStill?: () => void;
   onRemoveFromCharacter?: () => void;
   /** For a film's Re-cut (FilmRecutPanel). */
@@ -97,6 +102,7 @@ export default function CharacterMediaTile({
               </Button>
             </>
           ) : null}
+
           {onRemoveFromCharacter ? (
             <>
               {' · '}
@@ -111,6 +117,26 @@ export default function CharacterMediaTile({
             </>
           ) : null}
         </p>
+        {!clip && kept && onPreferKeeper ? (
+          // Its own line: the caption above is one truncated line (it hid the button).
+          <div className="px-2 pb-1">
+            <Button
+              variant="underline"
+              type="button"
+              className="type-caption"
+              aria-pressed={preferred}
+              data-testid="cast-media-prefer-keeper"
+              title={
+                preferred
+                  ? 'Day and Story build their plate from this keeper — click to use the newest again'
+                  : 'Day and Story build their plate from this keeper (instead of the newest)'
+              }
+              onClick={onPreferKeeper}
+            >
+              {preferred ? 'Day uses this' : 'Use for Day'}
+            </Button>
+          </div>
+        ) : null}
         {isAssembledFilmEntry(entry) ? (
           <FilmRecutPanel entry={entry} characterName={characterName?.trim() || 'Cast'} />
         ) : null}

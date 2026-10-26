@@ -106,10 +106,15 @@ export function resolveDayPlate(input: {
     look = undefined;
   }
   const keeperIds = [...(look?.keeperEntryIds ?? [])].map(id => id.trim()).filter(Boolean);
+  // The keeper picked "Use for Day and Story" first (M2 C6), then the newest finished one.
+  const preferred = look?.preferredKeeperId?.trim();
+  const order = [
+    ...(preferred && keeperIds.includes(preferred) ? [preferred] : []),
+    ...keeperIds.reverse().filter(id => id !== preferred),
+  ];
   const gallery = input.gallery ?? [];
-  if (keeperIds.length > 0 && gallery.length > 0) {
-    for (let index = keeperIds.length - 1; index >= 0; index -= 1) {
-      const keeperId = keeperIds[index]!;
+  if (order.length > 0 && gallery.length > 0) {
+    for (const keeperId of order) {
       const kept = gallery.find(item => item.id === keeperId && item.status === 'completed');
       if (!kept) {
         continue;
