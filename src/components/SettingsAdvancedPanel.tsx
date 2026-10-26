@@ -12,6 +12,7 @@ import PromptRecipesPanel from '@/components/settings/PromptRecipesPanel';
 import NegativeLearnerPanel from '@/components/settings/NegativeLearnerPanel';
 import ModelShootoutPanel from '@/components/settings/ModelShootoutPanel';
 import { loadSettingsCache, saveSettingsCache, type SettingsCache } from '@/lib/settings/cache';
+import { settingsWithLocalSecrets } from '@/lib/settings/secret-fields';
 import { initAppDb } from '@/lib/app/db-init';
 import { loadPromptHistoryStore, savePromptHistoryStore } from '@/lib/prompt/history';
 import {
@@ -211,7 +212,8 @@ export default function SettingsAdvancedPanel() {
       saveGalleryDeletedIds(mergeGalleryDeletedIds(loadGalleryDeletedIds(), serverDeleted));
     }
     if (settings) {
-      saveSettingsCache(settings);
+      // This browser's credentials stay (settings/secret-fields.ts).
+      saveSettingsCache(settingsWithLocalSecrets(settings, loadSettingsCache()));
     }
     if (history) {
       savePromptHistoryStore(history as import('@/lib/prompt/history').PromptHistoryEntry[]);

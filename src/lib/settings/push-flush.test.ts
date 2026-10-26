@@ -33,10 +33,17 @@ describe('settings-push-flush', () => {
 
       listeners.pagehide!();
       assert.equal(calls.length, 1, 'nothing pending after a flush');
+
+      // R3: never with this browser's credentials (secret-fields.ts).
+      flush.markSettingsPushPending(() => ({ shared: { sessionLlmApiKey: 'llm-mine', detail: 'rich' } }));
+      listeners.pagehide!();
+      assert.equal(calls.length, 2);
+      assert.deepEqual(JSON.parse(String(calls[1]!.init.body)).data, { shared: { detail: 'rich' } });
+      const sent = calls.length;
       flush.markSettingsPushPending(() => ({}));
       flush.clearSettingsPushPending();
       listeners.pagehide!();
-      assert.equal(calls.length, 1, 'a landed debounced push clears the flush');
+      assert.equal(calls.length, sent, 'a landed debounced push clears the flush');
     } finally {
       g.window = saved.window;
       g.fetch = saved.fetch;

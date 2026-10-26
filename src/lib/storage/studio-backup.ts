@@ -42,6 +42,13 @@ import { exportAvoidedTokenList, saveAvoidedTokens } from '@/lib/prompt/avoided-
 import { WEBHOOK_LOG_KEY, loadWebhookLog, type WebhookLogEntry } from '@/lib/server/webhook-log';
 import { writeBrowserValue } from '@/lib/storage/browser-storage';
 import {
+  extrasWithoutSecrets,
+  settingsWithLocalSecrets,
+  settingsWithoutSecrets,
+  webhookWithLocalSecret,
+  webhookWithoutSecret,
+} from '@/lib/settings/secret-fields';
+import {
   loadActiveProjectId,
   loadPromptProjects,
   savePromptProjects,
@@ -128,13 +135,14 @@ export function isSupportedStudioBackupVersion(
   return version === 1 || version === 2 || version === 3 || version === 4 || version === 5;
 }
 
+/** The backup file: everything but this browser's credentials (settings/secret-fields.ts). */
 export function exportStudioBackup(): StudioBackupV5 {
   return {
     version: 5,
     exportedAt: new Date().toISOString(),
     history: loadHistoryFromStorage(),
     locationBlocklist: loadLocationBlocklist(),
-    settings: loadSettingsCache(),
+    settings: settingsWithoutSecrets(loadSettingsCache()),
     scenePresets: loadScenePresets(),
     userTemplates: loadUserTemplates(),
     comfyUiSettings: loadComfyUiSettings(),
@@ -146,11 +154,11 @@ export function exportStudioBackup(): StudioBackupV5 {
     promptProjects: loadPromptProjects(),
     activeProjectId: loadActiveProjectId(),
     scheduledBatch: loadScheduledBatchConfig(),
-    webhookSettings: loadWebhookSettings(),
+    webhookSettings: webhookWithoutSecret(loadWebhookSettings()),
     sessionRecipes: loadSessionRecipes(),
     userNsfwGeneratorPresets: loadUserNsfwGeneratorPresets(),
     nsfwPresetPrefs: loadNsfwPresetPrefs(),
-    extras: collectStudioExtras(),
+    extras: extrasWithoutSecrets(collectStudioExtras()),
   };
 }
 
@@ -164,7 +172,8 @@ export function importStudioBackup(backup: StudioBackup): void {
 
   savePromptHistoryStore(payload.history.slice(0, PROMPT_HISTORY_LIMIT));
   saveLocationBlocklist(payload.locationBlocklist);
-  saveSettingsCache(payload.settings);
+  // This browser's credentials stay; a backup's (an older file may carry them) are not taken.
+  saveSettingsCache(settingsWithLocalSecrets(payload.settings, loadSettingsCache()));
   if (payload.scenePresets) {
     saveScenePresets(payload.scenePresets);
   }
@@ -206,7 +215,7 @@ export function importStudioBackup(backup: StudioBackup): void {
       saveScheduledBatchConfig(payload.scheduledBatch);
     }
     if (payload.webhookSettings) {
-      saveWebhookSettings(payload.webhookSettings);
+      saveWebhookSettings(webhookWithLocalSecret(payload.webhookSettings, loadWebhookSettings()));
     }
   }
 

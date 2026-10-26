@@ -196,6 +196,72 @@ describe('storage-sync', () => {
     });
   });
 
+  // R3: credentials typed in Settings stay in this browser (settings/secret-fields.ts).
+  describe('credentials', () => {
+    const local = {
+      shared: { sessionFalApiKey: 'fal-mine', sessionLlmApiKey: 'llm-mine', expandWildcards: false },
+      tools: {},
+    };
+
+    it('pushes settings and studio-extras without them', async () => {
+      const stub = installFetchStub(() => jsonResponse({}));
+      try {
+        await syncNamespaceToServer('settings-cache', local);
+        await syncNamespaceToServer('studio-extras', {
+          updatedAt: 1,
+          webhookSettings: { enabled: true, url: 'https://hooks.example/x', secret: 'hook-mine' },
+        });
+        const bodies = stub.calls.map(call => String(call.init?.body));
+        assert.equal(bodies.length, 2);
+        for (const secret of ['fal-mine', 'llm-mine', 'hook-mine']) {
+          assert.ok(!bodies.some(body => body.includes(secret)), secret);
+        }
+        assert.ok(bodies[0]!.includes('expandWildcards'), 'the rest still goes');
+        assert.equal(local.shared.sessionFalApiKey, 'fal-mine', 'the local copy keeps them');
+      } finally {
+        stub.restore();
+      }
+    });
+
+    it("reads a server copy that still holds keys as if it had none, then pushes over it", async () => {
+      const server = { shared: { sessionFalApiKey: 'fal-old', expandWildcards: false }, tools: {} };
+      const stub = installFetchStub((_url, init) =>
+        init?.method === 'PUT' ? jsonResponse({ data: server }) : jsonResponse({})
+      );
+      try {
+        const pulled = await pullNamespaceFromServer<typeof server>('settings-cache');
+        assert.equal(JSON.stringify(pulled).includes('fal-old'), false);
+        // The same settings without the key: the server's copy differs, so it is replaced.
+        await syncNamespaceToServer('settings-cache', { shared: { expandWildcards: false }, tools: {} });
+        const posts = stub.calls.filter(call => call.init?.method === 'POST');
+        assert.equal(posts.length, 1);
+        assert.equal(String(posts[0]!.init?.body).includes('fal-old'), false);
+      } finally {
+        stub.restore();
+      }
+    });
+
+    it("asks the server for its copy by the keyless fingerprint, and skips a repeat push", async () => {
+      const stub = installFetchStub((_url, init) =>
+        init?.method === 'PUT' ? jsonResponse({ unchanged: true }) : jsonResponse({})
+      );
+      try {
+        const keyless = { shared: { expandWildcards: false }, tools: {} };
+        const pulled = await pullNamespaceFromServer('settings-cache', local);
+        assert.ok(
+          stub.calls[0]!.url.includes(
+            encodeURIComponent(storageFingerprint('settings-cache', keyless))
+          )
+        );
+        assert.equal(JSON.stringify(pulled).includes('fal-mine'), false);
+        await syncNamespaceToServer('settings-cache', local);
+        assert.equal(stub.calls.filter(call => call.init?.method === 'POST').length, 0);
+      } finally {
+        stub.restore();
+      }
+    });
+  });
+
   describe('serverStorageStatus', () => {
     it('always reports disabled with the full sync namespace list', () => {
       const status = serverStorageStatus();

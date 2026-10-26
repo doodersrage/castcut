@@ -6,6 +6,12 @@ import {
 } from '../comfyui/settings';
 import { loadWebhookSettings, saveWebhookSettings, type WebhookSettings } from './webhook-settings';
 import {
+  sharedWithLocalSecrets,
+  sharedWithoutSecrets,
+  webhookWithLocalSecret,
+  webhookWithoutSecret,
+} from './secret-fields';
+import {
   loadScheduledBatchConfig,
   saveScheduledBatchConfig,
   type ScheduledBatchConfig,
@@ -29,7 +35,8 @@ export const SETTINGS_BUNDLE_VERSION = 2;
 
 /**
  * Lightweight "settings only" export/import — no history, gallery, presets, or
- * workflow library. See `studio-backup.ts` for the full studio backup.
+ * workflow library. See `studio-backup.ts` for the full studio backup. Neither carries this
+ * browser's credentials (secret-fields.ts).
  */
 export type SettingsBundleV1 = {
   version: 1;
@@ -54,9 +61,9 @@ export function exportSettingsBundle(): SettingsBundleV2 {
   return {
     version: SETTINGS_BUNDLE_VERSION,
     exportedAt: new Date().toISOString(),
-    shared: loadSettingsCache().shared,
+    shared: sharedWithoutSecrets(loadSettingsCache().shared),
     comfyUiSettings: loadComfyUiSettings(),
-    webhookSettings: loadWebhookSettings(),
+    webhookSettings: webhookWithoutSecret(loadWebhookSettings()),
     scheduledBatch: loadScheduledBatchConfig(),
     avoidedTokens: exportAvoidedTokenList(),
     sessionRecipes: loadSessionRecipes(),
@@ -84,13 +91,14 @@ export function importSettingsBundle(data: SettingsBundle): void {
   }
 
   const cache = loadSettingsCache();
-  saveSharedSettings({ ...cache.shared, ...data.shared });
+  saveSharedSettings(sharedWithLocalSecrets({ ...cache.shared, ...data.shared }, cache.shared));
 
   if (data.comfyUiSettings) {
     saveComfyUiSettings({ ...loadComfyUiSettings(), ...data.comfyUiSettings });
   }
   if (data.webhookSettings) {
-    saveWebhookSettings({ ...loadWebhookSettings(), ...data.webhookSettings });
+    const local = loadWebhookSettings();
+    saveWebhookSettings(webhookWithLocalSecret({ ...local, ...data.webhookSettings }, local));
   }
   if (data.scheduledBatch) {
     saveScheduledBatchConfig({

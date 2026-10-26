@@ -126,6 +126,8 @@ v5 includes history, settings cache, gallery entries, ComfyUI settings and workf
 
 This file is **local browser state**. It does not include server auth users, SMTP passwords, or files under `PROMPT_DATA_DIR`.
 
+It also leaves out the **API keys typed into Settings** (cloud engines, the LLM provider) and the **webhook signing secret**. They stay in the browser they were typed in: no backup file, settings file or server sync carries them, and importing a file never replaces the ones already there. On the new machine, type them again, or set them once in the server's environment for every device (`FAL_KEY`, `REPLICATE_API_TOKEN`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `RUNWAY_API_KEY`, `LUMA_API_KEY`, `LLM_API_KEY` — see `.env.example`). Backup and settings files exported by v2.12.36 or earlier may still hold keys: delete them or rotate those keys if a copy left your machine.
+
 ### Server data directory
 
 Set `PROMPT_DATA_DIR` (absolute path) so settings, history, gallery, and extras sync to `{PROMPT_DATA_DIR}/studio.sqlite`. With auth on, each user’s namespaces are scoped inside that database. Leftover JSON files are imported once and renamed `*.json.imported`.

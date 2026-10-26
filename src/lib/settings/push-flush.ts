@@ -8,6 +8,8 @@
  * debounced push clears the mark when it lands.
  */
 
+import { settingsWithoutSecrets } from './secret-fields';
+
 /** keepalive request bodies are capped (~64 KB); larger settings fall back to the next sync. */
 const KEEPALIVE_BODY_LIMIT = 60_000;
 
@@ -23,7 +25,12 @@ function flush(): void {
   }
   dirty = false;
   try {
-    const body = JSON.stringify({ namespace: 'settings-cache', data: readSettings() });
+    // Never with this browser's credentials (secret-fields.ts), like every other push.
+    const data = readSettings();
+    const body = JSON.stringify({
+      namespace: 'settings-cache',
+      data: data && typeof data === 'object' ? settingsWithoutSecrets(data) : data,
+    });
     if (body.length > KEEPALIVE_BODY_LIMIT || typeof fetch !== 'function') {
       return;
     }

@@ -3,6 +3,7 @@ import { SYNC_STORAGE_NAMESPACES } from './namespaces';
 import { noteSyncPull, noteSyncPush } from './sync-status';
 import { galleryEntriesForSync } from '../gallery/adult-check';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
+import { extrasWithoutSecrets, settingsWithoutSecrets } from '../settings/secret-fields';
 
 /**
  * What this tab last pulled from or pushed to the server, per namespace. Every save schedules a
@@ -66,6 +67,17 @@ function syncPayload<T>(namespace: StorageNamespace, data: T): T {
   if (namespace === 'comfy-gallery' && Array.isArray(data)) {
     return galleryEntriesForSync(data as unknown as ComfyGalleryEntry[]) as unknown as T;
   }
+  return withoutSyncSecrets(namespace, data);
+}
+
+/**
+ * Settings and studio-extras with no credentials (settings/secret-fields.ts): never pushed, and
+ * a server copy from before this still holding them is read as if it had none.
+ */
+function withoutSyncSecrets<T>(namespace: StorageNamespace, data: T): T {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  if (namespace === 'settings-cache') return settingsWithoutSecrets(data as object) as T;
+  if (namespace === 'studio-extras') return extrasWithoutSecrets(data as object) as T;
   return data;
 }
 
@@ -118,10 +130,11 @@ async function fetchNamespace(
 ): Promise<PullResult> {
   try {
     // With a local copy, the server answers "unchanged" instead of resending it (gallery ~9 MB).
+    // Compared as the server would hold it: without this browser's credentials.
     const ifMatch =
       localCopy === undefined || localCopy === null
         ? ''
-        : `&ifMatch=${encodeURIComponent(storageFingerprint(namespace, localCopy))}`;
+        : `&ifMatch=${encodeURIComponent(storageFingerprint(namespace, withoutSyncSecrets(namespace, localCopy)))}`;
     const response = await fetch(
       `/api/storage?namespace=${encodeURIComponent(namespace)}${ifMatch}`,
       { method: 'PUT' }
@@ -131,9 +144,13 @@ async function fetchNamespace(
     }
     const payload = (await response.json()) as { data?: unknown; unchanged?: boolean };
     const data = payload.unchanged && ifMatch ? localCopy : payload.data;
-    noteServerCopy(namespace, data);
+    // The copy as it is, so a server copy that still holds credentials is pushed over (cleaned).
+    noteServerCopy(
+      namespace,
+      payload.unchanged && ifMatch ? withoutSyncSecrets(namespace, data) : data
+    );
     noteSyncPull(true);
-    return { ok: true, data: data ?? null };
+    return { ok: true, data: withoutSyncSecrets(namespace, data) ?? null };
   } catch {
     return { ok: false, data: null };
   }

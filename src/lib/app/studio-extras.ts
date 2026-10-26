@@ -51,6 +51,7 @@ import {
   saveWebhookSettings,
   type WebhookSettings,
 } from '../settings/webhook-settings';
+import { webhookWithLocalSecret } from '../settings/secret-fields';
 import { loadSessionRecipes, saveSessionRecipes } from '../prompt/session-recipes';
 import {
   loadNsfwPresetPrefs,
@@ -375,7 +376,8 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
       saveScheduledBatchConfig(payload.scheduledBatch);
     }
     if (payload.webhookSettings) {
-      saveWebhookSettings(payload.webhookSettings);
+      // Its signing secret stays this browser's (settings/secret-fields.ts).
+      saveWebhookSettings(webhookWithLocalSecret(payload.webhookSettings, loadWebhookSettings()));
     }
     if (payload.sessionRecipes) {
       saveSessionRecipes(payload.sessionRecipes);

@@ -6,7 +6,7 @@
 > **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
-> protected) are done, and so is **R2** (the scene cap). Next: R3 (needs a decision) or R4.
+> protected) are done, and so are **R2** (the scene cap) and **R3** (keys stay in the browser). Next: R4.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -330,13 +330,27 @@ _Done 2026-10-25, uncommitted. Budget rule agreed: what the production uses is e
 - Not done: a notice on the Scene page when a Cast goes over 60. Nothing is lost there any more,
   so it isn't needed; add one if the settings blob size becomes a problem.
 
-**R3 — Strip browser-held keys from backups and the server copy (fixes D5).** _Needs a decision:_
-should a key typed on one device follow the user to others?
+**R3 — Strip browser-held keys from backups and the server copy (fixes D5).** _Done 2026-10-25.
+Decision: credentials stay browser-only; a key for every device goes in the server's env._
 
-- Scope: one list of secret settings fields; `exportStudioBackup` and the `settings-cache` push
-  omit them, and pull/restore/merge keep the local value.
-- Acceptance: a backup with keys set contains none; a server pull doesn't clear a local key.
-- Files: `settings/cache.ts`, `storage/studio-backup.ts`, `storage/sync.ts`, `storage/merge.ts`.
+- `src/lib/settings/secret-fields.ts`: `SHARED_SECRET_FIELDS` (the 7 cloud engine keys + the LLM
+  key) and the webhook signing secret, with `…WithoutSecrets` for what leaves and
+  `…WithLocalSecrets` for what comes in.
+- Out: every server push (`syncPayload` in `storage/sync.ts`, and the keepalive flush in
+  `settings/push-flush.ts`), the backup file (`exportStudioBackup`), and the settings file
+  (`exportSettingsBundle`).
+- In: pulls read as if the server copy had no keys, and the first push afterwards cleans the
+  server copy. Choosing the server copy, merge, the startup pull, the Advanced restore, backup
+  restore, settings import and `applyStudioExtras` keep this browser's own keys. An older file or
+  server copy that still holds keys never brings them back.
+- Tests: `settings/secret-fields.test.ts` (4, including every cloud engine's key field being on
+  the list), `storage/sync.test.ts` (3), `storage/studio-backup.test.ts` (2),
+  `settings/export.test.ts` (1), `settings/push-flush.test.ts` (extended). The sync and backup
+  tests fail on the old code.
+- Docs: `docs/operator.md` (backup section).
+- Not covered: files exported by v2.12.36 or earlier still hold keys (rotate them if a copy left
+  the machine). The server copy holds them until this browser's first push after the update. A
+  webhook URL is kept as settings, though some services put a token in it.
 
 **R4 — Take provenance on the take card (ROADMAP §4.2).**
 

@@ -1,3 +1,4 @@
+import { settingsWithLocalSecrets } from '../settings/secret-fields';
 import type { StorageNamespace } from './namespaces';
 import { noteSyncPending } from './sync-status';
 import { SYNC_STORAGE_NAMESPACES } from './namespaces';
@@ -290,7 +291,8 @@ export async function applyStorageMerge(
 
     if (choice === 'server' && server) {
       if (namespace === 'settings-cache') {
-        saveSettingsCache(server as SettingsCache);
+        // Keep this browser's credentials (settings/secret-fields.ts).
+        saveSettingsCache(settingsWithLocalSecrets(server as SettingsCache, loadSettingsCache()));
       } else if (namespace === 'prompt-history') {
         savePromptHistoryStore(server as PromptHistoryEntry[]);
       } else if (server) {
@@ -330,7 +332,7 @@ export async function applyStorageMerge(
           const stacked = applyServerSessionStack(merged, server as SettingsCache);
           merged.shared = stacked.shared;
         }
-        saveSettingsCache(merged);
+        saveSettingsCache(settingsWithLocalSecrets(merged, local as SettingsCache));
         await syncNamespaceToServer(namespace, loadSettingsCache());
       } else if (namespace === 'prompt-history') {
         const merged = mergeArraysById(
@@ -433,8 +435,12 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     const serverSettings = settingsPull.data;
     if (serverSettings?.shared) {
       // Settings changed on this page while the pulls ran are kept (mergeStartupServerSettings).
+      const current = loadSettingsCache();
       saveSettingsCache(
-        mergeStartupServerSettings(settingsBeforePull, loadSettingsCache(), serverSettings)
+        settingsWithLocalSecrets(
+          mergeStartupServerSettings(settingsBeforePull, current, serverSettings),
+          current
+        )
       );
     } else if (settingsPull.ok) {
       // The server really has no settings yet — seed it. A failed pull must not: this fresh

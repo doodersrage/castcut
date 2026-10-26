@@ -140,6 +140,30 @@ describe("settings-export", () => {
     assert.ok(loadAvoidedTokens().has("watermark"));
   });
 
+  // R3: credentials typed in Settings stay in this browser (secret-fields.ts).
+  it("leaves keys and the webhook secret out of the file, and keeps this browser's on import", async () => {
+    const { saveSharedSettings, loadSettingsCache } = await import("./cache");
+    const { saveWebhookSettings, loadWebhookSettings } = await import("./webhook-settings");
+    const { exportSettingsBundle, importSettingsBundle, SETTINGS_BUNDLE_VERSION } = await import("./export");
+
+    saveSharedSettings({ ...loadSettingsCache().shared, sessionOpenaiApiKey: "oa-mine" });
+    saveWebhookSettings({ enabled: true, url: "https://example.com/hook", secret: "hook-mine" });
+    const file = JSON.stringify(exportSettingsBundle());
+    assert.equal(file.includes("oa-mine"), false);
+    assert.equal(file.includes("hook-mine"), false);
+
+    importSettingsBundle({
+      version: SETTINGS_BUNDLE_VERSION,
+      exportedAt: new Date().toISOString(),
+      shared: { ...loadSettingsCache().shared, sessionOpenaiApiKey: "from-file", detail: "rich" },
+      webhookSettings: { enabled: true, url: "https://example.com/other", secret: "file-hook" },
+    });
+    assert.equal(loadSettingsCache().shared.sessionOpenaiApiKey, "oa-mine");
+    assert.equal(loadSettingsCache().shared.detail, "rich");
+    assert.equal(loadWebhookSettings().secret, "hook-mine");
+    assert.equal(loadWebhookSettings().url, "https://example.com/other");
+  });
+
   it("throws importing an unsupported bundle version", async () => {
     const { importSettingsBundle } = await import("./export");
     const { loadSettingsCache } = await import("./cache");
