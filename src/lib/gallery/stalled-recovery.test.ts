@@ -52,7 +52,24 @@ mock.module('./comfyui-gallery-poller', {
     },
   },
 });
-(globalThis as unknown as { window: unknown }).window = {};
+// A whole window: a module the recovery loads may read browser storage after a test ends (CI).
+const storage = new Map<string, string>();
+(globalThis as unknown as { window: unknown }).window = {
+  localStorage: {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+    get length() {
+      return storage.size;
+    },
+    key: (index: number) => [...storage.keys()][index] ?? null,
+  },
+  dispatchEvent: () => true,
+  addEventListener: () => undefined,
+  removeEventListener: () => undefined,
+  setTimeout: globalThis.setTimeout.bind(globalThis),
+  clearTimeout: globalThis.clearTimeout.bind(globalThis),
+};
 
 describe('jobs given up on (R8)', async () => {
   const {
