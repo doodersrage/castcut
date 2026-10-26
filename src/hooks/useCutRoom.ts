@@ -115,6 +115,21 @@ import {
 } from '@/lib/play/settings';
 import { keptTakeOf, normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
 import {
+  findingsForGalleryEntry,
+  isFindingDismissed,
+  sourceGoneFinding,
+  type ContinuityFinding,
+} from '@/lib/checks/findings';
+import {
+  decideFinding,
+  findingDecisionMap,
+  loadFindingDecisions,
+  subscribeFindingDecisions,
+  undecideFinding,
+  type FindingDecision,
+  type FindingDecisionKind,
+} from '@/lib/checks/finding-decisions';
+import {
   declineOfferedCutMedia,
   pinAllCutShots,
   pinEditedCutShots,
@@ -1676,23 +1691,37 @@ export function useCutRoom() {
     const picked = applyCutShotEdits(shots, options.shotEdits);
     const gallery = loadComfyGallery();
     const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
+    // Findings you dismissed (C2) don't stop the cut.
+    const decided = findingDecisionMap(loadFindingDecisions());
+    const checksOf = (promptId: string | undefined) => {
+      const checks = promptId
+        ? gallery.find(entry => entry.promptId === promptId)?.playChecks
+        : undefined;
+      return {
+        flagged: [],
+        ...checks,
+        ...(isFindingDismissed(decided, promptId, 'pose-miss') ? { poseMiss: false } : {}),
+        ...(isFindingDismissed(decided, promptId, 'face-miss') ? { faceMiss: false } : {}),
+      };
+    };
     const found = cutShotProblems(picked, shot => {
       const { source, key } = splitCutRoomKey(shot.key);
+      // A pinned shot is checked as the take it plays, not its source's current one (R5).
+      const pin = options.shotEdits?.shots?.[shot.key]?.pin;
+      const pinnedEntry = pin?.entryId
+        ? gallery.find(entry => entry.promptId === pin.entryId || entry.id === pin.entryId)
+        : undefined;
+      if (pinnedEntry && (source === 'day' || source === 'scenes')) {
+        return checksOf(pinnedEntry.promptId);
+      }
       if (source === 'day') {
         const still = dayStillsRef.current.find(entry => entry.slotId === key);
-        const checks = still?.promptId
-          ? gallery.find(entry => entry.promptId === still.promptId)?.playChecks
-          : undefined;
-        return { flagged: [], ...checks };
+        return checksOf(still?.promptId);
       }
       if (source === 'scenes') {
         // The kept take's own checks (its gallery entry).
         const take = savedScenes.find(scene => scene.id === key);
-        const keptId = take?.takes.find(entry => entry.id === take.keptTakeId)?.promptId;
-        const checks = keptId
-          ? gallery.find(entry => entry.promptId === keptId)?.playChecks
-          : undefined;
-        return { flagged: [], ...checks };
+        return checksOf(take?.takes.find(entry => entry.id === take.keptTakeId)?.promptId);
       }
       const beat = beatByKey.get(key);
       if (!beat) return null;
@@ -1706,8 +1735,12 @@ export function useCutRoom() {
           ...(beat.stillStatus === 'error' ? ['the still failed'] : []),
           ...(storyRealismLabel(beat) ? [REALISM_MISS_REASON] : []),
         ],
-        ...(pose?.miss ? { poseMiss: true, pose: beat.poseMatch?.score } : {}),
-        ...(face?.miss ? { faceMiss: true, face: beat.faceMatch?.similarity } : {}),
+        ...(pose?.miss && !isFindingDismissed(decided, beat.promptId, 'pose-miss')
+          ? { poseMiss: true, pose: beat.poseMatch?.score }
+          : {}),
+        ...(face?.miss && !isFindingDismissed(decided, beat.promptId, 'face-miss')
+          ? { faceMiss: true, face: beat.faceMatch?.similarity }
+          : {}),
       };
     });
     setChecking(true);
@@ -1749,6 +1782,66 @@ export function useCutRoom() {
   const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
   useEffect(() => {
     void initGalleryStore();
+  }, []);
+
+  // Continuity (M2 C2): what the checks found on the film's shots, and your decisions about it.
+  const [decisions, setDecisions] = useState<FindingDecision[]>([]);
+  useEffect(() => {
+    setDecisions(loadFindingDecisions());
+    return subscribeFindingDecisions(() => setDecisions(loadFindingDecisions()));
+  }, []);
+  const continuity = useMemo(() => {
+    const decided = findingDecisionMap(decisions);
+    const byPrompt = new Map(gallery.map(entry => [entry.promptId, entry]));
+    const byId = new Map(gallery.map(entry => [entry.id, entry]));
+    const out: Array<{
+      finding: ContinuityFinding;
+      shotKey: string;
+      shotTitle: string;
+      decision?: FindingDecision;
+    }> = [];
+    for (const shot of previewShots) {
+      if (options.shotEdits?.shots?.[shot.key]?.include === false) continue;
+      const picture = shot.thumbUrl || (shot.kind === 'still' ? shot.url : undefined);
+      const subjects = new Set<string>();
+      const entryId = shot.entryId?.trim();
+      if (entryId) subjects.add(entryId);
+      // A Day clip's still carries the face and pose checks.
+      const { source, key } = splitCutRoomKey(shot.key);
+      const pinned = options.shotEdits?.shots?.[shot.key]?.pin;
+      if (source === 'day' && !pinned) {
+        const stillId = dayStills.find(entry => entry.slotId === key)?.promptId?.trim();
+        if (stillId) subjects.add(stillId);
+      }
+      const seen = new Set<string>();
+      const findings: ContinuityFinding[] = [];
+      for (const subject of subjects) {
+        const entry = byPrompt.get(subject) ?? byId.get(subject);
+        if (!entry) continue;
+        for (const finding of findingsForGalleryEntry(entry, { imageUrl: picture })) {
+          if (!seen.has(finding.id)) {
+            seen.add(finding.id);
+            findings.push(finding);
+          }
+        }
+      }
+      if (pinStates[shot.key]?.state === 'source-gone') {
+        findings.push(sourceGoneFinding(shot.key, picture));
+      }
+      for (const finding of findings) {
+        out.push({
+          finding,
+          shotKey: shot.key,
+          shotTitle: shot.title,
+          ...(decided.get(finding.id) ? { decision: decided.get(finding.id) } : {}),
+        });
+      }
+    }
+    return out;
+  }, [dayStills, decisions, gallery, options.shotEdits, pinStates, previewShots]);
+  const decide = useCallback((id: string, kind: FindingDecisionKind | null, note?: string) => {
+    if (kind) decideFinding(id, kind, note);
+    else undecideFinding(id);
   }, []);
   const storyCastId = useMemo(
     () => resolveStoryFilmCast(story.toolSettings, storyName, false)?.id,
@@ -1795,6 +1888,8 @@ export function useCutRoom() {
     shots,
     previewShots,
     pinStates,
+    continuity,
+    decide,
     takeOffered,
     keepPinned,
     togglePin,

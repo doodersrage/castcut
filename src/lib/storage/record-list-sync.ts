@@ -117,6 +117,8 @@ export const RECORD_LISTS: readonly RecordListSpec[] = [
   { field: 'myPosePacks', idOf: e => str(e.id), sameAs: e => str(e.name).toLowerCase() },
   { field: 'dressPlates', idOf: e => str(e.key) },
   { field: 'comfyWorkflowFiles', idOf: e => str(e.id) },
+  // Your decisions about continuity findings (checks/finding-decisions.ts), by finding id.
+  { field: 'continuityDecisions', idOf: e => str(e.id) },
   // The Director's saved directions: one name per Cast member.
   {
     field: 'directorDirections',

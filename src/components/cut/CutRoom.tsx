@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
+import CutContinuity from '@/components/cut/CutContinuity';
 import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
@@ -835,6 +836,17 @@ export default function CutRoom() {
                   </div>
                 );
               }}
+            />
+          </ToolSection>
+        ) : null}
+
+        {vm.shots.length > 0 ? (
+          <ToolSection data-testid="cut-continuity-section" title="Continuity">
+            <CutContinuity
+              items={vm.continuity}
+              disabled={busy}
+              onPick={pick}
+              onDecide={vm.decide}
             />
           </ToolSection>
         ) : null}

@@ -10,7 +10,8 @@
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
-> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26); next: approve **C1**.
+> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1** and **C2** are
+> done; next: **C3**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -541,25 +542,32 @@ field of its own.
 
 ## 3.2 M2 tasks (ordered)
 
-**C1 — Continuity findings, one shape (shared, pure).** _Recommended first._
+**C1 — Continuity findings, one shape (shared, pure).** _Done 2026-10-26._
 
-- Scope: `ContinuityFinding` (`{ id, rule, subject: prompt id or shot key, severity: 'blocks' |
-  'warns', evidence: text + picture URLs, suggestion, source check }`) and
-  `findingsForGalleryEntry(entry)`. This reads what the existing checks already store on an
-  entry: pose / face miss, marks missing, clip cut midway, clip silent, withheld by the adult
-  check, realism. Read-only, so no check changes.
-- Acceptance: each existing check field maps to a finding with its evidence. An entry with no
-  check data gives none. The ids are stable, so a decision can attach to them.
-- Tests: unit tests on fixture entries.
+- `src/lib/checks/findings.ts`: `findingsForGalleryEntry(entry)` reads what the checks stored on
+  a render (face miss, pose miss, marks missing after the repair, clip cuts midway, talking clip
+  with no sound, withheld by the adult check, your Looks wrong) as findings `{ id:
+  "<prompt id>:<rule>", rule, subject, severity, source, evidence, suggestion }`. Also
+  `sourceGoneFinding` (R5 pins) and `isFindingDismissed`. No check changed.
+- Tests: `checks/findings.test.ts` (3).
 
-**C2 — Findings in Cut, with your decision kept.**
+**C2 — Findings in Cut, with your decision kept.** _Done 2026-10-26._
 
-- Scope: a Continuity section in Cut listing findings for the cut's shots (C1 plus R5's
-  "source gone"), each with Jump to shot, **Dismiss**, **Accept** and a note. Decisions are a
-  synced record list (`continuityDecisions` in studio-extras, merged per record like the Cast).
-  Cut's pre-cut check skips dismissed findings.
-- Acceptance: a dismissed finding stays dismissed after reload and on another device, and stops
-  stopping the cut.
+- `src/lib/checks/finding-decisions.ts`: decisions (`dismissed` / `accepted`, note, time) by
+  finding id, synced in studio-extras as `continuityDecisions` and merged per record
+  (`RECORD_LISTS`, `durable-sync-keys.ts`).
+- Cut: a **Continuity** section (`components/cut/CutContinuity.tsx`) lists the findings on the
+  film's included shots, from each shot's Gallery entry (a Day clip also gets its still's).
+  Each has the shot (click: monitor), evidence, what to do, **It's fine**, **It's real** and
+  **Undo**, plus a "marked fine" list. The pre-cut check leaves out dismissed pose and face
+  misses (`useCutRoom.cutFilm`).
+- Also fixes R5's open gap: the pre-cut check reads a pinned shot's checks from the take it
+  plays, not its scene's current kept take.
+- Tests: `checks/finding-decisions.test.ts` (3, including the cross-device merge) and
+  `e2e/cut-room.spec.ts` "continuity: …" (dismiss, reload, undo).
+- Not done: Story keeps its pose and face matches on the beat, not on the Gallery entry, so
+  Story shots' findings show in the pre-cut check but not in this list yet. The finding note
+  isn't editable in the UI (the store keeps one).
 
 **C3 — Per-shot state (pure).**
 

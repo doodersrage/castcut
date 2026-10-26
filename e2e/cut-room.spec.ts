@@ -333,6 +333,58 @@ test('pins: an edited shot keeps its take, a new one is offered, a gone scene pl
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
 });
 
+// M2 C2: what the checks found on the film's shots, and your decision about it, kept.
+test('continuity: a flagged shot is listed, marked fine, and stays marked after a reload', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        {
+          id: 'e2e-cr-m-entry',
+          promptId: 'cr-m',
+          comfyUrl: 'http://127.0.0.1:8188',
+          tool: 'image-prompt',
+          prompt: 'Edit instruction for a Day still: pours coffee',
+          status: 'completed',
+          queuedAt: Date.now() - 60_000,
+          completedAt: Date.now() - 30_000,
+          images: [{ filename: 'cr-m.png', subfolder: '', type: 'output' }],
+          playChecks: { face: 0.41, faceMiss: true, at: Date.now() - 20_000 },
+        },
+      ])
+    );
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const finding = page.getByTestId('cut-finding-cr-m:face-miss');
+  await expect(finding).toBeVisible({ timeout: 30_000 });
+  await expect(finding).toContainText('Face match 41%');
+  await expect(finding).toHaveAttribute('data-decision', 'open');
+
+  await page.getByTestId('cut-finding-dismiss-cr-m:face-miss').click();
+  await expect(page.getByTestId('cut-finding-cr-m:face-miss')).toHaveCount(0);
+  await page.getByTestId('cut-continuity-dismissed-toggle').click();
+  await expect(page.getByTestId('cut-finding-cr-m:face-miss')).toHaveAttribute(
+    'data-decision',
+    'dismissed'
+  );
+
+  // A reload keeps the decision (the seed only sets the Gallery and settings again).
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-continuity-dismissed-toggle')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cut-finding-cr-m:face-miss')).toHaveCount(0);
+  await page.getByTestId('cut-continuity-dismissed-toggle').click();
+  await page.getByTestId('cut-finding-undo-cr-m:face-miss').click();
+  await expect(page.getByTestId('cut-finding-cr-m:face-miss')).toHaveAttribute(
+    'data-decision',
+    'open'
+  );
+});
+
 test('look and speed: the monitor shows the grade, a 2× clip halves its block, S splits', async ({
   page,
 }) => {

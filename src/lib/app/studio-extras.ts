@@ -17,6 +17,11 @@ import {
 } from '@/lib/wardrobe/footwear-saved';
 import { loadMyPoses, replaceMyPoses, type MyPose } from '@/lib/pose/my-poses';
 import {
+  loadFindingDecisions,
+  replaceFindingDecisions,
+  type FindingDecision,
+} from '@/lib/checks/finding-decisions';
+import {
   readBrowserValue,
   withSuppressedDurableSyncPush,
   writeBrowserValue,
@@ -242,6 +247,8 @@ export type StudioExtrasPayload = {
   savedFootwear?: SavedFootwear[];
   /** "My poses" — dragged / photo skeletons saved by name. */
   myPoses?: MyPose[];
+  /** Your decisions about continuity findings (checks/finding-decisions.ts). */
+  continuityDecisions?: FindingDecision[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -313,6 +320,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     calmUi: loadCalmUi(),
     savedFootwear: loadSavedFootwear(),
     myPoses: loadMyPoses(),
+    continuityDecisions: loadFindingDecisions(),
     ...Object.assign({}, ...[...studioExtrasSections.values()].map(section => section.collect())),
   };
 }
@@ -460,6 +468,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.myPoses) {
       replaceMyPoses(payload.myPoses);
+    }
+    if (payload.continuityDecisions) {
+      replaceFindingDecisions(payload.continuityDecisions);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);
@@ -651,6 +662,8 @@ export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): bo
         replaceSavedFootwear(value);
       } else if (field === 'myPoses') {
         replaceMyPoses(value);
+      } else if (field === 'continuityDecisions') {
+        replaceFindingDecisions(value);
       } else if (field === 'comfyWorkflowFiles' && Array.isArray(value)) {
         saveComfyWorkflowFiles(value as ReturnType<typeof loadComfyWorkflowFiles>, {
           fromSync: true,
