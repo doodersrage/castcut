@@ -53,6 +53,22 @@ describe('Film Director next actions (M5 W2)', () => {
     assert.equal(byKind['cover-gap']!.href, '/scene?character=nora&script=sc1');
   });
 
+  it('a paused run comes right after failed jobs', () => {
+    const actions = nextProductionActions(
+      overview(),
+      { hasReference: true },
+      { label: 'Draft', state: 'paused', stopReason: 'Kitchen’s take failed.' }
+    );
+    assert.deepEqual(actions.slice(0, 2).map(action => action.kind), ['retry-jobs', 'run-paused']);
+    assert.equal(actions[1]!.detail, 'Kitchen’s take failed.');
+    assert.equal(
+      nextProductionActions(overview(), { hasReference: true }, { label: 'x', state: 'done' }).some(
+        action => action.kind === 'run-paused'
+      ),
+      false
+    );
+  });
+
   it('says nothing when nothing waits', () => {
     const calm = overview({
       scenes: { total: 1, planned: 0, rendering: 0, toReview: 0, kept: 1, keptLooksWrong: 0, inCut: 1, items: [{ id: 's', name: 'S', state: 'kept', takes: 1, keptLooksWrong: false, inCut: true }] },

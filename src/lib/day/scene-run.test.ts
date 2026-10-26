@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
@@ -130,5 +132,18 @@ describe('running a run (M5 W4)', () => {
     assert.equal(paused.log.at(-1)!.event, 'paused');
     const prepared = { ...base(), state: 'prepared' as const };
     assert.equal(pausedAfterReload(prepared), prepared);
+  });
+});
+
+describe('automation never chooses for you (M5 W5)', () => {
+  it('the run and its runner never keep a take', () => {
+    const root = join(__dirname, '..', '..');
+    for (const file of ['lib/day/scene-run.ts', 'hooks/day-planner/useSceneRun.ts']) {
+      const source = readFileSync(join(root, file), 'utf8')
+        // Comments may say it never does.
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      assert.doesNotMatch(source, /keepTake|keepSceneTake|keptTakeId\s*[:=]/, file);
+    }
   });
 });

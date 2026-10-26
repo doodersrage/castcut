@@ -9,6 +9,7 @@ import type { ProductionOverview } from './production-overview';
 export type ProductionActionKind =
   | 'cast-reference'
   | 'retry-jobs'
+  | 'run-paused'
   | 'replace-wrong'
   | 'review-takes'
   | 'continuity'
@@ -31,6 +32,7 @@ export type ProductionAction = {
 const RANK: Record<ProductionActionKind, number> = {
   'cast-reference': 0,
   'retry-jobs': 1,
+  'run-paused': 1.5,
   'replace-wrong': 2,
   'review-takes': 3,
   continuity: 4,
@@ -44,7 +46,9 @@ const plural = (count: number, one: string, many = `${one}s`) =>
 
 export function nextProductionActions(
   overview: ProductionOverview,
-  cast: { name?: string; hasReference: boolean }
+  cast: { name?: string; hasReference: boolean },
+  /** A run on the Scene page that stopped short (M5 W5): its label and why. */
+  run?: { label: string; state: string; stopReason?: string } | null
 ): ProductionAction[] {
   const id = encodeURIComponent(overview.castId);
   const scenePage = `/scene?character=${id}`;
@@ -73,6 +77,16 @@ export function nextProductionActions(
         : 'Retry them from the Queue.',
       href: '/queue',
       cta: 'Open the Queue',
+    });
+  }
+  if (run && run.state === 'paused') {
+    actions.push({
+      id: 'run-paused',
+      kind: 'run-paused',
+      title: `The run “${run.label}” is paused`,
+      detail: run.stopReason || 'Resume it on the Scene page.',
+      href: scenePage,
+      cta: 'Open the run',
     });
   }
   for (const scene of overview.scenes.items) {

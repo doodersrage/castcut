@@ -892,6 +892,113 @@ test('Pause stops the run after the take rendering now', async ({ page }) => {
   await expect(page.getByTestId('scene-run-start')).toHaveText('Resume');
 });
 
+/** A Scene page with two empty Scenes and a run over them (M5 W4 / W5), the engine stubbed. */
+async function seedRunPage(
+  page: Page,
+  run: Record<string, unknown>,
+  jobs: () => Record<string, unknown> = () => ({
+    status: 'completed',
+    images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }],
+  })
+) {
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/comfyui/jobs**', route => route.fulfill({ json: { status: jobs() } }));
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+    await page.route(`**/api/${check}**`, route =>
+      route.fulfill({ json: { ok: true, skipped: true } })
+    );
+  }
+  const empty = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [base.scenes[0]!, empty('run-a', 'Run A', 3), empty('run-b', 'Run B', 4)],
+          run: {
+            id: 'run-w5',
+            castId: CAST,
+            label: 'W5 run',
+            items: [
+              { sceneId: 'run-a', include: true },
+              { sceneId: 'run-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: true,
+            state: 'prepared',
+            position: 0,
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+            ...run,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  return queued;
+}
+
+// M5 W5: the take limit holds, and Film Director shows what the run did.
+test('a run stops at its take limit, and Film Director shows its log', async ({ page }) => {
+  const queued = await seedRunPage(page, { maxTakes: 1 });
+  await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  expect(queued).toHaveLength(1);
+
+  await gotoStable(page, '/production');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('director-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 30_000,
+  });
+  const log = page.getByTestId('director-run-log');
+  await expect(log.locator('[data-event="queued"]')).toHaveCount(1);
+  await expect(log.locator('[data-event="landed"]')).toHaveCount(1);
+  await expect(log.locator('[data-event="done"]')).toContainText('take limit');
+});
+
+// M5 W5: Cancel stops after the take in flight; nothing else is queued.
+test('Cancel stops the run after the take in flight, and nothing else is queued', async ({
+  page,
+}) => {
+  let finish = false;
+  const queued = await seedRunPage(page, {}, () =>
+    finish
+      ? { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] }
+      : { status: 'running' }
+  );
+  await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBe(1);
+  await page.getByTestId('scene-run-cancel').click();
+  await expect(page.getByTestId('scene-run-state')).toContainText('cancelling after this take');
+  finish = true;
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'cancelled', {
+    timeout: 120_000,
+  });
+  // A moment more: nothing else goes to the engine.
+  await page.waitForTimeout(3_000);
+  expect(queued).toHaveLength(1);
+  await expect(page.getByTestId('scene-run-start')).toHaveCount(0);
+});
+
 // R4: a take says how it was made — read from its Gallery entry.
 test('a take says how it was made, and when its Gallery entry is gone', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {

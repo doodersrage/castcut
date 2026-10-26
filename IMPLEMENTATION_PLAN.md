@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W4** are done; next: **W5**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.**
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1198,14 +1198,33 @@ second status system: every count is read from the records M1–M4 made reliable
     is out of scope, as planned.
   - There is no phone control.
 
-**W5 — Audit of automated work.**
-- Every run step is logged on the run record: queued (prompt id), skipped (why), landed,
-  failed, paused, cancelled. The log shows in the run panel and in Film Director.
+**W5 — Audit of automated work.** _Done 2026-10-26._
+
+- Every run step is on the run record (W4): prepared, resumed, queued (with the prompt id),
+  skipped (why), landed, failed, paused, cancelled, done (why). That makes the run auditable
+  without a separate system.
+- Film Director's **Automation** section shows it: the run's state and "n of m done", why it
+  stopped, its last 30 steps with times, and **Open the run**. A paused run is a next action
+  (`run-paused`, right after failed jobs), with its reason.
 - Tests:
-  - a restart mid-run resumes without a second job for the Scene in flight;
-  - cancel leaves nothing queued;
-  - a run never sets `keptTakeId`;
-  - the cap is respected.
+  - `day/scene-run.test.ts`: a source check that the run model and its runner never keep a
+    take (no `keepTake`, `keepSceneTake` or `keptTakeId` write).
+  - `film/production-next.test.ts`: the paused-run action.
+  - e2e "a run stops at its take limit, and Film Director shows its log": 2 Scenes, at most 1
+    take, 1 job; the log in Film Director.
+  - e2e "Cancel stops the run after the take in flight…": cancelled, no second job.
+  - With W4's run and reload e2e, these cover the plan's audit list: duplicates after a
+    restart, cancel, never keeping, the cap.
+
+**M5 gate (ROADMAP §8 acceptance):**
+
+| Criterion | Where |
+| --- | --- |
+| The workspace reflects actual production state | W1: every count derived from the records (Scenes, scripts, Gallery jobs, decisions, Cut), none kept separately |
+| Guided actions use the existing Queue, Scene, continuity and Cut systems | W2: each action is a deep link into the tool (`/scene?scene=`, `?script=`, `/queue`, Cut's Continuity) |
+| Pausing or cancelling orchestration doesn't corrupt work | W4 / W5: Pause and Cancel act after the take in flight; e2e for both |
+| A restart leaves no ambiguous or duplicate jobs | W4: the job in flight is recorded; after a reload the run is paused and Resume waits for that job (e2e: one new job only) |
+| Automated operations are visible, auditable and bounded | W3 limits (takes, minutes, the 60-Scene room); the W4 log, shown on the Scene page and in Film Director (W5) |
 
 ## 6.3 Risks and compatibility
 

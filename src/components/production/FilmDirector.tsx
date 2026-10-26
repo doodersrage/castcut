@@ -16,6 +16,15 @@ import { normalizeSavedScripts } from '@/lib/day/scene-scripts';
 import { DEFAULT_CUT_TOOL_CACHE } from '@/lib/film/cut-room';
 import { productionOverview, type SceneState } from '@/lib/film/production-overview';
 import { nextProductionActions } from '@/lib/film/production-next';
+import { normalizeSceneRun, runProgress, type SceneRun } from '@/lib/day/scene-run';
+
+const RUN_STATE_LABELS: Record<SceneRun['state'], string> = {
+  prepared: 'ready, not started',
+  running: 'running',
+  paused: 'paused',
+  done: 'done',
+  cancelled: 'cancelled',
+};
 import { lookPlateKey } from '@/lib/character/os';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import {
@@ -138,15 +147,24 @@ export default function FilmDirector() {
     });
   }, [castId, cut.toolSettings, decisions, gallery, settings]);
 
+  // The Scene page's run (M5 W4), as recorded — what automation did, step by step (W5).
+  const run = useMemo(() => {
+    const stored = normalizeSceneRun(settings.run);
+    return stored && stored.castId === castId ? stored : undefined;
+  }, [castId, settings.run]);
   const actions = useMemo(
     () =>
       overview
-        ? nextProductionActions(overview, {
-            ...(castName ? { name: castName } : {}),
-            hasReference: Boolean(castRecord && lookPlateKey(castRecord)),
-          })
+        ? nextProductionActions(
+            overview,
+            {
+              ...(castName ? { name: castName } : {}),
+              hasReference: Boolean(castRecord && lookPlateKey(castRecord)),
+            },
+            run
+          )
         : [],
-    [castName, castRecord, overview]
+    [castName, castRecord, overview, run]
   );
   const [showAll, setShowAll] = useState(false);
 
@@ -375,6 +393,48 @@ export default function FilmDirector() {
                 ))}
               </ul>
             ) : null}
+          </ToolSection>
+
+          <ToolSection title="Automation" data-testid="director-run">
+            {run ? (
+              <div className="space-y-2">
+                <p className="text-sm" data-testid="director-run-state" data-state={run.state}>
+                  <span className="font-medium">{run.label}</span> · {RUN_STATE_LABELS[run.state]} ·{' '}
+                  {runProgress(run, normalizeSavedScenes(settings.scenes)).done} of{' '}
+                  {runProgress(run, normalizeSavedScenes(settings.scenes)).total} done · it never
+                  keeps a take
+                </p>
+                {run.stopReason && run.state === 'paused' ? (
+                  <p className="type-caption ui-status-danger">{run.stopReason}</p>
+                ) : null}
+                <ol className="max-h-56 space-y-0.5 overflow-auto" data-testid="director-run-log">
+                  {[...run.log]
+                    .reverse()
+                    .slice(0, 30)
+                    .map((entry, index) => (
+                      <li
+                        key={`${entry.at}-${index}`}
+                        className="type-caption"
+                        data-event={entry.event}
+                      >
+                        <span className="text-[var(--text-muted)]">
+                          {new Date(entry.at).toLocaleString()}
+                        </span>{' '}
+                        <span className="font-medium">{entry.event}</span>
+                        {entry.detail ? ` · ${entry.detail}` : ''}
+                      </li>
+                    ))}
+                </ol>
+                <ButtonLink href={scene} size="sm" variant="ghost">
+                  Open the run
+                </ButtonLink>
+              </div>
+            ) : (
+              <p className="type-caption text-[var(--text-muted)]">
+                No run. On the Scene page, open a script and Prepare a run to render its Scenes one
+                at a time.
+              </p>
+            )}
           </ToolSection>
 
           <ToolSection title="Continuity and the Cut" data-testid="director-cut">
