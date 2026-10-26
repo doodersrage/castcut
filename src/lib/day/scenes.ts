@@ -1086,6 +1086,43 @@ export function sceneCutShots(
     });
 }
 
+/** What Cut's edit holds of a scene (R7): just the parts the Scene page asks about. */
+type CutEditOf = {
+  sources?: string[];
+  options?: {
+    shotEdits?: { shots?: Record<string, { include?: boolean; pin?: { url?: string } }> };
+  };
+};
+
+/**
+ * Whether the scene is in Cut's current edit, and how its shot there would take a change (R7):
+ * `follows` — it plays the kept take, so letting that take go (or deleting the scene) takes the
+ * shot out of the cut; `pinned` — it plays the take it was cut with (film/cut-pins.ts) and keeps
+ * doing so. `none` — not in the edit (no kept take, left out, or Scenes not a source).
+ */
+export function sceneCutUse(
+  cut: CutEditOf | null | undefined,
+  scene: Pick<SavedScene, 'id' | 'keptTakeId'>
+): 'none' | 'follows' | 'pinned' {
+  const shots = cut?.options?.shotEdits?.shots ?? {};
+  const key = `scenes:${scene.id}`;
+  const occurrences = Object.entries(shots).filter(
+    ([entry]) => entry === key || entry.startsWith(`${key}~`)
+  );
+  if (occurrences.some(([, edit]) => edit?.include !== false && edit?.pin?.url)) return 'pinned';
+  if (!scene.keptTakeId) return 'none';
+  if (cut?.sources && !cut.sources.includes('scenes')) return 'none';
+  return shots[key]?.include === false ? 'none' : 'follows';
+}
+
+/** What the Scene page says about Cut before the kept take goes or the scene is deleted. */
+export function sceneCutNote(use: ReturnType<typeof sceneCutUse>): string {
+  if (use === 'pinned')
+    return 'Its shot in Cut is pinned and keeps playing the take it was cut with.';
+  if (use === 'follows') return 'Its shot in Cut plays the kept take, so it leaves the cut.';
+  return '';
+}
+
 /** The mood fields a Cast file carries with a scene (not the partner: another Cast). */
 const FILE_MOOD_FIELDS = [
   'dayMood',

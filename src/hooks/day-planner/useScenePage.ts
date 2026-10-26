@@ -20,6 +20,8 @@ import {
   removeSceneTake,
   resolveSceneChecks,
   sceneCardBusy,
+  sceneCutNote,
+  sceneCutUse,
   sceneSlotAt,
   scenesForCast,
   swapSceneForCast,
@@ -33,6 +35,8 @@ import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/sce
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { daySlotsForScene } from '@/lib/day/scenes';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
 
@@ -218,12 +222,37 @@ export function useScenePage(vm: DayEngineView) {
     [active, inFlight, scenes, slot.id, stillPromptId, write]
   );
 
+  /** What deleting this scene, or letting its kept take go, does to Cut (R7). */
+  const cutNoteFor = useCallback(
+    (scene: Pick<SavedScene, 'id' | 'keptTakeId'> | null | undefined) =>
+      scene ? sceneCutNote(sceneCutUse(loadSettingsCache().tools.cut, scene)) : '',
+    []
+  );
+
   const removeTake = useCallback(
-    (takeId: string) => {
+    async (takeId: string) => {
       if (!active) return;
+      // The kept take is what Cut and Make it move use: ask first (R7). Others go at once —
+      // they stay in the Gallery.
+      if (takeId === active.keptTakeId) {
+        const index = active.takes.findIndex(take => take.id === takeId);
+        const ok = await confirmAction({
+          title: `Remove the kept take (take ${index + 1})?`,
+          body: [
+            'It stays in the Gallery, but this scene has no kept take until you keep another.',
+            cutNoteFor(active),
+          ]
+            .filter(Boolean)
+            .join(' '),
+          confirmLabel: 'Remove take',
+          tone: 'danger',
+          testId: 'scene-remove-kept-confirm',
+        });
+        if (!ok) return;
+      }
       write({ scenes: upsertScene(scenes, removeSceneTake(active, takeId)) });
     },
-    [active, scenes, write]
+    [active, cutNoteFor, scenes, write]
   );
 
   /** Make it move starts from the kept take: put it on the card first. */
@@ -286,6 +315,7 @@ export function useScenePage(vm: DayEngineView) {
     showTake,
     keepTake,
     removeTake,
+    cutNoteFor,
     keptOnCard,
     daySlots,
     refreshDaySlots,

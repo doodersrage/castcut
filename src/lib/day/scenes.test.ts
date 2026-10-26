@@ -20,7 +20,9 @@ import {
   resolveSceneChecks,
   SCENE_TAKE_LIMIT,
   sceneCardBusy,
+  sceneCutNote,
   sceneCutShots,
+  sceneCutUse,
   sceneFromDaySlot,
   sceneSlotAt,
   sceneSlotOf,
@@ -628,6 +630,23 @@ describe('scenes: the open scene follows the engine', () => {
 
     const cache: SceneToolCache = { scenes: [scene], activeSceneId: 'other' };
     assert.deepEqual(deleteScenePatch(cache, scene.id, 99).removedSceneAt, { [scene.id]: 99 });
+  });
+
+  it("says what Cut does when a scene's kept take goes (R7)", () => {
+    const scene = { id: 's1', keptTakeId: 'p1' };
+    assert.equal(sceneCutUse(undefined, scene), 'follows');
+    assert.equal(sceneCutUse({ sources: ['day'] }, scene), 'none');
+    assert.equal(sceneCutUse(undefined, { id: 's1' }), 'none');
+    const leftOut = { options: { shotEdits: { shots: { 'scenes:s1': { include: false } } } } };
+    assert.equal(sceneCutUse(leftOut, scene), 'none');
+    const pinnedCopy = {
+      options: { shotEdits: { shots: { 'scenes:s1~2': { pin: { url: '/take.mp4' } } } } },
+    };
+    assert.equal(sceneCutUse(pinnedCopy, scene), 'pinned');
+    assert.equal(sceneCutUse(pinnedCopy, { id: 's1' }), 'pinned', 'pinned plays on without it');
+    assert.match(sceneCutNote('follows'), /leaves the cut/);
+    assert.match(sceneCutNote('pinned'), /keeps playing/);
+    assert.equal(sceneCutNote('none'), '');
   });
 
   it('logs which scene each job was for (R4)', () => {

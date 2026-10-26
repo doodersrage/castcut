@@ -216,7 +216,12 @@ export default function SceneToolSections({ vm, page }: Props) {
                 </div>
                 {confirmDelete ? (
                   <span className="flex items-center gap-2" data-testid="scene-delete-confirm">
-                    <span className="type-caption">Delete {active.name}?</span>
+                    <span className="type-caption">
+                      Delete {active.name}?
+                      {page.cutNoteFor(active) ? (
+                        <span data-testid="scene-delete-cut-note"> {page.cutNoteFor(active)}</span>
+                      ) : null}
+                    </span>
                     <Button
                       size="sm"
                       variant="secondary"

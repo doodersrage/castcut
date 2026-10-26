@@ -7,8 +7,8 @@
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
 > protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
-> **R4** (how a take was made), **R5** (Cut pins its media) and **R6** (Scenes merge across
-> devices). Next: R7.
+> **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
+> devices) and **R7** (the kept take is safe to remove). Next: R8.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -426,8 +426,18 @@ labelled; pin and unpin by hand._
   the newer copy wins those fields. Takes are merged, settings aren't. Day slots and Story beats
   are single records per tool, so their tools still merge whole.
 
-**R7 — Kept-take safety in the Scene UI (G5).** Confirm or undo removing the kept take; delete
-scene says when the scene is in a Cut.
+**R7 — Kept-take safety in the Scene UI (G5).** _Done 2026-10-25._
+
+- `sceneCutUse` / `sceneCutNote` (`day/scenes.ts`) say whether a scene is in Cut's current edit,
+  and how: `follows` means the shot leaves the cut; `pinned` means it keeps playing the take it
+  was cut with (R5).
+- Removing the **kept** take asks first (`confirmAction`, testId `scene-remove-kept-confirm`),
+  saying what Cut loses. Other takes still go at once, since they stay in the Gallery
+  (`useScenePage.removeTake`).
+- Delete scene's confirmation, on desktop (`SceneToolSections.tsx`) and phone
+  (`MobileSceneToolSections.tsx`), adds the Cut note.
+- Tests: `day/scenes.test.ts` (1), `e2e/scene.spec.ts` "removing the kept take asks first…".
+- Not done: an undo for removing a take; confirm-first was chosen instead.
 
 **R8 — Queue: cancelled / interrupted states and late recovery (G6).** Separate "cancelled" and
 "lost" from "error"; re-check timed-out entries against ComfyUI history on the next resume and

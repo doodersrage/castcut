@@ -313,6 +313,49 @@ test('a take says how it was made, and when its Gallery entry is gone', async ({
   await expect(page.getByTestId('scene-take-provenance-still')).toHaveCount(0);
 });
 
+// R7: the kept take is what Cut uses — removing it asks first; deleting the scene says so.
+test('removing the kept take asks first, and deleting a scene says what Cut loses', async ({
+  page,
+}) => {
+  const seeded = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...seeded,
+        scenes: seeded.scenes.map(scene => ({ ...scene, keptTakeId: 'take-1' })),
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const takes = page.getByTestId('scene-take');
+  await expect(takes).toHaveCount(2, { timeout: 60_000 });
+  await expect(takes.nth(0)).toHaveAttribute('data-kept', 'true');
+
+  // The kept take: asked, and Cancel keeps it.
+  await page.getByTestId('scene-take-remove-0').click();
+  const ask = page.getByTestId('scene-remove-kept-confirm');
+  await expect(ask).toBeVisible();
+  await expect(ask).toContainText('leaves the cut');
+  await page.getByTestId('confirm-dialog-cancel').click();
+  await expect(takes).toHaveCount(2);
+
+  // Delete says Cut loses the shot (and Keep keeps the scene).
+  await page.getByTestId('scene-delete').click();
+  await expect(page.getByTestId('scene-delete-cut-note')).toContainText('leaves the cut');
+  await page.getByRole('button', { name: 'Keep', exact: true }).click();
+
+  // Confirmed, it goes; a take that isn't kept goes at once.
+  await page.getByTestId('scene-take-remove-0').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+  await expect(takes).toHaveCount(1);
+  await page.getByTestId('scene-take-remove-0').click();
+  await expect(takes).toHaveCount(0);
+  await expect(page.getByTestId('scene-remove-kept-confirm')).toHaveCount(0);
+});
+
 test('Open as Scene from a Day slot copies its shot and take', async ({ page }) => {
   await stubComfyQueue(page);
   await seedSettingsCacheOnNextLoad(page, {

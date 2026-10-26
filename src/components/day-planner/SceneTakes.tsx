@@ -183,7 +183,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                   aria-label={`Remove take ${index + 1}`}
                   title="Remove from the scene (it stays in the Gallery)"
                   data-testid={`scene-take-remove-${index}`}
-                  onClick={() => removeTake(take.id)}
+                  onClick={() => void removeTake(take.id)}
                 >
                   ×
                 </button>

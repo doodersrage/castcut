@@ -307,6 +307,9 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
               >
                 <span className="type-caption min-w-0 flex-1">
                   Delete {active.name}? Its takes stay in the Gallery.
+                  {page.cutNoteFor(active) ? (
+                    <span data-testid="scene-delete-cut-note"> {page.cutNoteFor(active)}</span>
+                  ) : null}
                 </span>
                 <Button
                   variant="secondary"
