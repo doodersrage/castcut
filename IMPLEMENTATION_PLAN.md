@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1** is done; next: **S2**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1** and **S2** are done; next: **S3**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -681,8 +681,24 @@ replaces Scenes or Story.
 - Not done: Day's import (`day/script-import.ts`) still uses its own smaller reading. Moving it
   onto `parseScript` can come with S2. Outline ids are positional (`outline-n`).
 
-**S2 — The Script record and import.** On the Scene page, a **Script** tab: paste or upload a
-script, see it parsed scene by scene, with what wasn't understood, and keep it (synced, per Cast).
+**S2 — The Script record and import.** _Done 2026-10-26._
+
+- `src/lib/day/scene-scripts.ts`: `SavedScript { id, castId, name, source, createdAt,
+  updatedAt }`, kept in `tools.scene.scripts`.
+  - Only the text is stored; the reading is made again when shown.
+  - At most 200,000 characters (refused, never cut) and 12 per Cast.
+  - It is named from the title page, else the first heading.
+  - Deletes leave `removedScriptAt` tombstones, and the list is merged per script across
+    devices (`TOOL_RECORD_LISTS` in `storage/tool-record-merge.ts`).
+- Scene page → **Script** section (`components/day-planner/SceneScripts.tsx`): **Import a
+  script** (paste, or upload `.fountain` / `.txt` / `.md`). It shows how the text reads before
+  you keep it: scene by scene in screenplay layout, with anything not understood listed. Rename
+  and Delete (asks first) are there too.
+- Parser fix found by the e2e: an unclosed `[[` note hid the rest of the script. It now ends at
+  the next blank line, as Fountain notes can't hold one, and is reported.
+- Tests: `day/scene-scripts.test.ts` (4) and `e2e/scene.spec.ts` "a script is imported…".
+- Not done: the phone's Scene layout has no Script section yet. Day's import still uses its own
+  reader.
 
 **S3 — Names to records.** Character cues → Cast (by name and alias, with your confirmation for
 unknown names, never created silently); scene places → the Cast's places, or kept as text.

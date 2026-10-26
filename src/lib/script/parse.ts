@@ -147,6 +147,17 @@ function stripNotes(lines: string[], issues: ScriptIssue[]) {
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index]!;
     const n = index + 1;
+    // A note can't hold a blank line (Fountain): one left open ends there, so a missing ]] hides
+    // one paragraph, not the rest of the script.
+    if (note && !raw.trim()) {
+      notes.push({ kind: 'note', text: note.parts.join(' ').trim(), from: note.from, to: n - 1 });
+      issues.push({
+        line: note.from,
+        text: '[[',
+        reason: 'A note ([[ … ]]) is never closed — it was ended at the next blank line.',
+      });
+      note = null;
+    }
     let line = raw;
     let kept = '';
     while (line.length) {
@@ -199,6 +210,12 @@ function stripNotes(lines: string[], issues: ScriptIssue[]) {
     });
   }
   if (note) {
+    notes.push({
+      kind: 'note',
+      text: note.parts.join(' ').trim(),
+      from: note.from,
+      to: lines.length,
+    });
     issues.push({ line: note.from, text: '[[', reason: 'A note ([[ … ]]) is never closed.' });
   }
   return { lines: out, notes };

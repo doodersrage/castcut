@@ -1,0 +1,273 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/Button';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { FieldError } from '@/components/ui/Field';
+import { ToolSection } from '@/components/ui/ToolPageShell';
+import UploadButton from '@/components/ui/UploadButton';
+import {
+  addScriptPatch,
+  createScript,
+  normalizeSavedScripts,
+  removeScriptPatch,
+  renameScriptPatch,
+  SCRIPT_SOURCE_MAX,
+  scriptsForCast,
+  scriptSummary,
+  type ScriptsCache,
+} from '@/lib/day/scene-scripts';
+import {
+  parseScript,
+  type ParsedScript,
+  type ScriptElement,
+  type ScriptScene,
+} from '@/lib/script/parse';
+
+function Element({ element }: { element: ScriptElement }) {
+  const lines = element.text.split('\n');
+  const body = lines.map((line, index) => (
+    <span key={index}>
+      {index ? <br /> : null}
+      {line}
+    </span>
+  ));
+  switch (element.kind) {
+    case 'character':
+      return <p className="mt-2 pl-[30%] font-medium uppercase">{element.text}</p>;
+    case 'dialogue':
+      return <p className="pl-[15%] pr-[15%]">{body}</p>;
+    case 'parenthetical':
+      return <p className="pl-[22%] italic text-[var(--text-muted)]">{element.text}</p>;
+    case 'transition':
+      return <p className="mt-2 text-right uppercase">{element.text}</p>;
+    case 'centered':
+      return <p className="mt-2 text-center">{element.text}</p>;
+    case 'lyric':
+      return <p className="pl-[15%] italic">{body}</p>;
+    case 'note':
+      return (
+        <p className="mt-2 rounded bg-[var(--bg-muted)] px-2 py-1 type-caption text-[var(--text-muted)]">
+          Note: {element.text}
+        </p>
+      );
+    case 'section':
+    case 'synopsis':
+      return <p className="mt-2 type-caption text-[var(--text-muted)]">{element.text}</p>;
+    case 'page-break':
+      return <hr className="my-2 border-[var(--border-subtle)]" />;
+    default:
+      return <p className="mt-2">{body}</p>;
+  }
+}
+
+function SceneReading({ scene, index }: { scene: ScriptScene; index: number }) {
+  const label = scene.heading || `Beat ${index + 1}`;
+  return (
+    <details
+      className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
+      data-testid={`script-scene-${scene.id}`}
+    >
+      <summary className="cursor-pointer text-sm">
+        <span className="font-medium">
+          {scene.number ? `${scene.number}. ` : ''}
+          {label}
+        </span>
+        <span className="type-caption ml-2 text-[var(--text-muted)]">
+          {[
+            scene.setting,
+            scene.dayPart,
+            scene.speakers.length ? scene.speakers.join(', ') : '',
+            `lines ${scene.from}–${scene.to}`,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </span>
+      </summary>
+      <div className="mt-1 font-mono text-xs leading-relaxed">
+        {scene.elements.map((element, at) => (
+          <Element key={at} element={element} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function Reading({ parsed }: { parsed: ParsedScript }) {
+  return (
+    <div className="space-y-2">
+      {parsed.issues.length ? (
+        <ul className="space-y-1" data-testid="script-issues">
+          {parsed.issues.map((issue, at) => (
+            <li key={at} className="type-caption ui-status-danger">
+              Line {issue.line}: {issue.reason}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="type-caption text-[var(--text-muted)]" data-testid="script-summary">
+        {scriptSummary(parsed)}
+      </p>
+      <div className="space-y-1">
+        {parsed.scenes.map((scene, index) => (
+          <SceneReading key={scene.id} scene={scene} index={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Scene page's Script section (M3 S2): import a screenplay (Fountain or plain text) for the
+ * Cast, see how it reads — scene by scene, what wasn't understood — and keep it. Its scenes become
+ * planned shots and Scenes in S4.
+ */
+export default function SceneScripts({
+  castId,
+  castName,
+  cache,
+  update,
+}: {
+  castId: string;
+  castName?: string;
+  cache: ScriptsCache;
+  update: (patch: ScriptsCache) => void;
+}) {
+  const scripts = useMemo(
+    () => scriptsForCast(normalizeSavedScripts(cache.scripts), castId),
+    [cache.scripts, castId]
+  );
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const open = scripts.find(script => script.id === openId) ?? null;
+  const openParsed = useMemo(() => (open ? parseScript(open.source) : null), [open]);
+  const draftParsed = useMemo(() => (draft?.trim() ? parseScript(draft) : null), [draft]);
+
+  const keep = () => {
+    if (!draft) return;
+    const script = createScript({ castId, source: draft });
+    if (!script) {
+      setError(
+        draft.length > SCRIPT_SOURCE_MAX
+          ? `That script is too long to keep (${draft.length.toLocaleString()} characters; at most ${SCRIPT_SOURCE_MAX.toLocaleString()}).`
+          : 'Paste or upload a script first.'
+      );
+      return;
+    }
+    update(addScriptPatch(cache, script));
+    setDraft(null);
+    setError(null);
+    setOpenId(script.id);
+  };
+
+  const remove = async () => {
+    if (!open) return;
+    const ok = await confirmAction({
+      title: `Delete the script “${open.name}”?`,
+      body: 'Scenes already made from it stay. The script text goes.',
+      confirmLabel: 'Delete script',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    update(removeScriptPatch(cache, open.id));
+    setOpenId(null);
+  };
+
+  return (
+    <ToolSection data-testid="scene-scripts" title="Script">
+      <p className="type-caption mb-2 text-[var(--text-muted)]">
+        A screenplay for {castName ?? 'this Cast'} — Fountain or plain text. See how it reads, scene
+        by scene; its scenes become shots next.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {scripts.map(script => (
+          <Button
+            key={script.id}
+            size="sm"
+            variant={script.id === openId ? 'secondary' : 'ghost'}
+            aria-pressed={script.id === openId}
+            data-testid={`script-open-${script.id}`}
+            onClick={() => {
+              setDraft(null);
+              setOpenId(script.id === openId ? null : script.id);
+            }}
+          >
+            {script.name}
+          </Button>
+        ))}
+        <Button
+          size="sm"
+          variant={scripts.length ? 'ghost' : 'secondary'}
+          data-testid="script-import"
+          onClick={() => {
+            setOpenId(null);
+            setDraft(draft === null ? '' : null);
+            setError(null);
+          }}
+        >
+          {draft === null ? 'Import a script' : 'Cancel'}
+        </Button>
+      </div>
+
+      {draft !== null ? (
+        <div className="mt-3 space-y-2" data-testid="script-import-form">
+          <textarea
+            aria-label="Script text"
+            className="h-48 w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] p-2 font-mono text-xs"
+            placeholder={'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nNORA\nCoffee first.'}
+            value={draft}
+            data-testid="script-import-text"
+            onChange={event => setDraft(event.target.value)}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <UploadButton
+              label="Upload a file…"
+              accept=".fountain,.spmd,.txt,.md,text/plain"
+              testId="script-import-file"
+              onFile={file => void file.text().then(text => setDraft(text))}
+            />
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!draftParsed}
+              data-testid="script-keep"
+              onClick={keep}
+            >
+              Keep this script
+            </Button>
+          </div>
+          {error ? <FieldError>{error}</FieldError> : null}
+          {draftParsed ? <Reading parsed={draftParsed} /> : null}
+        </div>
+      ) : null}
+
+      {open && openParsed ? (
+        <div className="mt-3 space-y-2" data-testid="script-reading">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              aria-label="Script name"
+              className="min-w-[12rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-sm"
+              defaultValue={open.name}
+              key={open.id}
+              data-testid="script-name"
+              onBlur={event => {
+                const patch = renameScriptPatch(cache, open.id, event.target.value);
+                if (patch) update(patch);
+              }}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="script-delete"
+              onClick={() => void remove()}
+            >
+              Delete
+            </Button>
+          </div>
+          <Reading parsed={openParsed} />
+        </div>
+      ) : null}
+    </ToolSection>
+  );
+}

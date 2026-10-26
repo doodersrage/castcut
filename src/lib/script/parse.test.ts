@@ -129,6 +129,11 @@ describe('screenplay parser (M3 S1)', () => {
   it('reports what it cannot read instead of dropping it', () => {
     const unclosed = parseScript('INT. ROOM - DAY\n\nShe waits. [[a note that never ends\n\nNORA\nHi.');
     assert.match(unclosed.issues[0]!.reason, /never closed/);
+    // It ends at the blank line: the rest of the script still reads.
+    assert.deepEqual(
+      unclosed.scenes[0]!.elements.map(e => e.kind),
+      ['action', 'note', 'character', 'dialogue']
+    );
     const comment = parseScript('INT. ROOM - DAY\n\n/* everything after this\n\nNORA\nHi.');
     assert.match(comment.issues[0]!.reason, /comment/);
     assert.equal(comment.scenes[0]!.elements.length, 0);

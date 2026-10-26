@@ -33,6 +33,8 @@ export const TOOL_RECORD_LISTS: readonly ToolRecordListSpec[] = [
     removedField: 'removedSceneAt',
     children: { field: 'takes', removedField: 'removedTakeIds' },
   },
+  // A Cast's screenplays (day/scene-scripts.ts), merged per script.
+  { tool: 'scene', field: 'scripts', removedField: 'removedScriptAt' },
 ];
 
 /** Deletions kept per list, and removed child ids kept per record. */

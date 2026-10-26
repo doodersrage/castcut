@@ -170,6 +170,45 @@ async function storedScene(page: Page): Promise<string> {
   );
 }
 
+/** The stored scripts, read from the app's IndexedDB settings ("count|cast|name" of the first). */
+async function storedScripts(page: Page): Promise<string> {
+  return page.evaluate(
+    () =>
+      new Promise<string>(resolve => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => resolve('');
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('kv')) {
+            db.close();
+            resolve('');
+            return;
+          }
+          const get = db
+            .transaction('kv', 'readonly')
+            .objectStore('kv')
+            .get('comfy-prompt-tool-settings-tools-v1');
+          get.onsuccess = () => {
+            db.close();
+            const scripts = get.result?.value?.tools?.scene?.scripts;
+            const first = Array.isArray(scripts) ? scripts[0] : null;
+            resolve(
+              Array.isArray(scripts)
+                ? first
+                  ? `${scripts.length}|${first.castId}|${first.name}`
+                  : '0'
+                : '0'
+            );
+          };
+          get.onerror = () => {
+            db.close();
+            resolve('');
+          };
+        };
+      })
+  );
+}
+
 async function shot(page: Page, name: string) {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
 }
@@ -254,6 +293,45 @@ test('keep a take, the Director from it, and the kept take in Cut', async ({ pag
   await expect(source).toContainText('Scenes · 1 shot', { timeout: 60_000 });
   await expect(source).toHaveAttribute('aria-checked', 'true');
   await shot(page, 'scene-cut-source');
+});
+
+// M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
+test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
+
+  await page.getByTestId('script-import').click();
+  await page
+    .getByTestId('script-import-text')
+    .fill(
+      'Title: The Rooftop\n\nINT. KITCHEN - MORNING\n\nShe pours coffee. [[check the cup\n\nNORA\nCoffee first.\n\nEXT. ROOFTOP - NIGHT\n\nThe city.\n'
+    );
+  // Read before it is kept: two scenes, one speaking part, and the unclosed note said.
+  await expect(page.getByTestId('script-summary')).toContainText('2 scenes · 1 speaking part');
+  await expect(page.getByTestId('script-issues')).toContainText('never closed');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toBeVisible();
+  await expect(page.getByTestId('script-name')).toHaveValue('The Rooftop');
+  await expect(page.getByTestId('script-scene-int-kitchen-morning')).toBeVisible();
+
+  // Kept with the Cast in the app's settings (IndexedDB — what syncs and what a reload reads;
+  // a reload here would run the seed again, which replaces the Scene settings).
+  await expect
+    .poll(() => storedScripts(page), { timeout: 30_000 })
+    .toBe(`1|${CAST}|The Rooftop`);
+
+  await page.getByTestId('script-delete').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+  await expect(page.getByRole('button', { name: 'The Rooftop' })).toHaveCount(0);
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toBe('0');
 });
 
 // R4: a take says how it was made — read from its Gallery entry.

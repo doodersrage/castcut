@@ -93,23 +93,24 @@ export type SavedScene = {
  * The Scene page's settings (`tools.scene`): Day's working fields for the open scene (the engine
  * reads and writes those), the saved scenes of every Cast, and which one is open.
  */
-export type SceneToolCache = DayToolCache & {
-  scenes?: SavedScene[];
-  activeSceneId?: string;
-  /** The scene each Cast had open last (it opens again when the page comes back to them). */
-  openByCast?: Record<string, string>;
-  /**
-   * The jobs the Scene page queued (newest last, at most {@link SCENE_JOB_LOG_LIMIT}): the Queue
-   * page labels them "Scene" by id — a scene still is queued like a Day still, and its prompt
-   * text says "Day". Kept after a take is dropped or its scene deleted.
-   */
-  jobLog?: SceneJob[];
-  /**
-   * When scenes were deleted, by id (R6): another device's older copy of a deleted scene does not
-   * bring it back (storage/tool-record-merge.ts).
-   */
-  removedSceneAt?: Record<string, number>;
-};
+export type SceneToolCache = DayToolCache &
+  import('./scene-scripts').ScriptsCache & {
+    scenes?: SavedScene[];
+    activeSceneId?: string;
+    /** The scene each Cast had open last (it opens again when the page comes back to them). */
+    openByCast?: Record<string, string>;
+    /**
+     * The jobs the Scene page queued (newest last, at most {@link SCENE_JOB_LOG_LIMIT}): the Queue
+     * page labels them "Scene" by id — a scene still is queued like a Day still, and its prompt
+     * text says "Day". Kept after a take is dropped or its scene deleted.
+     */
+    jobLog?: SceneJob[];
+    /**
+     * When scenes were deleted, by id (R6): another device's older copy of a deleted scene does not
+     * bring it back (storage/tool-record-merge.ts).
+     */
+    removedSceneAt?: Record<string, number>;
+  };
 
 /**
  * A job the Scene page queued: its take or its clip, the scene's name then, and its id (since

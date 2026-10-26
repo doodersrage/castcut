@@ -1,5 +1,7 @@
 'use client';
 
+import SceneScripts from '@/components/day-planner/SceneScripts';
+import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { useId, useRef, useState } from 'react';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
@@ -546,6 +548,14 @@ export default function SceneToolSections({ vm, page }: Props) {
               ) : null}
             </ToolSection>
           </>
+        ) : null}
+        {character ? (
+          <SceneScripts
+            castId={character.id}
+            castName={character.name}
+            cache={vm.toolSettings as ScriptsCache}
+            update={patch => vm.updateToolSettings(patch as Partial<typeof vm.toolSettings>)}
+          />
         ) : null}
         {note ? (
           <p
