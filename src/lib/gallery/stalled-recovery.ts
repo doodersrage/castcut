@@ -74,41 +74,70 @@ export function stalledRecoveryCandidates<
 /** Prompt ids asked about in this session (one ask each). */
 const asked = new Set<string>();
 
+/** What recovery needs from the Gallery, the engine and the poll (the real ones by default). */
+export type StalledRecoveryDeps = {
+  /** Resolves once the whole Gallery is loaded (not its first page, nor an empty one). */
+  ready: () => Promise<void>;
+  gallery: () => readonly ComfyGalleryEntry[];
+  fetchStatus: (
+    entry: ComfyGalleryEntry
+  ) => Promise<{ status: string; images?: unknown[]; engineUrl?: string } | null>;
+  markRunning: (promptId: string) => void;
+  poll: (promptId: string, comfyUrl: string | undefined) => void;
+};
+
+async function realDeps(): Promise<StalledRecoveryDeps> {
+  const [gallery, engine, store] = await Promise.all([
+    import('./comfyui-gallery'),
+    import('../engine'),
+    import('./db-store'),
+  ]);
+  return {
+    ready: () => store.awaitFullGalleryHydration(),
+    gallery: () => gallery.loadComfyGallery(),
+    fetchStatus: entry =>
+      engine
+        .getEngineAdapterById(entry.engineId)
+        .fetchJobStatus(entry.promptId.trim(), entry.comfyUrl),
+    markRunning: promptId => {
+      gallery.updateComfyGalleryByPromptId(promptId, {
+        status: 'running',
+        statusMessage: 'Found again — ComfyUI still had it',
+      });
+    },
+    poll: (promptId, comfyUrl) => {
+      void import('./comfyui-gallery-poller').then(({ scheduleComfyGalleryPoll }) =>
+        scheduleComfyGalleryPoll(promptId, { comfyUrl })
+      );
+    },
+  };
+}
+
 /**
  * Ask the engine about each candidate; a job it still has (running, or finished) is handed back
  * to the normal poll. Returns how many were found again.
  */
-export async function recoverStalledGalleryJobs(): Promise<{ asked: number; found: number }> {
-  if (typeof window === 'undefined') return { asked: 0, found: 0 };
-  const [
-    { loadComfyGallery, updateComfyGalleryByPromptId },
-    { getEngineAdapterById },
-    { awaitFullGalleryHydration },
-  ] = await Promise.all([import('./comfyui-gallery'), import('../engine'), import('./db-store')]);
-  // Called as a page opens: the whole Gallery, not its first page (nor an empty one).
-  await awaitFullGalleryHydration();
-  const candidates = stalledRecoveryCandidates(loadComfyGallery(), { asked });
+export async function recoverStalledGalleryJobs(
+  deps?: StalledRecoveryDeps
+): Promise<{ asked: number; found: number }> {
+  if (!deps && typeof window === 'undefined') return { asked: 0, found: 0 };
+  const use = deps ?? (await realDeps());
+  await use.ready();
+  const candidates = stalledRecoveryCandidates(use.gallery(), { asked });
   let found = 0;
   for (const entry of candidates) {
     const promptId = entry.promptId.trim();
     asked.add(promptId);
     try {
-      const status = await getEngineAdapterById(entry.engineId).fetchJobStatus(
-        promptId,
-        entry.comfyUrl
-      );
+      const status = await use.fetchStatus(entry);
       const back =
         status &&
         (status.status === 'running' ||
           status.status === 'pending' ||
           (status.status === 'completed' && (status.images?.length ?? 0) > 0));
       if (!back) continue;
-      updateComfyGalleryByPromptId(promptId, {
-        status: 'running',
-        statusMessage: 'Found again — ComfyUI still had it',
-      });
-      const { scheduleComfyGalleryPoll } = await import('./comfyui-gallery-poller');
-      void scheduleComfyGalleryPoll(promptId, { comfyUrl: status.engineUrl || entry.comfyUrl });
+      use.markRunning(promptId);
+      use.poll(promptId, status.engineUrl || entry.comfyUrl);
       found += 1;
     } catch {
       // The engine unreachable: the next app start asks again.

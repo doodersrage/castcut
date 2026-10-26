@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import {
+  galleryJobOutcome,
+  recoverStalledGalleryJobs,
+  stalledRecoveryCandidates,
+  STALLED_RECOVERY_MAX,
+  STALLED_RECOVERY_WINDOW_MS,
+  type StalledRecoveryDeps,
+} from './stalled-recovery';
 
 const now = Date.now();
 const entry = (promptId: string, extra: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntry => ({
@@ -16,71 +24,26 @@ const entry = (promptId: string, extra: Partial<ComfyGalleryEntry> = {}): ComfyG
 const TIMED_OUT =
   'Timed out waiting for ComfyUI — open Queue to claim orphans or import history, or run Heal & ready if the host restarted.';
 
-let gallery: ComfyGalleryEntry[] = [];
-const updates: Array<[string, Partial<ComfyGalleryEntry>]> = [];
-const polls: string[] = [];
-const engineAnswers = new Map<string, unknown>();
-
-mock.module('./comfyui-gallery', {
-  namedExports: {
-    loadComfyGallery: () => gallery,
-    updateComfyGalleryByPromptId: (promptId: string, patch: Partial<ComfyGalleryEntry>) => {
-      updates.push([promptId, patch]);
-      return null;
+/** The Gallery, the engine and the poll, faked (no module mocks: they differ across Node versions). */
+function fakes(gallery: ComfyGalleryEntry[], answers: Map<string, unknown>) {
+  const marked: string[] = [];
+  const polled: string[] = [];
+  const deps: StalledRecoveryDeps = {
+    ready: async () => {},
+    gallery: () => gallery,
+    fetchStatus: async item => {
+      const answer = answers.get(item.promptId);
+      if (answer instanceof Error) throw answer;
+      return (answer as Awaited<ReturnType<StalledRecoveryDeps['fetchStatus']>>) ?? null;
     },
-  },
-});
-mock.module('../engine', {
-  namedExports: {
-    getEngineAdapterById: () => ({
-      fetchJobStatus: async (promptId: string) => {
-        const answer = engineAnswers.get(promptId);
-        if (answer instanceof Error) throw answer;
-        return answer ?? null;
-      },
-    }),
-  },
-});
-mock.module('./db-store', {
-  namedExports: { awaitFullGalleryHydration: async () => {} },
-});
-mock.module('./comfyui-gallery-poller', {
-  namedExports: {
-    scheduleComfyGalleryPoll: async (promptId: string) => {
-      polls.push(promptId);
-      return null;
-    },
-  },
-});
-// A whole window: a module the recovery loads may read browser storage after a test ends (CI).
-const storage = new Map<string, string>();
-(globalThis as unknown as { window: unknown }).window = {
-  localStorage: {
-    getItem: (key: string) => storage.get(key) ?? null,
-    setItem: (key: string, value: string) => void storage.set(key, value),
-    removeItem: (key: string) => void storage.delete(key),
-    get length() {
-      return storage.size;
-    },
-    key: (index: number) => [...storage.keys()][index] ?? null,
-  },
-  dispatchEvent: () => true,
-  addEventListener: () => undefined,
-  removeEventListener: () => undefined,
-  setTimeout: globalThis.setTimeout.bind(globalThis),
-  clearTimeout: globalThis.clearTimeout.bind(globalThis),
-};
+    markRunning: promptId => void marked.push(promptId),
+    poll: promptId => void polled.push(promptId),
+  };
+  return { deps, marked, polled };
+}
 
-describe('jobs given up on (R8)', async () => {
-  const {
-    galleryJobOutcome,
-    recoverStalledGalleryJobs,
-    stalledRecoveryCandidates,
-    STALLED_RECOVERY_MAX,
-    STALLED_RECOVERY_WINDOW_MS,
-  } = await import('./stalled-recovery');
-
-  it("tells a cancel, a lost job and a timeout apart from a real failure", () => {
+describe('jobs given up on (R8)', () => {
+  it('tells a cancel, a lost job and a timeout apart from a real failure', () => {
     assert.equal(galleryJobOutcome({ status: 'error', statusMessage: 'Cancelled' }), 'cancelled');
     assert.equal(galleryJobOutcome({ status: 'error', statusMessage: TIMED_OUT }), 'timed-out');
     assert.equal(
@@ -119,38 +82,31 @@ describe('jobs given up on (R8)', async () => {
   });
 
   it('hands a job ComfyUI finished (or still runs) back to the poll; leaves the rest', async () => {
-    gallery = [
+    const gallery = [
       entry('finished', { statusMessage: TIMED_OUT }),
       entry('still-running', { statusMessage: 'Job not found (engine restarted).' }),
       entry('really-gone', { statusMessage: TIMED_OUT }),
       entry('no-pictures', { statusMessage: TIMED_OUT }),
       entry('unreachable', { statusMessage: TIMED_OUT }),
     ];
-    engineAnswers.set('finished', {
-      status: 'completed',
-      images: [{ filename: 'a.png', subfolder: '', type: 'output' }],
-    });
-    engineAnswers.set('still-running', { status: 'running' });
-    engineAnswers.set('really-gone', { status: 'error', statusMessage: 'not found' });
-    engineAnswers.set('no-pictures', { status: 'completed', images: [] });
-    engineAnswers.set('unreachable', new Error('ECONNREFUSED'));
-
-    const first = await recoverStalledGalleryJobs();
-    assert.equal(first.found, 2);
-    assert.deepEqual(polls.sort(), ['finished', 'still-running']);
-    assert.deepEqual(
-      updates.map(([id, patch]) => [id, patch.status]).sort(),
-      [
-        ['finished', 'running'],
-        ['still-running', 'running'],
-      ]
-    );
+    const answers = new Map<string, unknown>([
+      ['finished', { status: 'completed', images: [{ filename: 'a.png' }] }],
+      ['still-running', { status: 'running' }],
+      ['really-gone', { status: 'error' }],
+      ['no-pictures', { status: 'completed', images: [] }],
+      ['unreachable', new Error('ECONNREFUSED')],
+    ]);
+    const first = fakes(gallery, answers);
+    const result = await recoverStalledGalleryJobs(first.deps);
+    assert.equal(result.found, 2);
+    assert.deepEqual(first.marked.sort(), ['finished', 'still-running']);
+    assert.deepEqual(first.polled.sort(), ['finished', 'still-running']);
 
     // Asked once a session — except the one the engine couldn't be reached for.
-    polls.length = 0;
-    engineAnswers.set('unreachable', { status: 'completed', images: [{ filename: 'b.png' }] });
-    const second = await recoverStalledGalleryJobs();
-    assert.equal(second.asked, 1);
-    assert.deepEqual(polls, ['unreachable']);
+    answers.set('unreachable', { status: 'completed', images: [{ filename: 'b.png' }] });
+    const second = fakes(gallery, answers);
+    const again = await recoverStalledGalleryJobs(second.deps);
+    assert.equal(again.asked, 1);
+    assert.deepEqual(second.polled, ['unreachable']);
   });
 });
