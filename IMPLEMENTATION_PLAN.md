@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); next: approve **S1**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1** is done; next: **S2**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -662,17 +662,24 @@ replaces Scenes or Story.
 
 ## 4.3 M3 tasks (ordered)
 
-**S1 — A full Fountain / plain-text parser (pure).** _Recommended first._
+**S1 — A full Fountain / plain-text parser (pure).** _Done 2026-10-26._
 
-- Scope: `script/parse.ts` reads every element: scene headings (place, time of day, INT / EXT),
-  action, character cues (with extensions), dialogue, parentheticals, transitions, centered
-  text, notes and boneyard, sections and synopses, and the title page. It keeps each element's
-  source line range, so nothing is lost. Constructs it doesn't support are listed, not dropped.
-  Scene ids are stable: from the heading and its occurrence count, so they survive edits
-  elsewhere in the script.
-- Acceptance: a fixture screenplay round-trips into scenes with all their elements; an
-  unsupported construct is reported; ids are unchanged when another scene is edited.
-- `day/script-import.ts` can then build on it, unchanged for Day.
+- `src/lib/script/parse.ts` (`script/` is a new shared folder): `parseScript(text)` returns
+  `{ format, title, preamble, scenes, issues }`.
+  - What it reads: title page; scene headings (INT / EXT / INT-EXT, place, time as written and
+    as a day part, `#n#` numbers, forced `.HEADING`); action (forced `!`); character cues with
+    extensions and dual `^`; dialogue; parentheticals; transitions (`… TO:`, forced `>`, and
+    the common fades); centered `> <`; lyrics `~`; notes `[[ ]]` (kept, in their scene);
+    boneyard `/* */` (left out); sections `#` with depth; synopses `=`; page breaks `===`.
+  - Every element keeps its source lines.
+  - `issues` lists an unclosed note or comment, and files that are another app's format
+    (Final Draft XML, RTF, PDF).
+  - Text with no scene headings is an outline: one scene per paragraph or list item.
+  - Scene ids come from the scene number, else the heading's slug plus how often it came before.
+    An edit elsewhere, or a new scene before it, leaves them unchanged.
+- Tests: `script/parse.test.ts` (5), with a fixture screenplay using every element.
+- Not done: Day's import (`day/script-import.ts`) still uses its own smaller reading. Moving it
+  onto `parseScript` can come with S2. Outline ids are positional (`outline-n`).
 
 **S2 — The Script record and import.** On the Scene page, a **Script** tab: paste or upload a
 script, see it parsed scene by scene, with what wasn't understood, and keep it (synced, per Cast).
