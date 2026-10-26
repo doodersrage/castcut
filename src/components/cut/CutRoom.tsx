@@ -7,7 +7,7 @@
  */
 
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
@@ -19,6 +19,8 @@ import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
 import CutTracks from '@/components/cut/CutTracks';
+import CutSubtitles, { type CutSubtitleRow } from '@/components/cut/CutSubtitles';
+import { filmShotSubtitle } from '@/lib/media/kind';
 import FilmLoudness from '@/components/cut/FilmLoudness';
 import type { CutTrack } from '@/lib/video/cut-sound';
 import CutVersions from '@/components/cut/CutVersions';
@@ -75,6 +77,34 @@ export default function CutRoom() {
     solo,
   });
   const activeKey = preview.keyAt(preview.time);
+  // The subtitle track (M4 F5): each shot on the monitor's timeline, its subtitle and window.
+  const subtitleRows = useMemo((): CutSubtitleRow[] => {
+    const loaded = preview.loaded;
+    if (!loaded) return [];
+    return loaded.timeline.items.flatMap(item => {
+      const key = item.shot >= 0 ? loaded.keys[item.shot] : null;
+      const shot = item.shot >= 0 ? loaded.shots[item.shot] : undefined;
+      if (!key || !shot) return [];
+      const edit = vm.options.shotEdits?.shots?.[key];
+      return [
+        {
+          key,
+          title: shot.title,
+          startSec: item.startSec,
+          durSec: item.durSec,
+          text: filmShotSubtitle(shot),
+          sourceText: filmShotSubtitle({ spoken: shot.spoken, narrationText: shot.narrationText }),
+          ...(edit?.subtitleFromSec !== undefined ? { fromSec: edit.subtitleFromSec } : {}),
+          ...(edit?.subtitleToSec !== undefined ? { toSec: edit.subtitleToSec } : {}),
+          set: {
+            ...(edit?.subtitle !== undefined ? { text: edit.subtitle } : {}),
+            ...(edit?.subtitleFromSec !== undefined ? { fromSec: edit.subtitleFromSec } : {}),
+            ...(edit?.subtitleToSec !== undefined ? { toSec: edit.subtitleToSec } : {}),
+          },
+        },
+      ];
+    });
+  }, [preview.loaded, vm.options.shotEdits]);
   // Split at the playhead: the clip under it, where in its file the playhead is.
   const splitAt = (() => {
     const loaded = preview.loaded;
@@ -588,6 +618,19 @@ export default function CutRoom() {
               move the shot · S split · I / O trim in / out · F freeze frame · D duplicate · Delete
               leave it out · Ctrl+Z undo
             </p>
+          </ToolSection>
+        ) : null}
+
+        {vm.shots.length > 0 ? (
+          <ToolSection data-testid="cut-subtitles-section" title="Subtitles">
+            <CutSubtitles
+              rows={subtitleRows}
+              disabled={busy}
+              filename={`${(titleCard?.title || 'film').replace(/[^\w.-]+/g, '-')}.srt`}
+              onChange={vm.setShotSubtitle}
+              onApplySrt={vm.applySrtSubtitles}
+              onPick={pick}
+            />
           </ToolSection>
         ) : null}
 

@@ -61,6 +61,14 @@ export type CutShotEdit = {
   pipUrl?: string;
   pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
   /**
+   * The shot's subtitle as you set it (M4 F5): over its line or narration; '' = none. Unset: the
+   * line or narration, as before.
+   */
+  subtitle?: string;
+  /** Where in the shot (seconds) the subtitle shows, as you set it; unset: where it's said. */
+  subtitleFromSec?: number;
+  subtitleToSec?: number;
+  /**
    * The media this shot was cut with (R5, cut-pins.ts): set when the shot is edited, a version is
    * saved or the film is rendered. While set, the shot plays it — a new take in its source is
    * offered, never swapped in. Unset: the shot follows its source (the scene's kept take, the Day
@@ -198,6 +206,37 @@ export function captionFromBeat(text: string | null | undefined, max = CAPTION_M
 }
 
 /** Apply the shot list: order, leave-outs, captions, holds. */
+/** A shot's edit with its subtitle set (M4 F5); an empty set goes back to the line or narration. */
+export function withShotSubtitle(
+  edits: CutShotEdits | undefined,
+  key: string,
+  set: { text?: string; fromSec?: number; toSec?: number }
+): CutShotEdits {
+  const {
+    subtitle: _text,
+    subtitleFromSec: _from,
+    subtitleToSec: _to,
+    ...rest
+  } = edits?.shots?.[key] ?? {};
+  return {
+    ...edits,
+    shots: {
+      ...edits?.shots,
+      [key]: {
+        ...rest,
+        ...(set.text !== undefined ? { subtitle: set.text } : {}),
+        ...(set.fromSec !== undefined ? { subtitleFromSec: set.fromSec } : {}),
+        ...(set.toSec !== undefined ? { subtitleToSec: set.toSec } : {}),
+      },
+    },
+  };
+}
+
+const subtitleSec = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.round(Math.min(600, value) * 1000) / 1000
+    : undefined;
+
 export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | null): KeyedShot[] {
   const order = edits?.order ?? [];
   const rank = new Map(order.map((key, index) => [key, index]));
@@ -241,6 +280,15 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           : {}),
         ...(shot.kind === 'clip' && (edit?.soundTailSec ?? 0) > 0
           ? { soundTailSec: Math.min(3, edit!.soundTailSec!) }
+          : {}),
+        ...(typeof edit?.subtitle === 'string'
+          ? { subtitle: edit.subtitle.replace(/\s+/g, ' ').trim().slice(0, 300) }
+          : {}),
+        ...(subtitleSec(edit?.subtitleFromSec) !== undefined
+          ? { subtitleFromSec: subtitleSec(edit?.subtitleFromSec) }
+          : {}),
+        ...(subtitleSec(edit?.subtitleToSec) !== undefined
+          ? { subtitleToSec: subtitleSec(edit?.subtitleToSec) }
           : {}),
         ...(cleanLowerThird(edit?.lowerThird)
           ? {

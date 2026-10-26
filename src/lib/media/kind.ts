@@ -110,10 +110,18 @@ export type FilmPlaylistShot = {
   thumbUrl?: string;
   /** The voice-over heard over this shot — subtitled when there is no spoken line. */
   narrationText?: string;
+  /** The subtitle as set in Cut (M4 F5), over the line or narration; '' = none. */
+  subtitle?: string;
+  /** Where in the shot (seconds) it shows, as set; unset: where it's said. */
+  subtitleFromSec?: number;
+  subtitleToSec?: number;
 };
 
 /** The subtitle a shot carries: its spoken line, else its narration ('' = none). */
-export function filmShotSubtitle(shot: Pick<FilmPlaylistShot, 'spoken' | 'narrationText'>): string {
+export function filmShotSubtitle(
+  shot: Pick<FilmPlaylistShot, 'spoken' | 'narrationText' | 'subtitle'>
+): string {
+  if (typeof shot.subtitle === 'string') return shot.subtitle.replace(/\s+/g, ' ').trim();
   return (shot.spoken?.trim() || shot.narrationText?.trim() || '').replace(/\s+/g, ' ');
 }
 

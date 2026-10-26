@@ -111,6 +111,7 @@ import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
+  withShotSubtitle,
   orderedCutShots,
   cutShotProblems,
   type CutShotProblem,
@@ -1484,6 +1485,39 @@ export function useCutRoom() {
     },
     [relink]
   );
+  /**
+   * A shot's subtitle as set in Cut (M4 F5): text ('' = none) and where in the shot it shows;
+   * an empty set goes back to the line or narration.
+   */
+  const setShotSubtitle = useCallback(
+    (key: string, set: { text?: string; fromSec?: number; toSec?: number }) => {
+      const now = stateRef.current.options;
+      commitEdit({
+        options: { ...now, shotEdits: withShotSubtitle(now.shotEdits, key, set) },
+      });
+    },
+    [commitEdit]
+  );
+  /** An imported .srt's subtitles on their shots, as one step (undoable). */
+  const applySrtSubtitles = useCallback(
+    (matches: ReadonlyArray<{ key: string; text: string; fromSec: number; toSec: number }>) => {
+      const now = stateRef.current.options;
+      const shotEdits = matches.reduce(
+        (edits, match) =>
+          withShotSubtitle(edits, match.key, {
+            text: match.text,
+            fromSec: match.fromSec,
+            toSec: match.toSec,
+          }),
+        now.shotEdits
+      );
+      commitEdit({ options: { ...now, shotEdits } }, true);
+      setStatus(
+        `Subtitles from the file are on ${matches.length} shot${matches.length === 1 ? '' : 's'} — Undo takes them back.`
+      );
+    },
+    [commitEdit]
+  );
   /** Mute a sound track (M4 F4): silent in the monitor, left out of the encode; undoable. */
   const setTrackMuted = useCallback(
     (track: CutTrack, muted: boolean) => {
@@ -2267,6 +2301,8 @@ export function useCutRoom() {
     relink,
     relinkFromGallery,
     setTrackMuted,
+    setShotSubtitle,
+    applySrtSubtitles,
     keepPinned,
     togglePin,
     options,

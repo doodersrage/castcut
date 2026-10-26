@@ -542,6 +542,52 @@ test('the loudness route measures a real clip', async ({ page }) => {
   expect(typeof body.loudness.truePeakDbtp).toBe('number');
 });
 
+// M4 F5: subtitles typed per shot, set to none, read in from an .srt, and written out.
+test('subtitles: typed, set to none, imported from an .srt and exported', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const summary = page.getByTestId('cut-subtitles-summary');
+  await expect(summary).toContainText('No subtitles yet', { timeout: 30_000 });
+
+  await page.getByTestId('cut-subtitle-text-day:morning').fill('Coffee first.');
+  await page.getByTestId('cut-subtitle-text-day:morning').blur();
+  await expect(summary).toContainText('1 subtitle on 1 shot');
+  await page.getByTestId('cut-subtitle-none-day:morning').click();
+  await expect(summary).toContainText('No subtitles yet');
+  await page.getByTestId('cut-undo').click();
+  await expect(summary).toContainText('1 subtitle on 1 shot');
+
+  // An .srt: its cue in the second shot's time goes on that shot, shown before it applies.
+  const morningSec = Number(
+    await page.getByTestId('cut-subtitle-day:morning').getByText(/s of /).textContent().then(
+      text => text?.match(/of ([\d.]+)/)?.[1] ?? '0'
+    )
+  );
+  const at = (sec: number) => `00:00:${sec.toFixed(3).padStart(6, '0').replace('.', ',')}`;
+  await page.getByTestId('cut-subtitles-import').setInputFiles({
+    name: 'film.srt',
+    mimeType: 'application/x-subrip',
+    buffer: Buffer.from(
+      `1\n${at(morningSec + 0.5)} --> ${at(morningSec + 1.5)}\nA walk in the park.\n`
+    ),
+  });
+  await expect(page.getByTestId('cut-subtitles-incoming')).toContainText('A walk in the park.');
+  await page.getByTestId('cut-subtitles-apply').click();
+  await expect(page.getByTestId('cut-subtitle-text-day:afternoon')).toHaveValue(
+    'A walk in the park.'
+  );
+  await expect(summary).toContainText('2 subtitles on 2 shots');
+
+  const download = page.waitForEvent('download');
+  await page.getByTestId('cut-subtitles-export').click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/\.srt$/);
+  const text = readFileSync((await file.path())!, 'utf8');
+  expect(text).toContain('Coffee first.');
+  expect(text).toContain('A walk in the park.');
+});
+
 // M2 C3: each shot's card says who is in it, where and when.
 test("shot state: a Day shot's card says who, where and when", async ({ page }) => {
   await seed(page, false);

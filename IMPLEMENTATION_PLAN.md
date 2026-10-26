@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F4** are done; next: **F5**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F5** are done; next: **F6**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -914,12 +914,39 @@ new surfaces.
   - The measurement runs in the request (seconds for a short film; the route allows 240 s).
     Very long films would want a background job.
 
-**F5 — Editable subtitles and SRT interchange.**
-- A subtitle track whose text and in/out (offset from the shot) you can edit apart from the
-  line, kept on the shot edit.
-- SRT export at any time (not only after a cut), and SRT import matched to shots by time, shown
-  before it applies.
-- Checks: overlaps, too-short or too-long cues, lines over two rows, characters SRT can't carry.
+**F5 — Editable subtitles and SRT interchange.** _Done 2026-10-26._
+
+- **Bug found and fixed:** a server film encode lost Cut edits. `/api/film/assemble`'s shot
+  parser kept only some fields, dropping speed, reverse, J / L sound, lower thirds,
+  picture-in-picture and hand-set moves, so the film didn't match the edit. The parser moved to
+  the shared `video/film-shot-parse.ts` and now keeps every field the encode reads, each
+  checked (`video/film-shot-parse.test.ts`).
+- A shot's subtitle can be set apart from its line (`CutShotEdit.subtitle`, '' = none, and
+  `subtitleFromSec` / `subtitleToSec` in shot seconds; `withShotSubtitle`).
+  - It reaches the monitor and the burn-in through `filmShotSubtitle`, and the server encode
+    through the parser.
+  - The encode uses the window you set instead of the detected speech.
+- `video/cut-subtitle-track.ts`:
+  - `filmSubtitleCues`: film-time cues from the monitor's timeline.
+  - `parseSrt`: BOM and formatting tags aside, unreadable blocks counted.
+  - `matchSrtToShots`: each cue goes to the shot its middle falls in; cues past the end are
+    counted.
+  - `subtitleIssues`: overlap, under 0.8 s, over 7 s, more than two rows of about 42
+    characters, and characters an .srt can't carry.
+- UI: a **Subtitles** section in Cut (`components/cut/CutSubtitles.tsx`):
+  - per shot: text (its line or narration as the placeholder), from / to, **Reset** and
+    **None**;
+  - the checks;
+  - **Export .srt** at any time, before a cut;
+  - **Import .srt…**: shown shot by shot before **Use these subtitles**, applied as one undoable
+    step.
+- Tests: `film/cut-subtitle-track.test.ts` (5), `video/film-shot-parse.test.ts` (1) and
+  `e2e/cut-room.spec.ts` "subtitles…".
+- Not done:
+  - No association with a Cast member beyond the line's speaker.
+  - The browser (no-ffmpeg) encode ignores the from / to window.
+  - The exported .srt uses the monitor's timing (no speech detection, unlike the encode's own
+    .srt).
 
 **F6 — Export profiles, preflight and output verification.**
 - Named profiles that set shape, size, quality, loudness target and subtitles: Review copy

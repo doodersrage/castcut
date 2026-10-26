@@ -1227,13 +1227,21 @@ export async function encodeFilmPlaylistServer(
           const hold = holdSecs[i] && holdSecs[i]! > 0 ? holdSecs[i]! : kinds[i] === 'clip' ? 4 : 3;
           const narration = narrationFiles.find(entry => entry.shot === i);
           const speed = speeds[i] ?? 1;
-          const span = narration
-            ? await speechSpan(ffmpeg, narration.path, 0, hold)
-            : kinds[i] === 'clip'
-              ? await speechSpan(ffmpeg, localFiles[i]!, trimStarts[i] ?? 0, hold * speed).then(
-                  found => (found ? { from: found.from / speed, to: found.to / speed } : null)
-                )
-              : null;
+          // Where it shows when set in Cut (M4 F5), else where it is said.
+          const set = shots[i]!;
+          const span =
+            set.subtitleFromSec !== undefined || set.subtitleToSec !== undefined
+              ? {
+                  from: set.subtitleFromSec ?? 0.2,
+                  to: set.subtitleToSec ?? hold - 0.2,
+                }
+              : narration
+                ? await speechSpan(ffmpeg, narration.path, 0, hold)
+                : kinds[i] === 'clip'
+                  ? await speechSpan(ffmpeg, localFiles[i]!, trimStarts[i] ?? 0, hold * speed).then(
+                      found => (found ? { from: found.from / speed, to: found.to / speed } : null)
+                    )
+                  : null;
           const cues = subtitleCues(line, {
             from: Math.min(hold, span?.from ?? 0.2),
             to: Math.min(hold, span?.to ?? hold - 0.2),
