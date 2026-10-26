@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **Release hardening (H1–H5) is done.** v3.0.0 is released. M6 (production validation and quality) is proposed in [Part 8](#part-8--m6-plan-production-validation-and-quality-proposed-2026-10-26): **V1**–**V8**, awaiting approval.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **Release hardening (H1–H5) is done.** v3.0.0 is released. M6 (production validation and quality) is proposed in [Part 8](#part-8--m6-plan-production-validation-and-quality-proposed-2026-10-26): **V1**–**V8**, approved; V1's tools are done, its real upgrade is pending.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1493,6 +1493,13 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - Acceptance: before and after counts match; Scene, Cut, Film Director and Queue open on the
   real data; the rollback has been rehearsed once.
 - Verify: the script's two reports side by side, and screenshots.
+- **Status (2026-10-26): tools done, your run pending.** `scripts/upgrade-check.mjs` (read-only;
+  signs in; `--out`, `--compare` exits 1 on any count that went down) with unit tests for the
+  counts and the compare; the runbook is `docs/operator.md#upgrading` (snapshot the
+  `docker_castcut_data` volume and keep the old image as `castcut:before-upgrade`, since Compose
+  builds `castcut:local` — no `2.12.36` tag to fall back to). Checked live against a dev server
+  (version read, counts, a simulated loss exits 1). The upgrade itself, on the real install, is
+  yours.
 
 **V2 — Real-engine end-to-end run of the full workflow** (U1) · M + _GPU_
 - Gap: no M3–M5 step has run against a real engine.

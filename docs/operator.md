@@ -134,13 +134,74 @@ Set `PROMPT_DATA_DIR` (absolute path) so settings, history, gallery, and extras 
 
 Also stored there when configured:
 
-| File                      | Contents                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `studio.sqlite`           | Auth, gallery rows, settings/history/extras, SMTP overlay, collab rooms (copy `-wal` / `-shm` too if the app is running) |
+| File                      | Contents                                                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `studio.sqlite`           | Auth, gallery rows, settings/history/extras, SMTP overlay, collab rooms (copy `-wal` / `-shm` too if the app is running)                                                                |
 | `users/{userId}/exports/` | Per-user export snapshots (still JSON files) — auto-pruned to the newest `SERVER_USER_MAINTENANCE_EXPORT_KEEP` (default 20) per user whenever `SERVER_USER_MAINTENANCE=true` writes one |
-| `*.json.imported`         | One-shot leftovers from the pre-SQLite layout                                                                            |
+| `*.json.imported`         | One-shot leftovers from the pre-SQLite layout                                                                                                                                           |
 
 Copy or snapshot `PROMPT_DATA_DIR` as part of host backups. Settings → Advanced can pull/push namespaces when storage is enabled.
+
+## Upgrading {#upgrading}
+
+An upgrade keeps your data: the new version reads what the old one wrote. Still, take a way
+back first — it costs a few minutes. The steps below are for Docker (`docker/compose.yml`); for a
+desktop or `npm` install, the same backups and checks apply around installing the new version.
+
+1. **Open the app in the browser** and let it finish syncing (the browser's copy is the primary
+   one; the server's copy is what the check below reads).
+2. **Back up from the browser.** Settings → Data: **Export backup** (the JSON file) and a
+   **Pictures backup** (the files it names). Keep both off the machine.
+3. **Count what's there.** From a checkout of the repo (Node 22):
+
+   ```bash
+   node scripts/upgrade-check.mjs --url http://<host>:47832 \
+     --username <you> --password <yours> --token <PROMPT_API_TOKEN, if set> --out before.json
+   ```
+
+   It only reads: Casts and looks, Scenes, takes, kept takes, scripts, planned shots, Cut versions
+   and edits, Day slots, Gallery entries (completed, films, kept copies) and history. Data is per
+   user with sign-in on — run it for each user who matters.
+
+4. **Keep the old image and snapshot the volume.** With the app stopped, so SQLite is quiet
+   (Compose names the volume after the folder: `docker_castcut_data` when run from `docker/` —
+   `docker volume ls` shows it):
+
+   ```bash
+   cd docker
+   docker tag castcut:local castcut:before-upgrade
+   docker compose stop castcut
+   docker run --rm -v docker_castcut_data:/d -v "$PWD":/out alpine \
+     tar czf /out/castcut-data-before-upgrade.tgz -C /d .
+   ```
+
+5. **Upgrade.** Either build the release — `git fetch --tags && git checkout v3.0.0`, then
+   `docker compose up -d --build` — or run the published image: on the `castcut` service set
+   `image: ghcr.io/doodersrage/castcut:3.0.0`, then `docker compose pull castcut` and
+   `docker compose up -d castcut`.
+6. **Check.** Open the app in the browser again, then count and compare:
+
+   ```bash
+   node scripts/upgrade-check.mjs --url http://<host>:47832 ... --out after.json
+   node scripts/upgrade-check.mjs --compare before.json after.json
+   ```
+
+   _Nothing went down_ and exit code 0 is the pass. Then open a Scene with takes, Cut (the shots
+   play, **Versions** lists yours), Film Director and Queue.
+
+**Rolling back**, when a count went down or something is wrong:
+
+```bash
+cd docker
+docker compose stop castcut
+docker run --rm -v docker_castcut_data:/d -v "$PWD":/out alpine \
+  sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null; tar xzf /out/castcut-data-before-upgrade.tgz -C /d'
+docker tag castcut:before-upgrade castcut:local   # or set image: back to the old tag
+docker compose up -d castcut
+```
+
+Then restore the browser's JSON backup if the browser's copy changed too (Settings → Data →
+**Restore backup** shows what the file has against what's there before it replaces anything).
 
 ---
 
