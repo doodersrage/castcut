@@ -257,6 +257,82 @@ test('versions: save the edit, change it, open the saved one back', async ({ pag
   await expect(page.getByTestId('cut-version-Long')).toBeVisible();
 });
 
+// R5: a shot keeps the media it was cut with; a new take is offered, never swapped in.
+test('pins: an edited shot keeps its take, a new one is offered, a gone scene plays on', async ({
+  page,
+}) => {
+  const older = '/wardrobe-thumbs/bottom-aqua-baggy-jeans.webp';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+          { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+        ],
+        stills: [
+          { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'cr-m' },
+          { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'cr-a' },
+        ],
+      },
+      cut: {
+        options: {
+          shotEdits: {
+            shots: {
+              // Cut earlier with an older picture; the slot has been redone since.
+              'day:afternoon': { framing: 'medium', pin: { url: older, kind: 'still', at: 1 } },
+              // A shot from a scene that has since been deleted.
+              'scenes:gone-scene': {
+                pin: { url: older, kind: 'still', title: 'Rooftop', at: 1 },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('3 shots', { timeout: 30_000 });
+
+  // Untouched: it follows the slot. An edit pins it to the picture it shows.
+  await expect(page.getByTestId('cut-pin-day:morning')).toHaveAttribute('data-pin', 'follows');
+  await page.getByTestId('cut-shot-framing-day:morning').selectOption('medium');
+  await expect(page.getByTestId('cut-pin-day:morning')).toHaveAttribute('data-pin', 'pinned');
+
+  // The redone slot is offered, not swapped in: the shot still shows the older picture.
+  const afternoon = page.getByTestId('cut-pin-day:afternoon');
+  await expect(afternoon).toHaveAttribute('data-pin', 'new-take');
+  await expect(page.locator('[data-testid="cut-shot-pick-day:afternoon"] img')).toHaveAttribute(
+    'src',
+    older
+  );
+  await page.getByTestId('cut-pin-day:afternoon-keep').click();
+  await expect(afternoon).toHaveAttribute('data-pin', 'pinned');
+  await page.getByTestId('cut-undo').click();
+  await expect(afternoon).toHaveAttribute('data-pin', 'new-take');
+  await page.getByTestId('cut-pin-day:afternoon-use').click();
+  await expect(afternoon).toHaveAttribute('data-pin', 'pinned');
+  await expect(page.locator('[data-testid="cut-shot-pick-day:afternoon"] img')).toHaveAttribute(
+    'src',
+    thumb
+  );
+
+  // The deleted scene's shot plays on from its pin, marked; unpinned, it leaves the cut.
+  await expect(page.getByTestId('cut-pin-scenes:gone-scene')).toHaveAttribute(
+    'data-pin',
+    'source-gone'
+  );
+  await page.getByTestId('cut-pin-scenes:gone-scene-toggle').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
+});
+
 test('look and speed: the monitor shows the grade, a 2× clip halves its block, S splits', async ({
   page,
 }) => {

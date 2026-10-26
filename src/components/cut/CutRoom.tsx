@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
+import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutVersions from '@/components/cut/CutVersions';
@@ -793,7 +794,22 @@ export default function CutRoom() {
               }}
               renderExtra={shot => {
                 const extra = vm.extras.find(entry => entry.key === shot.key);
-                if (!extra) return null;
+                if (!extra) {
+                  const base = shot.key.replace(/~\d+$/, '');
+                  return (
+                    <CutShotPin
+                      shotKey={shot.key}
+                      state={vm.pinStates[shot.key]}
+                      hasCopies={vm.previewShots.some(
+                        entry => entry.key !== shot.key && entry.key.replace(/~\d+$/, '') === base
+                      )}
+                      disabled={busy}
+                      onToggle={() => vm.togglePin(shot.key)}
+                      onUse={everywhere => vm.takeOffered(shot.key, everywhere)}
+                      onKeep={() => vm.keepPinned(shot.key)}
+                    />
+                  );
+                }
                 return (
                   <div className="flex flex-wrap items-center gap-2">
                     {extra.kind === 'text' ? (

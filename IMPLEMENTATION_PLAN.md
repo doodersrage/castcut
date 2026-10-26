@@ -6,7 +6,8 @@
 > **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
-> protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser) and **R4** (how a take was made). Next: R5.
+> protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
+> **R4** (how a take was made) and **R5** (Cut pins its media). Next: R6.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -374,14 +375,32 @@ Decision: credentials stay browser-only; a key for every device goes in the serv
 - Not done: the Gallery lightbox still builds its own detail rows; it could use
   `galleryEntryProvenance` later.
 
-**R5 — Cut pins its media; replacement is explicit (fixes D3, ROADMAP §4.4).**
+**R5 — Cut pins its media; replacement is explicit (fixes D3, ROADMAP §4.4).** _Done 2026-10-25.
+Agreed rule: pin on edit, on version save and on render; unpinned shots follow their source,
+labelled; pin and unpin by hand._
 
-- Scope: a Cut shot edit records the media it was edited with (`entryId` + URL). When the source's
-  current media differs, the shot shows "New take available": use it here, use it everywhere, or
-  keep the current one. Trims are clamped to the new length on "use". Saved versions keep their
-  pinned media. Shots whose source vanished keep playing their pinned media, with a warning.
-- Depends on: R1. Biggest M1 task — design note first.
-- Tests: `cut-room` / `cut-plan` unit tests; extend `e2e/cut-room.spec.ts`.
+- `src/lib/film/cut-pins.ts` (Play, pure): `CutShotEdit.pin` (`cut-plan.ts`) holds the media a
+  shot was cut with. `pinnedCutShots` plays pins and gives each shot's state: `follows`,
+  `pinned`, `new-take` (with the offered shot) or `source-gone`. `pinEditedCutShots` covers an
+  edit; leaving out or moving a shot pins nothing. `pinAllCutShots` covers version save, Make a
+  reel and render. `takeOfferedCutMedia` ("Use it here / for every copy") resets a clip's trim.
+  Also `declineOfferedCutMedia` ("Keep this one") and `toggleCutShotPin`.
+- `hooks/useCutRoom.ts`: the shot list is built from the pins. `commitEdit` pins edited shots,
+  but opening a version or undoing doesn't. `saveVersion`, `makeReel` and `cutNow` pin. The
+  preview's Day narration keeps the pinned media; this bug was caught by the e2e.
+- A pinned Scene shot whose scene is deleted, or whose kept take was let go, plays on, marked.
+  Day and Story shots that leave a cut (another Cast's Day, another Story) are only absent, as
+  before: they aren't restored.
+- UI: `components/cut/CutShotPin.tsx` on each sourced shot's card (`CutRoom.tsx` `renderExtra`).
+- R1b: pins are walked as production references (`play/gallery-references.ts` reads
+  `cut.options`).
+- Tests: `film/cut-pins.test.ts` (8), `play/gallery-references.test.ts` (extended), and
+  `e2e/cut-room.spec.ts` "pins: …". Docs: `docs/guide-film.md` "When a shot gets a new take".
+- Not done:
+  - "Use it here" resets a trimmed clip's trim rather than clamping it (the new clip's length
+    isn't known until it loads).
+  - The pre-cut check reads a Scene shot's checks from the scene's *current* kept take, even
+    when the shot is pinned to an older one.
 
 **R6 — Record-level merge for `tools.scene` (fixes D4).**
 

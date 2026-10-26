@@ -116,3 +116,15 @@ On the **Cast page → Film & media → Films**, under each film:
 !!! note
     These need a film cut in **2.6 or later** (it keeps the recipe). For an older film, cut
     the Day again.
+
+## When a shot gets a new take
+
+A shot in Cut comes from its source: a Scene's kept take, a Day slot's still or a Story beat. As long as you haven't touched it, it **follows its source**: keep another take in Scene, or redo the Day slot, and Cut shows the new one.
+
+Once you **edit a shot** (trim, hold, framing, speed, caption, overlay…), **save a version** or **cut the film**, the shot is **pinned** to the take it was cut with. A new take in its source no longer replaces it. The shot's card says **New take available** instead:
+
+- **Use it here**: this shot plays the new take. A clip's trim is reset, because it was set for the old clip's length.
+- **Use for every copy**: the shot and its copies in this edit (Duplicate, Split) switch. Saved versions keep their own takes.
+- **Keep this one**: it stays on the take it was cut with.
+
+**Pin** / **Unpin** on a card does the same by hand: unpinned, the shot follows its source again. If a pinned shot's scene is deleted or its take let go, the shot keeps playing the take it was cut with and says its source is gone; unpin it to let it leave the film. Ctrl+Z undoes any of these.

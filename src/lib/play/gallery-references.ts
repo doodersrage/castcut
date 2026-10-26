@@ -1,7 +1,8 @@
 /**
  * The renders the film uses (R1b, M0 audit 2026-10-25): every Scene take, every Day slot's still
  * and clip (also on a Day parked under another Cast), every Story beat's takes (the open story
- * and the saved ones), and the shots added in Cut (its versions too). Their Gallery entries keep
+ * and the saved ones), the shots added in Cut and the media its shots are pinned to (its versions
+ * too). Their Gallery entries keep
  * their stored graph and stay through the local cap and Archive & purge
  * (gallery/reference-sources.ts, gallery/protected-ids.ts).
  *
@@ -38,7 +39,7 @@ type ProductionData = {
   day?: { stills?: unknown; parkedDays?: unknown } | null;
   scene?: { scenes?: unknown; stills?: unknown } | null;
   story?: unknown;
-  cut?: { extras?: unknown; versions?: unknown } | null;
+  cut?: { extras?: unknown; versions?: unknown; options?: unknown } | null;
   savedStories?: unknown;
 };
 
@@ -52,6 +53,8 @@ export function productionReferenceValues(data: ProductionData): string[] {
   referenceValuesIn(data.story, out);
   referenceValuesIn(data.cut?.extras, out);
   referenceValuesIn(data.cut?.versions, out);
+  // The edit's shot pins (cut-pins.ts): the media a pinned shot plays.
+  referenceValuesIn(data.cut?.options, out);
   referenceValuesIn(data.savedStories, out);
   return out;
 }

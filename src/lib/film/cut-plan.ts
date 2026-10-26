@@ -60,6 +60,26 @@ export type CutShotEdit = {
   /** Picture-in-picture: a picture in a corner of the shot. */
   pipUrl?: string;
   pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
+  /**
+   * The media this shot was cut with (R5, cut-pins.ts): set when the shot is edited, a version is
+   * saved or the film is rendered. While set, the shot plays it — a new take in its source is
+   * offered, never swapped in. Unset: the shot follows its source (the scene's kept take, the Day
+   * slot's still).
+   */
+  pin?: CutShotPin;
+};
+
+/** The media a pinned Cut shot plays (cut-pins.ts). */
+export type CutShotPin = {
+  url: string;
+  kind: 'still' | 'clip';
+  entryId?: string;
+  thumbUrl?: string;
+  /** The shot's title when it was pinned (shown if its source is gone). */
+  title?: string;
+  /** "Keep this one": the source's media that was declined — no offer while it stays that. */
+  declinedUrl?: string;
+  at: number;
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */

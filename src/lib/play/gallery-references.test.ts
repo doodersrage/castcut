@@ -57,6 +57,11 @@ describe('play gallery references (R1b)', () => {
       cut: {
         extras: [{ key: 'x:1', kind: 'media', url: '/api/gallery/media/e-extra', entryId: 'e-extra' }],
         versions: [{ id: 'v1', extras: [{ key: 'x:2', kind: 'generated', promptId: 'p-gen' }] }],
+        options: {
+          shotEdits: {
+            shots: { 'scenes:s1': { pin: { url: '/api/gallery/media/e-pinned', kind: 'clip', at: 1 } } },
+          },
+        },
       },
     });
     for (const value of [
@@ -69,6 +74,7 @@ describe('play gallery references (R1b)', () => {
       'p-saved-beat',
       'e-extra',
       'p-gen',
+      '/api/gallery/media/e-pinned',
     ]) {
       assert.ok(values.includes(value), value);
     }

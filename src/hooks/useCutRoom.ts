@@ -113,7 +113,15 @@ import {
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   DEFAULT_SCENE_TOOL_CACHE,
 } from '@/lib/play/settings';
-import { normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
+import { keptTakeOf, normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
+import {
+  declineOfferedCutMedia,
+  pinAllCutShots,
+  pinEditedCutShots,
+  pinnedCutShots,
+  takeOfferedCutMedia,
+  toggleCutShotPin,
+} from '@/lib/film/cut-pins';
 import { resolveFilmFailurePlaybook } from '@/lib/queue/failure-playbook';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { loadRoleplayLibrary } from '@/lib/story/roleplay-library';
@@ -210,7 +218,35 @@ export function useCutRoom() {
       ),
     [bySource, extras, resolution]
   );
-  const shots = useMemo(() => cutRoomShots(bySource, sources, added), [added, bySource, sources]);
+  // Pinned shots play the media they were cut with (cut-pins.ts); a pinned scene shot whose
+  // scene is gone (deleted, or its kept take let go) plays on, marked.
+  const pinned = useMemo(() => {
+    const picked = cut.toolSettings.sources;
+    return pinnedCutShots({
+      shots: cutRoomShots(bySource, sources, added),
+      edits: options.shotEdits,
+      isSourceGone: sourceKey => {
+        const { source, key } = splitCutRoomKey(sourceKey);
+        if (source !== 'scenes' || (picked && !picked.includes('scenes'))) return false;
+        const scene = savedScenes.find(entry => entry.id === key);
+        return !scene || (scene.castId === sceneCastId && !keptTakeOf(scene));
+      },
+    });
+  }, [
+    added,
+    bySource,
+    cut.toolSettings.sources,
+    options.shotEdits,
+    savedScenes,
+    sceneCastId,
+    sources,
+  ]);
+  const shots = pinned.shots;
+  const pinStates = pinned.states;
+  const shotsRef = useRef(shots);
+  useEffect(() => {
+    shotsRef.current = shots;
+  }, [shots]);
 
   const { updateToolSettings: updateCut } = cut;
   // Undo / redo of the edit (options, shot list and added shots). Changes within a moment of each
@@ -229,7 +265,18 @@ export function useCutRoom() {
   const noteHistory = () =>
     setHistorySize({ past: history.current.past.length, future: history.current.future.length });
   const commitEdit = useCallback(
-    (next: Partial<Snapshot>, step = false) => {
+    (next: Partial<Snapshot>, step = false, autoPin = true) => {
+      // A shot an edit just shaped is pinned to the media it plays now (cut-pins.ts). Opening a
+      // version is not an edit: its shots keep the pins (or none) they were saved with.
+      if (autoPin && next.options) {
+        const shotEdits = pinEditedCutShots(
+          stateRef.current.options.shotEdits,
+          next.options.shotEdits,
+          shotsRef.current
+        );
+        if (shotEdits !== next.options.shotEdits)
+          next = { ...next, options: { ...next.options, shotEdits } };
+      }
       const h = history.current;
       const now = Date.now();
       // A discrete action (add, split, open a version…) is always its own step; quick changes
@@ -1066,8 +1113,18 @@ export function useCutRoom() {
   );
   // Versions: the whole edit (sources, added shots, options) under a name.
   const versions = useMemo(() => cut.toolSettings.versions ?? [], [cut.toolSettings.versions]);
+  /** Every shot of the edit pinned to what it plays now (a version saved, the film rendered). */
+  const pinEveryShot = useCallback(() => {
+    const before = stateRef.current.options;
+    const shotEdits = pinAllCutShots(before.shotEdits, shotsRef.current);
+    if (shotEdits === before.shotEdits) return before;
+    const options = { ...before, shotEdits };
+    commitEdit({ options }, true, false);
+    return options;
+  }, [commitEdit]);
   const saveVersion = useCallback(
     (name: string) => {
+      const options = pinEveryShot();
       updateCut({
         versions: saveCutVersion(cut.toolSettings.versions, {
           id: `v${Date.now().toString(36)}`,
@@ -1075,11 +1132,11 @@ export function useCutRoom() {
           savedAt: Date.now(),
           sources: cut.toolSettings.sources,
           extras: stateRef.current.extras,
-          options: stateRef.current.options,
+          options,
         }),
       });
     },
-    [cut.toolSettings.sources, cut.toolSettings.versions, updateCut]
+    [cut.toolSettings.sources, cut.toolSettings.versions, pinEveryShot, updateCut]
   );
   /**
    * Make a reel (cut-reel.ts): the full edit saved as "Full cut", then the edit turned into a
@@ -1088,6 +1145,8 @@ export function useCutRoom() {
    */
   const makeReel = useCallback(
     (seconds: ReelLength, durations: ReadonlyMap<string, number>) => {
+      // Both versions it saves keep the media they were made with.
+      pinEveryShot();
       const before = stateRef.current;
       const edits = before.options.shotEdits;
       const ordered = orderedCutShots(shots, edits);
@@ -1138,7 +1197,7 @@ export function useCutRoom() {
         extras: before.extras,
         options,
       };
-      commitEdit({ options }, true);
+      commitEdit({ options }, true, false);
       updateCut({
         versions: saveCutVersion(saveCutVersion(cut.toolSettings.versions, full), reel),
       });
@@ -1146,7 +1205,14 @@ export function useCutRoom() {
         `Made a ${seconds} s reel from ${plan.keys.length} shots — the full cut is saved as a version.`
       );
     },
-    [commitEdit, cut.toolSettings.sources, cut.toolSettings.versions, shots, updateCut]
+    [
+      commitEdit,
+      cut.toolSettings.sources,
+      cut.toolSettings.versions,
+      pinEveryShot,
+      shots,
+      updateCut,
+    ]
   );
   /** Open a version: it becomes the edit (undo goes back to what was there). */
   const openVersion = useCallback(
@@ -1158,7 +1224,8 @@ export function useCutRoom() {
           options: { ...DEFAULT_FILM_CUT_OPTIONS, ...version.options },
           extras: version.extras ?? [],
         },
-        true
+        true,
+        false
       );
       updateCut({ sources: version.sources });
     },
@@ -1181,6 +1248,57 @@ export function useCutRoom() {
       updateCut({ versions: (cut.toolSettings.versions ?? []).filter(entry => entry.id !== id) });
     },
     [cut.toolSettings.versions, updateCut]
+  );
+  /**
+   * A pinned shot's source offers another take: use it here (`everywhere`: on this shot's copies
+   * too), or keep the one it has. Saved versions keep theirs.
+   */
+  const takeOffered = useCallback(
+    (key: string, everywhere = false) => {
+      const state = pinStates[key];
+      if (state?.state !== 'new-take') return;
+      const now = stateRef.current.options;
+      const result = takeOfferedCutMedia(now.shotEdits, key, state.offered, { everywhere });
+      commitEdit({ options: { ...now, shotEdits: result.edits } }, true, false);
+      setStatus(
+        `${state.offered.title || 'The shot'} uses the new take${
+          result.keys.length > 1 ? ` (${result.keys.length} shots)` : ''
+        }${result.trimReset ? ' — its trim was set for the old clip, so it was reset' : ''}.`
+      );
+    },
+    [commitEdit, pinStates]
+  );
+  const keepPinned = useCallback(
+    (key: string) => {
+      const state = pinStates[key];
+      if (state?.state !== 'new-take') return;
+      const now = stateRef.current.options;
+      commitEdit(
+        {
+          options: {
+            ...now,
+            shotEdits: declineOfferedCutMedia(now.shotEdits, key, state.offered.url),
+          },
+        },
+        true,
+        false
+      );
+    },
+    [commitEdit, pinStates]
+  );
+  /** Pin a shot to what it plays now, or let it follow its source again. */
+  const togglePin = useCallback(
+    (key: string) => {
+      const shot = shotsRef.current.find(entry => entry.key === key);
+      if (!shot) return;
+      const now = stateRef.current.options;
+      commitEdit(
+        { options: { ...now, shotEdits: toggleCutShotPin(now.shotEdits, shot) } },
+        true,
+        false
+      );
+    },
+    [commitEdit]
   );
   const isAdded = useCallback((key: string) => extras.some(extra => extra.key === key), [extras]);
 
@@ -1216,7 +1334,17 @@ export function useCutRoom() {
     const byKey = new Map(narrated.map(shot => [cutRoomKey('day', shot.key), shot]));
     return shots.map(shot => {
       const done = byKey.get(shot.key);
-      return done ? { ...done, key: shot.key } : shot;
+      if (!done) return shot;
+      // The voice-over is the slot's; the media is the shot's own (a pinned shot plays its pin).
+      const { thumbUrl: _thumb, entryId: _entry, ...narration } = done;
+      return {
+        ...narration,
+        key: shot.key,
+        url: shot.url,
+        kind: shot.kind,
+        ...(shot.thumbUrl ? { thumbUrl: shot.thumbUrl } : {}),
+        ...(shot.entryId ? { entryId: shot.entryId } : {}),
+      };
     });
   }, [bySource.day, dayStills, shots, slots]);
   const missingDayNarration = useMemo(
@@ -1287,6 +1415,16 @@ export function useCutRoom() {
       if (picked.length === 0) {
         setError('Every shot is left out — put one back in the shot list.');
         return;
+      }
+      // The film keeps the media it is rendered with: a re-cut brings the same shots back.
+      const inFilm = new Set(picked.map(shot => shot.key));
+      const now = stateRef.current.options;
+      const pinnedEdits = pinAllCutShots(
+        now.shotEdits,
+        shotsRef.current.filter(shot => inFilm.has(shot.key))
+      );
+      if (pinnedEdits !== now.shotEdits) {
+        commitEdit({ options: { ...now, shotEdits: pinnedEdits } }, true, false);
       }
       const withDay = sources.includes('day');
       const withStory = sources.includes('story');
@@ -1516,6 +1654,7 @@ export function useCutRoom() {
     [
       actions.sendComfyUi,
       beats,
+      commitEdit,
       day.toolSettings,
       dayCast,
       options,
@@ -1655,6 +1794,10 @@ export function useCutRoom() {
     bySource,
     shots,
     previewShots,
+    pinStates,
+    takeOffered,
+    keepPinned,
+    togglePin,
     options,
     setOptions,
     extras,
