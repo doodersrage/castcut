@@ -101,8 +101,16 @@ export type SceneToolCache = DayToolCache & {
   jobLog?: SceneJob[];
 };
 
-/** A job the Scene page queued: its take or its clip, and the scene's name then. */
-export type SceneJob = { promptId: string; scene: string; kind: 'still' | 'clip' };
+/**
+ * A job the Scene page queued: its take or its clip, the scene's name then, and its id (since
+ * 2026-10-25, R4: which scene a render was for, also once its take has left the scene's list).
+ */
+export type SceneJob = {
+  promptId: string;
+  scene: string;
+  kind: 'still' | 'clip';
+  sceneId?: string;
+};
 
 export const SCENE_JOB_LOG_LIMIT = 200;
 
@@ -112,7 +120,8 @@ export const SCENE_JOB_LOG_LIMIT = 200;
 export function recordSceneJobs(
   log: ReadonlyArray<SceneJob> | undefined,
   still: Pick<DaySlotStill, 'promptId' | 'clipPromptId' | 'twoTakes'> | undefined,
-  sceneName: string
+  sceneName: string,
+  sceneId?: string
 ): SceneJob[] {
   const list = Array.isArray(log) ? (log as SceneJob[]) : [];
   const known = new Set(list.map(job => job.promptId));
@@ -121,7 +130,12 @@ export function recordSceneJobs(
     const promptId = id?.trim();
     if (!promptId || known.has(promptId)) return;
     known.add(promptId);
-    added.push({ promptId, scene: sceneName.slice(0, 60) || 'Scene', kind });
+    added.push({
+      promptId,
+      scene: sceneName.slice(0, 60) || 'Scene',
+      kind,
+      ...(sceneId?.trim() ? { sceneId: sceneId.trim() } : {}),
+    });
   };
   add(still?.promptId, 'still');
   add(still?.twoTakes?.promptId, 'still');

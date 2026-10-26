@@ -599,6 +599,17 @@ describe('scenes: the open scene follows the engine', () => {
     assert.equal(log.length, SCENE_JOB_LOG_LIMIT);
     assert.equal(log.at(-1)?.promptId, `x${SCENE_JOB_LOG_LIMIT + 4}`);
   });
+
+  it('logs which scene each job was for (R4)', () => {
+    const log = recordSceneJobs(undefined, { promptId: 'p1', clipPromptId: 'c1' }, 'Kitchen', 'scene-a');
+    assert.deepEqual(
+      log.map(job => [job.promptId, job.sceneId]),
+      [
+        ['p1', 'scene-a'],
+        ['c1', 'scene-a'],
+      ]
+    );
+  });
 });
 
 describe('scenes and Day', () => {

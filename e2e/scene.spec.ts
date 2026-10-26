@@ -256,6 +256,63 @@ test('keep a take, the Director from it, and the kept take in Cut', async ({ pag
   await shot(page, 'scene-cut-source');
 });
 
+// R4: a take says how it was made — read from its Gallery entry.
+test('a take says how it was made, and when its Gallery entry is gone', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'comfyui-gallery-v1',
+      JSON.stringify([
+        {
+          id: 'e2e-take-1-entry',
+          promptId: 'take-1',
+          comfyUrl: 'http://127.0.0.1:8188',
+          tool: 'image-prompt',
+          prompt: 'Edit instruction for a Day still: stirring a pot of risotto at the stove',
+          characterId: 'e2e-scene',
+          model: 'qwen-e2e-model',
+          queueParams: { seed: 777, width: 832, height: 1216, steps: 8 },
+          hasStoredWorkflow: true,
+          workflowJson: '{"1":{"class_type":"KSampler","inputs":{}}}',
+          status: 'completed',
+          queuedAt: Date.now() - 60_000,
+          completedAt: Date.now() - 18_000,
+          renderDurationMs: 42_000,
+          images: [{ filename: 'e2e-take-1.png', subfolder: '', type: 'output' }],
+        },
+      ])
+    );
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+
+  await page.getByTestId('scene-take-made-0').click();
+  const dialog = page.getByTestId('scene-take-provenance');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('How take 1 was made');
+  await expect(page.getByTestId('scene-take-provenance-still-made-with')).toContainText('Scene');
+  await expect(page.getByTestId('scene-take-provenance-still-model')).toContainText('qwen-e2e-model');
+  await expect(page.getByTestId('scene-take-provenance-still-seed')).toContainText('777');
+  await expect(page.getByTestId('scene-take-provenance-still-size')).toContainText('832 × 1216');
+  await expect(page.getByTestId('scene-take-provenance-still-render-time')).toContainText('42 s');
+  await expect(page.getByTestId('scene-take-provenance-still-cast')).toContainText('Scene Cast');
+  await expect(page.getByTestId('scene-take-provenance-still-graph')).toContainText('Stored');
+  await expect(page.getByTestId('scene-take-provenance-still-prompt')).toContainText('risotto');
+  await shot(page, 'scene-desk-take-provenance');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+
+  // Take 2 has no Gallery entry in this browser: it says so instead of inventing details.
+  await page.getByTestId('scene-take-made-1').click();
+  await expect(page.getByTestId('scene-take-provenance-missing')).toBeVisible();
+  await expect(page.getByTestId('scene-take-provenance-still')).toHaveCount(0);
+});
+
 test('Open as Scene from a Day slot copies its shot and take', async ({ page }) => {
   await stubComfyQueue(page);
   await seedSettingsCacheOnNextLoad(page, {

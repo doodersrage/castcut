@@ -81,7 +81,7 @@ export function useScenePage(vm: DayEngineView) {
     if (!mounted || !active) return;
     const next = recordSceneFromWorking(active, cache);
     // The jobs it queues, by id: the Queue page labels them "Scene" (their prompt says Day).
-    const jobLog = recordSceneJobs(cache.jobLog, still, active.name);
+    const jobLog = recordSceneJobs(cache.jobLog, still, active.name, active.id);
     if (next !== active || jobLog !== cache.jobLog) {
       write({
         ...(next !== active ? { scenes: upsertScene(scenes, next) } : {}),

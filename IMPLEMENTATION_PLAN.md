@@ -6,7 +6,7 @@
 > **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
-> protected) are done, and so are **R2** (the scene cap) and **R3** (keys stay in the browser). Next: R4.
+> protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser) and **R4** (how a take was made). Next: R5.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -352,13 +352,23 @@ Decision: credentials stay browser-only; a key for every device goes in the serv
   the machine). The server copy holds them until this browser's first push after the update. A
   webhook URL is kept as settings, though some services put a token in it.
 
-**R4 — Take provenance on the take card (ROADMAP §4.2).**
+**R4 — Take provenance on the take card (ROADMAP §4.2).** _Done 2026-10-25._
 
-- Scope: "How this was made" on a Scene take, read from its Gallery entry by `promptId`: prompt,
-  model, seed and params, engine, references, timings, whether the exact graph is still stored.
-  Also stamp the Scene id on the entry at queue time through the existing job-context hook
-  (`queue/job-context.ts`), so G2 can be fixed later. UI over existing data.
-- Depends on: R1 (so the data is still there).
+- `src/lib/gallery/provenance.ts` (shared, pure): `galleryEntryProvenance` reads a Gallery entry
+  as labelled rows: made with, engine and host, model, quality, seed, size, steps, CFG, sampler,
+  denoise, Cast, references given, queued, finished, render time, whether the exact graph is
+  stored, prompt and negative. Status and the error appear for a render that didn't finish.
+  Unknown rows are left out.
+- Scene: an "i" button on each take (`SceneTakes.tsx`) opens "How take N was made"
+  (`SceneTakeProvenance.tsx`), for the picture and, once it moves, its clip. A take whose entry
+  this browser no longer has says so.
+- G2 groundwork: the Scene job log now records each job's scene id (`SceneJob.sceneId`), so a
+  later "every render of this scene" view can find takes that have left the 24-take list.
+  Nothing reads it yet.
+- Tests: `gallery/provenance.test.ts` (4), `day/scenes.test.ts` (1), and
+  `e2e/scene.spec.ts` "a take says how it was made…".
+- Not done: the Gallery lightbox still builds its own detail rows; it could use
+  `galleryEntryProvenance` later.
 
 **R5 — Cut pins its media; replacement is explicit (fixes D3, ROADMAP §4.4).**
 
