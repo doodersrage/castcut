@@ -114,6 +114,25 @@ export function useQueueToolOrchestration() {
     return () => window.clearInterval(interval);
   }, [refreshEntries, refreshHealth]);
 
+  // Jobs given up on (timed out, lost) that ComfyUI may have finished (R8): asked when the Queue
+  // opens too — once a session each — not only by the background poller.
+  useEffect(() => {
+    let cancelled = false;
+    void import('@/lib/gallery/stalled-recovery')
+      .then(({ recoverStalledGalleryJobs }) => recoverStalledGalleryJobs())
+      .then(({ found }) => {
+        if (cancelled || found === 0) return;
+        setStatus(
+          `ComfyUI still had ${found} job${found === 1 ? '' : 's'} Castcut had given up on — picking ${found === 1 ? 'it' : 'them'} up.`
+        );
+        refreshEntries();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshEntries]);
+
   const pending = useMemo(
     () => entries.filter(entry => entry.status === 'pending' || entry.status === 'running'),
     [entries]

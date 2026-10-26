@@ -1,6 +1,7 @@
 'use client';
 
 import { isCancelledJob } from '@/lib/comfyui/queue-cancel';
+import { GALLERY_JOB_OUTCOME_LABELS, galleryJobOutcome } from '@/lib/gallery/stalled-recovery';
 import { useState } from 'react';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import FailedJobFixButtons from '@/components/FailedJobFixButtons';
@@ -304,6 +305,13 @@ export default function QueueToolSections({
                         className="type-caption ui-status-danger"
                         title={[entry.statusMessage, entry.model].filter(Boolean).join(' · ')}
                       >
+                        <span
+                          className="mr-1 rounded-full border border-current px-1.5 text-3xs"
+                          data-testid="queue-failed-outcome"
+                          data-outcome={galleryJobOutcome(entry)}
+                        >
+                          {GALLERY_JOB_OUTCOME_LABELS[galleryJobOutcome(entry)]}
+                        </span>
                         {galleryFailureSummary(entry.statusMessage ?? entry.status)}
                         {entry.model ? ` · ${engineFamilyLabel(entry.model)}` : ''}
                       </p>
@@ -371,6 +379,13 @@ export default function QueueToolSections({
                         className="type-caption ui-status-danger"
                         title={[entry.statusMessage, entry.model].filter(Boolean).join(' · ')}
                       >
+                        <span
+                          className="mr-1 rounded-full border border-current px-1.5 text-3xs"
+                          data-testid="queue-failed-outcome"
+                          data-outcome={galleryJobOutcome(entry)}
+                        >
+                          {GALLERY_JOB_OUTCOME_LABELS[galleryJobOutcome(entry)]}
+                        </span>
                         {galleryFailureSummary(entry.statusMessage ?? entry.status)}
                         {entry.model ? ` · ${engineFamilyLabel(entry.model)}` : ''}
                       </p>

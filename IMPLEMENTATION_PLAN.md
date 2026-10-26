@@ -8,7 +8,8 @@
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
 > protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
-> devices) and **R7** (the kept take is safe to remove). Next: R8.
+> devices), **R7** (the kept take is safe to remove) and **R8** (lost jobs are found again).
+> Next: R9.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -439,9 +440,26 @@ labelled; pin and unpin by hand._
 - Tests: `day/scenes.test.ts` (1), `e2e/scene.spec.ts` "removing the kept take asks first…".
 - Not done: an undo for removing a take; confirm-first was chosen instead.
 
-**R8 — Queue: cancelled / interrupted states and late recovery (G6).** Separate "cancelled" and
-"lost" from "error"; re-check timed-out entries against ComfyUI history on the next resume and
-recover their outputs instead of queueing again.
+**R8 — Queue: cancelled / interrupted states and late recovery (G6).** _Done 2026-10-25._
+
+- `src/lib/gallery/stalled-recovery.ts` (shared):
+  - `galleryJobOutcome` tells `cancelled`, `lost` (the engine didn't know the job),
+    `timed-out` (Castcut stopped waiting) and `failed` apart. It reads the stored message, so
+    older entries are classified too, and `status` stays `error` for every existing caller.
+  - `recoverStalledGalleryJobs` asks the engine once a session about timed-out and lost jobs
+    from the last 48 h (at most 20). If one is still running, or finished with pictures, it
+    goes back to `running` and the normal poll completes it: the durable copy is made and the
+    take lands on its card (Day's gallery sync watches every still's prompt id). Otherwise it
+    is left as it is.
+  - It waits for the full Gallery to load first: the same trap as the adult-check bug.
+- It runs when the app opens (`ComfyGalleryBackgroundPoller`) and when the Queue opens
+  (`useQueueToolOrchestration`), which says how many it picked up.
+- Queue: each failed row is tagged Cancelled / Lost / Timed out / Failed
+  (`QueueToolSections.tsx`).
+- Tests: `gallery/stalled-recovery.test.ts` (3) and `e2e/queue-recovery.spec.ts`, a timed-out
+  job ComfyUI finished is found again while a real failure stays.
+- Not done: a job ComfyUI lost for good (restarted) still needs **Retry**. Retrying doesn't yet
+  check first whether ComfyUI has the old job.
 
 **R9 — Regression tests for the M1 gate.** (The flaky adult-check test is fixed, 2026-10-25.) Backup → restore round trip with Scenes, Cut and media
 references; reload during a render; ComfyUI restart during a render (mocked engine); the flaky

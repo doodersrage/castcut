@@ -33,6 +33,7 @@ export default function ComfyGalleryBackgroundPoller() {
     void initBrowserStorage();
 
     let cancelled = false;
+    let recovered = false;
 
     const resumeIfNeeded = () => {
       if (cancelled) {
@@ -50,6 +51,13 @@ export default function ComfyGalleryBackgroundPoller() {
               }
             }
           );
+          // Once per app start: jobs given up on (timed out, lost) that ComfyUI may have finished.
+          if (!recovered) {
+            recovered = true;
+            void import('@/lib/gallery/stalled-recovery').then(({ recoverStalledGalleryJobs }) =>
+              cancelled ? undefined : recoverStalledGalleryJobs()
+            );
+          }
         })
       );
     };
