@@ -80,6 +80,11 @@ export type SavedScene = {
    * card when the scene opens again, and is checked there.
    */
   checkingTakeIds?: string[];
+  /**
+   * Takes removed from the scene (their ids), so another device's copy of the scene, or the card
+   * still showing one, does not bring them back (R6, storage/tool-record-merge.ts).
+   */
+  removedTakeIds?: string[];
   createdAt: number;
   updatedAt: number;
 };
@@ -99,6 +104,11 @@ export type SceneToolCache = DayToolCache & {
    * text says "Day". Kept after a take is dropped or its scene deleted.
    */
   jobLog?: SceneJob[];
+  /**
+   * When scenes were deleted, by id (R6): another device's older copy of a deleted scene does not
+   * bring it back (storage/tool-record-merge.ts).
+   */
+  removedSceneAt?: Record<string, number>;
 };
 
 /**
@@ -142,6 +152,9 @@ export function recordSceneJobs(
   add(still?.clipPromptId, 'clip');
   return added.length ? [...list, ...added].slice(-SCENE_JOB_LOG_LIMIT) : list;
 }
+
+/** Removed take ids a scene remembers (newest kept). */
+export const SCENE_REMOVED_TAKES_LIMIT = 200;
 
 /** Takes kept per scene (the kept take always stays). Older ones stay in the Gallery. */
 export const SCENE_TAKE_LIMIT = 24;
@@ -324,9 +337,10 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
   const id = text(scene.id, 80);
   const castId = text(scene.castId, 120);
   if (!id || !castId) return null;
+  const removed = new Set(removedTakesField(scene.removedTakeIds).removedTakeIds);
   const takes = (Array.isArray(scene.takes) ? scene.takes : [])
     .map(take => normalizeTake(take, now))
-    .filter((take): take is SceneTake => take !== null);
+    .filter((take): take is SceneTake => take !== null && !removed.has(take.id));
   const kept = text(scene.keptTakeId, 160);
   const keptTakeId = takes.some(take => take.id === kept) ? kept : undefined;
   const createdAt = time(scene.createdAt, now);
@@ -345,9 +359,17 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
       ? { fromDaySlot: scene.fromDaySlot }
       : {}),
     ...checkingIdsField(scene.checkingTakeIds),
+    ...removedTakesField(scene.removedTakeIds),
     createdAt,
     updatedAt: time(scene.updatedAt, createdAt),
   };
+}
+
+function removedTakesField(value: unknown): Pick<SavedScene, 'removedTakeIds'> {
+  const ids = [
+    ...new Set((Array.isArray(value) ? value : []).map(id => text(id, 160)).filter(Boolean)),
+  ].slice(-SCENE_REMOVED_TAKES_LIMIT);
+  return ids.length ? { removedTakeIds: ids } : {};
 }
 
 /** A scene that holds renders: a take, or one still at the adult check. */
@@ -591,7 +613,10 @@ export function recordSceneFromWorking(
     now
   );
   let takes = scene.takes;
+  const removed = new Set(scene.removedTakeIds ?? []);
   for (const take of landed) {
+    // A take removed while still on the card stays removed.
+    if (removed.has(take.id)) continue;
     const index = takes.findIndex(entry => entry.id === take.id);
     if (index < 0) {
       takes = [...takes, take];
@@ -652,6 +677,7 @@ export function removeSceneTake(scene: SavedScene, takeId: string, now = Date.no
     ...rest,
     takes: scene.takes.filter(take => take.id !== takeId),
     ...(keptTakeId && keptTakeId !== takeId ? { keptTakeId } : {}),
+    ...removedTakesField([...(scene.removedTakeIds ?? []), takeId]),
     updatedAt: now,
   };
 }
@@ -841,13 +867,20 @@ function openFor(
 }
 
 /** Delete a scene; when it was open, the Cast's next newest opens (or none). */
-export function deleteScenePatch(cache: SceneToolCache, sceneId: string): Partial<SceneToolCache> {
+export function deleteScenePatch(
+  cache: SceneToolCache,
+  sceneId: string,
+  now = Date.now()
+): Partial<SceneToolCache> {
   const target = cache.scenes?.find(scene => scene.id === sceneId);
   const scenes = removeScene(cache.scenes, sceneId);
-  if (cache.activeSceneId !== sceneId) return { scenes };
+  // Another device's copy of it does not bring it back (R6).
+  const removedSceneAt = { ...(cache.removedSceneAt ?? {}), [sceneId]: now };
+  if (cache.activeSceneId !== sceneId) return { scenes, removedSceneAt };
   const next = target ? scenesForCast(scenes, target.castId)[0] : undefined;
   return {
     scenes: next ? withOpenedScene(scenes, next) : scenes,
+    removedSceneAt,
     ...(next ? { ...sceneWorkingPatch(next), openByCast: openFor(cache, next) } : NO_SCENE_PATCH),
   };
 }

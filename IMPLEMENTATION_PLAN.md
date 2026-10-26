@@ -7,7 +7,8 @@
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
 > protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
-> **R4** (how a take was made) and **R5** (Cut pins its media). Next: R6.
+> **R4** (how a take was made), **R5** (Cut pins its media) and **R6** (Scenes merge across
+> devices). Next: R7.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -402,12 +403,28 @@ labelled; pin and unpin by hand._
   - The pre-cut check reads a Scene shot's checks from the scene's *current* kept take, even
     when the shot is pinned to an older one.
 
-**R6 — Record-level merge for `tools.scene` (fixes D4).**
+**R6 — Record-level merge for `tools.scene` (fixes D4).** _Done 2026-10-25._
 
-- Scope: merge `scenes` by id (newer `updatedAt` wins per scene, take lists unioned by id), with
-  tombstones for deleted scenes, using `storage/record-list-sync.ts` / `record-tombstones.ts`.
-- Acceptance: two sides each adding a scene → both kept; a delete on one side is not undone by the
-  other.
+- Worse than the audit said: the browser's startup pull (`mergeStartupServerSettings`) kept this
+  device's `tools` whole, then pushed them, so the server's copy lost another device's new
+  scenes on every load, not only on conflicts.
+- `src/lib/storage/tool-record-merge.ts` (shared, pure): `TOOL_RECORD_LISTS` names the lists as
+  data (`scene` → `scenes`, children `takes`), so no Play import is needed.
+  - Per scene, the newest `updatedAt` wins, and takes are the union of both copies, less
+    `removedTakeIds`.
+  - Deleted scenes leave `removedSceneAt` tombstones. A deleted scene stays deleted unless a
+    copy was saved after the deletion.
+  - The server runs it on every settings push (`withMergedSettingsRecords`, used in
+    `app/api/storage/route.ts`); the browser runs it in the startup pull and in "merge"
+    (`storage/merge.ts`).
+  - Choosing the server copy and the Advanced restore are explicit choices, and are unchanged.
+- `day/scenes.ts`: `removeSceneTake` records `removedTakeIds`, which also stops the card from
+  re-adding a removed take that's still on it. `deleteScenePatch` stamps `removedSceneAt`.
+- Tests: `storage/tool-record-merge.test.ts` (7, including the startup-pull and server-push
+  cases), `day/scenes.test.ts` (1).
+- Not covered: two devices editing the *same* scene's settings (the shot, mood, outfit) at once:
+  the newer copy wins those fields. Takes are merged, settings aren't. Day slots and Story beats
+  are single records per tool, so their tools still merge whole.
 
 **R7 — Kept-take safety in the Scene UI (G5).** Confirm or undo removing the kept take; delete
 scene says when the scene is in a Cut.

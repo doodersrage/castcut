@@ -600,6 +600,36 @@ describe('scenes: the open scene follows the engine', () => {
     assert.equal(log.at(-1)?.promptId, `x${SCENE_JOB_LOG_LIMIT + 4}`);
   });
 
+  it('remembers removed takes and deleted scenes, for the cross-device merge (R6)', () => {
+    const takes = [
+      { id: 'p1', promptId: 'p1', imageUrl: '/view?filename=p1.png', at: 1 },
+      { id: 'p2', promptId: 'p2', imageUrl: '/view?filename=p2.png', at: 2 },
+    ];
+    const scene = kitchen({ takes });
+    const removed = removeSceneTake(scene, 'p2', 50);
+    assert.deepEqual(removed.removedTakeIds, ['p2']);
+    // Still on the card: recording the card does not put it back.
+    const recorded = recordSceneFromWorking(
+      removed,
+      { slots: [removed.slot], stills: [done('p2', { slotId: removed.slot.id })] },
+      60
+    );
+    assert.deepEqual(
+      recorded.takes.map(take => take.id),
+      ['p1']
+    );
+    // Read back: kept, and a stray copy of the removed take is dropped.
+    const back = normalizeSavedScene({ ...removed, takes }, 70)!;
+    assert.deepEqual(back.removedTakeIds, ['p2']);
+    assert.deepEqual(
+      back.takes.map(take => take.id),
+      ['p1']
+    );
+
+    const cache: SceneToolCache = { scenes: [scene], activeSceneId: 'other' };
+    assert.deepEqual(deleteScenePatch(cache, scene.id, 99).removedSceneAt, { [scene.id]: 99 });
+  });
+
   it('logs which scene each job was for (R4)', () => {
     const log = recordSceneJobs(undefined, { promptId: 'p1', clipPromptId: 'c1' }, 'Kitchen', 'scene-a');
     assert.deepEqual(

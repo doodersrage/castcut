@@ -7,6 +7,7 @@ import {
 } from '@/lib/storage/server-storage';
 import { isStorageNamespace } from '@/lib/storage/namespaces';
 import { withMergedRecordLists } from '@/lib/storage/record-list-sync';
+import { withMergedSettingsRecords } from '@/lib/storage/tool-record-merge';
 import { storageFingerprint } from '@/lib/storage/sync';
 import {
   readUserServerStorage,
@@ -109,7 +110,12 @@ export async function POST(request: Request) {
               body.data as Record<string, unknown>,
               (readScopedStorage(body.namespace, userId) ?? {}) as Record<string, unknown>
             )
-          : body.data;
+          : body.namespace === 'settings-cache' && body.data && typeof body.data === 'object'
+            ? withMergedSettingsRecords(
+                body.data as Record<string, unknown>,
+                readScopedStorage(body.namespace, userId)
+              )
+            : body.data;
       const userScoped = writeScopedStorage(body.namespace, data, userId);
       return apiJson({
         ok: true,

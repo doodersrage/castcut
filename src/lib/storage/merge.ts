@@ -1,3 +1,5 @@
+import { withMergedToolRecords } from './tool-record-merge';
+
 export type LoaderMapDiffSample = {
   mapKey: string;
   entryKey: string;
@@ -267,7 +269,12 @@ export function mergeStartupServerSettings<
       ...latest,
       ...server,
       shared: { ...latestShared, ...(server.shared ?? {}) },
-      tools: { ...(server.tools ?? {}), ...(latest.tools ?? {}) },
+      // This page's tools, with the record lists in them (Scene's scenes) merged per record —
+      // the server's scenes from another device used to be dropped here, then pushed over.
+      tools: withMergedToolRecords(
+        { ...(server.tools ?? {}), ...(latest.tools ?? {}) },
+        server.tools
+      ),
     },
     server
   );
@@ -330,10 +337,7 @@ export function mergeSettingsCache<
       ...(winner.shared ?? {}),
       ...sharedMaps,
     },
-    tools: {
-      ...(loser.tools ?? {}),
-      ...(winner.tools ?? {}),
-    },
+    tools: withMergedToolRecords({ ...(loser.tools ?? {}), ...(winner.tools ?? {}) }, loser.tools),
     ...(installedPlugins ? { installedPlugins } : {}),
   } as T;
 }
