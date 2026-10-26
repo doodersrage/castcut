@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { DayToolCache } from '@/lib/play/settings';
 import { pushAppToast } from '@/lib/app/toast';
@@ -194,6 +195,22 @@ export function useScenePage(vm: DayEngineView) {
     },
     [cache, checking, rendering, scenes, settleChecks, write]
   );
+
+  // A link straight to one Scene (Film Director's next actions, M5 W2): /scene?scene=<id> opens
+  // it once the page is ready — if it is this Cast's and nothing is rendering on the card.
+  const linkedSceneRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || !castId || linkedSceneRef.current) return;
+    const id = new URLSearchParams(window.location.search).get('scene')?.trim();
+    if (!id) {
+      linkedSceneRef.current = true;
+      return;
+    }
+    // The stored Scenes may still be loading: wait until it is there.
+    if (!castScenes.some(scene => scene.id === id)) return;
+    linkedSceneRef.current = true;
+    if (id !== active?.id) scheduleAfterCommit(() => openScene(id));
+  }, [active?.id, castId, castScenes, mounted, openScene]);
 
   const renameScene = useCallback(
     (sceneId: string, name: string) => {

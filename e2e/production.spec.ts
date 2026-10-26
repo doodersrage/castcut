@@ -66,7 +66,43 @@ test('the overview counts Scenes, jobs and findings, and links to the tools', as
     `/scene?character=${CAST}`
   );
   await page.getByTestId('director-jobs-failed').click();
-  await expect(page).toHaveURL(/\/queue/);
+  await expect(page).toHaveURL(/\/queue/, { timeout: 30_000 });
+});
+
+// M5 W2: what to do next, each opening the tool at the exact place.
+test('next actions: ranked, and Review takes opens that very Scene', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Nora', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        scenes: [
+          { id: 'n-kept', castId: CAST, name: 'Rooftop', slot: { id: 'night', label: 'Night' }, takes: [take('n-k1')], keptTakeId: 'n-k1', createdAt: 1, updatedAt: 1 },
+          { id: 'n-review', castId: CAST, name: 'Kitchen', slot: { id: 'morning', label: 'Morning', location: 'kitchen' }, takes: [take('n-r1'), take('n-r2')], createdAt: 2, updatedAt: 2 },
+        ],
+        activeSceneId: 'n-kept',
+      },
+    },
+  });
+  await gotoStable(page, '/production');
+  await dismissBlockingOverlays(page);
+  const next = page.getByTestId('director-next');
+  // No reference picture on this Cast: first; then the takes to review.
+  await expect(next.locator('li').first()).toHaveAttribute('data-testid', 'director-next-cast-reference', {
+    timeout: 30_000,
+  });
+  const review = page.getByTestId('director-next-review-takes');
+  await expect(review).toContainText('Review 2 takes of Kitchen');
+  await review.getByRole('link', { name: 'Review takes' }).click();
+  await expect(page).toHaveURL(new RegExp(`/scene\\?character=${CAST}&scene=n-review`), {
+    timeout: 30_000,
+  });
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-name')).toHaveValue('Kitchen', { timeout: 60_000 });
 });
 
 test('with no Cast picked, it says how to pick one', async ({ page }) => {

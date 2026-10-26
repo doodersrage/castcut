@@ -349,7 +349,12 @@ export default function SceneScripts({
     () => scriptsForCast(normalizeSavedScripts(cache.scripts), castId),
     [cache.scripts, castId]
   );
-  const [openId, setOpenId] = useState<string | null>(null);
+  // /scene?script=<id> opens that script (Film Director's next actions, M5 W2).
+  const [openId, setOpenId] = useState<string | null>(() =>
+    typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('script')?.trim() || null
+  );
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);

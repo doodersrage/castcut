@@ -958,7 +958,11 @@ export default function CutRoom() {
         ) : null}
 
         {vm.shots.length > 0 ? (
-          <ToolSection data-testid="cut-continuity-section" title="Continuity">
+          <ToolSection
+            id="cut-continuity-section"
+            data-testid="cut-continuity-section"
+            title="Continuity"
+          >
             <CutContinuity
               items={vm.continuity}
               disabled={busy}

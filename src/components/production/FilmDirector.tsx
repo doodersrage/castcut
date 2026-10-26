@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import {
@@ -15,6 +15,9 @@ import { normalizeSavedScenes } from '@/lib/day/scenes';
 import { normalizeSavedScripts } from '@/lib/day/scene-scripts';
 import { DEFAULT_CUT_TOOL_CACHE } from '@/lib/film/cut-room';
 import { productionOverview, type SceneState } from '@/lib/film/production-overview';
+import { nextProductionActions } from '@/lib/film/production-next';
+import { lookPlateKey } from '@/lib/character/os';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   getGalleryCache,
@@ -117,7 +120,8 @@ export default function FilmDirector() {
   // The stored settings are read (they say who the Cast is and what was made).
   const mounted = sceneTool.mounted && cut.mounted;
   const castId = sceneTool.shared.activeCharacterId?.trim() ?? '';
-  const castName = castId ? getCharacter(castId)?.name : undefined;
+  const castRecord = castId ? getCharacter(castId) : null;
+  const castName = castRecord?.name;
   const settings = sceneTool.toolSettings;
 
   const overview = useMemo(() => {
@@ -133,6 +137,18 @@ export default function FilmDirector() {
       cut: cut.toolSettings,
     });
   }, [castId, cut.toolSettings, decisions, gallery, settings]);
+
+  const actions = useMemo(
+    () =>
+      overview
+        ? nextProductionActions(overview, {
+            ...(castName ? { name: castName } : {}),
+            hasReference: Boolean(castRecord && lookPlateKey(castRecord)),
+          })
+        : [],
+    [castName, castRecord, overview]
+  );
+  const [showAll, setShowAll] = useState(false);
 
   if (!mounted) return null;
   const scene = `/scene?character=${encodeURIComponent(castId)}`;
@@ -162,6 +178,46 @@ export default function FilmDirector() {
         </ToolSection>
       ) : (
         <>
+          <ToolSection title="What next" data-testid="director-next">
+            {actions.length ? (
+              <>
+                <ol className="space-y-2">
+                  {(showAll ? actions : actions.slice(0, 5)).map(action => (
+                    <li
+                      key={action.id}
+                      className="flex flex-wrap items-center gap-3"
+                      data-testid={`director-next-${action.kind}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{action.title}</p>
+                        <p className="type-caption text-[var(--text-muted)]">{action.detail}</p>
+                      </div>
+                      <ButtonLink href={action.href} size="sm" variant="secondary">
+                        {action.cta}
+                      </ButtonLink>
+                    </li>
+                  ))}
+                </ol>
+                {actions.length > 5 ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-2"
+                    data-testid="director-next-more"
+                    onClick={() => setShowAll(!showAll)}
+                  >
+                    {showAll ? 'Show fewer' : `Show all ${actions.length}`}
+                  </Button>
+                ) : null}
+              </>
+            ) : (
+              <p className="type-caption text-[var(--text-muted)]" data-testid="director-next-none">
+                Nothing waiting on you — every Scene has a kept take, no job failed and nothing is
+                flagged.
+              </p>
+            )}
+          </ToolSection>
+
           <ToolSection title="Scenes and takes" data-testid="director-scenes">
             <Stats>
               <Stat

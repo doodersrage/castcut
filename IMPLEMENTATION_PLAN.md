@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1** is done; next: **W2**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W2** are done; next: **W3**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1106,15 +1106,31 @@ second status system: every count is read from the records M1–M4 made reliable
   - Counts link to the tool, not yet to the exact Scene (W2 adds deep links).
   - There is no phone layout.
 
-**W2 — Guided next actions.** `nextProductionActions(overview)` ranks what to do next, each
-opening the existing tool at the right place (a deep link, never a copy of the tool):
-- relink missing media before export;
-- retry a failed or lost job;
-- review N new takes (a Scene with takes and no keeper);
-- fix an open continuity finding;
-- cover a gap (a planned shot not made, an uncovered script scene);
-- replace a kept take marked "Looks wrong";
-- give a Cast member without a reference image (plate) one.
+**W2 — Guided next actions.** _Done 2026-10-26._
+
+- `film/production-next.ts` (`nextProductionActions`, pure) reads W1's overview and ranks what
+  blocks first:
+  1. the Cast has no reference picture (`lookPlateKey` on the Cast) → the Cast page;
+  2. jobs failed or lost, with the latest reason → the Queue;
+  3. a kept take marked Looks wrong → that Scene;
+  4. takes to review → that Scene;
+  5. open continuity findings → Cut's Continuity list (`#cut-continuity-section`);
+  6. a Scene with no take → that Scene;
+  7. a planned script scene with nothing made → that script;
+  8. open coverage gaps → the Scene page.
+- Each action opens the existing tool at the place; none does the work itself.
+- Deep links:
+  - `/scene?scene=<id>` opens that Scene once the stored Scenes load (`useScenePage`). It
+    waits for them, and doesn't open over a take rendering on the card.
+  - `/scene?script=<id>` opens that script (`SceneScripts`).
+- UI: **What next** at the top of Film Director: five at a time, **Show all**, and a calm line
+  when nothing waits.
+- Tests: `film/production-next.test.ts` (2) and `e2e/production.spec.ts` "next actions…".
+  **Review takes** lands on that very Scene.
+- Not done:
+  - "Relink missing media before export" isn't among the actions: missing media needs the
+    files, so Cut checks it (W1 says so).
+  - Actions can't be snoozed.
 
 **W3 — Bounded batch preparation (plan, no rendering).**
 - On a script scene or a whole script: **Prepare shots**. It makes the planned shots into
