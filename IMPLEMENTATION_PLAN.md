@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F6** are done; next: **F7**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.**
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -994,11 +994,56 @@ new surfaces.
   - A browser encode isn't read back.
   - The film's length isn't compared with the edit's.
 
-**F7 — Portable project package.**
-- A package holds the cut (its edit, versions and recipe), a media manifest with hashes, and,
-  optionally, the media itself. **Lightweight** has no media; **Full** is self-contained.
-- Import restores it as a new Cast-scoped cut, relinking media by hash where it already exists.
-- A restore test runs in a clean data directory.
+**F7 — Portable project package.** _Done 2026-10-26._
+
+- Format (`film/cut-package.ts`): a .zip with `castcut-cut.json`, a README and, when full,
+  `media/<sha256>.<ext>`.
+  - The manifest: `format: castcut-cut-package`, `version: 1` (a newer major version is
+    refused with a clear message), name, Cast name, kind (light or full), the cut (sources,
+    added shots, options, versions) and a media list (url, file, sha256, bytes, type).
+  - `cutMediaUrls` and `rewriteCutMedia` find and replace every media URL the cut points at:
+    pins, earlier takes, added shots, music, ambience, logo, picture-in-picture.
+- **Package** (`film/cut-package-client.ts`, `useCutRoom.packageCut`):
+  - Every shot is pinned first, as when saving a version, so the package holds what each shot
+    plays.
+  - **Package with media** fetches and hashes each file (one copy per hash). A file that can't
+    be read travels as its address and is said.
+  - **Package (light)** carries the addresses only.
+  - It uses the project's own zip writer and reader: no new dependency.
+- **Import** (`importCutPackage`, `useCutRoom.importPackage`):
+  - A URL that still answers is kept.
+  - A packaged file already stored here (Gallery id `pkg-<sha256>`) is reused without
+    uploading.
+  - Otherwise the file is stored in this Gallery (`persistGalleryOriginal`) and relinked.
+  - Anything else is listed (and shows in F3's Missing media).
+  - The cut comes in as a version, "Imported · <name>", with the package's own versions while
+    there's room. It never pushes your versions out of the 12, and the live edit is untouched.
+- F3 fix found in this run: a file not yet checked (just relinked) was briefly listed as "its
+  Gallery render was removed". It now waits for the check.
+- UI: a **Package** section in Cut, always shown so a clean machine can import
+  (`components/cut/CutPackage.tsx`). Versions now show whenever there are any.
+- Tests:
+  - `film/cut-package.test.ts` (4): every medium found and rewritten; a full round trip onto a
+    machine without the media, then a reimport reusing by hash; a light package; refusals.
+  - `e2e/cut-room.spec.ts` "a packaged cut restores elsewhere": package in one browser,
+    import in a clean second context where the original file 404s. The shot plays the stored
+    copy, and only "its source is gone" is noted.
+- Not done:
+  - Media over the Gallery upload limits (25 MB images, 80 MB video and audio) aren't stored
+    on import (listed as missing).
+  - The package is built in the browser's memory: very large cuts would want a server-side
+    package.
+  - The source Day, Story or Scene doesn't travel (its pinned media does).
+
+**M4 gate (ROADMAP §7 acceptance):**
+
+| Criterion | Where |
+| --- | --- |
+| An edit can be saved, reopened, modified and exported without losing structure | F1 (merge, undo across reload); the encode-request fix (`47253fc3`) keeps every edit in a server encode |
+| Replacing a source take doesn't silently destroy clip timing | F2 (trim kept, clamped or reset, and said; Back to the earlier take) |
+| Missing media is reported and can be relinked | F3 |
+| Audio and subtitles survive export per the chosen profile | F4 (mutes left out and said), F5 (subtitle overrides reach the encode), F6 (profiles; the output read back: size, sound, loudness) |
+| A portable package restores in another location or machine | F7 (e2e restore into a clean context) |
 
 ## 5.3 Risks and compatibility
 

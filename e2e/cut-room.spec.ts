@@ -648,6 +648,81 @@ test('the server encode reports what the finished film is', async ({ page }) => 
   expect(Number(probe!.durationSec)).toBeGreaterThan(1);
 });
 
+// M4 F7: a cut packaged with its media restores on a machine where its files aren't.
+test('a packaged cut restores elsewhere: its media stored there, opened as a version', async ({
+  page,
+  browser,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        scenes: [
+          {
+            id: 'scene-f7',
+            castId: CAST,
+            name: 'Rooftop',
+            slot: { id: 'night', label: 'Night', location: 'rooftop' },
+            takes: [{ id: 'f7-a', promptId: 'f7-a', imageUrl: thumb, at: 1 }],
+            keptTakeId: 'f7-a',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/cut?from=scenes');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot', { timeout: 30_000 });
+  const download = page.waitForEvent('download');
+  await page.getByTestId('cut-package-full').click();
+  const packaged = await download;
+  expect(packaged.suggestedFilename()).toMatch(/\.castcut\.zip$/);
+  const zipPath = (await packaged.path())!;
+  await expect(page.getByTestId('cut-status')).toContainText('with 1 media file');
+
+  // Another machine: empty, and the original file isn't there.
+  const other = await browser.newContext();
+  const elsewhere = await other.newPage();
+  await isolateServerStorage(elsewhere);
+  await ensureAuthenticated(elsewhere);
+  await elsewhere.route(`**${thumb}`, route => route.fulfill({ status: 404, body: 'gone' }));
+  await seedSettingsCacheOnNextLoad(elsewhere, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {},
+  });
+  await gotoStable(elsewhere, '/cut?from=scenes');
+  await dismissBlockingOverlays(elsewhere);
+  await elsewhere.getByTestId('cut-package-import').setInputFiles(zipPath);
+  await expect(elsewhere.getByTestId('cut-status')).toContainText('Imported', { timeout: 30_000 });
+  await expect(elsewhere.getByTestId('cut-status')).toContainText(/stored here|already here/);
+  const version = elsewhere.locator('[data-testid^="cut-version-open-Imported"]');
+  await expect(version).toBeVisible();
+  await version.click();
+  // The shot plays the packaged picture, now from this machine's Gallery.
+  const picture = elsewhere.locator('[data-testid="cut-shot-pick-scenes:scene-f7"] img');
+  await expect(picture).toHaveAttribute('src', /\/api\/gallery\/media\/pkg-[0-9a-f]+/, {
+    timeout: 30_000,
+  });
+  // Nothing is missing to play it; the Scene it came from just isn't on this machine (said).
+  const note = elsewhere.getByTestId('cut-missing-scenes:scene-f7');
+  await expect(note).toHaveAttribute('data-blocks', 'false');
+  await expect(note).toContainText('its source is gone');
+  await expect(note).not.toContainText('file is gone');
+  await other.close();
+});
+
 // M2 C3: each shot's card says who is in it, where and when.
 test("shot state: a Day shot's card says who, where and when", async ({ page }) => {
   await seed(page, false);

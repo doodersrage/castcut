@@ -27,6 +27,7 @@ describe('missing media in Cut (M4 F3)', () => {
       urlStatus: new Map([
         ['/ok.png', 'ok'],
         ['/gone.png', 'missing'],
+        ['/unknown.png', 'unknown'],
       ]),
       galleryHas: id => id !== 'gone-entry',
     });
@@ -37,6 +38,15 @@ describe('missing media in Cut (M4 F3)', () => {
         ['day:afternoon', false, 'gallery-purged'],
         ['scenes:s2', false, 'source-gone'],
       ]
+    );
+    // Not checked yet (just relinked): nothing said until the check answers.
+    assert.deepEqual(
+      missingCutMedia({
+        shots: [shot('day:x', '/new.png', 'not-in-gallery')],
+        urlStatus: new Map(),
+        galleryHas: () => false,
+      }),
+      []
     );
   });
 

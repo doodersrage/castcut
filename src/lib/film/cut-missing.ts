@@ -48,8 +48,13 @@ export function missingCutMedia(input: {
     const file = input.urlStatus.get(shot.url);
     if (file === 'missing') reasons.push('file-missing');
     // A render gone from the Gallery whose file still plays is not missing anything: said only
-    // when the file isn't known to be there.
-    if (file !== 'ok' && shot.entryId && input.galleryHas && !input.galleryHas(shot.entryId)) {
+    // when its file was checked and isn't known to be there (not while it's being checked).
+    if (
+      (file === 'missing' || file === 'unknown') &&
+      shot.entryId &&
+      input.galleryHas &&
+      !input.galleryHas(shot.entryId)
+    ) {
       reasons.push('gallery-purged');
     }
     if (input.states?.[shot.key]?.state === 'source-gone') reasons.push('source-gone');

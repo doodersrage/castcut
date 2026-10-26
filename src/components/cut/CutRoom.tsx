@@ -20,6 +20,7 @@ import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
 import CutTracks from '@/components/cut/CutTracks';
 import CutExport from '@/components/cut/CutExport';
+import CutPackage from '@/components/cut/CutPackage';
 import { cutHasSound, cutPreflight } from '@/lib/film/export-profiles';
 import { filmSubtitleCues, subtitleIssues } from '@/lib/video/cut-subtitle-track';
 import CutSubtitles, { type CutSubtitleRow } from '@/components/cut/CutSubtitles';
@@ -1030,7 +1031,7 @@ export default function CutRoom() {
           </div>
         ) : null}
 
-        {vm.shots.length > 0 ? (
+        {vm.shots.length > 0 || vm.versions.length > 0 ? (
           <ToolSection data-testid="cut-versions-section" title="Versions">
             <CutVersions
               versions={vm.versions}
@@ -1041,6 +1042,26 @@ export default function CutRoom() {
             />
           </ToolSection>
         ) : null}
+
+        <ToolSection
+          data-testid="cut-package-section"
+          title="Package"
+          description="Take this cut to another machine, or keep it safe: the edit, its versions and (with media) the files it plays."
+        >
+          <CutPackage
+            canPackage={vm.shots.length > 0}
+            busy={vm.packaging}
+            disabled={busy}
+            onPackage={full =>
+              void vm.packageCut(
+                full,
+                titleCard?.title || vm.sceneCast?.name || 'cut',
+                vm.dayCast?.name || vm.sceneCast?.name || undefined
+              )
+            }
+            onImport={file => void vm.importPackage(file)}
+          />
+        </ToolSection>
 
         <ToolSection
           data-testid="cut-films"

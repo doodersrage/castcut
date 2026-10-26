@@ -80,6 +80,7 @@ import {
   cutCopyKey,
   cutExtraShots,
   cutEditStamp,
+  CUT_VERSIONS_LIMIT,
   deleteCutVersionPatch,
   saveCutVersionsPatch,
   type CutExtra,
@@ -150,6 +151,7 @@ import {
   type FindingDecisionKind,
 } from '@/lib/checks/finding-decisions';
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
+import { packageAsVersion, packageVersions } from '@/lib/film/cut-package';
 import {
   applyExportProfile,
   cutHasSound,
@@ -1587,6 +1589,102 @@ export function useCutRoom() {
     },
     [commitEdit]
   );
+  /**
+   * Package the cut (M4 F7): every shot pinned to what it plays first (as a version is), then
+   * the cut, its versions and — full — its media, in one .zip to import elsewhere.
+   */
+  const [packaging, setPackaging] = useState(false);
+  const packageCut = useCallback(
+    async (full: boolean, name: string, castName?: string) => {
+      setPackaging(true);
+      setError(null);
+      try {
+        const options = pinEveryShot();
+        const { buildCutPackage } = await import('@/lib/film/cut-package-client');
+        const built = await buildCutPackage({
+          cut: {
+            ...(cut.toolSettings.sources ? { sources: cut.toolSettings.sources } : {}),
+            extras: stateRef.current.extras,
+            options,
+            ...(cut.toolSettings.versions?.length ? { versions: cut.toolSettings.versions } : {}),
+          },
+          name,
+          ...(castName ? { castName } : {}),
+          full,
+        });
+        const safe = name.replace(/[^\w.-]+/g, '-').replace(/^-|-$/g, '') || 'cut';
+        downloadFilmBlob(built.blob, `${safe}.castcut.zip`);
+        setStatus(
+          full
+            ? `Packaged the cut with ${built.packed} media file${built.packed === 1 ? '' : 's'}${
+                built.unreadable.length
+                  ? ` — ${built.unreadable.length} couldn’t be read and travel as addresses only`
+                  : ''
+              }.`
+            : `Packaged the cut (light: ${built.media} media address${built.media === 1 ? '' : 'es'}, no files).`
+        );
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not package the cut.');
+      } finally {
+        setPackaging(false);
+      }
+    },
+    [cut.toolSettings.sources, cut.toolSettings.versions, pinEveryShot]
+  );
+  /** Import a package as versions of this Cut — the live edit, and yours, are left alone. */
+  const importPackage = useCallback(
+    async (file: File) => {
+      setPackaging(true);
+      setError(null);
+      try {
+        const { importCutPackage } = await import('@/lib/film/cut-package-client');
+        const imported = await importCutPackage(file);
+        if (!imported.ok) {
+          setError(imported.error);
+          return;
+        }
+        const { manifest, cut: packaged, kept, reused, stored, missing } = imported.result;
+        const now = Date.now();
+        const main = packageAsVersion(manifest, packaged, now);
+        // Saving keeps 12 versions: an import never pushes yours out.
+        const yours = cut.toolSettings.versions?.length ?? 0;
+        const theirs = packageVersions(manifest, packaged.versions, now);
+        if (yours >= CUT_VERSIONS_LIMIT) {
+          setError(
+            `Versions are full (${CUT_VERSIONS_LIMIT}) — delete one to import “${manifest.name}”.`
+          );
+          return;
+        }
+        const added = theirs.slice(0, CUT_VERSIONS_LIMIT - yours - 1);
+        updateCut(saveCutVersionsPatch(cut.toolSettings, [...added].reverse().concat(main)));
+        setStatus(
+          [
+            `Imported “${manifest.name}” as a version${added.length ? ` (with ${added.length} of its own)` : ''} — open it under Versions.`,
+            [
+              stored ? `${stored} file${stored === 1 ? '' : 's'} stored here` : '',
+              reused ? `${reused} already here` : '',
+              kept ? `${kept} found at ${kept === 1 ? 'its' : 'their'} address` : '',
+            ]
+              .filter(Boolean)
+              .join(', '),
+            missing.length
+              ? `${missing.length} not found — Missing media lists them when you open it`
+              : '',
+            theirs.length > added.length
+              ? `${theirs.length - added.length} of its versions left out (${CUT_VERSIONS_LIMIT} at most)`
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        );
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Could not import the package.');
+      } finally {
+        setPackaging(false);
+      }
+    },
+    [cut.toolSettings, updateCut]
+  );
   /** "Back to the earlier take": the take and trim the shot had before Use it here. */
   const backToEarlierTake = useCallback(
     (key: string) => {
@@ -2365,6 +2463,9 @@ export function useCutRoom() {
     relink,
     relinkFromGallery,
     setTrackMuted,
+    packaging,
+    packageCut,
+    importPackage,
     encodeServer,
     outputChecks,
     applyProfile,
