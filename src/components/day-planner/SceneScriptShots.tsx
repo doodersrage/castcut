@@ -52,6 +52,7 @@ export default function SceneScriptShots({
   coverage,
   findings = [],
   onDecide,
+  orphans = false,
 }: {
   scene: ScriptScene;
   sceneIndex: number;
@@ -67,6 +68,8 @@ export default function SceneScriptShots({
   /** What looks missing from its coverage, with your decision about each (S5). */
   findings?: ReadonlyArray<{ finding: ContinuityFinding; decision?: FindingDecision }>;
   onDecide?: (id: string, kind: FindingDecisionKind | null) => void;
+  /** Shots of scenes no longer in the script (S6): shown and removable, not drafted or made. */
+  orphans?: boolean;
 }) {
   const number = scene.number ?? String(sceneIndex + 1);
   const change = (id: string, patch: Partial<PlannedShot>) =>
@@ -84,6 +87,50 @@ export default function SceneScriptShots({
     onShots(shots.filter(entry => entry.id !== shot.id));
   };
   const seconds = shots.reduce((sum, shot) => sum + shot.seconds, 0);
+
+  if (orphans) {
+    // Read-only: their scene is gone from the script, so they can only be opened or let go.
+    return (
+      <ol className="space-y-1">
+        {shots.map(shot => {
+          const status = shotStatus(shot, scenes);
+          return (
+            <li
+              key={shot.id}
+              className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--bg-muted)] px-2 py-1 text-sm"
+              data-testid={`script-orphan-${shot.id}`}
+              data-status={status.scene ? 'made' : 'planned'}
+            >
+              <span className="font-mono text-xs">{shot.id}</span>
+              <span className="min-w-0 flex-1">
+                {SHOT_PURPOSE_LABELS[shot.purpose]}
+                {shot.line
+                  ? ` — ${shot.speaker}: “${shot.line}”`
+                  : shot.action
+                    ? ` — ${shot.action}`
+                    : ''}
+              </span>
+              <span className={`type-caption ${status.tone}`}>{status.label}</span>
+              {status.scene ? (
+                <Button size="sm" variant="ghost" onClick={() => onOpenScene(status.scene!.id)}>
+                  Open scene
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={`Remove shot ${shot.id}`}
+                data-testid={`script-orphan-remove-${shot.id}`}
+                onClick={() => void remove(shot, Boolean(status.scene))}
+              >
+                Remove
+              </Button>
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
 
   return (
     <div

@@ -471,6 +471,91 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
   await expect(page.getByTestId('script-coverage')).not.toContainText('to look at');
 });
 
+// M3 S6: a new version is reviewed before it replaces the script; made shots are never lost.
+test('a new version of a script is reviewed, and a removed scene keeps its made shots', async ({
+  page,
+}) => {
+  const v1 = 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nEXT. ROOFTOP - NIGHT\n\nThe city hums.\n\nINT. OFFICE - DAY\n\nPhones ring.\n';
+  const v2 = 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nEXT. ROOFTOP - LATE NIGHT\n\nThe city hums. Sirens.\n\nINT. BAR - NIGHT\n\nGlasses clink.\n';
+  const shot = (sceneId: string, extra: Record<string, unknown> = {}) => ({
+    id: `${sceneId}~1`,
+    sceneId,
+    purpose: 'establishing',
+    framing: 'full',
+    who: [],
+    seconds: 3,
+    ...extra,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [
+          {
+            id: 'script-e2e',
+            castId: CAST,
+            name: 'Versions',
+            source: v1,
+            shots: [
+              shot('int-kitchen-morning'),
+              shot('ext-rooftop-night'),
+              // The office's shot became the seeded Scene (with its two takes).
+              shot('int-office-day', { madeSceneId: 'scene-e2e' }),
+              { ...shot('int-office-day'), id: 'int-office-day~2', purpose: 'action' },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('script-open-script-e2e').click({ timeout: 60_000 });
+  await page.getByTestId('script-reimport-open').click();
+  await page.getByTestId('script-reimport-text').fill(v2);
+
+  await expect(page.getByTestId('script-reimport-summary')).toHaveText(
+    '1 same · 1 changed · 1 new · 1 removed'
+  );
+  await expect(page.getByTestId('script-reimport-row-ext-rooftop-night')).toContainText(
+    'matched by heading'
+  );
+  const office = page.getByTestId('script-reimport-row-int-office-day');
+  await expect(office).toHaveAttribute('data-status', 'removed');
+  await expect(office).toContainText('1 shot made into Scenes stay');
+  // Drop the office's planned shot; the made one stays whatever.
+  await page.getByTestId('script-reimport-drop-int-office-day').check();
+  await page.getByTestId('script-reimport-apply').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+
+  await expect(page.getByTestId('script-reimport')).toHaveCount(0);
+  await expect(page.getByTestId('script-scene-int-bar-night')).toBeVisible();
+  // The office's made shot, listed as no longer in the script, with its Scene's takes.
+  const orphan = page.getByTestId('script-orphan-int-office-day~1');
+  await expect(orphan).toBeVisible();
+  await expect(orphan).toContainText('2 takes');
+  await expect(page.getByTestId('script-orphan-int-office-day~2')).toHaveCount(0);
+
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      const script = tool.scripts?.[0];
+      return script
+        ? [
+            script.source.includes('INT. BAR - NIGHT'),
+            (script.shots ?? []).map((entry: { id: string; sceneId: string }) => `${entry.id}>${entry.sceneId}`).join(','),
+          ].join('|')
+        : '';
+    })
+    .toBe(
+      'true|int-kitchen-morning~1>int-kitchen-morning,ext-rooftop-night~1>ext-rooftop-late-night,int-office-day~1>int-office-day'
+    );
+});
+
 // R4: a take says how it was made — read from its Gallery entry.
 test('a take says how it was made, and when its Gallery entry is gone', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {

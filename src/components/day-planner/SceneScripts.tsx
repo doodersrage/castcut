@@ -11,7 +11,9 @@ import {
 } from '@/lib/checks/finding-decisions';
 import { coverageFindings, coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { loadSettingsCache } from '@/lib/settings/cache';
+import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
+import { orphanedShots } from '@/lib/day/script-reimport';
 import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
 import {
   shotSceneDraft,
@@ -350,9 +352,15 @@ export default function SceneScripts({
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reimporting, setReimporting] = useState(false);
   const open = scripts.find(script => script.id === openId) ?? null;
   const openParsed = useMemo(() => (open ? parseScript(open.source) : null), [open]);
   const draftParsed = useMemo(() => (draft?.trim() ? parseScript(draft) : null), [draft]);
+  const madeSceneIds = useMemo(() => new Set(scenes.map(scene => scene.id)), [scenes]);
+  const orphans = useMemo(
+    () => (open && openParsed ? orphanedShots(open.shots, openParsed) : []),
+    [open, openParsed]
+  );
   // Coverage (S5): how far each planned scene has got, and what looks missing.
   const decisions = useSyncExternalStore(
     subscribeFindingDecisions,
@@ -510,6 +518,15 @@ export default function SceneScripts({
             />
             <Button
               size="sm"
+              variant={reimporting ? 'secondary' : 'ghost'}
+              aria-pressed={reimporting}
+              data-testid="script-reimport-open"
+              onClick={() => setReimporting(!reimporting)}
+            >
+              Import a new version
+            </Button>
+            <Button
+              size="sm"
               variant="ghost"
               data-testid="script-delete"
               onClick={() => void remove()}
@@ -530,6 +547,56 @@ export default function SceneScripts({
               if (patch) update(patch);
             }}
           />
+          {reimporting ? (
+            <SceneScriptReimport
+              script={open}
+              parsed={openParsed}
+              madeSceneIds={madeSceneIds}
+              onClose={() => setReimporting(false)}
+              onApply={next => {
+                update({
+                  scripts: (cache.scripts ?? []).map(script =>
+                    script.id === next.id ? next : script
+                  ),
+                });
+                setReimporting(false);
+              }}
+            />
+          ) : null}
+          {orphans.length ? (
+            <div className="space-y-1" data-testid="script-orphans">
+              <p className="type-caption font-medium">Shots from scenes no longer in the script</p>
+              <SceneScriptShots
+                scene={{
+                  id: '~orphans',
+                  heading: '',
+                  place: '',
+                  elements: [],
+                  speakers: [],
+                  from: 0,
+                  to: 0,
+                }}
+                sceneIndex={-1}
+                orphans
+                shots={orphans}
+                scenes={scenes}
+                onShots={kept => {
+                  const keptIds = new Set(kept.map(shot => shot.id));
+                  const gone = new Set(
+                    orphans.filter(shot => !keptIds.has(shot.id)).map(shot => shot.id)
+                  );
+                  const patch = setScriptShotsPatch(
+                    cache,
+                    open.id,
+                    (open.shots ?? []).filter(shot => !gone.has(shot.id))
+                  );
+                  if (patch) update(patch);
+                }}
+                onMake={() => {}}
+                onOpenScene={openScene}
+              />
+            </div>
+          ) : null}
           {coverage ? (
             <p className="type-caption" data-testid="script-coverage">
               <span className="font-medium">Coverage:</span> {coverage.total}

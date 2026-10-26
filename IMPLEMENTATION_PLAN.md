@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S5** are done; next: **S6**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.**
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -760,9 +760,32 @@ replaces Scenes or Story.
 - Tests: `day/script-coverage.test.ts` (2) and the S4 e2e (extended).
 - Not done: no coverage view outside the Script section (Cut, Production Home).
 
-**S6 — Safe reimport.** A new version of the script is matched to the stored one by scene id
-(heading similarity as the fallback), with a reconciliation screen: new, changed, removed.
-A shot with takes is never removed silently.
+**S6 — Safe reimport.** _Done 2026-10-26._
+
+- `src/lib/day/script-reimport.ts`:
+  - `matchScenes` matches by scene id first. Otherwise it pairs scenes by heading similarity
+    (shared words, at least 0.5), best pair first, each scene used once.
+  - `reconcileScript` labels each scene same, changed, new or removed, with its shots and how
+    many of them became Scenes.
+  - `applyReimport` replaces the text and moves matched scenes' shots to their new ids. A
+    removed scene's shots are kept, except its still-planned ones when you tick them; a shot
+    that became a Scene is always kept.
+  - `orphanedShots` lists shots whose scene is no longer in the script. If the scene comes back
+    in a later version, they attach to it again.
+- UI (`components/day-planner/SceneScriptReimport.tsx`): **Import a new version** on an open
+  script.
+  - Paste or upload the new version. Nothing changes until **Replace with this version**, which
+    asks first when scenes changed or removed ones have shots.
+  - The review lists every scene with its status, notes "matched by heading", and says what
+    happens to its shots.
+  - A **Shots from scenes no longer in the script** list shows each such shot with its status,
+    **Open scene** and **Remove** (asks first when it has a Scene).
+- Tests: `day/script-reimport.test.ts` (3) and the e2e "a new version of a script is
+  reviewed…".
+- Not done:
+  - The previous text is not kept (no undo after Replace).
+  - A Scene's `fromScript.sceneId` keeps the id it was made under (provenance). Coverage reads
+    the shot's link, so it is unaffected.
 
 ## 4.4 Recommended first task
 
