@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1** and **S2** are done; next: **S3**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S3** are done; next: **S4**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -700,8 +700,14 @@ replaces Scenes or Story.
 - Not done: the phone's Scene layout has no Script section yet. Day's import still uses its own
   reader.
 
-**S3 — Names to records.** Character cues → Cast (by name and alias, with your confirmation for
-unknown names, never created silently); scene places → the Cast's places, or kept as text.
+**S3 — Names to records.** _Done 2026-10-26._
+
+- `src/lib/day/script-cast.ts`: speaking parts → Cast members. A whole or first name match is
+  only a suggestion until you confirm it; two candidates give no guess; nothing is created.
+  Places read as Castcut reads them (`placeRoomOfSetting`), with your override (home, work,
+  elsewhere). Decisions are kept on the script (`castMap`, `placeMap`).
+- Script section: **Who's who** and **Where** panels.
+- Tests: `day/script-cast.test.ts` (5), the e2e script test (extended).
 
 **S4 — Shot list per script scene.** A proposed list you edit: a deterministic draft (an
 establishing wide, then the dialogue covered by mediums / close-ups and reactions), optionally

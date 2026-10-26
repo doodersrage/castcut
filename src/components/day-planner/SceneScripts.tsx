@@ -12,6 +12,8 @@ import {
   normalizeSavedScripts,
   removeScriptPatch,
   renameScriptPatch,
+  setScriptCastPatch,
+  setScriptPlacePatch,
   SCRIPT_SOURCE_MAX,
   scriptsForCast,
   scriptSummary,
@@ -23,6 +25,145 @@ import {
   type ScriptElement,
   type ScriptScene,
 } from '@/lib/script/parse';
+import {
+  resolvePlaces,
+  resolveSpeakers,
+  type ScriptCastMember,
+  type ScriptPlaceChoice,
+} from '@/lib/day/script-cast';
+import type { SavedScript } from '@/lib/day/scene-scripts';
+
+const PLACE_LABELS: Record<ScriptPlaceChoice, string> = {
+  home: 'Her home',
+  work: 'Her workplace',
+  elsewhere: 'Somewhere else (as written)',
+};
+
+/** Who's who and where (M3 S3): speaking parts to Cast members, places to home / work. */
+function NamesAndPlaces({
+  script,
+  parsed,
+  cast,
+  onCast,
+  onPlace,
+}: {
+  script: SavedScript;
+  parsed: ParsedScript;
+  cast: readonly ScriptCastMember[];
+  onCast: (speaker: string, castId: string | null | undefined) => void;
+  onPlace: (place: string, choice: ScriptPlaceChoice | undefined) => void;
+}) {
+  const speakers = resolveSpeakers(
+    parsed.scenes.flatMap(scene => scene.speakers),
+    cast,
+    script.castMap
+  );
+  const places = resolvePlaces(
+    parsed.scenes.map(scene => scene.place).filter(Boolean),
+    script.placeMap
+  );
+  const nameOf = (id: string | null | undefined) =>
+    id === null ? 'Not in the Cast' : (cast.find(member => member.id === id)?.name ?? '');
+  if (!speakers.length && !places.length) return null;
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {speakers.length ? (
+        <div data-testid="script-speakers">
+          <h4 className="type-caption mb-1 font-medium">Who&apos;s who</h4>
+          <ul className="space-y-1">
+            {speakers.map(part => (
+              <li
+                key={part.speaker}
+                className="flex flex-wrap items-center gap-2 text-sm"
+                data-testid={`script-speaker-${part.speaker}`}
+                data-status={part.status}
+              >
+                <span className="min-w-[6rem] font-medium">{part.speaker}</span>
+                <select
+                  aria-label={`Who plays ${part.speaker}`}
+                  className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-sm"
+                  value={part.castId === null ? 'none' : (part.castId ?? '')}
+                  onChange={event => {
+                    const value = event.target.value;
+                    onCast(part.speaker, value === 'none' ? null : value || undefined);
+                  }}
+                >
+                  <option value="">Not known yet</option>
+                  {cast.map(member => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                  <option value="none">Not in the Cast</option>
+                </select>
+                {part.status === 'suggested' ? (
+                  <>
+                    <span className="type-caption text-[var(--text-muted)]">
+                      matched by {part.how} — confirm?
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      data-testid={`script-speaker-confirm-${part.speaker}`}
+                      onClick={() => onCast(part.speaker, part.castId)}
+                    >
+                      Confirm
+                    </Button>
+                  </>
+                ) : part.status === 'unknown' ? (
+                  <span className="type-caption ui-status-danger">unknown</span>
+                ) : (
+                  <span className="type-caption text-[var(--text-muted)]">
+                    {nameOf(part.castId)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {places.length ? (
+        <div data-testid="script-places">
+          <h4 className="type-caption mb-1 font-medium">Where</h4>
+          <ul className="space-y-1">
+            {places.map(place => (
+              <li
+                key={place.place}
+                className="flex flex-wrap items-center gap-2 text-sm"
+                data-testid={`script-place-${place.place}`}
+                data-status={place.status}
+                data-choice={place.choice}
+              >
+                <span className="min-w-[6rem] font-medium">{place.place}</span>
+                <select
+                  aria-label={`Where ${place.place} is`}
+                  className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-sm"
+                  value={place.choice}
+                  onChange={event => onPlace(place.place, event.target.value as ScriptPlaceChoice)}
+                >
+                  {(Object.keys(PLACE_LABELS) as ScriptPlaceChoice[]).map(choice => (
+                    <option key={choice} value={choice}>
+                      {PLACE_LABELS[choice]}
+                    </option>
+                  ))}
+                </select>
+                <span className="type-caption text-[var(--text-muted)]">
+                  {place.status === 'suggested' ? 'as Castcut reads it' : 'set by you'}
+                  {place.room ? ` · ${place.room}` : ''}
+                </span>
+                {place.status === 'confirmed' ? (
+                  <Button size="sm" variant="ghost" onClick={() => onPlace(place.place, undefined)}>
+                    Reset
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function Element({ element }: { element: ScriptElement }) {
   const lines = element.text.split('\n');
@@ -125,11 +266,14 @@ function Reading({ parsed }: { parsed: ParsedScript }) {
 export default function SceneScripts({
   castId,
   castName,
+  cast,
   cache,
   update,
 }: {
   castId: string;
   castName?: string;
+  /** The Cast, for matching speaking parts. */
+  cast: readonly ScriptCastMember[];
   cache: ScriptsCache;
   update: (patch: ScriptsCache) => void;
 }) {
@@ -265,6 +409,19 @@ export default function SceneScripts({
               Delete
             </Button>
           </div>
+          <NamesAndPlaces
+            script={open}
+            parsed={openParsed}
+            cast={cast}
+            onCast={(speaker, member) => {
+              const patch = setScriptCastPatch(cache, open.id, speaker, member);
+              if (patch) update(patch);
+            }}
+            onPlace={(place, choice) => {
+              const patch = setScriptPlacePatch(cache, open.id, place, choice);
+              if (patch) update(patch);
+            }}
+          />
           <Reading parsed={openParsed} />
         </div>
       ) : null}

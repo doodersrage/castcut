@@ -6,6 +6,15 @@
  * scene ids. Pure.
  */
 import { parseScript, type ParsedScript } from '../script/parse';
+import {
+  normalizeScriptCastMap,
+  normalizeScriptPlaceMap,
+  placeKey,
+  speakerKey,
+  type ScriptCastMap,
+  type ScriptPlaceChoice,
+  type ScriptPlaceMap,
+} from './script-cast';
 
 export type SavedScript = {
   id: string;
@@ -14,6 +23,10 @@ export type SavedScript = {
   name: string;
   /** The script as written (Fountain or plain text). */
   source: string;
+  /** Speaking parts you matched to Cast members (null: not in the Cast) — script-cast.ts. */
+  castMap?: ScriptCastMap;
+  /** Places you set to her home, her workplace, or somewhere else. */
+  placeMap?: ScriptPlaceMap;
   createdAt: number;
   updatedAt: number;
 };
@@ -35,11 +48,15 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
   const source = typeof script.source === 'string' ? script.source.slice(0, SCRIPT_SOURCE_MAX) : '';
   if (!id || !castId || !source.trim()) return null;
   const createdAt = time(script.createdAt, now);
+  const castMap = normalizeScriptCastMap(script.castMap);
+  const placeMap = normalizeScriptPlaceMap(script.placeMap);
   return {
     id,
     castId,
     name: text(script.name, 80) || 'Script',
     source,
+    ...(castMap ? { castMap } : {}),
+    ...(placeMap ? { placeMap } : {}),
     createdAt,
     updatedAt: time(script.updatedAt, createdAt),
   };
@@ -135,6 +152,52 @@ export function renameScriptPatch(
       script.id === id ? { ...script, name: clean, updatedAt: now } : script
     ),
   };
+}
+
+function patchScript(
+  cache: ScriptsCache,
+  id: string,
+  change: (script: SavedScript) => SavedScript
+): Pick<ScriptsCache, 'scripts'> | null {
+  const scripts = cache.scripts ?? [];
+  if (!scripts.some(script => script.id === id)) return null;
+  return { scripts: scripts.map(script => (script.id === id ? change(script) : script)) };
+}
+
+/** A speaking part is this Cast member (an id), not in the Cast (null), or open again (undefined). */
+export function setScriptCastPatch(
+  cache: ScriptsCache,
+  id: string,
+  speaker: string,
+  castId: string | null | undefined,
+  now = Date.now()
+): Pick<ScriptsCache, 'scripts'> | null {
+  const key = speakerKey(speaker);
+  if (!key) return null;
+  return patchScript(cache, id, script => {
+    const { [key]: _was, ...rest } = script.castMap ?? {};
+    const castMap: ScriptCastMap = castId === undefined ? rest : { ...rest, [key]: castId };
+    const { castMap: _old, ...base } = script;
+    return { ...base, ...(Object.keys(castMap).length ? { castMap } : {}), updatedAt: now };
+  });
+}
+
+/** A place is her home, her workplace, or somewhere else (undefined: as Castcut reads it). */
+export function setScriptPlacePatch(
+  cache: ScriptsCache,
+  id: string,
+  place: string,
+  choice: ScriptPlaceChoice | undefined,
+  now = Date.now()
+): Pick<ScriptsCache, 'scripts'> | null {
+  const key = placeKey(place);
+  if (!key) return null;
+  return patchScript(cache, id, script => {
+    const { [key]: _was, ...rest } = script.placeMap ?? {};
+    const placeMap: ScriptPlaceMap = choice ? { ...rest, [key]: choice } : rest;
+    const { placeMap: _old, ...base } = script;
+    return { ...base, ...(Object.keys(placeMap).length ? { placeMap } : {}), updatedAt: now };
+  });
 }
 
 export function removeScriptPatch(

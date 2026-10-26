@@ -1,6 +1,7 @@
 'use client';
 
 import SceneScripts from '@/components/day-planner/SceneScripts';
+import { loadCharacters } from '@/lib/character/os';
 import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { useId, useRef, useState } from 'react';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
@@ -553,6 +554,7 @@ export default function SceneToolSections({ vm, page }: Props) {
           <SceneScripts
             castId={character.id}
             castName={character.name}
+            cast={loadCharacters().map(member => ({ id: member.id, name: member.name }))}
             cache={vm.toolSettings as ScriptsCache}
             update={patch => vm.updateToolSettings(patch as Partial<typeof vm.toolSettings>)}
           />

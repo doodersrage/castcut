@@ -322,6 +322,15 @@ test('a script is imported, read scene by scene, kept after a reload, and delete
   await expect(page.getByTestId('script-name')).toHaveValue('The Rooftop');
   await expect(page.getByTestId('script-scene-int-kitchen-morning')).toBeVisible();
 
+  // Who's who (S3): NORA isn't in this Cast — unknown until you say; the kitchen reads as home.
+  const nora = page.getByTestId('script-speaker-NORA');
+  await expect(nora).toHaveAttribute('data-status', 'unknown');
+  await nora.getByRole('combobox').selectOption('none');
+  await expect(nora).toHaveAttribute('data-status', 'confirmed');
+  await expect(nora).toContainText('Not in the Cast');
+  await expect(page.getByTestId('script-place-KITCHEN')).toHaveAttribute('data-choice', 'home');
+  await expect(page.getByTestId('script-place-ROOFTOP')).toHaveAttribute('data-choice', 'elsewhere');
+
   // Kept with the Cast in the app's settings (IndexedDB — what syncs and what a reload reads;
   // a reload here would run the seed again, which replaces the Scene settings).
   await expect
