@@ -25,6 +25,8 @@ mock.module("./server-encode", {
     normalizeFilmCrossfadeSec,
     normalizeFilmResolution,
     encodeFilmPlaylistServer,
+    // No ffmpeg here: the finished file isn't read back (M4 F6).
+    resolveFfmpegBinary: async () => null,
   },
 });
 

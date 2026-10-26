@@ -5,11 +5,9 @@
  * Pure; the measurement runs on the server (loudness-server.ts).
  */
 
-export type FilmLoudness = {
-  integratedLufs: number;
-  rangeLu?: number;
-  truePeakDbtp?: number;
-};
+import type { FilmLoudness } from '../video/output-probe';
+
+export { parseEbur128Summary, type FilmLoudness } from '../video/output-probe';
 
 export type LoudnessTarget = { id: string; label: string; lufs: number; peakDbtp: number };
 
@@ -20,27 +18,6 @@ export const LOUDNESS_TARGETS: readonly LoudnessTarget[] = [
 
 /** How far from the target's loudness still counts as on it, in LU. */
 export const LOUDNESS_TOLERANCE_LU = 2;
-
-const number = (text: string | undefined) => {
-  const value = text === undefined ? NaN : Number(text);
-  return Number.isFinite(value) ? value : undefined;
-};
-
-/** The summary ffmpeg's ebur128 filter prints at the end (stderr), or null. */
-export function parseEbur128Summary(stderr: string): FilmLoudness | null {
-  const at = stderr.lastIndexOf('Summary:');
-  if (at < 0) return null;
-  const summary = stderr.slice(at);
-  const integrated = number(summary.match(/I:\s*(-?[\d.]+|-inf)\s*LUFS/)?.[1]);
-  if (integrated === undefined) return null;
-  const range = number(summary.match(/LRA:\s*(-?[\d.]+)\s*LU\b/)?.[1]);
-  const peak = number(summary.match(/True peak:[\s\S]*?Peak:\s*(-?[\d.]+)\s*dBFS/)?.[1]);
-  return {
-    integratedLufs: integrated,
-    ...(range !== undefined ? { rangeLu: range } : {}),
-    ...(peak !== undefined ? { truePeakDbtp: peak } : {}),
-  };
-}
 
 /** A level with a real minus sign: "−14.0". */
 const signed = (value: number, digits = 1) =>

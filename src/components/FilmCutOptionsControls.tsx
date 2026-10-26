@@ -93,6 +93,8 @@ export type FilmCutOptionsValue = {
   logoCorner?: 'tl' | 'tr' | 'bl' | 'br';
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions;
+  /** The export profile last applied (film/export-profiles.ts, M4 F6). */
+  exportProfile?: 'review' | 'master' | 'vertical' | 'square';
 };
 
 /** Cut option defaults shared by Day, Story and Cast film. */

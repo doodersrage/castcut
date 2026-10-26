@@ -4,6 +4,7 @@
  * Shared: Gallery's stitch, Video continue, and Play's film cuts (character-film-assemble.ts).
  */
 
+import type { FilmOutputProbe } from './output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { downloadFilmBlob } from './blob-download';
 import { addComfyGalleryEntry } from '../gallery/comfyui-gallery';
@@ -89,6 +90,8 @@ export type AssembledFilmResult = {
   encodePath: 'server' | 'browser';
   /** The film's subtitles as an .srt (server encodes with subtitles on). */
   subtitlesSrt?: string;
+  /** The finished file read back on the server (M4 F6). */
+  outputProbe?: FilmOutputProbe;
 };
 
 function even(value: number): number {
@@ -418,6 +421,7 @@ async function assembleFilmBlobOnServer(
           label?: string;
           error?: string;
           subtitlesSrt?: string;
+          outputProbe?: FilmOutputProbe;
         };
       };
       const job = statusJson.job;
@@ -450,6 +454,7 @@ async function assembleFilmBlobOnServer(
           extension: 'mp4',
           encodePath: 'server',
           ...(job.subtitlesSrt ? { subtitlesSrt: job.subtitlesSrt } : {}),
+          ...(job.outputProbe ? { outputProbe: job.outputProbe } : {}),
         };
       }
     }

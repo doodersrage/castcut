@@ -9,9 +9,12 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { resolvePromptDataDir } from '../prompt/data-paths';
 import type { FilmPlaylistShot } from '../media/kind';
+import type { FilmOutputProbe } from './output-probe';
+import { probeFilmOutput } from './output-probe-server';
 import {
   encodeFilmPlaylistServer,
   isServerFilmEncodeAvailable,
+  resolveFfmpegBinary,
   normalizeFilmCrossfadeSec,
   normalizeFilmResolution,
   type FilmResolutionPreset,
@@ -33,6 +36,8 @@ export type FilmAssembleJob = {
   byteLength?: number;
   width?: number;
   height?: number;
+  /** The finished file read back (M4 F6): length, size, frame rate, sound, loudness. */
+  outputProbe?: FilmOutputProbe;
   /** Relative path under data dir when completed. */
   outputRelativePath?: string;
   /** The film's subtitles as an .srt (cut-subtitles.ts), when there were any. */
@@ -43,7 +48,10 @@ type InternalJob = FilmAssembleJob & {
   buffer?: Buffer;
 };
 
-const jobs = new Map<string, InternalJob>();
+// On globalThis like the clip jobs (clip-jobs-server.ts): a dev reload of this module, or a
+// second copy of it, still finds the jobs started before.
+const jobs = ((globalThis as { __castcutFilmJobs?: Map<string, InternalJob> }).__castcutFilmJobs ??=
+  new Map<string, InternalJob>());
 const MAX_JOBS = 40;
 const MAX_AGE_MS = 60 * 60 * 1000;
 
@@ -196,10 +204,19 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
 
     await fs.mkdir(/* turbopackIgnore: true */ outputDir(), { recursive: true });
     const relative = path.join('film-output', `${id}.mp4`);
-    await fs.writeFile(
-      path.join(/* turbopackIgnore: true */ resolvePromptDataDir(), relative),
-      result.buffer
-    );
+    const written = path.join(/* turbopackIgnore: true */ resolvePromptDataDir(), relative);
+    await fs.writeFile(written, result.buffer);
+    // What the file turned out to be, checked against the cut's profile in Cut (M4 F6).
+    const progress = jobs.get(id);
+    if (progress) {
+      progress.ratio = 0.99;
+      progress.label = 'Checking the film…';
+      progress.updatedAt = Date.now();
+    }
+    // Never fails the encode: the film is written; without a probe it just isn't checked.
+    const outputProbe = await resolveFfmpegBinary()
+      .then(ffmpeg => (ffmpeg ? probeFilmOutput(ffmpeg, written) : null))
+      .catch(() => null);
 
     const current = jobs.get(id);
     if (!current) return;
@@ -213,6 +230,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
     current.height = result.height;
     current.outputRelativePath = relative;
     if (result.subtitlesSrt) current.subtitlesSrt = result.subtitlesSrt;
+    if (outputProbe) current.outputProbe = outputProbe;
     current.buffer = result.buffer;
     current.updatedAt = Date.now();
   } catch (error) {

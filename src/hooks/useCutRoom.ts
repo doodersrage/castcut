@@ -151,6 +151,13 @@ import {
 } from '@/lib/checks/finding-decisions';
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
 import {
+  applyExportProfile,
+  cutHasSound,
+  verifyFilmOutput,
+  type ExportProfileId,
+} from '@/lib/film/export-profiles';
+import type { FilmOutputProbe } from '@/lib/video/output-probe';
+import {
   CUT_TRACK_LABELS,
   withMutedTracksLeftOut,
   withTrackMuted,
@@ -1518,6 +1525,56 @@ export function useCutRoom() {
     },
     [commitEdit]
   );
+  // Export (M4 F6): the server's encoder and free space for the preflight, the profile, and the
+  // finished file read back after each cut.
+  const [encodeServer, setEncodeServer] = useState<{
+    available: boolean;
+    freeBytes: number | null;
+  } | null>(null);
+  const readEncodeServer = useCallback(async () => {
+    try {
+      const response = await fetch('/api/film/assemble', { credentials: 'same-origin' });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { available?: boolean; freeBytes?: number | null };
+      return {
+        available: body.available === true,
+        freeBytes: typeof body.freeBytes === 'number' ? body.freeBytes : null,
+      };
+    } catch {
+      return null;
+    }
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void readEncodeServer().then(info => {
+      if (!cancelled) setEncodeServer(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [readEncodeServer]);
+  const [lastOutput, setLastOutput] = useState<{
+    probe?: FilmOutputProbe;
+    options: FilmCutOptionsValue;
+    wantsSound: boolean;
+  } | null>(null);
+  const outputChecks = useMemo(
+    () =>
+      lastOutput
+        ? verifyFilmOutput({
+            probe: lastOutput.probe,
+            options: lastOutput.options,
+            wantsSound: lastOutput.wantsSound,
+          })
+        : null,
+    [lastOutput]
+  );
+  const applyProfile = useCallback(
+    (id: ExportProfileId) => {
+      commitEdit({ options: applyExportProfile(stateRef.current.options, id) }, true);
+    },
+    [commitEdit]
+  );
   /** Mute a sound track (M4 F4): silent in the monitor, left out of the encode; undoable. */
   const setTrackMuted = useCallback(
     (track: CutTrack, muted: boolean) => {
@@ -1854,6 +1911,12 @@ export function useCutRoom() {
         });
         downloadFilmBlob(result.blob, result.filename);
         setLastFilmEntryId(result.entryId);
+        setLastOutput({
+          ...(result.outputProbe ? { probe: result.outputProbe } : {}),
+          options: cutOptions,
+          wantsSound: cutHasSound(cutOptions, picked),
+        });
+        void readEncodeServer().then(setEncodeServer);
         setLastSubtitles(
           result.subtitlesSrt
             ? {
@@ -1945,6 +2008,7 @@ export function useCutRoom() {
       day.toolSettings,
       dayCast,
       options,
+      readEncodeServer,
       recordDayNarration,
       sceneCast,
       shared.activeLookId,
@@ -2301,6 +2365,9 @@ export function useCutRoom() {
     relink,
     relinkFromGallery,
     setTrackMuted,
+    encodeServer,
+    outputChecks,
+    applyProfile,
     setShotSubtitle,
     applySrtSubtitles,
     keepPinned,

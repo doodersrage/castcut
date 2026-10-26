@@ -3,6 +3,7 @@
  * (video-assemble.ts, shared) and keep the cut on the Cast.
  */
 
+import type { FilmOutputProbe } from '../video/output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from './cut-media';
 import type { FilmCutLength } from './cut-plan';
@@ -63,6 +64,8 @@ export async function assembleAndStampFilm(input: {
   cutNotes: string[];
   /** The film's subtitles as an .srt, when it has any. */
   subtitlesSrt?: string;
+  /** The finished file read back on the server (M4 F6). */
+  outputProbe?: FilmOutputProbe;
 }> {
   input.onProgress?.({ ratio: 0.01, label: 'Timing the cut…' });
   const prepared = await prepareCutShots(input.shots, {
@@ -150,6 +153,7 @@ export async function assembleAndStampFilm(input: {
     encodePath: assembled.encodePath,
     cutNotes: prepared.notes,
     ...(assembled.subtitlesSrt ? { subtitlesSrt: assembled.subtitlesSrt } : {}),
+    ...(assembled.outputProbe ? { outputProbe: assembled.outputProbe } : {}),
     ...stamped,
   };
 }

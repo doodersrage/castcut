@@ -1,4 +1,6 @@
+import fs from 'node:fs/promises';
 import { NextResponse } from 'next/server';
+import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
 import { normalizeCutSound } from '@/lib/video/cut-sound';
 import { normalizeFilmTitleCard } from '@/lib/video/polish';
@@ -65,7 +67,12 @@ export async function GET(request: Request) {
   }
 
   const available = await isServerFilmEncodeAvailable();
-  return apiJson({ ok: true, available, encoder: available ? 'ffmpeg' : null });
+  // Room for the film where it's written (M4 F6 preflight); null when it can't be read.
+  const freeBytes = await fs
+    .statfs(resolvePromptDataDir())
+    .then(stats => Number(stats.bavail) * Number(stats.bsize))
+    .catch(() => null);
+  return apiJson({ ok: true, available, encoder: available ? 'ffmpeg' : null, freeBytes });
 }
 
 export async function POST(request: Request) {

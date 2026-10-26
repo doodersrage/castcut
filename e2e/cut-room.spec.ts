@@ -588,6 +588,66 @@ test('subtitles: typed, set to none, imported from an .srt and exported', async 
   expect(text).toContain('A walk in the park.');
 });
 
+// M4 F6: a profile sets the film up for where it goes; the preflight says what's checked now.
+test('export: a profile sets the shape, and the preflight flags too little disk space', async ({
+  page,
+}) => {
+  await page.route('**/api/film/assemble', route =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { ok: true, available: true, encoder: 'ffmpeg', freeBytes: 10e6 } })
+      : route.fulfill({ status: 503, json: { error: 'e2e: no encode' } })
+  );
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-preflight-shots')).toHaveAttribute('data-status', 'ok', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('cut-preflight-space')).toHaveAttribute('data-status', 'fail');
+  await expect(page.getByTestId('cut-preflight-space')).toContainText('10 MB free');
+  // Two stills, no music: nothing to hear.
+  await expect(page.getByTestId('cut-preflight-sound')).toHaveAttribute('data-status', 'warn');
+
+  await page.getByTestId('cut-profile-vertical').click();
+  await expect(page.getByTestId('cut-profile-vertical')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cut-preflight-size')).toContainText('1080×1920');
+  // Subtitles are on now, and no shot has any.
+  await expect(page.getByTestId('cut-preflight-subtitles')).toHaveAttribute('data-status', 'warn');
+  await page.getByTestId('cut-undo').click();
+  await expect(page.getByTestId('cut-profile-vertical')).toHaveAttribute('aria-pressed', 'false');
+});
+
+// M4 F6: a real server encode reads its own output back (skipped without ffmpeg).
+test('the server encode reports what the finished film is', async ({ page }) => {
+  const info = await page.request.get('/api/film/assemble');
+  const server = (await info.json()) as { available?: boolean; freeBytes?: number | null };
+  test.skip(!server.available, 'ffmpeg is not available on this server');
+  expect(typeof server.freeBytes).toBe('number');
+  const start = await page.request.post('/api/film/assemble', {
+    data: {
+      shots: [{ url: thumb, title: 'One', kind: 'still', holdSec: 1.5 }],
+      resolution: '720p',
+    },
+  });
+  expect(start.status()).toBe(202);
+  const { job } = (await start.json()) as { job: { id: string } };
+  let probe: Record<string, unknown> | undefined;
+  await expect
+    .poll(
+      async () => {
+        const status = (await (await page.request.get(`/api/film/assemble?jobId=${job.id}`)).json()) as {
+          job?: { status?: string; error?: string; outputProbe?: Record<string, unknown> };
+        };
+        probe = status.job?.outputProbe;
+        return status.job?.status === 'error' ? `error: ${status.job.error}` : status.job?.status;
+      },
+      { timeout: 120_000, intervals: [1000] }
+    )
+    .toBe('completed');
+  expect(probe).toMatchObject({ width: 1280, height: 720 });
+  expect(Number(probe!.durationSec)).toBeGreaterThan(1);
+});
+
 // M2 C3: each shot's card says who is in it, where and when.
 test("shot state: a Day shot's card says who, where and when", async ({ page }) => {
   await seed(page, false);

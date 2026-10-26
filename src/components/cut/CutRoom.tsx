@@ -19,6 +19,9 @@ import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
 import CutTracks from '@/components/cut/CutTracks';
+import CutExport from '@/components/cut/CutExport';
+import { cutHasSound, cutPreflight } from '@/lib/film/export-profiles';
+import { filmSubtitleCues, subtitleIssues } from '@/lib/video/cut-subtitle-track';
 import CutSubtitles, { type CutSubtitleRow } from '@/components/cut/CutSubtitles';
 import { filmShotSubtitle } from '@/lib/media/kind';
 import FilmLoudness from '@/components/cut/FilmLoudness';
@@ -105,6 +108,7 @@ export default function CutRoom() {
       ];
     });
   }, [preview.loaded, vm.options.shotEdits]);
+
   // Split at the playhead: the clip under it, where in its file the playhead is.
   const splitAt = (() => {
     const loaded = preview.loaded;
@@ -305,6 +309,18 @@ export default function CutRoom() {
   const phone = typeof window !== 'undefined' && isMobileStudioPath(window.location.pathname);
   const href = (path: string) => (phone ? toMobileStudioHref(path) : path);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
+  // The preflight (M4 F6): what's checked now, before the encode (cheap: no hook needed).
+  const preflightCues = filmSubtitleCues(subtitleRows);
+  const preflight = cutPreflight({
+    options: vm.options,
+    shotCount: kept.length,
+    durationSec: preview.total,
+    missing: vm.missingMedia,
+    subtitleCount: preflightCues.length,
+    subtitleIssueCount: subtitleIssues(preflightCues).length,
+    hasSound: cutHasSound(vm.options, kept),
+    server: vm.encodeServer,
+  });
   const busy = vm.assembling || vm.checking;
   // Export for an editor (cut-project-export.ts): the monitor's own timeline, packed server-side.
   const exportProject = async () => {
@@ -528,6 +544,15 @@ export default function CutRoom() {
                     vm.sources.includes('day') ? { mood: vm.dayMood } : { tone: vm.storyTone }
                   }
                 />
+                <div className="border-t border-[var(--border-subtle)] pt-3">
+                  <CutExport
+                    profile={vm.options.exportProfile}
+                    preflight={preflight}
+                    output={vm.outputChecks}
+                    disabled={busy}
+                    onProfile={vm.applyProfile}
+                  />
+                </div>
                 <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
                   {cutButton}
                   <div className="flex flex-wrap items-center gap-x-1 gap-y-1">

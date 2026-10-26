@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F5** are done; next: **F6**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F6** are done; next: **F7**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -948,15 +948,51 @@ new surfaces.
   - The exported .srt uses the monitor's timing (no speech detection, unlike the encode's own
     .srt).
 
-**F6 — Export profiles, preflight and output verification.**
-- Named profiles that set shape, size, quality, loudness target and subtitles: Review copy
-  (720p, burned subtitles), Widescreen master (1080p), Vertical social, Square social, and Editor
-  handoff (the existing NLE export).
-- Preflight: the delivery check plus mixed sizes or frame rates, required audio missing,
-  subtitle checks (F5), and free disk space for the output.
-- After the encode, `ffprobe` checks the output's duration, size, frame rate and audio stream
-  against the profile.
-- A report says what was checked and what remains.
+**F6 — Export profiles, preflight and output verification.** _Done 2026-10-26._
+
+- Profiles (`film/export-profiles.ts`, `applyExportProfile`, kept as
+  `FilmCutOptionsValue.exportProfile`), each with a loudness target:
+  - **Review copy**: 720p, subtitles burned in, the cut's own shape.
+  - **Widescreen master**: 1080p 16:9, a clean picture.
+  - **Vertical social**: 1080×1920, subtitles, faces followed.
+  - **Square social**: 1080×1080, subtitles.
+  - The editor handoff is the existing **Export for an editor**.
+- **Preflight** (`cutPreflight`), live in Cut's Options:
+  - shots;
+  - media (F3's missing list; a gone file is ✗);
+  - subtitles (F5's checks; none while subtitles are on is !);
+  - sound (silent after mutes is !);
+  - picture size;
+  - encoder (no server ffmpeg is !);
+  - disk space: free bytes from `GET /api/film/assemble` (`fs.statfs` on the data folder)
+    against about 3× the film's estimated size.
+  - It also says what is left: black frames, silent clips and look-alike shots are checked as it
+    cuts; the finished file after.
+- **The finished film read back**:
+  - The server encode job runs one ffmpeg pass over its own output (`video/output-probe.ts` and
+    `output-probe-server.ts`): duration, size, frame rate, whether it has sound, and ebur128
+    loudness. The result is `job.outputProbe`, carried through `assembleFilmBlob` and the film
+    cut to Cut.
+  - `verifyFilmOutput` checks size against the profile, length, frame rate, sound (when the cut
+    had any) and loudness against the target.
+  - The loudness parser moved to the shared `video/output-probe.ts` (`film/loudness.ts`
+    re-exports it).
+- UI: **Made for** (profiles), **Before cutting** (✓ / ! / ✗) and **The film as cut** in Cut's
+  Options (`components/cut/CutExport.tsx`).
+- Hardening:
+  - Reading the output back never fails an encode that succeeded.
+  - The film job list is kept on `globalThis`, like the clip jobs. In dev it was sometimes a
+    fresh copy, so a job "disappeared" mid-poll (found by the real-encode e2e).
+- Tests:
+  - `film/export-profiles.test.ts` (5): the probe parser on captured ffmpeg output, profiles,
+    preflight, verification, sound.
+  - `e2e/cut-room.spec.ts`: profile and preflight (route stubbed), and a real server encode
+    reading back its own output (skipped without ffmpeg).
+- Not done:
+  - The preflight warns but doesn't stop **Cut film** (the pre-cut delivery check still runs
+    as before).
+  - A browser encode isn't read back.
+  - The film's length isn't compared with the edit's.
 
 **F7 — Portable project package.**
 - A package holds the cut (its edit, versions and recipe), a media manifest with hashes, and,
