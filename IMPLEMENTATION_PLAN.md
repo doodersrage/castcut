@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W3** are done; next: **W4**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W4** are done; next: **W5**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1160,21 +1160,43 @@ second status system: every count is read from the records M1–M4 made reliable
   - Prepare from one script scene (it is the whole script for now).
   - Starting the run is W4.
 
-**W4 — The run: queue, wait, pause, resume, cancel.**
-- On the Scene page, a run walks the prepared Scenes one at a time. For each it opens the
-  Scene, queues its take (the page's own `queueSlot`), waits for it to land (and its checks),
-  then moves on.
-  - At most N takes, one at a time. ComfyUI's queue is serial; more in flight only waits
-    longer.
-  - It stops on a failure, with the reason.
-- **Pause** finishes the take in flight; **Cancel** stops after it, and nothing queued is left
-  behind.
-- The run record lives in `tools.scene.run` (synced): id, Scene ids, position, state, started.
-  After a reload or restart it shows as paused, "3 of 8 done", and resumes.
-- Before queuing, it checks the Scene: a take already in flight or checking, or a kept take
-  when the run said "only Scenes without one", is skipped and said. That's how a restart avoids
-  duplicate jobs, together with R8.
-- It never keeps a take. Choosing stays yours.
+**W4 — The run: queue, wait, pause, resume, cancel.** _Done 2026-10-26._
+
+- `day/scene-run.ts` additions (pure):
+  - `nextRunStep`: the take in flight first (`run.current`); else the next Scene that is in,
+    not done, still there and (when set) without a kept take. Within the take limit and the time
+    since `startedAt`.
+  - `withRunOutcome` records landed, failed or skipped, clears the take in flight and logs it.
+  - `runProgress` gives "n of m done".
+  - `pausedAfterReload`: a run found "running" with nothing running it becomes paused, and says
+    why.
+- The runner (`hooks/day-planner/useSceneRun.ts`), on the Scene page, one Scene at a time:
+  1. Opens the Scene with the page's own Open.
+  2. Queues its take with the page's own Render (`queueSlot`), then records the job on the run
+     before moving on.
+  3. Restarts that job's poll (`scheduleComfyGalleryPoll`, as R8 does) and waits for it to
+     land, then for its checks (the card free).
+  4. Moves to the next Scene.
+  - A failure, a take that wasn't queued, or a Scene that can't be opened pauses the run with
+    the reason.
+  - **No duplicate jobs:** a job already on the card, or recorded as in flight before a reload,
+    is waited for, never queued again.
+  - **Pause** and **Cancel** take effect after the take in flight; nothing else is queued.
+  - **It never keeps a take.**
+- UI (`components/day-planner/SceneRunControls.tsx`, inside the Run panel): **Start the run** /
+  **Resume**, **Pause**, **Cancel**, "n of m done · now: <Scene>", why it stopped, "it runs while
+  this page is open", and the log ("What it did").
+- Tests:
+  - `day/scene-run.test.ts`: 6 in all, 3 for W4.
+  - e2e with the engine stubbed:
+    - "a run renders Scene by Scene…": 2 Scenes, 2 jobs, each Scene one take, none kept.
+    - "after a reload a run is paused…": Resume waits for the take in flight. Only the next
+      Scene's job is queued.
+    - "Pause stops the run…": one job, paused at 1 of 2.
+- Not done:
+  - The run lives in the page: closing the tab pauses it (said in the UI). A server-side runner
+    is out of scope, as planned.
+  - There is no phone control.
 
 **W5 — Audit of automated work.**
 - Every run step is logged on the run record: queued (prompt id), skipped (why), landed,

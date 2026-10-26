@@ -2,6 +2,8 @@
 
 import SceneScripts from '@/components/day-planner/SceneScripts';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
+import SceneRunControls from '@/components/day-planner/SceneRunControls';
+import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import { loadCharacters } from '@/lib/character/os';
 import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { useId, useRef, useState } from 'react';
@@ -42,6 +44,8 @@ const PART_LABELS: Record<(typeof DAY_PARTS)[number], string> = {
 type Props = {
   vm: ReturnType<typeof useDayPlannerToolOrchestration>;
   page: ReturnType<typeof useScenePage>;
+  /** The run's runner (M5 W4); the phone layout has none. */
+  runner?: ReturnType<typeof useSceneRun>;
 };
 
 /**
@@ -50,7 +54,7 @@ type Props = {
  * people), its takes (render several, keep the best), and Make it move from the kept take
  * (Animate, Copy moves, the Director). Day's engine renders it, so it is Day's still pipeline.
  */
-export default function SceneToolSections({ vm, page }: Props) {
+export default function SceneToolSections({ vm, page, runner }: Props) {
   const views = useSceneToolViews(vm, page);
   const {
     shared,
@@ -568,9 +572,21 @@ export default function SceneToolSections({ vm, page }: Props) {
           <SceneRunPanel
             run={page.run}
             scenes={page.castScenes}
-            disabled={page.inFlight}
+            disabled={page.inFlight || runner?.looping}
             onChange={page.updateRun}
-          />
+          >
+            {runner ? (
+              <SceneRunControls
+                run={page.run}
+                scenes={page.castScenes}
+                looping={runner.looping}
+                stopping={runner.stopping}
+                disabled={page.inFlight && !runner.looping}
+                onStart={runner.start}
+                onStop={runner.stop}
+              />
+            ) : null}
+          </SceneRunPanel>
         ) : null}
         {note ? (
           <p

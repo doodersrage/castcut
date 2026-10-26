@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
-import { seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
@@ -626,6 +626,270 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await page.getByTestId('scene-run-discard').click();
   await page.getByTestId('confirm-dialog-confirm').click();
   await expect(run).toHaveCount(0);
+});
+
+// M5 W4: a run renders its Scenes one at a time with the page's own Render, never keeps a take,
+// and after a reload waits for the take in flight instead of queueing it again.
+test('a run renders Scene by Scene, keeps nothing, and resumes without a second job', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  // Every job the engine is asked about has finished, with a picture.
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+    await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
+  }
+  const empty = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [
+            { ...base.scenes[0]!, keptTakeId: 'take-1' },
+            empty('run-a', 'Run A', 3),
+            empty('run-b', 'Run B', 4),
+          ],
+          run: {
+            id: 'run-e2e',
+            castId: CAST,
+            label: 'E2E run',
+            // The kept-take Scene is left out; A then B.
+            items: [
+              { sceneId: 'scene-e2e', include: true },
+              { sceneId: 'run-a', include: true },
+              { sceneId: 'run-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: true,
+            state: 'prepared',
+            position: 0,
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', {
+    timeout: 60_000,
+  });
+  await page.getByTestId('scene-run-start').click();
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  await expect(page.getByTestId('scene-run-state')).toContainText('2 of 2 done');
+  expect(queued).toHaveLength(2);
+
+  // Each Scene got its take; none was kept for you.
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      const byId = Object.fromEntries(
+        (tool.scenes ?? []).map((entry: { id: string; takes: unknown[]; keptTakeId?: string }) => [
+          entry.id,
+          `${entry.takes.length}${entry.keptTakeId ? 'k' : ''}`,
+        ])
+      );
+      return [byId['run-a'], byId['run-b'], tool.run?.outcomes?.['run-a'], tool.run?.outcomes?.['run-b']].join('|');
+    }, { timeout: 30_000 })
+    .toBe('1|1|landed|landed');
+  await page.getByTestId('scene-run-log').locator('summary').click();
+  await expect(page.getByTestId('scene-run-log').locator('[data-event="queued"]')).toHaveCount(2);
+});
+
+// M5 W4: a run left running by a reload shows as paused; Resume waits for the take in flight.
+test('after a reload a run is paused, and Resume waits for the take in flight', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+    await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
+  }
+  const empty = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [base.scenes[0]!, empty('run-a', 'Run A', 3), empty('run-b', 'Run B', 4)],
+          run: {
+            id: 'run-reload',
+            castId: CAST,
+            label: 'Reloaded run',
+            items: [
+              { sceneId: 'run-a', include: true },
+              { sceneId: 'run-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: true,
+            // Left running, Run A's take queued when the page went away.
+            state: 'running',
+            position: 0,
+            current: { sceneId: 'run-a', promptId: 'e2e-inflight', at: Date.now() },
+            startedAt: Date.now(),
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  const now = Date.now();
+  await replaceGalleryIdb(page, [
+    {
+      id: 'e2e-inflight',
+      promptId: 'e2e-inflight',
+      prompt: 'Run A',
+      tool: 'day',
+      characterId: CAST,
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'pending',
+      queuedAt: now - 2000,
+      images: [],
+    },
+  ]);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'paused', {
+    timeout: 60_000,
+  });
+  await expect(page.getByTestId('scene-run-stop-reason')).toContainText('reloaded');
+
+  await page.getByTestId('scene-run-start').click();
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  // Run A's take was waited for, not queued again: the only new job is Run B's.
+  expect(queued).toHaveLength(1);
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      return [tool.run?.outcomes?.['run-a'], tool.run?.outcomes?.['run-b']].join('|');
+    })
+    .toBe('landed|landed');
+});
+
+// M5 W4: Pause stops after the take in flight; nothing else is queued.
+test('Pause stops the run after the take rendering now', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  let finish = false;
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: finish
+          ? { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] }
+          : { status: 'running' },
+      },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+    await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
+  }
+  const empty = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [base.scenes[0]!, empty('run-a', 'Run A', 3), empty('run-b', 'Run B', 4)],
+          run: {
+            id: 'run-pause',
+            castId: CAST,
+            label: 'Paused run',
+            items: [
+              { sceneId: 'run-a', include: true },
+              { sceneId: 'run-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: true,
+            state: 'prepared',
+            position: 0,
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBe(1);
+  await page.getByTestId('scene-run-pause').click();
+  await expect(page.getByTestId('scene-run-state')).toContainText('pausing after this take');
+  finish = true;
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'paused', {
+    timeout: 120_000,
+  });
+  await expect(page.getByTestId('scene-run-state')).toContainText('1 of 2 done');
+  expect(queued).toHaveLength(1);
+  await expect(page.getByTestId('scene-run-start')).toHaveText('Resume');
 });
 
 // R4: a take says how it was made — read from its Gallery entry.

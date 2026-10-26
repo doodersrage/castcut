@@ -14,6 +14,8 @@ export type SceneRunState = 'prepared' | 'running' | 'paused' | 'done' | 'cancel
 
 export type SceneRunItem = { sceneId: string; include: boolean };
 
+export type SceneRunOutcome = 'landed' | 'failed' | 'skipped';
+
 export type SceneRunLogEntry = {
   at: number;
   sceneId?: string;
@@ -45,6 +47,14 @@ export type SceneRun = {
   state: SceneRunState;
   /** Items done so far (W4). */
   position: number;
+  /** What became of each Scene the run has been through (W4). */
+  outcomes?: Record<string, SceneRunOutcome>;
+  /** The take in flight: its Scene, and its job once queued (a restart waits for it). */
+  current?: { sceneId: string; promptId?: string; at: number };
+  /** When it was started (the time limit counts from here). */
+  startedAt?: number;
+  /** Why it stopped, when it stopped short. */
+  stopReason?: string;
   log: SceneRunLogEntry[];
   createdAt: number;
   updatedAt: number;
@@ -194,6 +204,26 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     skipKept: run.skipKept !== false,
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
+    ...(run.outcomes && typeof run.outcomes === 'object'
+      ? {
+          outcomes: Object.fromEntries(
+            Object.entries(run.outcomes).filter(([, value]) =>
+              ['landed', 'failed', 'skipped'].includes(value as string)
+            )
+          ) as Record<string, SceneRunOutcome>,
+        }
+      : {}),
+    ...(run.current && typeof run.current.sceneId === 'string'
+      ? {
+          current: {
+            sceneId: run.current.sceneId,
+            ...(typeof run.current.promptId === 'string' ? { promptId: run.current.promptId } : {}),
+            at: whole(run.current.at, 0, Number.MAX_SAFE_INTEGER, 0),
+          },
+        }
+      : {}),
+    ...(typeof run.startedAt === 'number' ? { startedAt: run.startedAt } : {}),
+    ...(typeof run.stopReason === 'string' ? { stopReason: run.stopReason.slice(0, 200) } : {}),
     log: (Array.isArray(run.log) ? run.log : []).slice(-RUN_LOG_MAX) as SceneRunLogEntry[],
     createdAt: whole(run.createdAt, 0, Number.MAX_SAFE_INTEGER, 0),
     updatedAt: whole(run.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
@@ -203,4 +233,86 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
 /** The run with a log line added (the newest kept, at most RUN_LOG_MAX). */
 export function withRunLog(run: SceneRun, entry: SceneRunLogEntry): SceneRun {
   return { ...run, log: [...run.log, entry].slice(-RUN_LOG_MAX), updatedAt: entry.at };
+}
+
+/** Takes the run has rendered (landed or failed): what the take limit counts. */
+export function runTakesTaken(run: Pick<SceneRun, 'outcomes'>): number {
+  return Object.values(run.outcomes ?? {}).filter(outcome => outcome !== 'skipped').length;
+}
+
+export type RunStep =
+  | { kind: 'scene'; sceneId: string }
+  | { kind: 'done'; reason: 'finished' | 'take-limit' | 'time-limit' };
+
+/**
+ * The run's next Scene (W4): the job in flight first (a restart waits for it, never queues it
+ * again); else the next one in, not done, still there and (when `skipKept`) without a kept take
+ * — within the take limit and the time since it started.
+ */
+export function nextRunStep(
+  run: SceneRun,
+  scenes: readonly SavedScene[],
+  now = Date.now()
+): RunStep {
+  if (run.current) return { kind: 'scene', sceneId: run.current.sceneId };
+  if (runTakesTaken(run) >= run.maxTakes) return { kind: 'done', reason: 'take-limit' };
+  if (run.startedAt && now - run.startedAt > run.maxMinutes * 60_000) {
+    return { kind: 'done', reason: 'time-limit' };
+  }
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  for (const item of run.items) {
+    if (!item.include || run.outcomes?.[item.sceneId]) continue;
+    const scene = byId.get(item.sceneId);
+    if (!scene || (run.skipKept && scene.keptTakeId)) continue;
+    return { kind: 'scene', sceneId: scene.id };
+  }
+  return { kind: 'done', reason: 'finished' };
+}
+
+/** "3 of 8 done": what the run has been through, of what it has to go through now. */
+export function runProgress(
+  run: SceneRun,
+  scenes: readonly SavedScene[]
+): { done: number; total: number } {
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  const done = Object.keys(run.outcomes ?? {}).length;
+  const open = run.items.filter(item => {
+    if (!item.include || run.outcomes?.[item.sceneId]) return false;
+    const scene = byId.get(item.sceneId);
+    return Boolean(scene) && !(run.skipKept && scene!.keptTakeId);
+  }).length;
+  return { done, total: done + Math.min(open, Math.max(0, run.maxTakes - runTakesTaken(run))) };
+}
+
+/** A Scene's outcome recorded (and the take in flight cleared), with its log line. */
+export function withRunOutcome(
+  run: SceneRun,
+  sceneId: string,
+  outcome: SceneRunOutcome,
+  detail: string,
+  now = Date.now()
+): SceneRun {
+  const { current: _current, ...rest } = run;
+  return withRunLog(
+    {
+      ...rest,
+      outcomes: { ...(run.outcomes ?? {}), [sceneId]: outcome },
+      position: Object.keys({ ...(run.outcomes ?? {}), [sceneId]: outcome }).length,
+    },
+    {
+      at: now,
+      sceneId,
+      event: outcome === 'landed' ? 'landed' : outcome === 'failed' ? 'failed' : 'skipped',
+      detail,
+    }
+  );
+}
+
+/** A run found "running" with nothing running it (the page was closed or reloaded): paused. */
+export function pausedAfterReload(run: SceneRun, now = Date.now()): SceneRun {
+  if (run.state !== 'running') return run;
+  return withRunLog(
+    { ...run, state: 'paused', stopReason: 'The page was closed or reloaded — resume to go on.' },
+    { at: now, event: 'paused', detail: 'page closed or reloaded' }
+  );
 }

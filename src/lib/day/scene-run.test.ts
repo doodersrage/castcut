@@ -3,7 +3,19 @@ import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
 import { createScript } from './scene-scripts';
-import { normalizeSceneRun, runFromScript, runQueue, shotsToPrepare, withRunLog } from './scene-run';
+import {
+  nextRunStep,
+  normalizeSceneRun,
+  pausedAfterReload,
+  runFromScript,
+  runProgress,
+  runQueue,
+  runTakesTaken,
+  shotsToPrepare,
+  withRunLog,
+  withRunOutcome,
+  type SceneRun,
+} from './scene-run';
 import { draftShots } from './script-shots';
 
 const SOURCE =
@@ -65,5 +77,58 @@ describe('a prepared run (M5 W3)', () => {
     let logged = run;
     for (let i = 0; i < 250; i += 1) logged = withRunLog(logged, { at: i, event: 'skipped' });
     assert.equal(logged.log.length, 200);
+  });
+});
+
+describe('running a run (M5 W4)', () => {
+  const scenes = [
+    scene('a'),
+    scene('b', { takes: [{ id: 't', promptId: 't', imageUrl: '/t.png', at: 1 }], keptTakeId: 't' }),
+    scene('c'),
+    scene('d'),
+  ];
+  const base = () => ({
+    ...runFromScript({ script: scriptWith(), scenes: [], now: 1, id: 'r' }),
+    items: ['a', 'b', 'c', 'd'].map(sceneId => ({ sceneId, include: sceneId !== 'd' })),
+    state: 'running' as const,
+    startedAt: 1_000,
+  });
+
+  it('goes Scene by Scene, skipping kept, left-out and done ones, within the limits', () => {
+    let run: SceneRun = base();
+    assert.deepEqual(nextRunStep(run, scenes, 2_000), { kind: 'scene', sceneId: 'a' });
+    run = withRunOutcome(run, 'a', 'landed', 'ok', 3_000);
+    assert.deepEqual(nextRunStep(run, scenes, 3_000), { kind: 'scene', sceneId: 'c' }, 'b is kept, skipped');
+    run = withRunOutcome(run, 'c', 'landed', 'ok', 4_000);
+    assert.deepEqual(nextRunStep(run, scenes, 4_000), { kind: 'done', reason: 'finished' });
+    assert.equal(runTakesTaken(run), 2);
+    assert.deepEqual(runProgress(run, scenes), { done: 2, total: 2 });
+    assert.deepEqual(run.log.slice(-2).map(entry => entry.event), ['landed', 'landed']);
+
+    assert.deepEqual(nextRunStep({ ...base(), maxTakes: 1, outcomes: { a: 'failed' } }, scenes, 2_000), {
+      kind: 'done',
+      reason: 'take-limit',
+    });
+    assert.deepEqual(nextRunStep({ ...base(), maxMinutes: 1 }, scenes, 1_000 + 61_000), {
+      kind: 'done',
+      reason: 'time-limit',
+    });
+  });
+
+  it('a take in flight comes first: a restart waits for it, never queues another', () => {
+    const run = { ...base(), current: { sceneId: 'c', promptId: 'p-1', at: 5 } };
+    assert.deepEqual(nextRunStep(run, scenes, 2_000), { kind: 'scene', sceneId: 'c' });
+    const landed = withRunOutcome(run, 'c', 'landed', 'ok', 6);
+    assert.equal(landed.current, undefined);
+    assert.equal(landed.position, 1);
+  });
+
+  it('a run found running after a reload is paused, with the reason', () => {
+    const paused = pausedAfterReload(base(), 9);
+    assert.equal(paused.state, 'paused');
+    assert.match(paused.stopReason!, /resume/);
+    assert.equal(paused.log.at(-1)!.event, 'paused');
+    const prepared = { ...base(), state: 'prepared' as const };
+    assert.equal(pausedAfterReload(prepared), prepared);
   });
 });
