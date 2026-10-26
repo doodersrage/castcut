@@ -125,6 +125,21 @@ export async function buildCutPackage(input: {
   };
 }
 
+/**
+ * Without server storage (no data folder set), a small file is kept in the cut itself as a data
+ * URL — as a music bed upload is — up to these sizes; anything larger is listed as not found.
+ */
+export const PACKAGE_INLINE_FILE_MAX = 2 * 1024 * 1024;
+export const PACKAGE_INLINE_TOTAL_MAX = 8 * 1024 * 1024;
+
+function dataUrlOf(bytes: Uint8Array, type: string): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return `data:${type || 'application/octet-stream'};base64,${btoa(binary)}`;
+}
+
 export type CutPackageImport = {
   manifest: CutPackageManifest;
   cut: CutPackageManifest['cut'];
@@ -134,6 +149,8 @@ export type CutPackageImport = {
   reused: number;
   /** Packaged files stored in this Gallery and relinked. */
   stored: number;
+  /** Small packaged files kept in the cut itself (no server storage here). */
+  inlined: number;
   /** Media neither here nor in the package. */
   missing: string[];
 };
@@ -173,6 +190,8 @@ export async function importCutPackage(
   let kept = 0;
   let reused = 0;
   let stored = 0;
+  let inlined = 0;
+  let inlineBudget = PACKAGE_INLINE_TOTAL_MAX;
   const missing: string[] = [];
   for (const media of manifest.media) {
     if ((await check(media.url)) === 'ok') {
@@ -199,12 +218,24 @@ export async function importCutPackage(
     if (url) {
       map.set(media.url, url);
       stored += 1;
+    } else if (bytes.length <= PACKAGE_INLINE_FILE_MAX && bytes.length <= inlineBudget) {
+      map.set(media.url, dataUrlOf(bytes, media.contentType ?? ''));
+      inlineBudget -= bytes.length;
+      inlined += 1;
     } else {
       missing.push(media.url);
     }
   }
   return {
     ok: true,
-    result: { manifest, cut: rewriteCutMedia(manifest.cut, map), kept, reused, stored, missing },
+    result: {
+      manifest,
+      cut: rewriteCutMedia(manifest.cut, map),
+      kept,
+      reused,
+      stored,
+      inlined,
+      missing,
+    },
   };
 }

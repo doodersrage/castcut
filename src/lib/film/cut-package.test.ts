@@ -70,6 +70,21 @@ describe('a portable Cut package (M4 F7)', () => {
     assert.equal(version.name, 'Imported · Rooftop');
   });
 
+  it('without server storage, small files are kept in the cut itself', async () => {
+    const built = await buildCutPackage({ cut, name: 'Inline', full: true, fetcher, now: 1 });
+    const imported = await importCutPackage(built.blob, {
+      check: async () => 'missing',
+      store: async () => null,
+    });
+    assert.ok(imported.ok);
+    if (!imported.ok) return;
+    assert.equal(imported.result.inlined, 5);
+    assert.deepEqual(imported.result.missing, []);
+    const pin = imported.result.cut.options!.shotEdits!.shots!['scenes:s1']!.pin!;
+    assert.match(pin.url, /^data:image\/png;base64,/);
+    assert.equal(Buffer.from(pin.url.split(',')[1]!, 'base64').toString(), 'bytes of /take.png');
+  });
+
   it('a light package keeps URLs that answer and says what is missing', async () => {
     const built = await buildCutPackage({ cut, name: 'Light', full: false, now: 1 });
     assert.equal(built.packed, 0);

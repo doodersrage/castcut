@@ -1643,7 +1643,7 @@ export function useCutRoom() {
           setError(imported.error);
           return;
         }
-        const { manifest, cut: packaged, kept, reused, stored, missing } = imported.result;
+        const { manifest, cut: packaged, kept, reused, stored, inlined, missing } = imported.result;
         const now = Date.now();
         const main = packageAsVersion(manifest, packaged, now);
         // Saving keeps 12 versions: an import never pushes yours out.
@@ -1663,6 +1663,7 @@ export function useCutRoom() {
             [
               stored ? `${stored} file${stored === 1 ? '' : 's'} stored here` : '',
               reused ? `${reused} already here` : '',
+              inlined ? `${inlined} kept in the cut itself (no file storage on this server)` : '',
               kept ? `${kept} found at ${kept === 1 ? 'its' : 'their'} address` : '',
             ]
               .filter(Boolean)

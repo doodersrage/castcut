@@ -706,13 +706,16 @@ test('a packaged cut restores elsewhere: its media stored there, opened as a ver
   await dismissBlockingOverlays(elsewhere);
   await elsewhere.getByTestId('cut-package-import').setInputFiles(zipPath);
   await expect(elsewhere.getByTestId('cut-status')).toContainText('Imported', { timeout: 30_000 });
-  await expect(elsewhere.getByTestId('cut-status')).toContainText(/stored here|already here/);
+  // Stored in this Gallery — or, on a server without file storage (CI), kept in the cut.
+  await expect(elsewhere.getByTestId('cut-status')).toContainText(
+    /stored here|already here|kept in the cut itself/
+  );
   const version = elsewhere.locator('[data-testid^="cut-version-open-Imported"]');
   await expect(version).toBeVisible();
   await version.click();
   // The shot plays the packaged picture, now from this machine's Gallery.
   const picture = elsewhere.locator('[data-testid="cut-shot-pick-scenes:scene-f7"] img');
-  await expect(picture).toHaveAttribute('src', /\/api\/gallery\/media\/pkg-[0-9a-f]+/, {
+  await expect(picture).toHaveAttribute('src', /\/api\/gallery\/media\/pkg-[0-9a-f]+|^data:image\//, {
     timeout: 30_000,
   });
   // Nothing is missing to play it; the Scene it came from just isn't on this machine (said).
