@@ -109,6 +109,18 @@ export type CutToolCache = {
   options?: FilmCutOptionsValue;
   /** Saved versions of the edit — switch between, say, a long cut and a 30 s Reels cut. */
   versions?: CutVersion[];
+  /**
+   * Versions deleted (or replaced by one of the same name), by id: another device's copy does
+   * not bring them back (M4 F1, storage/tool-record-merge.ts).
+   */
+  removedVersionAt?: Record<string, number>;
+  /**
+   * When the live edit (sources, added shots, options) was last changed, and the `editedAt` of
+   * the edit it was made on: an edit another device made meanwhile is kept as a version rather
+   * than lost (TOOL_EDIT_LINEAGES).
+   */
+  editedAt?: number;
+  editBase?: number;
 };
 
 export type CutVersion = {
@@ -120,11 +132,70 @@ export type CutVersion = {
   options?: FilmCutOptionsValue;
 };
 
+export const CUT_VERSIONS_LIMIT = 12;
+
 /** The versions with `next` saved (a name already there is replaced); newest first, at most 12. */
 export function saveCutVersion(versions: CutVersion[] | undefined, next: CutVersion): CutVersion[] {
   const name = next.name.trim().slice(0, 60) || 'Version';
   const rest = (versions ?? []).filter(entry => entry.name !== name);
-  return [{ ...next, name }, ...rest].slice(0, 12);
+  return [{ ...next, name }, ...rest].slice(0, CUT_VERSIONS_LIMIT);
+}
+
+/** Versions that went (deleted, replaced or over the limit) marked removed, so a merge keeps them gone. */
+function withRemovedVersions(
+  cache: Pick<CutToolCache, 'versions' | 'removedVersionAt'>,
+  versions: CutVersion[],
+  now: number
+): Pick<CutToolCache, 'versions' | 'removedVersionAt'> {
+  const kept = new Set(versions.map(entry => entry.id));
+  const gone = (cache.versions ?? []).filter(entry => !kept.has(entry.id));
+  if (!gone.length) return { versions };
+  return {
+    versions,
+    removedVersionAt: {
+      ...(cache.removedVersionAt ?? {}),
+      ...Object.fromEntries(gone.map(entry => [entry.id, Math.max(now, entry.savedAt + 1)])),
+    },
+  };
+}
+
+/** Save versions (in order) as a patch: those replaced or pushed over the limit are marked removed. */
+export function saveCutVersionsPatch(
+  cache: Pick<CutToolCache, 'versions' | 'removedVersionAt'>,
+  next: readonly CutVersion[],
+  now = Date.now()
+): Pick<CutToolCache, 'versions' | 'removedVersionAt'> {
+  const versions = next.reduce<CutVersion[]>(
+    (list, version) => saveCutVersion(list, version),
+    cache.versions ?? []
+  );
+  return withRemovedVersions(cache, versions, now);
+}
+
+export function deleteCutVersionPatch(
+  cache: Pick<CutToolCache, 'versions' | 'removedVersionAt'>,
+  id: string,
+  now = Date.now()
+): Pick<CutToolCache, 'versions' | 'removedVersionAt'> {
+  return withRemovedVersions(
+    cache,
+    (cache.versions ?? []).filter(entry => entry.id !== id),
+    now
+  );
+}
+
+/**
+ * The live edit's stamp for a write that changes it: made now (always after the edit it was made
+ * on), on `base` — the `editedAt` this device last had.
+ */
+export function cutEditStamp(
+  base: number | undefined,
+  now = Date.now()
+): Pick<CutToolCache, 'editedAt' | 'editBase'> {
+  return {
+    editedAt: base !== undefined && now <= base ? base + 1 : now,
+    ...(base !== undefined ? { editBase: base } : {}),
+  };
 }
 
 export const DEFAULT_CUT_TOOL_CACHE: CutToolCache = {};

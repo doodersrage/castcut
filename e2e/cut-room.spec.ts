@@ -235,6 +235,80 @@ test('add shots: a text card, a duplicate, remove, and split a clip at the playh
   await expect(blocks).toHaveCount(3, { timeout: 15_000 });
 });
 
+// M4 F1: the edit and its undo outlive a reload.
+test('an edit survives a reload, and Undo still takes it back', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: {
+        version: 1,
+        characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
+      },
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          slots: [
+            { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+            { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reads' },
+          ],
+          stills: [
+            { slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'f1-m' },
+            { slotId: 'afternoon', status: 'completed', imageUrl: thumb, promptId: 'f1-a' },
+          ],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const blocks = page.locator('[data-testid^="cut-timeline-shot-"]');
+  await expect(blocks).toHaveCount(2, { timeout: 30_000 });
+  await page.getByTestId('cut-add-text').click();
+  await expect(blocks).toHaveCount(3, { timeout: 15_000 });
+  // Saved, and stamped as an edit (the merge keeps another device's edit by these).
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string>(resolve => {
+            const request = indexedDB.open('comfy-prompt-studio-v1');
+            request.onerror = () => resolve('');
+            request.onsuccess = () => {
+              const db = request.result;
+              const get = db
+                .transaction('kv', 'readonly')
+                .objectStore('kv')
+                .get('comfy-prompt-tool-settings-tools-v1');
+              get.onsuccess = () => {
+                db.close();
+                const cut = get.result?.value?.tools?.cut;
+                resolve([cut?.extras?.length ?? 0, typeof cut?.editedAt].join('|'));
+              };
+              get.onerror = () => {
+                db.close();
+                resolve('');
+              };
+            };
+          })
+      )
+    )
+    .toBe('1|number');
+  await expect
+    .poll(() => page.evaluate(() => Boolean(sessionStorage.getItem('castcut-cut-history-v1'))))
+    .toBe(true);
+
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(blocks).toHaveCount(3, { timeout: 30_000 });
+  await expect(page.getByTestId('cut-undo')).toBeEnabled({ timeout: 15_000 });
+  await page.getByTestId('cut-undo').click();
+  await expect(blocks).toHaveCount(2, { timeout: 15_000 });
+  await expect(page.getByTestId('cut-redo')).toBeEnabled();
+});
+
 test('versions: save the edit, change it, open the saved one back', async ({ page }) => {
   await seed(page, false);
   await gotoStable(page, '/cut');

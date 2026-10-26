@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.**
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1** is done; next: **F2**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -791,3 +791,104 @@ replaces Scenes or Story.
 
 **S1**: a pure parser with fixture tests. It changes no existing behaviour, and S2–S6 build on
 its output and its stable ids.
+
+# Part 5 — M4 plan: editing, audio and delivery (2026-10-26)
+
+ROADMAP §7 asks for a dependable path from selected takes to a finished deliverable, scoped by
+what Cut already does. Cut already does a lot, so M4 is mostly hardening and filling gaps, not
+new surfaces.
+
+## 5.1 What exists (audited 2026-10-26)
+
+| Roadmap item | In Castcut today | Gap |
+| --- | --- | --- |
+| §7.1 Edit model | `CutShotEdit` (`film/cut-plan.ts`): include, caption, hold, trim in/out, speed, reverse, volume, J/L cut, transition, still framing and moves, lower third, picture-in-picture, R5 pin. Copies (`~n`) reuse a source's media without duplicating it. | None for M4; it already covers the list. |
+| §7.2 Save / reopen | The edit lives in `tools.cut` (settings blob), saved automatically. Up to 12 named versions (`saveCutVersion`). | Settings merge across devices is newest-blob-wins for `tools.cut` (only Scene lists merge per record since R6): a version or added shot saved on one device can be lost. |
+| §7.2 Undo / redo | `useCutRoom` history (quick changes grouped, discrete actions their own step). | In memory only: a reload or crash loses it. Nothing restores the recent edit state. |
+| §7.2 Take replacement | R5: an offered take is never swapped in; "Use it here" pins it. | `takeOfferedCutMedia` always drops the trim (`withoutTrim`), even when it would fit the new clip. No way back to the earlier take. |
+| §7.2 Missing media | The pre-cut delivery check probes files (`unreachable`, black, silent); C1's `source-gone` finding for pins. | Found only when you cut. No list of what is missing, and no relink. |
+| §7.3 Audio | Music bed (start point, fades, waveform), ambience, lines level, per-clip volume, J/L cuts, narration voice-over, a mix preview. | No mute / solo per track. No loudness measure: `volumedetect` max dB only finds silence. No sound-effects track. |
+| §7.4 Subtitles | Lines, replies and narration become subtitles (burned in or not). The last cut's `.srt` can be downloaded. | Their text and timing can't be edited apart from the line. No SRT import. No overlap, gap or encoding check. SRT only after a cut. |
+| §7.5 Export | Shape (widescreen, vertical, square…), 720p or 1080p, re-cut from a film's recipe (`film/recut.ts`), editor handoff (`/api/film/export`: FCPXML, EDL, SRT and media in a zip). | No named profiles (preview vs master vs social vs handoff). |
+| §7.6 Export validation | Pre-cut delivery check, with a line saying which checks ran. | The output isn't verified (duration, size, frame rate, audio stream). No loudness or true-peak figure. No free-space check before an encode. |
+| §7.7 Portable delivery | Studio backup (settings, Gallery with workflows); the editor handoff zip. | No project package (the cut, its media manifest and media) that restores elsewhere, and no restore test. |
+
+## 5.2 M4 tasks (ordered)
+
+**F1 — Cut persistence and edit recovery.** _Done 2026-10-26._
+
+- Saved versions merge per version across devices (`TOOL_RECORD_LISTS`, with a new `timeField`
+  for `savedAt`). A deleted version, one replaced by a version of the same name, or one pushed
+  over the limit of 12 is marked in `removedVersionAt`, so it stays gone
+  (`saveCutVersionsPatch`, `deleteCutVersionPatch`).
+- The live edit (sources, added shots, options) only makes sense whole, so it isn't merged
+  piecemeal. Instead every write that changes it is stamped with `editedAt` and `editBase` (the
+  edit it was made on; `cutEditStamp`, wrapped round Cut's one writer in `useCutRoom`).
+  - When two copies meet (`TOOL_EDIT_LINEAGES` in `storage/tool-record-merge.ts`), the newer
+    edit stays live. The other is kept as a version, "Edit from another device (<time> UTC)",
+    unless the newer was built on it.
+  - A stale copy pushed later doesn't take back a newer edit.
+  - The shared merge stays data-driven: it names no feature code.
+- Undo across a reload (`film/cut-history.ts`): the history is kept for the tab in
+  sessionStorage, bounded to 30 steps and about 1.5 MB, and trimmed rather than lost. It comes
+  back only when the edit is still exactly the one it leads to.
+- The edit itself was already saved as it changes: the e2e confirms it survives a reload.
+- e2e helper: `seedSettingsCacheOnNextLoad(page, cache, { once: true })` seeds only the tab's
+  first load, so a test can reload.
+- Tests: `film/cut-persistence.test.ts` (7) and `e2e/cut-room.spec.ts` "an edit survives a
+  reload…".
+- Not done:
+  - Edits from before the stamps merge as before (newest blob wins) until they are next edited.
+  - Undo history doesn't follow you to another tab or device (by design).
+
+**F2 — Non-destructive source replacement.** "Use it here" keeps the trim when it fits inside
+the new clip (and clamps it when it nearly does), and says exactly what changed. The previous pin
+is kept, so **Back to the earlier take** undoes the replacement even after a reload.
+
+**F3 — Missing media and relink.**
+- A **Missing media** list in Cut, made from what is known without an encode: the pin's file,
+  a Gallery entry purged, a scene gone, and the file probe when it has run.
+- **Relink** to a Gallery entry or another take of the same source (a pin, so R5's rules hold).
+
+**F4 — Audio-track controls and loudness.**
+- Mute and solo for the music, ambience, lines, narration and clip-sound tracks, in the monitor
+  and the mix preview. A track muted at encode time is left out and said so.
+- Integrated loudness and true peak (ffmpeg `ebur128`) measured on the cut, with a target per
+  profile (F6) and a note when it is off.
+
+**F5 — Editable subtitles and SRT interchange.**
+- A subtitle track whose text and in/out (offset from the shot) you can edit apart from the
+  line, kept on the shot edit.
+- SRT export at any time (not only after a cut), and SRT import matched to shots by time, shown
+  before it applies.
+- Checks: overlaps, too-short or too-long cues, lines over two rows, characters SRT can't carry.
+
+**F6 — Export profiles, preflight and output verification.**
+- Named profiles that set shape, size, quality, loudness target and subtitles: Review copy
+  (720p, burned subtitles), Widescreen master (1080p), Vertical social, Square social, and Editor
+  handoff (the existing NLE export).
+- Preflight: the delivery check plus mixed sizes or frame rates, required audio missing,
+  subtitle checks (F5), and free disk space for the output.
+- After the encode, `ffprobe` checks the output's duration, size, frame rate and audio stream
+  against the profile.
+- A report says what was checked and what remains.
+
+**F7 — Portable project package.**
+- A package holds the cut (its edit, versions and recipe), a media manifest with hashes, and,
+  optionally, the media itself. **Lightweight** has no media; **Full** is self-contained.
+- Import restores it as a new Cast-scoped cut, relinking media by hash where it already exists.
+- A restore test runs in a clean data directory.
+
+## 5.3 Risks and compatibility
+
+- F1 changes how `tools.cut` merges. Old copies without tombstones merge as today (union by
+  id, newest copy wins).
+- F2 and F5 add optional fields to `CutShotEdit`; old edits read unchanged.
+- F4 and F6 add ffmpeg passes. They run as background jobs (the Docker ffmpeg caveat applies:
+  test with ffmpeg 7).
+- F7 writes a new file format. Version it from the start, and refuse a newer major version.
+
+## 5.4 Recommended first task
+
+**F1**: it protects existing edits before anything is added on top of them, and it reuses R6's
+merge.

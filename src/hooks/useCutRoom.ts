@@ -68,12 +68,22 @@ import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
+import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import {
+  readStoredCutHistory,
+  restoreCutHistory,
+  serializeCutHistory,
+  writeStoredCutHistory,
+} from '@/lib/film/cut-history';
 import {
   activeCutSources,
   cutCopyKey,
   cutExtraShots,
-  saveCutVersion,
+  cutEditStamp,
+  deleteCutVersionPatch,
+  saveCutVersionsPatch,
   type CutExtra,
+  type CutToolCache,
   CUT_SOURCES,
   cutRoomKey,
   cutRoomRecipeSource,
@@ -272,7 +282,25 @@ export function useCutRoom() {
     shotsRef.current = shots;
   }, [shots]);
 
-  const { updateToolSettings: updateCut } = cut;
+  const { updateToolSettings: writeCutSettings } = cut;
+  // Every write that changes the live edit is stamped with when, and on which edit (M4 F1): an
+  // edit another device made meanwhile is then kept as a version instead of being lost.
+  const editedAtRef = useRef(cut.toolSettings.editedAt);
+  useEffect(() => {
+    editedAtRef.current = cut.toolSettings.editedAt;
+  }, [cut.toolSettings.editedAt]);
+  const updateCut = useCallback(
+    (patch: Partial<CutToolCache>) => {
+      if (!('options' in patch || 'extras' in patch || 'sources' in patch)) {
+        writeCutSettings(patch);
+        return;
+      }
+      const stamp = cutEditStamp(editedAtRef.current);
+      editedAtRef.current = stamp.editedAt;
+      writeCutSettings({ ...patch, ...stamp });
+    },
+    [writeCutSettings]
+  );
   // Undo / redo of the edit (options, shot list and added shots). Changes within a moment of each
   // other — typing a caption, a slider — are one step.
   type Snapshot = { options: FilmCutOptionsValue; extras: CutExtra[] };
@@ -341,6 +369,37 @@ export function useCutRoom() {
     stateRef.current = next;
     updateCut(next);
   }, [updateCut]);
+  // Undo survives a reload (M4 F1, cut-history.ts): the steps come back when the edit is still
+  // the one they lead to — checked as the stored edit loads, until this visit's first step.
+  const historyRestoredRef = useRef(false);
+  useEffect(() => {
+    if (historyRestoredRef.current) return;
+    const h = history.current;
+    if (h.past.length || h.future.length) {
+      historyRestoredRef.current = true;
+      return;
+    }
+    const restored = restoreCutHistory<Snapshot>(readStoredCutHistory(), { options, extras });
+    if (!restored) return;
+    historyRestoredRef.current = true;
+    h.past = restored.past;
+    h.future = restored.future;
+    h.at = 0;
+    scheduleAfterCommit(() => setHistorySize({ past: h.past.length, future: h.future.length }));
+  }, [extras, options]);
+  // …and is kept for the tab as it changes.
+  useEffect(() => {
+    if (!historyRestoredRef.current && !historySize.past && !historySize.future) return;
+    const timer = window.setTimeout(() => {
+      const h = history.current;
+      writeStoredCutHistory(
+        h.past.length || h.future.length
+          ? serializeCutHistory<Snapshot>({ options, extras }, h)
+          : null
+      );
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [extras, historySize, options]);
 
   /** The shot list's order as shown (every shot, left-out ones too). */
   const orderNow = () =>
@@ -1149,18 +1208,20 @@ export function useCutRoom() {
   const saveVersion = useCallback(
     (name: string) => {
       const options = pinEveryShot();
-      updateCut({
-        versions: saveCutVersion(cut.toolSettings.versions, {
-          id: `v${Date.now().toString(36)}`,
-          name: name || `Version ${(cut.toolSettings.versions?.length ?? 0) + 1}`,
-          savedAt: Date.now(),
-          sources: cut.toolSettings.sources,
-          extras: stateRef.current.extras,
-          options,
-        }),
-      });
+      updateCut(
+        saveCutVersionsPatch(cut.toolSettings, [
+          {
+            id: `v${Date.now().toString(36)}`,
+            name: name || `Version ${(cut.toolSettings.versions?.length ?? 0) + 1}`,
+            savedAt: Date.now(),
+            sources: cut.toolSettings.sources,
+            extras: stateRef.current.extras,
+            options,
+          },
+        ])
+      );
     },
-    [cut.toolSettings.sources, cut.toolSettings.versions, pinEveryShot, updateCut]
+    [cut.toolSettings, pinEveryShot, updateCut]
   );
   /**
    * Make a reel (cut-reel.ts): the full edit saved as "Full cut", then the edit turned into a
@@ -1222,21 +1283,12 @@ export function useCutRoom() {
         options,
       };
       commitEdit({ options }, true, false);
-      updateCut({
-        versions: saveCutVersion(saveCutVersion(cut.toolSettings.versions, full), reel),
-      });
+      updateCut(saveCutVersionsPatch(cut.toolSettings, [full, reel]));
       setStatus(
         `Made a ${seconds} s reel from ${plan.keys.length} shots — the full cut is saved as a version.`
       );
     },
-    [
-      commitEdit,
-      cut.toolSettings.sources,
-      cut.toolSettings.versions,
-      pinEveryShot,
-      shots,
-      updateCut,
-    ]
+    [commitEdit, cut.toolSettings, pinEveryShot, shots, updateCut]
   );
   /** Open a version: it becomes the edit (undo goes back to what was there). */
   const openVersion = useCallback(
@@ -1269,9 +1321,9 @@ export function useCutRoom() {
       ) {
         return;
       }
-      updateCut({ versions: (cut.toolSettings.versions ?? []).filter(entry => entry.id !== id) });
+      updateCut(deleteCutVersionPatch(cut.toolSettings, id));
     },
-    [cut.toolSettings.versions, updateCut]
+    [cut.toolSettings, updateCut]
   );
   /**
    * A pinned shot's source offers another take: use it here (`everywhere`: on this shot's copies

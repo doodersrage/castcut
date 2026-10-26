@@ -98,7 +98,9 @@ export async function seedSettingsCacheOnNextLoad(
     shared?: Record<string, unknown>;
     tools?: Record<string, unknown>;
     characters?: unknown;
-  }
+  },
+  /** `once`: seed only the tab's first load (a reload keeps what the app saved since). */
+  options: { once?: boolean } = {}
 ): Promise<void> {
   const updatedAt = Date.now();
   const entries: Record<string, unknown> = {
@@ -123,54 +125,65 @@ export async function seedSettingsCacheOnNextLoad(
     await page.goto('/manifest.json');
     await putAppKv(page, entries);
   }
-  await page.addInitScript(async pairs => {
-    // Each store also keeps a localStorage mirror, and an empty one left by an earlier page load
-    // could win over the IndexedDB seed at boot (the Cast or a tool's settings came up empty in
-    // about a third of parallel runs). Seed the mirrors too, synchronously, before app code runs.
-    const all = pairs as Record<string, unknown>;
-    const mirrors: Record<string, unknown> = {
-      'comfy-prompt-characters-v1': all['comfy-prompt-characters-v1'],
-      'comfy-prompt-tool-settings-tools-v1': all['comfy-prompt-tool-settings-tools-v1'],
-      'comfy-prompt-tool-settings-v1': all['comfy-prompt-tool-settings-v1']
-        ? {
-            ...(all['comfy-prompt-tool-settings-v1'] as Record<string, unknown>),
-            tools:
-              (all['comfy-prompt-tool-settings-tools-v1'] as { tools?: unknown } | undefined)
-                ?.tools ?? {},
-          }
-        : undefined,
-    };
-    for (const [key, value] of Object.entries(mirrors)) {
-      if (value === undefined) continue;
-      try {
-        window.localStorage.setItem(key, JSON.stringify(value));
-      } catch {
-        /* storage unavailable on this page */
+  await page.addInitScript(
+    async ({ pairs, once }) => {
+      if (once) {
+        try {
+          if (window.sessionStorage.getItem('e2e-settings-seeded')) return;
+          window.sessionStorage.setItem('e2e-settings-seeded', '1');
+        } catch {
+          /* storage unavailable on this page: seed as usual */
+        }
       }
-    }
-    await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('comfy-prompt-studio-v1');
-      request.onerror = () => reject(request.error ?? new Error('idb open failed'));
-      request.onsuccess = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains('kv')) {
-          db.close();
-          resolve();
-          return;
-        }
-        const tx = db.transaction('kv', 'readwrite');
-        const store = tx.objectStore('kv');
-        for (const [key, value] of Object.entries(pairs)) {
-          store.put({ key, value });
-        }
-        tx.oncomplete = () => {
-          db.close();
-          resolve();
-        };
-        tx.onerror = () => reject(tx.error ?? new Error('idb kv put failed'));
+      // Each store also keeps a localStorage mirror, and an empty one left by an earlier page load
+      // could win over the IndexedDB seed at boot (the Cast or a tool's settings came up empty in
+      // about a third of parallel runs). Seed the mirrors too, synchronously, before app code runs.
+      const all = pairs as Record<string, unknown>;
+      const mirrors: Record<string, unknown> = {
+        'comfy-prompt-characters-v1': all['comfy-prompt-characters-v1'],
+        'comfy-prompt-tool-settings-tools-v1': all['comfy-prompt-tool-settings-tools-v1'],
+        'comfy-prompt-tool-settings-v1': all['comfy-prompt-tool-settings-v1']
+          ? {
+              ...(all['comfy-prompt-tool-settings-v1'] as Record<string, unknown>),
+              tools:
+                (all['comfy-prompt-tool-settings-tools-v1'] as { tools?: unknown } | undefined)
+                  ?.tools ?? {},
+            }
+          : undefined,
       };
-    });
-  }, entries);
+      for (const [key, value] of Object.entries(mirrors)) {
+        if (value === undefined) continue;
+        try {
+          window.localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+          /* storage unavailable on this page */
+        }
+      }
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => reject(request.error ?? new Error('idb open failed'));
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('kv')) {
+            db.close();
+            resolve();
+            return;
+          }
+          const tx = db.transaction('kv', 'readwrite');
+          const store = tx.objectStore('kv');
+          for (const [key, value] of Object.entries(pairs)) {
+            store.put({ key, value });
+          }
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error ?? new Error('idb kv put failed'));
+        };
+      });
+    },
+    { pairs: entries, once: Boolean(options.once) }
+  );
 }
 
 /** Replace gallery Dexie rows + localStorage mirror. */
