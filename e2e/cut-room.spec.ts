@@ -417,6 +417,55 @@ test('pins: an edited shot keeps its take, a new one is offered, a gone scene pl
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
 });
 
+// M4 F3: a shot whose file is gone is listed before cutting, and relinked to another take.
+test('missing media: a gone file is listed, and relinking to another take fixes it', async ({
+  page,
+}) => {
+  await page.route('**/e2e-gone/**', route => route.fulfill({ status: 404, body: 'gone' }));
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        scenes: [
+          {
+            id: 'scene-f3',
+            castId: CAST,
+            name: 'Kitchen',
+            slot: { id: 'morning', label: 'Morning', location: 'kitchen' },
+            takes: [
+              { id: 'f3-a', promptId: 'f3-a', imageUrl: thumb, at: 1 },
+              { id: 'f3-b', promptId: 'f3-b', imageUrl: '/e2e-gone/b.png', at: 2 },
+            ],
+            keptTakeId: 'f3-b',
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/cut?from=scenes');
+  await dismissBlockingOverlays(page);
+  const missing = page.getByTestId('cut-missing-scenes:scene-f3');
+  await expect(missing).toBeVisible({ timeout: 30_000 });
+  await expect(missing).toHaveAttribute('data-blocks', 'true');
+  await expect(missing).toContainText('its file is gone');
+
+  // Relink to the scene's other take: nothing missing, and the way back is offered.
+  await page.getByTestId('cut-missing-take-scenes:scene-f3').first().click();
+  await expect(page.getByTestId('cut-missing-section')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByTestId('cut-pin-scenes:scene-f3-back')).toBeVisible();
+  await expect(page.locator('[data-testid="cut-shot-pick-scenes:scene-f3"] img')).toHaveAttribute(
+    'src',
+    thumb
+  );
+});
+
 // M2 C3: each shot's card says who is in it, where and when.
 test("shot state: a Day shot's card says who, where and when", async ({ page }) => {
   await seed(page, false);

@@ -17,6 +17,7 @@ import { shotStateSummary } from '@/lib/film/shot-state';
 import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
+import CutMissingMedia from '@/components/cut/CutMissingMedia';
 import CutVersions from '@/components/cut/CutVersions';
 import CutGeneratePanel from '@/components/cut/CutGeneratePanel';
 import { useCutPreview } from '@/hooks/useCutPreview';
@@ -46,6 +47,8 @@ export default function CutRoom() {
   const router = useRouter();
   const [recording, setRecording] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  /** Relink from Gallery (M4 F3): the shot the picker relinks. */
+  const [relinkKey, setRelinkKey] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const titleCard =
@@ -855,6 +858,21 @@ export default function CutRoom() {
           </ToolSection>
         ) : null}
 
+        {vm.missingMedia.length > 0 ? (
+          <ToolSection data-testid="cut-missing-section" title="Missing media">
+            <CutMissingMedia
+              items={vm.missingMedia}
+              checking={vm.mediaChecking}
+              disabled={busy}
+              takesFor={vm.relinkTakesFor}
+              onRelink={(key, media) => void vm.relink(key, media)}
+              onPickFromGallery={setRelinkKey}
+              onPick={pick}
+              onRecheck={() => void vm.recheckMedia()}
+            />
+          </ToolSection>
+        ) : null}
+
         {vm.shots.length > 0 ? (
           <ToolSection data-testid="cut-continuity-section" title="Continuity">
             <CutContinuity
@@ -991,6 +1009,17 @@ export default function CutRoom() {
         onAdd={entry => {
           vm.addMedia(entry);
           setGalleryOpen(false);
+        }}
+      />
+      <CutGalleryPicker
+        open={relinkKey !== null}
+        onClose={() => setRelinkKey(null)}
+        entries={vm.castMedia}
+        title="Relink from Gallery"
+        description="The still or clip this shot plays from now on — its trim kept where it fits."
+        onAdd={entry => {
+          if (relinkKey) void vm.relinkFromGallery(relinkKey, entry);
+          setRelinkKey(null);
         }}
       />
     </>

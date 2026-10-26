@@ -16,18 +16,23 @@ export default function CutGalleryPicker({
   onClose,
   entries,
   onAdd,
+  title = 'Add from Gallery',
+  description = 'Any still or clip of this Cast — it goes in at the end; drag it where you want it.',
 }: {
   open: boolean;
   onClose: () => void;
   entries: ComfyGalleryEntry[];
   onAdd: (entry: ComfyGalleryEntry) => void;
+  /** Relink (M4 F3) reuses the picker with its own words. */
+  title?: string;
+  description?: string;
 }) {
   return (
     <SideSheet
       open={open}
       onClose={onClose}
-      title="Add from Gallery"
-      description="Any still or clip of this Cast — it goes in at the end; drag it where you want it."
+      title={title}
+      description={description}
       size="lg"
       testId="cut-gallery-picker"
     >

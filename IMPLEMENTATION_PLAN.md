@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F2** are done; next: **F3**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F3** are done; next: **F4**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -856,10 +856,33 @@ new surfaces.
 - Tests: `film/cut-replace.test.ts` (3). The R5 pins e2e is extended with going back.
 - Not done: one step back only (the earlier take's own earlier take isn't kept).
 
-**F3 — Missing media and relink.**
-- A **Missing media** list in Cut, made from what is known without an encode: the pin's file,
-  a Gallery entry purged, a scene gone, and the file probe when it has run.
-- **Relink** to a Gallery entry or another take of the same source (a pin, so R5's rules hold).
+**F3 — Missing media and relink.** _Done 2026-10-26._
+
+- `film/cut-media-check.ts`: each shot's file is checked with a one-byte GET (`Range:
+  bytes=0-0`), abandoned at the headers. Route handlers here define GET, not HEAD (the Next
+  docs list HEAD as its own handler).
+  - 404 / 410 is **missing**. Any other failure (offline, auth, another site's CORS) is
+    **unknown**, never reported as missing.
+  - Results are remembered for the page; **Check again** rechecks.
+- `film/cut-missing.ts`: `missingCutMedia` lists the film's shots, those that can't play first:
+  - **file gone** blocks;
+  - **Gallery render removed** is said only when the file isn't known to play (the Gallery is
+    read after full hydration);
+  - **source gone** (R5: it plays its pin).
+- **Relink** (`relinkCutShot`, `useCutRoom.relink` / `relinkFromGallery`):
+  - A sourced shot is pinned to the new media like "Use it here": its trim is fitted (F2) and
+    the old media is kept for **Back to the earlier take**.
+  - An unpinned shot is pinned to what it played first, so the way back exists.
+  - The gone media is declined, so it isn't offered back as a "new take" (found by the e2e).
+  - An added Gallery shot has its media replaced.
+  - It is undoable.
+- UI: a **Missing media** section in Cut, shown only when there is something to list
+  (`components/cut/CutMissingMedia.tsx`). It offers the source's other takes (a Scene's) inline,
+  and **Relink from Gallery…** reuses the Add from Gallery picker.
+- Tests: `film/cut-missing.test.ts` (4) and `e2e/cut-room.spec.ts` "missing media…".
+- Not done:
+  - A Day slot's earlier stills aren't offered as takes (use the Gallery).
+  - Missing media doesn't block the pre-cut check yet (F6's preflight).
 
 **F4 — Audio-track controls and loudness.**
 - Mute and solo for the music, ambience, lines, narration and clip-sound tracks, in the monitor

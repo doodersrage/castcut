@@ -149,6 +149,14 @@ import {
   type FindingDecisionKind,
 } from '@/lib/checks/finding-decisions';
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
+import { checkMediaUrls } from '@/lib/film/cut-media-check';
+import {
+  missingCutMedia,
+  relinkCutShot,
+  type MediaUrlStatus,
+  type RelinkMedia,
+} from '@/lib/film/cut-missing';
+import { awaitFullGalleryHydration } from '@/lib/gallery/db-store';
 import {
   backToEarlierCutTake,
   cutSourceKeyOf,
@@ -1369,6 +1377,107 @@ export function useCutRoom() {
     },
     [commitEdit, pinStates]
   );
+  // Missing media (M4 F3): every shot's file checked (a byte each, cut-media-check.ts), and the
+  // Gallery read once it has fully loaded, so nothing is called removed before it has.
+  const [mediaCheck, setMediaCheck] = useState<{
+    status: ReadonlyMap<string, MediaUrlStatus>;
+    galleryIds: ReadonlySet<string> | null;
+    checking: boolean;
+  }>({ status: new Map(), galleryIds: null, checking: false });
+  const readMediaCheck = useCallback(async (fresh: boolean) => {
+    const urls = shotsRef.current.map(shot => shot.url).filter(Boolean);
+    const [status] = await Promise.all([
+      checkMediaUrls(urls, { fresh }),
+      awaitFullGalleryHydration(),
+    ]);
+    const galleryIds = new Set(
+      loadComfyGallery().flatMap(entry => [entry.id, entry.promptId].filter(Boolean) as string[])
+    );
+    return { status, galleryIds, checking: false };
+  }, []);
+  const mediaUrlsKey = useMemo(() => shots.map(shot => shot.url).join('\n'), [shots]);
+  useEffect(() => {
+    let cancelled = false;
+    void readMediaCheck(false).then(next => {
+      if (!cancelled) setMediaCheck(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaUrlsKey, readMediaCheck]);
+  const recheckMedia = useCallback(async () => {
+    setMediaCheck(previous => ({ ...previous, checking: true }));
+    setMediaCheck(await readMediaCheck(true));
+  }, [readMediaCheck]);
+  const missingMedia = useMemo(
+    () =>
+      missingCutMedia({
+        shots,
+        states: pinStates,
+        urlStatus: mediaCheck.status,
+        ...(mediaCheck.galleryIds
+          ? { galleryHas: (id: string) => mediaCheck.galleryIds!.has(id) }
+          : {}),
+      }),
+    [mediaCheck, pinStates, shots]
+  );
+  /** Other takes of a shot's source to relink to (a Scene's takes), newest first. */
+  const relinkTakesFor = useCallback(
+    (key: string): RelinkMedia[] => {
+      const { source, key: id } = splitCutRoomKey(cutSourceKeyOf(key));
+      if (source !== 'scenes') return [];
+      const scene = savedScenes.find(entry => entry.id === id);
+      return (scene?.takes ?? [])
+        .filter(take => take.imageUrl || take.clipUrl)
+        .map(take => ({
+          url: (take.clipUrl || take.imageUrl)!,
+          kind: take.clipUrl ? ('clip' as const) : ('still' as const),
+          entryId: take.promptId,
+          thumbUrl: take.imageUrl,
+          title: scene?.name,
+        }))
+        .reverse();
+    },
+    [savedScenes]
+  );
+  /** Point a shot at other media (a Gallery render, another take): undoable, and Back works. */
+  const relink = useCallback(
+    async (key: string, media: RelinkMedia) => {
+      const durationSec =
+        media.kind === 'clip' ? await probeMediaDurationSec(media.url, 'video') : null;
+      const before = stateRef.current;
+      const result = relinkCutShot(
+        { edits: before.options.shotEdits, extras: before.extras },
+        key,
+        media,
+        { durationSec, current: shotsRef.current.find(shot => shot.key === key) }
+      );
+      if (!result.changed) return;
+      commitEdit(
+        { options: { ...before.options, shotEdits: result.edits }, extras: result.extras },
+        true,
+        false
+      );
+      setStatus('Relinked — the shot plays the new media. Undo puts the old one back.');
+    },
+    [commitEdit]
+  );
+  const relinkFromGallery = useCallback(
+    async (key: string, entry: ComfyGalleryEntry) => {
+      const url = galleryEntryPrimaryViewUrl(entry);
+      if (!url) return;
+      const thumbUrl = galleryEntryPrimaryThumbUrl(entry);
+      await relink(key, {
+        url,
+        kind: isGalleryClipEntry({ ...entry, mediaKind: galleryEntryPrimaryMediaKind(entry) })
+          ? 'clip'
+          : 'still',
+        entryId: entry.id,
+        ...(thumbUrl ? { thumbUrl } : {}),
+      });
+    },
+    [relink]
+  );
   /** "Back to the earlier take": the take and trim the shot had before Use it here. */
   const backToEarlierTake = useCallback(
     (key: string) => {
@@ -2119,6 +2228,12 @@ export function useCutRoom() {
     decide,
     takeOffered,
     backToEarlierTake,
+    missingMedia,
+    mediaChecking: mediaCheck.checking,
+    recheckMedia,
+    relinkTakesFor,
+    relink,
+    relinkFromGallery,
     keepPinned,
     togglePin,
     options,
