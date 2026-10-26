@@ -71,6 +71,57 @@ function outputDir(): string {
   return path.join(/* turbopackIgnore: true */ resolvePromptDataDir(), 'film-output');
 }
 
+/** Films older than this are gone from `film-output/` (a job's own download lasts an hour). */
+export const FILM_OUTPUT_KEEP_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Finished films left in `film-output/` by jobs this process no longer remembers (a restart
+ * forgets them, and pruneJobs only removes the ones it knows — H4). Only that folder's `.mp4`
+ * files past `keepMs`, never one a job still holds. Returns how many went.
+ */
+export async function sweepStaleFilmOutputs(input: {
+  dir: string;
+  keepMs?: number;
+  now?: number;
+  held?: ReadonlySet<string>;
+}): Promise<number> {
+  const keepMs = input.keepMs ?? FILM_OUTPUT_KEEP_MS;
+  const now = input.now ?? Date.now();
+  let names: string[];
+  try {
+    names = await fs.readdir(input.dir);
+  } catch {
+    return 0;
+  }
+  let removed = 0;
+  for (const name of names) {
+    if (!/^[A-Za-z0-9-]+\.mp4$/.test(name) || input.held?.has(name)) continue;
+    const file = path.join(input.dir, name);
+    try {
+      const stat = await fs.stat(file);
+      if (!stat.isFile() || now - stat.mtimeMs <= keepMs) continue;
+      await fs.rm(file, { force: true });
+      removed += 1;
+    } catch {
+      // gone already, or not ours to read: leave it
+    }
+  }
+  return removed;
+}
+
+/** Once per server process, on the first encode: sweep what earlier processes left. */
+function sweepOnce(): void {
+  const flag = globalThis as { __castcutFilmOutputSwept?: boolean };
+  if (flag.__castcutFilmOutputSwept) return;
+  flag.__castcutFilmOutputSwept = true;
+  const held = new Set(
+    [...jobs.values()].flatMap(job =>
+      job.outputRelativePath ? [path.basename(job.outputRelativePath)] : []
+    )
+  );
+  void sweepStaleFilmOutputs({ dir: outputDir(), held }).catch(() => undefined);
+}
+
 function pruneJobs(): void {
   const now = Date.now();
   for (const [id, job] of jobs) {
@@ -151,6 +202,7 @@ export async function startFilmAssembleJob(
   input: StartFilmAssembleInput
 ): Promise<FilmAssembleJob> {
   pruneJobs();
+  sweepOnce();
   if (!(await isServerFilmEncodeAvailable())) {
     throw new Error('ffmpeg is not available. Install ffmpeg or use browser Cut.');
   }

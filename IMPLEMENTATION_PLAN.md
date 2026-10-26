@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H3** are done; next: **H4**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H4** are done; next: **H5**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1340,11 +1340,33 @@ version** (H2) and **Backup restoration with media** (H3).
     now says the JSON names the pictures without carrying them, and links to the Pictures
     backup.
 
-**H4 — Logging, secrets, resources and errors.**
-- Prune `film-output/` by age on startup as well.
-- Check that no key or token reaches a log or an error text (extending R3's checks to M3–M5's
-  new routes: loudness, assemble probe, package import).
-- Fix the two test-reliability issues above.
+**H4 — Logging, secrets, resources and errors.** _Done 2026-10-26._
+
+- **Resources:** `film-output/` is swept once per server process, on the first encode
+  (`sweepStaleFilmOutputs` in `video/assemble-jobs.ts`).
+  - It removes `.mp4` files older than a day (a job's own download lasts an hour), never one an
+    in-memory job still holds, and nothing else in the folder.
+  - Only the encode job reads that folder (checked).
+  - Test: `video/assemble-jobs.test.ts` (old, held, fresh and non-film files; a missing
+    folder).
+- **Secrets:** nothing M3–M5 added logs anything:
+  - routes and server code: loudness, the output probe, the encode request parser;
+  - client code: the package import, the media check, the run.
+  - Their errors don't carry request URLs, so `shot-fetch`'s messages name no URL.
+  - The one key-in-URL request in the codebase (Gemini video, `?key=`) builds its errors from
+    the response body, never the URL.
+  - With R3's browser-only keys, no new leak path was found.
+- **Errors:** H1's film-save message ("disk is full", "can't write to its data folder").
+- **Test reliability:**
+  - `lora-train-install.test` now uses its own empty data folder. It had read the machine's real
+    install store, where a detected ComfyUI counted as `COMFYUI_ROOT` set. This was proven by
+    putting the detection file back: it still passes.
+  - The blank-page flake (a page waiting on stored settings, empty for 30 s) didn't reproduce
+    in 12 isolated loads of `/cut` (about 0.9 s each, no console errors). It was only seen
+    mid-suite on the dev server.
+  - CI runs e2e on a production build (`playwright.config.ts`: "Production server avoids Fast
+    Refresh aborting in-flight navigations"). It's recorded as a local dev-server effect, not
+    an app bug.
 
 **H5 — User docs and release notes.**
 - Update `guide-scene.md` (Script, shots, coverage, reimport, runs) and `guide-film.md` (Cut's

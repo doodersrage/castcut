@@ -65,6 +65,33 @@ describe("video-assemble-jobs", async () => {
     await fs.rm(tmpDataDir, { recursive: true, force: true });
   });
 
+  describe("film-output is swept of films no job remembers (H4)", () => {
+    it("removes old films only, never one a job holds, nothing else", async () => {
+      const { sweepStaleFilmOutputs } = await import("./assemble-jobs");
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "film-output-sweep-"));
+      try {
+        const now = Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        const write = async (name: string, age: number) => {
+          const file = path.join(dir, name);
+          await fs.writeFile(file, "x");
+          const at = new Date(now - age);
+          await fs.utimes(file, at, at);
+        };
+        await write("old-job.mp4", 2 * day);
+        await write("held-job.mp4", 2 * day);
+        await write("fresh-job.mp4", 60_000);
+        await write("notes.txt", 2 * day);
+        const removed = await sweepStaleFilmOutputs({ dir, now, held: new Set(["held-job.mp4"]) });
+        assert.equal(removed, 1);
+        assert.deepEqual((await fs.readdir(dir)).sort(), ["fresh-job.mp4", "held-job.mp4", "notes.txt"]);
+        assert.equal(await sweepStaleFilmOutputs({ dir: path.join(dir, "missing") }), 0);
+      } finally {
+        await fs.rm(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("the film can't be written (H1: disk full, no permission)", () => {
     it("errors with a reason a person can act on, and leaves no half file", async () => {
       const readOnly = await fs.mkdtemp(path.join(os.tmpdir(), "film-assemble-ro-"));

@@ -7,10 +7,15 @@ import { installTrainLoraIntoComfy } from './train-install';
 
 let workDir: string;
 let previousRoot: string | undefined;
+let previousDataDir: string | undefined;
 
 before(() => {
   previousRoot = process.env.COMFYUI_ROOT;
+  previousDataDir = process.env.PROMPT_DATA_DIR;
   workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lora-train-install-test-'));
+  // Its own empty data folder: a ComfyUI saved or detected in this machine's real one (the
+  // install store) would otherwise count as COMFYUI_ROOT being set (hardening H4).
+  process.env.PROMPT_DATA_DIR = path.join(workDir, 'data');
 });
 
 after(() => {
@@ -19,6 +24,11 @@ after(() => {
     delete process.env.COMFYUI_ROOT;
   } else {
     process.env.COMFYUI_ROOT = previousRoot;
+  }
+  if (previousDataDir === undefined) {
+    delete process.env.PROMPT_DATA_DIR;
+  } else {
+    process.env.PROMPT_DATA_DIR = previousDataDir;
   }
 });
 
