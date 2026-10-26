@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
 import { normalizeCutSound } from '@/lib/video/cut-sound';
-import { normalizeCutTransition } from '@/lib/video/cut-timeline';
 import { normalizeFilmTitleCard } from '@/lib/video/polish';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio/mix-levels';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
-import type { FilmPlaylistShot } from '@/lib/media/kind';
+import { parseFilmPlaylistShots } from '@/lib/video/film-shot-parse';
 import {
   getFilmAssembleJob,
   readFilmAssembleOutput,
@@ -27,65 +26,6 @@ function requireUser(request: Request): Response | null {
     return apiError('Authentication required.', 401);
   }
   return null;
-}
-
-function parseShots(raw: unknown): FilmPlaylistShot[] {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  const shots: FilmPlaylistShot[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== 'object') continue;
-    const record = entry as Record<string, unknown>;
-    const url = typeof record.url === 'string' ? record.url.trim() : '';
-    const title = typeof record.title === 'string' ? record.title.trim() : 'shot';
-    const kind = record.kind === 'still' ? 'still' : record.kind === 'clip' ? 'clip' : null;
-    if (!url || !kind) continue;
-    const holdSec =
-      typeof record.holdSec === 'number' && Number.isFinite(record.holdSec)
-        ? record.holdSec
-        : undefined;
-    const entryId = typeof record.entryId === 'string' ? record.entryId.trim() : undefined;
-    // Edited in the Cut shot list — dropping it burned the shot title instead.
-    const caption = typeof record.caption === 'string' ? record.caption.trim() : '';
-    const trimStartSec = positiveSec(record.trimStartSec);
-    const trimEndSec = positiveSec(record.trimEndSec);
-    shots.push({
-      url,
-      title: title || 'shot',
-      kind,
-      ...(holdSec != null ? { holdSec } : {}),
-      ...(entryId ? { entryId } : {}),
-      ...(caption ? { caption } : {}),
-      ...(record.captionless === true ? { captionless: true } : {}),
-      ...(typeof record.narrationUrl === 'string' &&
-      record.narrationUrl.startsWith('/api/comfyui/view?')
-        ? { narrationUrl: record.narrationUrl }
-        : {}),
-      ...(typeof record.spoken === 'string' && record.spoken.trim()
-        ? { spoken: record.spoken.trim().slice(0, 300) }
-        : {}),
-      ...(typeof record.volume === 'number' && Number.isFinite(record.volume)
-        ? { volume: Math.min(2, Math.max(0, record.volume)) }
-        : {}),
-      ...(record.motion === 'in' || record.motion === 'out' || record.motion === 'none'
-        ? { motion: record.motion }
-        : {}),
-      ...(normalizeCutTransition(record.transitionIn)
-        ? { transitionIn: normalizeCutTransition(record.transitionIn) }
-        : {}),
-      ...(typeof record.narrationText === 'string' && record.narrationText.trim()
-        ? { narrationText: record.narrationText.trim().slice(0, 300) }
-        : {}),
-      ...(kind === 'clip' && trimStartSec != null ? { trimStartSec } : {}),
-      ...(kind === 'clip' && trimEndSec != null ? { trimEndSec } : {}),
-    });
-  }
-  return shots;
-}
-
-function positiveSec(raw: unknown): number | undefined {
-  return typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? raw : undefined;
 }
 
 export async function OPTIONS() {
@@ -139,7 +79,7 @@ export async function POST(request: Request) {
     return apiError('Invalid JSON body.', 400);
   }
 
-  const shots = parseShots(body.shots);
+  const shots = parseFilmPlaylistShots(body.shots);
   if (shots.length === 0) {
     return apiError('Include at least one shot with url and kind.', 400);
   }
