@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **Release hardening (H1–H5) is done.**
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **Release hardening (H1–H5) is done.** v3.0.0 is released. M6 (production validation and quality) is proposed in [Part 8](#part-8--m6-plan-production-validation-and-quality-proposed-2026-10-26): **V1**–**V8**, awaiting approval.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1403,3 +1403,195 @@ version** (H2) and **Backup restoration with media** (H3).
 
 **H1**: the release gate is that the workflow survives failure. These tests may find real bugs,
 which are worth fixing before the docs describe the behaviour.
+
+# Part 8 — M6 plan: production validation and quality (proposed 2026-10-26)
+
+M1–M5 and release hardening are done, and v3.0.0 is released (tag `v3.0.0` on `25efb1a2`, image
+published). M6 doesn't rebuild any of it. It checks it against real use: real engines, real
+data, real people's judgement. It fixes what that finds with targeted changes. No new
+generation engines, no autonomous filmmaking (ROADMAP §13).
+
+## 8.1 Evidence reviewed
+
+- **Tests:** 8,880 unit tests; 35 Playwright specs.
+  - Every M3–M5 e2e test stubs the engine: `/api/comfyui` POST, `/jobs`, `/view`, and the
+    checks.
+  - CI runs e2e on a production build.
+  - The only real-engine tools are:
+    - `scripts/scene-real-render.mts`: phases setup, scenes, takes, move, links, cut,
+      transfer, queue and phone; last changed in `be785860`, before M3;
+    - the pose bench (`scripts/pose-bench/`, eye-judged, feeds `pose-engine-report.json`);
+    - `scripts/reference-check-live.mjs`.
+- **Measurement:**
+  - `npm run perf:test` is a placeholder: it times Prettier and "simulates" rendering.
+  - `npm run size` checks bundle size only.
+  - Nothing measures settings or IndexedDB growth or page cost on a large project.
+- **Consistency:**
+  - Face match (InsightFace) and the C1–C4 rules exist.
+  - C5 measures them only from decisions people happened to make: there is no reviewed
+    dataset.
+  - The pose report card is the one eye-judged benchmark, and it covers poses, not identity
+    or outfits.
+- **Sync:**
+  - The whole `settings-cache` namespace is pushed on change.
+  - Since M3–M5 it carries scripts (up to 200,000 characters × 12 per Cast), Cut versions
+    (12, plus sync-kept ones), runs with a 200-step log, and subtitle overrides.
+  - There is no size budget and no size reading.
+- **Open items in Parts 2–7** ("Not done" lists), `docs/limitations.md`, and ROADMAP §13 (out of
+  scope).
+- **Git:** clean, `main` = `25efb1a2 Release v3.0.0`. CI green through `82bbcd80`. Release run
+  40418832943: GitHub Release, container image and Linux desktop done; Windows and macOS were
+  still building when this was written.
+
+## 8.2 Classification
+
+**Confirmed defects** (seen in code or tests, with a user-visible effect):
+
+| # | Defect | Evidence |
+| --- | --- | --- |
+| D1 | **Cut film** encodes even when the preflight shows ✗ (a gone file, no disk space) | F6 "Not done"; `CutExport` only displays `preflight.blocks` |
+| D2 | A shot's empty Scene can be pruned by the 60-Scene limit, and the shot shows *Planned* again | S4 "Not done"; `cappedCastScenes` protects only Scenes with takes |
+| D3 | Story shots never get continuity findings: Story keeps its pose and face results on the beat, not on the Gallery entry C1 reads | C1 "Not done" (Part 3) |
+| D4 | Two screenplay readers: Day's import (`day/script-import.ts`) doesn't use `parseScript`, so the same text can read differently in Day and on the Scene page | S1 / S2 "Not done" |
+| D5 | The browser encode (no server ffmpeg) ignores subtitle from / to and isn't read back | F5 / F6 "Not done" |
+| D6 | The plan has stale statements, e.g. Part 3 still says "Use it here resets a trimmed clip's trim" (fixed in F2) | Part 3, line ~405 |
+
+**Unverified concerns** (plausible, not yet measured or seen):
+
+| # | Concern | Why it is plausible |
+| --- | --- | --- |
+| U1 | The M3–M5 flow fails or misbehaves on a real engine: run timing, checks, real clip lengths, real loudness | Every M3–M5 test stubs the engine |
+| U2 | Upgrading the user's real data volume to 3.0.0 loses or misreads something | H2 used fixtures, not a real install |
+| U3 | Settings sync grows heavy: slow pushes, IndexedDB quota | Whole-blob pushes; new large fields; no budget |
+| U4 | Pages slow down on a big project (60 Scenes, a long script, a 100-shot cut) | New per-render and per-edit work: script parsing, coverage, the `updateCut` comparison, decision snapshots; the perf test measures nothing |
+| U5 | The continuity checks' precision and recall are unknown | No reviewed dataset (ROADMAP §13: "expensive continuity AI not measured against reviewed examples") |
+| U6 | Long films: loudness is measured in one request; packages are built in browser memory | F4 / F7 "Not done" |
+| U7 | The desktop builds behave differently (ffmpeg availability, file storage) on the new routes | Desktop installers are built but not exercised by any test |
+| U8 | A job ComfyUI lost for good still needs a manual **Retry** | R8 "Not done": the effect is known, the user impact isn't |
+
+**Optional enhancements** (not M6 unless validation shows they block real use): phone layouts
+for Script, Run and Film Director; an LLM shot draft; reordering shots; prepare from one script
+scene; a sound-effects track; snoozing next actions; coverage outside the Script section;
+server-side packages and runner; undo after a script reimport; more than one step of "Back to
+the earlier take".
+
+## 8.3 Tasks (prioritised)
+
+Effort: **S** about half a day, **M** 1–2 days, **L** 3–5 days, of my work. Tasks marked _GPU_
+also need the user's ComfyUI time; _you_ marks steps only the user can do.
+
+**V1 — Upgrade the real install to 3.0.0, safely** (U2) · S + _you_
+- Gap: H2 proved fixtures, not the user's data. 3.0.0 is now published and will be pulled.
+- Impact: the user's projects. A silent loss here is the worst outcome.
+- Scope:
+  - A short runbook in `docs/operator.md`: JSON backup + Pictures backup, volume snapshot
+    (`docker run --rm -v castcut_data:/d … tar`), pull `3.0.0`, start, check, roll back by
+    re-tagging `2.12.36`.
+  - A read-only check script (`scripts/upgrade-check.mjs`) that counts Casts, Scenes, takes,
+    kept takes, Cut versions and Gallery entries through the API, before and after.
+- Dependencies: the user's Docker machine.
+- Acceptance: before and after counts match; Scene, Cut, Film Director and Queue open on the
+  real data; the rollback has been rehearsed once.
+- Verify: the script's two reports side by side, and screenshots.
+
+**V2 — Real-engine end-to-end run of the full workflow** (U1) · M + _GPU_
+- Gap: no M3–M5 step has run against a real engine.
+- Impact: the core promise, script to film, is unproven on real renders.
+- Scope: new phases in `scripts/scene-real-render.mts`:
+  1. script (import a short 3-scene script, who's who, where);
+  2. shots (draft, Make it a Scene);
+  3. run (prepare, start, pause and resume across a reload, done);
+  4. keep (the human picks keepers; the script waits);
+  5. cut (Made for: Review copy, Before cutting, cut, The film as cut, Measure loudness);
+  6. package (with media → import into a second empty data folder).
+  - Each phase records timings, screenshots and pass / fail.
+- Dependencies: the local ComfyUI (`COMFYUI_ROOT=~/ComfyUI-Shared`) with the Day engine models
+  and one clip engine; V1 not required (runs on a dev server with its own data folder).
+- Acceptance: a dated report (`docs/performance/real-run-YYYY-MM-DD.md`) with every phase
+  passed, or each failure filed as a defect with steps.
+- Verify: re-run the script; the report and screenshots.
+
+**V3 — Consistency evaluation on a small reviewed set** (U5) · M + _GPU_ + _you_ (review)
+- Gap: C1–C5 checks are unmeasured.
+- Impact: findings people trust, or learn to ignore.
+- Scope:
+  - About 60 renders: 2 Casts × 2 looks × the 3 Day still engines × 5 scenes, plus 10
+    cross-shot pairs (same place and time, outfit changed or not).
+  - The user reviews them in the existing UI: Continuity **It's fine / It's real**, and Looks
+    wrong.
+  - C5's `checkQuality` and `labelledFindings` give precision and recall per rule. Only the
+    labels and ids are committed, no pictures.
+- Dependencies: V2's run setup.
+- Acceptance: a per-rule table (found, confirmed, false positives, misses) in a new
+  `docs/consistency-report.md`; any threshold change cites it.
+- Verify: re-run on the same set gives the same table.
+
+**V4 — Fix the confirmed defects** (D1–D6) · M overall, each S
+- D1: **Cut film** asks first when the preflight shows ✗, naming what blocks it; it doesn't
+  silently refuse.
+- D2: Scenes linked from a script shot are protected from the cap like Scenes with takes.
+- D3: Story shots' checks reach C1 (copy them to the Gallery entry, or read them from the beat),
+  with a test.
+- D4: Day's script import uses `parseScript`, with a test that the same text reads the same in
+  both.
+- D5: the browser encode honours subtitle windows, or the UI says it can't.
+- D6: correct the stale lines in the plan.
+- Acceptance and verification: a failing test first for each, then green; the full checks.
+
+**V5 — Usability walkthrough, Cast to restore** · M + _you_
+- Gap: each feature was tested alone, never as one person's session.
+- Scope:
+  - A scripted session: new Cast → reference → script → shots → run → choose keepers → Cut →
+    profile → film → package → restore elsewhere.
+  - The user does it once, timed. I record friction (dead ends, unclear words, missing links,
+    such as stats not linking to the exact Scene) and propose targeted fixes, at most 5, each
+    approved.
+- Dependencies: V2 (a working real flow), V4.
+- Acceptance: the session completes without help; each recorded friction point is fixed or
+  consciously deferred.
+- Verify: a second session after the fixes.
+
+**V6 — Storage and sync budgets** (U3) · S–M
+- Scope:
+  - A size report: settings blob per tool and field, IndexedDB usage via
+    `navigator.storage.estimate()`, `gallery-media/`, `film-output/`, `backups/`.
+  - Measured on a realistic project built by V2 plus a synthetic large one (12 long scripts,
+    12 versions, a full run log).
+  - Set budgets. Fix only what exceeds them: cap or trim run logs, or keep long script text
+    out of the synced blob.
+- Acceptance: the report and budgets in `docs/performance/`; every size under budget; a unit
+  test guards each cap.
+- Verify: re-run the report.
+
+**V7 — Performance on a large project** (U4) · M
+- Scope:
+  - A Playwright timing script on a production build, with a seeded large project: Cut,
+    Scene with a long script, and Film Director load and edit latency.
+  - Profile the top hotspots and fix only measured ones.
+  - Replace the placeholder `perf:test` with this script (or remove it).
+- Acceptance: load and edit timings recorded; agreed targets met, e.g. Cut usable under 3 s
+  and an edit reflected under 200 ms on the reference machine.
+- Verify: the timing script before and after.
+
+**V8 — Long films and the desktop build** (U6, U7, U8) · S–M + _you_ (desktop)
+- Scope:
+  - A 10-minute film through loudness (in one request) and a large package; move to a
+    background job only if it times out.
+  - A smoke test of the Linux desktop build (Scene, Cut, an encode, loudness, a package).
+  - Decide on lost jobs (U8): document the Retry, or a one-click "retry lost jobs" in the Queue,
+    only if V2 shows it's needed.
+- Acceptance: each either works, is fixed, or is documented in `limitations.md` with the
+  workaround.
+
+## 8.4 Order and recommendation
+
+1. **V1:** protects real data and needs nothing else.
+2. **V4 D1 + D2:** small, confirmed, data-protective.
+3. **V2.**
+4. **V3**, **V6** and **V7**, in parallel once V2's data exists.
+5. **V5.**
+6. **V8**, and the rest of V4.
+
+**Recommended first task: V1.** v3.0.0's image is published and will be pulled onto the
+user's real install. V1 makes that upgrade measured and reversible before anything else
+depends on it.
