@@ -11,7 +11,8 @@
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
-> done. **M2 is complete.** Next: plan M3 (screenplay-to-shot planning).
+> done. **M2 is complete.** The M3 plan is
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); next: approve **S1**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -632,3 +633,68 @@ fields. They're worth doing once C3 shows which shot state people actually need.
 
 **C1**: one pure module that turns what the checks already measure into one reviewable shape.
 It changes no check and stores nothing new. C2–C5 build on it.
+
+---
+
+# Part 4 — M3 plan: screenplay-to-shot planning (2026-10-26)
+
+Read-only planning pass against ROADMAP §6. No code changed.
+
+## 4.1 What exists
+
+| ROADMAP §6 | State | Evidence |
+| ---------- | ----- | -------- |
+| 6.1 Script import (plain text, Fountain) | 🟠 | `day/script-import.ts` (`parseDayScript`): scene headings → place and time of day, the first action paragraph as the beat, dialogue `{ who, line }`, or an outline. Turns into at most 8 Day cards (`DayScriptImport.tsx`). Keeps neither the original text nor ids. Later action, parentheticals, transitions and notes are dropped without a report |
+| 6.2 Scene breakdown, names → records | 🟠 | The lead's own line is picked by name (`leadLine`). Nothing else resolves characters, places or props |
+| 6.3 Shot list | ⬜ | A Castcut **Scene** is one shot (`SavedScene`: one slot with place, beat, line, pose, camera height / direction / shot / lens). A screenplay scene has no grouping of shots |
+| 6.4 Coverage | ⬜ | Cut knows which Scenes have a kept take (`sceneCutShots`); nothing ties them back to a script |
+| 6.5 Integration and stable ids | ⬜ | No script record; reimport means starting over |
+
+Story (`story/roleplay*`) is a separate, LLM-written sequence of beats and stays as it is.
+
+## 4.2 Design
+
+A **Script** record per Cast (synced like Scenes, in `tools.scene`, or as its own record list):
+the original text, the parsed scenes (stable ids), and per scene its **planned shots**. A planned
+shot becomes a Castcut Scene when you make it one (`SavedScene.fromScript = { scriptId,
+sceneId, shotId }`), so takes, Make it move, Continuity and Cut work as they do now. Nothing
+replaces Scenes or Story.
+
+## 4.3 M3 tasks (ordered)
+
+**S1 — A full Fountain / plain-text parser (pure).** _Recommended first._
+
+- Scope: `script/parse.ts` reads every element: scene headings (place, time of day, INT / EXT),
+  action, character cues (with extensions), dialogue, parentheticals, transitions, centered
+  text, notes and boneyard, sections and synopses, and the title page. It keeps each element's
+  source line range, so nothing is lost. Constructs it doesn't support are listed, not dropped.
+  Scene ids are stable: from the heading and its occurrence count, so they survive edits
+  elsewhere in the script.
+- Acceptance: a fixture screenplay round-trips into scenes with all their elements; an
+  unsupported construct is reported; ids are unchanged when another scene is edited.
+- `day/script-import.ts` can then build on it, unchanged for Day.
+
+**S2 — The Script record and import.** On the Scene page, a **Script** tab: paste or upload a
+script, see it parsed scene by scene, with what wasn't understood, and keep it (synced, per Cast).
+
+**S3 — Names to records.** Character cues → Cast (by name and alias, with your confirmation for
+unknown names, never created silently); scene places → the Cast's places, or kept as text.
+
+**S4 — Shot list per script scene.** A proposed list you edit: a deterministic draft (an
+establishing wide, then the dialogue covered by mediums / close-ups and reactions), optionally
+an LLM draft through the existing LLM client. Each shot has a purpose, framing (maps to the
+camera row), people, dialogue covered, approximate length and status. **Make it a Scene** creates
+the linked `SavedScene`, with place, beat, line, camera and the Cast filled in.
+
+**S5 — Coverage.** Per script scene: shots planned, made into Scenes, with a kept take, in the
+Cut. Suggestions (no establishing shot, a dialogue exchange without a reaction, nothing
+approved) are findings in C1's shape, so they review the same way.
+
+**S6 — Safe reimport.** A new version of the script is matched to the stored one by scene id
+(heading similarity as the fallback), with a reconciliation screen: new, changed, removed.
+A shot with takes is never removed silently.
+
+## 4.4 Recommended first task
+
+**S1**: a pure parser with fixture tests. It changes no existing behaviour, and S2–S6 build on
+its output and its stable ids.
