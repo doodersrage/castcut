@@ -556,6 +556,78 @@ test('a new version of a script is reviewed, and a removed scene keeps its made 
     );
 });
 
+// M5 W3: a run is prepared from a script — Scenes made, the list and its limits — nothing renders.
+test('a run is prepared from a script: its Scenes made, listed within limits, nothing queued', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  const shot = (id: string, sceneId: string, purpose: string, framing: string) => ({
+    id,
+    sceneId,
+    purpose,
+    framing,
+    who: [],
+    seconds: 3,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [
+          {
+            id: 'script-run',
+            castId: CAST,
+            name: 'Morning',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nEXT. ROOF - NIGHT\n\nWind.\n',
+            shots: [
+              shot('int-kitchen-morning~1', 'int-kitchen-morning', 'establishing', 'full'),
+              shot('int-kitchen-morning~2', 'int-kitchen-morning', 'action', 'waist'),
+              shot('ext-roof-night~1', 'ext-roof-night', 'establishing', 'full'),
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}&script=script-run`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
+  await expect(page.getByTestId('script-prepare-note')).toContainText(
+    '3 planned shots made into Scenes'
+  );
+  const run = page.getByTestId('scene-run');
+  await expect(run).toBeVisible();
+  await expect(page.getByTestId('scene-run-summary')).toContainText('3 takes, one at a time');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('it never keeps a take');
+
+  // Limits: one take; the rest wait. A Scene can be left out.
+  await page.getByTestId('scene-run-max-takes').fill('1');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('1 take, one at a time');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('2 past the limits');
+  await expect(run.locator('li[data-queued="true"]')).toHaveCount(1);
+
+  // Stored: three new Scenes linked to their shots, the open Scene unchanged, and nothing queued.
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      const made = (tool.scenes ?? []).filter((entry: { fromScript?: unknown }) => entry.fromScript);
+      const linked = (tool.scripts?.[0]?.shots ?? []).filter(
+        (entry: { madeSceneId?: string }) => entry.madeSceneId
+      );
+      return [made.length, linked.length, tool.activeSceneId, tool.run?.state, tool.run?.maxTakes].join('|');
+    })
+    .toBe('3|3|scene-e2e|prepared|1');
+  expect(queued).toHaveLength(0);
+
+  await page.getByTestId('scene-run-discard').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+  await expect(run).toHaveCount(0);
+});
+
 // R4: a take says how it was made — read from its Gallery entry.
 test('a take says how it was made, and when its Gallery entry is gone', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {

@@ -14,6 +14,9 @@ import { loadSettingsCache } from '@/lib/settings/cache';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import { orphanedShots } from '@/lib/day/script-reimport';
+import { shotsToPrepare } from '@/lib/day/scene-run';
+import { SCENE_LIMIT_PER_CAST } from '@/lib/day/scenes';
+import type { PlannedShot } from '@/lib/day/script-shots';
 import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
 import {
   shotSceneDraft,
@@ -327,6 +330,7 @@ export default function SceneScripts({
   scenes,
   makeScene,
   openScene,
+  prepareRun,
 }: {
   castId: string;
   castName?: string;
@@ -344,6 +348,11 @@ export default function SceneScripts({
     also: (sceneId: string) => ScriptsCache | null
   ) => string | null;
   openScene: (sceneId: string) => void;
+  /** Prepare a run over the script (M5 W3): its planned shots made into Scenes, nothing rendered. */
+  prepareRun?: (
+    script: SavedScript,
+    made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>
+  ) => { created: number } | null;
 }) {
   const scripts = useMemo(
     () => scriptsForCast(normalizeSavedScripts(cache.scripts), castId),
@@ -358,6 +367,7 @@ export default function SceneScripts({
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
+  const [prepareNote, setPrepareNote] = useState<string | null>(null);
   const open = scripts.find(script => script.id === openId) ?? null;
   const openParsed = useMemo(() => (open ? parseScript(open.source) : null), [open]);
   const draftParsed = useMemo(() => (draft?.trim() ? parseScript(draft) : null), [draft]);
@@ -521,6 +531,60 @@ export default function SceneScripts({
                 if (patch) update(patch);
               }}
             />
+            {prepareRun ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!open.shots?.length}
+                title="Make its planned shots into Scenes and list what a run would render — nothing renders yet"
+                data-testid="script-prepare-run"
+                onClick={() => {
+                  const parsed = openParsed;
+                  const { fit, overLimit } = shotsToPrepare(open, scenes);
+                  const made = fit.flatMap(shot => {
+                    const sceneIndex = parsed.scenes.findIndex(scene => scene.id === shot.sceneId);
+                    const scene = parsed.scenes[sceneIndex];
+                    if (!scene) return [];
+                    const shotIndex = shotsForScene(open.shots, scene.id).findIndex(
+                      entry => entry.id === shot.id
+                    );
+                    return [
+                      {
+                        shot,
+                        draft: shotSceneDraft({
+                          shot,
+                          scene,
+                          sceneIndex,
+                          shotIndex,
+                          castId,
+                          cast,
+                          castMap: open.castMap,
+                          placeMap: open.placeMap,
+                        }),
+                      },
+                    ];
+                  });
+                  const result = prepareRun(open, made);
+                  setPrepareNote(
+                    result
+                      ? [
+                          result.created
+                            ? `${result.created} planned shot${result.created === 1 ? '' : 's'} made into Scenes`
+                            : 'Every planned shot is a Scene already',
+                          overLimit
+                            ? `${overLimit} not made: the Cast has ${SCENE_LIMIT_PER_CAST} Scenes`
+                            : '',
+                          'the run is listed below — nothing renders until you start it',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : null
+                  );
+                }}
+              >
+                Prepare a run…
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant={reimporting ? 'secondary' : 'ghost'}
@@ -552,6 +616,11 @@ export default function SceneScripts({
               if (patch) update(patch);
             }}
           />
+          {prepareNote ? (
+            <p className="type-caption" data-testid="script-prepare-note">
+              {prepareNote}
+            </p>
+          ) : null}
           {reimporting ? (
             <SceneScriptReimport
               script={open}

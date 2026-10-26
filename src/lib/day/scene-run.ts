@@ -1,0 +1,206 @@
+/**
+ * A prepared run of takes on the Scene page (M5 W3 / W4, ROADMAP §8.3): which Scenes it will
+ * render, in what order, within what limits — inspected and edited before anything renders, and
+ * kept in the Scene settings (`tools.scene.run`) so a reload or restart finds it. W3 prepares
+ * it (planned shots become Scenes, the list and its estimate); W4 runs it. A run never keeps a
+ * take: choosing stays the player's. Pure.
+ */
+import { parseScript } from '../script/parse';
+import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
+import type { SavedScript } from './scene-scripts';
+import { shotsForScene, type PlannedShot } from './script-shots';
+
+export type SceneRunState = 'prepared' | 'running' | 'paused' | 'done' | 'cancelled';
+
+export type SceneRunItem = { sceneId: string; include: boolean };
+
+export type SceneRunLogEntry = {
+  at: number;
+  sceneId?: string;
+  event:
+    | 'prepared'
+    | 'queued'
+    | 'skipped'
+    | 'landed'
+    | 'failed'
+    | 'paused'
+    | 'resumed'
+    | 'cancelled'
+    | 'done';
+  detail?: string;
+};
+
+export type SceneRun = {
+  id: string;
+  castId: string;
+  /** The script it was prepared from, when it was. */
+  scriptId?: string;
+  label: string;
+  items: SceneRunItem[];
+  /** Limits: at most this many takes, and about this many minutes. */
+  maxTakes: number;
+  maxMinutes: number;
+  /** Leave out a Scene that already has a kept take. */
+  skipKept: boolean;
+  state: SceneRunState;
+  /** Items done so far (W4). */
+  position: number;
+  log: SceneRunLogEntry[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export const RUN_DEFAULT_MAX_TAKES = 8;
+export const RUN_DEFAULT_MAX_MINUTES = 30;
+export const RUN_MAX_ITEMS = 60;
+export const RUN_LOG_MAX = 200;
+
+/**
+ * A script's planned shots that aren't Scenes yet, in script order, and how many fit under the
+ * Cast's Scene limit (new empty Scenes past it would prune others): the rest wait.
+ */
+export function shotsToPrepare(
+  script: SavedScript,
+  scenes: readonly SavedScene[]
+): { fit: PlannedShot[]; overLimit: number } {
+  const parsed = parseScript(script.source);
+  const existing = new Set(scenes.map(scene => scene.id));
+  const pending = parsed.scenes.flatMap(scene =>
+    shotsForScene(script.shots, scene.id).filter(
+      shot => !shot.madeSceneId || !existing.has(shot.madeSceneId)
+    )
+  );
+  const room = Math.max(0, SCENE_LIMIT_PER_CAST - scenesForCast(scenes, script.castId).length);
+  return { fit: pending.slice(0, room), overLimit: Math.max(0, pending.length - room) };
+}
+
+/** A new run over a script's Scenes (script order); kept Scenes left out when `skipKept`. */
+export function runFromScript(input: {
+  script: SavedScript;
+  scenes: readonly SavedScene[];
+  skipKept?: boolean;
+  now?: number;
+  id?: string;
+}): SceneRun {
+  const now = input.now ?? Date.now();
+  const skipKept = input.skipKept !== false;
+  const byId = new Map(input.scenes.map(scene => [scene.id, scene]));
+  const parsed = parseScript(input.script.source);
+  const seen = new Set<string>();
+  const items: SceneRunItem[] = [];
+  for (const scene of parsed.scenes) {
+    for (const shot of shotsForScene(input.script.shots, scene.id)) {
+      const made = shot.madeSceneId ? byId.get(shot.madeSceneId) : undefined;
+      if (!made || seen.has(made.id)) continue;
+      seen.add(made.id);
+      items.push({ sceneId: made.id, include: !(skipKept && made.keptTakeId) });
+    }
+  }
+  return {
+    id: input.id ?? `run-${now.toString(36)}`,
+    castId: input.script.castId,
+    scriptId: input.script.id,
+    label: input.script.name,
+    items: items.slice(0, RUN_MAX_ITEMS),
+    maxTakes: RUN_DEFAULT_MAX_TAKES,
+    maxMinutes: RUN_DEFAULT_MAX_MINUTES,
+    skipKept,
+    state: 'prepared',
+    position: 0,
+    log: [
+      { at: now, event: 'prepared', detail: `${items.length} Scenes from “${input.script.name}”` },
+    ],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export type RunQueueEntry = {
+  sceneId: string;
+  name: string;
+  engine: string;
+  estimateSec: number;
+  /** Seconds from the run's start to this take landing. */
+  endsAtSec: number;
+};
+
+/**
+ * What the run will queue: included Scenes (still there, and not kept when `skipKept`) in order,
+ * each with an estimate, up to the limits; `left` is what the limits leave out, `gone` what no
+ * longer exists.
+ */
+export function runQueue(
+  run: SceneRun,
+  scenes: readonly SavedScene[],
+  typicalSec: number
+): { queued: RunQueueEntry[]; left: RunQueueEntry[]; gone: string[]; totalSec: number } {
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  const queued: RunQueueEntry[] = [];
+  const left: RunQueueEntry[] = [];
+  const gone: string[] = [];
+  let at = 0;
+  for (const item of run.items) {
+    if (!item.include) continue;
+    const scene = byId.get(item.sceneId);
+    if (!scene) {
+      gone.push(item.sceneId);
+      continue;
+    }
+    if (run.skipKept && scene.keptTakeId) continue;
+    const estimateSec = Math.max(5, Math.round(typicalSec));
+    const entry: RunQueueEntry = {
+      sceneId: scene.id,
+      name: scene.name,
+      engine: scene.slot.engine ?? 'Day’s engine',
+      estimateSec,
+      endsAtSec: at + estimateSec,
+    };
+    if (queued.length < run.maxTakes && entry.endsAtSec <= run.maxMinutes * 60) {
+      queued.push(entry);
+      at = entry.endsAtSec;
+    } else {
+      left.push(entry);
+    }
+  }
+  return { queued, left, gone, totalSec: at };
+}
+
+export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const run = raw as Partial<SceneRun>;
+  if (typeof run.id !== 'string' || typeof run.castId !== 'string' || !Array.isArray(run.items)) {
+    return undefined;
+  }
+  const states: SceneRunState[] = ['prepared', 'running', 'paused', 'done', 'cancelled'];
+  const items = run.items
+    .filter(
+      (item): item is SceneRunItem =>
+        Boolean(item) && typeof (item as SceneRunItem).sceneId === 'string'
+    )
+    .slice(0, RUN_MAX_ITEMS)
+    .map(item => ({ sceneId: item.sceneId, include: item.include !== false }));
+  const whole = (value: unknown, min: number, max: number, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? Math.min(max, Math.max(min, Math.round(value)))
+      : fallback;
+  return {
+    id: run.id,
+    castId: run.castId,
+    ...(typeof run.scriptId === 'string' ? { scriptId: run.scriptId } : {}),
+    label: typeof run.label === 'string' ? run.label.slice(0, 80) : 'Run',
+    items,
+    maxTakes: whole(run.maxTakes, 1, RUN_MAX_ITEMS, RUN_DEFAULT_MAX_TAKES),
+    maxMinutes: whole(run.maxMinutes, 1, 24 * 60, RUN_DEFAULT_MAX_MINUTES),
+    skipKept: run.skipKept !== false,
+    state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
+    position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
+    log: (Array.isArray(run.log) ? run.log : []).slice(-RUN_LOG_MAX) as SceneRunLogEntry[],
+    createdAt: whole(run.createdAt, 0, Number.MAX_SAFE_INTEGER, 0),
+    updatedAt: whole(run.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
+  };
+}
+
+/** The run with a log line added (the newest kept, at most RUN_LOG_MAX). */
+export function withRunLog(run: SceneRun, entry: SceneRunLogEntry): SceneRun {
+  return { ...run, log: [...run.log, entry].slice(-RUN_LOG_MAX), updatedAt: entry.at };
+}

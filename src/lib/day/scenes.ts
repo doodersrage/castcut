@@ -101,6 +101,8 @@ export type SceneToolCache = DayToolCache &
     activeSceneId?: string;
     /** The scene each Cast had open last (it opens again when the page comes back to them). */
     openByCast?: Record<string, string>;
+    /** A prepared or running run of takes (day/scene-run.ts, M5 W3 / W4). */
+    run?: import('./scene-run').SceneRun;
     /**
      * The jobs the Scene page queued (newest last, at most {@link SCENE_JOB_LOG_LIMIT}): the Queue
      * page labels them "Scene" by id — a scene still is queued like a Day still, and its prompt

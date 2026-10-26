@@ -25,6 +25,7 @@ import {
   sceneCutUse,
   sceneSlotAt,
   scenesForCast,
+  scenesWithWorking,
   swapSceneForCast,
   takeAsStill,
   upsertScene,
@@ -33,6 +34,9 @@ import {
   type SceneToolCache,
 } from '@/lib/day/scenes';
 import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/scene-links';
+import { normalizeSceneRun, runFromScript, type SceneRun } from '@/lib/day/scene-run';
+import type { SavedScript } from '@/lib/day/scene-scripts';
+import type { PlannedShot, ShotSceneDraft } from '@/lib/day/script-shots';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { daySlotsForScene } from '@/lib/day/scenes';
@@ -178,6 +182,64 @@ export function useScenePage(vm: DayEngineView) {
       return scene.id;
     },
     [cache, castId, rendering, scenes, write]
+  );
+
+  /**
+   * Prepare a run (M5 W3): a script's planned shots made into Scenes — not opened, nothing
+   * rendered — linked both ways, and the run over the script's Scenes saved, in one write.
+   */
+  const prepareRun = useCallback(
+    (
+      script: SavedScript,
+      made: ReadonlyArray<{ shot: PlannedShot; draft: ShotSceneDraft }>
+    ): { created: number; run: SceneRun } | null => {
+      if (!castId || script.castId !== castId) return null;
+      const now = Date.now();
+      const saved = scenesWithWorking(cache, now) ?? cache.scenes ?? [];
+      const created = made.map(({ shot, draft }, index) =>
+        createScene({
+          castId,
+          name: draft.name,
+          slot: draft.slot,
+          fromScript: { scriptId: script.id, sceneId: shot.sceneId, shotId: shot.id },
+          mood: {
+            ...(cache as Record<string, unknown>),
+            partnerCharacterId: draft.partnerCharacterId ?? '',
+          },
+          outfit: cache as Record<string, unknown>,
+          // Distinct times keep their order (and ids) apart.
+          now: now + index,
+        })
+      );
+      const allScenes = normalizeSavedScenes([...saved, ...created], now);
+      const madeBy = new Map(created.map((scene, index) => [made[index]!.shot.id, scene.id]));
+      const nextScript: SavedScript = {
+        ...script,
+        ...(script.shots
+          ? {
+              shots: script.shots.map(shot =>
+                madeBy.has(shot.id) ? { ...shot, madeSceneId: madeBy.get(shot.id)! } : shot
+              ),
+            }
+          : {}),
+        updatedAt: now,
+      };
+      const run = runFromScript({ script: nextScript, scenes: allScenes, now });
+      write({
+        scenes: allScenes,
+        scripts: (cache.scripts ?? []).map(entry => (entry.id === script.id ? nextScript : entry)),
+        run,
+      });
+      return { created: created.length, run };
+    },
+    [cache, castId, write]
+  );
+  /** Change the prepared run (its list, limits), or drop it (null). */
+  const updateRun = useCallback(
+    (next: SceneRun | null) => {
+      write({ run: next ?? undefined });
+    },
+    [write]
   );
 
   const openScene = useCallback(
@@ -361,6 +423,9 @@ export function useScenePage(vm: DayEngineView) {
     setNote,
     newScene,
     makeSceneFrom,
+    prepareRun,
+    updateRun,
+    run: cache.run && cache.run.castId === castId ? normalizeSceneRun(cache.run) : undefined,
     openScene,
     renameScene,
     deleteScene,

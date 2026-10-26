@@ -1,6 +1,7 @@
 'use client';
 
 import SceneScripts from '@/components/day-planner/SceneScripts';
+import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
 import { loadCharacters } from '@/lib/character/os';
 import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { useId, useRef, useState } from 'react';
@@ -560,6 +561,15 @@ export default function SceneToolSections({ vm, page }: Props) {
             scenes={page.castScenes}
             makeScene={page.makeSceneFrom}
             openScene={page.openScene}
+            prepareRun={page.prepareRun}
+          />
+        ) : null}
+        {page.run ? (
+          <SceneRunPanel
+            run={page.run}
+            scenes={page.castScenes}
+            disabled={page.inFlight}
+            onChange={page.updateRun}
           />
         ) : null}
         {note ? (

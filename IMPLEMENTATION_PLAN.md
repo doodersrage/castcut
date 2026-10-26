@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W2** are done; next: **W3**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1**–**W3** are done; next: **W4**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1132,11 +1132,33 @@ second status system: every count is read from the records M1–M4 made reliable
     files, so Cut checks it (W1 says so).
   - Actions can't be snoozed.
 
-**W3 — Bounded batch preparation (plan, no rendering).**
-- On a script scene or a whole script: **Prepare shots**. It makes the planned shots into
-  Scenes (S4) and lists exactly what a run would queue: Scene, engine, an estimate. The list
-  can be edited, and capped by count and by time.
-- Nothing renders yet.
+**W3 — Bounded batch preparation (plan, no rendering).** _Done 2026-10-26._
+
+- `day/scene-run.ts` (pure):
+  - `SceneRun`: id, Cast, script, items (Scene in or out), limits (at most N takes, about M
+    minutes), "leave out Scenes with a kept take", state, position, log, times.
+  - Kept in `tools.scene.run`, so it is synced and a reload finds it. `normalizeSceneRun`
+    clamps what it reads.
+  - `shotsToPrepare` returns a script's planned shots not yet Scenes (or whose Scene was
+    deleted), in script order. It makes only as many as fit under the Cast's 60-Scene limit:
+    new empty Scenes past it would prune others. The rest are counted and said.
+  - `runFromScript` builds the run over the script's Scenes.
+  - `runQueue` returns what a run would queue: Scene, engine, an estimate (the Queue's own
+    `typicalRenderMs`), cut at the limits. It also lists what the limits leave out and Scenes
+    that are gone.
+- **Prepare a run…** on an open script (`useScenePage.prepareRun`), in one write:
+  - planned shots become Scenes (as Make it a Scene does, but not opened, so the open Scene
+    stays), linked both ways;
+  - the run is saved as `prepared`.
+  - Nothing renders.
+- The **Run** panel on the Scene page (`components/day-planner/SceneRunPanel.tsx`) shows each
+  Scene's engine and estimate, with the limits, a toggle per Scene, the summary ("3 takes, one
+  at a time, about 3 min · it never keeps a take") and **Discard run**, which keeps the Scenes.
+- Tests: `day/scene-run.test.ts` (3) and `e2e/scene.spec.ts` "a run is prepared…": three
+  Scenes made and linked, the open Scene unchanged, the limits applied, nothing queued.
+- Not done:
+  - Prepare from one script scene (it is the whole script for now).
+  - Starting the run is W4.
 
 **W4 — The run: queue, wait, pause, resume, cancel.**
 - On the Scene page, a run walks the prepared Scenes one at a time. For each it opens the
