@@ -41,6 +41,7 @@ import {
 import { exportAvoidedTokenList, saveAvoidedTokens } from '@/lib/prompt/avoided-tokens';
 import { WEBHOOK_LOG_KEY, loadWebhookLog, type WebhookLogEntry } from '@/lib/server/webhook-log';
 import { writeBrowserValue } from '@/lib/storage/browser-storage';
+import { withStoredWorkflows } from '@/lib/gallery/db-store';
 import {
   extrasWithoutSecrets,
   settingsWithLocalSecrets,
@@ -146,7 +147,9 @@ export function exportStudioBackup(): StudioBackupV5 {
     scenePresets: loadScenePresets(),
     userTemplates: loadUserTemplates(),
     comfyUiSettings: loadComfyUiSettings(),
-    comfyGallery: loadComfyGallery(),
+    // With each render's stored graph: the loaded list leaves them out, and a backup restored
+    // without them lost how every take was made (R9).
+    comfyGallery: withStoredWorkflows(loadComfyGallery()),
     comfyWorkflowPresets: loadComfyWorkflowPresets(),
     comfyWorkflowFiles: loadComfyWorkflowFiles(),
     avoidedTokens: exportAvoidedTokenList(),

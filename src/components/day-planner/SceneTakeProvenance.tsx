@@ -3,7 +3,8 @@
 import Dialog from '@/components/ui/Dialog';
 import { getCharacter } from '@/lib/character/os';
 import type { SceneTake } from '@/lib/day/scenes';
-import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { getGalleryEntryById, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
 import { galleryEntryProvenance, type ProvenanceRow } from '@/lib/gallery/provenance';
 
 function ProvenanceList({ rows, testId }: { rows: ProvenanceRow[]; testId: string }) {
@@ -51,8 +52,17 @@ export function SceneTakeProvenanceDialog({
   onClose: () => void;
 }) {
   const gallery = take ? loadComfyGallery() : [];
+  // The list leaves the stored graph out; whether it is really here is the full entry's to say
+  // (an entry that came by server sync says it has one, but the graph never syncs).
+  const withGraphTruth = (entry: ComfyGalleryEntry | undefined) =>
+    entry
+      ? {
+          ...entry,
+          hasStoredWorkflow: Boolean(getGalleryEntryById(entry.id)?.workflowJson),
+        }
+      : undefined;
   const byPrompt = (id: string | undefined) =>
-    id?.trim() ? gallery.find(entry => entry.promptId === id.trim()) : undefined;
+    withGraphTruth(id?.trim() ? gallery.find(entry => entry.promptId === id.trim()) : undefined);
   const still = byPrompt(take?.promptId ?? take?.id);
   const clip = byPrompt(take?.clipPromptId);
   const castName = getCharacter(castId)?.name;

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { afterEach, beforeEach, describe, it } from 'node:test';
+import { after, afterEach, beforeEach, describe, it } from 'node:test';
 import { resetBrowserStorageCache } from './browser-storage';
 import { loadGalleryEloStore } from '../gallery/elo-store';
 import { loadSettingsCache, saveSettingsCache } from '../settings/cache';
@@ -163,6 +163,115 @@ describe('studio backup and credentials', () => {
       importStudioBackup(fromOlderFile('file-key'));
       assert.equal(loadSettingsCache().shared.sessionFalApiKey, 'mine');
       assert.equal(loadWebhookSettings().secret, 'my-hook');
+    });
+  });
+});
+
+// R9 (M1 gate): a backup restored on a new machine keeps the production — the scenes and their
+// kept takes, the cut with its pinned shots and versions, and how each take was made.
+describe('studio backup round trip (M1)', () => {
+  beforeEach(() => resetBrowserStorageCache());
+  afterEach(() => resetBrowserStorageCache());
+
+  it('restores scenes, the cut and the takes’ provenance on a new machine', async () => {
+    const graph = '{"3":{"class_type":"KSampler","inputs":{"seed":777}}}';
+    const takeUrl = '/api/gallery/media/8a6c1f8e-0000-4000-8000-0000000000aa';
+    // Restoring appearance and the workspace mode touches the page (its cookie, theme marks).
+    const hadDocument = 'document' in globalThis;
+    const noop = () => undefined;
+    if (!hadDocument) {
+      (globalThis as { document?: unknown }).document = {
+        cookie: '',
+        documentElement: {
+          dataset: {},
+          style: { setProperty: noop, removeProperty: noop },
+          classList: { add: noop, remove: noop, toggle: noop, contains: () => false },
+          setAttribute: noop,
+          removeAttribute: noop,
+        },
+        dispatchEvent: () => true,
+        querySelector: () => null,
+      };
+    }
+    after(() => {
+      if (!hadDocument) delete (globalThis as { document?: unknown }).document;
+    });
+    await withMockLocalStorage(async () => {
+      Object.assign(globalThis.window, {
+        matchMedia: () => ({ matches: false, addEventListener: noop, removeEventListener: noop }),
+        addEventListener: noop,
+        removeEventListener: noop,
+      });
+      const { setGalleryCache, getGalleryEntryById } = await import('../gallery/db-store');
+      const scene = {
+        id: 'scene-roof',
+        castId: 'nora',
+        name: 'Rooftop',
+        slot: { id: 'evening', label: 'Evening', location: 'rooftop' },
+        takes: [
+          { id: 'p-take-1', promptId: 'p-take-1', imageUrl: takeUrl, at: 1 },
+          { id: 'p-take-2', promptId: 'p-take-2', imageUrl: '/api/gallery/media/other', at: 2 },
+        ],
+        keptTakeId: 'p-take-1',
+        createdAt: 1,
+        updatedAt: 2,
+      };
+      const cut = {
+        options: {
+          shotEdits: {
+            order: ['scenes:scene-roof'],
+            shots: { 'scenes:scene-roof': { holdSec: 4, pin: { url: takeUrl, kind: 'still', at: 3 } } },
+          },
+        },
+        versions: [{ id: 'v1', name: 'Long', savedAt: 3, options: { length: 'shots' } }],
+      };
+      const cache = loadSettingsCache();
+      saveSettingsCache({
+        ...cache,
+        tools: { ...cache.tools, scene: { scenes: [scene], activeSceneId: 'scene-roof' }, cut },
+      } as unknown as SettingsCache);
+      setGalleryCache([
+        {
+          id: '8a6c1f8e-0000-4000-8000-0000000000aa',
+          promptId: 'p-take-1',
+          prompt: 'rooftop at dusk',
+          comfyUrl: 'http://127.0.0.1:8188',
+          status: 'completed',
+          // Recent: an old graph nothing in the film uses is pruned on save (workflow-hygiene).
+          queuedAt: Date.now() - 60_000,
+          completedAt: Date.now() - 30_000,
+          model: 'qwen-e2e',
+          queueParams: { seed: 777 },
+          workflowJson: graph,
+          hasStoredWorkflow: true,
+          images: [{ filename: 'roof.png', subfolder: '', type: 'output' }],
+        },
+      ]);
+
+      const file = JSON.stringify(exportStudioBackup());
+
+      // A new machine: nothing stored.
+      resetBrowserStorageCache();
+      setGalleryCache([]);
+      saveSettingsCache({ shared: {}, tools: {} } as SettingsCache);
+
+      importStudioBackup(parseStudioBackupFile(file));
+
+      const tools = loadSettingsCache().tools as unknown as {
+        scene: { scenes: Array<{ keptTakeId?: string; takes: unknown[] }> };
+        cut: {
+          options: { shotEdits: { shots: Record<string, { pin?: { url: string } }> } };
+          versions: Array<{ name: string }>;
+        };
+      };
+      assert.equal(tools.scene.scenes[0]?.keptTakeId, 'p-take-1');
+      assert.equal(tools.scene.scenes[0]?.takes.length, 2);
+      assert.equal(tools.cut.options.shotEdits.shots['scenes:scene-roof']?.pin?.url, takeUrl);
+      assert.equal(tools.cut.versions[0]?.name, 'Long');
+      const entry = getGalleryEntryById('8a6c1f8e-0000-4000-8000-0000000000aa');
+      assert.equal(entry?.promptId, 'p-take-1');
+      assert.equal(entry?.queueParams?.seed, 777);
+      assert.equal(entry?.workflowJson, graph, 'the exact graph comes back too');
     });
   });
 });

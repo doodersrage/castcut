@@ -7,6 +7,7 @@ import {
   createScene,
   deleteScenePatch,
   keepSceneTake,
+  keptTakeOf,
   normalizeSavedScene,
   normalizeSavedScenes,
   openScenePatch,
@@ -630,6 +631,29 @@ describe('scenes: the open scene follows the engine', () => {
 
     const cache: SceneToolCache = { scenes: [scene], activeSceneId: 'other' };
     assert.deepEqual(deleteScenePatch(cache, scene.id, 99).removedSceneAt, { [scene.id]: 99 });
+  });
+
+  // M1 gate (ROADMAP §4): a failed job cannot erase an approved take; a retry adds a take, it
+  // never replaces the kept one.
+  it('a failed render or a retry never touches the kept take', () => {
+    const kept = { id: 'p1', promptId: 'p1', imageUrl: '/api/gallery/media/p1', at: 1 };
+    const scene = { ...kitchen({ takes: [kept] }), keptTakeId: 'p1' };
+    const failed = recordSceneFromWorking(scene, {
+      slots: [scene.slot],
+      stills: [{ slotId: scene.slot.id, promptId: 'p2', status: 'error' }],
+    });
+    assert.equal(failed, scene, 'nothing recorded for a failed render');
+    const retried = recordSceneFromWorking(
+      scene,
+      { slots: [scene.slot], stills: [done('p3', { slotId: scene.slot.id })] },
+      50
+    );
+    assert.deepEqual(
+      retried.takes.map(take => take.id),
+      ['p1', 'p3']
+    );
+    assert.equal(retried.keptTakeId, 'p1');
+    assert.equal(keptTakeOf(retried)?.imageUrl, '/api/gallery/media/p1');
   });
 
   it("says what Cut does when a scene's kept take goes (R7)", () => {

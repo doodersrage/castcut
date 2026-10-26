@@ -8,8 +8,9 @@
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
 > protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
-> devices), **R7** (the kept take is safe to remove) and **R8** (lost jobs are found again).
-> Next: R9.
+> devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
+> **R9** (the M1 gate's tests). **M1 is complete.** Next: plan M2 (production bible and
+> continuity).
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -461,9 +462,31 @@ labelled; pin and unpin by hand._
 - Not done: a job ComfyUI lost for good (restarted) still needs **Retry**. Retrying doesn't yet
   check first whether ComfyUI has the old job.
 
-**R9 — Regression tests for the M1 gate.** (The flaky adult-check test is fixed, 2026-10-25.) Backup → restore round trip with Scenes, Cut and media
-references; reload during a render; ComfyUI restart during a render (mocked engine); the flaky
-`e2e/scene.spec.ts:696` made deterministic.
+**R9 — Regression tests for the M1 gate.** _Done 2026-10-26._
+
+- The backup round trip found a defect, now fixed: **backups dropped every stored workflow.**
+  `exportStudioBackup` exported the list projection. It now exports `withStoredWorkflows(…)`.
+  Backups are bigger, but they bring back how each take was made.
+- R4's dialog believed `hasStoredWorkflow`. An entry that came by server sync says it has a
+  graph, but graphs never sync, so the dialog now checks the full entry
+  (`SceneTakeProvenance.tsx`).
+- The flaky adult-check e2e was fixed earlier: it was a real bug (`26261833`).
+
+**M1 gate (ROADMAP §4, "Acceptance criteria").** Each criterion and the tests that hold it:
+
+| Criterion | Held by |
+| --------- | ------- |
+| A failed job cannot erase an approved take | `day/scenes.test.ts` "a failed render or a retry never touches the kept take"; R1b protection (`gallery/protected-ids.test.ts`, `gallery/workflow-hygiene.test.ts`); R2 cap (`day/scenes.test.ts`) |
+| A previous take can be restored after generating a replacement | Scene takes list (`day/scenes.test.ts`, `e2e/scene.spec.ts` "keep a take…"); Cut "Keep this one" / Undo (`film/cut-pins.test.ts`, `e2e/cut-room.spec.ts` "pins: …") |
+| Provenance survives a restart | `gallery/db-store.test.ts` "stored workflows survive a save…"; `storage/studio-backup.test.ts` "studio backup round trip (M1)"; `e2e/scene.spec.ts` "a take says how it was made…" |
+| A Cut containing approved media reopens intact | `film/cut-pins.test.ts`; `storage/studio-backup.test.ts` round trip (pins and versions); `e2e/cut-room.spec.ts` "pins: …" |
+| Queue failures have actionable explanations | `gallery/stalled-recovery.test.ts` (Cancelled / Lost / Timed out / Failed); `queue/failure-playbook` tests; `e2e/queue-recovery.spec.ts` |
+| Retries don't silently create duplicate approved work | `day/scenes.test.ts` "a failed render or a retry…" (a retry adds a take, the kept one stays); R8 recovery hands found jobs to the existing poll, so it never queues again (`gallery/stalled-recovery.test.ts`) |
+| Existing project data migrates without losing relationships | Normalizer tests (`day/scenes.test.ts` "stored and read back"); merge across devices (`storage/tool-record-merge.test.ts`); keys stay local (`settings/secret-fields.test.ts`, `storage/sync.test.ts`) |
+
+Restart during a render is held by `gallery/comfyui-gallery-poller.test.ts` (`planGalleryPollResume`)
+and R8's recovery. Under Playwright the background poller is switched off, so a reload-mid-render
+e2e would test the harness rather than the app. This was left at unit level.
 
 **Later (M1 tail / M2):** take states rejected / superseded with decision times (G3); Day take
 history (G1); restore-as-merge (G7); U1–U3 verification.

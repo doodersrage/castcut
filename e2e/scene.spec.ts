@@ -261,7 +261,21 @@ test('a take says how it was made, and when its Gallery entry is gone', async ({
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },
     characters: cast,
-    tools: { scene: sceneWithTakes() },
+    tools: {
+      scene: (() => {
+        const seeded = sceneWithTakes();
+        return {
+          ...seeded,
+          scenes: seeded.scenes.map(scene => ({
+            ...scene,
+            takes: [
+              ...scene.takes,
+              { id: 'take-3', promptId: 'take-3', imageUrl: '/icon.svg?take=3', at: 3 },
+            ],
+          })),
+        };
+      })(),
+    },
   });
   await page.addInitScript(() => {
     window.localStorage.setItem(
@@ -284,12 +298,26 @@ test('a take says how it was made, and when its Gallery entry is gone', async ({
           renderDurationMs: 42_000,
           images: [{ filename: 'e2e-take-1.png', subfolder: '', type: 'output' }],
         },
+        {
+          // Came by server sync: says it has a stored graph, but graphs never sync.
+          id: 'e2e-take-3-entry',
+          promptId: 'take-3',
+          comfyUrl: 'http://127.0.0.1:8188',
+          tool: 'image-prompt',
+          prompt: 'Edit instruction for a Day still: by the window',
+          model: 'qwen-e2e-model',
+          hasStoredWorkflow: true,
+          status: 'completed',
+          queuedAt: Date.now() - 30_000,
+          completedAt: Date.now() - 10_000,
+          images: [{ filename: 'e2e-take-3.png', subfolder: '', type: 'output' }],
+        },
       ])
     );
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  await expect(page.getByTestId('scene-take')).toHaveCount(3, { timeout: 60_000 });
 
   await page.getByTestId('scene-take-made-0').click();
   const dialog = page.getByTestId('scene-take-provenance');
@@ -311,6 +339,13 @@ test('a take says how it was made, and when its Gallery entry is gone', async ({
   await page.getByTestId('scene-take-made-1').click();
   await expect(page.getByTestId('scene-take-provenance-missing')).toBeVisible();
   await expect(page.getByTestId('scene-take-provenance-still')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  // Take 3's entry claims a stored graph it doesn't have here: it says so.
+  await page.getByTestId('scene-take-made-2').click();
+  await expect(page.getByTestId('scene-take-provenance-still-graph')).toContainText(
+    'Not stored with this render'
+  );
 });
 
 // R7: the kept take is what Cut uses — removing it asks first; deleting the scene says so.
