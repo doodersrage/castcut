@@ -1,6 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
+import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
+import {
+  shotSceneDraft,
+  shotsForScene,
+  withSceneShots,
+  type ShotSceneDraft,
+} from '@/lib/day/script-shots';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { FieldError } from '@/components/ui/Field';
@@ -14,6 +22,7 @@ import {
   renameScriptPatch,
   setScriptCastPatch,
   setScriptPlacePatch,
+  setScriptShotsPatch,
   SCRIPT_SOURCE_MAX,
   scriptsForCast,
   scriptSummary,
@@ -202,7 +211,15 @@ function Element({ element }: { element: ScriptElement }) {
   }
 }
 
-function SceneReading({ scene, index }: { scene: ScriptScene; index: number }) {
+function SceneReading({
+  scene,
+  index,
+  children,
+}: {
+  scene: ScriptScene;
+  index: number;
+  children?: ReactNode;
+}) {
   const label = scene.heading || `Beat ${index + 1}`;
   return (
     <details
@@ -230,11 +247,19 @@ function SceneReading({ scene, index }: { scene: ScriptScene; index: number }) {
           <Element key={at} element={element} />
         ))}
       </div>
+      {children}
     </details>
   );
 }
 
-function Reading({ parsed }: { parsed: ParsedScript }) {
+function Reading({
+  parsed,
+  shotsFor,
+}: {
+  parsed: ParsedScript;
+  /** An open script's shot list under each scene (S4). */
+  shotsFor?: (scene: ScriptScene, index: number) => ReactNode;
+}) {
   return (
     <div className="space-y-2">
       {parsed.issues.length ? (
@@ -251,7 +276,9 @@ function Reading({ parsed }: { parsed: ParsedScript }) {
       </p>
       <div className="space-y-1">
         {parsed.scenes.map((scene, index) => (
-          <SceneReading key={scene.id} scene={scene} index={index} />
+          <SceneReading key={scene.id} scene={scene} index={index}>
+            {shotsFor?.(scene, index)}
+          </SceneReading>
         ))}
       </div>
     </div>
@@ -269,6 +296,9 @@ export default function SceneScripts({
   cast,
   cache,
   update,
+  scenes,
+  makeScene,
+  openScene,
 }: {
   castId: string;
   castName?: string;
@@ -276,6 +306,16 @@ export default function SceneScripts({
   cast: readonly ScriptCastMember[];
   cache: ScriptsCache;
   update: (patch: ScriptsCache) => void;
+  /** The Cast's Scenes (what each planned shot became). */
+  scenes: readonly SavedScene[];
+  /** Make a Scene from a shot and open it; `also` links the shot in the same write. */
+  makeScene: (
+    input: Pick<ShotSceneDraft, 'name' | 'slot' | 'partnerCharacterId'> & {
+      fromScript: SceneScriptLink;
+    },
+    also: (sceneId: string) => ScriptsCache | null
+  ) => string | null;
+  openScene: (sceneId: string) => void;
 }) {
   const scripts = useMemo(
     () => scriptsForCast(normalizeSavedScripts(cache.scripts), castId),
@@ -322,7 +362,7 @@ export default function SceneScripts({
     <ToolSection data-testid="scene-scripts" title="Script">
       <p className="type-caption mb-2 text-[var(--text-muted)]">
         A screenplay for {castName ?? 'this Cast'} — Fountain or plain text. See how it reads, scene
-        by scene; its scenes become shots next.
+        by scene, then plan each scene&apos;s shots and make them Scenes.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         {scripts.map(script => (
@@ -422,7 +462,59 @@ export default function SceneScripts({
               if (patch) update(patch);
             }}
           />
-          <Reading parsed={openParsed} />
+          <Reading
+            parsed={openParsed}
+            shotsFor={(scene, sceneIndex) => {
+              const sceneShots = shotsForScene(open.shots, scene.id);
+              return (
+                <SceneScriptShots
+                  scene={scene}
+                  sceneIndex={sceneIndex}
+                  shots={sceneShots}
+                  scenes={scenes}
+                  onShots={next => {
+                    const patch = setScriptShotsPatch(
+                      cache,
+                      open.id,
+                      withSceneShots(open.shots, scene.id, next)
+                    );
+                    if (patch) update(patch);
+                  }}
+                  onMake={(shot, shotIndex) => {
+                    const draft = shotSceneDraft({
+                      shot,
+                      scene,
+                      sceneIndex,
+                      shotIndex,
+                      castId,
+                      cast,
+                      castMap: open.castMap,
+                      placeMap: open.placeMap,
+                    });
+                    makeScene(
+                      {
+                        ...draft,
+                        fromScript: { scriptId: open.id, sceneId: scene.id, shotId: shot.id },
+                      },
+                      sceneId =>
+                        setScriptShotsPatch(
+                          cache,
+                          open.id,
+                          withSceneShots(
+                            open.shots,
+                            scene.id,
+                            sceneShots.map(entry =>
+                              entry.id === shot.id ? { ...entry, madeSceneId: sceneId } : entry
+                            )
+                          )
+                        )
+                    );
+                  }}
+                  onOpenScene={openScene}
+                />
+              );
+            }}
+          />
         </div>
       ) : null}
     </ToolSection>

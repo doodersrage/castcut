@@ -15,6 +15,7 @@ import {
   type ScriptPlaceChoice,
   type ScriptPlaceMap,
 } from './script-cast';
+import { normalizePlannedShots, type PlannedShot } from './script-shots';
 
 export type SavedScript = {
   id: string;
@@ -27,6 +28,8 @@ export type SavedScript = {
   castMap?: ScriptCastMap;
   /** Places you set to her home, her workplace, or somewhere else. */
   placeMap?: ScriptPlaceMap;
+  /** The shot lists of its scenes (script-shots.ts), in script order. */
+  shots?: PlannedShot[];
   createdAt: number;
   updatedAt: number;
 };
@@ -50,6 +53,7 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
   const createdAt = time(script.createdAt, now);
   const castMap = normalizeScriptCastMap(script.castMap);
   const placeMap = normalizeScriptPlaceMap(script.placeMap);
+  const shots = normalizePlannedShots(script.shots);
   return {
     id,
     castId,
@@ -57,6 +61,7 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
     source,
     ...(castMap ? { castMap } : {}),
     ...(placeMap ? { placeMap } : {}),
+    ...(shots ? { shots } : {}),
     createdAt,
     updatedAt: time(script.updatedAt, createdAt),
   };
@@ -197,6 +202,20 @@ export function setScriptPlacePatch(
     const placeMap: ScriptPlaceMap = choice ? { ...rest, [key]: choice } : rest;
     const { placeMap: _old, ...base } = script;
     return { ...base, ...(Object.keys(placeMap).length ? { placeMap } : {}), updatedAt: now };
+  });
+}
+
+/** The script's shot lists replaced (an empty list clears them). */
+export function setScriptShotsPatch(
+  cache: ScriptsCache,
+  id: string,
+  shots: readonly PlannedShot[],
+  now = Date.now()
+): Pick<ScriptsCache, 'scripts'> | null {
+  return patchScript(cache, id, script => {
+    const { shots: _old, ...base } = script;
+    const next = normalizePlannedShots(shots);
+    return { ...base, ...(next ? { shots: next } : {}), updatedAt: now };
   });
 }
 

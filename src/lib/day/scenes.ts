@@ -73,6 +73,8 @@ export type SavedScene = {
   keptTakeId?: string;
   /** "Open as Scene": the Day slot it was copied from. */
   fromDaySlot?: DaySlotId;
+  /** "Make it a Scene" (M3 S4): the script, its scene and the planned shot it was made from. */
+  fromScript?: SceneScriptLink;
   /**
    * Takes that had rendered but were still at the adult check when another scene was opened
    * (their prompt ids). The verdict lands on their gallery entry: a pass adds the take here
@@ -332,6 +334,17 @@ function checkingIdsField(value: unknown): Pick<SavedScene, 'checkingTakeIds'> {
 }
 
 /** A stored scene read back (an older or hand-edited copy cleaned), or null when it isn't one. */
+export type SceneScriptLink = { scriptId: string; sceneId: string; shotId: string };
+
+function scriptLinkField(value: unknown): Pick<SavedScene, 'fromScript'> {
+  if (!value || typeof value !== 'object') return {};
+  const link = value as Partial<SceneScriptLink>;
+  const scriptId = text(link.scriptId, 80);
+  const sceneId = text(link.sceneId, 100);
+  const shotId = text(link.shotId, 120);
+  return scriptId && sceneId && shotId ? { fromScript: { scriptId, sceneId, shotId } } : {};
+}
+
 export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene | null {
   if (!raw || typeof raw !== 'object') return null;
   const scene = raw as Partial<SavedScene>;
@@ -359,6 +372,7 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
     ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
       ? { fromDaySlot: scene.fromDaySlot }
       : {}),
+    ...scriptLinkField(scene.fromScript),
     ...checkingIdsField(scene.checkingTakeIds),
     ...removedTakesField(scene.removedTakeIds),
     createdAt,
@@ -462,6 +476,7 @@ export function createScene(input: {
   outfit?: Record<string, unknown>;
   takes?: SceneTake[];
   fromDaySlot?: DaySlotId;
+  fromScript?: SceneScriptLink;
   now?: number;
 }): SavedScene {
   const now = input.now ?? Date.now();
@@ -474,6 +489,7 @@ export function createScene(input: {
     ...(input.outfit ? { outfit: sceneOutfitOf(input.outfit) } : {}),
     takes: boundedTakes(input.takes ?? [], undefined),
     ...(input.fromDaySlot ? { fromDaySlot: input.fromDaySlot } : {}),
+    ...scriptLinkField(input.fromScript),
     createdAt: now,
     updatedAt: now,
   };

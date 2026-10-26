@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S3** are done; next: **S4**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S4** are done; next: **S5**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -709,11 +709,38 @@ replaces Scenes or Story.
 - Script section: **Who's who** and **Where** panels.
 - Tests: `day/script-cast.test.ts` (5), the e2e script test (extended).
 
-**S4 — Shot list per script scene.** A proposed list you edit: a deterministic draft (an
-establishing wide, then the dialogue covered by mediums / close-ups and reactions), optionally
-an LLM draft through the existing LLM client. Each shot has a purpose, framing (maps to the
-camera row), people, dialogue covered, approximate length and status. **Make it a Scene** creates
-the linked `SavedScene`, with place, beat, line, camera and the Cast filled in.
+**S4 — Shot list per script scene.** _Done 2026-10-26._
+
+- `src/lib/day/script-shots.ts`: `PlannedShot { id, sceneId, purpose, framing, who, action?,
+  line?, speaker?, seconds, madeSceneId? }`, kept on the script (`SavedScript.shots`).
+  - The draft is deterministic: an establishing wide, then each line of dialogue (a medium for a
+    speaker's first line, close-ups after), and a reaction when an exchange ends. A scene with no
+    dialogue gets up to three action shots. Lengths come from the words (about 2.5 a second).
+  - Shot ids are `<scene id>~n`, so they hold as long as the scene id does (S6 builds on this).
+  - Framing uses the camera row's values (`full`, `knees`, `waist`, `head`).
+- **Make it a Scene** (`shotSceneDraft`, `useScenePage.makeSceneFrom`) creates and opens a
+  `SavedScene`:
+  - The setting comes from the place as set in Where (home, office, or as written), and the
+    time of day from the heading. The framing goes on the camera row.
+  - The lead's own line goes on `slot.line` (a talking clip). Anyone else's line is written into
+    the beat, and a reaction says who reacts.
+  - The partner is a second Cast member confirmed in Who's who. Only confirmed names are used.
+  - Mood and outfit come from the page, as New scene does it.
+  - The Scene keeps `fromScript { scriptId, sceneId, shotId }`, and the shot keeps
+    `madeSceneId`. They are written in one update.
+- UI (`components/day-planner/SceneScriptShots.tsx`), under each scene of an open script:
+  - **Draft shots**, then edit each shot's purpose, framing, what happens and length.
+  - **Add a shot**, and **Remove**, which asks first when the shot has a Scene. The Scene stays.
+  - Each shot shows its status (Planned, Scene made, n takes, Kept take) and offers **Make it a
+    Scene** or **Open scene**.
+- Tests: `day/script-shots.test.ts` (6) and `e2e/scene.spec.ts` "a script scene is drafted into
+  shots…".
+- Not done:
+  - The optional LLM draft.
+  - Reordering shots.
+  - Redrafting a scene that already has shots: remove them first.
+  - An empty Scene made from a shot can still be pruned by the per-Cast scene limit
+    (`cappedCastScenes`). The shot then shows Planned again.
 
 **S5 — Coverage.** Per script scene: shots planned, made into Scenes, with a kept take, in the
 Cut. Suggestions (no establishing shot, a dialogue exchange without a reaction, nothing

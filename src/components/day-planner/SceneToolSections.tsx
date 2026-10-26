@@ -557,6 +557,9 @@ export default function SceneToolSections({ vm, page }: Props) {
             cast={loadCharacters().map(member => ({ id: member.id, name: member.name }))}
             cache={vm.toolSettings as ScriptsCache}
             update={patch => vm.updateToolSettings(patch as Partial<typeof vm.toolSettings>)}
+            scenes={page.castScenes}
+            makeScene={page.makeSceneFrom}
+            openScene={page.openScene}
           />
         ) : null}
         {note ? (

@@ -170,6 +170,37 @@ async function storedScene(page: Page): Promise<string> {
   );
 }
 
+/** The Scene page's stored settings (tools.scene), as JSON, read from the app's IndexedDB. */
+async function storedSceneTool(page: Page): Promise<string> {
+  return page.evaluate(
+    () =>
+      new Promise<string>(resolve => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => resolve('');
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('kv')) {
+            db.close();
+            resolve('');
+            return;
+          }
+          const get = db
+            .transaction('kv', 'readonly')
+            .objectStore('kv')
+            .get('comfy-prompt-tool-settings-tools-v1');
+          get.onsuccess = () => {
+            db.close();
+            resolve(JSON.stringify(get.result?.value?.tools?.scene ?? {}));
+          };
+          get.onerror = () => {
+            db.close();
+            resolve('');
+          };
+        };
+      })
+  );
+}
+
 /** The stored scripts, read from the app's IndexedDB settings ("count|cast|name" of the first). */
 async function storedScripts(page: Page): Promise<string> {
   return page.evaluate(
@@ -341,6 +372,90 @@ test('a script is imported, read scene by scene, kept after a reload, and delete
   await page.getByTestId('confirm-dialog-confirm').click();
   await expect(page.getByRole('button', { name: 'The Rooftop' })).toHaveCount(0);
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toBe('0');
+});
+
+// M3 S4: a script scene's shots are drafted, one is made a Scene — filled in and linked both ways.
+test('a script scene is drafted into shots and a shot is made a Scene', async ({ page }) => {
+  const source = [
+    'INT. KITCHEN - MORNING',
+    '',
+    'She pours coffee.',
+    '',
+    'NORA',
+    'Coffee first.',
+    '',
+    'TOMAS',
+    'You always say that.',
+    '',
+  ].join('\n');
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [
+          {
+            id: 'script-e2e',
+            castId: CAST,
+            name: 'Morning',
+            source,
+            castMap: { NORA: CAST },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('script-open-script-e2e').click({ timeout: 60_000 });
+  await page.getByTestId('script-scene-int-kitchen-morning').locator('summary').click();
+  await page.getByTestId('script-shots-draft-int-kitchen-morning').click();
+
+  // The draft: establishing wide, her line, his line, his reaction... as planned shots.
+  const lead = page.getByTestId('script-shot-int-kitchen-morning~2');
+  await expect(page.getByTestId('script-shot-int-kitchen-morning~1')).toBeVisible();
+  await expect(lead).toContainText('Coffee first.');
+  await expect(lead).toHaveAttribute('data-status', 'planned');
+
+  await page.getByTestId('script-shot-make-int-kitchen-morning~2').click();
+  // Opened as the Scene page's scene, named for the shot.
+  await expect(page.getByTestId('scene-name')).toHaveValue('1B KITCHEN · Dialogue', {
+    timeout: 30_000,
+  });
+  await expect(lead).toHaveAttribute('data-status', 'made');
+  await expect(page.getByTestId('script-shot-status-int-kitchen-morning~2')).toHaveText(
+    'Scene made'
+  );
+
+  // Stored: the Scene filled in from the script and linked to the shot, and the shot to it.
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        const made = (tool.scenes ?? []).find(
+          (scene: { fromScript?: { shotId: string } }) =>
+            scene.fromScript?.shotId === 'int-kitchen-morning~2'
+        );
+        const shot = tool.scripts?.[0]?.shots?.find(
+          (entry: { id: string }) => entry.id === 'int-kitchen-morning~2'
+        );
+        return made
+          ? [
+              made.slot.id,
+              made.slot.location,
+              made.slot.line,
+              made.slot.poseCamera?.shot,
+              shot?.madeSceneId === made.id,
+              tool.activeSceneId === made.id,
+            ].join('|')
+          : '';
+      },
+      { timeout: 30_000 }
+    )
+    .toBe('morning|kitchen at home|Coffee first.|waist|true|true');
 });
 
 // R4: a take says how it was made — read from its Gallery entry.

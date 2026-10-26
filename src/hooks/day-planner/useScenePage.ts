@@ -144,6 +144,41 @@ export function useScenePage(vm: DayEngineView) {
     setNote(checking ? 'The last take is still being checked — it lands in its own scene.' : null);
   }, [cache, castId, checking, rendering, scenes, write]);
 
+  /**
+   * A new scene from a planned script shot (M3 S4 "Make it a Scene"): the shot filled in from the
+   * script, the page's mood and outfit as New scene has them, opened. `also` adds to the same
+   * write (the script's shot linked to the scene). Null when a take is rendering.
+   */
+  const makeSceneFrom = useCallback(
+    (
+      input: Pick<Parameters<typeof createScene>[0], 'name' | 'slot' | 'fromScript'> & {
+        partnerCharacterId?: string;
+      },
+      also?: (sceneId: string) => Partial<SceneToolCache> | null
+    ): string | null => {
+      if (!castId) return null;
+      if (rendering) {
+        setNote('A take is rendering — make the scene when it lands.');
+        return null;
+      }
+      const { partnerCharacterId, ...shot } = input;
+      const scene = createScene({
+        castId,
+        ...shot,
+        mood: {
+          ...(cache as Record<string, unknown>),
+          // The script's second person, else nobody named (an invented stranger).
+          partnerCharacterId: partnerCharacterId ?? '',
+        },
+        outfit: cache as Record<string, unknown>,
+      });
+      write({ ...addScenePatch({ ...cache, scenes }, scene), ...(also?.(scene.id) ?? {}) });
+      setNote(null);
+      return scene.id;
+    },
+    [cache, castId, rendering, scenes, write]
+  );
+
   const openScene = useCallback(
     (sceneId: string) => {
       if (rendering) {
@@ -308,6 +343,7 @@ export function useScenePage(vm: DayEngineView) {
     note,
     setNote,
     newScene,
+    makeSceneFrom,
     openScene,
     renameScene,
     deleteScene,
