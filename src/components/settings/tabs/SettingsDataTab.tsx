@@ -6,6 +6,7 @@ import ComfyUiGalleryPanel from '@/components/ComfyUiGalleryPanel';
 import SettingsBundlePanel from '@/components/settings/SettingsBundlePanel';
 import PicturesBackupPanel from '@/components/settings/PicturesBackupPanel';
 import GalleryMediaCleanupPanel from '@/components/settings/GalleryMediaCleanupPanel';
+import CheckQualityPanel from '@/components/settings/CheckQualityPanel';
 import ChangedSettingsPanel from '@/components/settings/ChangedSettingsPanel';
 import { clearAllLocalPromptData, localDataKeys } from '@/lib/storage/local-data-reset';
 import { DEFAULT_COMFYUI_SETTINGS, resetComfyUiSettings } from '@/lib/comfyui/settings';
@@ -189,6 +190,16 @@ export default function SettingsDataTab({
       <ToolSection title="Gallery disk space">
         <GalleryMediaCleanupPanel />
       </ToolSection>
+
+      {APP_HAS_PLAY ? (
+        <ToolSection title="How good the checks are">
+          <p className="mb-2 text-sm text-[var(--text-secondary)]">
+            What each continuity check flagged, and what you decided in Cut → Continuity. A check
+            you often mark fine is often wrong.
+          </p>
+          <CheckQualityPanel />
+        </ToolSection>
+      ) : null}
 
       <ToolSection title="Gallery exact-replay graphs">
         <p className="text-sm text-[var(--text-secondary)]">

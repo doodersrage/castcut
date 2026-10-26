@@ -10,8 +10,8 @@
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
-> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C4** are
-> done; next: **C5**.
+> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C5** are
+> done; next: **C6**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -591,11 +591,20 @@ field of its own.
   All warn and none block. They join Cut's Continuity list, with decisions as in C2.
 - Tests: `film/continuity-rules.test.ts` (4), `e2e/cut-room.spec.ts` "continuity rules: …".
 
-**C5 — How good each check is (evaluation).**
+**C5 — How good each check is (evaluation).** _Done 2026-10-26._
 
-- Scope: from your decisions (C2) and `playerVerdict`, each check's count of findings,
-  dismissed (likely false positive) and accepted, shown in Settings → Data with an exportable
-  labelled set. Only measured, nothing becomes a hard gate.
+- `src/lib/checks/check-quality.ts`:
+  - `checkQuality(entries, decisions)` gives, per rule, the findings across the Gallery, marked
+    fine (likely false positives), marked real, and not looked at. Cut-only rules (outfit jump,
+    look mismatch, plate drift, source gone) are counted from your decisions only, and marked
+    "decided ones only".
+  - Misses: renders you marked Looks wrong that no automatic check flagged.
+  - `labelledFindings` gives the decided findings as labelled examples (false-positive /
+    confirmed, evidence, note).
+- Settings → Data → **How good the checks are** (`components/settings/CheckQualityPanel.tsx`),
+  Castcut only (`APP_HAS_PLAY`), with **Export labelled findings (.json)**. Measured only:
+  nothing becomes a gate.
+- Tests: `checks/check-quality.test.ts` (2) and `e2e/check-quality.spec.ts`.
 
 **C6 — Reference status.**
 
