@@ -9,9 +9,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-Production reliability, continuity, screenplay planning, finishing and the Film Director
-(IMPLEMENTATION_PLAN.md Parts 2–7). Docker: rebuild the image to get any of it — no new system
-packages; the loudness and finished-film checks use the image's ffmpeg (its `ebur128` filter).
+## [v3.0.0] - 2026-10-26
 
 - Gallery saves keep every render's stored graph; renders the film uses are never pruned
 - Scenes with takes are never dropped by the per-Cast limit; Scenes merge per scene across devices
