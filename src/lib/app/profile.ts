@@ -19,6 +19,7 @@ const PLAY_ROUTE_PREFIXES = [
   '/scene',
   '/story',
   '/cut',
+  '/production',
   '/roleplay',
   '/fitting',
   '/moodboard',

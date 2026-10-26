@@ -84,6 +84,7 @@ export const ROUTE_ACCENT: Record<string, ToolAccent> = {
   '/day': 'teal',
   '/scene': 'teal',
   '/cut': 'fuchsia',
+  '/production': 'amber',
   '/moodboard': 'cyan',
   '/m': 'amber',
   '/m/film': 'amber',

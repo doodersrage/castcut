@@ -56,6 +56,11 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
         description: 'Put the shots together into the film',
       },
       {
+        href: '/production',
+        label: 'Film Director',
+        description: 'The whole production at a glance, and what needs you',
+      },
+      {
         href: '/character',
         label: 'Character',
         description: 'Person, pet, fantasy, or environment — switch on the page',

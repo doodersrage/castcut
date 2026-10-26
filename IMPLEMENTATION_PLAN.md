@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.**
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **W1** is done; next: **W2**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1020,6 +1020,11 @@ new surfaces.
     there's room. It never pushes your versions out of the 12, and the live edit is untouched.
 - F3 fix found in this run: a file not yet checked (just relinked) was briefly listed as "its
   Gallery render was removed". It now waits for the check.
+- CI fix (2026-10-26):
+  - On a server without file storage (no `PROMPT_DATA_DIR`, as on CI), the import couldn't
+    store files and reported them not found.
+  - Small files (up to 2 MB each, 8 MB per import) are now kept in the cut itself as data URLs,
+    as a music bed upload is, and said so. Larger ones are still listed.
 - UI: a **Package** section in Cut, always shown so a clean machine can import
   (`components/cut/CutPackage.tsx`). Versions now show whenever there are any.
 - Tests:
@@ -1058,3 +1063,99 @@ new surfaces.
 
 **F1**: it protects existing edits before anything is added on top of them, and it reuses R6's
 merge.
+
+# Part 6 — M5 plan: Film Director workspace and orchestration (2026-10-26)
+
+ROADMAP §8: one place that shows the production as it is, tells you what to do next, and,
+once trusted, runs bounded batches you can inspect, pause and cancel. Nothing here becomes a
+second status system: every count is read from the records M1–M4 made reliable.
+
+## 6.1 What exists (audited 2026-10-26)
+
+| Need | In Castcut today | Gap |
+| --- | --- | --- |
+| §8.1 Overview | Each tool shows its own state: Scene (takes, kept, checking), Script coverage (S5), Cut (Continuity C1–C4, Missing media F3, preflight F6, Your films), Queue (job outcomes, R8 stalled recovery). The Film page (`/play`) has an onboarding funnel strip ("mission control"). | Nothing puts them side by side for a Cast's production. |
+| §8.2 Next actions | `resolveNextPlayAction` (`play/metrics.ts`) suggests the next onboarding step: first film, then a second Day. | No production-level actions (review new takes, fix a finding, cover a gap, retry a failed job, relink before export). |
+| §8.3 Orchestration | Day's "queue the day" loop (`useDayPlannerToolOrchestrationPart2`): queue a slot, wait for its render (`waitForGalleryPromptIds`), stop on a failure. Scheduled batches for Studio tools (`batch/`). `mapWithConcurrency` (`queue/concurrency.ts`). R8 re-asks lost jobs. | Rendering is page-bound (the Day engine's `queueSlot` inside the Scene page's hooks): no batch over a script's Scenes, no pause / resume, no run record that survives a restart, no log of what automation did. |
+
+## 6.2 M5 tasks (ordered)
+
+**W1 — Film Director overview (read-only).** _Done 2026-10-26._
+
+- `/production`, titled **Film Director** (`components/production/FilmDirector.tsx`), in the
+  Film nav group. It is a Play route: `PLAY_ROUTE_PREFIXES`, and `components/production/` and
+  `app/production/` in `PLAY_LAYER_RE`.
+- `film/production-overview.ts` (pure) derives everything for the active Cast from the
+  records:
+  - **Scenes** by state: rendering or being checked (the open Scene's card, or
+    `checkingTakeIds`), takes to review (no keeper), kept, no take yet. Also: a kept take marked
+    "Looks wrong", and in the Cut (`sceneCutUse`).
+  - **Script**: scripts, script scenes and how many are planned, shots planned, made, kept, open
+    coverage findings (S5, decisions applied), and planned scenes with nothing made.
+  - **Jobs** in the last two days (R8's window and outcomes): waiting, running, failed, lost or
+    timed out, with the latest problems. Films aren't jobs here.
+  - **Continuity**: open and accepted findings on kept takes (C1 / C2, dismissed ones left
+    out).
+  - **Cut**: saved versions, films cut, the last film.
+- Each count links to the tool that owns it (Scene, Queue, Cut). A zero is shown muted, not
+  linked.
+- Missing media and the preflight are left to Cut and said so: they need the files themselves.
+- Tests: `film/production-overview.test.ts` (2) and `e2e/production.spec.ts` (2), on seeded
+  Scenes and Gallery jobs.
+- Not done:
+  - Counts link to the tool, not yet to the exact Scene (W2 adds deep links).
+  - There is no phone layout.
+
+**W2 — Guided next actions.** `nextProductionActions(overview)` ranks what to do next, each
+opening the existing tool at the right place (a deep link, never a copy of the tool):
+- relink missing media before export;
+- retry a failed or lost job;
+- review N new takes (a Scene with takes and no keeper);
+- fix an open continuity finding;
+- cover a gap (a planned shot not made, an uncovered script scene);
+- replace a kept take marked "Looks wrong";
+- give a Cast member without a reference image (plate) one.
+
+**W3 — Bounded batch preparation (plan, no rendering).**
+- On a script scene or a whole script: **Prepare shots**. It makes the planned shots into
+  Scenes (S4) and lists exactly what a run would queue: Scene, engine, an estimate. The list
+  can be edited, and capped by count and by time.
+- Nothing renders yet.
+
+**W4 — The run: queue, wait, pause, resume, cancel.**
+- On the Scene page, a run walks the prepared Scenes one at a time. For each it opens the
+  Scene, queues its take (the page's own `queueSlot`), waits for it to land (and its checks),
+  then moves on.
+  - At most N takes, one at a time. ComfyUI's queue is serial; more in flight only waits
+    longer.
+  - It stops on a failure, with the reason.
+- **Pause** finishes the take in flight; **Cancel** stops after it, and nothing queued is left
+  behind.
+- The run record lives in `tools.scene.run` (synced): id, Scene ids, position, state, started.
+  After a reload or restart it shows as paused, "3 of 8 done", and resumes.
+- Before queuing, it checks the Scene: a take already in flight or checking, or a kept take
+  when the run said "only Scenes without one", is skipped and said. That's how a restart avoids
+  duplicate jobs, together with R8.
+- It never keeps a take. Choosing stays yours.
+
+**W5 — Audit of automated work.**
+- Every run step is logged on the run record: queued (prompt id), skipped (why), landed,
+  failed, paused, cancelled. The log shows in the run panel and in Film Director.
+- Tests:
+  - a restart mid-run resumes without a second job for the Scene in flight;
+  - cancel leaves nothing queued;
+  - a run never sets `keptTakeId`;
+  - the cap is respected.
+
+## 6.3 Risks and compatibility
+
+- W4 drives the Scene page's own render path, so it runs only while that page is open. That's
+  stated in the UI: closing the tab pauses the run, and the next visit offers to resume.
+  - A server-side runner would need the render path moved out of React hooks. That's a large
+    refactor, deliberately not part of M5.
+- The run record is new optional data in `tools.scene`. Old clients ignore it.
+- W1 and W2 only read. They can ship and be judged before any automation exists.
+
+## 6.4 Recommended first task
+
+**W1**: read-only, it changes nothing, and W2–W5 build on its derived state.
