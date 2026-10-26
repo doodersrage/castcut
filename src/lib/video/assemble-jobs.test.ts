@@ -65,6 +65,34 @@ describe("video-assemble-jobs", async () => {
     await fs.rm(tmpDataDir, { recursive: true, force: true });
   });
 
+  describe("the film can't be written (H1: disk full, no permission)", () => {
+    it("errors with a reason a person can act on, and leaves no half file", async () => {
+      const readOnly = await fs.mkdtemp(path.join(os.tmpdir(), "film-assemble-ro-"));
+      await fs.chmod(readOnly, 0o500);
+      process.env.PROMPT_DATA_DIR = readOnly;
+      try {
+        const job = await startFilmAssembleJob({ shots: [{ url: "/a.png", title: "A", kind: "still" }] } as never);
+        await waitUntil(() => getFilmAssembleJob(job.id)?.status === "error");
+        const failed = getFilmAssembleJob(job.id)!;
+        if (process.getuid?.() === 0) return; // root writes anywhere: nothing to check
+        assert.match(failed.error ?? "", /can’t write to its data folder/);
+        assert.match(failed.error ?? "", new RegExp(readOnly.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+        await assert.rejects(fs.access(path.join(readOnly, "film-output", `${job.id}.mp4`)));
+      } finally {
+        process.env.PROMPT_DATA_DIR = tmpDataDir;
+        await fs.chmod(readOnly, 0o700);
+        await fs.rm(readOnly, { recursive: true, force: true });
+      }
+    });
+
+    it("says so when the disk is full", async () => {
+      const { filmWriteFailure } = await import("./assemble-jobs");
+      const full = Object.assign(new Error("ENOSPC: no space left on device"), { code: "ENOSPC" });
+      assert.match(filmWriteFailure(full, "/data"), /disk is full/);
+      assert.match(filmWriteFailure(new Error("odd"), "/data"), /couldn’t be saved on the server: odd/);
+    });
+  });
+
   describe("getFilmAssembleJob / readFilmAssembleOutput for unknown ids", () => {
     it("returns null for a job id that doesn't exist", () => {
       assert.equal(getFilmAssembleJob("nope"), null);

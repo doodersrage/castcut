@@ -52,6 +52,18 @@ type InternalJob = FilmAssembleJob & {
 // second copy of it, still finds the jobs started before.
 const jobs = ((globalThis as { __castcutFilmJobs?: Map<string, InternalJob> }).__castcutFilmJobs ??=
   new Map<string, InternalJob>());
+/** Why the finished film couldn't be saved, in words a person can act on. */
+export function filmWriteFailure(error: unknown, dataDir: string): string {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  if (code === 'ENOSPC') {
+    return 'The server’s disk is full, so the film couldn’t be saved. Free some space and cut again.';
+  }
+  if (code === 'EACCES' || code === 'EPERM' || code === 'EROFS') {
+    return `The server can’t write to its data folder (${dataDir}), so the film couldn’t be saved. Check that folder’s permissions.`;
+  }
+  return `The film couldn’t be saved on the server: ${error instanceof Error ? error.message : String(error)}`;
+}
+
 const MAX_JOBS = 40;
 const MAX_AGE_MS = 60 * 60 * 1000;
 
@@ -202,10 +214,16 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
       input.requestOrigin
     );
 
-    await fs.mkdir(/* turbopackIgnore: true */ outputDir(), { recursive: true });
     const relative = path.join('film-output', `${id}.mp4`);
     const written = path.join(/* turbopackIgnore: true */ resolvePromptDataDir(), relative);
-    await fs.writeFile(written, result.buffer);
+    try {
+      await fs.mkdir(/* turbopackIgnore: true */ outputDir(), { recursive: true });
+      await fs.writeFile(written, result.buffer);
+    } catch (error) {
+      // No half film left behind, and a reason a person can act on (H1, ROADMAP §10).
+      await fs.rm(written, { force: true }).catch(() => undefined);
+      throw new Error(filmWriteFailure(error, resolvePromptDataDir()));
+    }
     // What the file turned out to be, checked against the cut's profile in Cut (M4 F6).
     const progress = jobs.get(id);
     if (progress) {

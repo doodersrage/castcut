@@ -88,3 +88,49 @@ test('a timed-out job ComfyUI finished is found again; a real failure stays', as
   await expect(outcomes.first()).toHaveAttribute('data-outcome', 'failed');
   await expect(outcomes.first()).toHaveText('Failed');
 });
+
+// H1 (ROADMAP §10): a batch cancelled while one of its jobs is rendering — every job is asked
+// to stop, each shows as cancelled, and nothing is left waiting.
+test('cancelling a batch while a job renders cancels every job in it', async ({ page }) => {
+  const cancelled: string[] = [];
+  await page.context().route(/\/api\/comfyui\/jobs\?/, route => {
+    const promptId = new URL(route.request().url()).searchParams.get('promptId') ?? '';
+    return route.fulfill({
+      json: {
+        status: cancelled.includes(promptId)
+          ? { status: 'error', statusMessage: 'Cancelled' }
+          : { status: promptId === 'e2e-batch-1' ? 'running' : 'pending', queuePosition: 1 },
+      },
+    });
+  });
+  await page.context().route(/\/api\/comfyui\/(cancel|interrupt|queue\/delete|history)/, route => {
+    const body = route.request().postDataJSON() as { promptId?: string; promptIds?: string[] };
+    for (const id of [body?.promptId, ...(body?.promptIds ?? [])]) if (id) cancelled.push(id);
+    return route.fulfill({ json: { ok: true } });
+  });
+
+  await ensureStudioWorkspace(page);
+  await page.goto('/queue');
+  const now = Date.now();
+  const job = (n: number, status: string) => ({
+    id: `e2e-batch-entry-${n}`,
+    promptId: `e2e-batch-${n}`,
+    prompt: `e2e batch ${n}`,
+    tool: 'generate',
+    comfyUrl: 'http://127.0.0.1:8188',
+    status,
+    images: [],
+    queuedAt: now - 60_000 + n * 1000,
+  });
+  await replaceGalleryIdb(page, [job(1, 'running'), job(2, 'pending'), job(3, 'pending')]);
+  await gotoStable(page, '/queue');
+  await dismissBlockingOverlays(page);
+
+  const batch = page.getByTestId('queue-batch');
+  await expect(batch).toContainText('3 jobs', { timeout: 60_000 });
+  await batch.getByTestId('queue-cancel-batch').click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+  await expect(page.getByText('Cancelled 3 of 3 jobs.')).toBeVisible({ timeout: 30_000 });
+  expect(new Set(cancelled)).toEqual(new Set(['e2e-batch-1', 'e2e-batch-2', 'e2e-batch-3']));
+  await expect(batch).toHaveCount(0, { timeout: 30_000 });
+});

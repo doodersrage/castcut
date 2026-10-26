@@ -999,6 +999,80 @@ test('Cancel stops the run after the take in flight, and nothing else is queued'
   await expect(page.getByTestId('scene-run-start')).toHaveCount(0);
 });
 
+// H1 (ROADMAP §10): the engine restarts mid-job and no longer knows it — the run stops with the
+// reason, nothing else is queued, and Film Director lists the lost job.
+test('engine lost the job mid-run: the run pauses with why, and the job shows as lost', async ({
+  page,
+}) => {
+  const queued = await seedRunPage(page, {}, () => ({
+    status: 'error',
+    statusMessage: 'Prompt not found on the engine (it restarted)',
+  }));
+  await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'paused', {
+    timeout: 120_000,
+  });
+  await expect(page.getByTestId('scene-run-stop-reason')).toContainText('failed');
+  expect(queued).toHaveLength(1);
+
+  await gotoStable(page, '/production');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('director-jobs-lost')).toContainText('1', { timeout: 30_000 });
+  await expect(page.getByTestId('director-next-run-paused')).toBeVisible();
+});
+
+// H1 (ROADMAP §10): the render lands but keeping its media fails — the take is still there.
+test('a take lands while the Gallery can’t store its media: the take is kept, not lost', async ({
+  page,
+}) => {
+  await page.route('**/api/gallery/media/persist**', route =>
+    route.fulfill({ status: 500, json: { error: 'e2e: disk unavailable' } })
+  );
+  const queued = await seedRunPage(page, { maxTakes: 1 });
+  await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  expect(queued).toHaveLength(1);
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      const scene = (tool.scenes ?? []).find((entry: { id: string }) => entry.id === 'run-a');
+      return [scene?.takes?.length ?? 0, Boolean(scene?.takes?.[0]?.imageUrl)].join('|');
+    }, { timeout: 30_000 })
+    .toBe('1|true');
+});
+
+// H1 (ROADMAP §10): ComfyUI refuses the job — a model it doesn't have. The error says which,
+// and offers the fix (Models) and Retry.
+test('a missing model: the error names it and links to Models', async ({ page }) => {
+  await stubComfyQueue(page);
+  await page.route(/\/api\/comfyui\/?(?:\?|$)/, route =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 400,
+          json: {
+            error:
+              "Prompt outputs failed validation: CheckpointLoaderSimple: Value not in list: ckpt_name: 'missing-model.safetensors' not in ['other.safetensors']",
+          },
+        })
+      : route.fallback()
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('scene-queue-take').click({ timeout: 60_000 });
+  const message = page.getByText(/missing-model\.safetensors/).first();
+  await expect(message).toBeVisible({ timeout: 30_000 });
+  const models = page.getByRole('link', { name: 'Models' });
+  await expect(models.first()).toHaveAttribute('href', /settings\?tab=comfyui&section=model-assets/);
+  await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible();
+});
+
 // R4: a take says how it was made — read from its Gallery entry.
 test('a take says how it was made, and when its Gallery entry is gone', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {

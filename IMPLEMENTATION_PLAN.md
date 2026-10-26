@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.**
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1** is done; next: **H2**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1238,3 +1238,94 @@ second status system: every count is read from the records M1–M4 made reliable
 ## 6.4 Recommended first task
 
 **W1**: read-only, it changes nothing, and W2–W5 build on its derived state.
+
+# Part 7 — Release hardening plan (2026-10-26)
+
+ROADMAP §11 "Release hardening" and the gate in §12: critical end-to-end tests, upgrade
+compatibility, backup restoration and release docs pass. "Don't release a milestone because its
+screens exist. Release it when its core workflow survives realistic failure and recovery."
+
+## 7.1 Where things stand (audited 2026-10-26)
+
+**The minimum regression scenarios (ROADMAP §10) against today's tests:**
+
+| Scenario | Covered by | Gap |
+| --- | --- | --- |
+| App restart during generation | R8 `stalled-recovery` (unit, `e2e/queue-recovery`); W4 reload → paused → Resume waits (e2e) | — |
+| Engine disconnect during a job | R8 unit tests (lost or timed-out outcomes) | No e2e: a job whose engine stops answering mid-run (Queue row, a W4 run pausing with the reason) |
+| Output produced but metadata persistence failing | R1a / R9 unit tests on stored workflows | No test where the Gallery save fails after a render: the take mustn't be lost silently |
+| Missing model or invalid workflow | Workflow heal and failure-playbook unit tests | No e2e from queue to the message and fix the user sees |
+| Disk-full or write-permission failure | F6 preflight (free space, unit + e2e) | No test where the encode's write fails: the job must error clearly and leave no half file |
+| Multiple takes for the same shot | Scene e2e (takes, keep) | — |
+| Restoring a superseded take | R7 / F2 (Back to the earlier take, e2e) | — |
+| Replacing a take already used in Cut | R5 / F2 pins e2e | — |
+| Deleting or moving a referenced asset | R1b protection (unit); F3 missing media and relink (e2e) | — |
+| Backup restoration with media | R9 backup round trip (settings, Gallery records, workflows); F7 cut package with media (e2e) | The studio backup has no media files: a restore on a new machine has records whose pictures are gone |
+| Opening projects from the previous version | Normalizers tolerate missing new fields (unit, per feature) | No fixture of a whole older data set opened by the current app |
+| Cancelling a batch while jobs are active | W5 run Cancel (e2e) | Queue-level batch cancel isn't covered |
+
+**Other findings:**
+- **Docs:** `guide-scene.md` and `guide-film.md` predate M3–M5: Script, shots, coverage,
+  reimport, runs, Missing media, tracks, loudness, subtitles, export profiles, packages. There
+  is no Film Director guide. `CHANGELOG.md` has nothing under Unreleased.
+- **Resources:** finished films in `film-output/` are pruned only while their job is in memory
+  (`assemble-jobs.ts`), so after a restart older files stay forever. Loudness and package
+  temp files are removed.
+- **Test reliability:**
+  - A blank-page flake: a page gated on its stored settings sometimes stays empty for 30 s in
+    dev (seen on Cut, earlier on Film Director).
+  - `lora-train-install.test` depends on this machine's default data folder: a ComfyUI found
+    there breaks it.
+
+## 7.2 Tasks (ordered)
+
+**H1 — Close the regression gaps.** _Done 2026-10-26._ Each gap now has a test, engine
+stubbed:
+- **Engine disconnect during a job** (`e2e/scene.spec.ts` "engine lost the job mid-run…"): the
+  engine no longer knows the job after a restart. The W4 run pauses with the reason, no second
+  job is queued, Film Director counts the job as lost, and "the run is paused" is a next action.
+- **Output produced, metadata persistence failing** ("a take lands while the Gallery can't store
+  its media…"): `/api/gallery/media/persist` fails. The take is still on its Scene, with its
+  picture.
+- **Missing model** ("a missing model: the error names it…"): ComfyUI rejects the job. The
+  error names the checkpoint and offers **Models** (Settings → ComfyUI → model assets) and
+  **Retry**. The app already did this; now it's tested.
+- **Disk-full or write-permission failure** (`video/assemble-jobs.test.ts`): a job writing into
+  a read-only data folder errors with "can't write to its data folder (<dir>)…" and leaves no
+  half file.
+  - **Fixed:** the user saw the raw `EACCES` / `ENOSPC` text and a partial file could remain.
+    `filmWriteFailure` now says what to do (free space, or check the folder's permissions),
+    and the partial file is removed.
+- **Cancelling a batch while jobs are active** (`e2e/queue-recovery.spec.ts` "cancelling a
+  batch while a job renders…"): every job in it, the rendering one included, is asked to stop,
+  "Cancelled 3 of 3", and the batch leaves the list.
+
+With these, every scenario row in 7.1 has a test except **Opening projects from the previous
+version** (H2) and **Backup restoration with media** (H3).
+
+**H2 — Upgrade compatibility.** A fixture data set in the shapes of the last release before M1
+(v2.12.36): settings with Scenes, Cut edits without stamps or pins, a Gallery without
+provenance. Load it into a clean e2e data folder and open Scene, Cut, Film Director and the
+Queue: nothing lost, nothing broken, and new fields appear only when edited.
+
+**H3 — Backup with media.** The studio backup can include the Gallery's stored media (or
+point to an archive made alongside it). A restore into a clean data folder brings back records
+and pictures. A test does that round trip.
+
+**H4 — Logging, secrets, resources and errors.**
+- Prune `film-output/` by age on startup as well.
+- Check that no key or token reaches a log or an error text (extending R3's checks to M3–M5's
+  new routes: loudness, assemble probe, package import).
+- Fix the two test-reliability issues above.
+
+**H5 — User docs and release notes.**
+- Update `guide-scene.md` (Script, shots, coverage, reimport, runs) and `guide-film.md` (Cut's
+  M4 features).
+- Add a Film Director guide.
+- Fill `CHANGELOG.md` Unreleased from M1–M5.
+- Say what needs a Docker rebuild.
+
+## 7.3 Recommended first task
+
+**H1**: the release gate is that the workflow survives failure. These tests may find real bugs,
+which are worth fixing before the docs describe the behaviour.
