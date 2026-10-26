@@ -9,8 +9,8 @@
 > protected) are done, and so are **R2** (the scene cap), **R3** (keys stay in the browser),
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
-> **R9** (the M1 gate's tests). **M1 is complete.** Next: plan M2 (production bible and
-> continuity).
+> **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
+> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26); next: approve **C1**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -509,3 +509,90 @@ history (G1); restore-as-merge (G7); U1–U3 verification.
 save, not after 30 days, so it split into R1a and R1b (both done). It only ever keeps more data,
 adds no field and no migration, and has to land before R4 and R5 can promise "see exactly how
 this take was made". If you'd rather start smaller, R2 is a pure one-function fix.
+
+---
+
+# Part 3 — M2 plan: production bible and continuity (2026-10-26)
+
+Read-only planning pass against ROADMAP §5. No code changed. Castcut already has most of a
+production bible. What it lacks is a **shared record of continuity findings and your decisions
+about them**: each check runs on its own, often repairs on its own, and keeps its result in a
+field of its own.
+
+## 3.1 What exists vs ROADMAP §5
+
+| ROADMAP §5 | State | Evidence |
+| ---------- | ----- | -------- |
+| 5.1 Character profile: name, role, traits, voice, consistency notes | ✅ | `CharacterRecord` (`character/os.ts`): `traits`, `plateTraits`, `descriptor`, `notes`, `voice`, `speech` (pronunciations, catchphrases), `relationships`, `biblePicture` |
+| 5.1 Approved identity references | 🟡 | Look plate, `reference`, `ipAdapter` face lock, `keeperEntryIds` (look keepers), `plateHistory` (earlier plates); likeness guard on new plates (`character/look-plate-guard.ts`). No preferred / approved / deprecated status on a reference |
+| 5.1 Distinguishing traits | ✅ | `marks` (what / where / detail) with a marks check and repair pass after each Day still (`cast/marks-check.ts`) |
+| 5.2 Looks separate from identity, no duplicate Cast per outfit | ✅ | `looks[]` per Cast, `activeLookId`, `keptOutfit`, `lockedWardrobeId`; Day slots can wear another look (`DaySlot.lookId`) |
+| 5.2 Front / side / rear references | ✅ | Look `referenceSheet` (three-quarter, side, back + expressions; `cast/reference-sheet.ts`) |
+| 5.2 Outfit continuity, outfit changes | 🟡 | One look and outfit per Day with stated per-slot exceptions (`day/outfit-scope.ts`); Story carries the last-named outfit into the next beat (`story/roleplay-continuity`); worn-outfit history (`CastWornOutfit`). No cross-shot check |
+| 5.3 Locations | 🟡 | Cast `places` (home / work) with `placePhotos`; location catalog (`scene/location-catalog*`); slot `location` text. Not reusable place records beyond home / work |
+| 5.3 Props | 🟡 | Cast `props` (name + how it looks), one line added when a beat names one (`cast/props.ts`) |
+| 5.3 Visual style | 🟡 | Look `lookNotes` (mood, light, palette, place); Cut film look (`video/cut-look.ts`) |
+| 5.4 Scene state and chronology | 🟠 | A shot's state is spread over its source: Day slot (time of day, location, look, kit, people, line), Scene (one slot + outfit + mood), Story beat. No single per-shot record, no injuries / story-state fields, no chronology apart from edit order |
+| 5.5 Layer 1, deterministic checks | 🟡 | Reference check (right kind of picture per slot, `checks/reference-check.ts`), reference health, delivery check before a cut (missing file, black, silent), prompt audit, Story scene check (`story/scene-check.ts`) |
+| 5.5 Layer 2, visual similarity | 🟡 | Face match and pose match per still (`playChecks`), plate likeness guard, duo-still counts |
+| 5.5 Layer 3, semantic review | 🟡 | Vision checks: marks, shoes, clip cut-in-the-middle, adult gate, still realism |
+| 5.5 Layer 4, user approval with evidence | 🟠 | Day `playerVerdict` (kept / passed over / looks wrong); Cut's pre-cut dialog (Retry / Leave out / Cut anyway), not stored. No findings record and no dismissals |
+| 5.5 Evaluation against reviewed examples | ⬜ | `playerVerdict` is a start for two-person stills; nothing measures each check's false positives / negatives |
+
+## 3.2 M2 tasks (ordered)
+
+**C1 — Continuity findings, one shape (shared, pure).** _Recommended first._
+
+- Scope: `ContinuityFinding` (`{ id, rule, subject: prompt id or shot key, severity: 'blocks' |
+  'warns', evidence: text + picture URLs, suggestion, source check }`) and
+  `findingsForGalleryEntry(entry)`. This reads what the existing checks already store on an
+  entry: pose / face miss, marks missing, clip cut midway, clip silent, withheld by the adult
+  check, realism. Read-only, so no check changes.
+- Acceptance: each existing check field maps to a finding with its evidence. An entry with no
+  check data gives none. The ids are stable, so a decision can attach to them.
+- Tests: unit tests on fixture entries.
+
+**C2 — Findings in Cut, with your decision kept.**
+
+- Scope: a Continuity section in Cut listing findings for the cut's shots (C1 plus R5's
+  "source gone"), each with Jump to shot, **Dismiss**, **Accept** and a note. Decisions are a
+  synced record list (`continuityDecisions` in studio-extras, merged per record like the Cast).
+  Cut's pre-cut check skips dismissed findings.
+- Acceptance: a dismissed finding stays dismissed after reload and on another device, and stops
+  stopping the cut.
+
+**C3 — Per-shot state (pure).**
+
+- Scope: `shotState(source)` gives one record per shot, derived from what the source already
+  holds: Cast and other people, look, outfit (kit / photo / shoes), place, time of day, props a
+  beat names, line. Shown on Cut's shot card. No new storage.
+- Acceptance: Day, Scene and Story shots give the same shape.
+
+**C4 — Deterministic cross-shot rules (needs C1 and C3).**
+
+- Scope: findings from comparing shots in order. An outfit or look changes between consecutive
+  shots at the same place and time with no stated change. A shot is made with another look than
+  its scene names. A Cast's look plate failed the likeness guard. A shot's media is missing.
+  These are warnings unless objectively required (ROADMAP: uncertain findings don't block).
+- Acceptance: a fixture Day with a mid-day outfit change gives one finding; a stated change
+  (`outfitByHand`) gives none.
+
+**C5 — How good each check is (evaluation).**
+
+- Scope: from your decisions (C2) and `playerVerdict`, each check's count of findings,
+  dismissed (likely false positive) and accepted, shown in Settings → Data with an exportable
+  labelled set. Only measured, nothing becomes a hard gate.
+
+**C6 — Reference status.**
+
+- Scope: mark a look plate, earlier plate or keeper as **preferred** or **deprecated**. A
+  deprecated picture is never offered as a face lock or plate. Lowest priority: the likeness
+  guard already catches the worst case.
+
+**Not planned for M2:** reusable place records beyond home / work, and injuries / story-state
+fields. They're worth doing once C3 shows which shot state people actually need.
+
+## 3.3 Recommended first task
+
+**C1**: one pure module that turns what the checks already measure into one reviewable shape.
+It changes no check and stores nothing new. C2–C5 build on it.
