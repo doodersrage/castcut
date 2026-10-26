@@ -819,8 +819,9 @@ export default function CutRoom() {
                         )}
                         disabled={busy}
                         onToggle={() => vm.togglePin(shot.key)}
-                        onUse={everywhere => vm.takeOffered(shot.key, everywhere)}
+                        onUse={everywhere => void vm.takeOffered(shot.key, everywhere)}
                         onKeep={() => vm.keepPinned(shot.key)}
+                        onBack={() => vm.backToEarlierTake(shot.key)}
                       />
                     </>
                   );

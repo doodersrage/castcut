@@ -16,6 +16,7 @@ export default function CutShotPin({
   onToggle,
   onUse,
   onKeep,
+  onBack,
 }: {
   shotKey: string;
   state: CutPinState | undefined;
@@ -25,6 +26,8 @@ export default function CutShotPin({
   onToggle: () => void;
   onUse: (everywhere: boolean) => void;
   onKeep: () => void;
+  /** "Back to the earlier take" (M4 F2): shown when the shot took a new take with Use it here. */
+  onBack?: () => void;
 }) {
   if (!state) return null;
   const testId = `cut-pin-${shotKey}`;
@@ -71,6 +74,19 @@ export default function CutShotPin({
         >
           Unpin
         </Button>
+        {state.state === 'pinned' && state.earlier && onBack ? (
+          <Button
+            variant="quiet"
+            type="button"
+            className="text-2xs hover:underline"
+            disabled={disabled}
+            data-testid={`${testId}-back`}
+            title="Play the take this shot had before, with the trim it had then"
+            onClick={onBack}
+          >
+            Back to the earlier take
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -89,7 +105,7 @@ export default function CutShotPin({
         className="text-2xs hover:underline"
         disabled={disabled}
         data-testid={`${testId}-use`}
-        title="This shot plays the new take (a clip's trim is reset: it was set for the old clip)"
+        title="This shot plays the new take (a clip's trim stays when it fits the new clip; you can go back)"
         onClick={() => onUse(false)}
       >
         Use it here

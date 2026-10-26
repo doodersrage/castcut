@@ -80,6 +80,16 @@ export type CutShotPin = {
   /** "Keep this one": the source's media that was declined — no offer while it stays that. */
   declinedUrl?: string;
   at: number;
+  /**
+   * The take this pin replaced ("Use it here", M4 F2), with the trim the shot had on it:
+   * "Back to the earlier take" puts both back.
+   */
+  previous?: CutShotPinPrevious;
+};
+
+export type CutShotPinPrevious = Omit<CutShotPin, 'declinedUrl' | 'previous'> & {
+  trimStartSec?: number;
+  trimEndSec?: number;
 };
 
 /** A still's framing in the cut. Prompts can't get it (live, Edit 2511: 0 of 4 close-ups). */

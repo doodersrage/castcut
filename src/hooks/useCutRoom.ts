@@ -148,7 +148,10 @@ import {
   type FindingDecision,
   type FindingDecisionKind,
 } from '@/lib/checks/finding-decisions';
+import { probeMediaDurationSec } from '@/lib/film/cut-media';
 import {
+  backToEarlierCutTake,
+  cutSourceKeyOf,
   declineOfferedCutMedia,
   pinAllCutShots,
   pinEditedCutShots,
@@ -1330,19 +1333,52 @@ export function useCutRoom() {
    * too), or keep the one it has. Saved versions keep theirs.
    */
   const takeOffered = useCallback(
-    (key: string, everywhere = false) => {
+    async (key: string, everywhere = false) => {
       const state = pinStates[key];
       if (state?.state !== 'new-take') return;
+      const offered = state.offered;
+      // A trim stays when it fits the new clip (M4 F2): its length is read first.
+      const trimmed = Object.entries(stateRef.current.options.shotEdits?.shots ?? {}).some(
+        ([entry, edit]) =>
+          cutSourceKeyOf(entry) === cutSourceKeyOf(key) &&
+          (edit?.trimStartSec !== undefined || edit?.trimEndSec !== undefined)
+      );
+      const offeredDurationSec =
+        trimmed && offered.kind === 'clip'
+          ? await probeMediaDurationSec(offered.url, 'video')
+          : null;
       const now = stateRef.current.options;
-      const result = takeOfferedCutMedia(now.shotEdits, key, state.offered, { everywhere });
+      const result = takeOfferedCutMedia(now.shotEdits, key, offered, {
+        everywhere,
+        offeredDurationSec,
+      });
       commitEdit({ options: { ...now, shotEdits: result.edits } }, true, false);
+      const outcomes = Object.values(result.trims);
+      const trimNote = outcomes.includes('reset')
+        ? ' — its trim was reset (it was set for the old clip and doesn’t fit this one)'
+        : outcomes.includes('clamped')
+          ? ' — its trim was kept, its end moved to the new clip’s end'
+          : outcomes.includes('kept')
+            ? ' — its trim was kept (it fits the new clip)'
+            : '';
       setStatus(
-        `${state.offered.title || 'The shot'} uses the new take${
+        `${offered.title || 'The shot'} uses the new take${
           result.keys.length > 1 ? ` (${result.keys.length} shots)` : ''
-        }${result.trimReset ? ' — its trim was set for the old clip, so it was reset' : ''}.`
+        }${trimNote}. Back to the earlier take puts it back.`
       );
     },
     [commitEdit, pinStates]
+  );
+  /** "Back to the earlier take": the take and trim the shot had before Use it here. */
+  const backToEarlierTake = useCallback(
+    (key: string) => {
+      const now = stateRef.current.options;
+      const shotEdits = backToEarlierCutTake(now.shotEdits, key);
+      if (shotEdits === now.shotEdits) return;
+      commitEdit({ options: { ...now, shotEdits } }, true, false);
+      setStatus('Back to the earlier take, with the trim it had.');
+    },
+    [commitEdit]
   );
   const keepPinned = useCallback(
     (key: string) => {
@@ -2082,6 +2118,7 @@ export function useCutRoom() {
     continuity,
     decide,
     takeOffered,
+    backToEarlierTake,
     keepPinned,
     togglePin,
     options,

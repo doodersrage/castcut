@@ -10,14 +10,20 @@
  * this one — never a swap. A pinned shot whose source is gone (the scene deleted, its take let
  * go) keeps playing, marked. An unpinned shot follows its source as before. Pure.
  */
-import type { CutShotEdit, CutShotEdits, CutShotPin, KeyedShot } from './cut-plan';
+import type {
+  CutShotEdit,
+  CutShotEdits,
+  CutShotPin,
+  CutShotPinPrevious,
+  KeyedShot,
+} from './cut-plan';
 import { splitCutRoomKey } from './cut-room';
 
 export type CutPinState =
   /** Unpinned: plays whatever its source holds now. */
   | { state: 'follows' }
   /** Plays its pin, and the source holds the same (or a declined) media. */
-  | { state: 'pinned' }
+  | { state: 'pinned'; earlier?: boolean }
   /** Plays its pin; the source now offers `offered`. */
   | { state: 'new-take'; offered: KeyedShot }
   /** Plays its pin; the source is gone. */
@@ -78,7 +84,9 @@ export function pinnedCutShots(input: {
       return shot;
     }
     const offered = shot.url !== pin.url && shot.url !== pin.declinedUrl;
-    states[shot.key] = offered ? { state: 'new-take', offered: shot } : { state: 'pinned' };
+    states[shot.key] = offered
+      ? { state: 'new-take', offered: shot }
+      : { state: 'pinned', ...(pin.previous?.url ? { earlier: true } : {}) };
     return shot.url === pin.url ? shot : withPinMedia(shot, pin);
   });
   for (const [key, edit] of Object.entries(edits)) {
@@ -144,26 +152,74 @@ export function pinAllCutShots(
   return next;
 }
 
-/** A clip's trim does not carry over to other media: it was set against the old clip's length. */
-function withoutTrim(edit: CutShotEdit): { edit: CutShotEdit; trimReset: boolean } {
-  if (edit.trimStartSec === undefined && edit.trimEndSec === undefined) {
-    return { edit, trimReset: false };
+/** What happened to a shot's trim when it took another take. */
+export type CutTrimOutcome =
+  /** It had none. */
+  | 'none'
+  /** It fits inside the new clip and stays. */
+  | 'kept'
+  /** Its end ran past the new clip: it now plays to the clip's end. */
+  | 'clamped'
+  /** It can't apply (a still, a clip of unknown length, or it starts past the end). */
+  | 'reset';
+
+/** Below this much left after the trim's start, the trim is not worth keeping. */
+const MIN_KEPT_SEC = 0.5;
+
+/**
+ * The trim on new media (M4 F2): kept when it fits inside the clip, its end let go when only the
+ * end runs past, else reset. A trim was set against the old clip, so it is reset whenever the new
+ * clip's length is not known.
+ */
+export function fitCutTrim(
+  edit: CutShotEdit,
+  offered: Pick<KeyedShot, 'kind'>,
+  durationSec: number | null | undefined
+): { edit: CutShotEdit; outcome: CutTrimOutcome } {
+  const { trimStartSec: start, trimEndSec: end, ...rest } = edit;
+  if (start === undefined && end === undefined) return { edit, outcome: 'none' };
+  const length =
+    offered.kind === 'clip' && typeof durationSec === 'number' && durationSec > 0
+      ? durationSec
+      : null;
+  if (length === null || (start ?? 0) > length - MIN_KEPT_SEC) {
+    return { edit: rest, outcome: 'reset' };
   }
-  const { trimStartSec: _start, trimEndSec: _end, ...rest } = edit;
-  return { edit: rest, trimReset: true };
+  if (end === undefined || end <= length) return { edit, outcome: 'kept' };
+  return {
+    edit: { ...rest, ...(start !== undefined ? { trimStartSec: start } : {}) },
+    outcome: 'clamped',
+  };
+}
+
+function previousOf(edit: CutShotEdit): CutShotPinPrevious | undefined {
+  const pin = edit.pin;
+  if (!pin?.url) return undefined;
+  const { declinedUrl: _declined, previous: _previous, ...media } = pin;
+  return {
+    ...media,
+    ...(edit.trimStartSec !== undefined ? { trimStartSec: edit.trimStartSec } : {}),
+    ...(edit.trimEndSec !== undefined ? { trimEndSec: edit.trimEndSec } : {}),
+  };
 }
 
 /**
  * "Use it here" (`everywhere`: and on every copy of its source shot, in this edit — saved
- * versions keep theirs): the shot is pinned to what its source offers now. `trimReset` says a
- * trim was dropped.
+ * versions keep theirs): the shot is pinned to what its source offers now, keeping its trim where
+ * it fits the new clip (`offeredDurationSec`), and remembering the take it had so it can go back.
+ * `trims` says what happened to each shot's trim.
  */
 export function takeOfferedCutMedia(
   edits: CutShotEdits | undefined,
   key: string,
   offered: KeyedShot,
-  options: { everywhere?: boolean; now?: number } = {}
-): { edits: CutShotEdits | undefined; keys: string[]; trimReset: boolean } {
+  options: { everywhere?: boolean; now?: number; offeredDurationSec?: number | null } = {}
+): {
+  edits: CutShotEdits | undefined;
+  keys: string[];
+  trimReset: boolean;
+  trims: Record<string, CutTrimOutcome>;
+} {
   const source = cutSourceKeyOf(key);
   const keys = options.everywhere
     ? [
@@ -174,19 +230,53 @@ export function takeOfferedCutMedia(
       ]
     : [key];
   let next = edits;
-  let trimReset = false;
+  const trims: Record<string, CutTrimOutcome> = {};
+  const used: string[] = [];
   for (const entry of keys) {
     const current = next?.shots?.[entry] ?? {};
     // Copies that already play the offered media (or follow the source) are left as they are.
     if (entry !== key && (!current.pin || current.pin.url === offered.url)) continue;
-    const trimmed = withoutTrim(current);
-    trimReset ||= trimmed.trimReset;
+    const fitted = fitCutTrim(current, offered, options.offeredDurationSec);
+    trims[entry] = fitted.outcome;
+    used.push(entry);
+    const previous = previousOf(current);
     next = withEdit(next, entry, {
-      ...trimmed.edit,
-      pin: cutShotPin({ ...offered, key: entry }, options.now),
+      ...fitted.edit,
+      pin: {
+        ...cutShotPin({ ...offered, key: entry }, options.now),
+        ...(previous ? { previous } : {}),
+      },
     });
   }
-  return { edits: next, keys, trimReset };
+  return {
+    edits: next,
+    keys: used,
+    trimReset: Object.values(trims).includes('reset'),
+    trims,
+  };
+}
+
+/**
+ * "Back to the earlier take": the shot plays the take it had before "Use it here", with the trim
+ * it had then; the newer take is declined (no offer while the source keeps it). Same object when
+ * there is nothing to go back to.
+ */
+export function backToEarlierCutTake(
+  edits: CutShotEdits | undefined,
+  key: string,
+  now = Date.now()
+): CutShotEdits | undefined {
+  const current = edits?.shots?.[key];
+  const previous = current?.pin?.previous;
+  if (!current?.pin || !previous?.url) return edits;
+  const { trimStartSec, trimEndSec, ...media } = previous;
+  const { trimStartSec: _start, trimEndSec: _end, pin, ...rest } = current;
+  return withEdit(edits, key, {
+    ...rest,
+    ...(trimStartSec !== undefined ? { trimStartSec } : {}),
+    ...(trimEndSec !== undefined ? { trimEndSec } : {}),
+    pin: { ...media, declinedUrl: pin.url, at: now },
+  });
 }
 
 /** "Keep this one": no offer while the source holds `offeredUrl`. */

@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1** is done; next: **F2**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F2** are done; next: **F3**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -841,9 +841,20 @@ new surfaces.
   - Edits from before the stamps merge as before (newest blob wins) until they are next edited.
   - Undo history doesn't follow you to another tab or device (by design).
 
-**F2 — Non-destructive source replacement.** "Use it here" keeps the trim when it fits inside
-the new clip (and clamps it when it nearly does), and says exactly what changed. The previous pin
-is kept, so **Back to the earlier take** undoes the replacement even after a reload.
+**F2 — Non-destructive source replacement.** _Done 2026-10-26._
+
+- "Use it here" (`takeOfferedCutMedia`) now fits the shot's trim to the new take
+  (`fitCutTrim`), using the new clip's length (measured first, `probeMediaDurationSec`):
+  - **kept** when it fits;
+  - **clamped** when only its end runs past (it plays to the clip's end);
+  - **reset** when it can't apply (a still, a clip of unknown length, or a start past the end).
+- The status line says which happened.
+- The pin remembers the take it replaced, with the trim it had (`CutShotPin.previous`, kept in
+  the edit, so it outlives a reload). The card offers **Back to the earlier take**
+  (`backToEarlierCutTake`), which restores both and declines the newer take, so it isn't
+  offered again.
+- Tests: `film/cut-replace.test.ts` (3). The R5 pins e2e is extended with going back.
+- Not done: one step back only (the earlier take's own earlier take isn't kept).
 
 **F3 — Missing media and relink.**
 - A **Missing media** list in Cut, made from what is known without an encode: the pin's file,

@@ -397,6 +397,16 @@ test('pins: an edited shot keeps its take, a new one is offered, a gone scene pl
     'src',
     thumb
   );
+  // M4 F2: the take it had is remembered — Back to the earlier take puts it (and its edits) back,
+  // and the newer take isn't offered again.
+  await page.getByTestId('cut-pin-day:afternoon-back').click();
+  await expect(page.locator('[data-testid="cut-shot-pick-day:afternoon"] img')).toHaveAttribute(
+    'src',
+    older
+  );
+  await expect(afternoon).toHaveAttribute('data-pin', 'pinned');
+  await expect(page.getByTestId('cut-pin-day:afternoon-back')).toHaveCount(0);
+  await expect(page.getByTestId('cut-shot-framing-day:afternoon')).toHaveValue('medium');
 
   // The deleted scene's shot plays on from its pin, marked; unpinned, it leaves the cut.
   await expect(page.getByTestId('cut-pin-scenes:gone-scene')).toHaveAttribute(
