@@ -17,6 +17,8 @@ keeper stand-in plate, the Camera row — applies to a scene too.
 | **The shot**     | Name · Time of day · Mood, People, Weather, Quality · the slot editor (Setting, Beat, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
 | **Takes**        | **Queue a take** / **Another take** · the take on the card (with its ⋯ tools) · every take, ★ to keep one · **Send to Day slot**                                                        |
 | **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director) · **Cut →**                                                                                         |
+| **Script**       | A screenplay for the Cast: import it, see how it reads, who's who and where, each scene's shots, **Make it a Scene**, coverage, a new version (see [Script](#script))                     |
+| **Run**          | A prepared run of takes over a script's Scenes: its list and limits, **Start** / **Pause** / **Cancel** (see [Runs](#runs))                                                                |
 
 ## On a phone
 
@@ -45,6 +47,12 @@ it move starts from it. **×** drops a take from the scene — it stays in the G
 take on the card (or the kept take under Make it move) opens it full size: its clip when it has
 one, playing, else the picture.
 
+The **i** on a take says how it was made: the engine and model, the seed, the prompt, the
+references and the time it took — read from its Gallery entry, with **Open in ComfyUI** when its
+graph is stored. **×** on the kept take asks first, and says what Cut loses with it (a shot that
+plays it, unless that shot is pinned — see [Film](guide-film.md#when-a-shot-gets-a-new-take)). Deleting a scene says the
+same.
+
 ## Make it move
 
 From the kept take: **Animate** (a clip from it; the slot's line makes it a talking clip), **Copy
@@ -54,6 +62,58 @@ for faster clothed one-person clips (and two-person adult clips, when the mood i
 People isn't Solo). It is the same choice as Day's. Copy moves and Direct render on Wan Animate.
 The **Animate** card lists files ComfyUI is missing for it, and **End pose** (when this ComfyUI
 can pin a clip's last frame) re-poses the kept take for the clip to land on.
+
+## Script
+
+A screenplay for the Cast, from text to shots. Open the **Script** section under the takes.
+
+- **Import a script** — paste it, or upload a `.fountain`, `.txt` or `.md` file. Before you keep
+  it, it reads as a screenplay, scene by scene (heading, place, time of day, who speaks, each
+  line), and anything it couldn't understand is listed first. Fountain and plain text both work;
+  text with no scene headings reads as an outline, one beat per paragraph.
+- **Who's who** — each speaking part gets a Cast picker. A name that matches one Cast member is
+  only _suggested_ until you **Confirm** it; two possible matches give no guess; **Not in the
+  Cast** is a choice too. Nothing is created for you.
+- **Where** — each place shows how Castcut reads it (a kitchen as her home's kitchen, an office
+  as her workplace) and can be set to her home, her workplace or somewhere else.
+- **Shots** — under each scene: **Draft shots** proposes a list (an establishing wide, each line
+  of dialogue, a reaction when an exchange ends, or the action when nobody speaks). Change each
+  shot's purpose, framing, what happens and length; **Add a shot**; **Remove** (it asks when the
+  shot already has a Scene, which stays).
+- **Make it a Scene** — the shot becomes a Scene, opened: the place, the time of day, the framing
+  on the camera row, the lead's line said on camera (anyone else's in the beat) and a confirmed
+  partner. The shot shows what it became — _Scene made_, _n takes_, _Kept take_ — and **Open
+  scene** goes to it.
+- **Coverage** — for the script and each scene: planned, made, kept, in the Cut. A scene with no
+  establishing shot, an exchange with no reaction, or shots made with none kept is flagged; **It's
+  fine** or **It's real** decides each, as in Cut's Continuity list.
+- **Import a new version** — paste or upload the new text: every scene is listed as same,
+  changed, new or removed (matched by its id, else by its heading) with what happens to its
+  shots, and nothing changes until **Replace with this version**. A shot that became a Scene is
+  never dropped: shots of removed scenes are kept under **Shots from scenes no longer in the
+  script** and come back if the scene does.
+
+Scripts are kept with the Cast (up to 12) and sync like the scenes.
+
+## Runs
+
+A run renders a script's Scenes one take at a time, while you watch or do something else on the
+page.
+
+1. **Prepare a run…** on an open script makes its planned shots into Scenes (not opened — the one
+   you have open stays) and lists what a run would render: each Scene, its engine and about how
+   long. Nothing renders yet.
+2. Set the limits — at most so many takes, about so many minutes — leave Scenes with a kept take
+   out (the default), and switch any Scene in or out.
+3. **Start the run.** Each Scene is opened, its take queued with the page's own Render, and the
+   run waits for it to land and its checks to finish before the next. **Pause** and **Cancel** act
+   after the take rendering now; nothing else is queued.
+
+A run never keeps a take — choosing stays yours. It stops by itself, saying why, when a take
+fails, isn't queued or a Scene can't be opened. It runs while the Scene page is open: closing the
+tab pauses it, and after a reload it shows _Paused_ and **Resume** carries on — waiting for the
+take that was rendering instead of queueing it again. **What it did** lists every step, and
+[Film Director](guide-director.md) shows the same.
 
 ## Mood
 

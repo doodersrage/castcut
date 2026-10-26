@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H4** are done; next: **H5**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **Release hardening (H1–H5) is done.**
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1368,12 +1368,36 @@ version** (H2) and **Backup restoration with media** (H3).
     Refresh aborting in-flight navigations"). It's recorded as a local dev-server effect, not
     an app bug.
 
-**H5 — User docs and release notes.**
-- Update `guide-scene.md` (Script, shots, coverage, reimport, runs) and `guide-film.md` (Cut's
-  M4 features).
-- Add a Film Director guide.
-- Fill `CHANGELOG.md` Unreleased from M1–M5.
-- Say what needs a Docker rebuild.
+**H5 — User docs and release notes.** _Done 2026-10-26._
+
+- `docs/guide-scene.md`:
+  - the page table gains Script and Run;
+  - Takes gains how a take was made and the kept-take confirm;
+  - new sections **Script** (import, who's who, where, shots, Make it a Scene, coverage, a new
+    version) and **Runs** (prepare, limits, start / pause / cancel, after a reload, never keeps
+    a take).
+- `docs/guide-film.md`:
+  - the page table gains Scenes as a source, Subtitles, Missing media, Continuity and Package;
+  - **Before cutting** and **The film as cut**;
+  - **Made for** profiles and editable subtitles in Options;
+  - Tracks and **Measure loudness** in Sound;
+  - new sections Subtitles, Missing media, Package a cut and On two devices;
+  - "Use it here" now describes F2's trim rules and Back to the earlier take.
+- `docs/guide-director.md` is new (What next, the overview), and is added to `mkdocs.yml` and
+  `docs/features.md`.
+- `CHANGELOG.md` Unreleased lists M1–M5 and the hardening fixes. On Docker: rebuild the image;
+  there are no new system packages, and the loudness and finished-film checks use its ffmpeg.
+  The image ships a static ffmpeg 9.0.2 since 85602f52 (an earlier note in this plan called it
+  older: corrected).
+
+## 7.4 Release gate (ROADMAP §12 "Hardening")
+
+| Gate | Where |
+| --- | --- |
+| Critical end-to-end tests | Every ROADMAP §10 scenario has a test (7.1, H1); CI runs them on a production build |
+| Upgrade compatibility | H2: v2.12.36 data opens intact in Scene, Cut, Film Director and the Queue |
+| Backup restoration | R9 (JSON round trip), the Pictures backup (`media-backup-server.test.ts`), F7 (cut package restored in a clean context) |
+| Release docs | H5 |
 
 ## 7.3 Recommended first task
 

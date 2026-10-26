@@ -9,6 +9,33 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+Production reliability, continuity, screenplay planning, finishing and the Film Director
+(IMPLEMENTATION_PLAN.md Parts 2–7). Docker: rebuild the image to get any of it — no new system
+packages; the loudness and finished-film checks use the image's ffmpeg (its `ebur128` filter).
+
+- Gallery saves keep every render's stored graph; renders the film uses are never pruned
+- Scenes with takes are never dropped by the per-Cast limit; Scenes merge per scene across devices
+- API keys and the webhook secret stay in the browser (not synced, not in backups)
+- A take says how it was made (engine, seed, prompt, references, render time)
+- Cut pins each shot to the take it was cut with; a new take is offered, never swapped in
+- Removing the kept take asks first and says what Cut loses
+- Jobs Castcut lost track of are asked about again on start
+- Continuity: findings from every check in one list, decided It's fine / It's real; outfit, look and plate checks across shots; check quality in Settings → Data
+- Cast looks: an earlier plate can be marked don't offer again; a preferred keeper for Day
+- Script: import a screenplay (Fountain or plain text), who's who and where, shot lists, Make it a Scene, coverage, safe reimport
+- Cut: versions and edits merge across devices (another device's edit is kept as a version); undo survives a reload
+- Cut: a new take keeps the trim when it fits; Back to the earlier take
+- Cut: Missing media listed before cutting, with Relink
+- Cut: mute and solo per track; a film's loudness measured against a target
+- Cut: editable subtitles, .srt export and import, subtitle checks
+- Cut: export profiles, a pre-cut checklist (disk space included) and the finished film read back
+- Cut: package a cut with its media and import it on another machine
+- Fixed: a server film encode dropped speed, reverse, J / L sound, lower thirds, picture-in-picture and hand-set moves
+- Film Director (/production): the production at a glance, and what to do next
+- Scene: prepare a run from a script and render its Scenes one take at a time (pause, resume, cancel; never keeps a take)
+- A film the server can't save says why; old finished films are cleaned up
+- Full backup points to the Pictures backup for the media
+
 ## [v2.12.36] - 2026-10-24
 
 - Longer clips hold their shot: H3 grows in parts, LTX dialogue stays put
