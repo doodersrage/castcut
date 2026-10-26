@@ -131,7 +131,10 @@ export function recordSceneJobs(
 
 /** Takes kept per scene (the kept take always stays). Older ones stay in the Gallery. */
 export const SCENE_TAKE_LIMIT = 24;
-/** Scenes kept per Cast (the oldest untouched go first). */
+/**
+ * Scenes kept per Cast. Only empty scenes go to stay under it, the least recently touched first;
+ * a scene with a take (or one at the adult check) is never dropped, so a Cast can hold more.
+ */
 export const SCENE_LIMIT_PER_CAST = 60;
 /** A new scene's time of day when nothing says otherwise. */
 export const DEFAULT_SCENE_SLOT_ID: DaySlotId = 'afternoon';
@@ -333,7 +336,30 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
   };
 }
 
-/** Every stored scene, cleaned: one per id, at most {@link SCENE_LIMIT_PER_CAST} per Cast. */
+/** A scene that holds renders: a take, or one still at the adult check. */
+function sceneHoldsTakes(scene: SavedScene): boolean {
+  return scene.takes.length > 0 || Boolean(scene.checkingTakeIds?.length);
+}
+
+/**
+ * One Cast's scenes under {@link SCENE_LIMIT_PER_CAST}: empty ones go, least recently touched
+ * first, but never the newest (a scene just made); scenes with takes always stay (M0 audit D1:
+ * the 61st scene used to drop the oldest, kept take, Cut shot and all).
+ */
+function cappedCastScenes(list: SavedScene[]): SavedScene[] {
+  if (list.length <= SCENE_LIMIT_PER_CAST) return list;
+  const newest = list.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
+  const droppable = list
+    .filter(scene => scene !== newest && !sceneHoldsTakes(scene))
+    .sort((a, b) => a.updatedAt - b.updatedAt);
+  const drop = new Set(droppable.slice(0, list.length - SCENE_LIMIT_PER_CAST));
+  return drop.size ? list.filter(scene => !drop.has(scene)) : list;
+}
+
+/**
+ * Every stored scene, cleaned: one per id, and per Cast at most {@link SCENE_LIMIT_PER_CAST}
+ * unless the scenes over it hold takes.
+ */
 export function normalizeSavedScenes(input: unknown, now = Date.now()): SavedScene[] {
   const byId = new Map<string, SavedScene>();
   for (const raw of Array.isArray(input) ? input : []) {
@@ -345,10 +371,7 @@ export function normalizeSavedScenes(input: unknown, now = Date.now()): SavedSce
     perCast.set(scene.castId, [...(perCast.get(scene.castId) ?? []), scene]);
   }
   return [...perCast.values()].flatMap(list =>
-    list
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, SCENE_LIMIT_PER_CAST)
-      .sort((a, b) => a.createdAt - b.createdAt)
+    cappedCastScenes(list).sort((a, b) => a.createdAt - b.createdAt)
   );
 }
 

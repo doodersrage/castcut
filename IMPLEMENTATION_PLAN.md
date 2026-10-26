@@ -6,7 +6,7 @@
 > **Status (2026-10-25):** the M0 read-only audit is done — results, the test baseline and the
 > ordered M1 task list are in [Part 2](#part-2--m0-audit-results-2026-10-25) below. R1 was approved
 > and split: **R1a** (stored workflows survive a save) and **R1b** (what the production uses is
-> protected) are done. Next: R2.
+> protected) are done, and so is **R2** (the scene cap). Next: R3 (needs a decision) or R4.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -320,12 +320,15 @@ _Done 2026-10-25, uncommitted. Budget rule agreed: what the production uses is e
 - Trade-off: browser storage for approved work is now unbounded (about 50–800 KB per stored
   graph), bounded in practice by the take caps (24 per scene, 8 per Story beat).
 
-**R2 — The scene cap never drops a scene with takes (fixes D1).**
+**R2 — The scene cap never drops a scene with takes (fixes D1).** _Done 2026-10-25._
 
-- Scope: `normalizeSavedScenes` drops only scenes with no takes; over the cap it keeps them and the
-  Scene page says so. Pure.
-- Acceptance: 61 scenes, all with takes → none dropped; empty scenes go first, oldest first.
-- Files: `src/lib/day/scenes.ts`, `scenes.test.ts`, a note in `SceneToolSections.tsx`.
+- `normalizeSavedScenes` (`src/lib/day/scenes.ts`, `cappedCastScenes`): over
+  `SCENE_LIMIT_PER_CAST` (60) only empty scenes go, least recently touched first, never the newest
+  (a scene just made). A scene with a take, or with one at the adult check, always stays, so a
+  Cast can hold more than 60.
+- Tests: `day/scenes.test.ts` (2 new; both failed on the old code).
+- Not done: a notice on the Scene page when a Cast goes over 60. Nothing is lost there any more,
+  so it isn't needed; add one if the settings blob size becomes a problem.
 
 **R3 — Strip browser-held keys from backups and the server copy (fixes D5).** _Needs a decision:_
 should a key typed on one device follow the user to others?

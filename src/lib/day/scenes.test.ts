@@ -15,6 +15,7 @@ import {
   recordSceneFromWorking,
   recordSceneJobs,
   SCENE_JOB_LOG_LIMIT,
+  SCENE_LIMIT_PER_CAST,
   removeSceneTake,
   resolveSceneChecks,
   SCENE_TAKE_LIMIT,
@@ -105,6 +106,60 @@ describe('scenes: stored and read back', () => {
     assert.equal(scene!.takes.length, SCENE_TAKE_LIMIT);
     assert.equal(scene!.keptTakeId, 'p0');
     assert.ok(scene!.takes.some(take => take.id === 'p0'));
+  });
+
+  // R2 (M0 audit D1): the cap dropped the least recently touched scene, kept take and all.
+  it('never drops a scene with takes to stay under the per-Cast cap', () => {
+    const withTake = (n: number) =>
+      createScene({
+        castId: 'nora',
+        name: `Scene ${n}`,
+        id: `taken-${n}`,
+        takes: [{ id: `p${n}`, promptId: `p${n}`, imageUrl: `/api/gallery/media/e${n}`, at: n }],
+        now: n,
+      });
+    const empty = (n: number) =>
+      createScene({ castId: 'nora', name: `Empty ${n}`, id: `empty-${n}`, now: n });
+    const checking = {
+      ...createScene({ castId: 'nora', name: 'Checking', id: 'checking', now: 0.5 }),
+      checkingTakeIds: ['p-check'],
+    };
+    const over = SCENE_LIMIT_PER_CAST + 5;
+    const scenes = normalizeSavedScenes([
+      { ...withTake(1), keptTakeId: 'p1' },
+      checking,
+      ...Array.from({ length: over }, (_, i) => withTake(i + 2)),
+      empty(1000),
+      empty(2000),
+    ]);
+    const ids = new Set(scenes.map(scene => scene.id));
+    assert.ok(ids.has('taken-1'), 'the oldest, with its kept take');
+    assert.ok(ids.has('checking'), 'a take still at the adult check counts as a take');
+    for (let n = 2; n < over + 2; n += 1) assert.ok(ids.has(`taken-${n}`), `taken-${n}`);
+    assert.ok(ids.has('empty-2000'), 'the newest empty scene (just made) stays');
+    assert.ok(!ids.has('empty-1000'), 'older empty scenes go first');
+  });
+
+  it('drops empty scenes, oldest first, only while over the cap', () => {
+    const empties = Array.from({ length: SCENE_LIMIT_PER_CAST + 3 }, (_, i) =>
+      createScene({ castId: 'nora', name: `Empty ${i}`, id: `e${i}`, now: i + 1 })
+    );
+    const taken = createScene({
+      castId: 'nora',
+      name: 'Old take',
+      id: 'old-take',
+      takes: [{ id: 'p', promptId: 'p', imageUrl: '/api/gallery/media/e', at: 1 }],
+      now: 0.1,
+    });
+    const scenes = normalizeSavedScenes([taken, ...empties]);
+    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST);
+    const ids = new Set(scenes.map(scene => scene.id));
+    assert.ok(ids.has('old-take'));
+    for (const gone of ['e0', 'e1', 'e2', 'e3']) assert.ok(!ids.has(gone), gone);
+    assert.ok(ids.has('e4') && ids.has(`e${SCENE_LIMIT_PER_CAST + 2}`));
+    // Another Cast's scenes count against their own cap only.
+    const other = createScene({ castId: 'tomas', name: 'Scene 1', id: 't1', now: 1 });
+    assert.ok(normalizeSavedScenes([...empties, other]).some(scene => scene.id === 't1'));
   });
 
   it('one slot from Day-shaped slots, and its time of day can move', () => {
