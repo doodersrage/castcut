@@ -316,10 +316,23 @@ export function useCutRoom() {
   useEffect(() => {
     editedAtRef.current = cut.toolSettings.editedAt;
   }, [cut.toolSettings.editedAt]);
+  const cutSettingsRef = useRef(cut.toolSettings);
+  useEffect(() => {
+    cutSettingsRef.current = cut.toolSettings;
+  }, [cut.toolSettings]);
   const updateCut = useCallback(
     (patch: Partial<CutToolCache>) => {
-      if (!('options' in patch || 'extras' in patch || 'sources' in patch)) {
-        writeCutSettings(patch);
+      // Only a real change is an edit: arriving with ?from= rewrites the same sources, and a
+      // visit must not look like the newest edit to another device's merge (H2).
+      const current = cutSettingsRef.current;
+      const changes = (['options', 'extras', 'sources'] as const).filter(
+        key =>
+          key in patch &&
+          JSON.stringify(patch[key] ?? null) !== JSON.stringify(current[key] ?? null)
+      );
+      if (!changes.length) {
+        const { options: _o, extras: _e, sources: _s, ...rest } = patch;
+        if (Object.keys(rest).length) writeCutSettings(rest);
         return;
       }
       const stamp = cutEditStamp(editedAtRef.current);

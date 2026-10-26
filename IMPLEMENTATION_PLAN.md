@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1** is done; next: **H2**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H2** are done; next: **H3**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1303,10 +1303,23 @@ stubbed:
 With these, every scenario row in 7.1 has a test except **Opening projects from the previous
 version** (H2) and **Backup restoration with media** (H3).
 
-**H2 — Upgrade compatibility.** A fixture data set in the shapes of the last release before M1
-(v2.12.36): settings with Scenes, Cut edits without stamps or pins, a Gallery without
-provenance. Load it into a clean e2e data folder and open Scene, Cut, Film Director and the
-Queue: nothing lost, nothing broken, and new fields appear only when edited.
+**H2 — Upgrade compatibility.** _Done 2026-10-26._
+
+- `e2e/upgrade.spec.ts` seeds a data set in v2.12.36's shapes, taken from that release's own
+  types (commit 3c2856cb: `SavedScene`, `SceneTake`, `CutShotEdit`, `CutToolCache`). It has a
+  Cast, two Scenes (one with a keeper), a Cut edit with a caption, a text card and a saved
+  version, and a Gallery entry with no provenance. None of M1–M5's fields are present.
+- The current app opens it:
+  - **Scene**: both Scenes, the takes and the keeper.
+  - **Cut**: the shot, the card and the version; nothing listed missing; the preflight runs.
+  - **Film Director**: the counts.
+  - **The Queue** opens.
+- The stored data afterwards is checked: nothing lost.
+- Editing the old Cut adds the edit stamp and keeps the old caption, card and version.
+- **Fixed (found by this test):** just arriving in Cut (`?from=scenes`) rewrote the same
+  sources and stamped the edit as changed. A visit then looked like the newest edit to F1's
+  merge, so another device's real edit would have been moved to a version. `updateCut` now
+  stamps (and writes) only a real change to sources, added shots or options.
 
 **H3 — Backup with media.** The studio backup can include the Gallery's stored media (or
 point to an archive made alongside it). A restore into a clean data folder brings back records
