@@ -2,6 +2,8 @@
 
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
+import type { ContinuityFinding } from '@/lib/checks/findings';
+import type { FindingDecision, FindingDecisionKind } from '@/lib/checks/finding-decisions';
 import type { SavedScene } from '@/lib/day/scenes';
 import {
   addedShot,
@@ -47,6 +49,9 @@ export default function SceneScriptShots({
   onShots,
   onMake,
   onOpenScene,
+  coverage,
+  findings = [],
+  onDecide,
 }: {
   scene: ScriptScene;
   sceneIndex: number;
@@ -57,6 +62,11 @@ export default function SceneScriptShots({
   onShots: (next: PlannedShot[]) => void;
   onMake: (shot: PlannedShot, shotIndex: number) => void;
   onOpenScene: (sceneId: string) => void;
+  /** "5 planned · 3 made · 1 kept · 1 in the Cut" (S5). */
+  coverage?: string;
+  /** What looks missing from its coverage, with your decision about each (S5). */
+  findings?: ReadonlyArray<{ finding: ContinuityFinding; decision?: FindingDecision }>;
+  onDecide?: (id: string, kind: FindingDecisionKind | null) => void;
 }) {
   const number = scene.number ?? String(sceneIndex + 1);
   const change = (id: string, patch: Partial<PlannedShot>) =>
@@ -84,7 +94,10 @@ export default function SceneScriptShots({
         <h5 className="type-caption font-medium">Shots</h5>
         {shots.length ? (
           <span className="type-caption text-[var(--text-muted)]">
-            {shots.length} · about {seconds}s
+            about {seconds}s
+            {coverage ? (
+              <span data-testid={`script-coverage-${scene.id}`}> · {coverage}</span>
+            ) : null}
           </span>
         ) : (
           <Button
@@ -212,6 +225,51 @@ export default function SceneScriptShots({
             );
           })}
         </ol>
+      ) : null}
+      {findings.length ? (
+        <ul className="space-y-1" data-testid={`script-findings-${scene.id}`}>
+          {findings.map(({ finding, decision }) => (
+            <li
+              key={finding.id}
+              className="flex flex-wrap items-center gap-2"
+              data-testid={`script-finding-${finding.rule}`}
+              data-decision={decision?.decision ?? 'open'}
+            >
+              <span
+                className={`type-caption min-w-0 flex-1 ${decision?.decision === 'dismissed' ? 'text-[var(--text-muted)] line-through' : ''}`}
+              >
+                <span className="font-medium">{finding.evidence}</span>
+                {decision?.decision === 'accepted' ? ' · you said it’s real' : ''}
+                {decision ? '' : ` — ${finding.suggestion}`}
+              </span>
+              {decision ? (
+                <Button size="sm" variant="ghost" onClick={() => onDecide?.(finding.id, null)}>
+                  Undo
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid={`script-finding-dismiss-${finding.rule}`}
+                    title="It's fine — stop flagging it"
+                    onClick={() => onDecide?.(finding.id, 'dismissed')}
+                  >
+                    It&apos;s fine
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    title="It's real — keep it on the list, marked"
+                    onClick={() => onDecide?.(finding.id, 'accepted')}
+                  >
+                    It&apos;s real
+                  </Button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {shots.length && shots.length < SHOTS_PER_SCENE ? (
         <Button

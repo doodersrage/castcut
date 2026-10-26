@@ -456,6 +456,19 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
       { timeout: 30_000 }
     )
     .toBe('morning|kitchen at home|Coffee first.|waist|true|true');
+
+  // Coverage (S5): how far the scene has got, and what looks missing — decided like Cut's.
+  await expect(page.getByTestId('script-coverage')).toContainText(
+    '1 of 1 scene planned · 1 shot made · 0 kept · 0 in the Cut · 1 to look at'
+  );
+  await expect(page.getByTestId('script-coverage-int-kitchen-morning')).toContainText(
+    '4 planned · 1 made · 0 kept · 0 in the Cut'
+  );
+  const nothingKept = page.getByTestId('script-finding-coverage-kept');
+  await expect(nothingKept).toContainText('1 shot made, none kept');
+  await page.getByTestId('script-finding-dismiss-coverage-kept').click();
+  await expect(nothingKept).toHaveAttribute('data-decision', 'dismissed');
+  await expect(page.getByTestId('script-coverage')).not.toContainText('to look at');
 });
 
 // R4: a take says how it was made — read from its Gallery entry.

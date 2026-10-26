@@ -1,6 +1,16 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  decideFinding,
+  findingDecisionMap,
+  loadFindingDecisions,
+  subscribeFindingDecisions,
+  undecideFinding,
+  type FindingDecision,
+} from '@/lib/checks/finding-decisions';
+import { coverageFindings, coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
 import {
@@ -41,6 +51,16 @@ import {
   type ScriptPlaceChoice,
 } from '@/lib/day/script-cast';
 import type { SavedScript } from '@/lib/day/scene-scripts';
+
+const NO_DECISIONS: FindingDecision[] = [];
+let decisionsCache: { key: string; value: FindingDecision[] } | null = null;
+/** The stored decisions, the same array while they are unchanged (useSyncExternalStore). */
+function decisionsSnapshot(): FindingDecision[] {
+  const value = loadFindingDecisions();
+  const key = JSON.stringify(value);
+  if (decisionsCache?.key !== key) decisionsCache = { key, value };
+  return decisionsCache.value;
+}
 
 const PLACE_LABELS: Record<ScriptPlaceChoice, string> = {
   home: 'Her home',
@@ -214,10 +234,13 @@ function Element({ element }: { element: ScriptElement }) {
 function SceneReading({
   scene,
   index,
+  meta,
   children,
 }: {
   scene: ScriptScene;
   index: number;
+  /** A short status after the heading (an open script's coverage). */
+  meta?: string;
   children?: ReactNode;
 }) {
   const label = scene.heading || `Beat ${index + 1}`;
@@ -237,6 +260,7 @@ function SceneReading({
             scene.dayPart,
             scene.speakers.length ? scene.speakers.join(', ') : '',
             `lines ${scene.from}–${scene.to}`,
+            meta,
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -255,8 +279,10 @@ function SceneReading({
 function Reading({
   parsed,
   shotsFor,
+  metaFor,
 }: {
   parsed: ParsedScript;
+  metaFor?: (scene: ScriptScene) => string;
   /** An open script's shot list under each scene (S4). */
   shotsFor?: (scene: ScriptScene, index: number) => ReactNode;
 }) {
@@ -276,7 +302,7 @@ function Reading({
       </p>
       <div className="space-y-1">
         {parsed.scenes.map((scene, index) => (
-          <SceneReading key={scene.id} scene={scene} index={index}>
+          <SceneReading key={scene.id} scene={scene} index={index} meta={metaFor?.(scene)}>
             {shotsFor?.(scene, index)}
           </SceneReading>
         ))}
@@ -327,6 +353,48 @@ export default function SceneScripts({
   const open = scripts.find(script => script.id === openId) ?? null;
   const openParsed = useMemo(() => (open ? parseScript(open.source) : null), [open]);
   const draftParsed = useMemo(() => (draft?.trim() ? parseScript(draft) : null), [draft]);
+  // Coverage (S5): how far each planned scene has got, and what looks missing.
+  const decisions = useSyncExternalStore(
+    subscribeFindingDecisions,
+    decisionsSnapshot,
+    () => NO_DECISIONS
+  );
+  const coverage = useMemo(() => {
+    if (!open || !openParsed) return null;
+    const cut = loadSettingsCache().tools.cut;
+    const decided = findingDecisionMap(decisions);
+    const byScene = new Map(
+      openParsed.scenes.map(scene => {
+        const shots = shotsForScene(open.shots, scene.id);
+        const counts = sceneCoverage(shots, scenes, cut);
+        const findings = coverageFindings({
+          scriptId: open.id,
+          scene,
+          shots,
+          coverage: counts,
+        }).map(finding => ({ finding, decision: decided.get(finding.id) }));
+        return [scene.id, { counts, findings }] as const;
+      })
+    );
+    const all = [...byScene.values()];
+    const planned = all.filter(entry => entry.counts.planned).length;
+    const sum = (key: 'made' | 'kept' | 'inCut') =>
+      all.reduce((total, entry) => total + entry.counts[key], 0);
+    const open_ = all.reduce(
+      (total, entry) => total + entry.findings.filter(item => !item.decision).length,
+      0
+    );
+    const total = [
+      `${planned} of ${all.length} scene${all.length === 1 ? '' : 's'} planned`,
+      `${sum('made')} shot${sum('made') === 1 ? '' : 's'} made`,
+      `${sum('kept')} kept`,
+      `${sum('inCut')} in the Cut`,
+      open_ ? `${open_} to look at` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return { byScene, total };
+  }, [decisions, open, openParsed, scenes]);
 
   const keep = () => {
     if (!draft) return;
@@ -462,12 +530,27 @@ export default function SceneScripts({
               if (patch) update(patch);
             }}
           />
+          {coverage ? (
+            <p className="type-caption" data-testid="script-coverage">
+              <span className="font-medium">Coverage:</span> {coverage.total}
+            </p>
+          ) : null}
           <Reading
             parsed={openParsed}
+            metaFor={scene => {
+              const counts = coverage?.byScene.get(scene.id)?.counts;
+              return counts?.planned
+                ? `${counts.made}/${counts.planned} made · ${counts.kept} kept`
+                : '';
+            }}
             shotsFor={(scene, sceneIndex) => {
               const sceneShots = shotsForScene(open.shots, scene.id);
+              const sceneCov = coverage?.byScene.get(scene.id);
               return (
                 <SceneScriptShots
+                  coverage={sceneCov ? coverageSummary(sceneCov.counts) : ''}
+                  findings={sceneCov?.findings}
+                  onDecide={(id, kind) => (kind ? decideFinding(id, kind) : undecideFinding(id))}
                   scene={scene}
                   sceneIndex={sceneIndex}
                   shots={sceneShots}

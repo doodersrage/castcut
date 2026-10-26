@@ -21,6 +21,9 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'outfit-jump': 'Cut: outfit jump',
   'look-mismatch': 'Cut: look mismatch',
   'plate-drift': 'Cut: plate drift',
+  'coverage-establishing': 'Script: no establishing shot',
+  'coverage-reaction': 'Script: no reaction',
+  'coverage-kept': 'Script: nothing kept',
 };
 
 const RULES = Object.keys(CONTINUITY_RULE_LABELS) as ContinuityRule[];

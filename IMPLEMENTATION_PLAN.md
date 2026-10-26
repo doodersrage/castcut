@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S4** are done; next: **S5**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **S1**–**S5** are done; next: **S6**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -742,9 +742,23 @@ replaces Scenes or Story.
   - An empty Scene made from a shot can still be pruned by the per-Cast scene limit
     (`cappedCastScenes`). The shot then shows Planned again.
 
-**S5 — Coverage.** Per script scene: shots planned, made into Scenes, with a kept take, in the
-Cut. Suggestions (no establishing shot, a dialogue exchange without a reaction, nothing
-approved) are findings in C1's shape, so they review the same way.
+**S5 — Coverage.** _Done 2026-10-26._
+
+- `src/lib/day/script-coverage.ts`: `sceneCoverage` counts, per script scene, the shots
+  planned, made (their Scene still exists), with takes, kept, and in Cut's current edit
+  (`sceneCutUse`).
+- `coverageFindings` turns gaps into findings in C1's shape, with severity `warns`, source
+  "Coverage", and subject `script:<script id>:<scene id>`. A scene with no shots planned gets
+  none. The new rules are in `checks/findings.ts` and labelled in Check quality:
+  - `coverage-establishing`: no establishing shot.
+  - `coverage-reaction`: a dialogue exchange with no reaction shot.
+  - `coverage-kept`: shots made, none kept.
+- UI: an open script shows a **Coverage** line for the whole script ("n of m scenes planned · …
+  · k to look at"), and each scene shows its counts in its heading and shot list.
+  - The findings are listed with **It's fine** / **It's real** / **Undo**: the same decisions as
+    Cut's Continuity list (synced, and counted by Settings → Check quality).
+- Tests: `day/script-coverage.test.ts` (2) and the S4 e2e (extended).
+- Not done: no coverage view outside the Script section (Cut, Production Home).
 
 **S6 — Safe reimport.** A new version of the script is matched to the stored one by scene id
 (heading similarity as the fallback), with a reconciliation screen: new, changed, removed.

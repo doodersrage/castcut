@@ -23,7 +23,13 @@ export type ContinuityRule =
   /** The shot was rendered in another look than the one it uses now. */
   | 'look-mismatch'
   /** The look's plate failed the likeness guard. */
-  | 'plate-drift';
+  | 'plate-drift'
+  /** Script coverage (day/script-coverage.ts, M3 S5): a planned scene has no establishing shot. */
+  | 'coverage-establishing'
+  /** A dialogue exchange with no reaction shot. */
+  | 'coverage-reaction'
+  /** Shots made into Scenes, none with a kept take. */
+  | 'coverage-kept';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */
@@ -35,7 +41,7 @@ export type ContinuityFinding = {
   /** `${subject}:${rule}` — stable, so a decision about it survives a reload. */
   id: string;
   rule: ContinuityRule;
-  /** What it is about: a render's Gallery prompt id, or a Cut shot's key. */
+  /** What it is about: a render's Gallery prompt id, a Cut shot's key, or a script scene. */
   subject: string;
   severity: ContinuitySeverity;
   /** The check that found it, as the app calls it. */
