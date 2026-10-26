@@ -18,6 +18,9 @@ import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
+import CutTracks from '@/components/cut/CutTracks';
+import FilmLoudness from '@/components/cut/FilmLoudness';
+import type { CutTrack } from '@/lib/video/cut-sound';
 import CutVersions from '@/components/cut/CutVersions';
 import CutGeneratePanel from '@/components/cut/CutGeneratePanel';
 import { useCutPreview } from '@/hooks/useCutPreview';
@@ -62,11 +65,14 @@ export default function CutRoom() {
         }
       : null;
   // The monitor: the cut rebuilt a moment after each edit, the playhead kept.
+  // Solo (M4 F4): hear one track in the monitor — not saved, not encoded.
+  const [solo, setSolo] = useState<CutTrack | null>(null);
   const preview = useCutPreview({
     shots: vm.previewShots,
     value: vm.options,
     titleCard,
     live: true,
+    solo,
   });
   const activeKey = preview.keyAt(preview.time);
   // Split at the playhead: the clip under it, where in its file the playhead is.
@@ -568,6 +574,15 @@ export default function CutRoom() {
               onPick={pick}
               onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
             />
+            <div className="mt-2">
+              <CutTracks
+                sound={vm.options.sound}
+                solo={solo}
+                disabled={busy}
+                onMute={vm.setTrackMuted}
+                onSolo={setSolo}
+              />
+            </div>
             <p className="type-caption mt-2 text-[var(--text-muted)]">
               Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+← →
               move the shot · S split · I / O trim in / out · F freeze frame · D duplicate · Delete
@@ -987,6 +1002,7 @@ export default function CutRoom() {
                       entry={entry}
                       characterName={vm.dayCast?.name || vm.storyName || 'Cast'}
                     />
+                    {url ? <FilmLoudness url={url} entryId={entry.id} /> : null}
                   </li>
                 );
               })}

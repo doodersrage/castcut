@@ -19,7 +19,89 @@ export type CutSoundOptions = {
   ambienceName?: string;
   /** Ambience gain, 0–1 (default 0.35). */
   ambienceLevel?: number;
+  /** Tracks muted (M4 F4): silent in the monitor and left out of the encode. */
+  mutedTracks?: CutTrack[];
 };
+
+/**
+ * The cut's sound tracks as the encode mixes them (video-server-encode.ts): the music bed, the
+ * ambience, the clips' own sound (talking clips' lines with it) and the narration voice-over.
+ */
+export type CutTrack = 'music' | 'ambience' | 'clips' | 'narration';
+export const CUT_TRACKS: readonly CutTrack[] = ['clips', 'narration', 'music', 'ambience'];
+export const CUT_TRACK_LABELS: Record<CutTrack, string> = {
+  clips: 'Clip sound',
+  narration: 'Narration',
+  music: 'Music',
+  ambience: 'Ambience',
+};
+
+/**
+ * A track's gain from mute and solo: 0 or 1. Solo (one track, the monitor only — never saved,
+ * never encoded) silences every other track; a muted track is silent unless it is the solo.
+ */
+export function cutTrackGain(
+  sound: Pick<CutSoundOptions, 'mutedTracks'> | null | undefined,
+  track: CutTrack,
+  solo?: CutTrack | null
+): 0 | 1 {
+  if (solo) return solo === track ? 1 : 0;
+  return sound?.mutedTracks?.includes(track) ? 0 : 1;
+}
+
+/** The muted tracks with `track` muted or not. */
+export function withTrackMuted(
+  sound: CutSoundOptions | null | undefined,
+  track: CutTrack,
+  muted: boolean
+): CutSoundOptions {
+  const rest = (sound?.mutedTracks ?? []).filter(entry => entry !== track);
+  const mutedTracks = muted ? [...rest, track] : rest;
+  const { mutedTracks: _old, ...base } = sound ?? {};
+  return mutedTracks.length ? { ...base, mutedTracks } : base;
+}
+
+/**
+ * What the encode gets with the muted tracks left out: the music at level 0, every clip's own
+ * sound at 0 (`clipKeys`; the lines level can't go below half), no ambience file, no narration.
+ * `left` names them, for the status line.
+ */
+export function withMutedTracksLeftOut<
+  O extends {
+    musicLevel?: number;
+    narrate?: boolean;
+    sound?: CutSoundOptions;
+    shotEdits?: { shots?: Record<string, { volume?: number } & Record<string, unknown>> } & Record<
+      string,
+      unknown
+    >;
+  },
+>(options: O, clipKeys: readonly string[] = []): { options: O; left: CutTrack[] } {
+  const muted = options.sound?.mutedTracks ?? [];
+  if (!muted.length) return { options, left: [] };
+  const next: O = { ...options };
+  const left: CutTrack[] = [];
+  if (muted.includes('music')) {
+    next.musicLevel = 0;
+    left.push('music');
+  }
+  if (muted.includes('clips') && clipKeys.length) {
+    const shots = { ...(options.shotEdits?.shots ?? {}) };
+    for (const key of clipKeys) shots[key] = { ...shots[key], volume: 0 };
+    next.shotEdits = { ...(options.shotEdits ?? {}), shots };
+    left.push('clips');
+  }
+  if (muted.includes('narration') && options.narrate) {
+    next.narrate = false;
+    left.push('narration');
+  }
+  if (muted.includes('ambience') && options.sound?.ambienceUrl) {
+    const { ambienceUrl: _url, ambienceName: _name, ...sound } = options.sound;
+    next.sound = sound;
+    left.push('ambience');
+  }
+  return { options: next, left };
+}
 
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>
   typeof value === 'number' && Number.isFinite(value)
@@ -46,6 +128,10 @@ export function normalizeCutSound(value: unknown): CutSoundOptions | null {
   if (typeof v.ambienceName === 'string' && v.ambienceName.trim())
     out.ambienceName = v.ambienceName.trim().slice(0, 120);
   if (v.ambienceLevel !== undefined) out.ambienceLevel = normalizeAmbienceLevel(v.ambienceLevel);
+  const muted = Array.isArray(v.mutedTracks)
+    ? CUT_TRACKS.filter(track => (v.mutedTracks as unknown[]).includes(track))
+    : [];
+  if (muted.length) out.mutedTracks = muted;
   return Object.keys(out).length ? out : null;
 }
 

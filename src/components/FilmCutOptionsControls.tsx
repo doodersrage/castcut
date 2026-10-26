@@ -816,6 +816,8 @@ function SoundMixControls({
         titleCard: value.titles === true,
         musicLevel: value.musicLevel,
         voiceLevel: value.voiceLevel,
+        muteMusic: value.sound?.mutedTracks?.includes('music'),
+        muteLines: value.sound?.mutedTracks?.includes('clips'),
         onEnded: () => {
           previewRef.current = null;
           setPreviewState('idle');

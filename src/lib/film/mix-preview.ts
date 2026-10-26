@@ -95,6 +95,9 @@ export async function playMixPreview(input: {
   titleCard: boolean;
   musicLevel?: number;
   voiceLevel?: number;
+  /** Muted tracks (M4 F4): the music, the clips' lines. */
+  muteMusic?: boolean;
+  muteLines?: boolean;
   onEnded?: () => void;
 }): Promise<MixPreview> {
   const Ctx =
@@ -114,17 +117,25 @@ export async function playMixPreview(input: {
   });
   const context = new Ctx();
   const [bed, ...voices] = await Promise.all([
-    input.audioBedUrl?.trim() ? decode(context, input.audioBedUrl) : Promise.resolve(null),
-    ...plan.lines.map(line => decode(context, input.shots[line.shot]!.url)),
+    input.audioBedUrl?.trim() && !input.muteMusic
+      ? decode(context, input.audioBedUrl)
+      : Promise.resolve(null),
+    ...(input.muteLines ? [] : plan.lines).map(line =>
+      decode(context, input.shots[line.shot]!.url)
+    ),
   ]);
-  const heard = plan.lines
+  const heard = (input.muteLines ? [] : plan.lines)
     .map((line, index) => ({ line, buffer: voices[index] ?? null }))
     .filter((entry): entry is { line: MixPlan['lines'][number]; buffer: AudioBuffer } =>
       Boolean(entry.buffer)
     );
   if (!bed && heard.length === 0) {
     void context.close();
-    throw new Error('Nothing to hear yet — add music or a talking clip.');
+    throw new Error(
+      input.muteMusic || input.muteLines
+        ? 'Nothing to hear — the music or the lines are muted (Tracks, under the timeline).'
+        : 'Nothing to hear yet — add music or a talking clip.'
+    );
   }
   const at = context.currentTime + 0.1;
   const sources: AudioScheduledSourceNode[] = [];

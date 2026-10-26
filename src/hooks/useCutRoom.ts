@@ -149,6 +149,12 @@ import {
   type FindingDecisionKind,
 } from '@/lib/checks/finding-decisions';
 import { probeMediaDurationSec } from '@/lib/film/cut-media';
+import {
+  CUT_TRACK_LABELS,
+  withMutedTracksLeftOut,
+  withTrackMuted,
+  type CutTrack,
+} from '@/lib/video/cut-sound';
 import { checkMediaUrls } from '@/lib/film/cut-media-check';
 import {
   missingCutMedia,
@@ -1478,6 +1484,18 @@ export function useCutRoom() {
     },
     [relink]
   );
+  /** Mute a sound track (M4 F4): silent in the monitor, left out of the encode; undoable. */
+  const setTrackMuted = useCallback(
+    (track: CutTrack, muted: boolean) => {
+      const now = stateRef.current.options;
+      commitEdit(
+        { options: { ...now, sound: withTrackMuted(now.sound, track, muted) } },
+        true,
+        false
+      );
+    },
+    [commitEdit]
+  );
   /** "Back to the earlier take": the take and trim the shot had before Use it here. */
   const backToEarlierTake = useCallback(
     (key: string) => {
@@ -1618,7 +1636,12 @@ export function useCutRoom() {
 
   const cutNow = useCallback(
     async (excludeKeys: string[] = []) => {
-      const edits = options.shotEdits;
+      // Muted tracks (M4 F4) are left out of the encode, and the status says so.
+      const { options: cutOptions, left: mutedLeft } = withMutedTracksLeftOut(
+        options,
+        shots.filter(shot => shot.kind === 'clip').map(shot => shot.key)
+      );
+      const edits = cutOptions.shotEdits;
       const picked = applyCutShotEdits(
         shots,
         excludeKeys.length > 0
@@ -1663,8 +1686,8 @@ export function useCutRoom() {
       try {
         // Widescreen stills: Day's "widescreen film" setting or the Widen option.
         const widen =
-          filmShapeOf(options) === 'wide' &&
-          ((withDay && day.toolSettings.widescreenFilm === true) || options.widen === true);
+          filmShapeOf(cutOptions) === 'wide' &&
+          ((withDay && day.toolSettings.widescreenFilm === true) || cutOptions.widen === true);
         if (widen) {
           for (const [index, shot] of picked.entries()) {
             if (shot.kind !== 'still') continue;
@@ -1713,7 +1736,7 @@ export function useCutRoom() {
           ).shots.map(shot => [cutRoomKey('day', shot.key), shot])
         );
         const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
-        const narrateAll = options.narrate === true;
+        const narrateAll = cutOptions.narrate === true;
         const storyMan = getCharacter(storyCast?.id ?? '')?.traits?.sex === 'man';
         for (const [index, shot] of picked.entries()) {
           const { source, key } = splitCutRoomKey(shot.key);
@@ -1749,7 +1772,7 @@ export function useCutRoom() {
         }
         // "Previously on": the season's last Day episode, else the Cast's last Story.
         const recap =
-          cast && options.previouslyOn !== false
+          cast && cutOptions.previouslyOn !== false
             ? withDay
               ? previouslyOnShots(loadPlaySeriesStore(), cast.id, name)
               : storyPreviouslyOnShots(loadRoleplayLibrary(), {
@@ -1765,25 +1788,25 @@ export function useCutRoom() {
           characterId: cast?.id ?? '',
           characterName: name,
           lookId: cast?.activeLookId ?? shared.activeLookId,
-          crossfadeSec: options.crossfadeSec,
-          resolution: filmResolutionForCutOptions(options),
-          audioBedUrl: options.audioBedUrl.trim() || undefined,
-          musicLevel: options.musicLevel,
-          voiceLevel: options.voiceLevel,
-          look: options.look,
-          lookStrength: options.lookStrength,
-          matchShots: options.matchShots !== false,
-          followFaces: options.followFaces !== false,
-          smoothMotion: options.smoothMotion === true,
-          sharpen: options.sharpen === true,
-          logo: options.logoUrl?.trim()
-            ? { url: options.logoUrl.trim(), corner: options.logoCorner ?? 'br' }
+          crossfadeSec: cutOptions.crossfadeSec,
+          resolution: filmResolutionForCutOptions(cutOptions),
+          audioBedUrl: cutOptions.audioBedUrl.trim() || undefined,
+          musicLevel: cutOptions.musicLevel,
+          voiceLevel: cutOptions.voiceLevel,
+          look: cutOptions.look,
+          lookStrength: cutOptions.lookStrength,
+          matchShots: cutOptions.matchShots !== false,
+          followFaces: cutOptions.followFaces !== false,
+          smoothMotion: cutOptions.smoothMotion === true,
+          sharpen: cutOptions.sharpen === true,
+          logo: cutOptions.logoUrl?.trim()
+            ? { url: cutOptions.logoUrl.trim(), corner: cutOptions.logoCorner ?? 'br' }
             : undefined,
-          sound: options.sound ?? undefined,
-          stillMotion: options.stillMotion !== false,
-          captions: options.titles === true,
-          subtitles: options.subtitles !== false,
-          titleCard: options.titles
+          sound: cutOptions.sound ?? undefined,
+          stillMotion: cutOptions.stillMotion !== false,
+          captions: cutOptions.titles === true,
+          subtitles: cutOptions.subtitles !== false,
+          titleCard: cutOptions.titles
             ? {
                 ...(withDay && cast
                   ? nextDayFilmTitleCard(loadPlaySeriesStore(), cast.id, name)
@@ -1791,8 +1814,8 @@ export function useCutRoom() {
                 ...(recap.length ? { afterShots: recap.length } : {}),
               }
             : null,
-          length: options.length,
-          beatSnap: options.beatSnap,
+          length: cutOptions.length,
+          beatSnap: cutOptions.beatSnap,
           onProgress: progress => setStatus(progress.label),
         });
         downloadFilmBlob(result.blob, result.filename);
@@ -1828,7 +1851,16 @@ export function useCutRoom() {
             }),
           });
         }
-        const notes = result.cutNotes.length ? ` · ${result.cutNotes.join(' · ')}` : '';
+        const notes = [
+          ...result.cutNotes,
+          ...(mutedLeft.length
+            ? [
+                `left out (muted): ${mutedLeft.map(track => CUT_TRACK_LABELS[track].toLowerCase()).join(', ')}`,
+              ]
+            : []),
+        ]
+          .map(note => ` · ${note}`)
+          .join('');
         setStatus(
           cast && result.persisted
             ? `Saved ${result.filename} to ${cast.name} (${result.encodePath} encode${notes}) and started the download.`
@@ -2234,6 +2266,7 @@ export function useCutRoom() {
     relinkTakesFor,
     relink,
     relinkFromGallery,
+    setTrackMuted,
     keepPinned,
     togglePin,
     options,

@@ -35,10 +35,12 @@ import {
   type ShotColourStats,
 } from '@/lib/video/cut-look';
 import {
+  cutTrackGain,
   musicFadeGainAt,
   normalizeAmbienceLevel,
   normalizeMusicStartSec,
   soundOverlap,
+  type CutTrack,
 } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from '@/lib/film/cut-media';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film/cut-plan';
@@ -174,8 +176,10 @@ export function useCutPreview(input: {
   titleCard?: FilmTitleCard | null;
   /** Rebuild after edits (the Cut page's monitor); otherwise built once. */
   live?: boolean;
+  /** Hear only this track (M4 F4, cut-sound.ts); muted tracks are silent either way. */
+  solo?: CutTrack | null;
 }) {
-  const { shots, value, titleCard, live = false } = input;
+  const { shots, value, titleCard, live = false, solo = null } = input;
   const shape = filmShapeOf(value);
   const size = CUT_PREVIEW_CANVAS[shape];
   const titles = value.titles === true;
@@ -690,6 +694,13 @@ export function useCutPreview(input: {
   const syncMedia = useCallback(
     (t: number, running: boolean) => {
       if (!loaded) return;
+      // Mute / solo (M4 F4): each track's gain, 0 or 1.
+      const gain = {
+        clips: cutTrackGain(value.sound, 'clips', solo),
+        narration: cutTrackGain(value.sound, 'narration', solo),
+        music: cutTrackGain(value.sound, 'music', solo),
+        ambience: cutTrackGain(value.sound, 'ambience', solo),
+      };
       const on = previewFrameAt(loaded.timeline, t);
       const playingClips = new Set<number>();
       for (const { item, local } of on) {
@@ -706,7 +717,7 @@ export function useCutPreview(input: {
         // A J / L clip's sound comes from its own player (below), so the picture plays silent.
         video.volume = overlapOf(item)
           ? 0
-          : Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own));
+          : Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own * gain.clips));
         if (Math.abs(video.currentTime - target) > 0.3) video.currentTime = target;
         if (running && video.paused && t < loaded.timeline.totalSec)
           void video.play().catch(() => undefined);
@@ -734,7 +745,10 @@ export function useCutPreview(input: {
         if (t >= from && t < to) {
           overlapping = true;
           const own = shot.volume ?? 1;
-          audio.volume = Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own));
+          audio.volume = Math.min(
+            1,
+            Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own * gain.clips)
+          );
           const target = item.fromSec + (t - item.startSec);
           if (Math.abs(audio.currentTime - target) > 0.3) audio.currentTime = target;
           if (running && audio.paused) void audio.play().catch(() => undefined);
@@ -744,7 +758,7 @@ export function useCutPreview(input: {
         }
       }
       // Narration: from its shot's start to the line's end (it may run on past the shot).
-      let speaking = overlapping;
+      let narrating = false;
       for (const shot of mediaRef.current.voices.keys()) {
         const voice = mediaRef.current.voices.get(shot);
         if (!voice) continue;
@@ -752,8 +766,8 @@ export function useCutPreview(input: {
         const local = start === undefined ? -1 : t - start;
         const length = Number.isFinite(voice.duration) ? voice.duration : 0;
         if (local >= 0 && local < length) {
-          speaking = true;
-          voice.volume = Math.min(1, normalizeVoiceLevel(value.voiceLevel));
+          narrating = true;
+          voice.volume = Math.min(1, normalizeVoiceLevel(value.voiceLevel)) * gain.narration;
           if (Math.abs(voice.currentTime - local) > 0.3) voice.currentTime = local;
           if (running && voice.paused) void voice.play().catch(() => undefined);
           if (!running && !voice.paused) voice.pause();
@@ -764,8 +778,12 @@ export function useCutPreview(input: {
       const fade = musicFadeGainAt(t, loaded.timeline.totalSec, value.sound);
       const bed = mediaRef.current.bed;
       if (bed) {
-        const music = Math.min(1, normalizeMusicLevel(value.musicLevel)) * fade;
-        bed.volume = playingClips.size > 0 || speaking ? music * DUCK : music;
+        const music = Math.min(1, normalizeMusicLevel(value.musicLevel)) * fade * gain.music;
+        // The music ducks under what is heard: a muted clip or voice doesn't duck it.
+        const ducked =
+          (gain.clips > 0 && (playingClips.size > 0 || overlapping)) ||
+          (gain.narration > 0 && narrating);
+        bed.volume = ducked ? music * DUCK : music;
         // From the music's start point (cut-sound.ts), as the encode trims it.
         const at = t + normalizeMusicStartSec(value.sound?.musicStartSec);
         if (Number.isFinite(bed.duration) && at >= bed.duration) {
@@ -794,12 +812,12 @@ export function useCutPreview(input: {
         });
         syncLoopedAudio(
           ambience,
-          Math.min(1, normalizeAmbienceLevel(value.sound?.ambienceLevel) * fadeOut),
+          Math.min(1, normalizeAmbienceLevel(value.sound?.ambienceLevel) * fadeOut) * gain.ambience,
           running && t < loaded.timeline.totalSec
         );
       }
     },
-    [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound]
+    [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound, solo]
   );
 
   // The clock: draw every frame while playing.

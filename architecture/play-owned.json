@@ -11,6 +11,7 @@
   "src/app/api/review/[token]/route.ts",
   "src/app/api/film/review/route.ts",
   "src/app/api/film/check/route.ts",
+  "src/app/api/film/loudness/route.ts",
   "src/app/api/film/export/route.ts",
   "src/app/api/film/score/route.ts",
   "src/app/api/play-checks/prepare/route.ts",

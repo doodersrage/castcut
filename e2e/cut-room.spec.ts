@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
-import { seedSettingsCacheOnNextLoad } from './helpers/idb';
+import { replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
 
@@ -464,6 +464,82 @@ test('missing media: a gone file is listed, and relinking to another take fixes 
     'src',
     thumb
   );
+});
+
+// M4 F4: mute and solo per track; a muted track is saved with the cut and said.
+test('tracks: mute and solo in the monitor, and a muted track is kept with the cut', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const music = page.getByTestId('cut-track-music');
+  await expect(music).toHaveAttribute('data-audible', 'true', { timeout: 30_000 });
+  // Solo the narration: only it is heard.
+  await page.getByTestId('cut-track-solo-narration').click();
+  await expect(music).toHaveAttribute('data-audible', 'false');
+  await expect(page.getByTestId('cut-track-narration')).toHaveAttribute('data-audible', 'true');
+  await page.getByTestId('cut-track-solo-narration').click();
+  await expect(music).toHaveAttribute('data-audible', 'true');
+  // Mute the music: silent, said, and undoable.
+  await page.getByTestId('cut-track-mute-music').click();
+  await expect(music).toHaveAttribute('data-audible', 'false');
+  await expect(page.getByTestId('cut-track-mute-music')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('cut-tracks-note')).toContainText('left out of the cut');
+  await page.getByTestId('cut-undo').click();
+  await expect(music).toHaveAttribute('data-audible', 'true');
+});
+
+// M4 F4: a film's loudness, measured on asking and said against a target.
+test('a film’s loudness is measured and said against the web target', async ({ page }) => {
+  await seed(page, false);
+  await page.route('**/api/film/loudness', route =>
+    route.fulfill({
+      json: { ok: true, loudness: { integratedLufs: -21.7, rangeLu: 0, truePeakDbtp: -14.5 } },
+    })
+  );
+  await gotoStable(page, '/cut');
+  const now = Date.now();
+  await replaceGalleryIdb(page, [
+    {
+      id: 'e2e-cut-film-1',
+      promptId: 'film-e2e-cut-film-1',
+      prompt: 'Assembled film · Rae',
+      tool: 'day',
+      derivedKind: 'film',
+      characterId: CAST,
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      queuedAt: now,
+      completedAt: now,
+      images: [{ filename: 'rae-day.mp4', subfolder: '', type: 'output', format: 'video/mp4' }],
+    },
+  ]);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('film-loudness-measure').first().click({ timeout: 30_000 });
+  const result = page.getByTestId('film-loudness-result').first();
+  await expect(result).toContainText('−21.7 LUFS');
+  await expect(result).toContainText('7.7 LU quieter than −14 LUFS');
+  await page.getByLabel('Loudness target').first().selectOption('broadcast');
+  await expect(result).toContainText('right for broadcast');
+});
+
+// M4 F4: the real measurement (ffmpeg ebur128) on a fixture clip; skipped where the server has
+// no ffmpeg.
+test('the loudness route measures a real clip', async ({ page }) => {
+  const clip = readFileSync(join(__dirname, 'fixtures', 'talk-2s.mp4'));
+  const response = await page.request.post('/api/film/loudness', {
+    data: { url: `data:video/mp4;base64,${clip.toString('base64')}` },
+  });
+  test.skip(response.status() === 503, 'ffmpeg is not available on this server');
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    loudness: { integratedLufs: number; truePeakDbtp?: number };
+  };
+  expect(body.loudness.integratedLufs).toBeLessThan(-10);
+  expect(body.loudness.integratedLufs).toBeGreaterThan(-40);
+  expect(typeof body.loudness.truePeakDbtp).toBe('number');
 });
 
 // M2 C3: each shot's card says who is in it, where and when.

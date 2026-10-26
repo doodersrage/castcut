@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F3** are done; next: **F4**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **F1**–**F4** are done; next: **F5**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -884,11 +884,35 @@ new surfaces.
   - A Day slot's earlier stills aren't offered as takes (use the Gallery).
   - Missing media doesn't block the pre-cut check yet (F6's preflight).
 
-**F4 — Audio-track controls and loudness.**
-- Mute and solo for the music, ambience, lines, narration and clip-sound tracks, in the monitor
-  and the mix preview. A track muted at encode time is left out and said so.
-- Integrated loudness and true peak (ffmpeg `ebur128`) measured on the cut, with a target per
-  profile (F6) and a note when it is off.
+**F4 — Audio-track controls and loudness.** _Done 2026-10-26._
+
+- Tracks as the encode mixes them (`video/cut-sound.ts`): clip sound (talking clips' lines with
+  it), narration, music and ambience.
+- **Mute** (`CutSoundOptions.mutedTracks`, saved and undoable):
+  - silent in the monitor (`useCutPreview` gains) and in the mix preview;
+  - left out of the encode (`withMutedTracksLeftOut`): music at level 0, each clip's own volume
+    at 0 (the lines level can't go below 0.5), no ambience file, no narration;
+  - the cut's status line says which tracks were left out.
+- **Solo** is for the monitor only (never saved or encoded). A muted voice no longer ducks the
+  music in the monitor.
+- UI: a **Tracks** row (M / S per track) under the timeline (`components/cut/CutTracks.tsx`).
+- **Loudness**:
+  - `film/loudness.ts` parses ffmpeg's `ebur128=peak=true` summary (integrated LUFS, LRA, true
+    peak) and compares it with a target: web −14 LUFS or broadcast −23 (EBU R128), ±2 LU, peak
+    under −1 dBTP. It says what to turn up or down.
+  - `film/loudness-server.ts` and `POST /api/film/loudness` fetch the film the way the encode
+    fetches shots.
+  - **Measure loudness** sits on each film in "Your films" (`components/cut/FilmLoudness.tsx`).
+- Tests:
+  - `film/cut-audio.test.ts` (4). The parser is tested against a summary captured from ffmpeg 9.
+  - `e2e/cut-room.spec.ts`: tracks, loudness UI (route stubbed), and the real route on
+    `talk-2s.mp4` (skipped where the server has no ffmpeg).
+- Not done:
+  - No sound-effects track.
+  - Loudness isn't stored on the film or enforced: F6's profiles set the target and the
+    preflight.
+  - The measurement runs in the request (seconds for a short film; the route allows 240 s).
+    Very long films would want a background job.
 
 **F5 — Editable subtitles and SRT interchange.**
 - A subtitle track whose text and in/out (offset from the shot) you can edit apart from the
