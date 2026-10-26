@@ -12,7 +12,7 @@
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
 > is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C6** are
 > done. **M2 is complete.** The M3 plan is
-> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H2** are done; next: **H3**.
+> [Part 4](#part-4--m3-plan-screenplay-to-shot-planning-2026-10-26); **M3 (S1–S6) is done.** The M4 plan (editing, audio and delivery) is [Part 5](#part-5--m4-plan-editing-audio-and-delivery-2026-10-26): **M4 (F1–F7) is done.** The M5 plan (Film Director workspace and orchestration) is [Part 6](#part-6--m5-plan-film-director-workspace-and-orchestration-2026-10-26): **M5 (W1–W5) is done.** Release hardening is [Part 7](#part-7--release-hardening-plan-2026-10-26): **H1**–**H3** are done; next: **H4**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -1260,7 +1260,7 @@ screens exist. Release it when its core workflow survives realistic failure and 
 | Restoring a superseded take | R7 / F2 (Back to the earlier take, e2e) | — |
 | Replacing a take already used in Cut | R5 / F2 pins e2e | — |
 | Deleting or moving a referenced asset | R1b protection (unit); F3 missing media and relink (e2e) | — |
-| Backup restoration with media | R9 backup round trip (settings, Gallery records, workflows); F7 cut package with media (e2e) | The studio backup has no media files: a restore on a new machine has records whose pictures are gone |
+| Backup restoration with media | R9 backup round trip (settings, Gallery records, workflows); the **Pictures backup** (Settings → Data, commit 819d10ef: kept Gallery media, identity lock and the Cast's ComfyUI pictures as one .tar, chunked restore; `media-backup-server.test.ts` restores into a cleared data folder); F7 cut package (e2e) | — (corrected in H3: this audit first missed the Pictures backup) |
 | Opening projects from the previous version | Normalizers tolerate missing new fields (unit, per feature) | No fixture of a whole older data set opened by the current app |
 | Cancelling a batch while jobs are active | W5 run Cancel (e2e) | Queue-level batch cancel isn't covered |
 
@@ -1321,9 +1321,24 @@ version** (H2) and **Backup restoration with media** (H3).
   merge, so another device's real edit would have been moved to a version. `updateCut` now
   stamps (and writes) only a real change to sources, added shots or options.
 
-**H3 — Backup with media.** The studio backup can include the Gallery's stored media (or
-point to an archive made alongside it). A restore into a clean data folder brings back records
-and pictures. A test does that round trip.
+**H3 — Backup with media.** _Re-scoped and done 2026-10-26._
+
+- The gap in 7.1 was wrong: the media backup already exists as the **Pictures backup** in
+  Settings → Data (commit 819d10ef).
+  - It holds the Gallery's kept copies, the identity lock and the ComfyUI pictures the Cast
+    uses, in one .tar. Paths carry no owner, so it restores across sign-in setups.
+  - Restore uploads in chunks to a staging file. A truncated upload fails instead of
+    half-restoring.
+  - `media-backup-server.test.ts` covers the round trip into a cleared data folder, a second
+    restore skipping what is there, and a truncated upload.
+- What I did:
+  - While building a second, duplicate mechanism I overwrote two tracked files
+    (`storage/media-backup-client.ts`, `app/api/storage/media-backup/route.ts`). Both were
+    restored from HEAD unchanged, and the duplicate work was removed; nothing of it remains.
+  - The real gap was discoverability. The Profile page's **Full backup & restore** said "On a
+    new machine, import this JSON", with no word that the pictures are a separate backup. It
+    now says the JSON names the pictures without carrying them, and links to the Pictures
+    backup.
 
 **H4 — Logging, secrets, resources and errors.**
 - Prune `film-output/` by age on startup as well.
