@@ -17,7 +17,13 @@ export type ContinuityRule =
   | 'adult-withheld'
   | 'looks-wrong'
   /** A shot plays media whose source is gone (Cut's pins, film/cut-pins.ts). */
-  | 'source-gone';
+  | 'source-gone'
+  /** Cross-shot (film/continuity-rules.ts): the outfit or look changes with no stated change. */
+  | 'outfit-jump'
+  /** The shot was rendered in another look than the one it uses now. */
+  | 'look-mismatch'
+  /** The look's plate failed the likeness guard. */
+  | 'plate-drift';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

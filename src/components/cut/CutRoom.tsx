@@ -13,6 +13,7 @@ import CutProblemsDialog from '@/components/CutProblemsDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
 import CutContinuity from '@/components/cut/CutContinuity';
+import { shotStateSummary } from '@/lib/film/shot-state';
 import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
@@ -797,18 +798,31 @@ export default function CutRoom() {
                 const extra = vm.extras.find(entry => entry.key === shot.key);
                 if (!extra) {
                   const base = shot.key.replace(/~\d+$/, '');
+                  const state = vm.shotStates[shot.key];
+                  const summary = state ? shotStateSummary(state) : '';
                   return (
-                    <CutShotPin
-                      shotKey={shot.key}
-                      state={vm.pinStates[shot.key]}
-                      hasCopies={vm.previewShots.some(
-                        entry => entry.key !== shot.key && entry.key.replace(/~\d+$/, '') === base
-                      )}
-                      disabled={busy}
-                      onToggle={() => vm.togglePin(shot.key)}
-                      onUse={everywhere => vm.takeOffered(shot.key, everywhere)}
-                      onKeep={() => vm.keepPinned(shot.key)}
-                    />
+                    <>
+                      {summary ? (
+                        <p
+                          className="type-caption text-[var(--text-muted)]"
+                          data-testid={`cut-shot-state-${shot.key}`}
+                          title="Who, look, clothing, place, time and things in this shot"
+                        >
+                          {summary}
+                        </p>
+                      ) : null}
+                      <CutShotPin
+                        shotKey={shot.key}
+                        state={vm.pinStates[shot.key]}
+                        hasCopies={vm.previewShots.some(
+                          entry => entry.key !== shot.key && entry.key.replace(/~\d+$/, '') === base
+                        )}
+                        disabled={busy}
+                        onToggle={() => vm.togglePin(shot.key)}
+                        onUse={everywhere => vm.takeOffered(shot.key, everywhere)}
+                        onKeep={() => vm.keepPinned(shot.key)}
+                      />
+                    </>
                   );
                 }
                 return (

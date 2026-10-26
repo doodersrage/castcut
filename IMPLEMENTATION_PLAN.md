@@ -10,8 +10,8 @@
 > **R4** (how a take was made), **R5** (Cut pins its media), **R6** (Scenes merge across
 > devices), **R7** (the kept take is safe to remove), **R8** (lost jobs are found again) and
 > **R9** (the M1 gate's tests). **M1 is complete.** The M2 plan (production bible and continuity)
-> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1** and **C2** are
-> done; next: **C3**.
+> is [Part 3](#part-3--m2-plan-production-bible-and-continuity-2026-10-26): **C1**–**C4** are
+> done; next: **C5**.
 
 You are the senior software engineer responsible for improving Castcut, an existing AI filmmaking
 application. Your job is to evolve the current codebase safely, not rebuild it from scratch.
@@ -569,21 +569,27 @@ field of its own.
   Story shots' findings show in the pre-cut check but not in this list yet. The finding note
   isn't editable in the UI (the store keeps one).
 
-**C3 — Per-shot state (pure).**
+**C3 — Per-shot state (pure).** _Done 2026-10-26._
 
-- Scope: `shotState(source)` gives one record per shot, derived from what the source already
-  holds: Cast and other people, look, outfit (kit / photo / shoes), place, time of day, props a
-  beat names, line. Shown on Cut's shot card. No new storage.
-- Acceptance: Day, Scene and Story shots give the same shape.
+- `src/lib/film/shot-state.ts`: `slotShotState` (Day slot, or a Scene's slot with its own
+  clothing and partner) and `storyShotState` give `{ castId, castName, others, look, lookId,
+  outfit, shoes, place, time, props, line, changeStated }`. They read only what the source
+  already holds; names come through `resolve`. `shotStateSummary` makes one line.
+- Cut: each sourced shot's card shows it (`cut-shot-state-<key>`, `useCutRoom.shotStates`).
+- Story beats keep no place or time, so a Story shot has neither.
+- Tests: `film/shot-state.test.ts` (3), `e2e/cut-room.spec.ts` "shot state: …".
 
-**C4 — Deterministic cross-shot rules (needs C1 and C3).**
+**C4 — Deterministic cross-shot rules.** _Done 2026-10-26._
 
-- Scope: findings from comparing shots in order. An outfit or look changes between consecutive
-  shots at the same place and time with no stated change. A shot is made with another look than
-  its scene names. A Cast's look plate failed the likeness guard. A shot's media is missing.
-  These are warnings unless objectively required (ROADMAP: uncertain findings don't block).
-- Acceptance: a fixture Day with a mid-day outfit change gives one finding; a stated change
-  (`outfitByHand`) gives none.
+- `src/lib/film/continuity-rules.ts` `crossShotFindings` runs on the included shots in film
+  order:
+  - `outfit-jump`: same place, time and Cast as the shot before, but another outfit or look,
+    with no change stated (the slot's own look, or `outfitByHand`);
+  - `look-mismatch`: rendered in another look (its Gallery entry's `lookId`) than the one it
+    uses now;
+  - `plate-drift`: its look's plate failed the likeness guard (`lookPlateDrifted`).
+  All warn and none block. They join Cut's Continuity list, with decisions as in C2.
+- Tests: `film/continuity-rules.test.ts` (4), `e2e/cut-room.spec.ts` "continuity rules: …".
 
 **C5 — How good each check is (evaluation).**
 

@@ -333,6 +333,60 @@ test('pins: an edited shot keeps its take, a new one is offered, a gone scene pl
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
 });
 
+// M2 C3: each shot's card says who is in it, where and when.
+test("shot state: a Day shot's card says who, where and when", async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const morning = page.getByTestId('cut-shot-state-day:morning');
+  await expect(morning).toBeVisible({ timeout: 30_000 });
+  await expect(morning).toContainText('Rae');
+  await expect(morning).toContainText('kitchen');
+  await expect(morning).toContainText('Morning');
+  await expect(page.getByTestId('cut-shot-state-day:afternoon')).toContainText('park · Afternoon');
+});
+
+// M2 C4: two shots in a row at the same place and time, in another outfit nobody picked.
+test('continuity rules: an unstated outfit change between two kitchen mornings is flagged', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST, lockedWardrobeId: 'kit-linen-sundress' },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        slots: [{ id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' }],
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'cr-m' }],
+      },
+      scene: {
+        scenes: [
+          {
+            id: 'scene-kitchen',
+            castId: CAST,
+            name: 'Kitchen again',
+            slot: { id: 'morning', label: 'Morning', location: 'kitchen', wardrobeId: 'kit-red-robe' },
+            takes: [{ id: 'k1', promptId: 'k1', imageUrl: thumb, at: 1 }],
+            keptTakeId: 'k1',
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const jump = page.getByTestId('cut-finding-scenes:scene-kitchen:outfit-jump');
+  await expect(jump).toBeVisible({ timeout: 30_000 });
+  await expect(jump).toContainText('Same place and time');
+  await expect(page.getByTestId('cut-finding-day:morning:outfit-jump')).toHaveCount(0);
+});
+
 // M2 C2: what the checks found on the film's shots, and your decision about it, kept.
 test('continuity: a flagged shot is listed, marked fine, and stays marked after a reload', async ({
   page,

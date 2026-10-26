@@ -24,7 +24,16 @@ import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
 import { castVoiceOf } from '@/lib/cast/voice';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
-import { getCharacter, type CharacterRecord } from '@/lib/character/os';
+import { getCharacter, looksOf, type CharacterRecord } from '@/lib/character/os';
+import { crossShotFindings, type RuleShot } from '@/lib/film/continuity-rules';
+import { lookPlateDrifted } from '@/lib/character/look-plate-guard';
+import {
+  slotShotState,
+  storyShotState,
+  type ShotState,
+  type ShotStateResolve,
+} from '@/lib/film/shot-state';
+import { getCachedClothingLabel, humanizeClothingId } from '@/lib/wardrobe/clothing-catalog-client';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   filterComfyGalleryEntries,
@@ -1784,6 +1793,94 @@ export function useCutRoom() {
     void initGalleryStore();
   }, []);
 
+  // Who, look, clothing, place, time, things and line per shot (M2 C3), from each source.
+  const shotStates = useMemo(() => {
+    const resolve: ShotStateResolve = {
+      castName: id => (id?.trim() ? getCharacter(id.trim())?.name : undefined),
+      lookName: (id, lookId) => {
+        const cast = id?.trim() ? getCharacter(id.trim()) : undefined;
+        if (!cast) return undefined;
+        const looks = looksOf(cast);
+        return (looks.find(look => look.id === (lookId || cast.activeLookId)) ?? looks[0])?.name;
+      },
+      kitLabel: id => getCachedClothingLabel(id) ?? humanizeClothingId(id),
+      activeLookId: id => {
+        const cast = id?.trim() ? getCharacter(id.trim()) : undefined;
+        return cast ? (cast.activeLookId ?? looksOf(cast)[0]?.id) : undefined;
+      },
+      props: id => (id?.trim() ? getCharacter(id.trim())?.props : undefined),
+    };
+    const dayCastId =
+      day.toolSettings.stillsCharacterId?.trim() || shared.activeCharacterId?.trim() || undefined;
+    const dayOutfit = {
+      wardrobeId: shared.lockedWardrobeId,
+      customGarmentImageUrl: day.toolSettings.customGarmentImageUrl,
+      customGarmentDescription: day.toolSettings.customGarmentDescription,
+      footwear: day.toolSettings.footwear,
+    };
+    const storyCastId = resolveStoryFilmCast(story.toolSettings, storyName, false)?.id;
+    const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
+    const out: Record<string, ShotState> = {};
+    for (const shot of previewShots) {
+      const { source, key } = splitCutRoomKey(shot.key.replace(/~\d+$/, ''));
+      if (source === 'day') {
+        const slot = slots.find(entry => entry.id === key);
+        if (slot) {
+          out[shot.key] = slotShotState(
+            {
+              slot,
+              castId: dayCastId,
+              partnerCharacterId: day.toolSettings.partnerCharacterId,
+              outfit: dayOutfit,
+            },
+            resolve
+          );
+        }
+      } else if (source === 'scenes') {
+        const scene = savedScenes.find(entry => entry.id === key);
+        if (scene) {
+          out[shot.key] = slotShotState(
+            {
+              slot: scene.slot,
+              castId: scene.castId,
+              partnerCharacterId: scene.partnerCharacterId,
+              outfit: { wardrobeId: shared.lockedWardrobeId, ...scene.outfit },
+            },
+            resolve
+          );
+        }
+      } else if (source === 'story') {
+        const beat = beatByKey.get(key);
+        if (beat) {
+          out[shot.key] = storyShotState(
+            beat,
+            {
+              castId: storyCastId,
+              outfit: {
+                wardrobeId: story.toolSettings.wardrobeId,
+                customGarmentImageUrl: story.toolSettings.customGarmentImageUrl,
+                customGarmentDescription: story.toolSettings.customGarmentDescription,
+                footwear: story.toolSettings.footwear,
+              },
+            },
+            resolve
+          );
+        }
+      }
+    }
+    return out;
+  }, [
+    beats,
+    day.toolSettings,
+    previewShots,
+    savedScenes,
+    shared.activeCharacterId,
+    shared.lockedWardrobeId,
+    slots,
+    story.toolSettings,
+    storyName,
+  ]);
+
   // Continuity (M2 C2): what the checks found on the film's shots, and your decisions about it.
   const [decisions, setDecisions] = useState<FindingDecision[]>([]);
   useEffect(() => {
@@ -1794,6 +1891,46 @@ export function useCutRoom() {
     const decided = findingDecisionMap(decisions);
     const byPrompt = new Map(gallery.map(entry => [entry.promptId, entry]));
     const byId = new Map(gallery.map(entry => [entry.id, entry]));
+    // Cross-shot rules (M2 C4), on the included shots in film order.
+    const lookNameOf = (castId: string | undefined, lookId: string | undefined) => {
+      const cast = castId ? getCharacter(castId) : undefined;
+      return cast && lookId ? looksOf(cast).find(look => look.id === lookId)?.name : undefined;
+    };
+    const ruleShots: RuleShot[] = orderedCutShots(previewShots, options.shotEdits)
+      .filter(shot => options.shotEdits?.shots?.[shot.key]?.include !== false)
+      .flatMap(shot => {
+        const state = shotStates[shot.key];
+        if (!state) return [];
+        const entryId = shot.entryId?.trim();
+        const entry = entryId ? (byPrompt.get(entryId) ?? byId.get(entryId)) : undefined;
+        const renderedLookId = entry?.lookId?.trim() || undefined;
+        return [
+          {
+            key: shot.key,
+            title: shot.title,
+            state,
+            ...(renderedLookId
+              ? {
+                  renderedLookId,
+                  renderedLookName: lookNameOf(entry?.characterId ?? state.castId, renderedLookId),
+                }
+              : {}),
+            ...(shot.thumbUrl || shot.kind === 'still'
+              ? { pictureUrl: shot.thumbUrl || shot.url }
+              : {}),
+          },
+        ];
+      });
+    const cross = new Map<string, ContinuityFinding[]>();
+    for (const item of crossShotFindings(ruleShots, {
+      lookDrifted: (castId, lookId) => {
+        const cast = getCharacter(castId);
+        const look = cast ? looksOf(cast).find(entry => entry.id === lookId) : undefined;
+        return look ? lookPlateDrifted(look) : false;
+      },
+    })) {
+      cross.set(item.shotKey, [...(cross.get(item.shotKey) ?? []), item.finding]);
+    }
     const out: Array<{
       finding: ContinuityFinding;
       shotKey: string;
@@ -1828,6 +1965,7 @@ export function useCutRoom() {
       if (pinStates[shot.key]?.state === 'source-gone') {
         findings.push(sourceGoneFinding(shot.key, picture));
       }
+      if (cross.has(shot.key)) findings.push(...cross.get(shot.key)!);
       for (const finding of findings) {
         out.push({
           finding,
@@ -1838,7 +1976,7 @@ export function useCutRoom() {
       }
     }
     return out;
-  }, [dayStills, decisions, gallery, options.shotEdits, pinStates, previewShots]);
+  }, [dayStills, decisions, gallery, options.shotEdits, pinStates, previewShots, shotStates]);
   const decide = useCallback((id: string, kind: FindingDecisionKind | null, note?: string) => {
     if (kind) decideFinding(id, kind, note);
     else undecideFinding(id);
@@ -1888,6 +2026,7 @@ export function useCutRoom() {
     shots,
     previewShots,
     pinStates,
+    shotStates,
     continuity,
     decide,
     takeOffered,
