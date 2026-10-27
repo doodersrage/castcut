@@ -74,6 +74,18 @@ export function notePoseRedoTake(
 }
 
 /** Should this still be queued again for its pose? (Call after {@link notePoseRedoTake}.) */
+/**
+ * Whether a pose check missed: its score under the bar. What a take records, whether or not it
+ * is redone — M6 D12: the check stored "will redo" instead, so a miss once the redo was used up
+ * (the redo itself), or with redos off, read as a pass in the findings and the engine stats.
+ */
+export function poseCheckMissed(
+  score: number | null | undefined,
+  minPoseMatch: number = DEFAULT_MIN_POSE_MATCH
+): boolean {
+  return typeof score === 'number' && Number.isFinite(score) && score < minPoseMatch;
+}
+
 export function poseRedoDecision(input: {
   enabled: boolean;
   autoReview: boolean;
@@ -99,7 +111,7 @@ export function poseRedoDecision(input: {
   const score = input.poseScore;
   const checked = typeof score === 'number' && Number.isFinite(score);
   // A pose miss outranks the look: its redo spells the pose out (and is a new take anyway).
-  if (checked && score < (input.minPoseMatch ?? DEFAULT_MIN_POSE_MATCH)) {
+  if (poseCheckMissed(score, input.minPoseMatch)) {
     return { redo: true, reason: 'pose' };
   }
   if (input.realismMiss === true) return { redo: true, reason: 'realism' };

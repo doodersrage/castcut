@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   notePoseRedoTake,
+  poseCheckMissed,
   poseRedoDecision,
   poseRedoMark,
   poseRedoTakeId,
@@ -127,5 +128,22 @@ describe('day pose redo', () => {
     assert.equal(poseRedoTakeId({ promptId: ' abc ', imageUrl: '/a.png' }), 'abc');
     assert.equal(poseRedoTakeId({ imageUrl: '/a.png' }), '/a.png');
     assert.equal(poseRedoTakeId(undefined), '');
+  });
+});
+
+describe('poseCheckMissed', () => {
+  it('is the score against the bar, whatever the redo decides (M6 D12)', () => {
+    assert.equal(poseCheckMissed(0.27), true);
+    assert.equal(poseCheckMissed(0.76), false);
+    assert.equal(poseCheckMissed(null), false);
+    assert.equal(poseCheckMissed(Number.NaN), false);
+    assert.equal(poseCheckMissed(0.6, 0.7), true);
+    // The redo itself, missing again: no second redo, and still a miss.
+    const ledger: PoseRedoLedger = { morning: { missedTake: 'take-1', redoTake: 'take-2' } };
+    const decision = poseRedoDecision({ ...base, take: 'take-2', poseScore: 0.27, ledger });
+    assert.equal(decision.redo, false);
+    assert.equal(poseCheckMissed(0.27), true);
+    // Redos off: no redo, still a miss.
+    assert.equal(poseRedoDecision({ ...base, enabled: false, poseScore: 0.27, ledger: {} }).redo, false);
   });
 });

@@ -10,6 +10,7 @@ import { isDayHardPose } from '@/lib/day/best-of-two';
 import { dayTwoTakesJudged, dayTwoTakesPending } from '@/lib/day/two-takes';
 import {
   notePoseRedoTake,
+  poseCheckMissed,
   poseRedoDecision,
   poseRedoMark,
   poseRedoTakeId,
@@ -314,8 +315,10 @@ export function useDayPoseMissRedo(
           ledger: ledgerRef.current,
         });
         const pct = Math.round(match.score * 100);
-        const poseRedo = decision.redo && decision.reason === 'pose';
-        recordGalleryPlayChecks(still.promptId, { pose: match.score, poseMiss: poseRedo });
+        recordGalleryPlayChecks(still.promptId, {
+          pose: match.score,
+          poseMiss: poseCheckMissed(match.score),
+        });
         const { width, height } = detected.pose.canvas;
         const missView =
           match.score < DEFAULT_MIN_POSE_MATCH

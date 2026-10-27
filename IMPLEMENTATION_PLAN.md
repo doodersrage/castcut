@@ -1596,8 +1596,10 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     (`queuedTakeModel`); Upscale and sampler memory still judge it by the graph it ran on.
   - D12 (found by V3): the pose redo check records `poseMiss` only when it redoes the take, so a
     miss once the redo is used up (the redo itself) is stored as no miss — 11 of V3's 30 takes
-    under the threshold had no finding. Not fixed yet.
-  - Left: D3–D6, D12.
+    under the threshold had no finding — and the pose × engine stats counted those misses as
+    passes. The take now records the check's own verdict (`poseCheckMissed`, the bar the redo uses
+    too); a real pass on Rapid AIO afterwards recorded all three redo takes' misses.
+  - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_
 - Gap: each feature was tested alone, never as one person's session.

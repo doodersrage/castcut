@@ -85,7 +85,8 @@ Seen side by side in the pairs, all on the reviewed set:
   `poseMiss: <will redo>` (`useDayPoseMissRedo.ts`), so a take that misses after its redo is used up
   — the redo itself — is stored as no miss. 11 of the 30 takes under the threshold carry no finding:
   not in Needs a look, the badge or the findings, and not counted here. Pose recall above is
-  therefore understated; the precision stands for the takes that were flagged.
+  therefore understated; the precision stands for the takes that were flagged. Fixed after this
+  review (the take records the check's own verdict); the set was measured before the fix.
 - **D11** (fixed in `9aa86916`): Qwen-Image 2.1 takes were recorded as Rapid AIO.
 - **D10** (fixed in `a05ef6bd`): a Cast member imported just before a reload, on an install with
   nothing rendered yet, was dropped by the startup sync.
