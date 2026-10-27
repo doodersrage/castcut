@@ -8,9 +8,25 @@
  * install (its settings, its Cast). Point it at a dev server with its own empty PROMPT_DATA_DIR.
  * Phases: setup (import the Cast files in SCENE_CASTS), scenes, takes, move, links, cut,
  * transfer, queue, phone. Screenshots go to SCENE_OUT.
+ *
+ * Script to film (M6 V2), in order on one install: setup engine script shots run keep cut2
+ * package. `script` imports a short three-scene script for SCENE_CAST (default cast-mara);
+ * `shots` drafts each scene's shots and makes one a Scene; `run` prepares a run over them,
+ * starts it, reloads mid-run and resumes; `keep` waits for you to keep a take in each Scene
+ * (SCENE_KEEP=first keeps each Scene's first take for you); `cut2` cuts a review copy and
+ * measures it; `package` packs the cut with its media and imports it in a fresh browser.
+ * Each phase's time and problems go to SCENE_OUT/report.json.
  */
 import { chromium, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { putAppKv } from '../e2e/helpers/idb';
 
@@ -54,7 +70,12 @@ async function ready(page: Page, locator: Locator, timeout = 60_000) {
 }
 
 async function go(page: Page, path: string) {
-  await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
+  // A navigation the page started itself (an import opening its Cast) can abort ours: once more.
+  await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' }).catch(async error => {
+    if (!/ERR_ABORTED/.test(String(error))) throw error;
+    await page.waitForTimeout(2000);
+    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
+  });
   await dismiss(page);
 }
 
@@ -532,6 +553,96 @@ async function phoneStates(page: Page, tag: string) {
       await page.getByTestId('scene-director-sheet-cancel').tap();
     });
   }
+}
+
+/** Import one Cast file (the Cast page's Import) and wait for it to open. */
+async function importCast(page: Page, name: string) {
+  await go(page, '/characters');
+  await page.getByTestId('cast-import-input').waitFor({ state: 'attached', timeout: 120_000 });
+  // Hydrated first: the input is in the server HTML before React listens to it.
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForTimeout(3000);
+  await page.getByTestId('cast-import-input').setInputFiles(join(CASTS, name));
+  const castName = name.split('.')[0]!;
+  // Imported → the Cast's page opens; a picture problem leaves a note on this one.
+  for (let i = 0; i < 90; i += 1) {
+    if (!new URL(page.url()).pathname.endsWith('/characters')) break;
+    const said = await page
+      .locator('[data-testid="cast-import-note"], [role="alert"]')
+      .allTextContents()
+      .catch(() => []);
+    if (said.join('').trim()) {
+      log(name, 'said:', said.join(' | '));
+      break;
+    }
+    await page.waitForTimeout(2000);
+  }
+  await page.waitForTimeout(4000);
+  log(name, '→', page.url());
+  await shot(page, `import-${castName}`);
+}
+
+// M6 V2: the script-to-film run's Cast and script.
+const V2_CAST = process.env.SCENE_CAST ?? 'cast-mara';
+const V2_SCRIPT = [
+  "Title: Mara's Day",
+  '',
+  'INT. KITCHEN - MORNING',
+  '',
+  'Mara pours coffee by the window, still half asleep.',
+  '',
+  'MARA',
+  'Coffee first.',
+  '',
+  'INT. OFFICE - DAY',
+  '',
+  'Mara works at her desk, sleeves rolled up.',
+  '',
+  'EXT. ROOFTOP - NIGHT',
+  '',
+  'Mara looks out over the city lights.',
+  '',
+].join('\n');
+const V2_SCENES = ['int-kitchen-morning', 'int-office-day', 'ext-rooftop-night'];
+
+type V2Shot = { id: string; sceneId: string; purpose: string; madeSceneId?: string };
+type V2Scene = { id: string; castId: string; name: string; takes: unknown[]; keptTakeId?: string };
+type V2Run = {
+  state?: string;
+  stopReason?: string;
+  current?: unknown;
+  outcomes?: Record<string, string>;
+  log?: Array<{ at: number; event: string; sceneId?: string; promptId?: string; note?: string }>;
+};
+
+async function v2Script(page: Page) {
+  const scene = (await toolSettings(page)).scene as
+    { scripts?: Array<{ id: string; castId: string; shots?: V2Shot[] }> } | undefined;
+  return scene?.scripts?.find(entry => entry.castId === V2_CAST);
+}
+
+async function v2Scenes(page: Page): Promise<V2Scene[]> {
+  const scene = (await toolSettings(page)).scene as { scenes?: V2Scene[] } | undefined;
+  return (scene?.scenes ?? []).filter(entry => entry.castId === V2_CAST);
+}
+
+/** Wait until the stored run matches `done`, logging its state as it changes. */
+async function waitForRun(page: Page, done: (run: V2Run) => boolean, minutes: number) {
+  const until = Date.now() + minutes * 60_000;
+  let last = '';
+  while (Date.now() < until) {
+    const run =
+      ((await toolSettings(page).catch(() => ({}))) as { scene?: { run?: V2Run } }).scene?.run ??
+      {};
+    const now = `${run.state} ${JSON.stringify(run.outcomes ?? {})}`;
+    if (now !== last) {
+      log('run:', now);
+      last = now;
+    }
+    if (done(run)) return run;
+    await page.waitForTimeout(3000);
+  }
+  throw new Error(`run: not there within ${minutes} min (${last})`);
 }
 
 type Phase = (ctx: BrowserContext, page: Page) => Promise<void>;
@@ -1728,36 +1839,386 @@ const phases: Record<string, Phase> = {
     await shot(page, 'scenes-mara-again');
   },
 
+  /** M6 V2: a short three-scene script imported for the Cast, who's who confirmed. */
+  async script(_ctx, page) {
+    await openScene(page, V2_CAST);
+    await page.getByTestId('scene-scripts').waitFor({ timeout: 60_000 });
+    await page.getByTestId('script-import').click();
+    await page.getByTestId('script-import-text').fill(V2_SCRIPT);
+    await attempt(page, 'script reads as 3 scenes', async () => {
+      const summary = (await page.getByTestId('script-summary').textContent())?.trim() ?? '';
+      log('summary:', summary);
+      if (!summary.startsWith('3 scenes')) throw new Error(summary);
+    });
+    await shot(page, 'script-read');
+    await page.getByTestId('script-keep').click();
+    await page.getByTestId('script-reading').waitFor({ timeout: 30_000 });
+    await attempt(page, 'who is who: MARA is the Cast', async () => {
+      const part = page.getByTestId('script-speaker-MARA');
+      const confirm = page.getByTestId('script-speaker-confirm-MARA');
+      if (await confirm.isVisible().catch(() => false)) await confirm.click();
+      else await part.getByRole('combobox').selectOption(V2_CAST);
+      await page.waitForTimeout(800);
+      const status = await part.getAttribute('data-status');
+      if (status !== 'confirmed') throw new Error(`status ${status}`);
+    });
+    for (const place of ['KITCHEN', 'OFFICE', 'ROOFTOP']) {
+      const choice = await page
+        .getByTestId(`script-place-${place}`)
+        .getAttribute('data-choice')
+        .catch(() => null);
+      log('place', place, '→', choice);
+    }
+    await shot(page, 'script-kept');
+  },
+
+  /** M6 V2: draft every scene's shots; make the kitchen's line a Scene by hand. */
+  async shots(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script — run the script phase first');
+    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+    for (const sceneId of V2_SCENES) {
+      await attempt(page, `draft ${sceneId}`, async () => {
+        const scene = page.getByTestId(`script-scene-${sceneId}`);
+        if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
+        await page.getByTestId(`script-shots-draft-${sceneId}`).click();
+        await page.locator(`[data-testid^="script-shot-${sceneId}~"]`).first().waitFor();
+      });
+    }
+    const drafted = (await v2Script(page))?.shots ?? [];
+    log('drafted', drafted.length, 'shots:', drafted.map(entry => entry.id).join(', '));
+    await shot(page, 'shots-drafted');
+    const line = drafted.find(
+      entry => entry.sceneId === V2_SCENES[0] && entry.purpose === 'dialogue'
+    );
+    await attempt(page, 'make the kitchen line a Scene', async () => {
+      if (!line) throw new Error('no dialogue shot drafted in the kitchen');
+      await page.getByTestId(`script-shot-make-${line.id}`).click();
+      await page.waitForTimeout(2000);
+      const status = await page.getByTestId(`script-shot-${line.id}`).getAttribute('data-status');
+      log('made:', await page.getByTestId('scene-name').inputValue(), 'shot status', status);
+      if (status !== 'made') throw new Error(`status ${status}`);
+    });
+    await shot(page, 'shot-made');
+  },
+
+  /**
+   * M6 V2: prepare a run over the script, start it, reload once a take has landed (the run
+   * shows paused), resume, and wait for it to finish. No take is queued twice.
+   */
+  async run(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script — run the script phase first');
+    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
+    log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
+    const limit = process.env.SCENE_RUN_TAKES;
+    if (limit) await page.getByTestId('scene-run-max-takes').fill(limit);
+    log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
+    await shot(page, 'run-prepared');
+    const started = Date.now();
+    await page.getByTestId('scene-run-start').click();
+    await attempt(page, 'first take lands, then reload mid-run', async () => {
+      await waitForRun(
+        page,
+        run => Object.keys(run.outcomes ?? {}).length >= 1 && Boolean(run.current),
+        30
+      );
+      await shot(page, 'run-midway');
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await dismiss(page);
+      const state = page.getByTestId('scene-run-state');
+      await state.waitFor({ timeout: 120_000 });
+      await page.waitForTimeout(2000);
+      log(
+        'after reload:',
+        await state.getAttribute('data-state'),
+        '·',
+        (
+          await page
+            .getByTestId('scene-run-stop-reason')
+            .textContent()
+            .catch(() => '')
+        )?.trim()
+      );
+      if ((await state.getAttribute('data-state')) !== 'paused') throw new Error('not paused');
+      await shot(page, 'run-paused');
+      await page.getByTestId('scene-run-start').click();
+    });
+    const run = await waitForRun(
+      page,
+      entry => ['done', 'stopped', 'cancelled'].includes(entry.state ?? ''),
+      60
+    );
+    const queued = (run.log ?? []).filter(entry => entry.event === 'queued');
+    const ids = queued.map(entry => entry.promptId ?? entry.sceneId);
+    log(
+      'run',
+      run.state,
+      'in',
+      Math.round((Date.now() - started) / 1000),
+      's ·',
+      queued.length,
+      'queued'
+    );
+    for (const entry of run.log ?? [])
+      log(
+        '  log',
+        new Date(entry.at).toISOString().slice(11, 19),
+        entry.event,
+        entry.sceneId ?? '',
+        entry.note ?? ''
+      );
+    await attempt(page, 'run done', async () => {
+      if (run.state !== 'done') throw new Error(`${run.state}: ${run.stopReason ?? ''}`);
+    });
+    await attempt(page, 'no take queued twice', async () => {
+      const scenes = queued.map(entry => entry.sceneId);
+      if (new Set(scenes).size !== scenes.length) throw new Error(ids.join(', '));
+    });
+    await attempt(page, 'nothing kept by the run', async () => {
+      const kept = (await v2Scenes(page)).filter(scene => scene.keptTakeId);
+      if (kept.length) throw new Error(kept.map(scene => scene.name).join(', '));
+    });
+    await shot(page, 'run-done');
+    await go(page, '/production');
+    await page
+      .getByTestId('director-next')
+      .waitFor({ timeout: 120_000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(2000);
+    await shot(page, 'director');
+  },
+
+  /** M6 V2: the human keeps one take per Scene (SCENE_KEEP=first: the first, for you). */
+  async keep(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const pending = async () =>
+      (await v2Scenes(page)).filter(scene => scene.takes.length && !scene.keptTakeId);
+    if (process.env.SCENE_KEEP === 'first') {
+      for (const scene of await pending()) {
+        await attempt(page, `keep ${scene.name}`, async () => {
+          await go(page, `/scene?character=${V2_CAST}&scene=${scene.id}`);
+          await expectValue(page.getByTestId('scene-name'), scene.name, 60_000);
+          await page.getByTestId('scene-take-keep-0').click();
+          await page.waitForTimeout(1000);
+        });
+      }
+    } else {
+      log('Keep one take in each of these Scenes (the script waits, up to 60 min):');
+      for (const scene of await pending()) log('  ', scene.name);
+      const until = Date.now() + 60 * 60_000;
+      while ((await pending()).length && Date.now() < until) await page.waitForTimeout(10_000);
+    }
+    const left = await pending();
+    await attempt(page, 'every rendered Scene has a kept take', async () => {
+      if (left.length) throw new Error(left.map(scene => scene.name).join(', '));
+    });
+    await shot(page, 'kept');
+  },
+
+  /** M6 V2: Cut — review copy, Before cutting, cut, The film as cut, Measure loudness. */
+  async cut2(_ctx, page) {
+    await go(page, `/cut?from=scenes&character=${V2_CAST}`);
+    const button = page.getByTestId('cut-film').first();
+    await button.waitFor({ timeout: 180_000 });
+    await page.waitForTimeout(4000);
+    log('cut:', (await button.textContent())?.trim());
+    await page.getByTestId('cut-profile-review').click();
+    await page.waitForTimeout(1500);
+    const checks = async (prefix: string) =>
+      page
+        .locator(`[data-testid^="${prefix}-"][data-status]`)
+        .evaluateAll(list =>
+          list.map(
+            el =>
+              `${(el as HTMLElement).dataset.testid?.split('-').pop()}=${(el as HTMLElement).dataset.status}: ${el.textContent?.trim()}`
+          )
+        );
+    for (const line of await checks('cut-preflight')) log('  before:', line);
+    await shot(page, 'cut-before');
+    const started = Date.now();
+    const filmsBefore = await page.getByTestId('cut-film-entry').count();
+    await button.click();
+    // The ask on a ✗ (M6 D1), then the shot checks: both go on, and are logged.
+    for (let i = 0; i < 20; i += 1) {
+      await page.waitForTimeout(1500);
+      if (
+        await page
+          .getByTestId('cut-blocked-dialog')
+          .isVisible()
+          .catch(() => false)
+      ) {
+        log('asked:', (await page.getByTestId('cut-blocked-ask').textContent())?.trim());
+        await page.getByTestId('confirm-dialog-confirm').click();
+      }
+      if (
+        await page
+          .getByTestId('cut-problems-cut-anyway')
+          .isVisible()
+          .catch(() => false)
+      ) {
+        log(
+          'shot checks:',
+          (await page.getByTestId('cut-problems').textContent())?.trim().slice(0, 300)
+        );
+        await page.getByTestId('cut-problems-cut-anyway').click();
+      }
+      if (
+        await page
+          .getByText('Cutting…')
+          .first()
+          .isVisible()
+          .catch(() => false)
+      )
+        break;
+    }
+    await attempt(page, 'the film is cut', async () => {
+      const until = Date.now() + 20 * 60_000;
+      while (Date.now() < until) {
+        if ((await page.getByTestId('cut-film-entry').count()) > filmsBefore) break;
+        await page.waitForTimeout(3000);
+      }
+      if ((await page.getByTestId('cut-film-entry').count()) <= filmsBefore) {
+        throw new Error((await page.getByTestId('cut-status').textContent())?.trim() ?? 'no film');
+      }
+      log('cut in', Math.round((Date.now() - started) / 1000), 's');
+    });
+    await page.waitForTimeout(3000);
+    log(
+      'status:',
+      (
+        await page
+          .getByTestId('cut-status')
+          .textContent()
+          .catch(() => '')
+      )?.trim()
+    );
+    await attempt(page, 'the film as cut is read back', async () => {
+      const lines = await checks('cut-output');
+      for (const line of lines) log('  output:', line);
+      if (!lines.length) throw new Error('no output checks');
+      if (lines.some(line => line.includes('=fail'))) throw new Error('an output check failed');
+    });
+    await shot(page, 'cut-done');
+    await attempt(page, 'loudness measured', async () => {
+      await page.getByTestId('film-loudness-measure').first().click();
+      // A result — or, for a silent cut, the error saying there is no sound to measure.
+      const said = page
+        .locator('[data-testid="film-loudness-result"], [data-testid="film-loudness-error"]')
+        .first();
+      await said.waitFor({ timeout: 300_000 });
+      const text = (await said.textContent())?.trim() ?? '';
+      log('loudness:', text);
+      const silent = (
+        await page
+          .getByTestId('cut-output-sound')
+          .textContent()
+          .catch(() => '')
+      )?.includes('Silent');
+      if (
+        (await said.getAttribute('data-testid')) === 'film-loudness-error' &&
+        !(silent && /no sound/i.test(text))
+      ) {
+        throw new Error(text);
+      }
+    });
+    await shot(page, 'cut-loudness');
+  },
+
+  /**
+   * M6 V2: pack the cut with its media, then import it in a fresh browser whose server sync is
+   * cut off (a second machine's browser; the server and its Gallery are still this one).
+   */
+  async package(ctx, page) {
+    await go(page, `/cut?from=scenes&character=${V2_CAST}`);
+    await page.getByTestId('cut-package-full').waitFor({ timeout: 180_000 });
+    await page.waitForTimeout(3000);
+    const download = page.waitForEvent('download', { timeout: 300_000 });
+    const started = Date.now();
+    await page.getByTestId('cut-package-full').click();
+    const zip = join(OUT, 'v2-package.castcut.zip');
+    await (await download).saveAs(zip);
+    log(
+      'packed in',
+      Math.round((Date.now() - started) / 1000),
+      's ·',
+      (await page.getByTestId('cut-status').textContent())?.trim()
+    );
+    const launched = ctx.browser() ? null : await chromium.launch();
+    const browser = ctx.browser() ?? launched!;
+    const other = await browser.newContext({
+      viewport: { width: 1440, height: 1000 },
+      baseURL: BASE,
+    });
+    await desk(other);
+    try {
+      const elsewhere = await other.newPage();
+      await elsewhere.route(/\/api\/storage(?:\?.*)?$/, route =>
+        route.request().method() === 'POST'
+          ? route.fulfill({ json: { ok: true } })
+          : route.fulfill({ json: { data: null } })
+      );
+      await importCast(
+        elsewhere,
+        readdirSync(CASTS).find(name => name.startsWith(V2_CAST.replace(/^cast-/, '')))!
+      );
+      await go(elsewhere, `/cut?from=scenes&character=${V2_CAST}`);
+      await elsewhere
+        .getByTestId('cut-package-import')
+        .waitFor({ state: 'attached', timeout: 180_000 });
+      await elsewhere.waitForTimeout(3000);
+      await elsewhere.getByTestId('cut-package-import').setInputFiles(zip);
+      await attempt(elsewhere, 'the package imports', async () => {
+        const status = elsewhere.getByTestId('cut-status');
+        await status.filter({ hasText: 'Imported' }).waitFor({ timeout: 300_000 });
+        log('import:', (await status.textContent())?.trim());
+      });
+      await attempt(elsewhere, 'the imported cut plays with nothing missing', async () => {
+        await elsewhere.locator('[data-testid^="cut-version-open-Imported"]').first().click();
+        await elsewhere.waitForTimeout(4000);
+        const blocking = await elsewhere
+          .locator('[data-testid^="cut-missing-"][data-blocks="true"]')
+          .count();
+        log('blocking missing media:', blocking);
+        if (blocking) throw new Error(`${blocking} shot(s) can't play`);
+      });
+      await shot(elsewhere, 'package-imported');
+    } finally {
+      await other.close();
+      await launched?.close();
+    }
+  },
+
   /** Import the Cast files (the Cast page's Import), each with its plate. */
   async setup(_ctx, page) {
     const files = readdirSync(CASTS).filter(name => name.endsWith('.castcut.json'));
-    for (const name of files) {
-      await go(page, '/characters');
-      await page.getByTestId('cast-import-input').waitFor({ state: 'attached', timeout: 120_000 });
-      // Hydrated first: the input is in the server HTML before React listens to it.
-      await page.waitForLoadState('networkidle').catch(() => undefined);
-      await page.waitForTimeout(3000);
-      await page.getByTestId('cast-import-input').setInputFiles(join(CASTS, name));
-      const castName = name.split('.')[0]!;
-      // Imported → the Cast's page opens; a picture problem leaves a note on this one.
-      for (let i = 0; i < 90; i += 1) {
-        if (!new URL(page.url()).pathname.endsWith('/characters')) break;
-        const said = await page
-          .locator('[data-testid="cast-import-note"], [role="alert"]')
-          .allTextContents()
-          .catch(() => []);
-        if (said.join('').trim()) {
-          log(name, 'said:', said.join(' | '));
-          break;
-        }
-        await page.waitForTimeout(2000);
-      }
-      await page.waitForTimeout(4000);
-      log(name, '→', page.url());
-      await shot(page, `import-${castName}`);
-    }
+    for (const name of files) await importCast(page, name);
   },
 };
+
+/** The studio workspace, chosen (no first-visit chooser). */
+async function desk(ctx: BrowserContext) {
+  await ctx.addCookies([{ name: 'comfy-workspace-mode-v1', value: 'studio', url: BASE }]);
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem('comfy-workspace-mode-v1', 'studio');
+      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
+    } catch {
+      // private mode
+    }
+  });
+}
+
+/** Each phase's outcome, appended to SCENE_OUT/report.json. */
+function record(entry: Record<string, unknown>) {
+  const file = join(OUT, 'report.json');
+  const all = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as unknown[]) : [];
+  writeFileSync(file, `${JSON.stringify([...all, entry], null, 2)}\n`);
+}
 
 async function main() {
   const wanted = process.argv.slice(2);
@@ -1780,15 +2241,7 @@ async function main() {
     viewport: { width: 1440, height: 1000 },
     baseURL: BASE,
   });
-  await ctx.addCookies([{ name: 'comfy-workspace-mode-v1', value: 'studio', url: BASE }]);
-  await ctx.addInitScript(() => {
-    try {
-      localStorage.setItem('comfy-workspace-mode-v1', 'studio');
-      localStorage.setItem('comfy-workspace-mode-chosen-v1', '1');
-    } catch {
-      // private mode
-    }
-  });
+  await desk(ctx);
   const page = ctx.pages()[0] ?? (await ctx.newPage());
   page.on('pageerror', error =>
     log('pageerror', error.message, (error.stack ?? '').split('\n').slice(0, 4).join(' | '))
@@ -1807,7 +2260,25 @@ async function main() {
       log(`— ${name}`);
       runName = name;
       step = 0;
-      await phases[name]!(ctx, page);
+      const started = Date.now();
+      const before = problems.length;
+      let error: string | undefined;
+      try {
+        await phases[name]!(ctx, page);
+      } catch (cause) {
+        error = cause instanceof Error ? cause.message.split('\n')[0] : String(cause);
+        problems.push(`${name}: ${error}`);
+        log('✗ phase', name, error);
+        await shot(page, `phase-failed`);
+      }
+      record({
+        phase: name,
+        startedAt: new Date(started).toISOString(),
+        seconds: Math.round((Date.now() - started) / 1000),
+        problems: problems.slice(before),
+        ...(error ? { error } : {}),
+      });
+      if (error) break;
     }
   } finally {
     await ctx.close();

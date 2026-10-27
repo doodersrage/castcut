@@ -1517,6 +1517,11 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - Acceptance: a dated report (`docs/performance/real-run-YYYY-MM-DD.md`) with every phase
   passed, or each failure filed as a defect with steps.
 - Verify: re-run the script; the report and screenshots.
+- **Status (2026-10-27): done; every phase passed** — `docs/performance/real-run-2026-10-27.md`.
+  New phases `script shots run keep cut2 package` in `scripts/scene-real-render.mts` (per-phase
+  `report.json`). Found **D7**: a dialogue shot's Scene gets no beat, so the still engine invents
+  one (fix proposed in the report). Not covered: clips on a run, a film with sound, a second
+  server for the package.
 
 **V3 — Consistency evaluation on a small reviewed set** (U5) · M + _GPU_ + _you_ (review)
 - Gap: C1–C5 checks are unmeasured.

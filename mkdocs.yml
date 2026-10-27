@@ -128,6 +128,7 @@ nav:
       - Releases: releasing.md
       - Plugin iframe host: plugin-iframe-host.md
       - Performance & scripts: performance/guide.md
+      - Real-engine run (2026-10-27): performance/real-run-2026-10-27.md
   - External:
       - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
       - Prompt Studio (classic tools): https://github.com/doodersrage/prompt-studio
