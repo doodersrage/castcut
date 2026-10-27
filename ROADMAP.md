@@ -319,6 +319,16 @@ production unless the user configures that.
 - Continuity findings can be reviewed, dismissed and tracked.
 - The system is tested against a hand-reviewed set of correct and incorrect examples.
 - False positives and false negatives are measured before continuity becomes a hard gate.
+- A recurring location is a record of its own — reused by every shot set there, used by the
+  prompt and by the check — not a word typed per shot.
+- A take can be approved or rejected as a decision of its own, without rendering it again, and
+  candidates can be compared side by side.
+- Checks that already look at a picture (outfit, place, gesture) report what they find as
+  findings, measured like the rest.
+
+Baseline (reviewed set, 2026-10-27, `docs/consistency-report.md`): pose match 47 % precise; the
+cross-shot outfit rule exact (3/3); 5 of 9 takes a reviewer marked wrong had no finding; place,
+garment colour and footwear drift unchecked.
 
 ## 6. Phase 3 — Screenplay-to-shot planning (P1)
 
@@ -365,6 +375,16 @@ Don't replace Story with a second planning system:
 
 Reimport gets a reconciliation screen; approved shots are never silently orphaned or deleted.
 
+### 6.6 Pre-visualisation
+
+See the film before spending render time on it:
+
+- A **storyboard**: the planned shots of a scene or script as a board, each with its kept take,
+  or a placeholder while it has none.
+- An **animatic**: planned shots placed in the cut as timed cards, each replaced by its kept
+  take when one exists, keeping its timing.
+- Shot lists that can be reordered, split and merged, keeping stable ids across reimports.
+
 ### Acceptance criteria
 
 - A screenplay imports and parses into editable scenes.
@@ -372,6 +392,8 @@ Reimport gets a reconciliation screen; approved shots are never silently orphane
 - A proposed shot list can be edited and linked to production scenes.
 - Source text changes don't silently destroy approved shots.
 - Coverage is reviewable separately for generated versus approved shots.
+- A script's planned shots can be seen as a storyboard and timed as an animatic before they
+  render.
 
 ## 7. Phase 4 — Editing, audio and delivery (P1)
 
@@ -639,6 +661,9 @@ conventions.
 | M4 — Finishing     | An edit can be reopened, changed, exported and packaged for restoration                         |
 | M5 — Orchestration | Production actions are auditable, bounded, cancellable, and don't duplicate existing logic       |
 | Hardening          | Critical end-to-end tests, upgrade compatibility, backup restoration and release docs pass      |
+
+Every gate also needs a green CI on `main` (lint, unit, build and end-to-end) for the commits it
+ships.
 
 Don't release a milestone because its screens exist. Release it when its core workflow survives
 realistic failure and recovery.

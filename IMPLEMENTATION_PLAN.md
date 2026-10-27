@@ -50,6 +50,8 @@ other existing generation integrations should remain usable.
 - Preserve existing user projects and configuration.
 - Never silently delete, overwrite, or replace approved media or user decisions.
 - Do not expose credentials in logs, project exports, or generated documentation.
+- After each push, check CI's result before starting the next task; a red CI on `main` is fixed
+  before anything else and before any release (M6: the e2e job was red for 15 commits unnoticed).
 
 ## Implementation order
 
@@ -1706,3 +1708,80 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 **Recommended first task: V1.** v3.0.0's image is published and will be pulled onto the
 user's real install. V1 makes that upgrade measured and reversible before anything else
 depends on it.
+
+## 8.5 Status and the gate to M7 (2026-10-27)
+
+- Done: V1–V4, V6, V7, V8 (but its desktop smoke test), D1–D17; released as **v3.0.1**.
+- Two stale e2e tests fixed after CI was found red since D1 (`10ac9705`, `3f7ea131`).
+- Left, each needing the user:
+  - the real Docker upgrade to v3.0.1 with `scripts/upgrade-check.mjs` before and after (V1);
+  - the desktop smoke test from the v3.0.1 `.deb` (V8);
+  - **V5**, the timed walkthrough.
+- These are the gate to M7.
+
+# Part 9 — M7 plan: review and continuity you can trust (2026-10-27)
+
+From the feature-gap audit of 2026-10-27 (all twelve product areas traced in code and tests).
+The core loop works end to end; the largest gaps are in the decisions and evidence the
+workflow can't yet hold. M7 strengthens the decisions Castcut already asks for — which take, is
+it right, can it be made again — mostly with checks that already run.
+
+## 9.1 Audit findings this plan acts on
+
+| Gap | Evidence | Status |
+| --- | --- | --- |
+| A take is kept or not: no approved / rejected state, no compare within a Scene; "Looks wrong" re-renders | `SceneTakes.tsx`, `keptTakeId` (`day/scenes.ts`), `playerVerdict` | shallow |
+| Auto-review's outfit and place verdicts (and the gesture check) never become findings | `play/slot-quality.ts` (`outfitSeen`, `place`), `useDaySlotQualityGate.ts`, `checks/findings.ts` | partial |
+| A take stores the template graph and its params, not the graph that was submitted; replay tested against a mock only | `queue-single-post-prompt.ts` (`workflowJson: runtime?.workflowJson`), `e2e/gallery-exact-replay.spec.ts` | unverified |
+| Face match never measured against two different people | V3: both Casts shared one plate | unverified |
+
+Left for later milestones (the audit's sequence): location records and editable scene state
+(M8); storyboard, animatic, shot-list editing and production search (M9); a sound-effects track,
+multi-cue subtitles, trash / undo, accessibility of the production pages and phone parity (M10).
+
+## 9.2 Tasks (ordered)
+
+**T1 — A CI gate.** · S
+- A check that `main`'s last CI run is green, run before starting a task and before a release
+  (a script or the release workflow's first step).
+- Acceptance: a release refuses to start on a red `main`.
+
+**T2 — Vision verdicts as findings.** · M
+- Auto-review's outfit and place verdicts and the gesture verdict recorded on the Gallery entry
+  (`playChecks`), turned into findings by `findingsForGalleryEntry`, decidable in Needs a look
+  and Cut, counted by C5.
+- No new model calls: they run today with Auto-review on.
+- Acceptance: a still whose outfit or place the check rejects carries a finding; a test for each
+  rule; the decisions survive reload and sync.
+
+**T3 — Take review states and compare.** · M
+- Candidate / approved / rejected on Scene takes, set without rendering; rejected takes hidden by
+  default and restorable; the take Cut plays marked on the strip.
+- Two takes side by side with their provenance.
+- Acceptance: a rejected take stays rejected across reload, sync and backup / restore (unit and
+  e2e); Cut's pins unaffected.
+
+**T4 — The submitted graph, and replay on the real engine.** · S–M
+- Keep the graph as submitted (with its input file names) beside the template.
+- A real-engine check: a stored take replayed reproduces its seed and inputs, or names the input
+  that is gone.
+- Acceptance: unit test of what is stored; one real-engine replay recorded.
+
+**T5 — Re-run the reviewed set.** · M + _GPU_ + _you_
+- V3's set again with two Casts of different faces, Auto-review on, the review sheet extended to
+  the new rules and the review states.
+- Acceptance: `docs/consistency-report.md` gains per-rule precision and misses for every rule;
+  no rule becomes a gate without its number.
+
+## 9.3 Definition of done
+
+- Every new rule has measured precision and misses on the re-run set.
+- A rejected take survives reload, sync and backup / restore.
+- A week-old take replays on the real engine, or says which input is missing.
+- CI green on every M7 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
+- Not in scope: location records, scene state, storyboard, new generation engines.
+
+## 9.4 Recommended first task
+
+**T1**, then **T2**: the gate protects everything after it, and T2 makes existing checks visible
+without new GPU cost.

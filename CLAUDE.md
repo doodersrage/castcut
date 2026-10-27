@@ -46,7 +46,7 @@ Before implementing a feature:
 
 ## Roadmap discipline
 
-Use PRODUCT_ROADMAP.md for product direction and IMPLEMENTATION_PLAN.md
+Use ROADMAP.md for product direction and IMPLEMENTATION_PLAN.md
 for the current, audited implementation sequence, if those files exist.
 
 Do not assume roadmap items are already implemented. Verify the current
