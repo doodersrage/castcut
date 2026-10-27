@@ -68,4 +68,14 @@ describe('continuity findings, one shape (M2 C1)', () => {
     assert.equal(bare[0]!.evidence, 'Bare skin on a clothed still');
     assert.equal(findingsForGalleryEntry({ promptId: 'p3', playChecks: { faceMiss: true, at: 1 } })[0]!.evidence, 'Face match low');
   });
+
+  // M6: an assembled film was clip-checked — a film of stills "cut midway" and "came out silent".
+  it("an assembled film's own cuts and silence are not findings", () => {
+    const checks = { clipCutAt: 8.9, clipSilent: true, at: 1 };
+    assert.deepEqual(
+      findingsForGalleryEntry({ promptId: 'film-1', derivedKind: 'film', playChecks: checks }),
+      []
+    );
+    assert.equal(findingsForGalleryEntry({ promptId: 'clip-1', playChecks: checks }).length, 2);
+  });
 });

@@ -1572,6 +1572,11 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     engine: all 4 takes have face and pose scores; two pose misses were redone. A run takes
     longer for it (about 21 min for 4 takes here, against 4 min) — the same work a take queued
     by hand gets.
+  - D9 (found preparing V3): Cut's finished films were clip-checked as they landed, so a film
+    of stills read as _cuts to another shot at 8.9 s_ and _no sound_ — in Needs a look, the
+    card badge and the continuity findings that C5 counts. Films are now left out of the clip
+    check (`clipCheckApplies`), and clip checks already on a film are ignored
+    (`entryPlayChecks` in `gallery/needs-look.ts`, used by the findings and the badge).
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

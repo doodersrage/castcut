@@ -2,12 +2,13 @@
 
 import { useEffect } from 'react';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
+import { clipCheckApplies } from '@/lib/gallery/needs-look';
 
 /**
  * Checks each clip as it lands (2026-10-14): a hard cut inside it (MiniMax-H3 cut a talking clip
  * to a face close-up mid-line) and, for an MP4, whether it has sound. Uses the film check's server
  * probe; the reading goes on the Gallery entry, where Needs a look and the card badge show it.
- * Clips already in the Gallery when the app opens are left alone.
+ * Clips already in the Gallery when the app opens are left alone, and so are Cut's films.
  */
 export default function ClipCheckWatcher() {
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function ClipCheckWatcher() {
           entry =>
             entry.status === 'completed' &&
             gallery.galleryEntryPrimaryMediaKind(entry) === 'video' &&
+            clipCheckApplies(entry) &&
             entry.playChecks?.clipSilent === undefined
         );
         if (!baselined) {

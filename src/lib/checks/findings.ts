@@ -6,6 +6,7 @@
  * much it matters, the evidence, and what to do. A finding's id is stable (subject + rule), so a
  * decision about it (C2) can be kept. Changes no check and stores nothing. Pure.
  */
+import { entryPlayChecks } from '../gallery/needs-look';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 
 export type ContinuityRule =
@@ -56,7 +57,7 @@ export type ContinuityFinding = {
 
 export type FindingsEntry = Pick<
   ComfyGalleryEntry,
-  'promptId' | 'playChecks' | 'adultCheck' | 'playerVerdict'
+  'promptId' | 'playChecks' | 'adultCheck' | 'playerVerdict' | 'derivedKind'
 >;
 
 const percent = (value: number | undefined) =>
@@ -101,7 +102,7 @@ export function findingsForGalleryEntry(
       'Withheld for good — render it again.'
     );
   }
-  const checks = entry.playChecks;
+  const checks = entryPlayChecks(entry);
   if (checks?.faceMiss) {
     add(
       'face-miss',

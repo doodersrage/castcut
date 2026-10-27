@@ -47,7 +47,7 @@ export type CheckQuality = {
 
 type QualityEntry = Pick<
   ComfyGalleryEntry,
-  'promptId' | 'playChecks' | 'adultCheck' | 'playerVerdict'
+  'promptId' | 'playChecks' | 'adultCheck' | 'playerVerdict' | 'derivedKind'
 >;
 
 /** The rule a finding id ends with (`<subject>:<rule>`). */
