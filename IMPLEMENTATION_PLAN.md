@@ -1544,6 +1544,15 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - D5: the browser encode honours subtitle windows, or the UI says it can't.
 - D6: correct the stale lines in the plan.
 - Acceptance and verification: a failing test first for each, then green; the full checks.
+- **Status (2026-10-26): D1 and D2 done.**
+  - D1: **Cut film** (the button and the command palette's "Cut the film") asks first when the
+    preflight has a ✗: _Cut it anyway?_ names each failing check; **Fix them first** encodes
+    nothing, **Cut anyway** goes on to the usual shot checks and the encode (`CutRoom.tsx`; e2e in
+    `cut-room.spec.ts`, the disk-space test).
+  - D2: `cappedCastScenes` never drops a Scene with `fromScript` (made from a script shot), as
+    with takes (`day/scenes.ts`; unit test). Such a Scene stays even if its shot or script is
+    removed later — growth only by your own Make it a Scene / Prepare.
+  - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_
 - Gap: each feature was tested alone, never as one person's session.

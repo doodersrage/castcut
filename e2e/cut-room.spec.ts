@@ -592,11 +592,16 @@ test('subtitles: typed, set to none, imported from an .srt and exported', async 
 test('export: a profile sets the shape, and the preflight flags too little disk space', async ({
   page,
 }) => {
-  await page.route('**/api/film/assemble', route =>
-    route.request().method() === 'GET'
-      ? route.fulfill({ json: { ok: true, available: true, encoder: 'ffmpeg', freeBytes: 10e6 } })
-      : route.fulfill({ status: 503, json: { error: 'e2e: no encode' } })
-  );
+  let encodes = 0;
+  await page.route('**/api/film/assemble', route => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: { ok: true, available: true, encoder: 'ffmpeg', freeBytes: 10e6 },
+      });
+    }
+    encodes += 1;
+    return route.fulfill({ status: 503, json: { error: 'e2e: no encode' } });
+  });
   await seed(page, false);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
@@ -607,6 +612,20 @@ test('export: a profile sets the shape, and the preflight flags too little disk 
   await expect(page.getByTestId('cut-preflight-space')).toContainText('10 MB free');
   // Two stills, no music: nothing to hear.
   await expect(page.getByTestId('cut-preflight-sound')).toHaveAttribute('data-status', 'warn');
+
+  // M6 D1: with a ✗, Cut film asks first, naming it; "Fix them first" encodes nothing.
+  await page.getByTestId('cut-film').first().click();
+  await expect(page.getByTestId('cut-blocked-ask')).toContainText('Disk space');
+  await expect(page.getByTestId('cut-blocked-ask')).toContainText('10 MB free');
+  await page.getByTestId('confirm-dialog-cancel').click();
+  await expect(page.getByTestId('cut-blocked-dialog')).toHaveCount(0);
+  expect(encodes).toBe(0);
+  // "Cut anyway" goes on to the encode.
+  await page.getByTestId('cut-film').first().click();
+  await page.getByTestId('confirm-dialog-confirm').click();
+  // Then the shot checks, as before (the two stills look alike).
+  await page.getByTestId('cut-problems-cut-anyway').click();
+  await expect.poll(() => encodes, { timeout: 30_000 }).toBeGreaterThan(0);
 
   await page.getByTestId('cut-profile-vertical').click();
   await expect(page.getByTestId('cut-profile-vertical')).toHaveAttribute('aria-pressed', 'true');

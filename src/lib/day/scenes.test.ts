@@ -143,6 +143,25 @@ describe('scenes: stored and read back', () => {
     assert.ok(!ids.has('empty-1000'), 'older empty scenes go first');
   });
 
+  // M6 V4 (D2): a shot's Scene made but not rendered yet was dropped, and the shot read Planned.
+  it('never drops a Scene a script shot made, even with no takes yet', () => {
+    const fromShot = createScene({
+      castId: 'nora',
+      name: 'Kitchen — wide',
+      id: 'from-shot',
+      fromScript: { scriptId: 's1', sceneId: 'int-kitchen-day', shotId: 'int-kitchen-day~1' },
+      now: 0.1,
+    });
+    const empties = Array.from({ length: SCENE_LIMIT_PER_CAST + 3 }, (_, i) =>
+      createScene({ castId: 'nora', name: `Empty ${i}`, id: `e${i}`, now: i + 1 })
+    );
+    const scenes = normalizeSavedScenes([fromShot, ...empties]);
+    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST);
+    const kept = scenes.find(scene => scene.id === 'from-shot');
+    assert.deepEqual(kept?.fromScript, fromShot.fromScript);
+    assert.ok(!scenes.some(scene => scene.id === 'e3'), 'an unlinked empty Scene goes instead');
+  });
+
   it('drops empty scenes, oldest first, only while over the cap', () => {
     const empties = Array.from({ length: SCENE_LIMIT_PER_CAST + 3 }, (_, i) =>
       createScene({ castId: 'nora', name: `Empty ${i}`, id: `e${i}`, now: i + 1 })

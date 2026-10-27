@@ -10,6 +10,7 @@ import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resol
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import FilmCutOptionsControls from '@/components/FilmCutOptionsControls';
 import CutMonitor from '@/components/cut/CutMonitor';
 import CutContinuity from '@/components/cut/CutContinuity';
@@ -290,25 +291,6 @@ export default function CutRoom() {
     const from = cutSourceFromParam(new URLSearchParams(window.location.search).get('from'));
     if (from) pickOnly(from);
   }, [mounted, pickOnly]);
-  // Command palette: "Cut the film" cuts here (elsewhere it opens Cut) — the button's own handler.
-  useCommandActions([
-    {
-      id: PLAY_COMMAND_ACTION_IDS.cutFilm,
-      label: 'Cut the film',
-      subtitle: 'Cut · put the kept shots together',
-      keywords: 'cut film assemble edit export movie',
-      run: () => void vm.cutFilm(),
-      available: () =>
-        vm.mounted &&
-        !vm.assembling &&
-        !vm.checking &&
-        applyCutShotEdits(vm.shots, vm.options.shotEdits).length > 0,
-    },
-  ]);
-  if (!vm.mounted) return null;
-
-  const phone = typeof window !== 'undefined' && isMobileStudioPath(window.location.pathname);
-  const href = (path: string) => (phone ? toMobileStudioHref(path) : path);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
   // The preflight (M4 F6): what's checked now, before the encode (cheap: no hook needed).
   const preflightCues = filmSubtitleCues(subtitleRows);
@@ -322,6 +304,32 @@ export default function CutRoom() {
     hasSound: cutHasSound(vm.options, kept),
     server: vm.encodeServer,
   });
+  // M6 D1: with a ✗ in the preflight, Cut film asks first (naming it) instead of just encoding.
+  const failing = preflight.checks.filter(check => check.status === 'fail');
+  const [askBlocked, setAskBlocked] = useState(false);
+  const startCut = () => {
+    if (preflight.blocks) setAskBlocked(true);
+    else void vm.cutFilm();
+  };
+  // Command palette: "Cut the film" cuts here (elsewhere it opens Cut) — the button's own handler.
+  useCommandActions([
+    {
+      id: PLAY_COMMAND_ACTION_IDS.cutFilm,
+      label: 'Cut the film',
+      subtitle: 'Cut · put the kept shots together',
+      keywords: 'cut film assemble edit export movie',
+      run: startCut,
+      available: () =>
+        vm.mounted &&
+        !vm.assembling &&
+        !vm.checking &&
+        applyCutShotEdits(vm.shots, vm.options.shotEdits).length > 0,
+    },
+  ]);
+  if (!vm.mounted) return null;
+
+  const phone = typeof window !== 'undefined' && isMobileStudioPath(window.location.pathname);
+  const href = (path: string) => (phone ? toMobileStudioHref(path) : path);
   const busy = vm.assembling || vm.checking;
   // Export for an editor (cut-project-export.ts): the monitor's own timeline, packed server-side.
   const exportProject = async () => {
@@ -389,7 +397,7 @@ export default function CutRoom() {
       loading={vm.checking}
       loadingLabel="Checking the shots"
       data-testid="cut-film"
-      onClick={() => void vm.cutFilm()}
+      onClick={startCut}
     >
       {vm.assembling ? 'Cutting…' : `Cut film · ${kept.length} shot${kept.length === 1 ? '' : 's'}`}
     </Button>
@@ -397,6 +405,32 @@ export default function CutRoom() {
 
   return (
     <>
+      <ConfirmDialog
+        open={askBlocked}
+        title="Cut it anyway?"
+        body={
+          <div className="space-y-2" data-testid="cut-blocked-ask">
+            <p>Before cutting found what stops this film:</p>
+            <ul className="list-disc pl-5">
+              {failing.map(check => (
+                <li key={check.id}>
+                  <span className="font-medium">{check.label}</span> — {check.detail}
+                </li>
+              ))}
+            </ul>
+            <p>The encode will likely fail. Fix these first, or cut anyway.</p>
+          </div>
+        }
+        confirmLabel="Cut anyway"
+        cancelLabel="Fix them first"
+        tone="danger"
+        testId="cut-blocked-dialog"
+        onCancel={() => setAskBlocked(false)}
+        onConfirm={() => {
+          setAskBlocked(false);
+          void vm.cutFilm();
+        }}
+      />
       <CutProblemsDialog
         problems={vm.problems}
         onResolve={action =>
