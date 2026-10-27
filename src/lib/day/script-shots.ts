@@ -251,9 +251,10 @@ export type ShotSceneDraft = {
 
 /**
  * What a planned shot becomes as a Scene: its setting from the script scene's place (home or
- * office as you set them), the beat from the shot, the lead's line said on camera (anyone else's
- * written into the beat), the framing on the camera row, the time of day from the heading, and a
- * second confirmed Cast member as the partner. Only confirmed names are used.
+ * office as you set them), the beat from the shot (a line or reaction without one: the scene's
+ * action), the lead's line said on camera (anyone else's written into the beat), the framing on
+ * the camera row, the time of day from the heading, and a second confirmed Cast member as the
+ * partner. Only confirmed names are used.
  */
 export function shotSceneDraft(input: {
   shot: PlannedShot;
@@ -281,8 +282,14 @@ export function shotSceneDraft(input: {
   const partner =
     parts.find(part => part.castId !== castId && shot.who.includes(part.speaker)) ??
     parts.find(part => part.castId !== castId);
+  // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
+  // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
+  const sceneAction =
+    !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
+      ? scene.elements.find(element => element.kind === 'action')?.text
+      : undefined;
   const beat = [
-    shot.action,
+    shot.action ?? (sceneAction ? clean(sceneAction) : ''),
     shot.line && !leadSpeaks && shot.speaker ? `${nameOf(shot.speaker)} says: “${shot.line}”` : '',
     shot.purpose === 'reaction' && shot.who[0] ? `${nameOf(shot.who[0])} reacts.` : '',
   ]

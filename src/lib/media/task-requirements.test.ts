@@ -22,7 +22,7 @@ describe('Task requirements', () => {
       'qwen-rapid-aio-sfw-checkpoint',
       'qwen-rapid-aio-nsfw-checkpoint',
       'wan-video-rapid-aio',
-      'qwen-image-edit-2511-bf16',
+      'qwen-image-edit-2511-fp8mixed',
       'qwen-edit-lightning-8',
       'qwen-2.5-vl-7b-fp8',
       'qwen-image-vae',
@@ -37,6 +37,35 @@ describe('Task requirements', () => {
     );
     assert.deepEqual(taskRequirements({ animate: true, runnableModels: runnable }).assetIds, []);
     assert.deepEqual(taskRequirements({ animate: true }).assetIds, ['wan-video-rapid-aio']);
+  });
+
+  // The face finish renders on the fp8 Edit 2511 UNET (resolveFaceFinisher): it asked for the
+  // 40.9 GB bf16 file even with fp8mixed installed.
+  it('face finish asks for the fp8 Edit 2511 UNET, and an installed bf16 covers it', () => {
+    const req = taskRequirements({ faceFinish: true });
+    assert.ok(req.assetIds.includes('qwen-image-edit-2511-fp8mixed'));
+    assert.ok(!req.assetIds.includes('qwen-image-edit-2511-bf16'));
+    const rest = [
+      { id: 'qwen-edit-lightning-8', status: 'installed' as const, downloadable: true },
+      { id: 'qwen-2.5-vl-7b-fp8', status: 'installed' as const, downloadable: true },
+      { id: 'qwen-image-vae', status: 'installed' as const, downloadable: true },
+    ];
+    const fp8 = { id: 'qwen-image-edit-2511-fp8mixed', downloadable: true, bytes: 20533762817 };
+    const bf16 = { id: 'qwen-image-edit-2511-bf16', downloadable: true, bytes: 40861031560 };
+    const missing = (rows: Parameters<typeof missingTaskRequirements>[1]) =>
+      missingTaskRequirements(req, rows, null).assets.map(row => row.id);
+    assert.deepEqual(missing([...rest, { ...fp8, status: 'installed' }]), []);
+    assert.deepEqual(
+      missing([...rest, { ...fp8, status: 'missing' }, { ...bf16, status: 'installed' }]),
+      []
+    );
+    const neither = missingTaskRequirements(
+      req,
+      [...rest, { ...fp8, status: 'missing' }, { ...bf16, status: 'missing' }],
+      null
+    );
+    assert.deepEqual(neither.assets.map(row => row.id), ['qwen-image-edit-2511-fp8mixed']);
+    assert.equal(neither.bytes, 20533762817);
   });
 
   it('unknown models ask for nothing', () => {

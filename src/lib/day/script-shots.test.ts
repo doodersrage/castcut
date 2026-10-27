@@ -98,10 +98,14 @@ describe('shot lists from a script (M3 S4)', () => {
       placeMap: undefined,
     });
     assert.equal(lead.name, '1B KITCHEN · Dialogue');
+    // M6 D7: the line is said during the scene's action, not a beat the engine makes up.
+    const action = 'Nora pours coffee. Tomas leans in the doorway.';
     assert.deepEqual(lead.slot, {
       id: 'morning',
       label: '1B',
       location: 'kitchen at home',
+      sceneHints: action,
+      sceneHintsTyped: action,
       poseCamera: { shot: 'waist' },
       line: 'Coffee first.',
     });
@@ -118,7 +122,7 @@ describe('shot lists from a script (M3 S4)', () => {
       castMap,
       placeMap: undefined,
     });
-    assert.equal(his.slot.sceneHints, 'Tomás Ruiz says: “You always say that.”');
+    assert.equal(his.slot.sceneHints, `${action} Tomás Ruiz says: “You always say that.”`);
     assert.equal(his.slot.line, undefined);
 
     // Unconfirmed names are not used: no partner, the cue as written.
@@ -133,7 +137,7 @@ describe('shot lists from a script (M3 S4)', () => {
       placeMap: undefined,
     });
     assert.equal(unsure.partnerCharacterId, undefined);
-    assert.equal(unsure.slot.sceneHints, 'Tomas says: “You always say that.”');
+    assert.equal(unsure.slot.sceneHints, `${action} Tomas says: “You always say that.”`);
   });
 
   it('reads the place as you set it', () => {

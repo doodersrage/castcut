@@ -487,6 +487,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     ],
   },
   {
+    // What Lightning and the face finish render on when installed (preferInstalledFp8ForEdit2511,
+    // resolveFaceFinisher): half the size, fits a 24 GB card with its text encoder.
+    id: 'qwen-image-edit-2511-fp8mixed',
+    label: 'Qwen Image Edit 2511 (fp8mixed UNET)',
+    kind: 'unet',
+    filename: 'qwen_image_edit_2511_fp8mixed.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors',
+    bytes: 20533762817,
+    modelIds: ['qwen-image-edit-2511-lightning-4', 'qwen-image-edit-2511-lightning-8'],
+  },
+  {
     id: 'qwen-image-edit-2509-bf16',
     label: 'Qwen Image Edit 2509 (bf16 UNET)',
     kind: 'unet',

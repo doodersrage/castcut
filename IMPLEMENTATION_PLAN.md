@@ -1557,6 +1557,13 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
   - D2: `cappedCastScenes` never drops a Scene with `fromScript` (made from a script shot), as
     with takes (`day/scenes.ts`; unit test). Such a Scene stays even if its shot or script is
     removed later — growth only by your own Make it a Scene / Prepare.
+  - D7 (found by V2, 2026-10-27): a dialogue or reaction shot's Scene takes the scene's first
+    action as its beat when the shot has none (`shotSceneDraft`; unit test). Before, the beat was
+    empty and the still engine made one up.
+  - Also from V2: the face finish's requirement card asked for the 40.9 GB bf16 Edit 2511 UNET
+    while the finish renders on fp8 (`resolveFaceFinisher`). Lightning 4 / 8 now ask for
+    `qwen_image_edit_2511_fp8mixed` (20.5 GB, new catalog entry); an installed bf16 covers it
+    (`task-requirements.ts`). Checked on this install: the Scene page's card is gone.
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

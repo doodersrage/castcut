@@ -16,13 +16,13 @@ const MODEL_ASSETS: Record<string, string[]> = {
   'qwen-rapid-aio-nsfw': ['qwen-rapid-aio-nsfw-checkpoint'],
   'qwen-image-edit-2511': ['qwen-image-edit-2511-bf16', 'qwen-2.5-vl-7b-fp8', 'qwen-image-vae'],
   'qwen-image-edit-2511-lightning-4': [
-    'qwen-image-edit-2511-bf16',
+    'qwen-image-edit-2511-fp8mixed',
     'qwen-edit-lightning-4',
     'qwen-2.5-vl-7b-fp8',
     'qwen-image-vae',
   ],
   'qwen-image-edit-2511-lightning-8': [
-    'qwen-image-edit-2511-bf16',
+    'qwen-image-edit-2511-fp8mixed',
     'qwen-edit-lightning-8',
     'qwen-2.5-vl-7b-fp8',
     'qwen-image-vae',
@@ -197,10 +197,13 @@ export type TaskAssetState = {
 
 /**
  * A requirement other installed files already cover: the 2.1 base + Turbo LoRA run Turbo as well
- * as its own int8 checkpoint does, so an install that has both is not missing the checkpoint.
+ * as its own int8 checkpoint does, so an install that has both is not missing the checkpoint;
+ * Edit 2511's bf16 UNET runs what its fp8 one does.
  */
 const ASSET_COVERED_BY: Record<string, string[][]> = {
   'qwen-image-2.1-turbo-int8': [['qwen-image-2.1-bf16', 'qwen-image-2.1-turbo-lora']],
+  // Lightning (and the face finish) ask for the fp8 UNET; with only bf16 they run on it.
+  'qwen-image-edit-2511-fp8mixed': [['qwen-image-edit-2511-bf16']],
 };
 
 /** Missing pieces of a requirement, given the asset rows and ComfyUI's node list. */
