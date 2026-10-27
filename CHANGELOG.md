@@ -9,6 +9,27 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.0.1] - 2026-10-27
+
+- e2e: the disk-space test encodes whether or not the shot checks ask
+- e2e: the Day cut test answers Cut's ask on a failed preflight (M6 D1)
+- M6 V8: a 10-minute film end to end; long films kept, encode memory bounded
+- M6 V4 D3-D6: Story clip findings, one script reader, honest browser subtitles
+- M6 V7: large-project timings; script saves no longer slow the Scene page
+- M6 V6: storage budgets; screenplays get their own per-script store
+- M6 D13-D15: Cut follows a Cast link; real made-from pictures; runs wait for redos
+- M6 D12: a take records its pose miss whether or not it is redone
+- M6 V3: consistency checks measured on a reviewed set
+- M6 D11: a Qwen-Image 2.1 take records 2.1, not the Rapid AIO graph
+- M6 D10: a Cast member added just before a reload survives startup sync
+- M6 D9: finished films are not clip-checked
+- M6 D8: a run waits for each take's checks before the next Scene
+- M6 D7 + face finish asks for fp8 Edit 2511
+- M6 V2: real-engine run of script to film, every phase passed
+- M6 V4 D1+D2: Cut film asks on a failed preflight; script Scenes survive the cap
+- M6 V1: upgrade runbook and a read-only before/after check
+- M6 plan: production validation and quality (IMPLEMENTATION_PLAN.md Part 8)
+
 ## [v3.0.0] - 2026-10-26
 
 - Gallery saves keep every render's stored graph; renders the film uses are never pruned
