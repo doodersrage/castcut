@@ -1,0 +1,126 @@
+{
+  "findings": [
+    {
+      "id": "scenes:scene-mvqkhyxf-c9fa9557:outfit-jump",
+      "rule": "outfit-jump",
+      "label": "confirmed"
+    },
+    {
+      "id": "scenes:scene-mvqkhyxj-b2e31b10:outfit-jump",
+      "rule": "outfit-jump",
+      "label": "confirmed"
+    },
+    {
+      "id": "scenes:scene-mvqls2sp-aaae0227:outfit-jump",
+      "rule": "outfit-jump",
+      "label": "confirmed"
+    },
+    {
+      "id": "66a21e23-b191-4fca-b216-b35f9d31f6f4:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "6e6d7bc9-4eb3-4e04-aca8-2de0f3e22946:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "1b0ef2f7-b34d-40d6-b20e-885cc8233856:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "4475b3c5-43b4-4732-99ef-a6a0f2a5d8a7:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "564fd409-2f62-4276-a766-4a4e25e809d7:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "5dfffc05-eb35-4f89-921b-7ea04a92d7ce:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "f821721e-c921-4112-af05-4cf22c48d513:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "c717e272-70e6-44bf-9c04-0faba7000b8d:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "2a652d84-1aa2-4dde-8e0e-bb91f15b1974:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "f1c16d84-e03c-438b-9a87-1e3aa4cfce83:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "550e69e2-6a89-4841-987b-1b9f534f6d27:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "1e516742-7e2f-435d-9bbd-3963a3ef734e:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "6a811556-ad9e-49fb-a615-b9ac600eedc0:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "41eabdf0-6d59-4a70-8547-0f808603ecb8:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "f4067da0-942e-4402-ae01-5ffd4839b9a1:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "c70b3866-6781-412e-975f-d08235366eee:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "187a7bc6-96bd-46e0-95cf-9f000bfe46e7:pose-miss",
+      "rule": "pose-miss",
+      "label": "false-positive"
+    },
+    {
+      "id": "7916f4ab-2b60-4b11-985a-0616c8675593:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    },
+    {
+      "id": "b16fb175-021d-4b95-8170-c50622f1d144:pose-miss",
+      "rule": "pose-miss",
+      "label": "confirmed"
+    }
+  ],
+  "looksWrong": [
+    "26f1de95-2202-4a34-9e33-7538851939d5",
+    "3b26e48c-f2f6-4027-b1db-60ee9736173a",
+    "41eabdf0-6d59-4a70-8547-0f808603ecb8",
+    "4263be90-1ad6-4736-9a0d-74a9cfca0975",
+    "5291f129-2021-4f9c-9d68-e9686a1f7725",
+    "550e69e2-6a89-4841-987b-1b9f534f6d27",
+    "5a0f9da7-018e-401c-88ce-2ae1628e45b5",
+    "66a21e23-b191-4fca-b216-b35f9d31f6f4",
+    "7916f4ab-2b60-4b11-985a-0616c8675593",
+    "e4260920-374b-47cc-be7b-ba1818e96851"
+  ]
+}

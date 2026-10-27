@@ -1537,6 +1537,11 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - Acceptance: a per-rule table (found, confirmed, false positives, misses) in a new
   `docs/consistency-report.md`; any threshold change cites it.
 - Verify: re-run on the same set gives the same table.
+- Done 2026-10-27 (smaller than planned: 2 Casts × 1 look — both from one plate — × 3 engines × 5
+  scenes, plus 5 pairs; 61 takes, 22 findings and Looks wrong reviewed in a review sheet, since the
+  app labels only Cut's kept shots). Pose match 47% precise, no threshold change (the labels do
+  not separate by score); face match never fired; Cut's outfit jump exact; 5 of 9 wrong takes
+  flagged by nothing. Found D10–D12 and three gaps no check covers (place, garment colour, shoes).
 
 **V4 — Fix the confirmed defects** (D1–D6) · M overall, each S
 - D1: **Cut film** asks first when the preflight shows ✗, naming what blocks it; it doesn't
@@ -1589,7 +1594,10 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     wrong engine and a replay from it ran on Rapid AIO (ComfyUI's history showed the 2.1 files
     loaded). The take now records the engine asked for when it rides another graph
     (`queuedTakeModel`); Upscale and sampler memory still judge it by the graph it ran on.
-  - Left: D3–D6.
+  - D12 (found by V3): the pose redo check records `poseMiss` only when it redoes the take, so a
+    miss once the redo is used up (the redo itself) is stored as no miss — 11 of V3's 30 takes
+    under the threshold had no finding. Not fixed yet.
+  - Left: D3–D6, D12.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_
 - Gap: each feature was tested alone, never as one person's session.

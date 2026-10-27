@@ -16,6 +16,10 @@
  * (SCENE_KEEP=first keeps each Scene's first take for you); `cut2` cuts a review copy and
  * measures it; `package` packs the cut with its media and imports it in a fresh browser.
  * Each phase's time and problems go to SCENE_OUT/report.json.
+ *
+ * Consistency set (M6 V3, docs/consistency-report.md), on one install: setup v3script, then v3run
+ * once per engine (SCENE_V3_ENGINE; SCENE_V3_PAIRS=1 on the first), v3cut, v3sheet (a local review
+ * page in SCENE_OUT/review), v3report (the tables, from the review's saved labels).
  */
 import { chromium, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import {
@@ -29,6 +33,14 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { putAppKv } from '../e2e/helpers/idb';
+import {
+  CONTINUITY_RULE_LABELS,
+  checkQuality,
+  labelledFindings,
+} from '../src/lib/checks/check-quality';
+import type { FindingDecision } from '../src/lib/checks/finding-decisions';
+import { findingsForGalleryEntry } from '../src/lib/checks/findings';
+import type { ComfyGalleryEntry } from '../src/lib/gallery/comfyui-gallery-entry';
 
 const BASE = process.env.SCENE_BASE ?? 'http://127.0.0.1:47923';
 const OUT = process.env.SCENE_OUT ?? '/tmp/scene-real';
@@ -126,6 +138,23 @@ async function openScene(page: Page, castId: string, path = '/scene') {
     await ready.waitFor({ timeout: 120_000 });
   }
   await page.waitForTimeout(1500);
+  // The page keeps the active Cast over `?character=` once one is chosen: switch in Setup.
+  const chip = page.getByTestId('day-setup-chip');
+  const name = castId.replace(/^cast-/, '');
+  if (
+    (await chip.isVisible().catch(() => false)) &&
+    !(await chip.textContent())?.toLowerCase().includes(name)
+  ) {
+    await chip.click();
+    const tile = page.getByTestId(`cast-picker-character-${castId}`);
+    await tile.click();
+    await page.waitForTimeout(1500);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1500);
+    const now = (await chip.textContent())?.trim() ?? '';
+    log('Cast switched to', now);
+    if (!now.toLowerCase().includes(name)) throw new Error(`Cast still ${now}`);
+  }
 }
 
 /** Pick the page's engine by its label (the model select in the Engine chip's column). */
@@ -643,6 +672,279 @@ async function waitForRun(page: Page, done: (run: V2Run) => boolean, minutes: nu
     await page.waitForTimeout(3000);
   }
   throw new Error(`run: not there within ${minutes} min (${last})`);
+}
+
+// M6 V3: the consistency set. Per Cast, one script: five scenes rendered once on each Day still
+// engine (same outfit throughout, so the engine is what changes), then pairs of scenes at the
+// same place and time — rendered once — with the outfit changed or not, for Cut's rules.
+const V3_CASTS = (process.env.SCENE_V3_CASTS ?? 'cast-mara,cast-lena').split(',');
+const V3_ENGINES = ['qwen-image-2.1', 'rapid-aio', 'qwen-edit-2511'] as const;
+type V3Engine = (typeof V3_ENGINES)[number];
+const V3_OUTFIT = 'outfit-wide-leg-mint-shirt-dress';
+const V3_CHANGED = 'outfit-tailored-ink-mechanic-coveralls';
+const V3_SCENES = [
+  ['INT. KITCHEN - MORNING', 'pours coffee by the window.'],
+  ['INT. OFFICE - DAY', 'types at a desk, a laptop open.'],
+  ['EXT. PARK - AFTERNOON', 'walks along a tree-lined path.'],
+  ['INT. BAR - EVENING', 'sits at the counter with a drink.'],
+  ['EXT. ROOFTOP - NIGHT', 'looks out over the city lights.'],
+] as const;
+/** Pairs: two scenes at one place and time; `changed` dresses the second differently. */
+const V3_PAIRS: Record<
+  string,
+  Array<{ heading: string; actions: [string, string]; changed: boolean }>
+> = {
+  'cast-mara': [
+    {
+      heading: 'INT. CAFE - DAY',
+      actions: ['reads a book at a corner table.', 'sips a latte by the window.'],
+      changed: true,
+    },
+    {
+      heading: 'INT. GYM - MORNING',
+      actions: ['stretches on a mat.', 'drinks from a water bottle.'],
+      changed: false,
+    },
+    {
+      heading: 'INT. LIBRARY - EVENING',
+      actions: ['browses a shelf of books.', 'writes in a notebook at a long table.'],
+      changed: true,
+    },
+  ],
+  'cast-lena': [
+    {
+      heading: 'INT. CAFE - DAY',
+      actions: ['reads a book at a corner table.', 'sips a latte by the window.'],
+      changed: true,
+    },
+    {
+      heading: 'EXT. BEACH - EVENING',
+      actions: ['walks along the shoreline.', 'sits on the sand watching the waves.'],
+      changed: false,
+    },
+  ],
+};
+
+function v3Name(castId: string) {
+  const name = castId.replace(/^cast-/, '');
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function v3ScriptText(castId: string) {
+  const name = v3Name(castId);
+  const lines = [`Title: ${name} consistency set`, ''];
+  for (const [heading, action] of V3_SCENES) lines.push(heading, '', `${name} ${action}`, '');
+  for (const pair of V3_PAIRS[castId] ?? [])
+    for (const action of pair.actions) lines.push(pair.heading, '', `${name} ${action}`, '');
+  return lines.join('\n');
+}
+
+async function v3Script(page: Page, castId: string) {
+  const scene = (await toolSettings(page)).scene as
+    { scripts?: Array<{ id: string; castId: string; name: string; shots?: V2Shot[] }> } | undefined;
+  const mine = (scene?.scripts ?? []).filter(
+    entry => entry.castId === castId && /consistency/.test(entry.name)
+  );
+  return mine.find(entry => entry.shots?.length) ?? mine[0];
+}
+
+/** Extra copies of the Cast's consistency script with no shots (a repeated import): deleted. */
+async function v3DropDuplicates(page: Page, castId: string) {
+  const scene = (await toolSettings(page)).scene as
+    | { scripts?: Array<{ id: string; castId: string; name: string; shots?: unknown[] }> }
+    | undefined;
+  const keep = await v3Script(page, castId);
+  const extra = (scene?.scripts ?? []).filter(
+    entry => entry.castId === castId && /consistency/.test(entry.name) && entry.id !== keep?.id
+  );
+  for (const script of extra) {
+    await page.getByTestId(`script-open-${script.id}`).click({ timeout: 60_000 });
+    await page.waitForTimeout(1000);
+    // Only the copy with no shots: its Prepare is off (the real one's is on).
+    if (await page.getByTestId('script-prepare-run').isEnabled()) {
+      throw new Error(`the open script has shots — not deleting ${script.id}`);
+    }
+    await page.getByTestId('script-delete').click();
+    const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
+    if (await dialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await dialog
+        .getByRole('button', { name: /delete/i })
+        .last()
+        .click();
+    }
+    await page.waitForTimeout(1500);
+    log(castId, 'deleted duplicate script', script.id);
+  }
+}
+
+/**
+ * The Cast's script Scenes in script order, each with its role: one of the five (`eval`), or the
+ * first or second of a pair (and whether the pair changes outfit).
+ */
+async function v3Scenes(page: Page, castId: string) {
+  const script = await v3Script(page, castId);
+  if (!script) throw new Error(`no consistency script for ${castId} — run v3script first`);
+  const scenes =
+    (
+      (await toolSettings(page)).scene as {
+        scenes?: Array<
+          V2Scene & {
+            fromScript?: { scriptId: string; sceneId: string };
+            slot: Record<string, unknown>;
+          }
+        >;
+      }
+    )?.scenes ?? [];
+  const pairs = V3_PAIRS[castId] ?? [];
+  const order = (script.shots ?? []).map(shot => shot.madeSceneId).filter(Boolean) as string[];
+  return order.flatMap((id, index) => {
+    const scene = scenes.find(entry => entry.id === id);
+    if (!scene) return [];
+    const pairIndex = index - V3_SCENES.length;
+    const pair = pairIndex >= 0 ? pairs[Math.floor(pairIndex / 2)] : undefined;
+    return [
+      {
+        scene,
+        role: pair ? (pairIndex % 2 ? 'pair-second' : 'pair-first') : 'eval',
+        changed: pair?.changed ?? false,
+      } as const,
+    ];
+  });
+}
+
+/**
+ * Merge `slots[sceneId]` into those stored Scenes' slots, off the app's pages (a same-origin page
+ * that isn't the app), so no open page writes its own copy back over them. Their times move on,
+ * so they win any merge.
+ */
+async function patchSceneSlots(page: Page, slots: Record<string, Record<string, unknown>>) {
+  await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+  return page.evaluate(
+    patch =>
+      new Promise<number>((resolve, reject) => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const store = db.transaction('kv', 'readwrite').objectStore('kv');
+          const get = store.get('comfy-prompt-tool-settings-tools-v1');
+          get.onsuccess = () => {
+            const record = get.result as {
+              value: {
+                tools: {
+                  scene?: {
+                    scenes?: Array<{ id: string; slot: object }>;
+                    activeSceneId?: string;
+                    slots?: object[];
+                  };
+                };
+                updatedAt?: number;
+              };
+            };
+            const scene = record.value.tools.scene;
+            if (!scene?.scenes) return reject(new Error('no stored Scenes'));
+            const now = Date.now();
+            let changed = 0;
+            scene.scenes = scene.scenes.map((entry, index) => {
+              const slot = patch[entry.id];
+              if (!slot) return entry;
+              changed += 1;
+              return { ...entry, slot: { ...entry.slot, ...slot }, updatedAt: now + index };
+            });
+            // The open Scene's slot is also the page's working slot, which would win back.
+            const open = scene.activeSceneId ? patch[scene.activeSceneId] : undefined;
+            if (open && scene.slots?.[0]) scene.slots[0] = { ...scene.slots[0], ...open };
+            if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
+            const put = store.put(record);
+            put.onsuccess = () => {
+              db.close();
+              resolve(changed);
+            };
+            put.onerror = () => reject(put.error);
+          };
+        };
+      }),
+    slots
+  );
+}
+
+type V3Take = {
+  castId: string;
+  sceneId: string;
+  scene: string;
+  role: string;
+  changed?: boolean;
+  engine: string;
+  outfit?: string;
+  takeId: string;
+  promptId: string;
+  at: string;
+};
+
+/** The set's takes (v3-takes.json) with their Gallery entries, the Scenes and the Cast plates. */
+/** PROMPT_API_TOKEN, from the environment or .env.local. */
+function apiToken() {
+  if (process.env.PROMPT_API_TOKEN) return process.env.PROMPT_API_TOKEN;
+  const file = join(import.meta.dirname, '..', '.env.local');
+  if (!existsSync(file)) return '';
+  return (
+    readFileSync(file, 'utf8')
+      .match(/^PROMPT_API_TOKEN=(.*)$/m)?.[1]
+      ?.trim() ?? ''
+  );
+}
+
+async function v3Stored(page: Page) {
+  const takes = JSON.parse(readFileSync(join(OUT, 'v3-takes.json'), 'utf8')) as V3Take[];
+  await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+  const stored = await page.evaluate(
+    () =>
+      new Promise<{ entries: unknown[]; tools: unknown; characters: unknown }>(
+        (resolve, reject) => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(['galleryEntries', 'kv'], 'readonly');
+            const all = tx.objectStore('galleryEntries').getAll();
+            const tools = tx.objectStore('kv').get('comfy-prompt-tool-settings-tools-v1');
+            const cast = tx.objectStore('kv').get('comfy-prompt-characters-v1');
+            tx.oncomplete = () => {
+              db.close();
+              resolve({
+                entries: all.result as unknown[],
+                tools: (tools.result as { value?: { tools?: unknown } } | undefined)?.value?.tools,
+                characters: (cast.result as { value?: unknown } | undefined)?.value,
+              });
+            };
+          };
+        }
+      )
+  );
+  const byPrompt = new Map(
+    (stored.entries as ComfyGalleryEntry[]).map(entry => [entry.promptId, entry])
+  );
+  type Stored = V2Scene & {
+    slot: { wardrobeId?: string };
+    takes: Array<{ id: string; promptId?: string; imageUrl: string }>;
+  };
+  const all = ((stored.tools as { scene?: { scenes?: Stored[] } })?.scene?.scenes ??
+    []) as Stored[];
+  const scenes = V3_CASTS.flatMap(castId => {
+    const ids = new Set(takes.filter(take => take.castId === castId).map(take => take.sceneId));
+    return all.filter(
+      scene => scene.castId === castId && (ids.has(scene.id) || scene.takes.length)
+    );
+  });
+  // Each Cast's plate (its active look's), for comparing faces.
+  const plates: Record<string, string> = {};
+  const characters =
+    (stored.characters as { characters?: Array<{ id: string }> } | undefined)?.characters ?? [];
+  for (const character of characters) {
+    const url = JSON.stringify(character).match(/\/api\/gallery\/media\/cast-plate-[^"?\\]+/)?.[0];
+    if (url && V3_CASTS.includes(character.id)) plates[character.id] = url;
+  }
+  return { takes, byPrompt, scenes, plates };
 }
 
 type Phase = (ctx: BrowserContext, page: Page) => Promise<void>;
@@ -2191,6 +2493,393 @@ const phases: Record<string, Phase> = {
       await other.close();
       await launched?.close();
     }
+  },
+
+  /**
+   * M6 V3: each Cast's consistency script — imported, every scene's shots drafted, made into
+   * Scenes by Prepare — and the outfits set: the same on every Scene but a changed pair's second.
+   */
+  async v3script(_ctx, page) {
+    for (const castId of V3_CASTS) {
+      const scenes = V3_SCENES.length + 2 * (V3_PAIRS[castId] ?? []).length;
+      await openScene(page, castId);
+      await v3DropDuplicates(page, castId);
+      if (!(await v3Script(page, castId))) {
+        await page.getByTestId('scene-scripts').waitFor({ timeout: 60_000 });
+        await page.getByTestId('script-import').click();
+        await page.getByTestId('script-import-text').fill(v3ScriptText(castId));
+        await attempt(page, `${castId}: script reads as ${scenes} scenes`, async () => {
+          const summary = (await page.getByTestId('script-summary').textContent())?.trim() ?? '';
+          log('summary:', summary);
+          if (!summary.startsWith(`${scenes} scenes`)) throw new Error(summary);
+        });
+        await page.getByTestId('script-keep').click();
+        await page.getByTestId('script-reading').waitFor({ timeout: 30_000 });
+      }
+      const script = await v3Script(page, castId);
+      if (!script) throw new Error(`${castId}: the script was not kept`);
+      await go(page, `/scene?character=${castId}&script=${script.id}`);
+      await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+      const ids = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-testid^="script-scene-"]')]
+          .map(el => el.getAttribute('data-testid')!.slice('script-scene-'.length))
+          .filter(id => !id.includes('-make') && !id.includes('~'))
+      );
+      for (const sceneId of ids) {
+        const drafted = (await v3Script(page, castId))?.shots ?? [];
+        if (drafted.some(shot => shot.sceneId === sceneId)) continue;
+        await attempt(page, `${castId}: draft ${sceneId}`, async () => {
+          const scene = page.getByTestId(`script-scene-${sceneId}`);
+          if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
+          await page.getByTestId(`script-shots-draft-${sceneId}`).click();
+          await page.locator(`[data-testid^="script-shot-${sceneId}~"]`).first().waitFor();
+        });
+      }
+      const shots = (await v3Script(page, castId))?.shots ?? [];
+      log(
+        castId,
+        shots.length,
+        'shots:',
+        shots.map(shot => `${shot.sceneId}/${shot.purpose}`).join(', ')
+      );
+      await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
+      log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
+      await shot(page, `v3-${castId}-prepared`);
+      const made = await v3Scenes(page, castId);
+      const slots = Object.fromEntries(
+        made.map(({ scene, role, changed }) => [
+          scene.id,
+          {
+            wardrobeId: role === 'pair-second' && changed ? V3_CHANGED : V3_OUTFIT,
+            wardrobeAuto: false,
+          },
+        ])
+      );
+      log(castId, 'outfits set on', await patchSceneSlots(page, slots), 'Scenes');
+      for (const { scene, role, changed } of made)
+        log('  ', scene.name, role, changed ? 'changed' : '', slots[scene.id]!.wardrobeId);
+    }
+  },
+
+  /**
+   * M6 V3: one run per Cast with every one of its five Scenes on SCENE_V3_ENGINE (and the pairs
+   * too when SCENE_V3_PAIRS=1). Each new take, with its engine and role, goes to v3-takes.json.
+   */
+  async v3run(_ctx, page) {
+    const engine = process.env.SCENE_V3_ENGINE as V3Engine;
+    if (!V3_ENGINES.includes(engine))
+      throw new Error(`SCENE_V3_ENGINE: one of ${V3_ENGINES.join(', ')}`);
+    const pairs = process.env.SCENE_V3_PAIRS === '1';
+    const file = join(OUT, 'v3-takes.json');
+    for (const castId of V3_CASTS) {
+      await openScene(page, castId);
+      const made = await v3Scenes(page, castId);
+      const included = made.filter(entry => entry.role === 'eval' || pairs);
+      await patchSceneSlots(
+        page,
+        Object.fromEntries(included.map(({ scene }) => [scene.id, { engine }]))
+      );
+      const script = (await v3Script(page, castId))!;
+      await go(page, `/scene?character=${castId}&script=${script.id}`);
+      await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
+      await page.getByTestId('scene-run').waitFor({ timeout: 30_000 });
+      for (const { scene } of made.filter(entry => !included.includes(entry))) {
+        const box = page
+          .getByTestId(`scene-run-item-${scene.id}`)
+          .locator('input[type="checkbox"]');
+        if (await box.isChecked()) await box.uncheck();
+      }
+      await page.getByTestId('scene-run-max-takes').fill('60');
+      await page.getByTestId('scene-run-max-minutes').fill('600');
+      await page.waitForTimeout(800);
+      const items = await page
+        .locator('[data-testid^="scene-run-item-"][data-queued="true"]')
+        .allTextContents();
+      log(castId, 'plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
+      for (const item of items) log('  ', item);
+      await attempt(page, `${castId}: every queued Scene on ${engine}`, async () => {
+        if (items.length !== included.length)
+          throw new Error(`${items.length} queued, ${included.length} wanted`);
+        if (items.some(item => !item.includes(engine))) throw new Error(items.join(' | '));
+      });
+      await shot(page, `v3-${castId}-${engine}-planned`);
+      const before = new Map(
+        made.map(({ scene }) => [
+          scene.id,
+          new Set(scene.takes.map(take => (take as { id: string }).id)),
+        ])
+      );
+      const started = Date.now();
+      await page.getByTestId('scene-run-start').click();
+      const run = await waitForRun(
+        page,
+        entry => ['done', 'stopped', 'cancelled'].includes(entry.state ?? ''),
+        8 * 60
+      );
+      log(castId, engine, 'run', run.state, 'in', Math.round((Date.now() - started) / 1000), 's');
+      await attempt(page, `${castId} ${engine}: run done`, async () => {
+        if (run.state !== 'done') throw new Error(`${run.state}: ${run.stopReason ?? ''}`);
+      });
+      const after = await v3Scenes(page, castId);
+      const all = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as unknown[]) : [];
+      const added = after.flatMap(({ scene, role, changed }) =>
+        (scene.takes as Array<{ id: string; promptId?: string; at: number }>)
+          .filter(take => !before.get(scene.id)?.has(take.id))
+          .map(take => ({
+            castId,
+            sceneId: scene.id,
+            scene: scene.name,
+            role,
+            ...(role === 'eval' ? {} : { changed }),
+            engine,
+            outfit: (scene.slot as { wardrobeId?: string }).wardrobeId,
+            takeId: take.id,
+            promptId: take.promptId ?? take.id,
+            at: new Date(take.at).toISOString(),
+          }))
+      );
+      for (const take of added) log('  take', take.scene, take.promptId);
+      await attempt(page, `${castId} ${engine}: a take in every queued Scene`, async () => {
+        const got = new Set(added.map(take => take.sceneId));
+        const missing = included.filter(({ scene }) => !got.has(scene.id));
+        if (missing.length) throw new Error(missing.map(({ scene }) => scene.name).join(', '));
+      });
+      writeFileSync(file, `${JSON.stringify([...all, ...added], null, 2)}\n`);
+      await shot(page, `v3-${castId}-${engine}-done`);
+    }
+  },
+
+  /**
+   * M6 V3: Cut over each Cast's pairs — each pair Scene's one take kept (no choice to make), then
+   * Cut from Scenes, logging its continuity findings next to what each pair should give.
+   */
+  async v3cut(_ctx, page) {
+    for (const castId of V3_CASTS) {
+      await openScene(page, castId);
+      const made = await v3Scenes(page, castId);
+      for (const { scene, role } of made) {
+        if (role === 'eval' || scene.keptTakeId || !scene.takes.length) continue;
+        await attempt(page, `${castId}: keep ${scene.name}`, async () => {
+          await go(page, `/scene?character=${castId}&scene=${scene.id}`);
+          await expectValue(page.getByTestId('scene-name'), scene.name, 60_000);
+          await page.getByTestId('scene-take-keep-0').click();
+          await page.waitForTimeout(1000);
+        });
+      }
+      await go(page, `/cut?from=scenes&character=${castId}`);
+      await page.getByTestId('cut-continuity-section').waitFor({ timeout: 180_000 });
+      await page.waitForTimeout(5000);
+      const findings = await page
+        .locator(
+          '[data-testid^="cut-finding-"]:not([data-testid*="-undo-"]):not([data-testid*="-dismiss-"]):not([data-testid*="-accept-"])'
+        )
+        .evaluateAll(list =>
+          list.map(
+            el =>
+              `${el.getAttribute('data-testid')!.slice('cut-finding-'.length)} · ${el.textContent?.replace(/\s+/g, ' ').trim().slice(0, 160)}`
+          )
+        );
+      log(castId, findings.length, 'Cut findings');
+      for (const line of findings) log('  ', line);
+      for (const pair of V3_PAIRS[castId] ?? [])
+        log('   expected:', pair.heading, pair.changed ? 'outfit jump on the second' : 'nothing');
+      await shot(page, `v3-${castId}-cut`);
+    }
+  },
+
+  /**
+   * M6 V3: a local review sheet (OUT/review/index.html) — every take of the set with its picture
+   * as the Scene shows it, its findings (It's fine / It's real) and Looks wrong, and Cut's
+   * outfit-jump findings with both pictures. Its Save writes v3-review.json for v3report; nothing
+   * is written to the app.
+   */
+  async v3sheet(_ctx, page) {
+    const { takes, byPrompt, scenes, plates } = await v3Stored(page);
+    const dir = join(OUT, 'review');
+    mkdirSync(join(dir, 'img'), { recursive: true });
+    const fetchTo = async (url: string, name: string) => {
+      // The media routes want the API token even with sign-in off (the app's pages send it).
+      const response = await page.request.get(new URL(url, BASE).toString(), {
+        headers: { 'x-prompt-api-token': apiToken() },
+      });
+      if (!response.ok()) return undefined;
+      const type = response.headers()['content-type'] ?? '';
+      const file = `img/${name}.${type.includes('jpeg') ? 'jpg' : type.includes('webp') ? 'webp' : 'png'}`;
+      writeFileSync(join(dir, file), await response.body());
+      return file;
+    };
+    const castPlates: Record<string, string> = {};
+    for (const [castId, url] of Object.entries(plates)) {
+      const file = await fetchTo(url, `plate-${castId}`);
+      if (file) castPlates[castId] = file;
+    }
+    const rows = [];
+    for (const take of takes) {
+      const entry = byPrompt.get(take.promptId);
+      const shown = scenes
+        .flatMap(scene => scene.takes)
+        .find(entry => entry.id === take.takeId || entry.promptId === take.promptId);
+      const url = shown?.imageUrl;
+      const picture = url ? await fetchTo(url, take.promptId.slice(0, 8)) : undefined;
+      rows.push({
+        ...take,
+        picture,
+        checked: Boolean(entry?.playChecks && Object.keys(entry.playChecks).length),
+        findings: entry
+          ? findingsForGalleryEntry(entry).map(finding => ({
+              id: finding.id,
+              rule: finding.rule,
+              label: CONTINUITY_RULE_LABELS[finding.rule],
+              evidence: finding.evidence,
+            }))
+          : [],
+      });
+      log(
+        '  ',
+        take.castId,
+        take.engine,
+        take.scene,
+        picture ?? `no picture (${url ?? 'no take'})`
+      );
+    }
+    // Cut's cross-shot findings: each pair's second Scene against its first.
+    const pairs = [];
+    for (const castId of V3_CASTS) {
+      const made = scenes.filter(scene => scene.castId === castId);
+      // Cut opens on the active Cast whatever `?character=` says: make it this one first.
+      await openScene(page, castId);
+      await go(page, `/cut?from=scenes&character=${castId}`);
+      await page.getByTestId('cut-continuity-section').waitFor({ timeout: 180_000 });
+      await page.waitForTimeout(5000);
+      const ids = await page
+        .locator('[data-testid^="cut-finding-"]')
+        .evaluateAll(list =>
+          list
+            .map(el => el.getAttribute('data-testid')!.slice('cut-finding-'.length))
+            .filter(id => id.startsWith('scenes:') && id.endsWith(':outfit-jump'))
+        );
+      for (const id of ids) {
+        const sceneId = id.split(':')[1];
+        const second = made.find(scene => scene.id === sceneId);
+        // Its pair's first Scene is the shot before it: "7A" follows "6A".
+        const number = Number.parseInt(second?.name ?? '', 10);
+        const first = made.find(scene => scene.name.startsWith(`${number - 1}A `));
+        // The kept take's picture from the rows above (else any of the Scene's takes).
+        const pictureOf = (scene?: (typeof made)[number]) =>
+          (
+            rows.find(row => scene?.keptTakeId && row.takeId === scene.keptTakeId) ??
+            rows.find(row => row.sceneId === scene?.id && row.picture)
+          )?.picture;
+        pairs.push({
+          id,
+          castId,
+          rule: 'outfit-jump',
+          label: CONTINUITY_RULE_LABELS['outfit-jump'],
+          first: first?.name,
+          second: second?.name,
+          firstPicture: pictureOf(first),
+          secondPicture: pictureOf(second),
+          evidence: `${first?.slot.wardrobeId ?? '?'} → ${second?.slot.wardrobeId ?? '?'}`,
+        });
+      }
+    }
+    writeFileSync(
+      join(dir, 'index.html'),
+      readFileSync(join(import.meta.dirname, 'v3-review-sheet.html'), 'utf8').replace(
+        /\/\*DATA\*\/\s*null/,
+        JSON.stringify({ rows, pairs, plates: castPlates })
+      )
+    );
+    log(
+      'sheet:',
+      join(dir, 'index.html'),
+      '·',
+      rows.length,
+      'takes ·',
+      pairs.length,
+      'Cut findings'
+    );
+  },
+
+  /**
+   * M6 V3: the set's checks against your labels (v3-review.json from the sheet; SCENE_V3_LABELS
+   * for another path), by C5's checkQuality and labelledFindings — per rule, and per engine:
+   * v3-table.md and v3-labels.json (ids and labels only). Takes that were never checked are left
+   * out, so a Looks wrong on one is not counted as a miss.
+   */
+  async v3report(_ctx, page) {
+    const { takes, byPrompt } = await v3Stored(page);
+    const review = JSON.parse(
+      readFileSync(process.env.SCENE_V3_LABELS ?? join(OUT, 'v3-review.json'), 'utf8')
+    ) as {
+      decisions: Record<string, 'dismissed' | 'accepted'>;
+      looksWrong: string[];
+    };
+    const looksWrong = new Set(review.looksWrong);
+    const setEntries = takes.flatMap(take => {
+      const entry = byPrompt.get(take.promptId);
+      if (!entry?.playChecks || !Object.keys(entry.playChecks).length) return [];
+      return [
+        {
+          ...entry,
+          playerVerdict: looksWrong.has(take.promptId)
+            ? { verdict: 'looks-wrong' as const, at: 0 }
+            : undefined,
+        } as ComfyGalleryEntry,
+      ];
+    });
+    const decisions: FindingDecision[] = Object.entries(review.decisions).map(([id, decision]) => ({
+      id,
+      decision,
+      at: 0,
+    }));
+    const quality = checkQuality(setEntries, decisions);
+    const lines = [
+      '| Rule | Found | Confirmed (It’s real) | False positives (It’s fine) | Not decided |',
+      '| --- | --- | --- | --- | --- |',
+      ...quality.rows.map(
+        row =>
+          `| ${row.label}${row.decidedOnly ? ' ¹' : ''} | ${row.found} | ${row.accepted} | ${row.dismissed} | ${row.found - row.accepted - row.dismissed} |`
+      ),
+      '',
+      `Misses (marked Looks wrong, no check flagged it): ${quality.missed}`,
+      '',
+      '| Engine | Takes checked | Face match: found / real | Pose match: found / real | Looks wrong |',
+      '| --- | --- | --- | --- | --- |',
+    ];
+    for (const engine of V3_ENGINES) {
+      const mine = setEntries.filter(
+        entry => takes.find(take => take.promptId === entry.promptId)?.engine === engine
+      );
+      const tally = (rule: string) => {
+        const ids = mine.flatMap(entry =>
+          findingsForGalleryEntry(entry)
+            .filter(finding => finding.rule === rule)
+            .map(finding => finding.id)
+        );
+        return `${ids.length} / ${ids.filter(id => review.decisions[id] === 'accepted').length}`;
+      };
+      lines.push(
+        `| ${engine} | ${mine.length} | ${tally('face-miss')} | ${tally('pose-miss')} | ${mine.filter(entry => looksWrong.has(entry.promptId)).length} |`
+      );
+    }
+    writeFileSync(join(OUT, 'v3-table.md'), `${lines.join('\n')}\n`);
+    writeFileSync(
+      join(OUT, 'v3-labels.json'),
+      `${JSON.stringify(
+        {
+          findings: labelledFindings(setEntries, decisions).map(({ id, rule, label }) => ({
+            id,
+            rule,
+            label,
+          })),
+          looksWrong: [...looksWrong].sort(),
+        },
+        null,
+        2
+      )}\n`
+    );
+    console.log(lines.join('\n'));
   },
 
   /** Import the Cast files (the Cast page's Import), each with its plate. */

@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Consistency Review</title>
+    <!-- M6 V3: filled in by `scene-real-render.mts v3sheet`; opened from disk, nothing is sent anywhere. -->
+    <style>
+      :root {
+        --bg: #f4f5f7;
+        --surface: #ffffff;
+        --text: #1b1e24;
+        --muted: #5d6573;
+        --border: #d9dde4;
+        --accent: #2f5aa8;
+        --real: #b3261e;
+        --real-bg: #fbe9e7;
+        --fine: #1e6b3a;
+        --fine-bg: #e6f4ea;
+        --warn-bg: #fff4d6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #121418;
+          --surface: #1b1e24;
+          --text: #e8eaee;
+          --muted: #9aa3b2;
+          --border: #2e333c;
+          --accent: #8fb0ee;
+          --real: #f2b8b5;
+          --real-bg: #3b1e1c;
+          --fine: #a6d9b5;
+          --fine-bg: #1b3324;
+          --warn-bg: #3a3218;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        align-items: center;
+      }
+      h1 {
+        font-size: 17px;
+        margin: 0;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 24px 0 8px;
+      }
+      main {
+        padding: 0 16px 48px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .progress {
+        color: var(--muted);
+      }
+      .spacer {
+        flex: 1;
+      }
+      select,
+      button,
+      label.check {
+        font: inherit;
+      }
+      select,
+      button {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--surface);
+      }
+      .help {
+        color: var(--muted);
+        margin: 12px 0 0;
+        max-width: 80ch;
+      }
+      .plates {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .plates figure {
+        margin: 0;
+        text-align: center;
+        color: var(--muted);
+      }
+      .plates img {
+        height: 160px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        cursor: zoom-in;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card.done {
+        border-color: var(--fine);
+      }
+      .pics {
+        display: flex;
+        background: var(--bg);
+      }
+      .pics img {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        object-fit: contain;
+        cursor: zoom-in;
+      }
+      .meta {
+        padding: 8px 10px 4px;
+      }
+      .meta strong {
+        display: block;
+      }
+      .meta span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .badge {
+        display: inline-block;
+        background: var(--warn-bg);
+        border-radius: 4px;
+        padding: 0 6px;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 4px 10px;
+      }
+      li {
+        padding: 6px 0;
+        border-top: 1px solid var(--border);
+      }
+      li .evidence {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .choice {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+      }
+      .choice button {
+        flex: 1;
+        padding: 4px 6px;
+      }
+      .choice button[aria-pressed='true'].fine {
+        background: var(--fine-bg);
+        border-color: var(--fine);
+        color: var(--fine);
+        font-weight: 600;
+      }
+      .choice button[aria-pressed='true'].real {
+        background: var(--real-bg);
+        border-color: var(--real);
+        color: var(--real);
+        font-weight: 600;
+      }
+      .none {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 6px 0;
+      }
+      label.check {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 8px 10px 10px;
+        margin-top: auto;
+        border-top: 1px solid var(--border);
+        cursor: pointer;
+      }
+      dialog {
+        border: none;
+        padding: 0;
+        background: transparent;
+        max-width: 96vw;
+        max-height: 96vh;
+      }
+      dialog::backdrop {
+        background: rgb(0 0 0 / 0.8);
+      }
+      dialog img {
+        max-width: 96vw;
+        max-height: 92vh;
+        display: block;
+      }
+      @media (max-width: 600px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Consistency review</h1>
+      <span class="progress" id="progress"></span>
+      <span class="spacer"></span>
+      <select id="cast" aria-label="Cast"></select>
+      <select id="engine" aria-label="Engine"></select>
+      <label class="check" style="border: 0; padding: 0; margin: 0">
+        <input type="checkbox" id="open-only" /> Only undecided
+      </label>
+      <button type="button" id="load">Load…</button>
+      <input type="file" id="load-file" accept="application/json" hidden />
+      <button type="button" class="primary" id="save">Save v3-review.json</button>
+    </header>
+    <main>
+      <p class="help">
+        For each finding: <b>It’s fine</b> if the check is wrong about this picture,
+        <b>It’s real</b> if it’s right. Tick <b>Looks wrong</b> on any take you would not use,
+        whether or not a check flagged it — that is how misses are counted. Your answers are kept in
+        this browser as you go; <b>Save</b> writes the file the report reads.
+      </p>
+      <h2>Cast plates</h2>
+      <div class="plates" id="plates"></div>
+      <h2>Cut: outfit jumps between shots</h2>
+      <div class="grid" id="pairs"></div>
+      <h2>Takes</h2>
+      <div class="grid" id="takes"></div>
+    </main>
+    <dialog id="zoom"><img alt="" /></dialog>
+    <script>
+      const DATA = /*DATA*/ null;
+      const KEY = 'castcut-v3-review';
+      let state = { decisions: {}, looksWrong: [] };
+      try {
+        const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+        if (saved && saved.decisions) state = saved;
+      } catch {
+        // storage blocked: answers last only while the page is open
+      }
+      const persist = () => {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(state));
+        } catch {
+          // ignore
+        }
+      };
+      const engineName = {
+        'qwen-image-2.1': 'Qwen-Image 2.1',
+        'rapid-aio': 'Rapid AIO',
+        'qwen-edit-2511': 'Edit 2511',
+      };
+      const castName = id => id.replace(/^cast-/, '').replace(/^./, c => c.toUpperCase());
+      const allFindings = [...DATA.pairs, ...DATA.rows.flatMap(row => row.findings)];
+
+      const el = (tag, props = {}, ...children) => {
+        const node = Object.assign(document.createElement(tag), props);
+        for (const child of children) if (child != null) node.append(child);
+        return node;
+      };
+      const zoom = document.getElementById('zoom');
+      zoom.addEventListener('click', () => zoom.close());
+      const picture = (src, alt) =>
+        src
+          ? el('img', {
+              src,
+              alt,
+              loading: 'lazy',
+              onclick: () => {
+                zoom.querySelector('img').src = src;
+                zoom.showModal();
+              },
+            })
+          : el('div', { className: 'none', textContent: 'No picture' });
+
+      const choice = finding =>
+        el(
+          'div',
+          { className: 'choice' },
+          ...[
+            ['dismissed', 'It’s fine', 'fine'],
+            ['accepted', 'It’s real', 'real'],
+          ].map(([value, text, cls]) =>
+            el('button', {
+              type: 'button',
+              className: cls,
+              textContent: text,
+              ariaPressed: String(state.decisions[finding.id] === value),
+              onclick: () => {
+                if (state.decisions[finding.id] === value) delete state.decisions[finding.id];
+                else state.decisions[finding.id] = value;
+                persist();
+                render();
+              },
+            })
+          )
+        );
+      const findingItem = finding =>
+        el(
+          'li',
+          {},
+          el('strong', { textContent: finding.label }),
+          el('div', { className: 'evidence', textContent: finding.evidence }),
+          choice(finding)
+        );
+
+      const castSelect = document.getElementById('cast');
+      const engineSelect = document.getElementById('engine');
+      const openOnly = document.getElementById('open-only');
+      castSelect.append(el('option', { value: '', textContent: 'Every Cast' }));
+      for (const id of [...new Set(DATA.rows.map(row => row.castId))])
+        castSelect.append(el('option', { value: id, textContent: castName(id) }));
+      engineSelect.append(el('option', { value: '', textContent: 'Every engine' }));
+      for (const id of Object.keys(engineName))
+        engineSelect.append(el('option', { value: id, textContent: engineName[id] }));
+      for (const control of [castSelect, engineSelect, openOnly])
+        control.addEventListener('change', () => render());
+
+      const plates = document.getElementById('plates');
+      for (const [castId, src] of Object.entries(DATA.plates))
+        plates.append(
+          el(
+            'figure',
+            {},
+            picture(src, `${castName(castId)}'s plate`),
+            el('figcaption', { textContent: castName(castId) })
+          )
+        );
+
+      function render() {
+        const decided = allFindings.filter(finding => state.decisions[finding.id]).length;
+        document.getElementById('progress').textContent =
+          `${decided} of ${allFindings.length} findings decided · ${state.looksWrong.length} marked Looks wrong`;
+        const cast = castSelect.value;
+        const engine = engineSelect.value;
+        const undecided = items => items.some(finding => !state.decisions[finding.id]);
+
+        const pairs = document.getElementById('pairs');
+        pairs.replaceChildren(
+          ...DATA.pairs
+            .filter(
+              pair => (!cast || pair.castId === cast) && (!openOnly.checked || undecided([pair]))
+            )
+            .map(pair =>
+              el(
+                'article',
+                { className: `card${state.decisions[pair.id] ? ' done' : ''}` },
+                el(
+                  'div',
+                  { className: 'pics' },
+                  picture(pair.firstPicture, pair.first),
+                  picture(pair.secondPicture, pair.second)
+                ),
+                el(
+                  'div',
+                  { className: 'meta' },
+                  el('strong', {
+                    textContent: `${castName(pair.castId)} · ${pair.first} → ${pair.second}`,
+                  }),
+                  el('span', {
+                    textContent: 'Same place and time; the outfit changes with no change stated.',
+                  })
+                ),
+                el('ul', {}, findingItem(pair))
+              )
+            )
+        );
+
+        const takes = document.getElementById('takes');
+        takes.replaceChildren(
+          ...DATA.rows
+            .filter(
+              row =>
+                (!cast || row.castId === cast) &&
+                (!engine || row.engine === engine) &&
+                (!openOnly.checked || undecided(row.findings))
+            )
+            .map(row => {
+              const wrong = state.looksWrong.includes(row.promptId);
+              const done = row.findings.every(finding => state.decisions[finding.id]);
+              return el(
+                'article',
+                { className: `card${done ? ' done' : ''}` },
+                el('div', { className: 'pics' }, picture(row.picture, row.scene)),
+                el(
+                  'div',
+                  { className: 'meta' },
+                  el('strong', { textContent: `${castName(row.castId)} · ${row.scene}` }),
+                  el('span', {
+                    textContent: `${engineName[row.engine] || row.engine} · ${row.role}${row.outfit ? ` · ${row.outfit}` : ''}`,
+                  }),
+                  row.checked
+                    ? null
+                    : el('div', {
+                        className: 'badge',
+                        textContent: 'Never checked — left out of the report',
+                      })
+                ),
+                el(
+                  'ul',
+                  {},
+                  ...(row.findings.length
+                    ? row.findings.map(findingItem)
+                    : [el('li', { className: 'none', textContent: 'No findings' })])
+                ),
+                el(
+                  'label',
+                  { className: 'check' },
+                  el('input', {
+                    type: 'checkbox',
+                    checked: wrong,
+                    onchange: event => {
+                      state.looksWrong = event.target.checked
+                        ? [...new Set([...state.looksWrong, row.promptId])]
+                        : state.looksWrong.filter(id => id !== row.promptId);
+                      persist();
+                      render();
+                    },
+                  }),
+                  'Looks wrong'
+                )
+              );
+            })
+        );
+      }
+
+      document.getElementById('save').addEventListener('click', () => {
+        const blob = new Blob(
+          [JSON.stringify({ ...state, savedAt: new Date().toISOString() }, null, 2)],
+          {
+            type: 'application/json',
+          }
+        );
+        const link = el('a', { href: URL.createObjectURL(blob), download: 'v3-review.json' });
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+      const loadFile = document.getElementById('load-file');
+      document.getElementById('load').addEventListener('click', () => loadFile.click());
+      loadFile.addEventListener('change', async () => {
+        const file = loadFile.files?.[0];
+        if (!file) return;
+        try {
+          const loaded = JSON.parse(await file.text());
+          if (loaded && loaded.decisions) {
+            state = { decisions: loaded.decisions, looksWrong: loaded.looksWrong || [] };
+            persist();
+            render();
+          }
+        } catch {
+          alert('That file is not a saved review.');
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>
