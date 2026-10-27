@@ -1577,6 +1577,13 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     card badge and the continuity findings that C5 counts. Films are now left out of the clip
     check (`clipCheckApplies`), and clip checks already on a film are ignored
     (`entryPlayChecks` in `gallery/needs-look.ts`, used by the findings and the badge).
+  - D10 (found preparing V3, data loss): on an install with no renders or history yet, every
+    page load took the server's whole studio-extras over the browser's, so a Cast member
+    imported just before a reload — its push still waiting, and too big for the page-exit
+    keepalive — was gone (twice, importing two Casts). That startup pull now merges the
+    browser's own Cast, stories and record lists in, record by record, and pushes them
+    (`extrasForEmptyStartup` in `app/studio-extras.ts`); a browser with nothing of its own
+    still takes the server's copy as is.
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

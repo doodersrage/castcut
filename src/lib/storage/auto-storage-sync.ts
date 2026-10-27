@@ -34,6 +34,7 @@ import {
 } from '../gallery/deleted-ids';
 import {
   applyStudioExtras,
+  extrasForEmptyStartup,
   mergeServerRecordListsIntoLocal,
   collectStudioExtras,
   foldLegacyNamespacesIntoExtras,
@@ -423,9 +424,12 @@ async function autoPullStorageIfEmptyInner(): Promise<AutoSyncResult> {
     const serverExtras = extrasPull.ok ? await loadStudioExtrasFromServer() : null;
     let keptLocalEdits = 0;
     if (serverExtras) {
-      keptLocalEdits = withLocalWritesPreserved(pullStartedAt, () =>
-        applyStudioExtras(serverExtras)
-      );
+      // Records this browser has that the server may not yet (a Cast member imported just before
+      // a reload) are merged in, not replaced, and pushed once the pull is done.
+      const { apply, ownRecords } = extrasForEmptyStartup(collectStudioExtras(), serverExtras);
+      keptLocalEdits =
+        withLocalWritesPreserved(pullStartedAt, () => applyStudioExtras(apply)) +
+        (ownRecords ? 1 : 0);
       synced.push('studio-extras');
     } else if (extrasPull.ok) {
       await syncNamespaceToServer('studio-extras', collectStudioExtras());

@@ -622,6 +622,21 @@ export function localStudioExtrasLooksEmpty(extras?: StudioExtrasPayload | null)
 }
 
 /**
+ * What the startup pull of a browser with no renders or history yet applies: the server's copy,
+ * with this browser's own Cast, stories and record lists merged in record by record when it has
+ * any (`ownRecords`: push them back). M6 D10: a Cast member imported on the page before, whose
+ * push had not gone out when the page went (too big for the page-exit keepalive), was replaced
+ * by the server's copy without them on the next load.
+ */
+export function extrasForEmptyStartup(
+  local: StudioExtrasPayload,
+  server: StudioExtrasPayload
+): { apply: StudioExtrasPayload; ownRecords: boolean } {
+  if (localStudioExtrasLooksEmpty(local)) return { apply: server, ownRecords: false };
+  return { apply: withMergedRecordLists(server, local), ownRecords: true };
+}
+
+/**
  * The server's record lists merged into this device's own — the Cast, stories and the
  * record-list-sync RECORD_LISTS (outfits, shoes, poses, pose packs, dress plates, the workflow
  * library), record by record with deletions; the rest of studio-extras untouched. Startup sync on

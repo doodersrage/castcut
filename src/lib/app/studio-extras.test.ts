@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  extrasForEmptyStartup,
   foldLegacyNamespacesIntoExtras,
   localStudioExtrasLooksEmpty,
   mergeStudioExtras,
@@ -80,6 +81,49 @@ describe('studio-extras merge', () => {
     const merged = mergeStudioExtras(local, server);
     assert.equal(merged.sessionRecipes?.length, 1);
     assert.equal(merged.comfyWorkflowFiles?.length, 1);
+  });
+
+  it('a Cast member imported before a reload, not yet on the server, survives the startup pull', () => {
+    const cast = (id: string, updatedAt: number) =>
+      ({ id, name: id.slice(5), version: 1, updatedAt }) as never;
+    const server: StudioExtrasPayload = {
+      updatedAt: 200,
+      navFavorites: ['/scene'],
+      characters: [cast('cast-mara', 100)],
+      characterRemovedIds: [],
+      characterRemovedAt: {},
+    };
+    const local: StudioExtrasPayload = {
+      updatedAt: 150,
+      navFavorites: ['/day'],
+      characters: [cast('cast-lena', 300), cast('cast-mara', 100)],
+      characterRemovedIds: [],
+      characterRemovedAt: {},
+    };
+    const { apply, ownRecords } = extrasForEmptyStartup(local, server);
+    assert.equal(ownRecords, true);
+    assert.deepEqual(
+      apply.characters?.map(entry => entry.id),
+      ['cast-lena', 'cast-mara']
+    );
+    // Everything but the record lists is the server's, as before.
+    assert.deepEqual(apply.navFavorites, ['/scene']);
+
+    // One deleted on another device after this copy was made stays deleted.
+    const deleted = extrasForEmptyStartup(local, {
+      ...server,
+      characterRemovedIds: ['cast-lena'],
+      characterRemovedAt: { 'cast-lena': 400 },
+    });
+    assert.deepEqual(
+      deleted.apply.characters?.map(entry => entry.id),
+      ['cast-mara']
+    );
+
+    // A browser with nothing of its own takes the server's copy as it is.
+    const fresh = extrasForEmptyStartup({ updatedAt: 1 }, server);
+    assert.equal(fresh.ownRecords, false);
+    assert.equal(fresh.apply, server);
   });
 
   it('carries play metrics and campaign state through merge', () => {
