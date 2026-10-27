@@ -97,6 +97,7 @@ import {
   cutRoomSourceShots,
   DEFAULT_CUT_TOOL_CACHE,
   splitCutRoomKey,
+  cutShotCheckSubjects,
   type CutSource,
 } from '@/lib/film/cut-room';
 import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
@@ -2398,16 +2399,14 @@ export function useCutRoom() {
     for (const shot of previewShots) {
       if (options.shotEdits?.shots?.[shot.key]?.include === false) continue;
       const picture = shot.thumbUrl || (shot.kind === 'still' ? shot.url : undefined);
-      const subjects = new Set<string>();
-      const entryId = shot.entryId?.trim();
-      if (entryId) subjects.add(entryId);
-      // A Day clip's still carries the face and pose checks.
-      const { source, key } = splitCutRoomKey(shot.key);
-      const pinned = options.shotEdits?.shots?.[shot.key]?.pin;
-      if (source === 'day' && !pinned) {
-        const stillId = dayStills.find(entry => entry.slotId === key)?.promptId?.trim();
-        if (stillId) subjects.add(stillId);
-      }
+      // A clip's still (Day's slot, Story's beat) carries the face and pose checks.
+      const subjects = cutShotCheckSubjects({
+        key: shot.key,
+        entryId: shot.entryId,
+        pinned: Boolean(options.shotEdits?.shots?.[shot.key]?.pin),
+        dayStills,
+        beats,
+      });
       const seen = new Set<string>();
       const findings: ContinuityFinding[] = [];
       for (const subject of subjects) {
@@ -2434,7 +2433,16 @@ export function useCutRoom() {
       }
     }
     return out;
-  }, [dayStills, decisions, gallery, options.shotEdits, pinStates, previewShots, shotStates]);
+  }, [
+    beats,
+    dayStills,
+    decisions,
+    gallery,
+    options.shotEdits,
+    pinStates,
+    previewShots,
+    shotStates,
+  ]);
   const decide = useCallback((id: string, kind: FindingDecisionKind | null, note?: string) => {
     if (kind) decideFinding(id, kind, note);
     else undecideFinding(id);

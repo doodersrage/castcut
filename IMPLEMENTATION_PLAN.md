@@ -388,7 +388,8 @@ labelled; pin and unpin by hand._
   shot was cut with. `pinnedCutShots` plays pins and gives each shot's state: `follows`,
   `pinned`, `new-take` (with the offered shot) or `source-gone`. `pinEditedCutShots` covers an
   edit; leaving out or moving a shot pins nothing. `pinAllCutShots` covers version save, Make a
-  reel and render. `takeOfferedCutMedia` ("Use it here / for every copy") resets a clip's trim.
+  reel and render. `takeOfferedCutMedia` ("Use it here / for every copy") resets a clip's trim
+  (since F2 it fits the trim instead: kept, clamped or reset, and said).
   Also `declineOfferedCutMedia` ("Keep this one") and `toggleCutShotPin`.
 - `hooks/useCutRoom.ts`: the shot list is built from the pins. `commitEdit` pins edited shots,
   but opening a version or undoing doesn't. `saveVersion`, `makeReel` and `cutNow` pin. The
@@ -401,11 +402,10 @@ labelled; pin and unpin by hand._
   `cut.options`).
 - Tests: `film/cut-pins.test.ts` (8), `play/gallery-references.test.ts` (extended), and
   `e2e/cut-room.spec.ts` "pins: …". Docs: `docs/guide-film.md` "When a shot gets a new take".
-- Not done:
-  - "Use it here" resets a trimmed clip's trim rather than clamping it (the new clip's length
-    isn't known until it loads).
-  - The pre-cut check reads a Scene shot's checks from the scene's *current* kept take, even
-    when the shot is pinned to an older one.
+- Not done at the time (both since fixed — M6 D6):
+  - "Use it here" reset a trimmed clip's trim rather than clamping it — F2 fits it.
+  - The pre-cut check read a Scene shot's checks from the scene's *current* kept take, even
+    when the shot was pinned to an older one — fixed in C1.
 
 **R6 — Record-level merge for `tools.scene` (fixes D4).** _Done 2026-10-25._
 
@@ -568,7 +568,9 @@ field of its own.
   `e2e/cut-room.spec.ts` "continuity: …" (dismiss, reload, undo).
 - Not done: Story keeps its pose and face matches on the beat, not on the Gallery entry, so
   Story shots' findings show in the pre-cut check but not in this list yet. The finding note
-  isn't editable in the UI (the store keeps one).
+  isn't editable in the UI (the store keeps one). (M6 D6: Story has written its checks to the
+  Gallery entry since 2026-09-25; a Story *clip* shot still had none until M6 D3 read them from
+  its beat's still.)
 
 **C3 — Per-shot state (pure).** _Done 2026-10-26._
 
@@ -678,8 +680,8 @@ replaces Scenes or Story.
   - Scene ids come from the scene number, else the heading's slug plus how often it came before.
     An edit elsewhere, or a new scene before it, leaves them unchanged.
 - Tests: `script/parse.test.ts` (5), with a fixture screenplay using every element.
-- Not done: Day's import (`day/script-import.ts`) still uses its own smaller reading. Moving it
-  onto `parseScript` can come with S2. Outline ids are positional (`outline-n`).
+- Not done: Day's import (`day/script-import.ts`) still uses its own smaller reading (moved onto
+  `parseScript` in M6 D4). Outline ids are positional (`outline-n`).
 
 **S2 — The Script record and import.** _Done 2026-10-26._
 
@@ -698,7 +700,7 @@ replaces Scenes or Story.
   the next blank line, as Fountain notes can't hold one, and is reported.
 - Tests: `day/scene-scripts.test.ts` (4) and `e2e/scene.spec.ts` "a script is imported…".
 - Not done: the phone's Scene layout has no Script section yet. Day's import still uses its own
-  reader.
+  reader (until M6 D4).
 
 **S3 — Names to records.** _Done 2026-10-26._
 
@@ -944,7 +946,8 @@ new surfaces.
   `e2e/cut-room.spec.ts` "subtitles…".
 - Not done:
   - No association with a Cast member beyond the line's speaker.
-  - The browser (no-ffmpeg) encode ignores the from / to window.
+  - The browser (no-ffmpeg) encode ignores the from / to window. (M6 D6: it draws no subtitles at
+    all; since M6 D5 the preflight and the read-back say so.)
   - The exported .srt uses the monitor's timing (no speech detection, unlike the encode's own
     .srt).
 
@@ -1609,7 +1612,17 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     checks; the last Scene's redo could lose them. The run now waits for its take's redo like the
     take (`runTakeSettled` `isRedo`, from the redo ledger); on a real pass, each Scene with a redo
     was logged landed at the moment its redo's checks finished.
-  - Left: D3–D6.
+  - D3–D6 (2026-10-27):
+    - D3: Story already wrote its checks to the Gallery entry (since 2026-09-25); what was left
+      was a Story *clip* shot, whose entry is the clip's — its checks are on the beat's still.
+      Cut now reads a clip shot's checks from its still for Story as for Day
+      (`cutShotCheckSubjects` in `film/cut-room.ts`, with tests).
+    - D4: Day's import reads through `parseScript` (`parseDayScript` adapts it); Day had missed
+      lunch, breakfast, twilight and dinner as times of day. Test: the same text, same scenes.
+    - D5: the browser encode burns in no subtitles at all (not only the window): the preflight's
+      Subtitles check and Encoder line, and the read-back, now say so.
+    - D6: the stale lines above corrected in place (R5's not-done list, C1's Story note, S1/S2's
+      Day import, F5's browser note).
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_
 - Gap: each feature was tested alone, never as one person's session.

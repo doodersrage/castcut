@@ -139,16 +139,20 @@ export function cutPreflight(input: {
         ? `${input.missing.length} to look at in Missing media.`
         : 'Every file answers.'
   );
+  // The browser encode (no ffmpeg on the server, or no answer) draws no subtitles (M6 D5).
+  const inBrowser = !input.server?.available;
   if (input.options.subtitles !== false) {
     add(
       'subtitles',
       'Subtitles',
-      !input.subtitleCount ? 'warn' : input.subtitleIssueCount ? 'warn' : 'ok',
-      !input.subtitleCount
-        ? 'Subtitles are on, but no shot has any.'
-        : input.subtitleIssueCount
-          ? `${input.subtitleIssueCount} to look at in Subtitles.`
-          : `${input.subtitleCount} subtitle${input.subtitleCount === 1 ? '' : 's'}, all readable.`
+      inBrowser || !input.subtitleCount || input.subtitleIssueCount ? 'warn' : 'ok',
+      inBrowser
+        ? 'The browser encode can’t burn subtitles in: this film will have none. Encode on a server with ffmpeg to keep them.'
+        : !input.subtitleCount
+          ? 'Subtitles are on, but no shot has any.'
+          : input.subtitleIssueCount
+            ? `${input.subtitleIssueCount} to look at in Subtitles.`
+            : `${input.subtitleCount} subtitle${input.subtitleCount === 1 ? '' : 's'}, all readable.`
     );
   }
   add(
@@ -174,7 +178,7 @@ export function cutPreflight(input: {
       'encoder',
       'Encoder',
       'warn',
-      'No ffmpeg on the server: the browser encodes it (slower; subtitle timing as said).'
+      'No ffmpeg on the server: the browser encodes it (slower, and without subtitles).'
     );
   } else {
     const quality = input.options.quality === '1080p' ? '1080p' : '720p';
@@ -230,6 +234,16 @@ export function verifyFilmOutput(input: {
         status: 'warn',
         detail: 'Not read back (a browser encode) — watch it through once.',
       },
+      ...(input.options.subtitles !== false
+        ? [
+            {
+              id: 'subtitles',
+              label: 'Subtitles',
+              status: 'warn' as const,
+              detail: 'Not burned in — the browser encode can’t draw them.',
+            },
+          ]
+        : []),
     ];
   }
   const checks: ExportCheck[] = [];

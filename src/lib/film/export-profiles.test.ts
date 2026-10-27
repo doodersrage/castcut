@@ -94,6 +94,37 @@ describe('export profiles, preflight and the finished film (M4 F6)', () => {
     );
   });
 
+  // M6 D5: the browser encode burns in no subtitles — the preflight and the read-back say so.
+  it('says a browser encode leaves the subtitles out, before and after the cut', () => {
+    const options = { ...DEFAULT_FILM_CUT_OPTIONS, subtitles: true };
+    const input = {
+      options,
+      shotCount: 2,
+      durationSec: 8,
+      missing: [],
+      subtitleCount: 3,
+      subtitleIssueCount: 0,
+      hasSound: true,
+    };
+    for (const server of [{ available: false, freeBytes: null }, null]) {
+      const subtitles = cutPreflight({ ...input, server }).checks.find(check => check.id === 'subtitles')!;
+      assert.equal(subtitles.status, 'warn');
+      assert.match(subtitles.detail, /browser.*can’t burn/i);
+    }
+    // On a server with ffmpeg they are burned in as timed.
+    const served = cutPreflight({ ...input, server: { available: true, freeBytes: 1e12 } });
+    assert.equal(served.checks.find(check => check.id === 'subtitles')!.status, 'ok');
+    // Read back: a browser encode's film says its subtitles are not in it.
+    const back = verifyFilmOutput({ probe: null, options, wantsSound: true });
+    assert.match(back.find(check => check.id === 'subtitles')?.detail ?? '', /not burned in/i);
+    assert.equal(
+      verifyFilmOutput({ probe: null, options: { ...options, subtitles: false }, wantsSound: true }).some(
+        check => check.id === 'subtitles'
+      ),
+      false
+    );
+  });
+
   it('checks the finished file against what the cut asked for', () => {
     const probe = parseFilmOutputProbe(STDERR);
     const checks = verifyFilmOutput({ probe, options, wantsSound: true });

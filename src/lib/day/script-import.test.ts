@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { dayLengthForCards, dayScriptSlots, parseDayScript, withoutLeadName } from './script-import';
+import { parseScript } from '../script/parse';
 
 const FOUNTAIN = `Title: Saturday
 Author: Someone
@@ -73,5 +74,40 @@ describe('day-script-import', () => {
 
   it("turns the lead's name into a pronoun only as a whole word", () => {
     assert.equal(withoutLeadName('Max adjusts Maxine’s scarf; Max grins.', 'Max', 'man'), 'He adjusts Maxine’s scarf; he grins.');
+  });
+});
+
+// M6 D4: one reader. Day used its own, so the same text could read differently in Day and on
+// the Scene page — here the times Day's own reader did not know (lunch, twilight, breakfast).
+describe('day-script-import reads as the Scene page does', () => {
+  const text = [
+    'Title: Two readers',
+    '',
+    'INT. DINER - LUNCH',
+    '',
+    'Nora pours coffee.',
+    '',
+    'NORA (V.O.)',
+    'Coffee first.',
+    '',
+    'EXT. PIER - TWILIGHT',
+    '',
+    'Wind.',
+    '',
+    'INT. KITCHEN - BREAKFAST',
+    '',
+    'Toast.',
+    '',
+  ].join('\n');
+
+  it('finds the same scenes, places and times as parseScript', () => {
+    const day = parseDayScript(text);
+    const scene = parseScript(text);
+    assert.equal(day.format, scene.format);
+    assert.deepEqual(
+      day.scenes.map(entry => [entry.place, entry.time]),
+      scene.scenes.map(entry => [entry.place.toLowerCase(), entry.dayPart])
+    );
+    assert.equal(day.scenes[0]?.line, 'Coffee first.');
   });
 });

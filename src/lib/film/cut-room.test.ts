@@ -8,6 +8,7 @@ import {
   cutRoomShots,
   cutRoomSourceShots,
   splitCutRoomKey,
+  cutShotCheckSubjects,
 } from './cut-room';
 import type { DaySlot, DaySlotStill } from '../day/planner';
 import type { RoleplayStoryBeat } from '../story/roleplay';
@@ -138,5 +139,38 @@ describe('Cut room: longer clips', () => {
     assert.deepEqual(cutExtraShots(extras, [original], () => ''), [
       { key: 'x:l', title: 'morning (longer)', url: '/a-long.mp4', kind: 'clip', caption: 'c' },
     ]);
+  });
+});
+
+// M6 D3: a clip carries no face or pose checks — the still it was made from does.
+describe('Cut room: where a shot’s checks are read', () => {
+  const dayStills = [{ slotId: 'morning', promptId: 'day-still' }];
+  const beats = [{ id: 'b1', at: 5, promptId: 'beat-still' }];
+
+  it('reads a Story clip’s checks from its beat’s still, as a Day clip’s from its slot’s', () => {
+    assert.deepEqual(
+      cutShotCheckSubjects({ key: 'story:b1@5', entryId: 'beat-clip', dayStills, beats }),
+      ['beat-clip', 'beat-still']
+    );
+    assert.deepEqual(
+      cutShotCheckSubjects({ key: 'day:morning', entryId: 'day-clip', dayStills, beats }),
+      ['day-clip', 'day-still']
+    );
+  });
+
+  it('a still is its own entry; a pinned shot is only what it plays', () => {
+    assert.deepEqual(
+      cutShotCheckSubjects({ key: 'story:b1@5', entryId: 'beat-still', dayStills, beats }),
+      ['beat-still']
+    );
+    assert.deepEqual(
+      cutShotCheckSubjects({ key: 'story:b1@5', entryId: 'beat-clip', pinned: true, dayStills, beats }),
+      ['beat-clip']
+    );
+    // Another beat (or one re-rendered since: a new time) is not this shot's.
+    assert.deepEqual(
+      cutShotCheckSubjects({ key: 'story:b1@9', entryId: 'beat-clip', dayStills, beats }),
+      ['beat-clip']
+    );
   });
 });

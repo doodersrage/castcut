@@ -6,6 +6,7 @@
  * each paragraph (or list item) is a card's beat. No LLM: the player sees the cards before
  * anything renders, and edits them like any typed beat. Client-safe.
  */
+import { parseScript } from '../script/parse';
 import { DAY_LENGTHS, daySlotsForLength, type DayLength, type DaySlot } from './planner';
 
 export const DAY_SCRIPT_MAX_CARDS = 8;
@@ -22,16 +23,6 @@ export type DayScriptScene = {
 
 export type DayScript = { format: 'fountain' | 'outline'; scenes: DayScriptScene[] };
 
-const HEADING_RE = /^(?:\.(?!\.)|(?:INT|EXT|EST|INT\.?\/EXT|I\/E)[.\s])/i;
-const TIME_WORDS: Array<[RegExp, DayScriptScene['time']]> = [
-  [/\b(?:morning|dawn|sunrise)\b/i, 'morning'],
-  [/\b(?:afternoon|noon|day|midday)\b/i, 'afternoon'],
-  [/\b(?:evening|dusk|sunset)\b/i, 'evening'],
-  [/\b(?:night|midnight|late)\b/i, 'night'],
-];
-/** A character cue: a line in capitals (letters, spaces, ' . -), extensions like (V.O.) allowed. */
-const CUE_RE = /^(?:@)?[A-Z][A-Z0-9 .'\-]{1,40}(?:\s*\([^)]*\))?\s*\^?$/;
-
 function cleanText(text: string, max: number): string {
   return text
     .replace(/\[\[[^\]]*\]\]/g, '') // notes
@@ -42,85 +33,31 @@ function cleanText(text: string, max: number): string {
     .slice(0, max);
 }
 
-function parseHeading(line: string): { place: string; time?: DayScriptScene['time'] } {
-  let text = line.replace(/^\./, '').trim();
-  text = text.replace(/^(?:INT\.?\/EXT|I\/E|INT|EXT|EST)[.\s]+/i, '');
-  const parts = text.split(/\s+[-–—]\s+/);
-  const timeText = parts.length > 1 ? parts.slice(1).join(' ') : '';
-  const time = TIME_WORDS.find(([re]) => re.test(timeText))?.[1];
-  return { place: cleanText(parts[0] ?? '', 120).toLowerCase(), ...(time ? { time } : {}) };
-}
-
-/** Read a Fountain screenplay or a plain outline. */
+/**
+ * Read a Fountain screenplay or a plain outline — through the Scene page's reader (script/parse.ts,
+ * M6 D4: Day had its own, and the same text read differently in the two), cut down to what a Day
+ * card takes: the place, the time of day, the first action as the beat, and who says what.
+ */
 export function parseDayScript(raw: string): DayScript {
-  const text = raw.replace(/\r\n?/g, '\n').replace(/^﻿/, '');
-  const lines = text.split('\n');
-  // Title page: "Key: value" lines before the first blank line.
-  let start = 0;
-  if (/^[A-Za-z ]+:\s*\S/.test(lines[0] ?? '')) {
-    while (start < lines.length && lines[start]!.trim()) start += 1;
-  }
-  const body = lines.slice(start);
-  const hasHeadings = body.some(line => HEADING_RE.test(line.trim()));
-  if (!hasHeadings) {
-    const scenes = text
-      .split(/\n\s*\n|\n(?=\s*(?:[-*•]|\d+[.)])\s)/)
-      .map(block => cleanText(block.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, ''), 320))
-      .filter(Boolean)
-      .map(beat => ({ place: '', beat }));
-    return { format: 'outline', scenes };
-  }
-
-  const scenes: Array<DayScriptScene & { dialogue: Array<{ who: string; line: string }> }> = [];
-  let current: (typeof scenes)[number] | null = null;
-  const blocks: string[][] = [];
-  let block: string[] = [];
-  for (const line of body) {
-    if (line.trim()) block.push(line.trim());
-    else if (block.length) {
-      blocks.push(block);
-      block = [];
-    }
-  }
-  if (block.length) blocks.push(block);
-
-  for (const lines of blocks) {
-    const first = lines[0]!;
-    if (HEADING_RE.test(first)) {
-      current = { ...parseHeading(first), beat: '', dialogue: [] };
-      scenes.push(current);
-      lines.shift();
-      if (!lines.length) continue;
-    }
-    if (!current) continue;
-    const head = lines[0]!;
-    if (lines.length > 1 && CUE_RE.test(head) && head !== head.toLowerCase()) {
-      const who = head
-        .replace(/^@/, '')
-        .replace(/\s*\(.*$/, '')
-        .replace(/\^$/, '')
-        .trim();
-      const spoken = lines
-        .slice(1)
-        .filter(line => !/^\(.*\)$/.test(line)) // parentheticals
-        .join(' ');
-      const line = cleanText(spoken, 200);
-      if (line) current.dialogue.push({ who, line });
-      continue;
-    }
-    if (/^(?:>|=|#|~)/.test(head) || /\bTO:$/.test(head)) continue; // transitions, sections, lyrics
-    if (!current.beat) current.beat = cleanText(lines.join(' ').replace(/^!/, ''), 320);
-  }
+  const parsed = parseScript(raw);
   return {
-    format: 'fountain',
-    scenes: scenes
-      .filter(scene => scene.beat || scene.dialogue.length)
-      .map(({ dialogue, ...scene }) => ({
-        ...scene,
-        ...(dialogue[0] ? { line: dialogue[0].line } : {}),
-        ...(dialogue.length ? { dialogue } : {}),
-      }))
-      .map(scene => scene as DayScriptScene & { dialogue?: Array<{ who: string; line: string }> }),
+    format: parsed.format,
+    scenes: parsed.scenes
+      .map(scene => {
+        const action = scene.elements.find(element => element.kind === 'action');
+        const dialogue = scene.elements
+          .filter(element => element.kind === 'dialogue' && element.speaker)
+          .map(element => ({ who: element.speaker!, line: cleanText(element.text, 200) }))
+          .filter(entry => entry.line);
+        return {
+          place: cleanText(scene.place, 120).toLowerCase(),
+          ...(scene.dayPart ? { time: scene.dayPart } : {}),
+          beat: action ? cleanText(action.text.replace(/^!/, ''), 320) : '',
+          ...(dialogue[0] ? { line: dialogue[0].line } : {}),
+          ...(dialogue.length ? { dialogue } : {}),
+        };
+      })
+      .filter(scene => scene.beat || scene.dialogue?.length),
   };
 }
 

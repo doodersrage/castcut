@@ -344,3 +344,31 @@ export function cutRoomRecipeSource(sources: CutSource[]): 'day' | 'story' | 'ca
   if (sources.length === 1 && sources[0] !== 'scenes') return sources[0]!;
   return 'cast';
 }
+
+/**
+ * The Gallery entries a Cut shot's checks are read from: its own, and — for a clip — the still it
+ * was made from, which carries the face and pose checks (a Day slot's still; a Story beat's, M6
+ * D3: Story clips had no findings). A pinned shot plays its pin, so only that.
+ */
+export function cutShotCheckSubjects(input: {
+  key: string;
+  entryId?: string;
+  pinned?: boolean;
+  dayStills: ReadonlyArray<{ slotId: string; promptId?: string }>;
+  beats: ReadonlyArray<{ id: string; at: number; promptId?: string }>;
+}): string[] {
+  const subjects = new Set<string>();
+  const entryId = input.entryId?.trim();
+  if (entryId) subjects.add(entryId);
+  if (!input.pinned) {
+    const { source, key } = splitCutRoomKey(input.key);
+    const still =
+      source === 'day'
+        ? input.dayStills.find(entry => entry.slotId === key)?.promptId
+        : source === 'story'
+          ? input.beats.find(beat => `${beat.id}@${beat.at}` === key)?.promptId
+          : undefined;
+    if (still?.trim()) subjects.add(still.trim());
+  }
+  return [...subjects];
+}
