@@ -67,11 +67,19 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
   };
 }
 
-/** Every stored script, cleaned: one per id, the newest {@link SCRIPTS_PER_CAST} per Cast. */
-export function normalizeSavedScripts(input: unknown, now = Date.now()): SavedScript[] {
+/**
+ * Every stored script, cleaned: one per id, the newest {@link SCRIPTS_PER_CAST} per Cast. Scripts
+ * in `known` are already clean and kept as they are (M6 V7: a feature script's 360 shots cleaned
+ * again on every save of any script was the slowest part of a save).
+ */
+export function normalizeSavedScripts(
+  input: unknown,
+  now = Date.now(),
+  known?: ReadonlySet<unknown>
+): SavedScript[] {
   const byId = new Map<string, SavedScript>();
   for (const raw of Array.isArray(input) ? input : []) {
-    const script = normalizeSavedScript(raw, now);
+    const script = known?.has(raw) ? (raw as SavedScript) : normalizeSavedScript(raw, now);
     if (script) byId.set(script.id, script);
   }
   const perCast = new Map<string, SavedScript[]>();

@@ -56,6 +56,7 @@ import {
   type ScriptPlaceChoice,
 } from '@/lib/day/script-cast';
 import type { SavedScript } from '@/lib/day/scene-scripts';
+import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
 
 const NO_DECISIONS: FindingDecision[] = [];
 let decisionsCache: { key: string; value: FindingDecision[] } | null = null;
@@ -249,10 +250,14 @@ function SceneReading({
   children?: ReactNode;
 }) {
   const label = scene.heading || `Beat ${index + 1}`;
+  // Its text and shots only while it is open (M6 V7): a feature script's 60 scenes, all drawn
+  // though folded, put about 10,000 elements on the page and slowed every frame.
+  const [open, setOpen] = useState(false);
   return (
     <details
       className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
       data-testid={`script-scene-${scene.id}`}
+      onToggle={event => setOpen(event.currentTarget.open)}
     >
       <summary className="cursor-pointer text-sm">
         <span className="font-medium">
@@ -271,12 +276,16 @@ function SceneReading({
             .join(' · ')}
         </span>
       </summary>
-      <div className="mt-1 font-mono text-xs leading-relaxed">
-        {scene.elements.map((element, at) => (
-          <Element key={at} element={element} />
-        ))}
-      </div>
-      {children}
+      {open ? (
+        <>
+          <div className="mt-1 font-mono text-xs leading-relaxed">
+            {scene.elements.map((element, at) => (
+              <Element key={at} element={element} />
+            ))}
+          </div>
+          {children}
+        </>
+      ) : null}
     </details>
   );
 }
@@ -354,8 +363,13 @@ export default function SceneScripts({
     made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>
   ) => { created: number } | null;
 }) {
+  // The store hands them over clean: only their per-Cast cap is applied here (M6 V7).
   const scripts = useMemo(
-    () => scriptsForCast(normalizeSavedScripts(cache.scripts), castId),
+    () =>
+      scriptsForCast(
+        normalizeSavedScripts(cache.scripts, undefined, new Set<unknown>(cache.scripts)),
+        castId
+      ),
     [cache.scripts, castId]
   );
   // /scene?script=<id> opens that script (Film Director's next actions, M5 W2).
@@ -743,4 +757,18 @@ export default function SceneScripts({
       ) : null}
     </ToolSection>
   );
+}
+
+/**
+ * The Script section on the script store (M6 V6/V7, useSceneScripts): a script saved re-renders
+ * this section only, not the whole Scene page around it.
+ */
+export function SceneScriptsSection({
+  sceneTool,
+  ...props
+}: Omit<Parameters<typeof SceneScripts>[0], 'cache' | 'update'> & {
+  sceneTool: Parameters<typeof useSceneScripts>[0];
+}) {
+  const { cache, update } = useSceneScripts(sceneTool);
+  return <SceneScripts {...props} cache={cache} update={update} />;
 }

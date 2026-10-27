@@ -1653,6 +1653,12 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - Acceptance: load and edit timings recorded; agreed targets met, e.g. Cut usable under 3 s
   and an edit reflected under 200 ms on the reference machine.
 - Verify: the timing script before and after.
+- Done 2026-10-27 (`docs/performance/large-project.md`; `npm run perf:test` is now
+  `scripts/perf-large-project.mts` on a production build, with `--cpu-slowdown` and `--profile`;
+  `PERF_SOURCEMAPS=1` builds with browser source maps for it). At 1× every page is usable in
+  under 0.3 s and every edit under 120 ms. At 4× CPU slowdown renaming a script missed (224–328
+  ms): every save re-cleaned all 12 scripts' shots, re-rendered the whole Scene page, and an open
+  feature script put ~10,000 folded elements on the page. Fixed all three; now 120–128 ms.
 
 **V8 — Long films and the desktop build** (U6, U7, U8) · S–M + _you_ (desktop)
 - Scope:

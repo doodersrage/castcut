@@ -62,7 +62,8 @@ export function mergeSceneScriptStores(a: SceneScriptStore, b: SceneScriptStore)
     if (script.updatedAt > at) delete removedAt[id];
     else byId.delete(id);
   }
-  return { scripts: normalizeSavedScripts([...byId.values()]), removedAt };
+  const known = new Set<unknown>([...a.scripts, ...b.scripts]);
+  return { scripts: normalizeSavedScripts([...byId.values()], Date.now(), known), removedAt };
 }
 
 /** What `after` holds that `before` does not: scripts to save and deletions to send. */
@@ -73,6 +74,8 @@ export function sceneScriptChanges(
   const was = new Map(before.scripts.map(script => [script.id, script]));
   const put = after.scripts.filter(script => {
     const old = was.get(script.id);
+    // The same object is the same script (the store keeps untouched ones as they are).
+    if (old === script) return false;
     return (
       !old || old.updatedAt !== script.updatedAt || JSON.stringify(old) !== JSON.stringify(script)
     );
@@ -86,7 +89,10 @@ export function sceneScriptChanges(
 /** The store with a Script-section patch applied (its `scripts` replace the list). */
 export function withScriptsPatch(store: SceneScriptStore, patch: ScriptsCache): SceneScriptStore {
   return {
-    scripts: patch.scripts ? normalizeSavedScripts(patch.scripts) : store.scripts,
+    // Only the scripts the patch changed are cleaned again; the rest stay as they are.
+    scripts: patch.scripts
+      ? normalizeSavedScripts(patch.scripts, Date.now(), new Set<unknown>(store.scripts))
+      : store.scripts,
     removedAt: { ...store.removedAt, ...removedAtOf(patch.removedScriptAt) },
   };
 }

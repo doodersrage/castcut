@@ -68,6 +68,18 @@ describe('the script store (M6 V6)', () => {
     assert.equal(withServerAnswer(local, 'a', null), local);
   });
 
+  it('leaves untouched scripts as they are, so a save cleans and sends only what changed (M6 V7)', () => {
+    const before = store([script('a', 10), script('b', 10), script('c', 10)]);
+    const renamed = withScriptsPatch(before, renameScriptPatch(scriptsCacheOf(before), 'a', 'Act one', 30)!);
+    const [, b, c] = renamed.scripts;
+    assert.equal(b, before.scripts[1]);
+    assert.equal(c, before.scripts[2]);
+    assert.notEqual(renamed.scripts[0], before.scripts[0]);
+    const merged = mergeSceneScriptStores(renamed, store([]));
+    assert.equal(merged.scripts[1], before.scripts[1]);
+    assert.deepEqual(sceneScriptChanges(before, renamed).put.map(entry => entry.id), ['a']);
+  });
+
   it('reads a stored copy defensively', () => {
     assert.deepEqual(normalizeSceneScriptStore(null), { scripts: [], removedAt: {} });
     assert.deepEqual(

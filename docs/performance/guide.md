@@ -20,7 +20,7 @@ Single reference for contributors: npm scripts, build tuning, Prettier speed, mo
 | E2E | `npm run test:e2e` |
 | Bundle analysis | `npm run analyze` |
 | Perf monitor | `npm run perf:monitor` |
-| Perf test suite | `npm run perf:test` |
+| Large-project timings | `npm run build && npm run perf:test` ([results](large-project.md)) |
 | CLI / API tool | `npm run prompt:cli -- --help` |
 | Location catalog | `npm run locations:count` / `locations:generate` |
 | Clothing catalog | `npm run clothing:count` / `clothing:generate` |
@@ -88,7 +88,8 @@ Clothing UI labels live in `clothing-catalog-fields.ts` so Outfit/Day (`wardrobe
 
 ```bash
 npm run perf:monitor    # scripts/performance-monitor.mjs — build time, bundle, file stats
-npm run perf:test       # scripts/performance-test.mjs — formatting & timing scenarios
+npm run perf:test       # scripts/perf-large-project.mts — load and edit timings on a large project
+                        # (needs `npm run build`; `-- --cpu-slowdown 4` for a slower machine)
 npm run compose:validate  # smoke-check docker/compose.yml: published address = PROMPT_BIND_HOST, data volume
 ```
 
@@ -107,7 +108,7 @@ Use React DevTools Profiler and Chrome Performance tab for runtime UI issues. Ga
 ### Monthly
 
 - [ ] `npm run analyze` — unexpected bundle growth
-- [ ] `npm run perf:test` after dependency or Next.js upgrades
+- [ ] `npm run build && npm run perf:test -- --cpu-slowdown 4` after dependency or Next.js upgrades
 - [ ] Review `.prettierignore` if new large generated files appear
 
 ### Quarterly

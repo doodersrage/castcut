@@ -35,7 +35,7 @@
     "format:check:fast": "prettier --check --cache --log-level error --no-color src/**/*.{ts,tsx,js,jsx}",
     "format:stats": "prettier --write --cache --log-level error --dry-run . | grep -E '(Formatted|Unchanged)' | wc -l",
     "perf:monitor": "node scripts/performance-monitor.mjs",
-    "perf:test": "node scripts/performance-test.mjs",
+    "perf:test": "tsx scripts/perf-large-project.mts",
     "locations:count": "node scripts/generate-locations.mjs --count",
     "locations:generate": "node scripts/generate-locations.mjs --add 500",
     "locations:generate:dry": "node scripts/generate-locations.mjs --add 500 --dry-run",

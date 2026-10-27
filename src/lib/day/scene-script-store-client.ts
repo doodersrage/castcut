@@ -21,13 +21,21 @@ import {
   type SceneScriptStore,
 } from './scene-script-store';
 
+/** The last store read or written, and the stored value it came from (read again only when new). */
+let last: { raw: unknown; store: SceneScriptStore } | null = null;
+
 export function loadSceneScriptStore(): SceneScriptStore {
   if (typeof window === 'undefined') return EMPTY_SCENE_SCRIPT_STORE;
-  return normalizeSceneScriptStore(readBrowserValue(SCENE_SCRIPTS_KEY));
+  const raw = readBrowserValue(SCENE_SCRIPTS_KEY);
+  if (last && last.raw === raw) return last.store;
+  last = { raw, store: normalizeSceneScriptStore(raw) };
+  return last.store;
 }
 
 function saveSceneScriptStore(store: SceneScriptStore): void {
-  writeBrowserValue(SCENE_SCRIPTS_KEY, { version: 1, ...store });
+  const raw = { version: 1, ...store };
+  writeBrowserValue(SCENE_SCRIPTS_KEY, raw);
+  last = { raw, store };
   window.dispatchEvent(new Event(SCENE_SCRIPTS_CHANGED_EVENT));
 }
 

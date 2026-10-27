@@ -131,6 +131,7 @@ nav:
       - Real-engine run (2026-10-27): performance/real-run-2026-10-27.md
       - Consistency checks (2026-10-27): consistency-report.md
       - Storage budgets: performance/storage-budgets.md
+      - Large-project timings: performance/large-project.md
   - External:
       - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
       - Prompt Studio (classic tools): https://github.com/doodersrage/prompt-studio
