@@ -11,12 +11,13 @@ import { addComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import { loadComfyUiSettings } from '../comfyui/settings';
 import {
   canStampAssembledFilm,
+  MAX_GALLERY_FILM_BYTES,
   DEFAULT_STILL_HOLD_SEC,
   filmDownloadFilename,
   type FilmPlaylistShot,
 } from '../media/kind';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
-import { persistGalleryOriginal } from '../gallery/media-client';
+import { persistGalleryOriginal, persistGalleryOriginalFromFilmJob } from '../gallery/media-client';
 import { galleryStitchShots, MIN_GALLERY_STITCH_CLIPS } from '../gallery/video-stitch';
 import { clipTrimWindow } from '../clip/trim';
 import { drawCaption, drawCover, drawTitleCard } from './cut-canvas-draw';
@@ -92,6 +93,8 @@ export type AssembledFilmResult = {
   subtitlesSrt?: string;
   /** The finished file read back on the server (M4 F6). */
   outputProbe?: FilmOutputProbe;
+  /** The server encode's job: the film is kept from the server's copy (M6 D16). */
+  serverJobId?: string;
 };
 
 function even(value: number): number {
@@ -453,6 +456,7 @@ async function assembleFilmBlobOnServer(
           mimeType: blob.type || 'video/mp4',
           extension: 'mp4',
           encodePath: 'server',
+          serverJobId: jobId,
           ...(job.subtitlesSrt ? { subtitlesSrt: job.subtitlesSrt } : {}),
           ...(job.outputProbe ? { outputProbe: job.outputProbe } : {}),
         };
@@ -703,6 +707,8 @@ export async function stampAssembledFilm(input: {
   projectId?: string;
   userTags?: string[];
   serverEncoded?: boolean;
+  /** The server encode's job, to keep the film from the server's own copy (M6 D16). */
+  serverJobId?: string;
   /** How it was cut (kept on the entry for "what's in this film" and Re-cut). */
   cutRecipe?: CutRecipe;
   onProgress?: (progress: AssembleFilmProgress) => void;
@@ -714,7 +720,15 @@ export async function stampAssembledFilm(input: {
   const mimeType = input.mimeType || input.blob.type || 'video/webm';
   const file = new File([input.blob], input.filename, { type: mimeType });
   input.onProgress?.({ ratio: 1, label: 'Saving film to gallery' });
-  const persisted = await persistGalleryOriginal(id, file);
+  // A server encode is kept from the server's copy; an upload only when the server lost it.
+  let persisted = input.serverJobId
+    ? await persistGalleryOriginalFromFilmJob(id, input.serverJobId)
+    : null;
+  if (persisted?.skipped) return { persisted: false, reason: 'storage' };
+  if (!persisted) {
+    if (file.size > MAX_GALLERY_FILM_BYTES) return { persisted: false, reason: 'too-large' };
+    persisted = await persistGalleryOriginal(id, file);
+  }
   if (!persisted || persisted.skipped || !persisted.originalPath || !persisted.originalUrl) {
     return { persisted: false, reason: 'storage' };
   }
@@ -797,6 +811,7 @@ export async function stitchSelectedGalleryVideos(input: {
     projectId: first?.projectId,
     userTags: ['film', 'stitch'],
     serverEncoded: assembled.encodePath === 'server',
+    ...(assembled.serverJobId ? { serverJobId: assembled.serverJobId } : {}),
     onProgress: input.onProgress,
   });
 

@@ -483,6 +483,12 @@ export function buildFilterComplex(input: {
   sound?: CutSoundOptions | null;
   /** The ambience track's ffmpeg input index (looped), when there is one. */
   ambienceInput?: number | null;
+  /**
+   * Per shot: the input to read a clip's sound from (its own sound-only input), else the clip's
+   * own input. M6 D17: the sound is mixed in parallel, so reading it from the picture's input
+   * decoded every clip from the start and held its frames until its turn (26 GB for 60 clips).
+   */
+  clipAudioInputs?: ReadonlyArray<number | null | undefined>;
   /** Per shot: a face-following scale + crop in place of the centre crop (cut-reframe.ts). */
   reframes?: ReadonlyArray<string | null | undefined>;
   /** Per shot: a picture-in-picture (its looped picture's input index and corner). */
@@ -710,7 +716,7 @@ export function buildFilterComplex(input: {
         ? `volume=${Number((voiceLevel * own).toFixed(3))},`
         : voiceGain;
     parts.push(
-      `[${index}:a]${stereo},atrim=${Math.max(0, from - lead)}:${from + holdSec * speed + tail},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${Math.max(0, delayMs - Math.round(lead * 1000))}:all=1[s${index}]`
+      `[${input.clipAudioInputs?.[index] ?? index}:a]${stereo},atrim=${Math.max(0, from - lead)}:${from + holdSec * speed + tail},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${Math.max(0, delayMs - Math.round(lead * 1000))}:all=1[s${index}]`
     );
   }
   // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
@@ -1284,7 +1290,8 @@ export async function encodeFilmPlaylistServer(
           localFiles[i]!,
         ]);
       } else {
-        inputArgs.push(['-i', localFiles[i]!]);
+        // The picture only: its sound is read from its own input (below, M6 D17).
+        inputArgs.push(['-an', '-i', localFiles[i]!]);
       }
     }
 
@@ -1354,6 +1361,21 @@ export async function encodeFilmPlaylistServer(
             corner: normalizeOverlayCorner(options.logo?.corner, 'br'),
           }
         : null,
+      // After every other input: one sound-only input per clip, in shot order (M6 D17).
+      clipAudioInputs: (() => {
+        let next =
+          graphKinds.length +
+          (audioPath ? 1 : 0) +
+          narrationFiles.length +
+          (ambiencePath ? 1 : 0) +
+          graphPipFiles.filter(Boolean).length +
+          (logoFile ? 1 : 0);
+        const out: Array<number | null> = graphKinds.map(() => null);
+        for (const [i] of localFiles.entries()) {
+          if (kinds[i] === 'clip') out[graphIndexOf(i)] = next++;
+        }
+        return out;
+      })(),
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow
@@ -1382,6 +1404,10 @@ export async function encodeFilmPlaylistServer(
       if (pip) args.push('-loop', '1', '-i', pip.path);
     }
     if (logoFile) args.push('-loop', '1', '-i', logoFile);
+    // Each clip's sound-only inputs, last (no input before them moves), as clipAudioInputs said.
+    for (const [i, file] of localFiles.entries()) {
+      if (kinds[i] === 'clip') args.push('-vn', '-i', file);
+    }
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {
       args.push('-map', `[${audioLabel}]`, '-c:a', 'aac', '-b:a', '192k');

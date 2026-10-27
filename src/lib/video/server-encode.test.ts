@@ -134,3 +134,39 @@ describe('face-following reframe in the graph', () => {
     assert.match(graph.filter, /\[1:v\]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280/);
   });
 });
+
+// M6 D17: each clip's sound was read from the same input as its picture. The sound is mixed in
+// parallel (adelay + amix), so every clip was read from the start and its decoded picture held
+// until its turn — a 10-minute cut of 60 clips took 26 GB. Its own sound-only input fixes it.
+describe('clip sound from its own input (M6 D17)', () => {
+  it('reads a clip’s sound from the input given for it, its picture from its own', async () => {
+    const { buildFilterComplex } = await import('./server-encode');
+    const graph = buildFilterComplex({
+      shotCount: 2,
+      kinds: ['clip', 'clip'],
+      holdSecs: [4, 4],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      speech: [true, true],
+      clipAudioInputs: [2, 3],
+    });
+    assert.match(graph.filter, /\[2:a\][^;]*\[s0\]/);
+    assert.match(graph.filter, /\[3:a\][^;]*\[s1\]/);
+    assert.doesNotMatch(graph.filter, /\[[01]:a\]/);
+    assert.match(graph.filter, /\[0:v\]/);
+    // Without it, as before: the clip's own input.
+    const before = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [4],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      speech: [true],
+    });
+    assert.match(before.filter, /\[0:a\][^;]*\[s0\]/);
+  });
+});

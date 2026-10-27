@@ -58,6 +58,8 @@ export async function assembleAndStampFilm(input: {
   filename: string;
   blob: Blob;
   persisted: boolean;
+  /** Why it wasn't kept on the Cast, when it wasn't (M6 D16). */
+  reason?: 'too-large' | 'storage';
   entryId?: string;
   encodePath: 'server' | 'browser';
   /** What the cut plan did (length fit, beat snap). */
@@ -122,6 +124,7 @@ export async function assembleAndStampFilm(input: {
     lookId: input.lookId,
     mimeType: assembled.mimeType,
     serverEncoded: assembled.encodePath === 'server',
+    ...(assembled.serverJobId ? { serverJobId: assembled.serverJobId } : {}),
     parentGalleryEntryId: input.parentGalleryEntryId,
     cutRecipe: cutRecipeFrom({
       source: input.source,

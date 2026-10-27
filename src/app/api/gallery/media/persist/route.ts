@@ -15,6 +15,7 @@ import {
   persistGalleryOriginalFile,
 } from '@/lib/gallery/media-store';
 import { isServerStorageEnabled } from '@/lib/storage/server-storage';
+import { keepFinishedFilm } from '@/lib/video/assemble-jobs';
 import { fetchEngineOutputBuffer } from '@/lib/engine/output-fetch';
 import {
   normalizeComfyViewType,
@@ -62,7 +63,31 @@ type PersistJsonBody = {
   type?: string;
   format?: string;
   engineId?: string;
+  /** `kind: 'film-job'`: the server encode whose finished film to keep. */
+  jobId?: string;
 };
+
+/**
+ * A film the server encoded, kept as a Gallery original from the server's own copy (M6 D16): it
+ * used to come back as an upload, which the 80 MB upload cap refused for any film past it —
+ * a 10-minute 720p cut was — so long films were never kept on the Cast.
+ */
+async function persistServerFilm(request: Request, body: PersistJsonBody): Promise<NextResponse> {
+  const userId = resolveMediaUserId(request);
+  if (isAuthEnabled() && !userId) {
+    return apiError('Sign in required.', 401);
+  }
+  const entryId = body.galleryEntryId?.trim() ?? '';
+  const jobId = body.jobId?.trim() ?? '';
+  if (!entryId || !jobId) return apiError('galleryEntryId and jobId are required.', 400);
+  const kept = await keepFinishedFilm({ jobId, entryId, userId });
+  if (!kept.ok) return apiError(kept.error, kept.status);
+  return apiJson({
+    url: `/api/gallery/media/${encodeURIComponent(entryId)}?variant=original`,
+    originalUrl: `/api/gallery/media/${encodeURIComponent(entryId)}?variant=original`,
+    originalPath: kept.originalPath,
+  });
+}
 
 function safeBodyIndex(raw: unknown): number {
   return typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 && raw <= 63 ? raw : 0;
@@ -271,6 +296,9 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as PersistJsonBody;
+    if (body.kind === 'film-job') {
+      return await persistServerFilm(request, body);
+    }
     if (body.kind === 'identity') {
       return await persistIdentityFromViewParams(request, body);
     }

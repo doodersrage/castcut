@@ -66,6 +66,13 @@ setup time, and it's easy to miss when it's scattered across a dozen feature bul
   nano-banana edit, or Replicate's multi-image Kontext) — otherwise transfer stays
   blocked rather than silently degrading to single-image behavior.
 
+- **A job ComfyUI lost is queued again by hand.** When ComfyUI restarts or its queue is
+  cleared mid-render, Castcut asks it about the job once more per session, then marks it
+  **Lost** in the Queue (*Job not found — ComfyUI no longer has it… Queue it again*). Use
+  **Retry** on the take, the Day slot or the Queue row; there is no "retry every lost job"
+  button. The real-engine runs of M6 (V2, V3: about 150 takes) lost none, so it stays a manual
+  step for now.
+
 ## Specialty tools (parked)
 
 - **Topics, Audio, Mesh, Logo, and legacy Pet/Fantasy/Background pages are parked.**

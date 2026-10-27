@@ -8,7 +8,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { resolvePromptDataDir } from '../prompt/data-paths';
-import type { FilmPlaylistShot } from '../media/kind';
+import { MAX_SERVER_GALLERY_FILM_BYTES, type FilmPlaylistShot } from '../media/kind';
 import type { FilmOutputProbe } from './output-probe';
 import { probeFilmOutput } from './output-probe-server';
 import {
@@ -311,4 +311,31 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
     current.label = 'Encode failed';
     current.updatedAt = Date.now();
   }
+}
+
+/**
+ * A finished server encode kept as a Gallery original, from the server's own copy (M6 D16). The
+ * browser used to download the film and upload it back, and the upload's 80 MB cap refused any
+ * film past it (a 10-minute 720p cut is), so long films were never kept on the Cast.
+ */
+export async function keepFinishedFilm(input: {
+  jobId: string;
+  entryId: string;
+  userId: string | null;
+}): Promise<{ ok: true; originalPath: string } | { ok: false; status: 404 | 413; error: string }> {
+  const job = getFilmAssembleJob(input.jobId);
+  const buffer = job?.status === 'completed' ? await readFilmAssembleOutput(input.jobId) : null;
+  if (!buffer) return { ok: false, status: 404, error: 'That encode is not here any more.' };
+  if (buffer.byteLength > MAX_SERVER_GALLERY_FILM_BYTES) {
+    return { ok: false, status: 413, error: 'The film is too large to keep (max 220MB).' };
+  }
+  const { persistGalleryOriginalFile } = await import('../gallery/media-store');
+  const original = persistGalleryOriginalFile({
+    userId: input.userId,
+    entryId: input.entryId,
+    buffer,
+    contentType: job?.mimeType || 'video/mp4',
+    filename: `${input.entryId}.${job?.extension || 'mp4'}`,
+  });
+  return { ok: true, originalPath: original.relativePath };
 }

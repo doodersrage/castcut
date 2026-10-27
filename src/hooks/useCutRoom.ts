@@ -2090,10 +2090,15 @@ export function useCutRoom() {
         ]
           .map(note => ` · ${note}`)
           .join('');
+        // Not kept with a Cast chosen says why, not "pick a Cast" (M6 D16).
         setStatus(
           cast && result.persisted
             ? `Saved ${result.filename} to ${cast.name} (${result.encodePath} encode${notes}) and started the download.`
-            : `Downloaded ${result.filename} (${result.encodePath} encode${notes}) — pick a Cast lead on Day or Story to keep films on the Cast.`
+            : !cast
+              ? `Downloaded ${result.filename} (${result.encodePath} encode${notes}) — pick a Cast lead on Day or Story to keep films on the Cast.`
+              : result.reason === 'too-large'
+                ? `Downloaded ${result.filename} (${result.encodePath} encode${notes}) — too large to keep on ${cast.name}; keep the downloaded file.`
+                : `Downloaded ${result.filename} (${result.encodePath} encode${notes}) — it couldn’t be kept on ${cast.name} (server storage); keep the downloaded file.`
         );
         markOnboardingFirstPlayCampaign();
         if (markOnboardingFirstFilmCut()) {

@@ -1682,6 +1682,17 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     only if V2 shows it's needed.
 - Acceptance: each either works, is fixed, or is documented in `limitations.md` with the
   workaround.
+- Status 2026-10-27 (`docs/performance/long-film.md`, `scripts/long-film.mts`): a 10-minute film
+  (60 clips with sound) cuts in 40 s on the server, loudness in 2 s, the package (204 MB, 60
+  files) in 6 s, imported in 4 s; each one request, no background job needed. Fixed on the way:
+  - D16: a film past 80 MB (this 10-minute one was) was never kept on the Cast — the browser
+    re-uploaded the server's film and the upload refused it, while Cut said "pick a Cast lead".
+    The server now keeps its own finished file (`keepFinishedFilm`); Cut says why when it can't.
+  - D17: the encode decoded and held every clip from the start (each clip's sound read from its
+    picture's input and mixed in parallel): 26.7 GB for the 10-minute film. Each clip now has a
+    sound-only input: 2.8–4.2 GB, and faster; output identical.
+  - Lost jobs (U8): documented in `limitations.md` (Retry; no one-click retry — V2/V3 lost none).
+  - Left: the desktop smoke test (needs the user at the window).
 
 ## 8.4 Order and recommendation
 

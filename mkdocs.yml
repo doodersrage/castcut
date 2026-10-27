@@ -132,6 +132,7 @@ nav:
       - Consistency checks (2026-10-27): consistency-report.md
       - Storage budgets: performance/storage-budgets.md
       - Large-project timings: performance/large-project.md
+      - A long film: performance/long-film.md
   - External:
       - Main README (GitHub): https://github.com/doodersrage/castcut/blob/main/README.md
       - Prompt Studio (classic tools): https://github.com/doodersrage/prompt-studio

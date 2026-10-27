@@ -220,6 +220,39 @@ export async function persistGalleryOriginal(
   }
 }
 
+/**
+ * A film the server encoded, kept from the server's own copy (M6 D16): no download-and-upload
+ * round trip, and no 80 MB upload cap. Null when the server no longer has that encode.
+ */
+export async function persistGalleryOriginalFromFilmJob(
+  entryId: string,
+  jobId: string
+): Promise<Awaited<ReturnType<typeof persistGalleryOriginal>>> {
+  if (typeof window === 'undefined') return null;
+  const id = entryId.trim();
+  if (!id || !jobId.trim()) return null;
+  try {
+    const response = await fetch('/api/gallery/media/persist', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'film-job', galleryEntryId: id, jobId: jobId.trim() }),
+    });
+    const data = await readPersistResponse(response);
+    if (!data) return null;
+    if (data.skipped) return { skipped: true };
+    if (!data.url) return null;
+    return {
+      thumbUrl: durableGalleryThumbUrl(id),
+      originalUrl: data.originalUrl || durableGalleryOriginalUrl(id),
+      thumbPath: data.path,
+      originalPath: data.originalPath,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const OWNED_PLATE_ID = /^[A-Za-z0-9._-]{1,128}$/;
 
 /** Per-Cast look plate file. Replaces only this character, never the identity lock. */
