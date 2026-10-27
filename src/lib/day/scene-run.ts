@@ -308,6 +308,25 @@ export function withRunOutcome(
   );
 }
 
+/**
+ * A run's take is done with when it is finished on the card and its checks after landing (Face
+ * finish, then face match and marks) have run — not merely landed (M6 D8: the run moved on at
+ * once and a run's takes got none of them). A take not on the card (waited for through the
+ * Gallery after a reload) has nothing here to wait for.
+ */
+export function runTakeSettled(input: {
+  still: { promptId?: string; status?: string } | undefined;
+  promptId: string;
+  /** Rendering, or at the adult check (the Scene page's own busy state). */
+  inFlight: boolean;
+  checksPending: (still: { promptId?: string; status?: string }) => boolean;
+}): boolean {
+  const { still } = input;
+  if (input.inFlight) return false;
+  if (!still || still.promptId !== input.promptId) return true;
+  return still.status === 'completed' && !input.checksPending(still);
+}
+
 /** A run found "running" with nothing running it (the page was closed or reloaded): paused. */
 export function pausedAfterReload(run: SceneRun, now = Date.now()): SceneRun {
   if (run.state !== 'running') return run;

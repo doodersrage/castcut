@@ -1564,6 +1564,14 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     while the finish renders on fp8 (`resolveFaceFinisher`). Lightning 4 / 8 now ask for
     `qwen_image_edit_2511_fp8mixed` (20.5 GB, new catalog entry); an installed bf16 covers it
     (`task-requirements.ts`). Checked on this install: the Scene page's card is gone.
+  - D8 (found preparing V3, 2026-10-27): a run moved to the next Scene as soon as a take
+    landed, so a run's takes got no Face finish, face match or marks check, and no pose-miss
+    redo (the V2 run: 0 of 4 takes had a face score). The run now waits until the take is
+    finished on the card and the checks after landing have run (`runTakeSettled` in
+    `day/scene-run.ts`, `afterChecksPending` from `useDayStillAfterChecks`). Re-run on the real
+    engine: all 4 takes have face and pose scores; two pose misses were redone. A run takes
+    longer for it (about 21 min for 4 takes here, against 4 min) — the same work a take queued
+    by hand gets.
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

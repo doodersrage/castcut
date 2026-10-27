@@ -9,6 +9,7 @@ import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import {
   nextRunStep,
   pausedAfterReload,
+  runTakeSettled,
   withRunLog,
   withRunOutcome,
   type SceneRun,
@@ -181,7 +182,20 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           timeoutMs: RENDER_TIMEOUT_MS,
           pollMs: 3_000,
         });
-        await until(() => !pageRef.current.inFlight, CHECKS_TIMEOUT_MS);
+        if (entry?.status === 'completed') {
+          await until(
+            () =>
+              runTakeSettled({
+                still: pageRef.current.still,
+                promptId,
+                inFlight: pageRef.current.inFlight,
+                checksPending: vmRef.current.afterChecksPending,
+              }),
+            CHECKS_TIMEOUT_MS
+          );
+        } else {
+          await until(() => !pageRef.current.inFlight, CHECKS_TIMEOUT_MS);
+        }
         const latest = runRef.current ?? run;
         if (entry?.status === 'completed') {
           save(withRunOutcome(latest, sceneId, 'landed', `${scene.name}: a take landed`));

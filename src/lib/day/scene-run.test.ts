@@ -7,6 +7,7 @@ import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
 import { createScript } from './scene-scripts';
 import {
   nextRunStep,
+  runTakeSettled,
   normalizeSceneRun,
   pausedAfterReload,
   runFromScript,
@@ -145,5 +146,21 @@ describe('automation never chooses for you (M5 W5)', () => {
         .replace(/\/\/.*$/gm, '');
       assert.doesNotMatch(source, /keepTake|keepSceneTake|keptTakeId\s*[:=]/, file);
     }
+  });
+
+  // M6 D8 (found preparing V3): the run opened the next Scene as soon as a take landed, so the
+  // face finish and the checks after it (face match, marks) never ran on a run's takes.
+  it('a landed take is settled only once its checks after landing are done', () => {
+    const landed = { promptId: 'p1', status: 'completed', imageUrl: '/a.png' };
+    const settled = (still: typeof landed | undefined, pending: boolean, inFlight = false) =>
+      runTakeSettled({ still, promptId: 'p1', inFlight, checksPending: () => pending });
+    assert.equal(settled(landed, true), false, 'face match / marks still to run');
+    assert.equal(settled(landed, false), true);
+    assert.equal(settled(landed, false, true), false, 'still rendering or at the adult check');
+    assert.equal(settled({ ...landed, status: 'running' }, false), false, 'not finished on the card');
+    // Not on the card (waited for through the Gallery after a reload): nothing of it to wait for.
+    assert.equal(settled(undefined, false), true);
+    assert.equal(settled({ ...landed, promptId: 'p0' }, true), true);
+    assert.equal(settled(undefined, false, true), false);
   });
 });

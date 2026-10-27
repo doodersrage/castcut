@@ -1,7 +1,7 @@
 'use client';
 
 import { isRestoredTake } from '@/lib/day/planner';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
@@ -63,6 +63,8 @@ export function useDayStillAfterChecks(
   const handledRef = useRef<Set<string>>(new Set());
   const baselinedRef = useRef(false);
   const runningRef = useRef(false);
+  /** The still being checked now (its key), so a run can wait for it (M6 D8). */
+  const runningKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!mounted) return;
@@ -108,6 +110,7 @@ export function useDayStillAfterChecks(
     if (!solo) return;
 
     runningRef.current = true;
+    runningKeyRef.current = sourceKey;
     void (async () => {
       try {
         const gallery = loadComfyGallery();
@@ -236,6 +239,7 @@ export function useDayStillAfterChecks(
         );
       } finally {
         runningRef.current = false;
+        runningKeyRef.current = null;
         setTick(value => value + 1);
       }
     })();
@@ -260,5 +264,16 @@ export function useDayStillAfterChecks(
     updateToolSettings,
   ]);
 
-  return { afterChecksStatus: status };
+  /** A finished still whose checks haven't run yet, or are running (Scene runs wait on it). */
+  const afterChecksPending = useCallback(
+    (still: { imageUrl?: string; promptId?: string; status?: string; restoredFor?: string }) => {
+      if (still.status !== 'completed' || !still.imageUrl) return false;
+      if (isRestoredTake(still)) return false;
+      const key = stillKey(still);
+      return !handledRef.current.has(key) || runningKeyRef.current === key;
+    },
+    []
+  );
+
+  return { afterChecksStatus: status, afterChecksPending };
 }

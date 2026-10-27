@@ -469,6 +469,7 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
     // The shot cut speaks through the same line (it runs before Face finish).
     faceFinishStatus: faceFinish.faceFinishStatus ?? shotReframe.shotReframeStatus,
     afterChecksStatus: afterChecks.afterChecksStatus,
+    afterChecksPending: afterChecks.afterChecksPending,
     checkMarks: core.toolSettings.checkMarks !== false,
     // What the Cast partner wears on two-person stills (their kept outfit from Outfit).
     partnerOutfit: partnerOutfitWords(
