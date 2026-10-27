@@ -2426,9 +2426,13 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   // The choices stay as set (Cut keeps its options between visits).
   await expect(room.getByTestId('cut-shape-square')).toHaveAttribute('aria-checked', 'true');
   await expect(room.getByTestId('cut-quality-1080p')).toHaveAttribute('aria-checked', 'true');
-  // Cut: the missing clip and the face miss come up before the encode.
+  // Cut: the missing clip and the face miss come up before the encode. A ✗ in the preflight
+  // (the missing file, when the preflight sees it) asks first since M6 D1: go on.
   await page.getByTestId('cut-film').first().click();
   const dialog = page.getByTestId('cut-problems');
+  const blocked = page.getByTestId('cut-blocked-dialog');
+  await expect(dialog.or(blocked)).toBeVisible({ timeout: 20_000 });
+  if (await blocked.isVisible()) await page.getByTestId('confirm-dialog-confirm').click();
   await expect(dialog).toBeVisible({ timeout: 20_000 });
   await expect(dialog.getByTestId('cut-problem-day:night')).toContainText(
     'the file is missing (not found)'
