@@ -312,7 +312,8 @@ export function withRunOutcome(
  * A run's take is done with when it is finished on the card and its checks after landing (Face
  * finish, then face match and marks) have run — not merely landed (M6 D8: the run moved on at
  * once and a run's takes got none of them). A take not on the card (waited for through the
- * Gallery after a reload) has nothing here to wait for.
+ * Gallery after a reload) has nothing here to wait for; a pose redo it set off is waited for in
+ * its place.
  */
 export function runTakeSettled(input: {
   still: { promptId?: string; status?: string } | undefined;
@@ -320,10 +321,16 @@ export function runTakeSettled(input: {
   /** Rendering, or at the adult check (the Scene page's own busy state). */
   inFlight: boolean;
   checksPending: (still: { promptId?: string; status?: string }) => boolean;
+  /** The take on the card is the pose redo this take's checks set off (it stands in for it). */
+  isRedo?: (still: { promptId?: string }) => boolean;
 }): boolean {
   const { still } = input;
   if (input.inFlight) return false;
-  if (!still || still.promptId !== input.promptId) return true;
+  if (!still) return true;
+  // Its redo is waited for like the take itself: landed, and checked (the run said done while
+  // the last Scene's redo still rendered, and its checks were lost with the page).
+  const own = still.promptId === input.promptId || input.isRedo?.(still) === true;
+  if (!own) return true;
   return still.status === 'completed' && !input.checksPending(still);
 }
 

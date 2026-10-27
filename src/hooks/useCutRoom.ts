@@ -24,7 +24,12 @@ import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
 import { castVoiceOf } from '@/lib/cast/voice';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
-import { getCharacter, looksOf, type CharacterRecord } from '@/lib/character/os';
+import {
+  applyCharacterRecord,
+  getCharacter,
+  looksOf,
+  type CharacterRecord,
+} from '@/lib/character/os';
 import { crossShotFindings, type RuleShot } from '@/lib/film/continuity-rules';
 import { lookPlateDrifted } from '@/lib/character/look-plate-guard';
 import {
@@ -246,6 +251,20 @@ export function useCutRoom() {
   useEffect(() => {
     dayStillsRef.current = dayStills;
   }, [dayStills]);
+
+  // A link for a Cast (Play's step chip: /cut?character=…) opens that Cast's film, as Day and
+  // Scene do: it becomes the active Cast. Cut read only the active one, so the link showed
+  // whichever Cast was active.
+  const linkedCast = useRef(false);
+  const { updateShared } = cut;
+  useEffect(() => {
+    if (!mounted || linkedCast.current) return;
+    linkedCast.current = true;
+    const id = new URLSearchParams(window.location.search).get('character')?.trim();
+    if (!id || id === shared.activeCharacterId?.trim()) return;
+    const record = getCharacter(id);
+    if (record) updateShared(applyCharacterRecord(record));
+  }, [mounted, shared.activeCharacterId, updateShared]);
 
   const savedScenes = useMemo(
     () => normalizeSavedScenes(sceneTool.toolSettings.scenes),

@@ -64,6 +64,8 @@ export function stillReferenceRole(filename: string): StillReferenceRole {
 
 type GraphNode = { class_type?: unknown; inputs?: Record<string, unknown> };
 
+const PLACEHOLDER = /^\{\{[A-Z0-9_]+\}\}$/;
+
 /** The pictures a ComfyUI API graph loads, one per file, in tray order. */
 export function stillReferencesFromGraph(graph: unknown): StillReference[] {
   if (!graph || typeof graph !== 'object') return [];
@@ -72,7 +74,8 @@ export function stillReferencesFromGraph(graph: unknown): StillReference[] {
   for (const node of Object.values(graph as Record<string, GraphNode>)) {
     if (!node || typeof node !== 'object' || node.class_type !== 'LoadImage') continue;
     const filename = typeof node.inputs?.image === 'string' ? node.inputs.image.trim() : '';
-    if (!filename || seen.has(filename)) continue;
+    // A stored template's "{{INPUT_IMAGE}}" is not a file: the caller reads the graph that ran.
+    if (!filename || PLACEHOLDER.test(filename) || seen.has(filename)) continue;
     seen.add(filename);
     const role = stillReferenceRole(filename);
     out.push({ role, label: ROLE_LABELS[role], filename });

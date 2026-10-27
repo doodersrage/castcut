@@ -91,9 +91,9 @@ Seen side by side in the pairs, all on the reviewed set:
 - **D10** (fixed in `a05ef6bd`): a Cast member imported just before a reload, on an install with
   nothing rendered yet, was dropped by the startup sync.
 
-Also seen, not yet looked into: Scene and Cut links open the active Cast whatever `?character=`
-says; the Scene page asks for pictures named `{{INPUT_IMAGE}}` (502); a run can say done while a
-redo it set off is still rendering (the two unchecked takes).
+Also seen, and fixed since (D13–D15 in the plan): Cut links ignored `?character=` and opened
+the active Cast; the Scene page asked for pictures named `{{INPUT_IMAGE}}` (502); a run could say
+done while a redo it set off was still rendering (the two unchecked takes).
 
 ## Limits
 

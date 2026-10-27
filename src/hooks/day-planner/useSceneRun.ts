@@ -190,6 +190,14 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
                 promptId,
                 inFlight: pageRef.current.inFlight,
                 checksPending: vmRef.current.afterChecksPending,
+                isRedo: still => {
+                  const redo = vmRef.current.poseRedoOf(pageRef.current.slot.id);
+                  return Boolean(
+                    redo &&
+                    redo.missedTake === promptId &&
+                    (!redo.redoTake || redo.redoTake === still.promptId)
+                  );
+                },
               }),
             CHECKS_TIMEOUT_MS
           );

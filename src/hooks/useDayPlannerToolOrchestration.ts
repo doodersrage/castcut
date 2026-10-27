@@ -456,6 +456,7 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
     ...quality,
     poseMissViews,
     poseRedoStatus: poseRedo.poseRedoStatus,
+    poseRedoOf: poseRedo.poseRedoOf,
     // One mark line per card: a hard-pose slot is paired (best of two), never pose-redone; with
     // Auto-review on (the other two off) its "looked computer-made" redo marks.
     poseRedoMarks: {

@@ -2,7 +2,7 @@
 
 import { isRestoredTake } from '@/lib/day/planner';
 import { activeDayEvent } from '@/lib/day/event';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { loadComfyGallery, recordGalleryPlayChecks } from '@/lib/gallery/comfyui-gallery';
 import { isIntimateDuoStillPrompt } from '@/lib/still/clip-prompt';
@@ -441,7 +441,14 @@ export function useDayPoseMissRedo(
     if (mark) poseRedoMarks[still.slotId] = groundSitLineFor(mark, leadNoun);
   }
 
+  /** The slot's last pose redo: the take that missed, and the redo once it is on the card. */
+  const poseRedoOf = useCallback(
+    (slotId: string): PoseRedoLedger[string] | undefined => ledgerRef.current[slotId],
+    []
+  );
+
   return {
+    poseRedoOf,
     poseRedoStatus: active ? status : null,
     poseRedoMarks,
     poseRedoMissViews: missViews,

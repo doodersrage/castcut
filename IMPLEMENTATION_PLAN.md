@@ -1599,6 +1599,16 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     under the threshold had no finding — and the pose × engine stats counted those misses as
     passes. The take now records the check's own verdict (`poseCheckMissed`, the bar the redo uses
     too); a real pass on Rapid AIO afterwards recorded all three redo takes' misses.
+  - D13 (seen in V3): a link to Cut for a Cast (Play's step chip, `/cut?character=`) showed the
+    active Cast's film — Cut read only the active Cast. It now makes the linked Cast active, as
+    Day and Scene do (e2e: a link for the other Cast shows that Cast's shots).
+  - D14 (seen in V3): a take's "made from" pictures read the stored graph, which is the template
+    (`{{INPUT_IMAGE}}` …), so the Scene page asked for those names (502) and showed no real
+    picture. Placeholders are skipped, so the tray reads the graph ComfyUI ran (its history).
+  - D15 (seen in V3): a run moved on — or said done — once a pose redo landed, before the redo's
+    checks; the last Scene's redo could lose them. The run now waits for its take's redo like the
+    take (`runTakeSettled` `isRedo`, from the redo ledger); on a real pass, each Scene with a redo
+    was logged landed at the moment its redo's checks finished.
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

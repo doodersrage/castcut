@@ -161,6 +161,15 @@ describe('automation never chooses for you (M5 W5)', () => {
     // Not on the card (waited for through the Gallery after a reload): nothing of it to wait for.
     assert.equal(settled(undefined, false), true);
     assert.equal(settled({ ...landed, promptId: 'p0' }, true), true);
+    // Its pose redo on the card stands in for it: landed and checked, or not settled yet.
+    const redo = { ...landed, promptId: 'p2' };
+    const isRedo = (still: { promptId?: string }) => still.promptId === 'p2';
+    const withRedo = (still: typeof landed, pending: boolean) =>
+      runTakeSettled({ still, promptId: 'p1', inFlight: false, checksPending: () => pending, isRedo });
+    assert.equal(withRedo(redo, true), false, 'the redo’s checks still to run');
+    assert.equal(withRedo(redo, false), true);
+    assert.equal(withRedo({ ...redo, status: 'running' }, false), false, 'the redo still rendering');
+    assert.equal(withRedo({ ...landed, promptId: 'p0' }, true), true, 'another take is not its redo');
     assert.equal(settled(undefined, false, true), false);
   });
 });

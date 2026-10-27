@@ -417,6 +417,45 @@ test('pins: an edited shot keeps its take, a new one is offered, a gone scene pl
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
 });
 
+// A link to Cut for a Cast (Play's step chip) opens that Cast's film, not the active Cast's.
+test('a Cut link for another Cast opens that Cast’s film', async ({ page }) => {
+  const scene = (id: string, castId: string, name: string) => ({
+    id,
+    castId,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen' },
+    takes: [{ id: `${id}-t`, promptId: `${id}-t`, imageUrl: thumb, at: 1 }],
+    keptTakeId: `${id}-t`,
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [
+        { id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() },
+        { id: `${CAST}-b`, name: 'Bea', version: 1, updatedAt: Date.now() },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        scenes: [
+          scene('scene-rae', CAST, 'Rae kitchen'),
+          scene('scene-bea-1', `${CAST}-b`, 'Bea kitchen'),
+          scene('scene-bea-2', `${CAST}-b`, 'Bea office'),
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}-b`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-shot-pick-scenes:scene-bea-1')).toBeVisible();
+  await expect(page.getByTestId('cut-shot-pick-scenes:scene-rae')).toHaveCount(0);
+});
+
 // M4 F3: a shot whose file is gone is listed before cutting, and relinked to another take.
 test('missing media: a gone file is listed, and relinking to another take fixes it', async ({
   page,

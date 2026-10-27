@@ -38,6 +38,14 @@ describe('still references', () => {
     assert.deepEqual(stillReferencesFromGraph(null), []);
   });
 
+  it('skips unfilled placeholders: a stored template is not the graph that ran', () => {
+    const template = {
+      '900': { class_type: 'LoadImage', inputs: { image: '{{INPUT_IMAGE}}' } },
+      '901': { class_type: 'LoadImage', inputs: { image: '{{INPUT_IMAGE_2}}' } },
+    };
+    assert.deepEqual(stillReferencesFromGraph(template), []);
+  });
+
   it('views inputs through the proxy, subfolder split off', () => {
     assert.equal(stillReferenceViewUrl('a.png'), '/api/comfyui/view?filename=a.png&type=input');
     assert.equal(
