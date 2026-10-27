@@ -203,6 +203,11 @@ docker compose up -d castcut
 Then restore the browser's JSON backup if the browser's copy changed too (Settings → Data →
 **Restore backup** shows what the file has against what's there before it replaces anything).
 
+Rolling back from a version with scripts in their own store (M6 V6, after v3.0.0) to one without:
+the snapshot above brings back the scripts as they were before the upgrade. Scripts written
+after it are only in the new store; to carry them back, download a browser backup on the new
+version first (it carries them in the old place) and restore it after rolling back.
+
 ---
 
 ## Auth and mail {#auth-and-mail}

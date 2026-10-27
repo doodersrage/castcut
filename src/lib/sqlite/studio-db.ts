@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS analytics_history (
   PRIMARY KEY (user_id, captured_at)
 );
 
+-- Screenplays, one row per script (M6 V6: out of the whole-blob tool settings). A deleted one
+-- keeps its row as a tombstone (json NULL, removed_at set), so a device that has not caught up
+-- cannot bring it back.
+CREATE TABLE IF NOT EXISTS scene_scripts (
+  scope TEXT NOT NULL,
+  id TEXT NOT NULL,
+  cast_id TEXT,
+  json TEXT,
+  updated_at INTEGER NOT NULL,
+  removed_at INTEGER,
+  PRIMARY KEY (scope, id)
+);
+
 CREATE TABLE IF NOT EXISTS collab_rooms (
   project_id TEXT PRIMARY KEY,
   json TEXT NOT NULL,

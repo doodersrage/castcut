@@ -30,13 +30,20 @@ const list = value => (Array.isArray(value) ? value : []);
 const obj = value => (value && typeof value === 'object' && !Array.isArray(value) ? value : {});
 
 /** The counts a report holds, from the namespaces' data. */
-export function countProduction({ settings, gallery, extras, history, deletedIds }) {
+export function countProduction({ settings, gallery, extras, history, deletedIds, sceneScripts }) {
   const tools = obj(obj(settings).tools);
   const scene = obj(tools.scene);
   const cut = obj(tools.cut);
   const day = obj(tools.day);
   const scenes = list(scene.scenes);
-  const scripts = list(scene.scripts);
+  // Scripts sit in the Scene settings before M6 V6 and in their own store after: both, by id.
+  const scriptsById = new Map(
+    [...list(scene.scripts), ...list(obj(sceneScripts).scripts)].map(entry => [
+      obj(entry).id,
+      entry,
+    ])
+  );
+  const scripts = [...scriptsById.values()];
   const entries = Array.isArray(gallery) ? gallery : list(obj(gallery).entries);
   const characters = list(obj(extras).characters);
   const historyEntries = Array.isArray(history) ? history : list(obj(history).entries);
@@ -118,6 +125,10 @@ async function report(url, token, cookie) {
       'gallery-deleted-ids',
     ].map(namespace => read(url, namespace, headers))
   );
+  // Scripts' own store (M6 V6); a server from before it answers 404, which counts as none.
+  const sceneScripts = await fetch(`${url}/api/scene-scripts`, { headers })
+    .then(response => (response.ok ? response.json() : null))
+    .catch(() => null);
   const version = await fetch(`${url}/api/version`, { headers })
     .then(response => (response.ok ? response.json() : {}))
     .catch(() => ({}));
@@ -125,7 +136,7 @@ async function report(url, token, cookie) {
     checkedAt: new Date().toISOString(),
     url,
     version: version.current ?? version.currentVersion ?? null,
-    counts: countProduction({ settings, gallery, extras, history, deletedIds }),
+    counts: countProduction({ settings, gallery, extras, history, deletedIds, sceneScripts }),
   };
 }
 

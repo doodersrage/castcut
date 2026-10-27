@@ -147,6 +147,8 @@ const API_FEATURE_MAP: Array<{ prefix: string; feature: AppFeatureId }> = [
   // Previously unmapped ⇒ any signed-in user. Gate to settings/studio so viewers stay read-only.
   { prefix: '/api/webhooks', feature: 'settings' },
   { prefix: '/api/storage', feature: 'settings' },
+  // Screenplays, synced per script like the storage namespaces (M6 V6).
+  { prefix: '/api/scene-scripts', feature: 'settings' },
   { prefix: '/api/scheduled-batch', feature: 'settings' },
   { prefix: '/api/maintenance', feature: 'settings' },
   { prefix: '/api/collab', feature: 'studio' },

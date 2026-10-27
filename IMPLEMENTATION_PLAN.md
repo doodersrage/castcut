@@ -1635,6 +1635,14 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
 - Acceptance: the report and budgets in `docs/performance/`; every size under budget; a unit
   test guards each cap.
 - Verify: re-run the report.
+- Done 2026-10-27 (`docs/performance/storage-budgets.md`, `scripts/storage-report.mts`,
+  `storage-budget.test.ts`). At the caps only scripts were over (synced settings 2.28 MB, 1.71 MB
+  of it scripts): screenplays moved to their own store — a browser key and a server row per
+  script (`scene_scripts`, `/api/scene-scripts`), synced one at a time, moved out of the settings
+  on load and on the server, carried in backups in the old place. Settings at the caps 590 KB.
+  Measured too: no size ceiling on sync pushes (Next's proxy body limit doesn't apply), the 60 KB
+  page-exit flush is already exceeded by small projects, the Gallery is pushed whole (~12 KB per
+  entry), the picture cache is capped by count (200).
 
 **V7 — Performance on a large project** (U4) · M
 - Scope:

@@ -46,6 +46,18 @@ describe('upgrade check (M6 V1)', () => {
     deletedIds: ['gone'],
   };
 
+  it('counts scripts in the settings and in their own store once each (M6 V6)', () => {
+    const moved = {
+      ...data,
+      settings: { tools: { ...data.settings.tools, scene: { ...data.settings.tools.scene, scripts: [] } } },
+      sceneScripts: { scripts: [{ id: 's', shots: [{ id: 'x' }, { id: 'y' }] }] },
+    };
+    assert.equal(countProduction(moved).scripts, 1);
+    assert.equal(countProduction(moved).plannedShots, 2);
+    // Both places during the move: still one script.
+    assert.equal(countProduction({ ...data, sceneScripts: moved.sceneScripts }).scripts, 1);
+  });
+
   it('counts what the server holds, and survives missing parts', () => {
     assert.deepEqual(countProduction(data), {
       casts: 1,

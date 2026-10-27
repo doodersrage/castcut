@@ -1,6 +1,7 @@
 'use client';
 
 import SceneScripts from '@/components/day-planner/SceneScripts';
+import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
@@ -55,6 +56,12 @@ type Props = {
  * (Animate, Copy moves, the Director). Day's engine renders it, so it is Day's still pipeline.
  */
 export default function SceneToolSections({ vm, page, runner }: Props) {
+  // Scripts keep their own store (M6 V6); any still in the settings move there.
+  const sceneScripts = useSceneScripts({
+    mounted: vm.mounted,
+    toolSettings: vm.toolSettings as ScriptsCache,
+    updateToolSettings: vm.updateToolSettings as (patch: ScriptsCache) => void,
+  });
   const views = useSceneToolViews(vm, page);
   const {
     shared,
@@ -560,8 +567,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
             castId={character.id}
             castName={character.name}
             cast={loadCharacters().map(member => ({ id: member.id, name: member.name }))}
-            cache={vm.toolSettings as ScriptsCache}
-            update={patch => vm.updateToolSettings(patch as Partial<typeof vm.toolSettings>)}
+            cache={sceneScripts.cache}
+            update={sceneScripts.update}
             scenes={page.castScenes}
             makeScene={page.makeSceneFrom}
             openScene={page.openScene}

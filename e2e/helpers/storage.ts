@@ -11,4 +11,12 @@ export async function isolateServerStorage(page: Page): Promise<void> {
       ? route.fulfill({ json: { ok: true } })
       : route.fulfill({ json: { data: null } })
   );
+  // Scripts sync one at a time (M6 V6): an empty server that keeps what it is sent.
+  await page.route(/\/api\/scene-scripts(?:\?.*)?$/, route => {
+    const method = route.request().method();
+    if (method === 'GET') return route.fulfill({ json: { scripts: [], removedAt: {} } });
+    if (method === 'DELETE') return route.fulfill({ json: { removed: true } });
+    const body = route.request().postDataJSON() as { script?: unknown } | null;
+    return route.fulfill({ json: { script: body?.script ?? null } });
+  });
 }

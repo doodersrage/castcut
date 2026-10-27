@@ -16,25 +16,12 @@ import {
   type UserStorageNamespace,
 } from '@/lib/storage/user-server-storage';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
-import { readSessionFromRequest } from '@/lib/auth/session';
-import { findUserById, isAuthEnabled } from '@/lib/auth/store';
+import { isAuthEnabled } from '@/lib/auth/store';
+import { resolveStorageUser } from '@/lib/storage/storage-user';
+import { kvScopeForUser } from '@/lib/sqlite/kv';
+import { moveSettingsScriptsToTable } from '@/lib/sqlite/scene-scripts';
 
 export const runtime = 'nodejs';
-
-function resolveStorageUser(request: Request): string | null {
-  if (!isAuthEnabled()) {
-    return null;
-  }
-  const session = readSessionFromRequest(request);
-  if (!session) {
-    return null;
-  }
-  const user = findUserById(session.userId);
-  if (!user?.enabled) {
-    return null;
-  }
-  return user.id;
-}
 
 function isUserNamespace(namespace: StorageNamespace): namespace is UserStorageNamespace {
   return USER_STORAGE_NAMESPACES.includes(namespace as UserStorageNamespace);
@@ -57,7 +44,24 @@ function writeScopedStorage(namespace: StorageNamespace, data: unknown, userId: 
   return false;
 }
 
+/**
+ * The Scene scripts in a settings copy moved to their own table (M6 V6, sqlite/scene-scripts.ts):
+ * scripts sync one at a time now. An older client still sends them in the settings, and a copy
+ * stored before the move still holds them.
+ */
+function withoutSettingsScripts(namespace: StorageNamespace, data: unknown, userId: string | null) {
+  if (namespace !== 'settings-cache') return data;
+  return moveSettingsScriptsToTable(kvScopeForUser(isAuthEnabled() ? userId : null), data);
+}
+
 function readScopedStorage(namespace: StorageNamespace, userId: string | null): unknown {
+  const stored = readStoredNamespace(namespace, userId);
+  const moved = withoutSettingsScripts(namespace, stored, userId);
+  if (moved !== stored) writeScopedStorage(namespace, moved, userId);
+  return moved;
+}
+
+function readStoredNamespace(namespace: StorageNamespace, userId: string | null): unknown {
   if (isUserNamespace(namespace)) {
     if (isAuthEnabled()) {
       if (!userId) {
@@ -112,7 +116,10 @@ export async function POST(request: Request) {
             )
           : body.namespace === 'settings-cache' && body.data && typeof body.data === 'object'
             ? withMergedSettingsRecords(
-                body.data as Record<string, unknown>,
+                withoutSettingsScripts(body.namespace, body.data, userId) as Record<
+                  string,
+                  unknown
+                >,
                 readScopedStorage(body.namespace, userId)
               )
             : body.data;

@@ -71,6 +71,8 @@ export const IDB_ONLY_KEYS = new Set([
   'comfy-onboarding-v2',
   'comfy-use-system-workflows-v1',
   'comfy-session-lora-prefs-v1',
+  // Screenplays (day/scene-script-store.ts): megabytes at most, never in localStorage.
+  'castcut-scene-scripts-v1',
 ]);
 
 /** Keys loaded before the full KV table so settings/history hydrate sooner. */

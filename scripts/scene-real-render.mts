@@ -644,10 +644,40 @@ type V2Run = {
   log?: Array<{ at: number; event: string; sceneId?: string; promptId?: string; note?: string }>;
 };
 
+type StoredScript = { id: string; castId: string; name: string; shots?: V2Shot[] };
+
+/**
+ * The scripts as stored: their own browser key since M6 V6 (day/scene-script-store.ts), or the
+ * Scene settings on an install from before it.
+ */
+async function storedScripts(page: Page): Promise<StoredScript[]> {
+  const own = await page.evaluate(
+    () =>
+      new Promise<unknown>(resolve => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => resolve(null);
+        request.onsuccess = () => {
+          const db = request.result;
+          const get = db
+            .transaction('kv', 'readonly')
+            .objectStore('kv')
+            .get('castcut-scene-scripts-v1');
+          get.onsuccess = () => {
+            db.close();
+            resolve((get.result as { value?: unknown } | undefined)?.value ?? null);
+          };
+          get.onerror = () => resolve(null);
+        };
+      })
+  );
+  const scripts = (own as { scripts?: StoredScript[] } | null)?.scripts;
+  if (scripts?.length) return scripts;
+  const scene = (await toolSettings(page)).scene as { scripts?: StoredScript[] } | undefined;
+  return scene?.scripts ?? [];
+}
+
 async function v2Script(page: Page) {
-  const scene = (await toolSettings(page)).scene as
-    { scripts?: Array<{ id: string; castId: string; shots?: V2Shot[] }> } | undefined;
-  return scene?.scripts?.find(entry => entry.castId === V2_CAST);
+  return (await storedScripts(page)).find(entry => entry.castId === V2_CAST);
 }
 
 async function v2Scenes(page: Page): Promise<V2Scene[]> {
@@ -740,9 +770,7 @@ function v3ScriptText(castId: string) {
 }
 
 async function v3Script(page: Page, castId: string) {
-  const scene = (await toolSettings(page)).scene as
-    { scripts?: Array<{ id: string; castId: string; name: string; shots?: V2Shot[] }> } | undefined;
-  const mine = (scene?.scripts ?? []).filter(
+  const mine = (await storedScripts(page)).filter(
     entry => entry.castId === castId && /consistency/.test(entry.name)
   );
   return mine.find(entry => entry.shots?.length) ?? mine[0];
@@ -750,11 +778,8 @@ async function v3Script(page: Page, castId: string) {
 
 /** Extra copies of the Cast's consistency script with no shots (a repeated import): deleted. */
 async function v3DropDuplicates(page: Page, castId: string) {
-  const scene = (await toolSettings(page)).scene as
-    | { scripts?: Array<{ id: string; castId: string; name: string; shots?: unknown[] }> }
-    | undefined;
   const keep = await v3Script(page, castId);
-  const extra = (scene?.scripts ?? []).filter(
+  const extra = (await storedScripts(page)).filter(
     entry => entry.castId === castId && /consistency/.test(entry.name) && entry.id !== keep?.id
   );
   for (const script of extra) {

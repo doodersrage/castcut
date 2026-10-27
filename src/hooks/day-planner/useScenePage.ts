@@ -36,6 +36,7 @@ import {
 import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/scene-links';
 import { normalizeSceneRun, runFromScript, type SceneRun } from '@/lib/day/scene-run';
 import type { SavedScript } from '@/lib/day/scene-scripts';
+import { applySceneScriptsPatch, loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import type { PlannedShot, ShotSceneDraft } from '@/lib/day/script-shots';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
@@ -177,7 +178,12 @@ export function useScenePage(vm: DayEngineView) {
         },
         outfit: cache as Record<string, unknown>,
       });
-      write({ ...addScenePatch({ ...cache, scenes }, scene), ...(also?.(scene.id) ?? {}) });
+      // The script's part (its shot made) goes to the script store; the rest with the scene.
+      const { scripts: madeScripts, removedScriptAt, ...rest } = also?.(scene.id) ?? {};
+      write({ ...addScenePatch({ ...cache, scenes }, scene), ...rest });
+      if (madeScripts || removedScriptAt) {
+        applySceneScriptsPatch({ scripts: madeScripts, removedScriptAt });
+      }
       setNote(null);
       return scene.id;
     },
@@ -225,10 +231,12 @@ export function useScenePage(vm: DayEngineView) {
         updatedAt: now,
       };
       const run = runFromScript({ script: nextScript, scenes: allScenes, now });
-      write({
-        scenes: allScenes,
-        scripts: (cache.scripts ?? []).map(entry => (entry.id === script.id ? nextScript : entry)),
-        run,
+      write({ scenes: allScenes, run });
+      // Its shots now name their Scenes (scripts keep their own store: scene-script-store.ts).
+      applySceneScriptsPatch({
+        scripts: loadSceneScriptStore().scripts.map(entry =>
+          entry.id === script.id ? nextScript : entry
+        ),
       });
       return { created: created.length, run };
     },

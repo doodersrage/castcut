@@ -16,6 +16,9 @@ import { clearPlayCampaignState, PLAY_CAMPAIGN_KEY } from './campaign';
 import { clearLookPack, loadLookPack, LOOK_PACK_KEY } from '../look/pack';
 import { PLAY_METRICS_KEY, savePlayMetrics } from './metrics';
 import { registerLocalDataReset } from '../storage/local-data-reset';
+import { registerBackupSettingsContributor } from '../storage/studio-backup';
+import { SCENE_SCRIPTS_KEY } from '../day/scene-script-store';
+import { clearLocalSceneScripts, settingsWithSceneScripts } from '../day/scene-script-store-client';
 import { registerResumeCta } from '../app/empty-cta';
 import { registerPoseTargetGroup } from '../pose/targets';
 import { registerReferenceHealthItems } from '../checks/reference-health';
@@ -71,6 +74,13 @@ registerAppFlag('home.showGoalChooser', () => {
 registerAppFlag('onboarding.firstFilmDone', () => hasCompletedFirstFilm());
 
 // "Clear all local data": the film campaign, Play metrics and the Look pack.
+// Screenplays keep their own store (M6 V6): cleared with local data, and carried in backups.
+registerLocalDataReset('scene-scripts', {
+  keys: [SCENE_SCRIPTS_KEY],
+  clear: clearLocalSceneScripts,
+});
+registerBackupSettingsContributor('scene-scripts', settingsWithSceneScripts);
+
 registerLocalDataReset('play', {
   keys: [PLAY_CAMPAIGN_KEY, PLAY_METRICS_KEY, LOOK_PACK_KEY],
   clear: () => {

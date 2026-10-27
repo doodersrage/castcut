@@ -73,6 +73,7 @@ describe('auth/features', () => {
       assert.equal(featureForPath('/api/plugins/server'), 'plugins');
       assert.equal(featureForPath('/api/webhooks/dispatch'), 'settings');
       assert.equal(featureForPath('/api/storage'), 'settings');
+      assert.equal(featureForPath('/api/scene-scripts'), 'settings');
       assert.equal(featureForPath('/api/scheduled-batch/run'), 'settings');
       assert.equal(featureForPath('/api/maintenance/run'), 'settings');
       assert.equal(featureForPath('/api/collab'), 'studio');

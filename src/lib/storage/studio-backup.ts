@@ -143,7 +143,7 @@ export function exportStudioBackup(): StudioBackupV5 {
     exportedAt: new Date().toISOString(),
     history: loadHistoryFromStorage(),
     locationBlocklist: loadLocationBlocklist(),
-    settings: settingsWithoutSecrets(loadSettingsCache()),
+    settings: withContributedSettings(settingsWithoutSecrets(loadSettingsCache())),
     scenePresets: loadScenePresets(),
     userTemplates: loadUserTemplates(),
     comfyUiSettings: loadComfyUiSettings(),
@@ -163,6 +163,28 @@ export function exportStudioBackup(): StudioBackupV5 {
     nsfwPresetPrefs: loadNsfwPresetPrefs(),
     extras: extrasWithoutSecrets(collectStudioExtras()),
   };
+}
+
+/**
+ * What a feature adds to the backup's settings (Play: the screenplays, kept in their own store
+ * since M6 V6, go back in the Scene tool so a backup restores on any version). Registered by Play:
+ * docs/architecture-boundaries.md.
+ */
+export type BackupSettingsContributor = (settings: SettingsCache) => SettingsCache;
+
+const backupSettingsContributors = new Map<string, BackupSettingsContributor>();
+
+export function registerBackupSettingsContributor(
+  id: string,
+  contributor: BackupSettingsContributor
+): void {
+  backupSettingsContributors.set(id, contributor);
+}
+
+function withContributedSettings(settings: SettingsCache): SettingsCache {
+  let out = settings;
+  for (const contribute of backupSettingsContributors.values()) out = contribute(out);
+  return out;
 }
 
 export function importStudioBackup(backup: StudioBackup): void {

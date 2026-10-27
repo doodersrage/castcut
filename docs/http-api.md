@@ -101,6 +101,7 @@ Allowlist miss: HTTP 400 `{ "error": "Host â€¦ is not on COMFYUI_ALLOWED_HOSTSâ€
 | `/api/storage` | GET, PUT | Namespaced server sync (`PROMPT_DATA_DIR` SQLite) |
 | `/api/storage/restore` | GET | Read-only pull of one namespace |
 | `/api/storage/export` | POST | Encrypted server export snapshot |
+| `/api/scene-scripts` | GET, POST, DELETE | Screenplays, one record per script: GET lists them and their deletions, POST `{ script }` saves one (the newer copy wins), DELETE `?id=&at=` deletes one. Per user with sign-in on; feature `settings` |
 | `/api/lora-train` | GET, POST | Admin LoRA train jobs (SQLite-durable). POST actions: `export-dataset`, `start` (accepts `datasetPath`), `progress`, `complete` |
 | `/api/plugins/server` | GET, POST, DELETE | Server plugin registry under `PROMPT_DATA_DIR/plugins` (ZIP/URL install; optional HMAC). Feature `plugins`; admin when auth on |
 

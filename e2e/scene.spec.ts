@@ -170,7 +170,10 @@ async function storedScene(page: Page): Promise<string> {
   );
 }
 
-/** The Scene page's stored settings (tools.scene), as JSON, read from the app's IndexedDB. */
+/**
+ * The Scene page's stored settings (tools.scene), as JSON, read from the app's IndexedDB — with
+ * `scripts` from their own store (M6 V6: castcut-scene-scripts-v1) once they have moved there.
+ */
 async function storedSceneTool(page: Page): Promise<string> {
   return page.evaluate(
     () =>
@@ -184,15 +187,16 @@ async function storedSceneTool(page: Page): Promise<string> {
             resolve('');
             return;
           }
-          const get = db
-            .transaction('kv', 'readonly')
-            .objectStore('kv')
-            .get('comfy-prompt-tool-settings-tools-v1');
-          get.onsuccess = () => {
+          const store = db.transaction('kv', 'readonly').objectStore('kv');
+          const get = store.get('comfy-prompt-tool-settings-tools-v1');
+          const own = store.get('castcut-scene-scripts-v1');
+          own.onsuccess = () => {
             db.close();
-            resolve(JSON.stringify(get.result?.value?.tools?.scene ?? {}));
+            const scene = get.result?.value?.tools?.scene ?? {};
+            const scripts = own.result?.value?.scripts;
+            resolve(JSON.stringify(Array.isArray(scripts) ? { ...scene, scripts } : scene));
           };
-          get.onerror = () => {
+          own.onerror = () => {
             db.close();
             resolve('');
           };
@@ -201,43 +205,11 @@ async function storedSceneTool(page: Page): Promise<string> {
   );
 }
 
-/** The stored scripts, read from the app's IndexedDB settings ("count|cast|name" of the first). */
+/** The stored scripts ("count|cast|name" of the first), from where they are kept. */
 async function storedScripts(page: Page): Promise<string> {
-  return page.evaluate(
-    () =>
-      new Promise<string>(resolve => {
-        const request = indexedDB.open('comfy-prompt-studio-v1');
-        request.onerror = () => resolve('');
-        request.onsuccess = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains('kv')) {
-            db.close();
-            resolve('');
-            return;
-          }
-          const get = db
-            .transaction('kv', 'readonly')
-            .objectStore('kv')
-            .get('comfy-prompt-tool-settings-tools-v1');
-          get.onsuccess = () => {
-            db.close();
-            const scripts = get.result?.value?.tools?.scene?.scripts;
-            const first = Array.isArray(scripts) ? scripts[0] : null;
-            resolve(
-              Array.isArray(scripts)
-                ? first
-                  ? `${scripts.length}|${first.castId}|${first.name}`
-                  : '0'
-                : '0'
-            );
-          };
-          get.onerror = () => {
-            db.close();
-            resolve('');
-          };
-        };
-      })
-  );
+  const scripts = JSON.parse((await storedSceneTool(page)) || '{}').scripts;
+  const first = Array.isArray(scripts) ? scripts[0] : null;
+  return first ? `${scripts.length}|${first.castId}|${first.name}` : '0';
 }
 
 async function shot(page: Page, name: string) {
@@ -375,6 +347,66 @@ test('a script is imported, read scene by scene, kept after a reload, and delete
 });
 
 // M3 S4: a script scene's shots are drafted, one is made a Scene — filled in and linked both ways.
+// M6 V6: scripts saved in the Scene settings (before they had their own store) move there, leave
+// the settings, and go to the server one script at a time.
+test('a script kept in the settings moves to its own store and is sent on its own', async ({
+  page,
+}) => {
+  const sent: string[] = [];
+  page.on('request', request => {
+    if (request.method() === 'POST' && /\/api\/scene-scripts$/.test(request.url())) {
+      sent.push((request.postDataJSON() as { script?: { id?: string } }).script?.id ?? '');
+    }
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [
+          {
+            id: 'script-old',
+            castId: CAST,
+            name: 'Kept before',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('script-open-script-old')).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toBe(`1|${CAST}|Kept before`);
+  // Out of the settings: their record no longer carries it.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<boolean>(resolve => {
+              const request = indexedDB.open('comfy-prompt-studio-v1');
+              request.onsuccess = () => {
+                const get = request.result
+                  .transaction('kv', 'readonly')
+                  .objectStore('kv')
+                  .get('comfy-prompt-tool-settings-tools-v1');
+                get.onsuccess = () => {
+                  request.result.close();
+                  resolve(Array.isArray(get.result?.value?.tools?.scene?.scripts));
+                };
+              };
+            })
+        ),
+      { timeout: 30_000 }
+    )
+    .toBe(false);
+  await expect.poll(() => sent, { timeout: 30_000 }).toContain('script-old');
+});
+
 test('a script scene is drafted into shots and a shot is made a Scene', async ({ page }) => {
   const source = [
     'INT. KITCHEN - MORNING',
