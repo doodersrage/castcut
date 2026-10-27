@@ -1584,6 +1584,11 @@ also need the user's ComfyUI time; _you_ marks steps only the user can do.
     browser's own Cast, stories and record lists in, record by record, and pushes them
     (`extrasForEmptyStartup` in `app/studio-extras.ts`); a browser with nothing of its own
     still takes the server's copy as is.
+  - D11 (found running V3, provenance): a Qwen-Image 2.1 take was recorded as Rapid AIO — 2.1
+    queues on Rapid AIO's graph and the take kept that graph's id — so the Gallery named the
+    wrong engine and a replay from it ran on Rapid AIO (ComfyUI's history showed the 2.1 files
+    loaded). The take now records the engine asked for when it rides another graph
+    (`queuedTakeModel`); Upscale and sampler memory still judge it by the graph it ran on.
   - Left: D3–D6.
 
 **V5 — Usability walkthrough, Cast to restore** · M + _you_

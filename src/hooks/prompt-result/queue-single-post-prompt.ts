@@ -7,6 +7,7 @@ import {
   resolveSharedEffectiveSessionLoraStrengthOverrides,
 } from '@/lib/comfyui/settings';
 import { loadSettingsCache } from '@/lib/settings/cache';
+import { queuedTakeModel } from '@/lib/queue/tool-model';
 import { engineDisplayName, isCloudEngine, parseEngineId } from '@/lib/engine/capabilities';
 import {
   loadEngineSettings,
@@ -217,7 +218,7 @@ export async function postQueueSinglePrompt(input: {
             hasInputImage: usesInitImage,
             clipMode,
           })
-        : queueModel,
+        : queuedTakeModel(options?.queueModel ?? configModel, queueModel),
       sessionActiveLoraIds:
         options?.sessionActiveLoraIds ?? resolveSharedEffectiveSessionLoraIds(queueModel),
       sessionLoraStrengthOverrides: resolveSharedEffectiveSessionLoraStrengthOverrides(queueModel),

@@ -9,6 +9,7 @@ import {
   resolveEditCounterpartForImg2img,
   resolveModelForPromptGeneration,
   resolveModelForQueueTool,
+  queuedTakeModel,
   resolvePreferredImg2imgModel,
   stillImageToolModel,
   resolvePreferredLookModel,
@@ -500,5 +501,23 @@ describe("stillImageToolModel", () => {
     assert.equal(stillImageToolModel("controlnet", "flux-inpaint"), "flux-inpaint");
     assert.equal(stillImageToolModel("video", "wan-video-rapid-aio"), "wan-video-rapid-aio");
     assert.equal(stillImageToolModel(undefined, "wan-video-rapid-aio"), "wan-video-rapid-aio");
+  });
+});
+
+describe("queuedTakeModel", () => {
+  it("records Qwen-Image 2.1, not the Rapid AIO graph it queues on", () => {
+    const queued = resolveModelForQueueTool("qwen-image-2.1-edit-turbo-8", "image-prompt");
+    assert.equal(queued, "qwen-rapid-aio-edit-nsfw");
+    assert.equal(queuedTakeModel("qwen-image-2.1-edit-turbo-8", queued), "qwen-image-2.1-edit-turbo-8");
+  });
+
+  it("records the model queued for an engine on its own graph", () => {
+    assert.equal(
+      queuedTakeModel("qwen-rapid-aio-edit-nsfw", "qwen-rapid-aio-edit-nsfw"),
+      "qwen-rapid-aio-edit-nsfw"
+    );
+    // An edit counterpart swapped in by the tool is what rendered, so it stays.
+    const queued = resolveModelForQueueTool("qwen-image-edit-2511-lightning-8", "generate");
+    assert.equal(queuedTakeModel("qwen-image-edit-2511-lightning-8", queued), queued);
   });
 });

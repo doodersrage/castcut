@@ -565,6 +565,19 @@ export function resolveModelForQueueTool(
 }
 
 /**
+ * The model a queued take records: the engine asked for when it rides another graph (Qwen-Image
+ * 2.1 queues on Rapid AIO's; the runtime renders 2.1), else the model queued. M6 D11: 2.1 takes
+ * were recorded as Rapid AIO, so the Gallery named the wrong engine and a replay ran on Rapid.
+ */
+export function queuedTakeModel(
+  requested: ComfyImageModel | string,
+  queued: ComfyImageModel
+): ComfyImageModel {
+  const normalized = normalizeModel(requested);
+  return poseProfileForModel(normalized).graphBaseModel === queued ? normalized : queued;
+}
+
+/**
  * Prompt writing on Generate should use scene/T2I profiles — not edit-instruction
  * "Keep/Replace" templates — even when an edit checkpoint is selected for queueing.
  */

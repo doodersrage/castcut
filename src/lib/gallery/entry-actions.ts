@@ -2,6 +2,7 @@ import type { ComfyGalleryEntry } from './comfyui-gallery';
 import { resolveGalleryOutputImageUrl } from './output-upscale';
 import { isQwenRapidAioModel } from '../model/denoise-defaults';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';
+import { poseProfileForModel } from '../pose/pose-model-profile';
 import {
   normalizeQueueQualityProfile,
   profileSkipsOutputUpscaleForModel,
@@ -13,7 +14,9 @@ export function galleryEntrySupportsUpscale(
   model?: string,
   qualityProfile?: Extract<QueueQualityProfile, 'final' | 'max'>
 ): boolean {
-  if (isQwenLightningModel(model) || isQwenRapidAioModel(model)) {
+  // Judged by the graph it ran on: a Qwen-Image 2.1 take is distilled like the Rapid AIO graph.
+  const graph = poseProfileForModel(model).graphBaseModel ?? model;
+  if (isQwenLightningModel(graph) || isQwenRapidAioModel(graph)) {
     return false;
   }
   // Klein Base / Turbo distilled: Final/Max image-space enlarge is a no-op (scale 1).

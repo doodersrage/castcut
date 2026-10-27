@@ -4,6 +4,7 @@ import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import type { WorkflowParamValues } from '../comfyui/config';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';
 import { isQwenRapidAioModel } from '../model/denoise-defaults';
+import { poseProfileForModel } from '../pose/pose-model-profile';
 import { loadSettingsCache, saveSharedSettings } from '../settings/cache';
 
 export type ModelSamplerMemoryEntry = {
@@ -39,8 +40,10 @@ export function rememberSamplerFromGalleryEntry(
   if (!model) {
     return false;
   }
-  // Distilled stacks must stay CFG-1 — never learn overrides from ratings.
-  if (isQwenLightningModel(model) || isQwenRapidAioModel(model)) {
+  // Distilled stacks must stay CFG-1 — never learn overrides from ratings (Qwen-Image 2.1 rides
+  // the Rapid AIO graph).
+  const graph = poseProfileForModel(model).graphBaseModel ?? model;
+  if (isQwenLightningModel(graph) || isQwenRapidAioModel(graph)) {
     return false;
   }
   const params = entry.queueParams;

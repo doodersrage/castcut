@@ -77,6 +77,15 @@ describe("sampler-memory", () => {
       }),
       false,
     );
+    // A Qwen-Image 2.1 take (recorded as itself since M6 D11) runs on the Rapid AIO graph.
+    assert.equal(
+      rememberSamplerFromGalleryEntry({
+        model: "qwen-image-2.1-edit-turbo-8",
+        queueParams: { cfg: "1", steps: "8" },
+        reviewRating: 5,
+      }),
+      false,
+    );
     assert.deepEqual(loadModelSamplerMemory(), {});
   });
 
