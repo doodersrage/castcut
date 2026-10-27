@@ -662,9 +662,18 @@ test('export: a profile sets the shape, and the preflight flags too little disk 
   // "Cut anyway" goes on to the encode.
   await page.getByTestId('cut-film').first().click();
   await page.getByTestId('confirm-dialog-confirm').click();
-  // Then the shot checks, as before (the two stills look alike).
-  await page.getByTestId('cut-problems-cut-anyway').click();
-  await expect.poll(() => encodes, { timeout: 30_000 }).toBeGreaterThan(0);
+  // Then the shot checks, as before: where they flag the two stills as alike (it depends on the
+  // machine's picture checks — CI's don't), their dialog is answered too. Either way, it encodes.
+  await expect
+    .poll(
+      async () => {
+        const anyway = page.getByTestId('cut-problems-cut-anyway');
+        if (await anyway.isVisible().catch(() => false)) await anyway.click();
+        return encodes;
+      },
+      { timeout: 30_000 }
+    )
+    .toBeGreaterThan(0);
 
   await page.getByTestId('cut-profile-vertical').click();
   await expect(page.getByTestId('cut-profile-vertical')).toHaveAttribute('aria-pressed', 'true');
